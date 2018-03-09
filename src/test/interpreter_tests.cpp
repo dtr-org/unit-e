@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(signaturehash_vote)
 
     uint256 expectedHash = ss.GetHash();
 
-    uint256 hash = SignatureHash(prevScriptPK, tx, 0, SIGHASH_ALL, amount, SIGVERSION_WITNESS_V0);
+    uint256 hash = SignatureHash(prevScriptPK, tx, 0, SIGHASH_ALL, amount, SigVersion::WITNESS_V0);
     BOOST_CHECK_EQUAL(hash, expectedHash);
 }
 

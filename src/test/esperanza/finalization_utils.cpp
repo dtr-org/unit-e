@@ -28,7 +28,7 @@ CTransaction CreateBaseTransaction(const CTransaction &spendableTx,
   // Sign
   std::vector<unsigned char> vchSig;
   uint256 hash = SignatureHash(spendableTx.vout[0].scriptPubKey, mutTx, 0,
-                               SIGHASH_ALL, amount, SIGVERSION_BASE);
+                               SIGHASH_ALL, amount, SigVersion::BASE);
 
   BOOST_CHECK(spendableKey.Sign(hash, vchSig));
   vchSig.push_back((unsigned char)SIGHASH_ALL);

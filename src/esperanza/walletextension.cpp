@@ -588,7 +588,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
                                                 burnOut.nValue, SIGHASH_ALL);
 
   std::vector<unsigned char> vchSig;
-  sigCreator.CreateSig(vchSig, pubKey.GetID(), burnOut.scriptPubKey, SIGVERSION_BASE);
+  sigCreator.CreateSig(vchSig, pubKey.GetID(), burnOut.scriptPubKey, SigVersion::BASE);
   sigdata.scriptSig = CScript() << vchSig;
   sigdata.scriptSig += scriptSig;
 
