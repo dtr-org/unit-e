@@ -126,8 +126,8 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
     }
     const CTxOut &out = vout[index];
     SignatureData sigdata;
-    const TransactionSignatureCreator sigcreator(&m_enclosing_wallet, &tx_const, ix, out.nValue, SIGHASH_ALL);
-    if (!ProduceSignature(sigcreator, out.scriptPubKey, sigdata)) {
+    const TransactionSignatureCreator sigcreator(&tx_const, ix, out.nValue, SIGHASH_ALL);
+    if (!ProduceSignature(m_enclosing_wallet, sigcreator, out.scriptPubKey, sigdata)) {
       return false;
     }
     UpdateTransaction(tx, ix, sigdata);
@@ -278,10 +278,10 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   SignatureData sigdata;
   std::string strFailReason;
 
-  if (!ProduceSignature(TransactionSignatureCreator(&m_enclosing_wallet,
-                                                    &txNewConst, nIn, amount,
-                                                    SIGHASH_ALL),
-                        prevScriptPubkey, sigdata, &txNewConst)) {
+  if (!ProduceSignature(
+          m_enclosing_wallet,
+          TransactionSignatureCreator(&txNewConst, nIn, amount, SIGHASH_ALL),
+          prevScriptPubkey, sigdata, &txNewConst)) {
     return false;
   }
   UpdateTransaction(txNew, nIn, sigdata);
@@ -380,10 +380,10 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   const uint32_t nIn = 0;
   SignatureData sigdata;
 
-  if (!ProduceSignature(
-          TransactionSignatureCreator(&m_enclosing_wallet, &txNewConst, nIn,
-                                      initialDeposit, SIGHASH_ALL),
-          prevScriptPubkey, sigdata, &txNewConst)) {
+  if (!ProduceSignature(m_enclosing_wallet,
+                        TransactionSignatureCreator(
+                            &txNewConst, nIn, initialDeposit, SIGHASH_ALL),
+                        prevScriptPubkey, sigdata, &txNewConst)) {
     return false;
   }
   UpdateTransaction(txNew, nIn, sigdata);
@@ -498,10 +498,10 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   uint32_t nIn = 0;
   SignatureData sigdata;
 
-  if (!ProduceSignature(TransactionSignatureCreator(&m_enclosing_wallet,
-                                                    &txNewConst, nIn, amount,
-                                                    SIGHASH_ALL),
-                        scriptPubKey, sigdata, &txNewConst)) {
+  if (!ProduceSignature(
+          m_enclosing_wallet,
+          TransactionSignatureCreator(&txNewConst, nIn, amount, SIGHASH_ALL),
+          scriptPubKey, sigdata, &txNewConst)) {
     return error("%s: Cannot produce signature for vote transaction.", __func__);
   }
   UpdateTransaction(txNew, nIn, sigdata);
@@ -584,11 +584,11 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
     }
   }
 
-  auto sigCreator = TransactionSignatureCreator(&m_enclosing_wallet, &txNewConst, nIn,
+  auto sigCreator = TransactionSignatureCreator(&txNewConst, nIn,
                                                 burnOut.nValue, SIGHASH_ALL);
 
   std::vector<unsigned char> vchSig;
-  sigCreator.CreateSig(vchSig, pubKey.GetID(), burnOut.scriptPubKey, SigVersion::BASE);
+  sigCreator.CreateSig(m_enclosing_wallet, vchSig, pubKey.GetID(), burnOut.scriptPubKey, SigVersion::BASE);
   sigdata.scriptSig = CScript() << vchSig;
   sigdata.scriptSig += scriptSig;
 

@@ -31,9 +31,10 @@ CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
     const auto amountIn = utxo.m_txOut.nValue;
 
     const TransactionSignatureCreator signatureCreator(
-        wallet, &constTx, static_cast<unsigned>(i), amountIn, SIGHASH_ALL);
+        &constTx, static_cast<unsigned>(i), amountIn, SIGHASH_ALL);
 
-    if (!ProduceSignature(signatureCreator, scriptPubKey, sigdata, &constTx)) {
+    if (!ProduceSignature(*wallet, signatureCreator, scriptPubKey, sigdata,
+                          &constTx)) {
       LogPrint(BCLog::RPC, "Unable to sign admin transaction");
       throw JSONRPCError(RPC_TRANSACTION_ERROR,
                          "Unable to sign admin transaction");

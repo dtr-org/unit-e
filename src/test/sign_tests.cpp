@@ -48,10 +48,9 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   CTransaction txToConst(txn);
   SignatureData sigdata;
 
-  BOOST_CHECK(
-      ProduceSignature(TransactionSignatureCreator(&keystore, &txToConst, 0,
-                                                   amount, SIGHASH_ALL),
-                       prevScriptPubKey, sigdata, &txToConst));
+  BOOST_CHECK(ProduceSignature(
+      keystore, TransactionSignatureCreator(&txToConst, 0, amount, SIGHASH_ALL),
+      prevScriptPubKey, sigdata, &txToConst));
 
   ScriptError serror;
   BOOST_CHECK(VerifyScript(sigdata.scriptSig, prevScriptPubKey,
@@ -101,8 +100,8 @@ BOOST_AUTO_TEST_CASE(producesignature_logout) {
   std::string strFailReason;
 
   BOOST_CHECK(ProduceSignature(
-      TransactionSignatureCreator(&keystore, &txToConst, nIn,
-                                  amount, SIGHASH_ALL),
+      keystore,
+      TransactionSignatureCreator(&txToConst, nIn, amount, SIGHASH_ALL),
       prevScriptPubKey, sigdata, &txToConst));
 
   txn.vin[0].scriptSig = sigdata.scriptSig + scriptSig;
@@ -147,8 +146,8 @@ BOOST_AUTO_TEST_CASE(producesignature_withdraw) {
   std::string strFailReason;
 
   BOOST_CHECK(ProduceSignature(
-      TransactionSignatureCreator(&keystore, &txToConst, nIn,
-                                  amount, SIGHASH_ALL),
+      keystore,
+      TransactionSignatureCreator(&txToConst, nIn, amount, SIGHASH_ALL),
       prevScriptPubKey, sigdata, &txToConst));
 
   txn.vin[0].scriptSig = sigdata.scriptSig + scriptSig;
