@@ -212,7 +212,7 @@ bool parseUnitEURI(QString uri, SendCoinsRecipient *out)
     //    which will lower-case it (and thus invalidate the address).
     if(uri.startsWith("unite://", Qt::CaseInsensitive))
     {
-        uri.replace(0, 10, "unite:");
+        uri.replace(0, 8, "unite:");
     }
     QUrl uriInstance(uri);
     return parseUnitEURI(uriInstance, out);
