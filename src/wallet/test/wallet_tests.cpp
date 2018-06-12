@@ -182,16 +182,16 @@ BOOST_AUTO_TEST_CASE(coin_selection_tests)
         BOOST_CHECK_EQUAL(setCoinsRet.size(), 2U);
 
         // check that the smallest bigger coin is used
-        add_coin( 1*COIN);
-        add_coin( 2*COIN);
-        add_coin( 3*COIN);
-        add_coin( 4*COIN); // now we have 5+6+7+8+18+20+30+100+200+300+400 = 1094 cents
+        add_coin( 1*UNIT);
+        add_coin( 2*UNIT);
+        add_coin( 3*UNIT);
+        add_coin( 4*UNIT); // now we have 5+6+7+8+18+20+30+100+200+300+400 = 1094 cents
         BOOST_CHECK( testWallet.SelectCoinsMinConf(95 * CENT, 1, 1, 0, vCoins, setCoinsRet, nValueRet));
-        BOOST_CHECK_EQUAL(nValueRet, 1 * COIN);  // we should get 1 UNT in 1 coin
+        BOOST_CHECK_EQUAL(nValueRet, 1 * UNIT);  // we should get 1 UNT in 1 coin
         BOOST_CHECK_EQUAL(setCoinsRet.size(), 1U);
 
         BOOST_CHECK( testWallet.SelectCoinsMinConf(195 * CENT, 1, 1, 0, vCoins, setCoinsRet, nValueRet));
-        BOOST_CHECK_EQUAL(nValueRet, 2 * COIN);  // we should get 2 UNT in 1 coin
+        BOOST_CHECK_EQUAL(nValueRet, 2 * UNIT);  // we should get 2 UNT in 1 coin
         BOOST_CHECK_EQUAL(setCoinsRet.size(), 1U);
 
         // empty the wallet and start again, now with fractions of a cent, to test small change avoidance
@@ -227,10 +227,10 @@ BOOST_AUTO_TEST_CASE(coin_selection_tests)
         // they tried to consolidate 10 50k coins into one 500k coin, and ended up with 50k in change
         empty_wallet();
         for (int j = 0; j < 20; j++)
-            add_coin(50000 * COIN);
+            add_coin(50000 * UNIT);
 
-        BOOST_CHECK( testWallet.SelectCoinsMinConf(500000 * COIN, 1, 1, 0, vCoins, setCoinsRet, nValueRet));
-        BOOST_CHECK_EQUAL(nValueRet, 500000 * COIN); // we should get the exact amount
+        BOOST_CHECK( testWallet.SelectCoinsMinConf(500000 * UNIT, 1, 1, 0, vCoins, setCoinsRet, nValueRet));
+        BOOST_CHECK_EQUAL(nValueRet, 500000 * UNIT); // we should get the exact amount
         BOOST_CHECK_EQUAL(setCoinsRet.size(), 10U); // in ten coins
 
         // if there's not enough in the smaller coins to make at least 1 * MIN_CHANGE change (0.5+0.6+0.7 < 1.0+1.0),
@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE(coin_selection_tests)
         BOOST_CHECK_EQUAL(setCoinsRet.size(), 2U);
 
         // test with many inputs
-        for (CAmount amt=1500; amt < COIN; amt*=10) {
+        for (CAmount amt=1500; amt < UNIT; amt*=10) {
              empty_wallet();
              // Create 676 inputs (=  (old MAX_STANDARD_TX_SIZE == 100000)  / 148 bytes per input)
              for (uint16_t j = 0; j < 676; j++)
@@ -296,12 +296,12 @@ BOOST_AUTO_TEST_CASE(coin_selection_tests)
         {
             empty_wallet();
             for (int i2 = 0; i2 < 100; i2++)
-                add_coin(COIN);
+                add_coin(UNIT);
 
             // picking 50 from 100 coins doesn't depend on the shuffle,
             // but does depend on randomness in the stochastic approximation code
-            BOOST_CHECK(testWallet.SelectCoinsMinConf(50 * COIN, 1, 6, 0, vCoins, setCoinsRet , nValueRet));
-            BOOST_CHECK(testWallet.SelectCoinsMinConf(50 * COIN, 1, 6, 0, vCoins, setCoinsRet2, nValueRet));
+            BOOST_CHECK(testWallet.SelectCoinsMinConf(50 * UNIT, 1, 6, 0, vCoins, setCoinsRet , nValueRet));
+            BOOST_CHECK(testWallet.SelectCoinsMinConf(50 * UNIT, 1, 6, 0, vCoins, setCoinsRet2, nValueRet));
             BOOST_CHECK(!equal_sets(setCoinsRet, setCoinsRet2));
 
             int fails = 0;
@@ -309,8 +309,8 @@ BOOST_AUTO_TEST_CASE(coin_selection_tests)
             {
                 // selecting 1 from 100 identical coins depends on the shuffle; this test will fail 1% of the time
                 // run the test RANDOM_REPEATS times and only complain if all of them fail
-                BOOST_CHECK(testWallet.SelectCoinsMinConf(COIN, 1, 6, 0, vCoins, setCoinsRet , nValueRet));
-                BOOST_CHECK(testWallet.SelectCoinsMinConf(COIN, 1, 6, 0, vCoins, setCoinsRet2, nValueRet));
+                BOOST_CHECK(testWallet.SelectCoinsMinConf(UNIT, 1, 6, 0, vCoins, setCoinsRet , nValueRet));
+                BOOST_CHECK(testWallet.SelectCoinsMinConf(UNIT, 1, 6, 0, vCoins, setCoinsRet2, nValueRet));
                 if (equal_sets(setCoinsRet, setCoinsRet2))
                     fails++;
             }
@@ -352,11 +352,11 @@ BOOST_AUTO_TEST_CASE(ApproximateBestSubset)
 
     // Test vValue sort order
     for (int i = 0; i < 1000; i++)
-        add_coin(1000 * COIN);
-    add_coin(3 * COIN);
+        add_coin(1000 * UNIT);
+    add_coin(3 * UNIT);
 
-    BOOST_CHECK(testWallet.SelectCoinsMinConf(1003 * COIN, 1, 6, 0, vCoins, setCoinsRet, nValueRet));
-    BOOST_CHECK_EQUAL(nValueRet, 1003 * COIN);
+    BOOST_CHECK(testWallet.SelectCoinsMinConf(1003 * UNIT, 1, 6, 0, vCoins, setCoinsRet, nValueRet));
+    BOOST_CHECK_EQUAL(nValueRet, 1003 * UNIT);
     BOOST_CHECK_EQUAL(setCoinsRet.size(), 2U);
 
     empty_wallet();
@@ -387,7 +387,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(nullBlock, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 100 * COIN);
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 100 * UNIT);
     }
 
     // Prune the older block file.
@@ -402,7 +402,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(oldTip, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 50 * COIN);
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 50 * UNIT);
     }
 
     // Verify importmulti RPC returns failure for a key whose creation time is
@@ -530,7 +530,7 @@ BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
     // credit amount is calculated.
     wtx.MarkDirty();
     wallet.AddKeyPubKey(coinbaseKey, coinbaseKey.GetPubKey());
-    BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), 50*COIN);
+    BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), 50*UNIT);
 }
 
 static int64_t AddTx(CWallet& wallet, uint32_t lockTime, int64_t mockTime, int64_t blockTime)
@@ -666,13 +666,13 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
 
     // Check initial balance from one mature coinbase transaction.
-    BOOST_CHECK_EQUAL(50 * COIN, wallet->GetAvailableBalance());
+    BOOST_CHECK_EQUAL(50 * UNIT, wallet->GetAvailableBalance());
 
     // Add a transaction creating a change address, and confirm ListCoins still
     // returns the coin associated with the change address underneath the
     // coinbaseKey pubkey, even though the change address has a different
     // pubkey.
-    AddTx(CRecipient{GetScriptForRawPubKey({}), 1 * COIN, false /* subtract fee */});
+    AddTx(CRecipient{GetScriptForRawPubKey({}), 1 * UNIT, false /* subtract fee */});
     list = wallet->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);

@@ -819,7 +819,7 @@ class FullBlockTest(ComparisonTestFramework):
         # tx with output value > input value out of range
         tip(57)
         b59 = block(59)
-        tx = create_and_sign_tx(out[17].tx, out[17].n, 51*COIN)
+        tx = create_and_sign_tx(out[17].tx, out[17].n, 51*UNIT)
         b59 = update_block(59, [tx])
         yield rejected(RejectResult(16, b'bad-txns-in-belowout'))
 
@@ -1136,18 +1136,18 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(76)
         block(77)
-        tx77 = create_and_sign_tx(out[24].tx, out[24].n, 10*COIN)
+        tx77 = create_and_sign_tx(out[24].tx, out[24].n, 10*UNIT)
         update_block(77, [tx77])
         yield accepted()
         save_spendable_output()
 
         block(78)
-        tx78 = create_tx(tx77, 0, 9*COIN)
+        tx78 = create_tx(tx77, 0, 9*UNIT)
         update_block(78, [tx78])
         yield accepted()
 
         block(79)
-        tx79 = create_tx(tx78, 0, 8*COIN)
+        tx79 = create_tx(tx78, 0, 8*UNIT)
         update_block(79, [tx79])
         yield accepted()
 
