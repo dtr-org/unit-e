@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <netbase.h>
-#include <test/test_bitcoin.h>
+#include <test/test_unite.h>
 #include <utilstrencodings.h>
 
 #include <string>
@@ -82,10 +82,10 @@ bool static TestSplitHost(std::string test, std::string host, int port)
 
 BOOST_AUTO_TEST_CASE(netbase_splithost)
 {
-    BOOST_CHECK(TestSplitHost("www.bitcoin.org", "www.bitcoin.org", -1));
-    BOOST_CHECK(TestSplitHost("[www.bitcoin.org]", "www.bitcoin.org", -1));
-    BOOST_CHECK(TestSplitHost("www.bitcoin.org:80", "www.bitcoin.org", 80));
-    BOOST_CHECK(TestSplitHost("[www.bitcoin.org]:80", "www.bitcoin.org", 80));
+    BOOST_CHECK(TestSplitHost("www.unite.org", "www.unite.org", -1));
+    BOOST_CHECK(TestSplitHost("[www.unite.org]", "www.unite.org", -1));
+    BOOST_CHECK(TestSplitHost("www.unite.org:80", "www.unite.org", 80));
+    BOOST_CHECK(TestSplitHost("[www.unite.org]:80", "www.unite.org", 80));
     BOOST_CHECK(TestSplitHost("127.0.0.1", "127.0.0.1", -1));
     BOOST_CHECK(TestSplitHost("127.0.0.1:7182", "127.0.0.1", 7182));
     BOOST_CHECK(TestSplitHost("[127.0.0.1]", "127.0.0.1", -1));

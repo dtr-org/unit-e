@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_WALLET_DB_H
-#define BITCOIN_WALLET_DB_H
+#ifndef UNITE_WALLET_DB_H
+#define UNITE_WALLET_DB_H
 
 #include <clientversion.h>
 #include <fs.h>
@@ -368,4 +368,4 @@ public:
     bool static Rewrite(CWalletDBWrapper& dbw, const char* pszSkip = nullptr);
 };
 
-#endif // BITCOIN_WALLET_DB_H
+#endif // UNITE_WALLET_DB_H
