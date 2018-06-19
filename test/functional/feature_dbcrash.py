@@ -195,7 +195,7 @@ class ChainstateWriteCrashTest(UnitETestFramework):
             for i in range(2):
                 utxo = utxo_list.pop()
                 tx.vin.append(CTxIn(COutPoint(int(utxo['txid'], 16), utxo['vout'])))
-                input_amount += int(utxo['amount'] * COIN)
+                input_amount += int(utxo['amount'] * UNIT)
             output_amount = (input_amount - FEE) // 3
 
             if output_amount <= 0:
