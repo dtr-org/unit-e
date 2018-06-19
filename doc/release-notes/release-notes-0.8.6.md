@@ -29,7 +29,7 @@ your machine.
 - Default block size increase for miners.
   (see https://gist.github.com/gavinandresen/7670433#086-accept-into-block)
 
-- Remove the all-outputs-must-be-greater-than-CENT-to-qualify-as-free rule for relaying
+- Remove the all-outputs-must-be-greater-than-EEES-to-qualify-as-free rule for relaying
   (see https://gist.github.com/gavinandresen/7670433#086-relaying)
 
 - Lower maximum size for free transaction creation
