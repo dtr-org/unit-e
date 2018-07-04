@@ -9,10 +9,57 @@
 #include <tinyformat.h>
 #include <util.h>
 #include <utilstrencodings.h>
+#include <utilmoneystr.h>
 
 #include <assert.h>
 
 #include <chainparamsseeds.h>
+
+int64_t CChainParams::GetCoinYearReward(int64_t nTime) const
+{
+    static const int64_t nSecondsInYear = 365 * 24 * 60 * 60;
+
+    if (strNetworkID != "regtest") {
+        // Y1 5%, Y2 4%, Y3 3%, Y4 2%, ... YN 2%
+        int64_t nYearsSinceGenesis = (nTime - genesis.nTime) / nSecondsInYear;
+
+        if (nYearsSinceGenesis >= 0 && nYearsSinceGenesis < 3) {
+            return (5 - nYearsSinceGenesis) * EEES;
+        }
+    };
+
+    return nCoinYearReward;
+};
+
+int64_t CChainParams::GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const
+{
+    int64_t nSubsidy;
+
+    nSubsidy = (pindexPrev->nMoneySupply / UNIT) * GetCoinYearReward(pindexPrev->nTime) /
+               (365 * 24 * (60 * 60 / nTargetSpacing));
+
+    if (LogAcceptCategory(BCLog::POS) && gArgs.GetBoolArg("-printcreation", false)) {
+        LogPrintf("GetProofOfStakeReward(): create=%s\n", FormatMoney(nSubsidy).c_str());
+    }
+
+    return nSubsidy + nFees;
+};
+
+bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const
+{
+    for (auto &cth : Params().vImportedCoinbaseTxns)
+    {
+        if (cth.nHeight != (uint32_t)nHeight) {
+            continue;
+        }
+
+        if (hash == cth.hash) {
+            return true;
+        }
+        return error("%s - Hash mismatch at height %d: %s, expect %s.", __func__, nHeight, hash.ToString(), cth.hash.ToString());
+    };
+    return error("%s - Unknown height.", __func__);
+};
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {

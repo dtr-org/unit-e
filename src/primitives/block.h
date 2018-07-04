@@ -89,6 +89,11 @@ public:
         *((CBlockHeader*)this) = header;
     }
 
+    bool IsProofOfStake() const
+    {
+        return (vtx.size() > 0 && vtx[0]->IsCoinStake());
+    }
+
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>

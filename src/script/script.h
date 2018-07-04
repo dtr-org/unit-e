@@ -179,6 +179,7 @@ enum opcodetype
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
     OP_NOP9 = 0xb8,
+    OP_ISCOINSTAKE = OP_NOP9,
     OP_NOP10 = 0xb9,
 
 
@@ -643,6 +644,9 @@ public:
     bool IsPayToScriptHash() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
+
+    //! Proof-of-Stake: Checks whether the script has an IS_COINSTAKE_OP
+    bool HasIsCoinstakeOp() const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;

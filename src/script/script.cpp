@@ -234,6 +234,26 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     return false;
 }
 
+bool CScript::HasIsCoinstakeOp() const {
+    CScript::const_iterator pc = this->begin();
+
+    if (pc == this->end()) {
+        return false;
+    }
+
+    opcodetype opcode;
+    std::vector<unsigned char> vchPushValue;
+
+    if (!this->GetOp(pc, opcode, vchPushValue)) {
+        return false;
+    }
+
+    if (opcode == OP_ISCOINSTAKE) {
+        return true;
+    }
+        return false;
+};
+
 bool CScript::IsPushOnly(const_iterator pc) const
 {
     while (pc < end())
