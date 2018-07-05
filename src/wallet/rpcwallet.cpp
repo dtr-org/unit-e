@@ -35,6 +35,8 @@
 
 #include <univalue.h>
 
+#include <functional>
+
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
 CWallet *GetWalletForJSONRPCRequest(const JSONRPCRequest& request)
@@ -2358,9 +2360,10 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
     if (nSleepTime < 0) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Timeout cannot be negative.");
     }
-    // Clamp timeout to 2^30 seconds
-    if (nSleepTime > (int64_t)1 << 30) {
-        nSleepTime = (int64_t)1 << 30;
+    // Clamp timeout
+    constexpr int64_t MAX_SLEEP_TIME = 100000000; // larger values trigger a macos/libevent bug?
+    if (nSleepTime > MAX_SLEEP_TIME) {
+        nSleepTime = MAX_SLEEP_TIME;
     }
 
     if (strWalletPass.length() > 0)
