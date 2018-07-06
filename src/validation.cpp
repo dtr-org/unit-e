@@ -1119,6 +1119,7 @@ bool GetTransactionAndBlockHeader(
             for (const auto& tx : block.vtx) {
                 if (tx->GetHash() == hash) {
                     txOut = tx;
+                    blockHeader = block.GetBlockHeader();
                     return true;
                 }
             }
