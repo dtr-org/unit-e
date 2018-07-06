@@ -121,6 +121,10 @@ UNITE_CORE_H = \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
+  pos/blockflags.h \
+  pos/kernel.h \
+  pos/stakingstate.h \
+  pos/validatorstate.h \
   pow.h \
   protocol.h \
   random.h \
@@ -157,6 +161,7 @@ UNITE_CORE_H = \
   util.h \
   utilmoneystr.h \
   utiltime.h \
+  utiltypetags.h \
   validation.h \
   validationinterface.h \
   versionbits.h \
@@ -199,6 +204,7 @@ libunite_server_a_SOURCES = \
   init.cpp \
   dbwrapper.cpp \
   merkleblock.cpp \
+  pos/kernel.cpp \
   miner.cpp \
   net.cpp \
   net_processing.cpp \
@@ -298,6 +304,7 @@ libunite_consensus_a_SOURCES = \
   primitives/block.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
+  primitives/txtype.h \
   pubkey.cpp \
   pubkey.h \
   script/uniteconsensus.cpp \

@@ -1071,6 +1071,64 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 }
 
 
+/*! \brief Retrieve a transaction and block header from disk.
+ *
+ * This function is called from CheckProofOfStake only.
+ *
+ * It does not return the complete block always
+  */
+bool GetTransactionAndBlockHeader(
+        const uint256 &hash,                      /*!< [in] The hash of the transaction to look for. */
+        const Consensus::Params &consensusParams, /*!< [in] The consensus params of the chain. */
+        CTransactionRef &txOut,                   /*!< [out] If the transaction is found it is emitted here. */
+        CBlockHeader &blockHeader                 /*!< [out] If the transaction is found the block header of the block containing it is emitted here. */)
+{
+    CBlockIndex *pindexSlow = nullptr;
+
+    LOCK(cs_main);
+
+    if (fTxIndex) {
+        CDiskTxPos postx;
+        if (pblocktree->ReadTxIndex(hash, postx)) {
+            CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
+            if (file.IsNull()) {
+                return error("%s: OpenBlockFile failed", __func__);
+            }
+            try {
+                file >> blockHeader;
+                fseek(file.Get(), postx.nTxOffset, SEEK_CUR);
+                file >> txOut;
+            } catch (const std::exception& e) {
+                return error("%s: Deserialize or I/O error - %s", __func__, e.what());
+            }
+            if (txOut->GetHash() != hash) {
+                return error("%s: txid mismatch", __func__);
+            }
+            return true;
+        }
+    }
+
+    // use coin database to locate block that contains transaction, and scan it
+    const Coin& coin = AccessByTxid(*pcoinsTip, hash);
+    if (!coin.IsSpent()) pindexSlow = chainActive[coin.nHeight];
+
+    if (pindexSlow) {
+        CBlock block;
+        // read and return entire block
+        if (ReadBlockFromDisk(block, pindexSlow, consensusParams)) {
+            for (const auto& tx : block.vtx) {
+                if (tx->GetHash() == hash) {
+                    txOut = tx;
+                    blockHeader = block.GetBlockHeader();
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 
 
 

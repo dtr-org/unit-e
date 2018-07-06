@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <amount.h>
+#include <primitives/txtype.h>
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -280,7 +281,16 @@ public:
     // structure, including the hash.
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
-    const int32_t nVersion;
+
+    /*! \brief The 4-byte version field of transactions.
+     *
+     * Change from bitcoin: The version field of transactions is unsigned in UnitE.
+     * This is intentional. The actual version of a transaction are the two lower
+     * bytes of the version field. UnitE distinguishes different types of transactions.
+     * Thus the upper two bytes are used to piggy back that type (also uint16_t) onto
+     * the version field.
+     */
+    const uint32_t nVersion;
     const uint32_t nLockTime;
 
 private:
@@ -311,6 +321,16 @@ public:
         return vin.empty() && vout.empty();
     }
 
+    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
+    uint16_t GetVersion() const {
+        return static_cast<uint16_t>(nVersion);
+    }
+
+    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
+    TxType GetType() const {
+        return static_cast<TxType>(static_cast<uint16_t>(nVersion >> 16));
+    }
+
     const uint256& GetHash() const {
         return hash;
     }
@@ -333,6 +353,12 @@ public:
     bool IsCoinBase() const
     {
         return (vin.size() == 1 && vin[0].prevout.IsNull());
+    }
+
+    bool IsCoinStake() const
+    {
+        //UNIT-E: TODO: Check whether we need this distinction or we can deduce like Bitcoin's IsCoinBase() above
+        return GetType() == TxType::COINSTAKE;
     }
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
