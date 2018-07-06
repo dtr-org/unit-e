@@ -16,7 +16,7 @@ typedef Newtype<staking_block_flags_tag, staking_block_flags_t, 0u> StakingBlock
 
 enum class StakingBlockFlag : staking_block_flags_t {
     PROOF_OF_STAKE         = (1u << 0u), //!< marks proof of stake blocks
-    FAILED_DUPLICATE_STAKE = (1u << 0u), //!< marks duplicate (failed) blocks
+    FAILED_DUPLICATE_STAKE = (1u << 1u), //!< marks duplicate (failed) blocks
 };
 
 inline bool IsStakingBlockFlagSet(StakingBlockFlags flags, StakingBlockFlag flag)
