@@ -64,10 +64,10 @@ bool CheckStakeKernelHash(const CBlockIndex* pindexPrev,
     uint32_t nBits,
     uint32_t nBlockFromTime,
     CAmount prevOutAmount,
-    const COutPoint& prevout,
+    const COutPoint& prevout     /*!< [in] */,
     uint32_t nTime,
-    uint256& hashProofOfStake,
-    uint256& targetProofOfStake,
+    uint256& hashProofOfStake    /*!< [in] */,
+    uint256& targetProofOfStake  /*!< [out] */,
     bool fPrintProofOfStake)
 {
     // CheckStakeKernelHashV2
@@ -128,37 +128,44 @@ bool CheckStakeKernelHash(const CBlockIndex* pindexPrev,
 
 bool IsConfirmedInNPrevBlocks(const uint256& hashBlock, const CBlockIndex* pindexFrom, int nMaxDepth, int& nActualDepth)
 {
-    for (const CBlockIndex* pindex = pindexFrom; pindex && pindexFrom->nHeight - pindex->nHeight < nMaxDepth; pindex = pindex->pprev)
+    for (const CBlockIndex* pindex = pindexFrom; pindex && pindexFrom->nHeight - pindex->nHeight < nMaxDepth; pindex = pindex->pprev) {
         if (hashBlock == pindex->GetBlockHash()) {
             nActualDepth = pindexFrom->nHeight - pindex->nHeight;
             return true;
         };
+    }
 
     return false;
 }
 
-
-static bool CheckAge(const CBlockIndex* pindexTip, const uint256& hashKernelBlock, int& nDepth)
+static bool CheckAge(
+        const CBlockIndex* pindexTip   /*!< [in] the current tip of the chain */,
+        const uint256& hashKernelBlock /*!< [in] the hash of the block containin the kernel transaction */,
+        int& nDepth)
 {
-    // pindexTip is the current tip of the chain
-    // hashKernelBlock is the hash of the block containing the kernel transaction
-
     int nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations() - 1), (int)(pindexTip->nHeight / 2));
 
-    if (IsConfirmedInNPrevBlocks(hashKernelBlock, pindexTip, nRequiredDepth, nDepth))
+    if (IsConfirmedInNPrevBlocks(hashKernelBlock, pindexTip, nRequiredDepth, nDepth)) {
         return false;
+    }
     return true;
 }
 
 // Check kernel hash target and coinstake signature
-bool CheckProofOfStake(const CBlockIndex* pindexPrev, const CTransaction& tx, int64_t nTime, unsigned int nBits, uint256& hashProofOfStake, uint256& targetProofOfStake)
+bool CheckProofOfStake(
+        const CBlockIndex* pindexPrev  /*!< [in] the current tip of the chain, the block the new block will connect to */,
+        const CTransaction& tx         /*!< [in] The transaction to be made */,
+        int64_t nTime                  /*!< [in] the time of the new/next block */,
+        unsigned int nBits             /*!< [in] */,
+        uint256& hashProofOfStake      /*!< [in] */,
+        uint256& targetProofOfStake    /*!< [out] */)
 {
-    // pindexPrev is the current tip, the block the new block will connect on
-    // nTime is the time of the new/next block
     CValidationState state;
 
-    if (!tx.IsCoinStake() || tx.vin.size() < 1)
-        return state.DoS(100, error("%s: malformed-txn %s", __func__, tx.GetHash().ToString()), REJECT_INVALID, "malformed-txn");
+    if (!tx.IsCoinStake() || tx.vin.size() < 1) {
+        return state.DoS(100, error("%s: malformed-txn %s", __func__, tx.GetHash().ToString()), REJECT_INVALID,
+                         "malformed-txn");
+    }
 
     uint256 hashBlock;
     CTransactionRef txPrev;
@@ -176,52 +183,38 @@ bool CheckProofOfStake(const CBlockIndex* pindexPrev, const CTransaction& tx, in
         // Must find the prevout in the txdb / blocks
 
         CBlockHeader blockKernel; // block containing stake kernel, GetTransaction should only fill the header.
-        if (!GetTransactionAndBlockHeader(txin.prevout.hash, Params().GetConsensus(), txPrev, blockKernel) || txin.prevout.n >= txPrev->vout.size())
+        if (!GetTransactionAndBlockHeader(txin.prevout.hash, Params().GetConsensus(), txPrev, blockKernel) || txin.prevout.n >= txPrev->vout.size()) {
             return state.DoS(10, error("%s: prevout-not-in-chain", __func__), REJECT_INVALID, "prevout-not-in-chain");
+        }
 
         const CTxOut* outPrev = &txPrev->vout[txin.prevout.n];
-        //UNIT-E: The following particl definitions were not ported as we do not distinguish different types of outputs
-        //        if (!outPrev->IsStandardOutput())
-        //            return state.DoS(100, error("%s: invalid-prevout", __func__), REJECT_INVALID, "invalid-prevout");
 
         int nDepth;
-        if (!CheckAge(pindexPrev, hashBlock, nDepth))
-            return state.DoS(100, error("%s: Tried to stake at depth %d", __func__, nDepth + 1), REJECT_INVALID, "invalid-stake-depth");
+        if (!CheckAge(pindexPrev, hashBlock, nDepth)) {
+            return state.DoS(100, error("%s: Tried to stake at depth %d", __func__, nDepth + 1), REJECT_INVALID,
+                             "invalid-stake-depth");
+        }
 
         kernelPubKey = outPrev->scriptPubKey;
         amount = outPrev->nValue;
         nBlockFromTime = blockKernel.nTime;
     } else {
-        //UNIT-E: The following particl definitions were not ported as we do not distinguish different types of outputs
-        //        if (coin.nType != OUTPUT_STANDARD)
-        //            return state.DoS(100, error("%s: invalid-prevout", __func__), REJECT_INVALID, "invalid-prevout");
-
         CBlockIndex* pindex = chainActive[coin.nHeight];
-        if (!pindex)
+        if (!pindex) {
             return state.DoS(100, error("%s: invalid-prevout", __func__), REJECT_INVALID, "invalid-prevout");
+        }
 
         nDepth = pindexPrev->nHeight - coin.nHeight;
         int nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations() - 1), (int)(pindexPrev->nHeight / 2));
-        if (nRequiredDepth > nDepth)
-            return state.DoS(100, error("%s: Tried to stake at depth %d", __func__, nDepth + 1), REJECT_INVALID, "invalid-stake-depth");
+        if (nRequiredDepth > nDepth) {
+            return state.DoS(100, error("%s: Tried to stake at depth %d", __func__, nDepth + 1), REJECT_INVALID,
+                             "invalid-stake-depth");
+        }
 
         kernelPubKey = coin.out.scriptPubKey;
         amount = coin.out.nValue;
         nBlockFromTime = pindex->GetBlockTime();
     };
-
-//UNIT-E: The code below is marked as redundant, therefor we did not port it.
-//    const CScript& scriptSig = txin.scriptSig;
-//    const CScriptWitness* witness = &txin.scriptWitness;
-//    ScriptError serror = SCRIPT_ERR_OK;
-//    std::vector<uint8_t> vchAmount(8);
-//    memcpy(&vchAmount[0], &amount, 8);
-//    // Redundant: all inputs are checked later during CheckInputs
-//    if (!VerifyScript(scriptSig, kernelPubKey, witness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&tx, 0, vchAmount), &serror)) {
-//        return state.DoS(100, error("%s: verify-script-failed, txn %s, reason %s", __func__, tx.GetHash().ToString(),
-//                                    ScriptErrorString(serror)),
-//                         REJECT_INVALID, "verify-script-failed");
-//    }
 
     if (!CheckStakeKernelHash(pindexPrev, nBits, nBlockFromTime,
             amount, txin.prevout, nTime, hashProofOfStake, targetProofOfStake, LogAcceptCategory(BCLog::POS))) {
@@ -248,19 +241,15 @@ bool CheckProofOfStake(const CBlockIndex* pindexPrev, const CTransaction& tx, in
                 }
 
                 const CTxOut& outPrev = txPrev->vout[txin.prevout.n];
-                //UNIT-E: The following particl definitions were not ported as we do not distinguish different types of outputs
-                //                if (!outPrev->IsStandardOutput())
-                //                    return state.DoS(100, error("%s: invalid-prevout %d", __func__, k), REJECT_INVALID, "invalid-prevout");
 
-                if (kernelPubKey != outPrev.scriptPubKey)
-                    return state.DoS(100, error("%s: mixed-prevout-scripts %d", __func__, k), REJECT_INVALID, "mixed-prevout-scripts");
+                if (kernelPubKey != outPrev.scriptPubKey) {
+                    return state.DoS(100, error("%s: mixed-prevout-scripts %d", __func__, k), REJECT_INVALID,
+                                     "mixed-prevout-scripts");
+                }
                 amount += outPrev.nValue;
 
                 LogPrint(BCLog::POS, "%s: Input %d of coinstake %s is spent.", k, tx.GetHash().ToString());
             } else {
-                //UNIT-E: The following particl definitions were not ported as we do not distinguish different types of outputs
-                //                if (coin.nType != OUTPUT_STANDARD)
-                //                    return state.DoS(100, error("%s: invalid-prevout %d", __func__, k), REJECT_INVALID, "invalid-prevout");
                 if (kernelPubKey != coin.out.scriptPubKey) {
                     return state.DoS(100, error("%s: mixed-prevout-scripts %d", __func__, k), REJECT_INVALID,
                         "mixed-prevout-scripts");
@@ -271,13 +260,6 @@ bool CheckProofOfStake(const CBlockIndex* pindexPrev, const CTransaction& tx, in
 
         CAmount nVerify = 0;
         for (const auto& txout : tx.vout) {
-            //UNIT-E: The following particl definitions were not ported as we do not distinguish different types of outputs
-            //            if (!txout->IsType(OUTPUT_STANDARD))
-            //            {
-            //                if (!txout->IsType(OUTPUT_DATA))
-            //                    return state.DoS(100, error("%s: bad-output-type", __func__), REJECT_INVALID, "bad-output-type");
-            //                continue;
-            //            };
             const CScript& pOutPubKey = txout.scriptPubKey;
 
             if (pOutPubKey == kernelPubKey) {
@@ -306,13 +288,12 @@ bool CheckKernel(const CBlockIndex* pindexPrev, unsigned int nBits, int64_t nTim
     uint256 hashProofOfStake, targetProofOfStake;
 
     Coin coin;
-    if (!pcoinsTip->GetCoin(prevout, coin))
+    if (!pcoinsTip->GetCoin(prevout, coin)) {
         return error("%s: prevout not found", __func__);
-    //UNIT-E: The following particl definitions were not ported as we do not distinguish different types of outputs
-    //    if (coin.nType != OUTPUT_STANDARD)
-    //        return error("%s: prevout not standard output", __func__);
-    if (coin.IsSpent())
+    }
+    if (coin.IsSpent()) {
         return error("%s: prevout is spent", __func__);
+    }
 
     CBlockIndex* pindex = chainActive[coin.nHeight];
     if (!pindex)
@@ -321,11 +302,13 @@ bool CheckKernel(const CBlockIndex* pindexPrev, unsigned int nBits, int64_t nTim
     int nRequiredDepth = std::min((int)(Params().GetStakeMinConfirmations() - 1), (int)(pindexPrev->nHeight / 2));
     int nDepth = pindexPrev->nHeight - coin.nHeight;
 
-    if (nRequiredDepth > nDepth)
+    if (nRequiredDepth > nDepth) {
         return false;
+    }
 
-    if (pBlockTime)
+    if (pBlockTime) {
         *pBlockTime = pindex->GetBlockTime();
+    }
 
     CAmount amount = coin.out.nValue;
     return CheckStakeKernelHash(pindexPrev, nBits, *pBlockTime,
