@@ -103,6 +103,7 @@ namespace BCLog {
         COINDB      = (1 << 18),
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
+        WALLET      = (1 << 29),
         POS         = (1 << 30),
         ALL         = ~(uint32_t)0,
     };
@@ -166,6 +167,13 @@ bool error(const char* fmt, const Args&... args)
 {
     LogPrintStr("ERROR: " + tfm::format(fmt, args...) + "\n");
     return false;
+}
+
+template<int errcode, typename... Args>
+int error(const char *fmt, const Args&... args)
+{
+    LogPrintStr("ERROR: " + tfm::format(fmt, args...) + "\n");
+    return errcode;
 }
 
 void PrintExceptionContinue(const std::exception *pex, const char* pszThread);
