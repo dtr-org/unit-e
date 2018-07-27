@@ -302,6 +302,13 @@ static void registerSignalHandler(int signal, void(*handler)(int))
     sa.sa_flags = 0;
     sigaction(signal, &sa, nullptr);
 }
+#else
+BOOL WINAPI ConsoleHandler(DWORD dwType)
+{
+    fRequestShutdown = true;
+    Sleep(INFINITE);
+    return true;
+}
 #endif
 
 void OnRPCStarted()
