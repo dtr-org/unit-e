@@ -142,10 +142,36 @@ bool AppInit(int argc, char* argv[])
             fprintf(stdout, "UnitE server starting\n");
 
             // Daemonize
+#ifdef __APPLE__
+            // daemon() is deprecated on macOS. glibc implements daemon() in terms of fork,
+            // the same is being done here.
+            switch (fork()) {
+                case -1:
+                    fprintf(stderr, "Error: fork() failed: %s\n", strerror(errno));
+                    return false;
+                case 0:
+                {
+                    // running as the daemonized child
+                    int devnull = open("/dev/null", O_RDWR);
+                    if (devnull) {
+                        // "close FDs" - redirect std in/out/err to/from /dev/null (like daemon() would)
+                        dup2(devnull, STDIN_FILENO);
+                        dup2(devnull, STDOUT_FILENO);
+                        dup2(devnull, STDERR_FILENO);
+                        close(devnull);
+                    }
+                    break;
+                }
+                default:
+                    // we're the parent
+                    exit(0);
+            }
+#else
             if (daemon(1, 0)) { // don't chdir (1), do close FDs (0)
                 fprintf(stderr, "Error: daemon() failed: %s\n", strerror(errno));
                 return false;
             }
+#endif // __APPLE__
 #else
             fprintf(stderr, "Error: -daemon is not supported on this operating system\n");
             return false;
