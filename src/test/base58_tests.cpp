@@ -10,7 +10,7 @@
 
 #include <key.h>
 #include <script/script.h>
-#include <test/test_bitcoin.h>
+#include <test/test_unite.h>
 #include <uint256.h>
 #include <util.h>
 #include <utilstrencodings.h>
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(base58_DecodeBase58)
 BOOST_AUTO_TEST_CASE(base58_keys_valid_parse)
 {
     UniValue tests = read_json(std::string(json_tests::base58_keys_valid, json_tests::base58_keys_valid + sizeof(json_tests::base58_keys_valid)));
-    CBitcoinSecret secret;
+    CUnitESecret secret;
     CTxDestination destination;
     SelectParams(CBaseChainParams::MAIN);
 
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_valid_gen)
             CKey key;
             key.Set(exp_payload.begin(), exp_payload.end(), isCompressed);
             assert(key.IsValid());
-            CBitcoinSecret secret;
+            CUnitESecret secret;
             secret.SetKey(key);
             BOOST_CHECK_MESSAGE(secret.ToString() == exp_base58string, "result mismatch: " + strTest);
         } else {
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_valid_gen)
 BOOST_AUTO_TEST_CASE(base58_keys_invalid)
 {
     UniValue tests = read_json(std::string(json_tests::base58_keys_invalid, json_tests::base58_keys_invalid + sizeof(json_tests::base58_keys_invalid))); // Negative testcases
-    CBitcoinSecret secret;
+    CUnitESecret secret;
     CTxDestination destination;
 
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
