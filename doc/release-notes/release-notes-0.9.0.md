@@ -245,7 +245,7 @@ Protocol and network:
   https://gist.github.com/gavinandresen/7079034 for draft)
 - Dump addresses every 15 minutes instead of 10 seconds
 - Relay OP_RETURN data TxOut as standard transaction type
-- Remove CENT-output free transaction rule when relaying
+- Remove EEES-output free transaction rule when relaying
 - Lower maximum size for free transaction creation
 - Send multiple inv messages if mempool.size > MAX_INV_SZ
 - Split MIN_PROTO_VERSION into INIT_PROTO_VERSION and MIN_PEER_PROTO_VERSION
