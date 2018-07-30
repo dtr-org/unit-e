@@ -105,6 +105,15 @@ UNITE_CORE_H = \
   indirectmap.h \
   init.h \
   key.h \
+  key/mnemonic.h \
+  key/wordlists/chinese_simplified.h \
+  key/wordlists/chinese_traditional.h \
+  key/wordlists/english.h \
+  key/wordlists/french.h \
+  key/wordlists/japanese.h \
+  key/wordlists/spanish.h \
+  key/wordlists/italian.h \
+  key/wordlists/korean.h \
   keystore.h \
   dbwrapper.h \
   limitedmap.h \
@@ -158,8 +167,11 @@ UNITE_CORE_H = \
   txmempool.h \
   ui_interface.h \
   undo.h \
+  unilib/uninorms.h \
+  unilib/utf8.h \
   util.h \
   utilmoneystr.h \
+  utilstr.h \
   utiltime.h \
   utiltypetags.h \
   validation.h \
@@ -334,6 +346,7 @@ libunite_common_a_SOURCES = \
   core_read.cpp \
   core_write.cpp \
   key.cpp \
+  key/mnemonic.cpp \
   keystore.cpp \
   netaddress.cpp \
   netbase.cpp \
@@ -342,6 +355,8 @@ libunite_common_a_SOURCES = \
   scheduler.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  unilib/uninorms.cpp \
+  unilib/utf8.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)
 
@@ -366,6 +381,7 @@ libunite_util_a_SOURCES = \
   threadinterrupt.cpp \
   util.cpp \
   utilmoneystr.cpp \
+  utilstr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
   $(UNITE_CORE_H)
