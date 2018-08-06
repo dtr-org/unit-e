@@ -25,36 +25,13 @@ stages:
   - lint
   - test
 before_install:
-  - export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
+  - set -o errexit; source .travis/test_03_before_install.sh
 install:
-  - if [ -n "$DPKG_ADD_ARCH" ]; then sudo dpkg --add-architecture "$DPKG_ADD_ARCH" ; fi
-  - if [ -n "$PACKAGES" ]; then travis_retry sudo apt-get update; fi
-  - if [ -n "$PACKAGES" ]; then travis_retry sudo apt-get install --no-install-recommends --no-upgrade -qq $PACKAGES; fi
+  - set -o errexit; source .travis/test_04_install.sh
 before_script:
-  - unset CC; unset CXX
-  - mkdir -p depends/SDKs depends/sdk-sources
-  - if [ -n "$OSX_SDK" -a ! -f depends/sdk-sources/MacOSX${OSX_SDK}.sdk.tar.gz ]; then curl --location --fail $SDK_URL/MacOSX${OSX_SDK}.sdk.tar.gz -o depends/sdk-sources/MacOSX${OSX_SDK}.sdk.tar.gz; fi
-  - if [ -n "$OSX_SDK" -a -f depends/sdk-sources/MacOSX${OSX_SDK}.sdk.tar.gz ]; then tar -C depends/SDKs -xf depends/sdk-sources/MacOSX${OSX_SDK}.sdk.tar.gz; fi
-  - if [ -z "$NO_DEPENDS" ]; then make $MAKEJOBS -C depends HOST=$HOST $DEP_OPTS; fi
-  # Start xvfb if needed, as documented at https://docs.travis-ci.com/user/gui-and-headless-browsers/#Using-xvfb-to-Run-Tests-That-Require-a-GUI
-  - if [ "$NEED_XVFB" = 1 ]; then export DISPLAY=:99.0; /sbin/start-stop-daemon --start --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -ac; fi
+  - set -o errexit; source .travis/test_05_before_script.sh
 script:
-  - export TRAVIS_COMMIT_LOG=`git log --format=fuller -1`
-  - if [ -n "$USE_SHELL" ]; then export CONFIG_SHELL="$USE_SHELL"; fi
-  - OUTDIR=$BASE_OUTDIR/$TRAVIS_PULL_REQUEST/$TRAVIS_JOB_NUMBER-$HOST
-  - UNITE_CONFIG_ALL="--disable-dependency-tracking --prefix=$TRAVIS_BUILD_DIR/depends/$HOST --bindir=$OUTDIR/bin --libdir=$OUTDIR/lib"
-  - if [ -z "$NO_DEPENDS" ]; then depends/$HOST/native/bin/ccache --max-size=$CCACHE_SIZE; fi
-  - test -n "$USE_SHELL" && eval '"$USE_SHELL" -c "./autogen.sh"' || ./autogen.sh
-  - mkdir build && cd build
-  - ../configure --cache-file=config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
-  - make distdir VERSION=$HOST
-  - cd unite-$HOST
-  - ./configure --cache-file=../config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
-  - make $MAKEJOBS $GOAL || ( echo "Build failure. Verbose build follows." && make $GOAL V=1 ; false )
-  - export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib
-  - if [ "$RUN_TESTS" = "true" ]; then travis_wait 30 make $MAKEJOBS check VERBOSE=1; fi
-  - if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then extended="--extended --exclude feature_pruning,feature_dbcrash"; fi
-  - if [ "$RUN_TESTS" = "true" ]; then test/functional/test_runner.py --combinedlogslen=4000 --coverage --quiet ${extended}; fi
+  - set -o errexit; source .travis/test_06_script.sh
 after_script:
   - echo $TRAVIS_COMMIT_RANGE
   - echo $TRAVIS_COMMIT_LOG
@@ -73,16 +50,13 @@ jobs:
           packages:
             - python3-flake8
       before_install:
+        - set -o errexit; source .travis/lint_03_before_install.sh
       install:
+        - set -o errexit; source .travis/lint_04_install.sh
       before_script:
+        - set -o errexit; source .travis/lint_05_before_script.sh
       script:
-        - contrib/devtools/git-subtree-check.sh src/crypto/ctaes
-        - contrib/devtools/git-subtree-check.sh src/secp256k1
-        - contrib/devtools/git-subtree-check.sh src/univalue
-        - contrib/devtools/git-subtree-check.sh src/leveldb
-        - contrib/devtools/check-doc.py
-        - contrib/devtools/check-rpc-mappings.py .
-        - contrib/devtools/lint-all.sh
+        - set -o errexit; source .travis/lint_06_script.sh
 # ARM
     - stage: test
       env: >-
