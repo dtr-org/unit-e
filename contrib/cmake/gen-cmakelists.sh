@@ -11,6 +11,10 @@ echo ""
 echo "add_definitions(-DHAVE_CONFIG_H)"
 echo ""
 
+echo "include_directories(/usr/local/opt/openssl/include)"
+echo "link_directories(/usr/local/opt/openssl/lib)"
+echo ""
+
 find -E src -type d -regex '.+/[^/.]+' | awk '{ print "include_directories(" $0 ")" }'
 
 echo ""
