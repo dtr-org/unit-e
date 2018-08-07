@@ -15,6 +15,10 @@ echo "include_directories(/usr/local/opt/openssl/include)"
 echo "link_directories(/usr/local/opt/openssl/lib)"
 echo ""
 
+QT_PATH=$(brew info qt | head -n4 | tail -n1 | cut -f1 -d' ')
+echo "set(CMAKE_PREFIX_PATH $QT_PATH/lib/cmake)"
+echo ""
+
 find -E src -type d -regex '.+/[^/.]+' | awk '{ print "include_directories(" $0 ")" }'
 
 echo ""
