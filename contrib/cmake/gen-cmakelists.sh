@@ -23,6 +23,7 @@ echo "find_package(Qt5Widgets REQUIRED)"
 echo "find_package(Qt5Quick REQUIRED)"
 echo ""
 
+echo "include_directories(src)"
 find -E src -type d -regex '.+/[^/.]+' | awk '{ print "include_directories(" $0 ")" }'
 
 echo ""
