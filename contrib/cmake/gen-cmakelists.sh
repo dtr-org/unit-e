@@ -18,6 +18,10 @@ echo ""
 QT_PATH=$(brew info qt | head -n4 | tail -n1 | cut -f1 -d' ')
 echo "set(CMAKE_PREFIX_PATH $QT_PATH/lib/cmake)"
 echo ""
+echo "find_package(Qt5Core REQUIRED)"
+echo "find_package(Qt5Widgets REQUIRED)"
+echo "find_package(Qt5Quick REQUIRED)"
+echo ""
 
 find -E src -type d -regex '.+/[^/.]+' | awk '{ print "include_directories(" $0 ")" }'
 
