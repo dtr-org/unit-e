@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )/../.."
 
@@ -15,7 +15,7 @@ echo "include_directories(/usr/local/opt/openssl/include)"
 echo "link_directories(/usr/local/opt/openssl/lib)"
 echo ""
 
-QT_PATH=$(brew info qt | head -n4 | tail -n1 | cut -f1 -d' ')
+QT_PATH=$(brew info qt 2>/dev/null | head -n4 | tail -n1 | cut -f1 -d' ')
 echo "set(CMAKE_PREFIX_PATH $QT_PATH/lib/cmake)"
 echo ""
 echo "find_package(Qt5Core REQUIRED)"
