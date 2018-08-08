@@ -45,6 +45,7 @@
 #include <validationinterface.h>
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
+#include <wallet/rpcmnemonic.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -165,8 +166,9 @@ void Interrupt()
     InterruptRPC();
     InterruptREST();
     InterruptTorControl();
-    if (g_connman)
+    if (g_connman) {
         g_connman->Interrupt();
+    }
 }
 
 void Shutdown()
@@ -174,8 +176,9 @@ void Shutdown()
     LogPrintf("%s: In progress...\n", __func__);
     static CCriticalSection cs_Shutdown;
     TRY_LOCK(cs_Shutdown, lockShutdown);
-    if (!lockShutdown)
+    if (!lockShutdown) {
         return;
+    }
 
     /// Note: Shutdown() must be able to handle cases in which initialization failed part of the way,
     /// for example if the data directory was found to be locked.
@@ -195,8 +198,12 @@ void Shutdown()
 
     // Because these depend on each-other, we make sure that neither can be
     // using the other before destroying them.
-    if (peerLogic) UnregisterValidationInterface(peerLogic.get());
-    if (g_connman) g_connman->Stop();
+    if (peerLogic) {
+        UnregisterValidationInterface(peerLogic.get());
+    }
+    if (g_connman) {
+        g_connman->Stop();
+    }
     peerLogic.reset();
     g_connman.reset();
 
@@ -216,10 +223,11 @@ void Shutdown()
         ::feeEstimator.FlushUnconfirmed(::mempool);
         fs::path est_path = GetDataDir() / FEE_ESTIMATES_FILENAME;
         CAutoFile est_fileout(fsbridge::fopen(est_path, "wb"), SER_DISK, CLIENT_VERSION);
-        if (!est_fileout.IsNull())
+        if (!est_fileout.IsNull()) {
             ::feeEstimator.Write(est_fileout);
-        else
+        } else {
             LogPrintf("%s: Failed to write fee estimates to %s\n", __func__, est_path.string());
+        }
         fFeeEstimatesInitialized = false;
     }
 
@@ -296,9 +304,15 @@ static void HandleSIGHUP(int)
 #else
 static BOOL WINAPI consoleCtrlHandler(DWORD dwCtrlType)
 {
-    fRequestShutdown = true;
-    Sleep(INFINITE);
-    return true;
+    switch(dwCtrlType)
+    {
+        case CTRL_C_EVENT:
+            fRequestShutdown = true;
+            return TRUE;
+        default:
+            break;
+    }
+    return FALSE;
 }
 #endif
 
@@ -310,13 +324,6 @@ static void registerSignalHandler(int signal, void(*handler)(int))
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
     sigaction(signal, &sa, nullptr);
-}
-#else
-BOOL WINAPI ConsoleHandler(DWORD dwType)
-{
-    fRequestShutdown = true;
-    Sleep(INFINITE);
-    return true;
 }
 #endif
 
@@ -352,8 +359,7 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-blocksonly", strprintf(_("Whether to operate in a blocks only mode (default: %u)"), DEFAULT_BLOCKSONLY));
     strUsage +=HelpMessageOpt("-assumevalid=<hex>", strprintf(_("If this block is in the chain assume that it and its ancestors are valid and potentially skip their script verification (0 to verify all, default: %s, testnet: %s)"), defaultChainParams->GetConsensus().defaultAssumeValid.GetHex(), testnetChainParams->GetConsensus().defaultAssumeValid.GetHex()));
     strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), UNITE_CONF_FILENAME));
-    if (mode == HMM_UNITED)
-    {
+    if (mode == HMM_UNITED) {
 #if HAVE_DECL_DAEMON
         strUsage += HelpMessageOpt("-daemon", _("Run in the background as a daemon and accept commands"));
 #endif
@@ -363,8 +369,9 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-dbbatchsize", strprintf("Maximum database write batch size in bytes (default: %u)", nDefaultDbBatchSize));
     }
     strUsage += HelpMessageOpt("-dbcache=<n>", strprintf(_("Set database cache size in megabytes (%d to %d, default: %d)"), nMinDbCache, nMaxDbCache, nDefaultDbCache));
-    if (showDebug)
+    if (showDebug) {
         strUsage += HelpMessageOpt("-feefilter", strprintf("Tell other nodes to filter invs to us by our mempool min fee (default: %u)", DEFAULT_FEEFILTER));
+    }
     strUsage += HelpMessageOpt("-loadblock=<file>", _("Imports blocks from external blk000??.dat file on startup"));
     strUsage += HelpMessageOpt("-debuglogfile=<file>", strprintf(_("Specify location of debug log file: this can be an absolute path or a path relative to the data directory (default: %s)"), DEFAULT_DEBUGLOGFILE));
     strUsage += HelpMessageOpt("-maxorphantx=<n>", strprintf(_("Keep at most <n> unconnectable transactions in memory (default: %u)"), DEFAULT_MAX_ORPHAN_TRANSACTIONS));
@@ -444,8 +451,7 @@ std::string HelpMessage(HelpMessageMode mode)
 
     strUsage += HelpMessageGroup(_("Debugging/Testing options:"));
     strUsage += HelpMessageOpt("-uacomment=<cmt>", _("Append comment to the user agent string"));
-    if (showDebug)
-    {
+    if (showDebug) {
         strUsage += HelpMessageOpt("-checkblocks=<n>", strprintf(_("How many blocks to check at startup (default: %u, 0 = all)"), DEFAULT_CHECKBLOCKS));
         strUsage += HelpMessageOpt("-checklevel=<n>", strprintf(_("How thorough the block verification of -checkblocks is (0-4, default: %u)"), DEFAULT_CHECKLEVEL));
         strUsage += HelpMessageOpt("-checkblockindex", strprintf("Do a full consistency check for mapBlockIndex, setBlockIndexCandidates, chainActive and mapBlocksUnlinked occasionally. Also sets -checkmempool (default: %u)", defaultChainParams->DefaultConsistencyChecks()));
@@ -471,8 +477,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-help-debug", _("Show all debugging options (usage: --help -help-debug)"));
     strUsage += HelpMessageOpt("-logips", strprintf(_("Include IP addresses in debug output (default: %u)"), DEFAULT_LOGIPS));
     strUsage += HelpMessageOpt("-logtimestamps", strprintf(_("Prepend debug output with timestamp (default: %u)"), DEFAULT_LOGTIMESTAMPS));
-    if (showDebug)
-    {
+    if (showDebug) {
         strUsage += HelpMessageOpt("-logtimemicros", strprintf("Add microsecond precision to debug timestamps (default: %u)", DEFAULT_LOGTIMEMICROS));
         strUsage += HelpMessageOpt("-mocktime=<n>", "Replace actual time with <n> seconds since epoch (default: 0)");
         strUsage += HelpMessageOpt("-maxsigcachesize=<n>", strprintf("Limit sum of signature cache and script execution cache sizes to <n> MiB (default: %u)", DEFAULT_MAX_SIG_CACHE_SIZE));
@@ -481,8 +486,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-maxtxfee=<amt>", strprintf(_("Maximum total fees (in %s) to use in a single wallet transaction or raw transaction; setting this too low may abort large transactions (default: %s)"),
         CURRENCY_UNIT, FormatMoney(DEFAULT_TRANSACTION_MAXFEE)));
     strUsage += HelpMessageOpt("-printtoconsole", _("Send trace/debug info to console instead of debug.log file"));
-    if (showDebug)
-    {
+    if (showDebug) {
         strUsage += HelpMessageOpt("-printpriority", strprintf("Log transaction fee per kB when mining blocks (default: %u)", DEFAULT_PRINTPRIORITY));
     }
     strUsage += HelpMessageOpt("-shrinkdebugfile", _("Shrink debug.log file on client startup (default: 1 when no -debug)"));
@@ -507,9 +511,9 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageGroup(_("Block creation options:"));
     strUsage += HelpMessageOpt("-blockmaxweight=<n>", strprintf(_("Set maximum BIP141 block weight (default: %d)"), DEFAULT_BLOCK_MAX_WEIGHT));
     strUsage += HelpMessageOpt("-blockmintxfee=<amt>", strprintf(_("Set lowest fee rate (in %s/kB) for transactions to be included in block creation. (default: %s)"), CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)));
-    if (showDebug)
+    if (showDebug) {
         strUsage += HelpMessageOpt("-blockversion=<n>", "Override block version to test forking scenarios");
-
+    }
     strUsage += HelpMessageGroup(_("RPC server options:"));
     strUsage += HelpMessageOpt("-server", _("Accept command line and JSON-RPC commands"));
     strUsage += HelpMessageOpt("-rest", strprintf(_("Accept public REST requests (default: %u)"), DEFAULT_REST_ENABLE));
@@ -554,9 +558,9 @@ std::string LicenseInfo()
 
 static void BlockNotifyCallback(bool initialSync, const CBlockIndex *pBlockIndex)
 {
-    if (initialSync || !pBlockIndex)
+    if (initialSync || !pBlockIndex) {
         return;
-
+    }
     std::string strCmd = gArgs.GetArg("-blocknotify", "");
     if (!strCmd.empty()) {
         boost::replace_all(strCmd, "%s", pBlockIndex->GetBlockHash().GetHex());
@@ -753,33 +757,40 @@ void InitParameterInteraction()
     // when specifying an explicit binding address, you want to listen on it
     // even when -connect or -proxy is specified
     if (gArgs.IsArgSet("-bind")) {
-        if (gArgs.SoftSetBoolArg("-listen", true))
+        if (gArgs.SoftSetBoolArg("-listen", true)) {
             LogPrintf("%s: parameter interaction: -bind set -> setting -listen=1\n", __func__);
+        }
     }
     if (gArgs.IsArgSet("-whitebind")) {
-        if (gArgs.SoftSetBoolArg("-listen", true))
+        if (gArgs.SoftSetBoolArg("-listen", true)) {
             LogPrintf("%s: parameter interaction: -whitebind set -> setting -listen=1\n", __func__);
+        }
     }
 
     if (gArgs.IsArgSet("-connect")) {
         // when only connecting to trusted nodes, do not seed via DNS, or listen by default
-        if (gArgs.SoftSetBoolArg("-dnsseed", false))
+        if (gArgs.SoftSetBoolArg("-dnsseed", false)) {
             LogPrintf("%s: parameter interaction: -connect set -> setting -dnsseed=0\n", __func__);
-        if (gArgs.SoftSetBoolArg("-listen", false))
+        }
+        if (gArgs.SoftSetBoolArg("-listen", false)) {
             LogPrintf("%s: parameter interaction: -connect set -> setting -listen=0\n", __func__);
+        }
     }
 
     if (gArgs.IsArgSet("-proxy")) {
         // to protect privacy, do not listen by default if a default proxy server is specified
-        if (gArgs.SoftSetBoolArg("-listen", false))
+        if (gArgs.SoftSetBoolArg("-listen", false)) {
             LogPrintf("%s: parameter interaction: -proxy set -> setting -listen=0\n", __func__);
+        }
         // to protect privacy, do not use UPNP when a proxy is set. The user may still specify -listen=1
         // to listen locally, so don't rely on this happening through -listen below.
-        if (gArgs.SoftSetBoolArg("-upnp", false))
+        if (gArgs.SoftSetBoolArg("-upnp", false)) {
             LogPrintf("%s: parameter interaction: -proxy set -> setting -upnp=0\n", __func__);
+        }
         // to protect privacy, do not discover addresses by default
-        if (gArgs.SoftSetBoolArg("-discover", false))
+        if (gArgs.SoftSetBoolArg("-discover", false)) {
             LogPrintf("%s: parameter interaction: -proxy set -> setting -discover=0\n", __func__);
+        }
     }
 
     if (!gArgs.GetBoolArg("-listen", DEFAULT_LISTEN)) {
@@ -823,7 +834,23 @@ void InitLogging()
     fLogTimeMicros = gArgs.GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
     fLogIPs = gArgs.GetBoolArg("-logips", DEFAULT_LOGIPS);
 
-    LogPrintf("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n");
+    LogPrintf("\n\n"
+              "           )  (                                                                                \n"
+              "        ( /(  )\\ )  *   )                                                                      \n"
+              "    (   )\\())(()/(` )  /(   (                                                                  \n"
+              "    )\\ ((_)\\  /(_))( )(_))  )\\                                                                 \n"
+              " _ ((_) _((_)(_)) (_(_())  ((_)                                                                \n"
+              "| | | || \\| ||_ _||_   _|  | __|                                                               \n"
+              "| |_| || .` | | |   | |    | _|                                                                \n"
+              " (___/ |_|\\_||___|  |_| (  |_(_|               )  (              (     (            )          \n"
+              " )\\ )                   )\\ ) )\\ )    (      ( /(  )\\ )      (    )\\ )  )\\ )      ( /(   *   )  \n"
+              "(()/(  (       (   (   (()/((()/(    )\\     )\\())(()/(      )\\  (()/( (()/( (    )\\())` )  /(  \n"
+              " /(_)) )\\      )\\  )\\   /(_))/(_))((((_)(  ((_)\\  /(_))   (((_)  /(_)) /(_)))\\  ((_)\\  ( )(_)) \n"
+              "(_))_|((_)  _ ((_)((_) (_)) (_))   )\\ _ )\\  _((_)(_))_    )\\___ (_))  (_)) ((_)  _((_)(_(_())  \n"
+              "| |_  | __|| | | || __|| _ \\| |    (_)_\\(_)| \\| | |   \\  ((/ __|| |   |_ _|| __|| \\| ||_   _|  \n"
+              "| __| | _| | |_| || _| |   /| |__   / _ \\  | .` | | |) |  | (__ | |__  | | | _| | .` |  | |    \n"
+              "|_|   |___| \\___/ |___||_|_\\|____| /_/ \\_\\ |_|\\_| |___/    \\___||____||___||___||_|\\_|  |_|    \n"
+              "\n\n");
     std::string version_string = FormatFullVersion();
 #ifdef DEBUG
     version_string += " (debug build)";
@@ -879,9 +906,9 @@ bool AppInitBasicSetup()
     if (setProcDEPPol != nullptr) setProcDEPPol(PROCESS_DEP_ENABLE);
 #endif
 
-    if (!SetupNetworking())
+    if (!SetupNetworking()) {
         return InitError("Initializing networking failed");
-
+    }
 #ifndef WIN32
     if (!gArgs.GetBoolArg("-sysperms", false)) {
         umask(077);
@@ -914,8 +941,9 @@ bool AppInitParameterInteraction()
 
     // if using block pruning, then disallow txindex
     if (gArgs.GetArg("-prune", 0)) {
-        if (gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX))
+        if (gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
             return InitError(_("Prune mode is incompatible with -txindex."));
+        }
     }
 
     // -bind and -whitebind can't be set when not listening
@@ -932,13 +960,14 @@ bool AppInitParameterInteraction()
     // Trim requested connection counts, to fit into system limitations
     nMaxConnections = std::max(std::min(nMaxConnections, (int)(FD_SETSIZE - nBind - MIN_CORE_FILEDESCRIPTORS - MAX_ADDNODE_CONNECTIONS)), 0);
     nFD = RaiseFileDescriptorLimit(nMaxConnections + MIN_CORE_FILEDESCRIPTORS + MAX_ADDNODE_CONNECTIONS);
-    if (nFD < MIN_CORE_FILEDESCRIPTORS)
+    if (nFD < MIN_CORE_FILEDESCRIPTORS) {
         return InitError(_("Not enough file descriptors available."));
+    }
     nMaxConnections = std::min(nFD - MIN_CORE_FILEDESCRIPTORS - MAX_ADDNODE_CONNECTIONS, nMaxConnections);
 
-    if (nMaxConnections < nUserMaxConnections)
+    if (nMaxConnections < nUserMaxConnections) {
         InitWarning(strprintf(_("Reducing -maxconnections from %d to %d, because of system limitations."), nUserMaxConnections, nMaxConnections));
-
+    }
     // ********************************************************* Step 3: parameter-to-internal-flags
     if (gArgs.IsArgSet("-debug")) {
         // Special-case: if -debug=0/-nodebug is set, turn off debugging messages
@@ -1264,6 +1293,7 @@ bool AppInitMain()
      */
     RegisterAllCoreRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
+    RegisterMnemonicRPCCommands(tableRPC);
     RegisterWalletRPC(tableRPC);
 #endif
 
@@ -1604,8 +1634,9 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
-    if (!OpenWallets())
+    if (!OpenWallets()) {
         return false;
+    }
 #else
     LogPrintf("No wallet support compiled in!\n");
 #endif
@@ -1634,8 +1665,9 @@ bool AppInitMain()
 
     // ********************************************************* Step 10: import blocks
 
-    if (!CheckDiskSpace())
+    if (!CheckDiskSpace()) {
         return false;
+    }
 
     // Either install a handler to notify us when genesis activates, or set fHaveGenesis directly.
     // No locking, as this happens before any background thread is started.

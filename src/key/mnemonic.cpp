@@ -22,6 +22,10 @@
 #include <key/wordlists/italian.h>
 #include <key/wordlists/korean.h>
 
+namespace key
+{
+namespace mnemonic
+{
 
 static const unsigned char *mnLanguages[] =
 {
@@ -529,3 +533,7 @@ int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &s
 
     return 0;
 }
+
+} // namespace mnemonic
+
+} // namespace key

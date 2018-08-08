@@ -632,15 +632,18 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
     crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod);
     kMasterKey.nDeriveIterations = (kMasterKey.nDeriveIterations + static_cast<unsigned int>(kMasterKey.nDeriveIterations * 100 / ((double)(GetTimeMillis() - nStartTime)))) / 2;
 
-    if (kMasterKey.nDeriveIterations < 25000)
+    if (kMasterKey.nDeriveIterations < 25000) {
         kMasterKey.nDeriveIterations = 25000;
+    }
 
     LogPrintf("Encrypting Wallet with an nDeriveIterations of %i\n", kMasterKey.nDeriveIterations);
 
-    if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod))
+    if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, kMasterKey.vchSalt, kMasterKey.nDeriveIterations, kMasterKey.nDerivationMethod)) {
         return false;
-    if (!crypter.Encrypt(_vMasterKey, kMasterKey.vchCryptedKey))
+    }
+    if (!crypter.Encrypt(_vMasterKey, kMasterKey.vchCryptedKey)) {
         return false;
+    }
 
     {
         LOCK(cs_wallet);
@@ -848,9 +851,9 @@ bool CWallet::GetAccountDestination(CTxDestination &dest, std::string strAccount
 
     // Generate a new key
     if (bForceNew) {
-        if (!GetKeyFromPool(account.vchPubKey, false))
+        if (!GetKeyFromPool(account.vchPubKey, false)) {
             return false;
-
+        }
         LearnRelatedScripts(account.vchPubKey, g_address_type);
         dest = GetDestinationForKey(account.vchPubKey, g_address_type);
         SetAddressBook(dest, strAccount, "receive");
@@ -866,8 +869,9 @@ void CWallet::MarkDirty()
 {
     {
         LOCK(cs_wallet);
-        for (std::pair<const uint256, CWalletTx>& item : mapWallet)
+        for (std::pair<const uint256, CWalletTx>& item : mapWallet) {
             item.second.MarkDirty();
+        }
     }
 }
 
@@ -1466,8 +1470,9 @@ CPubKey CWallet::GenerateNewHDMasterKey()
         mapKeyMetadata[pubkey.GetID()] = metadata;
 
         // write the key&metadata to the database
-        if (!AddKeyPubKey(key, pubkey))
+        if (!AddKeyPubKey(key, pubkey)) {
             throw std::runtime_error(std::string(__func__) + ": AddKeyPubKey failed");
+        }
     }
 
     return pubkey;
@@ -1490,9 +1495,9 @@ bool CWallet::SetHDMasterKey(const CPubKey& pubkey)
 bool CWallet::SetHDChain(const CHDChain& chain, bool memonly)
 {
     LOCK(cs_wallet);
-    if (!memonly && !CWalletDB(*dbw).WriteHDChain(chain))
+    if (!memonly && !CWalletDB(*dbw).WriteHDChain(chain)) {
         throw std::runtime_error(std::string(__func__) + ": writing chain failed");
-
+    }
     hdChain = chain;
     return true;
 }
@@ -3113,9 +3118,9 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
     // This wallet is in its first run if all of these are empty
     fFirstRunRet = mapKeys.empty() && mapCryptedKeys.empty() && mapWatchKeys.empty() && setWatchOnly.empty() && mapScripts.empty();
 
-    if (nLoadWalletRet != DB_LOAD_OK)
+    if (nLoadWalletRet != DB_LOAD_OK) {
         return nLoadWalletRet;
-
+    }
     uiInterface.LoadWallet(this);
 
     return DB_LOAD_OK;
@@ -3190,8 +3195,9 @@ bool CWallet::SetAddressBook(const CTxDestination& address, const std::string& s
     }
     NotifyAddressBookChanged(this, address, strName, ::IsMine(*this, address) != ISMINE_NO,
                              strPurpose, (fUpdated ? CT_UPDATED : CT_NEW) );
-    if (!strPurpose.empty() && !CWalletDB(*dbw).WritePurpose(EncodeDestination(address), strPurpose))
+    if (!strPurpose.empty() && !CWalletDB(*dbw).WritePurpose(EncodeDestination(address), strPurpose)) {
         return false;
+    }
     return CWalletDB(*dbw).WriteName(EncodeDestination(address), strName);
 }
 
@@ -3290,15 +3296,16 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize)
     {
         LOCK(cs_wallet);
 
-        if (IsLocked())
+        if (IsLocked()) {
             return false;
-
+        }
         // Top up key pool
         unsigned int nTargetSize;
-        if (kpSize > 0)
+        if (kpSize > 0) {
             nTargetSize = kpSize;
-        else
+        } else {
             nTargetSize = std::max(gArgs.GetArg("-keypool", DEFAULT_KEYPOOL_SIZE), (int64_t) 0);
+        }
 
         // count amount of available keys (internal, external)
         // make sure the keypool of external and internal keys fits the user selected target (-keypool)
@@ -3934,7 +3941,9 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
             walletInstance->SetMinVersion(FEATURE_LATEST); // permanently upgrade the wallet immediately
         }
         else
+        {
             LogPrintf("Allowing wallet upgrade up to %i\n", nMaxVersion);
+        }
         if (nMaxVersion < walletInstance->GetVersion())
         {
             InitError(_("Cannot downgrade wallet"));
@@ -3954,8 +3963,9 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
 
         // generate a new master key
         CPubKey masterPubKey = walletInstance->GenerateNewHDMasterKey();
-        if (!walletInstance->SetHDMasterKey(masterPubKey))
+        if (!walletInstance->SetHDMasterKey(masterPubKey)) {
             throw std::runtime_error(std::string(__func__) + ": Storing master key failed");
+        }
 
         // Top up the keypool
         if (!walletInstance->TopUpKeyPool()) {
@@ -3965,7 +3975,8 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
 
         walletInstance->SetBestChain(chainActive.GetLocator());
     }
-    else if (gArgs.IsArgSet("-usehd")) {
+    else if (gArgs.IsArgSet("-usehd"))
+    {
         bool useHD = gArgs.GetBoolArg("-usehd", true);
         if (walletInstance->IsHDEnabled() && !useHD) {
             InitError(strprintf(_("Error loading %s: You can't disable HD on an already existing HD wallet"), walletFile));
@@ -4002,9 +4013,9 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
         if (fPruneMode)
         {
             CBlockIndex *block = chainActive.Tip();
-            while (block && block->pprev && (block->pprev->nStatus & BLOCK_HAVE_DATA) && block->pprev->nTx > 0 && pindexRescan != block)
+            while (block && block->pprev && (block->pprev->nStatus & BLOCK_HAVE_DATA) && block->pprev->nTx > 0 && pindexRescan != block) {
                 block = block->pprev;
-
+            }
             if (pindexRescan != block) {
                 InitError(_("Prune: last wallet synchronisation goes beyond pruned data. You need to -reindex (download the whole blockchain again in case of pruned node)"));
                 return nullptr;

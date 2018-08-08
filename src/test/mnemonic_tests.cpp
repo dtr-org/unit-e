@@ -20,6 +20,8 @@
 
 extern UniValue read_json(const std::string& jsondata);
 
+using namespace key::mnemonic;
+
 BOOST_FIXTURE_TEST_SUITE(mnemonic_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(mnemonic_test)
