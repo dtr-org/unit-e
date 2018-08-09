@@ -15,6 +15,12 @@
 
 namespace key
 {
+
+/*! \brief HD wallet master keys from mnemonics as per BIP 39.
+ *
+ * BIP 39: https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
+ * Online Tool: https://iancoleman.io/bip39/
+ */
 namespace mnemonic
 {
 
