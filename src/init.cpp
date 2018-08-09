@@ -304,7 +304,7 @@ static void HandleSIGHUP(int)
 #else
 static BOOL WINAPI consoleCtrlHandler(DWORD dwCtrlType)
 {
-    switch(dwCtrlType)
+    switch (dwCtrlType)
     {
         case CTRL_C_EVENT:
             fRequestShutdown = true;

@@ -13,10 +13,6 @@
 
 UniValue mnemonicinfo(const JSONRPCRequest& request)
 {
-//    CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
-//    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
-//        return NullUniValue;
-//    }
     std::string mnemonic = "";
     if (request.params.size() > 0) {
         mnemonic = request.params[0].get_str();
@@ -38,38 +34,15 @@ UniValue mnemonicinfo(const JSONRPCRequest& request)
                 + HelpExampleRpc("setmasterkey", "\"next debate force grief bleak want truck prepare theme lecture wear century rich grace someone\"")
         );
     }
-//    EnsureWalletIsUnlocked(pwallet);
 
-    int language = key::mnemonic::MnemonicDetectLanguage(mnemonic);
-    if (0 == language) {
-        throw std::runtime_error("invalid mnemonic: did not detect a known language");
-    }
+    key::mnemonic::Seed seed(mnemonic, passphrase);
 
     UniValue response(UniValue::VOBJ);
 
-    std::string error;
-    std::vector<uint8_t> seed, entropy;
-
-    if (0 != key::mnemonic::MnemonicDecode(language, mnemonic, entropy, error)) {
-        throw std::runtime_error(strprintf("invalid mnemonic: %s", error.c_str()));
-    }
-    if (0 != key::mnemonic::MnemonicToSeed(mnemonic, passphrase, seed)) {
-        // this should never happen as the previous if statement already checks whether the mnemonic can be decoded.
-        throw std::runtime_error(strprintf("invalid mnemonic: %s", mnemonic.c_str()));
-    }
-
-    std::string hexSeed = EncodeBase16(seed);
-
-    CExtKey masterKey;
-    masterKey.SetMaster(seed.data(), seed.size());
-
-    CUnitEExtKey masterKey58;
-    masterKey58.SetKey(masterKey);
-
-    response.pushKV("language", UniValue(key::mnemonic::mnLanguagesDesc[language]));
-    response.pushKV("language_tag", UniValue(key::mnemonic::mnLanguagesTag[language]));
-    response.pushKV("bip39_seed", UniValue(hexSeed));
-    response.pushKV("bip32_root", UniValue(masterKey58.ToString()));
+    response.pushKV("language", UniValue(seed.GetHumandReadableLanguage()));
+    response.pushKV("language_tag", UniValue(seed.GetLanguageTag()));
+    response.pushKV("bip39_seed", UniValue(seed.GetHexSeed()));
+    response.pushKV("bip32_root", UniValue(seed.GetExtKey58().ToString()));
 
     return response;
 }

@@ -9,6 +9,10 @@
 #include <string>
 #include <vector>
 
+#include <base58.h>
+#include <key.h>
+#include <pubkey.h>
+
 namespace key
 {
 namespace mnemonic
@@ -28,85 +32,65 @@ enum Language
     WLL_MAX
 };
 
-extern const char *mnLanguagesDesc[WLL_MAX];
-extern const char *mnLanguagesTag[WLL_MAX];
-
-/*!
- *
- * @param o
- * @param pwl
- * @param max
- * @param sWord
- * @return
- */
 int GetWord(int o, const char *pwl, int max, std::string &sWord);
 
-/*!
- *
- * @param p
- * @param pwl
- * @param max
- * @param o
- * @return
- */
 int GetWordOffset(const char *p, const char *pwl, int max, int &o);
 
-/*!
+/*! Given a string of space separated words determines the language from the known wordlists.
  *
- * @param sWordList
- * @return
+ * @return 0 if the language could not be detected, or a positive integer (can be cast to enum Language).
  */
-int MnemonicDetectLanguage(const std::string &sWordList);
+int DetectLanguage(const std::string &sWordList);
 
-/*!
- *
- * @param nLanguage
- * @param vEntropy
- * @param sWordList
- * @param sError
- * @return
- */
-int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError);
+int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError);
 
-/*!
- *
- * @param nLanguage
- * @param sWordListIn
- * @param vEntropy
- * @param sError
- * @param fIgnoreChecksum
- * @return
- */
-int MnemonicDecode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError, bool fIgnoreChecksum=false);
+int Decode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
+           bool fIgnoreChecksum = false);
 
-/*!
- *
- * @param sMnemonic
- * @param sPasswordIn
- * @param vSeed
- * @return
- */
-int MnemonicToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed);
+int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed);
 
-/*!
- *
- * @param nLanguageIn
- * @param sWordListIn
- * @param sWordListOut
- * @param sError
- * @return
- */
-int MnemonicAddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
+int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
 
-/*!
+int GetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError);
+
+/*! \brief A Seed generated from a mnemonic of human-rememberable words.
  *
- * @param nLanguage
- * @param nWord
- * @param sWord
- * @param sError
- * @return
+ * If the seed is not well formed
+ *
+ * TODO: Create a constructor that takes a language and an entropy source and generates
+ * a seed from it.
  */
-int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError);
+class Seed final {
+
+private:
+    int m_language;
+
+    std::vector<uint8_t> m_seed;
+    std::vector<uint8_t> m_entropy;
+    std::string m_hexSeed;
+
+    CExtKey m_extKey;
+    CUnitEExtKey m_extKey58;
+
+public:
+    Seed(const std::string& mnemonic, const std::string& passphrase = "");
+
+    //! The name of this language, human readable and nicely formatted
+    const std::string& GetHumandReadableLanguage() const;
+
+    //! A machine readable identifier for this language (all lowercase, no spaces)
+
+    const std::string& GetLanguageTag() const;
+
+    //! The seed in hexadecimal
+    const std::string& GetHexSeed() const;
+
+    //! The master key for the hierarchical wallet (an extended key)
+    const CExtKey& GetExtKey() const;
+
+    //! A Base58 representation of the extended key (including checksum etc.)
+    const CUnitEExtKey& GetExtKey58() const;
+};
 
 } // namespace mnemonic
 
