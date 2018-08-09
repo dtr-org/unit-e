@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <amount.h>
+#include <bech32.h>
 #include <base58.h>
 #include <chain.h>
 #include <consensus/validation.h>
@@ -63,8 +64,12 @@ std::string HelpRequiringPassphrase(CWallet * const pwallet)
 
 bool EnsureWalletIsAvailable(CWallet * const pwallet, bool avoidException)
 {
-    if (pwallet) return true;
-    if (avoidException) return false;
+    if (pwallet) {
+        return true;
+    }
+    if (avoidException) {
+        return false;
+    }
     if (::vpwallets.empty()) {
         // Note: It isn't currently possible to trigger this error because
         // wallet RPC methods aren't registered unless a wallet is loaded. But
@@ -159,8 +164,9 @@ UniValue getnewaddress(const JSONRPCRequest& request)
 
     // Parse the account first so we don't generate a key if there's an error
     std::string strAccount;
-    if (!request.params[0].isNull())
+    if (!request.params[0].isNull()) {
         strAccount = AccountFromValue(request.params[0]);
+    }
 
     OutputType output_type = g_address_type;
     if (!request.params[1].isNull()) {
@@ -2287,8 +2293,9 @@ UniValue keypoolrefill(const JSONRPCRequest& request)
     // 0 is interpreted by TopUpKeyPool() as the default keypool size given by -keypool
     unsigned int kpSize = 0;
     if (!request.params[0].isNull()) {
-        if (request.params[0].get_int() < 0)
+        if (request.params[0].get_int() < 0) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, expected valid size.");
+        }
         kpSize = (unsigned int)request.params[0].get_int();
     }
 
@@ -3246,9 +3253,9 @@ UniValue fundrawtransaction(const JSONRPCRequest& request)
 UniValue bumpfee(const JSONRPCRequest& request)
 {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
-
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
+    }
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
         throw std::runtime_error(
@@ -3395,7 +3402,6 @@ UniValue bumpfee(const JSONRPCRequest& request)
 UniValue generate(const JSONRPCRequest& request)
 {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
-
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -3536,7 +3542,7 @@ extern UniValue rescanblockchain(const JSONRPCRequest& request);
 
 static const CRPCCommand commands[] =
 { //  category              name                        actor (function)           argNames
-    //  --------------------- ------------------------    -----------------------  ----------
+  //  --------------------- --------------------------- -------------------------- --------
     { "rawtransactions",    "fundrawtransaction",       &fundrawtransaction,       {"hexstring","options","iswitness"} },
     { "hidden",             "resendwallettransactions", &resendwallettransactions, {} },
     { "wallet",             "abandontransaction",       &abandontransaction,       {"txid"} },

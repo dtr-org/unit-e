@@ -190,8 +190,9 @@ CPubKey CKey::GetPubKey() const {
 }
 
 bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_t test_case) const {
-    if (!fValid)
+    if (!fValid) {
         return false;
+    }
     vchSig.resize(CPubKey::SIGNATURE_SIZE);
     size_t nSigLen = CPubKey::SIGNATURE_SIZE;
     unsigned char extra_entropy[32] = {0};
@@ -219,8 +220,9 @@ bool CKey::VerifyPubKey(const CPubKey& pubkey) const {
 }
 
 bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) const {
-    if (!fValid)
+    if (!fValid) {
         return false;
+    }
     vchSig.resize(CPubKey::COMPACT_SIGNATURE_SIZE);
     int rec = -1;
     secp256k1_ecdsa_recoverable_signature sig;
@@ -234,14 +236,14 @@ bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) 
 }
 
 bool CKey::Load(const CPrivKey &privkey, const CPubKey &vchPubKey, bool fSkipCheck=false) {
-    if (!ec_privkey_import_der(secp256k1_context_sign, (unsigned char*)begin(), privkey.data(), privkey.size()))
+    if (!ec_privkey_import_der(secp256k1_context_sign, (unsigned char*)begin(), privkey.data(), privkey.size())) {
         return false;
+    }
     fCompressed = vchPubKey.IsCompressed();
     fValid = true;
-
-    if (fSkipCheck)
+    if (fSkipCheck) {
         return true;
-
+    }
     return VerifyPubKey(vchPubKey);
 }
 

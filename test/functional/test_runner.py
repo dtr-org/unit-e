@@ -116,6 +116,7 @@ BASE_SCRIPTS= [
     'rpc_signmessage.py',
     'feature_nulldummy.py',
     'wallet_import_rescan.py',
+    'feature_bip39.py',
     'mining_basic.py',
     'wallet_bumpfee.py',
     'rpc_named_arguments.py',

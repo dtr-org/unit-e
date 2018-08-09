@@ -7,6 +7,7 @@
 
 #include <util.h>
 #include <utilstr.h>
+#include <utilstrencodings.h>
 #include <crypto/hmac_sha512.h>
 #include <crypto/sha256.h>
 
@@ -22,6 +23,10 @@
 #include <key/wordlists/italian.h>
 #include <key/wordlists/korean.h>
 
+namespace key
+{
+namespace mnemonic
+{
 
 static const unsigned char *mnLanguages[] =
 {
@@ -49,9 +54,9 @@ static const uint32_t mnLanguageLens[] =
     korean_txt_len,
 };
 
-const char *mnLanguagesDesc[WLL_MAX] =
+static const std::string languagesDesc[WLL_MAX] =
 {
-    nullptr,
+    "",
     "English",
     "French",
     "Japanese",
@@ -62,9 +67,9 @@ const char *mnLanguagesDesc[WLL_MAX] =
     "Korean",
 };
 
-const char *mnLanguagesTag[WLL_MAX] =
+static const std::string languagesTags[WLL_MAX] =
 {
-    nullptr,
+    "",
     "english",
     "french",
     "japanese",
@@ -104,7 +109,6 @@ int GetWord(int o, const char *pwl, int max, std::string &sWord)
             return 1;
         }
     }
-
     while (pt < (pwl+max))
     {
         if (*pt == '\n') {
@@ -113,7 +117,6 @@ int GetWord(int o, const char *pwl, int max, std::string &sWord)
         sWord += *pt;
         pt++;
     }
-
     return 1;
 }
 
@@ -152,7 +155,7 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
     return 1;
 }
 
-int MnemonicDetectLanguage(const std::string &sWordList)
+int DetectLanguage(const std::string &sWordList)
 {
     char tmp[2048];
     if (sWordList.size() >= 2048) {
@@ -200,11 +203,10 @@ int MnemonicDetectLanguage(const std::string &sWordList)
             return l;
         }
     }
-
     return 0;
 }
 
-int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
+int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
 {
     LogPrint(BCLog::WALLET, "%s: language %d.\n", __func__, nLanguage);
 
@@ -295,23 +297,20 @@ int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::str
     return 0;
 }
 
-int MnemonicDecode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError, bool fIgnoreChecksum)
+int Decode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
+           bool fIgnoreChecksum)
 {
-    LogPrint(BCLog::WALLET, "%s: Language %d.\n", __func__, nLanguage);
-
     std::string sWordList = sWordListIn;
     NormaliseInput(sWordList);
 
     if (nLanguage == -1) {
-        nLanguage = MnemonicDetectLanguage(sWordList);
+        nLanguage = DetectLanguage(sWordList);
     }
 
     if (nLanguage < 1 || nLanguage > WLL_MAX) {
         sError = "Unknown language.";
         return error<1>("%s: %s", __func__, sError.c_str());
     }
-
-    LogPrint(BCLog::WALLET, "%s: Detected language %d.\n", __func__, nLanguage);
 
     char tmp[2048];
     if (sWordList.size() >= 2048) {
@@ -466,10 +465,8 @@ static int mnemonicKdf(const uint8_t *password, size_t lenPassword,
     return 0;
 }
 
-int MnemonicToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed)
+int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed)
 {
-    LogPrint(BCLog::WALLET, "%s\n", __func__);
-
     vSeed.resize(64);
 
     std::string sWordList = sMnemonic;
@@ -489,31 +486,30 @@ int MnemonicToSeed(const std::string &sMnemonic, const std::string &sPasswordIn,
     return 0;
 }
 
-int MnemonicAddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
+int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
 {
     sWordListOut = "";
     int nLanguage = nLanguageIn;
     if (nLanguage == -1)
-        nLanguage = MnemonicDetectLanguage(sWordListIn); // needed here for MnemonicEncode, MnemonicDecode will complain if in error
+        nLanguage = DetectLanguage(sWordListIn); // needed here for MnemonicEncode, MnemonicDecode will complain if in error
 
     int rv;
     std::vector<uint8_t> vEntropy;
-    if (0 != (rv = MnemonicDecode(nLanguage, sWordListIn, vEntropy, sError, true))) {
+    if (0 != (rv = Decode(nLanguage, sWordListIn, vEntropy, sError, true))) {
         return rv;
     }
-    if (0 != (rv = MnemonicEncode(nLanguage, vEntropy, sWordListOut, sError))) {
+    if (0 != (rv = Encode(nLanguage, vEntropy, sWordListOut, sError))) {
         return rv;
     }
-    if (0 != (rv = MnemonicDecode(nLanguage, sWordListOut, vEntropy, sError))) {
+    if (0 != (rv = Decode(nLanguage, sWordListOut, vEntropy, sError))) {
         return rv;
     }
     return 0;
 }
 
-int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError)
+int GetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError)
 {
-    if (nLanguage < 1 || nLanguage > WLL_MAX)
-    {
+    if (nLanguage < 1 || nLanguage > WLL_MAX) {
         sError = "Unknown language.";
         return error<1>("%s: %s", __func__, sError.c_str());
     }
@@ -521,11 +517,56 @@ int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &s
     char *pwl = (char*) mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
-    if (0 != GetWord(nWord, pwl, m, sWord))
-    {
+    if (0 != GetWord(nWord, pwl, m, sWord)) {
         sError = strprintf("Word extract failed %d, language %d.", nWord, nLanguage);
         return error<3>("%s: %s", __func__, sError.c_str());
     }
-
     return 0;
 }
+
+Seed::Seed(const std::string &mnemonic, const std::string &passphrase)
+{
+    m_language = DetectLanguage(mnemonic);
+    if (0 == m_language) {
+        throw std::runtime_error("invalid mnemonic: did not detect a known language");
+    }
+
+    std::string error;
+
+    if (0 != Decode(m_language, mnemonic, m_entropy, error)) {
+        throw std::runtime_error(strprintf("invalid mnemonic: %s", error.c_str()));
+    }
+    if (0 != ToSeed(mnemonic, passphrase, m_seed)) {
+        // this should never happen as the previous if statement already checks whether the mnemonic can be decoded.
+        throw std::runtime_error(strprintf("invalid mnemonic: %s", mnemonic.c_str()));
+    }
+
+    std::string hexSeed = EncodeBase16(m_seed);
+
+    m_extKey.SetMaster(m_seed.data(), m_seed.size());
+    m_extKey58.SetKey(m_extKey);
+}
+
+const std::string& Seed::GetHumandReadableLanguage() const {
+    return languagesDesc[m_language];
+}
+
+const std::string& Seed::GetLanguageTag() const {
+    return languagesTags[m_language];
+}
+
+const std::string& Seed::GetHexSeed() const {
+    return m_hexSeed;
+}
+
+const CExtKey& Seed::GetExtKey() const {
+    return m_extKey;
+}
+
+const CUnitEExtKey& Seed::GetExtKey58() const {
+    return m_extKey58;
+}
+
+} // namespace mnemonic
+
+} // namespace key

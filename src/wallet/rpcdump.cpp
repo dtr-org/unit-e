@@ -547,13 +547,14 @@ UniValue importwallet(const JSONRPCRequest& request)
             pwallet->ShowProgress("", std::max(1, std::min(99, (int)(((double)file.tellg() / (double)nFilesize) * 100))));
             std::string line;
             std::getline(file, line);
-            if (line.empty() || line[0] == '#')
+            if (line.empty() || line[0] == '#') {
                 continue;
-
+            }
             std::vector<std::string> vstr;
             boost::split(vstr, line, boost::is_any_of(" "));
-            if (vstr.size() < 2)
+            if (vstr.size() < 2) {
                 continue;
+            }
             CUnitESecret vchSecret;
             if (vchSecret.SetString(vstr[0])) {
                 CKey key = vchSecret.GetKey();
@@ -568,12 +569,15 @@ UniValue importwallet(const JSONRPCRequest& request)
                 std::string strLabel;
                 bool fLabel = true;
                 for (unsigned int nStr = 2; nStr < vstr.size(); nStr++) {
-                    if (boost::algorithm::starts_with(vstr[nStr], "#"))
+                    if (boost::algorithm::starts_with(vstr[nStr], "#")) {
                         break;
-                    if (vstr[nStr] == "change=1")
+                    }
+                    if (vstr[nStr] == "change=1") {
                         fLabel = false;
-                    if (vstr[nStr] == "reserve=1")
+                    }
+                    if (vstr[nStr] == "reserve=1") {
                         fLabel = false;
+                    }
                     if (boost::algorithm::starts_with(vstr[nStr], "label=")) {
                         strLabel = DecodeDumpString(vstr[nStr].substr(6));
                         fLabel = true;
@@ -585,8 +589,9 @@ UniValue importwallet(const JSONRPCRequest& request)
                     continue;
                 }
                 pwallet->mapKeyMetadata[keyid].nCreateTime = nTime;
-                if (fLabel)
+                if (fLabel) {
                     pwallet->SetAddressBook(keyid, strLabel, "receive");
+                }
                 nTimeBegin = std::min(nTimeBegin, nTime);
             } else if(IsHex(vstr[0])) {
                std::vector<unsigned char> vData(ParseHex(vstr[0]));
@@ -614,8 +619,9 @@ UniValue importwallet(const JSONRPCRequest& request)
     pwallet->RescanFromTime(nTimeBegin, reserver, false /* update */);
     pwallet->MarkDirty();
 
-    if (!fGood)
+    if (!fGood) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Error adding some keys/scripts to wallet");
+    }
 
     return NullUniValue;
 }
@@ -627,7 +633,7 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 1)
+    if (request.fHelp || request.params.size() != 1) {
         throw std::runtime_error(
             "dumpprivkey \"address\"\n"
             "\nReveals the private key corresponding to 'address'.\n"
@@ -641,6 +647,7 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
             + HelpExampleCli("importprivkey", "\"mykey\"")
             + HelpExampleRpc("dumpprivkey", "\"myaddress\"")
         );
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
@@ -670,7 +677,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 1)
+    if (request.fHelp || request.params.size() != 1) {
         throw std::runtime_error(
             "dumpwallet \"filename\"\n"
             "\nDumps all wallet keys in a human-readable format to a server-side file. This does not allow overwriting existing files.\n"
@@ -687,6 +694,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
             + HelpExampleCli("dumpwallet", "\"test\"")
             + HelpExampleRpc("dumpwallet", "\"test\"")
         );
+    }
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
