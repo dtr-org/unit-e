@@ -54,7 +54,7 @@ static const uint32_t mnLanguageLens[] =
     korean_txt_len,
 };
 
-static const char *mnLanguagesDesc[static_cast<uint16_t>(Language::COUNT)] =
+static const std::string languagesDesc[static_cast<uint16_t>(Language::COUNT)] =
 {
     "English",
     "French",
@@ -66,7 +66,7 @@ static const char *mnLanguagesDesc[static_cast<uint16_t>(Language::COUNT)] =
     "Korean",
 };
 
-static const char *mnLanguagesTag[static_cast<uint16_t>(Language::COUNT)] =
+static const std::string languagesTags[static_cast<uint16_t>(Language::COUNT)] =
 {
     "english",
     "french",
@@ -493,6 +493,46 @@ int GetWord(Language language, int nWord, std::string &sWord, std::string &sErro
     }
 
     return 0;
+}
+
+Seed::Seed(const std::string &mnemonic, const std::string &passphrase)
+{
+    boost::optional<Language> maybeLanguage = DetectLanguage(mnemonic);
+    if (boost::none == maybeLanguage) {
+        throw std::runtime_error("invalid mnemonic: did not detect a known language");
+    }
+    m_language = maybeLanguage.get();
+    std::string error;
+    if (0 != Decode(m_language, mnemonic, m_entropy, error)) {
+        throw std::runtime_error(strprintf("invalid mnemonic: %s", error.c_str()));
+    }
+    if (0 != ToSeed(mnemonic, passphrase, m_seed)) {
+        // this should never happen as the previous if statement already checks whether the mnemonic can be decoded.
+        throw std::runtime_error(strprintf("invalid mnemonic: %s", mnemonic.c_str()));
+    }
+    std::string hexSeed = EncodeBase16(m_seed);
+    m_extKey.SetMaster(m_seed.data(), m_seed.size());
+    m_extKey58.SetKey(m_extKey);
+}
+
+const std::string& Seed::GetHumandReadableLanguage() const {
+    return languagesDesc[static_cast<int>(m_language)];
+}
+
+const std::string& Seed::GetLanguageTag() const {
+    return languagesTags[static_cast<int>(m_language)];
+}
+
+const std::string& Seed::GetHexSeed() const {
+    return m_hexSeed;
+}
+
+const CExtKey& Seed::GetExtKey() const {
+    return m_extKey;
+}
+
+const CUnitEExtKey& Seed::GetExtKey58() const {
+    return m_extKey58;
 }
 
 } // namespace mnemonic
