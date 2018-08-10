@@ -56,7 +56,7 @@ static const uint32_t mnLanguageLens[] =
     korean_txt_len,
 };
 
-const char *mnLanguagesDesc[WLL_MAX] =
+static const char *mnLanguagesDesc[WLL_MAX] =
 {
     nullptr,
     "English",
@@ -69,7 +69,7 @@ const char *mnLanguagesDesc[WLL_MAX] =
     "Korean",
 };
 
-const char *mnLanguagesTag[WLL_MAX] =
+static const char *mnLanguagesTag[WLL_MAX] =
 {
     nullptr,
     "english",
