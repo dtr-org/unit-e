@@ -450,6 +450,50 @@ std::string DecodeBase32(const std::string& str)
     return std::string((const char*)vchRet.data(), vchRet.size());
 }
 
+namespace { // private, shared between EncodeBase16 and DecodeBase16
+
+const char* const BASE_16_ALPHABET = "0123456789abcdef";
+
+} // unnamed namespace
+
+std::string EncodeBase16(const std::vector<uint8_t>& input)
+{
+    size_t len = input.size();
+    std::string output;
+    output.reserve(2 * len);
+    for (size_t i = 0; i < len; ++i)
+    {
+        const unsigned char c = input[i];
+        output.push_back(BASE_16_ALPHABET[c >> 4]);
+        output.push_back(BASE_16_ALPHABET[c & 15]);
+    }
+    return output;
+}
+
+bool DecodeBase16(const std::string& input, std::vector<uint8_t>& output)
+{
+    size_t len = input.length();
+    if (len & 1) {
+        return false;
+    }
+    output.reserve(len / 2);
+    for (size_t i = 0; i < len; i += 2)
+    {
+        char a = input[i];
+        const char* p = std::lower_bound(BASE_16_ALPHABET, BASE_16_ALPHABET + 16, a);
+        if (*p != a) {
+            return false;
+        }
+        char b = input[i + 1];
+        const char* q = std::lower_bound(BASE_16_ALPHABET, BASE_16_ALPHABET + 16, b);
+        if (*q != b) {
+            return false;
+        }
+        output.push_back((static_cast<uint8_t>(p - BASE_16_ALPHABET) << 4) | static_cast<uint8_t>(q - BASE_16_ALPHABET));
+    }
+    return true;
+}
+
 static bool ParsePrechecks(const std::string& str)
 {
     if (str.empty()) // No empty string allowed
