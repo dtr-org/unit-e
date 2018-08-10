@@ -28,9 +28,6 @@ enum WordListLanguages
     WLL_MAX
 };
 
-extern const char *mnLanguagesDesc[WLL_MAX];
-extern const char *mnLanguagesTag[WLL_MAX];
-
 int GetWord(int o, const char *pwl, int max, std::string &sWord);
 
 int GetWordOffset(const char *p, const char *pwl, int max, int &o);
