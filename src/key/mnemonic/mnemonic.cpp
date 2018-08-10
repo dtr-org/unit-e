@@ -3,7 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <key/mnemonic.h>
+#include <key/mnemonic/mnemonic.h>
 
 #include <util.h>
 #include <utilstr.h>
@@ -13,15 +13,14 @@
 #include <unilib/uninorms.h>
 #include <unilib/utf8.h>
 
-#include <key/wordlists/english.h>
-#include <key/wordlists/french.h>
-#include <key/wordlists/japanese.h>
-#include <key/wordlists/spanish.h>
-#include <key/wordlists/chinese_simplified.h>
-#include <key/wordlists/chinese_traditional.h>
-#include <key/wordlists/italian.h>
-#include <key/wordlists/korean.h>
-
+#include <key/mnemonic/english.h>
+#include <key/mnemonic/french.h>
+#include <key/mnemonic/japanese.h>
+#include <key/mnemonic/spanish.h>
+#include <key/mnemonic/chinese_simplified.h>
+#include <key/mnemonic/chinese_traditional.h>
+#include <key/mnemonic/italian.h>
+#include <key/mnemonic/korean.h>
 
 static const unsigned char *mnLanguages[] =
 {
