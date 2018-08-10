@@ -42,8 +42,7 @@ std::string GetWalletHelpString(bool showDebug)
     strUsage += HelpMessageOpt("-zapwallettxes=<mode>", _("Delete all wallet transactions and only recover those parts of the blockchain through -rescan on startup") +
                                " " + _("(1 = keep tx meta data e.g. account owner and payment request information, 2 = drop tx meta data)"));
 
-    if (showDebug)
-    {
+    if (showDebug) {
         strUsage += HelpMessageGroup(_("Wallet debugging/testing options:"));
 
         strUsage += HelpMessageOpt("-dblogsize=<n>", strprintf("Flush wallet database activity from memory to disk log every <n> megabytes (default: %u)", DEFAULT_WALLET_DBLOGSIZE));
@@ -104,71 +103,76 @@ bool WalletParameterInteraction()
         }
     }
 
-    if (gArgs.GetBoolArg("-sysperms", false))
+    if (gArgs.GetBoolArg("-sysperms", false)) {
         return InitError("-sysperms is not allowed in combination with enabled wallet functionality");
-    if (gArgs.GetArg("-prune", 0) && gArgs.GetBoolArg("-rescan", false))
+    }
+    if (gArgs.GetArg("-prune", 0) && gArgs.GetBoolArg("-rescan", false)) {
         return InitError(_("Rescans are not possible in pruned mode. You will need to use -reindex which will download the whole blockchain again."));
+    }
 
-    if (::minRelayTxFee.GetFeePerK() > HIGH_TX_FEE_PER_KB)
+    if (::minRelayTxFee.GetFeePerK() > HIGH_TX_FEE_PER_KB) {
         InitWarning(AmountHighWarn("-minrelaytxfee") + " " +
                     _("The wallet will avoid paying less than the minimum relay fee."));
+    }
 
-    if (gArgs.IsArgSet("-mintxfee"))
-    {
+    if (gArgs.IsArgSet("-mintxfee")) {
         CAmount n = 0;
-        if (!ParseMoney(gArgs.GetArg("-mintxfee", ""), n) || 0 == n)
+        if (!ParseMoney(gArgs.GetArg("-mintxfee", ""), n) || 0 == n) {
             return InitError(AmountErrMsg("mintxfee", gArgs.GetArg("-mintxfee", "")));
-        if (n > HIGH_TX_FEE_PER_KB)
+        }
+        if (n > HIGH_TX_FEE_PER_KB) {
             InitWarning(AmountHighWarn("-mintxfee") + " " +
                         _("This is the minimum transaction fee you pay on every transaction."));
+        }
         CWallet::minTxFee = CFeeRate(n);
     }
-    if (gArgs.IsArgSet("-fallbackfee"))
-    {
+    if (gArgs.IsArgSet("-fallbackfee")) {
         CAmount nFeePerK = 0;
-        if (!ParseMoney(gArgs.GetArg("-fallbackfee", ""), nFeePerK))
+        if (!ParseMoney(gArgs.GetArg("-fallbackfee", ""), nFeePerK)) {
             return InitError(strprintf(_("Invalid amount for -fallbackfee=<amount>: '%s'"), gArgs.GetArg("-fallbackfee", "")));
-        if (nFeePerK > HIGH_TX_FEE_PER_KB)
+        }
+        if (nFeePerK > HIGH_TX_FEE_PER_KB) {
             InitWarning(AmountHighWarn("-fallbackfee") + " " +
                         _("This is the transaction fee you may pay when fee estimates are not available."));
+        }
         CWallet::fallbackFee = CFeeRate(nFeePerK);
     }
-    if (gArgs.IsArgSet("-discardfee"))
-    {
+    if (gArgs.IsArgSet("-discardfee")) {
         CAmount nFeePerK = 0;
-        if (!ParseMoney(gArgs.GetArg("-discardfee", ""), nFeePerK))
+        if (!ParseMoney(gArgs.GetArg("-discardfee", ""), nFeePerK)) {
             return InitError(strprintf(_("Invalid amount for -discardfee=<amount>: '%s'"), gArgs.GetArg("-discardfee", "")));
-        if (nFeePerK > HIGH_TX_FEE_PER_KB)
+        }
+        if (nFeePerK > HIGH_TX_FEE_PER_KB) {
             InitWarning(AmountHighWarn("-discardfee") + " " +
                         _("This is the transaction fee you may discard if change is smaller than dust at this level"));
+        }
         CWallet::m_discard_rate = CFeeRate(nFeePerK);
     }
-    if (gArgs.IsArgSet("-paytxfee"))
-    {
+    if (gArgs.IsArgSet("-paytxfee")) {
         CAmount nFeePerK = 0;
-        if (!ParseMoney(gArgs.GetArg("-paytxfee", ""), nFeePerK))
+        if (!ParseMoney(gArgs.GetArg("-paytxfee", ""), nFeePerK)) {
             return InitError(AmountErrMsg("paytxfee", gArgs.GetArg("-paytxfee", "")));
-        if (nFeePerK > HIGH_TX_FEE_PER_KB)
+        }
+        if (nFeePerK > HIGH_TX_FEE_PER_KB) {
             InitWarning(AmountHighWarn("-paytxfee") + " " +
                         _("This is the transaction fee you will pay if you send a transaction."));
-
+        }
         payTxFee = CFeeRate(nFeePerK, 1000);
-        if (payTxFee < ::minRelayTxFee)
-        {
+        if (payTxFee < ::minRelayTxFee) {
             return InitError(strprintf(_("Invalid amount for -paytxfee=<amount>: '%s' (must be at least %s)"),
                                        gArgs.GetArg("-paytxfee", ""), ::minRelayTxFee.ToString()));
         }
     }
-    if (gArgs.IsArgSet("-maxtxfee"))
-    {
+    if (gArgs.IsArgSet("-maxtxfee")) {
         CAmount nMaxFee = 0;
-        if (!ParseMoney(gArgs.GetArg("-maxtxfee", ""), nMaxFee))
+        if (!ParseMoney(gArgs.GetArg("-maxtxfee", ""), nMaxFee)) {
             return InitError(AmountErrMsg("maxtxfee", gArgs.GetArg("-maxtxfee", "")));
-        if (nMaxFee > HIGH_MAX_TX_FEE)
+        }
+        if (nMaxFee > HIGH_MAX_TX_FEE) {
             InitWarning(_("-maxtxfee is set very high! Fees this large could be paid on a single transaction."));
+        }
         maxTxFee = nMaxFee;
-        if (CFeeRate(maxTxFee, 1000) < ::minRelayTxFee)
-        {
+        if (CFeeRate(maxTxFee, 1000) < ::minRelayTxFee) {
             return InitError(strprintf(_("Invalid amount for -maxtxfee=<amount>: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)"),
                                        gArgs.GetArg("-maxtxfee", ""), ::minRelayTxFee.ToString()));
         }

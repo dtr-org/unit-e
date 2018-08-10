@@ -93,8 +93,7 @@ int GetWord(int o, const char *pwl, int max, std::string &sWord)
 {
     sWord = "";
     char *pt = (char*)pwl;
-    while (o > 0)
-    {
+    while (o > 0) {
         if (*pt == '\n') {
             o--;
         }
@@ -104,9 +103,7 @@ int GetWord(int o, const char *pwl, int max, std::string &sWord)
             return 1;
         }
     }
-
-    while (pt < (pwl+max))
-    {
+    while (pt < (pwl+max)) {
         if (*pt == '\n') {
             return 0;
         }
@@ -125,21 +122,16 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
     int i = 0;
     int c = 0;
     int f = 1;
-    while (pt < (pwl+max))
-    {
-        if (*pt == '\n')
-        {
-            if (f && c == l) // found
-            {
+    while (pt < (pwl+max)) {
+        if (*pt == '\n') {
+            if (f && c == l) { // found
                 o = i;
                 return 0;
             }
             i++;
             c = 0;
             f = 1;
-        }
-        else
-        {
+        } else {
             if (c >= l) {
                 f = 0;
             } else if (f && *(p+c) != *pt) {
@@ -162,8 +154,7 @@ int MnemonicDetectLanguage(const std::string &sWordList)
     // try to detect the language
     // try max n words
     // allow errors, tolerate spelling mistakes, mistakes will be reported in other functions
-    for (int l = 1; l < WLL_MAX; ++l)
-    {
+    for (int l = 1; l < WLL_MAX; ++l) {
         strcpy(tmp, sWordList.c_str());
 
         char *pwl = (char*) mnLanguages[l];
@@ -176,8 +167,7 @@ int MnemonicDetectLanguage(const std::string &sWordList)
         int nMiss = 0;
         char *p;
         p = strtok(tmp, " ");
-        while (p != nullptr)
-        {
+        while (p != nullptr) {
             int ofs;
             if (0 == GetWordOffset(p, pwl, m, ofs)) {
                 nHit++;
@@ -243,8 +233,7 @@ int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::str
     int nBits = vEntropy.size() * 8 + nCsSize;
 
     int i = 0;
-    while (i < nBits)
-    {
+    while (i < nBits) {
         int o = 0;
         int s = i / 8;
         int r = i % 8;
@@ -272,8 +261,7 @@ int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::str
     char *pwl = (char*) mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
-    for (size_t k = 0; k < vWord.size(); ++k)
-    {
+    for (size_t k = 0; k < vWord.size(); ++k) {
         int o = vWord[k];
 
         std::string sWord;
@@ -328,11 +316,9 @@ int MnemonicDecode(int nLanguage, const std::string &sWordListIn, std::vector<ui
 
     char *p;
     p = strtok(tmp, " ");
-    while (p != nullptr)
-    {
+    while (p != nullptr) {
         int ofs;
-        if (0 != GetWordOffset(p, pwl, m, ofs))
-        {
+        if (0 != GetWordOffset(p, pwl, m, ofs)) {
             sError = strprintf("Unknown word: %s", p);
             return error<3>("%s: %s", __func__, sError.c_str());
         }
@@ -413,7 +399,6 @@ int MnemonicDecode(int nLanguage, const std::string &sWordListIn, std::vector<ui
     if (r > 0) {
         vCSTest[nBytesChecksum-1] &= (((1<<r)-1) << (8-r));
     }
-
     if (vCSTest != vCS) {
         sError = "Checksum mismatch.";
         return error<5>("%s: %s", __func__, sError.c_str());
@@ -512,8 +497,7 @@ int MnemonicAddChecksum(int nLanguageIn, const std::string &sWordListIn, std::st
 
 int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError)
 {
-    if (nLanguage < 1 || nLanguage > WLL_MAX)
-    {
+    if (nLanguage < 1 || nLanguage > WLL_MAX) {
         sError = "Unknown language.";
         return error<1>("%s: %s", __func__, sError.c_str());
     }
@@ -521,8 +505,7 @@ int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &s
     char *pwl = (char*) mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
-    if (0 != GetWord(nWord, pwl, m, sWord))
-    {
+    if (0 != GetWord(nWord, pwl, m, sWord)) {
         sError = strprintf("Word extract failed %d, language %d.", nWord, nLanguage);
         return error<3>("%s: %s", __func__, sError.c_str());
     }
