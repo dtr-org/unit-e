@@ -105,15 +105,15 @@ UNITE_CORE_H = \
   indirectmap.h \
   init.h \
   key.h \
-  key/mnemonic.h \
-  key/wordlists/chinese_simplified.h \
-  key/wordlists/chinese_traditional.h \
-  key/wordlists/english.h \
-  key/wordlists/french.h \
-  key/wordlists/japanese.h \
-  key/wordlists/spanish.h \
-  key/wordlists/italian.h \
-  key/wordlists/korean.h \
+  key/mnemonic/mnemonic.h \
+  key/mnemonic/chinese_simplified.h \
+  key/mnemonic/chinese_traditional.h \
+  key/mnemonic/english.h \
+  key/mnemonic/french.h \
+  key/mnemonic/japanese.h \
+  key/mnemonic/spanish.h \
+  key/mnemonic/italian.h \
+  key/mnemonic/korean.h \
   keystore.h \
   dbwrapper.h \
   limitedmap.h \
@@ -346,7 +346,7 @@ libunite_common_a_SOURCES = \
   core_read.cpp \
   core_write.cpp \
   key.cpp \
-  key/mnemonic.cpp \
+  key/mnemonic/mnemonic.cpp \
   keystore.cpp \
   netaddress.cpp \
   netbase.cpp \
