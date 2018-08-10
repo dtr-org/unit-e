@@ -32,7 +32,6 @@ namespace mnemonic
 
 static const unsigned char *mnLanguages[] =
 {
-    nullptr,
     english_txt,
     french_txt,
     japanese_txt,
@@ -45,7 +44,6 @@ static const unsigned char *mnLanguages[] =
 
 static const uint32_t mnLanguageLens[] =
 {
-    0,
     english_txt_len,
     french_txt_len,
     japanese_txt_len,
@@ -56,9 +54,8 @@ static const uint32_t mnLanguageLens[] =
     korean_txt_len,
 };
 
-static const char *mnLanguagesDesc[WLL_MAX] =
+static const char *mnLanguagesDesc[static_cast<uint16_t>(Language::COUNT)] =
 {
-    nullptr,
     "English",
     "French",
     "Japanese",
@@ -69,9 +66,8 @@ static const char *mnLanguagesDesc[WLL_MAX] =
     "Korean",
 };
 
-static const char *mnLanguagesTag[WLL_MAX] =
+static const char *mnLanguagesTag[static_cast<uint16_t>(Language::COUNT)] =
 {
-    nullptr,
     "english",
     "french",
     "japanese",
@@ -151,24 +147,24 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
     return 1;
 }
 
-int DetectLanguage(const std::string &sWordList)
+boost::optional<Language> DetectLanguage(const std::string &sWordList)
 {
     char tmp[2048];
     if (sWordList.size() >= 2048) {
-        return error<-1>("%s: Word List too long.", __func__);
+        return boost::none;
     }
 
     // try to detect the language
     // try max n words
     // allow errors, tolerate spelling mistakes, mistakes will be reported in other functions
-    for (int l = 1; l < WLL_MAX; ++l) {
+    for (int l = 0; l < static_cast<int>(Language::COUNT); ++l) {
         strcpy(tmp, sWordList.c_str());
 
         char *pwl = (char*) mnLanguages[l];
         int m = mnLanguageLens[l];
 
         // The chinese dialects have many words in common, match full phrase
-        int maxTries = (l == WLL_CHINESE_S || l == WLL_CHINESE_T) ? 24 : 8;
+        int maxTries = (l == static_cast<int>(Language::CHINESE_S) || l == static_cast<int>(Language::CHINESE_T)) ? 24 : 8;
 
         int nHit = 0;
         int nMiss = 0;
@@ -181,33 +177,30 @@ int DetectLanguage(const std::string &sWordList)
             } else {
                 nMiss++;
             }
-
             if (!maxTries--) {
                 break;
             }
             p = strtok(nullptr, " ");
         }
-
         // Chinese dialects overlap too much to tolerate failures
-        if ((l == WLL_CHINESE_S || l == WLL_CHINESE_T)  && nMiss > 0) {
+        if ((l == static_cast<int>(Language::CHINESE_S) || l == static_cast<int>(Language::CHINESE_T))  && nMiss > 0) {
             continue;
         }
-
         if (nHit > nMiss && nMiss < 2) {// tolerate max 2 failures
-            return l;
+            return static_cast<Language>(l);
         }
     }
 
-    return 0;
+    return boost::none;
 }
 
-int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
+int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
 {
-    LogPrint(BCLog::WALLET, "%s: language %d.\n", __func__, nLanguage);
-
     sWordList = "";
 
-    if (nLanguage < 1 || nLanguage > WLL_MAX) {
+    const int nLanguage = static_cast<int>(language);
+
+    if (nLanguage < 1 || nLanguage > static_cast<int>(Language::COUNT)) {
         sError = "Unknown language.";
         return error<1>("%s: %s", __func__, sError.c_str());
     }
@@ -283,31 +276,20 @@ int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWo
         sWordList += sWord;
     }
 
-    if (nLanguage == WLL_JAPANESE) {
+    if (nLanguage == static_cast<int>(Language::JAPANESE)) {
         util::str::ReplaceStrInPlace(sWordList, " ", "\u3000");
     }
 
     return 0;
 }
 
-int Decode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
+int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
            bool fIgnoreChecksum)
 {
-    LogPrint(BCLog::WALLET, "%s: Language %d.\n", __func__, nLanguage);
+    const int nLanguage = static_cast<int>(language);
 
     std::string sWordList = sWordListIn;
     NormaliseInput(sWordList);
-
-    if (nLanguage == -1) {
-        nLanguage = DetectLanguage(sWordList);
-    }
-
-    if (nLanguage < 1 || nLanguage > WLL_MAX) {
-        sError = "Unknown language.";
-        return error<1>("%s: %s", __func__, sError.c_str());
-    }
-
-    LogPrint(BCLog::WALLET, "%s: Detected language %d.\n", __func__, nLanguage);
 
     char tmp[2048];
     if (sWordList.size() >= 2048) {
@@ -482,34 +464,26 @@ int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::ve
     return 0;
 }
 
-int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
+int AddChecksum(Language language, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
 {
     sWordListOut = "";
-    int nLanguage = nLanguageIn;
-    if (nLanguage == -1)
-        nLanguage = DetectLanguage(sWordListIn); // needed here for MnemonicEncode, MnemonicDecode will complain if in error
-
     int rv;
     std::vector<uint8_t> vEntropy;
-    if (0 != (rv = Decode(nLanguage, sWordListIn, vEntropy, sError, true))) {
+    if (0 != (rv = Decode(language, sWordListIn, vEntropy, sError, true))) {
         return rv;
     }
-    if (0 != (rv = Encode(nLanguage, vEntropy, sWordListOut, sError))) {
+    if (0 != (rv = Encode(language, vEntropy, sWordListOut, sError))) {
         return rv;
     }
-    if (0 != (rv = Decode(nLanguage, sWordListOut, vEntropy, sError))) {
+    if (0 != (rv = Decode(language, sWordListOut, vEntropy, sError))) {
         return rv;
     }
     return 0;
 }
 
-int GetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError)
+int GetWord(Language language, int nWord, std::string &sWord, std::string &sError)
 {
-    if (nLanguage < 1 || nLanguage > WLL_MAX) {
-        sError = "Unknown language.";
-        return error<1>("%s: %s", __func__, sError.c_str());
-    }
-
+    const int nLanguage = static_cast<int>(language);
     char *pwl = (char*) mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
