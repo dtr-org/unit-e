@@ -45,14 +45,33 @@ bool IsHex(const std::string& str);
 * Return true if the string is a hex number, optionally prefixed with "0x"
 */
 bool IsHexNumber(const std::string& str);
+
 std::vector<unsigned char> DecodeBase64(const char* p, bool* pfInvalid = nullptr);
 std::string DecodeBase64(const std::string& str);
 std::string EncodeBase64(const unsigned char* pch, size_t len);
 std::string EncodeBase64(const std::string& str);
+
 std::vector<unsigned char> DecodeBase32(const char* p, bool* pfInvalid = nullptr);
 std::string DecodeBase32(const std::string& str);
 std::string EncodeBase32(const unsigned char* pch, size_t len);
 std::string EncodeBase32(const std::string& str);
+
+/*!
+ * Convert a vector (binary data) to a base16 encoded string (hexadecimal).
+ *
+ * @param input The vector to be encoded.
+ * @return A hexadecimal representation of the vector's contents.
+ */
+std::string EncodeBase16(const std::vector<uint8_t>& input);
+
+/*!
+ * Convert a base16 string (hexadecimal) to a vector (binary data).
+ *
+ * @param input [in] The input data to decode.
+ * @param output [out] The target vector the decoded data is written to.
+ * @return true if the conversion was sucessful, false otherwise.
+ */
+bool DecodeBase16(const std::string& input, std::vector<uint8_t>& output);
 
 void SplitHostPort(std::string in, int &portOut, std::string &hostOut);
 std::string i64tostr(int64_t n);
