@@ -32,14 +32,21 @@ extern const char *mnLanguagesDesc[WLL_MAX];
 extern const char *mnLanguagesTag[WLL_MAX];
 
 int GetWord(int o, const char *pwl, int max, std::string &sWord);
+
 int GetWordOffset(const char *p, const char *pwl, int max, int &o);
 
-int MnemonicDetectLanguage(const std::string &sWordList);
-int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError);
-int MnemonicDecode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError, bool fIgnoreChecksum=false);
-int MnemonicToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed);
-int MnemonicAddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
-int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError);
+int DetectLanguage(const std::string &sWordList);
+
+int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError);
+
+int Decode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
+           bool fIgnoreChecksum = false);
+
+int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed);
+
+int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
+
+int GetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError);
 
 } // namespace mnemonic
 
