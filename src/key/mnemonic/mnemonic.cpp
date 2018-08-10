@@ -148,7 +148,7 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
     return 1;
 }
 
-int MnemonicDetectLanguage(const std::string &sWordList)
+int DetectLanguage(const std::string &sWordList)
 {
     char tmp[2048];
     if (sWordList.size() >= 2048) {
@@ -198,7 +198,7 @@ int MnemonicDetectLanguage(const std::string &sWordList)
     return 0;
 }
 
-int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
+int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
 {
     LogPrint(BCLog::WALLET, "%s: language %d.\n", __func__, nLanguage);
 
@@ -287,7 +287,8 @@ int MnemonicEncode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::str
     return 0;
 }
 
-int MnemonicDecode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError, bool fIgnoreChecksum)
+int Decode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
+           bool fIgnoreChecksum)
 {
     LogPrint(BCLog::WALLET, "%s: Language %d.\n", __func__, nLanguage);
 
@@ -295,7 +296,7 @@ int MnemonicDecode(int nLanguage, const std::string &sWordListIn, std::vector<ui
     NormaliseInput(sWordList);
 
     if (nLanguage == -1) {
-        nLanguage = MnemonicDetectLanguage(sWordList);
+        nLanguage = DetectLanguage(sWordList);
     }
 
     if (nLanguage < 1 || nLanguage > WLL_MAX) {
@@ -455,7 +456,7 @@ static int mnemonicKdf(const uint8_t *password, size_t lenPassword,
     return 0;
 }
 
-int MnemonicToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed)
+int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed)
 {
     LogPrint(BCLog::WALLET, "%s\n", __func__);
 
@@ -478,28 +479,28 @@ int MnemonicToSeed(const std::string &sMnemonic, const std::string &sPasswordIn,
     return 0;
 }
 
-int MnemonicAddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
+int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
 {
     sWordListOut = "";
     int nLanguage = nLanguageIn;
     if (nLanguage == -1)
-        nLanguage = MnemonicDetectLanguage(sWordListIn); // needed here for MnemonicEncode, MnemonicDecode will complain if in error
+        nLanguage = DetectLanguage(sWordListIn); // needed here for MnemonicEncode, MnemonicDecode will complain if in error
 
     int rv;
     std::vector<uint8_t> vEntropy;
-    if (0 != (rv = MnemonicDecode(nLanguage, sWordListIn, vEntropy, sError, true))) {
+    if (0 != (rv = Decode(nLanguage, sWordListIn, vEntropy, sError, true))) {
         return rv;
     }
-    if (0 != (rv = MnemonicEncode(nLanguage, vEntropy, sWordListOut, sError))) {
+    if (0 != (rv = Encode(nLanguage, vEntropy, sWordListOut, sError))) {
         return rv;
     }
-    if (0 != (rv = MnemonicDecode(nLanguage, sWordListOut, vEntropy, sError))) {
+    if (0 != (rv = Decode(nLanguage, sWordListOut, vEntropy, sError))) {
         return rv;
     }
     return 0;
 }
 
-int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError)
+int GetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError)
 {
     if (nLanguage < 1 || nLanguage > WLL_MAX) {
         sError = "Unknown language.";
