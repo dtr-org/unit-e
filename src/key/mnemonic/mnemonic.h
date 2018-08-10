@@ -9,41 +9,43 @@
 #include <string>
 #include <vector>
 
+#include <boost/optional.hpp>
+
 namespace key
 {
 namespace mnemonic
 {
 
-enum WordListLanguages
+enum class Language : uint8_t
 {
-    WLL_ENGLISH         = 1,
-    WLL_FRENCH          = 2,
-    WLL_JAPANESE        = 3,
-    WLL_SPANISH         = 4,
-    WLL_CHINESE_S       = 5,
-    WLL_CHINESE_T       = 6,
-    WLL_ITALIAN         = 7,
-    WLL_KOREAN          = 8,
+    ENGLISH,
+    FRENCH,
+    JAPANESE,
+    SPANISH,
+    CHINESE_S,
+    CHINESE_T,
+    ITALIAN,
+    KOREAN,
 
-    WLL_MAX
+    COUNT // hack to automatically find the number of elements in the enumeration
 };
 
 int GetWord(int o, const char *pwl, int max, std::string &sWord);
 
 int GetWordOffset(const char *p, const char *pwl, int max, int &o);
 
-int DetectLanguage(const std::string &sWordList);
+boost::optional<Language> DetectLanguage(const std::string &sWordList);
 
-int Encode(int nLanguage, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError);
+int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError);
 
-int Decode(int nLanguage, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
+int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
            bool fIgnoreChecksum = false);
 
 int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed);
 
-int AddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
+int AddChecksum(Language language, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
 
-int GetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError);
+int GetWord(Language language, int nWord, std::string &sWord, std::string &sError);
 
 } // namespace mnemonic
 
