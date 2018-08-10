@@ -3,6 +3,11 @@
 
 // https://github.com/bitcoin/bips/blob/master/bip-0039/italian.txt
 
+namespace key
+{
+namespace mnemonic
+{
+
 unsigned char italian_txt[] = {
   0x61, 0x62, 0x61, 0x63, 0x6f, 0x0a, 0x61, 0x62, 0x62, 0x61, 0x67, 0x6c,
   0x69, 0x6f, 0x0a, 0x61, 0x62, 0x62, 0x69, 0x6e, 0x61, 0x74, 0x6f, 0x0a,
@@ -1343,5 +1348,9 @@ unsigned char italian_txt[] = {
   0x0a
 };
 unsigned int italian_txt_len = 16033;
+
+} // namespace mnemonic
+
+} // namespace key
 
 #endif // _WORDLIST_ITALIAN_H

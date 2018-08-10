@@ -9,6 +9,11 @@
 #include <string>
 #include <vector>
 
+namespace key
+{
+namespace mnemonic
+{
+
 enum WordListLanguages
 {
     WLL_ENGLISH         = 1,
@@ -36,6 +41,8 @@ int MnemonicToSeed(const std::string &sMnemonic, const std::string &sPasswordIn,
 int MnemonicAddChecksum(int nLanguageIn, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
 int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &sError);
 
+} // namespace mnemonic
+
+} // namespace key
 
 #endif // MNEMONIC_H
-
