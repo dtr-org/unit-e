@@ -22,6 +22,11 @@
 #include <key/mnemonic/italian.h>
 #include <key/mnemonic/korean.h>
 
+namespace key
+{
+namespace mnemonic
+{
+
 static const unsigned char *mnLanguages[] =
 {
     nullptr,
@@ -511,3 +516,7 @@ int MnemonicGetWord(int nLanguage, int nWord, std::string &sWord, std::string &s
 
     return 0;
 }
+
+} // namespace mnemonic
+
+} // namespace key
