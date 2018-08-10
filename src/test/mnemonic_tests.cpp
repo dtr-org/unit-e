@@ -64,9 +64,45 @@ BOOST_AUTO_TEST_CASE(mnemonic_addchecksum)
 
     std::string sWordsInFrench = "zoologie ficeler xénon voyelle village viande vignette sécréter séduire torpille remède";
 
-    BOOST_CHECK(0 == key::mnemonic::AddChecksum(key::mnemonic::Language::ENGLISH, sWordsInFrench, sWordsOut, sError));
+    BOOST_CHECK(0 == key::mnemonic::AddChecksum(key::mnemonic::Language::FRENCH, sWordsInFrench, sWordsOut, sError));
 
     BOOST_CHECK(sWordsOut == "zoologie ficeler xénon voyelle village viande vignette sécréter séduire torpille remède abolir");
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_detect_english)
+{
+    std::string mnemonic = "abandon baby cabbage dad eager fabric gadget habit ice kangaroo";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::ENGLISH);
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_detect_french)
+{
+    std::string mnemonic = "tortue lessive rocheux trancher breuvage souvenir agencer enjeu pluie dicter système jubiler pantalon fixer fébrile";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::FRENCH);
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_detect_italian)
+{
+    std::string mnemonic = "truccato obelisco sipario uccello cadetto tabacco allievo fondente rompere endemico tigella negozio remoto indagine idrico";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::ITALIAN);
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_detect_spanish)
+{
+    std::string mnemonic = "trauma menú salón triste bronce taquilla alacrán fallo prole domingo texto manta pesa guardia glaciar";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::SPANISH);
 }
 
 void runTests(key::mnemonic::Language language, UniValue &tests)

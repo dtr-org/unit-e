@@ -200,11 +200,6 @@ int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string 
 
     const int nLanguage = static_cast<int>(language);
 
-    if (nLanguage < 1 || nLanguage > static_cast<int>(Language::COUNT)) {
-        sError = "Unknown language.";
-        return error<1>("%s: %s", __func__, sError.c_str());
-    }
-
     // Checksum is 1st n bytes of the sha256 hash
     uint8_t hash[32];
     CSHA256().Write(&vEntropy[0], vEntropy.size()).Finalize((uint8_t*)hash);
