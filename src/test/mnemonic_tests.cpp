@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(mnemonic_addchecksum)
 
 BOOST_AUTO_TEST_CASE(mnemonic_detect_english)
 {
-    std::string mnemonic = "abandon baby cabbage dad eager fabric gadget habit ice kangaroo";
+    std::string mnemonic = u8"abandon baby cabbage dad eager fabric gadget habit ice kangaroo";
     boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
     BOOST_CHECK(maybeLanguage != boost::none);
     key::mnemonic::Language language = maybeLanguage.get();
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(mnemonic_detect_english)
 
 BOOST_AUTO_TEST_CASE(mnemonic_detect_french)
 {
-    std::string mnemonic = "tortue lessive rocheux trancher breuvage souvenir agencer enjeu pluie dicter système jubiler pantalon fixer fébrile";
+    std::string mnemonic = u8"tortue lessive rocheux trancher breuvage souvenir agencer enjeu pluie dicter système jubiler pantalon fixer fébrile";
     boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
     BOOST_CHECK(maybeLanguage != boost::none);
     key::mnemonic::Language language = maybeLanguage.get();
@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(mnemonic_detect_french)
 
 BOOST_AUTO_TEST_CASE(mnemonic_detect_italian)
 {
-    std::string mnemonic = "truccato obelisco sipario uccello cadetto tabacco allievo fondente rompere endemico tigella negozio remoto indagine idrico";
+    std::string mnemonic = u8"truccato obelisco sipario uccello cadetto tabacco allievo fondente rompere endemico tigella negozio remoto indagine idrico";
     boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
     BOOST_CHECK(maybeLanguage != boost::none);
     key::mnemonic::Language language = maybeLanguage.get();
@@ -98,11 +98,20 @@ BOOST_AUTO_TEST_CASE(mnemonic_detect_italian)
 
 BOOST_AUTO_TEST_CASE(mnemonic_detect_spanish)
 {
-    std::string mnemonic = "trauma menú salón triste bronce taquilla alacrán fallo prole domingo texto manta pesa guardia glaciar";
+    std::string mnemonic = u8"trauma menú salón triste bronce taquilla alacrán fallo prole domingo texto manta pesa guardia glaciar";
     boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
     BOOST_CHECK(maybeLanguage != boost::none);
     key::mnemonic::Language language = maybeLanguage.get();
     BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::SPANISH);
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_detect_japanese)
+{
+    std::string mnemonic = u8"せんい ぜんら にっしょく ほきょう ほっさ はあく すっかり おどり うやまう ふくぶくろ たうえ うりきれ すきま しはつ たいこ";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::JAPANESE);
 }
 
 BOOST_AUTO_TEST_CASE(mnemonic_detect_korean)
@@ -112,6 +121,24 @@ BOOST_AUTO_TEST_CASE(mnemonic_detect_korean)
     BOOST_CHECK(maybeLanguage != boost::none);
     key::mnemonic::Language language = maybeLanguage.get();
     BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::KOREAN);
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_detect_chinese_simplified)
+{
+    std::string mnemonic = u8"赴 倾 酵 雏 压 肌 民 让 矩 止 册 阴 喝 矛 愿";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::CHINESE_S);
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_detect_chinese_traditional)
+{
+    std::string mnemonic = u8"卷 奪 污 虧 疾 儲 衣 聯 料 漆 篇 常 祖 父 旋";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::CHINESE_T);
 }
 
 BOOST_AUTO_TEST_CASE(mnemonic_seed_english)
