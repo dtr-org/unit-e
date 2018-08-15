@@ -4,10 +4,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#include <util.h>
-#include <utilstr.h>
 #include <crypto/hmac_sha512.h>
 #include <crypto/sha256.h>
+#include <util.h>
+#include <utilstr.h>
 
 #include <unilib/uninorms.h>
 #include <unilib/utf8.h>
@@ -16,69 +16,69 @@
 
 #include <key/mnemonic/mnemonic.h>
 
-#include <key/mnemonic/english.h>
-#include <key/mnemonic/french.h>
-#include <key/mnemonic/japanese.h>
-#include <key/mnemonic/spanish.h>
 #include <key/mnemonic/chinese_simplified.h>
 #include <key/mnemonic/chinese_traditional.h>
+#include <key/mnemonic/english.h>
+#include <key/mnemonic/french.h>
 #include <key/mnemonic/italian.h>
+#include <key/mnemonic/japanese.h>
 #include <key/mnemonic/korean.h>
+#include <key/mnemonic/spanish.h>
 
 namespace key
 {
 namespace mnemonic
 {
 
-static const unsigned char *mnLanguages[] =
+static const unsigned char* mnLanguages[] =
 {
-    english_txt,
-    french_txt,
-    japanese_txt,
-    spanish_txt,
-    chinese_simplified_txt,
-    chinese_traditional_txt,
-    italian_txt,
-    korean_txt,
+        english_txt,
+        french_txt,
+        japanese_txt,
+        spanish_txt,
+        chinese_simplified_txt,
+        chinese_traditional_txt,
+        italian_txt,
+        korean_txt,
 };
 
 static const uint32_t mnLanguageLens[] =
 {
-    english_txt_len,
-    french_txt_len,
-    japanese_txt_len,
-    spanish_txt_len,
-    chinese_simplified_txt_len,
-    chinese_traditional_txt_len,
-    italian_txt_len,
-    korean_txt_len,
+        english_txt_len,
+        french_txt_len,
+        japanese_txt_len,
+        spanish_txt_len,
+        chinese_simplified_txt_len,
+        chinese_traditional_txt_len,
+        italian_txt_len,
+        korean_txt_len,
 };
 
 static const std::string languagesDesc[static_cast<uint16_t>(Language::COUNT)] =
 {
-    "English",
-    "French",
-    "Japanese",
-    "Spanish",
-    "Chinese Simplified",
-    "Chinese Traditional",
-    "Italian",
-    "Korean",
+        "English",
+        "French",
+        "Japanese",
+        "Spanish",
+        "Chinese Simplified",
+        "Chinese Traditional",
+        "Italian",
+        "Korean",
 };
 
 static const std::string languagesTags[static_cast<uint16_t>(Language::COUNT)] =
 {
-    "english",
-    "french",
-    "japanese",
-    "spanish",
-    "chinese_s",
-    "chinese_t",
-    "italian",
-    "korean",
+        "english",
+        "french",
+        "japanese",
+        "spanish",
+        "chinese_s",
+        "chinese_t",
+        "italian",
+        "korean",
 };
 
-static void NormaliseUnicode(std::string &str)
+static void NormaliseUnicode(std::string& str)
 {
     std::u32string u32;
     ufal::unilib::utf8::decode(str, u32);
@@ -86,27 +86,27 @@ static void NormaliseUnicode(std::string &str)
     ufal::unilib::utf8::encode(u32, str);
 }
 
-static void NormaliseInput(std::string &str)
+static void NormaliseInput(std::string& str)
 {
     util::str::TrimWhitespace(str);
     NormaliseUnicode(str);
 }
 
-int GetWord(int o, const char *pwl, int max, std::string &sWord)
+int GetWord(int o, const char* pwl, int max, std::string& sWord)
 {
     sWord = "";
-    char *pt = (char*)pwl;
+    char* pt = (char*)pwl;
     while (o > 0) {
         if (*pt == '\n') {
             o--;
         }
         pt++;
 
-        if (pt >= pwl+max) {
+        if (pt >= pwl + max) {
             return 1;
         }
     }
-    while (pt < (pwl+max)) {
+    while (pt < (pwl + max)) {
         if (*pt == '\n') {
             return 0;
         }
@@ -117,15 +117,15 @@ int GetWord(int o, const char *pwl, int max, std::string &sWord)
     return 1;
 }
 
-int GetWordOffset(const char *p, const char *pwl, int max, int &o)
+int GetWordOffset(const char* p, const char* pwl, int max, int& o)
 {
     // List must end with \n
-    char *pt = (char*)pwl;
+    char* pt = (char*)pwl;
     int l = strlen(p);
     int i = 0;
     int c = 0;
     int f = 1;
-    while (pt < (pwl+max)) {
+    while (pt < (pwl + max)) {
         if (*pt == '\n') {
             if (f && c == l) { // found
                 o = i;
@@ -137,7 +137,7 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
         } else {
             if (c >= l) {
                 f = 0;
-            } else if (f && *(p+c) != *pt) {
+            } else if (f && *(p + c) != *pt) {
                 f = 0;
             }
             c++;
@@ -147,7 +147,7 @@ int GetWordOffset(const char *p, const char *pwl, int max, int &o)
     return 1;
 }
 
-boost::optional<Language> DetectLanguage(const std::string &sWordList)
+boost::optional<Language> DetectLanguage(const std::string& sWordList)
 {
     char tmp[2048];
     if (sWordList.size() >= 2048) {
@@ -160,7 +160,7 @@ boost::optional<Language> DetectLanguage(const std::string &sWordList)
     for (int l = 0; l < static_cast<int>(Language::COUNT); ++l) {
         strcpy(tmp, sWordList.c_str());
 
-        char *pwl = (char*) mnLanguages[l];
+        char* pwl = (char*)mnLanguages[l];
         int m = mnLanguageLens[l];
 
         // The chinese dialects have many words in common, match full phrase
@@ -168,7 +168,7 @@ boost::optional<Language> DetectLanguage(const std::string &sWordList)
 
         int nHit = 0;
         int nMiss = 0;
-        char *p;
+        char* p;
         p = strtok(tmp, " ");
         while (p != nullptr) {
             int ofs;
@@ -183,10 +183,10 @@ boost::optional<Language> DetectLanguage(const std::string &sWordList)
             p = strtok(nullptr, " ");
         }
         // Chinese dialects overlap too much to tolerate failures
-        if ((l == static_cast<int>(Language::CHINESE_S) || l == static_cast<int>(Language::CHINESE_T))  && nMiss > 0) {
+        if ((l == static_cast<int>(Language::CHINESE_S) || l == static_cast<int>(Language::CHINESE_T)) && nMiss > 0) {
             continue;
         }
-        if (nHit > nMiss && nMiss < 2) {// tolerate max 2 failures
+        if (nHit > nMiss && nMiss < 2) { // tolerate max 2 failures
             return static_cast<Language>(l);
         }
     }
@@ -194,7 +194,7 @@ boost::optional<Language> DetectLanguage(const std::string &sWordList)
     return boost::none;
 }
 
-int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError)
+int Encode(Language language, const std::vector<uint8_t>& vEntropy, std::string& sWordList, std::string& sError)
 {
     sWordList = "";
 
@@ -212,14 +212,14 @@ int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string 
 
     std::vector<uint8_t> vIn = vEntropy;
 
-    int ncb = nCsSize/8;
+    int ncb = nCsSize / 8;
     int r = nCsSize % 8;
     if (r != 0) {
         ncb++;
     }
     std::vector<uint8_t> vTmp(32);
     memcpy(&vTmp[0], &hash, ncb);
-    memset(&vTmp[ncb], 0, 32-ncb);
+    memset(&vTmp[ncb], 0, 32 - ncb);
 
     vIn.insert(vIn.end(), vTmp.begin(), vTmp.end());
 
@@ -234,17 +234,17 @@ int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string 
         int r = i % 8;
 
         uint8_t b1 = vIn[s];
-        uint8_t b2 = vIn[s+1];
+        uint8_t b2 = vIn[s + 1];
 
         o = (b1 << r) & 0xFF;
         o = o << (11 - 8);
 
         if (r > 5) {
-            uint8_t b3 = vIn[s+2];
-            o |= (b2 << (r-5));
-            o |= (b3 >> (8-(r-5)));
+            uint8_t b3 = vIn[s + 2];
+            o |= (b2 << (r - 5));
+            o |= (b3 >> (8 - (r - 5)));
         } else {
-            o |= ((int)b2) >> ((8 - (11 - 8))-r);
+            o |= ((int)b2) >> ((8 - (11 - 8)) - r);
         }
 
         o = o & 0x7FF;
@@ -253,7 +253,7 @@ int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string 
         i += 11;
     }
 
-    char *pwl = (char*) mnLanguages[nLanguage];
+    char* pwl = (char*)mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
     for (size_t k = 0; k < vWord.size(); ++k) {
@@ -278,8 +278,7 @@ int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string 
     return 0;
 }
 
-int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
-           bool fIgnoreChecksum)
+int Decode(Language language, const std::string& sWordListIn, std::vector<uint8_t>& vEntropy, std::string& sError, bool fIgnoreChecksum)
 {
     const int nLanguage = static_cast<int>(language);
 
@@ -294,12 +293,12 @@ int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_
 
     strcpy(tmp, sWordList.c_str());
 
-    char *pwl = (char*) mnLanguages[nLanguage];
+    char* pwl = (char*)mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
     std::vector<int> vWordInts;
 
-    char *p;
+    char* p;
     p = strtok(tmp, " ");
     while (p != nullptr) {
         int ofs;
@@ -313,14 +312,13 @@ int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_
         p = strtok(nullptr, " ");
     }
 
-    if (!fIgnoreChecksum
-        && vWordInts.size() % 3 != 0) {
+    if (!fIgnoreChecksum && vWordInts.size() % 3 != 0) {
         sError = "No. of words must be divisible by 3.";
         return error<4>("%s: %s", __func__, sError.c_str());
     }
 
     int nBits = vWordInts.size() * 11;
-    int nBytes = nBits/8 + (nBits % 8 == 0 ? 0 : 1);
+    int nBytes = nBits / 8 + (nBits % 8 == 0 ? 0 : 1);
     vEntropy.resize(nBytes);
 
     memset(&vEntropy[0], 0, nBytes);
@@ -328,26 +326,22 @@ int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_
     int i = 0;
     size_t wl = vWordInts.size();
     size_t el = vEntropy.size();
-    for (size_t k = 0; k < wl; ++k)
-    {
+    for (size_t k = 0; k < wl; ++k) {
         int o = vWordInts[k];
 
         int s = i / 8;
         int r = i % 8;
 
-        vEntropy[s] |= (o >> (r+3)) & 0x7FF;
+        vEntropy[s] |= (o >> (r + 3)) & 0x7FF;
 
-        if (s < (int)el-1)
-        {
-            if (r > 5)
-            {
-                vEntropy[s+1] |= ((o >> (r-5))) & 0x7FF;
-                if (s < (int)el-2)
-                {
-                    vEntropy[s+2] |= (o << (8-(r-5))) & 0x7FF;
+        if (s < (int)el - 1) {
+            if (r > 5) {
+                vEntropy[s + 1] |= ((o >> (r - 5))) & 0x7FF;
+                if (s < (int)el - 2) {
+                    vEntropy[s + 2] |= (o << (8 - (r - 5))) & 0x7FF;
                 }
             } else {
-                vEntropy[s+1] |= (o << (5-r)) & 0x7FF;
+                vEntropy[s + 1] |= (o << (5 - r)) & 0x7FF;
             }
         }
         i += 11;
@@ -382,7 +376,7 @@ int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_
     int r = nLenChecksum % 8;
 
     if (r > 0) {
-        vCSTest[nBytesChecksum-1] &= (((1<<r)-1) << (8-r));
+        vCSTest[nBytesChecksum - 1] &= (((1 << r) - 1) << (8 - r));
     }
     if (vCSTest != vCS) {
         sError = "Checksum mismatch.";
@@ -392,8 +386,7 @@ int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_
     return 0;
 }
 
-static int mnemonicKdf(const uint8_t *password, size_t lenPassword,
-    const uint8_t *salt, size_t lenSalt, size_t nIterations, uint8_t *out)
+static int mnemonicKdf(const uint8_t* password, size_t lenPassword, const uint8_t* salt, size_t lenSalt, size_t nIterations, uint8_t* out)
 {
     /*
     https://tools.ietf.org/html/rfc2898
@@ -424,7 +417,7 @@ static int mnemonicKdf(const uint8_t *password, size_t lenPassword,
     memcpy(out, r, 64);
 
     for (size_t k = 1; k < nIterations; ++k) {
-        ctx= ctx_state;
+        ctx = ctx_state;
         ctx.Write(r, 64);
         ctx.Finalize(r);
 
@@ -436,7 +429,7 @@ static int mnemonicKdf(const uint8_t *password, size_t lenPassword,
     return 0;
 }
 
-int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed)
+int ToSeed(const std::string& sMnemonic, const std::string& sPasswordIn, std::vector<uint8_t>& vSeed)
 {
     LogPrint(BCLog::WALLET, "%s\n", __func__);
 
@@ -453,13 +446,13 @@ int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::ve
     std::string sSalt = std::string("mnemonic") + sPassword;
 
     if (0 != mnemonicKdf((uint8_t*)sWordList.data(), sWordList.size(),
-        (uint8_t*)sSalt.data(), sSalt.size(), nIterations, &vSeed[0])) {
+                 (uint8_t*)sSalt.data(), sSalt.size(), nIterations, &vSeed[0])) {
         return error<1>("%s: mnemonicKdf failed.", __func__);
     }
     return 0;
 }
 
-int AddChecksum(Language language, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError)
+int AddChecksum(Language language, const std::string& sWordListIn, std::string& sWordListOut, std::string& sError)
 {
     sWordListOut = "";
     int rv;
@@ -476,10 +469,10 @@ int AddChecksum(Language language, const std::string &sWordListIn, std::string &
     return 0;
 }
 
-int GetWord(Language language, int nWord, std::string &sWord, std::string &sError)
+int GetWord(Language language, int nWord, std::string& sWord, std::string& sError)
 {
     const int nLanguage = static_cast<int>(language);
-    char *pwl = (char*) mnLanguages[nLanguage];
+    char* pwl = (char*)mnLanguages[nLanguage];
     int m = mnLanguageLens[nLanguage];
 
     if (0 != GetWord(nWord, pwl, m, sWord)) {
@@ -490,7 +483,7 @@ int GetWord(Language language, int nWord, std::string &sWord, std::string &sErro
     return 0;
 }
 
-Seed::Seed(const std::string &mnemonic, const std::string &passphrase)
+Seed::Seed(const std::string& mnemonic, const std::string& passphrase)
 {
     boost::optional<Language> maybeLanguage = DetectLanguage(mnemonic);
     if (boost::none == maybeLanguage) {
@@ -510,23 +503,28 @@ Seed::Seed(const std::string &mnemonic, const std::string &passphrase)
     m_extKey58.SetKey(m_extKey);
 }
 
-const std::string& Seed::GetHumandReadableLanguage() const {
+const std::string& Seed::GetHumandReadableLanguage() const
+{
     return languagesDesc[static_cast<int>(m_language)];
 }
 
-const std::string& Seed::GetLanguageTag() const {
+const std::string& Seed::GetLanguageTag() const
+{
     return languagesTags[static_cast<int>(m_language)];
 }
 
-const std::string& Seed::GetHexSeed() const {
+const std::string& Seed::GetHexSeed() const
+{
     return m_hexSeed;
 }
 
-const CExtKey& Seed::GetExtKey() const {
+const CExtKey& Seed::GetExtKey() const
+{
     return m_extKey;
 }
 
-const CUnitEExtKey& Seed::GetExtKey58() const {
+const CUnitEExtKey& Seed::GetExtKey58() const
+{
     return m_extKey58;
 }
 
