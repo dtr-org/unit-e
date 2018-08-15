@@ -105,6 +105,15 @@ BOOST_AUTO_TEST_CASE(mnemonic_detect_spanish)
     BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::SPANISH);
 }
 
+BOOST_AUTO_TEST_CASE(mnemonic_detect_korean)
+{
+    std::string mnemonic = u8"학과 여동생 창구 학습 깜빡 탤런트 거액 봉투 점원 바닷가 판매 양배추 작은딸 선택 색깔";
+    boost::optional<key::mnemonic::Language> maybeLanguage = key::mnemonic::DetectLanguage(mnemonic);
+    BOOST_CHECK(maybeLanguage != boost::none);
+    key::mnemonic::Language language = maybeLanguage.get();
+    BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::KOREAN);
+}
+
 BOOST_AUTO_TEST_CASE(mnemonic_seed_english)
 {
     key::mnemonic::Seed seed("leopard cycle economy main denial rebuild local panther dentist raise cry story trade agree despair");
