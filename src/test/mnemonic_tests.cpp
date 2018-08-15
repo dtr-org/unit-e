@@ -105,6 +105,41 @@ BOOST_AUTO_TEST_CASE(mnemonic_detect_spanish)
     BOOST_CHECK_EQUAL((int) language, (int) key::mnemonic::Language::SPANISH);
 }
 
+BOOST_AUTO_TEST_CASE(mnemonic_seed_english)
+{
+    key::mnemonic::Seed seed("leopard cycle economy main denial rebuild local panther dentist raise cry story trade agree despair");
+    BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "english");
+    BOOST_CHECK_EQUAL(seed.GetHexSeed(), "030eda9ac4bc2ed71cc55b41c2b9d735c93dae05e0316b07b2bd66abdc851af0f0c0309d4be8c63788f88f4ae6d509f4d60302bf5319bf1968b173995514628f");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "xprv9s21ZrQH143K396rQ3kSpYY3gBxLWU45UHwtqWvy5MmbZrdpkfB3bRwKtfxN3KY39pKMM5icEupwjFiNdxPrXA1ggVCymVYGnQMh6pRDAAg");
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_seed_english_with_passphrase)
+{
+    key::mnemonic::Seed seed("unit mind spell upper cart thumb always feel rotate echo town mask random habit goddess", "batteryhorsestaple");
+
+    BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "english");
+    BOOST_CHECK_EQUAL(seed.GetHexSeed(), "0d063ec29046dc315a1ce49773b2b126e0038a0f0f0d3eb9f752c28d7aa041034e1ec6f30e8af2afb6f1f8673f0303aca0b1333be4041211284c4e7a659ee96d");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "xprv9s21ZrQH143K3gCHrPaaDLEH3nfveAMMNqJg7AWGBm7zEefXn4eaU6LpquEVqitXBKRJexzVoVYwPQtf4bPX8xP8YhFrWr5cQg58zAk3iuu");
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_seed_spanish)
+{
+    key::mnemonic::Seed seed("trauma menú salón triste bronce taquilla alacrán fallo prole domingo texto manta pesa guardia glaciar");
+
+    BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "spanish");
+    BOOST_CHECK_EQUAL(seed.GetHexSeed(), "f88d237dfba9c4b440bf75eece3430a6ded113565c839fe29b9f0c0efa46cfe972d8cb35be7d43f0f8000fb7f8d7de085a2f4ab8c71d96249d48e2532fe7a245");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "xprv9s21ZrQH143K2FkTcmESR4PsC96smZegsSZfCexcBBTwFEA7nUeuGeNyEddAXWSxHRW7aNpBPPofmbH8a9jQwapak4557qBUKt6f5pRvR3H");
+}
+
+BOOST_AUTO_TEST_CASE(mnemonic_seed_spanish_with_passphrase)
+{
+    key::mnemonic::Seed seed("trauma menú salón triste bronce taquilla alacrán fallo prole domingo texto manta pesa guardia glaciar", "batteryhorsestaple");
+
+    BOOST_CHECK_EQUAL(seed.GetLanguageTag(), "spanish");
+    BOOST_CHECK_EQUAL(seed.GetHexSeed(), "c5b03b324e35b950928e7d62bcae6354c2a5292036edfca3600611f680fa1d0608f95b800731bd827a1c2c7f681b188f8cbeebcd9122689d009f3bd1818df355");
+    BOOST_CHECK_EQUAL(seed.GetExtKey58().ToString(), "xprv9s21ZrQH143K3N4wNaBjjvrxrnrqPQV3h1cfrXC5mD71SUr3dFSYxQBzWZea6GU9SgFMm6WTKVg9W7TkAYuQ4iUUo3n7ygKW3njJaGie34q");
+}
+
 void runTests(key::mnemonic::Language language, UniValue &tests)
 {
     std::string sError;
