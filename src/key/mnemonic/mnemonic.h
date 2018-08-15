@@ -33,22 +33,21 @@ enum class Language : uint8_t
     COUNT // hack to automatically find the number of elements in the enumeration
 };
 
-int GetWord(int o, const char *pwl, int max, std::string &sWord);
+int GetWord(int o, const char* pwl, int max, std::string& sWord);
 
-int GetWordOffset(const char *p, const char *pwl, int max, int &o);
+int GetWordOffset(const char* p, const char* pwl, int max, int& o);
 
-boost::optional<Language> DetectLanguage(const std::string &sWordList);
+boost::optional<Language> DetectLanguage(const std::string& sWordList);
 
-int Encode(Language language, const std::vector<uint8_t> &vEntropy, std::string &sWordList, std::string &sError);
+int Encode(Language language, const std::vector<uint8_t>& vEntropy, std::string& sWordList, std::string& sError);
 
-int Decode(Language language, const std::string &sWordListIn, std::vector<uint8_t> &vEntropy, std::string &sError,
-           bool fIgnoreChecksum = false);
+int Decode(Language language, const std::string& sWordListIn, std::vector<uint8_t>& vEntropy, std::string& sError, bool fIgnoreChecksum = false);
 
-int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn, std::vector<uint8_t> &vSeed);
+int ToSeed(const std::string& sMnemonic, const std::string& sPasswordIn, std::vector<uint8_t>& vSeed);
 
-int AddChecksum(Language language, const std::string &sWordListIn, std::string &sWordListOut, std::string &sError);
+int AddChecksum(Language language, const std::string& sWordListIn, std::string& sWordListOut, std::string& sError);
 
-int GetWord(Language language, int nWord, std::string &sWord, std::string &sError);
+int GetWord(Language language, int nWord, std::string& sWord, std::string& sError);
 
 /*! \brief A Seed generated from a mnemonic of human-rememberable words.
  *
@@ -57,10 +56,9 @@ int GetWord(Language language, int nWord, std::string &sWord, std::string &sErro
  * TODO: Create a constructor that takes a language and an entropy source and generates
  * a seed from it.
  */
-class Seed final {
-
+class Seed final
+{
 private:
-
     Language m_language;
     std::vector<uint8_t> m_seed;
     std::vector<uint8_t> m_entropy;
@@ -69,7 +67,6 @@ private:
     CUnitEExtKey m_extKey58;
 
 public:
-
     Seed(const std::string& mnemonic, const std::string& passphrase = "");
 
     //! The name of this language, human readable and nicely formatted
@@ -86,7 +83,6 @@ public:
 
     //! A Base58 representation of the extended key (including checksum etc.)
     const CUnitEExtKey& GetExtKey58() const;
-
 };
 
 } // namespace mnemonic
