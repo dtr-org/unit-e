@@ -6,6 +6,7 @@
 #ifndef UNITE_WALLET_WALLET_H
 #define UNITE_WALLET_WALLET_H
 
+#include <esperanza/walletext/stakingwalletextension.h>
 #include <amount.h>
 #include <policy/feerate.h>
 #include <streams.h>
@@ -672,8 +673,11 @@ private:
     std::atomic<bool> fAbortRescan;
     std::atomic<bool> fScanningWallet; //controlled by WalletRescanReserver
     std::mutex mutexScanning;
-    friend class WalletRescanReserver;
 
+    friend class WalletRescanReserver;
+    friend class esperanza::walletext::StakingWalletExtension;
+
+    esperanza::walletext::StakingWalletExtension m_stakingExtension = esperanza::walletext::StakingWalletExtension(this);
 
     /**
      * Select a set of coins such that nValueRet >= nTargetValue and at least

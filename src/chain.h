@@ -11,7 +11,6 @@
 #include <pow.h>
 #include <tinyformat.h>
 #include <uint256.h>
-#include <pos/blockflags.h>
 
 #include <vector>
 
@@ -220,9 +219,6 @@ public:
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
 
-    //! Proof-of-Stake: block flags
-    StakingBlockFlags flags;
-
     //! Proof-of-Stake: the stake modifier is a hash of some entropy bits to make pre-computing blocks more difficult
     uint256 bnStakeModifier;
 
@@ -370,16 +366,6 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
-
-    bool IsProofOfStake() const
-    {
-        return IsStakingBlockFlagSet(flags, StakingBlockFlag::PROOF_OF_STAKE);
-    }
-
-    void SetProofOfStake()
-    {
-        flags = SetStakingBlockFlag(flags, StakingBlockFlag::PROOF_OF_STAKE);
-    }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);

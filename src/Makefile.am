@@ -99,6 +99,10 @@ UNITE_CORE_H = \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  esperanza/kernel/kernel.h \
+  esperanza/miner/miner.h \
+  esperanza/validation/validation.h \
+  esperanza/walletext/stakingwalletextension.h \
   fs.h \
   httprpc.h \
   httpserver.h \
@@ -130,10 +134,6 @@ UNITE_CORE_H = \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pos/blockflags.h \
-  pos/kernel.h \
-  pos/stakingstate.h \
-  pos/validatorstate.h \
   pow.h \
   protocol.h \
   random.h \
@@ -211,12 +211,13 @@ libunite_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
+  esperanza/kernel/kernel.cpp \
+  esperanza/validation/validation.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
   dbwrapper.cpp \
   merkleblock.cpp \
-  pos/kernel.cpp \
   miner.cpp \
   net.cpp \
   net_processing.cpp \
@@ -260,6 +261,8 @@ endif
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
+  esperanza/miner/miner.cpp \
+  esperanza/walletext/stakingwalletextension.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \

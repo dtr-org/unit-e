@@ -11,7 +11,7 @@
 #include <consensus/validation.h>
 #include <hash.h>
 #include <policy/policy.h>
-#include <pos/kernel.h>
+#include <esperanza/kernel/kernel.h>
 #include <script/interpreter.h>
 #include <script/ismine.h> // valtype
 #include <script/script.h>
@@ -19,6 +19,10 @@
 #include <streams.h>
 #include <txdb.h>
 #include <validation.h>
+
+namespace esperanza {
+
+namespace kernel {
 
 /**
  * Stake Modifier (hash modifier of proof-of-stake):
@@ -314,3 +318,7 @@ bool CheckKernel(const CBlockIndex* pindexPrev, unsigned int nBits, int64_t nTim
     return CheckStakeKernelHash(pindexPrev, nBits, *pBlockTime,
         amount, prevout, nTime, hashProofOfStake, targetProofOfStake);
 }
+
+} // namespace kernel
+
+} // namespace esperanza
