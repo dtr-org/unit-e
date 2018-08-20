@@ -50,8 +50,8 @@ bool ThreadStakeMinerStopped();
 
 void ThreadStakeMiner(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, size_t nEnd);
 
-} // namespace esperanza
-
 } // namespace miner
+
+} // namespace esperanza
 
 #endif // UNITE_MINER_H
