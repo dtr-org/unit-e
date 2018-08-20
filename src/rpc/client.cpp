@@ -18,6 +18,7 @@ public:
     std::string paramName;  //!< parameter name
 };
 
+// clang-format off
 /**
  * Specify a (method, idx, name) here if the argument is a non-string RPC
  * argument and needs to be converted from JSON.
@@ -144,6 +145,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "rescanblockchain", 0, "start_height"},
     { "rescanblockchain", 1, "stop_height"},
 };
+// clang-format on
 
 class CRPCConvertTable
 {
