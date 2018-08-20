@@ -8,13 +8,17 @@
 #include <stdint.h>
 #include <vector>
 
-#include <primitives/transaction.h>
 #include <primitives/block.h>
+#include <primitives/transaction.h>
 #include <uint256.h>
 
-uint256 ComputeMerkleRoot(const std::vector<uint256>& leaves, bool* mutated = nullptr);
-std::vector<uint256> ComputeMerkleBranch(const std::vector<uint256>& leaves, uint32_t position);
-uint256 ComputeMerkleRootFromBranch(const uint256& leaf, const std::vector<uint256>& branch, uint32_t position);
+uint256 ComputeMerkleRoot(const std::vector<uint256>& leaves,
+                          bool* mutated = nullptr);
+std::vector<uint256> ComputeMerkleBranch(const std::vector<uint256>& leaves,
+                                         uint32_t position);
+uint256 ComputeMerkleRootFromBranch(const uint256& leaf,
+                                    const std::vector<uint256>& branch,
+                                    uint32_t position);
 
 /*
  * Compute the Merkle root of the transactions in a block.

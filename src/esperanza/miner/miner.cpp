@@ -3,10 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
-#include <validation.h>
-#include <esperanza/validation/validation.h>
 #include <esperanza/miner/miner.h>
+#include <esperanza/validation/validation.h>
 #include <rpc/blockchain.h>
+#include <validation.h>
 
 #include <atomic>
 
@@ -14,8 +14,7 @@ namespace esperanza {
 
 namespace miner {
 
-void StakeThread::condWaitFor(int ms) {
-}
+void StakeThread::condWaitFor(int ms) {}
 
 std::atomic<bool> g_stopMinerProc(false);
 std::atomic<bool> g_tryToSync(false);
@@ -29,7 +28,7 @@ double GetPoSKernelPS() {
 
   int nBestHeight = pindex->nHeight;
 
-  int nPoSInterval = 72; // blocks sampled
+  int nPoSInterval = 72;  // blocks sampled
   double dStakeKernelsTriedAvg = 0;
   int nStakesHandled = 0, nStakesTime = 0;
 
@@ -45,32 +44,25 @@ double GetPoSKernelPS() {
 
   double result = 0;
 
-  if (nStakesTime)
-    result = dStakeKernelsTriedAvg / nStakesTime;
+  if (nStakesTime) result = dStakeKernelsTriedAvg / nStakesTime;
 
-  //if (IsProtocolV2(nBestHeight))
+  // if (IsProtocolV2(nBestHeight))
   result *= Params().GetStakeTimestampMask(nBestHeight) + 1;
 
   return result;
 }
 
-bool CheckStake(CBlock *pblock) {
-  return false;
-}
+bool CheckStake(CBlock *pblock) { return false; }
 
-void ShutdownThreadStakeMiner() {
-}
+void ShutdownThreadStakeMiner() {}
 
-void WakeThreadStakeMiner(CWallet *pwallet) {
-}
+void WakeThreadStakeMiner(CWallet *pwallet) {}
 
-bool ThreadStakeMinerStopped() {
-  return false;
-}
+bool ThreadStakeMinerStopped() { return false; }
 
-void ThreadStakeMiner(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, size_t nEnd) {
-}
+void ThreadStakeMiner(size_t nThreadID, std::vector<CWallet *> &vpwallets,
+                      size_t nStart, size_t nEnd) {}
 
-} // namespace esperanza
+}  // namespace miner
 
-} // namespace miner
+}  // namespace esperanza

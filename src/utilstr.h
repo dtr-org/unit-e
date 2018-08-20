@@ -5,15 +5,14 @@
 #ifndef UNIT_E_UTILSTR_H
 #define UNIT_E_UTILSTR_H
 
-#include <util.h>
 #include <amount.h>
+#include <util.h>
 
-namespace util
-{
-namespace str
-{
+namespace util {
+namespace str {
 
-void ReplaceStrInPlace(std::string &subject, const std::string search, const std::string replace);
+void ReplaceStrInPlace(std::string &subject, const std::string search,
+                       const std::string replace);
 
 bool IsStringBoolPositive(const std::string &value);
 
@@ -33,8 +32,8 @@ std::string &RTrimWhitespace(std::string &s);
 
 std::string &TrimWhitespace(std::string &s);
 
-} // namespace str
+}  // namespace str
 
-} // namespace util
+}  // namespace util
 
-#endif //UNIT_E_UTILSTR_H
+#endif  // UNIT_E_UTILSTR_H

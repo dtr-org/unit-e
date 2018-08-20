@@ -11,12 +11,11 @@
 #include <txdb.h>
 #include <txmempool.h>
 
-class RPCNestedTests : public QObject
-{
-    Q_OBJECT
+class RPCNestedTests : public QObject {
+  Q_OBJECT
 
-    private Q_SLOTS:
-    void rpcNestedTests();
+ private Q_SLOTS:
+  void rpcNestedTests();
 };
 
-#endif // UNITE_QT_TEST_RPC_NESTED_TESTS_H
+#endif  // UNITE_QT_TEST_RPC_NESTED_TESTS_H

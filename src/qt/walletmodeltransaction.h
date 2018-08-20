@@ -18,32 +18,32 @@ class CWallet;
 class CWalletTx;
 
 /** Data model for a walletmodel transaction. */
-class WalletModelTransaction
-{
-public:
-    explicit WalletModelTransaction(const QList<SendCoinsRecipient> &recipients);
-    ~WalletModelTransaction();
+class WalletModelTransaction {
+ public:
+  explicit WalletModelTransaction(const QList<SendCoinsRecipient> &recipients);
+  ~WalletModelTransaction();
 
-    QList<SendCoinsRecipient> getRecipients() const;
+  QList<SendCoinsRecipient> getRecipients() const;
 
-    CWalletTx *getTransaction() const;
-    unsigned int getTransactionSize();
+  CWalletTx *getTransaction() const;
+  unsigned int getTransactionSize();
 
-    void setTransactionFee(const CAmount& newFee);
-    CAmount getTransactionFee() const;
+  void setTransactionFee(const CAmount &newFee);
+  CAmount getTransactionFee() const;
 
-    CAmount getTotalTransactionAmount() const;
+  CAmount getTotalTransactionAmount() const;
 
-    void newPossibleKeyChange(CWallet *wallet);
-    CReserveKey *getPossibleKeyChange();
+  void newPossibleKeyChange(CWallet *wallet);
+  CReserveKey *getPossibleKeyChange();
 
-    void reassignAmounts(int nChangePosRet); // needed for the subtract-fee-from-amount feature
+  void reassignAmounts(
+      int nChangePosRet);  // needed for the subtract-fee-from-amount feature
 
-private:
-    QList<SendCoinsRecipient> recipients;
-    CWalletTx *walletTransaction;
-    std::unique_ptr<CReserveKey> keyChange;
-    CAmount fee;
+ private:
+  QList<SendCoinsRecipient> recipients;
+  CWalletTx *walletTransaction;
+  std::unique_ptr<CReserveKey> keyChange;
+  CAmount fee;
 };
 
-#endif // UNITE_QT_WALLETMODELTRANSACTION_H
+#endif  // UNITE_QT_WALLETMODELTRANSACTION_H

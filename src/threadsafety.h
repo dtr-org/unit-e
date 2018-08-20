@@ -21,15 +21,21 @@
 #define PT_GUARDED_VAR __attribute__((pt_guarded_var))
 #define ACQUIRED_AFTER(...) __attribute__((acquired_after(__VA_ARGS__)))
 #define ACQUIRED_BEFORE(...) __attribute__((acquired_before(__VA_ARGS__)))
-#define EXCLUSIVE_LOCK_FUNCTION(...) __attribute__((exclusive_lock_function(__VA_ARGS__)))
-#define SHARED_LOCK_FUNCTION(...) __attribute__((shared_lock_function(__VA_ARGS__)))
-#define EXCLUSIVE_TRYLOCK_FUNCTION(...) __attribute__((exclusive_trylock_function(__VA_ARGS__)))
-#define SHARED_TRYLOCK_FUNCTION(...) __attribute__((shared_trylock_function(__VA_ARGS__)))
+#define EXCLUSIVE_LOCK_FUNCTION(...) \
+  __attribute__((exclusive_lock_function(__VA_ARGS__)))
+#define SHARED_LOCK_FUNCTION(...) \
+  __attribute__((shared_lock_function(__VA_ARGS__)))
+#define EXCLUSIVE_TRYLOCK_FUNCTION(...) \
+  __attribute__((exclusive_trylock_function(__VA_ARGS__)))
+#define SHARED_TRYLOCK_FUNCTION(...) \
+  __attribute__((shared_trylock_function(__VA_ARGS__)))
 #define UNLOCK_FUNCTION(...) __attribute__((unlock_function(__VA_ARGS__)))
 #define LOCK_RETURNED(x) __attribute__((lock_returned(x)))
 #define LOCKS_EXCLUDED(...) __attribute__((locks_excluded(__VA_ARGS__)))
-#define EXCLUSIVE_LOCKS_REQUIRED(...) __attribute__((exclusive_locks_required(__VA_ARGS__)))
-#define SHARED_LOCKS_REQUIRED(...) __attribute__((shared_locks_required(__VA_ARGS__)))
+#define EXCLUSIVE_LOCKS_REQUIRED(...) \
+  __attribute__((exclusive_locks_required(__VA_ARGS__)))
+#define SHARED_LOCKS_REQUIRED(...) \
+  __attribute__((shared_locks_required(__VA_ARGS__)))
 #define NO_THREAD_SAFETY_ANALYSIS __attribute__((no_thread_safety_analysis))
 #else
 #define LOCKABLE
@@ -50,6 +56,6 @@
 #define EXCLUSIVE_LOCKS_REQUIRED(...)
 #define SHARED_LOCKS_REQUIRED(...)
 #define NO_THREAD_SAFETY_ANALYSIS
-#endif // __GNUC__
+#endif  // __GNUC__
 
-#endif // UNITE_THREADSAFETY_H
+#endif  // UNITE_THREADSAFETY_H

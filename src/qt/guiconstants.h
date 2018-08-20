@@ -51,4 +51,4 @@ static const int MAX_URI_LENGTH = 255;
 #define QAPP_APP_NAME_DEFAULT "UnitE-Qt"
 #define QAPP_APP_NAME_TESTNET "UnitE-Qt-testnet"
 
-#endif // UNITE_QT_GUICONSTANTS_H
+#endif  // UNITE_QT_GUICONSTANTS_H

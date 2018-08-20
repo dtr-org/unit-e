@@ -15,28 +15,23 @@ enum class FeeEstimateMode;
 
 namespace feebumper {
 
-enum class Result
-{
-    OK,
-    INVALID_ADDRESS_OR_KEY,
-    INVALID_REQUEST,
-    INVALID_PARAMETER,
-    WALLET_ERROR,
-    MISC_ERROR,
+enum class Result {
+  OK,
+  INVALID_ADDRESS_OR_KEY,
+  INVALID_REQUEST,
+  INVALID_PARAMETER,
+  WALLET_ERROR,
+  MISC_ERROR,
 };
 
 //! Return whether transaction can be bumped.
 bool TransactionCanBeBumped(CWallet* wallet, const uint256& txid);
 
 //! Create bumpfee transaction.
-Result CreateTransaction(const CWallet* wallet,
-                         const uint256& txid,
-                         const CCoinControl& coin_control,
-                         CAmount total_fee,
-                         std::vector<std::string>& errors,
-                         CAmount& old_fee,
-                         CAmount& new_fee,
-                         CMutableTransaction& mtx);
+Result CreateTransaction(const CWallet* wallet, const uint256& txid,
+                         const CCoinControl& coin_control, CAmount total_fee,
+                         std::vector<std::string>& errors, CAmount& old_fee,
+                         CAmount& new_fee, CMutableTransaction& mtx);
 
 //! Sign the new transaction,
 //! @return false if the tx couldn't be found or if it was
@@ -47,12 +42,11 @@ bool SignTransaction(CWallet* wallet, CMutableTransaction& mtx);
 //! @return success in case of CWallet::CommitTransaction was successful,
 //! but sets errors if the tx could not be added to the mempool (will try later)
 //! or if the old transaction could not be marked as replaced.
-Result CommitTransaction(CWallet* wallet,
-                         const uint256& txid,
+Result CommitTransaction(CWallet* wallet, const uint256& txid,
                          CMutableTransaction&& mtx,
                          std::vector<std::string>& errors,
                          uint256& bumped_txid);
 
-} // namespace feebumper
+}  // namespace feebumper
 
-#endif // UNITE_WALLET_FEEBUMPER_H
+#endif  // UNITE_WALLET_FEEBUMPER_H

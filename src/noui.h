@@ -7,4 +7,4 @@
 
 extern void noui_connect();
 
-#endif // UNITE_NOUI_H
+#endif  // UNITE_NOUI_H

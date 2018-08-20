@@ -11,4 +11,4 @@
 //! Get the path of the wallet directory.
 fs::path GetWalletDir();
 
-#endif // UNITE_WALLET_UTIL_H
+#endif  // UNITE_WALLET_UTIL_H

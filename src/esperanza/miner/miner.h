@@ -2,16 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
 #ifndef UNITE_MINER_H
 #define UNITE_MINER_H
 
-#include <atomic>
 #include <primitives/block.h>
 #include <condition_variable>
 #include <mutex>
-#include <thread>
 #include <string>
+#include <thread>
 
 class CWallet;
 
@@ -19,8 +17,7 @@ namespace esperanza {
 
 namespace miner {
 
-class StakeThread
-{
+class StakeThread {
  public:
   void condWaitFor(int ms);
 
@@ -31,7 +28,7 @@ class StakeThread
   bool fWakeMinerProc = false;
 };
 
-extern std::vector<StakeThread*> g_takeThreads;
+extern std::vector<StakeThread *> g_takeThreads;
 
 extern std::atomic<bool> g_isStaking;
 
@@ -49,10 +46,11 @@ void WakeThreadStakeMiner(CWallet *pwallet);
 
 bool ThreadStakeMinerStopped();
 
-void ThreadStakeMiner(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, size_t nEnd);
+void ThreadStakeMiner(size_t nThreadID, std::vector<CWallet *> &vpwallets,
+                      size_t nStart, size_t nEnd);
 
-} // namespace miner
+}  // namespace miner
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif // UNITE_MINER_H
+#endif  // UNITE_MINER_H

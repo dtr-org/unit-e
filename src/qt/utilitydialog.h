@@ -11,41 +11,38 @@
 class UnitEGUI;
 
 namespace Ui {
-    class HelpMessageDialog;
+class HelpMessageDialog;
 }
 
 /** "Help message" dialog box */
-class HelpMessageDialog : public QDialog
-{
-    Q_OBJECT
+class HelpMessageDialog : public QDialog {
+  Q_OBJECT
 
-public:
-    explicit HelpMessageDialog(QWidget *parent, bool about);
-    ~HelpMessageDialog();
+ public:
+  explicit HelpMessageDialog(QWidget *parent, bool about);
+  ~HelpMessageDialog();
 
-    void printToConsole();
-    void showOrPrint();
+  void printToConsole();
+  void showOrPrint();
 
-private:
-    Ui::HelpMessageDialog *ui;
-    QString text;
+ private:
+  Ui::HelpMessageDialog *ui;
+  QString text;
 
-private Q_SLOTS:
-    void on_okButton_accepted();
+ private Q_SLOTS:
+  void on_okButton_accepted();
 };
-
 
 /** "Shutdown" window */
-class ShutdownWindow : public QWidget
-{
-    Q_OBJECT
+class ShutdownWindow : public QWidget {
+  Q_OBJECT
 
-public:
-    explicit ShutdownWindow(QWidget *parent=0, Qt::WindowFlags f=0);
-    static QWidget *showShutdownWindow(UnitEGUI *window);
+ public:
+  explicit ShutdownWindow(QWidget *parent = 0, Qt::WindowFlags f = 0);
+  static QWidget *showShutdownWindow(UnitEGUI *window);
 
-protected:
-    void closeEvent(QCloseEvent *event);
+ protected:
+  void closeEvent(QCloseEvent *event);
 };
 
-#endif // UNITE_QT_UTILITYDIALOG_H
+#endif  // UNITE_QT_UTILITYDIALOG_H

@@ -6,12 +6,12 @@
 #define UNITE_ESPERANZA_WALLETEXT_STAKINGWALLETEXTENSION_H
 
 #include <amount.h>
+#include <key.h>
 #include <miner.h>
 #include <primitives/transaction.h>
-#include <key.h>
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 class CWallet;
@@ -26,11 +26,9 @@ namespace walletext {
  * \brief Extends the Bitcoin Wallet with Esperanza Staking Capabilities.
  */
 class StakingWalletExtension {
-
   friend ::CWallet;
 
  private:
-
   //! The wallet this extension is embedded in.
   CWallet *m_enclosingWallet;
 
@@ -51,9 +49,10 @@ class StakingWalletExtension {
 
   size_t m_numberOfStakeThreads = 0;
 
-  int m_deepestTxnDepth = 0; // for stake mining
+  int m_deepestTxnDepth = 0;  // for stake mining
 
-  int m_stakeLimitHeight = 0; // for regtest, don't stake above nStakeLimitHeight
+  int m_stakeLimitHeight =
+      0;  // for regtest, don't stake above nStakeLimitHeight
 
   CAmount m_stakeCombineThreshold = 1000 * UNIT;
 
@@ -63,37 +62,33 @@ class StakingWalletExtension {
 
   std::string m_rewardAddress;
 
-  bool fUnlockForStakingOnly = false; // Use coldstaking instead
+  bool fUnlockForStakingOnly = false;  // Use coldstaking instead
 
   StakingWalletExtension(::CWallet *enclosingWallet);
 
  public:
-
   bool SetReserveBalance(::CAmount nNewReserveBalance);
 
   uint64_t GetStakeWeight() const;
 
-  void AvailableCoinsForStaking(std::vector<::COutput> &vCoins, int64_t nTime, int nHeight) const;
+  void AvailableCoinsForStaking(std::vector<::COutput> &vCoins, int64_t nTime,
+                                int nHeight) const;
 
-  bool SelectCoinsForStaking(int64_t nTargetValue,
-                             int64_t nTime,
-                             int nHeight,
-                             std::set<std::pair<const ::CWalletTx *, unsigned int> > &setCoinsRet,
-                             int64_t &nValueRet) const;
+  bool SelectCoinsForStaking(
+      int64_t nTargetValue, int64_t nTime, int nHeight,
+      std::set<std::pair<const ::CWalletTx *, unsigned int>> &setCoinsRet,
+      int64_t &nValueRet) const;
 
-  bool CreateCoinStake(unsigned int nBits,
-                       int64_t nTime,
-                       int nBlockHeight,
-                       int64_t nFees,
-                       ::CMutableTransaction &txNew,
+  bool CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHeight,
+                       int64_t nFees, ::CMutableTransaction &txNew,
                        ::CKey &key);
 
-  bool SignBlock(::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime);
-
+  bool SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
+                 int64_t nSearchTime);
 };
 
-} // namespace walletext
+}  // namespace walletext
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif // UNITE_ESPERANZA_WALLETEXT_STAKINGWALLETEXTENSION_H
+#endif  // UNITE_ESPERANZA_WALLETEXT_STAKINGWALLETEXTENSION_H

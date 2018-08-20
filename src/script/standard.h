@@ -19,12 +19,11 @@ class CKeyID;
 class CScript;
 
 /** A reference to a CScript: the Hash160 of its serialization (see script.h) */
-class CScriptID : public uint160
-{
-public:
-    CScriptID() : uint160() {}
-    CScriptID(const CScript& in);
-    CScriptID(const uint160& in) : uint160(in) {}
+class CScriptID : public uint160 {
+ public:
+  CScriptID() : uint160() {}
+  CScriptID(const CScript& in);
+  CScriptID(const uint160& in) : uint160(in) {}
 };
 
 /**
@@ -53,60 +52,61 @@ extern unsigned nMaxDatacarrierBytes;
  */
 static const unsigned int MANDATORY_SCRIPT_VERIFY_FLAGS = SCRIPT_VERIFY_P2SH;
 
-enum txnouttype
-{
-    TX_NONSTANDARD,
-    // 'standard' transaction types:
-    TX_PUBKEY,
-    TX_PUBKEYHASH,
-    TX_SCRIPTHASH,
-    TX_MULTISIG,
-    TX_NULL_DATA, //!< unspendable OP_RETURN script that carries data
-    TX_WITNESS_V0_SCRIPTHASH,
-    TX_WITNESS_V0_KEYHASH,
-    TX_WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
+enum txnouttype {
+  TX_NONSTANDARD,
+  // 'standard' transaction types:
+  TX_PUBKEY,
+  TX_PUBKEYHASH,
+  TX_SCRIPTHASH,
+  TX_MULTISIG,
+  TX_NULL_DATA,  //!< unspendable OP_RETURN script that carries data
+  TX_WITNESS_V0_SCRIPTHASH,
+  TX_WITNESS_V0_KEYHASH,
+  TX_WITNESS_UNKNOWN,  //!< Only for Witness versions not already defined above
 };
 
 class CNoDestination {
-public:
-    friend bool operator==(const CNoDestination &a, const CNoDestination &b) { return true; }
-    friend bool operator<(const CNoDestination &a, const CNoDestination &b) { return true; }
+ public:
+  friend bool operator==(const CNoDestination& a, const CNoDestination& b) {
+    return true;
+  }
+  friend bool operator<(const CNoDestination& a, const CNoDestination& b) {
+    return true;
+  }
 };
 
-struct WitnessV0ScriptHash : public uint256
-{
-    WitnessV0ScriptHash() : uint256() {}
-    explicit WitnessV0ScriptHash(const uint256& hash) : uint256(hash) {}
-    using uint256::uint256;
+struct WitnessV0ScriptHash : public uint256 {
+  WitnessV0ScriptHash() : uint256() {}
+  explicit WitnessV0ScriptHash(const uint256& hash) : uint256(hash) {}
+  using uint256::uint256;
 };
 
-struct WitnessV0KeyHash : public uint160
-{
-    WitnessV0KeyHash() : uint160() {}
-    explicit WitnessV0KeyHash(const uint160& hash) : uint160(hash) {}
-    using uint160::uint160;
+struct WitnessV0KeyHash : public uint160 {
+  WitnessV0KeyHash() : uint160() {}
+  explicit WitnessV0KeyHash(const uint160& hash) : uint160(hash) {}
+  using uint160::uint160;
 };
 
 //! CTxDestination subtype to encode any future Witness version
-struct WitnessUnknown
-{
-    unsigned int version;
-    unsigned int length;
-    unsigned char program[40];
+struct WitnessUnknown {
+  unsigned int version;
+  unsigned int length;
+  unsigned char program[40];
 
-    friend bool operator==(const WitnessUnknown& w1, const WitnessUnknown& w2) {
-        if (w1.version != w2.version) return false;
-        if (w1.length != w2.length) return false;
-        return std::equal(w1.program, w1.program + w1.length, w2.program);
-    }
+  friend bool operator==(const WitnessUnknown& w1, const WitnessUnknown& w2) {
+    if (w1.version != w2.version) return false;
+    if (w1.length != w2.length) return false;
+    return std::equal(w1.program, w1.program + w1.length, w2.program);
+  }
 
-    friend bool operator<(const WitnessUnknown& w1, const WitnessUnknown& w2) {
-        if (w1.version < w2.version) return true;
-        if (w1.version > w2.version) return false;
-        if (w1.length < w2.length) return true;
-        if (w1.length > w2.length) return false;
-        return std::lexicographical_compare(w1.program, w1.program + w1.length, w2.program, w2.program + w2.length);
-    }
+  friend bool operator<(const WitnessUnknown& w1, const WitnessUnknown& w2) {
+    if (w1.version < w2.version) return true;
+    if (w1.version > w2.version) return false;
+    if (w1.length < w2.length) return true;
+    if (w1.length > w2.length) return false;
+    return std::lexicographical_compare(w1.program, w1.program + w1.length,
+                                        w2.program, w2.program + w2.length);
+  }
 };
 
 /**
@@ -119,7 +119,9 @@ struct WitnessUnknown
  *  * WitnessUnknown: TX_WITNESS_UNKNOWN destination (P2W???)
  *  A CTxDestination is the internal data type encoded in a unite address
  */
-typedef boost::variant<CNoDestination, CKeyID, CScriptID, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessUnknown> CTxDestination;
+typedef boost::variant<CNoDestination, CKeyID, CScriptID, WitnessV0ScriptHash,
+                       WitnessV0KeyHash, WitnessUnknown>
+    CTxDestination;
 
 /** Check whether a CTxDestination is a CNoDestination. */
 bool IsValidDestination(const CTxDestination& dest);
@@ -138,7 +140,8 @@ const char* GetTxnOutputType(txnouttype t);
  * @param[out]  vSolutionsRet  Vector of parsed pubkeys and hashes
  * @return                     True if script matches standard template
  */
-bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet);
+bool Solver(const CScript& scriptPubKey, txnouttype& typeRet,
+            std::vector<std::vector<unsigned char> >& vSolutionsRet);
 
 /**
  * Parse a standard scriptPubKey for the destination address. Assigns result to
@@ -146,7 +149,8 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
  * scripts, instead use ExtractDestinations. Currently only works for P2PK,
  * P2PKH, P2SH, P2WPKH, and P2WSH scripts.
  */
-bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet);
+bool ExtractDestination(const CScript& scriptPubKey,
+                        CTxDestination& addressRet);
 
 /**
  * Parse a standard scriptPubKey with one or more destination addresses. For
@@ -160,7 +164,9 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
  * encodable as an address) with key identifiers (of keys involved in a
  * CScript), and its use should be phased out.
  */
-bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<CTxDestination>& addressRet, int& nRequiredRet);
+bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet,
+                         std::vector<CTxDestination>& addressRet,
+                         int& nRequiredRet);
 
 /**
  * Generate a UnitE scriptPubKey for the given CTxDestination. Returns a P2PKH
@@ -185,4 +191,4 @@ CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys);
  */
 CScript GetScriptForWitness(const CScript& redeemscript);
 
-#endif // UNITE_SCRIPT_STANDARD_H
+#endif  // UNITE_SCRIPT_STANDARD_H

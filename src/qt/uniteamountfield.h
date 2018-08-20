@@ -16,60 +16,61 @@ class QValueComboBox;
 QT_END_NAMESPACE
 
 /** Widget for entering unite amounts.
+ */
+class UnitEAmountField : public QWidget {
+  Q_OBJECT
+
+  // ugly hack: for some unknown reason CAmount (instead of qint64) does not
+  // work here as expected discussion: https://github.com/unite/unite/pull/5117
+  Q_PROPERTY(
+      qint64 value READ value WRITE setValue NOTIFY valueChanged USER true)
+
+ public:
+  explicit UnitEAmountField(QWidget *parent = 0);
+
+  CAmount value(bool *value = 0) const;
+  void setValue(const CAmount &value);
+
+  /** Set single step in satoshis **/
+  void setSingleStep(const CAmount &step);
+
+  /** Make read-only **/
+  void setReadOnly(bool fReadOnly);
+
+  /** Mark current value as invalid in UI. */
+  void setValid(bool valid);
+  /** Perform input validation, mark field as invalid if entered value is not
+   * valid. */
+  bool validate();
+
+  /** Change unit used to display amount. */
+  void setDisplayUnit(int unit);
+
+  /** Make field empty and ready for new input. */
+  void clear();
+
+  /** Enable/Disable. */
+  void setEnabled(bool fEnabled);
+
+  /** Qt messes up the tab chain by default in some cases (issue
+     https://bugreports.qt-project.org/browse/QTBUG-10907), in these cases we
+     have to set it up manually.
   */
-class UnitEAmountField: public QWidget
-{
-    Q_OBJECT
+  QWidget *setupTabChain(QWidget *prev);
 
-    // ugly hack: for some unknown reason CAmount (instead of qint64) does not work here as expected
-    // discussion: https://github.com/unite/unite/pull/5117
-    Q_PROPERTY(qint64 value READ value WRITE setValue NOTIFY valueChanged USER true)
+ Q_SIGNALS:
+  void valueChanged();
 
-public:
-    explicit UnitEAmountField(QWidget *parent = 0);
+ protected:
+  /** Intercept focus-in event and ',' key presses */
+  bool eventFilter(QObject *object, QEvent *event);
 
-    CAmount value(bool *value=0) const;
-    void setValue(const CAmount& value);
+ private:
+  AmountSpinBox *amount;
+  QValueComboBox *unit;
 
-    /** Set single step in satoshis **/
-    void setSingleStep(const CAmount& step);
-
-    /** Make read-only **/
-    void setReadOnly(bool fReadOnly);
-
-    /** Mark current value as invalid in UI. */
-    void setValid(bool valid);
-    /** Perform input validation, mark field as invalid if entered value is not valid. */
-    bool validate();
-
-    /** Change unit used to display amount. */
-    void setDisplayUnit(int unit);
-
-    /** Make field empty and ready for new input. */
-    void clear();
-
-    /** Enable/Disable. */
-    void setEnabled(bool fEnabled);
-
-    /** Qt messes up the tab chain by default in some cases (issue https://bugreports.qt-project.org/browse/QTBUG-10907),
-        in these cases we have to set it up manually.
-    */
-    QWidget *setupTabChain(QWidget *prev);
-
-Q_SIGNALS:
-    void valueChanged();
-
-protected:
-    /** Intercept focus-in event and ',' key presses */
-    bool eventFilter(QObject *object, QEvent *event);
-
-private:
-    AmountSpinBox *amount;
-    QValueComboBox *unit;
-
-private Q_SLOTS:
-    void unitChanged(int idx);
-
+ private Q_SLOTS:
+  void unitChanged(int idx);
 };
 
-#endif // UNITE_QT_UNITEAMOUNTFIELD_H
+#endif  // UNITE_QT_UNITEAMOUNTFIELD_H

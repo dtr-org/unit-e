@@ -13,7 +13,7 @@ class WalletModel;
 class PlatformStyle;
 
 namespace Ui {
-    class SendCoinsEntry;
+class SendCoinsEntry;
 }
 
 /**
@@ -21,57 +21,57 @@ namespace Ui {
  * Stacked widget, with different UIs for payment requests
  * with a strong payee identity.
  */
-class SendCoinsEntry : public QStackedWidget
-{
-    Q_OBJECT
+class SendCoinsEntry : public QStackedWidget {
+  Q_OBJECT
 
-public:
-    explicit SendCoinsEntry(const PlatformStyle *platformStyle, QWidget *parent = 0);
-    ~SendCoinsEntry();
+ public:
+  explicit SendCoinsEntry(const PlatformStyle *platformStyle,
+                          QWidget *parent = 0);
+  ~SendCoinsEntry();
 
-    void setModel(WalletModel *model);
-    bool validate();
-    SendCoinsRecipient getValue();
+  void setModel(WalletModel *model);
+  bool validate();
+  SendCoinsRecipient getValue();
 
-    /** Return whether the entry is still empty and unedited */
-    bool isClear();
+  /** Return whether the entry is still empty and unedited */
+  bool isClear();
 
-    void setValue(const SendCoinsRecipient &value);
-    void setAddress(const QString &address);
-    void setAmount(const CAmount &amount);
+  void setValue(const SendCoinsRecipient &value);
+  void setAddress(const QString &address);
+  void setAmount(const CAmount &amount);
 
-    /** Set up the tab chain manually, as Qt messes up the tab chain by default in some cases
-     *  (issue https://bugreports.qt-project.org/browse/QTBUG-10907).
-     */
-    QWidget *setupTabChain(QWidget *prev);
+  /** Set up the tab chain manually, as Qt messes up the tab chain by default in
+   * some cases (issue https://bugreports.qt-project.org/browse/QTBUG-10907).
+   */
+  QWidget *setupTabChain(QWidget *prev);
 
-    void setFocus();
+  void setFocus();
 
-public Q_SLOTS:
-    void clear();
-    void checkSubtractFeeFromAmount();
+ public Q_SLOTS:
+  void clear();
+  void checkSubtractFeeFromAmount();
 
-Q_SIGNALS:
-    void removeEntry(SendCoinsEntry *entry);
-    void useAvailableBalance(SendCoinsEntry* entry);
-    void payAmountChanged();
-    void subtractFeeFromAmountChanged();
+ Q_SIGNALS:
+  void removeEntry(SendCoinsEntry *entry);
+  void useAvailableBalance(SendCoinsEntry *entry);
+  void payAmountChanged();
+  void subtractFeeFromAmountChanged();
 
-private Q_SLOTS:
-    void deleteClicked();
-    void useAvailableBalanceClicked();
-    void on_payTo_textChanged(const QString &address);
-    void on_addressBookButton_clicked();
-    void on_pasteButton_clicked();
-    void updateDisplayUnit();
+ private Q_SLOTS:
+  void deleteClicked();
+  void useAvailableBalanceClicked();
+  void on_payTo_textChanged(const QString &address);
+  void on_addressBookButton_clicked();
+  void on_pasteButton_clicked();
+  void updateDisplayUnit();
 
-private:
-    SendCoinsRecipient recipient;
-    Ui::SendCoinsEntry *ui;
-    WalletModel *model;
-    const PlatformStyle *platformStyle;
+ private:
+  SendCoinsRecipient recipient;
+  Ui::SendCoinsEntry *ui;
+  WalletModel *model;
+  const PlatformStyle *platformStyle;
 
-    bool updateLabel(const QString &address);
+  bool updateLabel(const QString &address);
 };
 
-#endif // UNITE_QT_SENDCOINSENTRY_H
+#endif  // UNITE_QT_SENDCOINSENTRY_H

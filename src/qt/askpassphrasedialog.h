@@ -10,44 +10,44 @@
 class WalletModel;
 
 namespace Ui {
-    class AskPassphraseDialog;
+class AskPassphraseDialog;
 }
 
-/** Multifunctional dialog to ask for passphrases. Used for encryption, unlocking, and changing the passphrase.
+/** Multifunctional dialog to ask for passphrases. Used for encryption,
+ * unlocking, and changing the passphrase.
  */
-class AskPassphraseDialog : public QDialog
-{
-    Q_OBJECT
+class AskPassphraseDialog : public QDialog {
+  Q_OBJECT
 
-public:
-    enum Mode {
-        Encrypt,    /**< Ask passphrase twice and encrypt */
-        Unlock,     /**< Ask passphrase and unlock */
-        ChangePass, /**< Ask old passphrase + new passphrase twice */
-        Decrypt     /**< Ask passphrase and decrypt wallet */
-    };
+ public:
+  enum Mode {
+    Encrypt,    /**< Ask passphrase twice and encrypt */
+    Unlock,     /**< Ask passphrase and unlock */
+    ChangePass, /**< Ask old passphrase + new passphrase twice */
+    Decrypt     /**< Ask passphrase and decrypt wallet */
+  };
 
-    explicit AskPassphraseDialog(Mode mode, QWidget *parent);
-    ~AskPassphraseDialog();
+  explicit AskPassphraseDialog(Mode mode, QWidget *parent);
+  ~AskPassphraseDialog();
 
-    void accept();
+  void accept();
 
-    void setModel(WalletModel *model);
+  void setModel(WalletModel *model);
 
-private:
-    Ui::AskPassphraseDialog *ui;
-    Mode mode;
-    WalletModel *model;
-    bool fCapsLock;
+ private:
+  Ui::AskPassphraseDialog *ui;
+  Mode mode;
+  WalletModel *model;
+  bool fCapsLock;
 
-private Q_SLOTS:
-    void textChanged();
-    void secureClearPassFields();
-    void toggleShowPassword(bool);
+ private Q_SLOTS:
+  void textChanged();
+  void secureClearPassFields();
+  void toggleShowPassword(bool);
 
-protected:
-    bool event(QEvent *event);
-    bool eventFilter(QObject *object, QEvent *event);
+ protected:
+  bool event(QEvent *event);
+  bool eventFilter(QObject *object, QEvent *event);
 };
 
-#endif // UNITE_QT_ASKPASSPHRASEDIALOG_H
+#endif  // UNITE_QT_ASKPASSPHRASEDIALOG_H

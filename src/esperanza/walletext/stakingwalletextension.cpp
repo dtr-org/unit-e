@@ -8,42 +8,37 @@ namespace esperanza {
 
 namespace walletext {
 
-StakingWalletExtension::StakingWalletExtension(::CWallet *enclosingWallet) : m_enclosingWallet(enclosingWallet) {}
+StakingWalletExtension::StakingWalletExtension(::CWallet *enclosingWallet)
+    : m_enclosingWallet(enclosingWallet) {}
 
 bool StakingWalletExtension::SetReserveBalance(::CAmount nNewReserveBalance) {
   return false;
 }
 
-uint64_t StakingWalletExtension::GetStakeWeight() const {
-  return 0;
-}
+uint64_t StakingWalletExtension::GetStakeWeight() const { return 0; }
 
-void StakingWalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins,
-                                                      int64_t nTime,
-                                                      int nHeight) const {
-}
+void StakingWalletExtension::AvailableCoinsForStaking(
+    std::vector<::COutput> &vCoins, int64_t nTime, int nHeight) const {}
 
-bool StakingWalletExtension::SelectCoinsForStaking(int64_t nTargetValue,
-                                                   int64_t nTime,
-                                                   int nHeight,
-                                                   std::set<std::pair<const ::CWalletTx *, unsigned int> > &setCoinsRet,
-                                                   int64_t &nValueRet) const {
+bool StakingWalletExtension::SelectCoinsForStaking(
+    int64_t nTargetValue, int64_t nTime, int nHeight,
+    std::set<std::pair<const ::CWalletTx *, unsigned int>> &setCoinsRet,
+    int64_t &nValueRet) const {
   return false;
 }
 
-bool StakingWalletExtension::CreateCoinStake(unsigned int nBits,
-                                             int64_t nTime,
-                                             int nBlockHeight,
-                                             int64_t nFees,
+bool StakingWalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
+                                             int nBlockHeight, int64_t nFees,
                                              ::CMutableTransaction &txNew,
                                              ::CKey &key) {
   return false;
 }
 
-bool StakingWalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime) {
+bool StakingWalletExtension::SignBlock(::CBlockTemplate *pblocktemplate,
+                                       int nHeight, int64_t nSearchTime) {
   return false;
 }
 
-} // namespace walletext
+}  // namespace walletext
 
-} // namespace esperanza
+}  // namespace esperanza

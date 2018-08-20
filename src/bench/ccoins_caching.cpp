@@ -16,35 +16,38 @@
 // paid to a TX_PUBKEY, the second 21 and 22 EEES outputs
 // paid to a TX_PUBKEYHASH.
 //
-static std::vector<CMutableTransaction>
-SetupDummyInputs(CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet)
-{
-    std::vector<CMutableTransaction> dummyTransactions;
-    dummyTransactions.resize(2);
+static std::vector<CMutableTransaction> SetupDummyInputs(
+    CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet) {
+  std::vector<CMutableTransaction> dummyTransactions;
+  dummyTransactions.resize(2);
 
-    // Add some keys to the keystore:
-    CKey key[4];
-    for (int i = 0; i < 4; i++) {
-        key[i].MakeNewKey(i % 2);
-        keystoreRet.AddKey(key[i]);
-    }
+  // Add some keys to the keystore:
+  CKey key[4];
+  for (int i = 0; i < 4; i++) {
+    key[i].MakeNewKey(i % 2);
+    keystoreRet.AddKey(key[i]);
+  }
 
-    // Create some dummy input transactions
-    dummyTransactions[0].vout.resize(2);
-    dummyTransactions[0].vout[0].nValue = 11 * EEES;
-    dummyTransactions[0].vout[0].scriptPubKey << ToByteVector(key[0].GetPubKey()) << OP_CHECKSIG;
-    dummyTransactions[0].vout[1].nValue = 50 * EEES;
-    dummyTransactions[0].vout[1].scriptPubKey << ToByteVector(key[1].GetPubKey()) << OP_CHECKSIG;
-    AddCoins(coinsRet, dummyTransactions[0], 0);
+  // Create some dummy input transactions
+  dummyTransactions[0].vout.resize(2);
+  dummyTransactions[0].vout[0].nValue = 11 * EEES;
+  dummyTransactions[0].vout[0].scriptPubKey << ToByteVector(key[0].GetPubKey())
+                                            << OP_CHECKSIG;
+  dummyTransactions[0].vout[1].nValue = 50 * EEES;
+  dummyTransactions[0].vout[1].scriptPubKey << ToByteVector(key[1].GetPubKey())
+                                            << OP_CHECKSIG;
+  AddCoins(coinsRet, dummyTransactions[0], 0);
 
-    dummyTransactions[1].vout.resize(2);
-    dummyTransactions[1].vout[0].nValue = 21 * EEES;
-    dummyTransactions[1].vout[0].scriptPubKey = GetScriptForDestination(key[2].GetPubKey().GetID());
-    dummyTransactions[1].vout[1].nValue = 22 * EEES;
-    dummyTransactions[1].vout[1].scriptPubKey = GetScriptForDestination(key[3].GetPubKey().GetID());
-    AddCoins(coinsRet, dummyTransactions[1], 0);
+  dummyTransactions[1].vout.resize(2);
+  dummyTransactions[1].vout[0].nValue = 21 * EEES;
+  dummyTransactions[1].vout[0].scriptPubKey =
+      GetScriptForDestination(key[2].GetPubKey().GetID());
+  dummyTransactions[1].vout[1].nValue = 22 * EEES;
+  dummyTransactions[1].vout[1].scriptPubKey =
+      GetScriptForDestination(key[3].GetPubKey().GetID());
+  AddCoins(coinsRet, dummyTransactions[1], 0);
 
-    return dummyTransactions;
+  return dummyTransactions;
 }
 
 // Microbenchmark for simple accesses to a CCoinsViewCache database. Note from
@@ -53,35 +56,37 @@ SetupDummyInputs(CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet)
 // characteristics than e.g. reindex timings. But that's not a requirement of
 // every benchmark."
 // (https://github.com/unite/unite/issues/7883#issuecomment-224807484)
-static void CCoinsCaching(benchmark::State& state)
-{
-    CBasicKeyStore keystore;
-    CCoinsView coinsDummy;
-    CCoinsViewCache coins(&coinsDummy);
-    std::vector<CMutableTransaction> dummyTransactions = SetupDummyInputs(keystore, coins);
+static void CCoinsCaching(benchmark::State& state) {
+  CBasicKeyStore keystore;
+  CCoinsView coinsDummy;
+  CCoinsViewCache coins(&coinsDummy);
+  std::vector<CMutableTransaction> dummyTransactions =
+      SetupDummyInputs(keystore, coins);
 
-    CMutableTransaction t1;
-    t1.vin.resize(3);
-    t1.vin[0].prevout.hash = dummyTransactions[0].GetHash();
-    t1.vin[0].prevout.n = 1;
-    t1.vin[0].scriptSig << std::vector<unsigned char>(65, 0);
-    t1.vin[1].prevout.hash = dummyTransactions[1].GetHash();
-    t1.vin[1].prevout.n = 0;
-    t1.vin[1].scriptSig << std::vector<unsigned char>(65, 0) << std::vector<unsigned char>(33, 4);
-    t1.vin[2].prevout.hash = dummyTransactions[1].GetHash();
-    t1.vin[2].prevout.n = 1;
-    t1.vin[2].scriptSig << std::vector<unsigned char>(65, 0) << std::vector<unsigned char>(33, 4);
-    t1.vout.resize(2);
-    t1.vout[0].nValue = 90 * EEES;
-    t1.vout[0].scriptPubKey << OP_1;
+  CMutableTransaction t1;
+  t1.vin.resize(3);
+  t1.vin[0].prevout.hash = dummyTransactions[0].GetHash();
+  t1.vin[0].prevout.n = 1;
+  t1.vin[0].scriptSig << std::vector<unsigned char>(65, 0);
+  t1.vin[1].prevout.hash = dummyTransactions[1].GetHash();
+  t1.vin[1].prevout.n = 0;
+  t1.vin[1].scriptSig << std::vector<unsigned char>(65, 0)
+                      << std::vector<unsigned char>(33, 4);
+  t1.vin[2].prevout.hash = dummyTransactions[1].GetHash();
+  t1.vin[2].prevout.n = 1;
+  t1.vin[2].scriptSig << std::vector<unsigned char>(65, 0)
+                      << std::vector<unsigned char>(33, 4);
+  t1.vout.resize(2);
+  t1.vout[0].nValue = 90 * EEES;
+  t1.vout[0].scriptPubKey << OP_1;
 
-    // Benchmark.
-    while (state.KeepRunning()) {
-        bool success = AreInputsStandard(t1, coins);
-        assert(success);
-        CAmount value = coins.GetValueIn(t1);
-        assert(value == (50 + 21 + 22) * EEES);
-    }
+  // Benchmark.
+  while (state.KeepRunning()) {
+    bool success = AreInputsStandard(t1, coins);
+    assert(success);
+    CAmount value = coins.GetValueIn(t1);
+    assert(value == (50 + 21 + 22) * EEES);
+  }
 }
 
 BENCHMARK(CCoinsCaching, 170 * 1000);

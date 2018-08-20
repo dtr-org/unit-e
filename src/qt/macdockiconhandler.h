@@ -16,29 +16,28 @@ QT_END_NAMESPACE
 
 /** Macintosh-specific dock icon handler.
  */
-class MacDockIconHandler : public QObject
-{
-    Q_OBJECT
+class MacDockIconHandler : public QObject {
+  Q_OBJECT
 
-public:
-    ~MacDockIconHandler();
+ public:
+  ~MacDockIconHandler();
 
-    QMenu *dockMenu();
-    void setIcon(const QIcon &icon);
-    void setMainWindow(QMainWindow *window);
-    static MacDockIconHandler *instance();
-    static void cleanup();
-    void handleDockIconClickEvent();
+  QMenu *dockMenu();
+  void setIcon(const QIcon &icon);
+  void setMainWindow(QMainWindow *window);
+  static MacDockIconHandler *instance();
+  static void cleanup();
+  void handleDockIconClickEvent();
 
-Q_SIGNALS:
-    void dockIconClicked();
+ Q_SIGNALS:
+  void dockIconClicked();
 
-private:
-    MacDockIconHandler();
+ private:
+  MacDockIconHandler();
 
-    QWidget *m_dummyWidget;
-    QMenu *m_dockMenu;
-    QMainWindow *mainWindow;
+  QWidget *m_dummyWidget;
+  QMenu *m_dockMenu;
+  QMainWindow *mainWindow;
 };
 
-#endif // UNITE_QT_MACDOCKICONHANDLER_H
+#endif  // UNITE_QT_MACDOCKICONHANDLER_H

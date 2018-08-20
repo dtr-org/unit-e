@@ -13,79 +13,63 @@
 #include <boost/optional.hpp>
 
 /** Coin Control Features. */
-class CCoinControl
-{
-public:
-    //! Custom change destination, if not set an address is generated
-    CTxDestination destChange;
-    //! Custom change type, ignored if destChange is set, defaults to g_change_type
-    OutputType change_type;
-    //! If false, allows unselected inputs, but requires all selected inputs be used
-    bool fAllowOtherInputs;
-    //! Includes watch only addresses which match the ISMINE_WATCH_SOLVABLE criteria
-    bool fAllowWatchOnly;
-    //! Override automatic min/max checks on fee, m_feerate must be set if true
-    bool fOverrideFeeRate;
-    //! Override the default payTxFee if set
-    boost::optional<CFeeRate> m_feerate;
-    //! Override the default confirmation target if set
-    boost::optional<unsigned int> m_confirm_target;
-    //! Signal BIP-125 replace by fee.
-    bool signalRbf;
-    //! Fee estimation mode to control arguments to estimateSmartFee
-    FeeEstimateMode m_fee_mode;
+class CCoinControl {
+ public:
+  //! Custom change destination, if not set an address is generated
+  CTxDestination destChange;
+  //! Custom change type, ignored if destChange is set, defaults to
+  //! g_change_type
+  OutputType change_type;
+  //! If false, allows unselected inputs, but requires all selected inputs be
+  //! used
+  bool fAllowOtherInputs;
+  //! Includes watch only addresses which match the ISMINE_WATCH_SOLVABLE
+  //! criteria
+  bool fAllowWatchOnly;
+  //! Override automatic min/max checks on fee, m_feerate must be set if true
+  bool fOverrideFeeRate;
+  //! Override the default payTxFee if set
+  boost::optional<CFeeRate> m_feerate;
+  //! Override the default confirmation target if set
+  boost::optional<unsigned int> m_confirm_target;
+  //! Signal BIP-125 replace by fee.
+  bool signalRbf;
+  //! Fee estimation mode to control arguments to estimateSmartFee
+  FeeEstimateMode m_fee_mode;
 
-    CCoinControl()
-    {
-        SetNull();
-    }
+  CCoinControl() { SetNull(); }
 
-    void SetNull()
-    {
-        destChange = CNoDestination();
-        change_type = g_change_type;
-        fAllowOtherInputs = false;
-        fAllowWatchOnly = false;
-        setSelected.clear();
-        m_feerate.reset();
-        fOverrideFeeRate = false;
-        m_confirm_target.reset();
-        signalRbf = fWalletRbf;
-        m_fee_mode = FeeEstimateMode::UNSET;
-    }
+  void SetNull() {
+    destChange = CNoDestination();
+    change_type = g_change_type;
+    fAllowOtherInputs = false;
+    fAllowWatchOnly = false;
+    setSelected.clear();
+    m_feerate.reset();
+    fOverrideFeeRate = false;
+    m_confirm_target.reset();
+    signalRbf = fWalletRbf;
+    m_fee_mode = FeeEstimateMode::UNSET;
+  }
 
-    bool HasSelected() const
-    {
-        return (setSelected.size() > 0);
-    }
+  bool HasSelected() const { return (setSelected.size() > 0); }
 
-    bool IsSelected(const COutPoint& output) const
-    {
-        return (setSelected.count(output) > 0);
-    }
+  bool IsSelected(const COutPoint& output) const {
+    return (setSelected.count(output) > 0);
+  }
 
-    void Select(const COutPoint& output)
-    {
-        setSelected.insert(output);
-    }
+  void Select(const COutPoint& output) { setSelected.insert(output); }
 
-    void UnSelect(const COutPoint& output)
-    {
-        setSelected.erase(output);
-    }
+  void UnSelect(const COutPoint& output) { setSelected.erase(output); }
 
-    void UnSelectAll()
-    {
-        setSelected.clear();
-    }
+  void UnSelectAll() { setSelected.clear(); }
 
-    void ListSelected(std::vector<COutPoint>& vOutpoints) const
-    {
-        vOutpoints.assign(setSelected.begin(), setSelected.end());
-    }
+  void ListSelected(std::vector<COutPoint>& vOutpoints) const {
+    vOutpoints.assign(setSelected.begin(), setSelected.end());
+  }
 
-private:
-    std::set<COutPoint> setSelected;
+ private:
+  std::set<COutPoint> setSelected;
 };
 
-#endif // UNITE_WALLET_COINCONTROL_H
+#endif  // UNITE_WALLET_COINCONTROL_H

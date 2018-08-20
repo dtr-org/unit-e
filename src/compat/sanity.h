@@ -8,4 +8,4 @@
 bool glibc_sanity_test();
 bool glibcxx_sanity_test();
 
-#endif // UNITE_COMPAT_SANITY_H
+#endif  // UNITE_COMPAT_SANITY_H

@@ -21,4 +21,4 @@
 
 void zmqError(const char *str);
 
-#endif // UNITE_ZMQ_ZMQCONFIG_H
+#endif  // UNITE_ZMQ_ZMQCONFIG_H

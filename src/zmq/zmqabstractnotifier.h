@@ -10,35 +10,33 @@
 class CBlockIndex;
 class CZMQAbstractNotifier;
 
-typedef CZMQAbstractNotifier* (*CZMQNotifierFactory)();
+typedef CZMQAbstractNotifier *(*CZMQNotifierFactory)();
 
-class CZMQAbstractNotifier
-{
-public:
-    CZMQAbstractNotifier() : psocket(nullptr) { }
-    virtual ~CZMQAbstractNotifier();
+class CZMQAbstractNotifier {
+ public:
+  CZMQAbstractNotifier() : psocket(nullptr) {}
+  virtual ~CZMQAbstractNotifier();
 
-    template <typename T>
-    static CZMQAbstractNotifier* Create()
-    {
-        return new T();
-    }
+  template <typename T>
+  static CZMQAbstractNotifier *Create() {
+    return new T();
+  }
 
-    std::string GetType() const { return type; }
-    void SetType(const std::string &t) { type = t; }
-    std::string GetAddress() const { return address; }
-    void SetAddress(const std::string &a) { address = a; }
+  std::string GetType() const { return type; }
+  void SetType(const std::string &t) { type = t; }
+  std::string GetAddress() const { return address; }
+  void SetAddress(const std::string &a) { address = a; }
 
-    virtual bool Initialize(void *pcontext) = 0;
-    virtual void Shutdown() = 0;
+  virtual bool Initialize(void *pcontext) = 0;
+  virtual void Shutdown() = 0;
 
-    virtual bool NotifyBlock(const CBlockIndex *pindex);
-    virtual bool NotifyTransaction(const CTransaction &transaction);
+  virtual bool NotifyBlock(const CBlockIndex *pindex);
+  virtual bool NotifyTransaction(const CTransaction &transaction);
 
-protected:
-    void *psocket;
-    std::string type;
-    std::string address;
+ protected:
+  void *psocket;
+  std::string type;
+  std::string address;
 };
 
-#endif // UNITE_ZMQ_ZMQABSTRACTNOTIFIER_H
+#endif  // UNITE_ZMQ_ZMQABSTRACTNOTIFIER_H

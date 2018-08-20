@@ -10,7 +10,8 @@
 #include <univalue.h>
 
 /** Generate blocks (mine) */
-UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript);
+UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript,
+                        int nGenerate, uint64_t nMaxTries, bool keepScript);
 
 /** Check bounds on a command line confirm target */
 unsigned int ParseConfirmTarget(const UniValue& value);

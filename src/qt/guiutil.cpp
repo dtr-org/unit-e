@@ -4,14 +4,14 @@
 
 #include <qt/guiutil.h>
 
+#include <qt/qvalidatedlineedit.h>
 #include <qt/uniteaddressvalidator.h>
 #include <qt/uniteunits.h>
-#include <qt/qvalidatedlineedit.h>
 #include <qt/walletmodel.h>
 
-#include <primitives/transaction.h>
 #include <init.h>
 #include <policy/policy.h>
+#include <primitives/transaction.h>
 #include <protocol.h>
 #include <script/script.h>
 #include <script/standard.h>
@@ -47,10 +47,10 @@
 #include <QFileDialog>
 #include <QFont>
 #include <QLineEdit>
-#include <QSettings>
-#include <QTextDocument> // for Qt::mightBeRichText
-#include <QThread>
 #include <QMouseEvent>
+#include <QSettings>
+#include <QTextDocument>  // for Qt::mightBeRichText
+#include <QThread>
 
 #if QT_VERSION < 0x050000
 #include <QUrl>
@@ -76,363 +76,326 @@ extern double NSAppKitVersionNumber;
 
 namespace GUIUtil {
 
-QString dateTimeStr(const QDateTime &date)
-{
-    return date.date().toString(Qt::SystemLocaleShortDate) + QString(" ") + date.toString("hh:mm");
+QString dateTimeStr(const QDateTime &date) {
+  return date.date().toString(Qt::SystemLocaleShortDate) + QString(" ") +
+         date.toString("hh:mm");
 }
 
-QString dateTimeStr(qint64 nTime)
-{
-    return dateTimeStr(QDateTime::fromTime_t((qint32)nTime));
+QString dateTimeStr(qint64 nTime) {
+  return dateTimeStr(QDateTime::fromTime_t((qint32)nTime));
 }
 
-QFont fixedPitchFont()
-{
+QFont fixedPitchFont() {
 #if QT_VERSION >= 0x50200
-    return QFontDatabase::systemFont(QFontDatabase::FixedFont);
+  return QFontDatabase::systemFont(QFontDatabase::FixedFont);
 #else
-    QFont font("Monospace");
+  QFont font("Monospace");
 #if QT_VERSION >= 0x040800
-    font.setStyleHint(QFont::Monospace);
+  font.setStyleHint(QFont::Monospace);
 #else
-    font.setStyleHint(QFont::TypeWriter);
+  font.setStyleHint(QFont::TypeWriter);
 #endif
-    return font;
+  return font;
 #endif
 }
 
-// Just some dummy data to generate an convincing random-looking (but consistent) address
-static const uint8_t dummydata[] = {0xeb,0x15,0x23,0x1d,0xfc,0xeb,0x60,0x92,0x58,0x86,0xb6,0x7d,0x06,0x52,0x99,0x92,0x59,0x15,0xae,0xb1,0x72,0xc0,0x66,0x47};
+// Just some dummy data to generate an convincing random-looking (but
+// consistent) address
+static const uint8_t dummydata[] = {
+    0xeb, 0x15, 0x23, 0x1d, 0xfc, 0xeb, 0x60, 0x92, 0x58, 0x86, 0xb6, 0x7d,
+    0x06, 0x52, 0x99, 0x92, 0x59, 0x15, 0xae, 0xb1, 0x72, 0xc0, 0x66, 0x47};
 
 // Generate a dummy address with invalid CRC, starting with the network prefix.
-static std::string DummyAddress(const CChainParams &params)
-{
-    std::vector<unsigned char> sourcedata = params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
-    sourcedata.insert(sourcedata.end(), dummydata, dummydata + sizeof(dummydata));
-    for(int i=0; i<256; ++i) { // Try every trailing byte
-        std::string s = EncodeBase58(sourcedata.data(), sourcedata.data() + sourcedata.size());
-        if (!IsValidDestinationString(s)) {
-            return s;
-        }
-        sourcedata[sourcedata.size()-1] += 1;
+static std::string DummyAddress(const CChainParams &params) {
+  std::vector<unsigned char> sourcedata =
+      params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
+  sourcedata.insert(sourcedata.end(), dummydata, dummydata + sizeof(dummydata));
+  for (int i = 0; i < 256; ++i) {  // Try every trailing byte
+    std::string s =
+        EncodeBase58(sourcedata.data(), sourcedata.data() + sourcedata.size());
+    if (!IsValidDestinationString(s)) {
+      return s;
     }
-    return "";
+    sourcedata[sourcedata.size() - 1] += 1;
+  }
+  return "";
 }
 
-void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
-{
-    parent->setFocusProxy(widget);
+void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent) {
+  parent->setFocusProxy(widget);
 
-    widget->setFont(fixedPitchFont());
+  widget->setFont(fixedPitchFont());
 #if QT_VERSION >= 0x040700
-    // We don't want translators to use own addresses in translations
-    // and this is the only place, where this address is supplied.
-    widget->setPlaceholderText(QObject::tr("Enter a UnitE address (e.g. %1)").arg(
-        QString::fromStdString(DummyAddress(Params()))));
+  // We don't want translators to use own addresses in translations
+  // and this is the only place, where this address is supplied.
+  widget->setPlaceholderText(
+      QObject::tr("Enter a UnitE address (e.g. %1)")
+          .arg(QString::fromStdString(DummyAddress(Params()))));
 #endif
-    widget->setValidator(new UnitEAddressEntryValidator(parent));
-    widget->setCheckValidator(new UnitEAddressCheckValidator(parent));
+  widget->setValidator(new UnitEAddressEntryValidator(parent));
+  widget->setCheckValidator(new UnitEAddressCheckValidator(parent));
 }
 
-void setupAmountWidget(QLineEdit *widget, QWidget *parent)
-{
-    QDoubleValidator *amountValidator = new QDoubleValidator(parent);
-    amountValidator->setDecimals(8);
-    amountValidator->setBottom(0.0);
-    widget->setValidator(amountValidator);
-    widget->setAlignment(Qt::AlignRight|Qt::AlignVCenter);
+void setupAmountWidget(QLineEdit *widget, QWidget *parent) {
+  QDoubleValidator *amountValidator = new QDoubleValidator(parent);
+  amountValidator->setDecimals(8);
+  amountValidator->setBottom(0.0);
+  widget->setValidator(amountValidator);
+  widget->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 }
 
-bool parseUnitEURI(const QUrl &uri, SendCoinsRecipient *out)
-{
-    // return if URI is not valid or is no unite: URI
-    if(!uri.isValid() || uri.scheme() != QString("unite"))
-        return false;
+bool parseUnitEURI(const QUrl &uri, SendCoinsRecipient *out) {
+  // return if URI is not valid or is no unite: URI
+  if (!uri.isValid() || uri.scheme() != QString("unite")) return false;
 
-    SendCoinsRecipient rv;
-    rv.address = uri.path();
-    // Trim any following forward slash which may have been added by the OS
-    if (rv.address.endsWith("/")) {
-        rv.address.truncate(rv.address.length() - 1);
-    }
-    rv.amount = 0;
+  SendCoinsRecipient rv;
+  rv.address = uri.path();
+  // Trim any following forward slash which may have been added by the OS
+  if (rv.address.endsWith("/")) {
+    rv.address.truncate(rv.address.length() - 1);
+  }
+  rv.amount = 0;
 
 #if QT_VERSION < 0x050000
-    QList<QPair<QString, QString> > items = uri.queryItems();
+  QList<QPair<QString, QString> > items = uri.queryItems();
 #else
-    QUrlQuery uriQuery(uri);
-    QList<QPair<QString, QString> > items = uriQuery.queryItems();
+  QUrlQuery uriQuery(uri);
+  QList<QPair<QString, QString> > items = uriQuery.queryItems();
 #endif
-    for (QList<QPair<QString, QString> >::iterator i = items.begin(); i != items.end(); i++)
-    {
-        bool fShouldReturnFalse = false;
-        if (i->first.startsWith("req-"))
-        {
-            i->first.remove(0, 4);
-            fShouldReturnFalse = true;
-        }
-
-        if (i->first == "label")
-        {
-            rv.label = i->second;
-            fShouldReturnFalse = false;
-        }
-        if (i->first == "message")
-        {
-            rv.message = i->second;
-            fShouldReturnFalse = false;
-        }
-        else if (i->first == "amount")
-        {
-            if(!i->second.isEmpty())
-            {
-                if(!UnitEUnits::parse(UnitEUnits::UNT, i->second, &rv.amount))
-                {
-                    return false;
-                }
-            }
-            fShouldReturnFalse = false;
-        }
-
-        if (fShouldReturnFalse)
-            return false;
+  for (QList<QPair<QString, QString> >::iterator i = items.begin();
+       i != items.end(); i++) {
+    bool fShouldReturnFalse = false;
+    if (i->first.startsWith("req-")) {
+      i->first.remove(0, 4);
+      fShouldReturnFalse = true;
     }
-    if(out)
-    {
-        *out = rv;
+
+    if (i->first == "label") {
+      rv.label = i->second;
+      fShouldReturnFalse = false;
     }
-    return true;
+    if (i->first == "message") {
+      rv.message = i->second;
+      fShouldReturnFalse = false;
+    } else if (i->first == "amount") {
+      if (!i->second.isEmpty()) {
+        if (!UnitEUnits::parse(UnitEUnits::UNT, i->second, &rv.amount)) {
+          return false;
+        }
+      }
+      fShouldReturnFalse = false;
+    }
+
+    if (fShouldReturnFalse) return false;
+  }
+  if (out) {
+    *out = rv;
+  }
+  return true;
 }
 
-bool parseUnitEURI(QString uri, SendCoinsRecipient *out)
-{
-    // Convert unite:// to unite:
-    //
-    //    Cannot handle this later, because unite:// will cause Qt to see the part after // as host,
-    //    which will lower-case it (and thus invalidate the address).
-    if(uri.startsWith("unite://", Qt::CaseInsensitive))
-    {
-        uri.replace(0, 8, "unite:");
-    }
-    QUrl uriInstance(uri);
-    return parseUnitEURI(uriInstance, out);
+bool parseUnitEURI(QString uri, SendCoinsRecipient *out) {
+  // Convert unite:// to unite:
+  //
+  //    Cannot handle this later, because unite:// will cause Qt to see the part
+  //    after // as host, which will lower-case it (and thus invalidate the
+  //    address).
+  if (uri.startsWith("unite://", Qt::CaseInsensitive)) {
+    uri.replace(0, 8, "unite:");
+  }
+  QUrl uriInstance(uri);
+  return parseUnitEURI(uriInstance, out);
 }
 
-QString formatUnitEURI(const SendCoinsRecipient &info)
-{
-    QString ret = QString("unite:%1").arg(info.address);
-    int paramCount = 0;
+QString formatUnitEURI(const SendCoinsRecipient &info) {
+  QString ret = QString("unite:%1").arg(info.address);
+  int paramCount = 0;
 
-    if (info.amount)
-    {
-        ret += QString("?amount=%1").arg(UnitEUnits::format(UnitEUnits::UNT, info.amount, false, UnitEUnits::separatorNever));
-        paramCount++;
-    }
+  if (info.amount) {
+    ret += QString("?amount=%1")
+               .arg(UnitEUnits::format(UnitEUnits::UNT, info.amount, false,
+                                       UnitEUnits::separatorNever));
+    paramCount++;
+  }
 
-    if (!info.label.isEmpty())
-    {
-        QString lbl(QUrl::toPercentEncoding(info.label));
-        ret += QString("%1label=%2").arg(paramCount == 0 ? "?" : "&").arg(lbl);
-        paramCount++;
-    }
+  if (!info.label.isEmpty()) {
+    QString lbl(QUrl::toPercentEncoding(info.label));
+    ret += QString("%1label=%2").arg(paramCount == 0 ? "?" : "&").arg(lbl);
+    paramCount++;
+  }
 
-    if (!info.message.isEmpty())
-    {
-        QString msg(QUrl::toPercentEncoding(info.message));
-        ret += QString("%1message=%2").arg(paramCount == 0 ? "?" : "&").arg(msg);
-        paramCount++;
-    }
+  if (!info.message.isEmpty()) {
+    QString msg(QUrl::toPercentEncoding(info.message));
+    ret += QString("%1message=%2").arg(paramCount == 0 ? "?" : "&").arg(msg);
+    paramCount++;
+  }
 
-    return ret;
+  return ret;
 }
 
-bool isDust(const QString& address, const CAmount& amount)
-{
-    CTxDestination dest = DecodeDestination(address.toStdString());
-    CScript script = GetScriptForDestination(dest);
-    CTxOut txOut(amount, script);
-    return IsDust(txOut, ::dustRelayFee);
+bool isDust(const QString &address, const CAmount &amount) {
+  CTxDestination dest = DecodeDestination(address.toStdString());
+  CScript script = GetScriptForDestination(dest);
+  CTxOut txOut(amount, script);
+  return IsDust(txOut, ::dustRelayFee);
 }
 
-QString HtmlEscape(const QString& str, bool fMultiLine)
-{
+QString HtmlEscape(const QString &str, bool fMultiLine) {
 #if QT_VERSION < 0x050000
-    QString escaped = Qt::escape(str);
+  QString escaped = Qt::escape(str);
 #else
-    QString escaped = str.toHtmlEscaped();
+  QString escaped = str.toHtmlEscaped();
 #endif
-    if(fMultiLine)
-    {
-        escaped = escaped.replace("\n", "<br>\n");
-    }
-    return escaped;
+  if (fMultiLine) {
+    escaped = escaped.replace("\n", "<br>\n");
+  }
+  return escaped;
 }
 
-QString HtmlEscape(const std::string& str, bool fMultiLine)
-{
-    return HtmlEscape(QString::fromStdString(str), fMultiLine);
+QString HtmlEscape(const std::string &str, bool fMultiLine) {
+  return HtmlEscape(QString::fromStdString(str), fMultiLine);
 }
 
-void copyEntryData(QAbstractItemView *view, int column, int role)
-{
-    if(!view || !view->selectionModel())
-        return;
-    QModelIndexList selection = view->selectionModel()->selectedRows(column);
+void copyEntryData(QAbstractItemView *view, int column, int role) {
+  if (!view || !view->selectionModel()) return;
+  QModelIndexList selection = view->selectionModel()->selectedRows(column);
 
-    if(!selection.isEmpty())
-    {
-        // Copy first item
-        setClipboard(selection.at(0).data(role).toString());
-    }
+  if (!selection.isEmpty()) {
+    // Copy first item
+    setClipboard(selection.at(0).data(role).toString());
+  }
 }
 
-QList<QModelIndex> getEntryData(QAbstractItemView *view, int column)
-{
-    if(!view || !view->selectionModel())
-        return QList<QModelIndex>();
-    return view->selectionModel()->selectedRows(column);
+QList<QModelIndex> getEntryData(QAbstractItemView *view, int column) {
+  if (!view || !view->selectionModel()) return QList<QModelIndex>();
+  return view->selectionModel()->selectedRows(column);
 }
 
-QString getSaveFileName(QWidget *parent, const QString &caption, const QString &dir,
-    const QString &filter,
-    QString *selectedSuffixOut)
-{
-    QString selectedFilter;
-    QString myDir;
-    if(dir.isEmpty()) // Default to user documents location
-    {
+QString getSaveFileName(QWidget *parent, const QString &caption,
+                        const QString &dir, const QString &filter,
+                        QString *selectedSuffixOut) {
+  QString selectedFilter;
+  QString myDir;
+  if (dir.isEmpty())  // Default to user documents location
+  {
 #if QT_VERSION < 0x050000
-        myDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+    myDir =
+        QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
 #else
-        myDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    myDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
 #endif
-    }
-    else
-    {
-        myDir = dir;
-    }
-    /* Directly convert path to native OS path separators */
-    QString result = QDir::toNativeSeparators(QFileDialog::getSaveFileName(parent, caption, myDir, filter, &selectedFilter));
+  } else {
+    myDir = dir;
+  }
+  /* Directly convert path to native OS path separators */
+  QString result = QDir::toNativeSeparators(QFileDialog::getSaveFileName(
+      parent, caption, myDir, filter, &selectedFilter));
 
-    /* Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...) */
+  /* Extract first suffix from filter pattern "Description (*.foo)" or
+   * "Description (*.foo *.bar ...) */
+  QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
+  QString selectedSuffix;
+  if (filter_re.exactMatch(selectedFilter)) {
+    selectedSuffix = filter_re.cap(1);
+  }
+
+  /* Add suffix if needed */
+  QFileInfo info(result);
+  if (!result.isEmpty()) {
+    if (info.suffix().isEmpty() && !selectedSuffix.isEmpty()) {
+      /* No suffix specified, add selected suffix */
+      if (!result.endsWith(".")) result.append(".");
+      result.append(selectedSuffix);
+    }
+  }
+
+  /* Return selected suffix if asked to */
+  if (selectedSuffixOut) {
+    *selectedSuffixOut = selectedSuffix;
+  }
+  return result;
+}
+
+QString getOpenFileName(QWidget *parent, const QString &caption,
+                        const QString &dir, const QString &filter,
+                        QString *selectedSuffixOut) {
+  QString selectedFilter;
+  QString myDir;
+  if (dir.isEmpty())  // Default to user documents location
+  {
+#if QT_VERSION < 0x050000
+    myDir =
+        QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
+#else
+    myDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+#endif
+  } else {
+    myDir = dir;
+  }
+  /* Directly convert path to native OS path separators */
+  QString result = QDir::toNativeSeparators(QFileDialog::getOpenFileName(
+      parent, caption, myDir, filter, &selectedFilter));
+
+  if (selectedSuffixOut) {
+    /* Extract first suffix from filter pattern "Description (*.foo)" or
+     * "Description (*.foo *.bar ...) */
     QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
     QString selectedSuffix;
-    if(filter_re.exactMatch(selectedFilter))
-    {
-        selectedSuffix = filter_re.cap(1);
+    if (filter_re.exactMatch(selectedFilter)) {
+      selectedSuffix = filter_re.cap(1);
     }
-
-    /* Add suffix if needed */
-    QFileInfo info(result);
-    if(!result.isEmpty())
-    {
-        if(info.suffix().isEmpty() && !selectedSuffix.isEmpty())
-        {
-            /* No suffix specified, add selected suffix */
-            if(!result.endsWith("."))
-                result.append(".");
-            result.append(selectedSuffix);
-        }
-    }
-
-    /* Return selected suffix if asked to */
-    if(selectedSuffixOut)
-    {
-        *selectedSuffixOut = selectedSuffix;
-    }
-    return result;
+    *selectedSuffixOut = selectedSuffix;
+  }
+  return result;
 }
 
-QString getOpenFileName(QWidget *parent, const QString &caption, const QString &dir,
-    const QString &filter,
-    QString *selectedSuffixOut)
-{
-    QString selectedFilter;
-    QString myDir;
-    if(dir.isEmpty()) // Default to user documents location
-    {
-#if QT_VERSION < 0x050000
-        myDir = QDesktopServices::storageLocation(QDesktopServices::DocumentsLocation);
-#else
-        myDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-#endif
-    }
-    else
-    {
-        myDir = dir;
-    }
-    /* Directly convert path to native OS path separators */
-    QString result = QDir::toNativeSeparators(QFileDialog::getOpenFileName(parent, caption, myDir, filter, &selectedFilter));
-
-    if(selectedSuffixOut)
-    {
-        /* Extract first suffix from filter pattern "Description (*.foo)" or "Description (*.foo *.bar ...) */
-        QRegExp filter_re(".* \\(\\*\\.(.*)[ \\)]");
-        QString selectedSuffix;
-        if(filter_re.exactMatch(selectedFilter))
-        {
-            selectedSuffix = filter_re.cap(1);
-        }
-        *selectedSuffixOut = selectedSuffix;
-    }
-    return result;
+Qt::ConnectionType blockingGUIThreadConnection() {
+  if (QThread::currentThread() != qApp->thread()) {
+    return Qt::BlockingQueuedConnection;
+  } else {
+    return Qt::DirectConnection;
+  }
 }
 
-Qt::ConnectionType blockingGUIThreadConnection()
-{
-    if(QThread::currentThread() != qApp->thread())
-    {
-        return Qt::BlockingQueuedConnection;
-    }
-    else
-    {
-        return Qt::DirectConnection;
-    }
+bool checkPoint(const QPoint &p, const QWidget *w) {
+  QWidget *atW = QApplication::widgetAt(w->mapToGlobal(p));
+  if (!atW) return false;
+  return atW->topLevelWidget() == w;
 }
 
-bool checkPoint(const QPoint &p, const QWidget *w)
-{
-    QWidget *atW = QApplication::widgetAt(w->mapToGlobal(p));
-    if (!atW) return false;
-    return atW->topLevelWidget() == w;
+bool isObscured(QWidget *w) {
+  return !(checkPoint(QPoint(0, 0), w) &&
+           checkPoint(QPoint(w->width() - 1, 0), w) &&
+           checkPoint(QPoint(0, w->height() - 1), w) &&
+           checkPoint(QPoint(w->width() - 1, w->height() - 1), w) &&
+           checkPoint(QPoint(w->width() / 2, w->height() / 2), w));
 }
 
-bool isObscured(QWidget *w)
-{
-    return !(checkPoint(QPoint(0, 0), w)
-        && checkPoint(QPoint(w->width() - 1, 0), w)
-        && checkPoint(QPoint(0, w->height() - 1), w)
-        && checkPoint(QPoint(w->width() - 1, w->height() - 1), w)
-        && checkPoint(QPoint(w->width() / 2, w->height() / 2), w));
+void openDebugLogfile() {
+  fs::path pathDebug = GetDataDir() / "debug.log";
+
+  /* Open debug.log with the associated application */
+  if (fs::exists(pathDebug))
+    QDesktopServices::openUrl(
+        QUrl::fromLocalFile(boostPathToQString(pathDebug)));
 }
 
-void openDebugLogfile()
-{
-    fs::path pathDebug = GetDataDir() / "debug.log";
+bool openUnitEConf() {
+  boost::filesystem::path pathConfig = GetConfigFile(UNITE_CONF_FILENAME);
 
-    /* Open debug.log with the associated application */
-    if (fs::exists(pathDebug))
-        QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathDebug)));
+  /* Create the file */
+  boost::filesystem::ofstream configFile(pathConfig, std::ios_base::app);
+
+  if (!configFile.good()) return false;
+
+  configFile.close();
+
+  /* Open unite.conf with the associated application */
+  return QDesktopServices::openUrl(
+      QUrl::fromLocalFile(boostPathToQString(pathConfig)));
 }
 
-bool openUnitEConf()
-{
-    boost::filesystem::path pathConfig = GetConfigFile(UNITE_CONF_FILENAME);
-
-    /* Create the file */
-    boost::filesystem::ofstream configFile(pathConfig, std::ios_base::app);
-    
-    if (!configFile.good())
-        return false;
-    
-    configFile.close();
-    
-    /* Open unite.conf with the associated application */
-    return QDesktopServices::openUrl(QUrl::fromLocalFile(boostPathToQString(pathConfig)));
-}
-
-void SubstituteFonts(const QString& language)
-{
+void SubstituteFonts(const QString &language) {
 #if defined(Q_OS_MAC)
 // Background:
 // OSX's default font changed in 10.9 and Qt is unable to find it with its
@@ -441,418 +404,422 @@ void SubstituteFonts(const QString& language)
 // If this fallback is not properly loaded, some characters may fail to
 // render correctly.
 //
-// The same thing happened with 10.10. .Helvetica Neue DeskInterface is now default.
+// The same thing happened with 10.10. .Helvetica Neue DeskInterface is now
+// default.
 //
 // Solution: If building with the 10.7 SDK or lower and the user's platform
 // is 10.9 or higher at runtime, substitute the correct font. This needs to
 // happen before the QApplication is created.
-#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
-    if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_8)
-    {
-        if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_9)
-            /* On a 10.9 - 10.9.x system */
-            QFont::insertSubstitution(".Lucida Grande UI", "Lucida Grande");
-        else
-        {
-            /* 10.10 or later system */
-            if (language == "zh_CN" || language == "zh_TW" || language == "zh_HK") // traditional or simplified Chinese
-              QFont::insertSubstitution(".Helvetica Neue DeskInterface", "Heiti SC");
-            else if (language == "ja") // Japanese
-              QFont::insertSubstitution(".Helvetica Neue DeskInterface", "Songti SC");
-            else
-              QFont::insertSubstitution(".Helvetica Neue DeskInterface", "Lucida Grande");
-        }
+#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && \
+    MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_8
+  if (floor(NSAppKitVersionNumber) > NSAppKitVersionNumber10_8) {
+    if (floor(NSAppKitVersionNumber) <= NSAppKitVersionNumber10_9)
+      /* On a 10.9 - 10.9.x system */
+      QFont::insertSubstitution(".Lucida Grande UI", "Lucida Grande");
+    else {
+      /* 10.10 or later system */
+      if (language == "zh_CN" || language == "zh_TW" ||
+          language == "zh_HK")  // traditional or simplified Chinese
+        QFont::insertSubstitution(".Helvetica Neue DeskInterface", "Heiti SC");
+      else if (language == "ja")  // Japanese
+        QFont::insertSubstitution(".Helvetica Neue DeskInterface", "Songti SC");
+      else
+        QFont::insertSubstitution(".Helvetica Neue DeskInterface",
+                                  "Lucida Grande");
     }
+  }
 #endif
 #endif
 }
 
-ToolTipToRichTextFilter::ToolTipToRichTextFilter(int _size_threshold, QObject *parent) :
-    QObject(parent),
-    size_threshold(_size_threshold)
-{
+ToolTipToRichTextFilter::ToolTipToRichTextFilter(int _size_threshold,
+                                                 QObject *parent)
+    : QObject(parent), size_threshold(_size_threshold) {}
 
-}
-
-bool ToolTipToRichTextFilter::eventFilter(QObject *obj, QEvent *evt)
-{
-    if(evt->type() == QEvent::ToolTipChange)
-    {
-        QWidget *widget = static_cast<QWidget*>(obj);
-        QString tooltip = widget->toolTip();
-        if(tooltip.size() > size_threshold && !tooltip.startsWith("<qt") && !Qt::mightBeRichText(tooltip))
-        {
-            // Envelop with <qt></qt> to make sure Qt detects this as rich text
-            // Escape the current message as HTML and replace \n by <br>
-            tooltip = "<qt>" + HtmlEscape(tooltip, true) + "</qt>";
-            widget->setToolTip(tooltip);
-            return true;
-        }
+bool ToolTipToRichTextFilter::eventFilter(QObject *obj, QEvent *evt) {
+  if (evt->type() == QEvent::ToolTipChange) {
+    QWidget *widget = static_cast<QWidget *>(obj);
+    QString tooltip = widget->toolTip();
+    if (tooltip.size() > size_threshold && !tooltip.startsWith("<qt") &&
+        !Qt::mightBeRichText(tooltip)) {
+      // Envelop with <qt></qt> to make sure Qt detects this as rich text
+      // Escape the current message as HTML and replace \n by <br>
+      tooltip = "<qt>" + HtmlEscape(tooltip, true) + "</qt>";
+      widget->setToolTip(tooltip);
+      return true;
     }
-    return QObject::eventFilter(obj, evt);
+  }
+  return QObject::eventFilter(obj, evt);
 }
 
-void TableViewLastColumnResizingFixer::connectViewHeadersSignals()
-{
-    connect(tableView->horizontalHeader(), SIGNAL(sectionResized(int,int,int)), this, SLOT(on_sectionResized(int,int,int)));
-    connect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this, SLOT(on_geometriesChanged()));
+void TableViewLastColumnResizingFixer::connectViewHeadersSignals() {
+  connect(tableView->horizontalHeader(), SIGNAL(sectionResized(int, int, int)),
+          this, SLOT(on_sectionResized(int, int, int)));
+  connect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this,
+          SLOT(on_geometriesChanged()));
 }
 
-// We need to disconnect these while handling the resize events, otherwise we can enter infinite loops.
-void TableViewLastColumnResizingFixer::disconnectViewHeadersSignals()
-{
-    disconnect(tableView->horizontalHeader(), SIGNAL(sectionResized(int,int,int)), this, SLOT(on_sectionResized(int,int,int)));
-    disconnect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this, SLOT(on_geometriesChanged()));
+// We need to disconnect these while handling the resize events, otherwise we
+// can enter infinite loops.
+void TableViewLastColumnResizingFixer::disconnectViewHeadersSignals() {
+  disconnect(tableView->horizontalHeader(),
+             SIGNAL(sectionResized(int, int, int)), this,
+             SLOT(on_sectionResized(int, int, int)));
+  disconnect(tableView->horizontalHeader(), SIGNAL(geometriesChanged()), this,
+             SLOT(on_geometriesChanged()));
 }
 
-// Setup the resize mode, handles compatibility for Qt5 and below as the method signatures changed.
-// Refactored here for readability.
-void TableViewLastColumnResizingFixer::setViewHeaderResizeMode(int logicalIndex, QHeaderView::ResizeMode resizeMode)
-{
+// Setup the resize mode, handles compatibility for Qt5 and below as the method
+// signatures changed. Refactored here for readability.
+void TableViewLastColumnResizingFixer::setViewHeaderResizeMode(
+    int logicalIndex, QHeaderView::ResizeMode resizeMode) {
 #if QT_VERSION < 0x050000
-    tableView->horizontalHeader()->setResizeMode(logicalIndex, resizeMode);
+  tableView->horizontalHeader()->setResizeMode(logicalIndex, resizeMode);
 #else
-    tableView->horizontalHeader()->setSectionResizeMode(logicalIndex, resizeMode);
+  tableView->horizontalHeader()->setSectionResizeMode(logicalIndex, resizeMode);
 #endif
 }
 
-void TableViewLastColumnResizingFixer::resizeColumn(int nColumnIndex, int width)
-{
-    tableView->setColumnWidth(nColumnIndex, width);
-    tableView->horizontalHeader()->resizeSection(nColumnIndex, width);
+void TableViewLastColumnResizingFixer::resizeColumn(int nColumnIndex,
+                                                    int width) {
+  tableView->setColumnWidth(nColumnIndex, width);
+  tableView->horizontalHeader()->resizeSection(nColumnIndex, width);
 }
 
-int TableViewLastColumnResizingFixer::getColumnsWidth()
-{
-    int nColumnsWidthSum = 0;
-    for (int i = 0; i < columnCount; i++)
-    {
-        nColumnsWidthSum += tableView->horizontalHeader()->sectionSize(i);
-    }
-    return nColumnsWidthSum;
+int TableViewLastColumnResizingFixer::getColumnsWidth() {
+  int nColumnsWidthSum = 0;
+  for (int i = 0; i < columnCount; i++) {
+    nColumnsWidthSum += tableView->horizontalHeader()->sectionSize(i);
+  }
+  return nColumnsWidthSum;
 }
 
-int TableViewLastColumnResizingFixer::getAvailableWidthForColumn(int column)
-{
-    int nResult = lastColumnMinimumWidth;
-    int nTableWidth = tableView->horizontalHeader()->width();
+int TableViewLastColumnResizingFixer::getAvailableWidthForColumn(int column) {
+  int nResult = lastColumnMinimumWidth;
+  int nTableWidth = tableView->horizontalHeader()->width();
 
-    if (nTableWidth > 0)
-    {
-        int nOtherColsWidth = getColumnsWidth() - tableView->horizontalHeader()->sectionSize(column);
-        nResult = std::max(nResult, nTableWidth - nOtherColsWidth);
-    }
+  if (nTableWidth > 0) {
+    int nOtherColsWidth =
+        getColumnsWidth() - tableView->horizontalHeader()->sectionSize(column);
+    nResult = std::max(nResult, nTableWidth - nOtherColsWidth);
+  }
 
-    return nResult;
+  return nResult;
 }
 
 // Make sure we don't make the columns wider than the table's viewport width.
-void TableViewLastColumnResizingFixer::adjustTableColumnsWidth()
-{
-    disconnectViewHeadersSignals();
-    resizeColumn(lastColumnIndex, getAvailableWidthForColumn(lastColumnIndex));
-    connectViewHeadersSignals();
+void TableViewLastColumnResizingFixer::adjustTableColumnsWidth() {
+  disconnectViewHeadersSignals();
+  resizeColumn(lastColumnIndex, getAvailableWidthForColumn(lastColumnIndex));
+  connectViewHeadersSignals();
 
-    int nTableWidth = tableView->horizontalHeader()->width();
-    int nColsWidth = getColumnsWidth();
-    if (nColsWidth > nTableWidth)
-    {
-        resizeColumn(secondToLastColumnIndex,getAvailableWidthForColumn(secondToLastColumnIndex));
-    }
+  int nTableWidth = tableView->horizontalHeader()->width();
+  int nColsWidth = getColumnsWidth();
+  if (nColsWidth > nTableWidth) {
+    resizeColumn(secondToLastColumnIndex,
+                 getAvailableWidthForColumn(secondToLastColumnIndex));
+  }
 }
 
 // Make column use all the space available, useful during window resizing.
-void TableViewLastColumnResizingFixer::stretchColumnWidth(int column)
-{
-    disconnectViewHeadersSignals();
-    resizeColumn(column, getAvailableWidthForColumn(column));
-    connectViewHeadersSignals();
+void TableViewLastColumnResizingFixer::stretchColumnWidth(int column) {
+  disconnectViewHeadersSignals();
+  resizeColumn(column, getAvailableWidthForColumn(column));
+  connectViewHeadersSignals();
 }
 
 // When a section is resized this is a slot-proxy for ajustAmountColumnWidth().
-void TableViewLastColumnResizingFixer::on_sectionResized(int logicalIndex, int oldSize, int newSize)
-{
-    adjustTableColumnsWidth();
-    int remainingWidth = getAvailableWidthForColumn(logicalIndex);
-    if (newSize > remainingWidth)
-    {
-       resizeColumn(logicalIndex, remainingWidth);
-    }
+void TableViewLastColumnResizingFixer::on_sectionResized(int logicalIndex,
+                                                         int oldSize,
+                                                         int newSize) {
+  adjustTableColumnsWidth();
+  int remainingWidth = getAvailableWidthForColumn(logicalIndex);
+  if (newSize > remainingWidth) {
+    resizeColumn(logicalIndex, remainingWidth);
+  }
 }
 
-// When the table's geometry is ready, we manually perform the stretch of the "Message" column,
-// as the "Stretch" resize mode does not allow for interactive resizing.
-void TableViewLastColumnResizingFixer::on_geometriesChanged()
-{
-    if ((getColumnsWidth() - this->tableView->horizontalHeader()->width()) != 0)
-    {
-        disconnectViewHeadersSignals();
-        resizeColumn(secondToLastColumnIndex, getAvailableWidthForColumn(secondToLastColumnIndex));
-        connectViewHeadersSignals();
-    }
+// When the table's geometry is ready, we manually perform the stretch of the
+// "Message" column, as the "Stretch" resize mode does not allow for interactive
+// resizing.
+void TableViewLastColumnResizingFixer::on_geometriesChanged() {
+  if ((getColumnsWidth() - this->tableView->horizontalHeader()->width()) != 0) {
+    disconnectViewHeadersSignals();
+    resizeColumn(secondToLastColumnIndex,
+                 getAvailableWidthForColumn(secondToLastColumnIndex));
+    connectViewHeadersSignals();
+  }
 }
 
 /**
  * Initializes all internal variables and prepares the
  * the resize modes of the last 2 columns of the table and
  */
-TableViewLastColumnResizingFixer::TableViewLastColumnResizingFixer(QTableView* table, int lastColMinimumWidth, int allColsMinimumWidth, QObject *parent) :
-    QObject(parent),
-    tableView(table),
-    lastColumnMinimumWidth(lastColMinimumWidth),
-    allColumnsMinimumWidth(allColsMinimumWidth)
-{
-    columnCount = tableView->horizontalHeader()->count();
-    lastColumnIndex = columnCount - 1;
-    secondToLastColumnIndex = columnCount - 2;
-    tableView->horizontalHeader()->setMinimumSectionSize(allColumnsMinimumWidth);
-    setViewHeaderResizeMode(secondToLastColumnIndex, QHeaderView::Interactive);
-    setViewHeaderResizeMode(lastColumnIndex, QHeaderView::Interactive);
+TableViewLastColumnResizingFixer::TableViewLastColumnResizingFixer(
+    QTableView *table, int lastColMinimumWidth, int allColsMinimumWidth,
+    QObject *parent)
+    : QObject(parent),
+      tableView(table),
+      lastColumnMinimumWidth(lastColMinimumWidth),
+      allColumnsMinimumWidth(allColsMinimumWidth) {
+  columnCount = tableView->horizontalHeader()->count();
+  lastColumnIndex = columnCount - 1;
+  secondToLastColumnIndex = columnCount - 2;
+  tableView->horizontalHeader()->setMinimumSectionSize(allColumnsMinimumWidth);
+  setViewHeaderResizeMode(secondToLastColumnIndex, QHeaderView::Interactive);
+  setViewHeaderResizeMode(lastColumnIndex, QHeaderView::Interactive);
 }
 
 #ifdef WIN32
-fs::path static StartupShortcutPath()
-{
-    std::string chain = ChainNameFromCommandLine();
-    if (chain == CBaseChainParams::MAIN)
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "UnitE.lnk";
-    if (chain == CBaseChainParams::TESTNET) // Remove this special case when CBaseChainParams::TESTNET = "testnet4"
-        return GetSpecialFolderPath(CSIDL_STARTUP) / "UnitE (testnet).lnk";
-    return GetSpecialFolderPath(CSIDL_STARTUP) / strprintf("UnitE (%s).lnk", chain);
+fs::path static StartupShortcutPath() {
+  std::string chain = ChainNameFromCommandLine();
+  if (chain == CBaseChainParams::MAIN)
+    return GetSpecialFolderPath(CSIDL_STARTUP) / "UnitE.lnk";
+  if (chain ==
+      CBaseChainParams::TESTNET)  // Remove this special case when
+                                  // CBaseChainParams::TESTNET = "testnet4"
+    return GetSpecialFolderPath(CSIDL_STARTUP) / "UnitE (testnet).lnk";
+  return GetSpecialFolderPath(CSIDL_STARTUP) /
+         strprintf("UnitE (%s).lnk", chain);
 }
 
-bool GetStartOnSystemStartup()
-{
-    // check for UnitE*.lnk
-    return fs::exists(StartupShortcutPath());
+bool GetStartOnSystemStartup() {
+  // check for UnitE*.lnk
+  return fs::exists(StartupShortcutPath());
 }
 
-bool SetStartOnSystemStartup(bool fAutoStart)
-{
-    // If the shortcut exists already, remove it for updating
-    fs::remove(StartupShortcutPath());
+bool SetStartOnSystemStartup(bool fAutoStart) {
+  // If the shortcut exists already, remove it for updating
+  fs::remove(StartupShortcutPath());
 
-    if (fAutoStart)
-    {
-        CoInitialize(nullptr);
+  if (fAutoStart) {
+    CoInitialize(nullptr);
 
-        // Get a pointer to the IShellLink interface.
-        IShellLink* psl = nullptr;
-        HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr,
-            CLSCTX_INPROC_SERVER, IID_IShellLink,
-            reinterpret_cast<void**>(&psl));
+    // Get a pointer to the IShellLink interface.
+    IShellLink *psl = nullptr;
+    HRESULT hres =
+        CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
+                         IID_IShellLink, reinterpret_cast<void **>(&psl));
 
-        if (SUCCEEDED(hres))
-        {
-            // Get the current executable path
-            TCHAR pszExePath[MAX_PATH];
-            GetModuleFileName(nullptr, pszExePath, sizeof(pszExePath));
+    if (SUCCEEDED(hres)) {
+      // Get the current executable path
+      TCHAR pszExePath[MAX_PATH];
+      GetModuleFileName(nullptr, pszExePath, sizeof(pszExePath));
 
-            // Start client minimized
-            QString strArgs = "-min";
-            // Set -testnet /-regtest options
-            strArgs += QString::fromStdString(strprintf(" -testnet=%d -regtest=%d", gArgs.GetBoolArg("-testnet", false), gArgs.GetBoolArg("-regtest", false)));
+      // Start client minimized
+      QString strArgs = "-min";
+      // Set -testnet /-regtest options
+      strArgs += QString::fromStdString(strprintf(
+          " -testnet=%d -regtest=%d", gArgs.GetBoolArg("-testnet", false),
+          gArgs.GetBoolArg("-regtest", false)));
 
 #ifdef UNICODE
-            boost::scoped_array<TCHAR> args(new TCHAR[strArgs.length() + 1]);
-            // Convert the QString to TCHAR*
-            strArgs.toWCharArray(args.get());
-            // Add missing '\0'-termination to string
-            args[strArgs.length()] = '\0';
+      boost::scoped_array<TCHAR> args(new TCHAR[strArgs.length() + 1]);
+      // Convert the QString to TCHAR*
+      strArgs.toWCharArray(args.get());
+      // Add missing '\0'-termination to string
+      args[strArgs.length()] = '\0';
 #endif
 
-            // Set the path to the shortcut target
-            psl->SetPath(pszExePath);
-            PathRemoveFileSpec(pszExePath);
-            psl->SetWorkingDirectory(pszExePath);
-            psl->SetShowCmd(SW_SHOWMINNOACTIVE);
+      // Set the path to the shortcut target
+      psl->SetPath(pszExePath);
+      PathRemoveFileSpec(pszExePath);
+      psl->SetWorkingDirectory(pszExePath);
+      psl->SetShowCmd(SW_SHOWMINNOACTIVE);
 #ifndef UNICODE
-            psl->SetArguments(strArgs.toStdString().c_str());
+      psl->SetArguments(strArgs.toStdString().c_str());
 #else
-            psl->SetArguments(args.get());
+      psl->SetArguments(args.get());
 #endif
 
-            // Query IShellLink for the IPersistFile interface for
-            // saving the shortcut in persistent storage.
-            IPersistFile* ppf = nullptr;
-            hres = psl->QueryInterface(IID_IPersistFile, reinterpret_cast<void**>(&ppf));
-            if (SUCCEEDED(hres))
-            {
-                WCHAR pwsz[MAX_PATH];
-                // Ensure that the string is ANSI.
-                MultiByteToWideChar(CP_ACP, 0, StartupShortcutPath().string().c_str(), -1, pwsz, MAX_PATH);
-                // Save the link by calling IPersistFile::Save.
-                hres = ppf->Save(pwsz, TRUE);
-                ppf->Release();
-                psl->Release();
-                CoUninitialize();
-                return true;
-            }
-            psl->Release();
-        }
+      // Query IShellLink for the IPersistFile interface for
+      // saving the shortcut in persistent storage.
+      IPersistFile *ppf = nullptr;
+      hres = psl->QueryInterface(IID_IPersistFile,
+                                 reinterpret_cast<void **>(&ppf));
+      if (SUCCEEDED(hres)) {
+        WCHAR pwsz[MAX_PATH];
+        // Ensure that the string is ANSI.
+        MultiByteToWideChar(CP_ACP, 0, StartupShortcutPath().string().c_str(),
+                            -1, pwsz, MAX_PATH);
+        // Save the link by calling IPersistFile::Save.
+        hres = ppf->Save(pwsz, TRUE);
+        ppf->Release();
+        psl->Release();
         CoUninitialize();
-        return false;
+        return true;
+      }
+      psl->Release();
     }
-    return true;
+    CoUninitialize();
+    return false;
+  }
+  return true;
 }
 #elif defined(Q_OS_LINUX)
 
 // Follow the Desktop Application Autostart Spec:
 // http://standards.freedesktop.org/autostart-spec/autostart-spec-latest.html
 
-fs::path static GetAutostartDir()
-{
-    char* pszConfigHome = getenv("XDG_CONFIG_HOME");
-    if (pszConfigHome) return fs::path(pszConfigHome) / "autostart";
-    char* pszHome = getenv("HOME");
-    if (pszHome) return fs::path(pszHome) / ".config" / "autostart";
-    return fs::path();
+fs::path static GetAutostartDir() {
+  char *pszConfigHome = getenv("XDG_CONFIG_HOME");
+  if (pszConfigHome) return fs::path(pszConfigHome) / "autostart";
+  char *pszHome = getenv("HOME");
+  if (pszHome) return fs::path(pszHome) / ".config" / "autostart";
+  return fs::path();
 }
 
-fs::path static GetAutostartFilePath()
-{
+fs::path static GetAutostartFilePath() {
+  std::string chain = ChainNameFromCommandLine();
+  if (chain == CBaseChainParams::MAIN)
+    return GetAutostartDir() / "unite.desktop";
+  return GetAutostartDir() / strprintf("unite-%s.lnk", chain);
+}
+
+bool GetStartOnSystemStartup() {
+  fs::ifstream optionFile(GetAutostartFilePath());
+  if (!optionFile.good()) return false;
+  // Scan through file for "Hidden=true":
+  std::string line;
+  while (!optionFile.eof()) {
+    getline(optionFile, line);
+    if (line.find("Hidden") != std::string::npos &&
+        line.find("true") != std::string::npos)
+      return false;
+  }
+  optionFile.close();
+
+  return true;
+}
+
+bool SetStartOnSystemStartup(bool fAutoStart) {
+  if (!fAutoStart)
+    fs::remove(GetAutostartFilePath());
+  else {
+    char pszExePath[MAX_PATH + 1];
+    ssize_t r = readlink("/proc/self/exe", pszExePath, sizeof(pszExePath) - 1);
+    if (r == -1) return false;
+    pszExePath[r] = '\0';
+
+    fs::create_directories(GetAutostartDir());
+
+    fs::ofstream optionFile(GetAutostartFilePath(),
+                            std::ios_base::out | std::ios_base::trunc);
+    if (!optionFile.good()) return false;
     std::string chain = ChainNameFromCommandLine();
+    // Write a unite.desktop file to the autostart directory:
+    optionFile << "[Desktop Entry]\n";
+    optionFile << "Type=Application\n";
     if (chain == CBaseChainParams::MAIN)
-        return GetAutostartDir() / "unite.desktop";
-    return GetAutostartDir() / strprintf("unite-%s.lnk", chain);
-}
-
-bool GetStartOnSystemStartup()
-{
-    fs::ifstream optionFile(GetAutostartFilePath());
-    if (!optionFile.good())
-        return false;
-    // Scan through file for "Hidden=true":
-    std::string line;
-    while (!optionFile.eof())
-    {
-        getline(optionFile, line);
-        if (line.find("Hidden") != std::string::npos &&
-            line.find("true") != std::string::npos)
-            return false;
-    }
-    optionFile.close();
-
-    return true;
-}
-
-bool SetStartOnSystemStartup(bool fAutoStart)
-{
-    if (!fAutoStart)
-        fs::remove(GetAutostartFilePath());
+      optionFile << "Name=UnitE\n";
     else
-    {
-        char pszExePath[MAX_PATH+1];
-        ssize_t r = readlink("/proc/self/exe", pszExePath, sizeof(pszExePath) - 1);
-        if (r == -1)
-            return false;
-        pszExePath[r] = '\0';
-
-        fs::create_directories(GetAutostartDir());
-
-        fs::ofstream optionFile(GetAutostartFilePath(), std::ios_base::out|std::ios_base::trunc);
-        if (!optionFile.good())
-            return false;
-        std::string chain = ChainNameFromCommandLine();
-        // Write a unite.desktop file to the autostart directory:
-        optionFile << "[Desktop Entry]\n";
-        optionFile << "Type=Application\n";
-        if (chain == CBaseChainParams::MAIN)
-            optionFile << "Name=UnitE\n";
-        else
-            optionFile << strprintf("Name=UnitE (%s)\n", chain);
-        optionFile << "Exec=" << pszExePath << strprintf(" -min -testnet=%d -regtest=%d\n", gArgs.GetBoolArg("-testnet", false), gArgs.GetBoolArg("-regtest", false));
-        optionFile << "Terminal=false\n";
-        optionFile << "Hidden=false\n";
-        optionFile.close();
-    }
-    return true;
+      optionFile << strprintf("Name=UnitE (%s)\n", chain);
+    optionFile << "Exec=" << pszExePath
+               << strprintf(" -min -testnet=%d -regtest=%d\n",
+                            gArgs.GetBoolArg("-testnet", false),
+                            gArgs.GetBoolArg("-regtest", false));
+    optionFile << "Terminal=false\n";
+    optionFile << "Hidden=false\n";
+    optionFile.close();
+  }
+  return true;
 }
-
 
 #elif defined(Q_OS_MAC)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-// based on: https://github.com/Mozketo/LaunchAtLoginController/blob/master/LaunchAtLoginController.m
+// based on:
+// https://github.com/Mozketo/LaunchAtLoginController/blob/master/LaunchAtLoginController.m
 
 #include <CoreFoundation/CoreFoundation.h>
 #include <CoreServices/CoreServices.h>
 
-LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef findUrl);
-LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list, CFURLRef findUrl)
-{
-    CFArrayRef listSnapshot = LSSharedFileListCopySnapshot(list, nullptr);
-    if (listSnapshot == nullptr) {
-        return nullptr;
-    }
-    
-    // loop through the list of startup items and try to find the unite app
-    for(int i = 0; i < CFArrayGetCount(listSnapshot); i++) {
-        LSSharedFileListItemRef item = (LSSharedFileListItemRef)CFArrayGetValueAtIndex(listSnapshot, i);
-        UInt32 resolutionFlags = kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes;
-        CFURLRef currentItemURL = nullptr;
+LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list,
+                                              CFURLRef findUrl);
+LSSharedFileListItemRef findStartupItemInList(LSSharedFileListRef list,
+                                              CFURLRef findUrl) {
+  CFArrayRef listSnapshot = LSSharedFileListCopySnapshot(list, nullptr);
+  if (listSnapshot == nullptr) {
+    return nullptr;
+  }
 
-#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && MAC_OS_X_VERSION_MAX_ALLOWED >= 10100
-        if(&LSSharedFileListItemCopyResolvedURL)
-            currentItemURL = LSSharedFileListItemCopyResolvedURL(item, resolutionFlags, nullptr);
-#if defined(MAC_OS_X_VERSION_MIN_REQUIRED) && MAC_OS_X_VERSION_MIN_REQUIRED < 10100
-        else
-            LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, nullptr);
+  // loop through the list of startup items and try to find the unite app
+  for (int i = 0; i < CFArrayGetCount(listSnapshot); i++) {
+    LSSharedFileListItemRef item =
+        (LSSharedFileListItemRef)CFArrayGetValueAtIndex(listSnapshot, i);
+    UInt32 resolutionFlags =
+        kLSSharedFileListNoUserInteraction | kLSSharedFileListDoNotMountVolumes;
+    CFURLRef currentItemURL = nullptr;
+
+#if defined(MAC_OS_X_VERSION_MAX_ALLOWED) && \
+    MAC_OS_X_VERSION_MAX_ALLOWED >= 10100
+    if (&LSSharedFileListItemCopyResolvedURL)
+      currentItemURL =
+          LSSharedFileListItemCopyResolvedURL(item, resolutionFlags, nullptr);
+#if defined(MAC_OS_X_VERSION_MIN_REQUIRED) && \
+    MAC_OS_X_VERSION_MIN_REQUIRED < 10100
+    else
+      LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL,
+                                  nullptr);
 #endif
 #else
-        LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL, nullptr);
+    LSSharedFileListItemResolve(item, resolutionFlags, &currentItemURL,
+                                nullptr);
 #endif
 
-        if(currentItemURL) {
-            if (CFEqual(currentItemURL, findUrl)) {
-                // found
-                CFRelease(listSnapshot);
-                CFRelease(currentItemURL);
-                return item;
-            }
-            CFRelease(currentItemURL);
-        }
+    if (currentItemURL) {
+      if (CFEqual(currentItemURL, findUrl)) {
+        // found
+        CFRelease(listSnapshot);
+        CFRelease(currentItemURL);
+        return item;
+      }
+      CFRelease(currentItemURL);
     }
-    
-    CFRelease(listSnapshot);
-    return nullptr;
+  }
+
+  CFRelease(listSnapshot);
+  return nullptr;
 }
 
-bool GetStartOnSystemStartup()
-{
-    CFURLRef uniteAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
-    if (uniteAppUrl == nullptr) {
-        return false;
-    }
-    
-    LSSharedFileListRef loginItems = LSSharedFileListCreate(nullptr, kLSSharedFileListSessionLoginItems, nullptr);
-    LSSharedFileListItemRef foundItem = findStartupItemInList(loginItems, uniteAppUrl);
+bool GetStartOnSystemStartup() {
+  CFURLRef uniteAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  if (uniteAppUrl == nullptr) {
+    return false;
+  }
 
-    CFRelease(uniteAppUrl);
-    return !!foundItem; // return boolified object
+  LSSharedFileListRef loginItems = LSSharedFileListCreate(
+      nullptr, kLSSharedFileListSessionLoginItems, nullptr);
+  LSSharedFileListItemRef foundItem =
+      findStartupItemInList(loginItems, uniteAppUrl);
+
+  CFRelease(uniteAppUrl);
+  return !!foundItem;  // return boolified object
 }
 
-bool SetStartOnSystemStartup(bool fAutoStart)
-{
-    CFURLRef uniteAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
-    if (uniteAppUrl == nullptr) {
-        return false;
-    }
-    
-    LSSharedFileListRef loginItems = LSSharedFileListCreate(nullptr, kLSSharedFileListSessionLoginItems, nullptr);
-    LSSharedFileListItemRef foundItem = findStartupItemInList(loginItems, uniteAppUrl);
+bool SetStartOnSystemStartup(bool fAutoStart) {
+  CFURLRef uniteAppUrl = CFBundleCopyBundleURL(CFBundleGetMainBundle());
+  if (uniteAppUrl == nullptr) {
+    return false;
+  }
 
-    if(fAutoStart && !foundItem) {
-        // add unite app to startup item list
-        LSSharedFileListInsertItemURL(loginItems, kLSSharedFileListItemBeforeFirst, nullptr, nullptr, uniteAppUrl, nullptr, nullptr);
-    }
-    else if(!fAutoStart && foundItem) {
-        // remove item
-        LSSharedFileListItemRemove(loginItems, foundItem);
-    }
-    
-    CFRelease(uniteAppUrl);
-    return true;
+  LSSharedFileListRef loginItems = LSSharedFileListCreate(
+      nullptr, kLSSharedFileListSessionLoginItems, nullptr);
+  LSSharedFileListItemRef foundItem =
+      findStartupItemInList(loginItems, uniteAppUrl);
+
+  if (fAutoStart && !foundItem) {
+    // add unite app to startup item list
+    LSSharedFileListInsertItemURL(loginItems, kLSSharedFileListItemBeforeFirst,
+                                  nullptr, nullptr, uniteAppUrl, nullptr,
+                                  nullptr);
+  } else if (!fAutoStart && foundItem) {
+    // remove item
+    LSSharedFileListItemRemove(loginItems, foundItem);
+  }
+
+  CFRelease(uniteAppUrl);
+  return true;
 }
 #pragma GCC diagnostic pop
 #else
@@ -862,159 +829,141 @@ bool SetStartOnSystemStartup(bool fAutoStart) { return false; }
 
 #endif
 
-void setClipboard(const QString& str)
-{
-    QApplication::clipboard()->setText(str, QClipboard::Clipboard);
-    QApplication::clipboard()->setText(str, QClipboard::Selection);
+void setClipboard(const QString &str) {
+  QApplication::clipboard()->setText(str, QClipboard::Clipboard);
+  QApplication::clipboard()->setText(str, QClipboard::Selection);
 }
 
-fs::path qstringToBoostPath(const QString &path)
-{
-    return fs::path(path.toStdString(), utf8);
+fs::path qstringToBoostPath(const QString &path) {
+  return fs::path(path.toStdString(), utf8);
 }
 
-QString boostPathToQString(const fs::path &path)
-{
-    return QString::fromStdString(path.string(utf8));
+QString boostPathToQString(const fs::path &path) {
+  return QString::fromStdString(path.string(utf8));
 }
 
-QString formatDurationStr(int secs)
-{
-    QStringList strList;
-    int days = secs / 86400;
-    int hours = (secs % 86400) / 3600;
-    int mins = (secs % 3600) / 60;
-    int seconds = secs % 60;
+QString formatDurationStr(int secs) {
+  QStringList strList;
+  int days = secs / 86400;
+  int hours = (secs % 86400) / 3600;
+  int mins = (secs % 3600) / 60;
+  int seconds = secs % 60;
 
-    if (days)
-        strList.append(QString(QObject::tr("%1 d")).arg(days));
-    if (hours)
-        strList.append(QString(QObject::tr("%1 h")).arg(hours));
-    if (mins)
-        strList.append(QString(QObject::tr("%1 m")).arg(mins));
-    if (seconds || (!days && !hours && !mins))
-        strList.append(QString(QObject::tr("%1 s")).arg(seconds));
+  if (days) strList.append(QString(QObject::tr("%1 d")).arg(days));
+  if (hours) strList.append(QString(QObject::tr("%1 h")).arg(hours));
+  if (mins) strList.append(QString(QObject::tr("%1 m")).arg(mins));
+  if (seconds || (!days && !hours && !mins))
+    strList.append(QString(QObject::tr("%1 s")).arg(seconds));
 
-    return strList.join(" ");
+  return strList.join(" ");
 }
 
-QString formatServicesStr(quint64 mask)
-{
-    QStringList strList;
+QString formatServicesStr(quint64 mask) {
+  QStringList strList;
 
-    // Just scan the last 8 bits for now.
-    for (int i = 0; i < 8; i++) {
-        uint64_t check = 1 << i;
-        if (mask & check)
-        {
-            switch (check)
-            {
-            case NODE_NETWORK:
-                strList.append("NETWORK");
-                break;
-            case NODE_GETUTXO:
-                strList.append("GETUTXO");
-                break;
-            case NODE_BLOOM:
-                strList.append("BLOOM");
-                break;
-            case NODE_WITNESS:
-                strList.append("WITNESS");
-                break;
-            case NODE_XTHIN:
-                strList.append("XTHIN");
-                break;
-            default:
-                strList.append(QString("%1[%2]").arg("UNKNOWN").arg(check));
-            }
-        }
+  // Just scan the last 8 bits for now.
+  for (int i = 0; i < 8; i++) {
+    uint64_t check = 1 << i;
+    if (mask & check) {
+      switch (check) {
+        case NODE_NETWORK:
+          strList.append("NETWORK");
+          break;
+        case NODE_GETUTXO:
+          strList.append("GETUTXO");
+          break;
+        case NODE_BLOOM:
+          strList.append("BLOOM");
+          break;
+        case NODE_WITNESS:
+          strList.append("WITNESS");
+          break;
+        case NODE_XTHIN:
+          strList.append("XTHIN");
+          break;
+        default:
+          strList.append(QString("%1[%2]").arg("UNKNOWN").arg(check));
+      }
     }
+  }
 
-    if (strList.size())
-        return strList.join(" & ");
-    else
-        return QObject::tr("None");
+  if (strList.size())
+    return strList.join(" & ");
+  else
+    return QObject::tr("None");
 }
 
-QString formatPingTime(double dPingTime)
-{
-    return (dPingTime == std::numeric_limits<int64_t>::max()/1e6 || dPingTime == 0) ? QObject::tr("N/A") : QString(QObject::tr("%1 ms")).arg(QString::number((int)(dPingTime * 1000), 10));
+QString formatPingTime(double dPingTime) {
+  return (dPingTime == std::numeric_limits<int64_t>::max() / 1e6 ||
+          dPingTime == 0)
+             ? QObject::tr("N/A")
+             : QString(QObject::tr("%1 ms"))
+                   .arg(QString::number((int)(dPingTime * 1000), 10));
 }
 
-QString formatTimeOffset(int64_t nTimeOffset)
-{
-  return QString(QObject::tr("%1 s")).arg(QString::number((int)nTimeOffset, 10));
+QString formatTimeOffset(int64_t nTimeOffset) {
+  return QString(QObject::tr("%1 s"))
+      .arg(QString::number((int)nTimeOffset, 10));
 }
 
-QString formatNiceTimeOffset(qint64 secs)
-{
-    // Represent time from last generated block in human readable text
-    QString timeBehindText;
-    const int HOUR_IN_SECONDS = 60*60;
-    const int DAY_IN_SECONDS = 24*60*60;
-    const int WEEK_IN_SECONDS = 7*24*60*60;
-    const int YEAR_IN_SECONDS = 31556952; // Average length of year in Gregorian calendar
-    if(secs < 60)
-    {
-        timeBehindText = QObject::tr("%n second(s)","",secs);
+QString formatNiceTimeOffset(qint64 secs) {
+  // Represent time from last generated block in human readable text
+  QString timeBehindText;
+  const int HOUR_IN_SECONDS = 60 * 60;
+  const int DAY_IN_SECONDS = 24 * 60 * 60;
+  const int WEEK_IN_SECONDS = 7 * 24 * 60 * 60;
+  const int YEAR_IN_SECONDS =
+      31556952;  // Average length of year in Gregorian calendar
+  if (secs < 60) {
+    timeBehindText = QObject::tr("%n second(s)", "", secs);
+  } else if (secs < 2 * HOUR_IN_SECONDS) {
+    timeBehindText = QObject::tr("%n minute(s)", "", secs / 60);
+  } else if (secs < 2 * DAY_IN_SECONDS) {
+    timeBehindText = QObject::tr("%n hour(s)", "", secs / HOUR_IN_SECONDS);
+  } else if (secs < 2 * WEEK_IN_SECONDS) {
+    timeBehindText = QObject::tr("%n day(s)", "", secs / DAY_IN_SECONDS);
+  } else if (secs < YEAR_IN_SECONDS) {
+    timeBehindText = QObject::tr("%n week(s)", "", secs / WEEK_IN_SECONDS);
+  } else {
+    qint64 years = secs / YEAR_IN_SECONDS;
+    qint64 remainder = secs % YEAR_IN_SECONDS;
+    timeBehindText =
+        QObject::tr("%1 and %2")
+            .arg(QObject::tr("%n year(s)", "", years))
+            .arg(QObject::tr("%n week(s)", "", remainder / WEEK_IN_SECONDS));
+  }
+  return timeBehindText;
+}
+
+QString formatBytes(uint64_t bytes) {
+  if (bytes < 1024) return QString(QObject::tr("%1 B")).arg(bytes);
+  if (bytes < 1024 * 1024)
+    return QString(QObject::tr("%1 KB")).arg(bytes / 1024);
+  if (bytes < 1024 * 1024 * 1024)
+    return QString(QObject::tr("%1 MB")).arg(bytes / 1024 / 1024);
+
+  return QString(QObject::tr("%1 GB")).arg(bytes / 1024 / 1024 / 1024);
+}
+
+qreal calculateIdealFontSize(int width, const QString &text, QFont font,
+                             qreal minPointSize, qreal font_size) {
+  while (font_size >= minPointSize) {
+    font.setPointSizeF(font_size);
+    QFontMetrics fm(font);
+    if (fm.width(text) < width) {
+      break;
     }
-    else if(secs < 2*HOUR_IN_SECONDS)
-    {
-        timeBehindText = QObject::tr("%n minute(s)","",secs/60);
-    }
-    else if(secs < 2*DAY_IN_SECONDS)
-    {
-        timeBehindText = QObject::tr("%n hour(s)","",secs/HOUR_IN_SECONDS);
-    }
-    else if(secs < 2*WEEK_IN_SECONDS)
-    {
-        timeBehindText = QObject::tr("%n day(s)","",secs/DAY_IN_SECONDS);
-    }
-    else if(secs < YEAR_IN_SECONDS)
-    {
-        timeBehindText = QObject::tr("%n week(s)","",secs/WEEK_IN_SECONDS);
-    }
-    else
-    {
-        qint64 years = secs / YEAR_IN_SECONDS;
-        qint64 remainder = secs % YEAR_IN_SECONDS;
-        timeBehindText = QObject::tr("%1 and %2").arg(QObject::tr("%n year(s)", "", years)).arg(QObject::tr("%n week(s)","", remainder/WEEK_IN_SECONDS));
-    }
-    return timeBehindText;
+    font_size -= 0.5;
+  }
+  return font_size;
 }
 
-QString formatBytes(uint64_t bytes)
-{
-    if(bytes < 1024)
-        return QString(QObject::tr("%1 B")).arg(bytes);
-    if(bytes < 1024 * 1024)
-        return QString(QObject::tr("%1 KB")).arg(bytes / 1024);
-    if(bytes < 1024 * 1024 * 1024)
-        return QString(QObject::tr("%1 MB")).arg(bytes / 1024 / 1024);
-
-    return QString(QObject::tr("%1 GB")).arg(bytes / 1024 / 1024 / 1024);
+void ClickableLabel::mouseReleaseEvent(QMouseEvent *event) {
+  Q_EMIT clicked(event->pos());
 }
 
-qreal calculateIdealFontSize(int width, const QString& text, QFont font, qreal minPointSize, qreal font_size) {
-    while(font_size >= minPointSize) {
-        font.setPointSizeF(font_size);
-        QFontMetrics fm(font);
-        if (fm.width(text) < width) {
-            break;
-        }
-        font_size -= 0.5;
-    }
-    return font_size;
+void ClickableProgressBar::mouseReleaseEvent(QMouseEvent *event) {
+  Q_EMIT clicked(event->pos());
 }
 
-void ClickableLabel::mouseReleaseEvent(QMouseEvent *event)
-{
-    Q_EMIT clicked(event->pos());
-}
-    
-void ClickableProgressBar::mouseReleaseEvent(QMouseEvent *event)
-{
-    Q_EMIT clicked(event->pos());
-}
-
-} // namespace GUIUtil
+}  // namespace GUIUtil

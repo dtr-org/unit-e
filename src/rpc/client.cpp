@@ -7,15 +7,14 @@
 #include <rpc/protocol.h>
 #include <util.h>
 
-#include <set>
 #include <stdint.h>
+#include <set>
 
-class CRPCConvertParam
-{
-public:
-    std::string methodName; //!< method whose params want conversion
-    int paramIdx;           //!< 0-based idx of param to convert
-    std::string paramName;  //!< parameter name
+class CRPCConvertParam {
+ public:
+  std::string methodName;  //!< method whose params want conversion
+  int paramIdx;            //!< 0-based idx of param to convert
+  std::string paramName;   //!< parameter name
 };
 
 // clang-format off
@@ -147,90 +146,89 @@ static const CRPCConvertParam vRPCConvertParams[] =
 };
 // clang-format on
 
-class CRPCConvertTable
-{
-private:
-    std::set<std::pair<std::string, int>> members;
-    std::set<std::pair<std::string, std::string>> membersByName;
+class CRPCConvertTable {
+ private:
+  std::set<std::pair<std::string, int>> members;
+  std::set<std::pair<std::string, std::string>> membersByName;
 
-public:
-    CRPCConvertTable();
+ public:
+  CRPCConvertTable();
 
-    bool convert(const std::string& method, int idx) {
-        return (members.count(std::make_pair(method, idx)) > 0);
-    }
-    bool convert(const std::string& method, const std::string& name) {
-        return (membersByName.count(std::make_pair(method, name)) > 0);
-    }
+  bool convert(const std::string& method, int idx) {
+    return (members.count(std::make_pair(method, idx)) > 0);
+  }
+  bool convert(const std::string& method, const std::string& name) {
+    return (membersByName.count(std::make_pair(method, name)) > 0);
+  }
 };
 
-CRPCConvertTable::CRPCConvertTable()
-{
-    const unsigned int n_elem =
-        (sizeof(vRPCConvertParams) / sizeof(vRPCConvertParams[0]));
+CRPCConvertTable::CRPCConvertTable() {
+  const unsigned int n_elem =
+      (sizeof(vRPCConvertParams) / sizeof(vRPCConvertParams[0]));
 
-    for (unsigned int i = 0; i < n_elem; i++) {
-        members.insert(std::make_pair(vRPCConvertParams[i].methodName,
-                                      vRPCConvertParams[i].paramIdx));
-        membersByName.insert(std::make_pair(vRPCConvertParams[i].methodName,
-                                            vRPCConvertParams[i].paramName));
-    }
+  for (unsigned int i = 0; i < n_elem; i++) {
+    members.insert(std::make_pair(vRPCConvertParams[i].methodName,
+                                  vRPCConvertParams[i].paramIdx));
+    membersByName.insert(std::make_pair(vRPCConvertParams[i].methodName,
+                                        vRPCConvertParams[i].paramName));
+  }
 }
 
 static CRPCConvertTable rpcCvtTable;
 
-/** Non-RFC4627 JSON parser, accepts internal values (such as numbers, true, false, null)
- * as well as objects and arrays.
+/** Non-RFC4627 JSON parser, accepts internal values (such as numbers, true,
+ * false, null) as well as objects and arrays.
  */
-UniValue ParseNonRFCJSONValue(const std::string& strVal)
-{
-    UniValue jVal;
-    if (!jVal.read(std::string("[")+strVal+std::string("]")) ||
-        !jVal.isArray() || jVal.size()!=1)
-        throw std::runtime_error(std::string("Error parsing JSON:")+strVal);
-    return jVal[0];
+UniValue ParseNonRFCJSONValue(const std::string& strVal) {
+  UniValue jVal;
+  if (!jVal.read(std::string("[") + strVal + std::string("]")) ||
+      !jVal.isArray() || jVal.size() != 1)
+    throw std::runtime_error(std::string("Error parsing JSON:") + strVal);
+  return jVal[0];
 }
 
-UniValue RPCConvertValues(const std::string &strMethod, const std::vector<std::string> &strParams)
-{
-    UniValue params(UniValue::VARR);
+UniValue RPCConvertValues(const std::string& strMethod,
+                          const std::vector<std::string>& strParams) {
+  UniValue params(UniValue::VARR);
 
-    for (unsigned int idx = 0; idx < strParams.size(); idx++) {
-        const std::string& strVal = strParams[idx];
+  for (unsigned int idx = 0; idx < strParams.size(); idx++) {
+    const std::string& strVal = strParams[idx];
 
-        if (!rpcCvtTable.convert(strMethod, idx)) {
-            // insert string value directly
-            params.push_back(strVal);
-        } else {
-            // parse string as JSON, insert bool/number/object/etc. value
-            params.push_back(ParseNonRFCJSONValue(strVal));
-        }
+    if (!rpcCvtTable.convert(strMethod, idx)) {
+      // insert string value directly
+      params.push_back(strVal);
+    } else {
+      // parse string as JSON, insert bool/number/object/etc. value
+      params.push_back(ParseNonRFCJSONValue(strVal));
     }
+  }
 
-    return params;
+  return params;
 }
 
-UniValue RPCConvertNamedValues(const std::string &strMethod, const std::vector<std::string> &strParams)
-{
-    UniValue params(UniValue::VOBJ);
+UniValue RPCConvertNamedValues(const std::string& strMethod,
+                               const std::vector<std::string>& strParams) {
+  UniValue params(UniValue::VOBJ);
 
-    for (const std::string &s: strParams) {
-        size_t pos = s.find('=');
-        if (pos == std::string::npos) {
-            throw(std::runtime_error("No '=' in named argument '"+s+"', this needs to be present for every argument (even if it is empty)"));
-        }
-
-        std::string name = s.substr(0, pos);
-        std::string value = s.substr(pos+1);
-
-        if (!rpcCvtTable.convert(strMethod, name)) {
-            // insert string value directly
-            params.pushKV(name, value);
-        } else {
-            // parse string as JSON, insert bool/number/object/etc. value
-            params.pushKV(name, ParseNonRFCJSONValue(value));
-        }
+  for (const std::string& s : strParams) {
+    size_t pos = s.find('=');
+    if (pos == std::string::npos) {
+      throw(std::runtime_error("No '=' in named argument '" + s +
+                               "', this needs to be present for every argument "
+                               "(even if it is empty)"));
     }
 
-    return params;
+    std::string name = s.substr(0, pos);
+    std::string value = s.substr(pos + 1);
+
+    if (!rpcCvtTable.convert(strMethod, name)) {
+      // insert string value directly
+      params.pushKV(name, value);
+    } else {
+      // parse string as JSON, insert bool/number/object/etc. value
+      params.pushKV(name, ParseNonRFCJSONValue(value));
+    }
+  }
+
+  return params;
 }

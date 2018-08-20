@@ -4,12 +4,11 @@
 #include <QObject>
 #include <QTest>
 
-class WalletTests : public QObject
-{
-    Q_OBJECT
+class WalletTests : public QObject {
+  Q_OBJECT
 
-private Q_SLOTS:
-    void walletTests();
+ private Q_SLOTS:
+  void walletTests();
 };
 
-#endif // UNITE_QT_TEST_WALLETTESTS_H
+#endif  // UNITE_QT_TEST_WALLETTESTS_H

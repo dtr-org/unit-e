@@ -25,27 +25,26 @@ static const bool DEFAULT_SELFSIGNED_ROOTCERTS = false;
 // with extra methods
 //
 
-class PaymentRequestPlus
-{
-public:
-    PaymentRequestPlus() { }
+class PaymentRequestPlus {
+ public:
+  PaymentRequestPlus() {}
 
-    bool parse(const QByteArray& data);
-    bool SerializeToString(std::string* output) const;
+  bool parse(const QByteArray& data);
+  bool SerializeToString(std::string* output) const;
 
-    bool IsInitialized() const;
-    // Returns true if merchant's identity is authenticated, and
-    // returns human-readable merchant identity in merchant
-    bool getMerchant(X509_STORE* certStore, QString& merchant) const;
+  bool IsInitialized() const;
+  // Returns true if merchant's identity is authenticated, and
+  // returns human-readable merchant identity in merchant
+  bool getMerchant(X509_STORE* certStore, QString& merchant) const;
 
-    // Returns list of outputs, amount
-    QList<std::pair<CScript,CAmount> > getPayTo() const;
+  // Returns list of outputs, amount
+  QList<std::pair<CScript, CAmount> > getPayTo() const;
 
-    const payments::PaymentDetails& getDetails() const { return details; }
+  const payments::PaymentDetails& getDetails() const { return details; }
 
-private:
-    payments::PaymentRequest paymentRequest;
-    payments::PaymentDetails details;
+ private:
+  payments::PaymentRequest paymentRequest;
+  payments::PaymentDetails details;
 };
 
-#endif // UNITE_QT_PAYMENTREQUESTPLUS_H
+#endif  // UNITE_QT_PAYMENTREQUESTPLUS_H

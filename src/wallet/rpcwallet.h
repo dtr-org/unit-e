@@ -19,10 +19,10 @@ void RegisterWalletRPCCommands(CRPCTable &t);
  * @param[in] request JSONRPCRequest that wishes to access a wallet
  * @return nullptr if no wallet should be used, or a pointer to the CWallet
  */
-CWallet *GetWalletForJSONRPCRequest(const JSONRPCRequest& request);
+CWallet *GetWalletForJSONRPCRequest(const JSONRPCRequest &request);
 
 std::string HelpRequiringPassphrase(CWallet *);
 void EnsureWalletIsUnlocked(CWallet *);
 bool EnsureWalletIsAvailable(CWallet *, bool avoidException);
 
-#endif //UNITE_WALLET_RPCWALLET_H
+#endif  // UNITE_WALLET_RPCWALLET_H

@@ -16,23 +16,27 @@ namespace kernel {
 /*!
  * Compute the hash modifier for proof-of-stake
  */
-uint256 ComputeStakeModifierV2(const CBlockIndex *pindexPrev, const uint256 &kernel);
+uint256 ComputeStakeModifierV2(const CBlockIndex *pindexPrev,
+                               const uint256 &kernel);
 
 /*!
  * Check whether stake kernel meets hash target
  * Sets hashProofOfStake on success return
  */
-bool CheckStakeKernelHash(const CBlockIndex *pindexPrev,
-    uint32_t nBits, uint32_t nBlockFromTime,
-    CAmount prevOutAmount, const COutPoint &prevout, uint32_t nTimeTx,
-    uint256 &hashProofOfStake, uint256 &targetProofOfStake,
-    bool fPrintProofOfStake=false);
+bool CheckStakeKernelHash(const CBlockIndex *pindexPrev, uint32_t nBits,
+                          uint32_t nBlockFromTime, CAmount prevOutAmount,
+                          const COutPoint &prevout, uint32_t nTimeTx,
+                          uint256 &hashProofOfStake,
+                          uint256 &targetProofOfStake,
+                          bool fPrintProofOfStake = false);
 
 /*!
  * Check kernel hash target and coinstake signature
  * Sets hashProofOfStake on success return
  */
-bool CheckProofOfStake(const CBlockIndex *pindexPrev, const CTransaction &tx, int64_t nTime, unsigned int nBits, uint256 &hashProofOfStake, uint256 &targetProofOfStake);
+bool CheckProofOfStake(const CBlockIndex *pindexPrev, const CTransaction &tx,
+                       int64_t nTime, unsigned int nBits,
+                       uint256 &hashProofOfStake, uint256 &targetProofOfStake);
 
 /*!
  * Check whether the coinstake timestamp meets protocol
@@ -44,10 +48,12 @@ bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock);
  * Also checks existence of kernel input and min age
  * Convenient for searching a kernel
  */
-bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits, int64_t nTime, const COutPoint &prevout, int64_t* pBlockTime = nullptr);
+bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits,
+                 int64_t nTime, const COutPoint &prevout,
+                 int64_t *pBlockTime = nullptr);
 
-} // namespace kernel
+}  // namespace kernel
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif //UNIT_E_ESPERANZA_KERNEL_H
+#endif  // UNIT_E_ESPERANZA_KERNEL_H

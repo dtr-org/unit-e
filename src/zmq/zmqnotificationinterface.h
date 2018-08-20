@@ -6,35 +6,39 @@
 #define UNITE_ZMQ_ZMQNOTIFICATIONINTERFACE_H
 
 #include <validationinterface.h>
-#include <string>
-#include <map>
 #include <list>
+#include <map>
+#include <string>
 
 class CBlockIndex;
 class CZMQAbstractNotifier;
 
-class CZMQNotificationInterface final : public CValidationInterface
-{
-public:
-    virtual ~CZMQNotificationInterface();
+class CZMQNotificationInterface final : public CValidationInterface {
+ public:
+  virtual ~CZMQNotificationInterface();
 
-    static CZMQNotificationInterface* Create();
+  static CZMQNotificationInterface* Create();
 
-protected:
-    bool Initialize();
-    void Shutdown();
+ protected:
+  bool Initialize();
+  void Shutdown();
 
-    // CValidationInterface
-    void TransactionAddedToMempool(const CTransactionRef& tx) override;
-    void BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex* pindexConnected, const std::vector<CTransactionRef>& vtxConflicted) override;
-    void BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) override;
-    void UpdatedBlockTip(const CBlockIndex *pindexNew, const CBlockIndex *pindexFork, bool fInitialDownload) override;
+  // CValidationInterface
+  void TransactionAddedToMempool(const CTransactionRef& tx) override;
+  void BlockConnected(
+      const std::shared_ptr<const CBlock>& pblock,
+      const CBlockIndex* pindexConnected,
+      const std::vector<CTransactionRef>& vtxConflicted) override;
+  void BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) override;
+  void UpdatedBlockTip(const CBlockIndex* pindexNew,
+                       const CBlockIndex* pindexFork,
+                       bool fInitialDownload) override;
 
-private:
-    CZMQNotificationInterface();
+ private:
+  CZMQNotificationInterface();
 
-    void *pcontext;
-    std::list<CZMQAbstractNotifier*> notifiers;
+  void* pcontext;
+  std::list<CZMQAbstractNotifier*> notifiers;
 };
 
-#endif // UNITE_ZMQ_ZMQNOTIFICATIONINTERFACE_H
+#endif  // UNITE_ZMQ_ZMQNOTIFICATIONINTERFACE_H

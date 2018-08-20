@@ -9,4 +9,4 @@ static const bool DEFAULT_DISABLE_SAFEMODE = true;
 
 void ObserveSafeMode();
 
-#endif // UNITE_RPC_SAFEMODE_H
+#endif  // UNITE_RPC_SAFEMODE_H

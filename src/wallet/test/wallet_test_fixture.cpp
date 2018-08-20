@@ -7,26 +7,25 @@
 #include <rpc/server.h>
 #include <wallet/db.h>
 
-WalletTestingSetup::WalletTestingSetup(const std::string& chainName):
-    TestingSetup(chainName)
-{
-    bitdb.MakeMock();
+WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
+    : TestingSetup(chainName) {
+  bitdb.MakeMock();
 
-    bool fFirstRun;
-    g_address_type = OUTPUT_TYPE_DEFAULT;
-    g_change_type = OUTPUT_TYPE_DEFAULT;
-    std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
-    pwalletMain = MakeUnique<CWallet>(std::move(dbw));
-    pwalletMain->LoadWallet(fFirstRun);
-    RegisterValidationInterface(pwalletMain.get());
+  bool fFirstRun;
+  g_address_type = OUTPUT_TYPE_DEFAULT;
+  g_change_type = OUTPUT_TYPE_DEFAULT;
+  std::unique_ptr<CWalletDBWrapper> dbw(
+      new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
+  pwalletMain = MakeUnique<CWallet>(std::move(dbw));
+  pwalletMain->LoadWallet(fFirstRun);
+  RegisterValidationInterface(pwalletMain.get());
 
-    RegisterWalletRPCCommands(tableRPC);
+  RegisterWalletRPCCommands(tableRPC);
 }
 
-WalletTestingSetup::~WalletTestingSetup()
-{
-    UnregisterValidationInterface(pwalletMain.get());
+WalletTestingSetup::~WalletTestingSetup() {
+  UnregisterValidationInterface(pwalletMain.get());
 
-    bitdb.Flush(true);
-    bitdb.Reset();
+  bitdb.Flush(true);
+  bitdb.Reset();
 }

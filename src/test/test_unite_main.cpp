@@ -12,17 +12,8 @@
 
 std::unique_ptr<CConnman> g_connman;
 
-[[noreturn]] void Shutdown(void* parg)
-{
-  std::exit(EXIT_SUCCESS);
-}
+[[noreturn]] void Shutdown(void* parg) { std::exit(EXIT_SUCCESS); }
 
-[[noreturn]] void StartShutdown()
-{
-  std::exit(EXIT_SUCCESS);
-}
+[[noreturn]] void StartShutdown() { std::exit(EXIT_SUCCESS); }
 
-bool ShutdownRequested()
-{
-  return false;
-}
+bool ShutdownRequested() { return false; }

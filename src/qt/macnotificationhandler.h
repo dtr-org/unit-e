@@ -9,19 +9,17 @@
 
 /** Macintosh-specific notification handler (supports UserNotificationCenter).
  */
-class MacNotificationHandler : public QObject
-{
-    Q_OBJECT
+class MacNotificationHandler : public QObject {
+  Q_OBJECT
 
-public:
-    /** shows a macOS 10.8+ UserNotification in the UserNotificationCenter
-     */
-    void showNotification(const QString &title, const QString &text);
+ public:
+  /** shows a macOS 10.8+ UserNotification in the UserNotificationCenter
+   */
+  void showNotification(const QString &title, const QString &text);
 
-    /** check if OS can handle UserNotifications */
-    bool hasUserNotificationCenterSupport(void);
-    static MacNotificationHandler *instance();
+  /** check if OS can handle UserNotifications */
+  bool hasUserNotificationCenterSupport(void);
+  static MacNotificationHandler *instance();
 };
 
-
-#endif // UNITE_QT_MACNOTIFICATIONHANDLER_H
+#endif  // UNITE_QT_MACNOTIFICATIONHANDLER_H
