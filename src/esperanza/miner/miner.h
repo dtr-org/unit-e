@@ -6,11 +6,12 @@
 #ifndef UNITE_MINER_H
 #define UNITE_MINER_H
 
+#include <atomic>
+#include <primitives/block.h>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <string>
-#include <primitives/block.h>
 
 class CWallet;
 
