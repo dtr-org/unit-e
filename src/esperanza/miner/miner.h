@@ -3,55 +3,29 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#ifndef UNITE_MINER_H
-#define UNITE_MINER_H
+#ifndef UNITE_ESPERANZA_MINER_H
+#define UNITE_ESPERANZA_MINER_H
 
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <string>
 #include <primitives/block.h>
-
-class CWallet;
+#include <esperanza/config.h>
+#include <wallet/wallet.h>
 
 namespace esperanza {
 
 namespace miner {
 
-class StakeThread
-{
- public:
-  void condWaitFor(int ms);
-
-  std::thread thread;
-  std::condition_variable condMinerProc;
-  std::mutex mtxMinerProc;
-  std::string sName;
-  bool fWakeMinerProc = false;
-};
-
-extern std::vector<StakeThread*> g_takeThreads;
-
-extern std::atomic<bool> g_isStaking;
-
-extern int g_minStakeInterval;
-
-extern int g_minerSleep;
-
 double GetPoSKernelPS();
 
 bool CheckStake(CBlock *pblock);
 
-void ShutdownThreadStakeMiner();
-
-void WakeThreadStakeMiner(CWallet *pwallet);
-
-bool ThreadStakeMinerStopped();
-
-void ThreadStakeMiner(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, size_t nEnd);
+bool ImportOutputs(CBlockTemplate *blocktemplate, int height);
 
 } // namespace miner
 
 } // namespace esperanza
 
-#endif // UNITE_MINER_H
+#endif // UNITE_ESPERANZA_MINER_H

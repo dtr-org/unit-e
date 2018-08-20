@@ -10,17 +10,15 @@ namespace walletext {
 
 StakingWalletExtension::StakingWalletExtension(::CWallet *enclosingWallet) : m_enclosingWallet(enclosingWallet) {}
 
-bool StakingWalletExtension::SetReserveBalance(::CAmount nNewReserveBalance) {
-  return false;
-}
-
-uint64_t StakingWalletExtension::GetStakeWeight() const {
+CAmount StakingWalletExtension::GetStakeableBalance() const {
+  // todo
   return 0;
 }
 
 void StakingWalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins,
                                                       int64_t nTime,
                                                       int nHeight) const {
+  // todo
 }
 
 bool StakingWalletExtension::SelectCoinsForStaking(int64_t nTargetValue,
@@ -28,6 +26,7 @@ bool StakingWalletExtension::SelectCoinsForStaking(int64_t nTargetValue,
                                                    int nHeight,
                                                    std::set<std::pair<const ::CWalletTx *, unsigned int> > &setCoinsRet,
                                                    int64_t &nValueRet) const {
+  // todo
   return false;
 }
 
@@ -37,6 +36,7 @@ bool StakingWalletExtension::CreateCoinStake(unsigned int nBits,
                                              int64_t nFees,
                                              ::CMutableTransaction &txNew,
                                              ::CKey &key) {
+  // todo
   return false;
 }
 

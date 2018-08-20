@@ -4232,3 +4232,7 @@ CTxDestination CWallet::AddAndGetDestinationForScript(const CScript& script, Out
     default: assert(false);
     }
 }
+
+esperanza::walletext::StakingWalletExtension& CWallet::GetStakingWalletExtension() {
+    return this->m_stakingExtension;
+}

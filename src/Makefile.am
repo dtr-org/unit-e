@@ -77,6 +77,7 @@ endif
 UNITE_CORE_H = \
   addrdb.h \
   addrman.h \
+  address/address.h \
   base58.h \
   bech32.h \
   bloom.h \
@@ -99,9 +100,15 @@ UNITE_CORE_H = \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  esperanza/config.h \
+  esperanza/globalconfig.h \
+  esperanza/params.h \
   esperanza/kernel/kernel.h \
   esperanza/miner/miner.h \
+  esperanza/miner/stakethread.h \
   esperanza/validation/validation.h \
+  esperanza/walletext/init.h \
+  esperanza/walletext/stakingstate.h \
   esperanza/walletext/stakingwalletextension.h \
   fs.h \
   httprpc.h \
@@ -211,6 +218,8 @@ libunite_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
+  esperanza/config.cpp \
+  esperanza/globalconfig.cpp \
   esperanza/kernel/kernel.cpp \
   esperanza/validation/validation.cpp \
   httprpc.cpp \
@@ -262,6 +271,8 @@ libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   esperanza/miner/miner.cpp \
+  esperanza/miner/stakethread.cpp \
+  esperanza/walletext/init.cpp \
   esperanza/walletext/stakingwalletextension.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
@@ -341,6 +352,7 @@ libunite_consensus_a_SOURCES = \
 libunite_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
+  address/address.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
@@ -348,6 +360,7 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  esperanza/params.cpp \
   key.cpp \
   key/mnemonic/mnemonic.cpp \
   keystore.cpp \

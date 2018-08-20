@@ -9,10 +9,12 @@
 #include <miner.h>
 #include <primitives/transaction.h>
 #include <key.h>
+#include <esperanza/walletext/stakingstate.h>
 
 #include <cstdint>
 #include <cstddef>
 #include <vector>
+#include <esperanza/miner/stakethread.h>
 
 class CWallet;
 class CWalletTx;
@@ -28,6 +30,7 @@ namespace walletext {
 class StakingWalletExtension {
 
   friend ::CWallet;
+  friend esperanza::miner::StakeThread;
 
  private:
 
@@ -35,21 +38,15 @@ class StakingWalletExtension {
   CWallet *m_enclosingWallet;
 
   //! The current state of this wallet with regards to staking.
-  enum eStakingState {
-    NOT_STAKING,
-    IS_STAKING,
-    NOT_STAKING_BALANCE,
-    NOT_STAKING_DEPTH,
-    NOT_STAKING_LOCKED,
-    NOT_STAKING_LIMITED,
-  } m_isStaking = NOT_STAKING;
+  StakingState m_stakingState = StakingState::NOT_STAKING;
 
-  int64_t nLastCoinStakeSearchTime = 0;
+  int64_t m_lastCoinStakeSearchTime = 0;
 
   //! A miminum amount (in satoshis) to keep (will not be used for staking).
   int64_t m_reserveBalance;
 
-  size_t m_numberOfStakeThreads = 0;
+  //! Which stake thread is mining on this wallet (max = uninitialized)
+  size_t m_stakeThreadIndex = std::numeric_limits<size_t>::max();
 
   int m_deepestTxnDepth = 0; // for stake mining
 
@@ -63,15 +60,9 @@ class StakingWalletExtension {
 
   std::string m_rewardAddress;
 
-  bool fUnlockForStakingOnly = false; // Use coldstaking instead
-
   StakingWalletExtension(::CWallet *enclosingWallet);
 
- public:
-
-  bool SetReserveBalance(::CAmount nNewReserveBalance);
-
-  uint64_t GetStakeWeight() const;
+  CAmount GetStakeableBalance() const;
 
   void AvailableCoinsForStaking(std::vector<::COutput> &vCoins, int64_t nTime, int nHeight) const;
 

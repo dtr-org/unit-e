@@ -762,6 +762,9 @@ public:
      */
     mutable CCriticalSection cs_wallet;
 
+    //! Access to the Proof-of-Stake Esperanza extensions to the Wallet.
+    esperanza::walletext::StakingWalletExtension& GetStakingWalletExtension();
+
     /** Get database handle used by this wallet. Ideally this function would
      * not be necessary.
      */
@@ -770,8 +773,7 @@ public:
         return *dbw;
     }
 
-    /** Get a name for this wallet for logging/debugging purposes.
-     */
+    //! Get a name for this wallet for logging/debugging purposes.
     std::string GetName() const
     {
         if (dbw) {
