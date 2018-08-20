@@ -8,8 +8,6 @@
 #include <rpc/blockchain.h>
 #include <validation.h>
 
-#include <atomic>
-
 namespace esperanza {
 
 namespace miner {
