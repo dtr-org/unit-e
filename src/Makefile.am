@@ -105,10 +105,10 @@ UNITE_CORE_H = \
   esperanza/kernel.h \
   esperanza/miner.h \
   esperanza/params.h \
-  esperanza/stakingstate.h \
   esperanza/stakethread.h \
-  esperanza/validation.h \
+  esperanza/stakingstate.h \
   esperanza/stakingwalletextension.h \
+  esperanza/validation.h \
   fs.h \
   httprpc.h \
   httpserver.h \

@@ -10,11 +10,7 @@
 
 namespace esperanza {
 
-namespace walletext {
-
 std::string GetHelpString(bool showDebug);
-
-} // namespace walletext
 
 } // namespace esperanza
 
