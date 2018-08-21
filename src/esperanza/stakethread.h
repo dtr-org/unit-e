@@ -45,7 +45,7 @@ namespace esperanza {
 
 class DLL_PUBLIC StakeThread final {
 
- private:
+ public:
 
   std::string m_name;
 
@@ -57,30 +57,28 @@ class DLL_PUBLIC StakeThread final {
 
   bool m_wakeMinerProc = false;
 
-  static void condWaitFor(size_t threadID, int ms);
-
- public:
-
   StakeThread(std::string name, std::thread &thread);
-
-  //! Stops all active StakeThreads.
-  static void Shutdown();
-
-  //! Wakes the thread associated with the given wallet.
-  static void Wake(CWallet *wallet);
-
-  //! Returns true iff there are no active StakeThreads.e
-  static bool IsStopped();
-
-  //! Starts a thread with the given id for the given range of wallets.
-  static void Start(size_t nThreadID, std::vector<CWallet *> &wallets, size_t start, size_t end);
-
-  //! Given a configuration and a list of wallets, starts staking with one ore more threads.
-  static void StartStaking(const esperanza::Config &config, const std::vector<CWallet *> &wallets);
 
   void condWaitFor(int ms);
 
 };
+
+void condWaitFor(size_t threadID, int ms);
+
+//! Stops all active StakeThreads.
+void Shutdown();
+
+//! Wakes the thread associated with the given wallet.
+void Wake(CWallet *wallet);
+
+//! Returns true iff there are no active StakeThreads.e
+bool IsStopped();
+
+//! Starts a thread with the given id for the given range of wallets.
+void Start(size_t nThreadID, std::vector<CWallet *> &wallets, size_t start, size_t end);
+
+//! Given a configuration and a list of wallets, starts staking with one ore more threads.
+void StartStaking(const esperanza::Config &config, const std::vector<CWallet *> &wallets);
 
 } // namespace esperanza
 
