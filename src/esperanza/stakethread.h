@@ -78,7 +78,7 @@ bool IsStopped();
 void Start(size_t nThreadID, std::vector<CWallet *> &wallets, size_t start, size_t end);
 
 //! Given a configuration and a list of wallets, starts staking with one ore more threads.
-void StartStaking(const esperanza::Config &config, const std::vector<CWallet *> &wallets);
+DLL_PUBLIC void StartStaking(const esperanza::Config &config, const std::vector<CWallet *> &wallets);
 
 } // namespace esperanza
 
