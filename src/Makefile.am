@@ -217,10 +217,6 @@ libunite_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
-  esperanza/config.cpp \
-  esperanza/kernel.cpp \
-  esperanza/params.cpp \
-  esperanza/validation.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -269,6 +265,11 @@ endif
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
+  address/address.cpp \
+  esperanza/config.cpp \
+  esperanza/kernel.cpp \
+  esperanza/params.cpp \
+  esperanza/validation.cpp \
   esperanza/miner.cpp \
   esperanza/init.cpp \
   esperanza/stakethread.cpp \
@@ -351,7 +352,6 @@ libunite_consensus_a_SOURCES = \
 libunite_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
-  address/address.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
