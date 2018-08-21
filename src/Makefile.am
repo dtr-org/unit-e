@@ -101,13 +101,13 @@ UNITE_CORE_H = \
   core_memusage.h \
   cuckoocache.h \
   esperanza/config.h \
-  esperanza/params.h \
+  esperanza/init.h \
   esperanza/kernel.h \
   esperanza/miner.h \
+  esperanza/params.h \
+  esperanza/stakingstate.h \
   esperanza/stakethread.h \
   esperanza/validation.h \
-  esperanza/init.h \
-  esperanza/stakingstate.h \
   esperanza/stakingwalletextension.h \
   fs.h \
   httprpc.h \
