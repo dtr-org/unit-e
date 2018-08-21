@@ -219,6 +219,7 @@ libunite_server_a_SOURCES = \
   consensus/tx_verify.cpp \
   esperanza/config.cpp \
   esperanza/kernel.cpp \
+  esperanza/params.cpp \
   esperanza/validation.cpp \
   httprpc.cpp \
   httpserver.cpp \
@@ -269,7 +270,6 @@ libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   esperanza/miner.cpp \
-  esperanza/stakethread.cpp \
   esperanza/init.cpp \
   esperanza/stakingwalletextension.cpp \
   wallet/crypter.cpp \
@@ -359,7 +359,6 @@ libunite_common_a_SOURCES = \
   core_read.cpp \
   core_write.cpp \
   esperanza/config.cpp \
-  esperanza/params.cpp \
   key.cpp \
   key/mnemonic/mnemonic.cpp \
   keystore.cpp \
