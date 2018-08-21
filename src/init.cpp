@@ -8,8 +8,6 @@
 #endif
 
 #include <init.h>
-#include <esperanza/config.h>
-#include <esperanza/globalconfig.h>
 
 #include <addrman.h>
 #include <amount.h>
@@ -48,7 +46,8 @@
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
-#include <esperanza/miner/stakethread.h>
+#include <esperanza/config.h>
+#include <esperanza/stakethread.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -69,7 +68,6 @@
 
 #if ENABLE_ZMQ
 #include <zmq/zmqnotificationinterface.h>
-#include <esperanza/globalconfig.h>
 #endif
 
 bool fFeeEstimatesInitialized = false;
@@ -1810,7 +1808,7 @@ bool AppInitMain()
 #ifdef ENABLE_WALLET
     // ********************************************************* Step 11.1: start staking
 
-    esperanza::miner::StakeThread::StartStaking(esperanza::g_config, vpwallets);
+    esperanza::StakeThread::StartStaking(esperanza::g_config, vpwallets);
 
 #endif
 

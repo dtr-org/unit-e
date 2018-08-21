@@ -101,15 +101,14 @@ UNITE_CORE_H = \
   core_memusage.h \
   cuckoocache.h \
   esperanza/config.h \
-  esperanza/globalconfig.h \
   esperanza/params.h \
-  esperanza/kernel/kernel.h \
-  esperanza/miner/miner.h \
-  esperanza/miner/stakethread.h \
-  esperanza/validation/validation.h \
-  esperanza/walletext/init.h \
-  esperanza/walletext/stakingstate.h \
-  esperanza/walletext/stakingwalletextension.h \
+  esperanza/kernel.h \
+  esperanza/miner.h \
+  esperanza/stakethread.h \
+  esperanza/validation.h \
+  esperanza/init.h \
+  esperanza/stakingstate.h \
+  esperanza/stakingwalletextension.h \
   fs.h \
   httprpc.h \
   httpserver.h \
@@ -219,9 +218,8 @@ libunite_server_a_SOURCES = \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
   esperanza/config.cpp \
-  esperanza/globalconfig.cpp \
-  esperanza/kernel/kernel.cpp \
-  esperanza/validation/validation.cpp \
+  esperanza/kernel.cpp \
+  esperanza/validation.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -270,10 +268,10 @@ endif
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
-  esperanza/miner/miner.cpp \
-  esperanza/miner/stakethread.cpp \
-  esperanza/walletext/init.cpp \
-  esperanza/walletext/stakingwalletextension.cpp \
+  esperanza/miner.cpp \
+  esperanza/stakethread.cpp \
+  esperanza/init.cpp \
+  esperanza/stakingwalletextension.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \
@@ -360,6 +358,7 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  esperanza/config.cpp \
   esperanza/params.cpp \
   key.cpp \
   key/mnemonic/mnemonic.cpp \

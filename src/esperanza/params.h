@@ -6,8 +6,6 @@
 #ifndef UNITE_ESPERANZA_PARAMS_H
 #define UNITE_ESPERANZA_PARAMS_H
 
-#include <amount.h>
-
 #include <stdint.h>
 
 namespace esperanza {

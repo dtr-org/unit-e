@@ -14,7 +14,7 @@ Config::Config(bool staking,
     : m_staking(staking),
       m_numberOfStakeThreads(numberOfStakeThreads),
       m_minerSleep(minerSleep),
-      m_minStakeInterval(minStakeInterval) {};
+      m_minStakeInterval(minStakeInterval) {}
 
 Config::Config(::ArgsManager &args, Config defaultConfig)
     : m_staking(args.GetBoolArg("-staking", defaultConfig.m_staking)),
@@ -23,6 +23,8 @@ Config::Config(::ArgsManager &args, Config defaultConfig)
       m_minerSleep(args.GetArg("-minersleep", defaultConfig.m_minerSleep)),
       m_minStakeInterval(args.GetArg("-minstakeinterval", defaultConfig.m_minStakeInterval)) {}
 
-Config::Config() noexcept : Config(true, 1, 500, 0) {};
+Config::Config() noexcept : Config(true, 1, 500, 0) {}
+
+Config g_config;
 
 } // namespace esperanza

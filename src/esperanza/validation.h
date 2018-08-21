@@ -10,15 +10,11 @@
 
 namespace esperanza {
 
-namespace validation {
-
 bool CheckStakeUnused(const COutPoint &kernel);
 
 bool CheckStakeUnique(const CBlock &block, bool update);
 
 int GetNumBlocksOfPeers();
-
-} // namespace validation
 
 } // namespace esperanza
 

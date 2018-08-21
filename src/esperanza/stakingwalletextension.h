@@ -9,12 +9,12 @@
 #include <miner.h>
 #include <primitives/transaction.h>
 #include <key.h>
-#include <esperanza/walletext/stakingstate.h>
+#include <esperanza/stakingstate.h>
 
 #include <cstdint>
 #include <cstddef>
 #include <vector>
-#include <esperanza/miner/stakethread.h>
+#include <esperanza/stakethread.h>
 
 class CWallet;
 class CWalletTx;
@@ -22,15 +22,13 @@ class COutput;
 
 namespace esperanza {
 
-namespace walletext {
-
 /*!
  * \brief Extends the Bitcoin Wallet with Esperanza Staking Capabilities.
  */
 class StakingWalletExtension {
 
   friend ::CWallet;
-  friend esperanza::miner::StakeThread;
+  friend esperanza::StakeThread;
 
  private:
 
@@ -82,8 +80,6 @@ class StakingWalletExtension {
   bool SignBlock(::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime);
 
 };
-
-} // namespace walletext
 
 } // namespace esperanza
 

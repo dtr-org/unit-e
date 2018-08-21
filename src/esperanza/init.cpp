@@ -3,13 +3,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#include <esperanza/walletext/init.h>
+#include <esperanza/init.h>
 
 #include <util.h>
 
 namespace esperanza {
-
-namespace walletext {
 
 std::string GetHelpString(bool showDebug) {
   std::string strUsage = HelpMessageGroup(_("Staking options:"));
@@ -17,8 +15,7 @@ std::string GetHelpString(bool showDebug) {
   strUsage += HelpMessageOpt("-minstakeinterval", "Default: 0");
   strUsage += HelpMessageOpt("-minersleep", "Default: 500ms");
   strUsage += HelpMessageOpt("-stakingthreads", "The number of threads used to mine. Maximum of 1 per Wallet. If there are more wallets than threads, staking will be distributed across the threads. Default: 1");
+  return strUsage;
 }
-
-} // namespace walletext
 
 } // namespace esperanza

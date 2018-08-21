@@ -2,11 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/globalconfig.h>
-#include <esperanza/miner/miner.h>
-#include <esperanza/miner/stakethread.h>
-#include <esperanza/validation/validation.h>
-#include <esperanza/walletext/stakingstate.h>
+#include <esperanza/miner.h>
+#include <esperanza/stakethread.h>
+#include <esperanza/validation.h>
+#include <esperanza/stakingstate.h>
 #include <miner.h>
 #include <util.h>
 #include <net.h>
@@ -14,8 +13,6 @@
 #include <validation.h>
 
 namespace esperanza {
-
-namespace miner {
 
 //! Pointers to all the stake threads.
 static std::vector<StakeThread *> m_stakeThreads;
@@ -101,7 +98,7 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
     if (m_tryToSync) {
       m_tryToSync = false;
 
-      if (g_connman->GetNodeCount() < 3 || nBestHeight < esperanza::validation::GetNumBlocksOfPeers()) {
+      if (g_connman->GetNodeCount() < 3 || nBestHeight < esperanza::GetNumBlocksOfPeers()) {
         m_isStaking = false;
         LogPrint(BCLog::POS, "%s: TryToSync\n", __func__);
         condWaitFor(nThreadID, 30000);
@@ -122,13 +119,13 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
       nBestTime = chainActive.Tip()->nTime;
     }
 
-    if (nBestHeight < esperanza::validation::GetNumBlocksOfPeers() - 1) {
+    if (nBestHeight < esperanza::GetNumBlocksOfPeers() - 1) {
       m_isStaking = false;
       LogPrint(BCLog::POS,
                "%s: nBestHeight < GetNumBlocksOfPeers(), %d, %d\n",
                __func__,
                nBestHeight,
-               esperanza::validation::GetNumBlocksOfPeers());
+               esperanza::GetNumBlocksOfPeers());
       condWaitFor(nThreadID, m_minerSleep * 4);
       continue;
     }
@@ -158,7 +155,7 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
     size_t nWaitFor = 60000;
     for (size_t i = nStart; i < nEnd; ++i) {
       CWallet *pwallet = vpwallets[i];
-      esperanza::walletext::StakingWalletExtension &stakingWallet = pwallet->GetStakingWalletExtension();
+      esperanza::StakingWalletExtension &stakingWallet = pwallet->GetStakingWalletExtension();
 
       if (nSearchTime <= stakingWallet.m_lastCoinStakeSearchTime) {
         nWaitFor = std::min(nWaitFor, (size_t) m_minerSleep);
@@ -166,19 +163,19 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
       }
 
       if (stakingWallet.m_stakeLimitHeight > 0 && nBestHeight >= stakingWallet.m_stakeLimitHeight) {
-        stakingWallet.m_stakingState = esperanza::walletext::StakingState::NOT_STAKING_LIMITED;
+        stakingWallet.m_stakingState = esperanza::StakingState::NOT_STAKING_LIMITED;
         nWaitFor = std::min(nWaitFor, (size_t) 30000);
         continue;
       }
 
       if (pwallet->IsLocked()) {
-        stakingWallet.m_stakingState = esperanza::walletext::StakingState::NOT_STAKING_LOCKED;
+        stakingWallet.m_stakingState = esperanza::StakingState::NOT_STAKING_LOCKED;
         nWaitFor = std::min(nWaitFor, (size_t) 30000);
         continue;
       }
 
       if (stakingWallet.GetStakeableBalance() <= stakingWallet.m_reserveBalance) {
-        pwallet->GetStakingWalletExtension().m_stakingState = esperanza::walletext::StakingState::NOT_STAKING_BALANCE;
+        pwallet->GetStakingWalletExtension().m_stakingState = esperanza::StakingState::NOT_STAKING_BALANCE;
         nWaitFor = std::min(nWaitFor, (size_t) 60000);
         stakingWallet.m_lastCoinStakeSearchTime = nSearchTime + 60;
         LogPrint(BCLog::POS, "%s: Wallet %d, low balance.\n", __func__, i);
@@ -203,7 +200,7 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
         }
       }
 
-      stakingWallet.m_stakingState = esperanza::walletext::StakingState::IS_STAKING;
+      stakingWallet.m_stakingState = esperanza::StakingState::IS_STAKING;
       nWaitFor = m_minerSleep;
       m_isStaking = true;
       if (stakingWallet.SignBlock(pblocktemplate.get(), nBestHeight + 1, nSearchTime)) {
@@ -216,7 +213,7 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
         int nRequiredDepth =
             std::min((int) (::Params().EsperanzaParams().GetStakeMinConfirmations() - 1), (int) (nBestHeight / 2));
         if (stakingWallet.m_deepestTxnDepth < nRequiredDepth - 4) {
-          stakingWallet.m_stakingState = esperanza::walletext::StakingState::NOT_STAKING_DEPTH;
+          stakingWallet.m_stakingState = esperanza::StakingState::NOT_STAKING_DEPTH;
           size_t nSleep = (nRequiredDepth - stakingWallet.m_deepestTxnDepth) / 4;
           nWaitFor = std::min(nWaitFor, (size_t) (nSleep * 1000));
           stakingWallet.m_lastCoinStakeSearchTime = nSearchTime + nSleep;
@@ -272,7 +269,5 @@ void StakeThread::condWaitFor(int ms) {
   m_wakeMinerProc = false;
   m_condMinerProc.wait_for(lock, std::chrono::milliseconds(ms), [this] { return this->m_wakeMinerProc; });
 }
-
-} // namespace miner
 
 } // namespace esperanza

@@ -3,13 +3,11 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#include <esperanza/validation/validation.h>
+#include <esperanza/validation.h>
 
 #include <util.h>
 
 namespace esperanza {
-
-namespace validation {
 
 static const size_t MAX_STAKE_SEEN_SIZE = 1000;
 
@@ -64,7 +62,5 @@ int GetNumBlocksOfPeers() {
   // todo
   return 0;
 }
-
-} // namespace validation
 
 } // namespace esperanza

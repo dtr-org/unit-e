@@ -2,11 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/walletext/stakingwalletextension.h>
+#include <esperanza/stakingwalletextension.h>
 
 namespace esperanza {
-
-namespace walletext {
 
 StakingWalletExtension::StakingWalletExtension(::CWallet *enclosingWallet) : m_enclosingWallet(enclosingWallet) {}
 
@@ -43,7 +41,5 @@ bool StakingWalletExtension::CreateCoinStake(unsigned int nBits,
 bool StakingWalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight, int64_t nSearchTime) {
   return false;
 }
-
-} // namespace walletext
 
 } // namespace esperanza

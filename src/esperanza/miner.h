@@ -16,15 +16,11 @@
 
 namespace esperanza {
 
-namespace miner {
-
 double GetPoSKernelPS();
 
 bool CheckStake(CBlock *pblock);
 
 bool ImportOutputs(CBlockTemplate *blocktemplate, int height);
-
-} // namespace miner
 
 } // namespace esperanza
 

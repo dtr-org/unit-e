@@ -7,7 +7,6 @@
 #define UNITE_ESPERANZA_CONFIG_H
 
 #include <util.h>
-
 #include <cstddef>
 
 namespace esperanza {
@@ -31,6 +30,9 @@ struct Config {
   Config() noexcept;
 
 };
+
+// todo: get rid of global config in favor of injecting it into components for better testing
+extern Config g_config;
 
 } // namespace esperanza
 

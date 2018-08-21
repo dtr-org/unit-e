@@ -18,8 +18,6 @@ class CWallet;
 
 namespace esperanza {
 
-namespace miner {
-
 class StakeThread final {
 
  private:
@@ -58,8 +56,6 @@ class StakeThread final {
   void condWaitFor(int ms);
 
 };
-
-} // namespace miner
 
 } // namespace esperanza
 

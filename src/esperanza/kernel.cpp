@@ -11,7 +11,7 @@
 #include <consensus/validation.h>
 #include <hash.h>
 #include <policy/policy.h>
-#include <esperanza/kernel/kernel.h>
+#include <esperanza/kernel.h>
 #include <script/interpreter.h>
 #include <script/ismine.h> // valtype
 #include <script/script.h>
@@ -21,8 +21,6 @@
 #include <validation.h>
 
 namespace esperanza {
-
-namespace kernel {
 
 /**
  * Stake Modifier (hash modifier of proof-of-stake):
@@ -72,8 +70,7 @@ bool CheckStakeKernelHash(
     const COutPoint &prevout     /*!< [in] */,
     uint32_t nTime,
     uint256 &hashProofOfStake    /*!< [in] */,
-    uint256 &targetProofOfStake  /*!< [out] */,
-    bool fPrintProofOfStake) {
+    uint256 &targetProofOfStake  /*!< [out] */) {
   // CheckStakeKernelHashV2
 
   if (nTime < nBlockFromTime) { // Transaction timestamp violation
@@ -105,22 +102,12 @@ bool CheckStakeKernelHash(
   ss << nBlockFromTime << prevout.hash << prevout.n << nTime;
   hashProofOfStake = Hash(ss.begin(), ss.end());
 
-  if (fPrintProofOfStake) {
-    LogPrintf("%s: using modifier=%s at height=%d timestamp=%s\n",
-              __func__, bnStakeModifier.ToString(), nStakeModifierHeight,
-              DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nStakeModifierTime));
-    LogPrintf("%s: check modifier=%s nTimeKernel=%u nPrevout=%u nTime=%u hashProof=%s\n",
-              __func__, bnStakeModifier.ToString(),
-              nBlockFromTime, prevout.n, nTime,
-              hashProofOfStake.ToString());
-  }
-
   // Now check if proof-of-stake hash meets target protocol
   if (UintToArith256(hashProofOfStake) > bnTarget) {
     return false;
   }
 
-  if (LogAcceptCategory(BCLog::POS) && !fPrintProofOfStake) {
+  if (LogAcceptCategory(BCLog::POS)) {
     LogPrintf("%s: using modifier=%s at height=%d timestamp=%s\n",
               __func__, bnStakeModifier.ToString(), nStakeModifierHeight,
               DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nStakeModifierTime));
@@ -232,8 +219,7 @@ bool CheckProofOfStake(
                             txin.prevout,
                             nTime,
                             hashProofOfStake,
-                            targetProofOfStake,
-                            LogAcceptCategory(BCLog::POS))) {
+                            targetProofOfStake)) {
     return state.DoS(1, // may occur during initial download or if behind on block chain sync
                      error("%s: INFO: check kernel failed on coinstake %s, hashProof=%s", __func__,
                            tx.GetHash().ToString(), hashProofOfStake.ToString()),
@@ -325,7 +311,5 @@ bool CheckKernel(const CBlockIndex *pindexPrev,
   return CheckStakeKernelHash(pindexPrev, nBits, *pBlockTime,
                               amount, prevout, nTime, hashProofOfStake, targetProofOfStake);
 }
-
-} // namespace kernel
 
 } // namespace esperanza

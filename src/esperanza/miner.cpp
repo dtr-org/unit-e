@@ -5,10 +5,10 @@
 #include <address/address.h>
 #include <chainparams.h>
 #include <validation.h>
-#include <esperanza/validation/validation.h>
-#include <esperanza/kernel/kernel.h>
-#include <esperanza/miner/miner.h>
-#include <esperanza/miner/stakethread.h>
+#include <esperanza/validation.h>
+#include <esperanza/kernel.h>
+#include <esperanza/miner.h>
+#include <esperanza/stakethread.h>
 #include <rpc/blockchain.h>
 
 #include <util.h>
@@ -18,8 +18,6 @@
 #include <memory>
 
 namespace esperanza {
-
-namespace miner {
 
 double GetPoSKernelPS() {
   LOCK(cs_main);
@@ -61,7 +59,7 @@ bool CheckStake(CBlock *pblock) {
   if (!pblock->IsProofOfStake()) {
     return error("%s: %s is not a proof-of-stake block.", __func__, hashBlock.GetHex());
   }
-  if (!esperanza::validation::CheckStakeUnique(*pblock, false)) { // Check in SignBlock also
+  if (!esperanza::CheckStakeUnique(*pblock, false)) { // Check in SignBlock also
     return error("%s: %s CheckStakeUnique failed.", __func__, hashBlock.GetHex());
   }
 
@@ -76,12 +74,12 @@ bool CheckStake(CBlock *pblock) {
                  pblock->hashPrevBlock.GetHex());
   }
   // verify hash target and signature of coinstake tx
-  if (!esperanza::kernel::CheckProofOfStake(mi->second,
-                                            *pblock->vtx[0],
-                                            pblock->nTime,
-                                            pblock->nBits,
-                                            proofHash,
-                                            hashTarget)) {
+  if (!esperanza::CheckProofOfStake(mi->second,
+                                    *pblock->vtx[0],
+                                    pblock->nTime,
+                                    pblock->nBits,
+                                    proofHash,
+                                    hashTarget)) {
     return error("%s: proof-of-stake checking failed.", __func__);
   }
 
@@ -196,5 +194,3 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight) {
 };
 
 } // namespace esperanza
-
-} // namespace miner

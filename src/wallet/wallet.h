@@ -6,7 +6,7 @@
 #ifndef UNITE_WALLET_WALLET_H
 #define UNITE_WALLET_WALLET_H
 
-#include <esperanza/walletext/stakingwalletextension.h>
+#include <esperanza/stakingwalletextension.h>
 #include <amount.h>
 #include <policy/feerate.h>
 #include <streams.h>
@@ -675,9 +675,9 @@ private:
     std::mutex mutexScanning;
 
     friend class WalletRescanReserver;
-    friend class esperanza::walletext::StakingWalletExtension;
+    friend class esperanza::StakingWalletExtension;
 
-    esperanza::walletext::StakingWalletExtension m_stakingExtension = esperanza::walletext::StakingWalletExtension(this);
+    esperanza::StakingWalletExtension m_stakingExtension = esperanza::StakingWalletExtension(this);
 
     /**
      * Select a set of coins such that nValueRet >= nTargetValue and at least
@@ -763,7 +763,7 @@ public:
     mutable CCriticalSection cs_wallet;
 
     //! Access to the Proof-of-Stake Esperanza extensions to the Wallet.
-    esperanza::walletext::StakingWalletExtension& GetStakingWalletExtension();
+    esperanza::StakingWalletExtension& GetStakingWalletExtension();
 
     /** Get database handle used by this wallet. Ideally this function would
      * not be necessary.

@@ -10,8 +10,6 @@
 
 namespace esperanza {
 
-namespace walletext {
-
 enum class StakingState : uint32_t {
   NOT_STAKING,
   IS_STAKING,
@@ -20,8 +18,6 @@ enum class StakingState : uint32_t {
   NOT_STAKING_LOCKED,
   NOT_STAKING_LIMITED,
 };
-
-} // namespace walletext
 
 } // namespace esperanza
 
