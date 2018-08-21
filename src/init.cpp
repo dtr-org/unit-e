@@ -1254,8 +1254,10 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain()
 {
+#ifdef ENABLE_WALLET
     // initialize global esperanza config
     esperanza::g_config = esperanza::Config(gArgs);
+#endif
 
     const CChainParams& chainparams = Params();
     // ********************************************************* Step 4a: application initialization
@@ -1808,8 +1810,7 @@ bool AppInitMain()
 #ifdef ENABLE_WALLET
     // ********************************************************* Step 11.1: start staking
 
-    esperanza::StakeThread::StartStaking(esperanza::g_config, vpwallets);
-
+    esperanza::StartStaking(esperanza::g_config, vpwallets);
 #endif
 
     // ********************************************************* Step 12: finished
