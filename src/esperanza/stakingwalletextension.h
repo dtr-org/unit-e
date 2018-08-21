@@ -25,12 +25,7 @@ namespace esperanza {
 /*!
  * \brief Extends the Bitcoin Wallet with Esperanza Staking Capabilities.
  */
-class StakingWalletExtension {
-
-  friend ::CWallet;
-  friend esperanza::StakeThread;
-
- private:
+struct StakingWalletExtension {
 
   //! The wallet this extension is embedded in.
   CWallet *m_enclosingWallet;

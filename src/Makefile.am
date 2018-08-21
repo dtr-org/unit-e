@@ -271,6 +271,7 @@ libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   esperanza/miner.cpp \
   esperanza/init.cpp \
+  esperanza/stakethread.cpp \
   esperanza/stakingwalletextension.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \

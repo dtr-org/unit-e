@@ -249,7 +249,7 @@ void StartStaking(const esperanza::Config &config, const std::vector<CWallet *> 
     const std::string threadName(strprintf("miner%d", i));
     std::thread thread(&TraceThread<std::function<void()> >,
                        threadName.c_str(),
-                       std::function<void()>(std::bind(&StakeThread::Start, i, wallets, start, end)));
+                       std::function<void()>(std::bind(&Start, i, wallets, start, end)));
 
     StakeThread *stakeThread = new StakeThread(threadName, thread);
 
