@@ -45,6 +45,9 @@
 #include <validationinterface.h>
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
+#include <wallet/wallet.h>
+#include <esperanza/config.h>
+#include <esperanza/stakethread.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -1251,6 +1254,11 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain()
 {
+#ifdef ENABLE_WALLET
+    // initialize global esperanza config
+    esperanza::g_config = esperanza::Config(gArgs);
+#endif
+
     const CChainParams& chainparams = Params();
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32
@@ -1798,6 +1806,12 @@ bool AppInitMain()
     if (!connman.Start(scheduler, connOptions)) {
         return false;
     }
+
+#ifdef ENABLE_WALLET
+    // ********************************************************* Step 11.1: start staking
+
+    esperanza::StartStaking(esperanza::g_config, vpwallets);
+#endif
 
     // ********************************************************* Step 12: finished
 

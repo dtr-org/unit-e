@@ -3,14 +3,15 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#include <esperanza/validation/validation.h>
+#ifndef UNITE_ESPERANZA_WALLETEXT_INIT_H
+#define UNITE_ESPERANZA_WALLETEXT_INIT_H
+
+#include <string>
 
 namespace esperanza {
 
-namespace validation {
-
-
-
-} // namespace validation
+std::string GetHelpString(bool showDebug);
 
 } // namespace esperanza
+
+#endif // UNITE_ESPERANZA_WALLETEXT_INIT_H

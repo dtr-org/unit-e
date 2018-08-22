@@ -10,6 +10,7 @@
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <protocol.h>
+#include <esperanza/params.h>
 
 #include <memory>
 #include <vector>
@@ -85,21 +86,16 @@ public:
     const ChainTxData& TxData() const { return chainTxData; }
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
 
-    /////// Proof-of-Stake additions
-
-    uint32_t GetModifierInterval() const { return nModifierInterval; }
-    uint32_t GetStakeMinConfirmations() const { return nStakeMinConfirmations; }
-    uint32_t GetTargetSpacing() const { return nTargetSpacing; }
-    uint32_t GetTargetTimespan() const { return nTargetTimespan; }
-    uint32_t GetStakeTimestampMask(int nHeight) const { return nStakeTimestampMask; }
-    int64_t GetCoinYearReward(int64_t nTime) const;
-    int64_t GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const;
     bool CheckImportCoinbase(int nHeight, uint256 &hash) const;
+
+    //! Esperanza Proof-of-Stake parameters
+    const esperanza::Params& EsperanzaParams() const;
 
 protected:
     CChainParams() {}
 
     Consensus::Params consensus;
+    esperanza::Params m_esperanzaParams;
     CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
     uint64_t nPruneAfterHeight;
@@ -115,27 +111,8 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
 
-    //! seconds to elapse before new modifier is computed
-    uint32_t nModifierInterval;
-
-    //! min depth in chain before staked output is spendable
-    uint32_t nStakeMinConfirmations;
-
-    //! targeted number of seconds between blocks
-    uint32_t nTargetSpacing;
-
-    //! TODO
-    uint32_t nTargetTimespan;
-
-    //! 4 bits, every kernel stake hash will change every 16 seconds
-    uint32_t nStakeTimestampMask = (1 << 4) -1;
-
-    //! New coins minted relative to total supply
-    int64_t nCoinYearReward = 2 * EEES; // 2% per year
-
     std::vector<CImportedCoinbaseTxn> vImportedCoinbaseTxns;
-
-    uint32_t nLastImportHeight; // set from vImportedCoinbaseTxns
+    uint32_t nLastImportHeight;
 };
 
 /**

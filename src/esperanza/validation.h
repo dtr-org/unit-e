@@ -6,13 +6,15 @@
 #ifndef UNIT_E_VALIDATION_H
 #define UNIT_E_VALIDATION_H
 
+#include <primitives/block.h>
+
 namespace esperanza {
 
-namespace validation {
+bool CheckStakeUnused(const COutPoint &kernel);
 
+bool CheckStakeUnique(const CBlock &block, bool update);
 
-
-} // namespace validation
+int GetNumBlocksOfPeers();
 
 } // namespace esperanza
 
