@@ -85,7 +85,7 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
     }
 }
 
-void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
+void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool fFilterMode = false)
 {
     int confirms = wtx.GetDepthInMainChain();
     entry.push_back(Pair("confirmations", confirms));
@@ -120,8 +120,10 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
     }
     entry.push_back(Pair("bip125-replaceable", rbfStatus));
 
-    for (const std::pair<std::string, std::string>& item : wtx.mapValue)
-        entry.push_back(Pair(item.first, item.second));
+    if (!fFilterMode) {
+        for (const std::pair<std::string, std::string> &item : wtx.mapValue)
+            entry.push_back(Pair(item.first, item.second));
+    }
 }
 
 std::string AccountFromValue(const UniValue& value)
@@ -1859,6 +1861,445 @@ UniValue listtransactions(const JSONRPCRequest& request)
     return ret;
 }
 
+static bool OutputToJSON(UniValue &output,
+                         const COutputEntry &o,
+                         CWallet *const pwallet,
+                         const CWalletTx &wtx,
+                         const isminefilter &watchonly) {
+  std::string sKey = strprintf("n%d", o.vout);
+  auto mvi = wtx.mapValue.find(sKey);
+  if (mvi != wtx.mapValue.end()) {
+    output.pushKV("narration", mvi->second);
+  }
+  MaybePushAddress(output, o.destination);
+
+  if (::IsMine(*pwallet, o.destination) & ISMINE_WATCH_ONLY) {
+    if (watchonly & ISMINE_WATCH_ONLY) {
+      output.pushKV("involvesWatchonly", true);
+    } else {
+      return false;
+    }
+  }
+
+  if (pwallet->mapAddressBook.count(o.destination)) {
+    output.pushKV("label", pwallet->mapAddressBook[o.destination].name);
+  }
+  output.pushKV("vout", o.vout);
+  return true;
+}
+
+static bool OutputsContain(const UniValue &outputs, const std::string &search) {
+  for (size_t i = 0; i < outputs.size(); ++i) {
+    if (!outputs[i]["address"].isNull() &&
+        outputs[i]["address"].get_str().find(search) != std::string::npos) {
+      return true;
+    }
+
+    // character DOT '.' is not searched for: search "123" will find 1.23
+    // and 12.3
+    if (!outputs[i]["amount"].isNull() &&
+        outputs[i]["amount"].getValStr().find(search) != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void TxWithOutputsToJSON(const CWalletTx &wtx,
+                                CWallet *const pwallet,
+                                const isminefilter &watchonly,
+                                const std::string &search,
+                                UniValue &entries) {
+  UniValue entry(UniValue::VOBJ);
+
+  // GetAmounts variables
+  std::list<COutputEntry> listReceived;
+  std::list<COutputEntry> listSent;
+  std::list<COutputEntry> listStaked;
+  CAmount nFee;
+  CAmount amount = 0;
+  std::string strSentAccount;
+
+  wtx.GetAmounts(listReceived, listSent, nFee, strSentAccount, ISMINE_ALL);
+
+  if (wtx.IsFromMe(ISMINE_WATCH_ONLY) && !(watchonly & ISMINE_WATCH_ONLY)) {
+    return;
+  }
+
+  std::vector<std::string> addresses;
+  std::vector<std::string> amounts;
+
+  UniValue outputs(UniValue::VARR);
+  // common to every type of transaction
+  if (!strSentAccount.empty()) {
+    entry.pushKV("account", strSentAccount);
+  }
+  WalletTxToJSON(wtx, entry, true);
+
+  if (!listStaked.empty() || !listSent.empty()) {
+    entry.pushKV("abandoned", wtx.isAbandoned());
+  }
+
+  // TODO: get staked transactions
+  if (!listStaked.empty()) {
+    if (wtx.GetDepthInMainChain() < 1) {
+      entry.pushKV("category", "orphaned_stake");
+    } else {
+      entry.pushKV("category", "stake");
+    }
+    for (const auto &s : listStaked) {
+      UniValue output(UniValue::VOBJ);
+      if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
+        return;
+      }
+
+      output.pushKV("amount", ValueFromAmount(s.amount));
+      outputs.push_back(output);
+    }
+
+    amount += -nFee;
+  } else {
+    std::set<int> receivedOutputs;
+    for (const auto &r : listReceived) {
+      receivedOutputs.insert(r.vout);
+    }
+
+    // sent
+    if (!listSent.empty()) {
+      entry.pushKV("fee", ValueFromAmount(-nFee));
+      for (const auto &s : listSent) {
+        UniValue output(UniValue::VOBJ);
+        if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
+          return;
+        }
+        amount -= s.amount;
+        if (receivedOutputs.count(s.vout) == 0) {
+          output.pushKV("amount", ValueFromAmount(-s.amount));
+          outputs.push_back(output);
+        }
+      }
+    }
+
+    // received
+    for (const auto &r : listReceived) {
+      UniValue output(UniValue::VOBJ);
+      if (!OutputToJSON(output, r, pwallet, wtx, watchonly)) {
+        return;
+      }
+
+      output.pushKV("amount", ValueFromAmount(r.amount));
+      amount += r.amount;
+
+      outputs.push_back(output);
+    }
+
+    if (wtx.IsCoinBase()) {
+      if (wtx.GetDepthInMainChain() < 1) {
+        entry.pushKV("category", "orphan");
+      } else if (wtx.GetBlocksToMaturity() > 0) {
+        entry.pushKV("category", "immature");
+      } else {
+        entry.pushKV("category", "coinbase");
+      }
+    } else if (!nFee) {
+      entry.pushKV("category", "receive");
+    } else if (amount == 0) {
+      if (listSent.empty()) {
+        entry.pushKV("fee", ValueFromAmount(-nFee));
+      }
+      entry.pushKV("category", "internal_transfer");
+    } else {
+      entry.pushKV("category", "send");
+    }
+  };
+
+  entry.pushKV("outputs", outputs);
+  entry.pushKV("amount", ValueFromAmount(amount));
+
+  if (search.empty() || OutputsContain(outputs, search)) {
+    entries.push_back(entry);
+  }
+}
+
+static std::string GetAddress(const UniValue &transaction) {
+  if (!transaction["address"].isNull()) {
+    return transaction["address"].get_str();
+  }
+  if (!transaction["outputs"][0]["address"].isNull()) {
+    return transaction["outputs"][0]["address"].get_str();
+  }
+  return std::string();
+}
+
+UniValue filtertransactions(const JSONRPCRequest &request) {
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+    return NullUniValue;
+  }
+
+  if (request.fHelp || request.params.size() > 1) {
+    throw std::runtime_error(
+        "filtertransactions ( options )\n"
+        "\nList transactions.\n"
+        "\nArguments:\n"
+        "1. options (json, optional) : A configuration object for the query\n"
+        "\n"
+        "    All keys are optional. Default values are:\n"
+        "    {\n"
+        "        \"count\":             10,\n"
+        "        \"skip\":              0,\n"
+        "        \"include_watchonly\": false,\n"
+        "        \"search\":            ''\n"
+        "        \"category\":          'all',\n"
+        "        \"type\":              'all',\n"
+        "        \"sort\":              'time'\n"
+        "        \"from\":              '0'\n"
+        "        \"to\":                '9999'\n"
+        "        \"collate\":           false\n"
+        "    }\n"
+        "\n"
+        "    Expected values are as follows:\n"
+        "        count:             number of transactions to be displayed\n"
+        "                           (integer >= 0, use 0 for unlimited)\n"
+        "        skip:              number of transactions to skip\n"
+        "                           (integer >= 0)\n"
+        "        include_watchonly: whether to include watchOnly transactions\n"
+        "                           (bool string)\n"
+        "        search:            a query to search addresses and amounts\n"
+        "                           character DOT '.' is not searched for:\n"
+        "                           search \"123\" will find 1.23 and 12.3\n"
+        "                           (query string)\n"
+        "        category:          select only one category of transactions to"
+        " return\n"
+        "                           (string from list)\n"
+        "                           all, send, orphan, immature, coinbase, \n"
+        "                           receive, orphaned_stake, stake,"
+        " internal_transfer\n"
+        "        type:              select only one type of transactions to"
+        " return\n"
+        "                           (string from list)\n"
+        "                           all, standard, anon, blind\n"
+        "        sort:              sort transactions by criteria\n"
+        "                           (string from list)\n"
+        "                           time          most recent first\n"
+        "                           address       alphabetical\n"
+        "                           category      alphabetical\n"
+        "                           amount        biggest first\n"
+        "                           confirmations most confirmations first\n"
+        "                           txid          alphabetical\n"
+        "        from:              unix timestamp or string "
+        "\"yyyy-mm-ddThh:mm:ss\"\n"
+        "        to:                unix timestamp or string "
+        "\"yyyy-mm-ddThh:mm:ss\"\n"
+        "        collate:           display number of records and sum of amount"
+        " fields\n"
+        "\nExamples:\n"
+        "    List only when category is 'send'\n"
+        "        " +
+        HelpExampleCli("filtertransactions", R"("{\"category\":\"send\"}")") +
+        "\n"
+        "    Multiple arguments\n"
+        "        " +
+        HelpExampleCli("filtertransactions",
+                       R"("{\"sort\":\"amount\", \"category\":\"receive\"}")") +
+        "\n"
+        "    As a JSON-RPC call\n"
+        "        " +
+        HelpExampleRpc("filtertransactions", R"({\"category\":\"send\"})") +
+        "\n");
+  }
+
+  ObserveSafeMode();
+
+  // Make sure the results are valid at least up to the most recent block
+  // the user could have gotten from another RPC command prior to now
+  pwallet->BlockUntilSyncedToCurrentChain();
+
+  LOCK2(cs_main, pwallet->cs_wallet);
+
+  int count = 10;
+  int skip = 0;
+  isminefilter watchonly = ISMINE_SPENDABLE;
+  std::string search = "";
+  std::string category = "all";
+  std::string type = "all";
+  std::string sort = "time";
+
+  int64_t timeFrom = 0;
+  int64_t timeTo = 0x3AFE130E00;  // 9999
+  bool fCollate = false;
+
+  if (!request.params[0].isNull()) {
+    const UniValue &options = request.params[0].get_obj();
+    RPCTypeCheckObj(options,
+                    {
+                        {"count", UniValueType(UniValue::VNUM)},
+                        {"skip", UniValueType(UniValue::VNUM)},
+                        {"include_watchonly", UniValueType(UniValue::VBOOL)},
+                        {"search", UniValueType(UniValue::VSTR)},
+                        {"category", UniValueType(UniValue::VSTR)},
+                        {"type", UniValueType(UniValue::VSTR)},
+                        {"sort", UniValueType(UniValue::VSTR)},
+                        {"collate", UniValueType(UniValue::VBOOL)},
+                    },
+                    true,  // allow null
+                    false  // strict
+    );
+    if (options.exists("count")) {
+      count = options["count"].get_int();
+      if (count < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("Invalid count: %i.", count));
+      }
+    }
+    if (options.exists("skip")) {
+      skip = options["skip"].get_int();
+      if (skip < 0) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("Invalid skip number: %i.", skip));
+      }
+    }
+    if (options.exists("include_watchonly")) {
+      if (options["include_watchonly"].get_bool()) {
+        watchonly = watchonly | ISMINE_WATCH_ONLY;
+      }
+    }
+    if (options.exists("search")) {
+      search = options["search"].get_str();
+    }
+    if (options.exists("category")) {
+      category = options["category"].get_str();
+      std::vector<std::string> categories = {
+          "all",     "send",           "orphan", "immature",         "coinbase",
+          "receive", "orphaned_stake", "stake",  "internal_transfer"};
+      auto it = std::find(categories.begin(), categories.end(), category);
+      if (it == categories.end()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("Invalid category: %s.", category));
+      }
+    }
+    if (options.exists("type")) {
+      type = options["type"].get_str();
+      std::vector<std::string> types = {"all", "standard", "anon", "blind"};
+      auto it = std::find(types.begin(), types.end(), type);
+      if (it == types.end()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("Invalid type: %s.", type));
+      }
+    }
+    if (options.exists("sort")) {
+      sort = options["sort"].get_str();
+      std::vector<std::string> sorts = {"time",   "address",       "category",
+                                        "amount", "confirmations", "txid"};
+      auto it = std::find(sorts.begin(), sorts.end(), sort);
+      if (it == sorts.end()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER,
+                           strprintf("Invalid sort: %s.", sort));
+      }
+    }
+
+    if (options["from"].isStr()) {
+      timeFrom = strToEpoch(options["from"].get_str().c_str());
+    } else if (options["from"].isNum()) {
+      timeFrom = options["from"].get_int64();
+    } if (options["to"].isStr()) {
+      timeTo = strToEpoch(options["to"].get_str().c_str(), true);
+    } else if (options["to"].isNum()) {
+      timeTo = options["to"].get_int64();
+    }
+    if (options["collate"].isBool()) {
+      fCollate = options["collate"].get_bool();
+    }
+  }
+
+  UniValue transactions(UniValue::VARR);
+
+  // transaction processing
+  const CWallet::TxItems &txOrdered = pwallet->wtxOrdered;
+  for (auto tit = txOrdered.rbegin(); tit != txOrdered.rend(); ++tit) {
+    CWalletTx* const pwtx = tit->second.first;
+    int64_t txTime = pwtx->GetTxTime();
+    if (txTime < timeFrom) break;
+    if (txTime <= timeTo) {
+      TxWithOutputsToJSON(*pwtx, pwallet, watchonly, search, transactions);
+    }
+  }
+
+  // sort
+  std::vector<UniValue> values = transactions.getValues();
+  std::sort(values.begin(), values.end(),
+            [sort](const UniValue& a, const UniValue& b) -> bool {
+              if (sort == "category" || sort == "txid") {
+                return a[sort].get_str() < b[sort].get_str();
+              }
+              if (sort == "time" || sort == "confirmations") {
+                return a[sort].get_real() > b[sort].get_real();
+              }
+              if (sort == "address") {
+                std::string a_address = GetAddress(a);
+                std::string b_address = GetAddress(b);
+                return a_address < b_address;
+              }
+              if (sort == "amount") {
+                double a_amount = a["category"].get_str() == "send"
+                                  ? -(a["amount"].get_real())
+                                  : a["amount"].get_real();
+                double b_amount = b["category"].get_str() == "send"
+                                  ? -(b["amount"].get_real())
+                                  : b["amount"].get_real();
+                return a_amount > b_amount;
+              }
+              return false;
+            });
+
+  // filter, skip, count and sum
+  CAmount nTotalAmount = 0, nTotalReward = 0;
+  UniValue result(UniValue::VARR);
+  if (count == 0) {
+    count = static_cast<int>(values.size());
+  }
+
+  for (unsigned int i = 0; i < values.size() && count != 0; ++i) {
+    // if value's category is relevant
+    if (values[i]["category"].get_str() == category || category == "all") {
+      // if value's type is not relevant
+      if (values[i]["type"].isNull()) {
+        if (type != "all" && type != "standard") {
+          continue;
+        }
+      } else if (values[i]["type"].get_str() != type && type != "all") {
+        continue;
+      }
+      // if we've skipped enough valid values
+      if (skip-- <= 0) {
+        result.push_back(values[i]);
+        count--;
+
+        if (fCollate) {
+          if (!values[i]["amount"].isNull()) {
+            nTotalAmount += AmountFromValue(values[i]["amount"]);
+          }
+          if (!values[i]["reward"].isNull()) {
+            nTotalReward += AmountFromValue(values[i]["reward"]);
+          }
+        }
+      }
+    }
+  }
+
+  if (fCollate) {
+    UniValue retObj(UniValue::VOBJ);
+    UniValue stats(UniValue::VOBJ);
+    stats.pushKV("records", (int)result.size());
+    stats.pushKV("total_amount", ValueFromAmount(nTotalAmount));
+    retObj.pushKV("tx", result);
+    retObj.pushKV("collated", stats);
+    return retObj;
+  }
+
+  return result;
+}
+
 UniValue listaccounts(const JSONRPCRequest& request)
 {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
@@ -3588,6 +4029,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletpassphrase",         &walletpassphrase,         {"passphrase","timeout"} },
     { "wallet",             "removeprunedfunds",        &removeprunedfunds,        {"txid"} },
     { "wallet",             "rescanblockchain",         &rescanblockchain,         {"start_height", "stop_height"} },
+
+    { "wallet",             "filtertransactions",       &filtertransactions,       {"options"} },
 
     { "generating",         "generate",                 &generate,                 {"nblocks","maxtries"} },
 };

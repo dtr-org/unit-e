@@ -357,4 +357,6 @@ std::unique_ptr<T> MakeUnique(Args&&... args)
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
 
+int64_t strToEpoch(const char *input, bool fFillMax=false);
+
 #endif // UNITE_UTIL_H
