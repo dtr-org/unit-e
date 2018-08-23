@@ -5,6 +5,7 @@
 
 #include <address/address.h>
 #include <chainparams.h>
+#include <script/script.h>
 #include <validation.h>
 #include <esperanza/validation.h>
 #include <esperanza/kernel.h>
@@ -51,6 +52,15 @@ double GetPoSKernelPS() {
   result *= ::Params().EsperanzaParams().GetStakeTimestampMask(nBestHeight) + 1;
 
   return result;
+}
+
+bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID)
+{
+  if (scriptPubKey.IsPayToPublicKeyHash()) {
+    keyID = CKeyID(uint160(&scriptPubKey[3], 20));
+    return true;
+  }
+  return false;
 }
 
 bool CheckStake(CBlock *pblock) {
