@@ -126,6 +126,8 @@ BASE_SCRIPTS= [
     'feature_cltv.py',
     'rpc_uptime.py',
     'wallet_resendwallettransactions.py',
+    'wallet_mnemonicinfo.py',
+    'wallet_importmasterkey.py',
     'feature_minchainwork.py',
     'p2p_fingerprint.py',
     'feature_uacomment.py',

@@ -33,7 +33,7 @@ static std::atomic<int64_t> m_timeLastStake;
 
 StakeThread::StakeThread(std::string name, std::thread &thread) : m_name(name), m_thread(std::move(thread)) {};
 
-void Shutdown() {
+void StakeThread::Shutdown() {
   if (m_stakeThreads.size() < 1 || m_stopMinerProcess) {
     // no threads created or already flagged to stop
     return;
@@ -52,15 +52,15 @@ void Shutdown() {
   m_stakeThreads.clear();
 }
 
-void Wake(CWallet *wallet) {
+void StakeThread::Wake(CWallet *wallet) {
   // Call when chain is synced, wallet unlocked or balance changed
-  const size_t stakeThreadIndex = wallet->GetStakingWalletExtension().m_stakeThreadIndex;
+  const size_t stakeThreadIndex = wallet->GetWalletExtension().m_stakeThreadIndex;
   LogPrint(BCLog::POS, "WakeThreadStakeMiner thread %d\n", stakeThreadIndex);
   if (stakeThreadIndex >= m_stakeThreads.size()) {
     return; // stake unit test
   }
   StakeThread *t = m_stakeThreads[stakeThreadIndex];
-  wallet->GetStakingWalletExtension().m_lastCoinStakeSearchTime = 0;
+  wallet->GetWalletExtension().m_lastCoinStakeSearchTime = 0;
 
   {
     std::lock_guard<std::mutex> lock(t->m_mtxMinerProc);
@@ -70,11 +70,11 @@ void Wake(CWallet *wallet) {
   t->m_condMinerProc.notify_all();
 }
 
-bool IsStopped() {
+bool StakeThread::IsStopped() {
   return m_stopMinerProcess;
 }
 
-void Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, size_t nEnd) {
+void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, size_t nEnd) {
   LogPrintf("Starting staking thread %d, %d wallet%s.\n", nThreadID, nEnd - nStart, (nEnd - nStart) > 1 ? "s" : "");
 
   int nBestHeight; // TODO: set from new block signal?
@@ -155,7 +155,7 @@ void Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, s
     size_t nWaitFor = 60000;
     for (size_t i = nStart; i < nEnd; ++i) {
       CWallet *pwallet = vpwallets[i];
-      esperanza::StakingWalletExtension &stakingWallet = pwallet->GetStakingWalletExtension();
+      esperanza::WalletExtension &stakingWallet = pwallet->GetWalletExtension();
 
       if (nSearchTime <= stakingWallet.m_lastCoinStakeSearchTime) {
         nWaitFor = std::min(nWaitFor, (size_t) m_minerSleep);
@@ -175,7 +175,7 @@ void Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, s
       }
 
       if (stakingWallet.GetStakeableBalance() <= stakingWallet.m_reserveBalance) {
-        pwallet->GetStakingWalletExtension().m_stakingState = esperanza::StakingState::NOT_STAKING_BALANCE;
+        pwallet->GetWalletExtension().m_stakingState = esperanza::StakingState::NOT_STAKING_BALANCE;
         nWaitFor = std::min(nWaitFor, (size_t) 60000);
         stakingWallet.m_lastCoinStakeSearchTime = nSearchTime + 60;
         LogPrint(BCLog::POS, "%s: Wallet %d, low balance.\n", __func__, i);
@@ -231,7 +231,7 @@ void Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, size_t nStart, s
   }
 }
 
-void StartStaking(const esperanza::Config &config, const std::vector<CWallet *> &wallets) {
+void StakeThread::StartStaking(const esperanza::Config &config, const std::vector<CWallet *> &wallets) {
   if (!config.m_staking) {
     LogPrintf("Staking disabled.\n");
     return;
@@ -254,11 +254,11 @@ void StartStaking(const esperanza::Config &config, const std::vector<CWallet *> 
     StakeThread *stakeThread = new StakeThread(threadName, thread);
 
     m_stakeThreads.push_back(stakeThread);
-    wallets[i]->GetStakingWalletExtension().m_stakeThreadIndex = i;
+    wallets[i]->GetWalletExtension().m_stakeThreadIndex = i;
   }
 }
 
-void condWaitFor(size_t threadID, int ms) {
+void StakeThread::condWaitFor(size_t threadID, int ms) {
   assert(m_stakeThreads.size() > threadID);
   StakeThread *t = m_stakeThreads[threadID];
   t->condWaitFor(ms);

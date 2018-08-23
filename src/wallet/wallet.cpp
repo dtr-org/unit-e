@@ -14,6 +14,7 @@
 #include <fs.h>
 #include <wallet/init.h>
 #include <key.h>
+#include <key/mnemonic/mnemonic.h>
 #include <keystore.h>
 #include <validation.h>
 #include <net.h>
@@ -1459,10 +1460,14 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
     return nChange;
 }
 
-CPubKey CWallet::GenerateNewHDMasterKey()
+CPubKey CWallet::GenerateNewHDMasterKey(const key::mnemonic::Seed *fromSeed)
 {
     CKey key;
-    key.MakeNewKey(true);
+    if (fromSeed) {
+      key = fromSeed->GetExtKey().key;
+    } else {
+      key.MakeNewKey(true);
+    }
 
     int64_t nCreationTime = GetTime();
     CKeyMetadata metadata(nCreationTime);
@@ -1499,9 +1504,7 @@ bool CWallet::SetHDMasterKey(const CPubKey& pubkey)
     CHDChain newHdChain;
     newHdChain.nVersion = CanSupportFeature(FEATURE_HD_SPLIT) ? CHDChain::VERSION_HD_CHAIN_SPLIT : CHDChain::VERSION_HD_BASE;
     newHdChain.masterKeyID = pubkey.GetID();
-    SetHDChain(newHdChain, false);
-
-    return true;
+    return SetHDChain(newHdChain, false);
 }
 
 bool CWallet::SetHDChain(const CHDChain& chain, bool memonly)
@@ -4233,6 +4236,6 @@ CTxDestination CWallet::AddAndGetDestinationForScript(const CScript& script, Out
     }
 }
 
-esperanza::StakingWalletExtension& CWallet::GetStakingWalletExtension() {
+esperanza::WalletExtension& CWallet::GetWalletExtension() {
     return this->m_stakingExtension;
 }

@@ -6,7 +6,7 @@
 #ifndef UNITE_WALLET_WALLET_H
 #define UNITE_WALLET_WALLET_H
 
-#include <esperanza/stakingwalletextension.h>
+#include <esperanza/walletextension.h>
 #include <amount.h>
 #include <policy/feerate.h>
 #include <streams.h>
@@ -19,6 +19,7 @@
 #include <wallet/crypter.h>
 #include <wallet/walletdb.h>
 #include <wallet/rpcwallet.h>
+#include <key/mnemonic/mnemonic.h>
 
 #include <algorithm>
 #include <atomic>
@@ -675,9 +676,9 @@ private:
     std::mutex mutexScanning;
 
     friend class WalletRescanReserver;
-    friend class esperanza::StakingWalletExtension;
+    friend class esperanza::WalletExtension;
 
-    esperanza::StakingWalletExtension m_stakingExtension = esperanza::StakingWalletExtension(this);
+    esperanza::WalletExtension m_stakingExtension = esperanza::WalletExtension(this);
 
     /**
      * Select a set of coins such that nValueRet >= nTargetValue and at least
@@ -763,7 +764,7 @@ public:
     mutable CCriticalSection cs_wallet;
 
     //! Access to the Proof-of-Stake Esperanza extensions to the Wallet.
-    esperanza::StakingWalletExtension& GetStakingWalletExtension();
+    esperanza::WalletExtension& GetWalletExtension();
 
     /** Get database handle used by this wallet. Ideally this function would
      * not be necessary.
@@ -1111,7 +1112,7 @@ public:
     bool MarkReplaced(const uint256& originalHash, const uint256& newHash);
 
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
-    static CWallet* CreateWalletFromFile(const std::string walletFile);
+    static CWallet* CreateWalletFromFile(const std::string walletFile679);
 
     /**
      * Wallet post-init setup
@@ -1129,7 +1130,7 @@ public:
     bool IsHDEnabled() const;
 
     /* Generates a new HD master key (will not be activated) */
-    CPubKey GenerateNewHDMasterKey();
+    CPubKey GenerateNewHDMasterKey(const key::mnemonic::Seed *fromSeed = nullptr);
     
     /* Set the current HD master key (will reset the chain child index counters)
        Sets the master key's version based on the current wallet version (so the

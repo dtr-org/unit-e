@@ -107,8 +107,8 @@ UNITE_CORE_H = \
   esperanza/params.h \
   esperanza/stakethread.h \
   esperanza/stakingstate.h \
-  esperanza/stakingwalletextension.h \
   esperanza/validation.h \
+  esperanza/walletextension.h \
   fs.h \
   httprpc.h \
   httpserver.h \
@@ -177,7 +177,6 @@ UNITE_CORE_H = \
   unilib/utf8.h \
   util.h \
   utilmoneystr.h \
-  utilstr.h \
   utiltime.h \
   utiltypetags.h \
   validation.h \
@@ -189,6 +188,7 @@ UNITE_CORE_H = \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
+  wallet/rpcmnemonic.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletdb.h \
@@ -273,13 +273,17 @@ libunite_wallet_a_SOURCES = \
   esperanza/miner.cpp \
   esperanza/init.cpp \
   esperanza/stakethread.cpp \
-  esperanza/stakingwalletextension.cpp \
+  esperanza/walletextension.cpp \
+  key/mnemonic/mnemonic.cpp \
+  unilib/uninorms.cpp \
+  unilib/utf8.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \
   wallet/fees.cpp \
   wallet/init.cpp \
   wallet/rpcdump.cpp \
+  wallet/rpcmnemonic.cpp \
   wallet/rpcwallet.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
@@ -361,7 +365,6 @@ libunite_common_a_SOURCES = \
   core_write.cpp \
   esperanza/config.cpp \
   key.cpp \
-  key/mnemonic/mnemonic.cpp \
   keystore.cpp \
   netaddress.cpp \
   netbase.cpp \
@@ -370,8 +373,6 @@ libunite_common_a_SOURCES = \
   scheduler.cpp \
   script/sign.cpp \
   script/standard.cpp \
-  unilib/uninorms.cpp \
-  unilib/utf8.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)
 
@@ -396,7 +397,6 @@ libunite_util_a_SOURCES = \
   threadinterrupt.cpp \
   util.cpp \
   utilmoneystr.cpp \
-  utilstr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
   $(UNITE_CORE_H)

@@ -143,7 +143,7 @@ struct CExtKey {
     unsigned char vchFingerprint[4];
     unsigned int nChild;
     ChainCode chaincode;
-        CKey key;
+    CKey key;
 
     friend bool operator==(const CExtKey& a, const CExtKey& b)
     {
