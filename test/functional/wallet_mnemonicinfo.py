@@ -9,7 +9,7 @@ from test_framework.util import (
 )
 
 
-class WalletMnemonicinfoTest(UnitETestFramework):
+class WalletMnemonicInfoTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [[]]
@@ -179,4 +179,4 @@ class WalletMnemonicinfoTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    WalletMnemonicinfoTest().main()
+    WalletMnemonicInfoTest().main()
