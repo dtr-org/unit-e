@@ -194,6 +194,7 @@ void Shutdown()
     StopRPC();
     StopHTTPServer();
 #ifdef ENABLE_WALLET
+    esperanza::StakeThread::Shutdown();
     FlushWallets();
 #endif
     MapPort(false);
@@ -1807,12 +1808,6 @@ bool AppInitMain()
         return false;
     }
 
-#ifdef ENABLE_WALLET
-    // ********************************************************* Step 11.1: start staking
-
-    esperanza::StartStaking(esperanza::g_config, vpwallets);
-#endif
-
     // ********************************************************* Step 12: finished
 
     SetRPCWarmupFinished();
@@ -1820,6 +1815,10 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     StartWallets(scheduler);
+
+    // ********************************************************* Step 13: start proposing
+
+    esperanza::StakeThread::StartStaking(esperanza::g_config, vpwallets);
 #endif
 
     return true;

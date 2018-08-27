@@ -57,7 +57,6 @@ UNITE_TESTS =\
   test/merkleblock_tests.cpp \
   test/miner_tests.cpp \
   test/multisig_tests.cpp \
-  test/mnemonic_tests.cpp \
   test/net_tests.cpp \
   test/netbase_tests.cpp \
   test/pmt_tests.cpp \
@@ -94,6 +93,7 @@ UNITE_TESTS =\
 
 if ENABLE_WALLET
 UNITE_TESTS += \
+  test/mnemonic_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \
