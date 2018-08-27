@@ -93,11 +93,8 @@ UniValue importmasterkey(const JSONRPCRequest& request) {
   }
   LOCK(wallet->cs_wallet);
   const std::string walletFileName = wallet->GetName();
-  std::string mnemonic = "";
-  if (request.params.size() > 0) {
-    mnemonic = request.params[0].get_str();
-  }
-  std::string passphrase = "";
+  std::string mnemonic(request.params[0].get_str());
+  std::string passphrase;
   if (request.params.size() > 1) {
     passphrase = request.params[1].get_str();
   }
