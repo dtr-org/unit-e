@@ -1,4 +1,5 @@
 // Copyright (c) 2018 The unit-e core developers
+// Copyright (c) 2017 The Particl developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,7 +28,6 @@ namespace esperanza {
  * \brief Extends the Bitcoin Wallet with Esperanza Staking Capabilities.
  */
 class WalletExtension {
-
   friend class esperanza::StakeThread;
 
  private:
@@ -45,10 +45,10 @@ class WalletExtension {
   //! Which stake thread is mining on this wallet (max = uninitialized)
   size_t m_stakeThreadIndex = std::numeric_limits<size_t>::max();
 
-  int m_deepestTxnDepth = 0;  // for stake mining
+  int m_deepestTxnDepth = 0;
 
-  int m_stakeLimitHeight =
-      0;  // for regtest, don't stake above nStakeLimitHeight
+  //! For regtest, don't stake above nStakeLimitHeight
+  int m_stakeLimitHeight = 0;
 
   CAmount m_stakeCombineThreshold = 1000 * UNIT;
 
