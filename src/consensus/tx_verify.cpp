@@ -4,10 +4,12 @@
 
 #include <consensus/tx_verify.h>
 
+#include <chainparams.h>
 #include <consensus/consensus.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <consensus/validation.h>
+#include <esperanza/finalizationstate.h>
 
 // TODO remove the following dependencies
 #include <chain.h>

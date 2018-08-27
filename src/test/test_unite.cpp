@@ -8,6 +8,7 @@
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <crypto/sha256.h>
+#include <esperanza/finalizationstate.h>
 #include <validation.h>
 #include <miner.h>
 #include <net_processing.h>
@@ -79,6 +80,8 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         // from blocking due to queue overrun.
         threadGroup.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
+
+        esperanza::FinalizationState::Init(Params().GetFinalization());
 
         mempool.setSanityCheck(1.0);
         pblocktree.reset(new CBlockTreeDB(1 << 20, true));

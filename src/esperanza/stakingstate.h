@@ -3,9 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
-#ifndef UNITE_ESPERANZA_WALLETEXT_STAKINGSTATE_H
-#define UNITE_ESPERANZA_WALLETEXT_STAKINGSTATE_H
+#ifndef UNITE_ESPERANZA_STAKINGSTATE_H
+#define UNITE_ESPERANZA_STAKINGSTATE_H
 
 #include <cstdint>
 
@@ -22,4 +21,4 @@ enum class StakingState : uint32_t {
 
 } // namespace esperanza
 
-#endif // UNITE_ESPERANZA_WALLETEXT_STAKINGSTATE_H
+#endif // UNITE_ESPERANZA_STAKINGSTATE_H

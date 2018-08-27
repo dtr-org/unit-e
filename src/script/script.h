@@ -18,6 +18,8 @@
 #include <string.h>
 #include <string>
 #include <vector>
+#include <pubkey.h>
+#include <esperanza/votedata.h>
 
 // Maximum number of bytes pushable to the stack
 static const unsigned int MAX_SCRIPT_ELEMENT_SIZE = 520;
@@ -173,8 +175,15 @@ enum opcodetype
     OP_NOP2 = OP_CHECKLOCKTIMEVERIFY,
     OP_CHECKSEQUENCEVERIFY = 0xb2,
     OP_NOP3 = OP_CHECKSEQUENCEVERIFY,
-    OP_NOP4 = 0xb3,
-    OP_NOP5 = 0xb4,
+
+    //UNIT-E: Custom operation to check a vote's signature
+    OP_CHECKVOTESIG = 0xb3,
+    OP_NOP4 = OP_CHECKVOTESIG,
+
+    //UNIT-E: Custom operation to check slashing conditions
+    OP_SLASHABLE = 0xb4,
+    OP_NOP5 = OP_SLASHABLE,
+
     OP_NOP6 = 0xb5,
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
@@ -201,6 +210,22 @@ class scriptnum_error : public std::runtime_error
 {
 public:
     explicit scriptnum_error(const std::string& str) : std::runtime_error(str) {}
+};
+
+struct CScriptWitness
+{
+    // Note that this encodes the data elements being pushed, rather than
+    // encoding them as a CScript that pushes them.
+    std::vector<std::vector<unsigned char> > stack;
+
+    // Some compilers complain without a default constructor
+    CScriptWitness() { }
+
+    bool IsNull() const { return stack.empty(); }
+
+    void SetNull() { stack.clear(); stack.shrink_to_fit(); }
+
+    std::string ToString() const;
 };
 
 class CScriptNum
@@ -641,9 +666,16 @@ public:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
+    static CScript CreatePayVoteSlashScript(CPubKey pubkey);
+
     bool IsPayToScriptHash() const;
+    bool IsPayVoteSlashScript() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
+    bool MatchPayToPublicKeyHash(size_t ofs) const;
+    bool MatchPayVoteSlashScript(size_t ofs) const;
+    bool MatchVoteScript(size_t ofs) const;
+    bool MatchSlashScript(size_t ofs) const;
 
     //! Proof-of-Stake: Checks whether the script has an IS_COINSTAKE_OP
     bool HasIsCoinstakeOp() const;
@@ -654,6 +686,11 @@ public:
 
     /** Check if the script contains valid OP_CODES */
     bool HasValidOps() const;
+
+    static esperanza::VoteData DecodeVoteData(const CScript &script);
+    static CScript EncodeVoteData(const esperanza::VoteData &data);
+    static esperanza::VoteData ExtractVoteFromWitness(const CScriptWitness &scriptSig);
+    static esperanza::VoteData ExtractVoteFromSignature(const CScript &scriptSig);
 
     /**
      * Returns whether the script is guaranteed to fail at execution,
@@ -671,22 +708,6 @@ public:
         CScriptBase::clear();
         shrink_to_fit();
     }
-};
-
-struct CScriptWitness
-{
-    // Note that this encodes the data elements being pushed, rather than
-    // encoding them as a CScript that pushes them.
-    std::vector<std::vector<unsigned char> > stack;
-
-    // Some compilers complain without a default constructor
-    CScriptWitness() { }
-
-    bool IsNull() const { return stack.empty(); }
-
-    void SetNull() { stack.clear(); stack.shrink_to_fit(); }
-
-    std::string ToString() const;
 };
 
 class CReserveScript

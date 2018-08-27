@@ -3,8 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-#ifndef UNITE_ESPERANZA_WALLETEXT_INIT_H
-#define UNITE_ESPERANZA_WALLETEXT_INIT_H
+#ifndef UNITE_ESPERANZA_INIT_H
+#define UNITE_ESPERANZA_INIT_H
 
 #include <string>
 
@@ -14,4 +14,4 @@ std::string GetHelpString(bool showDebug);
 
 } // namespace esperanza
 
-#endif // UNITE_ESPERANZA_WALLETEXT_INIT_H
+#endif // UNITE_ESPERANZA_INIT_H

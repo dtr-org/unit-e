@@ -100,14 +100,19 @@ UNITE_CORE_H = \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  esperanza/checkpoint.h \
   esperanza/config.h \
   esperanza/init.h \
   esperanza/kernel.h \
   esperanza/miner.h \
   esperanza/params.h \
+  esperanza/finalizationparams.h \
+  esperanza/finalizationstate.h \
   esperanza/stakethread.h \
   esperanza/stakingstate.h \
   esperanza/validation.h \
+  esperanza/validatorstate.h \
+  esperanza/votedata.h \
   esperanza/walletextension.h \
   fs.h \
   httprpc.h \
@@ -147,6 +152,7 @@ UNITE_CORE_H = \
   reverselock.h \
   rpc/blockchain.h \
   rpc/client.h \
+  rpc/esperanza.h \
   rpc/mining.h \
   rpc/protocol.h \
   rpc/safemode.h \
@@ -171,6 +177,7 @@ UNITE_CORE_H = \
   torcontrol.h \
   txdb.h \
   txmempool.h \
+  ufp64.h \
   ui_interface.h \
   undo.h \
   unilib/uninorms.h \
@@ -217,6 +224,9 @@ libunite_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
+  esperanza/checkpoint.cpp \
+  esperanza/finalizationstate.cpp \
+  esperanza/validator.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -232,6 +242,7 @@ libunite_server_a_SOURCES = \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/esperanza.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
@@ -269,10 +280,12 @@ libunite_wallet_a_SOURCES = \
   esperanza/config.cpp \
   esperanza/kernel.cpp \
   esperanza/params.cpp \
-  esperanza/validation.cpp \
+  esperanza/finalizationparams.cpp \
+  esperanza/finalizationstate.cpp \
   esperanza/miner.cpp \
   esperanza/init.cpp \
   esperanza/stakethread.cpp \
+  esperanza/validation.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   unilib/uninorms.cpp \
@@ -373,6 +386,7 @@ libunite_common_a_SOURCES = \
   scheduler.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  ufp64.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)
 

@@ -95,6 +95,9 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
             ret.push_back(ToByteVector(vch));
         }
         return true;
+    case TX_PAYVOTESLASH:
+        keyID = CPubKey(vSolutions[0]).GetID();
+        return Sign1(keyID, creator, scriptPubKey, ret, sigversion);
     case TX_SCRIPTHASH:
         if (creator.KeyStore().GetCScript(uint160(vSolutions[0]), scriptRet)) {
             ret.push_back(std::vector<unsigned char>(scriptRet.begin(), scriptRet.end()));
@@ -138,7 +141,7 @@ static CScript PushAll(const std::vector<valtype>& values)
     return result;
 }
 
-bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata)
+bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata, CTransaction* tx)
 {
     CScript script = fromPubKey;
     std::vector<valtype> result;
@@ -175,6 +178,12 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
         result.push_back(std::vector<unsigned char>(witnessscript.begin(), witnessscript.end()));
         sigdata.scriptWitness.stack = result;
         result.clear();
+    }
+
+    //UNIT-E: quite ugly workaround to get the vote data back in the signature.
+    if (solved && whichType == TX_PAYVOTESLASH && tx != nullptr && tx->IsVote()) {
+        CScript voteScript = tx->vin[0].scriptSig;
+        result.push_back(std::vector<unsigned char>(voteScript.begin(), voteScript.end()));
     }
 
     if (P2SH) {
