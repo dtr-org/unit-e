@@ -57,6 +57,18 @@ std::string CTxOut::ToString() const
 CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}
 CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime) {}
 
+uint16_t CMutableTransaction::GetVersion() const {
+  return static_cast<uint16_t>(nVersion);
+}
+
+TxType CMutableTransaction::GetType() const {
+  return static_cast<TxType>(static_cast<uint16_t>(nVersion >> 16));
+}
+
+void CMutableTransaction::SetType(TxType type) {
+  nVersion |= static_cast<uint16_t>(type) << 16;
+}
+
 uint256 CMutableTransaction::GetHash() const
 {
     return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
@@ -79,6 +91,14 @@ uint256 CTransaction::GetWitnessHash() const
 CTransaction::CTransaction() : vin(), vout(), nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), hash() {}
 CTransaction::CTransaction(const CMutableTransaction &tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
 CTransaction::CTransaction(CMutableTransaction &&tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
+
+uint16_t CTransaction::GetVersion() const {
+  return static_cast<uint16_t>(nVersion);
+}
+
+TxType CTransaction::GetType() const {
+  return static_cast<TxType>(static_cast<uint16_t>(nVersion >> 16));
+}
 
 CAmount CTransaction::GetValueOut() const
 {
