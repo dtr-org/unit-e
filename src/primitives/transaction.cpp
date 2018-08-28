@@ -66,11 +66,11 @@ TxType CMutableTransaction::GetType() const {
 }
 
 void CMutableTransaction::SetType(TxType type) {
-  nVersion |= (nVersion & 0x0000FFFF) | (static_cast<uint16_t>(type) << 16);
+  nVersion = (nVersion & 0x0000FFFF) | (static_cast<uint16_t>(type) << 16);
 }
 
 void CMutableTransaction::SetVersion(uint16_t type) {
-  nVersion |= (nVersion & 0xFFFF0000) | (static_cast<uint16_t>(type));
+  nVersion = (nVersion & 0xFFFF0000) | (static_cast<uint16_t>(type));
 }
 
 uint256 CMutableTransaction::GetHash() const
