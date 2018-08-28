@@ -760,7 +760,7 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     BOOST_CHECK(!IsStandardTx(t, reason));
 }
 
-BOOST_AUTO_TEST_CASE(mutabletransaction_set_version_mulitple_times)
+BOOST_AUTO_TEST_CASE(mutabletransaction_set_type_mulitple_times)
 {
   CMutableTransaction tx;
 
@@ -769,6 +769,17 @@ BOOST_AUTO_TEST_CASE(mutabletransaction_set_version_mulitple_times)
 
   tx.SetType(static_cast<TxType>(4));
   BOOST_CHECK((4 == static_cast<uint16_t>(tx.GetType())));
+}
+
+BOOST_AUTO_TEST_CASE(mutabletransaction_set_version_mulitple_times)
+{
+  CMutableTransaction tx;
+
+  tx.SetVersion(2);
+  BOOST_CHECK_EQUAL(2, tx.GetVersion());
+
+  tx.SetVersion(4);
+  BOOST_CHECK_EQUAL(4, tx.GetVersion());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

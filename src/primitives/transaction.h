@@ -410,6 +410,8 @@ struct CMutableTransaction
     //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
     uint16_t GetVersion() const;
 
+    void SetVersion(uint16_t version);
+    
     //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
     TxType GetType() const;
 
