@@ -107,6 +107,8 @@ BASE_SCRIPTS= [
     'rpc_net.py',
     'wallet_keypool.py',
     'p2p_mempool.py',
+    'esperanza_deposit.py',
+    'esperanza_params.py',
     'mining_prioritisetransaction.py',
     'p2p_invalid_block.py',
     'p2p_invalid_tx.py',
@@ -414,6 +416,8 @@ class TestHandler:
             test_argv = t.split()
             testdir = "{}/{}_{}".format(self.tmpdir, re.sub(".py$", "", test_argv[0]), portseed)
             tmpdir_arg = ["--tmpdir={}".format(testdir)]
+
+            print("Starting test: " + test_argv[0])
             self.jobs.append((t,
                               time.time(),
                               subprocess.Popen([self.tests_dir + test_argv[0]] + test_argv[1:] + self.flags + portseed_arg + tmpdir_arg,
@@ -484,7 +488,7 @@ def check_script_prefixes():
     # convention don't immediately cause the tests to fail.
     LEEWAY = 10
 
-    good_prefixes_re = re.compile("(example|feature|interface|mempool|mining|p2p|rpc|wallet)_")
+    good_prefixes_re = re.compile("(example|esperanza|feature|interface|mempool|mining|p2p|rpc|wallet)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if len(bad_script_names) > 0:

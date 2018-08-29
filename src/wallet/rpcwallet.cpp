@@ -25,6 +25,7 @@
 #include <utilmoneystr.h>
 #include <wallet/coincontrol.h>
 #include <wallet/feebumper.h>
+#include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>
@@ -3392,6 +3393,7 @@ UniValue bumpfee(const JSONRPCRequest& request)
     return result;
 }
 
+#ifdef ENABLE_WALLET
 UniValue generate(const JSONRPCRequest& request)
 {
     CWallet * const pwallet = GetWalletForJSONRPCRequest(request);
@@ -3436,6 +3438,7 @@ UniValue generate(const JSONRPCRequest& request)
 
     return generateBlocks(coinbase_script, num_generate, max_tries, true);
 }
+#endif
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
 {
@@ -3589,7 +3592,9 @@ static const CRPCCommand commands[] =
     { "wallet",             "removeprunedfunds",        &removeprunedfunds,        {"txid"} },
     { "wallet",             "rescanblockchain",         &rescanblockchain,         {"start_height", "stop_height"} },
 
+#ifdef ENABLE_WALLET
     { "generating",         "generate",                 &generate,                 {"nblocks","maxtries"} },
+#endif
 };
 
 void RegisterWalletRPCCommands(CRPCTable &t)

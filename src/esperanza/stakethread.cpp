@@ -81,7 +81,7 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
   int nBestHeight; // TODO: set from new block signal?
   int64_t nBestTime;
 
-  int nLastImportHeight = ::Params().EsperanzaParams().GetLastImportHeight();
+  int nLastImportHeight = ::Params().GetEsperanza().GetLastImportHeight();
 
   if (!esperanza::g_config.m_staking) {
     LogPrint(BCLog::POS, "%s: -staking is false.\n", __func__);
@@ -138,7 +138,7 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
     }
 
     int64_t nTime = GetAdjustedTime();
-    int64_t nMask = ::Params().EsperanzaParams().GetStakeTimestampMask(nBestHeight + 1);
+    int64_t nMask = ::Params().GetEsperanza().GetStakeTimestampMask(nBestHeight + 1);
     int64_t nSearchTime = nTime & ~nMask;
     if (nSearchTime <= nBestTime) {
       if (nTime < nBestTime) {
@@ -212,7 +212,7 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets, siz
         }
       } else {
         int nRequiredDepth =
-            std::min((int) (::Params().EsperanzaParams().GetStakeMinConfirmations() - 1), (int) (nBestHeight / 2));
+            std::min<int>(::Params().GetEsperanza().GetStakeMinConfirmations() - 1, nBestHeight / 2);
         if (stakingWallet.m_deepestTxnDepth < nRequiredDepth - 4) {
           stakingWallet.m_stakingState = esperanza::StakingState::NOT_STAKING_DEPTH;
           size_t nSleep = (nRequiredDepth - stakingWallet.m_deepestTxnDepth) / 4;

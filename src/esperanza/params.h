@@ -2,11 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
 #ifndef UNITE_ESPERANZA_PARAMS_H
 #define UNITE_ESPERANZA_PARAMS_H
 
+#include <amount.h>
 #include <stdint.h>
+#include <ufp64.h>
 
 namespace esperanza {
 
@@ -16,7 +17,6 @@ namespace esperanza {
 class Params final {
 
  private:
-
   //! seconds to elapse before new modifier is computed
   uint32_t m_modifierInterval;
 
@@ -34,7 +34,6 @@ class Params final {
   uint32_t m_lastImportHeight;
 
  public:
-
   uint32_t GetModifierInterval() const;
 
   uint32_t GetStakeMinConfirmations() const;
@@ -46,9 +45,8 @@ class Params final {
   uint32_t GetStakeTimestampMask(int nHeight) const;
 
   uint32_t GetLastImportHeight() const;
-
 };
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif // UNITE_ESPERANZA_PARAMS_H
+#endif  // UNITE_ESPERANZA_PARAMS_H
