@@ -2051,7 +2051,6 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
         "        \"include_watchonly\": false,\n"
         "        \"search\":            ''\n"
         "        \"category\":          'all',\n"
-        "        \"type\":              'all',\n"
         "        \"sort\":              'time'\n"
         "        \"from\":              '0'\n"
         "        \"to\":                '9999'\n"
@@ -2075,10 +2074,6 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
         "                           all, send, orphan, immature, coinbase, \n"
         "                           receive, orphaned_stake, stake,"
         " internal_transfer\n"
-        "        type:              select only one type of transactions to"
-        " return\n"
-        "                           (string from list)\n"
-        "                           all, standard, anon, blind\n"
         "        sort:              sort transactions by criteria\n"
         "                           (string from list)\n"
         "                           time          most recent first\n"
@@ -2120,9 +2115,8 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
   int count = 10;
   int skip = 0;
   isminefilter watchonly = ISMINE_SPENDABLE;
-  std::string search = "";
+  std::string search;
   std::string category = "all";
-  std::string type = "all";
   std::string sort = "time";
 
   int64_t timeFrom = 0;
@@ -2138,7 +2132,6 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
                         {"include_watchonly", UniValueType(UniValue::VBOOL)},
                         {"search", UniValueType(UniValue::VSTR)},
                         {"category", UniValueType(UniValue::VSTR)},
-                        {"type", UniValueType(UniValue::VSTR)},
                         {"sort", UniValueType(UniValue::VSTR)},
                         {"collate", UniValueType(UniValue::VBOOL)},
                     },
@@ -2178,15 +2171,6 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
                            strprintf("Invalid category: %s.", category));
       }
     }
-    if (options.exists("type")) {
-      type = options["type"].get_str();
-      std::vector<std::string> types = {"all", "standard", "anon", "blind"};
-      auto it = std::find(types.begin(), types.end(), type);
-      if (it == types.end()) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER,
-                           strprintf("Invalid type: %s.", type));
-      }
-    }
     if (options.exists("sort")) {
       sort = options["sort"].get_str();
       std::vector<std::string> sorts = {"time",   "address",       "category",
@@ -2197,12 +2181,12 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
                            strprintf("Invalid sort: %s.", sort));
       }
     }
-
     if (options["from"].isStr()) {
       timeFrom = strToEpoch(options["from"].get_str().c_str());
     } else if (options["from"].isNum()) {
       timeFrom = options["from"].get_int64();
-    } if (options["to"].isStr()) {
+    }
+    if (options["to"].isStr()) {
       timeTo = strToEpoch(options["to"].get_str().c_str(), true);
     } else if (options["to"].isNum()) {
       timeTo = options["to"].get_int64();
@@ -2260,28 +2244,20 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
   }
 
   for (unsigned int i = 0; i < values.size() && count != 0; ++i) {
-    // if value's category is relevant
-    if (values[i]["category"].get_str() == category || category == "all") {
-      // if value's type is not relevant
-      if (values[i]["type"].isNull()) {
-        if (type != "all" && type != "standard") {
-          continue;
-        }
-      } else if (values[i]["type"].get_str() != type && type != "all") {
-        continue;
-      }
-      // if we've skipped enough valid values
-      if (skip-- <= 0) {
-        result.push_back(values[i]);
-        count--;
+    if (category != "all" && values[i]["category"].get_str() != category) {
+      continue;
+    }
+    // if we've skipped enough valid values
+    if (skip-- <= 0) {
+      result.push_back(values[i]);
+      count--;
 
-        if (fCollate) {
-          if (!values[i]["amount"].isNull()) {
-            nTotalAmount += AmountFromValue(values[i]["amount"]);
-          }
-          if (!values[i]["reward"].isNull()) {
-            nTotalReward += AmountFromValue(values[i]["reward"]);
-          }
+      if (fCollate) {
+        if (!values[i]["amount"].isNull()) {
+          nTotalAmount += AmountFromValue(values[i]["amount"]);
+        }
+        if (!values[i]["reward"].isNull()) {
+          nTotalReward += AmountFromValue(values[i]["reward"]);
         }
       }
     }
