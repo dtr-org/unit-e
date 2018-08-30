@@ -9,7 +9,9 @@
 namespace esperanza {
 
 WalletExtension::WalletExtension(::CWallet *enclosingWallet)
-    : m_enclosingWallet(enclosingWallet) {}
+    : m_enclosingWallet(enclosingWallet) {
+  assert(enclosingWallet != nullptr);
+}
 
 size_t WalletExtension::GetProposerThreadIndex() const {
   return m_stakeThreadIndex;

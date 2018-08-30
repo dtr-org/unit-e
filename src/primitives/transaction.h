@@ -321,16 +321,6 @@ public:
         return vin.empty() && vout.empty();
     }
 
-    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
-    uint16_t GetVersion() const {
-        return static_cast<uint16_t>(nVersion);
-    }
-
-    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
-    TxType GetType() const {
-        return static_cast<TxType>(static_cast<uint16_t>(nVersion >> 16));
-    }
-
     const uint256& GetHash() const {
         return hash;
     }
@@ -349,6 +339,12 @@ public:
      * @return Total transaction size in bytes
      */
     unsigned int GetTotalSize() const;
+
+    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
+    uint16_t GetVersion() const;
+
+    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
+    TxType GetType() const;
 
     bool IsCoinBase() const
     {
@@ -396,7 +392,7 @@ struct CMutableTransaction
 {
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
-    int32_t nVersion;
+    uint32_t nVersion;
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -417,6 +413,16 @@ struct CMutableTransaction
     CMutableTransaction(deserialize_type, Stream& s) {
         Unserialize(s);
     }
+
+    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
+    uint16_t GetVersion() const;
+
+    void SetVersion(uint16_t version);
+
+    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
+    TxType GetType() const;
+
+    void SetType(TxType type);
 
     /** Compute the hash of this CMutableTransaction. This is computed on the
      * fly, as opposed to GetHash() in CTransaction, which uses a cached result.

@@ -128,7 +128,7 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight) {
     return error("%s - Can't open file, strerror: %s.", __func__, strerror(errno));
 
   CMutableTransaction txn;
-  txn.nVersion = 0; // todo: define version number fields
+  txn.SetVersion(0); // todo: define version number fields
   //txn.SetType(TXN_COINBASE);
   txn.nLockTime = 0;
   txn.vin.push_back(CTxIn()); // null prevout

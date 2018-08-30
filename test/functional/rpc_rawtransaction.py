@@ -59,9 +59,9 @@ class RawTransactionsTest(UnitETestFramework):
         self.nodes[0].generate(5)
         self.sync_all()
 
-        # Test getrawtransaction on genesis block coinbase returns an error
+        # Test getrawtransaction on genesis block coinbase does not return an error
         block = self.nodes[0].getblock(self.nodes[0].getblockhash(0))
-        assert_raises_rpc_error(-5, "The genesis block coinbase is not considered an ordinary transaction", self.nodes[0].getrawtransaction, block['merkleroot'])
+        assert(block['hash'])
 
         # Test `createrawtransaction` required parameters
         assert_raises_rpc_error(-1, "createrawtransaction", self.nodes[0].createrawtransaction)

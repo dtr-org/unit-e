@@ -8,13 +8,15 @@ from test_framework.util import (
     assert_equal,
 )
 
-class WalletMnemonicinfoTest(UnitETestFramework):
+
+class WalletMnemonicInfoTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [[]]
 
     def run_test(self):
-        info = self.nodes[0].mnemonicinfo(
+        info = self.nodes[0].mnemonic(
+            'info',
             'access pluck protect dentist tumble stereo swear unfold need cloud ivory exotic little very repeat')
         assert_equal(info['language_tag'], 'english')
         assert_equal(info['bip39_seed'],
@@ -23,7 +25,7 @@ class WalletMnemonicinfoTest(UnitETestFramework):
                      'tprv8ZgxMBicQKsPeT6cAFpeUdoqt4az1FHnCHR8AAcWkGk6J5C5JMmpjBxKtApg3TTBLx5arL3BL6Jq78kBWX7Pu6iJWtThoALL5qcSS9N64J1')
 
         for vector in self._test_vectors:
-            info = self.nodes[0].mnemonicinfo(vector[1], 'TREZOR')
+            info = self.nodes[0].mnemonic('info', vector[1], 'TREZOR')
             assert_equal(info['entropy'], vector[0])
             assert_equal(info['bip39_seed'], vector[2])
 
@@ -177,4 +179,4 @@ class WalletMnemonicinfoTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    WalletMnemonicinfoTest().main()
+    WalletMnemonicInfoTest().main()
