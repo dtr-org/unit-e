@@ -85,7 +85,7 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
     }
 }
 
-void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool fFilterMode = false)
+void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool filterMode = false)
 {
     int confirms = wtx.GetDepthInMainChain();
     entry.push_back(Pair("confirmations", confirms));
@@ -120,9 +120,10 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool fFilterMode = fa
     }
     entry.push_back(Pair("bip125-replaceable", rbfStatus));
 
-    if (!fFilterMode) {
-        for (const std::pair<std::string, std::string> &item : wtx.mapValue)
+    if (!filterMode) {
+        for (const auto &item : wtx.mapValue) {
             entry.push_back(Pair(item.first, item.second));
+        }
     }
 }
 
@@ -1866,8 +1867,8 @@ static bool OutputToJSON(UniValue &output,
                          CWallet *const pwallet,
                          const CWalletTx &wtx,
                          const isminefilter &watchonly) {
-  std::string sKey = strprintf("n%d", o.vout);
-  auto mvi = wtx.mapValue.find(sKey);
+  std::string key = strprintf("n%d", o.vout);
+  auto mvi = wtx.mapValue.find(key);
   if (mvi != wtx.mapValue.end()) {
     output.pushKV("narration", mvi->second);
   }
@@ -1916,11 +1917,11 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx,
   std::list<COutputEntry> listReceived;
   std::list<COutputEntry> listSent;
   std::list<COutputEntry> listStaked;
-  CAmount nFee;
+  CAmount fee;
   CAmount amount = 0;
   std::string strSentAccount;
 
-  wtx.GetAmounts(listReceived, listSent, nFee, strSentAccount, ISMINE_ALL);
+  wtx.GetAmounts(listReceived, listSent, fee, strSentAccount, ISMINE_ALL);
 
   if (wtx.IsFromMe(ISMINE_WATCH_ONLY) && !(watchonly & ISMINE_WATCH_ONLY)) {
     return;
@@ -1940,7 +1941,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx,
     entry.pushKV("abandoned", wtx.isAbandoned());
   }
 
-  // TODO: get staked transactions
+  // UNIT-E: TODO: get staked transactions
   if (!listStaked.empty()) {
     if (wtx.GetDepthInMainChain() < 1) {
       entry.pushKV("category", "orphaned_stake");
@@ -1957,7 +1958,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx,
       outputs.push_back(output);
     }
 
-    amount += -nFee;
+    amount += -fee;
   } else {
     std::set<int> receivedOutputs;
     for (const auto &r : listReceived) {
@@ -1966,7 +1967,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx,
 
     // sent
     if (!listSent.empty()) {
-      entry.pushKV("fee", ValueFromAmount(-nFee));
+      entry.pushKV("fee", ValueFromAmount(-fee));
       for (const auto &s : listSent) {
         UniValue output(UniValue::VOBJ);
         if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
@@ -2001,11 +2002,11 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx,
       } else {
         entry.pushKV("category", "coinbase");
       }
-    } else if (!nFee) {
+    } else if (!fee) {
       entry.pushKV("category", "receive");
     } else if (amount == 0) {
       if (listSent.empty()) {
-        entry.pushKV("fee", ValueFromAmount(-nFee));
+        entry.pushKV("fee", ValueFromAmount(-fee));
       }
       entry.pushKV("category", "internal_transfer");
     } else {
@@ -2028,7 +2029,7 @@ static std::string GetAddress(const UniValue &transaction) {
   if (!transaction["outputs"][0]["address"].isNull()) {
     return transaction["outputs"][0]["address"].get_str();
   }
-  return std::string();
+  return "";
 }
 
 UniValue filtertransactions(const JSONRPCRequest &request) {
@@ -2110,8 +2111,6 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
   // the user could have gotten from another RPC command prior to now
   pwallet->BlockUntilSyncedToCurrentChain();
 
-  LOCK2(cs_main, pwallet->cs_wallet);
-
   int count = 10;
   int skip = 0;
   isminefilter watchonly = ISMINE_SPENDABLE;
@@ -2120,8 +2119,8 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
   std::string sort = "time";
 
   int64_t timeFrom = 0;
-  int64_t timeTo = 0x3AFE130E00;  // 9999
-  bool fCollate = false;
+  int64_t timeTo = 253370764800;  // 01 Jan 9999
+  bool collate = false;
 
   if (!request.params[0].isNull()) {
     const UniValue &options = request.params[0].get_obj();
@@ -2182,30 +2181,36 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
       }
     }
     if (options["from"].isStr()) {
-      timeFrom = strToEpoch(options["from"].get_str().c_str());
+      timeFrom = StrToEpoch(options["from"].get_str());
     } else if (options["from"].isNum()) {
       timeFrom = options["from"].get_int64();
     }
     if (options["to"].isStr()) {
-      timeTo = strToEpoch(options["to"].get_str().c_str(), true);
+      timeTo = StrToEpoch(options["to"].get_str(), true);
     } else if (options["to"].isNum()) {
       timeTo = options["to"].get_int64();
     }
     if (options["collate"].isBool()) {
-      fCollate = options["collate"].get_bool();
+      collate = options["collate"].get_bool();
     }
   }
 
   UniValue transactions(UniValue::VARR);
 
-  // transaction processing
-  const CWallet::TxItems &txOrdered = pwallet->wtxOrdered;
-  for (auto tit = txOrdered.rbegin(); tit != txOrdered.rend(); ++tit) {
-    CWalletTx* const pwtx = tit->second.first;
-    int64_t txTime = pwtx->GetTxTime();
-    if (txTime < timeFrom) break;
-    if (txTime <= timeTo) {
-      TxWithOutputsToJSON(*pwtx, pwallet, watchonly, search, transactions);
+  {
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    // transaction processing
+    const CWallet::TxItems &txOrdered = pwallet->wtxOrdered;
+    for (auto tit = txOrdered.rbegin(); tit != txOrdered.rend(); ++tit) {
+      CWalletTx *const pwtx = tit->second.first;
+      int64_t txTime = pwtx->GetTxTime();
+      if (txTime < timeFrom) {
+        break;
+      }
+      if (txTime <= timeTo) {
+        TxWithOutputsToJSON(*pwtx, pwallet, watchonly, search, transactions);
+      }
     }
   }
 
@@ -2237,7 +2242,7 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
             });
 
   // filter, skip, count and sum
-  CAmount nTotalAmount = 0, nTotalReward = 0;
+  CAmount totalAmount = 0, totalReward = 0;
   UniValue result(UniValue::VARR);
   if (count == 0) {
     count = static_cast<int>(values.size());
@@ -2250,24 +2255,24 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
     // if we've skipped enough valid values
     if (skip-- <= 0) {
       result.push_back(values[i]);
-      count--;
+      --count;
 
-      if (fCollate) {
+      if (collate) {
         if (!values[i]["amount"].isNull()) {
-          nTotalAmount += AmountFromValue(values[i]["amount"]);
+          totalAmount += AmountFromValue(values[i]["amount"]);
         }
         if (!values[i]["reward"].isNull()) {
-          nTotalReward += AmountFromValue(values[i]["reward"]);
+          totalReward += AmountFromValue(values[i]["reward"]);
         }
       }
     }
   }
 
-  if (fCollate) {
+  if (collate) {
     UniValue retObj(UniValue::VOBJ);
     UniValue stats(UniValue::VOBJ);
     stats.pushKV("records", (int)result.size());
-    stats.pushKV("total_amount", ValueFromAmount(nTotalAmount));
+    stats.pushKV("total_amount", ValueFromAmount(totalAmount));
     retObj.pushKV("tx", result);
     retObj.pushKV("collated", stats);
     return retObj;
