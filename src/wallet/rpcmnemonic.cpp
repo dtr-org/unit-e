@@ -171,7 +171,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   std::string error;
   std::vector<std::string> warnings;
   {
-    LOCK(wallet->cs_wallet);
+    LOCK2(cs_main, wallet->cs_wallet);
     WalletRescanReserver reserver(wallet);
     if (shouldRescan && !reserver.reserve()) {
       throw JSONRPCError(
@@ -181,7 +181,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
     if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, error)) {
       throw std::runtime_error(error);
     }
-    const uint64_t rescannedTill = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
+    const int64_t rescannedTill = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
     if (rescannedTill > TIMESTAMP_MIN) {
       warnings.emplace_back("could not read before " + DateTimeToString(rescannedTill));
     }
