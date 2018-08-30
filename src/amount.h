@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 
+//UNIT-E: revise both MAX_MONEY and terms (satoshi)
 /** Amount in satoshis (Can be negative) */
 typedef int64_t CAmount;
 

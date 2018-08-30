@@ -37,6 +37,49 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     return genesis;
 }
 
+const std::pair<const char*, CAmount> regTestOutputs[] = {
+    std::make_pair("33a471b2c4d3f45b9ab4707455f7d2e917af5a6e", 10000 * UNIT),
+    std::make_pair("7eac29a2e24c161e2d18d8d1249a6327d18d390f", 10000 * UNIT),
+    std::make_pair("caca901140bf287eff2af36edeb48503cec4eb9f", 10000 * UNIT),
+    std::make_pair("1f34ea7e96d82102b22afed6d53d02715f8f6621", 10000 * UNIT),
+    std::make_pair("eb07ad5db790ee4324b5cdd635709f47e41fd867", 10000 * UNIT),
+};
+const size_t nGenesisOutputsRegtest = sizeof(regTestOutputs) / sizeof(regTestOutputs[0]);
+
+static CBlock CreateGenesisBlockRegTest(uint32_t nTime,
+                                        uint32_t nNonce,
+                                        uint32_t nBits,
+                                        int32_t nVersion,
+                                        const CAmount &genesisReward) {
+
+    const char* pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
+    const CScript genesisOutputScript = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
+    CMutableTransaction txNew;
+    txNew.nVersion = 1;
+    txNew.vin.resize(1);
+    txNew.vout.resize(1);
+    txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+    txNew.vout[0].nValue = genesisReward;
+    txNew.vout[0].scriptPubKey = genesisOutputScript;
+
+    txNew.vout.resize(nGenesisOutputsRegtest);
+    for (size_t k = 0; k < nGenesisOutputsRegtest; ++k) {
+        CScript scriptPubKey = CScript() << OP_DUP << OP_HASH160 << ParseHex(regTestOutputs[k].first) << OP_EQUALVERIFY << OP_CHECKSIG;
+        CTxOut out{regTestOutputs[k].second, scriptPubKey};
+        txNew.vout[k] = out;
+    }
+
+    CBlock genesis;
+    genesis.nTime    = nTime;
+    genesis.nBits    = nBits;
+    genesis.nNonce   = nNonce;
+    genesis.nVersion = nVersion;
+    genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
+    genesis.hashPrevBlock.SetNull();
+    genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
+    return genesis;
+}
+
 /**
  * Build the genesis block. Note that the output of its generation
  * transaction cannot be spent since it did not originally exist in the
@@ -331,10 +374,10 @@ public:
         nDefaultPort = 18444;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * UNIT);
+        genesis = CreateGenesisBlockRegTest(1296688602, 2, 0x207fffff, 1, 50 * UNIT);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
+        assert(consensus.hashGenesisBlock == uint256S("0x59447f6b31d072aaeb1e08dc0df8772d53f39e5d1afe0494294af566227398de"));
+        assert(genesis.hashMerkleRoot == uint256S("0x60793ec2bde997c3279fbd53e06d7a08d26fd9ce90f9e8fa82e8e35b141687da"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -345,7 +388,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")},
+                {0, uint256S("0x59447f6b31d072aaeb1e08dc0df8772d53f39e5d1afe0494294af566227398de")},
             }
         };
 
