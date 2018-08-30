@@ -9,6 +9,8 @@
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <util.h>
+#include <utiltime.h>
+#include <validation.h>
 #include <wallet/crypter.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
@@ -38,7 +40,6 @@ UniValue mnemonicnew(const JSONRPCRequest &request) {
   CExtKey masterKey;
 
   for (size_t i = 0; i < maxTries; ++i) {
-
     GetStrongRandBytes(&entropy[0], static_cast<int>(numEntropyBytes));
 
     if (0 != key::mnemonic::Encode(language, entropy, mnemonic, error)) {
@@ -137,6 +138,8 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
       "master key from\n"
       "2. \"passphrase\" (string, optional) an optional passphrase to "
       "protect the key\n"
+      "3. \"rescan\" (bool, optional) an optional flag whether to rescan "
+      "the blockchain"
       "\nExamples:\n" +
       HelpExampleCli("importmasterkey",
                      "\"next debate force grief bleak want truck prepare "
@@ -147,11 +150,17 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() > 2 || request.params.size() < 1) {
     throw std::runtime_error(help);
   }
-  CWallet *const wallet = GetWalletForJSONRPCRequest(request);
+  CWallet *wallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(wallet, request.fHelp)) {
     throw std::runtime_error("no unlocked wallet open!");
   }
-  LOCK(wallet->cs_wallet);
+  bool shouldRescan = true;
+  if (request.params.size() > 2) {
+    shouldRescan = request.params[2].get_bool();
+  }
+  if (shouldRescan && fPruneMode) {
+    throw JSONRPCError(RPC_WALLET_ERROR, "Rescan is disabled in pruned mode");
+  }
   const std::string walletFileName = wallet->GetName();
   std::string mnemonic(request.params[0].get_str());
   std::string passphrase;
@@ -160,8 +169,23 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   }
   key::mnemonic::Seed seed(mnemonic, passphrase);
   std::string error;
-  if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, error)) {
-    throw std::runtime_error(error);
+  std::vector<std::string> warnings;
+  {
+    LOCK(wallet->cs_wallet);
+    WalletRescanReserver reserver(wallet);
+    if (shouldRescan && !reserver.reserve()) {
+      throw JSONRPCError(
+          RPC_WALLET_ERROR,
+          "Wallet is currently rescanning. Abort existing rescan or wait.");
+    }
+    if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, error)) {
+      throw std::runtime_error(error);
+    }
+    const uint64_t rescannedTill = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
+    if (rescannedTill > TIMESTAMP_MIN) {
+      warnings.emplace_back("could not read before " + DateTimeToString(rescannedTill));
+    }
+    wallet->ReacceptWalletTransactions();
   }
   UniValue response(UniValue::VOBJ);
   response.pushKV("wallet", UniValue(walletFileName));
@@ -169,6 +193,11 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   response.pushKV("language_tag", UniValue(seed.GetLanguageTag()));
   response.pushKV("bip39_seed", UniValue(seed.GetHexSeed()));
   response.pushKV("bip32_root", UniValue(seed.GetExtKey58().ToString()));
+  UniValue warningsValue(UniValue::VARR);
+  for (const auto &warning : warnings) {
+    warningsValue.push_back(UniValue(warning));
+  }
+  response.pushKV("warnings", warningsValue);
   response.pushKV("success", UniValue(true));
   return response;
 }
@@ -208,7 +237,7 @@ static const CRPCCommand commands[] = {
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
     { "mnemonic",          "mnemonic",               &mnemonic,               {"subcommand", "mnemonic", "passphrase"}},
     { "hidden",            "listreservekeys",        &listreservekeys,        {}},
-    { "wallet",            "importmasterkey",        &importmasterkey,        {"seed", "passphrase"}},
+    { "wallet",            "importmasterkey",        &importmasterkey,        {"seed", "passphrase", "rescan"}},
 };
 // clang-format on
 
