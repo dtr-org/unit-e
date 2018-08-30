@@ -116,6 +116,7 @@ BASE_SCRIPTS= [
     'rpc_preciousblock.py',
     'wallet_importprunedfunds.py',
     'rpc_signmessage.py',
+    'feature_spend_genesis.py',
     'feature_nulldummy.py',
     'wallet_import_rescan.py',
     'mining_basic.py',
