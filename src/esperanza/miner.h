@@ -19,6 +19,8 @@ namespace esperanza {
 
 double GetPoSKernelPS();
 
+bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
+
 bool CheckStake(CBlock *pblock);
 
 bool ImportOutputs(CBlockTemplate *blocktemplate, int height);

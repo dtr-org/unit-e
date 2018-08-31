@@ -39,7 +39,7 @@ class StakeThread final {
 
   static void condWaitFor(size_t threadID, int ms);
 
-  std::string m_name;
+  const std::string m_name;
 
   std::thread m_thread;
 
@@ -49,7 +49,7 @@ class StakeThread final {
 
   bool m_wakeMinerProc = false;
 
-  StakeThread(std::string name, std::thread &thread);
+  StakeThread(const std::string&& name, std::thread &thread);
 
   void condWaitFor(int ms);
 };
