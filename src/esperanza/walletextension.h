@@ -58,13 +58,30 @@ class WalletExtension {
 
   CAmount m_stakeSplitThreshold = 2000 * UNIT;
 
-  size_t m_MaxStakeCombine = 3;
+  size_t m_maxStakeCombine = 3;
 
   std::string m_rewardAddress;
 
  public:
+  //! \brief non-intrusive extension of the bitcoin-core wallet.
+  //!
+  //! A WalletExtension requires an enclosing wallet which it extends.
+  //! The esperanza::WalletExtension is befriended by CWallet so that it
+  //! can access CWallet's guts.
+  //!
+  //! @param enclosingWallet The CWallet that this WalletExtension extends (must
+  //! not be nullptr).
   WalletExtension(::CWallet *enclosingWallet);
 
+  //! \brief which proposer thread this wallet maps to
+  //!
+  //! Each Wallet is mapped to a proposer thread (when proposing/staking).
+  //! There is always at least one proposer thread. Multiple wallets may be
+  //! mapped to the same thread. There are never more proposer threads then
+  //! wallets.
+  //!
+  //! @return The index of the proposer thread that uses this wallet for
+  //! proposing new blocks.
   size_t GetProposerThreadIndex() const;
 
   CAmount GetStakeableBalance() const;
@@ -72,8 +89,7 @@ class WalletExtension {
   void AvailableCoinsForStaking(std::vector<::COutput> &vCoins);
 
   static bool SelectCoinsForStaking(
-      int64_t nTargetValue,
-      std::vector<::COutput>& availableCoinsForStaking,
+      int64_t nTargetValue, std::vector<::COutput> &availableCoinsForStaking,
       std::set<std::pair<const ::CWalletTx *, unsigned int>> &setCoinsRet,
       int64_t &nValueRet);
 

@@ -277,9 +277,7 @@ libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   address/address.cpp \
-  esperanza/config.cpp \
   esperanza/kernel.cpp \
-  esperanza/params.cpp \
   esperanza/validation.cpp \
   esperanza/miner.cpp \
   esperanza/init.cpp \
@@ -375,6 +373,7 @@ libunite_common_a_SOURCES = \
   core_read.cpp \
   core_write.cpp \
   esperanza/config.cpp \
+  esperanza/params.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \

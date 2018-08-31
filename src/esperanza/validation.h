@@ -11,6 +11,10 @@
 
 namespace esperanza {
 
+bool HasIsCoinstakeOp(const CScript &scriptIn);
+
+bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut);
+
 bool CheckStakeUnused(const COutPoint &kernel);
 
 bool CheckStakeUnique(const CBlock &block, bool update);

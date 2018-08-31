@@ -91,11 +91,13 @@ public:
     //! Esperanza Proof-of-Stake parameters
     const esperanza::Params& EsperanzaParams() const;
 
+
+
 protected:
     CChainParams() {}
 
     Consensus::Params consensus;
-    esperanza::Params m_esperanzaParams;
+    esperanza::Params m_esperanzaParams = esperanza::Params(this);
     CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
     uint64_t nPruneAfterHeight;

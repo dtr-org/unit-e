@@ -83,8 +83,6 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
   int nBestHeight;  // TODO: set from new block signal?
   int64_t nBestTime;
 
-  int nLastImportHeight = ::Params().EsperanzaParams().GetLastImportHeight();
-
   if (!esperanza::g_config.m_staking) {
     LogPrint(BCLog::POS, "%s: -staking is false.\n", __func__);
     return;
@@ -203,14 +201,6 @@ void StakeThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
           m_isStaking = false;
           nWaitFor = std::min(nWaitFor, (size_t)m_minerSleep);
           LogPrint(BCLog::POS, "%s: Couldn't create new block.\n", __func__);
-          continue;
-        }
-
-        if (nBestHeight + 1 <= nLastImportHeight &&
-            !ImportOutputs(pblocktemplate.get(), nBestHeight + 1)) {
-          m_isStaking = false;
-          nWaitFor = std::min(nWaitFor, (size_t)30000);
-          LogPrint(BCLog::POS, "%s: ImportOutputs failed.\n", __func__);
           continue;
         }
       }
