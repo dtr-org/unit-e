@@ -176,6 +176,7 @@ UNITE_CORE_H = \
   unilib/uninorms.h \
   unilib/utf8.h \
   util.h \
+  utilfun.h \
   utilmoneystr.h \
   utiltime.h \
   utiltypetags.h \
