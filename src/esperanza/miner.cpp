@@ -5,13 +5,13 @@
 
 #include <address/address.h>
 #include <chainparams.h>
-#include <script/script.h>
-#include <validation.h>
-#include <esperanza/validation.h>
 #include <esperanza/kernel.h>
 #include <esperanza/miner.h>
 #include <esperanza/stakethread.h>
+#include <esperanza/validation.h>
 #include <rpc/blockchain.h>
+#include <script/script.h>
+#include <validation.h>
 
 #include <util.h>
 #include <utilmoneystr.h>
@@ -29,7 +29,7 @@ double GetPoSKernelPS() {
 
   int nBestHeight = pindex->nHeight;
 
-  int nPoSInterval = 72; // blocks sampled
+  int nPoSInterval = 72;  // blocks sampled
   double dStakeKernelsTriedAvg = 0;
   int nStakesHandled = 0, nStakesTime = 0;
 
@@ -54,8 +54,7 @@ double GetPoSKernelPS() {
   return result;
 }
 
-bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID)
-{
+bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID) {
   if (scriptPubKey.IsPayToPublicKeyHash()) {
     keyID = CKeyID(uint160(&scriptPubKey[3], 20));
     return true;
@@ -68,37 +67,35 @@ bool CheckStake(CBlock *pblock) {
   uint256 hashBlock = pblock->GetHash();
 
   if (!pblock->IsProofOfStake()) {
-    return error("%s: %s is not a proof-of-stake block.", __func__, hashBlock.GetHex());
+    return error("%s: %s is not a proof-of-stake block.", __func__,
+                 hashBlock.GetHex());
   }
-  if (!esperanza::CheckStakeUnique(*pblock, false)) { // Check in SignBlock also
-    return error("%s: %s CheckStakeUnique failed.", __func__, hashBlock.GetHex());
+  if (!esperanza::CheckStakeUnique(*pblock,
+                                   false)) {  // Check in SignBlock also
+    return error("%s: %s CheckStakeUnique failed.", __func__,
+                 hashBlock.GetHex());
   }
 
   BlockMap::const_iterator mi = mapBlockIndex.find(pblock->hashPrevBlock);
   if (mi == mapBlockIndex.end()) {
-    return error("%s: %s prev block not found: %s.", __func__, hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
+    return error("%s: %s prev block not found: %s.", __func__,
+                 hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
   }
   if (!chainActive.Contains(mi->second)) {
-    return error("%s: %s prev block in active chain: %s.",
-                 __func__,
-                 hashBlock.GetHex(),
-                 pblock->hashPrevBlock.GetHex());
+    return error("%s: %s prev block in active chain: %s.", __func__,
+                 hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
   }
   // verify hash target and signature of coinstake tx
-  if (!esperanza::CheckProofOfStake(mi->second,
-                                    *pblock->vtx[0],
-                                    pblock->nTime,
-                                    pblock->nBits,
-                                    proofHash,
-                                    hashTarget)) {
+  if (!esperanza::CheckProofOfStake(mi->second, *pblock->vtx[0], pblock->nTime,
+                                    pblock->nBits, proofHash, hashTarget)) {
     return error("%s: proof-of-stake checking failed.", __func__);
   }
 
   // debug print
-  LogPrintf("CheckStake(): New proof-of-stake block found  \n  hash: %s \nproofhash: %s  \ntarget: %s\n",
-            hashBlock.GetHex(),
-            proofHash.GetHex(),
-            hashTarget.GetHex());
+  LogPrintf(
+      "CheckStake(): New proof-of-stake block found  \n  hash: %s \nproofhash: "
+      "%s  \ntarget: %s\n",
+      hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
   if (LogAcceptCategory(BCLog::POS)) {
     LogPrintf("block %s\n", pblock->ToString());
     LogPrintf("out %s\n", FormatMoney(pblock->vtx[0]->GetValueOut()));
@@ -106,11 +103,13 @@ bool CheckStake(CBlock *pblock) {
 
   {
     LOCK(cs_main);
-    if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash()) // hashbestchain
+    if (pblock->hashPrevBlock !=
+        chainActive.Tip()->GetBlockHash())  // hashbestchain
       return error("%s: Generated block is stale.", __func__);
   }
 
-  std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+  std::shared_ptr<const CBlock> shared_pblock =
+      std::make_shared<const CBlock>(*pblock);
   if (!ProcessNewBlock(::Params(), shared_pblock, true, nullptr)) {
     return error("%s: Block not accepted.", __func__);
   }
@@ -135,25 +134,27 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight) {
   FILE *fp;
   errno = 0;
   if (!(fp = fopen(fPath.string().c_str(), "rb")))
-    return error("%s - Can't open file, strerror: %s.", __func__, strerror(errno));
+    return error("%s - Can't open file, strerror: %s.", __func__,
+                 strerror(errno));
 
   CMutableTransaction txn;
-  txn.SetVersion(0); // todo: define version number fields
-  //txn.SetType(TXN_COINBASE);
+  txn.SetVersion(0);  // todo: define version number fields
+  // txn.SetType(TXN_COINBASE);
   txn.nLockTime = 0;
-  txn.vin.push_back(CTxIn()); // null prevout
+  txn.vin.push_back(CTxIn());  // null prevout
 
   // scriptsig len must be > 2
   const char *s = "import";
   txn.vin[0].scriptSig =
-      CScript() << std::vector<unsigned char>((const unsigned char *) s, (const unsigned char *) s + strlen(s));
+      CScript() << std::vector<unsigned char>(
+          (const unsigned char *)s, (const unsigned char *)s + strlen(s));
 
   int nOutput = 0, nAdded = 0;
   char cLine[512];
   char *pAddress, *pAmount;
 
   while (fgets(cLine, 512, fp)) {
-    cLine[511] = '\0'; // safety
+    cLine[511] = '\0';  // safety
     size_t len = strlen(cLine);
     while (isspace(cLine[len - 1]) && len > 0) {
       cLine[len - 1] = '\0', len--;
@@ -169,7 +170,8 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight) {
     errno = 0;
     uint64_t amount = strtoull(pAmount, nullptr, 10);
     if (errno || !MoneyRange(amount)) {
-      LogPrintf("Warning: %s - Skipping invalid amount: %s, %s\n", __func__, pAmount, strerror(errno));
+      LogPrintf("Warning: %s - Skipping invalid amount: %s, %s\n", __func__,
+                pAmount, strerror(errno));
       continue;
     }
 
@@ -178,11 +180,13 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight) {
 
     CKeyID id;
     if (!addr.IsValid() || !addr.GetKeyID(id)) {
-      LogPrintf("Warning: %s - Skipping invalid address: %s\n", __func__, pAddress);
+      LogPrintf("Warning: %s - Skipping invalid address: %s\n", __func__,
+                pAddress);
       continue;
     }
 
-    CScript script = CScript() << OP_DUP << OP_HASH160 << ToByteVector(id) << OP_EQUALVERIFY << OP_CHECKSIG;
+    CScript script = CScript() << OP_DUP << OP_HASH160 << ToByteVector(id)
+                               << OP_EQUALVERIFY << OP_CHECKSIG;
     CTxOut txout(amount, script);
     txn.vout.push_back(txout);
 
@@ -204,4 +208,4 @@ bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight) {
   return true;
 };
 
-} // namespace esperanza
+}  // namespace esperanza
