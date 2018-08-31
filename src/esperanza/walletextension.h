@@ -71,8 +71,9 @@ class WalletExtension {
 
   void AvailableCoinsForStaking(std::vector<::COutput> &vCoins);
 
-  bool SelectCoinsForStaking(
+  static bool SelectCoinsForStaking(
       int64_t nTargetValue,
+      std::vector<::COutput>& availableCoinsForStaking,
       std::set<std::pair<const ::CWalletTx *, unsigned int>> &setCoinsRet,
       int64_t &nValueRet);
 

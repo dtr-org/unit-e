@@ -96,15 +96,14 @@ void WalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins) {
 
 bool WalletExtension::SelectCoinsForStaking(
     int64_t nTargetValue,
+    std::vector<::COutput>& availableCoinsForStaking,
     std::set<std::pair<const ::CWalletTx *, unsigned int>> &setCoinsRet,
     int64_t &nValueRet) {
-  std::vector<::COutput> vCoins;
-  AvailableCoinsForStaking(vCoins);
 
   setCoinsRet.clear();
   nValueRet = 0;
 
-  for (auto &output : vCoins) {
+  for (auto &output : availableCoinsForStaking) {
     const CWalletTx *pcoin = output.tx;
     int i = output.i;
 
@@ -130,7 +129,7 @@ bool WalletExtension::SelectCoinsForStaking(
     }
   }
 
-  return true;
+  return nValueRet >= nTargetValue;
 }
 
 bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
