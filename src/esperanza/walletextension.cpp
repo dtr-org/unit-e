@@ -29,10 +29,10 @@ CAmount WalletExtension::GetStakeableBalance() const {
   CAmount balance = 0;
 
   for (const auto &it : m_enclosingWallet->mapWallet) {
-    const CWalletTx &pcoin = it.second;
-    if (pcoin.IsTrusted()) {
-      balance += pcoin.GetAvailableCredit();
-      balance += pcoin.GetAvailableWatchOnlyCredit();
+    const CWalletTx &coin = it.second;
+    if (coin.IsTrusted()) {
+      balance += coin.GetAvailableCredit();
+      balance += coin.GetAvailableWatchOnlyCredit();
     }
   }
   return balance;
@@ -48,22 +48,22 @@ void WalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins) {
   {
     LOCK2(cs_main, m_enclosingWallet->cs_wallet);
 
-    int nHeight = chainActive.Tip()->nHeight;
-    int nRequiredDepth =
-        std::min<int>(Params().GetStakeMinConfirmations() - 1, nHeight / 2);
+    int height = chainActive.Tip()->nHeight;
+    int requiredDepth =
+        std::min<int>(Params().GetStakeMinConfirmations() - 1, height / 2);
 
     for (const auto &it : m_enclosingWallet->mapWallet) {
-      const CWalletTx &pcoin = it.second;
-      CTransactionRef tx = pcoin.tx;
+      const CWalletTx &coin = it.second;
+      CTransactionRef tx = coin.tx;
 
-      int nDepth = pcoin.GetDepthInMainChain();  // requires cs_main lock
+      int depth = coin.GetDepthInMainChain();  // requires cs_main lock
 
-      if (nDepth > m_deepestTxnDepth) {
+      if (depth > m_deepestTxnDepth) {
         // side effect: sets deepestTxnDepth - this is why this function is not
         // declared const (happens twice)
-        m_deepestTxnDepth = nDepth;
+        m_deepestTxnDepth = depth;
       }
-      if (nDepth < nRequiredDepth) {
+      if (depth < requiredDepth) {
         continue;
       }
       const uint256 &wtxid = it.first;
@@ -83,7 +83,7 @@ void WalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins) {
           continue;
         }
         if (m_enclosingWallet->HaveKey(keyID)) {
-          vCoins.emplace_back(&pcoin, i, nDepth,
+          vCoins.emplace_back(&coin, i, depth,
                               /* fSpendable */ true, /* fSolvable */ true,
                               /* fSaveIn */ true);
         }
@@ -105,27 +105,26 @@ bool WalletExtension::SelectCoinsForStaking(
 
   for (auto &output : availableCoinsForStaking) {
     const CWalletTx *pcoin = output.tx;
-    int i = output.i;
+    int index = output.i;
 
     // Stop if we've chosen enough inputs
     if (nValueRet >= nTargetValue) {
       break;
     }
 
-    int64_t n = pcoin->tx->vout[i].nValue;
+    int64_t amount = pcoin->tx->vout[index].nValue;
 
-    std::pair<int64_t, std::pair<const CWalletTx *, unsigned int>> coin =
-        std::make_pair(n, std::make_pair(pcoin, i));
+    std::pair<const CWalletTx *, unsigned int> coin = std::make_pair(pcoin, index);
 
-    if (n >= nTargetValue) {
+    if (amount >= nTargetValue) {
       // If input value is greater or equal to target then simply insert
       //    it into the current subset and exit
-      setCoinsRet.insert(coin.second);
-      nValueRet += coin.first;
+      setCoinsRet.insert(coin);
+      nValueRet += amount;
       break;
-    } else if (n < nTargetValue + EEES) {
-      setCoinsRet.insert(coin.second);
-      nValueRet += coin.first;
+    } else if (amount < nTargetValue + EEES) {
+      setCoinsRet.insert(coin);
+      nValueRet += amount;
     }
   }
 
