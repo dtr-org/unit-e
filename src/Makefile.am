@@ -111,6 +111,7 @@ UNITE_CORE_H = \
   esperanza/stakethread.h \
   esperanza/stakingstate.h \
   esperanza/validation.h \
+  esperanza/validator.h \
   esperanza/validatorstate.h \
   esperanza/votedata.h \
   esperanza/walletextension.h \
