@@ -226,6 +226,7 @@ libunite_server_a_SOURCES = \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
   esperanza/checkpoint.cpp \
+  esperanza/finalizationparams.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/validation.cpp \
   esperanza/validator.cpp \
@@ -282,7 +283,6 @@ libunite_wallet_a_SOURCES = \
   esperanza/config.cpp \
   esperanza/kernel.cpp \
   esperanza/params.cpp \
-  esperanza/finalizationparams.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/miner.cpp \
   esperanza/init.cpp \
