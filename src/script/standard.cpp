@@ -231,7 +231,11 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = unk;
         return true;
     } else if (whichType == TX_PAYVOTESLASH) {
-        addressRet = CKeyID(uint160(vSolutions[0]));
+        CPubKey pubKey(vSolutions[0]);
+        if (!pubKey.IsValid())
+          return false;
+
+        addressRet = pubKey.GetID();
         return true;
     }
     // Multisig txns have more than one address...

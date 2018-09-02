@@ -134,10 +134,10 @@ class BlockchainTest(UnitETestFramework):
         res = node.gettxoutsetinfo()
 
         assert_equal(res['total_amount'], Decimal('58725.00000000'))
-        assert_equal(res['transactions'], 200)
+        assert_equal(res['transactions'], 201)
         assert_equal(res['height'], 200)
-        assert_equal(res['txouts'], 200)
-        assert_equal(res['bogosize'], 17000),
+        assert_equal(res['txouts'], 205)
+        assert_equal(res['bogosize'], 17375),
         assert_equal(res['bestblock'], node.getblockhash(200))
         size = res['disk_size']
         assert size > 6400
@@ -150,11 +150,11 @@ class BlockchainTest(UnitETestFramework):
         node.invalidateblock(b1hash)
 
         res2 = node.gettxoutsetinfo()
-        assert_equal(res2['transactions'], 0)
-        assert_equal(res2['total_amount'], Decimal('0'))
+        assert_equal(res2['transactions'], 1)
+        assert_equal(res2['total_amount'], Decimal('50000.00000000'))
         assert_equal(res2['height'], 0)
-        assert_equal(res2['txouts'], 0)
-        assert_equal(res2['bogosize'], 0),
+        assert_equal(res2['txouts'], 5)
+        assert_equal(res2['bogosize'], 375),
         assert_equal(res2['bestblock'], node.getblockhash(0))
         assert_equal(len(res2['hash_serialized_2']), 64)
 

@@ -9,7 +9,6 @@
 #include <esperanza/votedata.h>
 #include <uint256.h>
 #include <primitives/transaction.h>
-#include <wallet/wallet.h>
 
 namespace esperanza {
 

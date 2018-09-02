@@ -286,6 +286,7 @@ bool OpenWallets()
     }
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
+
         CWallet * const pwallet = CWallet::CreateWalletFromFile(walletFile);
         if (!pwallet) {
             return false;

@@ -75,7 +75,7 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
 {
     // UNIT-E: If the hash is the genesis then make it pass anyway
-    if(hash.GetHex() == "5b6d9c77a0c7bd98341bfeb45711851e45c6ea85cfca825f61bd1d0b967a7b06") {
+    if(hash.GetHex() == "59447f6b31d072aaeb1e08dc0df8772d53f39e5d1afe0494294af566227398de") {
       return true;
     }
 
