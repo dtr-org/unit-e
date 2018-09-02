@@ -69,8 +69,8 @@ int GetNumBlocksOfPeers() {
   return 0;
 }
 
-bool CheckDepositTx(CValidationState& state, const CTransaction& tx,
-                    const CBlockIndex* pindex) {
+bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
+                             const CBlockIndex *pindex) {
   if (tx.vin.empty() || tx.vout.empty()) {
     return state.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
   }
@@ -105,8 +105,8 @@ bool CheckDepositTx(CValidationState& state, const CTransaction& tx,
   return true;
 }
 
-bool CheckVoteTx(CValidationState& state, const CTransaction& tx,
-                 const CBlockIndex* pindex) {
+bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
+                          const CBlockIndex *pindex) {
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return state.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
   }

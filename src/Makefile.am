@@ -227,6 +227,7 @@ libunite_server_a_SOURCES = \
   consensus/tx_verify.cpp \
   esperanza/checkpoint.cpp \
   esperanza/finalizationstate.cpp \
+  esperanza/validation.cpp \
   esperanza/validator.cpp \
   httprpc.cpp \
   httpserver.cpp \
@@ -286,7 +287,6 @@ libunite_wallet_a_SOURCES = \
   esperanza/miner.cpp \
   esperanza/init.cpp \
   esperanza/stakethread.cpp \
-  esperanza/validation.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   unilib/uninorms.cpp \

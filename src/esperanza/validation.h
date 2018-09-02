@@ -18,11 +18,11 @@ bool CheckStakeUnique(const CBlock &block, bool update);
 
 int GetNumBlocksOfPeers();
 
-bool CheckDepositTx(CValidationState &state, const CTransaction &tx,
-                    const CBlockIndex *pindex = nullptr);
+bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
+                             const CBlockIndex *pindex = nullptr);
 
-bool CheckVoteTx(CValidationState &state, const CTransaction &tx,
-                 const CBlockIndex *pindex = nullptr);
+bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
+                          const CBlockIndex *pindex = nullptr);
 
 } // namespace esperanza
 
