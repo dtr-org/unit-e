@@ -2,15 +2,15 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ESPERANZA_VOTEDATA_H
-#define UNITE_ESPERANZA_VOTEDATA_H
+#ifndef UNITE_ESPERANZA_VOTE_H
+#define UNITE_ESPERANZA_VOTE_H
 
 #include <stdint.h>
 #include <uint256.h>
 
 namespace esperanza {
 
-struct VoteData {
+struct Vote {
 
     uint256 m_validatorIndex;
 
@@ -20,7 +20,7 @@ struct VoteData {
 
     uint32_t m_targetEpoch;
 
-    bool operator==(const VoteData& rhs) const
+    bool operator==(const Vote& rhs) const
     {
         return this->m_validatorIndex == rhs.m_validatorIndex &&
                this->m_targetHash == rhs.m_targetHash &&
@@ -31,4 +31,4 @@ struct VoteData {
 
 } // namespace esperanza
 
-#endif // UNITE_ESPERANZA_VOTEDATA_H
+#endif // UNITE_ESPERANZA_VOTE_H

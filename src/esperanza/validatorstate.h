@@ -6,7 +6,7 @@
 #define UNITE_ESPERANZA_VALIDATORSTATE_H
 
 #include <map>
-#include <esperanza/votedata.h>
+#include <esperanza/vote.h>
 #include <uint256.h>
 #include <primitives/transaction.h>
 
@@ -36,7 +36,7 @@ struct ValidatorState {
     CTransactionRef m_lastVotableTx;
     uint32_t m_depositEpoch;
 
-    std::map<uint32_t, VoteData> m_voteMap;
+    std::map<uint32_t, Vote> m_voteMap;
     uint32_t m_lastSourceEpoch;
     uint32_t m_lastTargetEpoch;
     uint32_t m_endDynasty; //UNIT-E: To set when the logout happens

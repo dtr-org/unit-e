@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(parse_params_values)
 
     esperanza::FinalizationParams result;
     esperanza::FinalizationParams defaultParams;
-    BOOST_TEST(esperanza::ParseFinalizationParams(json, result));
+    BOOST_CHECK(esperanza::ParseFinalizationParams(json, result));
     BOOST_CHECK_EQUAL(result.m_epochLength, epochLength);
     BOOST_CHECK_EQUAL(result.m_minDepositSize, minDepositSize);
     BOOST_CHECK_EQUAL(result.m_dynastyLogoutDelay, defaultParams.m_dynastyLogoutDelay);
