@@ -280,6 +280,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/config.cpp \
   esperanza/kernel.cpp \
   esperanza/params.cpp \
+  esperanza/validation.cpp \
   esperanza/miner.cpp \
   esperanza/init.cpp \
   esperanza/stakethread.cpp \
