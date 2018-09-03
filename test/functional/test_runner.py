@@ -114,6 +114,7 @@ BASE_SCRIPTS= [
     'rpc_preciousblock.py',
     'wallet_importprunedfunds.py',
     'rpc_signmessage.py',
+    'feature_spend_genesis.py',
     'rpc_filtertransactions.py',
     'feature_nulldummy.py',
     'wallet_import_rescan.py',
@@ -414,6 +415,8 @@ class TestHandler:
             log_stderr = tempfile.SpooledTemporaryFile(max_size=2**16)
             test_argv = t.split()
             testdir = "{}/{}_{}".format(self.tmpdir, re.sub(".py$", "", test_argv[0]), portseed)
+            test_file_path = self.tests_dir + test_argv[0]
+            assert os.access(test_file_path, os.X_OK), test_file_path + " is not executable"
             tmpdir_arg = ["--tmpdir={}".format(testdir)]
             self.jobs.append((t,
                               time.time(),
