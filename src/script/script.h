@@ -646,9 +646,6 @@ public:
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
 
-    //! Proof-of-Stake: Checks whether the script has an IS_COINSTAKE_OP
-    bool HasIsCoinstakeOp() const;
-
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;
     bool IsPushOnly() const;

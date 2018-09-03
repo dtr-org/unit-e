@@ -7,6 +7,9 @@
 #define UNITE_ESPERANZA_PARAMS_H
 
 #include <stdint.h>
+#include <chain.h>
+
+class CChainParams;
 
 namespace esperanza {
 
@@ -16,6 +19,9 @@ namespace esperanza {
 class Params final {
 
  private:
+
+  //! chain params these params are embedded in
+  const ::CChainParams *m_chainParams;
 
   //! seconds to elapse before new modifier is computed
   uint32_t m_modifierInterval;
@@ -33,7 +39,11 @@ class Params final {
 
   uint32_t m_lastImportHeight;
 
+  int64_t m_coinYearReward = 2 * EEES; // 2% per year
+
  public:
+
+  Params(const CChainParams *chainParams);
 
   uint32_t GetModifierInterval() const;
 
@@ -46,6 +56,10 @@ class Params final {
   uint32_t GetStakeTimestampMask(int nHeight) const;
 
   uint32_t GetLastImportHeight() const;
+
+  int64_t GetCoinYearReward(int64_t nTime) const;
+
+  int64_t GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const;
 
 };
 
