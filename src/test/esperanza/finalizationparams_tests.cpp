@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(parse_params_param_not_a_number_fallback_default)
 
     esperanza::FinalizationParams result;
     esperanza::FinalizationParams defaultParams;
-    BOOST_TEST(esperanza::ParseFinalizationParams(json, result));
+    BOOST_CHECK(esperanza::ParseFinalizationParams(json, result));
     BOOST_CHECK_EQUAL(result.m_epochLength, defaultParams.m_epochLength);
 }
 
