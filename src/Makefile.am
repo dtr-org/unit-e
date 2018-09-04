@@ -108,7 +108,7 @@ UNITE_CORE_H = \
   esperanza/params.h \
   esperanza/finalizationparams.h \
   esperanza/proposerthread.h \
-  esperanza/stakingstate.h \
+  esperanza/proposerstate.h \
   esperanza/validation.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \

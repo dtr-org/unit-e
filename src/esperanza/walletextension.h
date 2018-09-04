@@ -6,7 +6,7 @@
 #define UNITE_ESPERANZA_WALLETEXT_STAKINGWALLETEXTENSION_H
 
 #include <amount.h>
-#include <esperanza/stakingstate.h>
+#include <esperanza/proposerstate.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>

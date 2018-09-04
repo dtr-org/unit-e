@@ -11,14 +11,7 @@
 
 namespace esperanza {
 
-enum class ProposerState : uint32_t {
-  NOT_PROPOSING,
-  IS_PROPOSING,
-  NOT_PROPOSING_NOT_ENOUGH_BALANCE,
-  NOT_STAKING_DEPTH,
-  NOT_PROPOSING_WALLET_LOCKED,
-  NOT_STAKING_LIMITED,
-};
+
 
 } // namespace esperanza
 

@@ -6,7 +6,7 @@
 #include <chainparams.h>
 #include <esperanza/proposer.h>
 #include <esperanza/proposerthread.h>
-#include <esperanza/stakingstate.h>
+#include <esperanza/proposerstate.h>
 #include <esperanza/validation.h>
 #include <miner.h>
 #include <net.h>
