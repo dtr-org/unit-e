@@ -359,8 +359,6 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   return true;
 }
 
-const int32_t BLOCK_VERSION = 1;
-
 bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
                                 int64_t nSearchTime) {
   // todo
