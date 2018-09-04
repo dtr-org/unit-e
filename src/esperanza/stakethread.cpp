@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
-#include <esperanza/miner.h>
+#include <esperanza/proposer.h>
 #include <esperanza/stakethread.h>
 #include <esperanza/stakingstate.h>
 #include <esperanza/validation.h>

@@ -104,7 +104,7 @@ UNITE_CORE_H = \
   esperanza/config.h \
   esperanza/init.h \
   esperanza/kernel.h \
-  esperanza/miner.h \
+  esperanza/proposer.h \
   esperanza/params.h \
   esperanza/finalizationparams.h \
   esperanza/stakethread.h \
@@ -279,7 +279,7 @@ libunite_wallet_a_SOURCES = \
   address/address.cpp \
   esperanza/kernel.cpp \
   esperanza/validation.cpp \
-  esperanza/miner.cpp \
+  esperanza/proposer.cpp \
   esperanza/init.cpp \
   esperanza/stakethread.cpp \
   esperanza/walletextension.cpp \
