@@ -28,8 +28,6 @@ namespace esperanza {
 //! The rationale behind this design decision is to keep up with developments
 //! in bitcoin-core. The alterations done to wallet.h/wallet.cpp are kept to
 //! a minimum. All extended functionality should be put here.
-//!
-//! UNIT-E: TODO: Some of the state in here really is a ProposerState
 class WalletExtension {
   friend class esperanza::ProposerThread;
 
@@ -38,7 +36,7 @@ class WalletExtension {
   CWallet *m_enclosingWallet;
 
   //! The current state of this wallet with regards to staking.
-  StakingState m_stakingState = StakingState::NOT_STAKING;
+  ProposerState m_proposerState = ProposerState::NOT_PROPOSING;
 
   int64_t m_lastCoinStakeSearchTime = 0;
 
@@ -59,8 +57,6 @@ class WalletExtension {
   CAmount m_stakeSplitThreshold = 2000 * UNIT;
 
   size_t m_maxStakeCombine = 3;
-
-  std::string m_rewardAddress;
 
  public:
   //! \brief non-intrusive extension of the bitcoin-core wallet.

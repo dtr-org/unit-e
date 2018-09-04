@@ -171,23 +171,23 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
 
       if (stakingWallet.m_stakeLimitHeight > 0 &&
           nBestHeight >= stakingWallet.m_stakeLimitHeight) {
-        stakingWallet.m_stakingState =
-            esperanza::StakingState::NOT_STAKING_LIMITED;
+        stakingWallet.m_proposerState =
+            esperanza::ProposerState::NOT_STAKING_LIMITED;
         nWaitFor = std::min(nWaitFor, (size_t)30000);
         continue;
       }
 
       if (pwallet->IsLocked()) {
-        stakingWallet.m_stakingState =
-            esperanza::StakingState::NOT_STAKING_LOCKED;
+        stakingWallet.m_proposerState =
+            esperanza::ProposerState::NOT_PROPOSING_WALLET_LOCKED;
         nWaitFor = std::min(nWaitFor, (size_t)30000);
         continue;
       }
 
       if (stakingWallet.GetStakeableBalance() <=
           stakingWallet.m_reserveBalance) {
-        pwallet->GetWalletExtension().m_stakingState =
-            esperanza::StakingState::NOT_STAKING_BALANCE;
+        pwallet->GetWalletExtension().m_proposerState =
+            esperanza::ProposerState::NOT_PROPOSING_NOT_ENOUGH_BALANCE;
         nWaitFor = std::min(nWaitFor, (size_t)60000);
         stakingWallet.m_lastCoinStakeSearchTime = nSearchTime + 60;
         LogPrint(BCLog::POS, "%s: Wallet %d, low balance.\n", __func__, i);
@@ -205,7 +205,7 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
         }
       }
 
-      stakingWallet.m_stakingState = esperanza::StakingState::IS_STAKING;
+      stakingWallet.m_proposerState = esperanza::ProposerState::IS_PROPOSING;
       nWaitFor = m_minerSleep;
       m_isStaking = true;
       if (stakingWallet.SignBlock(pblocktemplate.get(), nBestHeight + 1,
@@ -220,8 +220,8 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
             (int)(::Params().EsperanzaParams().GetStakeMinConfirmations() - 1),
             (int)(nBestHeight / 2));
         if (stakingWallet.m_deepestTxnDepth < nRequiredDepth - 4) {
-          stakingWallet.m_stakingState =
-              esperanza::StakingState::NOT_STAKING_DEPTH;
+          stakingWallet.m_proposerState =
+              esperanza::ProposerState::NOT_STAKING_DEPTH;
           size_t nSleep =
               (nRequiredDepth - stakingWallet.m_deepestTxnDepth) / 4;
           nWaitFor = std::min<size_t>(nWaitFor, nSleep * 1000);
