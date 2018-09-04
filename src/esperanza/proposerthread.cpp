@@ -172,7 +172,7 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
       if (stakingWallet.m_stakeLimitHeight > 0 &&
           nBestHeight >= stakingWallet.m_stakeLimitHeight) {
         stakingWallet.m_proposerState =
-            esperanza::ProposerState::NOT_STAKING_LIMITED;
+            esperanza::ProposerState::NOT_PROPOSING_LIMITED;
         nWaitFor = std::min(nWaitFor, (size_t)30000);
         continue;
       }
@@ -221,7 +221,7 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
             (int)(nBestHeight / 2));
         if (stakingWallet.m_deepestTxnDepth < nRequiredDepth - 4) {
           stakingWallet.m_proposerState =
-              esperanza::ProposerState::NOT_STAKING_DEPTH;
+              esperanza::ProposerState::NOT_PROPOSING_DEPTH;
           size_t nSleep =
               (nRequiredDepth - stakingWallet.m_deepestTxnDepth) / 4;
           nWaitFor = std::min<size_t>(nWaitFor, nSleep * 1000);
