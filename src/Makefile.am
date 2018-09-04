@@ -107,7 +107,7 @@ UNITE_CORE_H = \
   esperanza/proposer.h \
   esperanza/params.h \
   esperanza/finalizationparams.h \
-  esperanza/stakethread.h \
+  esperanza/proposerthread.h \
   esperanza/stakingstate.h \
   esperanza/validation.h \
   esperanza/validator.h \
@@ -281,7 +281,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/validation.cpp \
   esperanza/proposer.cpp \
   esperanza/init.cpp \
-  esperanza/stakethread.cpp \
+  esperanza/proposerthread.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   unilib/uninorms.cpp \

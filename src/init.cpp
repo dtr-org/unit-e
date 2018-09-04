@@ -47,7 +47,7 @@
 #include <wallet/init.h>
 #include <wallet/wallet.h>
 #include <esperanza/config.h>
-#include <esperanza/stakethread.h>
+#include <esperanza/proposerthread.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>

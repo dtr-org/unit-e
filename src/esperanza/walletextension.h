@@ -12,7 +12,7 @@
 #include <miner.h>
 #include <primitives/transaction.h>
 
-#include <esperanza/stakethread.h>
+#include <esperanza/proposerthread.h>
 #include <cstddef>
 #include <cstdint>
 #include <vector>

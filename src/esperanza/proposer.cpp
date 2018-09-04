@@ -7,7 +7,7 @@
 #include <chainparams.h>
 #include <esperanza/kernel.h>
 #include <esperanza/proposer.h>
-#include <esperanza/stakethread.h>
+#include <esperanza/proposerthread.h>
 #include <esperanza/validation.h>
 #include <rpc/blockchain.h>
 #include <script/script.h>
