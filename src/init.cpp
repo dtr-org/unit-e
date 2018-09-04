@@ -47,7 +47,7 @@
 #include <wallet/init.h>
 #include <wallet/wallet.h>
 #include <esperanza/config.h>
-#include <esperanza/stakethread.h>
+#include <esperanza/proposerthread.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -194,7 +194,7 @@ void Shutdown()
     StopRPC();
     StopHTTPServer();
 #ifdef ENABLE_WALLET
-    esperanza::StakeThread::Shutdown();
+    esperanza::ProposerThread::Shutdown();
     FlushWallets();
 #endif
     MapPort(false);
@@ -1818,7 +1818,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 13: start proposing
 
-    esperanza::StakeThread::StartStaking(esperanza::g_config, vpwallets);
+    esperanza::ProposerThread::StartProposerThreads(esperanza::g_config, vpwallets);
 #endif
 
     return true;

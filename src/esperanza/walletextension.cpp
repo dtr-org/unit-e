@@ -6,7 +6,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <esperanza/kernel.h>
-#include <esperanza/miner.h>
+#include <esperanza/proposer.h>
 #include <esperanza/validation.h>
 #include <esperanza/walletextension.h>
 #include <script/standard.h>
@@ -168,7 +168,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
   for (; it != setCoins.end(); ++it) {
     auto pcoin = *it;
-    if (StakeThread::IsStopped()) {
+    if (ProposerThread::IsStopped()) {
       return false;
     }
     COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
@@ -358,8 +358,6 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   // Successfully generated coinstake
   return true;
 }
-
-const int32_t BLOCK_VERSION = 1;
 
 bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
                                 int64_t nSearchTime) {
