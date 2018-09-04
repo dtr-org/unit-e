@@ -31,7 +31,7 @@ namespace esperanza {
 //!
 //! UNIT-E: TODO: Some of the state in here really is a ProposerState
 class WalletExtension {
-  friend class esperanza::StakeThread;
+  friend class esperanza::ProposerThread;
 
  private:
   //! The wallet this extension is embedded in.

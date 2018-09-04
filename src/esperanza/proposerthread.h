@@ -18,7 +18,7 @@ class CWallet;
 
 namespace esperanza {
 
-class StakeThread final {
+class ProposerThread final {
  public:
   //! Stops all active StakeThreads.
   static void Shutdown();
@@ -34,8 +34,8 @@ class StakeThread final {
                     size_t start, size_t end);
 
   //! Given a config and a list of wallets, starts staking with 1+ threads.
-  static void StartStaking(const esperanza::Config &config,
-                           const std::vector<CWallet *> &wallets);
+  static void StartProposerThreads(const esperanza::Config &config,
+                                   const std::vector<CWallet *> &wallets);
 
   static void condWaitFor(size_t threadID, int ms);
 
@@ -49,7 +49,7 @@ class StakeThread final {
 
   bool m_wakeMinerProc = false;
 
-  StakeThread(const std::string&& name, std::thread &thread);
+  ProposerThread(const std::string&& name, std::thread &thread);
 
   void condWaitFor(int ms);
 };
