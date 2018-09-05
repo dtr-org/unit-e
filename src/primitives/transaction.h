@@ -357,6 +357,14 @@ public:
         return GetType() == TxType::COINSTAKE;
     }
 
+    bool IsVote() const {
+        return GetType() == TxType::VOTE;
+    }
+
+    bool IsDeposit() const {
+        return GetType() == TxType::DEPOSIT;
+    }
+
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return a.hash == b.hash;

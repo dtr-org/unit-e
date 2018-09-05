@@ -107,6 +107,8 @@ UNITE_CORE_H = \
   esperanza/proposer.h \
   esperanza/params.h \
   esperanza/finalizationparams.h \
+  esperanza/finalizationstate.h \
+  esperanza/stakevalidation.h \
   esperanza/proposerthread.h \
   esperanza/proposerstate.h \
   esperanza/validation.h \
@@ -225,6 +227,7 @@ libunite_server_a_SOURCES = \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
   esperanza/checkpoint.cpp \
+  esperanza/finalizationstate.cpp \
   esperanza/finalizationparams.cpp \
   esperanza/validation.cpp \
   esperanza/validator.cpp \
@@ -278,10 +281,10 @@ libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   address/address.cpp \
   esperanza/kernel.cpp \
-  esperanza/validation.cpp \
   esperanza/proposer.cpp \
   esperanza/init.cpp \
   esperanza/proposerthread.cpp \
+  esperanza/stakevalidation.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   unilib/uninorms.cpp \

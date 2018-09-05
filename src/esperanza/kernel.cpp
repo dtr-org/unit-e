@@ -10,7 +10,7 @@
 #include <coins.h>
 #include <consensus/validation.h>
 #include <esperanza/kernel.h>
-#include <esperanza/validation.h>
+#include <esperanza/stakevalidation.h>
 #include <hash.h>
 #include <policy/policy.h>
 #include <script/interpreter.h>

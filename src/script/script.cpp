@@ -131,8 +131,8 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP1                   : return "OP_NOP1";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
-    case OP_NOP4                   : return "OP_NOP4";
-    case OP_NOP5                   : return "OP_NOP5";
+    case OP_CHECKVOTESIG           : return "OP_CHECKVOTESIG";
+    case OP_SLASHABLE              : return "OP_SLASHABLE";
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
     case OP_NOP8                   : return "OP_NOP8";
@@ -208,6 +208,80 @@ bool CScript::IsPayToPublicKeyHash() const
         (*this)[2] == 0x14 &&
         (*this)[23] == OP_EQUALVERIFY &&
         (*this)[24] == OP_CHECKSIG);
+}
+
+CScript CScript::CreatePayVoteSlashScript(CPubKey pubkey)
+{
+    return CScript() <<
+                     ToByteVector(pubkey) <<
+                     OP_CHECKVOTESIG <<
+
+                     OP_IF << OP_TRUE << OP_ELSE <<
+
+                     OP_DUP <<
+                     OP_HASH160 <<
+                     ToByteVector(pubkey.GetID()) <<
+                     OP_EQUALVERIFY <<
+                     OP_CHECKSIG <<
+
+                     OP_NOTIF <<
+
+                     ToByteVector(pubkey) <<
+                     OP_SLASHABLE <<
+
+                     OP_ENDIF <<
+                     OP_ENDIF;
+}
+
+bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
+{
+    // Extra-fast test for pay-to-script-hash CScripts:
+    return (this->size() - ofs >= 25 &&
+        (*this)[ofs + 0] == OP_DUP &&
+        (*this)[ofs + 1] == OP_HASH160 &&
+        (*this)[ofs + 2] == 0x14 &&
+        (*this)[ofs + 23] == OP_EQUALVERIFY &&
+        (*this)[ofs + 24] == OP_CHECKSIG);
+}
+
+bool CScript::MatchPayVoteSlashScript(size_t ofs) const
+{
+    // Extra-fast test for pay-vote-slash script hash CScripts:
+    return (this->size() - ofs == 101 &&
+        this->MatchVoteScript(0) &&
+
+        (*this)[ofs + 35] == OP_IF &&
+        (*this)[ofs + 36] == OP_TRUE &&
+
+        (*this)[ofs + 37] == OP_ELSE &&
+
+        this->MatchPayToPublicKeyHash(38) &&
+
+        (*this)[ofs + 63] == OP_NOTIF &&
+
+        this->MatchSlashScript(64) &&
+
+        (*this)[ofs + 99] == OP_ENDIF &&
+        (*this)[ofs + 100] == OP_ENDIF);
+}
+
+bool CScript::IsPayVoteSlashScript() const
+{
+    return (this->size() == 101 && this->MatchPayVoteSlashScript(0));
+}
+
+bool CScript::MatchVoteScript(size_t ofs) const
+{
+    return (this->size() - ofs >= 35 &&
+        (*this)[ofs + 0] == 0x21 &&
+        (*this)[ofs + 34] == OP_CHECKVOTESIG);
+}
+
+bool CScript::MatchSlashScript(size_t ofs) const
+{
+    return (this->size() - ofs >= 35 &&
+        (*this)[ofs + 0] == 0x21 &&
+        (*this)[ofs + 34] == OP_SLASHABLE);
 }
 
 bool CScript::IsPayToScriptHash() const
@@ -290,4 +364,76 @@ bool CScript::HasValidOps() const
         }
     }
     return true;
+}
+
+
+//UNIT-E: this can be probably optimized for faster access
+esperanza::Vote CScript::DecodeVote(const CScript &script)
+{
+    esperanza::Vote vote;
+    CScript::const_iterator it = script.begin();
+    opcodetype opcode;
+
+    std::vector<unsigned char> deposit;
+    script.GetOp(it, opcode, deposit);
+    uint256 depositTx(deposit);
+
+    std::vector<unsigned char> target;
+    script.GetOp(it, opcode, target);
+    uint256 targetHash(target);
+
+    std::vector<unsigned char> sourceEpochVec;
+    script.GetOp(it, opcode, sourceEpochVec);
+    uint32_t sourceEpoch = 0;
+    for (size_t i = 0; i < sourceEpochVec.size(); i++) {
+        sourceEpoch |= sourceEpochVec[i] << 8*i;
+    }
+    std::vector<unsigned char> targetEpochVec;
+    script.GetOp(it, opcode, targetEpochVec);
+    uint32_t targetEpoch = 0;
+    for (size_t i = 0; i < targetEpochVec.size(); i++) {
+        targetEpoch |= targetEpochVec[i] << 8*i;
+    }
+    vote.m_validatorIndex = depositTx;
+    vote.m_targetHash = targetHash;
+    vote.m_sourceEpoch = sourceEpoch;
+    vote.m_targetEpoch = targetEpoch;
+
+    return vote;
+}
+
+CScript CScript::EncodeVote(const esperanza::Vote &data)
+{
+    return CScript() << ToByteVector(data.m_validatorIndex)
+                     << ToByteVector(data.m_targetHash)
+                     << CScriptNum::serialize(data.m_sourceEpoch)
+                     << CScriptNum::serialize(data.m_targetEpoch);
+}
+
+esperanza::Vote CScript::ExtractVoteFromWitness(const CScriptWitness &witness)
+{
+    CScriptWitness wt{witness};
+
+    //We want to skip the first element since is the signature of the vote content
+    auto it = ++(wt.stack.begin());
+    CScript voteScript(it->begin(), it->end());
+
+    return DecodeVote(voteScript);
+}
+
+esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig)
+{
+    const_iterator pc = scriptSig.begin();
+    std::vector<unsigned char> vData;
+    opcodetype opcode;
+
+    //Skip the first value (voteSig)
+    scriptSig.GetOp(pc, opcode);
+
+    while (pc != scriptSig.end()) {
+        scriptSig.GetOp(pc, opcode, vData);
+    }
+
+    CScript voteScript(vData.begin(), vData.end());
+    return DecodeVote(voteScript);
 }

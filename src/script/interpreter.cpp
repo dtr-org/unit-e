@@ -427,7 +427,32 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     break;
                 }
 
-                case OP_NOP1: case OP_NOP4: case OP_NOP5:
+                //UNIT-E: implement OP logic
+                case OP_CHECKVOTESIG:
+                {
+                    popstack(stack);
+                    popstack(stack);
+                    popstack(stack);
+                    CScriptNum bn(OP_TRUE);
+                    stack.push_back(bn.getvch());
+                }
+                break;
+
+                //UNIT-E: implement OP logic
+                case OP_SLASHABLE:
+                {
+                    popstack(stack);
+                    popstack(stack);
+                    popstack(stack);
+                    popstack(stack);
+                    popstack(stack);
+                    CScriptNum bn(OP_TRUE);
+                    stack.push_back(bn.getvch());
+                }
+                break;
+
+                case OP_NOP1:
+                //case OP_NOP4: case OP_NOP5:
                 case OP_NOP6: case OP_NOP7: case OP_NOP8: case OP_NOP9: case OP_NOP10:
                 {
                     if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_NOPS)
@@ -1191,6 +1216,12 @@ uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsig
 {
     assert(nIn < txTo.vin.size());
 
+    //UNIT-E: quite ugly workaround to sign the vote from the scriptsig
+    CScript script = scriptCode;
+    if (txTo.IsVote()) {
+        script = txTo.vin[0].scriptSig;
+    }
+
     if (sigversion == SIGVERSION_WITNESS_V0) {
         uint256 hashPrevouts;
         uint256 hashSequence;
@@ -1224,7 +1255,7 @@ uint256 SignatureHash(const CScript& scriptCode, const CTransaction& txTo, unsig
         // The prevout may already be contained in hashPrevout, and the nSequence
         // may already be contain in hashSequence.
         ss << txTo.vin[nIn].prevout;
-        ss << scriptCode;
+        ss << script;
         ss << amount;
         ss << txTo.vin[nIn].nSequence;
         // Outputs (none/one/all, depending on flags)
@@ -1581,4 +1612,9 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     }
 
     return 0;
+}
+
+bool IsPayVoteSlashScript(const CScript &script)
+{
+    return script.IsPayVoteSlashScript();
 }

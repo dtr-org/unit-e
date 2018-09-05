@@ -3,23 +3,20 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#ifndef UNITE_ESPERANZA_VALIDATION_H
+#define UNITE_ESPERANZA_VALIDATION_H
 
-#ifndef UNIT_E_VALIDATION_H
-#define UNIT_E_VALIDATION_H
-
+#include <consensus/validation.h>
+#include <chain.h>
 #include <primitives/block.h>
 
 namespace esperanza {
 
-bool HasIsCoinstakeOp(const CScript &scriptIn);
+bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
+                             const CBlockIndex *pindex = nullptr);
 
-bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut);
-
-bool CheckStakeUnused(const COutPoint &kernel);
-
-bool CheckStakeUnique(const CBlock &block, bool update);
-
-int GetNumBlocksOfPeers();
+bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
+                          const CBlockIndex *pindex = nullptr);
 
 } // namespace esperanza
 

@@ -31,6 +31,7 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TX_WITNESS_UNKNOWN: return "witness_unknown";
+    case TX_PAYVOTESLASH: return "payvoteslash";
     }
     return nullptr;
 }
@@ -59,6 +60,13 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
     {
         typeRet = TX_SCRIPTHASH;
         std::vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.begin()+22);
+        vSolutionsRet.push_back(hashBytes);
+        return true;
+    }
+
+    if (scriptPubKey.IsPayVoteSlashScript()){
+        typeRet = TX_PAYVOTESLASH;
+        std::vector<unsigned char> hashBytes(scriptPubKey.begin()+1, scriptPubKey.begin()+34);
         vSolutionsRet.push_back(hashBytes);
         return true;
     }
@@ -221,6 +229,13 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         std::copy(vSolutions[1].begin(), vSolutions[1].end(), unk.program);
         unk.length = vSolutions[1].size();
         addressRet = unk;
+        return true;
+    } else if (whichType == TX_PAYVOTESLASH) {
+        CPubKey pubKey(vSolutions[0]);
+        if (!pubKey.IsValid())
+          return false;
+
+        addressRet = pubKey.GetID();
         return true;
     }
     // Multisig txns have more than one address...
