@@ -3,209 +3,231 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <esperanza/proposer.h>
+
 #include <address/address.h>
 #include <chainparams.h>
 #include <esperanza/kernel.h>
-#include <esperanza/proposer.h>
-#include <esperanza/proposerthread.h>
 #include <esperanza/stakevalidation.h>
-#include <rpc/blockchain.h>
+#include <net.h>
 #include <script/script.h>
-#include <validation.h>
-
+#include <timedata.h>
 #include <util.h>
 #include <utilmoneystr.h>
+#include <validation.h>
+#include <wallet/wallet.h>
 
 #include <atomic>
+#include <chrono>
 #include <memory>
+#include "proposer.h"
 
 namespace esperanza {
 
-double GetPoSKernelPS() {
-  LOCK(cs_main);
+Proposer::Thread::Thread(const std::string &threadName, const Config &config,
+                         const std::vector<CWallet *> &wallets,
+                         Semaphore &initSemaphore, Semaphore &startSemaphore,
+                         Semaphore &stopSemaphore)
+    : m_threadName(threadName),
+      m_config(config),
+      m_interrupted(false),
+      m_waiter(),
+      m_wallets(wallets),
+      m_initSemaphore(initSemaphore),
+      m_startSemaphore(startSemaphore),
+      m_stopSemaphore(stopSemaphore),
+      m_thread(std::thread{Proposer::Run, std::ref(*this)}) {}
 
-  CBlockIndex *pindex = chainActive.Tip();
-  CBlockIndex *pindexPrevStake = nullptr;
-
-  int nBestHeight = pindex->nHeight;
-
-  int nPoSInterval = 72;  // blocks sampled
-  double dStakeKernelsTriedAvg = 0;
-  int nStakesHandled = 0, nStakesTime = 0;
-
-  while (pindex && nStakesHandled < nPoSInterval) {
-    if (pindexPrevStake) {
-      dStakeKernelsTriedAvg += GetDifficulty(pindexPrevStake) * 4294967296.0;
-      nStakesTime += pindexPrevStake->nTime - pindex->nTime;
-      nStakesHandled++;
-    }
-    pindexPrevStake = pindex;
-    pindex = pindex->pprev;
-  }
-
-  double result = 0;
-
-  if (nStakesTime) {
-    result = dStakeKernelsTriedAvg / nStakesTime;
-  }
-
-  result *= ::Params().GetEsperanza().GetStakeTimestampMask(nBestHeight) + 1;
-
-  return result;
+void Proposer::Thread::Stop() {
+  m_thread.detach();
+  m_interrupted = true;
+  Wake();
 }
 
-bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID) {
-  if (scriptPubKey.IsPayToPublicKeyHash()) {
-    keyID = CKeyID(uint160(&scriptPubKey[3], 20));
-    return true;
+void Proposer::Thread::Wake() { m_waiter.WakeOne(); }
+
+void Proposer::Thread::SetStatus(const Proposer::Status status,
+                                 CWallet *const wallet) {
+  if (wallet) {
+    wallet->GetWalletExtension().m_proposerState.m_status = status;
+  } else {
+    for (CWallet *w : m_wallets) {
+      SetStatus(status, w);
+    }
   }
-  return false;
 }
 
-bool CheckStake(CBlock *pblock) {
-  uint256 proofHash, hashTarget;
-  uint256 hashBlock = pblock->GetHash();
+std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
+    const Config &config, const std::vector<CWallet *> &wallets,
+    Semaphore &initSemaphore, Semaphore &startSemaphore,
+    Semaphore &stopSemaphore) {
+  // total number of threads can not exceed number of wallets
+  const size_t numThreads = std::min(
+      wallets.size(), std::max<size_t>(1, config.m_numberOfProposerThreads));
 
-  if (!pblock->IsProofOfStake()) {
-    return error("%s: %s is not a proof-of-stake block.", __func__,
-                 hashBlock.GetHex());
-  }
-  if (!esperanza::CheckStakeUnique(*pblock,
-                                   false)) {  // Check in SignBlock also
-    return error("%s: %s CheckStakeUnique failed.", __func__,
-                 hashBlock.GetHex());
-  }
+  LogPrintf("creating %d proposer threads (%d requested, %d wallets)...\n",
+            numThreads, config.m_numberOfProposerThreads, wallets.size());
 
-  BlockMap::const_iterator mi = mapBlockIndex.find(pblock->hashPrevBlock);
-  if (mi == mapBlockIndex.end()) {
-    return error("%s: %s prev block not found: %s.", __func__,
-                 hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
-  }
-  if (!chainActive.Contains(mi->second)) {
-    return error("%s: %s prev block in active chain: %s.", __func__,
-                 hashBlock.GetHex(), pblock->hashPrevBlock.GetHex());
-  }
-  // verify hash target and signature of coinstake tx
-  if (!esperanza::CheckProofOfStake(mi->second, *pblock->vtx[0], pblock->nTime,
-                                    pblock->nBits, proofHash, hashTarget)) {
-    return error("%s: proof-of-stake checking failed.", __func__);
+  using WalletIndex = size_t;
+  using ThreadIndex = size_t;
+
+  // mapping of which thread is responsible for which wallet
+  std::multimap<ThreadIndex, WalletIndex> indexMap;
+
+  // distribute wallets across threads
+  for (WalletIndex walletIx = 0; walletIx < numThreads; ++walletIx) {
+    indexMap.insert({walletIx % numThreads, walletIx});
   }
 
-  // debug print
-  LogPrintf(
-      "CheckStake(): New proof-of-stake block found  \n  hash: %s \nproofhash: "
-      "%s  \ntarget: %s\n",
-      hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
-  if (LogAcceptCategory(BCLog::POS)) {
-    LogPrintf("block %s\n", pblock->ToString());
-    LogPrintf("out %s\n", FormatMoney(pblock->vtx[0]->GetValueOut()));
+  // create thread objects
+  std::vector<std::unique_ptr<Proposer::Thread>> threads;
+  for (ThreadIndex threadIx = 0; threadIx < numThreads; ++threadIx) {
+    std::vector<CWallet *> thisThreadsWallets;
+    auto walletRange = indexMap.equal_range(threadIx);
+    for (auto entry = walletRange.first; entry != walletRange.second; ++entry) {
+      thisThreadsWallets.push_back(wallets[entry->second]);
+    }
+    const std::string threadName =
+        config.m_proposerThreadName + "-" + std::to_string(threadIx);
+    threads.emplace_back(std::unique_ptr<Proposer::Thread>(
+        new Proposer::Thread(threadName, config, thisThreadsWallets,
+                             initSemaphore, startSemaphore, stopSemaphore)));
   }
 
-  {
-    LOCK(cs_main);
-    if (pblock->hashPrevBlock !=
-        chainActive.Tip()->GetBlockHash())  // hashbestchain
-      return error("%s: Generated block is stale.", __func__);
-  }
+  initSemaphore.acquire(numThreads);
+  LogPrintf("%d proposer threads initialized.\n", numThreads);
 
-  std::shared_ptr<const CBlock> shared_pblock =
-      std::make_shared<const CBlock>(*pblock);
-  if (!ProcessNewBlock(::Params(), shared_pblock, true, nullptr)) {
-    return error("%s: Block not accepted.", __func__);
-  }
-  return true;
+  return threads;
 }
 
-bool ImportOutputs(CBlockTemplate *pblocktemplate, int nHeight) {
-  LogPrint(BCLog::POS, "%s, nHeight %d\n", __func__, nHeight);
+Proposer::Proposer(const Config &config, const std::vector<CWallet *> &wallets)
+    : m_initSemaphore(0),
+      m_startSemaphore(0),
+      m_stopSemaphore(0),
+      m_threads(CreateProposerThreads(config, wallets, m_initSemaphore,
+                                      m_startSemaphore, m_stopSemaphore)) {}
 
-  CBlock *pblock = &pblocktemplate->block;
-  if (pblock->vtx.size() < 1) {
-    return error("%s: Malformed block.", __func__);
+void Proposer::Start() {
+  LogPrintf("starting %d proposer threads...\n", m_threads.size());
+  m_startSemaphore.release(m_threads.size());
+}
+
+void Proposer::Stop() {
+  LogPrint(BCLog::ESPERANZA, "stopping %d proposer threads...\n",
+           m_threads.size());
+  for (const auto &thread : m_threads) {
+    thread->Stop();
   }
+  m_stopSemaphore.acquire(m_threads.size());
+  LogPrint(BCLog::ESPERANZA, "all proposer threads exited.\n");
+}
 
-  fs::path fPath = GetDataDir() / "genesisOutputs.txt";
-
-  if (!fs::exists(fPath)) {
-    return error("%s: File not found 'genesisOutputs.txt'.", __func__);
+void Proposer::Run(Proposer::Thread &thread) {
+  LogPrint(BCLog::ESPERANZA, "%s: initialized.\n", thread.m_threadName.c_str());
+  for (const auto wallet : thread.m_wallets) {
+    LogPrint(BCLog::ESPERANZA, "  responsible for: %s\n", wallet->GetName());
   }
+  thread.m_initSemaphore.release();
+  thread.m_startSemaphore.acquire();
+  LogPrint(BCLog::ESPERANZA, "%s: started.\n", thread.m_threadName.c_str());
 
-  const int nMaxOutputsPerTxn = 80;
-  FILE *fp;
-  errno = 0;
-  if (!(fp = fopen(fPath.string().c_str(), "rb")))
-    return error("%s - Can't open file, strerror: %s.", __func__,
-                 strerror(errno));
+  while (!thread.m_interrupted) {
+    try {
+      if (fReindex) {
+        thread.SetStatus(Status::NOT_PROPOSING_REINDEXING);
+        continue;
+      }
+      if (fImporting) {
+        thread.SetStatus(Status::NOT_PROPOSING_IMPORTING);
+        continue;
+      }
+      if (IsInitialBlockDownload()) {
+        thread.SetStatus(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
+        continue;
+      }
+      if (g_connman->GetNodeCount() == 0) {
+        thread.SetStatus(Status::NOT_PROPOSING_NO_PEERS);
+        continue;
+      }
 
-  CMutableTransaction txn;
-  txn.SetVersion(0);  // todo: define version number fields
-  // txn.SetType(TXN_COINBASE);
-  txn.nLockTime = 0;
-  txn.vin.push_back(CTxIn());  // null prevout
+      int bestHeight;
+      int64_t bestTime;
 
-  // scriptsig len must be > 2
-  const char *s = "import";
-  txn.vin[0].scriptSig =
-      CScript() << std::vector<unsigned char>(
-          (const unsigned char *)s, (const unsigned char *)s + strlen(s));
+      {
+        LOCK(cs_main);
+        bestHeight = chainActive.Height();
+        bestTime = chainActive.Tip()->nTime;
+      }
 
-  int nOutput = 0, nAdded = 0;
-  char cLine[512];
-  char *pAddress, *pAmount;
+      // UNIT-E: respect thread.m_config.m_minProposeInterval
 
-  while (fgets(cLine, 512, fp)) {
-    cLine[511] = '\0';  // safety
-    size_t len = strlen(cLine);
-    while (isspace(cLine[len - 1]) && len > 0) {
-      cLine[len - 1] = '\0', len--;
-    }
+      int64_t currentTime = GetAdjustedTime();
+      int64_t mask = ::Params().EsperanzaParams().GetStakeTimestampMask();
+      int64_t searchTime = currentTime & ~mask;
 
-    if (!(pAddress = strtok(cLine, ",")) || !(pAmount = strtok(nullptr, ","))) {
-      continue;
-    }
-    nOutput++;
-    if (nOutput <= nMaxOutputsPerTxn * (nHeight - 1)) {
-      continue;
-    }
-    errno = 0;
-    uint64_t amount = strtoull(pAmount, nullptr, 10);
-    if (errno || !MoneyRange(amount)) {
-      LogPrintf("Warning: %s - Skipping invalid amount: %s, %s\n", __func__,
-                pAmount, strerror(errno));
-      continue;
-    }
+      if (searchTime < bestTime) {
+        if (currentTime < bestTime) {
+          // lagging behind - can't propose before most recent block
+          std::chrono::seconds lag =
+              std::chrono::seconds(bestTime - currentTime);
+          thread.Sleep(lag);
+        } else {
+          // due to timestamp mask time was truncated to a point before best
+          // block time
+          int64_t nextSearch = searchTime + mask;
+          std::chrono::seconds timeTillNextSearch =
+              std::chrono::seconds(nextSearch - currentTime);
+          thread.Sleep(timeTillNextSearch);
+        }
+        continue;
+      }
 
-    std::string addrStr(pAddress);
-    address::Address addr(addrStr);
+      for (CWallet *wallet : thread.m_wallets) {
+        auto &walletExt = wallet->GetWalletExtension();
 
-    CKeyID id;
-    if (!addr.IsValid() || !addr.GetKeyID(id)) {
-      LogPrintf("Warning: %s - Skipping invalid address: %s\n", __func__,
-                pAddress);
-      continue;
-    }
+        if (wallet->IsLocked()) {
+          thread.SetStatus(Status::NOT_PROPOSING_WALLET_LOCKED, wallet);
+          continue;
+        }
+        if (walletExt.GetStakeableBalance() <= walletExt.m_reserveBalance) {
+          thread.SetStatus(Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE, wallet);
+          continue;
+        }
 
-    CScript script = CScript() << OP_DUP << OP_HASH160 << ToByteVector(id)
-                               << OP_EQUALVERIFY << OP_CHECKSIG;
-    CTxOut txout(amount, script);
-    txn.vout.push_back(txout);
+        thread.SetStatus(Status::IS_PROPOSING, wallet);
 
-    nAdded++;
-    if (nAdded >= nMaxOutputsPerTxn) {
-      break;
+        CScript coinbaseScript;
+        std::unique_ptr<CBlockTemplate> blockTemplate =
+            BlockAssembler(::Params())
+                .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
+
+        if (!blockTemplate) {
+          LogPrint(BCLog::ESPERANZA, "failed to get block template in %s",
+                   __func__);
+          continue;
+        }
+
+        if (walletExt.SignBlock(blockTemplate.get(), bestHeight + 1,
+                                searchTime)) {
+          if (!ProposeBlock(blockTemplate->block)) {
+            continue;
+          }
+          // set last proposing time
+          break;
+        }
+      }
+
+      thread.m_waiter.WaitUpTo(
+          std::chrono::seconds(30));  // stub for testing for now
+    } catch (const std::runtime_error &error) {
+      LogPrint(BCLog::ESPERANZA, "exception in proposer thread: %s\n",
+               error.what());
+    } catch (...) {
+      LogPrint(BCLog::ESPERANZA, "unknown exception in proposer thread.\n");
     }
   }
-
-  fclose(fp);
-
-  uint256 hash = txn.GetHash();
-  if (!::Params().CheckImportCoinbase(nHeight, hash)) {
-    return error("%s - Incorrect outputs hash.", __func__);
-  }
-
-  pblock->vtx.insert(pblock->vtx.begin() + 1, MakeTransactionRef(txn));
-
-  return true;
-};
+  LogPrint(BCLog::ESPERANZA, "%s: stopping...\n", thread.m_threadName.c_str());
+  thread.m_stopSemaphore.release();
+}
 
 }  // namespace esperanza

@@ -105,12 +105,11 @@ UNITE_CORE_H = \
   esperanza/init.h \
   esperanza/kernel.h \
   esperanza/proposer.h \
+  esperanza/proposer_init.h \
   esperanza/params.h \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/stakevalidation.h \
-  esperanza/proposerthread.h \
-  esperanza/proposerstate.h \
   esperanza/validation.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
@@ -166,6 +165,7 @@ UNITE_CORE_H = \
   script/sign.h \
   script/standard.h \
   script/ismine.h \
+  semaphore.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -192,6 +192,7 @@ UNITE_CORE_H = \
   validation.h \
   validationinterface.h \
   versionbits.h \
+  waiter.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
   wallet/db.h \
@@ -283,10 +284,10 @@ libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   address/address.cpp \
+  esperanza/init.cpp \
   esperanza/kernel.cpp \
   esperanza/proposer.cpp \
-  esperanza/init.cpp \
-  esperanza/proposerthread.cpp \
+  esperanza/proposer_init.cpp \
   esperanza/stakevalidation.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
@@ -411,12 +412,14 @@ libunite_util_a_SOURCES = \
   rpc/protocol.cpp \
   rpc/util.cpp \
   support/cleanse.cpp \
+  semaphore.cpp \
   sync.cpp \
   threadinterrupt.cpp \
   util.cpp \
   utilmoneystr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
+  waiter.cpp \
   $(UNITE_CORE_H)
 
 if GLIBC_BACK_COMPAT
@@ -449,6 +452,7 @@ united_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_WALLET) \
+  $(LIBUNITE_UTIL) \
   $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \

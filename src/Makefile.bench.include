@@ -51,7 +51,10 @@ endif
 
 if ENABLE_WALLET
 bench_bench_unite_SOURCES += bench/coin_selection.cpp
-bench_bench_unite_LDADD += $(LIBUNITE_WALLET) $(LIBUNITE_CRYPTO)
+bench_bench_unite_LDADD += \
+    $(LIBUNITE_WALLET) \
+    $(LIBUNITE_CRYPTO) \
+    $(LIBUNITE_UTIL)
 endif
 
 bench_bench_unite_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)

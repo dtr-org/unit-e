@@ -2,18 +2,17 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ESPERANZA_WALLETEXT_STAKINGWALLETEXTENSION_H
-#define UNITE_ESPERANZA_WALLETEXT_STAKINGWALLETEXTENSION_H
+#ifndef UNITE_ESPERANZA_WALLETEXTENSION_H
+#define UNITE_ESPERANZA_WALLETEXTENSION_H
 
 #include <amount.h>
-#include <esperanza/proposerstate.h>
 #include <esperanza/validatorstate.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
 #include <primitives/transaction.h>
+#include <esperanza/proposer.h>
 
-#include <esperanza/proposerthread.h>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -30,34 +29,20 @@ namespace esperanza {
 //! in bitcoin-core. The alterations done to wallet.h/wallet.cpp are kept to
 //! a minimum. All extended functionality should be put here.
 class WalletExtension {
-  friend class esperanza::ProposerThread;
+  friend class esperanza::Proposer;
 
  private:
   //! The wallet this extension is embedded in.
   CWallet *m_enclosingWallet;
 
-  //! The current state of this wallet with regards to staking.
-  ProposerState m_proposerState = ProposerState::NOT_PROPOSING;
+  //! a miminum amount (in satoshis) to keep (will not be used for staking).
+  CAmount m_reserveBalance;
 
-  int64_t m_lastCoinStakeSearchTime = 0;
-
-  //! A miminum amount (in satoshis) to keep (will not be used for staking).
-  int64_t m_reserveBalance;
-
-  //! Which stake thread is mining on this wallet (max = uninitialized)
-  size_t m_stakeThreadIndex = std::numeric_limits<size_t>::max();
-
-  //! for stake mining
+  //! for selecting available coins for proposing
   int m_deepestTxnDepth = 0;
 
-  //! for regtest, don't stake above nStakeLimitHeight
-  int m_stakeLimitHeight = 0;
-
-  CAmount m_stakeCombineThreshold = 1000 * UNIT;
-
-  CAmount m_stakeSplitThreshold = 2000 * UNIT;
-
-  size_t m_maxStakeCombine = 3;
+  //! the state of proposing blocks from this wallet
+  Proposer::State m_proposerState;
 
   void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                     const CBlockIndex *pindex);
@@ -72,17 +57,6 @@ class WalletExtension {
   //! @param enclosingWallet The CWallet that this WalletExtension extends (must
   //! not be nullptr).
   WalletExtension(::CWallet *enclosingWallet);
-
-  //! \brief which proposer thread this wallet maps to
-  //!
-  //! Each Wallet is mapped to a proposer thread (when proposing/staking).
-  //! There is always at least one proposer thread. Multiple wallets may be
-  //! mapped to the same thread. There are never more proposer threads then
-  //! wallets.
-  //!
-  //! @return The index of the proposer thread that uses this wallet for
-  //! proposing new blocks.
-  size_t GetProposerThreadIndex() const;
 
   CAmount GetStakeableBalance() const;
 
@@ -120,4 +94,4 @@ class WalletExtension {
 
 }  // namespace esperanza
 
-#endif  // UNITE_ESPERANZA_WALLETEXT_STAKINGWALLETEXTENSION_H
+#endif  // UNITE_ESPERANZA_WALLETEXTENSION_H

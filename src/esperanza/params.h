@@ -35,9 +35,7 @@ class Params final {
   uint32_t m_targetTimespan;
 
   //! bitmask of 4 bits, every kernel stake hash will change every 16 seconds
-  uint32_t m_stakeTimestampMask = (1 << 4) - 1;
-
-  uint32_t m_lastImportHeight;
+  int64_t m_stakeTimestampMask = (1 << 4) - 1;
 
   int64_t m_coinYearReward = 2 * EEES; // 2% per year
 
@@ -53,9 +51,7 @@ class Params final {
 
   uint32_t GetTargetTimespan() const;
 
-  uint32_t GetStakeTimestampMask(int nHeight) const;
-
-  uint32_t GetLastImportHeight() const;
+  int64_t GetStakeTimestampMask() const;
 
   int64_t GetCoinYearReward(int64_t nTime) const;
 

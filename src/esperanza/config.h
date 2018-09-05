@@ -2,38 +2,37 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
 #ifndef UNITE_ESPERANZA_CONFIG_H
 #define UNITE_ESPERANZA_CONFIG_H
 
 #include <util.h>
+
+#include <chrono>
 #include <cstddef>
 
 namespace esperanza {
 
 struct Config {
-
-  //! Whether this node should stake or not.
-  bool m_staking;
+  //! Whether this node should propose blocks or not.
+  bool m_proposing = true;
 
   //! How many thread to use for staking. At least 1, at most number of wallets.
-  size_t m_numberOfStakeThreads;
+  size_t m_numberOfProposerThreads = 1;
 
-  int64_t m_minerSleep;
+  std::chrono::milliseconds m_proposerSleep = std::chrono::seconds(30);
 
-  int64_t m_minStakeInterval;
+  //! Minimum interval between proposing blocks
+  std::chrono::milliseconds m_minProposeInterval = std::chrono::milliseconds(0);
 
-  Config(bool staking, size_t numberOfStakeThreads, int64_t minerSleep, int64_t minStakeInterval) noexcept;
+  std::string m_proposerThreadName = "proposer";
 
   Config(::ArgsManager &args, Config defaultConfig = Config());
 
-  Config() noexcept;
-
+  // clang-tidy recommends `Config() noexcept = default`, but then `clang`
+  // [sic!] fails to compile it. Removing the `noexcept` makes it work, but.
+  Config() noexcept {};  // NOLINT(modernize-use-equals-default)
 };
 
-// todo: get rid of global config in favor of injecting it into components for better testing
-extern Config g_config;
+}  // namespace esperanza
 
-} // namespace esperanza
-
-#endif // UNITE_ESPERANZA_CONFIG_H
+#endif  // UNITE_ESPERANZA_CONFIG_H
