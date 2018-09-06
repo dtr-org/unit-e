@@ -24,7 +24,7 @@ enum class Result {
   DEPOSIT_INSUFFICIENT,
   DEPOSIT_ALREADY_VALIDATOR,
   VOTE_MALFORMED,
-  VOTE_NOT_A_VALIDATOR,
+  VOTE_NOT_BY_VALIDATOR,
   VOTE_NOT_VOTABLE,
   VOTE_ALREADY_VOTED,
   VOTE_WRONG_TARGET_HASH,
@@ -67,7 +67,7 @@ class FinalizationState {
                           const CAmount& requiredWithdraw) const;
   void ProcessWithdraw(const uint256& validatorIndex);
 
-  Result IsSlashable(Vote& vote1, Vote& vote2) const;
+  Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
   void ProcessSlash(const Vote& vote1, const Vote& vote2, CAmount& slashingBountyOut);
 
   uint32_t GetLastJustifiedEpoch() const;

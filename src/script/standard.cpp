@@ -232,8 +232,9 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         return true;
     } else if (whichType == TX_PAYVOTESLASH) {
         CPubKey pubKey(vSolutions[0]);
-        if (!pubKey.IsValid())
+        if (!pubKey.IsValid()) {
           return false;
+        }
 
         addressRet = pubKey.GetID();
         return true;

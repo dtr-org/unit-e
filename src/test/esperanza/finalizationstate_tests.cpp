@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_no_deposit) {
   EsperanzaStateSpy spy;
   Vote vote{};
 
-  BOOST_CHECK(spy.ValidateVote(vote) == Result::VOTE_NOT_A_VALIDATOR);
+  BOOST_CHECK(spy.ValidateVote(vote) == Result::VOTE_NOT_BY_VALIDATOR);
 }
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {

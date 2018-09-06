@@ -34,7 +34,7 @@ inline Result fail(Result error, const char *fmt, const Args &... args) {
   return error;
 }
 
-inline Result success() { return Result::SUCCESS; }
+Result success() { return Result::SUCCESS; }
 
 FinalizationState::FinalizationState(
     const esperanza::FinalizationParams &params)
@@ -71,7 +71,7 @@ FinalizationState::FinalizationState(
 esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
   LOCK(cs_esperanza);
 
-  auto newEpoch = (uint32_t)(blockHeight / EPOCH_LENGTH);
+  auto newEpoch = static_cast<uint32_t>(blockHeight) / EPOCH_LENGTH;
 
   if (newEpoch != m_currentEpoch + 1) {
     return fail(esperanza::Result::INIT_WRONG_EPOCH,
@@ -400,7 +400,7 @@ void FinalizationState::ProcessDeposit(const uint256 &validatorIndex,
 
   uint32_t startDynasty = m_currentDynasty + 2;
   uint64_t scaledDeposit = ufp64::div_to_uint(
-      (uint64_t)depositValue, m_depositScaleFactor[m_currentEpoch]);
+      static_cast<uint64_t>(depositValue), m_depositScaleFactor[m_currentEpoch]);
 
   m_validators.insert(std::pair<uint256, Validator>(
       validatorIndex, Validator(scaledDeposit, startDynasty, validatorIndex)));
@@ -426,8 +426,8 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
 
   auto it = m_validators.find(vote.m_validatorIndex);
   if (it == m_validators.end()) {
-    return fail(esperanza::Result::VOTE_NOT_A_VALIDATOR,
-                "%s: Validator with deposit hash of %s not found.\n", __func__,
+    return fail(esperanza::Result::VOTE_NOT_BY_VALIDATOR,
+                "%s: No validator with deposit hash of %s found.\n", __func__,
                 vote.m_validatorIndex.GetHex());
   }
 
@@ -454,7 +454,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
   const uint256 &validatorIndex = vote.m_validatorIndex;
   uint32_t sourceEpoch = vote.m_sourceEpoch;
   uint32_t targetEpoch = vote.m_targetEpoch;
-  Validator &validator = m_validators[validatorIndex];
+  const Validator &validator = m_validators[validatorIndex];
 
   bool inCurDynasty = IsInDynasty(validator, m_currentDynasty);
   bool inPrevDynasty = IsInDynasty(validator, m_currentDynasty - 1);
@@ -527,7 +527,7 @@ esperanza::Result FinalizationState::ValidateLogout(
   auto it = m_validators.find(validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::LOGOUT_NOT_A_VALIDATOR,
-                "%s: Validator with deposit hash of %s not found.\n", __func__,
+                "%s: No validator with deposit hash of %s found.\n", __func__,
                 validatorIndex.GetHex());
   }
 
@@ -581,11 +581,11 @@ esperanza::Result FinalizationState::ValidateWithdraw(
   auto it = m_validators.find(validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::WITHDRAW_NOT_A_VALIDATOR,
-                "%s: Validator with deposit hash of %s not found.\n", __func__,
+                "%s: No validator with deposit hash of %s found.\n", __func__,
                 validatorIndex.GetHex());
   }
 
-  auto &validator = it->second;
+  const auto &validator = it->second;
 
   uint32_t endDynasty = validator.m_endDynasty;
 
@@ -666,14 +666,14 @@ void FinalizationState::ProcessWithdraw(const uint256 &validatorIndex) {
  * @param vote2 the second vote.
  * @return true if the voter is slashable, false otherwise
  */
-esperanza::Result FinalizationState::IsSlashable(Vote &vote1,
-                                                 Vote &vote2) const {
+esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
+                                                 const Vote &vote2) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(vote1.m_validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::SLASH_NOT_A_VALIDATOR,
-                "%s: Validator with deposit hash of %s not found.\n", __func__,
+                "%s: No validator with deposit hash of %s found.\n", __func__,
                 vote1.m_validatorIndex.GetHex());
   }
   const Validator &validator1 = it->second;
@@ -681,7 +681,7 @@ esperanza::Result FinalizationState::IsSlashable(Vote &vote1,
   it = m_validators.find(vote2.m_validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::SLASH_NOT_A_VALIDATOR,
-                "%s: Validator with deposit hash of %s not found.\n", __func__,
+                "%s: No validator with deposit hash of %s found.\n", __func__,
                 vote2.m_validatorIndex.GetHex());
   }
   const Validator &validator2 = it->second;
@@ -797,7 +797,7 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
  * This method should return the right State instance that represents
  * the block before the given block. This method is gonna be used mostly
  * @param block
- * @return
+ * @return the state for the chain tip passed
  */
 FinalizationState *FinalizationState::GetState(const CBlockIndex &blockIndex) {
   // UNIT-E: Replace the single instance with a map<block,state> to allow for
@@ -807,7 +807,7 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex &blockIndex) {
 
 /**
  * This method returns the State for the active chain tip.
- * @return
+ * @return the state for the active chain tip
  */
 FinalizationState *FinalizationState::GetState() {
   // UNIT-E: Replace the single instance with a map<block,state> to allow for
@@ -818,7 +818,7 @@ FinalizationState *FinalizationState::GetState() {
 uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) {
   FinalizationState *state = GetState(blockIndex);
 
-  return (uint32_t)blockIndex.nHeight / state->EPOCH_LENGTH;
+  return static_cast<uint32_t >(blockIndex.nHeight) / state->EPOCH_LENGTH;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
