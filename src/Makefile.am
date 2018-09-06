@@ -154,6 +154,7 @@ UNITE_CORE_H = \
   reverselock.h \
   rpc/blockchain.h \
   rpc/client.h \
+  rpc/esperanza.h \
   rpc/mining.h \
   rpc/protocol.h \
   rpc/safemode.h \
@@ -246,6 +247,7 @@ libunite_server_a_SOURCES = \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/esperanza.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \

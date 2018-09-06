@@ -14,6 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <esperanza/validation.h>
 #include <cuckoocache.h>
 #include <hash.h>
 #include <init.h>
@@ -46,6 +47,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/thread.hpp>
+
+#include <esperanza/finalizationstate.h>
+#include <tinyformat.h>
 
 #if defined(NDEBUG)
 # error "UnitE cannot be compiled without assertions."
@@ -555,6 +559,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
     LOCK(pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
+
+    if (tx.IsVote()){
+        bypass_limits = true;
+    }
+
     if (pfMissingInputs) {
         *pfMissingInputs = false;
     }
@@ -566,6 +575,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (tx.IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "coinbase");
 
+    //UNIT-E: we can remove this as soon as we agree on having only witness transactions
     // Reject transactions with witness before segregated witness activates (override with -prematurewitness)
     bool witnessEnabled = IsWitnessEnabled(chainActive.Tip(), chainparams.GetConsensus());
     if (!gArgs.GetBoolArg("-prematurewitness", false) && tx.HasWitness() && !witnessEnabled) {
@@ -966,6 +976,25 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // - the node is not behind
         // - the transaction is not dependent on any other transactions in the mempool
         bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() && pool.HasNoInputsOf(tx);
+
+        if (tx.IsDeposit()) {
+            LogPrint(BCLog::ESPERANZA, "%s: Accepting deposit to mempool with id %s.\n", "ESPERANZA", tx.GetHash().GetHex());
+            if (!esperanza::CheckDepositTransaction(state, tx)){
+                LogPrint(BCLog::ESPERANZA, "%s: Deposit cannot be included into mempool: %s.\n",
+                        "ESPERANZA",
+                        state.GetRejectReason());
+                return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+            }
+        } else if (tx.IsVote()) {
+            LogPrint(BCLog::ESPERANZA, "%s: Accepting vote to mempool with id %s.\n", "ESPERANZA", tx.GetHash().GetHex());
+
+            if (!esperanza::CheckVoteTransaction(state, tx)) {
+                LogPrint(BCLog::ESPERANZA, "%s: Vote cannot be included into mempool: %s.\n",
+                         "ESPERANZA",
+                         state.GetRejectReason());
+                return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+            }
+        }
 
         // Store transaction in memory
         pool.addUnchecked(hash, entry, setAncestors, validForFeeEstimation);
@@ -2390,6 +2419,9 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     }
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
+
+    esperanza::FinalizationState::ProcessNewTip(*pindexNew, blockConnecting);
+
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED))
         return false;
@@ -3199,20 +3231,45 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                               ? pindexPrev->GetMedianTimePast()
                               : block.GetBlockTime();
 
+
+    // Enforce rule that the coinbase starts with serialized block height
+    if (nHeight >= consensusParams.BIP34Height) {
+
+        CScript expect = CScript() << nHeight;
+        if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
+              !std::equal(expect.begin(),expect.end(),block.vtx[0]->vin[0].scriptSig.begin())) {
+            return state.DoS(100,
+                           false,
+                           REJECT_INVALID,
+                           "bad-cb-height",
+                           false,
+                           "block height mismatch in coinbase");
+        }
+    }
     // Check that all transactions are finalized
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
         }
-    }
 
-    // Enforce rule that the coinbase starts with serialized block height
-    if (nHeight >= consensusParams.BIP34Height)
-    {
-        CScript expect = CScript() << nHeight;
-        if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
-            !std::equal(expect.begin(), expect.end(), block.vtx[0]->vin[0].scriptSig.begin())) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-height", false, "block height mismatch in coinbase");
+        //UNIT-E: pretty much the same code can be found in AcceptMemoryPoolWorker maybe it wourld be worth unifying
+        if (tx->IsDeposit()) {
+            LogPrint(BCLog::ESPERANZA, "%s: Accepting deposit to mempool with id %s.\n", "ESPERANZA", tx->GetHash().GetHex());
+            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)){
+                LogPrint(BCLog::ESPERANZA, "%s: Deposit cannot be included into mempool: %s.\n",
+                         "ESPERANZA",
+                         state.GetRejectReason());
+                return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+            }
+        } else if(tx->IsVote()) {
+            LogPrint(BCLog::ESPERANZA, "%s: Accepting vote to mempool with id %s.\n", "ESPERANZA", tx->GetHash().GetHex());
+
+            if (!esperanza::CheckVoteTransaction(state, *tx, pindexPrev)) {
+                LogPrint(BCLog::ESPERANZA, "%s: Vote cannot be included into mempool: %s.\n",
+                         "ESPERANZA",
+                         state.GetRejectReason());
+                return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+            }
         }
     }
 

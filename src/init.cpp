@@ -16,6 +16,8 @@
 #include <checkpoints.h>
 #include <compat/sanity.h>
 #include <consensus/validation.h>
+#include <esperanza/finalizationstate.h>
+#include <esperanza/finalizationparams.h>
 #include <fs.h>
 #include <httpserver.h>
 #include <httprpc.h>
@@ -28,6 +30,7 @@
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
+#include <rpc/esperanza.h>
 #include <rpc/server.h>
 #include <rpc/register.h>
 #include <rpc/safemode.h>
@@ -423,6 +426,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-timeout=<n>", strprintf(_("Specify connection timeout in milliseconds (minimum: 1, default: %d)"), DEFAULT_CONNECT_TIMEOUT));
     strUsage += HelpMessageOpt("-torcontrol=<ip>:<port>", strprintf(_("Tor control port to use if onion listening enabled (default: %s)"), DEFAULT_TOR_CONTROL));
     strUsage += HelpMessageOpt("-torpassword=<pass>", _("Tor control port password (default: empty)"));
+    strUsage += HelpMessageOpt("-esperanzaconfig=<config>", _("Pass a configuration for the esperanza protocol in JSON format (default: empty)"));
 #ifdef USE_UPNP
 #if USE_UPNP
     strUsage += HelpMessageOpt("-upnp", _("Use UPnP to map the listening port (default: 1 when listening and no -proxy)"));
@@ -1263,6 +1267,18 @@ bool AppInitMain()
 #endif
 
     const CChainParams& chainparams = Params();
+
+    // Set Esperanza parameters
+    if (gArgs.IsArgSet("-esperanzaconfig")) {
+
+        esperanza::FinalizationParams params;
+        if (esperanza::ParseFinalizationParams(gArgs.GetArg("-esperanzaconfig", ""), params)) {
+            UpdateFinalizationParams(params);
+        }
+    }
+
+    esperanza::FinalizationState::Init(Params().GetFinalization());
+
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32
     CreatePidFile(GetPidFile(), getpid());
@@ -1316,6 +1332,7 @@ bool AppInitMain()
      * available in the GUI RPC console even if external calls are disabled.
      */
     RegisterAllCoreRPCCommands(tableRPC);
+    RegisterEsperanzaRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
     RegisterWalletRPC(tableRPC);
 #endif

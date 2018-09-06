@@ -140,7 +140,7 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
 
     int64_t nTime = GetAdjustedTime();
     int64_t nMask =
-        ::Params().EsperanzaParams().GetStakeTimestampMask(nBestHeight + 1);
+        ::Params().GetEsperanza().GetStakeTimestampMask(nBestHeight + 1);
     int64_t nSearchTime = nTime & ~nMask;
     if (nSearchTime <= nBestTime) {
       if (nTime < nBestTime) {
@@ -217,7 +217,7 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
         }
       } else {
         int nRequiredDepth = std::min(
-            (int)(::Params().EsperanzaParams().GetStakeMinConfirmations() - 1),
+            (int)(::Params().GetEsperanza().GetStakeMinConfirmations() - 1),
             (int)(nBestHeight / 2));
         if (stakingWallet.m_deepestTxnDepth < nRequiredDepth - 4) {
           stakingWallet.m_proposerState =
@@ -283,4 +283,3 @@ void ProposerThread::condWaitFor(int ms) {
 }
 
 }  // namespace esperanza
-

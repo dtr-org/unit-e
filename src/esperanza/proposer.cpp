@@ -49,7 +49,7 @@ double GetPoSKernelPS() {
     result = dStakeKernelsTriedAvg / nStakesTime;
   }
 
-  result *= ::Params().EsperanzaParams().GetStakeTimestampMask(nBestHeight) + 1;
+  result *= ::Params().GetEsperanza().GetStakeTimestampMask(nBestHeight) + 1;
 
   return result;
 }

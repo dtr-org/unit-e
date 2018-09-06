@@ -8,15 +8,13 @@
 #include <base58.h>
 #include <checkpoints.h>
 #include <chain.h>
-#include <wallet/coincontrol.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
+#include <esperanza/finalizationstate.h>
 #include <fs.h>
-#include <wallet/init.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <keystore.h>
-#include <validation.h>
 #include <net.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
@@ -29,7 +27,10 @@
 #include <txmempool.h>
 #include <util.h>
 #include <utilmoneystr.h>
+#include <validation.h>
+#include <wallet/coincontrol.h>
 #include <wallet/fees.h>
+#include <wallet/init.h>
 
 #include <assert.h>
 #include <future>
@@ -546,7 +547,7 @@ void CWallet::SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator> ran
     for (TxSpends::iterator it = range.first; it != range.second; ++it) {
         const CWalletTx* wtx = &mapWallet[it->second];
         if (wtx->nOrderPos < nMinOrderPos) {
-            nMinOrderPos = wtx->nOrderPos;;
+            nMinOrderPos = wtx->nOrderPos;
             copyFrom = wtx;
         }
     }
@@ -1081,7 +1082,34 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
             if (pIndex != nullptr) {
                 wtx.SetMerkleBranch(pIndex, posInBlock);
             }
-            return AddToWallet(wtx, false);
+            bool rv = AddToWallet(wtx, false);
+
+            if(tx.IsDeposit() && pIndex != nullptr) {
+                LOCK(cs_wallet);
+                esperanza::ValidatorState* state = &m_stakingExtension.validatorState;
+                if (state->m_phase == esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION) {
+
+                  state->m_phase = esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION;
+                  LogPrint(BCLog::ESPERANZA, "%s: Validator waiting for deposit finalization. Desosit hash %s.\n",
+                           "ESPERANZA",
+                           tx.GetHash().GetHex());
+
+                  std::vector<std::vector<unsigned char>> vSolutions;
+                  txnouttype typeRet;
+                  Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
+
+                  state->m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
+                  state->m_lastVotableTx = MakeTransactionRef(tx);
+                  state->m_depositEpoch = esperanza::FinalizationState::GetEpoch(*pIndex);
+                } else {
+                  LogPrintf("ERROR: %s - Wrong state for validator state with deposit %s, %s expected.\n",
+                            "ESPERANZA",
+                            tx.GetHash().GetHex(),
+                            "WAITING_DEPOSIT_CONFIRMATION");
+                }
+            }
+
+            return rv;
         }
     }
     return false;
@@ -1270,6 +1298,8 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
     }
 
     m_last_block_processed = pindex;
+
+    m_stakingExtension.BlockConnected(pblock, pindex);
 }
 
 void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
@@ -2668,7 +2698,7 @@ OutputType CWallet::TransactionChangeType(OutputType change_type, const std::vec
 }
 
 bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet,
-                                int& nChangePosInOut, std::string& strFailReason, const CCoinControl& coin_control, bool sign)
+                                int& nChangePosInOut, std::string& strFailReason, const CCoinControl& coin_control, bool sign, TxType txType)
 {
     CAmount nValue = 0;
     int nChangePosRequest = nChangePosInOut;
@@ -2692,6 +2722,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
     wtxNew.fTimeReceivedIsTxTime = true;
     wtxNew.BindWallet(this);
     CMutableTransaction txNew;
+    txNew.SetType(txType);
 
     // Discourage fee sniping.
     //
@@ -3946,6 +3977,8 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
         }
     }
 
+    walletInstance->m_stakingExtension.CreateWalletFromFile();
+
     LogPrintf(" wallet      %15dms\n", GetTimeMillis() - nStart);
 
     // Try to top up keypool. No-op if the wallet is locked.
@@ -4115,7 +4148,7 @@ bool CWalletTx::AcceptToMemoryPool(const CAmount& nAbsurdFee, CValidationState& 
 {
     // Quick check to avoid re-setting fInMempool to false
     if (mempool.exists(tx->GetHash())) {
-        return false;
+        return state.Error(strprintf("%s: Transaction already in the mempool", __func__));
     }
 
     // We must set fInMempool here - while it will be re-set to true by the

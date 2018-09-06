@@ -10,6 +10,7 @@
 #include <util.h>
 #include <utilstrencodings.h>
 #include <utilmoneystr.h>
+#include <ufp64.h>
 
 #include <assert.h>
 #include <memory>
@@ -115,10 +116,6 @@ bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const {
     return error("%s - Hash mismatch at height %d: %s, expect %s.", __func__, nHeight, hash.ToString(), cth.hash.ToString());
   }
   return error("%s - Unknown height.", __func__);
-}
-
-const esperanza::Params& CChainParams::EsperanzaParams() const {
-  return m_esperanzaParams;
 }
 
 /**
@@ -398,6 +395,15 @@ public:
             0
         };
 
+        finalization.m_epochLength = 5;
+        finalization.m_minDepositSize = 10000 * UNIT;
+        finalization.m_dynastyLogoutDelay = 2;
+        finalization.m_withdrawalEpochDelay = (int)5;
+        finalization.m_slashFractionMultiplier = 3;
+        finalization.m_bountyFractionDenominator = 25;
+        finalization.m_baseInterestFactor = ufp64::to_ufp64(700);
+        finalization.m_basePenaltyFactor = ufp64::div_2uint(2, 100000);
+
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
@@ -407,6 +413,13 @@ public:
         bech32_hrp = "bcrt";
     }
 };
+
+void CChainParams::UpdateFinalizationParams(esperanza::FinalizationParams &params) {
+
+  if (strNetworkID == "regtest") {
+    finalization = params;
+  }
+}
 
 static std::unique_ptr<CChainParams> globalChainParams;
 
@@ -436,3 +449,8 @@ void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime,
 {
     globalChainParams->UpdateVersionBitsParameters(d, nStartTime, nTimeout);
 }
+
+void UpdateFinalizationParams(esperanza::FinalizationParams &params) {
+    globalChainParams->UpdateFinalizationParams(params);
+}
+
