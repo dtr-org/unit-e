@@ -180,6 +180,7 @@ class UnitETestFramework():
     def setup_chain(self):
         """Override this method to customize blockchain setup"""
         self.log.info("Initializing test directory " + self.options.tmpdir)
+        self.log.info("Debug file at " + self.options.tmpdir + "/node0/regtest/debug.log")
         if self.setup_clean_chain:
             self._initialize_chain_clean()
         else:
@@ -220,6 +221,7 @@ class UnitETestFramework():
         assert_equal(len(extra_args), num_nodes)
         assert_equal(len(binary), num_nodes)
         for i in range(num_nodes):
+            print("Starting node " + str(i) + " with args: " + ' '.join(str(e) for e in extra_args[i]))
             self.nodes.append(TestNode(i, self.options.tmpdir, extra_args[i], rpchost, timewait=timewait, binary=binary[i], stderr=None, mocktime=self.mocktime, coverage_dir=self.options.coveragedir, use_cli=self.options.usecli))
 
     def start_node(self, i, *args, **kwargs):

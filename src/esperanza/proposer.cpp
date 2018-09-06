@@ -8,7 +8,7 @@
 #include <esperanza/kernel.h>
 #include <esperanza/proposer.h>
 #include <esperanza/proposerthread.h>
-#include <esperanza/validation.h>
+#include <esperanza/stakevalidation.h>
 #include <rpc/blockchain.h>
 #include <script/script.h>
 #include <validation.h>

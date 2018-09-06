@@ -7,7 +7,7 @@
 #include <esperanza/proposer.h>
 #include <esperanza/proposerthread.h>
 #include <esperanza/proposerstate.h>
-#include <esperanza/validation.h>
+#include <esperanza/stakevalidation.h>
 #include <miner.h>
 #include <net.h>
 #include <util.h>

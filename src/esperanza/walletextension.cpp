@@ -7,7 +7,7 @@
 
 #include <esperanza/kernel.h>
 #include <esperanza/proposer.h>
-#include <esperanza/validation.h>
+#include <esperanza/stakevalidation.h>
 #include <esperanza/walletextension.h>
 #include <script/standard.h>
 #include <utilfun.h>

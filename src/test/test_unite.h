@@ -37,6 +37,12 @@ static inline uint64_t InsecureRandBits(int bits) { return insecure_rand_ctx.ran
 static inline uint64_t InsecureRandRange(uint64_t range) { return insecure_rand_ctx.randrange(range); }
 static inline bool InsecureRandBool() { return insecure_rand_ctx.randbool(); }
 
+static inline void InsecureNewKey(CKey &key, bool fCompressed) {
+  uint256 i = InsecureRand256();
+  key.Set(i.begin(), i.end(), fCompressed);
+  assert(key.IsValid()); // Failure should be very rare
+}
+
 /** Basic testing setup.
  * This just configures logging and chain parameters.
  */

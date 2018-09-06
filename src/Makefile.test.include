@@ -46,9 +46,11 @@ UNITE_TESTS =\
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
   test/DoS_tests.cpp \
+  test/esperanza/finalizationstate_tests.cpp \
   test/esperanza/finalizationparams_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
+  test/interpreter_tests.cpp \
   test/key_tests.cpp \
   test/limitedmap_tests.cpp \
   test/dbwrapper_tests.cpp \
@@ -77,6 +79,7 @@ UNITE_TESTS =\
   test/serialize_tests.cpp \
   test/sighash_tests.cpp \
   test/sigopcount_tests.cpp \
+  test/sign_tests.cpp \
   test/skiplist_tests.cpp \
   test/streams_tests.cpp \
   test/test_unite.cpp \
