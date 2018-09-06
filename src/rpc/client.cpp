@@ -145,6 +145,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "rescanblockchain", 1, "stop_height"},
 
     { "filtertransactions", 0, "options" },
+    { "filteraddresses", 0, "offset" },
+    { "filteraddresses", 1, "count" },
 };
 
 class CRPCConvertTable

@@ -301,6 +301,7 @@ libunite_wallet_a_SOURCES = \
   wallet/rpcmnemonic.cpp \
   wallet/rpcvalidator.cpp \
   wallet/rpcwallet.cpp \
+  wallet/rpcaddressbook.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
