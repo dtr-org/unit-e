@@ -35,16 +35,17 @@ Proposer::Thread::Thread(const std::string &threadName, const Config &config,
       m_wallets(wallets),
       m_initSemaphore(initSemaphore),
       m_startSemaphore(startSemaphore),
-      m_stopSemaphore(stopSemaphore),
-      m_thread(std::thread{Proposer::Run, std::ref(*this)}) {}
+      m_stopSemaphore(stopSemaphore) {
+  std::thread thread(Proposer::Run, std::ref(*this));
+  thread.detach();
+}
 
 void Proposer::Thread::Stop() {
-  m_thread.detach();
   m_interrupted = true;
   Wake();
 }
 
-void Proposer::Thread::Wake() { m_waiter.WakeOne(); }
+void Proposer::Thread::Wake() { m_waiter.Wake(); }
 
 void Proposer::Thread::SetStatus(const Proposer::Status status,
                                  CWallet *const wallet) {
@@ -65,9 +66,6 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   const size_t numThreads = std::min(
       wallets.size(), std::max<size_t>(1, config.m_numberOfProposerThreads));
 
-  LogPrintf("creating %d proposer threads (%d requested, %d wallets)...\n",
-            numThreads, config.m_numberOfProposerThreads, wallets.size());
-
   using WalletIndex = size_t;
   using ThreadIndex = size_t;
 
@@ -75,7 +73,7 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   std::multimap<ThreadIndex, WalletIndex> indexMap;
 
   // distribute wallets across threads
-  for (WalletIndex walletIx = 0; walletIx < numThreads; ++walletIx) {
+  for (WalletIndex walletIx = 0; walletIx < wallets.size(); ++walletIx) {
     indexMap.insert({walletIx % numThreads, walletIx});
   }
 
@@ -83,7 +81,7 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   std::vector<std::unique_ptr<Proposer::Thread>> threads;
   for (ThreadIndex threadIx = 0; threadIx < numThreads; ++threadIx) {
     std::vector<CWallet *> thisThreadsWallets;
-    auto walletRange = indexMap.equal_range(threadIx);
+    const auto walletRange = indexMap.equal_range(threadIx);
     for (auto entry = walletRange.first; entry != walletRange.second; ++entry) {
       thisThreadsWallets.push_back(wallets[entry->second]);
     }
@@ -107,8 +105,11 @@ Proposer::Proposer(const Config &config, const std::vector<CWallet *> &wallets)
       m_threads(CreateProposerThreads(config, wallets, m_initSemaphore,
                                       m_startSemaphore, m_stopSemaphore)) {}
 
+Proposer::~Proposer() { Stop(); }
+
 void Proposer::Start() {
-  LogPrintf("starting %d proposer threads...\n", m_threads.size());
+  LogPrint(BCLog::ESPERANZA, "starting %d proposer threads...\n",
+           m_threads.size());
   m_startSemaphore.release(m_threads.size());
 }
 
@@ -116,9 +117,19 @@ void Proposer::Stop() {
   LogPrint(BCLog::ESPERANZA, "stopping %d proposer threads...\n",
            m_threads.size());
   for (const auto &thread : m_threads) {
+    // sets all threads m_interrupted and wakes them up in case they are
+    // sleeping
     thread->Stop();
   }
+  // in case Start() was not called yet, start the threads so they can stop
+  // (otherwise they are stuck)
+  m_startSemaphore.release(m_threads.size());
+  // wait for the threads to finish (important for the destructor, otherwise
+  // memory might be released which is still accessed by a thread)
   m_stopSemaphore.acquire(m_threads.size());
+  // in case Stop() is going to be invoked twice (important for destructor) make
+  // sure there are enough permits in the stop semaphore for another invocation
+  m_stopSemaphore.release(m_threads.size());
   LogPrint(BCLog::ESPERANZA, "all proposer threads exited.\n");
 }
 

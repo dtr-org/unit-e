@@ -1,5 +1,4 @@
 // Copyright (c) 2018 The unit-e core developers
-// Copyright (c) 2017 The Particl developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -21,7 +20,14 @@ class CWallet;
 
 namespace esperanza {
 
+template <class T>
+struct ProposerAccess;
+
 class Proposer {
+  // accessor for unit testing - not a true friend
+  template <class T>
+  friend struct ProposerAccess;
+
  public:
   //! the current proposing status per wallet
   enum class Status : int16_t {
@@ -60,6 +66,8 @@ class Proposer {
       const Config &,
       //! [in] a reference to all wallets to propose from
       const std::vector<CWallet *> &wallets);
+
+  ~Proposer();
 
   //! stops the running proposer threads.
   void Stop();

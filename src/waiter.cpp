@@ -2,7 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
 #include <waiter.h>
 
 void Waiter::Wait() {
@@ -11,13 +10,7 @@ void Waiter::Wait() {
   m_condition.wait(lock, [this]() { return !m_waiting.test_and_set(); });
 }
 
-void Waiter::WakeOne() {
-  std::unique_lock<decltype(m_mutex)> lock(m_mutex);
-  m_waiting.clear();
-  m_condition.notify_one();
-}
-
-void Waiter::WakeAll() {
+void Waiter::Wake() {
   std::unique_lock<decltype(m_mutex)> lock(m_mutex);
   m_waiting.clear();
   m_condition.notify_all();

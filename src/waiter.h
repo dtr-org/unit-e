@@ -29,11 +29,8 @@ class Waiter {
   //! Wait until woken up.
   void Wait();
 
-  //! Wake one waiting thread.
-  void WakeOne();
-
-  //! Wake all waiting threads.
-  void WakeAll();
+  //! Wake all waiting thread.
+  void Wake();
 };
 
 #endif  // UNIT_E_WAITER_H
