@@ -20,14 +20,14 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
-#include "proposer.h"
 
 namespace esperanza {
 
 Proposer::Thread::Thread(const std::string &threadName, const Config &config,
                          const std::vector<CWallet *> &wallets,
-                         Semaphore &initSemaphore, Semaphore &startSemaphore,
-                         Semaphore &stopSemaphore)
+                         CountingSemaphore &initSemaphore,
+                         CountingSemaphore &startSemaphore,
+                         CountingSemaphore &stopSemaphore)
     : m_threadName(threadName),
       m_config(config),
       m_interrupted(false),
@@ -59,8 +59,8 @@ void Proposer::Thread::SetStatus(const Proposer::Status status,
 
 std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
     const Config &config, const std::vector<CWallet *> &wallets,
-    Semaphore &initSemaphore, Semaphore &startSemaphore,
-    Semaphore &stopSemaphore) {
+    CountingSemaphore &initSemaphore, CountingSemaphore &startSemaphore,
+    CountingSemaphore &stopSemaphore) {
   // total number of threads can not exceed number of wallets
   const size_t numThreads = std::min(
       wallets.size(), std::max<size_t>(1, config.m_numberOfProposerThreads));
@@ -123,9 +123,11 @@ void Proposer::Stop() {
 }
 
 void Proposer::Run(Proposer::Thread &thread) {
-  LogPrint(BCLog::ESPERANZA, "%s: initialized.\n", thread.m_threadName.c_str());
-  for (const auto wallet : thread.m_wallets) {
-    LogPrint(BCLog::ESPERANZA, "  responsible for: %s\n", wallet->GetName());
+  if (LogAcceptCategory(BCLog::ESPERANZA)) {
+    LogPrintf("%s: initialized.\n", thread.m_threadName.c_str());
+    for (const auto wallet : thread.m_wallets) {
+      LogPrintf("  responsible for: %s\n", wallet->GetName());
+    }
   }
   thread.m_initSemaphore.release();
   thread.m_startSemaphore.acquire();
@@ -152,7 +154,6 @@ void Proposer::Run(Proposer::Thread &thread) {
 
       int bestHeight;
       int64_t bestTime;
-
       {
         LOCK(cs_main);
         bestHeight = chainActive.Height();
@@ -217,13 +218,16 @@ void Proposer::Run(Proposer::Thread &thread) {
         }
       }
 
-      thread.m_waiter.WaitUpTo(
-          std::chrono::seconds(30));  // stub for testing for now
+      // UNIT-E: parameterize waiting time (use minerSleep for it?)
+      thread.m_waiter.WaitUpTo(std::chrono::seconds(30));
     } catch (const std::runtime_error &error) {
-      LogPrint(BCLog::ESPERANZA, "exception in proposer thread: %s\n",
-               error.what());
+      // this log statement does not mention a category as it captches
+      // exceptions that are not supposed to happen
+      LogPrintf("exception in proposer thread: %s\n", error.what());
     } catch (...) {
-      LogPrint(BCLog::ESPERANZA, "unknown exception in proposer thread.\n");
+      // this log statement does not mention a category as it captches
+      // exceptions that are not supposed to happen
+      LogPrintf("unknown exception in proposer thread.\n");
     }
   }
   LogPrint(BCLog::ESPERANZA, "%s: stopping...\n", thread.m_threadName.c_str());

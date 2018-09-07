@@ -170,9 +170,6 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
   for (; it != setCoins.end(); ++it) {
     auto pcoin = *it;
-//    if (ProposerThread::IsStopped()) {
-//      return false;
-//    }
     COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
 
     int64_t nBlockTime;

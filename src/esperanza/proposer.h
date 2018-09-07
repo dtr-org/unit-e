@@ -6,16 +6,16 @@
 #ifndef UNITE_ESPERANZA_PROPOSER_H
 #define UNITE_ESPERANZA_PROPOSER_H
 
+#include <esperanza/config.h>
+#include <key.h>
+#include <primitives/block.h>
+#include <sync.h>
+#include <waiter.h>
+
 #include <map>
 #include <string>
 #include <thread>
 #include <vector>
-
-#include <esperanza/config.h>
-#include <key.h>
-#include <primitives/block.h>
-#include <semaphore.h>
-#include <waiter.h>
 
 class CWallet;
 
@@ -88,13 +88,13 @@ class Proposer {
     std::vector<CWallet *> m_wallets;
 
     //! a semaphore for synchronizing initialization
-    Semaphore &m_initSemaphore;
+    CountingSemaphore &m_initSemaphore;
 
     //! a semaphore for synchronizing start events
-    Semaphore &m_startSemaphore;
+    CountingSemaphore &m_startSemaphore;
 
     //! a semaphore for synchronizing stop events
-    Semaphore &m_stopSemaphore;
+    CountingSemaphore &m_stopSemaphore;
 
     //! the actual backing thread
     std::thread m_thread;
@@ -107,11 +107,11 @@ class Proposer {
         //! [in] the wallets which this thread is responsible for.
         const std::vector<CWallet *> &,
         //! a semaphore for synchronizing initialization
-        Semaphore &,
+        CountingSemaphore &,
         //! a semaphore for synchronizing start events
-        Semaphore &,
+        CountingSemaphore &,
         //! a semaphore for synchronizing stop events
-        Semaphore &);
+        CountingSemaphore &);
 
     //! stops this thread by setting m_interrupted to true and waking it
     void Stop();
@@ -120,29 +120,29 @@ class Proposer {
     void Wake();
 
     //! sets the status for a specific or for all wallets
-    void SetStatus(Status status, CWallet* wallet = nullptr);
+    void SetStatus(Status status, CWallet *wallet = nullptr);
 
-    template<typename R, typename P>
+    template <typename R, typename P>
     void Sleep(std::chrono::duration<R, P> duration) {
       m_waiter.WaitUpTo(duration);
     }
   };
 
   //! a semaphore for synchronizing initialization
-  Semaphore m_initSemaphore;
+  CountingSemaphore m_initSemaphore;
 
   //! a semaphore for synchronizing start events
-  Semaphore m_startSemaphore;
+  CountingSemaphore m_startSemaphore;
 
   //! a semaphore for synchronizing stop events
-  Semaphore m_stopSemaphore;
+  CountingSemaphore m_stopSemaphore;
 
   const std::vector<std::unique_ptr<Thread>> m_threads;
 
   static std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
       const Config &config, const std::vector<CWallet *> &wallets,
-      Semaphore &initSemaphore, Semaphore &startSemaphore,
-      Semaphore &stopSemaphore);
+      CountingSemaphore &initSemaphore, CountingSemaphore &startSemaphore,
+      CountingSemaphore &stopSemaphore);
 
   static void Run(Thread &);
 };

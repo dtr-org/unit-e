@@ -8,7 +8,7 @@
 void Waiter::Wait() {
   std::unique_lock<decltype(m_mutex)> lock(m_mutex);
   m_waiting.test_and_set();
-  m_condition.wait(lock, [this]() { return m_waiting.test_and_set(); });
+  m_condition.wait(lock, [this]() { return !m_waiting.test_and_set(); });
 }
 
 void Waiter::WakeOne() {

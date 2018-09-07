@@ -50,14 +50,14 @@ bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut) {
       break;
     }
     if (!foundOp && opcode == OP_ISCOINSTAKE) {
-      pc++;  // skip over if
+      ++pc;  // skip over if
 
       pcStart = pc;
       foundOp = true;
       continue;
     }
     if (foundOp && opcode == OP_ELSE) {
-      pc--;
+      --pc;
       scriptOut = CScript(pcStart, pc);
       return true;
     }

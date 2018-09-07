@@ -165,7 +165,6 @@ UNITE_CORE_H = \
   script/sign.h \
   script/standard.h \
   script/ismine.h \
-  semaphore.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -412,7 +411,6 @@ libunite_util_a_SOURCES = \
   rpc/protocol.cpp \
   rpc/util.cpp \
   support/cleanse.cpp \
-  semaphore.cpp \
   sync.cpp \
   threadinterrupt.cpp \
   util.cpp \

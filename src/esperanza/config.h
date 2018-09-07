@@ -16,7 +16,8 @@ struct Config {
   //! Whether this node should propose blocks or not.
   bool m_proposing = true;
 
-  //! How many thread to use for staking. At least 1, at most number of wallets.
+  //! How many thread to use for proposing. At least 1, at most number of
+  //! wallets.
   size_t m_numberOfProposerThreads = 1;
 
   std::chrono::milliseconds m_proposerSleep = std::chrono::seconds(30);
@@ -26,7 +27,7 @@ struct Config {
 
   std::string m_proposerThreadName = "proposer";
 
-  Config(::ArgsManager &args, Config defaultConfig = Config());
+  explicit Config(::ArgsManager &args, Config defaultConfig = Config());
 
   // clang-tidy recommends `Config() noexcept = default`, but then `clang`
   // [sic!] fails to compile it. Removing the `noexcept` makes it work, but.
