@@ -79,6 +79,8 @@
 #include <openssl/rand.h>
 #include <openssl/conf.h>
 
+#include <array>
+
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
@@ -256,6 +258,32 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::ALL, "all"},
 };
 
+//! @see http://supertech.csail.mit.edu/papers/debruijn.pdf
+static std::array<std::string, 32> ComputeDeBrujinLabelTabel() {
+    std::array<std::string, 32> categories;
+    for (const auto &logCategory : LogCategories) {
+        if (logCategory.flag == static_cast<uint32_t>(BCLog::NONE) ||
+            logCategory.flag == static_cast<uint32_t>(BCLog::ALL)) {
+            continue;
+        }
+        const uint32_t vec = logCategory.flag;
+        const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+        categories[pos] = logCategory.category;
+    }
+    return categories;
+}
+
+static std::string GetLogCategoryLabel(const BCLog::LogFlags category)
+{
+    if (category == BCLog::NONE) {
+        return "";
+    }
+    static const std::array<std::string, 32> labels = ComputeDeBrujinLabelTabel();
+    const auto vec = static_cast<uint32_t>(category);
+    const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+    return labels[pos];
+}
+
 bool GetLogCategory(uint32_t *f, const std::string *str)
 {
     if (f && str) {
@@ -308,7 +336,7 @@ std::vector<CLogCategoryActive> ListActiveLogCategories()
  * suppress printing of the timestamp when multiple calls are made that don't
  * end in a newline. Initialize it to true, and hold it, in the calling context.
  */
-static std::string LogTimestampStr(const std::string &str, std::atomic_bool *fStartedNewLine)
+static std::string LogTimestampStr(const BCLog::LogFlags category, const std::string &str, std::atomic_bool *fStartedNewLine)
 {
     std::string strStamped;
 
@@ -318,6 +346,7 @@ static std::string LogTimestampStr(const std::string &str, std::atomic_bool *fSt
     if (*fStartedNewLine) {
         int64_t nTimeMicros = GetTimeMicros();
         strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
+        strStamped += strprintf(" [%12s]", GetLogCategoryLabel(category));
         if (fLogTimeMicros)
             strStamped += strprintf(".%06d", nTimeMicros%1000000);
         int64_t mocktime = GetMockTime();
@@ -336,12 +365,12 @@ static std::string LogTimestampStr(const std::string &str, std::atomic_bool *fSt
     return strStamped;
 }
 
-int LogPrintStr(const std::string &str)
+int LogPrintStr(const std::string &str, const BCLog::LogFlags category)
 {
     int ret = 0; // Returns total number of characters written
     static std::atomic_bool fStartedNewLine(true);
 
-    std::string strTimestamped = LogTimestampStr(str, &fStartedNewLine);
+    std::string strTimestamped = LogTimestampStr(category, str, &fStartedNewLine);
 
     if (fPrintToConsole)
     {
