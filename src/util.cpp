@@ -94,6 +94,7 @@ bool fPrintToDebugLog = true;
 
 bool fLogTimestamps = DEFAULT_LOGTIMESTAMPS;
 bool fLogTimeMicros = DEFAULT_LOGTIMEMICROS;
+bool fLogCategories = DEFAULT_LOGCATEGORIES;
 bool fLogIPs = DEFAULT_LOGIPS;
 std::atomic<bool> fReopenDebugLog(false);
 CTranslationInterface translationInterface;
@@ -259,7 +260,8 @@ const CLogCategoryDesc LogCategories[] =
 };
 
 //! @see http://supertech.csail.mit.edu/papers/debruijn.pdf
-static std::array<std::string, 32> ComputeDeBrujinLabelTabel() {
+static std::array<std::string, 32> ComputeDeBrujinLabelTabel()
+{
     std::array<std::string, 32> categories;
     for (const auto &logCategory : LogCategories) {
         if (logCategory.flag == static_cast<uint32_t>(BCLog::NONE) ||
@@ -340,27 +342,33 @@ static std::string LogTimestampStr(const BCLog::LogFlags category, const std::st
 {
     std::string strStamped;
 
-    if (!fLogTimestamps)
+    if (!fLogTimestamps && !fLogCategories) {
         return str;
+    }
 
     if (*fStartedNewLine) {
-        int64_t nTimeMicros = GetTimeMicros();
-        strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
-        strStamped += strprintf(" [%12s]", GetLogCategoryLabel(category));
-        if (fLogTimeMicros)
-            strStamped += strprintf(".%06d", nTimeMicros%1000000);
-        int64_t mocktime = GetMockTime();
-        if (mocktime) {
-            strStamped += " (mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ")";
+        if (fLogTimestamps) {
+          int64_t nTimeMicros = GetTimeMicros();
+          strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S ", nTimeMicros/1000000);
+          if (fLogTimeMicros) {
+              strStamped += strprintf(".%06d ", nTimeMicros%1000000);
+          }
         }
-        strStamped += ' ' + str;
-    } else
+        if (fLogCategories) {
+            strStamped += strprintf("[%11s] ", GetLogCategoryLabel(category));
+        }
+        if (fLogTimestamps) {
+            int64_t mocktime = GetMockTime();
+            if (mocktime) {
+              strStamped += "(mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ") ";
+            }
+        }
+        strStamped += str;
+    } else {
         strStamped = str;
+    }
 
-    if (!str.empty() && str[str.size()-1] == '\n')
-        *fStartedNewLine = true;
-    else
-        *fStartedNewLine = false;
+    *fStartedNewLine = !str.empty() && str[str.size()-1] == '\n';
 
     return strStamped;
 }

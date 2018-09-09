@@ -37,6 +37,7 @@ int64_t GetStartupTime();
 static const bool DEFAULT_LOGTIMEMICROS = false;
 static const bool DEFAULT_LOGIPS        = false;
 static const bool DEFAULT_LOGTIMESTAMPS = true;
+static const bool DEFAULT_LOGCATEGORIES = true;
 extern const char * const DEFAULT_DEBUGLOGFILE;
 
 /** Signals for translation. */
@@ -52,6 +53,7 @@ extern bool fPrintToDebugLog;
 
 extern bool fLogTimestamps;
 extern bool fLogTimeMicros;
+extern bool fLogCategories;
 extern bool fLogIPs;
 extern std::atomic<bool> fReopenDebugLog;
 extern CTranslationInterface translationInterface;
