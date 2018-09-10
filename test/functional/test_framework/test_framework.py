@@ -299,6 +299,15 @@ class UnitETestFramework():
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
 
+    def wait_for_transaction(self, txid):
+        while True:
+            try:
+                for n in range(0, len(self.nodes)):
+                    self.nodes[n].getrawtransaction(txid)
+                break
+            except JSONRPCException:
+                continue
+
     def split_network(self):
         """
         Split the network of four nodes into nodes 0/1 and 2/3.

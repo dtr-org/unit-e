@@ -54,8 +54,8 @@ class EsperanzaDepositTest(UnitETestFramework):
         while validator.getwalletinfo()['immature_balance'] != 10000:
             time.sleep(0.5)
 
+        # wait for coinbase maturity
         nodes[1].generate(120)
-
         sync_blocks(self.nodes[0:3])
 
         txid = validator.createdeposit(payto, 10000)['transactionid']
@@ -75,19 +75,6 @@ class EsperanzaDepositTest(UnitETestFramework):
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
         return
-
-    def propose_block(self):
-        selected_node = randint(0, self.num_nodes - 1)
-        self.nodes[selected_node].generate(1)
-
-    def wait_for_transaction(self, txid):
-        while True:
-            try:
-                for n in range(0, self.num_nodes):
-                    self.nodes[n].getrawtransaction(txid)
-                break
-            except JSONRPCException:
-                continue
 
 if __name__ == '__main__':
     EsperanzaDepositTest().main()

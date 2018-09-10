@@ -251,8 +251,11 @@ Vote FinalizationState::GetRecommendedVote(
   LogPrint(BCLog::ESPERANZA,
            "%s: Getting recommended vote for epoch %d and dynasty %d is: { %s, "
            "%d, %d }.\n",
-           "ESPERANZA", m_currentEpoch, m_currentDynasty,
-           m_recommendedTargetHash.GetHex(), m_currentEpoch,
+           "ESPERANZA",
+           m_currentEpoch,
+           m_currentDynasty,
+           m_recommendedTargetHash.GetHex(),
+           m_currentEpoch,
            m_expectedSrcEpoch);
 
   return vote;
@@ -441,6 +444,14 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
                 vote.m_targetEpoch);
   }
 
+  LogPrint(BCLog::ESPERANZA,
+           "%s: Validator %s vote (%s, %d, %d) is valid.\n",
+           "ESPERANZA",
+           vote.m_validatorIndex.GetHex(),
+           vote.m_targetHash.GetHex(),
+           vote.m_sourceEpoch,
+           vote.m_targetEpoch);
+
   return success();
 }
 /**
@@ -450,6 +461,14 @@ void FinalizationState::ProcessVote(const Vote &vote) {
   LOCK(cs_esperanza);
 
   m_checkpoints[vote.m_targetEpoch].m_voteMap.insert(vote.m_validatorIndex);
+
+  LogPrint(BCLog::ESPERANZA,
+           "%s: Validator %s voted successfully (%s, %d, %d).\n",
+           "ESPERANZA",
+           vote.m_validatorIndex.GetHex(),
+           vote.m_targetHash.GetHex(),
+           vote.m_sourceEpoch,
+           vote.m_targetEpoch);
 
   const uint256 &validatorIndex = vote.m_validatorIndex;
   uint32_t sourceEpoch = vote.m_sourceEpoch;
@@ -481,13 +500,9 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     ProcessReward(validatorIndex, reward);
   }
 
-  bool isTwoThirdsCurDyn =
-      curDynastyVotes >=
-      ufp64::div_to_uint(m_curDynDeposits * 2, ufp64::to_ufp64(3));
+  bool isTwoThirdsCurDyn = curDynastyVotes >= ufp64::div_to_uint(m_curDynDeposits * 2, ufp64::to_ufp64(3));
 
-  bool isTwoThirdsPrevDyn =
-      prevDynastyVotes >=
-      ufp64::div_to_uint(m_prevDynDeposits * 2, ufp64::to_ufp64(3));
+  bool isTwoThirdsPrevDyn = prevDynastyVotes >= ufp64::div_to_uint(m_prevDynDeposits * 2, ufp64::to_ufp64(3));
 
   bool enoughVotes = isTwoThirdsCurDyn && isTwoThirdsPrevDyn;
 
@@ -855,6 +870,12 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   LogPrint(BCLog::ESPERANZA, "%s: Processing block %d with hash %s.\n",
            "ESPERANZA", blockIndex.nHeight, block.GetHash().GetHex());
 
+  // We can skip everything for the genesis block since it isn't suppose to
+  // contain esperanza's transactions.
+  if(blockIndex.nHeight == 0) {
+    return true;
+  }
+
   // This is the first block of a new epoch.
   if (blockIndex.nHeight % state->EPOCH_LENGTH == 0) {
     state->InitializeEpoch(blockIndex.nHeight);
@@ -868,13 +889,11 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       txnouttype typeRet;
 
       if (Solver(tx->vout[0].scriptPubKey, typeRet, vSolutions)) {
-        state->ProcessDeposit(CPubKey(vSolutions[0]).GetHash(),
-                              tx->GetValueOut());
+        state->ProcessDeposit(CPubKey(vSolutions[0]).GetHash(), tx->GetValueOut());
       }
 
     } else if (tx->IsVote()) {
-      state->ProcessVote(
-          CScript::ExtractVoteFromWitness(tx->vin[0].scriptWitness));
+      state->ProcessVote(CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
     }
   }
 

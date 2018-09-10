@@ -391,11 +391,9 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 }
 
 // UNIT-E: read validatorState from the wallet file
-void WalletExtension::CreateWalletFromFile() {
-  if (gArgs.GetBoolArg("-validating", false) &&
-      !gArgs.GetBoolArg("-staking", true)) {
-    LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n",
-             "ESPERANZA", m_enclosingWallet->GetName());
+void WalletExtension::ReadValidatorStateFromFile() {
+  if (gArgs.GetBoolArg("-validating", false) && !gArgs.GetBoolArg("-staking", true)) {
+    LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n", "ESPERANZA", m_enclosingWallet->GetName());
 
     validatorState = esperanza::ValidatorState();
     nIsValidatorEnabled = true;
@@ -550,7 +548,7 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
     SignatureData sigdata;
     std::string strFailReason;
 
-    if (!ProduceSignature(TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn, amount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+    if (!ProduceSignature(TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn, amount, SIGHASH_ALL), scriptPubKey, sigdata, &txNewConst)) {
       strFailReason = _("Signing transaction failed");
       return false;
     } else {
@@ -560,7 +558,8 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
     // Embed the constructed transaction data in wtxNew.
     wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
-    if (!m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(), state)) {
+    m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(), state);
+    if (state.IsInvalid()) {
       LogPrint(BCLog::ESPERANZA, "%s: Cannot commit vote transaction: %s.\n",
                "ESPERANZA", state.GetRejectReason());
       return false;

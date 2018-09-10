@@ -62,8 +62,14 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
 
   CTransactionRef prevTx;
   uint256 blockHash;
-  GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
-                 blockHash, false);
+
+  // We have to look into the tx database to find the prev deposit, hence the
+  // use of fAllowSlow = true
+  if(!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
+                 blockHash, true)){
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-vote-no-prev-deposit-found");
+  }
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
     return state.DoS(10, false, REJECT_INVALID,
@@ -83,7 +89,7 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
   }
 
   esperanza::Result res = esperanza->ValidateVote(
-      CScript::ExtractVoteFromWitness(tx.vin[0].scriptWitness));
+      CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
 
   if (res != esperanza::Result::SUCCESS) {
     return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");

@@ -109,7 +109,7 @@ class WalletExtension {
   bool SendVote(const CTransactionRef &depositRef,
                 const Vote &vote, CWalletTx &wtxNewOut);
 
-  void CreateWalletFromFile();
+  void ReadValidatorStateFromFile();
 
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
                       const CBlockIndex *pindex);

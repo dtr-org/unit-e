@@ -199,6 +199,7 @@ UNITE_CORE_H = \
   wallet/fees.h \
   wallet/init.h \
   wallet/rpcmnemonic.h \
+  wallet/rpcvalidator.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletdb.h \
@@ -298,6 +299,7 @@ libunite_wallet_a_SOURCES = \
   wallet/init.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcmnemonic.cpp \
+  wallet/rpcvalidator.cpp \
   wallet/rpcwallet.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \

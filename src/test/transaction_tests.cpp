@@ -764,22 +764,11 @@ BOOST_AUTO_TEST_CASE(mutabletransaction_set_type_mulitple_times)
 {
   CMutableTransaction tx;
 
-  tx.SetType(static_cast<TxType>(2));
-  BOOST_CHECK((2 == static_cast<uint16_t>(tx.GetType())));
+  tx.SetType(TxType::VOTE);
+  BOOST_CHECK((TxType::VOTE == tx.GetType()));
 
-  tx.SetType(static_cast<TxType>(4));
-  BOOST_CHECK((4 == static_cast<uint16_t>(tx.GetType())));
-}
-
-BOOST_AUTO_TEST_CASE(mutabletransaction_set_version_mulitple_times)
-{
-  CMutableTransaction tx;
-
-  tx.SetVersion(2);
-  BOOST_CHECK_EQUAL(2, tx.GetVersion());
-
-  tx.SetVersion(4);
-  BOOST_CHECK_EQUAL(4, tx.GetVersion());
+  tx.SetType(TxType::LOGOUT);
+  BOOST_CHECK((TxType::LOGOUT == tx.GetType()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -398,7 +398,7 @@ public:
         finalization.m_epochLength = 5;
         finalization.m_minDepositSize = 10000 * UNIT;
         finalization.m_dynastyLogoutDelay = 2;
-        finalization.m_withdrawalEpochDelay = (int)5;
+        finalization.m_withdrawalEpochDelay = static_cast<int>(5);
         finalization.m_slashFractionMultiplier = 3;
         finalization.m_bountyFractionDenominator = 25;
         finalization.m_baseInterestFactor = ufp64::to_ufp64(700);

@@ -1090,7 +1090,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 if (state->m_phase == esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION) {
 
                   state->m_phase = esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION;
-                  LogPrint(BCLog::ESPERANZA, "%s: Validator waiting for deposit finalization. Desosit hash %s.\n",
+                  LogPrint(BCLog::ESPERANZA, "%s: Validator waiting for deposit finalization. Deposit hash %s.\n",
                            "ESPERANZA",
                            tx.GetHash().GetHex());
 
@@ -3977,7 +3977,7 @@ CWallet* CWallet::CreateWalletFromFile(const std::string walletFile)
         }
     }
 
-    walletInstance->m_stakingExtension.CreateWalletFromFile();
+  walletInstance->m_stakingExtension.ReadValidatorStateFromFile();
 
     LogPrintf(" wallet      %15dms\n", GetTimeMillis() - nStart);
 
