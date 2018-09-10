@@ -193,7 +193,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 void BlockAssembler::AddVoteTxs()
 {
     CTxMemPool::indexed_transaction_set::index<ancestor_score>::type::iterator mi = mempool.mapTx.get<ancestor_score>().begin();
-    CTxMemPool::txiter iter;
 
     while (mi != mempool.mapTx.get<ancestor_score>().end()) {
 

@@ -510,12 +510,12 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 /**
  *
  * Creates a vote transaction starting from a Vote object and a previous
- * DEPOSIT reference. It fills inputs, outputs. It does not support
- * an address change between source and destination.
+ * transaction (vote or deposit  reference. It fills inputs, outputs.
+ * It does not support an address change between source and destination.
  *
- * @param[in] prevTx a reference to the initial DEPOSIT transaction
+ * @param[in] prevTx a reference to the initial DEPOSIT or previous VOTE transaction
  * @param[in] vote the vote data
- * @param[out] wtxNew the vote transaction ready for commit
+ * @param[out] wtxNew the vote transaction committed
  */
 bool WalletExtension::SendVote(const CTransactionRef &depositRef,
                                const Vote &vote, CWalletTx &wtxNewOut) {

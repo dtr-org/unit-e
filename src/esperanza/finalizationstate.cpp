@@ -872,7 +872,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
   // We can skip everything for the genesis block since it isn't suppose to
   // contain esperanza's transactions.
-  if(blockIndex.nHeight == 0) {
+  if (blockIndex.nHeight == 0) {
     return true;
   }
 

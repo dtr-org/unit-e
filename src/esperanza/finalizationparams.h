@@ -21,7 +21,7 @@ class FinalizationParams final {
 
   int64_t m_dynastyLogoutDelay = 700;
 
-  int64_t m_withdrawalEpochDelay = (int)1.5e4;
+  int64_t m_withdrawalEpochDelay = static_cast<int>(1.5e4);
 
   int64_t m_slashFractionMultiplier = 3;
 

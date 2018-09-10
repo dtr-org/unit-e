@@ -23,6 +23,9 @@ UniValue createdeposit(const JSONRPCRequest &request)
     throw std::runtime_error(
         "createdeposit\n"
         "Creates a new deposit of the given amount, if accepted it will make the current node a validator."
+        "\nArguments:\n"
+        "1. address              (required) the destination for the deposit.\n"
+        "2. amount               (required) the amount deposit.\n"
         "\nExamples:\n"
             + HelpExampleRpc("createdeposit", ""));
   }
