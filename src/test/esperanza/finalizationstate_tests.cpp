@@ -579,7 +579,6 @@ BOOST_AUTO_TEST_CASE(is_slashable_not_the_same_validator) {
 
   Vote v1 = {validatorIndex_1, uint256S("5"), 3, 5};
   Vote v2 = {validatorIndex_2, uint256S("6"), 12, 52};
-  CAmount bounty = 0;
 
   BOOST_CHECK(spy.ValidateDeposit(validatorIndex_1, depositSize_1) == Result::SUCCESS);
   spy.ProcessDeposit(validatorIndex_1, depositSize_1);
@@ -612,7 +611,6 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
   Vote v1 = {validatorIndex, uint256S("5"), 3, 5};
-  CAmount bounty = 0;
 
   BOOST_CHECK(spy.ValidateDeposit(validatorIndex, depositSize) == Result::SUCCESS);
   spy.ProcessDeposit(validatorIndex, depositSize);
@@ -623,7 +621,6 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
 
   uint256 targetHash = GetRandHash();
   *spy.RecommendedTargetHash() = targetHash;
-  CAmount awardedDeposit;
 
   int i;
   for (i = 4; i < 8; i++) {
