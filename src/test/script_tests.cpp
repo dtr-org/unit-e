@@ -1512,11 +1512,6 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
     uint32_t sourceHeight = 10;
     uint32_t targetHeight = 100;
 
-    esperanza::Vote data = {uint256(ParseHex(depositTx)),
-                     uint256(ParseHex(targetHash)),
-                     sourceHeight,
-                     targetHeight};
-
     CScript s = CScript() << ParseHex(signature) << ParseHex(encodedVote);
 
     esperanza::Vote decodeData = CScript::ExtractVoteFromSignature(s);
