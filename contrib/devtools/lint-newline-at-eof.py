@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 
-exclude_files_pattern = "^.+\\.(bmp|ico|icns|json|pgp|png|raw|svg|ts)|(src/(leveldb|univalue|secp256k1|crypto/ctaes)||depends/patches)/.+$"
+exclude_files_pattern = "^.+\\.(bmp|ico|icns|json|pgp|png|raw|svg|ts)|(src/(leveldb|univalue|secp256k1|crypto/ctaes)|depends/patches)/.+$"
 
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
 while not os.path.isdir(".git") and not os.path.isdir("src"):
