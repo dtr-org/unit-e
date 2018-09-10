@@ -43,6 +43,7 @@ UNITE_TESTS =\
   test/checkqueue_tests.cpp \
   test/coins_tests.cpp \
   test/compress_tests.cpp \
+  test/counting_semaphore_tests.cpp \
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
   test/DoS_tests.cpp \
@@ -94,11 +95,13 @@ UNITE_TESTS =\
   test/util_tests.cpp \
   test/util_fun_tests.cpp \
   test/validation_block_tests.cpp \
-  test/versionbits_tests.cpp
+  test/versionbits_tests.cpp \
+  test/waiter_tests.cpp
 
 if ENABLE_WALLET
 UNITE_TESTS += \
   test/mnemonic_tests.cpp \
+  test/proposer_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \

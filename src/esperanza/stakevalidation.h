@@ -6,8 +6,8 @@
 #ifndef UNITE_ESPERANZA_STAKEVALIDATION_H
 #define UNITE_ESPERANZA_STAKEVALIDATION_H
 
-#include <consensus/validation.h>
 #include <chain.h>
+#include <consensus/validation.h>
 #include <primitives/block.h>
 
 namespace esperanza {
@@ -20,8 +20,14 @@ bool CheckStakeUnused(const COutPoint &kernel);
 
 bool CheckStakeUnique(const CBlock &block, bool update);
 
+bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
+
+bool CheckBlock(const CBlock& block);
+
+bool ProposeBlock(const CBlock& block);
+
 int GetNumBlocksOfPeers();
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif //UNITE_ESPERANZA_STAKEVALIDATION_H
+#endif  // UNITE_ESPERANZA_STAKEVALIDATION_H

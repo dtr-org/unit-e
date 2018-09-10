@@ -3,13 +3,15 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/params.h>
-#include <esperanza/finalizationstate.h>
-#include <esperanza/stakevalidation.h>
 #include <chainparams.h>
+#include <esperanza/finalizationstate.h>
+#include <esperanza/kernel.h>
+#include <esperanza/params.h>
+#include <esperanza/stakevalidation.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>
+#include <utilmoneystr.h>
 #include <validation.h>
 
 namespace esperanza {
@@ -34,8 +36,7 @@ bool HasIsCoinstakeOp(const CScript &scriptIn) {
   return opcode == OP_ISCOINSTAKE;
 }
 
-bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut)
-{
+bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut) {
   CScript::const_iterator pc = scriptIn.begin();
   CScript::const_iterator pend = scriptIn.end();
   CScript::const_iterator pcStart = pc;
@@ -49,14 +50,14 @@ bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut)
       break;
     }
     if (!foundOp && opcode == OP_ISCOINSTAKE) {
-      pc++; // skip over if
+      ++pc;  // skip over if
 
       pcStart = pc;
       foundOp = true;
       continue;
     }
     if (foundOp && opcode == OP_ELSE) {
-      pc--;
+      --pc;
       scriptOut = CScript(pcStart, pc);
       return true;
     }
@@ -70,7 +71,7 @@ bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash) {
 
   std::pair<std::map<COutPoint, uint256>::iterator, bool> ret;
   ret = mapStakeSeen.insert(std::pair<COutPoint, uint256>(kernel, blockHash));
-  if (ret.second == false) { // already exists
+  if (ret.second == false) {  // already exists
     ret.first->second = blockHash;
   } else {
     listStakeSeen.push_back(kernel);
@@ -112,8 +113,73 @@ bool CheckStakeUnique(const CBlock &block, bool update) {
   return AddToMapStakeSeen(kernel, blockHash);
 }
 
+bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID) {
+  if (scriptPubKey.IsPayToPublicKeyHash()) {
+    keyID = CKeyID(uint160(&scriptPubKey[3], 20));
+    return true;
+  }
+  return false;
+}
+
+bool CheckBlock(const CBlock &pblock) {
+  uint256 proofHash, hashTarget;
+  uint256 hashBlock = pblock.GetHash();
+
+  if (!esperanza::CheckStakeUnique(pblock, false)) {  // Check in SignBlock also
+    return error("%s: %s CheckStakeUnique failed.", __func__,
+                 hashBlock.GetHex());
+  }
+
+  BlockMap::const_iterator mi = mapBlockIndex.find(pblock.hashPrevBlock);
+  if (mi == mapBlockIndex.end()) {
+    return error("%s: %s prev block not found: %s.", __func__,
+                 hashBlock.GetHex(), pblock.hashPrevBlock.GetHex());
+  }
+  if (!chainActive.Contains(mi->second)) {
+    return error("%s: %s prev block in active chain: %s.", __func__,
+                 hashBlock.GetHex(), pblock.hashPrevBlock.GetHex());
+  }
+  // verify hash target and signature of coinstake tx
+  if (!esperanza::CheckProofOfStake(mi->second, *pblock.vtx[0], pblock.nTime,
+                                    pblock.nBits, proofHash, hashTarget)) {
+    return error("%s: proof-of-stake checking failed.", __func__);
+  }
+
+  // debug print
+  LogPrintf(
+      "CheckStake(): New proof-of-stake block found  \n  hash: %s "
+      "\nproofhash: "
+      "%s  \ntarget: %s\n",
+      hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
+  if (LogAcceptCategory(BCLog::POS)) {
+    LogPrintf("block %s\n", pblock.ToString());
+    LogPrintf("out %s\n", FormatMoney(pblock.vtx[0]->GetValueOut()));
+  }
+
+  {
+    LOCK(cs_main);
+    if (pblock.hashPrevBlock !=
+        chainActive.Tip()->GetBlockHash())  // hashbestchain
+      return error("%s: Generated block is stale.", __func__);
+  }
+
+  return true;
+}
+
+bool ProposeBlock(const CBlock &block) {
+  if (!CheckBlock(block)) {
+    return false;
+  }
+  std::shared_ptr<const CBlock> shared_pblock =
+      std::make_shared<const CBlock>(block);
+  return ProcessNewBlock(::Params(), shared_pblock,
+                         /* fForceProcessing */ true,
+                         /* fNewBlock out */ nullptr);
+}
+
 int GetNumBlocksOfPeers() {
   // todo
   return 0;
 }
+
 }  // namespace esperanza

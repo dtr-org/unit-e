@@ -50,7 +50,7 @@
 #include <wallet/init.h>
 #include <wallet/wallet.h>
 #include <esperanza/config.h>
-#include <esperanza/proposerthread.h>
+#include <esperanza/proposer_init.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -80,6 +80,10 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
+
+#ifdef ENABLE_WALLET
+std::unique_ptr<esperanza::Proposer> proposer;
+#endif
 
 #if ENABLE_ZMQ
 static CZMQNotificationInterface* pzmqNotificationInterface = nullptr;
@@ -197,7 +201,7 @@ void Shutdown()
     StopRPC();
     StopHTTPServer();
 #ifdef ENABLE_WALLET
-    esperanza::ProposerThread::Shutdown();
+    esperanza::StopProposer();
     FlushWallets();
 #endif
     MapPort(false);
@@ -1259,11 +1263,16 @@ bool AppInitLockDataDirectory()
     return true;
 }
 
+#ifdef ENABLE_WALLET
+namespace {
+    esperanza::Config esperanzaConfig;
+}
+#endif
+
 bool AppInitMain()
 {
 #ifdef ENABLE_WALLET
-    // initialize global esperanza config
-    esperanza::g_config = esperanza::Config(gArgs);
+    esperanzaConfig = esperanza::Config(gArgs);
 #endif
 
     const CChainParams& chainparams = Params();
@@ -1837,8 +1846,13 @@ bool AppInitMain()
 
     // ********************************************************* Step 13: start proposing
 
-    esperanza::ProposerThread::StartProposerThreads(esperanza::g_config, vpwallets);
+    if (!esperanza::InitProposer(esperanzaConfig, vpwallets)) {
+        return false;
+    }
+    esperanza::StartProposer();
 #endif
+
+    LogPrintf("Started up.\n");
 
     return true;
 }

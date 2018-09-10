@@ -2,12 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <test/test_unite.h>
+
 #include <key/mnemonic/mnemonic.h>
 
 #include <test/data/bip39_vectors_english.json.h>
 #include <test/data/bip39_vectors_japanese.json.h>
-
-#include <test/test_unite.h>
 
 #include <key.h>
 #include <base58.h>

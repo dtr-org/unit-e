@@ -30,10 +30,6 @@ WalletExtension::WalletExtension(::CWallet *enclosingWallet)
   assert(enclosingWallet != nullptr);
 }
 
-size_t WalletExtension::GetProposerThreadIndex() const {
-  return m_stakeThreadIndex;
-}
-
 CAmount WalletExtension::GetStakeableBalance() const {
   LOCK2(cs_main, m_enclosingWallet->cs_wallet);
 
@@ -174,9 +170,6 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
   for (; it != setCoins.end(); ++it) {
     auto pcoin = *it;
-    if (ProposerThread::IsStopped()) {
-      return false;
-    }
     COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
 
     int64_t nBlockTime;
@@ -262,7 +255,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   size_t nStakesCombined = 0;
   it = setCoins.begin();
   while (it != setCoins.end()) {
-    if (nStakesCombined >= m_maxStakeCombine) {
+    if (nStakesCombined >= m_proposerState.m_maxStakeCombine) {
       break;
     }
 
@@ -272,7 +265,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     }
 
     // Stop adding more inputs if value is already pretty significant
-    if (nCredit >= m_stakeCombineThreshold) {
+    if (nCredit >= m_proposerState.m_stakeCombineThreshold) {
       break;
     }
 
@@ -290,7 +283,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       break;
     }
     // Do not add additional significant input
-    if (prevOut.nValue >= m_stakeCombineThreshold) {
+    if (prevOut.nValue >= m_proposerState.m_stakeCombineThreshold) {
       continue;
     }
 
@@ -319,7 +312,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   nCredit += nRewardOut;
 
   // Set output amount, split outputs if > nStakeSplitThreshold
-  if (nCredit >= m_stakeSplitThreshold) {
+  if (nCredit >= m_proposerState.m_stakeSplitThreshold) {
     CTxOut outSplit(0, scriptPubKeyKernel);
 
     txNew.vout.back().nValue = nCredit / 2;
@@ -392,7 +385,7 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 
 // UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
-  if (gArgs.GetBoolArg("-validating", false) && !gArgs.GetBoolArg("-staking", true)) {
+  if (gArgs.GetBoolArg("-validating", false) && !gArgs.GetBoolArg("-proposing", true)) {
     LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n", "ESPERANZA", m_enclosingWallet->GetName());
 
     validatorState = esperanza::ValidatorState();

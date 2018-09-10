@@ -20,11 +20,11 @@ class EsperanzaTest(UnitETestFramework):
 
         validator_node_params = [
             '-validating=1',
-            '-staking=0',
+            '-proposing=0',
             '-debug=all',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = ['-staking=0','-debug=all', '-esperanzaconfig='+json_params]
+        proposer_node_params = ['-proposing=0','-debug=all', '-esperanzaconfig='+json_params]
 
         self.extra_args = [proposer_node_params,
                            validator_node_params,

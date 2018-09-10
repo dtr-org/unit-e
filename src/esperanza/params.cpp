@@ -24,9 +24,7 @@ uint32_t Params::GetTargetSpacing() const { return m_targetSpacing; }
 
 uint32_t Params::GetTargetTimespan() const { return m_targetTimespan; }
 
-uint32_t Params::GetStakeTimestampMask(int nHeight) const {
-  return m_stakeTimestampMask;
-}
+int64_t Params::GetStakeTimestampMask() const { return m_stakeTimestampMask; }
 
 int64_t Params::GetCoinYearReward(int64_t nTime) const {
   static const int64_t nSecondsInYear = 365 * 24 * 60 * 60;
