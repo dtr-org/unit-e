@@ -385,7 +385,7 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 
 // UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
-  if (gArgs.GetBoolArg("-validating", false) && !gArgs.GetBoolArg("-staking", true)) {
+  if (gArgs.GetBoolArg("-validating", false) && !gArgs.GetBoolArg("-proposing", true)) {
     LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n", "ESPERANZA", m_enclosingWallet->GetName());
 
     validatorState = esperanza::ValidatorState();

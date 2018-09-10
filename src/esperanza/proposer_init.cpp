@@ -22,8 +22,15 @@ bool InitProposer(const Config& config, const std::vector<CWallet*>& wallets) {
   }
 }
 
-void StartProposer() { proposer->Start(); }
+void StartProposer() {
+  LogPrint(BCLog::ESPERANZA, "starting proposer threads...\n");
+ proposer->Start();
+}
 
-void StopProposer() { proposer->Stop(); }
+void StopProposer() {
+  LogPrint(BCLog::ESPERANZA, "stopping proposer threads...\n");
+  proposer->Stop();
+  LogPrint(BCLog::ESPERANZA, "all proposer threads exited.\n");
+}
 
 }  // namespace esperanza

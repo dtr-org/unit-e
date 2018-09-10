@@ -255,6 +255,9 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::COINDB, "coindb"},
     {BCLog::QT, "qt"},
     {BCLog::LEVELDB, "leveldb"},
+    {BCLog::ESPERANZA, "esperanza"},
+    {BCLog::WALLET, "wallet"},
+    {BCLog::POS, "pos"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };
@@ -349,10 +352,11 @@ static std::string LogTimestampStr(const BCLog::LogFlags category, const std::st
     if (*fStartedNewLine) {
         if (fLogTimestamps) {
           int64_t nTimeMicros = GetTimeMicros();
-          strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S ", nTimeMicros/1000000);
+          strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
           if (fLogTimeMicros) {
-              strStamped += strprintf(".%06d ", nTimeMicros%1000000);
+              strStamped += strprintf(".%06d", nTimeMicros%1000000);
           }
+          strStamped += " ";
         }
         if (fLogCategories) {
             strStamped += strprintf("[%11s] ", GetLogCategoryLabel(category));

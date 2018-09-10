@@ -93,7 +93,7 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   }
 
   initSemaphore.acquire(numThreads);
-  LogPrintf("%d proposer threads initialized.\n", numThreads);
+  LogPrint(BCLog::ESPERANZA, "%d proposer threads initialized.\n", numThreads);
 
   return threads;
 }
@@ -108,14 +108,10 @@ Proposer::Proposer(const Config &config, const std::vector<CWallet *> &wallets)
 Proposer::~Proposer() { Stop(); }
 
 void Proposer::Start() {
-  LogPrint(BCLog::ESPERANZA, "starting %d proposer threads...\n",
-           m_threads.size());
   m_startSemaphore.release(m_threads.size());
 }
 
 void Proposer::Stop() {
-  LogPrint(BCLog::ESPERANZA, "stopping %d proposer threads...\n",
-           m_threads.size());
   for (const auto &thread : m_threads) {
     // sets all threads m_interrupted and wakes them up in case they are
     // sleeping
@@ -130,15 +126,12 @@ void Proposer::Stop() {
   // in case Stop() is going to be invoked twice (important for destructor) make
   // sure there are enough permits in the stop semaphore for another invocation
   m_stopSemaphore.release(m_threads.size());
-  LogPrint(BCLog::ESPERANZA, "all proposer threads exited.\n");
 }
 
 void Proposer::Run(Proposer::Thread &thread) {
-  if (LogAcceptCategory(BCLog::ESPERANZA)) {
-    LogPrintf("%s: initialized.\n", thread.m_threadName.c_str());
-    for (const auto wallet : thread.m_wallets) {
-      LogPrintf("  responsible for: %s\n", wallet->GetName());
-    }
+  LogPrint(BCLog::ESPERANZA, "%s: initialized.\n", thread.m_threadName.c_str());
+  for (const auto wallet : thread.m_wallets) {
+    LogPrint(BCLog::ESPERANZA, "  responsible for: %s\n", wallet->GetName());
   }
   thread.m_initSemaphore.release();
   thread.m_startSemaphore.acquire();
@@ -174,7 +167,7 @@ void Proposer::Run(Proposer::Thread &thread) {
       // UNIT-E: respect thread.m_config.m_minProposeInterval
 
       int64_t currentTime = GetAdjustedTime();
-      int64_t mask = ::Params().EsperanzaParams().GetStakeTimestampMask();
+      int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
       int64_t searchTime = currentTime & ~mask;
 
       if (searchTime < bestTime) {
@@ -234,11 +227,12 @@ void Proposer::Run(Proposer::Thread &thread) {
     } catch (const std::runtime_error &error) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
-      LogPrintf("exception in proposer thread: %s\n", error.what());
+      LogPrint(BCLog::ESPERANZA, "exception in proposer thread: %s\n",
+               error.what());
     } catch (...) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
-      LogPrintf("unknown exception in proposer thread.\n");
+      LogPrint(BCLog::ESPERANZA, "unknown exception in proposer thread.\n");
     }
   }
   LogPrint(BCLog::ESPERANZA, "%s: stopping...\n", thread.m_threadName.c_str());
