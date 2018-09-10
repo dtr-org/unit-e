@@ -20,3 +20,13 @@ for f in "${SCRIPTDIR}"/lint-*.sh; do
     fi
   fi
 done
+
+for f in "${SCRIPTDIR}"/lint-*.py; do
+  if [ "$(basename "$f")" != "$LINTALL" ]; then
+    if ! "$f"; then
+      echo "^---- failure generated from $f"
+      exit 1
+    fi
+  fi
+done
+

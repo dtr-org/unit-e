@@ -23,3 +23,4 @@ Validator::Validator(uint64_t deposit, uint32_t startDynasty, uint256 validatorI
       m_depositsAtLogout(0) {}
 
 }
+
