@@ -84,10 +84,10 @@ class EsperanzaTest(UnitETestFramework):
         sync_blocks(self.nodes[0:3])
 
         resp = nodes[0].getesperanzastate()
-        assert_equal(resp["currentEpoch"], 35)
-        assert_equal(resp["currentDynasty"], 34)
-        assert_equal(resp["lastFinalizedEpoch"], 33)
-        assert_equal(resp["lastJustifiedEpoch"], 34)
+        assert_equal(resp["currentEpoch"], 17)
+        assert_equal(resp["currentDynasty"], 16)
+        assert_equal(resp["lastFinalizedEpoch"], 15)
+        assert_equal(resp["lastJustifiedEpoch"], 16)
         assert_equal(resp["validators"], 3)
 
         print("Test succeeded.")
