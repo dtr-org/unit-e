@@ -112,4 +112,3 @@ if showcodediff | perl -nle '$MATCH++ if m{^\+.*\t}; END{exit 1 unless $MATCH>0}
 fi
 
 exit $RET
-
