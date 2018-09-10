@@ -1,4 +1,6 @@
 BasedOnStyle: Google
+Language: Cpp
+Standard: Cpp11
 
 # Google Style Guide asks only for consistency when deciding where to align the
 # "&" when using pointers.
