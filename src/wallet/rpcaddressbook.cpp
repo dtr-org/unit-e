@@ -64,14 +64,14 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
         "filteraddresses ( offset count sort_code \"search\" match_owned )\n"
         "\nList addresses.\n"
         "\nArguments:\n"
-        "1. offset:      (numeric, optional) number of addresses to skip\n"
-        "2. count:       (numerci, optional) number of addresses to be "
+        "1. \"offset\":      (numeric, optional) number of addresses to skip\n"
+        "2. \"count\":       (numerci, optional) number of addresses to be "
         "displayed\n"
-        "3. sort_code:   (string, optional) 0 sort by label ascending,\n"
-        "                1 sort by label descending, default 0\n"
-        "4. search:      (string, optional) a query to search labels\n"
-        "5. match_owned: (string, optional) 0 off, 1 owned, 2 non-owned,\n"
-        "                default 0\n");
+        "3. \"sort_code\":   (string, optional) 0 sort by label ascending,\n"
+        "                  1 sort by label descending, default 0\n"
+        "4. \"search\":      (string, optional) a query to search labels\n"
+        "5. \"match_owned\": (string, optional) 0 off, 1 owned, 2 non-owned,\n"
+        "                  default 0\n");
   }
 
   ObserveSafeMode();
@@ -124,7 +124,7 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
   {
     LOCK(pwallet->cs_wallet);
 
-    if (offset >= static_cast<int>(pwallet->mapAddressBook.size())) {
+    if (offset && offset >= static_cast<int>(pwallet->mapAddressBook.size())) {
       throw JSONRPCError(
           RPC_INVALID_PARAMETER,
           strprintf("offset is beyond last address (%d).", offset));
@@ -172,7 +172,7 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
 
       entry.pushKV("address", EncodeDestination(item->first));
       entry.pushKV("label", item->second.name);
-      entry.pushKV("owned", addressIsMine[item->first] ? "true" : "false");
+      entry.pushKV("owned", UniValue(addressIsMine[item->first]));
 
       result.push_back(entry);
       ++numEntries;
@@ -182,12 +182,226 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
   return result;
 }
 
+static UniValue AddAddress(CWallet *pwallet, const std::string &address,
+                           const std::string &label, const std::string &purpose,
+                           const CTxDestination &dest) {
+  auto it = pwallet->mapAddressBook.find(dest);
+  if (it != pwallet->mapAddressBook.end()) {
+    throw JSONRPCError(
+        RPC_INVALID_PARAMETER,
+        strprintf(_("Address '%s' is recorded in the address book."), address));
+  }
+  if (!pwallet->SetAddressBook(dest, label, purpose)) {
+    throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
+  }
+
+  UniValue result(UniValue::VOBJ);
+
+  result.pushKV("action", "add");
+  result.pushKV("address", address);
+
+  result.pushKV("label", label);
+  result.pushKV("purpose", purpose);
+
+  result.pushKV("result", "success");
+
+  return result;
+}
+
+static UniValue EditAddress(CWallet *pwallet, const std::string &address,
+                            const std::string &label,
+                            const std::string &purpose, bool setPurpose,
+                            const CTxDestination &dest) {
+  std::map<CTxDestination, CAddressBookData>::iterator addressBookIt;
+  addressBookIt = pwallet->mapAddressBook.find(dest);
+  if (addressBookIt == pwallet->mapAddressBook.end()) {
+    throw JSONRPCError(
+        RPC_INVALID_PARAMETER,
+        strprintf(_("Address '%s' is not in the address book."), address));
+  }
+
+  if (!pwallet->SetAddressBook(
+          dest, label, setPurpose ? purpose : addressBookIt->second.purpose)) {
+    throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
+  }
+
+  UniValue result(UniValue::VOBJ);
+  result.pushKV("action", "edit");
+  result.pushKV("address", address);
+
+  result.pushKV("label", addressBookIt->second.name);
+  result.pushKV("purpose", addressBookIt->second.purpose);
+
+  result.pushKV("owned", UniValue(!!IsMine(*pwallet, addressBookIt->first)));
+
+  UniValue objDestData(UniValue::VOBJ);
+  for (const auto &pair : addressBookIt->second.destdata) {
+    objDestData.pushKV(pair.first, pair.second);
+  }
+  if (!objDestData.empty()) {
+    result.pushKV("destdata", objDestData);
+  }
+
+  result.pushKV("result", "success");
+  return result;
+}
+
+static UniValue DeleteAddress(CWallet *pwallet, const std::string &address,
+                              const CTxDestination &dest) {
+  auto addressBookIt = pwallet->mapAddressBook.find(dest);
+  if (addressBookIt == pwallet->mapAddressBook.end()) {
+    throw JSONRPCError(
+        RPC_INVALID_PARAMETER,
+        strprintf(_("Address '%s' is not in the address book."), address));
+  }
+
+  UniValue result(UniValue::VOBJ);
+
+  result.pushKV("action", "del");
+  result.pushKV("address", address);
+
+  result.pushKV("label", addressBookIt->second.name);
+  result.pushKV("purpose", addressBookIt->second.purpose);
+
+  if (!pwallet->DelAddressBook(dest)) {
+    throw JSONRPCError(RPC_WALLET_ERROR, "DelAddressBook failed.");
+  }
+
+  return result;
+}
+
+static UniValue NewSend(CWallet *pwallet, const std::string &address, const std::string &label,
+                        const std::string &purpose, const CTxDestination &dest) {
+  auto addressBookIt = pwallet->mapAddressBook.find(dest);
+  // Only update the purpose field if address does not yet exist
+  std::string newPurpose; // Empry string means don't change purpose
+  if (addressBookIt == pwallet->mapAddressBook.end()) {
+    newPurpose = purpose;
+  }
+
+  if (!pwallet->SetAddressBook(dest, label, newPurpose)) {
+    throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
+  }
+
+  UniValue result(UniValue::VOBJ);
+  result.pushKV("action", "newsend");
+  result.pushKV("address", address);
+
+  result.pushKV("label", label);
+
+  if (addressBookIt != pwallet->mapAddressBook.end()) {
+    result.pushKV("purpose", addressBookIt->second.purpose);
+  } else {
+    result.pushKV("purpose", purpose);
+  }
+  return result;
+}
+
+static UniValue AddressInfo(CWallet *pwallet, const std::string &address,
+                            const CTxDestination &dest) {
+  auto addressBookIt = pwallet->mapAddressBook.find(dest);
+  if (addressBookIt == pwallet->mapAddressBook.end()) {
+    throw JSONRPCError(
+        RPC_INVALID_PARAMETER,
+        strprintf(_("Address '%s' is not in the address book."), address));
+  }
+
+  UniValue result(UniValue::VOBJ);
+
+  result.pushKV("action", "info");
+  result.pushKV("address", address);
+
+  result.pushKV("label", addressBookIt->second.name);
+  result.pushKV("purpose", addressBookIt->second.purpose);
+
+  result.pushKV("owned", UniValue(!!IsMine(*pwallet, addressBookIt->first)));
+
+  UniValue objDestData(UniValue::VOBJ);
+  for (const auto &pair : addressBookIt->second.destdata) {
+    objDestData.pushKV(pair.first, pair.second);
+  }
+  if (!objDestData.empty()) {
+    result.pushKV("destdata", objDestData);
+  }
+
+  result.pushKV("result", "success");
+
+  return result;
+}
+
+UniValue manageaddressbook(const JSONRPCRequest &request) {
+  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+    return NullUniValue;
+  }
+
+  if (request.fHelp || request.params.size() < 2 || request.params.size() > 4) {
+    throw std::runtime_error(
+        "manageaddressbook \"action\" \"address\" ( \"label\" \"purpose\" )\n"
+        "\nManage the address book.\n"
+        "\nArguments:\n"
+        "1. \"action\"      (string, required) 'add/edit/del/info/newsend' The "
+        "action to take.\n"
+        "2. \"address\"     (string, required) The address to affect.\n"
+        "3. \"label\"       (string, optional) Optional label.\n"
+        "4. \"purpose\"     (string, optional) Optional purpose label.\n");
+  }
+
+  ObserveSafeMode();
+
+  // Make sure the results are valid at least up to the most recent block
+  // the user could have gotten from another RPC command prior to now
+  pwallet->BlockUntilSyncedToCurrentChain();
+
+  std::string action = request.params[0].get_str();
+  std::string address = request.params[1].get_str();
+  std::string label, purpose;
+
+  if (action != "info") {
+    EnsureWalletIsUnlocked(pwallet);
+  }
+
+  bool fHavePurpose = false;
+  if (request.params.size() > 2) {
+    label = request.params[2].get_str();
+  }
+  if (request.params.size() > 3) {
+    purpose = request.params[3].get_str();
+    fHavePurpose = true;
+  }
+
+  CTxDestination dest = DecodeDestination(address);
+  if (!IsValidDestination(dest)) {
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid UnitE address");
+  }
+
+  if (action == "add") {
+    return AddAddress(pwallet, address, label, purpose, dest);
+  } else if (action == "edit") {
+    if (request.params.size() < 3) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER,
+                         _("Need a parameter to change."));
+    }
+    return EditAddress(pwallet, address, label, purpose, fHavePurpose, dest);
+  } else if (action == "del") {
+    return DeleteAddress(pwallet, address, dest);
+  } else if (action == "info") {
+    return AddressInfo(pwallet, address, dest);
+  } else if (action == "newsend") {
+    return NewSend(pwallet, address, label, purpose, dest);
+  } else {
+    throw JSONRPCError(RPC_INVALID_PARAMETER,
+                       _("Unknown action, must be one of 'add/edit/del'."));
+  }
+}
+
 // clang-format off
 static const CRPCCommand commands[] = {
 //  category               name                      actor (function)         argNames
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
     {"wallet",             "addressbookinfo",        &addressbookinfo,        {}},
     {"wallet",             "filteraddresses",        &filteraddresses,        {"offset", "count", "sort_code"}},
+    {"wallet",             "manageaddressbook",      &manageaddressbook,      {"action","address","label","purpose"} },
 };
 // clang-format on
 
