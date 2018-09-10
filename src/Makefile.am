@@ -154,6 +154,7 @@ UNITE_CORE_H = \
   reverselock.h \
   rpc/blockchain.h \
   rpc/client.h \
+  rpc/esperanza.h \
   rpc/mining.h \
   rpc/protocol.h \
   rpc/safemode.h \
@@ -198,6 +199,7 @@ UNITE_CORE_H = \
   wallet/fees.h \
   wallet/init.h \
   wallet/rpcmnemonic.h \
+  wallet/rpcvalidator.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletdb.h \
@@ -246,6 +248,7 @@ libunite_server_a_SOURCES = \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/esperanza.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
@@ -296,6 +299,7 @@ libunite_wallet_a_SOURCES = \
   wallet/init.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcmnemonic.cpp \
+  wallet/rpcvalidator.cpp \
   wallet/rpcwallet.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \

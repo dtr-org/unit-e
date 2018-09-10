@@ -8,8 +8,8 @@
 #include <chain.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <esperanza/walletextension.h>
 #include <httpserver.h>
-#include <validation.h>
 #include <net.h>
 #include <policy/feerate.h>
 #include <policy/fees.h>
@@ -23,8 +23,10 @@
 #include <timedata.h>
 #include <util.h>
 #include <utilmoneystr.h>
+#include <validation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/feebumper.h>
+#include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>

@@ -147,6 +147,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
 
+    AddVoteTxs();
+
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
@@ -186,6 +188,22 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
 
     return std::move(pblocktemplate);
+}
+
+void BlockAssembler::AddVoteTxs()
+{
+    CTxMemPool::indexed_transaction_set::index<ancestor_score>::type::iterator mi = mempool.mapTx.get<ancestor_score>().begin();
+
+    while (mi != mempool.mapTx.get<ancestor_score>().end()) {
+
+        if(mi->GetTx().IsVote()) {
+            AddToBlock(mempool.mapTx.project<0>(mi));
+            LogPrint(BCLog::ESPERANZA, "%s: Add vote with id %s to a new block.\n",
+                    "ESPERANZA",
+                    mi->GetTx().GetHash().GetHex());
+        }
+        ++mi;
+    }
 }
 
 void BlockAssembler::onlyUnconfirmed(CTxMemPool::setEntries& testSet)

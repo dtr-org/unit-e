@@ -139,7 +139,7 @@ static bool CheckAge(
     ,
     int &nDepth) {
   int nRequiredDepth =
-      std::min<int>(::Params().EsperanzaParams().GetStakeMinConfirmations() - 1,
+      std::min<int>(::Params().GetEsperanza().GetStakeMinConfirmations() - 1,
                     pindexTip->nHeight / 2);
 
   if (IsConfirmedInNPrevBlocks(hashKernelBlock, pindexTip, nRequiredDepth,
@@ -212,7 +212,7 @@ bool CheckProofOfStake(
 
     nDepth = pindexPrev->nHeight - coin.nHeight;
     int nRequiredDepth = std::min<int>(
-        ::Params().EsperanzaParams().GetStakeMinConfirmations() - 1,
+        ::Params().GetEsperanza().GetStakeMinConfirmations() - 1,
         pindexPrev->nHeight / 2);
     if (nRequiredDepth > nDepth) {
       return state.DoS(
@@ -297,7 +297,7 @@ bool CheckProofOfStake(
 // Check whether the coinstake timestamp meets protocol
 bool CheckCoinStakeTimestamp(int nHeight, int64_t nTimeBlock) {
   return (nTimeBlock &
-          ::Params().EsperanzaParams().GetStakeTimestampMask(nHeight)) == 0;
+      ::Params().GetEsperanza().GetStakeTimestampMask(nHeight)) == 0;
 }
 
 bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits,
@@ -316,7 +316,7 @@ bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits,
     return false;
   }
   int nRequiredDepth =
-      std::min<int>(::Params().EsperanzaParams().GetStakeMinConfirmations() - 1,
+      std::min<int>(::Params().GetEsperanza().GetStakeMinConfirmations() - 1,
                     pindexPrev->nHeight / 2);
   int nDepth = pindexPrev->nHeight - coin.nHeight;
   if (nRequiredDepth > nDepth) {

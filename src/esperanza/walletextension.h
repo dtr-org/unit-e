@@ -7,6 +7,7 @@
 
 #include <amount.h>
 #include <esperanza/proposerstate.h>
+#include <esperanza/validatorstate.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
@@ -58,6 +59,9 @@ class WalletExtension {
 
   size_t m_maxStakeCombine = 3;
 
+  void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
+                    const CBlockIndex *pindex);
+
  public:
   //! \brief non-intrusive extension of the bitcoin-core wallet.
   //!
@@ -98,6 +102,20 @@ class WalletExtension {
 
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             std::string &error);
+
+  bool SendDeposit(const CTxDestination &address,
+                   const CAmount &amount, CWalletTx &wtxOut);
+
+  bool SendVote(const CTransactionRef &depositRef,
+                const Vote &vote, CWalletTx &wtxNewOut);
+
+  void ReadValidatorStateFromFile();
+
+  void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
+                      const CBlockIndex *pindex);
+
+  ValidatorState validatorState;
+  bool nIsValidatorEnabled = false;
 };
 
 }  // namespace esperanza

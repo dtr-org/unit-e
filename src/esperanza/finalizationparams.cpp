@@ -27,7 +27,7 @@ bool ParseFinalizationParams(std::string jsonString, FinalizationParams &paramsO
   paramsOut.m_epochLength = ParseNum(json, "epochLength", 50);
   paramsOut.m_minDepositSize = ParseNum(json, "minDepositSize", 1500 * UNIT);
   paramsOut.m_dynastyLogoutDelay = ParseNum(json, "dynastyLogoutDelay", 700);
-  paramsOut.m_withdrawalEpochDelay = ParseNum(json, "withdrawalEpochDelay", (int) 1.5e4);
+  paramsOut.m_withdrawalEpochDelay = ParseNum(json, "withdrawalEpochDelay", static_cast<int>(1.5e4));
 
   paramsOut.m_slashFractionMultiplier = ParseNum(json, "slashFractionMultiplier", 3);
   paramsOut.m_bountyFractionDenominator = ParseNum(json, "bountyFractionDenominator", 25);

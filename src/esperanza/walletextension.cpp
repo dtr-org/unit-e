@@ -5,14 +5,20 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <consensus/validation.h>
+#include <esperanza/finalizationstate.h>
 #include <esperanza/kernel.h>
 #include <esperanza/proposer.h>
 #include <esperanza/stakevalidation.h>
 #include <esperanza/walletextension.h>
+#include <net.h>
+#include <primitives/txtype.h>
 #include <script/standard.h>
 #include <utilfun.h>
 #include <validation.h>
+#include <wallet/coincontrol.h>
 #include <wallet/wallet.h>
+#include <util.h>
 
 namespace esperanza {
 
@@ -55,7 +61,7 @@ void WalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins) {
 
     int height = chainActive.Tip()->nHeight;
     int requiredDepth = std::min<int>(
-        ::Params().EsperanzaParams().GetStakeMinConfirmations() - 1,
+        ::Params().GetEsperanza().GetStakeMinConfirmations() - 1,
         height / 2);
 
     for (const auto &it : m_enclosingWallet->mapWallet) {
@@ -300,7 +306,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
   // Get block reward
   CAmount nReward =
-      ::Params().EsperanzaParams().GetProofOfStakeReward(pindexPrev, nFees);
+      ::Params().GetEsperanza().GetProofOfStakeReward(pindexPrev, nFees);
   if (nReward < 0) {
     return false;
   }
@@ -382,6 +388,214 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
     return false;
   }
   return true;
+}
+
+// UNIT-E: read validatorState from the wallet file
+void WalletExtension::ReadValidatorStateFromFile() {
+  if (gArgs.GetBoolArg("-validating", false) && !gArgs.GetBoolArg("-staking", true)) {
+    LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n", "ESPERANZA", m_enclosingWallet->GetName());
+
+    validatorState = esperanza::ValidatorState();
+    nIsValidatorEnabled = true;
+  }
+}
+
+/**
+ * Creates a deposit transaction from the given account and amount.
+ *
+ * @param[in] address the destination
+ * @param[in] amount
+ * @param[out] wtxOut the transaction created
+ * @return true if the operation was succesful, false otherwise.
+ */
+bool WalletExtension::SendDeposit(const CTxDestination &address,
+                                  const CAmount &amount,
+                                  CWalletTx &wtxOut) {
+
+  CCoinControl coinControl;
+  CAmount nFeeRet;
+  std::string sError;
+  int nChangePosInOut = 1;
+  std::vector<CRecipient> vecSend;
+
+  CReserveKey reservekey(m_enclosingWallet);
+  CKeyID keyID = boost::get<CKeyID>(address);
+  CPubKey pubKey;
+  m_enclosingWallet->GetPubKey(keyID, pubKey);
+
+  CRecipient r{CScript::CreatePayVoteSlashScript(pubKey), amount, true};
+  vecSend.push_back(r);
+
+  if (!m_enclosingWallet->CreateTransaction(vecSend, wtxOut, reservekey,
+                                            nFeeRet, nChangePosInOut, sError,
+                                            coinControl, true, TxType::DEPOSIT)) {
+
+    LogPrint(BCLog::ESPERANZA, "%s: Cannot create deposit transaction.\n", "ESPERANZA");
+    return false;
+  }
+
+  CValidationState state;
+  if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey, g_connman.get(), state)) {
+    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit deposit transaction.\n", "ESPERANZA");
+    return false;
+  }
+
+  LogPrint(BCLog::ESPERANZA, "%s: Created new deposit transaction %s.\n", "ESPERANZA", wtxOut.GetHash().GetHex());
+
+  {
+    LOCK(m_enclosingWallet->cs_wallet);
+    if (validatorState.m_phase == ValidatorState::ValidatorPhase::NOT_VALIDATING) {
+      LogPrint(BCLog::ESPERANZA,
+               "%s: Validator waiting for deposit confirmation.\n",
+               "ESPERANZA");
+
+      validatorState.m_phase = ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION;
+    } else {
+      LogPrintf(
+          "ERROR: %s - Wrong state for validator state with deposit %s, %s "
+          "expected.\n",
+          "ESPERANZA", wtxOut.GetHash().GetHex(),
+          "WAITING_DEPOSIT_CONFIRMATION");
+    }
+  }
+
+  return true;
+}
+
+void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
+                                   const CBlockIndex *blockIndex) {
+
+    esperanza::FinalizationState* esperanza = esperanza::FinalizationState::GetState(*blockIndex);
+    uint32_t dynasty = esperanza->GetCurrentDynasty();
+
+    if(dynasty > validatorState.m_endDynasty){
+      return;
+    }
+
+    uint32_t epoch = esperanza::FinalizationState::GetEpoch(*blockIndex);
+
+    //Avoid double votes
+    if (validatorState.m_voteMap.find(epoch) != validatorState.m_voteMap.end()) {
+      return;
+    }
+
+    LogPrint(BCLog::ESPERANZA, "%s: Validator voting for epoch %d and dynasty %d.\n",
+             "ESPERANZA",
+             epoch,
+             dynasty);
+
+    Vote vote = esperanza->GetRecommendedVote(validatorState.m_validatorIndex);
+
+    //Check for sorrounding votes
+    if (vote.m_targetEpoch < validatorState.m_lastTargetEpoch ||
+        vote.m_sourceEpoch < validatorState.m_lastSourceEpoch) {
+      return;
+    }
+
+    CWalletTx createdTx;
+    CTransactionRef& prevRef = validatorState.m_lastVotableTx;
+
+    if(SendVote(prevRef, vote, createdTx)){
+
+      validatorState.m_voteMap[epoch] = vote;
+      validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
+      validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
+      validatorState.m_lastVotableTx = createdTx.tx;
+      LogPrint(BCLog::ESPERANZA, "%s: Casted vote with id %s.\n",
+               "ESPERANZA",
+               createdTx.tx->GetHash().GetHex() );
+    }
+}
+
+/**
+ *
+ * Creates a vote transaction starting from a Vote object and a previous
+ * transaction (vote or deposit  reference. It fills inputs, outputs.
+ * It does not support an address change between source and destination.
+ *
+ * @param[in] prevTx a reference to the initial DEPOSIT or previous VOTE transaction
+ * @param[in] vote the vote data
+ * @param[out] wtxNew the vote transaction committed
+ */
+bool WalletExtension::SendVote(const CTransactionRef &depositRef,
+                               const Vote &vote, CWalletTx &wtxNewOut) {
+    CCoinControl coinControl;
+    wtxNewOut.fTimeReceivedIsTxTime = true;
+    wtxNewOut.BindWallet(m_enclosingWallet);
+    wtxNewOut.fFromMe = true;
+    CReserveKey reservekey(m_enclosingWallet);
+    CValidationState state;
+
+    CMutableTransaction txNew;
+    txNew.SetType(TxType::VOTE);
+
+    if (validatorState.m_phase != ValidatorState::ValidatorPhase::IS_VALIDATING) {
+      return error("%s: Cannot add vote inputs for non-validators.", __func__);
+    }
+
+    CScript scriptSig = CScript::EncodeVote(vote);
+
+    const CScript &scriptPubKey = depositRef->vout[0].scriptPubKey;
+    const CAmount amount = depositRef->vout[0].nValue;
+
+    txNew.vin.push_back(CTxIn(depositRef->GetHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+
+    CTxOut txout(amount, scriptPubKey);
+    txNew.vout.push_back(txout);
+
+    CTransaction txNewConst(txNew);
+    uint32_t nIn = 0;
+    SignatureData sigdata;
+    std::string strFailReason;
+
+    if (!ProduceSignature(TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn, amount, SIGHASH_ALL), scriptPubKey, sigdata, &txNewConst)) {
+      strFailReason = _("Signing transaction failed");
+      return false;
+    } else {
+      UpdateTransaction(txNew, nIn, sigdata);
+    }
+
+    // Embed the constructed transaction data in wtxNew.
+    wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
+
+    m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(), state);
+    if (state.IsInvalid()) {
+      LogPrint(BCLog::ESPERANZA, "%s: Cannot commit vote transaction: %s.\n",
+               "ESPERANZA", state.GetRejectReason());
+      return false;
+    }
+
+  return true;
+}
+
+void WalletExtension::BlockConnected(const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
+
+  if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
+    ValidatorState::ValidatorPhase currentPhase;
+    {
+      LOCK(m_enclosingWallet->cs_wallet);
+      currentPhase = validatorState.m_phase;
+    }
+
+    if (currentPhase == ValidatorState::ValidatorPhase::IS_VALIDATING) {
+      VoteIfNeeded(pblock, pindex);
+    } else if (currentPhase == ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION) {
+      FinalizationState *esperanza = FinalizationState::GetState(*pindex);
+
+      if (esperanza->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
+        // Deposit is finalized there is no possible rollback
+        {
+          LOCK(m_enclosingWallet->cs_wallet);
+          validatorState.m_phase = ValidatorState::ValidatorPhase::IS_VALIDATING;
+
+          LogPrint(
+              BCLog::ESPERANZA,
+              "%s: Validator's deposit finalized, the validator index is %s.\n",
+              "ESPERANZA", validatorState.m_validatorIndex.GetHex());
+        }
+      }
+    }
+  }
 }
 
 }  // namespace esperanza
