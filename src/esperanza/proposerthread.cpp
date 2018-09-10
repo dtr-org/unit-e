@@ -5,8 +5,8 @@
 
 #include <chainparams.h>
 #include <esperanza/proposer.h>
-#include <esperanza/proposerthread.h>
 #include <esperanza/proposerstate.h>
+#include <esperanza/proposerthread.h>
 #include <esperanza/stakevalidation.h>
 #include <miner.h>
 #include <net.h>
@@ -76,7 +76,7 @@ void ProposerThread::Wake(CWallet *wallet) {
 bool ProposerThread::IsStopped() { return m_stopMinerProcess; }
 
 void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
-                        size_t nStart, size_t nEnd) {
+                           size_t nStart, size_t nEnd) {
   LogPrintf("Starting staking thread %d, %d wallet%s.\n", nThreadID,
             nEnd - nStart, (nEnd - nStart) > 1 ? "s" : "");
 
@@ -239,8 +239,8 @@ void ProposerThread::Start(size_t nThreadID, std::vector<CWallet *> &vpwallets,
   }
 }
 
-void ProposerThread::StartProposerThreads(const esperanza::Config &config,
-                                          const std::vector<CWallet *> &wallets) {
+void ProposerThread::StartProposerThreads(
+    const esperanza::Config &config, const std::vector<CWallet *> &wallets) {
   if (!config.m_staking) {
     LogPrintf("Staking disabled.\n");
     return;
@@ -259,10 +259,11 @@ void ProposerThread::StartProposerThreads(const esperanza::Config &config,
                                                   : walletsPerThread * (i + 1);
     const std::string threadName(strprintf("miner%d", i));
     std::thread thread(
-        &TraceThread<std::function<void()> >, threadName.c_str(),
+        &TraceThread<std::function<void()>>, threadName.c_str(),
         std::function<void()>(std::bind(&Start, i, wallets, start, end)));
 
-    ProposerThread *stakeThread = new ProposerThread(std::move(threadName), thread);
+    ProposerThread *stakeThread =
+        new ProposerThread(std::move(threadName), thread);
 
     m_stakeThreads.push_back(stakeThread);
     wallets[i]->GetWalletExtension().m_stakeThreadIndex = i;

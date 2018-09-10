@@ -22,9 +22,9 @@ bool CheckStakeUnique(const CBlock &block, bool update);
 
 bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
 
-bool CheckBlock(const CBlock& block);
+bool CheckBlock(const CBlock &block);
 
-bool ProposeBlock(const CBlock& block);
+bool ProposeBlock(const CBlock &block);
 
 int GetNumBlocksOfPeers();
 

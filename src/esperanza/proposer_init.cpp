@@ -24,7 +24,7 @@ bool InitProposer(const Config& config, const std::vector<CWallet*>& wallets) {
 
 void StartProposer() {
   LogPrint(BCLog::ESPERANZA, "starting proposer threads...\n");
- proposer->Start();
+  proposer->Start();
 }
 
 void StopProposer() {

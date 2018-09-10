@@ -251,11 +251,8 @@ Vote FinalizationState::GetRecommendedVote(
   LogPrint(BCLog::ESPERANZA,
            "%s: Getting recommended vote for epoch %d and dynasty %d is: { %s, "
            "%d, %d }.\n",
-           "ESPERANZA",
-           m_currentEpoch,
-           m_currentDynasty,
-           m_recommendedTargetHash.GetHex(),
-           m_currentEpoch,
+           "ESPERANZA", m_currentEpoch, m_currentDynasty,
+           m_recommendedTargetHash.GetHex(), m_currentEpoch,
            m_expectedSrcEpoch);
 
   return vote;
@@ -402,8 +399,9 @@ void FinalizationState::ProcessDeposit(const uint256 &validatorIndex,
   LOCK(cs_esperanza);
 
   uint32_t startDynasty = m_currentDynasty + 2;
-  uint64_t scaledDeposit = ufp64::div_to_uint(
-      static_cast<uint64_t>(depositValue), m_depositScaleFactor[m_currentEpoch]);
+  uint64_t scaledDeposit =
+      ufp64::div_to_uint(static_cast<uint64_t>(depositValue),
+                         m_depositScaleFactor[m_currentEpoch]);
 
   m_validators.insert(std::pair<uint256, Validator>(
       validatorIndex, Validator(scaledDeposit, startDynasty, validatorIndex)));
@@ -444,13 +442,9 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
                 vote.m_targetEpoch);
   }
 
-  LogPrint(BCLog::ESPERANZA,
-           "%s: Validator %s vote (%s, %d, %d) is valid.\n",
-           "ESPERANZA",
-           vote.m_validatorIndex.GetHex(),
-           vote.m_targetHash.GetHex(),
-           vote.m_sourceEpoch,
-           vote.m_targetEpoch);
+  LogPrint(BCLog::ESPERANZA, "%s: Validator %s vote (%s, %d, %d) is valid.\n",
+           "ESPERANZA", vote.m_validatorIndex.GetHex(),
+           vote.m_targetHash.GetHex(), vote.m_sourceEpoch, vote.m_targetEpoch);
 
   return success();
 }
@@ -463,12 +457,9 @@ void FinalizationState::ProcessVote(const Vote &vote) {
   m_checkpoints[vote.m_targetEpoch].m_voteMap.insert(vote.m_validatorIndex);
 
   LogPrint(BCLog::ESPERANZA,
-           "%s: Validator %s voted successfully (%s, %d, %d).\n",
-           "ESPERANZA",
-           vote.m_validatorIndex.GetHex(),
-           vote.m_targetHash.GetHex(),
-           vote.m_sourceEpoch,
-           vote.m_targetEpoch);
+           "%s: Validator %s voted successfully (%s, %d, %d).\n", "ESPERANZA",
+           vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
+           vote.m_sourceEpoch, vote.m_targetEpoch);
 
   const uint256 &validatorIndex = vote.m_validatorIndex;
   uint32_t sourceEpoch = vote.m_sourceEpoch;
@@ -500,9 +491,13 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     ProcessReward(validatorIndex, reward);
   }
 
-  bool isTwoThirdsCurDyn = curDynastyVotes >= ufp64::div_to_uint(m_curDynDeposits * 2, ufp64::to_ufp64(3));
+  bool isTwoThirdsCurDyn =
+      curDynastyVotes >=
+      ufp64::div_to_uint(m_curDynDeposits * 2, ufp64::to_ufp64(3));
 
-  bool isTwoThirdsPrevDyn = prevDynastyVotes >= ufp64::div_to_uint(m_prevDynDeposits * 2, ufp64::to_ufp64(3));
+  bool isTwoThirdsPrevDyn =
+      prevDynastyVotes >=
+      ufp64::div_to_uint(m_prevDynDeposits * 2, ufp64::to_ufp64(3));
 
   bool enoughVotes = isTwoThirdsCurDyn && isTwoThirdsPrevDyn;
 
@@ -752,8 +747,7 @@ esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
  * Given two votes, performs a slash against the validator who performed them.
  * It also returns the bounty that the reporter shoul be awarded of.
  */
-void FinalizationState::ProcessSlash(const Vote &vote1,
-                                     const Vote &vote2,
+void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
                                      CAmount &slashingBountyOut) {
   LOCK(cs_esperanza);
 
@@ -833,7 +827,7 @@ FinalizationState *FinalizationState::GetState() {
 uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) {
   FinalizationState *state = GetState(blockIndex);
 
-  return static_cast<uint32_t >(blockIndex.nHeight) / state->EPOCH_LENGTH;
+  return static_cast<uint32_t>(blockIndex.nHeight) / state->EPOCH_LENGTH;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -889,11 +883,13 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       txnouttype typeRet;
 
       if (Solver(tx->vout[0].scriptPubKey, typeRet, vSolutions)) {
-        state->ProcessDeposit(CPubKey(vSolutions[0]).GetHash(), tx->GetValueOut());
+        state->ProcessDeposit(CPubKey(vSolutions[0]).GetHash(),
+                              tx->GetValueOut());
       }
 
     } else if (tx->IsVote()) {
-      state->ProcessVote(CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
+      state->ProcessVote(
+          CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
     }
   }
 

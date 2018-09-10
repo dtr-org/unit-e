@@ -7,14 +7,16 @@
 
 namespace esperanza {
 
-Validator::Validator() : m_validatorIndex(),
-                         m_deposit(0),
-                         m_startDynasty(0),
-                         m_endDynasty(DEFAULT_END_DYNASTY),
-                         m_isSlashed(false),
-                         m_depositsAtLogout(0) {}
+Validator::Validator()
+    : m_validatorIndex(),
+      m_deposit(0),
+      m_startDynasty(0),
+      m_endDynasty(DEFAULT_END_DYNASTY),
+      m_isSlashed(false),
+      m_depositsAtLogout(0) {}
 
-Validator::Validator(uint64_t deposit, uint32_t startDynasty, uint256 validatorIndex)
+Validator::Validator(uint64_t deposit, uint32_t startDynasty,
+                     uint256 validatorIndex)
     : m_validatorIndex(validatorIndex),
       m_deposit(deposit),
       m_startDynasty(startDynasty),
@@ -22,5 +24,4 @@ Validator::Validator(uint64_t deposit, uint32_t startDynasty, uint256 validatorI
       m_isSlashed(false),
       m_depositsAtLogout(0) {}
 
-}
-
+}  // namespace esperanza

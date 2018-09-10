@@ -10,22 +10,22 @@
 
 namespace esperanza {
 
-static const uint32_t DEFAULT_END_DYNASTY = std::numeric_limits<uint32_t>::max();
+static const uint32_t DEFAULT_END_DYNASTY =
+    std::numeric_limits<uint32_t>::max();
 
-class Validator
-{
-public:
-    Validator();
-    Validator(uint64_t deposit, uint32_t startDynasty, uint256 validatorIndex);
+class Validator {
+ public:
+  Validator();
+  Validator(uint64_t deposit, uint32_t startDynasty, uint256 validatorIndex);
 
-    uint256 m_validatorIndex;
-    uint64_t m_deposit;
-    uint32_t m_startDynasty;
-    uint32_t m_endDynasty;
-    bool m_isSlashed;
-    uint64_t m_depositsAtLogout;
+  uint256 m_validatorIndex;
+  uint64_t m_deposit;
+  uint32_t m_startDynasty;
+  uint32_t m_endDynasty;
+  bool m_isSlashed;
+  uint64_t m_depositsAtLogout;
 };
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif // UNITE_ESPERANZA_VALIDATOR_H
+#endif  // UNITE_ESPERANZA_VALIDATOR_H
