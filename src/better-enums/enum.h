@@ -72,10 +72,8 @@
 // that make using nullptr necessary.
 #ifdef BETTER_ENUMS_HAVE_CONSTEXPR
 #   define BETTER_ENUMS_CONSTEXPR_     constexpr
-#   define BETTER_ENUMS_NULLPTR        nullptr
 #else
 #   define BETTER_ENUMS_CONSTEXPR_
-#   define BETTER_ENUMS_NULLPTR        NULL
 #endif
 
 #ifndef BETTER_ENUMS_NO_EXCEPTIONS
@@ -276,7 +274,7 @@ BETTER_ENUMS_CONSTEXPR_ inline T _default()
 template <>
 BETTER_ENUMS_CONSTEXPR_ inline const char* _default<const char*>()
 {
-  return BETTER_ENUMS_NULLPTR;
+  return nullptr;
 }
 
 template <>
@@ -338,7 +336,7 @@ BETTER_ENUMS_IF_EXCEPTIONS(
 template <typename T>
 BETTER_ENUMS_CONSTEXPR_ static T* _or_null(optional<T*> maybe)
 {
-  return maybe ? *maybe : BETTER_ENUMS_NULLPTR;
+  return maybe ? *maybe : nullptr;
 }
 
 template <typename T>

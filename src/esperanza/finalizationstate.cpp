@@ -435,7 +435,7 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
   esperanza::Result isVotable = IsVotable(
       it->second, vote.m_targetHash, vote.m_targetEpoch, vote.m_sourceEpoch);
 
-  if (isVotable != esperanza::Result::SUCCESS) {
+  if (isVotable != +esperanza::Result::SUCCESS) {
     return fail(isVotable, "%s: The tuple (%s, %s, %d, %d) is not votable.\n",
                 __func__, vote.m_validatorIndex.GetHex(),
                 vote.m_targetHash.GetHex(), vote.m_sourceEpoch,
@@ -448,6 +448,7 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
 
   return success();
 }
+
 /**
  * Performs a vote using the given vote data.
  */

@@ -6,15 +6,10 @@
 
 #include <rpc/server.h>
 #include <rpc/util.h>
-#include <util.h>
-#include <utiltime.h>
 #include <wallet/wallet.h>
 
 #include <stdint.h>
 #include <univalue.h>
-
-#include <ctime>
-#include <functional>
 
 UniValue proposerstatus(const JSONRPCRequest &request) {
   UniValue result(UniValue::VARR);

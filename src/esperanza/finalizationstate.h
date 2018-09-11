@@ -5,6 +5,7 @@
 #ifndef UNITE_ESPERANZA_FINALIZATIONSTATE_H
 #define UNITE_ESPERANZA_FINALIZATIONSTATE_H
 
+#include <better-enums/enum.h>
 #include <chain.h>
 #include <esperanza/checkpoint.h>
 #include <esperanza/finalizationparams.h>
@@ -17,7 +18,10 @@
 
 namespace esperanza {
 
-enum class Result {
+// clang-format off
+BETTER_ENUM(
+  Result,
+  uint8_t,
   SUCCESS,
   INIT_WRONG_EPOCH,
   INIT_INVALID_REWARD,
@@ -42,7 +46,8 @@ enum class Result {
   SLASH_NOT_VALID,
   SLASH_NOT_A_VALIDATOR,
   WITHDRAW_WRONG_AMOUNT
-};
+)
+// clang-format on
 
 /**
  * This class is NOT thread safe, any public method that is actually changing

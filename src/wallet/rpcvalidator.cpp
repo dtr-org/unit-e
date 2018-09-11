@@ -32,8 +32,8 @@ UniValue createdeposit(const JSONRPCRequest &request)
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
-  if(!extWallet.nIsValidatorEnabled){
-    throw JSONRPCError(RPC_INVALID_PARAMETER, _("Validating is disabled."));
+  if (!extWallet.nIsValidatorEnabled){
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
   }
 
   UniValue result(UniValue::VOBJ);
@@ -45,12 +45,12 @@ UniValue createdeposit(const JSONRPCRequest &request)
 
   CAmount amount = AmountFromValue(request.params[1]);
 
-  if(extWallet.validatorState.m_phase == esperanza::ValidatorState::ValidatorPhase::IS_VALIDATING){
-    throw JSONRPCError(RPC_INVALID_PARAMETER, _("The node is already validating."));
+  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::ValidatorPhase::IS_VALIDATING){
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
   }
 
-  if(!esperanza::FinalizationState::ValidateDepositAmount(amount)) {
-    throw JSONRPCError(RPC_INVALID_PARAMETER, _("Amount is below minimum allowed."));
+  if (!esperanza::FinalizationState::ValidateDepositAmount(amount)) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
   }
 
   CWalletTx tx;
@@ -70,7 +70,7 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
 
   esperanza::WalletExtension extWallet = pwallet->GetWalletExtension();
 
-  if (request.fHelp || request.params.size() != 0)
+  if (request.fHelp || !request.params.empty())
     throw std::runtime_error(
         "getvalidatorinfo\n"
         "Returns an object containing validator-related information."

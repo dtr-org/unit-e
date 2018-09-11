@@ -48,7 +48,7 @@ static const uint32_t mnLanguageLens[] = {
     korean_txt_len,
 };
 
-static const std::string languagesDesc[static_cast<uint16_t>(Language::COUNT)] =
+static const std::string languagesDesc[static_cast<uint16_t>(Language::_size_constant)] =
     {
         "English",
         "French",
@@ -60,7 +60,7 @@ static const std::string languagesDesc[static_cast<uint16_t>(Language::COUNT)] =
         "Korean",
 };
 
-static const std::string languagesTags[static_cast<uint16_t>(Language::COUNT)] =
+static const std::string languagesTags[static_cast<uint16_t>(Language::_size_constant)] =
     {
         "english",   "french",    "japanese", "spanish",
         "chinese_s", "chinese_t", "italian",  "korean",
@@ -191,7 +191,7 @@ boost::optional<Language> DetectLanguage(const std::string& sWordList) {
   // try max n words
   // allow errors, tolerate spelling mistakes, mistakes will be reported in
   // other functions
-  for (int l = 0; l < static_cast<int>(Language::COUNT); ++l) {
+  for (size_t l = 0; l < Language::_size_constant; ++l) {
     strcpy(tmp, sWordList.c_str());
 
     char* pwl = (char*)mnLanguages[l];
@@ -226,7 +226,7 @@ boost::optional<Language> DetectLanguage(const std::string& sWordList) {
       continue;
     }
     if (nHit > nMiss && nMiss < 2) {  // tolerate max 2 failures
-      return static_cast<Language>(l);
+      return Language::_from_index(l);
     }
   }
 
@@ -237,7 +237,7 @@ int Encode(Language language, const std::vector<uint8_t>& vEntropy,
            std::string& sWordList, std::string& sError) {
   sWordList = "";
 
-  const int nLanguage = static_cast<int>(language);
+  const int nLanguage = language._to_index();
 
   // Checksum is 1st n bytes of the sha256 hash
   uint8_t hash[32];

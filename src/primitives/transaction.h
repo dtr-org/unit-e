@@ -354,15 +354,15 @@ public:
     bool IsCoinStake() const
     {
         //UNIT-E: TODO: Check whether we need this distinction or we can deduce like Bitcoin's IsCoinBase() above
-        return GetType() == TxType::COINSTAKE;
+        return GetType() == +TxType::COINSTAKE;
     }
 
     bool IsVote() const {
-        return GetType() == TxType::VOTE;
+        return GetType() == +TxType::VOTE;
     }
 
     bool IsDeposit() const {
-        return GetType() == TxType::DEPOSIT;
+        return GetType() == +TxType::DEPOSIT;
     }
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)

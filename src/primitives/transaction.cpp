@@ -62,7 +62,7 @@ uint16_t CMutableTransaction::GetVersion() const {
 }
 
 TxType CMutableTransaction::GetType() const {
-  return static_cast<TxType>(static_cast<uint16_t>(nVersion >> 16));
+  return TxType::_from_index(nVersion >> 16);
 }
 
 void CMutableTransaction::SetType(TxType type) {
@@ -101,7 +101,7 @@ uint16_t CTransaction::GetVersion() const {
 }
 
 TxType CTransaction::GetType() const {
-  return static_cast<TxType>(static_cast<uint16_t>(nVersion >> 16));
+  return TxType::_from_index_unchecked(nVersion >> 16);
 }
 
 CAmount CTransaction::GetValueOut() const

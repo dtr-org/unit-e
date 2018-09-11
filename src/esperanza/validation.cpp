@@ -41,7 +41,7 @@ bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
   esperanza::Result res =
       esperanza->ValidateDeposit(tx.GetHash(), tx.GetValueOut());
 
-  if (res != esperanza::Result::SUCCESS) {
+  if (res != +esperanza::Result::SUCCESS) {
     return state.DoS(10, false, REJECT_INVALID,
                      "bad-deposit-invalid-esperanza");
   }
@@ -91,7 +91,7 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
   esperanza::Result res = esperanza->ValidateVote(
       CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
 
-  if (res != esperanza::Result::SUCCESS) {
+  if (res != +esperanza::Result::SUCCESS) {
     return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
   }
 

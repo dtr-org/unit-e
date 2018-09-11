@@ -11,8 +11,10 @@
 
 namespace esperanza {
 
+struct None {};
+
 template <>
-struct ProposerAccess<nullptr_t> {
+struct ProposerAccess<None> {
  private:
   const Proposer& m_proposer;
 
@@ -26,7 +28,7 @@ struct ProposerAccess<nullptr_t> {
   }
 };
 
-typedef ProposerAccess<nullptr_t> ProposerSpy;
+typedef ProposerAccess<None> ProposerSpy;
 
 }  // namespace esperanza
 
