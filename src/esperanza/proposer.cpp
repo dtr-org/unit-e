@@ -107,9 +107,7 @@ Proposer::Proposer(const Config &config, const std::vector<CWallet *> &wallets)
 
 Proposer::~Proposer() { Stop(); }
 
-void Proposer::Start() {
-  m_startSemaphore.release(m_threads.size());
-}
+void Proposer::Start() { m_startSemaphore.release(m_threads.size()); }
 
 void Proposer::Stop() {
   for (const auto &thread : m_threads) {

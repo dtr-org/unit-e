@@ -6,8 +6,8 @@
 #ifndef UNITE_ESPERANZA_VALIDATION_H
 #define UNITE_ESPERANZA_VALIDATION_H
 
-#include <consensus/validation.h>
 #include <chain.h>
+#include <consensus/validation.h>
 #include <primitives/block.h>
 
 namespace esperanza {
@@ -18,6 +18,6 @@ bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
 bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
                           const CBlockIndex *pindex = nullptr);
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif //UNIT_E_VALIDATION_H
+#endif  // UNIT_E_VALIDATION_H

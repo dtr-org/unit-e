@@ -31,10 +31,12 @@ class FinalizationParams final {
 
   ufp64::ufp64_t m_basePenaltyFactor = ufp64::div_2uint(2, 10000000);
 
-  //UNIT-E: move this once we have a argManager util that parses parameters passed to the node at startup
+  // UNIT-E: move this once we have a argManager util that parses parameters
+  // passed to the node at startup
 };
 
-bool ParseFinalizationParams(std::string jsonString, FinalizationParams &paramsOut);
+bool ParseFinalizationParams(std::string jsonString,
+                             FinalizationParams &paramsOut);
 
 }  // namespace esperanza
 

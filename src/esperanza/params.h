@@ -2,12 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
 #ifndef UNITE_ESPERANZA_PARAMS_H
 #define UNITE_ESPERANZA_PARAMS_H
 
-#include <stdint.h>
 #include <chain.h>
+#include <stdint.h>
 
 class CChainParams;
 
@@ -19,7 +18,6 @@ namespace esperanza {
 class Params final {
 
  private:
-
   //! chain params these params are embedded in
   const ::CChainParams *m_chainParams;
 
@@ -37,10 +35,9 @@ class Params final {
   //! bitmask of 4 bits, every kernel stake hash will change every 16 seconds
   int64_t m_stakeTimestampMask = (1 << 4) - 1;
 
-  int64_t m_coinYearReward = 2 * EEES; // 2% per year
+  int64_t m_coinYearReward = 2 * EEES;  // 2% per year
 
  public:
-
   Params(const CChainParams *chainParams);
 
   uint32_t GetModifierInterval() const;
@@ -55,10 +52,10 @@ class Params final {
 
   int64_t GetCoinYearReward(int64_t nTime) const;
 
-  int64_t GetProofOfStakeReward(const CBlockIndex *pindexPrev, int64_t nFees) const;
-
+  int64_t GetProofOfStakeReward(const CBlockIndex *pindexPrev,
+                                int64_t nFees) const;
 };
 
-} // namespace esperanza
+}  // namespace esperanza
 
-#endif // UNITE_ESPERANZA_PARAMS_H
+#endif  // UNITE_ESPERANZA_PARAMS_H

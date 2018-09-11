@@ -2,10 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/params.h>
-#include <esperanza/finalizationstate.h>
-#include <esperanza/validation.h>
 #include <chainparams.h>
+#include <esperanza/finalizationstate.h>
+#include <esperanza/params.h>
+#include <esperanza/validation.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>
@@ -31,7 +31,7 @@ bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
                      "bad-deposit-script-not-solvable");
   }
 
-  esperanza::FinalizationState* esperanza = nullptr;
+  esperanza::FinalizationState *esperanza = nullptr;
   if (pindex != nullptr) {
     esperanza = esperanza::FinalizationState::GetState(*pindex);
   } else {
@@ -65,8 +65,8 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
 
   // We have to look into the tx database to find the prev deposit, hence the
   // use of fAllowSlow = true
-  if(!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
-                 blockHash, true)){
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
+                      blockHash, true)) {
     return state.DoS(10, false, REJECT_INVALID,
                      "bad-vote-no-prev-deposit-found");
   }
@@ -81,7 +81,7 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
                      "bad-vote-not-same-payvoteslash-script");
   }
 
-  esperanza::FinalizationState* esperanza = nullptr;
+  esperanza::FinalizationState *esperanza = nullptr;
   if (pindex != nullptr) {
     esperanza = esperanza::FinalizationState::GetState(*pindex);
   } else {

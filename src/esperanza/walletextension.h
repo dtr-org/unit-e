@@ -6,12 +6,12 @@
 #define UNITE_ESPERANZA_WALLETEXTENSION_H
 
 #include <amount.h>
+#include <esperanza/proposer.h>
 #include <esperanza/validatorstate.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
 #include <primitives/transaction.h>
-#include <esperanza/proposer.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -77,11 +77,11 @@ class WalletExtension {
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             std::string &error);
 
-  bool SendDeposit(const CTxDestination &address,
-                   const CAmount &amount, CWalletTx &wtxOut);
+  bool SendDeposit(const CTxDestination &address, const CAmount &amount,
+                   CWalletTx &wtxOut);
 
-  bool SendVote(const CTransactionRef &depositRef,
-                const Vote &vote, CWalletTx &wtxNewOut);
+  bool SendVote(const CTransactionRef &depositRef, const Vote &vote,
+                CWalletTx &wtxNewOut);
 
   void ReadValidatorStateFromFile();
 

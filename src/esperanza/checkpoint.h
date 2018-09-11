@@ -6,9 +6,9 @@
 #define UNITE_ESPERANZA_CHECKPOINT_H
 
 #include <amount.h>
+#include <uint256.h>
 #include <map>
 #include <set>
-#include <uint256.h>
 #include <vector>
 
 namespace esperanza {
@@ -26,10 +26,10 @@ class Checkpoint {
   std::map<uint32_t, uint64_t> m_curDynastyVotes;
   std::map<uint32_t, uint64_t> m_prevDynastyVotes;
 
-  //Set of validatorIndexes for validators that voted that checkpoint
+  // Set of validatorIndexes for validators that voted that checkpoint
   std::set<uint256> m_voteMap;
 };
 
-}
+}  // namespace esperanza
 
-#endif // UNITE_ESPERANZA_CHECKPOINT_H
+#endif  // UNITE_ESPERANZA_CHECKPOINT_H

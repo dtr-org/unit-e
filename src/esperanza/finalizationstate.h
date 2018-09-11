@@ -54,8 +54,10 @@ class FinalizationState {
 
   Result InitializeEpoch(int blockHeight);
 
-  Result ValidateDeposit(const uint256& validatorIndex, const CAmount& depositValue) const;
-  void ProcessDeposit(const uint256& validatorIndex, const CAmount& depositValue);
+  Result ValidateDeposit(const uint256& validatorIndex,
+                         const CAmount& depositValue) const;
+  void ProcessDeposit(const uint256& validatorIndex,
+                      const CAmount& depositValue);
 
   Result ValidateVote(const Vote& vote) const;
   void ProcessVote(const Vote& vote);
@@ -67,8 +69,9 @@ class FinalizationState {
                           const CAmount& requiredWithdraw) const;
   void ProcessWithdraw(const uint256& validatorIndex);
 
-  Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
-  void ProcessSlash(const Vote& vote1, const Vote& vote2, CAmount& slashingBountyOut);
+  Result IsSlashable(const Vote& vote1, const Vote& vote2) const;
+  void ProcessSlash(const Vote& vote1, const Vote& vote2,
+                    CAmount& slashingBountyOut);
 
   uint32_t GetLastJustifiedEpoch() const;
   uint32_t GetLastFinalizedEpoch() const;
