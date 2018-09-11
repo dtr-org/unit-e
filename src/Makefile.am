@@ -80,7 +80,7 @@ UNITE_CORE_H = \
   address/address.h \
   base58.h \
   bech32.h \
-  better-enums\enum.h \
+  better-enums/enum.h \
   bloom.h \
   blockencodings.h \
   chain.h \
