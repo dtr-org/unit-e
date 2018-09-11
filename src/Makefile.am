@@ -198,6 +198,7 @@ UNITE_CORE_H = \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
+  wallet/rpcaddressbook.h \
   wallet/rpcmnemonic.h \
   wallet/rpcvalidator.h \
   wallet/rpcwallet.h \

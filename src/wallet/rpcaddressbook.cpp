@@ -1,20 +1,22 @@
 #include <wallet/rpcaddressbook.h>
 
-#include <univalue.h>
 #include <rpc/safemode.h>
 #include <rpc/server.h>
+#include <univalue.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 
-static bool icompare_pred(unsigned char a, unsigned char b) {
+using AddressBookIter = std::map<CTxDestination, CAddressBookData>::iterator;
+
+static bool CompareCharsI(unsigned char a, unsigned char b) {
   return std::tolower(a) == std::tolower(b);
 }
 
-static bool stringCointainsI(const std::string &sString,
+static bool StringCointainsI(const std::string &sString,
                              const std::string &sFind) {
-  // UNITE: TODO: unicode
+  // UNIT-E: TODO: unicode
   return std::search(sString.begin(), sString.end(), sFind.begin(), sFind.end(),
-                     icompare_pred) != sString.end();
+                     CompareCharsI) != sString.end();
 }
 
 UniValue addressbookinfo(const JSONRPCRequest &request) {
@@ -128,13 +130,11 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
           RPC_INVALID_PARAMETER,
           strprintf("offset is beyond last address (%d).", offset));
     }
-    std::vector<std::map<CTxDestination, CAddressBookData>::iterator>
-        vitMapAddressBook;
-    vitMapAddressBook.reserve(pwallet->mapAddressBook.size());
 
+    std::vector<AddressBookIter> vitMapAddressBook;
+    vitMapAddressBook.reserve(pwallet->mapAddressBook.size());
     std::map<CTxDestination, bool> addressIsMine;
-    std::map<CTxDestination, CAddressBookData>::iterator it;
-    for (it = pwallet->mapAddressBook.begin();
+    for (auto it = pwallet->mapAddressBook.begin();
          it != pwallet->mapAddressBook.end(); ++it) {
       addressIsMine[it->first] = !!IsMine(*pwallet, it->first);
 
@@ -144,27 +144,24 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
         continue;
       }
 
-      if (!search.empty() && !stringCointainsI(it->second.name, search)) {
+      if (!search.empty() && !StringCointainsI(it->second.name, search)) {
         continue;
       }
 
       vitMapAddressBook.push_back(it);
     }
 
-    auto comparator =
-        [sortAsc](const std::map<CTxDestination, CAddressBookData>::iterator &a,
-                  const std::map<CTxDestination, CAddressBookData>::iterator &b)
-        -> bool {
-      return sortAsc ? a->second.name.compare(b->second.name) < 0
-                     : b->second.name.compare(a->second.name) < 0;
-    };
+    auto comparator = sortAsc
+        ? [](const AddressBookIter &a, const AddressBookIter &b) -> bool {
+      return a->second.name.compare(b->second.name) < 0;
+    }
+    : [](const AddressBookIter &a, const AddressBookIter &b) -> bool {
+        return b->second.name.compare(a->second.name) < 0;
+      };
     std::sort(vitMapAddressBook.begin(), vitMapAddressBook.end(), comparator);
 
-    std::map<uint32_t, std::string> mapKeyIndexCache;
-    std::vector<std::map<CTxDestination, CAddressBookData>::iterator>::iterator
-        vit;
     int numEntries = 0;
-    for (vit = vitMapAddressBook.begin() + offset;
+    for (auto vit = vitMapAddressBook.begin() + offset;
          vit != vitMapAddressBook.end() && numEntries < count; ++vit) {
       auto &item = *vit;
       UniValue entry(UniValue::VOBJ);
@@ -188,7 +185,7 @@ static UniValue AddAddress(CWallet *pwallet, const std::string &address,
   if (it != pwallet->mapAddressBook.end()) {
     throw JSONRPCError(
         RPC_INVALID_PARAMETER,
-        strprintf(_("Address '%s' is recorded in the address book."), address));
+        strprintf("Address '%s' is recorded in the address book.", address));
   }
   if (!pwallet->SetAddressBook(dest, label, purpose)) {
     throw JSONRPCError(RPC_WALLET_ERROR, "SetAddressBook failed.");
@@ -211,12 +208,11 @@ static UniValue EditAddress(CWallet *pwallet, const std::string &address,
                             const std::string &label,
                             const std::string &purpose, bool setPurpose,
                             const CTxDestination &dest) {
-  std::map<CTxDestination, CAddressBookData>::iterator addressBookIt;
-  addressBookIt = pwallet->mapAddressBook.find(dest);
+  auto addressBookIt = pwallet->mapAddressBook.find(dest);
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     throw JSONRPCError(
         RPC_INVALID_PARAMETER,
-        strprintf(_("Address '%s' is not in the address book."), address));
+        strprintf("Address '%s' is not in the address book.", address));
   }
 
   if (!pwallet->SetAddressBook(
@@ -251,7 +247,7 @@ static UniValue DeleteAddress(CWallet *pwallet, const std::string &address,
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     throw JSONRPCError(
         RPC_INVALID_PARAMETER,
-        strprintf(_("Address '%s' is not in the address book."), address));
+        strprintf("Address '%s' is not in the address book.", address));
   }
 
   UniValue result(UniValue::VOBJ);
@@ -274,7 +270,7 @@ static UniValue NewSend(CWallet *pwallet, const std::string &address,
                         const CTxDestination &dest) {
   auto addressBookIt = pwallet->mapAddressBook.find(dest);
   // Only update the purpose field if address does not yet exist
-  std::string newPurpose;  // Empry string means don't change purpose
+  std::string newPurpose;  // Empty string means don't change purpose
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     newPurpose = purpose;
   }
@@ -303,7 +299,7 @@ static UniValue AddressInfo(CWallet *pwallet, const std::string &address,
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     throw JSONRPCError(
         RPC_INVALID_PARAMETER,
-        strprintf(_("Address '%s' is not in the address book."), address));
+        strprintf("Address '%s' is not in the address book.", address));
   }
 
   UniValue result(UniValue::VOBJ);
@@ -379,8 +375,7 @@ UniValue manageaddressbook(const JSONRPCRequest &request) {
     return AddAddress(pwallet, address, label, purpose, dest);
   } else if (action == "edit") {
     if (request.params.size() < 3) {
-      throw JSONRPCError(RPC_INVALID_PARAMETER,
-                         _("Need a parameter to change."));
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Need a parameter to change.");
     }
     return EditAddress(pwallet, address, label, purpose, fHavePurpose, dest);
   } else if (action == "del") {
@@ -391,7 +386,7 @@ UniValue manageaddressbook(const JSONRPCRequest &request) {
     return NewSend(pwallet, address, label, purpose, dest);
   } else {
     throw JSONRPCError(RPC_INVALID_PARAMETER,
-                       _("Unknown action, must be one of 'add/edit/del'."));
+                       "Unknown action, must be one of 'add/edit/del'.");
   }
 }
 
@@ -401,7 +396,7 @@ static const CRPCCommand commands[] = {
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
     {"wallet",             "addressbookinfo",        &addressbookinfo,        {}},
     {"wallet",             "filteraddresses",        &filteraddresses,        {"offset", "count", "sort_code"}},
-    {"wallet",             "manageaddressbook",      &manageaddressbook,      {"action","address","label","purpose"} },
+    {"wallet",             "manageaddressbook",      &manageaddressbook,      {"action", "address", "label", "purpose"}},
 };
 // clang-format on
 
