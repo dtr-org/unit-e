@@ -1,11 +1,10 @@
+#include <wallet/rpcaddressbook.h>
+
+#include <univalue.h>
 #include <rpc/safemode.h>
 #include <rpc/server.h>
-#include <rpc/util.h>
-#include <univalue.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
-#include <wallet/walletdb.h>
-#include <wallet/walletutil.h>
 
 static bool icompare_pred(unsigned char a, unsigned char b) {
   return std::tolower(a) == std::tolower(b);
