@@ -8,6 +8,8 @@
 
 using AddressBookIter = std::map<CTxDestination, CAddressBookData>::iterator;
 
+enum class MatchOwned { ALL = 0, ONLY_OWNED = 1, ONLY_NOT_OWNED = 2 };
+
 static bool CompareCharsI(unsigned char a, unsigned char b) {
   return std::tolower(a) == std::tolower(b);
 }
@@ -66,12 +68,12 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
         "\nList addresses.\n"
         "\nArguments:\n"
         "1. \"offset\":      (numeric, optional) number of addresses to skip\n"
-        "2. \"count\":       (numerci, optional) number of addresses to be "
+        "2. \"count\":       (numeric, optional) number of addresses to be "
         "displayed\n"
-        "3. \"sort_code\":   (string, optional) 0 sort by label ascending,\n"
+        "3. \"sort_code\":   (numeric, optional) 0 sort by label ascending,\n"
         "                  1 sort by label descending, default 0\n"
         "4. \"search\":      (string, optional) a query to search labels\n"
-        "5. \"match_owned\": (string, optional) 0 off, 1 owned, 2 non-owned,\n"
+        "5. \"match_owned\": (numeric, optional) 0 off, 1 owned, 2 non-owned,\n"
         "                  default 0\n");
   }
 
@@ -100,11 +102,11 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
 
   bool sortAsc = true;
   if (request.params.size() > 2) {
-    std::string sortCode = request.params[2].get_str();
-    if (sortCode != "0" && sortCode != "1") {
+    int sortCode = request.params[2].get_int();
+    if (sortCode != 0 && sortCode != 1) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown sort_code.");
     }
-    sortAsc = sortCode == "0";
+    sortAsc = sortCode == 0;
   }
 
   std::string search;
@@ -112,13 +114,13 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
     search = request.params[3].get_str();
   }
 
-  bool onlyOwned = false;
-  bool onlyNotOwned = false;
+  MatchOwned matchOwned = MatchOwned::ALL;
   if (request.params.size() > 4) {
-    // 0 off/all, 1 owned, 2 non-owned
-    std::string s = request.params[4].get_str();
-    onlyOwned = s == "1";
-    onlyNotOwned = s == "2";
+    int i = request.params[4].get_int();
+    if (i < 0 || i > 2) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown match_owned.");
+    }
+    matchOwned = static_cast<MatchOwned>(i);
   }
 
   UniValue result(UniValue::VARR);
@@ -138,9 +140,10 @@ UniValue filteraddresses(const JSONRPCRequest &request) {
          it != pwallet->mapAddressBook.end(); ++it) {
       addressIsMine[it->first] = !!IsMine(*pwallet, it->first);
 
-      if (onlyOwned && !addressIsMine[it->first]) {
+      if (matchOwned == MatchOwned::ONLY_OWNED && !addressIsMine[it->first]) {
         continue;
-      } else if (onlyNotOwned && addressIsMine[it->first]) {
+      } else if (matchOwned == MatchOwned::ONLY_NOT_OWNED &&
+                 addressIsMine[it->first]) {
         continue;
       }
 
