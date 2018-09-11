@@ -270,11 +270,12 @@ static UniValue DeleteAddress(CWallet *pwallet, const std::string &address,
   return result;
 }
 
-static UniValue NewSend(CWallet *pwallet, const std::string &address, const std::string &label,
-                        const std::string &purpose, const CTxDestination &dest) {
+static UniValue NewSend(CWallet *pwallet, const std::string &address,
+                        const std::string &label, const std::string &purpose,
+                        const CTxDestination &dest) {
   auto addressBookIt = pwallet->mapAddressBook.find(dest);
   // Only update the purpose field if address does not yet exist
-  std::string newPurpose; // Empry string means don't change purpose
+  std::string newPurpose;  // Empry string means don't change purpose
   if (addressBookIt == pwallet->mapAddressBook.end()) {
     newPurpose = purpose;
   }
