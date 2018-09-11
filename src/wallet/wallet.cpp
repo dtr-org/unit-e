@@ -1090,7 +1090,8 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 if (state->m_phase == +esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION) {
 
                   state->m_phase = esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION;
-                  LogPrint(BCLog::ESPERANZA, "Validator waiting for deposit finalization. Deposit hash %s.\n",
+                  LogPrint(BCLog::ESPERANZA, "%s: Validator waiting for deposit finalization. Deposit hash %s.\n",
+                           __func__,
                            tx.GetHash().GetHex());
 
                   std::vector<std::vector<unsigned char>> vSolutions;
@@ -1102,9 +1103,10 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                   state->m_depositEpoch = esperanza::FinalizationState::GetEpoch(*pIndex);
                 } else {
                   LogPrint(BCLog::ESPERANZA,
-                           "ERROR: Wrong state for validator state with deposit %s, %s expected.\n",
-                           tx.GetHash().GetHex(),
-                           "WAITING_DEPOSIT_CONFIRMATION");
+                      "ERROR: %s - Wrong state for validator state with deposit %s, %s expected.\n",
+                      __func__,
+                      tx.GetHash().GetHex(),
+                      "WAITING_DEPOSIT_CONFIRMATION");
                 }
             }
 

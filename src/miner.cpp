@@ -199,7 +199,7 @@ void BlockAssembler::AddVoteTxs()
         if(mi->GetTx().IsVote()) {
             AddToBlock(mempool.mapTx.project<0>(mi));
             LogPrint(BCLog::ESPERANZA, "%s: Add vote with id %s to a new block.\n",
-                    "ESPERANZA",
+                    __func__,
                     mi->GetTx().GetHash().GetHex());
         }
         ++mi;
