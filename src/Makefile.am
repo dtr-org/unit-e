@@ -80,6 +80,7 @@ UNITE_CORE_H = \
   address/address.h \
   base58.h \
   bech32.h \
+  better-enums\enum.h \
   bloom.h \
   blockencodings.h \
   chain.h \
@@ -102,13 +103,14 @@ UNITE_CORE_H = \
   cuckoocache.h \
   esperanza/checkpoint.h \
   esperanza/config.h \
+  esperanza/finalizationparams.h \
+  esperanza/finalizationstate.h \
   esperanza/init.h \
   esperanza/kernel.h \
   esperanza/proposer.h \
   esperanza/proposer_init.h \
   esperanza/params.h \
-  esperanza/finalizationparams.h \
-  esperanza/finalizationstate.h \
+  esperanza/rpcproposer.h \
   esperanza/stakevalidation.h \
   esperanza/validation.h \
   esperanza/validator.h \
@@ -288,6 +290,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/kernel.cpp \
   esperanza/proposer.cpp \
   esperanza/proposer_init.cpp \
+  esperanza/rpcproposer.cpp \
   esperanza/stakevalidation.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \

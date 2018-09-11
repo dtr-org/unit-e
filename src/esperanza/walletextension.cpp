@@ -605,4 +605,8 @@ void WalletExtension::BlockConnected(
   }
 }
 
+const Proposer::State& WalletExtension::GetProposerState() const {
+  return m_proposerState;
+}
+
 }  // namespace esperanza

@@ -2,21 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-
 #include <esperanza/rpcproposer.h>
 
-#include <base58.h>
-#include <key/mnemonic/mnemonic.h>
-#include <random.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <util.h>
 #include <utiltime.h>
-#include <validation.h>
-#include <wallet/crypter.h>
 #include <wallet/wallet.h>
-#include <wallet/walletdb.h>
-#include <wallet/walletutil.h>
 
 #include <stdint.h>
 #include <univalue.h>
@@ -24,25 +16,29 @@
 #include <ctime>
 #include <functional>
 
-void RegisterProposerRPCCommands(CRPCTable &t) {
-
-
-
+UniValue proposerstatus(const JSONRPCRequest &request) {
+  UniValue result(UniValue::VARR);
+  for (const auto &wallet : vpwallets) {
+    const auto &walletExt = wallet->GetWalletExtension();
+    const auto &proposerState = walletExt.GetProposerState();
+    UniValue walletResult(UniValue::VOBJ);
+    walletResult.pushKV("wallet", UniValue(wallet->GetName()));
+    walletResult.pushKV("status", UniValue(proposerState.m_status._to_string()));
+    result.push_back(walletResult);
+  }
+  return result;
 }
-
 
 // clang-format off
 static const CRPCCommand commands[] = {
 //  category               name                      actor (function)         argNames
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
-    { "mnemonic",          "mnemonic",               &mnemonic,               {"subcommand", "mnemonic", "passphrase"}},
-    { "hidden",            "listreservekeys",        &listreservekeys,        {}},
-    { "wallet",            "importmasterkey",        &importmasterkey,        {"seed", "passphrase", "rescan"}},
+    { "proposer",          "proposerstatus",         &proposerstatus,         {}},
 };
 // clang-format on
 
-void RegisterMnemonicRPCCommands(CRPCTable &t) {
-  for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++) {
-    t.appendCommand(commands[vcidx].name, &commands[vcidx]);
+void RegisterProposerRPCCommands(CRPCTable &t) {
+  for (const auto &command : commands) {
+    t.appendCommand(command.name, &command);
   }
 }

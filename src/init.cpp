@@ -51,6 +51,7 @@
 #include <wallet/wallet.h>
 #include <esperanza/config.h>
 #include <esperanza/proposer_init.h>
+#include <esperanza/rpcproposer.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -1343,6 +1344,7 @@ bool AppInitMain()
     RegisterAllCoreRPCCommands(tableRPC);
     RegisterEsperanzaRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
+    RegisterProposerRPCCommands(tableRPC);
     RegisterWalletRPC(tableRPC);
 #endif
 
