@@ -398,7 +398,7 @@ static const CRPCCommand commands[] = {
 //  category               name                      actor (function)         argNames
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
     {"wallet",             "addressbookinfo",        &addressbookinfo,        {}},
-    {"wallet",             "filteraddresses",        &filteraddresses,        {"offset", "count", "sort_code"}},
+    {"wallet",             "filteraddresses",        &filteraddresses,        {"offset", "count", "sort_code", "search", "match_owned"}},
     {"wallet",             "manageaddressbook",      &manageaddressbook,      {"action", "address", "label", "purpose"}},
 };
 // clang-format on
