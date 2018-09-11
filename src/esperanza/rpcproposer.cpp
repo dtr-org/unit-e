@@ -23,7 +23,8 @@ UniValue proposerstatus(const JSONRPCRequest &request) {
     const auto &proposerState = walletExt.GetProposerState();
     UniValue walletResult(UniValue::VOBJ);
     walletResult.pushKV("wallet", UniValue(wallet->GetName()));
-    walletResult.pushKV("status", UniValue(proposerState.m_status._to_string()));
+    walletResult.pushKV("status",
+                        UniValue(proposerState.m_status._to_string()));
     result.push_back(walletResult);
   }
   return result;

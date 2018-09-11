@@ -88,7 +88,7 @@ class WalletExtension {
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
                       const CBlockIndex *pindex);
 
-  const Proposer::State& GetProposerState() const;
+  const Proposer::State &GetProposerState() const;
 
   ValidatorState validatorState;
   bool nIsValidatorEnabled = false;
