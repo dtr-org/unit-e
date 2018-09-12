@@ -15,7 +15,7 @@
 #include <string>
 #include <stdio.h>
 
-BOOST_FIXTURE_TEST_SUITE(uint256_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(uint256_tests, ReducedTestingSetup)
 
 const unsigned char R1Array[] =
     "\x9c\x52\x4a\xdb\xcf\x56\x11\x12\x2b\x29\x12\x5e\x5d\x35\xd2\xd2"

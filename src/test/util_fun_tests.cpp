@@ -11,7 +11,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(util_fun_tests, BasicTestingSetup)
+BOOST_AUTO_TEST_SUITE(util_fun_tests)
 
 // take_while with different container/element types
 

@@ -8,7 +8,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_log.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(sign_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(sign_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(producesignature_vote_witness) {
   SeedInsecureRand();

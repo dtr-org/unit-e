@@ -44,6 +44,19 @@ static inline void InsecureNewKey(CKey &key, bool fCompressed) {
   assert(key.IsValid()); // Failure should be very rare
 }
 
+//! Configures almost as much as the BasicTestingSetup
+//! except for chain params - useful for testing stuff
+//! that is actually blockchain agnostic, yet requires
+//! a bit of infrastructure like logging or ECC_Start.
+//! This comment was carefully crafted such that every
+//! line would have the same number of characters, yo.
+struct ReducedTestingSetup {
+    ECCVerifyHandle globalVerifyHandle;
+
+    explicit ReducedTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
+    ~ReducedTestingSetup();
+};
+
 /** Basic testing setup.
  * This just configures logging and chain parameters.
  */

@@ -39,7 +39,7 @@ class EsperanzaStateSpy : public FinalizationState {
   using FinalizationState::ProcessWithdraw;
 };
 
-BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, ReducedTestingSetup)
 
 // Constructor tests
 

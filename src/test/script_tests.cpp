@@ -119,7 +119,7 @@ ScriptError_t ParseScriptError(const std::string &name)
     return SCRIPT_ERR_UNKNOWN_ERROR;
 }
 
-BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(script_tests, ReducedTestingSetup)
 
 CMutableTransaction BuildCreditingTransaction(const CScript& scriptPubKey, int nValue = 0)
 {
