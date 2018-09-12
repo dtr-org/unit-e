@@ -1255,7 +1255,7 @@ SyncStatus GetInitialBlockDownloadStatus()
         return SyncStatus::SYNCED;
     }
     if (fImporting) {
-        return SyncStatus::REINDEXING;
+        return SyncStatus::IMPORTING;
     }
     if (fReindex) {
         return SyncStatus::REINDEXING;
