@@ -23,7 +23,7 @@ Serialize(const CScript& s)
     return sSerialized;
 }
 
-BOOST_FIXTURE_TEST_SUITE(sigopcount_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(sigopcount_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(GetSigOpCount)
 {

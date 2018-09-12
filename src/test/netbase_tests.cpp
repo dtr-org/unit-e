@@ -10,7 +10,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(netbase_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(netbase_tests, ReducedTestingSetup)
 
 static CNetAddr ResolveIP(const char* ip)
 {

@@ -11,7 +11,7 @@
 
 #include <univalue.h>
 
-BOOST_FIXTURE_TEST_SUITE(base16_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(base16_tests, ReducedTestingSetup)
 
 template<std::size_t length>
 std::vector<uint8_t> toUtf8Vector(const char(&text)[length])

@@ -5,7 +5,7 @@
 #include <univalue.h>
 #include <util.h>
 
-BOOST_FIXTURE_TEST_SUITE(finalization_params_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalization_params_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(parse_params_invalid_json)
 {

@@ -7,7 +7,7 @@
 #include <script/script.h>
 #include <util.h>
 
-BOOST_FIXTURE_TEST_SUITE(interpreter_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(interpreter_tests, ReducedTestingSetup)
 
 uint256 GetPrevoutHash(const CTransaction& txTo) {
     CHashWriter ss(SER_GETHASH, 0);

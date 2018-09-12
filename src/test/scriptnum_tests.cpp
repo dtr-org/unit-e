@@ -10,7 +10,7 @@
 #include <limits.h>
 #include <stdint.h>
 
-BOOST_FIXTURE_TEST_SUITE(scriptnum_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(scriptnum_tests, ReducedTestingSetup)
 
 /** A selection of numbers that do not trigger int64_t overflow
  *  when added/subtracted. */

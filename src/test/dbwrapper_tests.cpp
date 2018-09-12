@@ -21,7 +21,7 @@ bool is_null_key(const std::vector<unsigned char>& key) {
     return isnull;
 }
  
-BOOST_FIXTURE_TEST_SUITE(dbwrapper_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(dbwrapper_tests, ReducedTestingSetup)
                        
 BOOST_AUTO_TEST_CASE(dbwrapper)
 {
