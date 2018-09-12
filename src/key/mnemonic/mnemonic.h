@@ -6,18 +6,23 @@
 #ifndef UNITE_KEY_MNEMONIC_MNEMONIC_H
 #define UNITE_KEY_MNEMONIC_MNEMONIC_H
 
-#include <string>
-#include <vector>
-
 #include <base58.h>
 #include <key.h>
 
+#include <better-enums/enum.h>
 #include <boost/optional.hpp>
+
+#include <stdint.h>
+#include <string>
+#include <vector>
 
 namespace key {
 namespace mnemonic {
 
-enum class Language : uint8_t {
+// clang-format off
+BETTER_ENUM(
+  Language,
+  uint8_t,
   ENGLISH,
   FRENCH,
   JAPANESE,
@@ -25,14 +30,13 @@ enum class Language : uint8_t {
   CHINESE_S,
   CHINESE_T,
   ITALIAN,
-  KOREAN,
+  KOREAN
+)
+// clang-format on
 
-  COUNT  // hack to automatically find the number of elements in the enumeration
-};
+std::string GetLanguageDesc(Language language);
 
-std::string GetLanguageDesc(const Language language);
-
-std::string GetLanguageTag(const Language language);
+std::string GetLanguageTag(Language language);
 
 int GetWord(int o, const char* pwl, int max, std::string& sWord);
 
@@ -56,16 +60,15 @@ int AddChecksum(Language language, const std::string& sWordListIn,
 int GetWord(Language language, int nWord, std::string& sWord,
             std::string& sError);
 
-/*! \brief A Seed generated from a mnemonic of human-rememberable words.
- *
- * If the seed is not well formed
- *
- * TODO: Create a constructor that takes a language and an entropy source and
- * generates a seed from it.
- */
+//! \brief A Seed generated from a mnemonic of human-rememberable words.
+//!
+//! If the seed is not well formed
+//!
+//! TODO: Create a constructor that takes a language and an entropy source and
+//! generates a seed from it.
 class Seed final {
  private:
-  Language m_language;
+  Language m_language = Language::ENGLISH;
   std::vector<uint8_t> m_seed;
   std::vector<uint8_t> m_entropy;
   std::string m_hexSeed;
@@ -74,7 +77,7 @@ class Seed final {
   CUnitEExtKey m_extKey58;
 
  public:
-  Seed(const std::string& mnemonic, const std::string& passphrase = "");
+  explicit Seed(const std::string& mnemonic, const std::string& passphrase = "");
 
   //! The name of this language, human readable and nicely formatted
   const std::string& GetHumandReadableLanguage() const;

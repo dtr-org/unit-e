@@ -5,6 +5,7 @@
 #ifndef UNITE_ESPERANZA_PROPOSER_H
 #define UNITE_ESPERANZA_PROPOSER_H
 
+#include <better-enums/enum.h>
 #include <esperanza/config.h>
 #include <key.h>
 #include <primitives/block.h>
@@ -23,6 +24,24 @@ namespace esperanza {
 template <class T>
 struct ProposerAccess;
 
+// clang-format off
+BETTER_ENUM(
+    _Proposer_Status,
+    uint8_t,
+    NOT_PROPOSING,
+    IS_PROPOSING,
+    NOT_PROPOSING_REINDEXING,
+    NOT_PROPOSING_IMPORTING,
+    NOT_PROPOSING_SYNCING_BLOCKCHAIN,
+    NOT_PROPOSING_NO_PEERS,
+    NOT_PROPOSING_NOT_ENOUGH_BALANCE,
+    NOT_PROPOSING_DEPTH,
+    NOT_PROPOSING_WALLET_LOCKED,
+    NOT_PROPOSING_LIMITED,
+    NOT_PROPOSING_LAGGING_BEHIND
+)
+// clang-format on
+
 class Proposer {
   // accessor for unit testing - not a true friend
   template <class T>
@@ -30,19 +49,7 @@ class Proposer {
 
  public:
   //! the current proposing status per wallet
-  enum class Status : int16_t {
-    NOT_PROPOSING = 0,
-    IS_PROPOSING = 1,
-    NOT_PROPOSING_REINDEXING = -1,
-    NOT_PROPOSING_IMPORTING = -2,
-    NOT_PROPOSING_SYNCING_BLOCKCHAIN = -3,
-    NOT_PROPOSING_NO_PEERS = -4,
-    NOT_PROPOSING_NOT_ENOUGH_BALANCE = -5,
-    NOT_PROPOSING_DEPTH = -6,
-    NOT_PROPOSING_WALLET_LOCKED = -7,
-    NOT_PROPOSING_LIMITED = -8,
-    NOT_PROPOSING_LAGGING_BEHIND = -9,
-  };
+  typedef _Proposer_Status Status;
 
   //! bookkeeping data per wallet
   struct State {

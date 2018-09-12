@@ -442,7 +442,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   {
     LOCK(m_enclosingWallet->cs_wallet);
     if (validatorState.m_phase ==
-        ValidatorState::ValidatorPhase::NOT_VALIDATING) {
+        +ValidatorState::ValidatorPhase::NOT_VALIDATING) {
       LogPrint(BCLog::ESPERANZA,
                "%s: Validator waiting for deposit confirmation.\n",
                "ESPERANZA");
@@ -528,7 +528,8 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
   CMutableTransaction txNew;
   txNew.SetType(TxType::VOTE);
 
-  if (validatorState.m_phase != ValidatorState::ValidatorPhase::IS_VALIDATING) {
+  if (validatorState.m_phase !=
+      +ValidatorState::ValidatorPhase::IS_VALIDATING) {
     return error("%s: Cannot add vote inputs for non-validators.", __func__);
   }
 
@@ -576,7 +577,7 @@ void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
 
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
-    ValidatorState::ValidatorPhase currentPhase;
+    auto currentPhase = ValidatorState::ValidatorPhase::NOT_VALIDATING;
     {
       LOCK(m_enclosingWallet->cs_wallet);
       currentPhase = validatorState.m_phase;
@@ -603,6 +604,10 @@ void WalletExtension::BlockConnected(
       }
     }
   }
+}
+
+const Proposer::State &WalletExtension::GetProposerState() const {
+  return m_proposerState;
 }
 
 }  // namespace esperanza

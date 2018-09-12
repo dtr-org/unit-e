@@ -765,10 +765,10 @@ BOOST_AUTO_TEST_CASE(mutabletransaction_set_type_mulitple_times)
   CMutableTransaction tx;
 
   tx.SetType(TxType::VOTE);
-  BOOST_CHECK((TxType::VOTE == tx.GetType()));
+  BOOST_CHECK((+TxType::VOTE == tx.GetType()));
 
   tx.SetType(TxType::LOGOUT);
-  BOOST_CHECK((TxType::LOGOUT == tx.GetType()));
+  BOOST_CHECK((+TxType::LOGOUT == tx.GetType()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

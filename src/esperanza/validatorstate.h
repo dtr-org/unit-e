@@ -5,19 +5,28 @@
 #ifndef UNITE_ESPERANZA_VALIDATORSTATE_H
 #define UNITE_ESPERANZA_VALIDATORSTATE_H
 
+#include <better-enums/enum.h>
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
+#include <stdint.h>
 #include <uint256.h>
 #include <map>
 
 namespace esperanza {
-struct ValidatorState {
-  enum class ValidatorPhase {
+
+// clang-format off
+BETTER_ENUM(
+    _Validator_Phase,
+    uint8_t,
     NOT_VALIDATING,
     IS_VALIDATING,
     WAITING_DEPOSIT_CONFIRMATION,
-    WAITING_DEPOSIT_FINALIZATION,
-  };
+    WAITING_DEPOSIT_FINALIZATION
+)
+// clang-format on
+
+struct ValidatorState {
+  typedef _Validator_Phase ValidatorPhase;
 
   ValidatorState()
       : m_validatorIndex(),
