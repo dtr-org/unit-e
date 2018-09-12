@@ -992,6 +992,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
               return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
             }
+            break;
           }
           case TxType::VOTE: {
 
@@ -1008,6 +1009,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
               return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
             }
+            break;
           }
           default: {
             break;
@@ -2454,8 +2456,9 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     esperanza::FinalizationState::ProcessNewTip(*pindexNew, blockConnecting);
 
     // Write the chain state to disk, if necessary.
-    if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED))
-        return false;
+    if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED)) {
+      return false;
+    }
     int64_t nTime5 = GetTimeMicros(); nTimeChainState += nTime5 - nTime4;
     LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI, nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
     // Remove conflicting transactions from the mempool.;

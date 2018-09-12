@@ -895,8 +895,9 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         break;
       }
 
-      default:
-        assert(false);
+      default: {
+        break;
+      }
     }
   }
 

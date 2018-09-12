@@ -63,10 +63,10 @@ class EsperanzaTest(UnitETestFramework):
         self.wait_for_transaction(deptx3)
 
         # After we generated the first 120 blocks with no validators the state is
-        # - currentEpoch: 24 (we are in the first block of this epoch)
-        # - currentDynasty: 23
-        # - lastFinalizedEpoch: 23
-        # - lastJustifiedEpoch: 23
+        # - currentEpoch: 12 (we are in the first block of this epoch)
+        # - currentDynasty: 11
+        # - lastFinalizedEpoch: 11
+        # - lastJustifiedEpoch: 11
         # - validators: 0
         # Then we generate other 10 epochs
         for n in range(0, 50):
