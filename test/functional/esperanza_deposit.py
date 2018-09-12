@@ -64,7 +64,9 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         # mine some blocks to allow the deposit to get included in a block
         for n in range(0, 10):
-            nodes[(n % 3) + 1].generate(1)
+            self.generate_block(nodes[(n % 3) + 1])
+
+            sync_blocks(self.nodes[0:3])
             time.sleep(block_time)
 
         sync_blocks(self.nodes[0:3])
@@ -74,6 +76,19 @@ class EsperanzaDepositTest(UnitETestFramework):
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
         return
+
+    def generate_block(self, node):
+        i = 0
+        #Try few times before giving up since it maight happen that the generate
+        #rpc returns an exception in case of generating a block containing for
+        #example invalid votes accepted before in the mempool but now targeting
+        #an old epoch for example.
+        while i < 5:
+            try :
+                node.generate(1)
+                break
+            except:
+                i += 1
 
 if __name__ == '__main__':
     EsperanzaDepositTest().main()

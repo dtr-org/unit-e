@@ -77,10 +77,9 @@ class EsperanzaTest(UnitETestFramework):
         # - validators: 0
         # Then we generate other 10 epochs
         for n in range(0, 50):
-            nodes[0].generate(1)
+            self.generate_block(nodes[0])
+            sync_blocks(self.nodes[0:3])
             time.sleep(block_time)
-
-        sync_blocks(self.nodes[0:3])
 
         resp = nodes[0].getesperanzastate()
         assert_equal(resp["currentEpoch"], 17)
@@ -92,6 +91,19 @@ class EsperanzaTest(UnitETestFramework):
         print("Test succeeded.")
 
         return
+
+    def generate_block(self, node):
+        i = 0
+        #Try few times before giving up since it maight happen that the generate
+        #rpc returns an exception in case of generating a block containing for
+        #example invalid votes accepted before in the mempool but now targeting
+        #an old epoch for example.
+        while i < 5:
+            try :
+                node.generate(1)
+                break
+            except:
+                i += 1
 
 if __name__ == '__main__':
     EsperanzaTest().main()
