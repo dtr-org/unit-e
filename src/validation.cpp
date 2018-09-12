@@ -990,7 +990,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                   __func__,
                   state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
@@ -1007,7 +1007,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                   __func__,
                   state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
@@ -3295,14 +3295,15 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 __func__,
                 tx->GetHash().GetHex());
 
-            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)){
+            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)) {
               LogPrint(BCLog::ESPERANZA,
                   "%s: Deposit cannot be included into mempool: %s.\n",
                   __func__,
                   state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
+            break;
           }
           case TxType ::VOTE: {
 
@@ -3318,8 +3319,9 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                   __func__,
                   state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
+            break;
           }
           default: {
             break;

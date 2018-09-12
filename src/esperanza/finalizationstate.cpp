@@ -30,7 +30,7 @@ const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 template <typename... Args>
 inline Result fail(Result error, const char *fmt, const Args &... args) {
   std::string reason = tfm::format(fmt, args...);
-  LogPrintStr("ERROR: ESPERANZA - " + reason + "\n");
+  LogPrint(BCLog::ESPERANZA, "ERROR: %s.\n", reason);
   return error;
 }
 
@@ -124,8 +124,11 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
   IncrementDynasty();
 
   LogPrint(BCLog::ESPERANZA,
-           "%s: Epoch with hash %s and height %d initialized.\n", __func__,
-           m_recommendedTargetHash.GetHex(), newEpoch);
+           "%s: Epoch with hash %s and height %d initialized. The current dynasty is %s.\n",
+           __func__,
+           m_recommendedTargetHash.GetHex(),
+           newEpoch,
+           m_currentDynasty);
 
   return success();
 }
@@ -151,14 +154,15 @@ void FinalizationState::InstaFinalize() {
 void FinalizationState::IncrementDynasty() {
   uint32_t epoch = this->m_currentEpoch;
 
-  if (m_checkpoints[epoch - 2].m_isFinalized) {
-    LogPrint(BCLog::ESPERANZA, "%s: Epoch %d is finalized.\n", __func__,
-             epoch - 2);
+  if (epoch > 1 && m_checkpoints[epoch - 2].m_isFinalized) {
 
     m_currentDynasty += 1;
     m_prevDynDeposits = m_curDynDeposits;
     m_curDynDeposits += m_dynastyDeltas[m_currentDynasty];
     m_dynastyStartEpoch[m_currentDynasty] = epoch;
+
+    LogPrint(BCLog::ESPERANZA, "%s: New current dynasty is %d.\n", __func__,
+             m_currentDynasty);
     // UNIT-E: we can clear old checkpoints (up to lastFinalizedEpoch - 1)
   }
   m_epochToDynasty[epoch] = m_currentDynasty;
@@ -607,10 +611,10 @@ esperanza::Result FinalizationState::ValidateWithdraw(
                 __func__, endDynasty);
   }
 
-  uint32_t endEpoch = m_dynastyStartEpoch.find(endDynasty + 10)->second;
+  uint32_t endEpoch = m_dynastyStartEpoch.find(endDynasty + 1)->second;
   uint32_t withdrawalEpoch = endEpoch + WITHDRAWAL_EPOCH_DELAY;
 
-  if (m_currentEpoch <= withdrawalEpoch) {
+  if (m_currentEpoch < withdrawalEpoch) {
     return fail(esperanza::Result::WITHDRAW_TOO_EARLY,
                 "%s: Too early to withdraw, minimum expected epoch for "
                 "withdraw is %d.\n",

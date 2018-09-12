@@ -547,13 +547,11 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
   CTransaction txNewConst(txNew);
   uint32_t nIn = 0;
   SignatureData sigdata;
-  std::string strFailReason;
 
   if (!ProduceSignature(
           TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
                                       amount, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
-    strFailReason = _("Signing transaction failed");
     return false;
   } else {
     UpdateTransaction(txNew, nIn, sigdata);
