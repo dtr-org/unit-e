@@ -123,6 +123,7 @@ BASE_SCRIPTS= [
     'mining_basic.py',
     'wallet_bumpfee.py',
     'rpc_named_arguments.py',
+    'rpc_addressbook.py',
     'wallet_listsinceblock.py',
     'p2p_leak.py',
     'wallet_encryption.py',
