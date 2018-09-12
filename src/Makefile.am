@@ -174,6 +174,7 @@ UNITE_CORE_H = \
   support/events.h \
   support/lockedpool.h \
   sync.h \
+  sync_status.h \
   threadsafety.h \
   threadinterrupt.h \
   timedata.h \

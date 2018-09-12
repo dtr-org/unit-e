@@ -1242,28 +1242,41 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     return nSubsidy;
 }
 
-bool IsInitialBlockDownload()
+SyncStatus GetInitialBlockDownloadStatus()
 {
     // Once this function has returned false, it must remain false.
     static std::atomic<bool> latchToFalse{false};
     // Optimization: pre-test latch before taking the lock.
-    if (latchToFalse.load(std::memory_order_relaxed))
-        return false;
-
+    if (latchToFalse.load(std::memory_order_relaxed)) {
+        return SyncStatus::SYNCED;
+    }
     LOCK(cs_main);
-    if (latchToFalse.load(std::memory_order_relaxed))
-        return false;
-    if (fImporting || fReindex)
-        return true;
-    if (chainActive.Tip() == nullptr)
-        return true;
-    if (chainActive.Tip()->nChainWork < nMinimumChainWork)
-        return true;
-    if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
-        return true;
+    if (latchToFalse.load(std::memory_order_relaxed)) {
+        return SyncStatus::SYNCED;
+    }
+    if (fImporting) {
+        return SyncStatus::IMPORTING;
+    }
+    if (fReindex) {
+        return SyncStatus::REINDEXING;
+    }
+    if (chainActive.Tip() == nullptr) {
+        return SyncStatus::NO_TIP;
+    }
+    if (chainActive.Tip()->nChainWork < nMinimumChainWork) {
+        return SyncStatus::MINIMUM_CHAIN_WORK_NOT_REACHED;
+    }
+    if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge)) {
+        return SyncStatus::MAX_TIP_AGE_EXCEEDED;
+    }
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     latchToFalse.store(true, std::memory_order_relaxed);
-    return false;
+    return SyncStatus::SYNCED;
+}
+
+bool IsInitialBlockDownload()
+{
+    return GetInitialBlockDownloadStatus() != +SyncStatus::SYNCED;
 }
 
 CBlockIndex *pindexBestForkTip = nullptr, *pindexBestForkBase = nullptr;

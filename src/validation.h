@@ -17,6 +17,7 @@
 #include <policy/feerate.h>
 #include <script/script_error.h>
 #include <sync.h>
+#include <sync_status.h>
 #include <versionbits.h>
 
 #include <algorithm>
@@ -274,6 +275,8 @@ bool LoadChainTip(const CChainParams& chainparams);
 void UnloadBlockIndex();
 /** Run an instance of the script checking thread */
 void ThreadScriptCheck();
+/** Check the current status of the initial block download (what state are we in exactly) */
+SyncStatus GetInitialBlockDownloadStatus();
 /** Check whether we are doing an initial block download (synchronizing from disk or network) */
 bool IsInitialBlockDownload();
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
