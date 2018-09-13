@@ -124,9 +124,8 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
   IncrementDynasty();
 
   LogPrint(BCLog::ESPERANZA,
-           "%s: Epoch with hash %s and height %d initialized. The current dynasty is %s.\n",
+           "%s: Epoch with height %d initialized. The current dynasty is %s.\n",
            __func__,
-           m_recommendedTargetHash.GetHex(),
            newEpoch,
            m_currentDynasty);
 
