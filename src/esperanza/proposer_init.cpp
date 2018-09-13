@@ -21,14 +21,16 @@ bool InitProposer(const Settings& settings,
     return false;
   }
   if (!settings.m_proposing) {
-    LogPrint(BCLog::ESPERANZA, "not starting proposer, proposing is not activated.\n");
+    LogPrint(BCLog::ESPERANZA,
+             "not starting proposer, proposing is not activated.\n");
     return true;
   }
   try {
     proposer.reset(new Proposer(settings, wallets));
     return true;
   } catch (const std::runtime_error& exc) {
-    LogPrint(BCLog::ESPERANZA, "failed to create proposer threads: %s\n", exc.what());
+    LogPrint(BCLog::ESPERANZA, "failed to create proposer threads: %s\n",
+             exc.what());
     return false;
   }
 }
