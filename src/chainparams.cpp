@@ -105,19 +105,6 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
     consensus.vDeployments[d].nTimeout = nTimeout;
 }
 
-bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const {
-  for (auto &cth : Params().vImportedCoinbaseTxns) {
-    if (cth.nHeight != (uint32_t)nHeight) {
-      continue;
-    }
-    if (hash == cth.hash) {
-      return true;
-    }
-    return error("%s - Hash mismatch at height %d: %s, expect %s.", __func__, nHeight, hash.ToString(), cth.hash.ToString());
-  }
-  return error("%s - Unknown height.", __func__);
-}
-
 /**
  * Main network
  */
@@ -128,7 +115,6 @@ bool CChainParams::CheckImportCoinbase(int nHeight, uint256 &hash) const {
  *    timestamp before)
  * + Contains no strange transactions
  */
-
 class CMainParams : public CChainParams {
 public:
     CMainParams() {
@@ -450,7 +436,7 @@ void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime,
     globalChainParams->UpdateVersionBitsParameters(d, nStartTime, nTimeout);
 }
 
-void UpdateFinalizationParams(esperanza::FinalizationParams &params) {
+void UpdateFinalizationParams(esperanza::FinalizationParams &params)
+{
     globalChainParams->UpdateFinalizationParams(params);
 }
-
