@@ -24,8 +24,9 @@ UniValue proposerstatus(const JSONRPCRequest &request) {
                         UniValue(proposerState.m_status._to_string()));
     if (proposerState.m_status ==
         +esperanza::Proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN) {
-      walletResult.pushKV("sync_status",
-                          UniValue(GetInitialBlockDownloadStatus()));
+      walletResult.pushKV(
+          "sync_status",
+          UniValue(GetInitialBlockDownloadStatus()._to_string()));
     }
     result.push_back(walletResult);
   }
