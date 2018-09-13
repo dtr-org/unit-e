@@ -32,6 +32,9 @@ class WalletExtension {
   friend class esperanza::Proposer;
 
  private:
+  //! a reference to the esperanza settings
+  const Settings &m_settings;
+
   //! The wallet this extension is embedded in.
   CWallet *m_enclosingWallet;
 
@@ -56,7 +59,7 @@ class WalletExtension {
   //!
   //! @param enclosingWallet The CWallet that this WalletExtension extends (must
   //! not be nullptr).
-  WalletExtension(::CWallet *enclosingWallet);
+  WalletExtension(const Settings &settings, ::CWallet *enclosingWallet);
 
   CAmount GetStakeableBalance() const;
 

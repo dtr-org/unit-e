@@ -6,7 +6,7 @@
 #define UNITE_ESPERANZA_PROPOSER_H
 
 #include <better-enums/enum.h>
-#include <esperanza/config.h>
+#include <esperanza/settings.h>
 #include <key.h>
 #include <primitives/block.h>
 #include <sync.h>
@@ -30,8 +30,6 @@ BETTER_ENUM(
     uint8_t,
     NOT_PROPOSING,
     IS_PROPOSING,
-    NOT_PROPOSING_REINDEXING,
-    NOT_PROPOSING_IMPORTING,
     NOT_PROPOSING_SYNCING_BLOCKCHAIN,
     NOT_PROPOSING_NO_PEERS,
     NOT_PROPOSING_NOT_ENOUGH_BALANCE,
@@ -70,7 +68,7 @@ class Proposer {
   Proposer(
       //! [in] a name to derive thread names from (groupName-1, groupName-2,
       //! ...)
-      const Config &,
+      const Settings &,
       //! [in] a reference to all wallets to propose from
       const std::vector<CWallet *> &wallets);
 
@@ -90,7 +88,7 @@ class Proposer {
     const std::string m_threadName;
 
     //! unmodifiable reference to esperanza configuration
-    const Config &m_config;
+    const Settings &m_config;
 
     //! will be set to true to stop the thread
     std::atomic<bool> m_interrupted;
@@ -118,7 +116,7 @@ class Proposer {
         //! [in] a name for this thread.
         const std::string &,
         //! [in] a reference to the global esperanza config
-        const Config &,
+        const Settings &,
         //! [in] the wallets which this thread is responsible for.
         const std::vector<CWallet *> &,
         //! a semaphore for synchronizing initialization
@@ -155,7 +153,7 @@ class Proposer {
   const std::vector<std::unique_ptr<Thread>> m_threads;
 
   static std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
-      const Config &config, const std::vector<CWallet *> &wallets,
+      const Settings &settings, const std::vector<CWallet *> &wallets,
       CountingSemaphore &initSemaphore, CountingSemaphore &startSemaphore,
       CountingSemaphore &stopSemaphore);
 

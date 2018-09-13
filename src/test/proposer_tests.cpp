@@ -35,7 +35,7 @@ typedef ProposerAccess<None> ProposerSpy;
 BOOST_AUTO_TEST_SUITE(proposer_tests)
 
 BOOST_AUTO_TEST_CASE(start_stop) {
-  esperanza::Config config;
+  esperanza::Settings config;
 
   config.m_numberOfProposerThreads = 0;
 
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(start_stop) {
 }
 
 BOOST_AUTO_TEST_CASE(stop_twice) {
-  esperanza::Config config;
+  esperanza::Settings config;
   std::vector<CWallet*> wallets;
   CWallet wallet;
   wallets.emplace_back(&wallet);
@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(stop_twice) {
 }
 
 BOOST_AUTO_TEST_CASE(stop_without_start) {
-  esperanza::Config config;
+  esperanza::Settings config;
   std::vector<CWallet*> wallets;
   CWallet wallet;
   wallets.emplace_back(&wallet);
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(stop_without_start) {
 }
 
 BOOST_AUTO_TEST_CASE(stop_twice_without_start) {
-  esperanza::Config config;
+  esperanza::Settings config;
   std::vector<CWallet*> wallets;
   CWallet wallet;
   wallets.emplace_back(&wallet);
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(stop_twice_without_start) {
 }
 
 BOOST_AUTO_TEST_CASE(wallet_distribution) {
-  esperanza::Config config;
+  esperanza::Settings config;
 
   config.m_numberOfProposerThreads = 3;
 
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE(wallet_distribution) {
 }
 
 BOOST_AUTO_TEST_CASE(single_wallet_too_many_threads_specified) {
-  esperanza::Config config;
+  esperanza::Settings config;
 
   config.m_numberOfProposerThreads = 17;
 
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(single_wallet_too_many_threads_specified) {
 }
 
 BOOST_AUTO_TEST_CASE(single_wallet_too_few_threads_specified) {
-  esperanza::Config config;
+  esperanza::Settings config;
 
   config.m_numberOfProposerThreads = 0;
 

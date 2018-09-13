@@ -5,7 +5,7 @@
 #ifndef UNIT_E_ESPERANZA_PROPOSER_INIT_H
 #define UNIT_E_ESPERANZA_PROPOSER_INIT_H
 
-#include <esperanza/config.h>
+#include <esperanza/settings.h>
 
 #include <vector>
 
@@ -13,7 +13,8 @@ class CWallet;
 
 namespace esperanza {
 
-bool InitProposer(const Config& config, const std::vector<CWallet*>& wallets);
+bool InitProposer(const Settings& settings,
+                  const std::vector<CWallet*>& wallets);
 
 void StartProposer();
 

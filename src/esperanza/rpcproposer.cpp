@@ -4,8 +4,10 @@
 
 #include <esperanza/rpcproposer.h>
 
+#include <esperanza/proposer.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
+#include <validation.h>
 #include <wallet/wallet.h>
 
 #include <stdint.h>
@@ -20,6 +22,12 @@ UniValue proposerstatus(const JSONRPCRequest &request) {
     walletResult.pushKV("wallet", UniValue(wallet->GetName()));
     walletResult.pushKV("status",
                         UniValue(proposerState.m_status._to_string()));
+    if (proposerState.m_status ==
+        +esperanza::Proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN) {
+      walletResult.pushKV(
+          "sync_status",
+          UniValue(GetInitialBlockDownloadStatus()._to_string()));
+    }
     result.push_back(walletResult);
   }
   return result;

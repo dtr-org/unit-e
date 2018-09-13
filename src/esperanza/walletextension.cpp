@@ -25,8 +25,9 @@ namespace esperanza {
 //! UNIT-E: check necessity of this constant
 static const unsigned int DEFAULT_BLOCK_MAX_SIZE = 1000000;
 
-WalletExtension::WalletExtension(::CWallet *enclosingWallet)
-    : m_enclosingWallet(enclosingWallet) {
+WalletExtension::WalletExtension(const Settings &settings,
+                                 ::CWallet *enclosingWallet)
+    : m_settings(settings), m_enclosingWallet(enclosingWallet) {
   assert(enclosingWallet != nullptr);
 }
 
@@ -384,8 +385,7 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 
 // UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
-  if (gArgs.GetBoolArg("-validating", false) &&
-      !gArgs.GetBoolArg("-proposing", true)) {
+  if (m_settings.m_validating && !m_settings.m_proposing) {
     LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n",
              "ESPERANZA", m_enclosingWallet->GetName());
 

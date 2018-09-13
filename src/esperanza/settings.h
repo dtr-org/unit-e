@@ -12,11 +12,14 @@
 
 namespace esperanza {
 
-struct Config {
+struct Settings {
   //! Whether this node should propose blocks or not.
   bool m_proposing = true;
 
-  //! How many thread to use for proposing. At least 1, at most number of
+  //! Whether this node should be a validator.
+  bool m_validating = false;
+
+  //! How many threads to use for proposing. At least 1, at most number of
   //! wallets.
   size_t m_numberOfProposerThreads = 1;
 
@@ -27,11 +30,18 @@ struct Config {
 
   std::string m_proposerThreadName = "proposer";
 
-  explicit Config(::ArgsManager &args, Config defaultConfig = Config());
+  Settings(::ArgsManager& args);
+
+  Settings(::ArgsManager& args, const Settings& defaultConfig);
 
   // clang-tidy recommends `Config() noexcept = default`, but then `clang`
   // [sic!] fails to compile it. Removing the `noexcept` makes it work, but.
-  Config() noexcept {};  // NOLINT(modernize-use-equals-default)
+  Settings() noexcept {};  // NOLINT(modernize-use-equals-default)
+
+  static const Settings& Default() {
+    static Settings settings;
+    return settings;
+  }
 };
 
 }  // namespace esperanza
