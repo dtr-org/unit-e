@@ -26,8 +26,6 @@ bool CheckBlock(const CBlock &block);
 
 bool ProposeBlock(const CBlock &block);
 
-int GetNumBlocksOfPeers();
-
 }  // namespace esperanza
 
 #endif  // UNITE_ESPERANZA_STAKEVALIDATION_H

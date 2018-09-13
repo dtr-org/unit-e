@@ -35,15 +35,6 @@ struct ChainTxData {
     double dTxRate;
 };
 
-//! TODO document
-class CImportedCoinbaseTxn
-{
-public:
-    CImportedCoinbaseTxn(uint32_t nHeightIn, uint256 hashIn) : nHeight(nHeightIn), hash(hashIn) {};
-    uint32_t nHeight;
-    uint256 hash; // hash of output data
-};
-
 /**
  * CChainParams defines various tweakable parameters of a given instance of the
  * UnitE system. There are three: the main network on which people trade goods
@@ -91,9 +82,6 @@ public:
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
     void UpdateFinalizationParams(esperanza::FinalizationParams &params);
 
-    bool CheckImportCoinbase(int nHeight, uint256 &hash) const;
-
-
 protected:
     CChainParams() {}
 
@@ -114,9 +102,6 @@ protected:
     bool fMineBlocksOnDemand;
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
-
-    std::vector<CImportedCoinbaseTxn> vImportedCoinbaseTxns;
-    uint32_t nLastImportHeight;
 };
 
 /**

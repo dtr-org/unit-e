@@ -177,9 +177,4 @@ bool ProposeBlock(const CBlock &block) {
                          /* fNewBlock out */ nullptr);
 }
 
-int GetNumBlocksOfPeers() {
-  // todo
-  return 0;
-}
-
 }  // namespace esperanza
