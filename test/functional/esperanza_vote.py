@@ -7,7 +7,7 @@ from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaTest(UnitETestFramework):
+class EsperanzaVoteTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
@@ -86,16 +86,15 @@ class EsperanzaTest(UnitETestFramework):
 
     def generate_block(self, node):
         i = 0
-        #Try few times before giving up since it maight happen that the generate
-        #rpc returns an exception in case of generating a block containing for
-        #example invalid votes accepted before in the mempool but now targeting
-        #an old epoch for example.
+        # It is rare but possible that a block was valid at the moment of creation but
+        # invalid at submission. This is to account for those cases.
         while i < 5:
-            try :
+            try:
                 node.generate(1)
                 break
             except:
                 i += 1
+                time.sleep(1)
 
 if __name__ == '__main__':
-    EsperanzaTest().main()
+    EsperanzaVoteTest().main()

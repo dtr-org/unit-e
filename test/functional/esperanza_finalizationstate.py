@@ -1,12 +1,14 @@
+#!/usr/bin/env python3
+
 import time
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
 block_time = 1
 master_keys = ['swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready',
-                'chef gas expect never jump rebel huge rabbit venue nature dwarf pact below surprise foam magnet science sister shrimp blanket example okay office ugly',
-                'narrow horror cheap tape language turn smart arch grow tired crazy squirrel sun pumpkin much panic scissors math pass tribe limb myself bone hat',
-                'soon empty next roof proof scorpion treat bar try noble denial army shoulder foam doctor right shiver reunion hub horror push theme language fade']
+               'chef gas expect never jump rebel huge rabbit venue nature dwarf pact below surprise foam magnet science sister shrimp blanket example okay office ugly',
+               'narrow horror cheap tape language turn smart arch grow tired crazy squirrel sun pumpkin much panic scissors math pass tribe limb myself bone hat',
+               'soon empty next roof proof scorpion treat bar try noble denial army shoulder foam doctor right shiver reunion hub horror push theme language fade']
 
 
 def test_setup(test, proposers, validators):
@@ -62,16 +64,15 @@ def setup_deposit(self, nodes):
 
 def generate_block(node):
     i = 0
-    # Try few times before giving up since it maight happen that the generate
-    # rpc returns an exception in case of generating a block containing for
-    # example invalid votes accepted before in the mempool but now targeting
-    # an old epoch for example.
+    # It is rare but possible that a block was valid at the moment of creation but
+    # invalid at submission. This is to account for those cases.
     while i < 5:
         try:
             node.generate(1)
-            break
+            return
         except:
             i += 1
+    raise AssertionError("Cannot generate block")
 
 
 # The scenario tested is the case where a vote from a validator
@@ -82,7 +83,6 @@ def generate_block(node):
 # the expired vote.
 # node[0] and node[1] are proposer (p1,p2)
 # node[2] is the validator (v1)
-
 class ExpiredVoteTest(UnitETestFramework):
 
     def set_test_params(self):
@@ -109,12 +109,14 @@ class ExpiredVoteTest(UnitETestFramework):
         disconnect_nodes(nodes[0], 2)
         disconnect_nodes(nodes[0], 1)
 
+        # wait for the vote to be propagated to p2
+        time.sleep(5)
+
         # Mine another epoch while disconnected p1.
         for n in range(0, 10):
             generate_block(nodes[0])
 
-        # wait for the vote to be propagated to p2
-        time.sleep(5)
+        assert (nodes[0].getblockchaininfo()['blocks'] == 160)
 
         # connect again and wait for sync
         connect_nodes_bi(self.nodes, 0, 2)
@@ -125,6 +127,7 @@ class ExpiredVoteTest(UnitETestFramework):
         # not valid anymore.
         generate_block(nodes[1])
         sync_blocks(self.nodes[0:2])
+
         assert(nodes[0].getblockchaininfo()['blocks'] == 161)
 
         print("Test succeeded.")
