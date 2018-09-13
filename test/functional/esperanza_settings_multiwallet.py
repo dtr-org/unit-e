@@ -10,13 +10,19 @@ class EsperanzaTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [['-proposing=0']]
+        self.extra_args = [[
+            '-wallet=w1.dat',
+            '-wallet=w2.dat',
+            '-wallet=w3.dat'
+        ]]
 
     def run_test(self):
 
         status = self.nodes[0].proposerstatus()
-        assert_equal(status[0]['status'], 'NOT_PROPOSING')
-        assert_equal(status[0]['wallet'], 'wallet.dat')
+        assert_equal(len(status), 3)
+        assert_equal(status[0]['wallet'], 'w1.dat')
+        assert_equal(status[1]['wallet'], 'w2.dat')
+        assert_equal(status[2]['wallet'], 'w3.dat')
 
         print("Test succeeded.")
 
