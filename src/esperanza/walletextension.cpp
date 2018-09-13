@@ -444,8 +444,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
     if (validatorState.m_phase ==
         +ValidatorState::ValidatorPhase::NOT_VALIDATING) {
       LogPrint(BCLog::ESPERANZA,
-               "%s: Validator waiting for deposit confirmation.\n",
-               __func__);
+               "%s: Validator waiting for deposit confirmation.\n", __func__);
 
       validatorState.m_phase =
           ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION;
@@ -453,8 +452,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
       LogPrintf(
           "ERROR: %s - Wrong state for validator state with deposit %s, %s "
           "expected.\n",
-          __func__, wtxOut.GetHash().GetHex(),
-          "WAITING_DEPOSIT_CONFIRMATION");
+          __func__, wtxOut.GetHash().GetHex(), "WAITING_DEPOSIT_CONFIRMATION");
     }
   }
 

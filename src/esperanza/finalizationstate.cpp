@@ -88,8 +88,8 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   m_currentEpoch = newEpoch;
 
-  LogPrint(BCLog::ESPERANZA, "%s: Epoch block found at height %d.\n",
-           __func__, blockHeight);
+  LogPrint(BCLog::ESPERANZA, "%s: Epoch block found at height %d.\n", __func__,
+           blockHeight);
 
   m_lastVoterRescale = ufp64::add_uint(GetCollectiveRewardFactor(), 1);
 
@@ -125,9 +125,7 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   LogPrint(BCLog::ESPERANZA,
            "%s: Epoch with height %d initialized. The current dynasty is %s.\n",
-           __func__,
-           newEpoch,
-           m_currentDynasty);
+           __func__, newEpoch, m_currentDynasty);
 
   return success();
 }
@@ -446,8 +444,8 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
   }
 
   LogPrint(BCLog::ESPERANZA, "%s: Validator %s vote (%s, %d, %d) is valid.\n",
-           __func__, vote.m_validatorIndex.GetHex(),
-           vote.m_targetHash.GetHex(), vote.m_sourceEpoch, vote.m_targetEpoch);
+           __func__, vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
+           vote.m_sourceEpoch, vote.m_targetEpoch);
 
   return success();
 }
@@ -650,8 +648,7 @@ esperanza::Result FinalizationState::ValidateWithdraw(
     }
 
     LogPrint(BCLog::ESPERANZA, "%s: Withdraw from validator %s of %d units.\n",
-             __func__, validatorIndex.GetHex(), endDynasty,
-             withdrawAmountOut);
+             __func__, validatorIndex.GetHex(), endDynasty, withdrawAmountOut);
   }
 
   if (withdrawAmountOut != requiredWithdraw) {
@@ -766,8 +763,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
   LogPrint(BCLog::ESPERANZA,
            "%s: Slashing validator with deposit hash %s of %d units, taking %d "
            "as bounty.\n",
-           __func__, validatorIndex.GetHex(), validatorDeposit,
-           slashingBounty);
+           __func__, validatorIndex.GetHex(), validatorDeposit, slashingBounty);
 
   uint32_t endDynasty = m_validators[validatorIndex].m_endDynasty;
 
@@ -894,13 +890,12 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       }
 
       case TxType::VOTE: {
-        state->ProcessVote(CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
+        state->ProcessVote(
+            CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
         break;
       }
 
-      default: {
-        break;
-      }
+      default: { break; }
     }
   }
 
