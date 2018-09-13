@@ -132,6 +132,7 @@ BASE_SCRIPTS= [
     'wallet_mnemonicinfo.py',
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
+    'esperanza_settings_multiwallet.py',
     'esperanza_settings_noproposing.py',
     'feature_minchainwork.py',
     'p2p_fingerprint.py',
