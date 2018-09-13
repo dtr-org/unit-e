@@ -5,32 +5,47 @@
 #include <esperanza/proposer_init.h>
 
 #include <esperanza/proposer.h>
-
 #include <util.h>
+
+#include <mutex>
 
 namespace esperanza {
 
-std::unique_ptr<Proposer> proposer;
+static std::mutex initLock;
+static std::unique_ptr<Proposer> proposer = nullptr;
 
-bool InitProposer(const Config& config, const std::vector<CWallet*>& wallets) {
+bool InitProposer(const Settings& settings,
+                  const std::vector<CWallet*>& wallets) {
+  std::unique_lock<decltype(initLock)> lock;
+  if (proposer) {
+    return false;
+  }
+  if (!settings.m_proposing) {
+    LogPrint(BCLog::ESPERANZA, "not starting proposer, proposing is not activated.\n");
+    return true;
+  }
   try {
-    proposer.reset(new Proposer(config, wallets));
+    proposer.reset(new Proposer(settings, wallets));
     return true;
   } catch (const std::runtime_error& exc) {
-    LogPrintf("failed to create proposer threads: %s\n", exc.what());
+    LogPrint(BCLog::ESPERANZA, "failed to create proposer threads: %s\n", exc.what());
     return false;
   }
 }
 
 void StartProposer() {
-  LogPrint(BCLog::ESPERANZA, "starting proposer threads...\n");
-  proposer->Start();
+  if (proposer) {
+    LogPrint(BCLog::ESPERANZA, "starting proposer threads...\n");
+    proposer->Start();
+  }
 }
 
 void StopProposer() {
-  LogPrint(BCLog::ESPERANZA, "stopping proposer threads...\n");
-  proposer->Stop();
-  LogPrint(BCLog::ESPERANZA, "all proposer threads exited.\n");
+  if (proposer) {
+    LogPrint(BCLog::ESPERANZA, "stopping proposer threads...\n");
+    proposer->Stop();
+    LogPrint(BCLog::ESPERANZA, "all proposer threads exited.\n");
+  }
 }
 
 }  // namespace esperanza

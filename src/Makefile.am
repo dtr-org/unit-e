@@ -102,7 +102,6 @@ UNITE_CORE_H = \
   core_memusage.h \
   cuckoocache.h \
   esperanza/checkpoint.h \
-  esperanza/config.h \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
@@ -111,6 +110,8 @@ UNITE_CORE_H = \
   esperanza/proposer_init.h \
   esperanza/params.h \
   esperanza/rpcproposer.h \
+  esperanza/settings.h \
+  esperanza/settings_init.h \
   esperanza/stakevalidation.h \
   esperanza/validation.h \
   esperanza/validator.h \
@@ -385,8 +386,9 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  esperanza/config.cpp \
   esperanza/params.cpp \
+  esperanza/settings.cpp \
+  esperanza/settings_init.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \

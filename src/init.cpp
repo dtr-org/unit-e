@@ -49,7 +49,8 @@
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
-#include <esperanza/config.h>
+#include <esperanza/settings.h>
+#include <esperanza/settings_init.h>
 #include <esperanza/proposer_init.h>
 #include <esperanza/rpcproposer.h>
 #endif
@@ -81,10 +82,6 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 
 std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
-
-#ifdef ENABLE_WALLET
-std::unique_ptr<esperanza::Proposer> proposer;
-#endif
 
 #if ENABLE_ZMQ
 static CZMQNotificationInterface* pzmqNotificationInterface = nullptr;
@@ -1264,16 +1261,14 @@ bool AppInitLockDataDirectory()
     return true;
 }
 
-#ifdef ENABLE_WALLET
-namespace {
-    esperanza::Config esperanzaConfig;
-}
-#endif
-
 bool AppInitMain()
 {
 #ifdef ENABLE_WALLET
-    esperanzaConfig = esperanza::Config(gArgs);
+    const esperanza::Settings* esperanzaSettings = esperanza::InitSettings(gArgs);
+    if (!esperanzaSettings) {
+        LogPrintf("Failed to read settings from comand line arguments.\n");
+        return false;
+    }
 #endif
 
     const CChainParams& chainparams = Params();
@@ -1693,7 +1688,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
-    if (!OpenWallets())
+    if (!OpenWallets(*esperanzaSettings))
         return false;
 #else
     LogPrintf("No wallet support compiled in!\n");
@@ -1848,7 +1843,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 13: start proposing
 
-    if (!esperanza::InitProposer(esperanzaConfig, vpwallets)) {
+    if (!esperanza::InitProposer(*esperanzaSettings, vpwallets)) {
         return false;
     }
     esperanza::StartProposer();

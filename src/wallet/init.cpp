@@ -282,7 +282,7 @@ bool VerifyWallets()
     return true;
 }
 
-bool OpenWallets()
+bool OpenWallets(const esperanza::Settings& esperanzaSettings)
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         LogPrintf("Wallet disabled!\n");
@@ -290,7 +290,7 @@ bool OpenWallets()
     }
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
-        CWallet * const pwallet = CWallet::CreateWalletFromFile(walletFile);
+        CWallet * const pwallet = CWallet::CreateWalletFromFile(esperanzaSettings, walletFile);
         if (!pwallet) {
             return false;
         }

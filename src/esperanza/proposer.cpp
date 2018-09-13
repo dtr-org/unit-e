@@ -23,7 +23,7 @@
 
 namespace esperanza {
 
-Proposer::Thread::Thread(const std::string &threadName, const Config &config,
+Proposer::Thread::Thread(const std::string &threadName, const Settings &config,
                          const std::vector<CWallet *> &wallets,
                          CountingSemaphore &initSemaphore,
                          CountingSemaphore &startSemaphore,
@@ -59,12 +59,12 @@ void Proposer::Thread::SetStatus(const Proposer::Status status,
 }
 
 std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
-    const Config &config, const std::vector<CWallet *> &wallets,
+    const Settings &settings, const std::vector<CWallet *> &wallets,
     CountingSemaphore &initSemaphore, CountingSemaphore &startSemaphore,
     CountingSemaphore &stopSemaphore) {
   // total number of threads can not exceed number of wallets
   const size_t numThreads = std::min(
-      wallets.size(), std::max<size_t>(1, config.m_numberOfProposerThreads));
+      wallets.size(), std::max<size_t>(1, settings.m_numberOfProposerThreads));
 
   using WalletIndex = size_t;
   using ThreadIndex = size_t;
@@ -86,9 +86,9 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
       thisThreadsWallets.push_back(wallets[entry->second]);
     }
     const std::string threadName =
-        config.m_proposerThreadName + "-" + std::to_string(threadIx);
+        settings.m_proposerThreadName + "-" + std::to_string(threadIx);
     threads.emplace_back(std::unique_ptr<Proposer::Thread>(
-        new Proposer::Thread(threadName, config, thisThreadsWallets,
+        new Proposer::Thread(threadName, settings, thisThreadsWallets,
                              initSemaphore, startSemaphore, stopSemaphore)));
   }
 
@@ -98,11 +98,12 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   return threads;
 }
 
-Proposer::Proposer(const Config &config, const std::vector<CWallet *> &wallets)
+Proposer::Proposer(const Settings &settings,
+                   const std::vector<CWallet *> &wallets)
     : m_initSemaphore(0),
       m_startSemaphore(0),
       m_stopSemaphore(0),
-      m_threads(CreateProposerThreads(config, wallets, m_initSemaphore,
+      m_threads(CreateProposerThreads(settings, wallets, m_initSemaphore,
                                       m_startSemaphore, m_stopSemaphore)) {}
 
 Proposer::~Proposer() { Stop(); }
@@ -137,15 +138,8 @@ void Proposer::Run(Proposer::Thread &thread) {
 
   while (!thread.m_interrupted) {
     try {
-      if (fReindex) {
-        thread.SetStatus(Status::NOT_PROPOSING_REINDEXING);
-        continue;
-      }
-      if (fImporting) {
-        thread.SetStatus(Status::NOT_PROPOSING_IMPORTING);
-        continue;
-      }
-      if (IsInitialBlockDownload()) {
+      const auto blockDownloadStatus = GetInitialBlockDownloadStatus();
+      if (blockDownloadStatus != +SyncStatus::SYNCED) {
         thread.SetStatus(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
         continue;
       }
