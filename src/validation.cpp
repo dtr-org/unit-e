@@ -1007,7 +1007,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                   __func__,
                   state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return state.DoS(0, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
