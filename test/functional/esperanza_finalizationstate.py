@@ -68,7 +68,7 @@ def setup_deposit(self, nodes):
     assert (nodes[0].getblockchaininfo()['blocks'] == 140)
 
 
-def generate_block(self, node):
+def generate_block(node):
     i = 0
     # It is rare but possible that a block was valid at the moment of creation but
     # invalid at submission. This is to account for those cases.
