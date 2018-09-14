@@ -44,7 +44,6 @@ def setup_deposit(self, nodes):
     for n in nodes:
         n.importmasterkey(master_keys[i])
         n.new_address = n.getnewaddress("", "legacy")
-        n.rescanblockchain(0, 0)
 
         # wait for the rescan to be done
         while n.getwalletinfo()['immature_balance'] != 10000:
@@ -68,7 +67,8 @@ def setup_deposit(self, nodes):
 
     assert (nodes[0].getblockchaininfo()['blocks'] == 140)
 
-def generate_block(node):
+
+def generate_block(self, node):
     i = 0
     # It is rare but possible that a block was valid at the moment of creation but
     # invalid at submission. This is to account for those cases.
@@ -76,9 +76,10 @@ def generate_block(node):
         try:
             node.generate(1)
             return
-        except:
+        except JSONRPCException as exp:
             i += 1
-    raise AssertionError("Node " + str(node.index) + "cannot generate block")
+            print("error generating block: " + exp.error)
+    raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 
 # The scenario tested is the case where a vote from a validator

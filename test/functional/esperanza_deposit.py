@@ -12,7 +12,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         self.num_nodes = 4
 
         params_data = {
-            'epochLength': 2,
+            'epochLength': 10,
         }
         json_params = json.dumps(params_data)
 
@@ -79,9 +79,10 @@ class EsperanzaDepositTest(UnitETestFramework):
             try:
                 node.generate(1)
                 return
-            except:
+            except JSONRPCException as exp:
                 i += 1
-        raise AssertionError("Node " + str(node.index) + "cannot generate block")
+                print("error generating block: " + exp.error)
+        raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 if __name__ == '__main__':
     EsperanzaDepositTest().main()
