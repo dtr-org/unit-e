@@ -63,6 +63,9 @@ class Proposer {
     CAmount m_stakeSplitThreshold = 2000 * UNIT;
 
     size_t m_maxStakeCombine = 3;
+
+    //! when did this proposer propose most recently
+    int64_t m_lastTimeProposed = 0;
   };
 
   Proposer(
@@ -73,6 +76,9 @@ class Proposer {
       const std::vector<CWallet *> &wallets);
 
   ~Proposer();
+
+  //! wakes all proposers or the thread which is proposing for the specified wallet.
+  void Wake(const CWallet* wallet = nullptr);
 
   //! stops the running proposer threads.
   void Stop();
@@ -88,7 +94,7 @@ class Proposer {
     const std::string m_threadName;
 
     //! unmodifiable reference to esperanza configuration
-    const Settings &m_config;
+    const Settings &m_settings;
 
     //! will be set to true to stop the thread
     std::atomic<bool> m_interrupted;

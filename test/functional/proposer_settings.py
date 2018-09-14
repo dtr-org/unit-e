@@ -14,7 +14,7 @@ class EsperanzaTest(UnitETestFramework):
 
     def run_test(self):
 
-        status = self.nodes[0].proposerstatus()
+        status = self.nodes[0].proposerstatus().wallets
         assert_equal(status[0]['status'], 'NOT_PROPOSING')
         assert_equal(status[0]['wallet'], 'wallet.dat')
 

@@ -48,14 +48,7 @@ class EsperanzaTest(UnitETestFramework):
         address2 = nodes[2].getnewaddress("", "legacy")
         address3 = nodes[3].getnewaddress("", "legacy")
 
-        nodes[0].rescanblockchain(0, 0)
-        nodes[1].rescanblockchain(0, 0)
-        nodes[2].rescanblockchain(0, 0)
-        nodes[3].rescanblockchain(0, 0)
-
-        # wait for the rescan to be done
-        while nodes[1].getwalletinfo()['immature_balance'] != 10000:
-            time.sleep(0.5)
+        assert(nodes[i].getwalletinfo()['immature_balance'] == 10000 for i in range(0, 4))
 
         # wait for coinbase maturity
         nodes[0].generate(120)

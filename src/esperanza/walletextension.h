@@ -39,7 +39,7 @@ class WalletExtension {
   CWallet *m_enclosingWallet;
 
   //! a miminum amount (in satoshis) to keep (will not be used for staking).
-  CAmount m_reserveBalance;
+  CAmount m_reserveBalance = 0;
 
   //! for selecting available coins for proposing
   int m_deepestTxnDepth = 0;
