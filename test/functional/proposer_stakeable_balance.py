@@ -46,9 +46,6 @@ class EsperanzaTest(UnitETestFramework):
         for i in range(0, self.num_nodes):
             nodes[i].proposerwake()
 
-        # let some time pass to have the proposers update their state form the new situation
-        time.sleep(0.5)
-
         # none of the nodes has any money now, but a bunch of friends
         for i in range(0, self.num_nodes):
             status = nodes[i].proposerstatus()
@@ -64,9 +61,6 @@ class EsperanzaTest(UnitETestFramework):
         # wakes all the proposers in case they are sleeping right now
         for i in range(0, self.num_nodes):
             nodes[i].proposerwake()
-
-        # let some time pass to have the proposers update their state form the new situation
-        time.sleep(0.5)
 
         # now the funded nodes should have switched to IS_PROPOSING
         for i in range(0, len(keys)):
