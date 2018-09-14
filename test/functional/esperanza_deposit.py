@@ -44,7 +44,7 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         payto = validator.getnewaddress("", "legacy")
 
-        assert_equal(validator.getwalletinfo()['immature_balance'], 10000)
+        assert_equal(validator.getwalletinfo()['balance'], 10000)
 
         # wait for coinbase maturity
         nodes[1].generate(120)
