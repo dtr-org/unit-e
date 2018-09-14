@@ -16,7 +16,7 @@ class EsperanzaTest(UnitETestFramework):
             '-minimumchainwork-0',
             '-maxtipage=1000000000'
         ] for i in range(0, self.num_nodes))
-        self.setup_clean_chain = False
+        self.setup_clean_chain = True
 
     def run_test(self):
 
