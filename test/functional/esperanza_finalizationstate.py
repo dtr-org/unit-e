@@ -78,7 +78,7 @@ def generate_block(node):
             return
         except:
             i += 1
-    raise AssertionError("Cannot generate block")
+    raise AssertionError("Node " + str(node.index) + "cannot generate block")
 
 
 # The scenario tested is the case where a vote from a validator

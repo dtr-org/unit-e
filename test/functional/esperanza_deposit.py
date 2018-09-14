@@ -81,7 +81,7 @@ class EsperanzaDepositTest(UnitETestFramework):
                 return
             except:
                 i += 1
-        raise AssertionError("Cannot generate block")
+        raise AssertionError("Node " + str(node.index) + "cannot generate block")
 
 if __name__ == '__main__':
     EsperanzaDepositTest().main()
