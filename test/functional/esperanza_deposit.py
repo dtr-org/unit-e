@@ -47,7 +47,9 @@ class EsperanzaDepositTest(UnitETestFramework):
         assert_equal(validator.getwalletinfo()['balance'], 10000)
 
         # wait for coinbase maturity
-        nodes[1].generate(120)
+        for n in range(0, 120):
+            self.generate_block(nodes[1])
+
         sync_blocks(self.nodes[0:3])
 
         txid = validator.createdeposit(payto, 10000)['transactionid']
@@ -69,17 +71,17 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         return
 
-    def generate_block(self, node):
+    def generate_block(node):
         i = 0
         # It is rare but possible that a block was valid at the moment of creation but
         # invalid at submission. This is to account for those cases.
         while i < 5:
-            try :
+            try:
                 node.generate(1)
-                break
+                return
             except:
                 i += 1
-                time.sleep(1)
+        raise AssertionError("Cannot generate block")
 
 if __name__ == '__main__':
     EsperanzaDepositTest().main()
