@@ -66,7 +66,5 @@ class EsperanzaDepositTest(UnitETestFramework):
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
-        return
-
 if __name__ == '__main__':
     EsperanzaDepositTest().main()

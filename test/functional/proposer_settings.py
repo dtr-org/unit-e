@@ -20,7 +20,5 @@ class EsperanzaTest(UnitETestFramework):
 
         print("Test succeeded.")
 
-        return
-
 if __name__ == '__main__':
     EsperanzaTest().main()
