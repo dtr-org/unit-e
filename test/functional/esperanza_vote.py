@@ -51,7 +51,9 @@ class EsperanzaVoteTest(UnitETestFramework):
         assert(all(nodes[i].getwalletinfo()['balance'] == 10000 for i in range(0, 4)))
 
         # wait for coinbase maturity
-        nodes[0].generate(120)
+        for n in range(0, 120):
+            self.generate_block(nodes[0])
+
         sync_blocks(self.nodes[0:3])
 
         deptx1 = nodes[1].createdeposit(address1, 1500)['transactionid']

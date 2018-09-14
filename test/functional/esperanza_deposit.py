@@ -71,7 +71,7 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         return
 
-    def generate_block(node):
+    def generate_block(self, node):
         i = 0
         # It is rare but possible that a block was valid at the moment of creation but
         # invalid at submission. This is to account for those cases.
