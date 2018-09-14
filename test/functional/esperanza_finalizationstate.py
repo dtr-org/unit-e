@@ -54,6 +54,7 @@ def setup_deposit(self, nodes):
     # wait for coinbase maturity
     for n in range(0, 120):
         generate_block(nodes[0])
+    assert (nodes[0].getblockchaininfo()['blocks'] == 120)
 
     sync_blocks(self.nodes[0:len(nodes)])
 
@@ -62,7 +63,10 @@ def setup_deposit(self, nodes):
         self.wait_for_transaction(deptx)
 
     # finalize deposits and start voting
-    nodes[0].generate(20)
+    for n in range(0, 20):
+        generate_block(nodes[0])
+
+    assert (nodes[0].getblockchaininfo()['blocks'] == 140)
 
 def generate_block(node):
     i = 0
@@ -105,6 +109,8 @@ class ExpiredVoteTest(UnitETestFramework):
         # generate a votable epoch
         for n in range(0, 10):
             generate_block(nodes[0])
+
+        assert (nodes[0].getblockchaininfo()['blocks'] == 150)
 
         # Disconnect immediately one proposer. A vote not yet included in blocks
         # should now reach the p2 that will accept it.

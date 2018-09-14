@@ -96,7 +96,7 @@ class EsperanzaVoteTest(UnitETestFramework):
                 break
             except:
                 i += 1
-                time.sleep(1)
+        raise AssertionError("Cannot generate block")
 
 if __name__ == '__main__':
     EsperanzaVoteTest().main()
