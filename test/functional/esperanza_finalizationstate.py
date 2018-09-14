@@ -52,7 +52,9 @@ def setup_deposit(self, nodes):
         i += 1
 
     # wait for coinbase maturity
-    nodes[0].generate(120)
+    for n in range(0, 120):
+        generate_block(nodes[0])
+
     sync_blocks(self.nodes[0:len(nodes)])
 
     for n in nodes:
