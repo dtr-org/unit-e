@@ -77,8 +77,9 @@ class Proposer {
 
   ~Proposer();
 
-  //! wakes all proposers or the thread which is proposing for the specified wallet.
-  void Wake(const CWallet* wallet = nullptr);
+  //! wakes all proposers or the thread which is proposing for the specified
+  //! wallet.
+  void Wake(const CWallet *wallet = nullptr);
 
   //! stops the running proposer threads.
   void Stop();

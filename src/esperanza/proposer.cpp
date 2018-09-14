@@ -127,7 +127,7 @@ void Proposer::Stop() {
   m_stopSemaphore.release(m_threads.size());
 }
 
-void Proposer::Wake(const CWallet* wallet) {
+void Proposer::Wake(const CWallet *wallet) {
   if (wallet) {
     // find and wake the thread that is responsible for this wallet
     for (const auto &thread : m_threads) {
@@ -228,8 +228,7 @@ void Proposer::Run(Proposer::Thread &thread) {
         if (walletExt.SignBlock(blockTemplate.get(), bestHeight + 1,
                                 searchTime)) {
           if (!ProposeBlock(blockTemplate->block)) {
-            LogPrint(BCLog::ESPERANZA, "%s: failed to propose block",
-                     __func__);
+            LogPrint(BCLog::ESPERANZA, "%s: failed to propose block", __func__);
             continue;
           }
           // set last proposing time

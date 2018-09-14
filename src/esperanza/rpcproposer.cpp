@@ -17,8 +17,7 @@
 #include <stdint.h>
 #include <univalue.h>
 
-    static UniValue
-    GetWalletInfo(const std::vector<CWalletRef> &wallets) {
+static UniValue GetWalletInfo(const std::vector<CWalletRef> &wallets) {
   UniValue result(UniValue::VARR);
   for (const auto &wallet : wallets) {
     const auto &walletExt = wallet->GetWalletExtension();
