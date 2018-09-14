@@ -50,11 +50,6 @@ int64_t Params::GetProofOfStakeReward(const CBlockIndex *pindexPrev,
              GetCoinYearReward(pindexPrev->nTime) /
              (365 * 24 * (60 * 60 / m_targetSpacing));
 
-  if (LogAcceptCategory(BCLog::POS) &&
-      gArgs.GetBoolArg("-printcreation", false))
-    LogPrintf("GetProofOfStakeReward(): create=%s\n",
-              FormatMoney(nSubsidy).c_str());
-
   return nSubsidy + nFees;
 }
 

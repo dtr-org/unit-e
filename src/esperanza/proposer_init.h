@@ -20,6 +20,8 @@ void StartProposer();
 
 void StopProposer();
 
+void WakeProposer(const CWallet* wallet = nullptr);
+
 }  // namespace esperanza
 
 #endif  // UNIT_E_PROPOSER_INIT_H

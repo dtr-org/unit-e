@@ -29,7 +29,7 @@ Proposer::Thread::Thread(const std::string &threadName, const Settings &config,
                          CountingSemaphore &startSemaphore,
                          CountingSemaphore &stopSemaphore)
     : m_threadName(threadName),
-      m_config(config),
+      m_settings(config),
       m_interrupted(false),
       m_waiter(),
       m_wallets(wallets),
@@ -127,6 +127,25 @@ void Proposer::Stop() {
   m_stopSemaphore.release(m_threads.size());
 }
 
+void Proposer::Wake(const CWallet *wallet) {
+  if (wallet) {
+    // find and wake the thread that is responsible for this wallet
+    for (const auto &thread : m_threads) {
+      for (const auto w : thread->m_wallets) {
+        if (w == wallet) {
+          thread->Wake();
+          return;
+        }
+      }
+    }
+    // wake all threads
+  } else {
+    for (const auto &thread : m_threads) {
+      thread->Wake();
+    }
+  }
+}
+
 void Proposer::Run(Proposer::Thread &thread) {
   LogPrint(BCLog::ESPERANZA, "%s: initialized.\n", thread.m_threadName.c_str());
   for (const auto wallet : thread.m_wallets) {
@@ -141,10 +160,12 @@ void Proposer::Run(Proposer::Thread &thread) {
       const auto blockDownloadStatus = GetInitialBlockDownloadStatus();
       if (blockDownloadStatus != +SyncStatus::SYNCED) {
         thread.SetStatus(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
+        thread.Sleep(std::chrono::seconds(30));
         continue;
       }
       if (g_connman->GetNodeCount() == 0) {
         thread.SetStatus(Status::NOT_PROPOSING_NO_PEERS);
+        thread.Sleep(std::chrono::seconds(30));
         continue;
       }
 
@@ -199,7 +220,7 @@ void Proposer::Run(Proposer::Thread &thread) {
                 .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
 
         if (!blockTemplate) {
-          LogPrint(BCLog::ESPERANZA, "failed to get block template in %s",
+          LogPrint(BCLog::ESPERANZA, "%s: failed to get block template",
                    __func__);
           continue;
         }
@@ -207,15 +228,14 @@ void Proposer::Run(Proposer::Thread &thread) {
         if (walletExt.SignBlock(blockTemplate.get(), bestHeight + 1,
                                 searchTime)) {
           if (!ProposeBlock(blockTemplate->block)) {
+            LogPrint(BCLog::ESPERANZA, "%s: failed to propose block", __func__);
             continue;
           }
           // set last proposing time
           break;
         }
       }
-
-      // UNIT-E: parameterize waiting time (use minerSleep for it?)
-      thread.m_waiter.WaitUpTo(std::chrono::seconds(30));
+      thread.Sleep(thread.m_settings.m_proposerSleep);
     } catch (const std::runtime_error &error) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen

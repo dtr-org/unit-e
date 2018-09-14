@@ -4131,7 +4131,12 @@ int CMerkleTx::GetDepthInMainChain(const CBlockIndex* &pindexRet) const
         return 0;
     }
     pindexRet = pindex;
-    return ((nIndex == -1) ? (-1) : 1) * (chainActive.Height() - pindex->nHeight + 1);
+    const int height = pindex->nHeight;
+    const int depth = chainActive.Height() - pindex->nHeight + 1;
+    if (height == 0) {  // genesis block
+        return std::max(COINBASE_MATURITY+1, depth);
+    }
+    return ((nIndex == -1) ? (-1) : 1) * depth;
 }
 
 int CMerkleTx::GetBlocksToMaturity() const

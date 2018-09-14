@@ -12,7 +12,7 @@ namespace esperanza {
 
 //! \brief Initializes Esperanza settings from command line args.
 //!
-//! This function can only every be invoked once over the lifetime
+//! This function can only ever be invoked once over the lifetime
 //! of the application - during initialization. The idea is that every component
 //! receives a reference to one settings object which is not globally available
 //! in its initialization. This facilitates isolation of components (due to the

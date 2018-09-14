@@ -50,4 +50,10 @@ void StopProposer() {
   }
 }
 
+void WakeProposer(const CWallet* wallet) {
+  if (proposer) {
+    proposer->Wake(wallet);
+  }
+}
+
 }  // namespace esperanza
