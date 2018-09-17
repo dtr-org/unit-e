@@ -8,7 +8,7 @@
 #include <wallet/wallet.h>
 
 
-UniValue createdeposit(const JSONRPCRequest &request)
+UniValue deposit(const JSONRPCRequest &request)
 {
 
   CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
@@ -21,13 +21,13 @@ UniValue createdeposit(const JSONRPCRequest &request)
   if (request.fHelp || request.params.size() != 2) {
 
     throw std::runtime_error(
-        "createdeposit\n"
+        "deposit\n"
         "Creates a new deposit of the given amount, if accepted it will make the current node a validator."
         "\nArguments:\n"
         "1. address              (required) the destination for the deposit.\n"
         "2. amount               (required) the amount deposit.\n"
         "\nExamples:\n"
-            + HelpExampleRpc("createdeposit", ""));
+            + HelpExampleRpc("deposit", ""));
   }
 
   pwallet->BlockUntilSyncedToCurrentChain();
@@ -116,7 +116,7 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
 static const CRPCCommand commands[] =
     { //  category              name                        actor (function)           argNames
       //  --------------------- ------------------------    -----------------------  ----------
-        { "wallet",             "createdeposit",            &createdeposit,            {"address", "amount"} },
+        { "wallet",             "deposit", &deposit,            {"address", "amount"} },
         { "wallet",             "getvalidatorinfo",         &getvalidatorinfo,         {} },
     };
 
