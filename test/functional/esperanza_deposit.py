@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
@@ -12,7 +9,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         self.num_nodes = 4
 
         params_data = {
-            'epochLength': 2,
+            'epochLength': 10,
         }
         json_params = json.dumps(params_data)
 
@@ -47,7 +44,9 @@ class EsperanzaDepositTest(UnitETestFramework):
         assert_equal(validator.getwalletinfo()['balance'], 10000)
 
         # wait for coinbase maturity
-        nodes[1].generate(120)
+        for n in range(0, 120):
+            self.generate_block(nodes[1])
+
         sync_blocks(self.nodes[0:3])
 
         txid = validator.createdeposit(payto, 10000)['transactionid']
@@ -57,7 +56,8 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         # mine some blocks to allow the deposit to get included in a block
         for n in range(0, 10):
-            nodes[(n % 3) + 1].generate(1)
+            self.generate_block(nodes[(n % 3) + 1])
+            sync_blocks(self.nodes[0:3])
             time.sleep(block_time)
 
         sync_blocks(self.nodes[0:3])
@@ -65,6 +65,19 @@ class EsperanzaDepositTest(UnitETestFramework):
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "IS_VALIDATING")
+
+    def generate_block(self, node):
+        i = 0
+        # It is rare but possible that a block was valid at the moment of creation but
+        # invalid at submission. This is to account for those cases.
+        while i < 5:
+            try:
+                node.generate(1)
+                return
+            except JSONRPCException as exp:
+                i += 1
+                print("error generating block: " + exp.error)
+        raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 if __name__ == '__main__':
     EsperanzaDepositTest().main()

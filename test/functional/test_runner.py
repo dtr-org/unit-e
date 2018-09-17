@@ -67,6 +67,7 @@ BASE_SCRIPTS= [
     'wallet_accounts.py',
     'p2p_segwit.py',
     'wallet_dump.py',
+    'esperanza_vote.py',
     'rpc_listtransactions.py',
     # vv Tests less than 60s vv
     'p2p_sendheaders.py',
@@ -94,6 +95,7 @@ BASE_SCRIPTS= [
     'mempool_reorg.py',
     'mempool_persist.py',
     'wallet_multiwallet.py',
+    'esperanza_finalizationstate.py',
     'wallet_multiwallet.py --usecli',
     'interface_http.py',
     'rpc_users.py',
@@ -107,6 +109,7 @@ BASE_SCRIPTS= [
     'rpc_net.py',
     'wallet_keypool.py',
     'p2p_mempool.py',
+    'esperanza_deposit.py',
     'mining_prioritisetransaction.py',
     'p2p_invalid_block.py',
     'p2p_invalid_tx.py',
@@ -148,9 +151,6 @@ BASE_SCRIPTS= [
 ]
 
 EXTENDED_SCRIPTS = [
-    # temporarily moved these two tests here, to be moved back when fixed
-    'esperanza_vote.py',
-    'esperanza_deposit.py',
     # These tests are not run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
     'feature_pruning.py',

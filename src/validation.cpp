@@ -977,23 +977,43 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // - the transaction is not dependent on any other transactions in the mempool
         bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() && pool.HasNoInputsOf(tx);
 
-        if (tx.IsDeposit()) {
-            LogPrint(BCLog::ESPERANZA, "%s: Accepting deposit to mempool with id %s.\n", "ESPERANZA", tx.GetHash().GetHex());
+        switch (tx.GetType()) {
+          case TxType::DEPOSIT: {
+
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting deposit to mempool with id %s.\n", __func__,
+                tx.GetHash().GetHex());
+
             if (!esperanza::CheckDepositTransaction(state, tx)){
-                LogPrint(BCLog::ESPERANZA, "%s: Deposit cannot be included into mempool: %s.\n",
-                        "ESPERANZA",
-                        state.GetRejectReason());
-                return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+              LogPrint(BCLog::ESPERANZA,
+                  "%s: Deposit cannot be included into mempool: %s.\n",
+                  __func__,
+                  state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
-        } else if (tx.IsVote()) {
-            LogPrint(BCLog::ESPERANZA, "%s: Accepting vote to mempool with id %s.\n", "ESPERANZA", tx.GetHash().GetHex());
+            break;
+          }
+          case TxType::VOTE: {
+
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting vote to mempool with id %s.\n",
+                __func__,
+                tx.GetHash().GetHex());
 
             if (!esperanza::CheckVoteTransaction(state, tx)) {
-                LogPrint(BCLog::ESPERANZA, "%s: Vote cannot be included into mempool: %s.\n",
-                         "ESPERANZA",
-                         state.GetRejectReason());
-                return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+              LogPrint(BCLog::ESPERANZA,
+                  "%s: Vote cannot be included into mempool: %s.\n",
+                  __func__,
+                  state.GetRejectReason());
+
+              return state.DoS(0, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
+            break;
+          }
+          default: {
+            break;
+          }
         }
 
         // Store transaction in memory
@@ -2436,8 +2456,9 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     esperanza::FinalizationState::ProcessNewTip(*pindexNew, blockConnecting);
 
     // Write the chain state to disk, if necessary.
-    if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED))
-        return false;
+    if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED)) {
+      return false;
+    }
     int64_t nTime5 = GetTimeMicros(); nTimeChainState += nTime5 - nTime4;
     LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI, nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
     // Remove conflicting transactions from the mempool.;
@@ -3266,23 +3287,45 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
 
         //UNIT-E: pretty much the same code can be found in AcceptMemoryPoolWorker maybe it wourld be worth unifying
-        if (tx->IsDeposit()) {
-            LogPrint(BCLog::ESPERANZA, "%s: Accepting deposit to mempool with id %s.\n", "ESPERANZA", tx->GetHash().GetHex());
-            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)){
-                LogPrint(BCLog::ESPERANZA, "%s: Deposit cannot be included into mempool: %s.\n",
-                         "ESPERANZA",
-                         state.GetRejectReason());
-                return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+        switch (tx->GetType()) {
+          case TxType::DEPOSIT: {
+
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting deposit to mempool with id %s.\n",
+                __func__,
+                tx->GetHash().GetHex());
+
+            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)) {
+              LogPrint(BCLog::ESPERANZA,
+                  "%s: Deposit cannot be included into mempool: %s.\n",
+                  __func__,
+                  state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
-        } else if(tx->IsVote()) {
-            LogPrint(BCLog::ESPERANZA, "%s: Accepting vote to mempool with id %s.\n", "ESPERANZA", tx->GetHash().GetHex());
+            break;
+          }
+          case TxType ::VOTE: {
+
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting vote to mempool with id %s.\n",
+                __func__,
+                tx->GetHash().GetHex());
 
             if (!esperanza::CheckVoteTransaction(state, *tx, pindexPrev)) {
-                LogPrint(BCLog::ESPERANZA, "%s: Vote cannot be included into mempool: %s.\n",
-                         "ESPERANZA",
-                         state.GetRejectReason());
-                return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetDebugMessage());
+
+              LogPrint(BCLog::ESPERANZA,
+                  "%s: Vote cannot be included into mempool: %s.\n",
+                  __func__,
+                  state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
+            break;
+          }
+          default: {
+            break;
+          }
         }
     }
 
@@ -3567,7 +3610,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     if (!ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
     if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, true))
-        return false;
+        return error("%s: CChainState::ConnectBlock: %s", __func__, FormatStateMessage(state));;
     assert(state.IsValid());
 
     return true;

@@ -387,7 +387,7 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 void WalletExtension::ReadValidatorStateFromFile() {
   if (m_settings.m_validating && !m_settings.m_proposing) {
     LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n",
-             "ESPERANZA", m_enclosingWallet->GetName());
+             __func__, m_enclosingWallet->GetName());
 
     validatorState = esperanza::ValidatorState();
     nIsValidatorEnabled = true;
@@ -424,7 +424,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
           coinControl, true, TxType::DEPOSIT)) {
 
     LogPrint(BCLog::ESPERANZA, "%s: Cannot create deposit transaction.\n",
-             "ESPERANZA");
+             __func__);
     return false;
   }
 
@@ -432,20 +432,19 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey, g_connman.get(),
                                             state)) {
     LogPrint(BCLog::ESPERANZA, "%s: Cannot commit deposit transaction.\n",
-             "ESPERANZA");
+             __func__);
     return false;
   }
 
   LogPrint(BCLog::ESPERANZA, "%s: Created new deposit transaction %s.\n",
-           "ESPERANZA", wtxOut.GetHash().GetHex());
+           __func__, wtxOut.GetHash().GetHex());
 
   {
     LOCK(m_enclosingWallet->cs_wallet);
     if (validatorState.m_phase ==
         +ValidatorState::ValidatorPhase::NOT_VALIDATING) {
       LogPrint(BCLog::ESPERANZA,
-               "%s: Validator waiting for deposit confirmation.\n",
-               "ESPERANZA");
+               "%s: Validator waiting for deposit confirmation.\n", __func__);
 
       validatorState.m_phase =
           ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION;
@@ -453,8 +452,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
       LogPrintf(
           "ERROR: %s - Wrong state for validator state with deposit %s, %s "
           "expected.\n",
-          "ESPERANZA", wtxOut.GetHash().GetHex(),
-          "WAITING_DEPOSIT_CONFIRMATION");
+          __func__, wtxOut.GetHash().GetHex(), "WAITING_DEPOSIT_CONFIRMATION");
     }
   }
 
@@ -480,7 +478,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   }
 
   LogPrint(BCLog::ESPERANZA,
-           "%s: Validator voting for epoch %d and dynasty %d.\n", "ESPERANZA",
+           "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
            epoch, dynasty);
 
   Vote vote = esperanza->GetRecommendedVote(validatorState.m_validatorIndex);
@@ -500,7 +498,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
     validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
     validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
     validatorState.m_lastVotableTx = createdTx.tx;
-    LogPrint(BCLog::ESPERANZA, "%s: Casted vote with id %s.\n", "ESPERANZA",
+    LogPrint(BCLog::ESPERANZA, "%s: Casted vote with id %s.\n", __func__,
              createdTx.tx->GetHash().GetHex());
   }
 }
@@ -547,13 +545,11 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
   CTransaction txNewConst(txNew);
   uint32_t nIn = 0;
   SignatureData sigdata;
-  std::string strFailReason;
 
   if (!ProduceSignature(
           TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
                                       amount, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
-    strFailReason = _("Signing transaction failed");
     return false;
   } else {
     UpdateTransaction(txNew, nIn, sigdata);
@@ -566,7 +562,7 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
                                        state);
   if (state.IsInvalid()) {
     LogPrint(BCLog::ESPERANZA, "%s: Cannot commit vote transaction: %s.\n",
-             "ESPERANZA", state.GetRejectReason());
+             __func__, state.GetRejectReason());
     return false;
   }
 
@@ -599,7 +595,7 @@ void WalletExtension::BlockConnected(
           LogPrint(
               BCLog::ESPERANZA,
               "%s: Validator's deposit finalized, the validator index is %s.\n",
-              "ESPERANZA", validatorState.m_validatorIndex.GetHex());
+              __func__, validatorState.m_validatorIndex.GetHex());
         }
       }
     }

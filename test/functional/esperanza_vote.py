@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
-import time
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaTest(UnitETestFramework):
+class EsperanzaVoteTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
@@ -51,7 +47,9 @@ class EsperanzaTest(UnitETestFramework):
         assert(all(nodes[i].getwalletinfo()['balance'] == 10000 for i in range(0, 4)))
 
         # wait for coinbase maturity
-        nodes[0].generate(120)
+        for n in range(0, 120):
+            self.generate_block(nodes[0])
+
         sync_blocks(self.nodes[0:3])
 
         deptx1 = nodes[1].createdeposit(address1, 1500)['transactionid']
@@ -63,17 +61,16 @@ class EsperanzaTest(UnitETestFramework):
         self.wait_for_transaction(deptx3)
 
         # After we generated the first 120 blocks with no validators the state is
-        # - currentEpoch: 24 (we are in the first block of this epoch)
-        # - currentDynasty: 23
-        # - lastFinalizedEpoch: 23
-        # - lastJustifiedEpoch: 23
+        # - currentEpoch: 12 (we are in the first block of this epoch)
+        # - currentDynasty: 11
+        # - lastFinalizedEpoch: 11
+        # - lastJustifiedEpoch: 11
         # - validators: 0
         # Then we generate other 10 epochs
         for n in range(0, 50):
-            nodes[0].generate(1)
+            self.generate_block(nodes[0])
+            sync_blocks(self.nodes[0:3])
             time.sleep(block_time)
-
-        sync_blocks(self.nodes[0:3])
 
         resp = nodes[0].getesperanzastate()
         assert_equal(resp["currentEpoch"], 17)
@@ -84,5 +81,18 @@ class EsperanzaTest(UnitETestFramework):
 
         print("Test succeeded.")
 
+    def generate_block(self, node):
+        i = 0
+        # It is rare but possible that a block was valid at the moment of creation but
+        # invalid at submission. This is to account for those cases.
+        while i < 5:
+            try:
+                node.generate(1)
+                return
+            except JSONRPCException as exp:
+                i += 1
+                print("error generating block: " + exp.error)
+        raise AssertionError("Node" + str(node.index) + " cannot generate block")
+
 if __name__ == '__main__':
-    EsperanzaTest().main()
+    EsperanzaVoteTest().main()
