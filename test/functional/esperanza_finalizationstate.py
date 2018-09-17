@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import time
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 

@@ -1,7 +1,4 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
@@ -68,8 +65,6 @@ class EsperanzaDepositTest(UnitETestFramework):
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "IS_VALIDATING")
-
-        return
 
     def generate_block(self, node):
         i = 0

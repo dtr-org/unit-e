@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The Bitcoin Core developers
-# Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
-import time
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
@@ -84,7 +80,6 @@ class EsperanzaVoteTest(UnitETestFramework):
         assert_equal(resp["validators"], 3)
 
         print("Test succeeded.")
-
 
     def generate_block(self, node):
         i = 0
