@@ -361,6 +361,10 @@ public:
         return GetType() == +TxType::VOTE;
     }
 
+    bool IsLogout() const {
+      return GetType() == +TxType::LOGOUT;
+    }
+
     bool IsDeposit() const {
         return GetType() == +TxType::DEPOSIT;
     }

@@ -983,6 +983,23 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() && pool.HasNoInputsOf(tx);
 
         switch (tx.GetType()) {
+          case TxType::VOTE: {
+
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting vote to mempool with id %s.\n",
+                     __func__,
+                     tx.GetHash().GetHex());
+
+            if (!esperanza::CheckVoteTransaction(state, tx)) {
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Vote cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(0, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
           case TxType::DEPOSIT: {
 
             LogPrint(BCLog::ESPERANZA,
@@ -999,20 +1016,18 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
             break;
           }
-          case TxType::VOTE: {
-
+          case TxType::LOGOUT: {
             LogPrint(BCLog::ESPERANZA,
-                "%s: Accepting vote to mempool with id %s.\n",
-                __func__,
-                tx.GetHash().GetHex());
+                     "%s: Accepting logout to mempool with id %s.\n", __func__,
+                     tx.GetHash().GetHex());
 
-            if (!esperanza::CheckVoteTransaction(state, tx)) {
+            if (!esperanza::CheckLogoutTransaction(state, tx)){
               LogPrint(BCLog::ESPERANZA,
-                  "%s: Vote cannot be included into mempool: %s.\n",
-                  __func__,
-                  state.GetRejectReason());
+                       "%s: Logout cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
 
-              return state.DoS(0, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return state.DoS(10, error("%s: CheckLogoutTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
@@ -3293,6 +3308,24 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
 
         //UNIT-E: pretty much the same code can be found in AcceptMemoryPoolWorker maybe it wourld be worth unifying
         switch (tx->GetType()) {
+          case TxType ::VOTE: {
+
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting vote to mempool with id %s.\n",
+                     __func__,
+                     tx->GetHash().GetHex());
+
+            if (!esperanza::CheckVoteTransaction(state, *tx, pindexPrev)) {
+
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Vote cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
           case TxType::DEPOSIT: {
 
             LogPrint(BCLog::ESPERANZA,
@@ -3310,21 +3343,20 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
             }
             break;
           }
-          case TxType ::VOTE: {
+          case TxType::LOGOUT: {
 
             LogPrint(BCLog::ESPERANZA,
-                "%s: Accepting vote to mempool with id %s.\n",
-                __func__,
-                tx->GetHash().GetHex());
+                     "%s: Accepting logout to mempool with id %s.\n",
+                     __func__,
+                     tx->GetHash().GetHex());
 
-            if (!esperanza::CheckVoteTransaction(state, *tx, pindexPrev)) {
-
+            if (!esperanza::CheckLogoutTransaction(state, *tx, pindexPrev)) {
               LogPrint(BCLog::ESPERANZA,
-                  "%s: Vote cannot be included into mempool: %s.\n",
-                  __func__,
-                  state.GetRejectReason());
+                       "%s: Logout cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return state.DoS(10, error("%s: CheckLogoutTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }

@@ -389,18 +389,18 @@ void WalletExtension::ReadValidatorStateFromFile() {
     LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n",
              __func__, m_enclosingWallet->GetName());
 
-    validatorState = esperanza::ValidatorState();
+    validatorState = ValidatorState();
     nIsValidatorEnabled = true;
   }
 }
 
 /**
- * Creates a deposit transaction from the given account and amount.
+ * Creates a deposit transaction for the given address and amount.
  *
  * @param[in] address the destination
  * @param[in] amount
  * @param[out] wtxOut the transaction created
- * @return true if the operation was succesful, false otherwise.
+ * @return true if the operation was successful, false otherwise.
  */
 bool WalletExtension::SendDeposit(const CTxDestination &address,
                                   const CAmount &amount, CWalletTx &wtxOut) {
@@ -459,21 +459,84 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   return true;
 }
 
+//! Creates and sends a logout transaction given transaction.
+//! \param wtxNewOut [out] the transaction created.
+//! \return true if the operation was successful, false otherwise.
+bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
+
+  CCoinControl coinControl;
+  wtxNewOut.fTimeReceivedIsTxTime = true;
+  wtxNewOut.BindWallet(m_enclosingWallet);
+  wtxNewOut.fFromMe = true;
+  CReserveKey reservekey(m_enclosingWallet);
+  CValidationState state;
+
+  CMutableTransaction txNew;
+  txNew.SetType(TxType::LOGOUT);
+
+  if (validatorState.m_phase !=
+      +ValidatorState::Phase::IS_VALIDATING) {
+    return error("%s: Cannot create logouts for non-validators.", __func__);
+  }
+
+  CTransactionRef prevTx = validatorState.m_lastEsperanzaTx;
+
+  const CScript &scriptPubKey = prevTx->vout[0].scriptPubKey;
+  const CAmount amount = prevTx->vout[0].nValue;
+
+  txNew.vin.push_back(CTxIn(prevTx->GetHash(), 0, prevTx->vin[0].scriptSig,
+                            CTxIn::SEQUENCE_FINAL));
+
+  CTxOut txout(amount, scriptPubKey);
+  txNew.vout.push_back(txout);
+
+  CTransaction txNewConst(txNew);
+  uint32_t nIn = 0;
+  SignatureData sigdata;
+  std::string strFailReason;
+
+  if (!ProduceSignature(
+          TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
+                                      amount, SIGHASH_ALL),
+          scriptPubKey, sigdata, &txNewConst)) {
+    strFailReason = _("Signing transaction failed");
+    return false;
+  } else {
+    UpdateTransaction(txNew, nIn, sigdata);
+  }
+
+  // Embed the constructed transaction data in wtxNew.
+  wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
+
+  m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+                                       state);
+  if (state.IsInvalid()) {
+    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit logout transaction: %s.\n",
+             __func__, state.GetRejectReason());
+    return false;
+  }
+
+  return true;
+}
+
 void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                                    const CBlockIndex *blockIndex) {
 
-  esperanza::FinalizationState *esperanza =
-      esperanza::FinalizationState::GetState(*blockIndex);
+  FinalizationState *esperanza = FinalizationState::GetState(*blockIndex);
+
   uint32_t dynasty = esperanza->GetCurrentDynasty();
 
   if (dynasty > validatorState.m_endDynasty) {
     return;
   }
 
-  uint32_t epoch = esperanza::FinalizationState::GetEpoch(*blockIndex);
+  uint32_t epoch = FinalizationState::GetEpoch(*blockIndex);
 
   // Avoid double votes
   if (validatorState.m_voteMap.find(epoch) != validatorState.m_voteMap.end()) {
+    LogPrint(BCLog::ESPERANZA,
+             "%s: Attampting to make a double vote for epoch %s.\n", __func__,
+             epoch);
     return;
   }
 
@@ -486,6 +549,13 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   // Check for sorrounding votes
   if (vote.m_targetEpoch < validatorState.m_lastTargetEpoch ||
       vote.m_sourceEpoch < validatorState.m_lastSourceEpoch) {
+
+    LogPrint(BCLog::ESPERANZA,
+             "%s: Attampting to make a sorround vote, source: %s, target: %s"
+             " prevSource %s, prevTarget: %s.\n",
+             __func__, vote.m_sourceEpoch, vote.m_targetEpoch,
+             validatorState.m_lastSourceEpoch,
+             validatorState.m_lastTargetEpoch);
     return;
   }
 
@@ -509,12 +579,12 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
  * transaction (vote or deposit  reference. It fills inputs, outputs.
  * It does not support an address change between source and destination.
  *
- * @param[in] prevTx a reference to the initial DEPOSIT or previous VOTE
- * transaction
+ * @param[in] prevTxRef a reference to the initial DEPOSIT or previous VOTE
+ * transaction, depending which one is the most recent
  * @param[in] vote the vote data
  * @param[out] wtxNew the vote transaction committed
  */
-bool WalletExtension::SendVote(const CTransactionRef &depositRef,
+bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                const Vote &vote, CWalletTx &wtxNewOut) {
 
   wtxNewOut.fTimeReceivedIsTxTime = true;
@@ -528,16 +598,16 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
 
   if (validatorState.m_phase !=
       +ValidatorState::Phase::IS_VALIDATING) {
-    return error("%s: Cannot add vote inputs for non-validators.", __func__);
+    return error("%s: Cannot create votes for non-validators.", __func__);
   }
 
   CScript scriptSig = CScript::EncodeVote(vote);
 
-  const CScript &scriptPubKey = depositRef->vout[0].scriptPubKey;
-  const CAmount amount = depositRef->vout[0].nValue;
+  const CScript &scriptPubKey = prevTxRef->vout[0].scriptPubKey;
+  const CAmount amount = prevTxRef->vout[0].nValue;
 
   txNew.vin.push_back(
-      CTxIn(depositRef->GetHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+      CTxIn(prevTxRef->GetHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
   CTxOut txout(amount, scriptPubKey);
   txNew.vout.push_back(txout);
@@ -579,25 +649,39 @@ void WalletExtension::BlockConnected(
       currentPhase = validatorState.m_phase;
     }
 
-    if (currentPhase == ValidatorState::Phase::IS_VALIDATING) {
-      VoteIfNeeded(pblock, pindex);
-    } else if (currentPhase ==
-               ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION) {
-      FinalizationState *esperanza = FinalizationState::GetState(*pindex);
+    switch (currentPhase) {
+      case ValidatorState::Phase::IS_VALIDATING: {
+        VoteIfNeeded(pblock, pindex);
 
-      if (esperanza->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
-        // Deposit is finalized there is no possible rollback
-        {
+        // In case we are logged out, stop validating.
+        FinalizationState *esperanza = FinalizationState::GetState(*pindex);
+        int currentDynasty = esperanza->GetCurrentDynasty();
+        if (currentDynasty > validatorState.m_endDynasty) {
           LOCK(m_enclosingWallet->cs_wallet);
-          validatorState.m_phase =
-              ValidatorState::Phase::IS_VALIDATING;
-
-          LogPrint(
-              BCLog::ESPERANZA,
-              "%s: Validator's deposit finalized, the validator index is %s.\n",
-              __func__, validatorState.m_validatorIndex.GetHex());
+          validatorState.m_phase = ValidatorState::Phase::NOT_VALIDATING;
         }
+        break;
       }
+      case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
+        FinalizationState *esperanza = FinalizationState::GetState(*pindex);
+
+        if (esperanza->GetLastFinalizedEpoch() >=
+            validatorState.m_depositEpoch) {
+          // Deposit is finalized there is no possible rollback
+          {
+            LOCK(m_enclosingWallet->cs_wallet);
+            validatorState.m_phase =
+                ValidatorState::Phase::IS_VALIDATING;
+
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Validator's deposit finalized, the validator index "
+                     "is %s.\n",
+                     __func__, validatorState.m_validatorIndex.GetHex());
+          }
+        }
+        break;
+      }
+      default: { break; }
     }
   }
 }

@@ -89,6 +89,7 @@ class FinalizationState {
   Vote GetRecommendedVote(const uint256& validatorIndex) const;
 
   std::vector<Validator> GetValidators() const;
+  const Validator* GetValidator(const uint256& validatorIndex) const;
 
   static void Init(const esperanza::FinalizationParams& params);
   static void Reset(const esperanza::FinalizationParams& params);

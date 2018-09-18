@@ -61,6 +61,47 @@ UniValue deposit(const JSONRPCRequest &request)
   return result;
 }
 
+UniValue logout(const JSONRPCRequest& request) {
+
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+    return NullUniValue;
+  }
+
+  esperanza::WalletExtension& extWallet = pwallet->GetWalletExtension();
+
+  if (request.fHelp || request.params.size() != 0) {
+
+    throw std::runtime_error(
+        "logout\n"
+        "Creates a logout request, if accepted it will start the logout "
+        "process for the validator."
+        "\nExamples:\n" +
+            HelpExampleRpc("logout", ""));
+  }
+
+  pwallet->BlockUntilSyncedToCurrentChain();
+
+  if (!extWallet.nIsValidatorEnabled) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
+  }
+
+  UniValue result(UniValue::VOBJ);
+
+  if (extWallet.validatorState.m_phase !=
+      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER,
+                       "The node is not validating validating.");
+  }
+
+  CWalletTx tx;
+  extWallet.SendLogout(tx);
+
+  result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
+
+  return result;
+}
+
 UniValue getvalidatorinfo(const JSONRPCRequest &request){
 
   CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
@@ -108,7 +149,7 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
   }
 
   obj.pushKV("enabled", gArgs.GetBoolArg("-validating", true));
-  obj.pushKV("validator_status", status);
+  obj.pushKV("validator_status", extWallet.validatorState.m_phase._to_string());
 
   return obj;
 }
@@ -116,7 +157,8 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
 static const CRPCCommand commands[] =
     { //  category              name                        actor (function)           argNames
       //  --------------------- ------------------------    -----------------------  ----------
-        { "wallet",             "deposit", &deposit,            {"address", "amount"} },
+        { "wallet",             "deposit",                  &deposit,                  {"address", "amount"} },
+        { "wallet",             "logout",                   &logout,                   {} },
         { "wallet",             "getvalidatorinfo",         &getvalidatorinfo,         {} },
     };
 

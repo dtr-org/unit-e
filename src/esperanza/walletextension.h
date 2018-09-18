@@ -86,6 +86,8 @@ class WalletExtension {
   bool SendVote(const CTransactionRef &depositRef, const Vote &vote,
                 CWalletTx &wtxNewOut);
 
+  bool SendLogout(CWalletTx &wtxNewOut);
+
   void ReadValidatorStateFromFile();
 
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,

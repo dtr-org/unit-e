@@ -46,7 +46,7 @@ struct ValidatorState {
   uint32_t m_lastSourceEpoch;
   uint32_t m_lastTargetEpoch;
   uint32_t m_depositEpoch;
-  uint32_t m_endDynasty;  // UNIT-E: To set when the logout happens
+  uint32_t m_endDynasty;
   uint32_t m_startDynasty;
 };
 
