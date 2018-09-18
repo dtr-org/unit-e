@@ -176,6 +176,81 @@ BOOST_AUTO_TEST_CASE(bloom_match)
     filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
     filter.insert(COutPoint(uint256S("0x000000d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0));
     BOOST_CHECK_MESSAGE(!filter.IsRelevantAndUpdate(tx), "Simple Bloom filter matched COutPoint for an output we didn't care about");
+
+}
+
+BOOST_AUTO_TEST_CASE(bloom_esperanza_finalization)
+{
+    auto esperanza_filter = CBloomFilter(10, 0.000001, 0, MATCH_EPSPERANZA_FINALIZATION | BLOOM_UPDATE_ALL);
+
+    auto regular_filter = CBloomFilter(10, 0.000001, 0, BLOOM_UPDATE_ALL);
+
+    // some coutpoint
+    regular_filter.insert(COutPoint(uint256S("0x90c122d70786e899529d71dbeba91ba216982fb6ba58f3bdaab65e73b7e9260b"), 0));
+
+    CMutableTransaction mtx;
+
+    {
+        CTransaction tx(mtx);
+        BOOST_CHECK_MESSAGE(!esperanza_filter.IsRelevantAndUpdate(tx), "Empty bloom filter matched an empty transaction");
+        BOOST_CHECK_MESSAGE(!regular_filter.IsRelevantAndUpdate(tx), "Empty bloom filter matched an empty transaction");
+    }
+
+    {
+        mtx.SetType(TxType::DEPOSIT);
+        CTransaction tx(mtx);
+        BOOST_CHECK_MESSAGE(esperanza_filter.IsRelevantAndUpdate(tx), "Bloom filter did not match deposit");
+        BOOST_CHECK_MESSAGE(!regular_filter.IsRelevantAndUpdate(tx), "Bloom filter without match_esperanza matched deposit");
+    }
+
+    {
+        mtx.SetType(TxType::VOTE);
+        CTransaction tx(mtx);
+        BOOST_CHECK_MESSAGE(esperanza_filter.IsRelevantAndUpdate(tx), "Bloom filter did not match vote");
+        BOOST_CHECK_MESSAGE(!regular_filter.IsRelevantAndUpdate(tx), "Bloom filter without match_esperanza matched vote");
+    }
+
+    {
+        mtx.SetType(TxType::SLASH);
+        CTransaction tx(mtx);
+        BOOST_CHECK_MESSAGE(esperanza_filter.IsRelevantAndUpdate(tx), "Bloom filter did not match slash");
+        BOOST_CHECK_MESSAGE(!regular_filter.IsRelevantAndUpdate(tx), "Bloom filter without match_esperanza matched slash");
+    }
+
+    {
+        mtx.SetType(TxType::LOGOUT);
+        CTransaction tx(mtx);
+        BOOST_CHECK_MESSAGE(esperanza_filter.IsRelevantAndUpdate(tx), "Bloom filter did not match logout");
+        BOOST_CHECK_MESSAGE(!regular_filter.IsRelevantAndUpdate(tx), "Bloom filter without match_esperanza matched logout");
+    }
+
+    {
+        mtx.SetType(TxType::WITHDRAW);
+        CTransaction tx(mtx);
+        BOOST_CHECK_MESSAGE(!esperanza_filter.IsRelevantAndUpdate(tx), "Bloom filter matched withdraw");
+        BOOST_CHECK_MESSAGE(!regular_filter.IsRelevantAndUpdate(tx), "Bloom filter without match_esperanza matched withdraw");
+    }
+}
+
+BOOST_AUTO_TEST_CASE(bloom_esperanza_inserts_on_update)
+{
+    CDataStream stream(ParseHex("0200020001da8716145be3e882fae8f990ced96fd2087a6de053bd9f27c397e9bdc23e7960010000006a47304402205e7650a7bcd0cfb7fa188a52f17b25edcd60f8c6b88ac4ac9f85dd2916c661a602207e155cb02f947c8b346294efa79a0b5472a6c13bc07b7fe467917dd81c75d3bc0121039af35dc8141b9b22a9c4cbd335ae71646669f331216502a88ed3e724dc8c2958feffffff029044b2ec22000000652103e0525b038e4d0b2d019a9dff9443c4c4dbef9d731044ec2e1401867d0afef142b363516776a9149930bc5ed6f2342300091545eb54a4479bd500b288ac642103e0525b038e4d0b2d019a9dff9443c4c4dbef9d731044ec2e1401867d0afef142b4686800b4f2e7c500000017a91454aeeab84ee2e3d73527eeaaeed8e9faa9e903a28778000000"), SER_NETWORK, PROTOCOL_VERSION);
+
+    CTransaction tx(deserialize, stream);
+
+    CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_ALL | MATCH_EPSPERANZA_FINALIZATION);
+
+    // insert pubkey hash
+    std::vector<unsigned char> vData{153, 48, 188, 94, 214, 242, 52, 35, 0, 9, 21, 69, 235, 84, 164, 71, 155, 213, 0, 178};
+    filter.insert(vData);
+
+    std::vector<unsigned char> outp{ 128, 183, 138, 7, 165, 203, 53, 56, 154, 135, 14, 33, 152, 86, 194, 68, 208, 248, 129, 131, 69, 86, 81, 189, 207, 233, 243, 61, 237, 64, 95, 143, 0, 0, 0, 0};
+
+    BOOST_CHECK_MESSAGE(!filter.contains(outp), "Bloom filter matched COutPoint when it should not have");
+
+    BOOST_CHECK_MESSAGE(filter.IsRelevantAndUpdate(tx), "Bloom filter did not match deposit transaction");
+
+    BOOST_CHECK_MESSAGE(filter.contains(outp), "Bloom filter did not match COutPoint after update or did not update properly");
 }
 
 BOOST_AUTO_TEST_CASE(merkle_block_1)
@@ -212,6 +287,51 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
 
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0xdd1fd2a6fc16404faf339881a90adbde7f4f728691ac62e8f168809cdfae1053"));
     BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 7);
+
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched, vIndex) == block.hashMerkleRoot);
+    BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
+    for (unsigned int i = 0; i < vMatched.size(); i++)
+        BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
+}
+
+BOOST_AUTO_TEST_CASE(merkle_block_with_esperanza)
+{
+    // Two normal transactions and three deposits
+    CDataStream stream(ParseHex("0000002013df0e8aa1dceac5c5d1d4b6b83797fae69d5dea63c00fc25c59c679761e621dde7789b2fcd1b40c9b6b5e8f216bdfee5695b58e47e10504ddedc831ebf1854d680da15bffff7f200200000005020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff0401790101ffffffff02d058062a010000002321029840fb6da34070159e6b56c76067df0628a5ce0dcab91a8d16e5cc96a43ed843ac0000000000000000266a24aa21a9ed81ca2486cd9cf36319ef53764925c6014505fabe1c635b8a658dce7c01dacc47012000000000000000000000000000000000000000000000000000000000000000000000000002000000033940f4ce78f0be2c776c1f209fb4c75846eb151a5facb3a7ffbba2446c980a210000000049483045022100a600e937764255df6a9c73425c6228f55cfaba6f8542c8b6143b31ba9b5387aa022046b6ae9b6147173fb9077df81ae6f888066f258c0d31290a384c379d2e8a921c01feffffff5d5a47f95d014a14cdad41e95a6344001a5d25d245316e0f4c2f6f4db022aeb10000000047463043022028afc33b68b669d11a72accade9a685d789272c21a6e78b68898fb3ebf9540c2021f5cdbf74fe188ea1bd0af18c150cef61d1afe8166aa2af90c9ec475cbf0c5e201fefffffff9944ef577a5704bcb1a908d7ad02dca54aa26ccdc3ba8d04164fc0026ec82460000000048473044022000ced554deca9913ed4a4ad0321e8b57f8038baaf87cb1cf034c84140f012b2e02203cd0a71fc611d1e5f86bc089308d63b599392258c0fbd6be79ac7361866b298401feffffff0200f51b780300000017a9144ce2dfcde614947e6a78d3ff847155e5fb6b0e778780c0f5050000000017a914189b03a7c2c8b822859667edf50c435734500989871c0000000200020001da8716145be3e882fae8f990ced96fd2087a6de053bd9f27c397e9bdc23e7960020000006a47304402206f746a8bedc1ff9393bea845f57e29e4ac658b105efb2834877a7007deffa49d02202bc5eaede18e1112aea7df16a97628d78c32f725a0935d4dd512eef4b74bc9860121033236376b07f9900e271acc5c98a015e99496d57480c25161faf1875fd2344f89feffffff0290b8ed902e0000006521036f69817afd4bddb3eb6994d1ed22bbe396daedd37c384e7ecd48e23c0a6b9a1cb363516776a91412e39650a73d0751de0c4ba23b2f35364ef47dc488ac6421036f69817afd4bddb3eb6994d1ed22bbe396daedd37c384e7ecd48e23c0a6b9a1cb468680040b743ba00000017a9141975cb5650a0c90fa931d5ebc4eb2bbab9802ad787780000000200020001da8716145be3e882fae8f990ced96fd2087a6de053bd9f27c397e9bdc23e7960030000006a47304402203bcff862d4477aa24373593e8133738ec6a4dd9d8f9dd06b3a6b99abd7d6d4160220392f2e0b6468debecb87b8259cc7770d73ba3d2808e5505ff30d2d919212f4860121023a4c8e0d39faddd3cb2f29a6a0b10f2c07f01ec6ec1d98e2047462dd32f66157feffffff029044b2ec2200000065210360b69ed329cdeda0f71ba3bad1e77981f7d3eebfaae9344f08583595bebbc44eb363516776a914c860e4c3067fa3249950af956e2c1c366efbb9ad88ac64210360b69ed329cdeda0f71ba3bad1e77981f7d3eebfaae9344f08583595bebbc44eb4686800b4f2e7c500000017a9143c3b098af9a0135a9d2355fb7882c2b4940eee3687780000000200020001da8716145be3e882fae8f990ced96fd2087a6de053bd9f27c397e9bdc23e7960010000006a47304402205e7650a7bcd0cfb7fa188a52f17b25edcd60f8c6b88ac4ac9f85dd2916c661a602207e155cb02f947c8b346294efa79a0b5472a6c13bc07b7fe467917dd81c75d3bc0121039af35dc8141b9b22a9c4cbd335ae71646669f331216502a88ed3e724dc8c2958feffffff029044b2ec22000000652103e0525b038e4d0b2d019a9dff9443c4c4dbef9d731044ec2e1401867d0afef142b363516776a9149930bc5ed6f2342300091545eb54a4479bd500b288ac642103e0525b038e4d0b2d019a9dff9443c4c4dbef9d731044ec2e1401867d0afef142b4686800b4f2e7c500000017a91454aeeab84ee2e3d73527eeaaeed8e9faa9e903a28778000000"), SER_NETWORK, PROTOCOL_VERSION);
+
+    CBlock block;
+    stream >> block;
+    CBloomFilter filter(10, 0.000001, 0, BLOOM_UPDATE_ALL | MATCH_EPSPERANZA_FINALIZATION);
+
+    // Match one of the transactions and esperanza finalization related transactions (3 deposits)
+    filter.insert(uint256S("0xaeb48f2b6d2b446a4301199c9b609d6cf64df6ba35d5c5c1bedb3fe92af6071c"));
+
+
+    CMerkleBlock merkleBlock(block, filter);
+    BOOST_CHECK_EQUAL(merkleBlock.header.GetHash().GetHex(), block.GetHash().GetHex());
+
+    BOOST_CHECK_EQUAL(merkleBlock.vMatchedTxn.size(), 4);
+
+    // check the filter matched the normal transaction
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].second == uint256S("0xaeb48f2b6d2b446a4301199c9b609d6cf64df6ba35d5c5c1bedb3fe92af6071c"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[0].first == 1);
+
+    // check the filter matched deposits
+    BOOST_CHECK(merkleBlock.vMatchedTxn[1].second == uint256S("0xbfc5d747cf49ed28999d0ea8399d6c4181302060915e37217209b2111c6f1b17"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[1].first == 2);
+
+    BOOST_CHECK(merkleBlock.vMatchedTxn[2].second == uint256S("0xe4dbb6ee336c243b40114b8a5d7d47426d7330cf4632c2ddd6eeb4d45b767c4f"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[2].first == 3);
+
+    BOOST_CHECK(merkleBlock.vMatchedTxn[3].second == uint256S("0x8f5f40ed3df3e9cfbd5156458381f8d044c25698210e879a3835cba5078ab780"));
+    BOOST_CHECK(merkleBlock.vMatchedTxn[3].first == 4);
+
+    std::vector<uint256> vMatched;
+    std::vector<unsigned int> vIndex;
+    BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched, vIndex) == block.hashMerkleRoot);
+    BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
+    for (unsigned int i = 0; i < vMatched.size(); i++)
+        BOOST_CHECK(vMatched[i] == merkleBlock.vMatchedTxn[i].second);
 
     BOOST_CHECK(merkleBlock.txn.ExtractMatches(vMatched, vIndex) == block.hashMerkleRoot);
     BOOST_CHECK(vMatched.size() == merkleBlock.vMatchedTxn.size());
