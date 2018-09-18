@@ -490,14 +490,14 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   }
 
   CWalletTx createdTx;
-  CTransactionRef &prevRef = validatorState.m_lastVotableTx;
+  CTransactionRef &prevRef = validatorState.m_lastEsperanzaTx;
 
   if (SendVote(prevRef, vote, createdTx)) {
 
     validatorState.m_voteMap[epoch] = vote;
     validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
     validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
-    validatorState.m_lastVotableTx = createdTx.tx;
+    validatorState.m_lastEsperanzaTx = createdTx.tx;
     LogPrint(BCLog::ESPERANZA, "%s: Casted vote with id %s.\n", __func__,
              createdTx.tx->GetHash().GetHex());
   }

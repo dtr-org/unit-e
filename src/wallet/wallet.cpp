@@ -1099,7 +1099,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                   Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
 
                   state->m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
-                  state->m_lastVotableTx = MakeTransactionRef(tx);
+                  state->m_lastEsperanzaTx = MakeTransactionRef(tx);
                   state->m_depositEpoch = esperanza::FinalizationState::GetEpoch(*pIndex);
                 } else {
                   LogPrint(BCLog::ESPERANZA,

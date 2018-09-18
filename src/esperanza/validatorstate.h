@@ -30,7 +30,7 @@ struct ValidatorState {
 
   ValidatorState()
       : m_validatorIndex(),
-        m_lastVotableTx(nullptr),
+        m_lastEsperanzaTx(nullptr),
         m_voteMap(),
         m_lastSourceEpoch(0),
         m_lastTargetEpoch(0),
@@ -40,7 +40,7 @@ struct ValidatorState {
 
   Phase m_phase = Phase::NOT_VALIDATING;
   uint256 m_validatorIndex;
-  CTransactionRef m_lastVotableTx;
+  CTransactionRef m_lastEsperanzaTx;
   std::map<uint32_t, Vote> m_voteMap;
 
   uint32_t m_lastSourceEpoch;
