@@ -1084,30 +1084,65 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
             }
             bool rv = AddToWallet(wtx, false);
 
-            if(tx.IsDeposit() && pIndex != nullptr) {
-                LOCK(cs_wallet);
-                esperanza::ValidatorState* state = &m_stakingExtension.validatorState;
-                if (state->m_phase == +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION) {
+            if (pIndex != nullptr) {
+              switch (tx.GetType()) {
 
-                  state->m_phase = esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION;
-                  LogPrint(BCLog::ESPERANZA, "%s: Validator waiting for deposit finalization. Deposit hash %s.\n",
-                           __func__,
-                           tx.GetHash().GetHex());
+                case TxType::DEPOSIT: {
+                  LOCK(cs_wallet);
+                  esperanza::ValidatorState* state =
+                      &m_stakingExtension.validatorState;
+                  if (state->m_phase == +esperanza::ValidatorState::Phase::
+                                            WAITING_DEPOSIT_CONFIRMATION) {
 
-                  std::vector<std::vector<unsigned char>> vSolutions;
-                  txnouttype typeRet;
-                  Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
+                    state->m_phase = esperanza::ValidatorState::Phase::
+                        WAITING_DEPOSIT_FINALIZATION;
+                    LogPrint(BCLog::ESPERANZA,
+                             "%s: Validator waiting for deposit finalization. "
+                             "Deposit hash %s.\n",
+                             __func__, tx.GetHash().GetHex());
 
-                  state->m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
-                  state->m_lastVotableTx = MakeTransactionRef(tx);
-                  state->m_depositEpoch = esperanza::FinalizationState::GetEpoch(*pIndex);
-                } else {
-                  LogPrint(BCLog::ESPERANZA,
-                      "ERROR: %s - Wrong state for validator state with deposit %s, %s expected.\n",
-                      __func__,
-                      tx.GetHash().GetHex(),
-                      "WAITING_DEPOSIT_CONFIRMATION");
+                    std::vector<std::vector<unsigned char>> vSolutions;
+                    txnouttype typeRet;
+                    Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
+
+                    state->m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
+                    state->m_lastEsperanzaTx = MakeTransactionRef(tx);
+                    state->m_depositEpoch =
+                        esperanza::FinalizationState::GetEpoch(*pIndex);
+                  } else {
+                    LogPrint(BCLog::ESPERANZA,
+                             "ERROR: %s - Wrong state for validator state with "
+                             "deposit %s, %s expected but %s found.\n",
+                             __func__, tx.GetHash().GetHex(),
+                             "WAITING_DEPOSIT_CONFIRMATION",
+                             state->m_phase._to_string());
+                  }
+                  break;
                 }
+                case TxType::LOGOUT: {
+                  LOCK(cs_wallet);
+                  esperanza::ValidatorState* state =
+                      &m_stakingExtension.validatorState;
+
+                  if (state->m_phase ==
+                      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
+
+                  } else {
+                    LogPrint(BCLog::ESPERANZA,
+                             "ERROR: %s - Wrong state for validator state when "
+                             "logging out. %s expected but %s found.\n",
+                             __func__,
+                             "IS_VALIDATING",
+                             state->m_phase._to_string());
+
+                    auto esperanzaState =
+                        esperanza::FinalizationState::GetState(*pIndex);
+                    const esperanza::Validator* validator =
+                        esperanzaState->GetValidator(state->m_validatorIndex);
+                    state->m_endDynasty = validator->m_endDynasty;
+                  }
+                }
+              }
             }
 
             return rv;
