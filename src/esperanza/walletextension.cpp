@@ -441,8 +441,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
 
   {
     LOCK(m_enclosingWallet->cs_wallet);
-    if (validatorState.m_phase ==
-        +ValidatorState::Phase::NOT_VALIDATING) {
+    if (validatorState.m_phase == +ValidatorState::Phase::NOT_VALIDATING) {
       LogPrint(BCLog::ESPERANZA,
                "%s: Validator waiting for deposit confirmation.\n", __func__);
 
@@ -474,8 +473,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   CMutableTransaction txNew;
   txNew.SetType(TxType::LOGOUT);
 
-  if (validatorState.m_phase !=
-      +ValidatorState::Phase::IS_VALIDATING) {
+  if (validatorState.m_phase != +ValidatorState::Phase::IS_VALIDATING) {
     return error("%s: Cannot create logouts for non-validators.", __func__);
   }
 
@@ -596,8 +594,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   CMutableTransaction txNew;
   txNew.SetType(TxType::VOTE);
 
-  if (validatorState.m_phase !=
-      +ValidatorState::Phase::IS_VALIDATING) {
+  if (validatorState.m_phase != +ValidatorState::Phase::IS_VALIDATING) {
     return error("%s: Cannot create votes for non-validators.", __func__);
   }
 
@@ -670,8 +667,7 @@ void WalletExtension::BlockConnected(
           // Deposit is finalized there is no possible rollback
           {
             LOCK(m_enclosingWallet->cs_wallet);
-            validatorState.m_phase =
-                ValidatorState::Phase::IS_VALIDATING;
+            validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
 
             LogPrint(BCLog::ESPERANZA,
                      "%s: Validator's deposit finalized, the validator index "
