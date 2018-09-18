@@ -16,7 +16,7 @@ namespace esperanza {
 
 // clang-format off
 BETTER_ENUM(
-    _Validator_Phase,
+    _Phase,
     uint8_t,
     NOT_VALIDATING,
     IS_VALIDATING,
@@ -26,7 +26,7 @@ BETTER_ENUM(
 // clang-format on
 
 struct ValidatorState {
-  typedef _Validator_Phase ValidatorPhase;
+  typedef _Phase Phase;
 
   ValidatorState()
       : m_validatorIndex(),
@@ -38,7 +38,7 @@ struct ValidatorState {
         m_endDynasty(std::numeric_limits<uint32_t>::max()),
         m_startDynasty(std::numeric_limits<uint32_t>::max()) {}
 
-  ValidatorPhase m_phase = ValidatorPhase::NOT_VALIDATING;
+  Phase m_phase = Phase::NOT_VALIDATING;
   uint256 m_validatorIndex;
   CTransactionRef m_lastVotableTx;
   std::map<uint32_t, Vote> m_voteMap;

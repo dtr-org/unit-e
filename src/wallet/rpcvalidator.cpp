@@ -45,7 +45,7 @@ UniValue deposit(const JSONRPCRequest &request)
 
   CAmount amount = AmountFromValue(request.params[1]);
 
-  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::ValidatorPhase::IS_VALIDATING){
+  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::Phase::IS_VALIDATING){
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
   }
 
@@ -92,16 +92,16 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
   std::string status;
 
   switch (extWallet.validatorState.m_phase) {
-    case esperanza::ValidatorState::ValidatorPhase::NOT_VALIDATING:
+    case esperanza::ValidatorState::Phase::NOT_VALIDATING:
       status = "NOT_VALIDATING";
       break;
-    case esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION:
+    case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION:
       status = "WAITING_DEPOSIT_CONFIRMATION";
       break;
-    case esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION:
+    case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION:
       status = "WAITING_DEPOSIT_FINALIZATION";
       break;
-    case esperanza::ValidatorState::ValidatorPhase::IS_VALIDATING:
+    case esperanza::ValidatorState::Phase::IS_VALIDATING:
       status = "IS_VALIDATING";
       break;
     default: status = "UNKNOWN";

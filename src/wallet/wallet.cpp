@@ -1087,9 +1087,9 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
             if(tx.IsDeposit() && pIndex != nullptr) {
                 LOCK(cs_wallet);
                 esperanza::ValidatorState* state = &m_stakingExtension.validatorState;
-                if (state->m_phase == +esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION) {
+                if (state->m_phase == +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION) {
 
-                  state->m_phase = esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION;
+                  state->m_phase = esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION;
                   LogPrint(BCLog::ESPERANZA, "%s: Validator waiting for deposit finalization. Deposit hash %s.\n",
                            __func__,
                            tx.GetHash().GetHex());

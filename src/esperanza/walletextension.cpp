@@ -442,12 +442,12 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   {
     LOCK(m_enclosingWallet->cs_wallet);
     if (validatorState.m_phase ==
-        +ValidatorState::ValidatorPhase::NOT_VALIDATING) {
+        +ValidatorState::Phase::NOT_VALIDATING) {
       LogPrint(BCLog::ESPERANZA,
                "%s: Validator waiting for deposit confirmation.\n", __func__);
 
       validatorState.m_phase =
-          ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION;
+          ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
     } else {
       LogPrintf(
           "ERROR: %s - Wrong state for validator state with deposit %s, %s "
@@ -527,7 +527,7 @@ bool WalletExtension::SendVote(const CTransactionRef &depositRef,
   txNew.SetType(TxType::VOTE);
 
   if (validatorState.m_phase !=
-      +ValidatorState::ValidatorPhase::IS_VALIDATING) {
+      +ValidatorState::Phase::IS_VALIDATING) {
     return error("%s: Cannot add vote inputs for non-validators.", __func__);
   }
 
@@ -573,16 +573,16 @@ void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
 
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
-    auto currentPhase = ValidatorState::ValidatorPhase::NOT_VALIDATING;
+    auto currentPhase = ValidatorState::Phase::NOT_VALIDATING;
     {
       LOCK(m_enclosingWallet->cs_wallet);
       currentPhase = validatorState.m_phase;
     }
 
-    if (currentPhase == ValidatorState::ValidatorPhase::IS_VALIDATING) {
+    if (currentPhase == ValidatorState::Phase::IS_VALIDATING) {
       VoteIfNeeded(pblock, pindex);
     } else if (currentPhase ==
-               ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION) {
+               ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION) {
       FinalizationState *esperanza = FinalizationState::GetState(*pindex);
 
       if (esperanza->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
@@ -590,7 +590,7 @@ void WalletExtension::BlockConnected(
         {
           LOCK(m_enclosingWallet->cs_wallet);
           validatorState.m_phase =
-              ValidatorState::ValidatorPhase::IS_VALIDATING;
+              ValidatorState::Phase::IS_VALIDATING;
 
           LogPrint(
               BCLog::ESPERANZA,
