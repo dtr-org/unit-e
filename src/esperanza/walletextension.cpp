@@ -177,7 +177,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     if (CheckKernel(pindexPrev, nBits, nTime, prevoutStake, &nBlockTime)) {
       LOCK(m_enclosingWallet->cs_wallet);
       // Found a kernel
-      LogPrint(BCLog::POS, "%s: Kernel found.\n", __func__);
+      LogPrint(BCLog::ESPERANZA, "%s: Kernel found.\n", __func__);
 
       const CTxOut &kernelOut = pcoin.first->tx->vout[pcoin.second];
 
@@ -196,22 +196,22 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       }
 
       if (!Solver(pscriptPubKey, whichType, vSolutions)) {
-        LogPrint(BCLog::POS, "%s: Failed to parse kernel.\n", __func__);
+        LogPrint(BCLog::ESPERANZA, "%s: Failed to parse kernel.\n", __func__);
         break;
       }
 
-      LogPrint(BCLog::POS, "%s: Parsed kernel type=%d.\n", __func__, whichType);
+      LogPrint(BCLog::ESPERANZA, "%s: Parsed kernel type=%d.\n", __func__, whichType);
       CKeyID spendId;
       if (whichType == TX_PUBKEYHASH) {
         spendId = CKeyID(uint160(vSolutions[0]));
       } else {
-        LogPrint(BCLog::POS, "%s: No support for kernel type=%d.\n", __func__,
+        LogPrint(BCLog::ESPERANZA, "%s: No support for kernel type=%d.\n", __func__,
                  whichType);
         break;  // only support pay to address (pay to pubkey hash)
       }
 
       if (!m_enclosingWallet->GetKey(spendId, key)) {
-        LogPrint(BCLog::POS, "%s: Failed to get key for kernel type=%d.\n",
+        LogPrint(BCLog::ESPERANZA, "%s: Failed to get key for kernel type=%d.\n",
                  __func__, whichType);
         break;  // unable to find corresponding key
       }
@@ -239,7 +239,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       CTxOut out(0, scriptPubKeyKernel);
       txNew.vout.emplace_back(out);
 
-      LogPrint(BCLog::POS, "%s: Added kernel.\n", __func__);
+      LogPrint(BCLog::ESPERANZA, "%s: Added kernel.\n", __func__);
 
       setCoins.erase(it);
       break;
@@ -292,7 +292,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     nCredit += prevOut.nValue;
     vwtxPrev.push_back(pcoin.first);
 
-    LogPrint(BCLog::POS, "%s: Combining kernel %s, %d.\n", __func__,
+    LogPrint(BCLog::ESPERANZA, "%s: Combining kernel %s, %d.\n", __func__,
              pcoin.first->GetHash().ToString(), pcoin.second);
     nStakesCombined++;
     setCoins.erase(itc);
@@ -362,29 +362,28 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
                                 int64_t nSearchTime) {
 
-  LogPrint(BCLog::POS, "%s, nHeight %d\n", __func__, nHeight);
+  LogPrint(BCLog::ESPERANZA, "%s, nHeight %d\n", __func__, nHeight);
 
   assert(pblocktemplate);
   CBlock *pblock = &pblocktemplate->block;
   assert(pblock);
-  if (pblock->vtx.size() < 1)
+  if (pblock->vtx.size() < 1) {
     return error("%s: Malformed block.", __func__);
+  }
 
   int64_t nFees = -pblocktemplate->vTxFees[0];
   CBlockIndex *pindexPrev = chainActive.Tip();
 
   CKey key;
-//  pblock->nVersion = PARTICL_BLOCK_VERSION;
   pblock->nBits = GetNextTargetRequired(pindexPrev);
-  LogPrint(BCLog::POS, "%s, nBits %d\n", __func__, pblock->nBits);
+  LogPrint(BCLog::ESPERANZA, "%s, nBits %d\n", __func__, pblock->nBits);
 
   CMutableTransaction txCoinStake;
-  if (CreateCoinStake(pblock->nBits, nSearchTime, nHeight, nFees, txCoinStake, key))
-  {
-    LogPrint(BCLog::POS, "%s: Kernel found.\n", __func__);
+  if (CreateCoinStake(pblock->nBits, nSearchTime, nHeight, nFees, txCoinStake,
+                      key)) {
+    LogPrint(BCLog::ESPERANZA, "%s: Kernel found.\n", __func__);
 
-    if (nSearchTime >= chainActive.Tip()->GetBlockTime()+1)
-    {
+    if (nSearchTime >= chainActive.Tip()->GetBlockTime() + 1) {
       // make sure coinstake would meet timestamp protocol
       //    as it would be the same as the block timestamp
       pblock->nTime = nSearchTime;
@@ -398,18 +397,18 @@ bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
 
       bool mutated;
       pblock->hashMerkleRoot = BlockMerkleRoot(*pblock, &mutated);
-//      pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock, &mutated);
+
+      // TODO: Port particl-style segwit
+      // pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock,
+      // &mutated);
 
       // Append a signature to the block
       return key.Sign(pblock->GetHash(), pblock->vchBlockSig);
-    };
-  };
+    }
+  }
 
   m_proposerState.m_lastCoinStakeSearchTime = nSearchTime;
 
-  return false;
-
-  // todo
   return false;
 }
 

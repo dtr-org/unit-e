@@ -145,15 +145,15 @@ bool CheckBlock(const CBlock &pblock) {
     return error("%s: proof-of-stake checking failed.", __func__);
   }
 
-  // debug print
-  LogPrintf(
-      "CheckStake(): New proof-of-stake block found  \n  hash: %s "
-      "\nproofhash: "
-      "%s  \ntarget: %s\n",
-      hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
-  if (LogAcceptCategory(BCLog::POS)) {
-    LogPrintf("block %s\n", pblock.ToString());
-    LogPrintf("out %s\n", FormatMoney(pblock.vtx[0]->GetValueOut()));
+  if (LogAcceptCategory(BCLog::ESPERANZA)) {
+    LogPrint(BCLog::ESPERANZA,
+             "CheckStake(): New proof-of-stake block found  \n  hash: %s "
+             "\nproofhash: "
+             "%s  \ntarget: %s\n",
+             hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
+    LogPrint(BCLog::ESPERANZA, "block %s\n", pblock.ToString());
+    LogPrint(BCLog::ESPERANZA, "out %s\n",
+             FormatMoney(pblock.vtx[0]->GetValueOut()));
   }
 
   {
