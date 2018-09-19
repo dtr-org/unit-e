@@ -147,7 +147,7 @@ void Proposer::Wake(const CWallet *wallet) {
 }
 
 template <typename Duration>
-int64_t seconds(Duration t) {
+int64_t seconds(const Duration t) {
   return std::chrono::duration_cast<std::chrono::seconds>(t).count();
 }
 
@@ -255,10 +255,12 @@ void Proposer::Run(Proposer::Thread &thread) {
             continue;
           }
           walletExt.m_proposerState.m_lastTimeProposed = block.nTime;
+          // we got lucky and proposed, enough for this round (other wallets
+          // need not be checked no more)
           break;
         }
       }
-      thread.Sleep(thread.m_settings.m_proposerSleep);
+      thread.Sleep(sleepFor);
     } catch (const std::runtime_error &error) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
