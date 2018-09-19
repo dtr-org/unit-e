@@ -116,3 +116,4 @@ test/cache/*
 
 libuniteconsensus.pc
 contrib/devtools/split-debug.sh
+*.o.tmp
