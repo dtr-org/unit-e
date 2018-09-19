@@ -44,7 +44,7 @@ if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
 fi
 
 if [ "$RUN_TESTS" = "true" ]; then
-  test/functional/test_runner.py --combinedlogslen=4000 --coverage --quiet ${extended}
+  test/functional/test_runner.py --combinedlogslen=50000 --coverage --quiet ${extended}
 fi
 
 

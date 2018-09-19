@@ -1361,6 +1361,8 @@ void CConnman::ThreadSocketHandler()
                             if (!it->complete())
                                 break;
                             nSizeAdded += it->vRecv.size() + CMessageHeader::HEADER_SIZE;
+                            LogPrint(BCLog::NET, "Adding %d byte to node %s.\n",
+                                     nSizeAdded, pnode->GetId());
                         }
                         {
                             LOCK(pnode->cs_vProcessMsg);
