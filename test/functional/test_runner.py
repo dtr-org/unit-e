@@ -60,11 +60,11 @@ BASE_SCRIPTS= [
     # vv Tests less than 5m vv
     'feature_maxuploadtarget.py',
     'mempool_packages.py',
-    'feature_dbcrash.py',
     'feature_block.py',
     'rpc_fundrawtransaction.py',
     'p2p_compactblocks.py',
     'feature_segwit.py',
+    'feature_fee_estimation.py',
     # vv Tests less than 2m vv
     'feature_bip68_sequence.py',
     'mining_getblocktemplate_longpoll.py',
@@ -78,7 +78,6 @@ BASE_SCRIPTS= [
     # vv Tests less than 60s vv
     'feature_bip9_softforks.py',
     'p2p_feefilter.py',
-    'rpc_bind.py',
     'p2p_sendheaders.py',
     'wallet_zapwallettxes.py',
     'wallet_importmulti.py',
@@ -169,11 +168,12 @@ EXTENDED_SCRIPTS = [
     # These tests are not run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
     'feature_pruning.py',
+    'feature_dbcrash.py',
     # vv Tests less than 20m vv
-    'feature_fee_estimation.py',
     # vv Tests less than 5m vv
     # vv Tests less than 2m vv
     # vv Tests less than 60s vv
+    'rpc_bind.py',
     # vv Tests less than 30s vv
     'example_test.py',
 ]
