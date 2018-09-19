@@ -23,10 +23,11 @@ def test_setup(test, proposers, validators):
     validator_node_params = [
         '-validating=1',
         '-proposing=0',
+        '-whitelist=127.0.0.1',
         '-debug=all',
         '-esperanzaconfig=' + json_params
     ]
-    proposer_node_params = ['-proposing=0', '-debug=all', '-esperanzaconfig=' + json_params]
+    proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
 
     for n in range(0, proposers):
         test.extra_args.append(proposer_node_params)
