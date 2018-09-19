@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The unit-e developers
+# Copyright (c) 2018 The unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaTest(UnitETestFramework):
+class ProposerMultiwalletTest(UnitETestFramework):
 
     """ This test checks that the proposer is picking up all the wallets. """
 
@@ -30,4 +30,4 @@ class EsperanzaTest(UnitETestFramework):
         print("Test succeeded.")
 
 if __name__ == '__main__':
-    EsperanzaTest().main()
+    ProposerMultiwalletTest().main()

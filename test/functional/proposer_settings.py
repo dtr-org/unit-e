@@ -6,7 +6,7 @@ from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaTest(UnitETestFramework):
+class ProposerSettingsTest(UnitETestFramework):
 
     """ This test checks that the node is not proposing actually when started
         with the -proposing flag turned off. """
@@ -24,4 +24,4 @@ class EsperanzaTest(UnitETestFramework):
         print("Test succeeded.")
 
 if __name__ == '__main__':
-    EsperanzaTest().main()
+    ProposerSettingsTest().main()
