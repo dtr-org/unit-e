@@ -166,6 +166,53 @@ bool CheckBlock(const CBlock &pblock) {
   return true;
 }
 
+unsigned int GetNextTargetRequired(const CBlockIndex *pindexLast) {
+  const Consensus::Params &consensus = ::Params().GetConsensus();
+
+  arith_uint256 bnProofOfWorkLimit;
+  unsigned int nProofOfWorkLimit;
+
+  bnProofOfWorkLimit = UintToArith256(consensus.powLimit);
+  nProofOfWorkLimit = bnProofOfWorkLimit.GetCompact();
+
+  if (pindexLast == nullptr) {
+    return nProofOfWorkLimit;  // Genesis block
+  }
+
+  const CBlockIndex *pindexPrev = pindexLast;
+  if (pindexPrev->pprev == nullptr) {
+    return nProofOfWorkLimit;  // first block
+  }
+  const CBlockIndex *pindexPrevPrev = pindexPrev->pprev;
+  if (pindexPrevPrev->pprev == nullptr) {
+    return nProofOfWorkLimit;  // second block
+  }
+
+  int64_t nTargetSpacing = ::Params().GetEsperanza().GetTargetSpacing();
+  int64_t nTargetTimespan = ::Params().GetEsperanza().GetTargetTimespan();
+  int64_t nActualSpacing =
+      pindexPrev->GetBlockTime() - pindexPrevPrev->GetBlockTime();
+
+  if (nActualSpacing > nTargetSpacing * 10) {
+    nActualSpacing = nTargetSpacing * 10;
+  }
+
+  // pos: target change every block
+  // pos: retarget with exponential moving toward target spacing
+  arith_uint256 bnNew;
+  bnNew.SetCompact(pindexLast->nBits);
+
+  int64_t nInterval = nTargetTimespan / nTargetSpacing;
+  bnNew *= ((nInterval - 1) * nTargetSpacing + nActualSpacing + nActualSpacing);
+  bnNew /= ((nInterval + 1) * nTargetSpacing);
+
+  if (bnNew <= 0 || bnNew > bnProofOfWorkLimit) {
+    return nProofOfWorkLimit;
+  }
+
+  return bnNew.GetCompact();
+}
+
 bool ProposeBlock(const CBlock &block) {
   if (!CheckBlock(block)) {
     return false;

@@ -5,6 +5,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/kernel.h>
@@ -360,6 +361,54 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
 bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
                                 int64_t nSearchTime) {
+
+  LogPrint(BCLog::POS, "%s, nHeight %d\n", __func__, nHeight);
+
+  assert(pblocktemplate);
+  CBlock *pblock = &pblocktemplate->block;
+  assert(pblock);
+  if (pblock->vtx.size() < 1)
+    return error("%s: Malformed block.", __func__);
+
+  int64_t nFees = -pblocktemplate->vTxFees[0];
+  CBlockIndex *pindexPrev = chainActive.Tip();
+
+  CKey key;
+//  pblock->nVersion = PARTICL_BLOCK_VERSION;
+  pblock->nBits = GetNextTargetRequired(pindexPrev);
+  LogPrint(BCLog::POS, "%s, nBits %d\n", __func__, pblock->nBits);
+
+  CMutableTransaction txCoinStake;
+  if (CreateCoinStake(pblock->nBits, nSearchTime, nHeight, nFees, txCoinStake, key))
+  {
+    LogPrint(BCLog::POS, "%s: Kernel found.\n", __func__);
+
+    if (nSearchTime >= chainActive.Tip()->GetBlockTime()+1)
+    {
+      // make sure coinstake would meet timestamp protocol
+      //    as it would be the same as the block timestamp
+      pblock->nTime = nSearchTime;
+
+      // Remove coinbasetxn
+      pblock->vtx[0].reset();
+      pblock->vtx.erase(pblock->vtx.begin());
+
+      // Insert coinstake as txn0
+      pblock->vtx.insert(pblock->vtx.begin(), MakeTransactionRef(txCoinStake));
+
+      bool mutated;
+      pblock->hashMerkleRoot = BlockMerkleRoot(*pblock, &mutated);
+//      pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock, &mutated);
+
+      // Append a signature to the block
+      return key.Sign(pblock->GetHash(), pblock->vchBlockSig);
+    };
+  };
+
+  m_proposerState.m_lastCoinStakeSearchTime = nSearchTime;
+
+  return false;
+
   // todo
   return false;
 }

@@ -75,6 +75,9 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
 
+    //! esperanza block signature - signed by one of the coin stake txout[N]'s owner
+    std::vector<uint8_t> vchBlockSig;
+
     // memory only
     mutable bool fChecked;
 
