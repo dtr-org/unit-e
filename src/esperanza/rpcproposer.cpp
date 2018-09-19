@@ -29,7 +29,8 @@ static UniValue GetWalletInfo(const std::vector<CWalletRef> &wallets) {
                 ValueFromAmount(walletExt.GetStakeableBalance()));
     info.pushKV("status", UniValue(proposerState.m_status._to_string()));
     info.pushKV("searches", UniValue(proposerState.m_numSearches));
-    info.pushKV("searches_attempted", UniValue(proposerState.m_numSearchAttempts));
+    info.pushKV("searches_attempted",
+                UniValue(proposerState.m_numSearchAttempts));
     result.push_back(info);
   }
   return result;

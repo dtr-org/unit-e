@@ -200,19 +200,21 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
         break;
       }
 
-      LogPrint(BCLog::ESPERANZA, "%s: Parsed kernel type=%d.\n", __func__, whichType);
+      LogPrint(BCLog::ESPERANZA, "%s: Parsed kernel type=%d.\n", __func__,
+               whichType);
       CKeyID spendId;
       if (whichType == TX_PUBKEYHASH) {
         spendId = CKeyID(uint160(vSolutions[0]));
       } else {
-        LogPrint(BCLog::ESPERANZA, "%s: No support for kernel type=%d.\n", __func__,
-                 whichType);
+        LogPrint(BCLog::ESPERANZA, "%s: No support for kernel type=%d.\n",
+                 __func__, whichType);
         break;  // only support pay to address (pay to pubkey hash)
       }
 
       if (!m_enclosingWallet->GetKey(spendId, key)) {
-        LogPrint(BCLog::ESPERANZA, "%s: Failed to get key for kernel type=%d.\n",
-                 __func__, whichType);
+        LogPrint(BCLog::ESPERANZA,
+                 "%s: Failed to get key for kernel type=%d.\n", __func__,
+                 whichType);
         break;  // unable to find corresponding key
       }
 
