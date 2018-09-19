@@ -146,6 +146,11 @@ void Proposer::Wake(const CWallet *wallet) {
   }
 }
 
+template <typename Duration>
+int64_t seconds(Duration t) {
+  return std::chrono::duration_cast<std::chrono::seconds>(t).count();
+}
+
 void Proposer::Run(Proposer::Thread &thread) {
   LogPrint(BCLog::ESPERANZA, "%s: initialized.\n", thread.m_threadName.c_str());
   for (const auto wallet : thread.m_wallets) {
@@ -200,9 +205,26 @@ void Proposer::Run(Proposer::Thread &thread) {
         continue;
       }
 
+      // each wallet may be blocked from proposing for a different reason
+      // and induce a sleep for a different duration. The thread as a whole
+      // only has to sleep as long as the minimum of these durations to check
+      // the wallet which is due next in time.
+      auto sleepFor = thread.m_settings.m_proposerSleep;
+      const auto sleep = [&sleepFor](const decltype(sleepFor) amount) {
+        sleepFor = std::min(sleepFor, amount);
+      };
       for (CWallet *wallet : thread.m_wallets) {
         auto &walletExt = wallet->GetWalletExtension();
 
+        const int64_t waitTill =
+            walletExt.m_proposerState.m_lastTimeProposed +
+            seconds(thread.m_settings.m_minProposeInterval);
+        if (bestTime < waitTill) {
+          const decltype(sleepFor) amount =
+              std::chrono::seconds(waitTill - bestTime);
+          sleep(amount);
+          continue;
+        }
         if (wallet->IsLocked()) {
           thread.SetStatus(Status::NOT_PROPOSING_WALLET_LOCKED, wallet);
           continue;
@@ -227,11 +249,12 @@ void Proposer::Run(Proposer::Thread &thread) {
 
         if (walletExt.SignBlock(blockTemplate.get(), bestHeight + 1,
                                 searchTime)) {
+          const CBlock &block = blockTemplate->block;
           if (!ProposeBlock(blockTemplate->block)) {
             LogPrint(BCLog::ESPERANZA, "%s: failed to propose block", __func__);
             continue;
           }
-          // set last proposing time
+          walletExt.m_proposerState.m_lastTimeProposed = block.nTime;
           break;
         }
       }
