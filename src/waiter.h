@@ -12,7 +12,7 @@
 
 class Waiter {
  private:
-  std::atomic_flag m_waiting;
+  std::atomic_flag m_waiting = ATOMIC_FLAG_INIT;
   std::mutex m_mutex;
   std::condition_variable m_condition;
 

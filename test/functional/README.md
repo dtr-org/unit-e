@@ -29,16 +29,20 @@ don't have test cases for.
 
 #### Naming guidelines
 
-- Name the test `<area>_test.py`, where area can be one of the following:
+- Name the test `<area>_<name>.py`, where `<name>` is a keyword describing your test
+  and `<area>` can be one of the following:
+    - `esperanza` for tests for esperanza Proof-of-Stake features, eg `esperanza_finalization.py`
     - `feature` for tests for full features that aren't wallet/mining/mempool, eg `feature_rbf.py`
     - `interface` for tests for other interfaces (REST, ZMQ, etc), eg `interface_rest.py`
     - `mempool` for tests for mempool behaviour, eg `mempool_reorg.py`
     - `mining` for tests for mining features, eg `mining_prioritisetransaction.py`
     - `p2p` for tests that explicitly test the p2p interface, eg `p2p_disconnect_ban.py`
+    - `proposer` for tests that check part of the proposer functionality, e.g. `proposer_rewards.py`
     - `rpc` for tests for individual RPC methods or features, eg `rpc_listtransactions.py`
     - `wallet` for tests for wallet features, eg `wallet_keypool.py`
 - use an underscore to separate words
-    - exception: for tests for specific RPCs or command line options which don't include underscores, name the test after the exact RPC or argument name, eg `rpc_decodescript.py`, not `rpc_decode_script.py`
+    - exception: for tests for specific RPCs or command line options which don't include underscores,
+      name the test after the exact RPC or argument name, eg `rpc_decodescript.py`, not `rpc_decode_script.py`
 - Don't use the redundant word `test` in the name, eg `interface_zmq.py`, not `interface_zmq_test.py`
 
 #### General test-writing advice

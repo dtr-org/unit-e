@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-# Copyright (c) 2014-2017 The unit-e developers
+# Copyright (c) 2018 The unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaTest(UnitETestFramework):
+class ProposerSettingsTest(UnitETestFramework):
+
+    """ This test checks that the node is not proposing actually when started
+        with the -proposing flag turned off. """
 
     def set_test_params(self):
         self.num_nodes = 1
@@ -21,4 +24,4 @@ class EsperanzaTest(UnitETestFramework):
         print("Test succeeded.")
 
 if __name__ == '__main__':
-    EsperanzaTest().main()
+    ProposerSettingsTest().main()
