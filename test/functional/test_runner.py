@@ -58,18 +58,27 @@ BASE_SCRIPTS= [
     'wallet_hd.py',
     'wallet_backup.py',
     # vv Tests less than 5m vv
+    'feature_maxuploadtarget.py',
+    'mempool_packages.py',
+    'feature_dbcrash.py',
     'feature_block.py',
     'rpc_fundrawtransaction.py',
     'p2p_compactblocks.py',
     'feature_segwit.py',
     # vv Tests less than 2m vv
+    'feature_bip68_sequence.py',
+    'mining_getblocktemplate_longpoll.py',
     'wallet_basic.py',
     'wallet_accounts.py',
     'p2p_segwit.py',
+    'p2p_timeouts.py',
     'wallet_dump.py',
     'esperanza_vote.py',
     'rpc_listtransactions.py',
     # vv Tests less than 60s vv
+    'feature_bip9_softforks.py',
+    'p2p_feefilter.py',
+    'rpc_bind.py',
     'p2p_sendheaders.py',
     'wallet_zapwallettxes.py',
     'wallet_importmulti.py',
@@ -82,6 +91,7 @@ BASE_SCRIPTS= [
     'wallet_address_types.py',
     'feature_reindex.py',
     # vv Tests less than 30s vv
+    'feature_assumevalid.py',
     'wallet_keypool_topup.py',
     'interface_zmq.py',
     'interface_unite_cli.py',
@@ -131,6 +141,11 @@ BASE_SCRIPTS= [
     'feature_dersig.py',
     'feature_cltv.py',
     'rpc_uptime.py',
+    'wallet_txn_doublespend.py',
+    'wallet_txn_clone.py --mineblock',
+    'feature_notifications.py',
+    'rpc_invalidateblock.py',
+    'feature_rbf.py',
     'wallet_resendwallettransactions.py',
     'wallet_mnemonicinfo.py',
     'wallet_mnemonicnew.py',
@@ -157,25 +172,10 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 20m vv
     'feature_fee_estimation.py',
     # vv Tests less than 5m vv
-    'feature_maxuploadtarget.py',
-    'mempool_packages.py',
-    'feature_dbcrash.py',
     # vv Tests less than 2m vv
-    'feature_bip68_sequence.py',
-    'mining_getblocktemplate_longpoll.py',
-    'p2p_timeouts.py',
     # vv Tests less than 60s vv
-    'feature_bip9_softforks.py',
-    'p2p_feefilter.py',
-    'rpc_bind.py',
     # vv Tests less than 30s vv
-    'feature_assumevalid.py',
     'example_test.py',
-    'wallet_txn_doublespend.py',
-    'wallet_txn_clone.py --mineblock',
-    'feature_notifications.py',
-    'rpc_invalidateblock.py',
-    'feature_rbf.py',
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
