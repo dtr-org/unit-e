@@ -12,6 +12,8 @@
 
 namespace esperanza {
 
+bool IsVoteExpired(const CTransaction &tx);
+
 bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
                              const CBlockIndex *pindex = nullptr);
 

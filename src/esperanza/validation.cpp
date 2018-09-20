@@ -31,11 +31,11 @@ bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
                      "bad-deposit-script-not-solvable");
   }
 
-  esperanza::FinalizationState *esperanza = nullptr;
+  FinalizationState *esperanza = nullptr;
   if (pindex != nullptr) {
-    esperanza = esperanza::FinalizationState::GetState(*pindex);
+    esperanza = FinalizationState::GetState(*pindex);
   } else {
-    esperanza = esperanza::FinalizationState::GetState();
+    esperanza = FinalizationState::GetState();
   }
 
   esperanza::Result res =
@@ -49,6 +49,20 @@ bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
   return true;
 }
 
+//! \brief Check if the vote is referring to an epoch before the last known
+//! finalization. This should be safe since finalization should prevent reorgs.
+//! It assumes that the vote is well formed and in general parsable. It does not
+//! make anycheck over the validity of the vote transaction.
+//! \param tx transaction containing the vote.
+//! \returns true if the vote is expired, false otherwise.
+bool IsVoteExpired(const CTransaction &tx) {
+
+  Vote vote = CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig);
+  FinalizationState *esperanza = FinalizationState::GetState();
+
+  return vote.m_targetEpoch <= esperanza->GetLastFinalizedEpoch();
+}
+
 bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
                           const CBlockIndex *pindex) {
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
@@ -60,9 +74,26 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
                      "bad-vote-vout-script-invalid-payvoteslash");
   }
 
+  FinalizationState *esperanza = nullptr;
+  if (pindex != nullptr) {
+    esperanza = FinalizationState::GetState(*pindex);
+  } else {
+    esperanza = FinalizationState::GetState();
+  }
+
+  esperanza::Result res = esperanza->ValidateVote(
+      CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
+
+  if (res != +esperanza::Result::SUCCESS) {
+    return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
+  }
+
+  // We keep the check for the prev at the end because is the most expensive
+  // check (potentially goes to disk) and there is a good chance that if the
+  // vote is not valid (i.e. outdated) then the function will return before
+  // reaching this point.
   CTransactionRef prevTx;
   uint256 blockHash;
-
   // We have to look into the tx database to find the prev deposit, hence the
   // use of fAllowSlow = true
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
@@ -79,20 +110,6 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
     return state.DoS(10, false, REJECT_INVALID,
                      "bad-vote-not-same-payvoteslash-script");
-  }
-
-  esperanza::FinalizationState *esperanza = nullptr;
-  if (pindex != nullptr) {
-    esperanza = esperanza::FinalizationState::GetState(*pindex);
-  } else {
-    esperanza = esperanza::FinalizationState::GetState();
-  }
-
-  esperanza::Result res = esperanza->ValidateVote(
-      CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
-
-  if (res != +esperanza::Result::SUCCESS) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
   }
 
   return true;

@@ -204,8 +204,6 @@ void BlockAssembler::AddVoteTxs()
               LogPrint(BCLog::ESPERANZA, "%s: Add vote with id %s to a new block.\n",
                        __func__,
                        mi->GetTx().GetHash().GetHex());
-            } else {
-              mempool.removeRecursive(mi->GetTx(), MemPoolRemovalReason::OUTDATED_VOTE);
             }
         }
         ++mi;

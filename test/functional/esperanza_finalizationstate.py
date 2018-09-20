@@ -75,7 +75,7 @@ def generate_block(node):
             return
         except JSONRPCException as exp:
             i += 1
-            print("error generating block: " + exp.error)
+            print("error generating block: " + str(exp.error))
     raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 
@@ -95,34 +95,38 @@ class ExpiredVoteTest(UnitETestFramework):
     def setup_network(self):
         self.setup_nodes()
 
-        # create a connection v0 -> p1 <- p2
+        # create a connection v1 -> p1 <- p2
         connect_nodes_bi(self.nodes, 0, 2)
         connect_nodes_bi(self.nodes, 1, 2)
 
     def run_test(self):
-        nodes = self.nodes
+        p1 = self.nodes[0]
+        p2 = self.nodes[1]
+        v1 = self.nodes[2]
 
-        setup_deposit(self, [nodes[2]])
+        setup_deposit(self, [v1])
+        sync_blocks(self.nodes[0:2])
 
         # generate a votable epoch
         for n in range(0, 10):
-            generate_block(nodes[0])
+            generate_block(p1)
 
-        assert (nodes[0].getblockchaininfo()['blocks'] == 150)
+        assert (p1.getblockchaininfo()['blocks'] == 150)
+        sync_blocks(self.nodes[0:2])
 
-        # Disconnect immediately one proposer. A vote not yet included in blocks
+        # Disconnect immediately p1 proposer. A vote not yet included in blocks
         # should now reach the p2 that will accept it.
-        disconnect_nodes(nodes[0], 2)
-        disconnect_nodes(nodes[0], 1)
+        disconnect_nodes(p1, 2)
+        disconnect_nodes(p1, 1)
 
         # wait for the vote to be propagated to p2
-        time.sleep(5)
+        sync_mempools([p2, v1])
 
         # Mine another epoch while disconnected p1.
         for n in range(0, 10):
-            generate_block(nodes[0])
+            generate_block(p1)
 
-        assert (nodes[0].getblockchaininfo()['blocks'] == 160)
+        assert (p1.getblockchaininfo()['blocks'] == 160)
 
         # connect again and wait for sync
         connect_nodes_bi(self.nodes, 0, 2)
@@ -131,14 +135,13 @@ class ExpiredVoteTest(UnitETestFramework):
 
         # now p2 should propose but the vote he has in the mempool is
         # not valid anymore.
-        generate_block(nodes[1])
+        generate_block(p2)
         sync_blocks(self.nodes[0:2])
 
-        assert(nodes[0].getblockchaininfo()['blocks'] == 161)
+        # make sure that the expired vote has been removed from the mempool as well
+        assert (len(p2.getrawmempool()) == 0)
 
-        print("Test succeeded.")
-
-        return
+        assert(p2.getblockchaininfo()['blocks'] == 161)
 
 
 if __name__ == '__main__':
