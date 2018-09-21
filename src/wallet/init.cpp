@@ -13,6 +13,7 @@
 #include <wallet/rpcmnemonic.h>
 #include <wallet/rpcvalidator.h>
 #include <wallet/rpcwallet.h>
+#include <wallet/rpcwalletext.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 
@@ -209,6 +210,7 @@ void RegisterWalletRPC(CRPCTable &t)
     RegisterMnemonicRPCCommands(t);
     RegisterValidatorRPCCommands(t);
     RegisterAddressbookRPCCommands(t);
+    RegisterWalletextRPCCommands(t);
 }
 
 bool VerifyWallets()
