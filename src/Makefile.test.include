@@ -51,6 +51,7 @@ UNITE_TESTS =\
   test/esperanza/adminstate_tests.cpp \
   test/esperanza/finalizationstate_tests.cpp \
   test/esperanza/finalizationparams_tests.cpp \
+  test/esperanza/validation_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
   test/interpreter_tests.cpp \

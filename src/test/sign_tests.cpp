@@ -10,7 +10,7 @@
 
 BOOST_FIXTURE_TEST_SUITE(sign_tests, ReducedTestingSetup)
 
-BOOST_AUTO_TEST_CASE(producesignature_vote_witness) {
+BOOST_AUTO_TEST_CASE(producesignature_vote) {
   SeedInsecureRand();
   CBasicKeyStore keystore;
 
@@ -43,12 +43,20 @@ BOOST_AUTO_TEST_CASE(producesignature_vote_witness) {
                        prevScriptPubKey, sigdata, &txToConst));
 
   ScriptError serror;
-  BOOST_CHECK(VerifyScript(
-      sigdata.scriptSig, prevScriptPubKey, &sigdata.scriptWitness,
-      STANDARD_SCRIPT_VERIFY_FLAGS,
-      TransactionSignatureChecker(&txToConst, 0, amount), &serror));
+  BOOST_CHECK(VerifyScript(sigdata.scriptSig, prevScriptPubKey,
+                           &sigdata.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS,
+                           TransactionSignatureChecker(&txToConst, 0, amount),
+                           &serror));
 
   BOOST_CHECK_EQUAL(SCRIPT_ERR_OK, serror);
+
+  esperanza::Vote signedVote =
+      CScript::ExtractVoteFromSignature(sigdata.scriptSig);
+
+  BOOST_CHECK_EQUAL(vote.m_validatorIndex, signedVote.m_validatorIndex);
+  BOOST_CHECK_EQUAL(vote.m_targetHash, signedVote.m_targetHash);
+  BOOST_CHECK_EQUAL(vote.m_sourceEpoch, signedVote.m_sourceEpoch);
+  BOOST_CHECK_EQUAL(vote.m_targetEpoch, signedVote.m_targetEpoch);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

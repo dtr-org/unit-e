@@ -1506,17 +1506,24 @@ BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
 BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
 {
     std::string signature = "304402204b9bb63f9b055a7d82841f064167df5d9b774f91a5d76eb807559a03f51dc39f02203af15ccb70a77801afdac05ef1723b07a59da9d3b19a4ced37e53cdc9a0db1bc01";
-    std::string encodedVote = "20e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1205abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912010a0164";
-    std::string depositTx = "e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1";
+    std::string validatorId = "e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1";
     std::string targetHash = "5abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912";
     uint32_t sourceHeight = 10;
     uint32_t targetHeight = 100;
 
-    CScript s = CScript() << ParseHex(signature) << ParseHex(encodedVote);
+    esperanza::Vote vote{uint256(ParseHex(validatorId)),
+                   uint256(ParseHex(targetHash)),
+                   sourceHeight,
+                   targetHeight};
+
+    CScript encodedVote = CScript::EncodeVote(vote);
+    std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
+
+    CScript s = (CScript() << ParseHex(signature)) << voteVector;
 
     esperanza::Vote decodeData = CScript::ExtractVoteFromSignature(s);
 
-    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), depositTx);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorId);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
@@ -1525,19 +1532,26 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
 BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
 {
     std::string signature = "304402204b9bb63f9b055a7d82841f064167df5d9b774f91a5d76eb807559a03f51dc39f02203af15ccb70a77801afdac05ef1723b07a59da9d3b19a4ced37e53cdc9a0db1bc01";
-    std::string encodedVote = "20e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1205abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912010a0164";
-    std::string depositTx = "e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1";
+    std::string validatorId = "e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1";
     std::string targetHash = "5abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912";
     uint32_t sourceHeight = 10;
     uint32_t targetHeight = 100;
 
+    esperanza::Vote vote{uint256(ParseHex(validatorId)),
+                         uint256(ParseHex(targetHash)),
+                         sourceHeight,
+                         targetHeight};
+
+    CScript encodedVote = CScript::EncodeVote(vote);
+    std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
+
     CScriptWitness s;
     s.stack.push_back(ParseHex(signature));
-    s.stack.push_back(ParseHex(encodedVote));
+    s.stack.push_back(voteVector);
 
     esperanza::Vote decodeData = CScript::ExtractVoteFromWitness(s);
 
-    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), depositTx);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorId);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);

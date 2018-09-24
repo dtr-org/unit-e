@@ -374,9 +374,9 @@ esperanza::Vote CScript::DecodeVote(const CScript &script)
     CScript::const_iterator it = script.begin();
     opcodetype opcode;
 
-    std::vector<unsigned char> deposit;
-    script.GetOp(it, opcode, deposit);
-    uint256 depositTx(deposit);
+    std::vector<unsigned char> validator;
+    script.GetOp(it, opcode, validator);
+    uint256 validatorIndex(validator);
 
     std::vector<unsigned char> target;
     script.GetOp(it, opcode, target);
@@ -394,7 +394,7 @@ esperanza::Vote CScript::DecodeVote(const CScript &script)
     for (size_t i = 0; i < targetEpochVec.size(); i++) {
         targetEpoch |= targetEpochVec[i] << 8*i;
     }
-    vote.m_validatorIndex = depositTx;
+    vote.m_validatorIndex = validatorIndex;
     vote.m_targetHash = targetHash;
     vote.m_sourceEpoch = sourceEpoch;
     vote.m_targetEpoch = targetEpoch;
@@ -430,10 +430,8 @@ esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig)
     //Skip the first value (voteSig)
     scriptSig.GetOp(pc, opcode);
 
-    while (pc != scriptSig.end()) {
-        scriptSig.GetOp(pc, opcode, vData);
-    }
-
+    //Unpack the vote
+    scriptSig.GetOp(pc, opcode, vData);
     CScript voteScript(vData.begin(), vData.end());
     return DecodeVote(voteScript);
 }
