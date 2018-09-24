@@ -921,17 +921,21 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
 
 int CTxMemPool::ExpireVotes() {
   LOCK(cs);
-  CTxMemPool::indexed_transaction_set::index<ancestor_score>::type::iterator it = mempool.mapTx.get<ancestor_score>().begin();
+  auto it = mempool.mapTx.get<ancestor_score>().begin();
 
-  setEntries stage;
+  setEntries toremove;
   while (it != mapTx.get<ancestor_score>().end()) {
 
     if (it->GetTx().IsVote()) {
       if(esperanza::IsVoteExpired(it->GetTx())) {
-          mapTx.project<0>(it);
+          toremove.insert(mapTx.project<0>(it));
       }
     }
     ++it;
+  }
+  setEntries stage;
+  for (txiter removeit : toremove) {
+      CalculateDescendants(removeit, stage);
   }
   RemoveStaged(stage, false, MemPoolRemovalReason::OUTDATED_VOTE);
   return stage.size();
