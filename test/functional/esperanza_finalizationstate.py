@@ -75,7 +75,7 @@ def generate_block(node):
             return
         except JSONRPCException as exp:
             i += 1
-            print("error generating block: " + str(exp.error))
+            print("error generating block: ", exp.error)
     raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 
