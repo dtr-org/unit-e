@@ -13,36 +13,36 @@
 
 namespace esperanza {
 
-bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
+bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const CBlockIndex *pindex) {
   if (tx.vin.empty() || tx.vout.empty()) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
   }
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return state.DoS(10, false, REJECT_INVALID,
+    return errState.DoS(10, false, REJECT_INVALID,
                      "bad-deposit-vout-script-invalid-payvoteslash");
   }
 
   std::vector<std::vector<unsigned char>> vSolutions;
   txnouttype typeRet;
   if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-    return state.DoS(10, false, REJECT_INVALID,
+    return errState.DoS(10, false, REJECT_INVALID,
                      "bad-deposit-script-not-solvable");
   }
 
-  FinalizationState *esperanza = nullptr;
+  FinalizationState *state = nullptr;
   if (pindex != nullptr) {
-    esperanza = FinalizationState::GetState(*pindex);
+    state = FinalizationState::GetState(*pindex);
   } else {
-    esperanza = FinalizationState::GetState();
+    state = FinalizationState::GetState();
   }
 
   esperanza::Result res =
-      esperanza->ValidateDeposit(tx.GetHash(), tx.GetValueOut());
+      state->ValidateDeposit(tx.GetHash(), tx.GetValueOut());
 
   if (res != +esperanza::Result::SUCCESS) {
-    return state.DoS(10, false, REJECT_INVALID,
+    return errState.DoS(10, false, REJECT_INVALID,
                      "bad-deposit-invalid-esperanza");
   }
 
@@ -58,34 +58,34 @@ bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
 bool IsVoteExpired(const CTransaction &tx) {
 
   Vote vote = CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig);
-  FinalizationState *esperanza = FinalizationState::GetState();
+  FinalizationState *state = FinalizationState::GetState();
 
-  return vote.m_targetEpoch <= esperanza->GetLastFinalizedEpoch();
+  return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
 }
 
-bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
+bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const CBlockIndex *pindex) {
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
   }
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return state.DoS(10, false, REJECT_INVALID,
+    return errState.DoS(10, false, REJECT_INVALID,
                      "bad-vote-vout-script-invalid-payvoteslash");
   }
 
-  FinalizationState *esperanza = nullptr;
+  FinalizationState *state = nullptr;
   if (pindex != nullptr) {
-    esperanza = FinalizationState::GetState(*pindex);
+    state = FinalizationState::GetState(*pindex);
   } else {
-    esperanza = FinalizationState::GetState();
+    state = FinalizationState::GetState();
   }
 
-  esperanza::Result res = esperanza->ValidateVote(
+  esperanza::Result res = state->ValidateVote(
       CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
 
   if (res != +esperanza::Result::SUCCESS) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -98,17 +98,17 @@ bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
   // use of fAllowSlow = true
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
                       blockHash, true)) {
-    return state.DoS(10, false, REJECT_INVALID,
+    return errState.DoS(10, false, REJECT_INVALID,
                      "bad-vote-no-prev-deposit-found");
   }
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
-    return state.DoS(10, false, REJECT_INVALID,
+    return errState.DoS(10, false, REJECT_INVALID,
                      "bad-vote-prev-not-deposit-or-deposit");
   }
 
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
-    return state.DoS(10, false, REJECT_INVALID,
+    return errState.DoS(10, false, REJECT_INVALID,
                      "bad-vote-not-same-payvoteslash-script");
   }
 
