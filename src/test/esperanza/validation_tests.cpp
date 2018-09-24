@@ -9,24 +9,6 @@
 
 using namespace esperanza;
 
-const FinalizationParams params{};
-
-class FinalizationStateSpy : public FinalizationState {
- public:
-  FinalizationStateSpy() : FinalizationState(params) {}
-
-  int64_t EPOCH_LENGTH() const { return FinalizationState::EPOCH_LENGTH; }
-  CAmount MIN_DEPOSIT_SIZE() const {
-    return FinalizationState::MIN_DEPOSIT_SIZE;
-  }
-
-  uint256 *RecommendedTargetHash() { return &m_recommendedTargetHash; }
-
-  using FinalizationState::InitializeEpoch;
-  using FinalizationState::ProcessDeposit;
-  using FinalizationState::ValidateDeposit;
-};
-
 CTransaction CreateVoteTx(Vote &vote) {
   CMutableTransaction mutTx;
   mutTx.SetType(TxType::VOTE);
@@ -46,6 +28,9 @@ CTransaction CreateVoteTx(Vote &vote) {
   return CTransaction{mutTx};
 }
 
+const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
+const int64_t EPOCH_LENGTH = 5;
+
 BOOST_FIXTURE_TEST_SUITE(esperanza_validation_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(isvoteexpired) {
@@ -53,15 +38,14 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
   FinalizationState *esperanza = FinalizationState::GetState();
 
   uint256 validatorIndex = GetRandHash();
-  CAmount depositSize = params.m_minDepositSize;
 
-  BOOST_CHECK(esperanza->ValidateDeposit(validatorIndex, depositSize) ==
+  BOOST_CHECK(esperanza->ValidateDeposit(validatorIndex, MIN_DEPOSIT_SIZE) ==
               +Result::SUCCESS);
-  esperanza->ProcessDeposit(validatorIndex, depositSize);
+  esperanza->ProcessDeposit(validatorIndex, MIN_DEPOSIT_SIZE);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
   for (int i = 1; i < 6; i++) {
-    BOOST_CHECK(esperanza->InitializeEpoch(i * params.m_epochLength) ==
+    BOOST_CHECK(esperanza->InitializeEpoch(i * EPOCH_LENGTH) ==
                 +Result::SUCCESS);
   }
 
