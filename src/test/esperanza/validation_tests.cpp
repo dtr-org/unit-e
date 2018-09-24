@@ -1,11 +1,11 @@
-#include <boost/test/unit_test.hpp>
-#include <boost/test/unit_test_log.hpp>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/validation.h>
 #include <random.h>
+#include <script/script.h>
 #include <test/test_unite.h>
 #include <util.h>
-#include <script/script.h>
+#include <boost/test/unit_test.hpp>
+#include <boost/test/unit_test_log.hpp>
 
 using namespace esperanza;
 
@@ -16,9 +16,11 @@ class FinalizationStateSpy : public FinalizationState {
   FinalizationStateSpy() : FinalizationState(params) {}
 
   int64_t EPOCH_LENGTH() const { return FinalizationState::EPOCH_LENGTH; }
-  CAmount MIN_DEPOSIT_SIZE() const { return FinalizationState::MIN_DEPOSIT_SIZE; }
+  CAmount MIN_DEPOSIT_SIZE() const {
+    return FinalizationState::MIN_DEPOSIT_SIZE;
+  }
 
-  uint256* RecommendedTargetHash() { return &m_recommendedTargetHash; }
+  uint256 *RecommendedTargetHash() { return &m_recommendedTargetHash; }
 
   using FinalizationState::InitializeEpoch;
   using FinalizationState::ProcessDeposit;

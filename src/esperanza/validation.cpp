@@ -21,14 +21,14 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                     "bad-deposit-vout-script-invalid-payvoteslash");
+                        "bad-deposit-vout-script-invalid-payvoteslash");
   }
 
   std::vector<std::vector<unsigned char>> vSolutions;
   txnouttype typeRet;
   if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                     "bad-deposit-script-not-solvable");
+                        "bad-deposit-script-not-solvable");
   }
 
   FinalizationState *state = nullptr;
@@ -43,7 +43,7 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 
   if (res != +esperanza::Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
-                     "bad-deposit-invalid-esperanza");
+                        "bad-deposit-invalid-esperanza");
   }
 
   return true;
@@ -71,7 +71,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                     "bad-vote-vout-script-invalid-payvoteslash");
+                        "bad-vote-vout-script-invalid-payvoteslash");
   }
 
   FinalizationState *state = nullptr;
@@ -85,7 +85,8 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
       CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
 
   if (res != +esperanza::Result::SUCCESS) {
-    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-vote-invalid-esperanza");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -99,17 +100,17 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
                       blockHash, true)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                     "bad-vote-no-prev-deposit-found");
+                        "bad-vote-no-prev-deposit-found");
   }
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
     return errState.DoS(10, false, REJECT_INVALID,
-                     "bad-vote-prev-not-deposit-or-deposit");
+                        "bad-vote-prev-not-deposit-or-deposit");
   }
 
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
     return errState.DoS(10, false, REJECT_INVALID,
-                     "bad-vote-not-same-payvoteslash-script");
+                        "bad-vote-not-same-payvoteslash-script");
   }
 
   return true;
