@@ -50,7 +50,7 @@ def setup_deposit(self, nodes):
     # wait for coinbase maturity
     for n in range(0, 120):
         generate_block(nodes[0])
-    assert (nodes[0].getblockchaininfo()['blocks'] == 120)
+    assert_equal(nodes[0].getblockchaininfo()['blocks'], 120)
 
     sync_blocks(self.nodes[0:len(nodes)])
 
@@ -62,7 +62,7 @@ def setup_deposit(self, nodes):
     for n in range(0, 20):
         generate_block(nodes[0])
 
-    assert (nodes[0].getblockchaininfo()['blocks'] == 140)
+    assert_equal(nodes[0].getblockchaininfo()['blocks'], 140)
 
 
 def generate_block(node):
@@ -111,7 +111,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 10):
             generate_block(p1)
 
-        assert (p1.getblockchaininfo()['blocks'] == 150)
+        assert (p1.getblockchaininfo()['blocks'], 150)
         sync_blocks(self.nodes[0:2])
 
         # Disconnect immediately p1 proposer. A vote not yet included in blocks
@@ -126,7 +126,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 10):
             generate_block(p1)
 
-        assert (p1.getblockchaininfo()['blocks'] == 160)
+        assert_equal(p1.getblockchaininfo()['blocks'], 160)
 
         # connect again and wait for sync
         connect_nodes_bi(self.nodes, 0, 2)
@@ -139,9 +139,9 @@ class ExpiredVoteTest(UnitETestFramework):
         sync_blocks(self.nodes[0:2])
 
         # make sure that the expired vote has been removed from the mempool as well
-        assert (len(p2.getrawmempool()) == 0)
+        assert_equal(len(p2.getrawmempool()), 0)
 
-        assert(p2.getblockchaininfo()['blocks'] == 161)
+        assert_equal(p2.getblockchaininfo()['blocks'], 161)
 
 
 if __name__ == '__main__':
