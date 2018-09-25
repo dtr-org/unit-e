@@ -8,6 +8,7 @@ from test_framework.util import connect_nodes_bi
 from test_framework.util import disconnect_nodes
 from test_framework.util import wait_until
 from test_framework.test_framework import UnitETestFramework
+from test_framework.admin import Admin
 
 block_time = 1
 master_keys = ['swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready',
@@ -66,11 +67,16 @@ def setup_deposit(self, nodes):
         assert_equal(n.getbalance(), 10000)
 
     # wait for coinbase maturity
-    for n in range(0, 120):
+    for n in range(0, 119):
         generate_block(nodes[0])
+
+    # generates 1 more block
+    Admin.authorize_and_disable(self, nodes[0])
 
     assert_equal(nodes[0].getblockchaininfo()['blocks'], 120)
     sync_blocks(self.nodes[0:len(nodes)])
+
+    assert (nodes[0].getblockchaininfo()['blocks'] == 120)
 
     for n in nodes:
         deptx = n.deposit(n.new_address, 1500)

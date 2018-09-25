@@ -5,6 +5,7 @@ from test_framework.util import sync_blocks
 from test_framework.util import time
 from test_framework.util import JSONRPCException
 from test_framework.test_framework import UnitETestFramework
+from test_framework.admin import Admin
 
 
 class EsperanzaVoteTest(UnitETestFramework):
@@ -52,10 +53,13 @@ class EsperanzaVoteTest(UnitETestFramework):
         assert(all(nodes[i].getbalance() == 10000 for i in range(0, 4)))
 
         # wait for coinbase maturity
-        for n in range(0, 120):
+        for n in range(0, 119):
             self.generate_block(nodes[0])
 
         sync_blocks(self.nodes)
+
+        # generates 1 more block
+        Admin.authorize_and_disable(self, nodes[0])
 
         deptx1 = nodes[1].deposit(address1, 1500)
         deptx2 = nodes[2].deposit(address2, 2000)
