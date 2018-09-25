@@ -91,6 +91,7 @@ class FinalizationState {
   std::vector<Validator> GetValidators() const;
 
   static void Init(const esperanza::FinalizationParams& params);
+  static void Reset(const esperanza::FinalizationParams& params);
 
   static FinalizationState* GetState(const CBlockIndex& block);
   static FinalizationState* GetState();

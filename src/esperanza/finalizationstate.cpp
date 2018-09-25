@@ -850,6 +850,10 @@ void FinalizationState::Init(const esperanza::FinalizationParams &params) {
   }
 }
 
+void FinalizationState::Reset(const esperanza::FinalizationParams &params) {
+  esperanzaState = std::make_shared<FinalizationState>(params);
+}
+
 /**
  * This method should encapsulate all the logic necessary to make the esperanza
  * state progress by one block.

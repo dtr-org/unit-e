@@ -29,7 +29,7 @@ CTransaction CreateVoteTx(Vote &vote) {
 }
 
 const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
-const int64_t EPOCH_LENGTH = 5;
+const int64_t EPOCH_LENGTH = 50;
 
 BOOST_FIXTURE_TEST_SUITE(esperanza_validation_tests, TestingSetup)
 
