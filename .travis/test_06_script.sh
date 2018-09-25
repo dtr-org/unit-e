@@ -36,7 +36,9 @@ make $MAKEJOBS $GOAL || ( echo "Build failure. Verbose build follows." && make $
 export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/depends/$HOST/lib
 
 if [ "$RUN_TESTS" = "true" ]; then
-  travis_wait 30 make $MAKEJOBS check VERBOSE=1
+  while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
+  make $MAKEJOBS check VERBOSE=1
+  kill %1
 fi
 
 if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
