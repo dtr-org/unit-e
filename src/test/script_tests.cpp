@@ -1543,4 +1543,30 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
 }
 
+BOOST_AUTO_TEST_CASE(extract_admin_command_from_witness)
+{
+    std::string signature1 = "304402206acc44d797f424a2875c90dec3e82c55fca0275cb5e4d4b04f1462ee8377ac3c02206bc51ad98f22de5dbbd9d81ec9c4fb8d0ffffb7b29d0467effa13062a71190cd01";
+    std::string signature2 = "304402202dc4b972c10d517a86ec56b6584071b406f5ad8c892098530dcc06dcc96a28370220092841c527c9878c84b1afe36ccd0e2fcd061f2a0e2cdbfc40c32994a8c51cdd01";
+    std::string data = "5221038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e82102f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa2103d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c53ae";
+
+    CScriptWitness witness;
+    witness.stack.push_back({});
+    witness.stack.push_back(ParseHex(signature1));
+    witness.stack.push_back(ParseHex(signature2));
+    witness.stack.push_back(ParseHex(data));
+
+    std::vector<CPubKey> keys;
+
+    BOOST_CHECK(CScript::ExtractAdminKeysFromWitness(witness, keys));
+    BOOST_CHECK_EQUAL(3, keys.size());
+
+    std::string key0 = "038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e8";
+    std::string key1 = "02f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa";
+    std::string key2 = "03d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c";
+
+    BOOST_CHECK_EQUAL(key0, HexStr(keys[0]));
+    BOOST_CHECK_EQUAL(key1, HexStr(keys[1]));
+    BOOST_CHECK_EQUAL(key2, HexStr(keys[2]));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -437,3 +437,47 @@ esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig)
     CScript voteScript(vData.begin(), vData.end());
     return DecodeVote(voteScript);
 }
+
+bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
+                                          std::vector<CPubKey> &outKeys)
+{
+    // stack is expected to look like:
+    // empty
+    // signature
+    // ...
+    // signature
+    // <OP_N> <PubKey> ... <PubKey> <OP_M> <OP_CHECKMULTISIG>
+
+    if (witness.stack.size() < 2) {
+        return false;
+    }
+
+    opcodetype opcode;
+    std::vector<uint8_t> buffer;
+
+    const auto &witnessBack = witness.stack.back();
+    CScript script(witnessBack.begin(), witnessBack.end());
+    CScript::const_iterator it = script.begin();
+
+    // Ignore OP_N
+    if (!script.GetOp(it, opcode)) {
+        return false;
+    }
+
+    while (script.GetOp(it, opcode, buffer)) {
+        if (buffer.size() == CPubKey::COMPRESSED_PUBLIC_KEY_SIZE) {
+            CPubKey key;
+            key.Set(buffer.begin(), buffer.end());
+            outKeys.emplace_back(key);
+        } else {
+            // It is either OP_M or something invalid
+            break;
+        }
+    }
+
+    if (!script.GetOp(it, opcode) || opcode != OP_CHECKMULTISIG) {
+        return false;
+    }
+
+    return it == script.end();
+}
