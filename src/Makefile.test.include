@@ -47,6 +47,7 @@ UNITE_TESTS =\
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
   test/DoS_tests.cpp \
+  test/esperanza/admincommand_tests.cpp \
   test/esperanza/finalizationstate_tests.cpp \
   test/esperanza/finalizationparams_tests.cpp \
   test/getarg_tests.cpp \
