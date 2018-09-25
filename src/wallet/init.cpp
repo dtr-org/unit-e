@@ -10,6 +10,7 @@
 #include <utilmoneystr.h>
 #include <validation.h>
 #include <wallet/rpcaddressbook.h>
+#include <wallet/rpcadmin.h>
 #include <wallet/rpcmnemonic.h>
 #include <wallet/rpcvalidator.h>
 #include <wallet/rpcwallet.h>
@@ -209,6 +210,7 @@ void RegisterWalletRPC(CRPCTable &t)
     RegisterWalletRPCCommands(t);
     RegisterMnemonicRPCCommands(t);
     RegisterValidatorRPCCommands(t);
+    RegisterAdminRPCCommands(t);
     RegisterAddressbookRPCCommands(t);
     RegisterWalletextRPCCommands(t);
 }
