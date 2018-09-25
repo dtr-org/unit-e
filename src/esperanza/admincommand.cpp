@@ -10,7 +10,7 @@ namespace esperanza {
 
 AdminCommand::AdminCommand(const AdminCommandType &command_type,
                            const std::vector<CPubKey> &pubkeys)
-    : m_command_type(command_type), m_pubkeys(pubkeys) {}
+    : m_command_type(command_type), m_payload(pubkeys) {}
 
 AdminCommand::AdminCommand()
     : m_command_type(AdminCommandType::REMOVE_FROM_WHITELIST) {}
@@ -18,15 +18,19 @@ AdminCommand::AdminCommand()
 bool AdminCommand::IsValid() const {
   switch (m_command_type) {
     case AdminCommandType::END_PERMISSIONING:
-      return m_pubkeys.empty();
+      // END_PERMISSIONING command should not carry any payload
+      return m_payload.empty();
     case AdminCommandType::ADD_TO_WHITELIST:
     case AdminCommandType::REMOVE_FROM_WHITELIST:
-      if (m_pubkeys.empty()) {
+      // Both ADD_TO_WHITELIST and REMOVE_FROM_WHITELIST
+      // should have non-empty payload
+      if (m_payload.empty()) {
         return false;
       }
       break;
     case AdminCommandType::RESET_ADMINS:
-      if (m_pubkeys.size() != ADMIN_MULTISIG_KEYS) {
+      // There must be exactly ADMIN_MULTISIG_KEYS admin public keys
+      if (m_payload.size() != ADMIN_MULTISIG_KEYS) {
         return false;
       }
       break;
@@ -34,7 +38,7 @@ bool AdminCommand::IsValid() const {
       return false;
   }
 
-  for (const auto &key : m_pubkeys) {
+  for (const auto &key : m_payload) {
     if (!key.IsValid() || !key.IsCompressed()) {
       return false;
     }
@@ -44,8 +48,8 @@ bool AdminCommand::IsValid() const {
 
 AdminCommandType AdminCommand::GetCommandType() const { return m_command_type; }
 
-const std::vector<CPubKey> &AdminCommand::GetPubkeys() const {
-  return m_pubkeys;
+const std::vector<CPubKey> &AdminCommand::GetPayload() const {
+  return m_payload;
 }
 
 CScript EncodeAdminCommand(const AdminCommand &command) {

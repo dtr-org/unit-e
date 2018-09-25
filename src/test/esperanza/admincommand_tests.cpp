@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(encode_decode_script_test) {
   BOOST_CHECK(TryDecodeAdminCommand(script, dstCommand));
 
   BOOST_CHECK_EQUAL(srcCommand.GetCommandType(), dstCommand.GetCommandType());
-  BOOST_CHECK(srcCommand.GetPubkeys() == dstCommand.GetPubkeys());
+  BOOST_CHECK(srcCommand.GetPayload() == dstCommand.GetPayload());
 }
 
 BOOST_AUTO_TEST_CASE(decode_trimmed_script_test) {

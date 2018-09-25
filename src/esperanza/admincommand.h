@@ -34,21 +34,26 @@ class AdminCommand {
 
   AdminCommandType GetCommandType() const;
 
-  const std::vector<CPubKey> &GetPubkeys() const;
+  //! Depending on AdminCommandType it has different meaning
+  //! ADD_TO_WHITELIST - validator public keys to whitelist
+  //! REMOVE_FROM_WHITELIST - validator public keys to remove from whitelist
+  //! RESET_ADMINS - ADMIN_MULTISIG_KEYS new administrator public keys.
+  //! END_PERMISSIONING - should be empty
+  const std::vector<CPubKey> &GetPayload() const;
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(FLATDATA(m_command_type));
-    READWRITE(m_pubkeys);
+    READWRITE(m_payload);
   }
 
   bool IsValid() const;
 
  private:
   AdminCommandType m_command_type;
-  std::vector<CPubKey> m_pubkeys;
+  std::vector<CPubKey> m_payload;
 };
 
 bool TryDecodeAdminCommand(const CScript &script,
