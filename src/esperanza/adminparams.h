@@ -17,10 +17,7 @@ static constexpr size_t ADMIN_MULTISIG_KEYS = 3;
 
 using AdminKeySet = std::array<CPubKey, ADMIN_MULTISIG_KEYS>;
 
-/*!
- * \brief Esperanza Permissioning-specific blockchain parameters.
- * Used to hardcode admin keys and validator whitelist at given block
- */
+//! \brief Esperanza Permissioning-specific blockchain parameters
 struct AdminParams {
   std::map<int, AdminKeySet> m_blockToAdminKeys;
   std::map<int, std::vector<uint256>> m_blockToWhiteList;

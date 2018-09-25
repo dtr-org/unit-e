@@ -16,12 +16,12 @@
 
 namespace esperanza {
 
-/*!
- * \brief Represents current administration state:
- * - Validator whitelist
- * - Current administrator keys
- * - Whether permissioing era is over
- */
+//! \brief Represents current administration state
+//!
+//! State includes:
+//! - Validator whitelist
+//! - Current administrator keys
+//! - Whether permissioing era is over
 class AdminState {
   AdminKeySet m_adminPubKeys;
   std::set<uint256> m_whiteList;
