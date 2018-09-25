@@ -9,7 +9,7 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <serialize.h>
-#include <cstdint>
+#include <stdint.h>
 #include <vector>
 
 namespace esperanza {
