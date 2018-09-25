@@ -26,7 +26,7 @@ const FinalizationParams params{};
 
 class FinalizationStateSpy : public FinalizationState {
  public:
-  FinalizationStateSpy() : FinalizationState(params) {}
+  FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
 
   uint64_t* CurDynDeposits() { return &m_curDynDeposits; }
   uint64_t* PrevDynDeposits() { return &m_prevDynDeposits; }

@@ -7,6 +7,8 @@
 
 #include <better-enums/enum.h>
 #include <chain.h>
+#include <esperanza/admincommand.h>
+#include <esperanza/adminstate.h>
 #include <esperanza/checkpoint.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/validator.h>
@@ -45,7 +47,9 @@ BETTER_ENUM(
   SLASH_TOO_EARLY,
   SLASH_ALREADY_SLASHED,
   SLASH_NOT_VALID,
-  SLASH_NOT_A_VALIDATOR
+  SLASH_NOT_A_VALIDATOR,
+  ADMIN_BLACKLISTED,
+  ADMIN_NOT_AUTHORIZED
 )
 // clang-format on
 
@@ -56,7 +60,7 @@ BETTER_ENUM(
  */
 class FinalizationStateData {
  protected:
-  FinalizationStateData() = default;
+  FinalizationStateData(const AdminParams &adminParams);
   FinalizationStateData(const FinalizationStateData &) = default;
   FinalizationStateData(FinalizationStateData &&) = default;
   ~FinalizationStateData() = default;
@@ -132,6 +136,8 @@ class FinalizationStateData {
 
   // Reward for voting as fraction of deposit size
   ufp64::ufp64_t m_rewardFactor = 0;
+
+  AdminState m_adminState;
 };
 
 /**
@@ -140,7 +146,8 @@ class FinalizationStateData {
  */
 class FinalizationState : public FinalizationStateData {
  public:
-  FinalizationState(const esperanza::FinalizationParams &params);
+  FinalizationState(const esperanza::FinalizationParams &params,
+                    const esperanza::AdminParams &adminParams);
   FinalizationState(const FinalizationState &parent);
   FinalizationState(FinalizationState &&) = default;
 
@@ -169,6 +176,10 @@ class FinalizationState : public FinalizationStateData {
   void ProcessSlash(const Vote &vote1, const Vote &vote2,
                     CAmount &slashingBountyOut);
 
+  void OnBlock(int blockHeight);
+  Result ValidateAdminKeys(const AdminKeySet &adminKeys) const;
+  void ProcessAdminCommands(const std::vector<AdminCommand> &commands);
+
   uint32_t GetLastJustifiedEpoch() const;
   uint32_t GetLastFinalizedEpoch() const;
 
@@ -182,8 +193,10 @@ class FinalizationState : public FinalizationStateData {
   std::vector<Validator> GetValidators() const;
   const Validator *GetValidator(const uint256 &validatorIndex) const;
 
-  static void Init(const esperanza::FinalizationParams &params);
-  static void Reset(const esperanza::FinalizationParams &params);
+  static void Init(const esperanza::FinalizationParams &params,
+                   const esperanza::AdminParams &adminParams);
+  static void Reset(const esperanza::FinalizationParams &params,
+                    const esperanza::AdminParams &adminParams);
 
   static FinalizationState *GetState(const CBlockIndex *block = nullptr);
 

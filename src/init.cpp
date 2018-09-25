@@ -1287,7 +1287,8 @@ bool AppInitMain()
         }
     }
 
-    esperanza::FinalizationState::Init(Params().GetFinalization());
+    esperanza::FinalizationState::Init(chainparams.GetFinalization(),
+                                       chainparams.GetAdminParams());
 
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32

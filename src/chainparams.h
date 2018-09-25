@@ -10,6 +10,7 @@
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <protocol.h>
+#include <esperanza/adminparams.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/params.h>
 
@@ -59,6 +60,7 @@ public:
 
     const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
     const esperanza::Params& GetEsperanza() const { return esperanza; }
+    const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
     int GetDefaultPort() const { return nDefaultPort; }
 
@@ -88,6 +90,7 @@ protected:
     Consensus::Params consensus;
     esperanza::Params esperanza = esperanza::Params(this);
     esperanza::FinalizationParams finalization;
+    esperanza::AdminParams adminParams;
     CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
     uint64_t nPruneAfterHeight;
