@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(change_white_list_hard) {
   BOOST_CHECK(!state.IsValidatorAuthorized(validator2));
 }
 
-BOOST_AUTO_TEST_CASE(end_permissioning_soft) {
+BOOST_AUTO_TEST_CASE(end_permissioning) {
   esperanza::AdminParams params = {};
   params.m_blockToAdminKeys.emplace(0, MakeKeySet());
   esperanza::AdminState state(params);
@@ -150,21 +150,6 @@ BOOST_AUTO_TEST_CASE(end_permissioning_soft) {
   BOOST_CHECK(!state.IsValidatorAuthorized(validator));
 
   state.EndPermissioning();
-
-  BOOST_CHECK(state.IsValidatorAuthorized(validator));
-}
-
-BOOST_AUTO_TEST_CASE(end_permissioning_hard) {
-  esperanza::AdminParams params = {};
-  params.m_forceEndAtBlock = 100;
-  params.m_blockToAdminKeys.emplace(0, MakeKeySet());
-  esperanza::AdminState state(params);
-
-  const auto validator = MakePubKey().GetHash();
-
-  BOOST_CHECK(!state.IsValidatorAuthorized(validator));
-
-  state.OnBlock(100);
 
   BOOST_CHECK(state.IsValidatorAuthorized(validator));
 }

@@ -15,11 +15,6 @@ void AdminState::OnBlock(int blockHeight) {
     return;
   }
 
-  if (blockHeight >= m_adminParams.m_forceEndAtBlock) {
-    EndPermissioning();
-    return;
-  }
-
   const auto adminIt = m_adminParams.m_blockToAdminKeys.find(blockHeight);
   if (adminIt != m_adminParams.m_blockToAdminKeys.end()) {
     ResetAdmin(adminIt->second);
