@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ADMINCOMMAND_H
-#define UNITE_ADMINCOMMAND_H
+#ifndef UNITE_ESPERANZA_ADMINCOMMAND_H
+#define UNITE_ESPERANZA_ADMINCOMMAND_H
 
 #include <better-enums/enum.h>
 #include <pubkey.h>
@@ -63,4 +63,4 @@ CScript EncodeAdminCommand(const AdminCommand &command);
 
 }  // namespace esperanza
 
-#endif  // UNITE_ADMINCOMMAND_H
+#endif  // UNITE_ESPERANZA_ADMINCOMMAND_H

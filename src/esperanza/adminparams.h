@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ADMINPARAMS_H
-#define UNITE_ADMINPARAMS_H
+#ifndef UNITE_ESPERANZA_ADMINPARAMS_H
+#define UNITE_ESPERANZA_ADMINPARAMS_H
 
 #include <pubkey.h>
 #include <uint256.h>
@@ -26,4 +26,4 @@ struct AdminParams {
 
 }  // namespace esperanza
 
-#endif  // UNITE_ADMINPARAMS_H
+#endif  // UNITE_ESPERANZA_ADMINPARAMS_H

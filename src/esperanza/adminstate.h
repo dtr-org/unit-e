@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ADMINSTATE_H
-#define UNITE_ADMINSTATE_H
+#ifndef UNITE_ESPERANZA_ADMINSTATE_H
+#define UNITE_ESPERANZA_ADMINSTATE_H
 
 #include <base58.h>
 #include <esperanza/adminparams.h>
@@ -42,4 +42,4 @@ class AdminState {
 
 }  // namespace esperanza
 
-#endif  // UNITE_ADMINSTATE_H
+#endif  // UNITE_ESPERANZA_ADMINSTATE_H
