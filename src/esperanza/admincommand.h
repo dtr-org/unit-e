@@ -56,8 +56,8 @@ class AdminCommand {
   std::vector<CPubKey> m_payload;
 };
 
-bool TryDecodeAdminCommand(const CScript &script,
-                           AdminCommand &outAdminCommand);
+bool DecodeAdminCommand(const CScript &script,
+                        AdminCommand &outAdminCommand);
 
 CScript EncodeAdminCommand(const AdminCommand &command);
 

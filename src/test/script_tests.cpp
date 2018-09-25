@@ -1557,7 +1557,7 @@ BOOST_AUTO_TEST_CASE(extract_admin_command_from_witness)
 
     std::vector<CPubKey> keys;
 
-    BOOST_CHECK(CScript::TryExtractAdminKeysFromWitness(witness, keys));
+    BOOST_CHECK(CScript::ExtractAdminKeysFromWitness(witness, keys));
     BOOST_CHECK_EQUAL(3, keys.size());
 
     std::string key0 = "038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e8";

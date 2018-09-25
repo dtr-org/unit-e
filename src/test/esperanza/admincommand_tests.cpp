@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(encode_decode_script_test) {
 
   CScript script = EncodeAdminCommand(srcCommand);
   esperanza::AdminCommand dstCommand;
-  BOOST_CHECK(TryDecodeAdminCommand(script, dstCommand));
+  BOOST_CHECK(DecodeAdminCommand(script, dstCommand));
 
   BOOST_CHECK_EQUAL(srcCommand.GetCommandType(), dstCommand.GetCommandType());
   BOOST_CHECK(srcCommand.GetPayload() == dstCommand.GetPayload());
@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(decode_trimmed_script_test) {
   for (size_t len = 0; len < validScript.size(); ++len) {
     CScript invalidScript(validScript.begin(), validScript.begin() + len);
     esperanza::AdminCommand command;
-    BOOST_CHECK(!TryDecodeAdminCommand(invalidScript, command));
+    BOOST_CHECK(!DecodeAdminCommand(invalidScript, command));
   }
 }
 
@@ -50,7 +50,7 @@ BOOST_AUTO_TEST_CASE(decode_garbage_test) {
 
   CScript script = CScript() << OP_RETURN << bytes;
   esperanza::AdminCommand command;
-  BOOST_CHECK(!TryDecodeAdminCommand(script, command));
+  BOOST_CHECK(!DecodeAdminCommand(script, command));
 }
 
 BOOST_AUTO_TEST_CASE(decode_garbage_test2) {
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(decode_garbage_test2) {
 
   CScript script = CScript() << OP_RETURN << bytes;
   esperanza::AdminCommand command;
-  BOOST_CHECK(!TryDecodeAdminCommand(script, command));
+  BOOST_CHECK(!DecodeAdminCommand(script, command));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

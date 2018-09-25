@@ -438,8 +438,8 @@ esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig)
     return DecodeVote(voteScript);
 }
 
-bool CScript::TryExtractAdminKeysFromWitness(const CScriptWitness &witness,
-                                             std::vector<CPubKey> &outKeys)
+bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
+                                          std::vector<CPubKey> &outKeys)
 {
     // stack is expected to look like:
     // empty
