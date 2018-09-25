@@ -124,6 +124,7 @@ class ExpiredVoteTest(UnitETestFramework):
 
         # Disconnect immediately p0 proposer. A vote not yet included in blocks
         # should now reach the p1 that will accept it.
+        assert_equal(len(p0.getpeerinfo()), 2)
         disconnect_nodes(p0, 2)
         disconnect_nodes(p0, 1)
 

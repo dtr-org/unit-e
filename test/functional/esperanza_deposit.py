@@ -58,8 +58,6 @@ class EsperanzaDepositTest(UnitETestFramework):
         # mine some blocks to allow the deposit to get included in a block
         for n in range(0, 10):
             self.generate_block(nodes[(n % 3) + 1])
-            sync_blocks(self.nodes[0:3])
-            time.sleep(block_time)
 
         sync_blocks(self.nodes[0:3])
 
