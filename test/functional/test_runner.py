@@ -129,6 +129,7 @@ BASE_SCRIPTS= [
     'feature_spend_genesis.py',
     'rpc_filtertransactions.py',
     'feature_nulldummy.py',
+    'rpc_sendtypeto.py',
     'wallet_import_rescan.py',
     'mining_basic.py',
     'wallet_bumpfee.py',

@@ -149,6 +149,10 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "filteraddresses", 1, "count" },
     { "filteraddresses", 2, "sort_code" },
     { "filteraddresses", 4, "match_owned" },
+
+    { "sendtypeto", 2, "outputs" },
+    { "sendtypeto", 5, "test_fee" },
+    { "sendtypeto", 6, "coincontrol" },
 };
 
 class CRPCConvertTable
