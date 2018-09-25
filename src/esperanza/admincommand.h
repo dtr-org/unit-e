@@ -45,14 +45,14 @@ class AdminCommand {
 
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(FLATDATA(m_command_type));
+    READWRITE(FLATDATA(m_commandType));
     READWRITE(m_payload);
   }
 
   bool IsValid() const;
 
  private:
-  AdminCommandType m_command_type;
+  AdminCommandType m_commandType;
   std::vector<CPubKey> m_payload;
 };
 

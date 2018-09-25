@@ -10,13 +10,13 @@ namespace esperanza {
 
 AdminCommand::AdminCommand(const AdminCommandType &command_type,
                            const std::vector<CPubKey> &pubkeys)
-    : m_command_type(command_type), m_payload(pubkeys) {}
+    : m_commandType(command_type), m_payload(pubkeys) {}
 
 AdminCommand::AdminCommand()
-    : m_command_type(AdminCommandType::REMOVE_FROM_WHITELIST) {}
+    : m_commandType(AdminCommandType::REMOVE_FROM_WHITELIST) {}
 
 bool AdminCommand::IsValid() const {
-  switch (m_command_type) {
+  switch (m_commandType) {
     case AdminCommandType::END_PERMISSIONING:
       // END_PERMISSIONING command should not carry any payload
       return m_payload.empty();
@@ -46,7 +46,7 @@ bool AdminCommand::IsValid() const {
   return true;
 }
 
-AdminCommandType AdminCommand::GetCommandType() const { return m_command_type; }
+AdminCommandType AdminCommand::GetCommandType() const { return m_commandType; }
 
 const std::vector<CPubKey> &AdminCommand::GetPayload() const {
   return m_payload;
