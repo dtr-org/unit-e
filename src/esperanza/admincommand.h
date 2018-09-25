@@ -14,8 +14,16 @@
 
 namespace esperanza {
 
-BETTER_ENUM(AdminCommandType, uint8_t, ADD_TO_WHITELIST, REMOVE_FROM_WHITELIST,
-            RESET_ADMINS, END_PERMISSIONING)
+// clang-format off
+BETTER_ENUM(
+  AdminCommandType,
+  uint8_t,
+  ADD_TO_WHITELIST,
+  REMOVE_FROM_WHITELIST,
+  RESET_ADMINS,
+  END_PERMISSIONING
+)
+// clang-format on
 
 class AdminCommand {
  public:
