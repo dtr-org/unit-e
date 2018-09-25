@@ -1213,14 +1213,15 @@ class msg_headers():
         self.headers = headers if headers is not None else []
 
     def deserialize(self, f):
-        # comment in united indicates these should be deserialized as blocks
-        blocks = deser_vector(f, CBlock)
+        blocks = deser_vector(f, CBlockHeader)
         for x in blocks:
-            self.headers.append(CBlockHeader(x))
+            self.headers.append(x)
 
     def serialize(self):
-        blocks = [CBlock(x) for x in self.headers]
-        return ser_vector(blocks)
+        headers_to_send = []
+        for header in self.headers:
+            headers_to_send.append(CBlockHeader(header))
+        return ser_vector(headers_to_send)
 
     def __repr__(self):
         return "msg_headers(headers=%s)" % repr(self.headers)
