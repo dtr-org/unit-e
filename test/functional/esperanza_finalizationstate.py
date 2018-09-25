@@ -11,6 +11,7 @@ master_keys = ['swap fog boost power mountain pair gallery crush price fiscal th
 
 
 def test_setup(test, proposers, validators):
+
     test.num_nodes = validators + proposers
     test.extra_args = []
 
@@ -18,7 +19,15 @@ def test_setup(test, proposers, validators):
         'epochLength': 10,
         'minDepositSize': 1500,
     }
+
     json_params = json.dumps(params_data)
+
+    proposer_node_params = [
+        '-proposing=0',
+        '-debug=all',
+        '-whitelist=127.0.0.1',
+        '-esperanzaconfig=' + json_params
+    ]
 
     validator_node_params = [
         '-validating=1',
@@ -27,7 +36,6 @@ def test_setup(test, proposers, validators):
         '-debug=all',
         '-esperanzaconfig=' + json_params
     ]
-    proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
 
     for n in range(0, proposers):
         test.extra_args.append(proposer_node_params)
@@ -85,8 +93,8 @@ def generate_block(node):
 # The vote should not be added to a block (that would be invalid)
 # but the proposer should still be able to create a block disregarding
 # the expired vote.
-# node[0] and node[1] are proposer (p1,p2)
-# node[2] is the validator (v1)
+# node[0] and node[1] are proposer (p0, p1)
+# node[2] is the validator (v)
 class ExpiredVoteTest(UnitETestFramework):
 
     def set_test_params(self):
@@ -100,48 +108,48 @@ class ExpiredVoteTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, 1, 2)
 
     def run_test(self):
-        p1 = self.nodes[0]
-        p2 = self.nodes[1]
-        v1 = self.nodes[2]
+        p0 = self.nodes[0]
+        p1 = self.nodes[1]
+        v = self.nodes[2]
 
-        setup_deposit(self, [v1])
+        setup_deposit(self, [v])
         sync_blocks(self.nodes[0:2])
 
         # generate a votable epoch
         for n in range(0, 10):
-            generate_block(p1)
+            generate_block(p0)
 
-        assert_equal(p1.getblockchaininfo()['blocks'], 150)
+        assert_equal(p0.getblockchaininfo()['blocks'], 150)
         sync_blocks(self.nodes[0:2])
 
-        # Disconnect immediately p1 proposer. A vote not yet included in blocks
-        # should now reach the p2 that will accept it.
-        disconnect_nodes(p1, 2)
-        disconnect_nodes(p1, 1)
+        # Disconnect immediately p0 proposer. A vote not yet included in blocks
+        # should now reach the p1 that will accept it.
+        disconnect_nodes(p0, 2)
+        disconnect_nodes(p0, 1)
 
-        # wait for the vote to be propagated to p2
-        sync_mempools([p2, v1])
+        # wait for the vote to be propagated to p1
+        sync_mempools([p1, v])
 
-        # Mine another epoch while disconnected p1.
+        # Mine another epoch while disconnected p0.
         for n in range(0, 10):
-            generate_block(p1)
+            generate_block(p0)
 
-        assert_equal(p1.getblockchaininfo()['blocks'], 160)
+        assert_equal(p0.getblockchaininfo()['blocks'], 160)
 
         # connect again and wait for sync
         connect_nodes_bi(self.nodes, 0, 2)
         connect_nodes_bi(self.nodes, 1, 2)
         sync_blocks(self.nodes[0:2])
 
-        # now p2 should propose but the vote he has in the mempool is
+        # now p1 should propose but the vote he has in the mempool is
         # not valid anymore.
-        generate_block(p2)
+        generate_block(p1)
         sync_blocks(self.nodes[0:2])
 
         # make sure that the expired vote has been removed from the mempool as well
-        assert_equal(len(p2.getrawmempool()), 0)
+        assert_equal(len(p1.getrawmempool()), 0)
 
-        assert_equal(p2.getblockchaininfo()['blocks'], 161)
+        assert_equal(p1.getblockchaininfo()['blocks'], 161)
 
 
 if __name__ == '__main__':
