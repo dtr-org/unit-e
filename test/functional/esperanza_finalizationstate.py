@@ -111,7 +111,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 10):
             generate_block(p1)
 
-        assert (p1.getblockchaininfo()['blocks'], 150)
+        assert_equal(p1.getblockchaininfo()['blocks'], 150)
         sync_blocks(self.nodes[0:2])
 
         # Disconnect immediately p1 proposer. A vote not yet included in blocks
