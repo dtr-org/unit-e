@@ -102,6 +102,8 @@ UNITE_CORE_H = \
   core_memusage.h \
   cuckoocache.h \
   esperanza/admincommand.h \
+  esperanza/adminparams.h \
+  esperanza/adminstate.h \
   esperanza/checkpoint.h \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
@@ -236,6 +238,7 @@ libunite_server_a_SOURCES = \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
   esperanza/admincommand.cpp \
+  esperanza/adminstate.cpp \
   esperanza/checkpoint.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/finalizationparams.cpp \
