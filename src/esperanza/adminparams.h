@@ -12,8 +12,8 @@
 
 namespace esperanza {
 
-static constexpr size_t ADMIN_MULTISIG_SIGNATURES = 2;
-static constexpr size_t ADMIN_MULTISIG_KEYS = 3;
+constexpr size_t ADMIN_MULTISIG_SIGNATURES = 2;
+constexpr size_t ADMIN_MULTISIG_KEYS = 3;
 
 using AdminKeySet = std::array<CPubKey, ADMIN_MULTISIG_KEYS>;
 
