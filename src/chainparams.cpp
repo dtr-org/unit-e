@@ -47,6 +47,34 @@ const std::pair<const char*, CAmount> regTestOutputs[] = {
 };
 const size_t nGenesisOutputsRegtest = sizeof(regTestOutputs) / sizeof(regTestOutputs[0]);
 
+esperanza::AdminKeySet CreateRegTestAdminKeys() {
+  static const std::initializer_list<uint8_t> publicKey0 = {
+      0x03, 0x8c, 0x02, 0x46, 0xda, 0x82, 0xd6, 0x86, 0xe4, 0x63, 0x8d,
+      0x8c, 0xf6, 0x04, 0x52, 0x95, 0x65, 0x18, 0xf8, 0xb6, 0x3c, 0x02,
+      0x0d, 0x23, 0x38, 0x7d, 0xf9, 0x3d, 0x19, 0x9f, 0xc0, 0x89, 0xe8};
+
+  static const std::initializer_list<uint8_t> publicKey1 = {
+      0x02, 0xf1, 0x56, 0x3a, 0x89, 0x30, 0x73, 0x9b, 0x65, 0x34, 0x26,
+      0x38, 0x0a, 0x82, 0x97, 0xe5, 0xf0, 0x86, 0x82, 0xcb, 0x1e, 0x7c,
+      0x88, 0x12, 0x09, 0xaa, 0x62, 0x4f, 0x82, 0x1e, 0x26, 0x84, 0xfa};
+
+  static const std::initializer_list<uint8_t> publicKey2 = {
+      0x03, 0xd2, 0xbc, 0x85, 0xe0, 0xb0, 0x35, 0x28, 0x5a, 0xdd, 0x07,
+      0x68, 0x06, 0x95, 0xcb, 0x56, 0x1c, 0x9b, 0x9f, 0xbe, 0x9c, 0xb3,
+      0xa4, 0xbe, 0x4f, 0x1f, 0x5b, 0xe2, 0xfc, 0x12, 0x55, 0x94, 0x4c};
+
+
+  CPubKey key0(publicKey0.begin(), publicKey0.end());
+  CPubKey key1(publicKey1.begin(), publicKey1.end());
+  CPubKey key2(publicKey2.begin(), publicKey2.end());
+
+  assert(key0.IsValid());
+  assert(key1.IsValid());
+  assert(key2.IsValid());
+
+  return {{key0, key1, key2}};
+}
+
 static CBlock CreateGenesisBlockRegTest(uint32_t nTime,
                                         uint32_t nNonce,
                                         uint32_t nBits,
@@ -382,6 +410,8 @@ public:
         finalization.m_bountyFractionDenominator = 25;
         finalization.m_baseInterestFactor = ufp64::to_ufp64(700);
         finalization.m_basePenaltyFactor = ufp64::div_2uint(2, 100000);
+
+        adminParams.m_blockToAdminKeys.emplace(0, CreateRegTestAdminKeys());
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
