@@ -689,6 +689,7 @@ public:
     static CScript EncodeVote(const esperanza::Vote &data);
     static esperanza::Vote ExtractVoteFromWitness(const CScriptWitness &scriptSig);
     static esperanza::Vote ExtractVoteFromSignature(const CScript &scriptSig);
+    static bool TryExtractAdminKeysFromWitness(const CScriptWitness &witness, std::vector<CPubKey> &outKeys);
 
     /**
      * Returns whether the script is guaranteed to fail at execution,
