@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
+#include <esperanza/adminparams.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/params.h>
 #include <esperanza/validation.h>
@@ -221,6 +222,78 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-vote-not-same-payvoteslash-script");
+  }
+
+  return true;
+}
+
+bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
+                           const CBlockIndex *pindex) {
+  if (tx.vin.empty()) {
+    return state.DoS(10, false, REJECT_INVALID, "admin-vin-empty");
+  }
+
+  if (tx.vout.empty()) {
+    return state.DoS(10, false, REJECT_INVALID, "admin-vout-empty");
+  }
+
+  size_t valid_commands_num = 0;
+  bool disablesPermissioning = false;
+
+  for (const auto &out : tx.vout) {
+    AdminCommand command;
+    if (!DecodeAdminCommand(out.scriptPubKey, command)) {
+      continue;
+    }
+
+    if (disablesPermissioning) {
+      return state.DoS(10, false, REJECT_INVALID, "admin-already-disabled");
+    }
+
+    if (command.GetCommandType() ==
+        +esperanza::AdminCommandType::END_PERMISSIONING) {
+      disablesPermissioning = true;
+    }
+
+    ++valid_commands_num;
+  }
+
+  if (valid_commands_num == 0) {
+    return state.DoS(10, false, REJECT_INVALID, "admin-no-commands");
+  }
+
+  const auto &scriptSig = tx.vin.front().scriptSig;
+  CScript::const_iterator it = scriptSig.begin();
+
+  opcodetype opcode;
+  // See BIP-141
+  if (!scriptSig.GetOp(it, opcode) || opcode != 34) {
+    return state.DoS(10, false, REJECT_INVALID, "admin-invalid-script-sig");
+  }
+
+  const auto &witness = tx.vin.front().scriptWitness;
+
+  std::vector<CPubKey> keys;
+
+  if (witness.stack.size() != ADMIN_MULTISIG_SIGNATURES + 2 ||
+      !CScript::ExtractAdminKeysFromWitness(witness, keys) ||
+      keys.size() != ADMIN_MULTISIG_KEYS) {
+    return state.DoS(10, false, REJECT_INVALID, "admin-invalid-witness");
+  }
+
+  esperanza::FinalizationState *esperanza = nullptr;
+  if (pindex != nullptr) {
+    esperanza = esperanza::FinalizationState::GetState(*pindex);
+  } else {
+    esperanza = esperanza::FinalizationState::GetState();
+  }
+
+  AdminKeySet set;
+  std::copy_n(keys.begin(), ADMIN_MULTISIG_KEYS, set.begin());
+  const auto result = esperanza->ValidateAdminKeys(set);
+
+  if (result != +Result::SUCCESS) {
+    return state.DoS(10, false, REJECT_INVALID, "admin-not-authorized");
   }
 
   return true;

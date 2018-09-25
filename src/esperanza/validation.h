@@ -30,6 +30,10 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                               const Consensus::Params &consensusParams,
                               const CBlockIndex *pindex = nullptr);
 
+bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
+                           const CBlockIndex *pindex = nullptr);
+
+
 }  // namespace esperanza
 
 #endif  // UNIT_E_VALIDATION_H

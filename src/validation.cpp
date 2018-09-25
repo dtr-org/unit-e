@@ -1047,6 +1047,23 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
             break;
           }
+          case TxType::ADMIN: {
+
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting admin transaction to mempool with id %s.\n",
+                     __func__, tx.GetHash().GetHex());
+
+            if (!esperanza::CheckAdminTransaction(state, tx)) {
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Admin transaction cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckAdminTransaction failed.", __func__),
+                               state.GetRejectCode(), state.GetDebugMessage());
+            }
+            break;
+          }
           default: {
             break;
           }
@@ -3388,6 +3405,23 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        state.GetRejectReason());
 
               return state.DoS(10, error("%s: Withdraw cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::ADMIN: {
+
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting admin transaction to mempool with id %s.\n",
+                __func__, tx->GetHash().GetHex());
+
+            if (!esperanza::CheckAdminTransaction(state, *tx, pindexPrev)) {
+              LogPrint(BCLog::ESPERANZA,
+                  "%s: Admin transaction cannot be included into mempool: %s.\n",
+                   __func__,
+                   state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckAdminTransaction failed.", __func__),
+                  state.GetRejectCode(), state.GetDebugMessage());
             }
             break;
           }
