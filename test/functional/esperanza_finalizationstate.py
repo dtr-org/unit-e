@@ -108,19 +108,20 @@ class ExpiredVoteTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, 1, 2)
 
     def run_test(self):
+
         p0 = self.nodes[0]
         p1 = self.nodes[1]
         v = self.nodes[2]
 
         setup_deposit(self, [v])
-        sync_blocks(self.nodes[0:2])
+        sync_blocks(self.nodes[0:3])
 
         # generate a votable epoch
         for n in range(0, 10):
             generate_block(p0)
 
         assert_equal(p0.getblockchaininfo()['blocks'], 150)
-        sync_blocks(self.nodes[0:2])
+        sync_blocks(self.nodes[0:3])
 
         # Disconnect immediately p0 proposer. A vote not yet included in blocks
         # should now reach the p1 that will accept it.
@@ -140,12 +141,12 @@ class ExpiredVoteTest(UnitETestFramework):
         # connect again and wait for sync
         connect_nodes_bi(self.nodes, 0, 2)
         connect_nodes_bi(self.nodes, 1, 2)
-        sync_blocks(self.nodes[0:2])
+        sync_blocks(self.nodes[0:3])
 
         # now p1 should propose but the vote he has in the mempool is
         # not valid anymore.
         generate_block(p1)
-        sync_blocks(self.nodes[0:2])
+        sync_blocks(self.nodes[0:3])
 
         # make sure that the expired vote has been removed from the mempool as well
         assert_equal(len(p1.getrawmempool()), 0)
