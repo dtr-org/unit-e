@@ -13,7 +13,7 @@ AdminCommand::AdminCommand(const AdminCommandType &command_type,
     : m_command_type(command_type), m_pubkeys(pubkeys) {}
 
 AdminCommand::AdminCommand()
-    : m_command_type(+AdminCommandType::REMOVE_FROM_WHITELIST) {}
+    : m_command_type(AdminCommandType::REMOVE_FROM_WHITELIST) {}
 
 bool AdminCommand::IsValid() const {
   switch (m_command_type) {
