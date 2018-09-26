@@ -222,7 +222,7 @@ BOOST_AUTO_TEST_CASE(addrman_select)
 
     // Test: Select pulls from new and tried regardless of port number.
     std::set<uint16_t> ports;
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 100; ++i) {
         ports.insert(addrman.Select().GetPort());
     }
     BOOST_CHECK_EQUAL(ports.size(), 3U);
