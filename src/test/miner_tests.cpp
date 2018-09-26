@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
     BOOST_CHECK(pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey));
 
     const CAmount BLOCKSUBSIDY = 50*UNIT;
-    const CAmount LOWFEE = CENT;
+    const CAmount LOWFEE = EEES;
     const CAmount HIGHFEE = UNIT;
     const CAmount HIGHERFEE = 4*UNIT;
 

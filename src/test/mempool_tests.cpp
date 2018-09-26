@@ -614,7 +614,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestryTests)
     //
     // [tx1].0 <- [tx2]
     //
-    CTransactionRef tx2 = make_tx(/* output_values */ {495 * CENT, 5 * UNIT}, /* inputs */ {tx1});
+    CTransactionRef tx2 = make_tx(/* output_values */ {495 * EEES, 5 * UNIT}, /* inputs */ {tx1});
     pool.addUnchecked(tx2->GetHash(), entry.Fee(10000LL).FromTx(tx2));
 
     // Ancestors / descendants should be:
@@ -633,7 +633,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestryTests)
     //
     // [tx1].0 <- [tx2].0 <- [tx3]
     //
-    CTransactionRef tx3 = make_tx(/* output_values */ {290 * CENT, 200 * CENT}, /* inputs */ {tx2});
+    CTransactionRef tx3 = make_tx(/* output_values */ {290 * EEES, 200 * EEES}, /* inputs */ {tx2});
     pool.addUnchecked(tx3->GetHash(), entry.Fee(10000LL).FromTx(tx3));
 
     // Ancestors / descendants should be:
@@ -658,7 +658,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestryTests)
     //              |
     //              \---1 <- [tx4]
     //
-    CTransactionRef tx4 = make_tx(/* output_values */ {290 * CENT, 250 * CENT}, /* inputs */ {tx2}, /* input_indices */ {1});
+    CTransactionRef tx4 = make_tx(/* output_values */ {290 * EEES, 250 * EEES}, /* inputs */ {tx2}, /* input_indices */ {1});
     pool.addUnchecked(tx4->GetHash(), entry.Fee(10000LL).FromTx(tx4));
 
     // Ancestors / descendants should be:
@@ -695,7 +695,7 @@ BOOST_AUTO_TEST_CASE(MempoolAncestryTests)
     for (uint64_t i = 0; i < 5; i++) {
         CTransactionRef& tyi = *ty[i];
         tyi = make_tx(/* output_values */ {v}, /* inputs */ i > 0 ? std::vector<CTransactionRef>{*ty[i - 1]} : std::vector<CTransactionRef>{});
-        v -= 50 * CENT;
+        v -= 50 * EEES;
         pool.addUnchecked(tyi->GetHash(), entry.Fee(10000LL).FromTx(tyi));
         pool.GetTransactionAncestry(tyi->GetHash(), ancestors, descendants);
         BOOST_CHECK_EQUAL(ancestors, i+1);
