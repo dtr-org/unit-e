@@ -138,6 +138,7 @@ bool TransactionIsRelatedToEsperanza(const CTransaction& tx)
         case TxType::DEPOSIT:
         case TxType::LOGOUT:
         case TxType::SLASH:
+        case TxType::ADMIN:
             return true;
         case TxType::STANDARD:
         case TxType::COINSTAKE:
