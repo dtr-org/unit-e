@@ -67,7 +67,7 @@ def setup_deposit(self, nodes):
     sync_blocks(self.nodes[0:len(nodes)])
 
     for n in nodes:
-        deptx = n.createdeposit(n.new_address, 1500)['transactionid']
+        deptx = n.deposit(n.new_address, 1500)['transactionid']
         self.wait_for_transaction(deptx)
 
     # finalize deposits and start voting

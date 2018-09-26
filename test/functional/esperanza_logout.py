@@ -3,13 +3,15 @@ from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
 
-class EsperanzaDepositTest(UnitETestFramework):
+class EsperanzaLogoutTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
 
         params_data = {
             'epochLength': 10,
+            'dynastyLogoutDelay': 2,
+            'withdrawalEpochDelay': 12
         }
         json_params = json.dumps(params_data)
 
@@ -18,16 +20,9 @@ class EsperanzaDepositTest(UnitETestFramework):
             '-proposing=0',
             '-debug=all',
             '-rescan=1',
-            '-whitelist=127.0.0.1',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = [
-            '-proposing=0',
-            '-debug=all',
-            '-txindex',
-            '-whitelist=127.0.0.1',
-            '-esperanzaconfig=' + json_params
-        ]
+        proposer_node_params = ['-proposing=0', '-debug=all', '-esperanzaconfig=' + json_params]
 
         self.extra_args = [validator_node_params,
                            proposer_node_params,
@@ -37,6 +32,7 @@ class EsperanzaDepositTest(UnitETestFramework):
 
     def run_test(self):
         nodes = self.nodes
+        block_time = 0.1
 
         validator = nodes[0]
 
@@ -55,20 +51,35 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         sync_blocks(self.nodes)
 
-        txid = validator.deposit(payto, 10000)['transactionid']
+        deposit_tx = validator.deposit(payto, 10000)['transactionid']
 
         # wait for transaction to propagate
-        self.wait_for_transaction(txid)
+        self.wait_for_transaction(deposit_tx)
 
-        # mine some blocks to allow the deposit to get included in a block
+        # mine 20 blocks (2 dynasties if we keep finalizing) to allow the deposit to get included in a block
+        # and dynastyLogoutDelay to expire
         for n in range(0, 20):
             self.generate_block(nodes[(n % 3) + 1])
+            sync_blocks(self.nodes)
 
-        sync_blocks(self.nodes)
+        assert_equal(validator.getblockchaininfo()['blocks'], 140)
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "IS_VALIDATING")
+
+        logout_tx = validator.logout()['transactionid']
+        self.wait_for_transaction(logout_tx)
+
+        # wait for 2 dynasties since logout so we are not required to vote anymore
+        for n in range(0, 20):
+            self.generate_block(nodes[(n % 3) + 1])
+            time.sleep(block_time)
+            sync_blocks(self.nodes)
+
+        resp = validator.getvalidatorinfo()
+        assert resp["enabled"]
+        assert_equal(resp["validator_status"], "NOT_VALIDATING")
 
     def generate_block(self, node):
         i = 0
@@ -84,4 +95,4 @@ class EsperanzaDepositTest(UnitETestFramework):
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 if __name__ == '__main__':
-    EsperanzaDepositTest().main()
+    EsperanzaLogoutTest().main()

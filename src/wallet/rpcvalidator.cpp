@@ -8,7 +8,7 @@
 #include <wallet/wallet.h>
 
 
-UniValue createdeposit(const JSONRPCRequest &request)
+UniValue deposit(const JSONRPCRequest &request)
 {
 
   CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
@@ -21,13 +21,13 @@ UniValue createdeposit(const JSONRPCRequest &request)
   if (request.fHelp || request.params.size() != 2) {
 
     throw std::runtime_error(
-        "createdeposit\n"
+        "deposit\n"
         "Creates a new deposit of the given amount, if accepted it will make the current node a validator."
         "\nArguments:\n"
         "1. address              (required) the destination for the deposit.\n"
         "2. amount               (required) the amount deposit.\n"
         "\nExamples:\n"
-            + HelpExampleRpc("createdeposit", ""));
+            + HelpExampleRpc("deposit", ""));
   }
 
   pwallet->BlockUntilSyncedToCurrentChain();
@@ -45,7 +45,7 @@ UniValue createdeposit(const JSONRPCRequest &request)
 
   CAmount amount = AmountFromValue(request.params[1]);
 
-  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::ValidatorPhase::IS_VALIDATING){
+  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::Phase::IS_VALIDATING){
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
   }
 
@@ -55,6 +55,47 @@ UniValue createdeposit(const JSONRPCRequest &request)
 
   CWalletTx tx;
   extWallet.SendDeposit(address, amount, tx);
+
+  result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
+
+  return result;
+}
+
+UniValue logout(const JSONRPCRequest& request) {
+
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+    return NullUniValue;
+  }
+
+  esperanza::WalletExtension& extWallet = pwallet->GetWalletExtension();
+
+  if (request.fHelp || request.params.size() != 0) {
+
+    throw std::runtime_error(
+        "logout\n"
+        "Creates a logout request, if accepted it will start the logout "
+        "process for the validator."
+        "\nExamples:\n" +
+            HelpExampleRpc("logout", ""));
+  }
+
+  pwallet->BlockUntilSyncedToCurrentChain();
+
+  if (!extWallet.nIsValidatorEnabled) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
+  }
+
+  UniValue result(UniValue::VOBJ);
+
+  if (extWallet.validatorState.m_phase !=
+      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER,
+                       "The node is not validating validating.");
+  }
+
+  CWalletTx tx;
+  extWallet.SendLogout(tx);
 
   result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
 
@@ -92,23 +133,23 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
   std::string status;
 
   switch (extWallet.validatorState.m_phase) {
-    case esperanza::ValidatorState::ValidatorPhase::NOT_VALIDATING:
+    case esperanza::ValidatorState::Phase::NOT_VALIDATING:
       status = "NOT_VALIDATING";
       break;
-    case esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_CONFIRMATION:
+    case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION:
       status = "WAITING_DEPOSIT_CONFIRMATION";
       break;
-    case esperanza::ValidatorState::ValidatorPhase::WAITING_DEPOSIT_FINALIZATION:
+    case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION:
       status = "WAITING_DEPOSIT_FINALIZATION";
       break;
-    case esperanza::ValidatorState::ValidatorPhase::IS_VALIDATING:
+    case esperanza::ValidatorState::Phase::IS_VALIDATING:
       status = "IS_VALIDATING";
       break;
     default: status = "UNKNOWN";
   }
 
   obj.pushKV("enabled", gArgs.GetBoolArg("-validating", true));
-  obj.pushKV("validator_status", status);
+  obj.pushKV("validator_status", extWallet.validatorState.m_phase._to_string());
 
   return obj;
 }
@@ -116,7 +157,8 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
 static const CRPCCommand commands[] =
     { //  category              name                        actor (function)           argNames
       //  --------------------- ------------------------    -----------------------  ----------
-        { "wallet",             "createdeposit",            &createdeposit,            {"address", "amount"} },
+        { "wallet",             "deposit",                  &deposit,                  {"address", "amount"} },
+        { "wallet",             "logout",                   &logout,                   {} },
         { "wallet",             "getvalidatorinfo",         &getvalidatorinfo,         {} },
     };
 

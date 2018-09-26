@@ -59,4 +59,46 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   BOOST_CHECK_EQUAL(vote.m_targetEpoch, signedVote.m_targetEpoch);
 }
 
+BOOST_AUTO_TEST_CASE(producesignature_logout) {
+
+  SeedInsecureRand();
+  CBasicKeyStore keystore;
+
+  CKey k;
+  InsecureNewKey(k, true);
+  keystore.AddKey(k);
+
+  CPubKey pk = k.GetPubKey();
+
+  CMutableTransaction txn;
+  txn.SetType(TxType::LOGOUT);
+
+  txn.vin.push_back(CTxIn(GetRandHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
+
+  const CScript& scriptPubKey = CScript::CreatePayVoteSlashScript(pk);
+  const CAmount amount = 10000000;
+  CTxOut txout(amount, scriptPubKey);
+
+  txn.vout.push_back(txout);
+
+  CTransaction txToConst(txn);
+  SignatureData sigdata;
+
+  uint32_t nIn = 0;
+  std::string strFailReason;
+
+  BOOST_CHECK(ProduceSignature(
+      TransactionSignatureCreator(&keystore, &txToConst, nIn,
+                                  amount, SIGHASH_ALL),
+      scriptPubKey, sigdata, &txToConst));
+
+  ScriptError serror;
+  BOOST_CHECK(VerifyScript(
+      sigdata.scriptSig, scriptPubKey, &sigdata.scriptWitness,
+      STANDARD_SCRIPT_VERIFY_FLAGS,
+      TransactionSignatureChecker(&txToConst, 0, amount), &serror));
+
+  BOOST_CHECK_EQUAL(SCRIPT_ERR_OK, serror);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

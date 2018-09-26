@@ -38,8 +38,8 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
     state = FinalizationState::GetState();
   }
 
-  esperanza::Result res =
-      state->ValidateDeposit(tx.GetHash(), tx.GetValueOut());
+  esperanza::Result res = state->ValidateDeposit(
+      CPubKey(vSolutions[0]).GetHash(), tx.GetValueOut());
 
   if (res != +esperanza::Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -63,8 +63,70 @@ bool IsVoteExpired(const CTransaction &tx) {
   return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
 }
 
+bool CheckLogoutTransaction(CValidationState &state, const CTransaction &tx,
+                            const CBlockIndex *pindex) {
+
+  if (tx.vin.size() != 1 || tx.vout.size() != 1) {
+    return state.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
+  }
+
+  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-logout-vout-script-invalid-payvoteslash");
+  }
+
+  std::vector<std::vector<unsigned char>> vSolutions;
+  txnouttype typeRet;
+  if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-logout-script-not-solvable");
+  }
+
+  esperanza::FinalizationState *esperanza = nullptr;
+  if (pindex != nullptr) {
+    esperanza = esperanza::FinalizationState::GetState(*pindex);
+  } else {
+    esperanza = esperanza::FinalizationState::GetState();
+  }
+
+  esperanza::Result res =
+      esperanza->ValidateLogout(CPubKey(vSolutions[0]).GetHash());
+
+  if (res != +esperanza::Result::SUCCESS) {
+    return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
+  }
+
+  // We keep the check for the prev at the end because is the most expensive
+  // check (potentially goes to disk) and there is a good chance that if the
+  // vote is not valid (i.e. outdated) then the function will return before
+  // reaching this point.
+  CTransactionRef prevTx;
+  uint256 blockHash;
+
+  // We have to look into the tx database to find the prev tx, hence the
+  // use of fAllowSlow = true
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
+                      blockHash, true)) {
+
+    return state.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
+  }
+
+  if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-logout-prev-not-deposit-vote-");
+  }
+
+  if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-logout-not-same-payvoteslash-script");
+  }
+
+  return true;
+}
+
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const CBlockIndex *pindex) {
+
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
   }
@@ -95,17 +157,16 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   // reaching this point.
   CTransactionRef prevTx;
   uint256 blockHash;
-  // We have to look into the tx database to find the prev deposit, hence the
+  // We have to look into the tx database to find the prev tx, hence the
   // use of fAllowSlow = true
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
                       blockHash, true)) {
-    return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-no-prev-deposit-found");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
   }
 
-  if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
+  if (!prevTx->IsDeposit() && !prevTx->IsVote() && !prevTx->IsLogout()) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-prev-not-deposit-or-deposit");
+                        "bad-vote-prev-not-deposit-vote-or-logout");
   }
 
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {

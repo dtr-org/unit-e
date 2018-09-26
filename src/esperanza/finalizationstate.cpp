@@ -429,7 +429,7 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
   auto it = m_validators.find(vote.m_validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::VOTE_NOT_BY_VALIDATOR,
-                "%s: No validator with deposit hash of %s found.\n", __func__,
+                "%s: No validator with index %s found.\n", __func__,
                 vote.m_validatorIndex.GetHex());
   }
 
@@ -539,7 +539,7 @@ esperanza::Result FinalizationState::ValidateLogout(
   auto it = m_validators.find(validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::LOGOUT_NOT_A_VALIDATOR,
-                "%s: No validator with deposit hash of %s found.\n", __func__,
+                "%s: No validator with index %s found.\n", __func__,
                 validatorIndex.GetHex());
   }
 
@@ -593,7 +593,7 @@ esperanza::Result FinalizationState::ValidateWithdraw(
   auto it = m_validators.find(validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::WITHDRAW_NOT_A_VALIDATOR,
-                "%s: No validator with deposit hash of %s found.\n", __func__,
+                "%s: No validator with index %s found.\n", __func__,
                 validatorIndex.GetHex());
   }
 
@@ -684,7 +684,7 @@ esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
   auto it = m_validators.find(vote1.m_validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::SLASH_NOT_A_VALIDATOR,
-                "%s: No validator with deposit hash of %s found.\n", __func__,
+                "%s: No validator with index %s found.\n", __func__,
                 vote1.m_validatorIndex.GetHex());
   }
   const Validator &validator1 = it->second;
@@ -692,7 +692,7 @@ esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
   it = m_validators.find(vote2.m_validatorIndex);
   if (it == m_validators.end()) {
     return fail(esperanza::Result::SLASH_NOT_A_VALIDATOR,
-                "%s: No validator with deposit hash of %s found.\n", __func__,
+                "%s: No validator with index %s found.\n", __func__,
                 vote2.m_validatorIndex.GetHex());
   }
   const Validator &validator2 = it->second;
@@ -838,6 +838,18 @@ std::vector<Validator> FinalizationState::GetValidators() const {
   return res;
 }
 
+const Validator *FinalizationState::GetValidator(
+    const uint256 &validatorIndex) const {
+
+  auto it = m_validators.find(validatorIndex);
+
+  if (it != m_validators.end()) {
+    return &it->second;
+  } else {
+    return nullptr;
+  }
+}
+
 bool FinalizationState::ValidateDepositAmount(CAmount amount) {
   return amount >= GetState()->MIN_DEPOSIT_SIZE;
 }
@@ -882,6 +894,12 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   for (const auto &tx : block.vtx) {
     switch (tx->GetType()) {
 
+      case TxType::VOTE: {
+        state->ProcessVote(
+            CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
+        break;
+      }
+
       case TxType::DEPOSIT: {
         std::vector<std::vector<unsigned char>> vSolutions;
         txnouttype typeRet;
@@ -893,12 +911,15 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         break;
       }
 
-      case TxType::VOTE: {
-        state->ProcessVote(
-            CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
+      case TxType::LOGOUT: {
+        std::vector<std::vector<unsigned char>> vSolutions;
+        txnouttype typeRet;
+
+        if (Solver(tx->vout[0].scriptPubKey, typeRet, vSolutions)) {
+          state->ProcessLogout(CPubKey(vSolutions[0]).GetHash());
+        }
         break;
       }
-
       default: { break; }
     }
   }

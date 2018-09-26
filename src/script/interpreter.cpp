@@ -430,11 +430,16 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 //UNIT-E: implement OP logic
                 case OP_CHECKVOTESIG:
                 {
-                    popstack(stack);
-                    popstack(stack);
-                    popstack(stack);
-                    CScriptNum bn(OP_TRUE);
-                    stack.push_back(bn.getvch());
+                    if (stack.size() < 3) {
+                        CScriptNum bn(OP_FALSE);
+                        stack.push_back(bn.getvch());
+                    } else {
+                        popstack(stack);
+                        popstack(stack);
+                        popstack(stack);
+                        CScriptNum bn(OP_TRUE);
+                        stack.push_back(bn.getvch());
+                    }
                 }
                 break;
 
