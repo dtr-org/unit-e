@@ -11,6 +11,7 @@ master_keys = ['swap fog boost power mountain pair gallery crush price fiscal th
 
 
 def test_setup(test, proposers, validators):
+
     test.num_nodes = validators + proposers
     test.extra_args = []
 
@@ -18,16 +19,27 @@ def test_setup(test, proposers, validators):
         'epochLength': 10,
         'minDepositSize': 1500,
     }
+
     json_params = json.dumps(params_data)
+
+    proposer_node_params = [
+        '-proposing=0',
+        '-debug=all',
+        '-whitelist=127.0.0.1',
+        '-connect=0',
+        '-listen=1',
+        '-esperanzaconfig=' + json_params
+    ]
 
     validator_node_params = [
         '-validating=1',
         '-proposing=0',
         '-whitelist=127.0.0.1',
         '-debug=all',
+        '-connect=0',
+        '-listen=1',
         '-esperanzaconfig=' + json_params
     ]
-    proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
 
     for n in range(0, proposers):
         test.extra_args.append(proposer_node_params)
@@ -50,8 +62,8 @@ def setup_deposit(self, nodes):
     # wait for coinbase maturity
     for n in range(0, 120):
         generate_block(nodes[0])
-    assert (nodes[0].getblockchaininfo()['blocks'] == 120)
 
+    assert_equal(nodes[0].getblockchaininfo()['blocks'], 120)
     sync_blocks(self.nodes[0:len(nodes)])
 
     for n in nodes:
@@ -62,7 +74,7 @@ def setup_deposit(self, nodes):
     for n in range(0, 20):
         generate_block(nodes[0])
 
-    assert (nodes[0].getblockchaininfo()['blocks'] == 140)
+    assert_equal(nodes[0].getblockchaininfo()['blocks'], 140)
 
 
 def generate_block(node):
@@ -75,7 +87,7 @@ def generate_block(node):
             return
         except JSONRPCException as exp:
             i += 1
-            print("error generating block: " + exp.error)
+            print("error generating block:", exp.error)
     raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 
@@ -85,8 +97,8 @@ def generate_block(node):
 # The vote should not be added to a block (that would be invalid)
 # but the proposer should still be able to create a block disregarding
 # the expired vote.
-# node[0] and node[1] are proposer (p1,p2)
-# node[2] is the validator (v1)
+# node[0] and node[1] are proposer (p0, p1)
+# node[2] is the validator (v)
 class ExpiredVoteTest(UnitETestFramework):
 
     def set_test_params(self):
@@ -95,50 +107,65 @@ class ExpiredVoteTest(UnitETestFramework):
     def setup_network(self):
         self.setup_nodes()
 
-        # create a connection v0 -> p1 <- p2
-        connect_nodes_bi(self.nodes, 0, 2)
+        # create a connection v1 -> p1 <- p2
+        connect_nodes_bi(self.nodes, 0, 1)
         connect_nodes_bi(self.nodes, 1, 2)
 
     def run_test(self):
-        nodes = self.nodes
 
-        setup_deposit(self, [nodes[2]])
+        p0 = self.nodes[0]
+        p1 = self.nodes[1]
+        v = self.nodes[2]
 
-        # generate a votable epoch
-        for n in range(0, 10):
-            generate_block(nodes[0])
+        setup_deposit(self, [v])
+        sync_blocks([p0, p1, v])
 
-        assert (nodes[0].getblockchaininfo()['blocks'] == 150)
+        # get to up to block 148, just one before the new checkpoint
+        for n in range(0, 8):
+            generate_block(p0)
 
-        # Disconnect immediately one proposer. A vote not yet included in blocks
-        # should now reach the p2 that will accept it.
-        disconnect_nodes(nodes[0], 2)
-        disconnect_nodes(nodes[0], 1)
+        assert_equal(p0.getblockchaininfo()['blocks'], 148)
+        sync_blocks([p0, p1, v])
 
-        # wait for the vote to be propagated to p2
-        time.sleep(5)
+        # Rearrange connection like p0 -> p1 xxx v so the validator
+        # remains isolated. And the generate the new checkpoint
+        disconnect_nodes(p1, 2)
+        generate_block(p0)
+        generate_block(p0)
+        sync_blocks([p0, p1])
 
-        # Mine another epoch while disconnected p1.
-        for n in range(0, 10):
-            generate_block(nodes[0])
-
-        assert (nodes[0].getblockchaininfo()['blocks'] == 160)
-
-        # connect again and wait for sync
-        connect_nodes_bi(self.nodes, 0, 2)
+        # Disconnect now also p0 and reconnect p1 to v so v can catch up
+        # and vote on the new epoch but the p1 and v remain segregated from
+        # p0.
+        disconnect_nodes(p0, 1)
         connect_nodes_bi(self.nodes, 1, 2)
-        sync_blocks(self.nodes[0:2])
 
-        # now p2 should propose but the vote he has in the mempool is
-        # not valid anymore.
-        generate_block(nodes[1])
-        sync_blocks(self.nodes[0:2])
+        # wait for the vote to be propagated to p1
+        sync_blocks([p1, v])
+        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=3)
 
-        assert(nodes[0].getblockchaininfo()['blocks'] == 161)
+        # Mine another epoch while disconnected p0.
+        for n in range(0, 10):
+            generate_block(p0)
 
-        print("Test succeeded.")
+        assert_equal(p0.getblockchaininfo()['blocks'], 160)
 
-        return
+        # now we disconnect v again so it will not vote in the epoch just created
+        # since that would interfere with the test.
+        disconnect_nodes(p1, 2)
+        connect_nodes_bi(self.nodes, 0, 1)
+        sync_blocks([p0, p1])
+
+        # Check nothing else made it to the mempool in the meanwhile
+        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=3)
+
+        # now p1 should propose but the vote he has in the mempool is
+        # not valid anymore. Make sure that we can still generate a block
+        # even if the vote in mempool is currently invalid.
+        generate_block(p1)
+        sync_blocks([p0, p1])
+
+        assert_equal(p1.getblockchaininfo()['blocks'], 161)
 
 
 if __name__ == '__main__':

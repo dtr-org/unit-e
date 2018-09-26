@@ -516,7 +516,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
  */
 bool WalletExtension::SendVote(const CTransactionRef &depositRef,
                                const Vote &vote, CWalletTx &wtxNewOut) {
-  CCoinControl coinControl;
+
   wtxNewOut.fTimeReceivedIsTxTime = true;
   wtxNewOut.BindWallet(m_enclosingWallet);
   wtxNewOut.fFromMe = true;

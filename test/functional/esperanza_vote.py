@@ -80,7 +80,6 @@ class EsperanzaVoteTest(UnitETestFramework):
         assert_equal(resp["lastJustifiedEpoch"], 16)
         assert_equal(resp["validators"], 3)
 
-        print("Test succeeded.")
 
     def generate_block(self, node):
         i = 0
@@ -92,7 +91,7 @@ class EsperanzaVoteTest(UnitETestFramework):
                 return
             except JSONRPCException as exp:
                 i += 1
-                print("error generating block: " + exp.error)
+                print("error generating block:", exp.error)
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 if __name__ == '__main__':

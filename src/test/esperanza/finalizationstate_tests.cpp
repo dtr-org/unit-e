@@ -24,9 +24,9 @@ using namespace esperanza;
 
 const FinalizationParams params{};
 
-class EsperanzaStateSpy : public FinalizationState {
+class FinalizationStateSpy : public FinalizationState {
  public:
-  EsperanzaStateSpy() : FinalizationState(params) {}
+  FinalizationStateSpy() : FinalizationState(params) {}
 
   uint64_t* CurDynDeposits() { return &m_curDynDeposits; }
   uint64_t* PrevDynDeposits() { return &m_prevDynDeposits; }
@@ -58,7 +58,7 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(constructor) {
 
-  EsperanzaStateSpy state;
+  FinalizationStateSpy state;
 
   BOOST_CHECK_EQUAL(0, state.GetCurrentEpoch());
   BOOST_CHECK_EQUAL(0, state.GetCurrentDynasty());
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
 
 BOOST_AUTO_TEST_CASE(initialize_epcoh_wrong_height_passed) {
 
-  EsperanzaStateSpy state;
+  FinalizationStateSpy state;
 
   BOOST_CHECK(state.InitializeEpoch(2 * state.EPOCH_LENGTH()) == +Result::INIT_WRONG_EPOCH);
   BOOST_CHECK(state.InitializeEpoch(state.EPOCH_LENGTH() - 1) == +Result::INIT_WRONG_EPOCH);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(initialize_epcoh_wrong_height_passed) {
 
 BOOST_AUTO_TEST_CASE(initialize_epcoh_insta_finalize) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
 
   for (int i = 0; i < spy.EPOCH_LENGTH() * 3; i++) {
     if (i < spy.EPOCH_LENGTH()) {
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(initialize_epcoh_insta_finalize) {
 // 6% per year given that the total deposit of validator is 150Mln units
 BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   *spy.CurDynDeposits() = 150000000;
   *spy.PrevDynDeposits() = 150000000;
 
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 
 BOOST_AUTO_TEST_CASE(validate_deposit_tx_not_enough_deposit) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE() - 1;
 
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(validate_deposit_tx_not_enough_deposit) {
 
 BOOST_AUTO_TEST_CASE(validate_deposit_tx_double_deposit) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
 
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(validate_deposit_tx_double_deposit) {
 
 BOOST_AUTO_TEST_CASE(process_deposit_tx) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(process_deposit_tx) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_no_deposit) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   Vote vote{};
 
   BOOST_CHECK(spy.ValidateVote(vote) == +Result::VOTE_NOT_BY_VALIDATOR);
@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_no_deposit) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -235,7 +235,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -261,7 +261,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -285,7 +285,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -311,7 +311,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex_1 = GetRandHash();
   uint256 validatorIndex_2 = GetRandHash();
   CAmount depositSize_1 = spy.MIN_DEPOSIT_SIZE();
@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex_1 = GetRandHash();
   uint256 validatorIndex_2 = GetRandHash();
   CAmount depositSize_1 = spy.MIN_DEPOSIT_SIZE();
@@ -416,14 +416,14 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
 
 BOOST_AUTO_TEST_CASE(validate_logout_not_a_validator) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
 
   BOOST_CHECK(spy.ValidateLogout(GetRandHash()) == +Result::LOGOUT_NOT_A_VALIDATOR);
 }
 
 BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -434,7 +434,7 @@ BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
 
 BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -461,7 +461,7 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
 
 BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -489,7 +489,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
 BOOST_AUTO_TEST_CASE(validate_withdraw_not_a_validator) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   CAmount withdrawAmount = 0;
 
   BOOST_CHECK(spy.ValidateWithdraw(GetRandHash(), withdrawAmount) == +Result::WITHDRAW_NOT_A_VALIDATOR);
@@ -497,7 +497,7 @@ BOOST_AUTO_TEST_CASE(validate_withdraw_not_a_validator) {
 
 BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   CAmount withdrawAmount = 0;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
@@ -532,7 +532,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
 //
 BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -595,7 +595,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
 
 BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   CAmount withdrawAmount = 0;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
@@ -649,7 +649,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_not_a_validator) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
   Vote v1 = {validatorIndex, uint256S("5"), 3, 5};
@@ -670,7 +670,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_not_a_validator) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_not_the_same_validator) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex_1 = GetRandHash();
   uint256 validatorIndex_2 = GetRandHash();
   CAmount depositSize_1 = spy.MIN_DEPOSIT_SIZE();
@@ -690,7 +690,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_not_the_same_validator) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_too_early) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -706,7 +706,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_too_early) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
   Vote v1 = {validatorIndex, uint256S("5"), 3, 5};
@@ -738,7 +738,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
 
 BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -778,7 +778,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
 
 BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -818,7 +818,7 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
 
 BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 
@@ -859,7 +859,7 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
 // GetRecommendedVote tests
 BOOST_AUTO_TEST_CASE(getrecommendedvote) {
 
-  EsperanzaStateSpy spy;
+  FinalizationStateSpy spy;
   uint256 validatorIndex = GetRandHash();
   CAmount depositSize = spy.MIN_DEPOSIT_SIZE();
 

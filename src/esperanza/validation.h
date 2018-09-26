@@ -12,10 +12,12 @@
 
 namespace esperanza {
 
-bool CheckDepositTransaction(CValidationState &state, const CTransaction &tx,
+bool IsVoteExpired(const CTransaction &tx);
+
+bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const CBlockIndex *pindex = nullptr);
 
-bool CheckVoteTransaction(CValidationState &state, const CTransaction &tx,
+bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const CBlockIndex *pindex = nullptr);
 
 }  // namespace esperanza

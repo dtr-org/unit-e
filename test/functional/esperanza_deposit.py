@@ -21,7 +21,13 @@ class EsperanzaDepositTest(UnitETestFramework):
             '-whitelist=127.0.0.1',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
+        proposer_node_params = [
+            '-proposing=0',
+            '-debug=all',
+            '-txindex',
+            '-whitelist=127.0.0.1',
+            '-esperanzaconfig=' + json_params
+        ]
 
         self.extra_args = [validator_node_params,
                            proposer_node_params,
@@ -31,7 +37,6 @@ class EsperanzaDepositTest(UnitETestFramework):
 
     def run_test(self):
         nodes = self.nodes
-        block_time = 1
 
         validator = nodes[0]
 
@@ -48,7 +53,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         for n in range(0, 120):
             self.generate_block(nodes[1])
 
-        sync_blocks(self.nodes[0:3])
+        sync_blocks(self.nodes)
 
         txid = validator.createdeposit(payto, 10000)['transactionid']
 
@@ -56,12 +61,10 @@ class EsperanzaDepositTest(UnitETestFramework):
         self.wait_for_transaction(txid)
 
         # mine some blocks to allow the deposit to get included in a block
-        for n in range(0, 10):
+        for n in range(0, 20):
             self.generate_block(nodes[(n % 3) + 1])
-            sync_blocks(self.nodes[0:3])
-            time.sleep(block_time)
 
-        sync_blocks(self.nodes[0:3])
+        sync_blocks(self.nodes)
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
@@ -77,7 +80,7 @@ class EsperanzaDepositTest(UnitETestFramework):
                 return
             except JSONRPCException as exp:
                 i += 1
-                print("error generating block: " + exp.error)
+                print("error generating block:", exp.error)
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 if __name__ == '__main__':

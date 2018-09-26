@@ -109,7 +109,6 @@ BOOST_AUTO_TEST_CASE(wallet_distribution) {
   esperanza::Proposer proposer(config, wallets);
   esperanza::ProposerSpy spy(proposer);
 
-  std::cout << spy.numThreads() << std::endl;
   BOOST_CHECK(spy.numThreads() == 3);
   BOOST_CHECK(spy.wallets(0).size() == 4);
   BOOST_CHECK(spy.wallets(1).size() == 4);

@@ -616,6 +616,12 @@ public:
     /** Expire all transaction (and their dependencies) in the mempool older than time. Return the number of removed transactions. */
     int Expire(int64_t time);
 
+    /** Expire all the votes (and their dependencies) in the mempol wich are referring to
+     *  an epoch before the last finalized one.
+     *  @return the number of removed elements.
+     */
+    int ExpireVotes();
+
     /** Returns false if the transaction is in the mempool and not within the chain limit specified. */
     bool TransactionWithinChainLimit(const uint256& txid, size_t chainLimit) const;
 
