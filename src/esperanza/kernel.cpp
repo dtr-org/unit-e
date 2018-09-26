@@ -103,7 +103,7 @@ bool CheckStakeKernelHash(const CBlockIndex *pindexPrev, uint32_t nBits,
     return false;
   }
 
-  if (LogAcceptCategory(BCLog::POS)) {
+  if (LogAcceptCategory(BCLog::ESPERANZA)) {
     LogPrintf("%s: using modifier=%s at height=%d timestamp=%s\n", __func__,
               bnStakeModifier.ToString(), nStakeModifierHeight,
               DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nStakeModifierTime));
@@ -264,7 +264,7 @@ bool CheckProofOfStake(
         }
         amount += outPrev.nValue;
 
-        LogPrint(BCLog::POS, "%s: Input %d of coinstake %s is spent.", k,
+        LogPrint(BCLog::ESPERANZA, "%s: Input %d of coinstake %s is spent.", k,
                  tx.GetHash().ToString());
       } else {
         if (kernelPubKey != coin.out.scriptPubKey) {

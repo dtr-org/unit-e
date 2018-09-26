@@ -90,6 +90,7 @@ BASE_SCRIPTS= [
     'wallet_address_types.py',
     'feature_reindex.py',
     # vv Tests less than 30s vv
+    'proposer_propose_blocks.py',
     'feature_assumevalid.py',
     'wallet_keypool_topup.py',
     'interface_zmq.py',

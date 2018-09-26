@@ -66,6 +66,12 @@ class Proposer {
 
     //! when did this proposer propose most recently
     int64_t m_lastTimeProposed = 0;
+
+    //! how many search cycles the proposer went through
+    uint64_t m_numSearches = 0;
+
+    //! how many search cycles the proposer attempted
+    uint64_t m_numSearchAttempts = 0;
   };
 
   Proposer(
@@ -115,9 +121,6 @@ class Proposer {
 
     //! a semaphore for synchronizing stop events
     CountingSemaphore &m_stopSemaphore;
-
-    //! the actual backing thread
-    std::thread m_thread;
 
     Thread(
         //! [in] a name for this thread.

@@ -24,6 +24,8 @@ bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
 
 bool CheckBlock(const CBlock &block);
 
+unsigned int GetNextTargetRequired(const CBlockIndex *pindexLast);
+
 bool ProposeBlock(const CBlock &block);
 
 }  // namespace esperanza

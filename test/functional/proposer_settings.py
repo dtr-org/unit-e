@@ -11,6 +11,9 @@ class ProposerSettingsTest(UnitETestFramework):
     """ This test checks that the node is not proposing actually when started
         with the -proposing flag turned off. """
 
+    """ This test checks that the node is not proposing actually when started
+        with the -proposing flag turned off. """
+
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [['-proposing=0']]

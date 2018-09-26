@@ -50,6 +50,9 @@ void Proposer::Thread::Wake() { m_waiter.Wake(); }
 void Proposer::Thread::SetStatus(const Proposer::Status status,
                                  CWallet *const wallet) {
   if (wallet) {
+    LogPrint(BCLog::ESPERANZA, "%s/%s: switching status from %s \u2192 %s\n",
+             m_threadName, wallet->GetName(),
+             wallet->GetWalletExtension().m_proposerState.m_status, status);
     wallet->GetWalletExtension().m_proposerState.m_status = status;
   } else {
     for (CWallet *w : m_wallets) {
@@ -162,6 +165,9 @@ void Proposer::Run(Proposer::Thread &thread) {
 
   while (!thread.m_interrupted) {
     try {
+      for (auto *wallet : thread.m_wallets) {
+        wallet->GetWalletExtension().m_proposerState.m_numSearchAttempts += 1;
+      }
       const auto blockDownloadStatus = GetInitialBlockDownloadStatus();
       if (blockDownloadStatus != +SyncStatus::SYNCED) {
         thread.SetStatus(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
@@ -181,8 +187,6 @@ void Proposer::Run(Proposer::Thread &thread) {
         bestHeight = chainActive.Height();
         bestTime = chainActive.Tip()->nTime;
       }
-
-      // UNIT-E: respect thread.m_config.m_minProposeInterval
 
       int64_t currentTime = GetAdjustedTime();
       int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
@@ -210,9 +214,10 @@ void Proposer::Run(Proposer::Thread &thread) {
       // only has to sleep as long as the minimum of these durations to check
       // the wallet which is due next in time.
       auto sleepFor = thread.m_settings.m_proposerSleep;
-      const auto sleep = [&sleepFor](const decltype(sleepFor) amount) {
-        sleepFor = std::min(sleepFor, amount);
-      };
+      const auto setSleepDuration =
+          [&sleepFor](const decltype(sleepFor) amount) {
+            sleepFor = std::min(sleepFor, amount);
+          };
       for (CWallet *wallet : thread.m_wallets) {
         auto &walletExt = wallet->GetWalletExtension();
 
@@ -222,7 +227,7 @@ void Proposer::Run(Proposer::Thread &thread) {
         if (bestTime < waitTill) {
           const decltype(sleepFor) amount =
               std::chrono::seconds(waitTill - bestTime);
-          sleep(amount);
+          setSleepDuration(amount);
           continue;
         }
         if (wallet->IsLocked()) {
@@ -235,6 +240,7 @@ void Proposer::Run(Proposer::Thread &thread) {
         }
 
         thread.SetStatus(Status::IS_PROPOSING, wallet);
+        walletExt.m_proposerState.m_numSearches += 1;
 
         CScript coinbaseScript;
         std::unique_ptr<CBlockTemplate> blockTemplate =
@@ -242,8 +248,8 @@ void Proposer::Run(Proposer::Thread &thread) {
                 .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
 
         if (!blockTemplate) {
-          LogPrint(BCLog::ESPERANZA, "%s: failed to get block template",
-                   __func__);
+          LogPrint(BCLog::ESPERANZA, "%s/%s: failed to get block template",
+                   thread.m_threadName, wallet->GetName());
           continue;
         }
 
@@ -251,7 +257,8 @@ void Proposer::Run(Proposer::Thread &thread) {
                                 searchTime)) {
           const CBlock &block = blockTemplate->block;
           if (!ProposeBlock(blockTemplate->block)) {
-            LogPrint(BCLog::ESPERANZA, "%s: failed to propose block", __func__);
+            LogPrint(BCLog::ESPERANZA, "%s/%s: failed to propose block",
+                     thread.m_threadName, wallet->GetName());
             continue;
           }
           walletExt.m_proposerState.m_lastTimeProposed = block.nTime;
