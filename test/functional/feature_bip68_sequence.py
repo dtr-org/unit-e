@@ -7,7 +7,7 @@
 import time
 
 from test_framework.blocktools import create_block, create_coinbase, add_witness_commitment
-from test_framework.messages import COIN, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex
+from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, get_bip9_status, satoshi_round, sync_blocks
@@ -65,7 +65,7 @@ class BIP68Test(UnitETestFramework):
         utxo = utxos[0]
 
         tx1 = CTransaction()
-        value = int(satoshi_round(utxo["amount"] - self.relayfee)*COIN)
+        value = int(satoshi_round(utxo["amount"] - self.relayfee)*UNIT)
 
         # Check that the disable flag disables relative locktime.
         # If sequence locks were used, this would require 1 block for the
@@ -84,7 +84,7 @@ class BIP68Test(UnitETestFramework):
         tx2.nVersion = 2
         sequence_value = sequence_value & 0x7fffffff
         tx2.vin = [CTxIn(COutPoint(tx1_id, 0), nSequence=sequence_value)]
-        tx2.vout = [CTxOut(int(value - self.relayfee * COIN), CScript([b'a' * 35]))]
+        tx2.vout = [CTxOut(int(value - self.relayfee * UNIT), CScript([b'a' * 35]))]
         tx2.rehash()
 
         assert_raises_rpc_error(-26, NOT_FINAL_ERROR, self.nodes[0].sendrawtransaction, ToHex(tx2))
@@ -176,10 +176,10 @@ class BIP68Test(UnitETestFramework):
                             sequence_value = ((cur_time - orig_time) >> SEQUENCE_LOCKTIME_GRANULARITY)+1
                         sequence_value |= SEQUENCE_LOCKTIME_TYPE_FLAG
                 tx.vin.append(CTxIn(COutPoint(int(utxos[j]["txid"], 16), utxos[j]["vout"]), nSequence=sequence_value))
-                value += utxos[j]["amount"]*COIN
+                value += utxos[j]["amount"]*UNIT
             # Overestimate the size of the tx - signatures should be less than 120 bytes, and leave 50 for the output
             tx_size = len(ToHex(tx))//2 + 120*num_inputs + 50
-            tx.vout.append(CTxOut(int(value-self.relayfee*tx_size*COIN/1000), CScript([b'a'])))
+            tx.vout.append(CTxOut(int(value-self.relayfee*tx_size*UNIT/1000), CScript([b'a'])))
             rawtx = self.nodes[0].signrawtransactionwithwallet(ToHex(tx))["hex"]
 
             if (using_sequence_locks and not should_pass):
@@ -208,7 +208,7 @@ class BIP68Test(UnitETestFramework):
         tx2 = CTransaction()
         tx2.nVersion = 2
         tx2.vin = [CTxIn(COutPoint(tx1.sha256, 0), nSequence=0)]
-        tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee*COIN), CScript([b'a']))]
+        tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee*UNIT), CScript([b'a']))]
         tx2_raw = self.nodes[0].signrawtransactionwithwallet(ToHex(tx2))["hex"]
         tx2 = FromHex(tx2, tx2_raw)
         tx2.rehash()
@@ -226,7 +226,7 @@ class BIP68Test(UnitETestFramework):
             tx = CTransaction()
             tx.nVersion = 2
             tx.vin = [CTxIn(COutPoint(orig_tx.sha256, 0), nSequence=sequence_value)]
-            tx.vout = [CTxOut(int(orig_tx.vout[0].nValue - relayfee * COIN), CScript([b'a' * 35]))]
+            tx.vout = [CTxOut(int(orig_tx.vout[0].nValue - relayfee * UNIT), CScript([b'a' * 35]))]
             tx.rehash()
 
             if (orig_tx.hash in node.getrawmempool()):
@@ -243,7 +243,7 @@ class BIP68Test(UnitETestFramework):
 
         # Now mine some blocks, but make sure tx2 doesn't get mined.
         # Use prioritisetransaction to lower the effective feerate to 0
-        self.nodes[0].prioritisetransaction(txid=tx2.hash, fee_delta=int(-self.relayfee*COIN))
+        self.nodes[0].prioritisetransaction(txid=tx2.hash, fee_delta=int(-self.relayfee*UNIT))
         cur_time = int(time.time())
         for i in range(10):
             self.nodes[0].setmocktime(cur_time + 600)
@@ -256,7 +256,7 @@ class BIP68Test(UnitETestFramework):
         test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=False)
 
         # Mine tx2, and then try again
-        self.nodes[0].prioritisetransaction(txid=tx2.hash, fee_delta=int(self.relayfee*COIN))
+        self.nodes[0].prioritisetransaction(txid=tx2.hash, fee_delta=int(self.relayfee*UNIT))
 
         # Advance the time on the node so that we can test timelocks
         self.nodes[0].setmocktime(cur_time+600)
@@ -281,7 +281,7 @@ class BIP68Test(UnitETestFramework):
 
         utxos = self.nodes[0].listunspent()
         tx5.vin.append(CTxIn(COutPoint(int(utxos[0]["txid"], 16), utxos[0]["vout"]), nSequence=1))
-        tx5.vout[0].nValue += int(utxos[0]["amount"]*COIN)
+        tx5.vout[0].nValue += int(utxos[0]["amount"]*UNIT)
         raw_tx5 = self.nodes[0].signrawtransactionwithwallet(ToHex(tx5))["hex"]
 
         assert_raises_rpc_error(-26, NOT_FINAL_ERROR, self.nodes[0].sendrawtransaction, raw_tx5)
@@ -339,7 +339,7 @@ class BIP68Test(UnitETestFramework):
         tx2 = CTransaction()
         tx2.nVersion = 1
         tx2.vin = [CTxIn(COutPoint(tx1.sha256, 0), nSequence=0)]
-        tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee*COIN), CScript([b'a']))]
+        tx2.vout = [CTxOut(int(tx1.vout[0].nValue - self.relayfee*UNIT), CScript([b'a']))]
 
         # sign tx2
         tx2_raw = self.nodes[0].signrawtransactionwithwallet(ToHex(tx2))["hex"]
@@ -354,7 +354,7 @@ class BIP68Test(UnitETestFramework):
         tx3 = CTransaction()
         tx3.nVersion = 2
         tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=sequence_value)]
-        tx3.vout = [CTxOut(int(tx2.vout[0].nValue - self.relayfee * COIN), CScript([b'a' * 35]))]
+        tx3.vout = [CTxOut(int(tx2.vout[0].nValue - self.relayfee * UNIT), CScript([b'a' * 35]))]
         tx3.rehash()
 
         assert_raises_rpc_error(-26, NOT_FINAL_ERROR, self.nodes[0].sendrawtransaction, ToHex(tx3))

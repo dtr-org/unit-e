@@ -6,7 +6,7 @@
 
 from decimal import Decimal
 
-from test_framework.messages import COIN
+from test_framework.messages import UNIT
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error, satoshi_round, sync_blocks, sync_mempools
 
@@ -74,7 +74,7 @@ class MempoolPackagesTest(UnitETestFramework):
             assert_equal(mempool[x]['modifiedfee'], mempool[x]['fee'])
             assert_equal(mempool[x]['fees']['base'], mempool[x]['fee'])
             assert_equal(mempool[x]['fees']['modified'], mempool[x]['modifiedfee'])
-            assert_equal(mempool[x]['descendantfees'], descendant_fees * COIN)
+            assert_equal(mempool[x]['descendantfees'], descendant_fees * UNIT)
             assert_equal(mempool[x]['fees']['descendant'], descendant_fees)
             descendant_size += mempool[x]['size']
             assert_equal(mempool[x]['descendantsize'], descendant_size)
@@ -82,7 +82,7 @@ class MempoolPackagesTest(UnitETestFramework):
 
             # Check that ancestor calculations are correct
             assert_equal(mempool[x]['ancestorcount'], ancestor_count)
-            assert_equal(mempool[x]['ancestorfees'], ancestor_fees * COIN)
+            assert_equal(mempool[x]['ancestorfees'], ancestor_fees * UNIT)
             assert_equal(mempool[x]['ancestorsize'], ancestor_size)
             ancestor_size -= mempool[x]['size']
             ancestor_fees -= mempool[x]['fee']
@@ -138,7 +138,7 @@ class MempoolPackagesTest(UnitETestFramework):
         for x in chain:
             ancestor_fees += mempool[x]['fee']
             assert_equal(mempool[x]['fees']['ancestor'], ancestor_fees + Decimal('0.00001'))
-            assert_equal(mempool[x]['ancestorfees'], ancestor_fees * COIN + 1000)
+            assert_equal(mempool[x]['ancestorfees'], ancestor_fees * UNIT + 1000)
 
         # Undo the prioritisetransaction for later tests
         self.nodes[0].prioritisetransaction(txid=chain[0], fee_delta=-1000)
@@ -152,7 +152,7 @@ class MempoolPackagesTest(UnitETestFramework):
         for x in reversed(chain):
             descendant_fees += mempool[x]['fee']
             assert_equal(mempool[x]['fees']['descendant'], descendant_fees + Decimal('0.00001'))
-            assert_equal(mempool[x]['descendantfees'], descendant_fees * COIN + 1000)
+            assert_equal(mempool[x]['descendantfees'], descendant_fees * UNIT + 1000)
 
         # Adding one more transaction on to the chain should fail.
         assert_raises_rpc_error(-26, "too-long-mempool-chain", self.chain_transaction, self.nodes[0], txid, vout, value, fee, 1)
@@ -178,7 +178,7 @@ class MempoolPackagesTest(UnitETestFramework):
             if (x == chain[-1]):
                 assert_equal(mempool[x]['modifiedfee'], mempool[x]['fee']+satoshi_round(0.00002))
                 assert_equal(mempool[x]['fees']['modified'], mempool[x]['fee']+satoshi_round(0.00002))
-            assert_equal(mempool[x]['descendantfees'], descendant_fees * COIN + 2000)
+            assert_equal(mempool[x]['descendantfees'], descendant_fees * UNIT + 2000)
             assert_equal(mempool[x]['fees']['descendant'], descendant_fees+satoshi_round(0.00002))
 
         # TODO: check that node1's mempool is as expected

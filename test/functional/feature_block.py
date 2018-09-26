@@ -11,7 +11,7 @@ from test_framework.blocktools import create_block, create_coinbase, create_tx_w
 from test_framework.key import CECKey
 from test_framework.messages import (
     CBlock,
-    COIN,
+    UNIT,
     COutPoint,
     CTransaction,
     CTxIn,
@@ -733,7 +733,7 @@ class FullBlockTest(UnitETestFramework):
         self.log.info("Reject a block with a transaction with outputs > inputs")
         self.move_tip(57)
         b59 = self.next_block(59)
-        tx = self.create_and_sign_transaction(out[17], 51 * COIN)
+        tx = self.create_and_sign_transaction(out[17], 51 * UNIT)
         b59 = self.update_block(59, [tx])
         self.sync_blocks([b59], False, 16, b'bad-txns-in-belowout', reconnect=True)
 
@@ -1058,18 +1058,18 @@ class FullBlockTest(UnitETestFramework):
         self.log.info("Test transaction resurrection during a re-org")
         self.move_tip(76)
         b77 = self.next_block(77)
-        tx77 = self.create_and_sign_transaction(out[24], 10 * COIN)
+        tx77 = self.create_and_sign_transaction(out[24], 10 * UNIT)
         b77 = self.update_block(77, [tx77])
         self.sync_blocks([b77], True)
         self.save_spendable_output()
 
         b78 = self.next_block(78)
-        tx78 = self.create_tx(tx77, 0, 9 * COIN)
+        tx78 = self.create_tx(tx77, 0, 9 * UNIT)
         b78 = self.update_block(78, [tx78])
         self.sync_blocks([b78], True)
 
         b79 = self.next_block(79)
-        tx79 = self.create_tx(tx78, 0, 8 * COIN)
+        tx79 = self.create_tx(tx78, 0, 8 * UNIT)
         b79 = self.update_block(79, [tx79])
         self.sync_blocks([b79], True)
 

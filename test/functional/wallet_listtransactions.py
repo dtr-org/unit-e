@@ -6,7 +6,7 @@
 from decimal import Decimal
 from io import BytesIO
 
-from test_framework.messages import COIN, CTransaction
+from test_framework.messages import UNIT, CTransaction
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_array_result,
@@ -178,7 +178,7 @@ class ListTransactionsTest(UnitETestFramework):
 
         # Replace tx3, and check that tx4 becomes unknown
         tx3_b = tx3_modified
-        tx3_b.vout[0].nValue -= int(Decimal("0.004") * COIN)  # bump the fee
+        tx3_b.vout[0].nValue -= int(Decimal("0.004") * UNIT)  # bump the fee
         tx3_b = bytes_to_hex_str(tx3_b.serialize())
         tx3_b_signed = self.nodes[0].signrawtransactionwithwallet(tx3_b)['hex']
         txid_3b = self.nodes[0].sendrawtransaction(tx3_b_signed, True)

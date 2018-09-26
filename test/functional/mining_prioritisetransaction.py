@@ -6,7 +6,7 @@
 
 import time
 
-from test_framework.messages import COIN, MAX_BLOCK_BASE_SIZE
+from test_framework.messages import UNIT, MAX_BLOCK_BASE_SIZE
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error, create_confirmed_utxos, create_lots_of_big_transactions, gen_return_txouts
 
@@ -65,7 +65,7 @@ class PrioritiseTransactionTest(UnitETestFramework):
 
         # add a fee delta to something in the cheapest bucket and make sure it gets mined
         # also check that a different entry in the cheapest bucket is NOT mined
-        self.nodes[0].prioritisetransaction(txid=txids[0][0], fee_delta=int(3*base_fee*COIN))
+        self.nodes[0].prioritisetransaction(txid=txids[0][0], fee_delta=int(3*base_fee*UNIT))
 
         self.nodes[0].generate(1)
 
@@ -84,7 +84,7 @@ class PrioritiseTransactionTest(UnitETestFramework):
 
         # Add a prioritisation before a tx is in the mempool (de-prioritising a
         # high-fee transaction so that it's now low fee).
-        self.nodes[0].prioritisetransaction(txid=high_fee_tx, fee_delta=-int(2*base_fee*COIN))
+        self.nodes[0].prioritisetransaction(txid=high_fee_tx, fee_delta=-int(2*base_fee*UNIT))
 
         # Add everything back to mempool
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
@@ -128,7 +128,7 @@ class PrioritiseTransactionTest(UnitETestFramework):
         # This is a less than 1000-byte transaction, so just set the fee
         # to be the minimum for a 1000-byte transaction and check that it is
         # accepted.
-        self.nodes[0].prioritisetransaction(txid=tx_id, fee_delta=int(self.relayfee*COIN))
+        self.nodes[0].prioritisetransaction(txid=tx_id, fee_delta=int(self.relayfee*UNIT))
 
         self.log.info("Assert that prioritised free transaction is accepted to mempool")
         assert_equal(self.nodes[0].sendrawtransaction(tx_hex), tx_id)
@@ -139,7 +139,7 @@ class PrioritiseTransactionTest(UnitETestFramework):
         mock_time = int(time.time())
         self.nodes[0].setmocktime(mock_time)
         template = self.nodes[0].getblocktemplate()
-        self.nodes[0].prioritisetransaction(txid=tx_id, fee_delta=-int(self.relayfee*COIN))
+        self.nodes[0].prioritisetransaction(txid=tx_id, fee_delta=-int(self.relayfee*UNIT))
         self.nodes[0].setmocktime(mock_time+10)
         new_template = self.nodes[0].getblocktemplate()
 
