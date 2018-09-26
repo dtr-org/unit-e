@@ -45,6 +45,9 @@ class CBrokenBlock(CBlock):
                 r += tx.serialize_with_witness()
             else:
                 r += tx.serialize_without_witness()
+        # UNIT-E: serialize an empty block signature on top of the block
+        # this is just an interim solution
+        r += ser_vector([])
         return r
 
     def normal_serialize(self):

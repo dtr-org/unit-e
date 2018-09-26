@@ -75,6 +75,9 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
 
+    //! signature of the block for Proof-of-Stake
+    std::vector<uint8_t> signature;
+
     // memory only
     mutable bool fChecked;
 
@@ -95,12 +98,14 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(*(CBlockHeader*)this);
         READWRITE(vtx);
+        READWRITE(signature);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
+        signature.clear();
         fChecked = false;
     }
 

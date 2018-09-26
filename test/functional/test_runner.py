@@ -104,7 +104,6 @@ BASE_SCRIPTS= [
     'mempool_reorg.py',
     'mempool_persist.py',
     'wallet_multiwallet.py',
-    'esperanza_finalizationstate.py',
     'wallet_multiwallet.py --usecli',
     'interface_http.py',
     'rpc_users.py',
@@ -176,6 +175,7 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 60s vv
     'rpc_bind.py',
     # vv Tests less than 30s vv
+    'esperanza_finalizationstate.py',
     'example_test.py',
 ]
 

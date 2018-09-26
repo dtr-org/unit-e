@@ -570,6 +570,9 @@ class CBlock(CBlockHeader):
             r += ser_vector(self.vtx, "serialize_with_witness")
         else:
             r += ser_vector(self.vtx, "serialize_without_witness")
+        # UNIT-E: serialize an empty block signature on top of the block
+        # this is just an interim solution
+        r += ser_vector([])
         return r
 
     # Calculate the merkle root given a vector of transaction hashes
