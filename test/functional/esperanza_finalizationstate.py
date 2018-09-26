@@ -26,6 +26,8 @@ def test_setup(test, proposers, validators):
         '-proposing=0',
         '-debug=all',
         '-whitelist=127.0.0.1',
+        '-connect=0',
+        '-listen=1',
         '-esperanzaconfig=' + json_params
     ]
 
@@ -34,6 +36,8 @@ def test_setup(test, proposers, validators):
         '-proposing=0',
         '-whitelist=127.0.0.1',
         '-debug=all',
+        '-connect=0',
+        '-listen=1',
         '-esperanzaconfig=' + json_params
     ]
 
@@ -58,8 +62,8 @@ def setup_deposit(self, nodes):
     # wait for coinbase maturity
     for n in range(0, 120):
         generate_block(nodes[0])
-    assert_equal(nodes[0].getblockchaininfo()['blocks'], 120)
 
+    assert_equal(nodes[0].getblockchaininfo()['blocks'], 120)
     sync_blocks(self.nodes[0:len(nodes)])
 
     for n in nodes:
@@ -104,7 +108,7 @@ class ExpiredVoteTest(UnitETestFramework):
         self.setup_nodes()
 
         # create a connection v1 -> p1 <- p2
-        connect_nodes_bi(self.nodes, 0, 2)
+        connect_nodes_bi(self.nodes, 0, 1)
         connect_nodes_bi(self.nodes, 1, 2)
 
     def run_test(self):
@@ -114,23 +118,31 @@ class ExpiredVoteTest(UnitETestFramework):
         v = self.nodes[2]
 
         setup_deposit(self, [v])
-        sync_blocks(self.nodes[0:3])
+        sync_blocks([p0, p1, v])
 
-        # generate a votable epoch
-        for n in range(0, 10):
+        # get to up to block 148, just one before the new checkpoint
+        for n in range(0, 8):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 150)
-        sync_blocks(self.nodes[0:3])
+        assert_equal(p0.getblockchaininfo()['blocks'], 148)
+        sync_blocks([p0, p1, v])
 
-        # Disconnect immediately p0 proposer. A vote not yet included in blocks
-        # should now reach the p1 that will accept it.
-        assert_equal(len(p0.getpeerinfo()), 2)
-        disconnect_nodes(p0, 2)
+        # Rearrange connection like p0 -> p1 xxx v so the validator
+        # remains isolated. And the generate the new checkpoint
+        disconnect_nodes(p1, 2)
+        generate_block(p0)
+        generate_block(p0)
+        sync_blocks([p0, p1])
+
+        # Disconnect now also p0 and reconnect p1 to v so v can catch up
+        # and vote on the new epoch but the p1 and v remain segregated from
+        # p0.
         disconnect_nodes(p0, 1)
+        connect_nodes_bi(self.nodes, 1, 2)
 
         # wait for the vote to be propagated to p1
-        sync_mempools([p1, v])
+        sync_blocks([p1, v])
+        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=3)
 
         # Mine another epoch while disconnected p0.
         for n in range(0, 10):
@@ -138,21 +150,32 @@ class ExpiredVoteTest(UnitETestFramework):
 
         assert_equal(p0.getblockchaininfo()['blocks'], 160)
 
-        # connect again and wait for sync
-        connect_nodes_bi(self.nodes, 0, 2)
-        connect_nodes_bi(self.nodes, 1, 2)
-        sync_blocks(self.nodes[0:3])
+        # now we disconnect v again so it will not vote in the epoch just created
+        # since that would interfere with the test.
+        disconnect_nodes(p1, 2)
+        connect_nodes_bi(self.nodes, 0, 1)
+        sync_blocks([p0, p1])
+
+        # Check nothing else made it to the mempool in the meanwhile
+        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=3)
 
         # now p1 should propose but the vote he has in the mempool is
-        # not valid anymore.
+        # not valid anymore. Make sure that we can still generate a block
+        # even if the vote in mempool is currently invalid.
         generate_block(p1)
-        sync_blocks(self.nodes[0:3])
-
-        # make sure that the expired vote has been removed from the mempool as well
-        assert_equal(len(p1.getrawmempool()), 0)
+        sync_blocks([p0, p1])
 
         assert_equal(p1.getblockchaininfo()['blocks'], 161)
 
+
+def wait_for(condition):
+    i = 10
+    while i > 0:
+        if condition:
+            break
+        else:
+            time.sleep(1)
+        i -= 1
 
 if __name__ == '__main__':
     ExpiredVoteTest().main()
