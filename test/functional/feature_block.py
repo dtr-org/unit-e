@@ -891,7 +891,9 @@ class FullBlockTest(ComparisonTestFramework):
         tx.vout.append(CTxOut(0, script_output))
         tx.vin.append(CTxIn(COutPoint(b64a.vtx[1].sha256, 0)))
         b64a = update_block("64a", [tx])
-        assert_equal(len(b64a.serialize()), MAX_BLOCK_BASE_SIZE + 8)
+        # UNIT-E: We add an empty block signature (hence the explicit `+ 1' down there
+        # this is just an interim solution until we have full block signatures
+        assert_equal(len(b64a.serialize()), MAX_BLOCK_BASE_SIZE + 8 + 1)
         yield TestInstance([[self.tip, None]])
 
         # comptool workaround: to make sure b64 is delivered, manually erase b64a from blockstore
