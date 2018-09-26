@@ -478,9 +478,7 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
 
     while (script.GetOp(it, opcode, buffer)) {
         if (buffer.size() == CPubKey::COMPRESSED_PUBLIC_KEY_SIZE) {
-            CPubKey key;
-            key.Set(buffer.begin(), buffer.end());
-            outKeys.emplace_back(key);
+            outKeys.emplace_back(CPubKey(buffer.begin(), buffer.end()));
         } else {
             // It is either OP_M or something invalid
             break;
