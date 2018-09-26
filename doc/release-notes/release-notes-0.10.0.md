@@ -529,7 +529,7 @@ GUI:
 - `fe6bff2` Add BerkeleyDB version info to RPCConsole
 - `b917555` PeerTableModel: Fix potential deadlock. #4296
 - `dff0e3b` Improve rpc console history behavior
-- `95a9383` Remove CENT-fee-rule from coin control completely
+- `95a9383` Remove EEES-fee-rule from coin control completely
 - `56b07d2` Allow setting listen via GUI
 - `d95ba75` Log messages with type>QtDebugMsg as non-debug
 - `8969828` New status bar Unit Display Control and related changes
