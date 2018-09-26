@@ -1,14 +1,14 @@
 [Desktop Entry]
 Version=1.0
-Name=Bitcoin Core
-Comment=Connect to the Bitcoin P2P Network
-Comment[de]=Verbinde mit dem Bitcoin peer-to-peer Netzwerk
-Comment[fr]=Bitcoin, monnaie virtuelle cryptographique pair à pair
-Comment[tr]=Bitcoin, eşten eşe kriptografik sanal para birimi
-Exec=bitcoin-qt %u
+Name=UnitE Core
+Comment=Connect to the UnitE P2P Network
+Comment[de]=Verbinde mit dem UnitE peer-to-peer Netzwerk
+Comment[fr]=UnitE, monnaie virtuelle cryptographique pair à pair
+Comment[tr]=UnitE, eşten eşe kriptografik sanal para birimi
+Exec=unite-qt %u
 Terminal=false
 Type=Application
-Icon=bitcoin128
-MimeType=x-scheme-handler/bitcoin;
+Icon=unite128
+MimeType=x-scheme-handler/unite;
 Categories=Office;Finance;
-StartupWMClass=Bitcoin-qt
+StartupWMClass=UnitE-qt

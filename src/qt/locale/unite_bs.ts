@@ -12,10 +12,10 @@
     <name>BanTableModel</name>
     </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>UnitEGUI</name>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>UnitE</source>
+        <translation>UnitE</translation>
     </message>
     </context>
 <context>
@@ -33,8 +33,8 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>UnitE</source>
+        <translation>UnitE</translation>
     </message>
     </context>
 <context>
@@ -158,10 +158,10 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>unite-core</name>
     <message>
-        <source>Bitcoin Core</source>
-        <translation>Bitcoin Jezrga</translation>
+        <source>UnitE Core</source>
+        <translation>UnitE Jezrga</translation>
     </message>
     </context>
 </TS>

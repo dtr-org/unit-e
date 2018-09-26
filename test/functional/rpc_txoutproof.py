@@ -4,12 +4,12 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test gettxoutproof and verifytxoutproof RPCs."""
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import FromHex, ToHex
 from test_framework.messages import CMerkleBlock
 
-class MerkleBlockTest(BitcoinTestFramework):
+class MerkleBlockTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True

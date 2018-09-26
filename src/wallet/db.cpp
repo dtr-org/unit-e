@@ -28,7 +28,7 @@ namespace {
 //!
 //! BerkeleyDB generates unique fileids by default
 //! (https://docs.oracle.com/cd/E17275_01/html/programmer_reference/program_copy.html),
-//! so bitcoin should never create different databases with the same fileid, but
+//! so unite should never create different databases with the same fileid, but
 //! this error can be triggered if users manually copy database files.
 void CheckUniqueFileid(const CDBEnv& env, const std::string& filename, Db& db)
 {
@@ -104,7 +104,7 @@ bool CDBEnv::Open(const fs::path& pathIn, bool retry)
 
     strPath = pathIn.string();
     if (!LockDirectory(pathIn, ".walletlock")) {
-        LogPrintf("Cannot obtain a lock on wallet directory %s. Another instance of bitcoin may be using it.\n", strPath);
+        LogPrintf("Cannot obtain a lock on wallet directory %s. Another instance of unite may be using it.\n", strPath);
         return false;
     }
 

@@ -64,7 +64,7 @@
     </message>
 </context>
 <context>
-    <name>BitcoinGUI</name>
+    <name>UnitEGUI</name>
     <message>
         <source>E&amp;xit</source>
         <translation>Buda</translation>
@@ -98,8 +98,8 @@
         <translation>Vhura &amp;URI</translation>
     </message>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>UnitE</source>
+        <translation>UnitE</translation>
     </message>
     <message>
         <source>Wallet</source>
@@ -165,8 +165,8 @@
 <context>
     <name>Intro</name>
     <message>
-        <source>Bitcoin</source>
-        <translation>Bitcoin</translation>
+        <source>UnitE</source>
+        <translation>UnitE</translation>
     </message>
     </context>
 <context>
@@ -194,8 +194,8 @@
         <translation>Marii </translation>
     </message>
     <message>
-        <source>Enter a Bitcoin address (e.g. %1)</source>
-        <translation>Nyora kero ye Bitcoin (sekuti %1)</translation>
+        <source>Enter a UnitE address (e.g. %1)</source>
+        <translation>Nyora kero ye UnitE (sekuti %1)</translation>
     </message>
     <message>
         <source>%1 d</source>
@@ -350,7 +350,7 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>bitcoin-core</name>
+    <name>unite-core</name>
     <message>
         <source>Information</source>
         <translation>Ruzivo</translation>
