@@ -18,7 +18,7 @@
 
 #include <boost/thread.hpp>
 
-static const char DB_COIN = 'C';
+static const char DB_UNIT = 'C';
 static const char DB_COINS = 'c';
 static const char DB_BLOCK_FILES = 'f';
 static const char DB_TXINDEX = 't';
@@ -35,7 +35,7 @@ namespace {
 struct CoinEntry {
     COutPoint* outpoint;
     char key;
-    explicit CoinEntry(const COutPoint* ptr) : outpoint(const_cast<COutPoint*>(ptr)), key(DB_COIN)  {}
+    explicit CoinEntry(const COutPoint* ptr) : outpoint(const_cast<COutPoint*>(ptr)), key(DB_UNIT)  {}
 
     template<typename Stream>
     void Serialize(Stream &s) const {
@@ -144,7 +144,7 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
 
 size_t CCoinsViewDB::EstimateSize() const
 {
-    return db.EstimateSize(DB_COIN, (char)(DB_COIN+1));
+    return db.EstimateSize(DB_UNIT, (char)(DB_UNIT+1));
 }
 
 CBlockTreeDB::CBlockTreeDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "blocks" / "index", nCacheSize, fMemory, fWipe) {
@@ -176,7 +176,7 @@ CCoinsViewCursor *CCoinsViewDB::Cursor() const
     /* It seems that there are no "const iterators" for LevelDB.  Since we
        only need read operations on it, use a const-cast to get around
        that restriction.  */
-    i->pcursor->Seek(DB_COIN);
+    i->pcursor->Seek(DB_UNIT);
     // Cache key of first record
     if (i->pcursor->Valid()) {
         CoinEntry entry(&i->keyTmp.second);
@@ -191,7 +191,7 @@ CCoinsViewCursor *CCoinsViewDB::Cursor() const
 bool CCoinsViewDBCursor::GetKey(COutPoint &key) const
 {
     // Return cached key
-    if (keyTmp.first == DB_COIN) {
+    if (keyTmp.first == DB_UNIT) {
         key = keyTmp.second;
         return true;
     }
@@ -210,7 +210,7 @@ unsigned int CCoinsViewDBCursor::GetValueSize() const
 
 bool CCoinsViewDBCursor::Valid() const
 {
-    return keyTmp.first == DB_COIN;
+    return keyTmp.first == DB_UNIT;
 }
 
 void CCoinsViewDBCursor::Next()
