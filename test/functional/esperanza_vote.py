@@ -51,7 +51,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         for n in range(0, 120):
             self.generate_block(nodes[0])
 
-        sync_blocks(self.nodes[0:3])
+        sync_blocks(self.nodes)
 
         deptx1 = nodes[1].deposit(address1, 1500)['transactionid']
         deptx2 = nodes[2].deposit(address2, 2000)['transactionid']
@@ -70,7 +70,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         # Then we generate other 10 epochs
         for n in range(0, 50):
             self.generate_block(nodes[0])
-            sync_blocks(self.nodes[0:3])
+            sync_blocks(self.nodes)
             time.sleep(block_time)
 
         resp = nodes[0].getesperanzastate()

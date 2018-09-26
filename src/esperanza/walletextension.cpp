@@ -12,12 +12,14 @@
 #include <esperanza/stakevalidation.h>
 #include <esperanza/walletextension.h>
 #include <net.h>
+#include <policy/policy.h>
 #include <primitives/txtype.h>
 #include <script/standard.h>
 #include <util.h>
 #include <utilfun.h>
 #include <validation.h>
 #include <wallet/coincontrol.h>
+#include <wallet/fees.h>
 #include <wallet/wallet.h>
 
 namespace esperanza {
@@ -458,12 +460,13 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   return true;
 }
 
-//! Creates and sends a logout transaction given transaction.
-//! \param wtxNewOut [out] the transaction created.
+//! \brief Creates and sends a logout transaction given transaction.
+//! \param wtxNewOut [out] the logout transaction created.
 //! \return true if the operation was successful, false otherwise.
 bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
   CCoinControl coinControl;
+  coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
   wtxNewOut.fTimeReceivedIsTxTime = true;
   wtxNewOut.BindWallet(m_enclosingWallet);
   wtxNewOut.fFromMe = true;
@@ -480,13 +483,25 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   CTransactionRef prevTx = validatorState.m_lastEsperanzaTx;
 
   const CScript &scriptPubKey = prevTx->vout[0].scriptPubKey;
-  const CAmount amount = prevTx->vout[0].nValue;
+  CAmount amount = prevTx->vout[0].nValue;
 
-  txNew.vin.push_back(CTxIn(prevTx->GetHash(), 0, prevTx->vin[0].scriptSig,
-                            CTxIn::SEQUENCE_FINAL));
+  // We need to pay some minimal fees if we wanna make sure that the logout
+  // will be included.
+  FeeCalculation feeCalc;
+
+  txNew.vin.push_back(
+      CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
 
   CTxOut txout(amount, scriptPubKey);
   txNew.vout.push_back(txout);
+
+  const unsigned int nBytes =
+      static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
+
+  const CAmount fees =
+      GetMinimumFee(nBytes, coinControl, ::mempool, ::feeEstimator, &feeCalc);
+
+  txNew.vout[0].nValue -= fees;
 
   CTransaction txNewConst(txNew);
   uint32_t nIn = 0;
@@ -653,7 +668,7 @@ void WalletExtension::BlockConnected(
         // In case we are logged out, stop validating.
         FinalizationState *esperanza = FinalizationState::GetState(*pindex);
         int currentDynasty = esperanza->GetCurrentDynasty();
-        if (currentDynasty > validatorState.m_endDynasty) {
+        if (currentDynasty >= validatorState.m_endDynasty) {
           LOCK(m_enclosingWallet->cs_wallet);
           validatorState.m_phase = ValidatorState::Phase::NOT_VALIDATING;
         }

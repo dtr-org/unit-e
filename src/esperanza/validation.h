@@ -20,7 +20,7 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const CBlockIndex *pindex = nullptr);
 
-bool CheckLogoutTransaction(CValidationState &state, const CTransaction &tx,
+bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                             const CBlockIndex *pindex = nullptr);
 
 }  // namespace esperanza

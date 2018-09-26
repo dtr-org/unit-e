@@ -229,6 +229,9 @@ CScript CScript::CreatePayVoteSlashScript(CPubKey pubkey)
                      ToByteVector(pubkey) <<
                      OP_SLASHABLE <<
 
+                     OP_ELSE <<
+                     OP_TRUE <<
+
                      OP_ENDIF <<
                      OP_ENDIF;
 }
@@ -247,7 +250,7 @@ bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
 bool CScript::MatchPayVoteSlashScript(size_t ofs) const
 {
     // Extra-fast test for pay-vote-slash script hash CScripts:
-    return (this->size() - ofs == 101 &&
+    return (this->size() - ofs == 103 &&
         this->MatchVoteScript(0) &&
 
         (*this)[ofs + 35] == OP_IF &&
@@ -261,13 +264,15 @@ bool CScript::MatchPayVoteSlashScript(size_t ofs) const
 
         this->MatchSlashScript(64) &&
 
-        (*this)[ofs + 99] == OP_ENDIF &&
-        (*this)[ofs + 100] == OP_ENDIF);
+        (*this)[ofs + 99] == OP_ELSE &&
+        (*this)[ofs + 100] == OP_TRUE &&
+        (*this)[ofs + 101] == OP_ENDIF &&
+        (*this)[ofs + 102] == OP_ENDIF);
 }
 
 bool CScript::IsPayVoteSlashScript() const
 {
-    return (this->size() == 101 && this->MatchPayVoteSlashScript(0));
+    return (this->size() == 103 && this->MatchPayVoteSlashScript(0));
 }
 
 bool CScript::MatchVoteScript(size_t ofs) const

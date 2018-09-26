@@ -63,18 +63,7 @@ bool IsVoteExpired(const CTransaction &tx) {
   return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
 }
 
-bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
-                          const CBlockIndex *pindex) {
-  if (tx.vin.size() != 1 || tx.vout.size() != 1) {
-    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
-  }
-
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-vout-script-invalid-payvoteslash");
-  }
-
-  bool CheckLogoutTransaction(CValidationState &state, const CTransaction &tx,
+bool CheckLogoutTransaction(CValidationState &state, const CTransaction &tx,
                             const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
@@ -93,27 +82,6 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                      "bad-logout-script-not-solvable");
   }
 
-  CTransactionRef prevTx;
-  uint256 blockHash;
-
-  // We have to look into the tx database to find the prev tx, hence the
-  // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
-                      blockHash, true)) {
-
-    return state.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
-  }
-
-  if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-vote-prev-not-deposit-vote-or-logout");
-  }
-
-  if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-vote-not-same-payvoteslash-script");
-  }
-
   esperanza::FinalizationState *esperanza = nullptr;
   if (pindex != nullptr) {
     esperanza = esperanza::FinalizationState::GetState(*pindex);
@@ -128,8 +96,45 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
     return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
   }
 
+  // We keep the check for the prev at the end because is the most expensive
+  // check (potentially goes to disk) and there is a good chance that if the
+  // vote is not valid (i.e. outdated) then the function will return before
+  // reaching this point.
+  CTransactionRef prevTx;
+  uint256 blockHash;
+
+  // We have to look into the tx database to find the prev tx, hence the
+  // use of fAllowSlow = true
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
+                      blockHash, true)) {
+
+    return state.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
+  }
+
+  if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-logout-prev-not-deposit-vote-");
+  }
+
+  if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-logout-not-same-payvoteslash-script");
+  }
+
   return true;
 }
+
+bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
+                          const CBlockIndex *pindex) {
+
+  if (tx.vin.size() != 1 || tx.vout.size() != 1) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
+  }
+
+  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-vote-vout-script-invalid-payvoteslash");
+  }
 
   FinalizationState *state = nullptr;
   if (pindex != nullptr) {
@@ -161,7 +166,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote() && !prevTx->IsLogout()) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-prev-not-deposit-or-vote");
+                        "bad-vote-prev-not-deposit-vote-or-logout");
   }
 
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
