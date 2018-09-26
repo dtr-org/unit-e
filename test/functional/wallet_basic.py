@@ -6,7 +6,7 @@
 from decimal import Decimal
 import time
 
-from test_framework.test_framework import BitcoinTestFramework
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_array_result,
     assert_equal,
@@ -18,7 +18,7 @@ from test_framework.util import (
     wait_until,
 )
 
-class WalletTest(BitcoinTestFramework):
+class WalletTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
@@ -396,7 +396,7 @@ class WalletTest(BitcoinTestFramework):
             '-reindex',
             '-zapwallettxes=1',
             '-zapwallettxes=2',
-            # disabled until issue is fixed: https://github.com/bitcoin/bitcoin/issues/7463
+            # disabled until issue is fixed: https://github.com/unite/unite/issues/7463
             # '-salvagewallet',
         ]
         chainlimit = 6

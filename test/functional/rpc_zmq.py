@@ -5,11 +5,11 @@
 """Test for the ZMQ RPC methods."""
 
 from test_framework.test_framework import (
-    BitcoinTestFramework, skip_if_no_py3_zmq, skip_if_no_bitcoind_zmq)
+    UnitETestFramework, skip_if_no_py3_zmq, skip_if_no_united_zmq)
 from test_framework.util import assert_equal
 
 
-class RPCZMQTest(BitcoinTestFramework):
+class RPCZMQTest(UnitETestFramework):
 
     address = "tcp://127.0.0.1:28332"
 
@@ -19,7 +19,7 @@ class RPCZMQTest(BitcoinTestFramework):
 
     def run_test(self):
         skip_if_no_py3_zmq()
-        skip_if_no_bitcoind_zmq(self)
+        skip_if_no_united_zmq(self)
         self._test_getzmqnotifications()
 
     def _test_getzmqnotifications(self):

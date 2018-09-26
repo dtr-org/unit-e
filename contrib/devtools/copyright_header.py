@@ -20,15 +20,15 @@ EXCLUDE = [
     'src/secp256k1/include/secp256k1_ecdh.h',
     'src/secp256k1/include/secp256k1_recovery.h',
     'src/secp256k1/include/secp256k1_schnorr.h',
-    'src/secp256k1/src/java/org_bitcoin_NativeSecp256k1.c',
-    'src/secp256k1/src/java/org_bitcoin_NativeSecp256k1.h',
-    'src/secp256k1/src/java/org_bitcoin_Secp256k1Context.c',
-    'src/secp256k1/src/java/org_bitcoin_Secp256k1Context.h',
+    'src/secp256k1/src/java/org_unite_NativeSecp256k1.c',
+    'src/secp256k1/src/java/org_unite_NativeSecp256k1.h',
+    'src/secp256k1/src/java/org_unite_Secp256k1Context.c',
+    'src/secp256k1/src/java/org_unite_Secp256k1Context.h',
     # univalue:
     'src/univalue/test/object.cpp',
     'src/univalue/lib/univalue_escapes.h',
     # auto generated:
-    'src/qt/bitcoinstrings.cpp',
+    'src/qt/unitestrings.cpp',
     'src/chainparamsseeds.h',
     # other external copyrights:
     'src/tinyformat.h',
@@ -87,9 +87,9 @@ EXPECTED_HOLDER_NAMES = [
     "Satoshi Nakamoto\n",
     "The Bitcoin Core developers\n",
     "The Bitcoin Core developers \n",
-    "Bitcoin Core Developers\n",
-    "the Bitcoin Core developers\n",
-    "The Bitcoin developers\n",
+    "UnitE Core Developers\n",
+    "the UnitE Core developers\n",
+    "The UnitE developers\n",
     "The LevelDB Authors\. All rights reserved\.\n",
     "BitPay Inc\.\n",
     "BitPay, Inc\.\n",
@@ -279,7 +279,7 @@ Usage:
     $ ./copyright_header.py report <base_directory> [verbose]
 
 Arguments:
-    <base_directory> - The base directory of a bitcoin source code repository.
+    <base_directory> - The base directory of a unite source code repository.
     [verbose] - Includes a list of every file of each subcategory in the report.
 """
 
@@ -435,7 +435,7 @@ Usage:
     $ ./copyright_header.py update <base_directory>
 
 Arguments:
-    <base_directory> - The base directory of a bitcoin source code repository.
+    <base_directory> - The base directory of a unite source code repository.
 """
 
 def print_file_action_message(filename, action):
@@ -557,7 +557,7 @@ Usage:
     $ ./copyright_header.py insert <file>
 
 Arguments:
-    <file> - A source file in the bitcoin repository.
+    <file> - A source file in the unite repository.
 """
 
 def insert_cmd(argv):
@@ -582,7 +582,7 @@ def insert_cmd(argv):
 ################################################################################
 
 USAGE = """
-copyright_header.py - utilities for managing copyright headers of 'The Bitcoin
+copyright_header.py - utilities for managing copyright headers of 'The UnitE
 Core developers' in repository source files.
 
 Usage:

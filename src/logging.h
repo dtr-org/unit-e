@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_LOGGING_H
-#define BITCOIN_LOGGING_H
+#ifndef UNITE_LOGGING_H
+#define UNITE_LOGGING_H
 
 #include <fs.h>
 #include <tinyformat.h>
@@ -163,4 +163,4 @@ template<typename T, typename... Args> static inline void MarkUsed(const T& t, c
 } while(0)
 #endif
 
-#endif // BITCOIN_LOGGING_H
+#endif // UNITE_LOGGING_H

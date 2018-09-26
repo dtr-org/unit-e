@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_BITCOINUNITS_H
-#define BITCOIN_QT_BITCOINUNITS_H
+#ifndef UNITE_QT_UNITEUNITS_H
+#define UNITE_QT_UNITEUNITS_H
 
 #include <amount.h>
 
@@ -41,18 +41,18 @@
 #define THIN_SP_UTF8 REAL_THIN_SP_UTF8
 #define THIN_SP_HTML HTML_HACK_SP
 
-/** Bitcoin unit definitions. Encapsulates parsing and formatting
+/** UnitE unit definitions. Encapsulates parsing and formatting
    and serves as list model for drop-down selection boxes.
 */
-class BitcoinUnits: public QAbstractListModel
+class UnitEUnits: public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    explicit BitcoinUnits(QObject *parent);
+    explicit UnitEUnits(QObject *parent);
 
-    /** Bitcoin units.
-      @note Source: https://en.bitcoin.it/wiki/Units . Please add only sensible ones
+    /** UnitE units.
+      @note Source: https://en.unite.it/wiki/Units . Please add only sensible ones
      */
     enum Unit
     {
@@ -124,8 +124,8 @@ public:
     static CAmount maxMoney();
 
 private:
-    QList<BitcoinUnits::Unit> unitlist;
+    QList<UnitEUnits::Unit> unitlist;
 };
-typedef BitcoinUnits::Unit BitcoinUnit;
+typedef UnitEUnits::Unit UnitEUnit;
 
-#endif // BITCOIN_QT_BITCOINUNITS_H
+#endif // UNITE_QT_UNITEUNITS_H

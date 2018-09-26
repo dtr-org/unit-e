@@ -6,7 +6,7 @@
 import struct
 
 from test_framework.test_framework import (
-    BitcoinTestFramework, skip_if_no_bitcoind_zmq, skip_if_no_py3_zmq)
+    UnitETestFramework, skip_if_no_united_zmq, skip_if_no_py3_zmq)
 from test_framework.messages import CTransaction
 from test_framework.util import (assert_equal,
                                  bytes_to_hex_str,
@@ -33,13 +33,13 @@ class ZMQSubscriber:
         return body
 
 
-class ZMQTest (BitcoinTestFramework):
+class ZMQTest (UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
 
     def setup_nodes(self):
         skip_if_no_py3_zmq()
-        skip_if_no_bitcoind_zmq(self)
+        skip_if_no_united_zmq(self)
         import zmq
 
         # Initialize ZMQ context and socket.
