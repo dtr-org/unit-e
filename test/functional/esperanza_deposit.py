@@ -53,7 +53,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         for n in range(0, 120):
             self.generate_block(nodes[1])
 
-        sync_blocks(self.nodes[0:4])
+        sync_blocks(self.nodes)
 
         txid = validator.createdeposit(payto, 10000)['transactionid']
 
@@ -64,7 +64,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         for n in range(0, 20):
             self.generate_block(nodes[(n % 3) + 1])
 
-        sync_blocks(self.nodes[0:4])
+        sync_blocks(self.nodes)
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
@@ -80,7 +80,7 @@ class EsperanzaDepositTest(UnitETestFramework):
                 return
             except JSONRPCException as exp:
                 i += 1
-                print("error generating block: ", exp.error)
+                print("error generating block:", exp.error)
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 if __name__ == '__main__':

@@ -39,13 +39,15 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
 
   uint256 validatorIndex = GetRandHash();
 
-  BOOST_CHECK(esperanza->ValidateDeposit(validatorIndex, MIN_DEPOSIT_SIZE) ==
-              +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(
+      esperanza->ValidateDeposit(validatorIndex, MIN_DEPOSIT_SIZE),
+      +Result::SUCCESS);
+
   esperanza->ProcessDeposit(validatorIndex, MIN_DEPOSIT_SIZE);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
   for (int i = 1; i < 6; i++) {
-    BOOST_CHECK(esperanza->InitializeEpoch(i * EPOCH_LENGTH) ==
+    BOOST_CHECK_EQUAL(esperanza->InitializeEpoch(i * EPOCH_LENGTH),
                 +Result::SUCCESS);
   }
 

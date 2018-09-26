@@ -927,7 +927,7 @@ int CTxMemPool::ExpireVotes() {
   while (it != mapTx.get<ancestor_score>().end()) {
 
     if (it->GetTx().IsVote()) {
-      if(esperanza::IsVoteExpired(it->GetTx())) {
+      if (esperanza::IsVoteExpired(it->GetTx())) {
           toremove.insert(mapTx.project<0>(it));
       }
     }

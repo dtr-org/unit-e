@@ -91,7 +91,7 @@ class EsperanzaVoteTest(UnitETestFramework):
                 return
             except JSONRPCException as exp:
                 i += 1
-                print("error generating block: ", exp.error)
+                print("error generating block:", exp.error)
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
 if __name__ == '__main__':
