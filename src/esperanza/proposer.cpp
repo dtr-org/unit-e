@@ -184,9 +184,9 @@ void Proposer::Run(Proposer::Thread &thread) {
 
       // UNIT-E: respect thread.m_config.m_minProposeInterval
 
-      int64_t currentTime = GetAdjustedTime();
-      int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
-      int64_t searchTime = currentTime & ~mask;
+      const int64_t currentTime = GetAdjustedTime();
+      const int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
+      const int64_t searchTime = currentTime & ~mask;
 
       if (searchTime < bestTime) {
         if (currentTime < bestTime) {
@@ -197,7 +197,7 @@ void Proposer::Run(Proposer::Thread &thread) {
         } else {
           // due to timestamp mask time was truncated to a point before best
           // block time
-          int64_t nextSearch = searchTime + mask;
+          const int64_t nextSearch = searchTime + mask;
           std::chrono::seconds timeTillNextSearch =
               std::chrono::seconds(nextSearch - currentTime);
           thread.Sleep(timeTillNextSearch);
