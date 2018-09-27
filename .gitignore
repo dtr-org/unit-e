@@ -120,3 +120,6 @@ contrib/devtools/split-debug.sh
 confdefs.h
 conftest.c
 conftest.err
+conftest.cpp
+conftest
+conftest.nm

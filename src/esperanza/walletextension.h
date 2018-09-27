@@ -6,12 +6,16 @@
 #define UNITE_ESPERANZA_WALLETEXTENSION_H
 
 #include <amount.h>
+#include <dependency.h>
 #include <esperanza/validatorstate.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
 #include <primitives/transaction.h>
 #include <proposer/proposer.h>
+#include <proposer/proposer_settings.h>
+#include <proposer/proposer_state.h>
+#include <staking/stakingwallet.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -28,12 +32,14 @@ namespace esperanza {
 //! The rationale behind this design decision is to keep up with developments
 //! in bitcoin-core. The alterations done to wallet.h/wallet.cpp are kept to
 //! a minimum. All extended functionality should be put here.
-class WalletExtension {
+class WalletExtension : public staking::StakingWallet {
   friend class proposer::Proposer;
 
  private:
   //! a reference to the esperanza settings
   const Settings &m_settings;
+
+  Dependency<proposer::Settings> m_proposerSettings;
 
   //! The wallet this extension is embedded in.
   CWallet *m_enclosingWallet;
@@ -45,7 +51,7 @@ class WalletExtension {
   int m_deepestTxnDepth = 0;
 
   //! the state of proposing blocks from this wallet
-  proposer::Proposer::State m_proposerState;
+  proposer::State m_proposerState;
 
   void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                     const CBlockIndex *pindex);
@@ -61,21 +67,13 @@ class WalletExtension {
   //! not be nullptr).
   WalletExtension(const Settings &settings, ::CWallet *enclosingWallet);
 
-  CAmount GetStakeableBalance() const;
+  CAmount GetStakeableBalance() const override;
 
-  void AvailableCoinsForStaking(std::vector<::COutput> &vCoins);
-
-  static bool SelectCoinsForStaking(
-      int64_t nTargetValue, std::vector<::COutput> &availableCoinsForStaking,
-      std::set<std::pair<const ::CWalletTx *, unsigned int>> &setCoinsRet,
-      int64_t &nValueRet);
+  void AvailableCoinsForStaking(std::vector<::COutput> &vCoins) override;
 
   bool CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHeight,
                        int64_t nFees, ::CMutableTransaction &txNew,
-                       ::CKey &key);
-
-  bool SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
-                 int64_t nSearchTime);
+                       ::CKey &keyOut) override;
 
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             std::string &error);
@@ -94,7 +92,7 @@ class WalletExtension {
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
                       const CBlockIndex *pindex);
 
-  const proposer::Proposer::State &GetProposerState() const;
+  const proposer::State &GetProposerState() const;
 
   ValidatorState validatorState;
   bool nIsValidatorEnabled = false;

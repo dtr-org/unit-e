@@ -188,17 +188,3 @@ void DeleteLock(void* cs)
 }
 
 #endif /* DEBUG_LOCKORDER */
-
-CountingSemaphore::CountingSemaphore(const size_t initialValue) : m_count{initialValue} {}
-
-void CountingSemaphore::acquire(const size_t amount) {
-  std::unique_lock<decltype(m_mutex)> lock{m_mutex};
-  m_cv.wait(lock, [this, amount]() { return m_count >= amount; });
-  m_count -= amount;
-}
-
-void CountingSemaphore::release(const size_t amount) {
-  std::unique_lock<decltype(m_mutex)> lock{m_mutex};
-  m_count += amount;
-  m_cv.notify_all();
-}

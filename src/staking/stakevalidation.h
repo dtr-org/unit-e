@@ -3,14 +3,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ESPERANZA_STAKEVALIDATION_H
-#define UNITE_ESPERANZA_STAKEVALIDATION_H
+#ifndef UNITE_STAKING_STAKEVALIDATION_H
+#define UNITE_STAKING_STAKEVALIDATION_H
 
 #include <chain.h>
 #include <consensus/validation.h>
 #include <primitives/block.h>
 
-namespace esperanza {
+namespace staking {
 
 bool HasIsCoinstakeOp(const CScript &scriptIn);
 
@@ -24,8 +24,6 @@ bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID);
 
 bool CheckBlock(const CBlock &block);
 
-bool ProposeBlock(const CBlock &block);
+}  // namespace staking
 
-}  // namespace esperanza
-
-#endif  // UNITE_ESPERANZA_STAKEVALIDATION_H
+#endif  // UNITE_STAKING_STAKEVALIDATION_H

@@ -92,6 +92,8 @@ public:
         *((CBlockHeader*)this) = header;
     }
 
+    CBlock(const CBlock &block) = default;
+
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>

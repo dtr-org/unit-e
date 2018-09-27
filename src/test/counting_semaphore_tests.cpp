@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <sync.h>
+#include <proposer/sync.h>
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
@@ -12,7 +12,7 @@
 BOOST_AUTO_TEST_SUITE(semaphore_tests)
 
 BOOST_AUTO_TEST_CASE(barrier_example) {
-  CountingSemaphore semaphore(0);
+  proposer::CountingSemaphore semaphore(0);
 
   std::atomic<bool> t1_started(false);
   std::atomic<bool> t2_started(false);

@@ -6,11 +6,16 @@
 #define UNITE_PROPOSER_PROPOSER_H
 
 #include <better-enums/enum.h>
+#include <dependency.h>
 #include <esperanza/settings.h>
 #include <key.h>
 #include <primitives/block.h>
-#include <sync.h>
-#include <waiter.h>
+#include <proposer/blockproposer.h>
+#include <proposer/chainstate.h>
+#include <proposer/network.h>
+#include <proposer/proposer_status.h>
+#include <proposer/sync.h>
+#include <proposer/waiter.h>
 
 #include <stdint.h>
 #include <map>
@@ -27,63 +32,23 @@ namespace proposer {
 template <class T>
 struct ProposerAccess;
 
-// clang-format off
-BETTER_ENUM(
-    _Proposer_Status,
-    uint8_t,
-    NOT_PROPOSING,
-    IS_PROPOSING,
-    JUST_PROPOSED_GRACE_PERIOD,
-    NOT_PROPOSING_SYNCING_BLOCKCHAIN,
-    NOT_PROPOSING_NO_PEERS,
-    NOT_PROPOSING_NOT_ENOUGH_BALANCE,
-    NOT_PROPOSING_DEPTH,
-    NOT_PROPOSING_WALLET_LOCKED,
-    NOT_PROPOSING_LIMITED,
-    NOT_PROPOSING_LAGGING_BEHIND
-)
-// clang-format on
-
 class Proposer {
   // accessor for unit testing - not a true friend
   template <class T>
   friend struct ProposerAccess;
 
  public:
-  //! the current proposing status per wallet
-  typedef _Proposer_Status Status;
-
-  //! bookkeeping data per wallet
-  struct State {
-    Status m_status = Status::NOT_PROPOSING;
-
-    int64_t m_lastCoinStakeSearchTime = 0;
-
-    //! for regtest, don't stake above nStakeLimitHeight
-    int m_stakeLimitHeight = 0;
-
-    CAmount m_stakeCombineThreshold = 1000 * UNIT;
-
-    CAmount m_stakeSplitThreshold = 2000 * UNIT;
-
-    size_t m_maxStakeCombine = 3;
-
-    //! when did this proposer propose most recently
-    int64_t m_lastTimeProposed = 0;
-
-    //! how many search cycles the proposer went through
-    uint64_t m_numSearches = 0;
-
-    //! how many search cycles the proposer attempted
-    uint64_t m_numSearchAttempts = 0;
-  };
-
   Proposer(
-      //! [in] a name to derive thread names from (groupName-1, groupName-2,
-      //! ...)
+      //! [in] esperanza settings
       const esperanza::Settings &,
       //! [in] a reference to all wallets to propose from
-      const std::vector<CWallet *> &wallets);
+      const std::vector<CWallet *> &,
+      //! dependency on network interface
+      Dependency<Network>,
+      //! dependency on chain interface
+      Dependency<ChainState>,
+      //! dependency on block proposer
+      Dependency<BlockProposer>);
 
   ~Proposer();
 
@@ -104,8 +69,8 @@ class Proposer {
     //! a name for this thread
     const std::string m_threadName;
 
-    //! unmodifiable reference to esperanza configuration
-    const esperanza::Settings &m_settings;
+    //! reference to parent proposer
+    Proposer &m_proposer;
 
     //! will be set to true to stop the thread
     std::atomic<bool> m_interrupted;
@@ -117,28 +82,13 @@ class Proposer {
     //! the wallets which this thread is responsible for to propose from.
     std::vector<CWallet *> m_wallets;
 
-    //! a semaphore for synchronizing initialization
-    CountingSemaphore &m_initSemaphore;
-
-    //! a semaphore for synchronizing start events
-    CountingSemaphore &m_startSemaphore;
-
-    //! a semaphore for synchronizing stop events
-    CountingSemaphore &m_stopSemaphore;
-
     Thread(
         //! [in] a name for this thread.
         const std::string &,
-        //! [in] a reference to the global esperanza config
-        const esperanza::Settings &,
+        //! [in] a reference to the parent proposer
+        Proposer &,
         //! [in] the wallets which this thread is responsible for.
-        const std::vector<CWallet *> &,
-        //! a semaphore for synchronizing initialization
-        CountingSemaphore &,
-        //! a semaphore for synchronizing start events
-        CountingSemaphore &,
-        //! a semaphore for synchronizing stop events
-        CountingSemaphore &);
+        const std::vector<CWallet *> &);
 
     //! stops this thread by setting m_interrupted to true and waking it
     void Stop();
@@ -155,6 +105,15 @@ class Proposer {
     }
   };
 
+  //! reference to esperanza settings
+  const esperanza::Settings &m_settings;
+
+  Dependency<Network> m_network;
+
+  Dependency<ChainState> m_chain;
+
+  Dependency<BlockProposer> m_blockProposer;
+
   //! a semaphore for synchronizing initialization
   CountingSemaphore m_initSemaphore;
 
@@ -166,10 +125,8 @@ class Proposer {
 
   const std::vector<std::unique_ptr<Thread>> m_threads;
 
-  static std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
-      const esperanza::Settings &settings,
-      const std::vector<CWallet *> &wallets, CountingSemaphore &initSemaphore,
-      CountingSemaphore &startSemaphore, CountingSemaphore &stopSemaphore);
+  std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
+      const std::vector<CWallet *> &wallets);
 
   static void Run(Thread &);
 };

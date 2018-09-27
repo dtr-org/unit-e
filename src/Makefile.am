@@ -99,6 +99,8 @@ UNITE_CORE_H = \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  dependency.h \
+  dependency_injector.h \
   esperanza/admincommand.h \
   esperanza/adminparams.h \
   esperanza/adminstate.h \
@@ -106,11 +108,9 @@ UNITE_CORE_H = \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
-  esperanza/kernel.h \
   esperanza/params.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
-  esperanza/stakevalidation.h \
   esperanza/validation.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
@@ -121,6 +121,7 @@ UNITE_CORE_H = \
   httpserver.h \
   indirectmap.h \
   init.h \
+  injector.h \
   key.h \
   key/mnemonic/mnemonic.h \
   key/mnemonic/chinese_simplified.h \
@@ -148,9 +149,18 @@ UNITE_CORE_H = \
   policy/policy.h \
   policy/rbf.h \
   pow.h \
+  proposer/blockproposer.h \
+  proposer/chainstate.h \
+  proposer/multiwallet.h \
+  proposer/network.h \
   proposer/proposer.h \
   proposer/proposer_init.h \
+  proposer/proposer_settings.h \
+  proposer/proposer_state.h \
+  proposer/proposer_status.h \
+  proposer/sync.h \
   proposer/transactionpicker.h \
+  proposer/waiter.h \
   protocol.h \
   random.h \
   reverse_iterator.h \
@@ -178,6 +188,9 @@ UNITE_CORE_H = \
   snapshot/messages.h \
   snapshot/p2p_processing.h \
   snapshot/state.h \
+  staking/kernel.h \
+  staking/stakingwallet.h \
+  staking/stakevalidation.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -205,7 +218,6 @@ UNITE_CORE_H = \
   validation.h \
   validationinterface.h \
   versionbits.h \
-  waiter.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
   wallet/db.h \
@@ -226,7 +238,6 @@ UNITE_CORE_H = \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
   zmq/zmqpublishnotifier.h
-
 
 obj/build.h: FORCE
 	@$(MKDIR_P) $(builddir)/obj
@@ -303,7 +314,6 @@ libunite_zmq_a_SOURCES = \
   zmq/zmqpublishnotifier.cpp
 endif
 
-
 # wallet: shared between united and unite-qt, but only linked
 # when wallet enabled
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
@@ -311,14 +321,20 @@ libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   address/address.cpp \
   esperanza/init.cpp \
-  esperanza/kernel.cpp \
-  esperanza/stakevalidation.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
+  proposer/blockproposer.cpp \
+  proposer/chainstate.cpp \
+  proposer/multiwallet.cpp \
+  proposer/network.cpp \
   proposer/proposer.cpp \
   proposer/proposer_init.cpp \
   proposer/transactionpicker.cpp \
+  proposer/sync.cpp \
+  proposer/waiter.cpp \
   rpc/proposer.cpp \
+  staking/kernel.cpp \
+  staking/stakevalidation.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \
   wallet/crypter.cpp \
@@ -451,7 +467,6 @@ libunite_util_a_SOURCES = \
   utilmoneystr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
-  waiter.cpp \
   $(UNITE_CORE_H)
 
 if GLIBC_BACK_COMPAT
@@ -477,7 +492,6 @@ united_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_WALLET) \
-  $(LIBUNITE_UTIL) \
   $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \

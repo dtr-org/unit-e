@@ -24,7 +24,7 @@ RAW_TEST_FILES =
 GENERATED_TEST_FILES = $(JSON_TEST_FILES:.json=.json.h) $(RAW_TEST_FILES:.raw=.raw.h)
 
 # test_unite binary #
-UNITE_TESTS =\
+UNITE_TESTS = \
   test/fakeit/fakeit.hpp \
   test/arith_uint256_tests.cpp \
   test/scriptnum10.h \
@@ -44,9 +44,9 @@ UNITE_TESTS =\
   test/checkqueue_tests.cpp \
   test/coins_tests.cpp \
   test/compress_tests.cpp \
-  test/counting_semaphore_tests.cpp \
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
+  test/dependency_injector_tests.cpp \
   test/DoS_tests.cpp \
   test/esperanza/admincommand_tests.cpp \
   test/esperanza/adminstate_tests.cpp \
@@ -110,14 +110,15 @@ UNITE_TESTS =\
   test/util_tests.cpp \
   test/util_fun_tests.cpp \
   test/validation_block_tests.cpp \
-  test/versionbits_tests.cpp \
-  test/waiter_tests.cpp
+  test/versionbits_tests.cpp
 
 if ENABLE_WALLET
 UNITE_TESTS += \
+  test/counting_semaphore_tests.cpp \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
   test/proposer/proposer_tests.cpp \
+  test/waiter_tests.cpp \
   wallet/test/rpcvalidator_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
