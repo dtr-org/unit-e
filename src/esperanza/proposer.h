@@ -21,6 +21,8 @@ class CWallet;
 
 namespace esperanza {
 
+// a stub for testing – specializations of this class have access to the
+// Proposer's guts
 template <class T>
 struct ProposerAccess;
 
