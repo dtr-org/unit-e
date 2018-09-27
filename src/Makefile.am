@@ -171,6 +171,8 @@ UNITE_CORE_H = \
   script/sign.h \
   script/standard.h \
   script/ismine.h \
+  snapshot/indexer.h \
+  snapshot/iterator.h \
   snapshot/messages.h \
   streams.h \
   support/allocators/secure.h \
@@ -269,6 +271,8 @@ libunite_server_a_SOURCES = \
   rpc/server.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
+  snapshot/indexer.cpp \
+  snapshot/iterator.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \

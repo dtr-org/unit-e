@@ -78,6 +78,14 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
         noui_connect();
 }
 
+fs::path BasicTestingSetup::SetDataDir(const std::string& name)
+{
+  fs::path ret = fs::temp_directory_path() / name;
+  fs::create_directories(ret);
+  gArgs.ForceSetArg("-datadir", ret.string());
+  return ret;
+}
+
 BasicTestingSetup::~BasicTestingSetup()
 {
         ECC_Stop();

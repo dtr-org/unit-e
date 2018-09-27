@@ -85,6 +85,8 @@ UNITE_TESTS =\
   test/sigopcount_tests.cpp \
   test/sign_tests.cpp \
   test/skiplist_tests.cpp \
+  test/snapshot_indexer_tests.cpp \
+  test/snapshot_iterator_tests.cpp \
   test/snapshot_messages_tests.cpp \
   test/streams_tests.cpp \
   test/test_unite.cpp \

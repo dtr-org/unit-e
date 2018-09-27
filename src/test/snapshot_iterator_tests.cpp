@@ -1,0 +1,74 @@
+// Copyright (c) 2018 The unit-e core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include <snapshot/iterator.h>
+
+#include <test/test_unite.h>
+#include <boost/test/unit_test.hpp>
+
+BOOST_FIXTURE_TEST_SUITE(snapshot_iterator_tests, BasicTestingSetup)
+
+BOOST_AUTO_TEST_CASE(snapshot_iterator) {
+  SetDataDir("snapshot_iterator");
+  fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
+
+  uint32_t msgsToGenerate{20};
+
+  {
+    // generate the snapshot
+    uint256 blockHash = uint256S("aa");
+    snapshot::Indexer idx(0, uint256(), blockHash, 3, 2);
+    for (uint32_t i = 0; i < msgsToGenerate; ++i) {
+      snapshot::UTXOSet utxoSet;
+      utxoSet.m_txId.SetHex(std::to_string(i));
+
+      CTxOut out;
+      out.nValue = 1000 + i;
+      utxoSet.m_outputs[i] = out;
+      idx.WriteUTXOSet(utxoSet);
+    }
+    BOOST_CHECK(idx.Flush());
+  }
+
+  {
+    // open the snapshot
+    auto idx = snapshot::Indexer::Open(0);
+    BOOST_CHECK(idx != nullptr);
+
+    snapshot::Iterator iter(idx.get());
+    BOOST_CHECK_EQUAL(
+        HexStr(iter.GetBestBlockHash()),
+        "aa00000000000000000000000000000000000000000000000000000000000000");
+    BOOST_CHECK_EQUAL(iter.GetTotalUTXOSets(), msgsToGenerate);
+
+    // iterate sequentially
+    uint32_t count{0};
+    while (iter.Valid()) {
+      uint32_t value = 1000 + count;
+      BOOST_CHECK_EQUAL(iter.GetUTXOSet().m_outputs.at(count).nValue, value);
+      iter.Next();
+      ++count;
+    }
+    BOOST_CHECK_EQUAL(count, msgsToGenerate);
+
+    // iterate via cursor moving forward
+    for (uint32_t i = 0; i < msgsToGenerate; ++i) {
+      BOOST_CHECK(iter.MoveCursorTo(i));
+
+      uint32_t value = iter.GetUTXOSet().m_outputs.at(i).nValue;
+      uint32_t exp = 1000 + i;
+      BOOST_CHECK_EQUAL(value, exp);
+    }
+
+    // iterate via cursor moving backward
+    for (uint32_t i = msgsToGenerate; i > 0; --i) {
+      BOOST_CHECK(iter.MoveCursorTo(i - 1));
+
+      uint32_t value = 1000 + i - 1;
+      BOOST_CHECK_EQUAL(iter.GetUTXOSet().m_outputs.at(i - 1).nValue, value);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_SUITE_END()

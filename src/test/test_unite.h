@@ -65,6 +65,9 @@ struct BasicTestingSetup {
 
     explicit BasicTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~BasicTestingSetup();
+
+  // todo: remove after merging https://github.com/bitcoin/bitcoin/commit/d3dae3ddf9fa95d652dfdf44bb496617513644a2
+  fs::path SetDataDir(const std::string& name);
 };
 
 /** Testing setup that configures a complete environment.
