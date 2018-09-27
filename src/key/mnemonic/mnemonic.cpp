@@ -472,8 +472,6 @@ static int mnemonicKdf(const uint8_t* password, size_t lenPassword,
 
 int ToSeed(const std::string& sMnemonic, const std::string& sPasswordIn,
            std::vector<uint8_t>& vSeed) {
-  LogPrint(BCLog::WALLET, "%s\n", __func__);
-
   vSeed.resize(64);
 
   std::string sWordList = sMnemonic;
