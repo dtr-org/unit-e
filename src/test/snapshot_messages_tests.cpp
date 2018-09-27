@@ -8,9 +8,9 @@
 #include <utilstrencodings.h>
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(snapshot_p2p_messages_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(snapshot_messages_tests, ReducedTestingSetup)
 
-BOOST_AUTO_TEST_CASE(snapshot_utx_serializer) {
+BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   CDataStream s(SER_NETWORK, INIT_PROTO_VERSION);
   auto utxoSet = snapshot::UTXOSet();
   s << utxoSet;
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utx_serializer) {
   s.clear();
 }
 
-BOOST_AUTO_TEST_CASE(snapshot_p2p_get_snapshot_serialization) {
+BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
   snapshot::GetSnapshot msg;
   msg.m_bestBlockHash.SetHex("bb");
   msg.m_utxoSetIndex = 55;
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(snapshot_p2p_get_snapshot_serialization) {
   BOOST_CHECK_EQUAL(msg.m_utxoSetCount, msg2.m_utxoSetCount);
 }
 
-BOOST_AUTO_TEST_CASE(snapshot_p2p_snapshot_serialization) {
+BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   // serialize empty message
   snapshot::Snapshot msg;
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
