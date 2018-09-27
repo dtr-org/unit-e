@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utx_serializer) {
       "01"                                // outputs count
       "02000000"                          // outpoint index
       "cc00000000000000"                  // nValue (-1 by default)
-      "016a"                              // scriptPubKey length
+      "01"                                // scriptPubKey length
       "6a";                               // script data
   BOOST_CHECK_EQUAL(HexStr(s), exp);
   s.clear();
