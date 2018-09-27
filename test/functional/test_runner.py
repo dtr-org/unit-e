@@ -118,6 +118,7 @@ BASE_SCRIPTS= [
     'wallet_keypool.py',
     'p2p_mempool.py',
     'esperanza_deposit.py',
+    'esperanza_finalizationstate.py',
     'esperanza_logout.py',
     'mining_prioritisetransaction.py',
     'p2p_invalid_block.py',
@@ -176,7 +177,6 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 60s vv
     'rpc_bind.py',
     # vv Tests less than 30s vv
-    'esperanza_finalizationstate.py',
     'example_test.py',
 ]
 
