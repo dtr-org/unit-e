@@ -118,9 +118,6 @@ class Proposer {
     //! a semaphore for synchronizing stop events
     CountingSemaphore &m_stopSemaphore;
 
-    //! the actual backing thread
-    std::thread m_thread;
-
     Thread(
         //! [in] a name for this thread.
         const std::string &,
