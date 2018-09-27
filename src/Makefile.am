@@ -171,7 +171,7 @@ UNITE_CORE_H = \
   script/sign.h \
   script/standard.h \
   script/ismine.h \
-  snapshot/p2p_messages.h \
+  snapshot/messages.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \

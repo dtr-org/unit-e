@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <snapshot/p2p_messages.h>
+#include <snapshot/messages.h>
 
 #include <test/test_unite.h>
 #include <utilstrencodings.h>
@@ -12,12 +12,12 @@ BOOST_FIXTURE_TEST_SUITE(snapshot_p2p_messages_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(snapshot_utx_serializer) {
   CDataStream s(SER_NETWORK, INIT_PROTO_VERSION);
-  auto utx = snapshot::Utx();
-  s << utx;
+  auto utxoSet = snapshot::UTXOSet();
+  s << utxoSet;
 
   std::string exp;
   exp =
-      "00000000000000000000000000000000"  // hash
+      "00000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "00000000"                          // height
       "00"                                // isCoinBase
@@ -25,12 +25,12 @@ BOOST_AUTO_TEST_CASE(snapshot_utx_serializer) {
   BOOST_CHECK_EQUAL(HexStr(s), exp);
   s.clear();
 
-  utx.hash.SetHex("aa");
-  utx.height = 0xbb;
-  utx.isCoinBase = true;
-  s << utx;
+  utxoSet.m_txId.SetHex("aa");
+  utxoSet.m_height = 0xbb;
+  utxoSet.m_isCoinBase = true;
+  s << utxoSet;
   exp =
-      "aa000000000000000000000000000000"  // hash
+      "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
       "01"                                // isCoinBase
@@ -39,10 +39,10 @@ BOOST_AUTO_TEST_CASE(snapshot_utx_serializer) {
                       "expected: " << HexStr(s) << " got: " << exp);
   s.clear();
 
-  utx.outputs[2] = CTxOut();
-  s << utx;
+  utxoSet.m_outputs[2] = CTxOut();
+  s << utxoSet;
   exp =
-      "aa000000000000000000000000000000"  // hash
+      "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
       "01"                                // isCoinBase
@@ -56,26 +56,27 @@ BOOST_AUTO_TEST_CASE(snapshot_utx_serializer) {
   auto out = CTxOut();
   out.nValue = 0xcc;
   out.scriptPubKey << OP_RETURN;
-  utx.outputs[2] = out;
-  s << utx;
+  utxoSet.m_outputs[2] = out;
+  s << utxoSet;
   exp =
-      "aa000000000000000000000000000000"  // hash
+      "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
       "01"                                // isCoinBase
       "01"                                // outputs count
       "02000000"                          // outpoint index
       "cc00000000000000"                  // nValue (-1 by default)
-      "016a";                             // scriptPubKey length
+      "016a"                              // scriptPubKey length
+      "6a";                               // script data
   BOOST_CHECK_EQUAL(HexStr(s), exp);
   s.clear();
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_p2p_get_snapshot_serialization) {
-  snapshot::P2pGetSnapshot msg;
-  msg.bestBlockHash.SetHex("bb");
-  msg.utxIndex = 55;
-  msg.utxCount = 17;
+  snapshot::GetSnapshot msg;
+  msg.m_bestBlockHash.SetHex("bb");
+  msg.m_utxoSetIndex = 55;
+  msg.m_utxoSetCount = 17;
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << msg;
@@ -90,16 +91,16 @@ BOOST_AUTO_TEST_CASE(snapshot_p2p_get_snapshot_serialization) {
       "1100";                             // length
   BOOST_CHECK_MESSAGE(got == exp, "expected: " << exp << " got: " << got);
 
-  snapshot::P2pGetSnapshot msg2;
+  snapshot::GetSnapshot msg2;
   stream >> msg2;
-  BOOST_CHECK_EQUAL(msg.bestBlockHash, msg2.bestBlockHash);
-  BOOST_CHECK_EQUAL(msg.utxIndex, msg2.utxIndex);
-  BOOST_CHECK_EQUAL(msg.utxCount, msg2.utxCount);
+  BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
+  BOOST_CHECK_EQUAL(msg.m_utxoSetIndex, msg2.m_utxoSetIndex);
+  BOOST_CHECK_EQUAL(msg.m_utxoSetCount, msg2.m_utxoSetCount);
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_p2p_snapshot_serialization) {
   // serialize empty message
-  snapshot::P2pSnapshot msg;
+  snapshot::Snapshot msg;
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << msg;
   BOOST_CHECK_EQUAL(stream.size(), 81);
@@ -110,25 +111,25 @@ BOOST_AUTO_TEST_CASE(snapshot_p2p_snapshot_serialization) {
       "00000000000000000000000000000000"  //
       "00000000000000000000000000000000"  // block hash
       "00000000000000000000000000000000"  //
-      "0000000000000000"                  // total utx
-      "0000000000000000"                  // index
-      "00";                               // utx count
+      "0000000000000000"                  // total utxo sets
+      "0000000000000000"                  // utxo set index
+      "00";                               // utxo set count
   BOOST_CHECK_EQUAL(got, exp);
 
   // serialize filled
-  msg.snapshotHash.SetHex("aa");
-  msg.bestBlockHash.SetHex("bb");
-  msg.totalUtxs = 25000000;
-  msg.utxIndex = 128;
+  msg.m_snapshotHash.SetHex("aa");
+  msg.m_bestBlockHash.SetHex("bb");
+  msg.m_totalUTXOSets = 25000000;
+  msg.m_utxoSetIndex = 128;
 
-  snapshot::Utx utx;
-  utx.height = 53;
-  utx.isCoinBase = true;
-  utx.hash.SetHex("bb");
+  snapshot::UTXOSet utxoSet;
+  utxoSet.m_height = 53;
+  utxoSet.m_isCoinBase = true;
+  utxoSet.m_txId.SetHex("bb");
   CScript script;
   script << OP_RETURN;
-  utx.outputs[5] = CTxOut(5, script);
-  msg.utxs.emplace_back(utx);
+  utxoSet.m_outputs[5] = CTxOut(5, script);
+  msg.m_utxoSets.emplace_back(utxoSet);
 
   stream.clear();
   stream << msg;
@@ -140,10 +141,10 @@ BOOST_AUTO_TEST_CASE(snapshot_p2p_snapshot_serialization) {
       "00000000000000000000000000000000"  //
       "bb000000000000000000000000000000"  // block hash
       "00000000000000000000000000000000"  //
-      "40787d0100000000"                  // total utxs
+      "40787d0100000000"                  // total utxo sets
       "8000000000000000"                  // index
-      "01"                                // utx count
-      "bb000000000000000000000000000000"  // tx hash
+      "01"                                // utxo set count
+      "bb000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "35000000"                          // tx height
       "01"                                // isCoinBase
@@ -154,14 +155,15 @@ BOOST_AUTO_TEST_CASE(snapshot_p2p_snapshot_serialization) {
       "6a";                               // script
   BOOST_CHECK_EQUAL(got, exp);
 
-  snapshot::P2pSnapshot msg2;
+  snapshot::Snapshot msg2;
   stream >> msg2;
-  BOOST_CHECK_EQUAL(msg.bestBlockHash, msg2.bestBlockHash);
-  BOOST_CHECK_EQUAL(msg.totalUtxs, msg2.totalUtxs);
-  BOOST_CHECK_EQUAL(msg.utxIndex, msg2.utxIndex);
-  BOOST_CHECK_EQUAL(msg.utxs.size(), msg2.utxs.size());
-  BOOST_CHECK_EQUAL(msg.utxs[0].hash, msg2.utxs[0].hash);
-  BOOST_CHECK_EQUAL(msg.utxs[0].outputs.size(), msg2.utxs[0].outputs.size());
+  BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
+  BOOST_CHECK_EQUAL(msg.m_totalUTXOSets, msg2.m_totalUTXOSets);
+  BOOST_CHECK_EQUAL(msg.m_utxoSetIndex, msg2.m_utxoSetIndex);
+  BOOST_CHECK_EQUAL(msg.m_utxoSets.size(), msg2.m_utxoSets.size());
+  BOOST_CHECK_EQUAL(msg.m_utxoSets[0].m_txId, msg2.m_utxoSets[0].m_txId);
+  BOOST_CHECK_EQUAL(msg.m_utxoSets[0].m_outputs.size(),
+                    msg2.m_utxoSets[0].m_outputs.size());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
