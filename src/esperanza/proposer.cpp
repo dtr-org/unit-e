@@ -274,7 +274,7 @@ void Proposer::Run(Proposer::Thread &thread) {
                thread.m_threadName);
     }
   }
-  LogPrint(BCLog::ESPERANZA, "%s: stopping...\n", thread.m_threadName.c_str());
+  LogPrint(BCLog::ESPERANZA, "%s: stopping...\n", thread.m_threadName);
   thread.m_stopSemaphore.release();
 }
 
