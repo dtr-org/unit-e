@@ -126,6 +126,7 @@ BASE_SCRIPTS= [
     'p2p_invalid_tx.py',
     'feature_versionbits_warning.py',
     'rpc_preciousblock.py',
+    'esperanza_vote_blacklistig.py'
     'wallet_importprunedfunds.py',
     'rpc_signmessage.py',
     'feature_spend_genesis.py',
