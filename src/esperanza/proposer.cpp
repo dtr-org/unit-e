@@ -162,6 +162,9 @@ void Proposer::Run(Proposer::Thread &thread) {
 
   while (!thread.m_interrupted) {
     try {
+      for (auto *wallet : thread.m_wallets) {
+        wallet->GetWalletExtension().m_proposerState.m_numSearchAttempts += 1;
+      }
       const auto blockDownloadStatus = GetInitialBlockDownloadStatus();
       if (blockDownloadStatus != +SyncStatus::SYNCED) {
         thread.SetStatus(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
@@ -182,11 +185,24 @@ void Proposer::Run(Proposer::Thread &thread) {
         bestTime = chainActive.Tip()->nTime;
       }
 
-      // UNIT-E: respect thread.m_config.m_minProposeInterval
-
       const int64_t currentTime = GetAdjustedTime();
       const int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
       const int64_t searchTime = currentTime & ~mask;
+
+      for (auto *wallet : thread.m_wallets) {
+        const int64_t gracePeriod =
+            seconds(thread.m_settings.m_minProposeInterval);
+        const int64_t lastTimeProposed =
+            wallet->GetWalletExtension().m_proposerState.m_lastTimeProposed;
+        const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
+        const int64_t gracePeriodRemaining =
+            gracePeriod - timeSinceLastProposal;
+        if (gracePeriodRemaining > 0) {
+          thread.SetStatus(Status::JUST_PROPOSED_GRACE_PERIOD);
+          thread.Sleep(std::chrono::seconds(gracePeriodRemaining));
+          continue;
+        }
+      }
 
       if (searchTime < bestTime) {
         if (currentTime < bestTime) {
@@ -236,6 +252,8 @@ void Proposer::Run(Proposer::Thread &thread) {
         }
 
         thread.SetStatus(Status::IS_PROPOSING, wallet);
+
+        walletExt.m_proposerState.m_numSearches += 1;
 
         CScript coinbaseScript;
         std::unique_ptr<CBlockTemplate> blockTemplate =

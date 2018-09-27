@@ -26,7 +26,7 @@ struct Settings {
   std::chrono::milliseconds m_proposerSleep = std::chrono::seconds(30);
 
   //! Minimum interval between proposing blocks
-  std::chrono::milliseconds m_minProposeInterval = std::chrono::milliseconds(0);
+  std::chrono::milliseconds m_minProposeInterval = std::chrono::seconds(4);
 
   std::string m_proposerThreadName = "proposer";
 

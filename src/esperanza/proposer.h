@@ -12,6 +12,7 @@
 #include <sync.h>
 #include <waiter.h>
 
+#include <stdint.h>
 #include <map>
 #include <string>
 #include <thread>
@@ -32,6 +33,7 @@ BETTER_ENUM(
     uint8_t,
     NOT_PROPOSING,
     IS_PROPOSING,
+    JUST_PROPOSED_GRACE_PERIOD,
     NOT_PROPOSING_SYNCING_BLOCKCHAIN,
     NOT_PROPOSING_NO_PEERS,
     NOT_PROPOSING_NOT_ENOUGH_BALANCE,
@@ -68,6 +70,12 @@ class Proposer {
 
     //! when did this proposer propose most recently
     int64_t m_lastTimeProposed = 0;
+
+    //! how many search cycles the proposer went through
+    uint64_t m_numSearches = 0;
+
+    //! how many search cycles the proposer attempted
+    uint64_t m_numSearchAttempts = 0;
   };
 
   Proposer(
