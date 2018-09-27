@@ -210,9 +210,10 @@ void Proposer::Run(Proposer::Thread &thread) {
       // only has to sleep as long as the minimum of these durations to check
       // the wallet which is due next in time.
       auto sleepFor = thread.m_settings.m_proposerSleep;
-      const auto setSleepDuration = [&sleepFor](const decltype(sleepFor) amount) {
-        sleepFor = std::min(sleepFor, amount);
-      };
+      const auto setSleepDuration =
+          [&sleepFor](const decltype(sleepFor) amount) {
+            sleepFor = std::min(sleepFor, amount);
+          };
       for (CWallet *wallet : thread.m_wallets) {
         auto &walletExt = wallet->GetWalletExtension();
 
