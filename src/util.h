@@ -107,8 +107,6 @@ namespace BCLog {
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
         ESPERANZA   = (1 << 26),
-        WALLET      = (1 << 29),
-        POS         = (1 << 30),
         ALL         = ~(uint32_t)0,
     };
 }

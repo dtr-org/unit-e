@@ -21,6 +21,8 @@ class CWallet;
 
 namespace esperanza {
 
+// a stub for testing – specializations of this class have access to the
+// Proposer's guts
 template <class T>
 struct ProposerAccess;
 
@@ -115,9 +117,6 @@ class Proposer {
 
     //! a semaphore for synchronizing stop events
     CountingSemaphore &m_stopSemaphore;
-
-    //! the actual backing thread
-    std::thread m_thread;
 
     Thread(
         //! [in] a name for this thread.

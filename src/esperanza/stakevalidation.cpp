@@ -151,7 +151,7 @@ bool CheckBlock(const CBlock &pblock) {
       "\nproofhash: "
       "%s  \ntarget: %s\n",
       hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
-  if (LogAcceptCategory(BCLog::POS)) {
+  if (LogAcceptCategory(BCLog::ESPERANZA)) {
     LogPrintf("block %s\n", pblock.ToString());
     LogPrintf("out %s\n", FormatMoney(pblock.vtx[0]->GetValueOut()));
   }
