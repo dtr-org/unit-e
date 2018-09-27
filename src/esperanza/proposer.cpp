@@ -185,11 +185,23 @@ void Proposer::Run(Proposer::Thread &thread) {
         bestTime = chainActive.Tip()->nTime;
       }
 
-      // UNIT-E: respect thread.m_config.m_minProposeInterval
-
       const int64_t currentTime = GetAdjustedTime();
       const int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
       const int64_t searchTime = currentTime & ~mask;
+
+      for (auto *wallet : thread.m_wallets) {
+        const int64_t gracePeriod = thread.m_settings.m_minProposeInterval;
+        const int64_t lastTimeProposed =
+            wallet->GetWalletExtension().m_proposerState.m_lastTimeProposed;
+        const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
+        const int64_t gracePeriodRemaining =
+            gracePeriod - timeSinceLastProposal;
+        if (gracePeriodRemaining > 0) {
+          thread.SetStatus(Status::JUST_PROPOSED_GRACE_PERIOD);
+          thread.Sleep(std::chrono::seconds(gracePeriodRemaining));
+          continue;
+        }
+      }
 
       if (searchTime < bestTime) {
         if (currentTime < bestTime) {
