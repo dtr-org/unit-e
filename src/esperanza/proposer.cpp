@@ -162,6 +162,9 @@ void Proposer::Run(Proposer::Thread &thread) {
 
   while (!thread.m_interrupted) {
     try {
+      for (auto *wallet : thread.m_wallets) {
+        wallet->GetWalletExtension().m_proposerState.m_numSearchAttempts += 1;
+      }
       const auto blockDownloadStatus = GetInitialBlockDownloadStatus();
       if (blockDownloadStatus != +SyncStatus::SYNCED) {
         thread.SetStatus(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
@@ -236,6 +239,8 @@ void Proposer::Run(Proposer::Thread &thread) {
         }
 
         thread.SetStatus(Status::IS_PROPOSING, wallet);
+
+        walletExt.m_proposerState.m_numSearches += 1;
 
         CScript coinbaseScript;
         std::unique_ptr<CBlockTemplate> blockTemplate =
