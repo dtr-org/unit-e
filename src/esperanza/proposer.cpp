@@ -190,7 +190,8 @@ void Proposer::Run(Proposer::Thread &thread) {
       const int64_t searchTime = currentTime & ~mask;
 
       for (auto *wallet : thread.m_wallets) {
-        const int64_t gracePeriod = thread.m_settings.m_minProposeInterval;
+        const int64_t gracePeriod =
+            seconds(thread.m_settings.m_minProposeInterval);
         const int64_t lastTimeProposed =
             wallet->GetWalletExtension().m_proposerState.m_lastTimeProposed;
         const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
