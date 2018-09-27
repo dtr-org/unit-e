@@ -12,6 +12,7 @@
 #include <sync.h>
 #include <waiter.h>
 
+#include <stdint.h>
 #include <map>
 #include <string>
 #include <thread>
