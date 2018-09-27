@@ -48,8 +48,8 @@ static const uint32_t mnLanguageLens[] = {
     korean_txt_len,
 };
 
-static const std::string languagesDesc[static_cast<uint16_t>(Language::_size_constant)] =
-    {
+static const std::string
+    languagesDesc[static_cast<uint16_t>(Language::_size_constant)] = {
         "English",
         "French",
         "Japanese",
@@ -60,17 +60,16 @@ static const std::string languagesDesc[static_cast<uint16_t>(Language::_size_con
         "Korean",
 };
 
-static const std::string languagesTags[static_cast<uint16_t>(Language::_size_constant)] =
-    {
+static const std::string
+    languagesTags[static_cast<uint16_t>(Language::_size_constant)] = {
         "english",   "french",    "japanese", "spanish",
         "chinese_s", "chinese_t", "italian",  "korean",
 };
 
-static void ReplaceStrInPlace(std::string &subject, const std::string search, const std::string replace)
-{
+static void ReplaceStrInPlace(std::string& subject, const std::string search,
+                              const std::string replace) {
   size_t pos = 0;
-  while ((pos = subject.find(search, pos)) != std::string::npos)
-  {
+  while ((pos = subject.find(search, pos)) != std::string::npos) {
     subject.replace(pos, search.length(), replace);
     pos += replace.length();
   }

@@ -77,7 +77,8 @@ class Seed final {
   CUnitEExtKey m_extKey58;
 
  public:
-  explicit Seed(const std::string& mnemonic, const std::string& passphrase = "");
+  explicit Seed(const std::string& mnemonic,
+                const std::string& passphrase = "");
 
   //! The name of this language, human readable and nicely formatted
   const std::string& GetHumandReadableLanguage() const;
