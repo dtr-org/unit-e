@@ -242,8 +242,8 @@ void Proposer::Run(Proposer::Thread &thread) {
                 .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
 
         if (!blockTemplate) {
-          LogPrint(BCLog::ESPERANZA, "%s: failed to get block template",
-                   __func__);
+          LogPrint(BCLog::ESPERANZA, "%s/%s: failed to get block template",
+                   thread.m_threadName, wallet->GetName());
           continue;
         }
 
@@ -251,7 +251,8 @@ void Proposer::Run(Proposer::Thread &thread) {
                                 searchTime)) {
           const CBlock &block = blockTemplate->block;
           if (!ProposeBlock(blockTemplate->block)) {
-            LogPrint(BCLog::ESPERANZA, "%s: failed to propose block", __func__);
+            LogPrint(BCLog::ESPERANZA, "%s/%s: failed to propose block",
+                     thread.m_threadName, wallet->GetName());
             continue;
           }
           walletExt.m_proposerState.m_lastTimeProposed = block.nTime;
@@ -264,12 +265,13 @@ void Proposer::Run(Proposer::Thread &thread) {
     } catch (const std::runtime_error &error) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
-      LogPrint(BCLog::ESPERANZA, "exception in proposer thread: %s\n",
-               error.what());
+      LogPrint(BCLog::ESPERANZA, "%s: exception in proposer thread: %s\n",
+               thread.m_threadName, error.what());
     } catch (...) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
-      LogPrint(BCLog::ESPERANZA, "unknown exception in proposer thread.\n");
+      LogPrint(BCLog::ESPERANZA, "%s: unknown exception in proposer thread.\n",
+               thread.m_threadName);
     }
   }
   LogPrint(BCLog::ESPERANZA, "%s: stopping...\n", thread.m_threadName.c_str());
