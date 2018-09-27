@@ -210,7 +210,7 @@ void Proposer::Run(Proposer::Thread &thread) {
       // only has to sleep as long as the minimum of these durations to check
       // the wallet which is due next in time.
       auto sleepFor = thread.m_settings.m_proposerSleep;
-      const auto sleep = [&sleepFor](const decltype(sleepFor) amount) {
+      const auto setSleepDuration = [&sleepFor](const decltype(sleepFor) amount) {
         sleepFor = std::min(sleepFor, amount);
       };
       for (CWallet *wallet : thread.m_wallets) {
@@ -222,7 +222,7 @@ void Proposer::Run(Proposer::Thread &thread) {
         if (bestTime < waitTill) {
           const decltype(sleepFor) amount =
               std::chrono::seconds(waitTill - bestTime);
-          sleep(amount);
+          setSleepDuration(amount);
           continue;
         }
         if (wallet->IsLocked()) {
