@@ -178,7 +178,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     if (CheckKernel(pindexPrev, nBits, nTime, prevoutStake, &nBlockTime)) {
       LOCK(m_enclosingWallet->cs_wallet);
       // Found a kernel
-      LogPrint(BCLog::POS, "%s: Kernel found.\n", __func__);
+      LogPrint(BCLog::ESPERANZA, "%s: Kernel found.\n", __func__);
 
       const CTxOut &kernelOut = pcoin.first->tx->vout[pcoin.second];
 
@@ -197,22 +197,22 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       }
 
       if (!Solver(pscriptPubKey, whichType, vSolutions)) {
-        LogPrint(BCLog::POS, "%s: Failed to parse kernel.\n", __func__);
+        LogPrint(BCLog::ESPERANZA, "%s: Failed to parse kernel.\n", __func__);
         break;
       }
 
-      LogPrint(BCLog::POS, "%s: Parsed kernel type=%d.\n", __func__, whichType);
+      LogPrint(BCLog::ESPERANZA, "%s: Parsed kernel type=%d.\n", __func__, whichType);
       CKeyID spendId;
       if (whichType == TX_PUBKEYHASH) {
         spendId = CKeyID(uint160(vSolutions[0]));
       } else {
-        LogPrint(BCLog::POS, "%s: No support for kernel type=%d.\n", __func__,
+        LogPrint(BCLog::ESPERANZA, "%s: No support for kernel type=%d.\n", __func__,
                  whichType);
         break;  // only support pay to address (pay to pubkey hash)
       }
 
       if (!m_enclosingWallet->GetKey(spendId, key)) {
-        LogPrint(BCLog::POS, "%s: Failed to get key for kernel type=%d.\n",
+        LogPrint(BCLog::ESPERANZA, "%s: Failed to get key for kernel type=%d.\n",
                  __func__, whichType);
         break;  // unable to find corresponding key
       }
@@ -240,7 +240,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       CTxOut out(0, scriptPubKeyKernel);
       txNew.vout.emplace_back(out);
 
-      LogPrint(BCLog::POS, "%s: Added kernel.\n", __func__);
+      LogPrint(BCLog::ESPERANZA, "%s: Added kernel.\n", __func__);
 
       setCoins.erase(it);
       break;
@@ -293,7 +293,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     nCredit += prevOut.nValue;
     vwtxPrev.push_back(pcoin.first);
 
-    LogPrint(BCLog::POS, "%s: Combining kernel %s, %d.\n", __func__,
+    LogPrint(BCLog::ESPERANZA, "%s: Combining kernel %s, %d.\n", __func__,
              pcoin.first->GetHash().ToString(), pcoin.second);
     nStakesCombined++;
     setCoins.erase(itc);
