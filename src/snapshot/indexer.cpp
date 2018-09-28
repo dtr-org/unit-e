@@ -137,9 +137,9 @@ FILE *Indexer::GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
   }
 
   IdxMap idxMap = m_dirIdx.at(fileId);
-  auto index = static_cast<uint32_t>(utxoSetIndex - (fileId * m_meta.m_step *
-                                                     m_meta.m_stepsPerFile)) /
-               m_meta.m_step;
+  uint32_t prevCount = fileId * m_meta.m_step * m_meta.m_stepsPerFile;
+  auto index = static_cast<uint32_t>(utxoSetIndex - prevCount) / m_meta.m_step;
+
   if (idxMap.find(index) == idxMap.end()) {
     return nullptr;
   }
@@ -149,9 +149,7 @@ FILE *Indexer::GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
 
   if (m_dirIdx.find(fileId + 1) == m_dirIdx.end()) {
     // last file can have less messages than m_step * stepPerFile
-    auto msgInFile =
-        static_cast<uint32_t>(m_meta.m_totalUTXOSets -
-                              (fileId * m_meta.m_step * m_meta.m_stepsPerFile));
+    auto msgInFile = static_cast<uint32_t>(m_meta.m_totalUTXOSets - prevCount);
     utxoSetLeftOut = msgInFile - index * m_meta.m_step;
   } else {
     utxoSetLeftOut =
@@ -160,7 +158,7 @@ FILE *Indexer::GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
 
   fs::path filePath = m_dirPath / FileName(fileId);
   FILE *file = fsbridge::fopen(filePath, "rb");
-  if (file == nullptr) {
+  if (!file) {
     return nullptr;
   }
 
@@ -245,7 +243,7 @@ uint256 Indexer::CalcSnapshotHash() {
   for (auto &i : m_dirIdx) {
     fs::path filePath = m_dirPath / FileName(i.first);
     FILE *f = fsbridge::fopen(filePath, "rb");
-    if (f == nullptr) {
+    if (!f) {
       return hash;
     }
 

@@ -29,7 +29,7 @@ Iterator::~Iterator() { closeFile(); }
 
 bool Iterator::Valid() {
   // there is an issue to read data
-  if (m_file == nullptr) {
+  if (!m_file) {
     return false;
   }
 
@@ -51,7 +51,7 @@ void Iterator::Next() {
     closeFile();
 
     m_file = m_indexer->GetClosestIdx(m_readTotal, m_utxoSetLeft, m_readTotal);
-    if (m_file == nullptr) {
+    if (!m_file) {
       return;
     }
   }
@@ -79,7 +79,7 @@ bool Iterator::MoveCursorTo(uint64_t utxoSetIndex) {
   closeFile();
 
   m_file = m_indexer->GetClosestIdx(utxoSetIndex, m_utxoSetLeft, m_readTotal);
-  if (m_file == nullptr) {
+  if (!m_file) {
     return false;
   }
 
