@@ -96,7 +96,7 @@ namespace snapshot {
 
 constexpr uint32_t DEFAULT_INDEX_STEP = 1000;
 constexpr uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
-const char* const SNAPSHOT_FOLDER = "snapshots";
+const char *const SNAPSHOT_FOLDER = "snapshots";
 
 struct Meta {
   uint256 m_snapshotHash;
@@ -112,7 +112,7 @@ struct Meta {
         m_step(0),
         m_stepsPerFile(0) {}
 
-  Meta(const uint256& snapshotHash, const uint256& bestBlockHash)
+  Meta(const uint256 &snapshotHash, const uint256 &bestBlockHash)
       : m_snapshotHash(snapshotHash),
         m_bestBlockHash(bestBlockHash),
         m_totalUTXOSets(0),
@@ -122,7 +122,7 @@ struct Meta {
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
-  inline void SerializationOp(Stream& s, Operation ser_action) {
+  inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
     READWRITE(m_bestBlockHash);
     READWRITE(m_totalUTXOSets);
@@ -141,22 +141,22 @@ class Indexer {
   static std::unique_ptr<Indexer> Open(uint32_t snapshotId);
   static bool Delete(uint32_t snapshotId);
 
-  explicit Indexer(uint32_t snapshotId, const uint256& snapshotHash,
-                   const uint256& blockHash, uint32_t step,
+  explicit Indexer(uint32_t snapshotId, const uint256 &snapshotHash,
+                   const uint256 &blockHash, uint32_t step,
                    uint32_t stepsPerFile);
 
   uint32_t GetSnapshotId() { return m_snapshotId; }
-  const Meta& GetMeta() { return m_meta; }
-  bool WriteUTXOSets(const std::vector<UTXOSet>& list);
-  bool WriteUTXOSet(const UTXOSet& utxoSet);
+  const Meta &GetMeta() { return m_meta; }
+  bool WriteUTXOSets(const std::vector<UTXOSet> &list);
+  bool WriteUTXOSet(const UTXOSet &utxoSet);
 
   //! \brief GetClosestIdx returns the file which contains the expected
   //! index and adjusts the file cursor as close as possible to the UTXOSet.
   //!
   //! \param utxoSetLeftOut how many records left in the current file
   //! \param utxoSetReadOut how many records read (including all files)
-  FILE* GetClosestIdx(uint64_t utxoSetIndex, uint32_t& utxoSetLeftOut,
-                      uint64_t& utxoSetReadOut);
+  FILE *GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
+                      uint64_t &utxoSetReadOut);
 
   uint256 CalcSnapshotHash();
 

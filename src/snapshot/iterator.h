@@ -21,7 +21,7 @@ namespace snapshot {
 // Iterator is not thread-safe
 class Iterator {
  public:
-  explicit Iterator(std::unique_ptr<Indexer> indexer);
+  explicit Iterator(std::unique_ptr<Indexer> &&indexer);
   ~Iterator();
 
   uint256 GetSnapshotHash() { return m_indexer->GetMeta().m_snapshotHash; }
