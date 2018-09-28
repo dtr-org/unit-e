@@ -369,6 +369,10 @@ public:
         return GetType() == +TxType::DEPOSIT;
     }
 
+    bool IsWithdraw() const {
+      return GetType() == +TxType::WITHDRAW;
+    }
+
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return a.hash == b.hash;
