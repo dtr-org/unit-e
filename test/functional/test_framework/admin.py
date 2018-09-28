@@ -94,3 +94,17 @@ class Admin:
 
         self.prevout = Admin.find_output_for_address(self.admin_node, txid,
                                                      self.address)
+
+    def whitelist(self, pubkeys):
+        command = {
+            "cmd": "whitelist",
+            "payload": pubkeys
+        }
+        return self.send([command])
+
+    def blacklist(self, pubkeys):
+        command = {
+            "cmd": "blacklist",
+            "payload": pubkeys
+        }
+        return self.send([command])

@@ -71,13 +71,7 @@ class DepositAdministration(UnitETestFramework):
         self.assert_tx_rejected(invalid_tx)
 
         pubkey = validator.validateaddress(address)["pubkey"]
-
-        command = {
-            "cmd": "whitelist",
-            "payload": [pubkey]
-        }
-
-        admin.send([command])
+        admin.whitelist([pubkey])
 
         deposit_tx = validator.deposit(address, 2000)["transactionid"]
         self.wait_for_transaction(deposit_tx, timeout=10)

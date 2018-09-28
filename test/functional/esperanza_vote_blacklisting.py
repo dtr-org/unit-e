@@ -22,7 +22,7 @@ def block_contains_txs_from(block, address):
     return False
 
 
-def prev_n_blocks_contain_votes(node, validator_address, n):
+def prev_n_blocks_have_txs_from(node, validator_address, n):
     height = node.getblockcount()
     for i in range(0, n):
         block_hash = node.getblockhash(height - i)
@@ -75,12 +75,7 @@ class VoteBlacklisting(UnitETestFramework):
 
         address = validator.getnewaddress("", "legacy")
         pubkey = validator.validateaddress(address)["pubkey"]
-
-        command = {
-            "cmd": "whitelist",
-            "payload": [pubkey]
-        }
-        admin.send([command])
+        admin.whitelist([pubkey])
 
         deposit_tx = validator.deposit(address, 2000)["transactionid"]
         self.wait_for_transaction(deposit_tx, timeout=10)
@@ -89,19 +84,14 @@ class VoteBlacklisting(UnitETestFramework):
         proposer.generate(n_blocks)
         self.sync_all()
 
-        assert (prev_n_blocks_contain_votes(proposer, address, n_blocks))
+        assert (prev_n_blocks_have_txs_from(proposer, address, n_blocks))
 
-        command = {
-            "cmd": "blacklist",
-            "payload": [pubkey]
-        }
-
-        admin.send([command])
+        admin.blacklist([pubkey])
 
         proposer.generate(n_blocks)
         self.sync_all()
 
-        assert (not prev_n_blocks_contain_votes(proposer, address, n_blocks))
+        assert (not prev_n_blocks_have_txs_from(proposer, address, n_blocks))
 
         print("Test succeeded.")
 
