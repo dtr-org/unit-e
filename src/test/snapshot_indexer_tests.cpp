@@ -16,23 +16,25 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_flush) {
   SetDataDir("snapshot_indexer_flush");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t step{3};
-  uint32_t stepsPerFile{2};
-  snapshot::Indexer idx(0, uint256(), uint256(), step, stepsPerFile);
+  uint32_t step = 3;
+  uint32_t stepsPerFile = 2;
+  std::shared_ptr<snapshot::Indexer> idx(
+      new snapshot::Indexer(0, uint256(), uint256(), step, stepsPerFile));
   CDataStream streamIn(SER_DISK, PROTOCOL_VERSION);
+
   for (uint64_t i = 0; i < step * stepsPerFile * 3; ++i) {
-    BOOST_CHECK(idx.Flush());
+    BOOST_CHECK(idx->Flush());
     snapshot::UTXOSet utxoSet;
     CDataStream s(SER_DISK, PROTOCOL_VERSION);
     s << i << uint64_t(0) << uint64_t(0) << uint64_t(0);
     s >> utxoSet.m_txId;
     streamIn << utxoSet;
-    BOOST_CHECK(idx.WriteUTXOSet(utxoSet));
+    BOOST_CHECK(idx->WriteUTXOSet(utxoSet));
   }
-  BOOST_CHECK(idx.Flush());
+  BOOST_CHECK(idx->Flush());
 
   CDataStream streamOut(SER_DISK, PROTOCOL_VERSION);
-  snapshot::Iterator iter(&idx);
+  snapshot::Iterator iter(idx);
   for (uint64_t i = 0; i < step * stepsPerFile * 3; ++i) {
     BOOST_CHECK(iter.MoveCursorTo(i));
     streamOut << iter.GetUTXOSet();
@@ -45,9 +47,9 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   SetDataDir("snapshot_indexer_writer");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t snapshotId{0};
-  uint32_t step{3};
-  uint32_t stepsPerFile{2};
+  uint32_t snapshotId = 0;
+  uint32_t step = 3;
+  uint32_t stepsPerFile = 2;
   snapshot::Indexer indexer(snapshotId, uint256(), uint256(), step,
                             stepsPerFile);
 
@@ -81,10 +83,10 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   SetDataDir("snapshot_indexer_resume_writing");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t snapshotId{0};
-  uint32_t step{3};
-  uint32_t stepsPerFile{3};
-  std::unique_ptr<snapshot::Indexer> indexer(new snapshot::Indexer(
+  uint32_t snapshotId = 0;
+  uint32_t step = 3;
+  uint32_t stepsPerFile = 3;
+  std::shared_ptr<snapshot::Indexer> indexer(new snapshot::Indexer(
       snapshotId, uint256(), uint256(), step, stepsPerFile));
 
   // close and re-open indexer after each write
@@ -116,7 +118,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
 
   // validate the content
   indexer = snapshot::Indexer::Open(snapshotId);
-  snapshot::Iterator iter(indexer.get());
+  snapshot::Iterator iter(indexer);
   CDataStream streamOut(SER_DISK, PROTOCOL_VERSION);
   for (uint64_t i = 0; i < totalMsgs; ++i) {
     BOOST_CHECK(iter.MoveCursorTo(i));
@@ -140,9 +142,9 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
   SetDataDir("snapshot_indexer_open");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t snapshotId{0};
-  uint32_t step{3};
-  uint32_t stepsPerFile{2};
+  uint32_t snapshotId = 0;
+  uint32_t step = 3;
+  uint32_t stepsPerFile = 2;
   uint256 snapshotHash = uint256S("aa");
   uint256 bestBlockHash = uint256S("bb");
 

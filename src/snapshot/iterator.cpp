@@ -15,8 +15,11 @@
 
 namespace snapshot {
 
-Iterator::Iterator(Indexer *indexer)
-    : m_indexer(indexer), m_file(nullptr), m_readTotal(0), m_utxoSetLeft(0) {
+Iterator::Iterator(std::shared_ptr<Indexer> indexer)
+    : m_indexer(std::move(indexer)),
+      m_file(nullptr),
+      m_readTotal(0),
+      m_utxoSetLeft(0) {
   if (m_indexer->GetMeta().m_totalUTXOSets > 0) {
     Next();
   }
@@ -53,6 +56,8 @@ void Iterator::Next() {
     }
   }
 
+  // CAutoFile is used as a helper to unserialize one utxoSet record but we
+  // don't want to close the file so we release the ownership right away
   CAutoFile f(m_file, SER_DISK, PROTOCOL_VERSION);
   f >> m_utxoSet;
   ++m_readTotal;
@@ -105,7 +110,7 @@ bool Iterator::GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
   utxoSetOut.clear();
   utxoSetOut.reserve(count);
 
-  uint16_t n{0};
+  uint16_t n = 0;
   while (Valid()) {
     if (n >= count) {
       break;

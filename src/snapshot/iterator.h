@@ -5,6 +5,9 @@
 #ifndef UNITE_SNAPSHOT_ITERATOR_H
 #define UNITE_SNAPSHOT_ITERATOR_H
 
+#include <stdint.h>
+#include <cstdio>
+#include <memory>
 #include <string>
 
 #include <coins.h>
@@ -16,34 +19,34 @@
 namespace snapshot {
 
 // Iterator is not thread-safe
-class Iterator
-{
-public:
-    explicit Iterator(Indexer* indexer);
-    ~Iterator();
+class Iterator {
+ public:
+  explicit Iterator(std::shared_ptr<Indexer> indexer);
+  ~Iterator();
 
-    uint256 GetSnapshotHash() { return m_indexer->GetMeta().m_snapshotHash; }
-    uint256 GetBestBlockHash() { return m_indexer->GetMeta().m_bestBlockHash; }
-    uint64_t GetTotalUTXOSets() { return m_indexer->GetMeta().m_totalUTXOSets; }
+  uint256 GetSnapshotHash() { return m_indexer->GetMeta().m_snapshotHash; }
+  uint256 GetBestBlockHash() { return m_indexer->GetMeta().m_bestBlockHash; }
+  uint64_t GetTotalUTXOSets() { return m_indexer->GetMeta().m_totalUTXOSets; }
 
-    UTXOSet& GetUTXOSet() { return m_utxoSet; }
-    bool GetUTXOSets(uint64_t utxoSetIndex, uint16_t count, std::vector<UTXOSet>& utxoSetOut);
+  UTXOSet& GetUTXOSet() { return m_utxoSet; }
+  bool GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
+                   std::vector<UTXOSet>& utxoSetOut);
 
-    bool Valid();
-    void Next();
-    bool MoveCursorTo(uint64_t utxoSetIndex);
+  bool Valid();
+  void Next();
+  bool MoveCursorTo(uint64_t utxoSetIndex);
 
-private:
-    Indexer* m_indexer; // iterator doesn't manage lifecycle of the indexer
+ private:
+  std::shared_ptr<Indexer> m_indexer;
 
-    FILE* m_file;           // current opened file
-    uint64_t m_readTotal;   // keep track of read all UTXOSet
-    uint32_t m_utxoSetLeft; // unread UTXOSet in the current file
+  FILE* m_file;            // current opened file
+  uint64_t m_readTotal;    // keep track of read all UTXOSet
+  uint32_t m_utxoSetLeft;  // unread UTXOSet in the current file
 
-    UTXOSet m_utxoSet;
+  UTXOSet m_utxoSet;
 
-    void closeFile();
+  void closeFile();
 };
-} // namespace snapshot
+}  // namespace snapshot
 
-#endif // UNITE_SNAPSHOT_ITERATOR_H
+#endif  // UNITE_SNAPSHOT_ITERATOR_H

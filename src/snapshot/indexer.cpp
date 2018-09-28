@@ -4,13 +4,12 @@
 
 #include <snapshot/indexer.h>
 
-#include <string>
-
 #include <crypto/sha256.h>
+#include <util.h>
 
 namespace snapshot {
 
-std::unique_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
+std::shared_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
   fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / std::to_string(snapshotId));
 
   Meta meta;
@@ -35,7 +34,7 @@ std::unique_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
     file >> dirIdx;
   }
 
-  return std::unique_ptr<Indexer>(new Indexer(snapshotId, meta, dirIdx));
+  return std::shared_ptr<Indexer>(new Indexer(snapshotId, meta, dirIdx));
 }
 
 bool Indexer::Delete(uint32_t snapshotId) {
@@ -43,7 +42,9 @@ bool Indexer::Delete(uint32_t snapshotId) {
   try {
     fs::remove_all(dirPath);
     return true;
-  } catch (const fs::filesystem_error &) {
+  } catch (const fs::filesystem_error &e) {
+    LogPrintf("%s: can't delete snapshot %s. error: %s\n", __func__,
+              dirPath.string(), e.what());
     return false;
   }
 }
@@ -250,13 +251,13 @@ uint256 Indexer::CalcSnapshotHash() {
 
     CAutoFile file(f, SER_DISK, PROTOCOL_VERSION);
     uint32_t fileSize = i.second.rbegin()->second;
-    std::unique_ptr<unsigned char> buf(new unsigned char[fileSize]);
-    size_t n = fread(buf.get(), 1, fileSize, f);
+    std::vector<unsigned char> buf(fileSize);
+    size_t n = fread(buf.data(), 1, fileSize, f);
     if (n != fileSize) {
       return hash;
     }
 
-    sha256.Write(buf.get(), fileSize);
+    sha256.Write(buf.data(), fileSize);
   }
 
   sha256.Finalize(hash.begin());

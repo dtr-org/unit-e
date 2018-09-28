@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
   SetDataDir("snapshot_iterator");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t msgsToGenerate{20};
+  uint32_t msgsToGenerate = 20;
 
   {
     // generate the snapshot
@@ -36,14 +36,14 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
     auto idx = snapshot::Indexer::Open(0);
     BOOST_CHECK(idx != nullptr);
 
-    snapshot::Iterator iter(idx.get());
+    snapshot::Iterator iter(idx);
     BOOST_CHECK_EQUAL(
         HexStr(iter.GetBestBlockHash()),
         "aa00000000000000000000000000000000000000000000000000000000000000");
     BOOST_CHECK_EQUAL(iter.GetTotalUTXOSets(), msgsToGenerate);
 
     // iterate sequentially
-    uint32_t count{0};
+    uint32_t count = 0;
     while (iter.Valid()) {
       uint32_t value = 1000 + count;
       BOOST_CHECK_EQUAL(iter.GetUTXOSet().m_outputs.at(count).nValue, value);
@@ -55,10 +55,8 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
     // iterate via cursor moving forward
     for (uint32_t i = 0; i < msgsToGenerate; ++i) {
       BOOST_CHECK(iter.MoveCursorTo(i));
-
-      uint32_t value = iter.GetUTXOSet().m_outputs.at(i).nValue;
-      uint32_t exp = 1000 + i;
-      BOOST_CHECK_EQUAL(value, exp);
+      int value = 1000 + i;
+      BOOST_CHECK_EQUAL(iter.GetUTXOSet().m_outputs.at(i).nValue, value);
     }
 
     // iterate via cursor moving backward

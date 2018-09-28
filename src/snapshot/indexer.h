@@ -5,7 +5,13 @@
 #ifndef UNITE_SNAPSHOT_INDEXER_H
 #define UNITE_SNAPSHOT_INDEXER_H
 
+#include <stdint.h>
 #include <cassert>
+#include <cstdio>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include <clientversion.h>
 #include <fs.h>
@@ -16,13 +22,11 @@
 #include <version.h>
 
 namespace snapshot {
-// clang-format off
-//
 // meta.dat
 // | size | type    | field           | description
 // | 32   | uint256 | m_snapshotHash  |
 // | 32   | uint256 | m_bestBlockHash | at which hash the snapshot was created
-// | 8    | uint64  | m_totalUTXOSets | total number of UTXO sets the snapshot contains
+// | 8    | uint64  | m_totalUTXOSets | total number of UTXO sets in snapshot
 // | 4    | uint32  | m_step          | number of aggregated UTXO sets
 // | 4    | uint32  | m_stepsPerFile  | number of aggregations per file
 //
@@ -35,20 +39,46 @@ namespace snapshot {
 // IdxMap
 // | size | type    | field | description
 // | N    | varInt  | size  | size of the map
-// | 4    | uint32  | key   | index (0, 1, 3, ...)
-// | 4    | uint32  | value | bytes to read from the file until the end of the index
+// | 4    | uint32  | key   | index (0, 1, 2, ...)
+// | 4    | uint32  | value | bytes to read from the beginning of the file
+// |      |         |       | until the end of the index
 //
 // Example (m_step 10, m_stepsPerFile 3)
-// 0: 100 (bytes)
-// 1: 250 (bytes)
-// 2: 350 (bytes)
 //
-// To read the N message (0, 10, 20, ...) from the file, we need to skip IdxMap[N/m_step-1] bytes
+// To understand in which file the needed required message index is:
+// fileId = neededIndex / (m_step * m_stepsPerFile)
+// fileId = 24 / (10 * 3) = 0.8 = utxo0.dat
+// fileId = 57 / (10 * 3) = 1.9 = utxo1.dat
+// fileId = 63 / (10 * 3) = 2.1 = utxo2.dat
 //
-// Last index might contain less than 10 messages if it's the last file.
-// To know how many messages are in the last index:
-// lastFullIndex = max((the last index in the last file - m_step), 0)
-// m_totalUTXOSets - (m_step * m_stepsPerFile * (files - 1)) - lastFullIndex
+// Once the file is detected, we update the neededIndex according to its
+// fileId position:
+// neededIndex = neededIndex - m_step * m_stepsPerFile * fileId
+// neededIndex = 15 - 10 * 3 * 0 = 15
+// neededIndex = 57 - 10 * 3 * 1 = 27
+// neededIndex = 63 - 10 * 3 * 2 = 3
+//
+// IdxMap for one file might look like this:
+// 0: 100 // 100 bytes store first 10 messages
+// 1: 250 // 250 bytes store first 20 messages
+// 2: 350 // 350 bytes store first 21-30 messages
+// note: last index might have less than 10 messages if this IdxMap is for the
+// last file.
+//
+// To read the N message from the file, we first find the closest index.
+// closestIndex = neededIndex / step
+// closestIndex = 15 / 10 = 1
+// closestIndex = 27 / 10 = 2
+//
+// To calculate how many bytes to skip from the file:
+// IdxMap[min(closestIndex - 1, 0)]
+//
+// Every index in IdxMap aggregates m_step messages but the last index of
+// the last file can have less then m_step messages. To know exactly the number
+// we use the following formula:
+// lastFullIndex = max((the last index in the last file - 1), 0)
+// utxoSetsExceptLastFile = m_step * m_stepsPerFile * (number of files - 1)
+// utxoSetsInLastIndex = m_totalUTXOSets-utxoSetsExceptLastFile-lastFullIndex
 //
 // utxo???.dat is the file that stores m_step*m_stepsPerFile UTXO sets
 // UTXO Set
@@ -63,8 +93,6 @@ namespace snapshot {
 // utxo???.dat file has an incremental suffix starting from 0.
 // File doesn't contain the length of messages/bytes that needs to be read.
 // This info should be taken from the index
-//
-// clang-format on
 
 const uint32_t DEFAULT_INDEX_STEP = 1000;
 const uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
@@ -87,9 +115,9 @@ struct Meta {
   Meta(const uint256& snapshotHash, const uint256& bestBlockHash)
       : m_snapshotHash(snapshotHash),
         m_bestBlockHash(bestBlockHash),
-        m_totalUTXOSets{0},
-        m_step{0},
-        m_stepsPerFile{0} {}
+        m_totalUTXOSets(0),
+        m_step(0),
+        m_stepsPerFile(0) {}
 
   ADD_SERIALIZE_METHODS;
 
@@ -110,7 +138,7 @@ class Indexer {
   //! until the end of this index.
   using IdxMap = std::map<uint32_t, uint32_t>;
 
-  static std::unique_ptr<Indexer> Open(uint32_t snapshotId);
+  static std::shared_ptr<Indexer> Open(uint32_t snapshotId);
   static bool Delete(uint32_t snapshotId);
 
   explicit Indexer(uint32_t snapshotId, const uint256& snapshotHash,
@@ -118,7 +146,7 @@ class Indexer {
                    uint32_t stepsPerFile);
 
   uint32_t GetSnapshotId() { return m_snapshotId; }
-  Meta& GetMeta() { return m_meta; }
+  const Meta& GetMeta() { return m_meta; }
   bool WriteUTXOSets(const std::vector<UTXOSet>& list);
   bool WriteUTXOSet(const UTXOSet& utxoSet);
 
