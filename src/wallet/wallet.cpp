@@ -1144,6 +1144,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              state->m_phase._to_string());
                   }
                 }
+                default: { break; }
               }
             }
 

@@ -532,6 +532,11 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
     return false;
   }
 
+  {
+    LOCK(cs_validatorstate);
+    validatorState.m_lastEsperanzaTx = wtxNewOut.tx;
+  }
+
   return true;
 }
 
@@ -663,16 +668,19 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   }
 
   CWalletTx createdTx;
-  CTransactionRef &prevRef = validatorState.m_lastEsperanzaTx;
+  {
+    LOCK(cs_validatorstate);
+    CTransactionRef &prevRef = validatorState.m_lastEsperanzaTx;
 
-  if (SendVote(prevRef, vote, createdTx)) {
+    if (SendVote(prevRef, vote, createdTx)) {
 
-    validatorState.m_voteMap[epoch] = vote;
-    validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
-    validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
-    validatorState.m_lastEsperanzaTx = createdTx.tx;
-    LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
-             createdTx.tx->GetHash().GetHex());
+      validatorState.m_voteMap[epoch] = vote;
+      validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
+      validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
+      validatorState.m_lastEsperanzaTx = createdTx.tx;
+      LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
+               createdTx.tx->GetHash().GetHex());
+    }
   }
 }
 
