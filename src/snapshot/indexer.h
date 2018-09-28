@@ -94,8 +94,8 @@ namespace snapshot {
 // File doesn't contain the length of messages/bytes that needs to be read.
 // This info should be taken from the index
 
-const uint32_t DEFAULT_INDEX_STEP = 1000;
-const uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
+constexpr uint32_t DEFAULT_INDEX_STEP = 1000;
+constexpr uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
 const char* const SNAPSHOT_FOLDER = "snapshots";
 
 struct Meta {
@@ -138,7 +138,7 @@ class Indexer {
   //! until the end of this index.
   using IdxMap = std::map<uint32_t, uint32_t>;
 
-  static std::shared_ptr<Indexer> Open(uint32_t snapshotId);
+  static std::unique_ptr<Indexer> Open(uint32_t snapshotId);
   static bool Delete(uint32_t snapshotId);
 
   explicit Indexer(uint32_t snapshotId, const uint256& snapshotHash,

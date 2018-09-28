@@ -15,7 +15,7 @@
 
 namespace snapshot {
 
-Iterator::Iterator(std::shared_ptr<Indexer> indexer)
+Iterator::Iterator(std::unique_ptr<Indexer> indexer)
     : m_indexer(std::move(indexer)),
       m_file(nullptr),
       m_readTotal(0),

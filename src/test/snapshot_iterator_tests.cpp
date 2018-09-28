@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
     auto idx = snapshot::Indexer::Open(0);
     BOOST_CHECK(idx != nullptr);
 
-    snapshot::Iterator iter(idx);
+    snapshot::Iterator iter(std::move(idx));
     BOOST_CHECK_EQUAL(
         HexStr(iter.GetBestBlockHash()),
         "aa00000000000000000000000000000000000000000000000000000000000000");

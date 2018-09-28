@@ -9,7 +9,7 @@
 
 namespace snapshot {
 
-std::shared_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
+std::unique_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
   fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / std::to_string(snapshotId));
 
   Meta meta;
@@ -34,7 +34,7 @@ std::shared_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
     file >> dirIdx;
   }
 
-  return std::shared_ptr<Indexer>(new Indexer(snapshotId, meta, dirIdx));
+  return std::unique_ptr<Indexer>(new Indexer(snapshotId, meta, dirIdx));
 }
 
 bool Indexer::Delete(uint32_t snapshotId) {

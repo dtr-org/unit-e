@@ -21,25 +21,25 @@ namespace snapshot {
 // Iterator is not thread-safe
 class Iterator {
  public:
-  explicit Iterator(std::shared_ptr<Indexer> indexer);
+  explicit Iterator(std::unique_ptr<Indexer> indexer);
   ~Iterator();
 
   uint256 GetSnapshotHash() { return m_indexer->GetMeta().m_snapshotHash; }
   uint256 GetBestBlockHash() { return m_indexer->GetMeta().m_bestBlockHash; }
   uint64_t GetTotalUTXOSets() { return m_indexer->GetMeta().m_totalUTXOSets; }
 
-  UTXOSet& GetUTXOSet() { return m_utxoSet; }
+  UTXOSet &GetUTXOSet() { return m_utxoSet; }
   bool GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
-                   std::vector<UTXOSet>& utxoSetOut);
+                   std::vector<UTXOSet> &utxoSetOut);
 
   bool Valid();
   void Next();
   bool MoveCursorTo(uint64_t utxoSetIndex);
 
  private:
-  std::shared_ptr<Indexer> m_indexer;
+  std::unique_ptr<Indexer> m_indexer;
 
-  FILE* m_file;            // current opened file
+  FILE *m_file;            // current opened file
   uint64_t m_readTotal;    // keep track of read all UTXOSet
   uint32_t m_utxoSetLeft;  // unread UTXOSet in the current file
 
