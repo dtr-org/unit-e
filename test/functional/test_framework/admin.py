@@ -1,10 +1,9 @@
-#!/ usr / bin / env python3
+#!/usr/bin/env python3
 # Copyright (c) 2018 The unit-e core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from decimal import Decimal
-from test_framework.authproxy import JSONRPCException
 
 ADMIN_TX_TYPE = 7
 

@@ -33,7 +33,6 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
                            const CBlockIndex *pindex = nullptr);
 
-
 }  // namespace esperanza
 
 #endif  // UNIT_E_VALIDATION_H
