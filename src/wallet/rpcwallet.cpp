@@ -3409,6 +3409,7 @@ UniValue generate(const JSONRPCRequest& request)
         throw std::runtime_error(
             "generate nblocks ( maxtries )\n"
             "\nMine up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
+            "\nNote: this function can only be used on the regtest network.\n"
             "\nArguments:\n"
             "1. nblocks      (numeric, required) How many blocks are generated immediately.\n"
             "2. maxtries     (numeric, optional) How many iterations to try (default = 1000000).\n"
@@ -3418,6 +3419,10 @@ UniValue generate(const JSONRPCRequest& request)
             "\nGenerate 11 blocks\n"
             + HelpExampleCli("generate", "11")
         );
+    }
+
+    if (!Params().MineBlocksOnDemand()) {
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
     }
 
     int num_generate = request.params[0].get_int();
