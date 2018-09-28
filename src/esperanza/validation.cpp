@@ -247,7 +247,7 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
     }
 
     if (disablesPermissioning) {
-      return state.DoS(10, false, REJECT_INVALID, "admin-already-disabled");
+      return state.DoS(10, false, REJECT_INVALID, "admin-double-disable");
     }
 
     if (command.GetCommandType() ==

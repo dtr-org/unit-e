@@ -6,22 +6,29 @@
 from decimal import Decimal
 from test_framework.authproxy import JSONRPCException
 
+ADMIN_TX_TYPE = 7
+
 
 class Admin:
     @staticmethod
-    def authorize(framework, admin_node, donor_node=None,
-                  amount=Decimal("10")):
-
+    def import_admin_keys(node):
         private_keys = ["cQzPd94MUUE6Gtoue6Y86S7apaLwJA223f4Md3GiaX7j7vGDPDXp",
                         "cVYxRyHk6B9x3pgnUz1vEkvVpNhCiCvtTbYDLy4EzW8PNKRyHNvG",
                         "cRFymdYKDZpDEkZLeR4WNbk7hiZtnG3nuWH4uyxwtKyJdT54vf9b"]
+
+        for key in private_keys:
+            node.importprivkey(key)
 
         addresses = ["n1Rf25dBYJ2PAMUx5FbAWmRVHt1CkAS6Vj",
                      "mwEynwmJ2XEQ6sm2U7ji7yLaEUhbkRCZx2",
                      "mjqD9Fc81DjCgNfJqLkvrXUVYqygCxhabm"]
 
-        for key in private_keys:
-            admin_node.importprivkey(key)
+        return addresses
+
+    @staticmethod
+    def authorize(framework, admin_node, donor_node=None,
+                  amount=Decimal("10")):
+        addresses = Admin.import_admin_keys(admin_node)
 
         address = admin_node.addmultisigaddress(2, addresses, "",
                                                 "p2sh-segwit")["address"]
@@ -37,41 +44,34 @@ class Admin:
         if self.prevout is None:
             raise AssertionError("No prevout")
 
-        try:
-            txid = self.admin_node.sendadmincommands([self.prevout], fee,
-                                                     commands, self.address)
-            self.framework.wait_for_transaction(txid)
-            self.prevout = self.find_prevout(txid)
-            self.donor_node.generate(1)
-            self.framework.sync_all()
-            return txid
-        except Exception as exception:
-            self.last_exception = exception
+        txid = self.admin_node.sendadmincommands([self.prevout], fee,
+                                                 commands, self.address)
+        self.framework.wait_for_transaction(txid)
+        self.prevout = Admin.find_output_for_address(self.admin_node, txid,
+                                                     self.address)
+        self.donor_node.generate(1)
+        self.framework.sync_all()
+        return txid
 
     @staticmethod
     def authorize_and_disable(framework, admin_node, donor_node=None,
                               fee=Decimal("0.001")):
         admin = Admin.authorize(framework, admin_node, donor_node, fee)
-        admin.assert_last_op_ok()
         admin.send([{'cmd': 'end_permissioning'}], fee)
-        admin.assert_last_op_ok()
 
-    def find_prevout(self, txid):
-        raw_tx = self.admin_node.getrawtransaction(txid)
-        tx = self.admin_node.decoderawtransaction(raw_tx)
+    @staticmethod
+    def find_output_for_address(node, txid, address):
+        raw_tx = node.getrawtransaction(txid)
+        tx = node.decoderawtransaction(raw_tx)
 
         for out in tx["vout"]:
             script_pub_key = out["scriptPubKey"]
-
-            if script_pub_key["asm"].startswith("OP_RETURN"):
+            addresses = script_pub_key.get("addresses", None)
+            if addresses is None:
                 continue
 
-            addresses = script_pub_key["addresses"]
-
-            if len(addresses) != 1 or addresses[0] != self.address:
-                continue
-
-            return txid, out["n"]
+            if address in addresses:
+                return txid, out["n"]
 
         return None
 
@@ -89,25 +89,8 @@ class Admin:
         self.prevout = None
         self.last_exception = None
 
-        try:
-            txid = donor_node.sendtoaddress(address, amount)
-            framework.wait_for_transaction(txid, timeout=10)
+        txid = donor_node.sendtoaddress(address, amount)
+        framework.wait_for_transaction(txid, timeout=10)
 
-            self.prevout = self.find_prevout(txid)
-        except Exception as e:
-            self.last_exception = e
-
-    def assert_last_op_ok(self):
-        if self.last_exception is not None:
-            raise AssertionError(self.last_exception)
-
-    def assert_last_op_is_rpc_error(self, error_code):
-        if self.last_exception is None:
-            raise AssertionError("Exception expected")
-        if not isinstance(self.last_exception, JSONRPCException):
-            raise AssertionError(self.last_exception)
-        if error_code != self.last_exception.error["code"]:
-            raise AssertionError(
-                "Expected error code: %s, actual: %s, message: '%s'" %
-                (error_code, self.last_exception.error["code"],
-                 self.last_exception.error["message"]))
+        self.prevout = Admin.find_output_for_address(self.admin_node, txid,
+                                                     self.address)

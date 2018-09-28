@@ -1059,8 +1059,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckAdminTransaction failed.", __func__),
-                               state.GetRejectCode(), state.GetDebugMessage());
+              return false;
             }
             break;
           }
@@ -3420,8 +3419,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                    __func__,
                    state.GetRejectReason());
 
-              return state.DoS(10, error("%s: CheckAdminTransaction failed.", __func__),
-                  state.GetRejectCode(), state.GetDebugMessage());
+              return false;
             }
             break;
           }

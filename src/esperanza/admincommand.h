@@ -18,10 +18,10 @@ namespace esperanza {
 BETTER_ENUM(
   AdminCommandType,
   uint8_t,
-  ADD_TO_WHITELIST,
-  REMOVE_FROM_WHITELIST,
-  RESET_ADMINS,
-  END_PERMISSIONING
+  ADD_TO_WHITELIST = 0,
+  REMOVE_FROM_WHITELIST = 1,
+  RESET_ADMINS = 2,
+  END_PERMISSIONING = 3
 )
 // clang-format on
 
