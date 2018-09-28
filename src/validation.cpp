@@ -3366,7 +3366,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 __func__,
                 tx->GetHash().GetHex());
 
-            if (!esperanza::CheckDepositTransaction(state, *tx)){
+            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)){
               LogPrint(BCLog::FINALIZATION,
                        "%s: Deposit cannot be included into mempool: %s,txid: %s\n",
                        __func__,
