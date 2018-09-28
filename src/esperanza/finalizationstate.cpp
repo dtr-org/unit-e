@@ -68,13 +68,13 @@ FinalizationState::FinalizationState(
  * new epoch.
  * @param blockHeight the block height.
  */
-esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
+Result FinalizationState::InitializeEpoch(int blockHeight) {
   LOCK(cs_esperanza);
 
   auto newEpoch = static_cast<uint32_t>(blockHeight) / EPOCH_LENGTH;
 
   if (newEpoch != m_currentEpoch + 1) {
-    return fail(esperanza::Result::INIT_WRONG_EPOCH,
+    return fail(Result::INIT_WRONG_EPOCH,
                 "%s: Next epoch should be %d but %d was passed.\n", __func__,
                 m_currentEpoch + 1, newEpoch);
   }
@@ -110,7 +110,7 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
         ufp64::mul_by_uint(BASE_PENALTY_FACTOR, GetEpochsSinceFinalization()));
 
     if (m_rewardFactor <= 0) {
-      return fail(esperanza::Result::INIT_INVALID_REWARD,
+      return fail(Result::INIT_INVALID_REWARD,
                   "Invalid reward factor %d", m_rewardFactor);
     }
 
@@ -304,7 +304,7 @@ CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
 /**
  * Check whether the input provided makes a valid vote.
  */
-esperanza::Result FinalizationState::IsVotable(const Validator &validator,
+Result FinalizationState::IsVotable(const Validator &validator,
                                                const uint256 &targetHash,
                                                uint32_t targetEpoch,
                                                uint32_t sourceEpoch) const {
@@ -312,7 +312,7 @@ esperanza::Result FinalizationState::IsVotable(const Validator &validator,
 
   auto it = m_checkpoints.find(targetEpoch);
   if (it == m_checkpoints.end()) {
-    return fail(esperanza::Result::VOTE_MALFORMED,
+    return fail(Result::VOTE_MALFORMED,
                 "%s: the target epoch %d is in the future.\n", __func__,
                 targetEpoch);
   }
@@ -322,13 +322,13 @@ esperanza::Result FinalizationState::IsVotable(const Validator &validator,
                       targetCheckpoint.m_voteMap.end();
 
   if (alreadyVoted) {
-    return fail(esperanza::Result::VOTE_ALREADY_VOTED,
+    return fail(Result::VOTE_ALREADY_VOTED,
                 "%s: the validator %s has already voted for target epoch %d.\n",
                 __func__, validatorIndex.GetHex(), targetEpoch);
   }
 
   if (targetHash != m_recommendedTargetHash) {
-    return fail(esperanza::Result::VOTE_WRONG_TARGET_HASH,
+    return fail(Result::VOTE_WRONG_TARGET_HASH,
                 "%s: the validator %s is voting for the %s, instead of the "
                 "recommended targetHash %s.\n",
                 __func__, validatorIndex.GetHex(), targetHash.GetHex(),
@@ -337,14 +337,14 @@ esperanza::Result FinalizationState::IsVotable(const Validator &validator,
 
   if (targetEpoch != m_currentEpoch) {
     return fail(
-        esperanza::Result::VOTE_WRONG_TARGET_EPOCH,
+        Result::VOTE_WRONG_TARGET_EPOCH,
         "%s: the validator %s is voting for the wrong target epoch %d.\n",
         __func__, validatorIndex.GetHex(), targetEpoch);
   }
 
   it = m_checkpoints.find(sourceEpoch);
   if (it == m_checkpoints.end()) {
-    return fail(esperanza::Result::VOTE_MALFORMED,
+    return fail(Result::VOTE_MALFORMED,
                 "%s: the source epoch %d is in the future.\n", __func__,
                 sourceEpoch);
   }
@@ -352,7 +352,7 @@ esperanza::Result FinalizationState::IsVotable(const Validator &validator,
   auto &sourceCheckpoint = it->second;
   if (!sourceCheckpoint.m_isJustified) {
     return fail(
-        esperanza::Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED,
+        Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED,
         "%s: the validator %s is voting for a non justified source epoch %d.\n",
         __func__, validatorIndex.GetHex(), targetEpoch);
   }
@@ -362,7 +362,7 @@ esperanza::Result FinalizationState::IsVotable(const Validator &validator,
     return success();
   }
 
-  return fail(esperanza::Result::VOTE_NOT_VOTABLE,
+  return fail(Result::VOTE_NOT_VOTABLE,
               "%s: validator %s is not in dynasty %d nor the previous.\n",
               __func__, validatorIndex.GetHex(), m_currentDynasty);
 }
@@ -371,19 +371,19 @@ esperanza::Result FinalizationState::IsVotable(const Validator &validator,
  * Validates the consistency of the deposit against the current state. This does
  * assume that the normal transaction validation process already took place.
  */
-esperanza::Result FinalizationState::ValidateDeposit(
+Result FinalizationState::ValidateDeposit(
     const uint256 &validatorIndex, const CAmount &depositValue) const {
   LOCK(cs_esperanza);
 
   if (m_validators.find(validatorIndex) != m_validators.end()) {
-    return fail(esperanza::Result::DEPOSIT_ALREADY_VALIDATOR,
+    return fail(Result::DEPOSIT_ALREADY_VALIDATOR,
                 "%s: Validator with deposit hash of %s already "
                 "exists.\n",
                 __func__, validatorIndex.GetHex());
   }
 
   if (depositValue < MIN_DEPOSIT_SIZE) {
-    return fail(esperanza::Result::DEPOSIT_INSUFFICIENT,
+    return fail(Result::DEPOSIT_INSUFFICIENT,
                 "%s: The deposit value must be %d > %d.\n", __func__,
                 depositValue, MIN_DEPOSIT_SIZE);
   }
@@ -423,20 +423,20 @@ uint64_t FinalizationState::CalculateVoteReward(
  * Validates the consistency of the vote against the current state. This does
  * assume that the normal transaction validation process already took place.
  */
-esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
+Result FinalizationState::ValidateVote(const Vote &vote) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(vote.m_validatorIndex);
   if (it == m_validators.end()) {
-    return fail(esperanza::Result::VOTE_NOT_BY_VALIDATOR,
+    return fail(Result::VOTE_NOT_BY_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
                 vote.m_validatorIndex.GetHex());
   }
 
-  esperanza::Result isVotable = IsVotable(
+  Result isVotable = IsVotable(
       it->second, vote.m_targetHash, vote.m_targetEpoch, vote.m_sourceEpoch);
 
-  if (isVotable != +esperanza::Result::SUCCESS) {
+  if (isVotable != +Result::SUCCESS) {
     return fail(isVotable, "%s: The tuple (%s, %s, %d, %d) is not votable.\n",
                 __func__, vote.m_validatorIndex.GetHex(),
                 vote.m_targetHash.GetHex(), vote.m_sourceEpoch,
@@ -533,13 +533,13 @@ uint32_t FinalizationState::GetEndDynasty() const {
  * @param validatorIndex the index of the validator that is logging out
  * @return a representation of the outcome
  */
-esperanza::Result FinalizationState::ValidateLogout(
+Result FinalizationState::ValidateLogout(
     const uint256 &validatorIndex) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(validatorIndex);
   if (it == m_validators.end()) {
-    return fail(esperanza::Result::LOGOUT_NOT_A_VALIDATOR,
+    return fail(Result::LOGOUT_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
                 validatorIndex.GetHex());
   }
@@ -548,14 +548,14 @@ esperanza::Result FinalizationState::ValidateLogout(
   const Validator &validator = it->second;
 
   if (validator.m_startDynasty > m_currentDynasty) {
-    return fail(esperanza::Result::LOGOUT_NOT_A_VALIDATOR,
+    return fail(Result::LOGOUT_NOT_A_VALIDATOR,
                 "%s: the validator with address %s is logging out before the "
                 "start dynasty.\n",
                 __func__, validator.m_validatorIndex.GetHex());
   }
 
   if (validator.m_endDynasty <= endDynasty) {
-    return fail(esperanza::Result::LOGOUT_ALREADY_DONE,
+    return fail(Result::LOGOUT_ALREADY_DONE,
                 "%s: the validator with address %s already logget out.\n",
                 __func__, validator.m_validatorIndex.GetHex());
   }
@@ -586,15 +586,36 @@ void FinalizationState::ProcessLogout(const uint256 &validatorIndex) {
  * @param validatorIndex
  * @return
  */
-esperanza::Result FinalizationState::ValidateWithdraw(
-    const uint256 &validatorIndex, const CAmount &requiredWithdraw) const {
+Result FinalizationState::ValidateWithdraw(
+    const uint256 &validatorIndex, const CAmount &requestedWithdraw) const {
   LOCK(cs_esperanza);
 
-  CAmount withdrawAmountOut = 0;
+  CAmount withdrawableAmount = 0;
+
+  Result res = CalculateWithdrawAmount(validatorIndex, withdrawableAmount);
+
+  if (res != +Result::SUCCESS) {
+    return res;
+  }
+
+  if (withdrawableAmount < requestedWithdraw) {
+    fail(Result::WITHDRAW_WRONG_AMOUNT,
+         "%s: Trying to withdraw %d, but max is %d.\n", __func__,
+         requestedWithdraw, withdrawableAmount);
+  }
+
+  return success();
+}
+
+Result FinalizationState::CalculateWithdrawAmount(
+    const uint256 &validatorIndex, CAmount &withdrawAmountOut) const {
+  LOCK(cs_esperanza);
+
+  withdrawAmountOut = 0;
 
   auto it = m_validators.find(validatorIndex);
   if (it == m_validators.end()) {
-    return fail(esperanza::Result::WITHDRAW_NOT_A_VALIDATOR,
+    return fail(Result::WITHDRAW_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
                 validatorIndex.GetHex());
   }
@@ -604,7 +625,7 @@ esperanza::Result FinalizationState::ValidateWithdraw(
   uint32_t endDynasty = validator.m_endDynasty;
 
   if (m_currentDynasty <= endDynasty) {
-    return fail(esperanza::Result::WITHDRAW_BEFORE_END_DYNASTY,
+    return fail(Result::WITHDRAW_BEFORE_END_DYNASTY,
                 "%s: Too early to withdraw, minimum expected dynasty for "
                 "withdraw is %d.\n",
                 __func__, endDynasty);
@@ -614,7 +635,7 @@ esperanza::Result FinalizationState::ValidateWithdraw(
   uint32_t withdrawalEpoch = endEpoch + WITHDRAWAL_EPOCH_DELAY;
 
   if (m_currentEpoch < withdrawalEpoch) {
-    return fail(esperanza::Result::WITHDRAW_TOO_EARLY,
+    return fail(Result::WITHDRAW_TOO_EARLY,
                 "%s: Too early to withdraw, minimum expected epoch for "
                 "withdraw is %d.\n",
                 __func__, withdrawalEpoch);
@@ -633,7 +654,7 @@ esperanza::Result FinalizationState::ValidateWithdraw(
     }
 
     uint64_t recentlySlashed = m_totalSlashed.find(withdrawalEpoch)->second -
-                               m_totalSlashed.find(baseEpoch)->second;
+        m_totalSlashed.find(baseEpoch)->second;
     ufp64::ufp64_t fractionToSlash =
         ufp64::div_2uint(recentlySlashed * SLASH_FRACTION_MULTIPLIER,
                          validator.m_depositsAtLogout);
@@ -652,12 +673,6 @@ esperanza::Result FinalizationState::ValidateWithdraw(
     LogPrint(BCLog::FINALIZATION,
              "%s: Withdraw from validator %s of %d units.\n", __func__,
              validatorIndex.GetHex(), endDynasty, withdrawAmountOut);
-  }
-
-  if (withdrawAmountOut != requiredWithdraw) {
-    fail(esperanza::Result::WITHDRAW_WRONG_AMOUNT,
-         "%s: Trying to withdraw %d, but only %d is valid.\n", __func__,
-         requiredWithdraw, withdrawAmountOut);
   }
 
   return success();
@@ -680,13 +695,13 @@ void FinalizationState::ProcessWithdraw(const uint256 &validatorIndex) {
  * @param vote2 the second vote.
  * @return true if the voter is slashable, false otherwise
  */
-esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
+Result FinalizationState::IsSlashable(const Vote &vote1,
                                                  const Vote &vote2) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(vote1.m_validatorIndex);
   if (it == m_validators.end()) {
-    return fail(esperanza::Result::SLASH_NOT_A_VALIDATOR,
+    return fail(Result::SLASH_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
                 vote1.m_validatorIndex.GetHex());
   }
@@ -694,7 +709,7 @@ esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
 
   it = m_validators.find(vote2.m_validatorIndex);
   if (it == m_validators.end()) {
-    return fail(esperanza::Result::SLASH_NOT_A_VALIDATOR,
+    return fail(Result::SLASH_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
                 vote2.m_validatorIndex.GetHex());
   }
@@ -710,26 +725,26 @@ esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
   uint32_t targetEpoch2 = vote2.m_targetEpoch;
 
   if (validatorIndex1 != validatorIndex2) {
-    return fail(esperanza::Result::SLASH_NOT_SAME_VALIDATOR,
+    return fail(Result::SLASH_NOT_SAME_VALIDATOR,
                 "%s: votes have not be casted by the same validator.\n",
                 __func__);
   }
 
   if (validator1.m_startDynasty > m_currentDynasty) {
-    return fail(esperanza::Result::SLASH_TOO_EARLY,
+    return fail(Result::SLASH_TOO_EARLY,
                 "%s: validator with deposit hash %s is not yet voting.\n",
                 __func__, vote1.m_validatorIndex.GetHex());
   }
 
   if (validator1.m_isSlashed) {
     return fail(
-        esperanza::Result::SLASH_ALREADY_SLASHED,
+        Result::SLASH_ALREADY_SLASHED,
         "%s: validator with deposit hash %s has been already slashed.\n",
         __func__, vote1.m_validatorIndex.GetHex());
   }
 
   if (vote1.m_targetHash == vote2.m_targetHash) {
-    return fail(esperanza::Result::SLASH_SAME_VOTE,
+    return fail(Result::SLASH_SAME_VOTE,
                 "%s: Not slashable cause the two votes are the same.\n",
                 __func__);
   }
@@ -743,7 +758,7 @@ esperanza::Result FinalizationState::IsSlashable(const Vote &vote1,
     return success();
   }
 
-  return fail(esperanza::Result::SLASH_NOT_VALID, "%s: Slashing failed",
+  return fail(Result::SLASH_NOT_VALID, "%s: Slashing failed",
               __func__);
 }
 

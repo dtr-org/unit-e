@@ -554,7 +554,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   wtxNewOut.fFromMe = true;
 
   CReserveKey reservekey(m_enclosingWallet);
-  CValidationState state;
+  CValidationState errState;
   CKeyID keyID = boost::get<CKeyID>(address);
   CPubKey pubKey;
   m_enclosingWallet->GetPubKey(keyID, pubKey);
@@ -571,25 +571,41 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 
   const std::vector<unsigned char> pkv = ToByteVector(pubKey.GetID());
   const CScript &scriptPubKey = CScript::CreateP2PKHScript(pkv);
-  CAmount depositedAmount = prevTx->vout[0].nValue;
-  CAmount logoutAmount;
-
-  // We need to pay some minimal fees if we wanna make sure that the withdraw
-  // will be included.
-  FeeCalculation feeCalc;
 
   txNew.vin.push_back(
       CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
 
-  CTxOut txout(logoutAmount, scriptPubKey);
+  // Calculate how much we have left of the initial withdraw
+  CAmount initialDeposit = prevTx->vout[0].nValue;
+  esperanza::FinalizationState *state =
+      esperanza::FinalizationState::GetState();
+
+  CAmount currentDeposit = 0;
+
+  esperanza::Result res = state->CalculateWithdrawAmount(
+      validatorState.m_validatorIndex, currentDeposit);
+
+  if (res != +Result::SUCCESS) {
+    LogPrint(BCLog::ESPERANZA, "%s: Cannot calculate withdraw amount: %s.\n",
+             __func__, res._to_string());
+    return false;
+  }
+
+  CAmount toWithdraw = std::min(currentDeposit, initialDeposit);
+
+  CTxOut txout(toWithdraw, scriptPubKey);
   txNew.vout.push_back(txout);
 
-  CAmount amountToBurn = depositedAmount - logoutAmount;
+  CAmount amountToBurn = initialDeposit - toWithdraw;
 
   if (amountToBurn > 0) {
     CTxOut burnTx(amountToBurn, CScript::CreateUnspendableScript());
     txNew.vout.push_back(burnTx);
   }
+
+  // We need to pay some minimal fees if we wanna make sure that the withdraw
+  // will be included.
+  FeeCalculation feeCalc;
 
   const unsigned int nBytes =
       static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
@@ -606,7 +622,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 
   if (!ProduceSignature(
           TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
-                                      depositedAmount, SIGHASH_ALL),
+                                      initialDeposit, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
     strFailReason = _("Signing transaction failed");
     return false;
@@ -617,10 +633,10 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                       state);
-  if (state.IsInvalid()) {
-    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit withdrwa transaction: %s.\n",
-             __func__, state.GetRejectReason());
+                                       errState);
+  if (errState.IsInvalid()) {
+    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit withdraw transaction: %s.\n",
+             __func__, errState.GetRejectReason());
     return false;
   }
 

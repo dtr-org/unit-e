@@ -120,7 +120,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 bool CheckWithdrawTransaction(CValidationState &state, const CTransaction &tx,
                             const CBlockIndex *pindex) {
 
-  if (tx.vin.size() != 1 || tx.vout.size() > 2) {
+  if (tx.vin.size() != 1 || tx.vout.size() > 3) {
     return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
   }
 
@@ -143,19 +143,6 @@ bool CheckWithdrawTransaction(CValidationState &state, const CTransaction &tx,
     esperanza = esperanza::FinalizationState::GetState();
   }
 
-  CAmount expectedWithdraw = 0;
-  esperanza::Result res =
-      esperanza->ValidateWithdraw(CPubKey(vSolutions[0]).GetHash(),
-                                  tx.vout[0].nValue);
-
-  if (res != +esperanza::Result::SUCCESS) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-invalid-esperanza");
-  }
-
-  // We keep the check for the prev at the end because is the most expensive
-  // check (potentially goes to disk) and there is a good chance that if the
-  // vote is not valid (i.e. outdated) then the function will return before
-  // reaching this point.
   CTransactionRef prevTx;
   uint256 blockHash;
 
@@ -165,6 +152,21 @@ bool CheckWithdrawTransaction(CValidationState &state, const CTransaction &tx,
                       blockHash, true)) {
 
     return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-no-prev-tx-found");
+  }
+
+  std::vector<std::vector<unsigned char>> prevSolutions;
+  txnouttype prevTypeRet;
+  if (!Solver(prevTx->vout[0].scriptPubKey, prevTypeRet, prevSolutions)) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-logout-script-not-solvable");
+  }
+
+  esperanza::Result res =
+      esperanza->ValidateWithdraw(CPubKey(prevSolutions[0]).GetHash(),
+                                  tx.vout[0].nValue);
+
+  if (res != +esperanza::Result::SUCCESS) {
+    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-invalid-esperanza");
   }
 
   if (!prevTx->IsLogout() && !prevTx->IsVote()) {

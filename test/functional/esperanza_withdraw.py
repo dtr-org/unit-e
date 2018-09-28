@@ -81,8 +81,9 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "NOT_VALIDATING")
 
-        # let's wait 12 epochs before trying to withdraw
-        for n in range(0, 120):
+        # let's wait 14 epochs before trying to withdraw (12 for the delay and 2 for the
+        # fact that the endEpoch is startEpoch(endDynasty + 1) )
+        for n in range(0, 140):
             self.generate_block(nodes[(n % 3) + 1])
             sync_blocks(self.nodes)
 

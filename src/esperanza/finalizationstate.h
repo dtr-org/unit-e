@@ -71,7 +71,11 @@ class FinalizationState {
   void ProcessLogout(const uint256 &validatorIndex);
 
   Result ValidateWithdraw(const uint256 &validatorIndex,
-                          const CAmount &requiredWithdraw) const;
+                          const CAmount &requestedWithdraw) const;
+
+  Result CalculateWithdrawAmount(
+      const uint256 &validatorIndex, CAmount &withdrawAmountOut) const;
+
   void ProcessWithdraw(const uint256 &validatorIndex);
 
   Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
