@@ -85,7 +85,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 
   if (res != +esperanza::Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-invalid-esperanza");
+                        "bad-logout-invalid-esperanza");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -100,17 +100,76 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
                       blockHash, true)) {
 
-    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-logout-no-prev-tx-found");
   }
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-logout-prev-not-deposit-vote-");
+                        "bad-logout-prev-not-deposit-or-vote");
   }
 
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-logout-not-same-payvoteslash-script");
+  }
+
+  return true;
+}
+
+
+bool CheckWithdrawTransaction(CValidationState &state, const CTransaction &tx,
+                            const CBlockIndex *pindex) {
+
+  if (tx.vin.size() != 1 || tx.vout.size() > 2) {
+    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
+  }
+
+  if (!tx.vout[0].scriptPubKey.IsPayToPublicKeyHash()) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-withdraw-vout-script-invalid-p2pkh");
+  }
+
+  std::vector<std::vector<unsigned char>> vSolutions;
+  txnouttype typeRet;
+  if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-withdraw-script-not-solvable");
+  }
+
+  esperanza::FinalizationState *esperanza = nullptr;
+  if (pindex != nullptr) {
+    esperanza = esperanza::FinalizationState::GetState(*pindex);
+  } else {
+    esperanza = esperanza::FinalizationState::GetState();
+  }
+
+  CAmount expectedWithdraw = 0;
+  esperanza::Result res =
+      esperanza->ValidateWithdraw(CPubKey(vSolutions[0]).GetHash(),
+                                  tx.vout[0].nValue);
+
+  if (res != +esperanza::Result::SUCCESS) {
+    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-invalid-esperanza");
+  }
+
+  // We keep the check for the prev at the end because is the most expensive
+  // check (potentially goes to disk) and there is a good chance that if the
+  // vote is not valid (i.e. outdated) then the function will return before
+  // reaching this point.
+  CTransactionRef prevTx;
+  uint256 blockHash;
+
+  // We have to look into the tx database to find the prev tx, hence the
+  // use of fAllowSlow = true
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
+                      blockHash, true)) {
+
+    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-no-prev-tx-found");
+  }
+
+  if (!prevTx->IsLogout() && !prevTx->IsVote()) {
+    return state.DoS(10, false, REJECT_INVALID,
+                     "bad-withdraw-prev-not-logout-or-vote");
   }
 
   return true;

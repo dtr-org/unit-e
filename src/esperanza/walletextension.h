@@ -88,6 +88,8 @@ class WalletExtension {
 
   bool SendLogout(CWalletTx &wtxNewOut);
 
+  bool SendWithdraw(const CTxDestination &address, CWalletTx &wtxNewOut);
+
   void ReadValidatorStateFromFile();
 
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,

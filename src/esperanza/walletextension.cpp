@@ -462,16 +462,18 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   return true;
 }
 
-//! \brief Creates and sends a logout transaction given transaction.
+//! \brief Creates and sends a logout transaction.
 //! \param wtxNewOut [out] the logout transaction created.
 //! \return true if the operation was successful, false otherwise.
 bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
   CCoinControl coinControl;
   coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
+
   wtxNewOut.fTimeReceivedIsTxTime = true;
   wtxNewOut.BindWallet(m_enclosingWallet);
   wtxNewOut.fFromMe = true;
+
   CReserveKey reservekey(m_enclosingWallet);
   CValidationState state;
 
@@ -520,13 +522,99 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
     UpdateTransaction(txNew, nIn, sigdata);
   }
 
-  // Embed the constructed transaction data in wtxNew.
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
                                        state);
   if (state.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit logout transaction: %s.\n",
+             __func__, state.GetRejectReason());
+    return false;
+  }
+
+  return true;
+}
+
+//! \brief Creates and sends a withdraw transaction.
+//! \param wtxNewOut [out] the withdraw transaction created.
+//! \return true if the operation was successful, false otherwise.
+bool WalletExtension::SendWithdraw(const CTxDestination &address,
+                                   CWalletTx &wtxNewOut) {
+
+  CCoinControl coinControl;
+  coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
+
+  wtxNewOut.fTimeReceivedIsTxTime = true;
+  wtxNewOut.BindWallet(m_enclosingWallet);
+  wtxNewOut.fFromMe = true;
+
+  CReserveKey reservekey(m_enclosingWallet);
+  CValidationState state;
+  CKeyID keyID = boost::get<CKeyID>(address);
+  CPubKey pubKey;
+  m_enclosingWallet->GetPubKey(keyID, pubKey);
+
+  CMutableTransaction txNew;
+  txNew.SetType(TxType::WITHDRAW);
+
+  if (validatorState.m_phase == +ValidatorState::Phase::IS_VALIDATING) {
+    return error("%s: Cannot withdraw with an active validator, logout first.",
+                 __func__);
+  }
+
+  CTransactionRef prevTx = validatorState.m_lastEsperanzaTx;
+
+  const std::vector<unsigned char> pkv = ToByteVector(pubKey.GetID());
+  const CScript &scriptPubKey = CScript::CreateP2PKHScript(pkv);
+  CAmount depositedAmount = prevTx->vout[0].nValue;
+  CAmount logoutAmount;
+
+  // We need to pay some minimal fees if we wanna make sure that the withdraw
+  // will be included.
+  FeeCalculation feeCalc;
+
+  txNew.vin.push_back(
+      CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
+
+  CTxOut txout(logoutAmount, scriptPubKey);
+  txNew.vout.push_back(txout);
+
+  CAmount amountToBurn = depositedAmount - logoutAmount;
+
+  if (amountToBurn > 0) {
+    CTxOut burnTx(amountToBurn, CScript::CreateUnspendableScript());
+    txNew.vout.push_back(burnTx);
+  }
+
+  const unsigned int nBytes =
+      static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
+
+  const CAmount fees =
+      GetMinimumFee(nBytes, coinControl, ::mempool, ::feeEstimator, &feeCalc);
+
+  txNew.vout[0].nValue -= fees;
+
+  CTransaction txNewConst(txNew);
+  uint32_t nIn = 0;
+  SignatureData sigdata;
+  std::string strFailReason;
+
+  if (!ProduceSignature(
+          TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
+                                      depositedAmount, SIGHASH_ALL),
+          scriptPubKey, sigdata, &txNewConst)) {
+    strFailReason = _("Signing transaction failed");
+    return false;
+  } else {
+    UpdateTransaction(txNew, nIn, sigdata);
+  }
+
+  wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
+
+  m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+                                       state);
+  if (state.IsInvalid()) {
+    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit withdrwa transaction: %s.\n",
              __func__, state.GetRejectReason());
     return false;
   }
@@ -639,7 +727,6 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
     UpdateTransaction(txNew, nIn, sigdata);
   }
 
-  // Embed the constructed transaction data in wtxNew.
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),

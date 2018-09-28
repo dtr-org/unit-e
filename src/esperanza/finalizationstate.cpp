@@ -914,6 +914,16 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         }
         break;
       }
+
+      case TxType::WITHDRAW: {
+        std::vector<std::vector<unsigned char>> vSolutions;
+        txnouttype typeRet;
+
+        if (Solver(tx->vout[0].scriptPubKey, typeRet, vSolutions)) {
+          state->ProcessWithdraw(CPubKey(vSolutions[0]).GetHash());
+        }
+        break;
+      }
       default: { break; }
     }
   }

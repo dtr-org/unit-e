@@ -118,6 +118,7 @@ BASE_SCRIPTS= [
     'wallet_keypool.py',
     'p2p_mempool.py',
     'esperanza_deposit.py',
+    'esperanza_withdraw.py',
     'esperanza_finalizationstate.py',
     'esperanza_logout.py',
     'mining_prioritisetransaction.py',

@@ -1031,6 +1031,21 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
             break;
           }
+          case TxType::WITHDRAW: {
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting withdraw to mempool with id %s.\n", __func__,
+                tx.GetHash().GetHex());
+
+            if (!esperanza::CheckWithdrawTransaction(state, tx)){
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Withdraw cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckWithdrawTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
           default: {
             break;
           }
@@ -3357,6 +3372,21 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        state.GetRejectReason());
 
               return state.DoS(10, error("%s: CheckLogoutTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::WITHDRAW: {
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting withdraw to mempool with id %s.\n", __func__,
+                     tx->GetHash().GetHex());
+
+            if (!esperanza::CheckWithdrawTransaction(state, *tx, pindexPrev)){
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Withdraw cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckWithdrawTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
