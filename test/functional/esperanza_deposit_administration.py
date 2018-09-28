@@ -3,10 +3,11 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+import os
+
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import *
-import time
 
 
 class DepositAdministration(UnitETestFramework):
@@ -25,15 +26,17 @@ class DepositAdministration(UnitETestFramework):
              '-esperanzaconfig=' + json_params]]
         self.setup_clean_chain = True
 
-    def assert_tx_rejected(self, txid):
-        # UNIT-E: TODO: this is not reliable. Need a better way
-        time.sleep(1)
-        for i in range(0, self.num_nodes):
-            try:
-                self.nodes[i].getrawtransaction(txid)
-            except:
-                continue
-            raise AssertionError("Transaction is found in node %s" % i)
+    def assert_tx_rejected(self, node, txid):
+        log = os.path.join(node.datadir, "regtest", "debug.log")
+
+        needle = "Deposit cannot be included into mempool: " \
+                 "bad-deposit-invalid-esperanza, txid: %s" % txid
+        with open(log) as file:
+            for line in file:
+                if needle in line:
+                    return
+
+        raise AssertionError("Rejection proof is not found")
 
     def run_test(self):
         proposer = self.nodes[0]
@@ -68,7 +71,7 @@ class DepositAdministration(UnitETestFramework):
 
         # Validator is not in the whitelist and not allowed to deposit
         invalid_tx = validator.deposit(address, 2000)["transactionid"]
-        self.assert_tx_rejected(invalid_tx)
+        self.assert_tx_rejected(validator, invalid_tx)
 
         pubkey = validator.validateaddress(address)["pubkey"]
         admin.whitelist([pubkey])
