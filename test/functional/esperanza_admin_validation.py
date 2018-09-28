@@ -20,9 +20,7 @@ class TestNode(P2PInterface):
         self.reject_map[txid] = reason
 
 
-def create_end_tx(node, txid, vout, address, change_amount):
-    end_perm_data = "0300"  # CommandType + EmptyPayload
-
+def create_tx(cmds, node, txid, vout, address, change_amount):
     inputs = [
         {
             "txid": txid,
@@ -32,8 +30,11 @@ def create_end_tx(node, txid, vout, address, change_amount):
 
     outputs = {
         address: change_amount,
-        "data": end_perm_data
     }
+
+    for i in range(len(cmds)):
+        key = "data" + str(i)
+        outputs[key] = cmds[i]
 
     return node.createrawtransaction(inputs, outputs)
 
@@ -55,13 +56,13 @@ class AdminValidation(UnitETestFramework):
             ['-proposing=1', '-debug=all', '-whitelist=127.0.0.1']]
         self.setup_clean_chain = True
 
-    def send_end_via_mininode(self, address):
+    def send_end_via_mininode(self, cmds, address):
         funds_tx = self.admin.sendtoaddress(address, Decimal("1"))
         self.wait_for_transaction(funds_tx, timeout=10)
         _, n = Admin.find_output_for_address(self.admin, funds_tx, address)
 
-        raw_tx = create_end_tx(self.admin, funds_tx, n, address,
-                               Decimal("0.09"))
+        raw_tx = create_tx(cmds, self.admin, funds_tx, n, address,
+                           Decimal("0.09"))
 
         raw_tx = set_type_to_admin(raw_tx)
 
@@ -78,29 +79,24 @@ class AdminValidation(UnitETestFramework):
 
         return txid
 
-    def reject(self, address, expected_reason):
-        txid = self.send_end_via_mininode(address)
+    def rejects(self, cmds, address, expected_reason):
+        txid = self.send_end_via_mininode(cmds, address)
 
         reason = self.reject_tracker.reject_map.get(txid, None)
         if reason is None:
             raise AssertionError("Tx was not rejected!")
         assert_equal(expected_reason, reason)
 
-    def accept(self, address):
-        txid = self.send_end_via_mininode(address)
+    def accepts(self, cmds, address):
+        txid = self.send_end_via_mininode(cmds, address)
 
-        if txid in self.reject_tracker.reject_map:
-            raise AssertionError("Tx was rejected!")
+        reason = self.reject_tracker.reject_map.get(txid, None)
+        if reason is not None:
+            raise AssertionError("Tx was rejected: " + reason)
 
     def create_new_multisig(self, n_signatures, n_keys, address_type):
         addresses = list(
             self.admin.getnewaddress("", address_type) for _ in range(n_keys))
-
-        return self.admin.addmultisigaddress(n_signatures, addresses, "",
-                                             address_type)["address"]
-
-    def create_admin_multisig(self, n_signatures, n_keys, address_type):
-        addresses = self.admin_addresses[0:n_keys]
 
         return self.admin.addmultisigaddress(n_signatures, addresses, "",
                                              address_type)["address"]
@@ -124,26 +120,80 @@ class AdminValidation(UnitETestFramework):
 
         self.admin.p2p.wait_for_verack()
 
-        self.reject(self.admin.getnewaddress("", "legacy"),
-                    "b'admin-invalid-script-sig'")
-        self.reject(self.admin.getnewaddress("", "p2sh-segwit"),
-                    "b'admin-invalid-script-sig'")
-        self.reject(self.admin.getnewaddress("", "bech32"),
-                    "b'admin-invalid-script-sig'")
-        self.reject(self.create_new_multisig(2, 3, "p2sh-segwit"),
-                    "b'admin-not-authorized'")
+        end_permissioning_cmd = "0300"
 
-        self.admin_addresses = Admin.import_admin_keys(self.admin)
+        self.rejects([end_permissioning_cmd],
+                     self.admin.getnewaddress("", "legacy"),
+                     "b'admin-invalid-script-sig'")
+        self.rejects([end_permissioning_cmd],
+                     self.admin.getnewaddress("", "p2sh-segwit"),
+                     "b'admin-invalid-script-sig'")
+        self.rejects([end_permissioning_cmd],
+                     self.admin.getnewaddress("", "bech32"),
+                     "b'admin-invalid-script-sig'")
+        self.rejects([end_permissioning_cmd],
+                     self.create_new_multisig(2, 3, "p2sh-segwit"),
+                     "b'admin-not-authorized'")
 
-        self.reject(self.admin_addresses[0], "b'admin-invalid-script-sig'")
-        self.reject(self.create_admin_multisig(2, 3, "legacy"),
-                    "b'admin-invalid-script-sig'")
-        self.reject(self.create_admin_multisig(2, 3, "bech32"),
-                    "b'admin-invalid-script-sig'")
-        self.reject(self.create_admin_multisig(2, 2, "p2sh-segwit"),
-                    "b'admin-invalid-witness'")
+        admin_addresses = Admin.import_admin_keys(self.admin)
 
-        self.accept(self.create_admin_multisig(2, 3, "p2sh-segwit"))
+        self.rejects([end_permissioning_cmd],
+                     admin_addresses[0],
+                     "b'admin-invalid-script-sig'")
+        self.rejects([end_permissioning_cmd],
+                     self.admin.addmultisigaddress(2, admin_addresses[0:2], "",
+                                                   "legacy")["address"],
+                     "b'admin-invalid-script-sig'")
+        self.rejects([end_permissioning_cmd],
+                     self.admin.addmultisigaddress(2, admin_addresses, "",
+                                                   "bech32")["address"],
+                     "b'admin-invalid-script-sig'")
+        self.rejects([end_permissioning_cmd],
+                     self.admin.addmultisigaddress(2, admin_addresses[0:2], "",
+                                                   "p2sh-segwit")["address"],
+                     "b'admin-invalid-witness'")
+
+        admin_address = self.admin.addmultisigaddress(2, admin_addresses, "",
+                                                      "p2sh-segwit")["address"]
+
+        self.rejects([],
+                     admin_address,
+                     "b'admin-no-commands'")
+
+        self.rejects([end_permissioning_cmd, end_permissioning_cmd],
+                     admin_address,
+                     "b'admin-double-disable'")
+
+        garbage_cmds = ["05", "98478754", "0005", "020100"]
+
+        self.rejects(garbage_cmds,
+                     admin_address,
+                     "b'admin-no-commands'")
+
+        new_addresses = list(self.admin.getnewaddress() for _ in range(3))
+        new_pubkeys = list(
+            self.admin.validateaddress(address)["pubkey"] for address in
+            new_addresses)
+
+        # RESET_ADMINS + 3 (pubkeys) + (0x21, pubkey) + ...
+        reset_admin_cmd = "0203" + \
+                          "21" + new_pubkeys[0] + \
+                          "21" + new_pubkeys[1] + \
+                          "21" + new_pubkeys[2]
+
+        self.accepts([reset_admin_cmd], admin_address)
+
+        # Admin commands have no power until included into block
+        self.admin.generate(1)
+
+        self.rejects([end_permissioning_cmd],
+                     admin_address,
+                     "b'admin-not-authorized'")
+
+        admin_address = self.admin.addmultisigaddress(2, new_addresses, "",
+                                                      "p2sh-segwit")["address"]
+
+        self.accepts([end_permissioning_cmd], admin_address)
 
         print("Test succeeded.")
 

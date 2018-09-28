@@ -414,7 +414,7 @@ UniValue createrawtransaction(const JSONRPCRequest& request)
     std::vector<std::string> addrList = sendTo.getKeys();
     for (const std::string& name_ : addrList) {
 
-        if (name_ == "data") {
+        if (name_.compare(0, 4, "data") == 0) {
             std::vector<unsigned char> data = ParseHexV(sendTo[name_].getValStr(),"Data");
 
             CTxOut out(0, CScript() << OP_RETURN << data);
