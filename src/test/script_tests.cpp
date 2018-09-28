@@ -1725,4 +1725,18 @@ BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_invalid_flags)
 }
 
 #endif
+
+BOOST_AUTO_TEST_CASE(create_unspendable_script)
+{
+    const CScript unspendable = CScript::CreateUnspendableScript();
+    BOOST_CHECK(unspendable.IsUnspendable());
+}
+
+BOOST_AUTO_TEST_CASE(create_p2pkh_script)
+{
+  const uint256 randomKey = GetRandHash();
+  const CPubKey pubKey(randomKey.begin(), randomKey.end());
+  CScript script = CScript::CreateP2PKHScript(ToByteVector(pubKey.GetID()));
+  BOOST_CHECK(script.IsPayToPublicKeyHash());
+}
 BOOST_AUTO_TEST_SUITE_END()
