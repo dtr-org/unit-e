@@ -1616,7 +1616,6 @@ void CConnman::ThreadDNSAddressSeed()
             std::vector<CAddress> vAdd;
             ServiceFlags requiredServiceBits = GetDesirableServiceFlags(NODE_NONE);
             std::string host = strprintf("x%x.%s", requiredServiceBits, seed);
-            LogPrintf("Checking DNS seed %s\n", host.c_str());
             CNetAddr resolveSource;
             if (!resolveSource.SetInternal(host)) {
                 continue;
@@ -1630,7 +1629,6 @@ void CConnman::ThreadDNSAddressSeed()
                     CAddress addr = CAddress(CService(ip, Params().GetDefaultPort()), requiredServiceBits);
                     addr.nTime = GetTime() - 3*nOneDay - GetRand(4*nOneDay); // use a random age between 3 and 7 days old
                     vAdd.push_back(addr);
-                    LogPrintf("Found address from DNS:%s\n", addr.ToStringIP().c_str());
                     found++;
                 }
                 addrman.Add(vAdd, resolveSource);
