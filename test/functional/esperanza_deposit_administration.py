@@ -10,6 +10,9 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import *
 
 
+# Checks basic validator administration scenario
+# At first validator is not whitelisted - and his deposit tx should be treated
+# as invalid. Later validator is whitelisted. This time deposit tx should pass
 class DepositAdministration(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
@@ -26,6 +29,9 @@ class DepositAdministration(UnitETestFramework):
              '-esperanzaconfig=' + json_params]]
         self.setup_clean_chain = True
 
+    # We want to ensure that tx was rejected, but we don't want to check for
+    # absence of this transaction. Instead we check for presence of reject event
+    # in node log
     def assert_tx_rejected(self, node, txid):
         log = os.path.join(node.datadir, "regtest", "debug.log")
 
@@ -74,6 +80,7 @@ class DepositAdministration(UnitETestFramework):
         self.assert_tx_rejected(validator, invalid_tx)
 
         pubkey = validator.validateaddress(address)["pubkey"]
+
         admin.whitelist([pubkey])
 
         deposit_tx = validator.deposit(address, 2000)["transactionid"]

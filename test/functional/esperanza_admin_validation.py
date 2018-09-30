@@ -49,6 +49,9 @@ def set_type_to_admin(raw_tx):
     return bytes_to_hex_str(tx.serialize())
 
 
+# Checks how system validates administrator commands.
+# Only 2-of-3 multisig p2sh-segwit addresses with valid admin keys should be
+# accepted. Admin txs should also contain at least one valid command
 class AdminValidation(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
@@ -56,7 +59,7 @@ class AdminValidation(UnitETestFramework):
             ['-proposing=1', '-debug=all', '-whitelist=127.0.0.1']]
         self.setup_clean_chain = True
 
-    def send_end_via_mininode(self, cmds, address):
+    def send_via_mininode(self, cmds, address):
         funds_tx = self.admin.sendtoaddress(address, Decimal("1"))
         self.wait_for_transaction(funds_tx, timeout=10)
         _, n = Admin.find_output_for_address(self.admin, funds_tx, address)
@@ -79,16 +82,18 @@ class AdminValidation(UnitETestFramework):
 
         return txid
 
+    # Sends commands to node and asserts that they were rejected
     def rejects(self, cmds, address, expected_reason):
-        txid = self.send_end_via_mininode(cmds, address)
+        txid = self.send_via_mininode(cmds, address)
 
         reason = self.reject_tracker.reject_map.get(txid, None)
         if reason is None:
             raise AssertionError("Tx was not rejected!")
         assert_equal(expected_reason, reason)
 
+    # Sends commands to node and asserts that they were accepted
     def accepts(self, cmds, address):
-        txid = self.send_end_via_mininode(cmds, address)
+        txid = self.send_via_mininode(cmds, address)
 
         reason = self.reject_tracker.reject_map.get(txid, None)
         if reason is not None:
@@ -122,32 +127,42 @@ class AdminValidation(UnitETestFramework):
 
         end_permissioning_cmd = "0300"
 
+        # Because: p2pkh, non-multisig
         self.rejects([end_permissioning_cmd],
                      self.admin.getnewaddress("", "legacy"),
                      "b'admin-invalid-script-sig'")
+        # Because: non-multisig
         self.rejects([end_permissioning_cmd],
                      self.admin.getnewaddress("", "p2sh-segwit"),
                      "b'admin-invalid-script-sig'")
+        # Because: non-multisig, bech32
         self.rejects([end_permissioning_cmd],
                      self.admin.getnewaddress("", "bech32"),
                      "b'admin-invalid-script-sig'")
+        # Because: invalid admin keys are not imported yet
         self.rejects([end_permissioning_cmd],
                      self.create_new_multisig(2, 3, "p2sh-segwit"),
                      "b'admin-not-authorized'")
 
         admin_addresses = Admin.import_admin_keys(self.admin)
 
+        # Because: non-multisig
         self.rejects([end_permissioning_cmd],
                      admin_addresses[0],
                      "b'admin-invalid-script-sig'")
+
+        # Because: 2-of-2 multisig, non-segwit
         self.rejects([end_permissioning_cmd],
                      self.admin.addmultisigaddress(2, admin_addresses[0:2], "",
                                                    "legacy")["address"],
                      "b'admin-invalid-script-sig'")
+        # Because: non-segwit
         self.rejects([end_permissioning_cmd],
                      self.admin.addmultisigaddress(2, admin_addresses, "",
                                                    "bech32")["address"],
                      "b'admin-invalid-script-sig'")
+
+        # Because: 2-of-2 multisig
         self.rejects([end_permissioning_cmd],
                      self.admin.addmultisigaddress(2, admin_addresses[0:2], "",
                                                    "p2sh-segwit")["address"],
@@ -156,26 +171,30 @@ class AdminValidation(UnitETestFramework):
         admin_address = self.admin.addmultisigaddress(2, admin_addresses, "",
                                                       "p2sh-segwit")["address"]
 
+        # Because: no commands
         self.rejects([],
                      admin_address,
                      "b'admin-no-commands'")
 
+        # Because: disables permissioning twice
         self.rejects([end_permissioning_cmd, end_permissioning_cmd],
                      admin_address,
                      "b'admin-double-disable'")
 
         garbage_cmds = ["05", "98478754", "0005", "020100"]
 
+        # Because: meaningless commands can't be parsed -> no commands
         self.rejects(garbage_cmds,
                      admin_address,
                      "b'admin-no-commands'")
 
+        # Going to reset admin keys. Generate new keys first
         new_addresses = list(self.admin.getnewaddress() for _ in range(3))
         new_pubkeys = list(
             self.admin.validateaddress(address)["pubkey"] for address in
             new_addresses)
 
-        # RESET_ADMINS + 3 (pubkeys) + (0x21, pubkey) + ...
+        # RESET_ADMINS + 3 (pubkeys) + (0x21 (33 bytes), pubkey) + ...
         reset_admin_cmd = "0203" + \
                           "21" + new_pubkeys[0] + \
                           "21" + new_pubkeys[1] + \
@@ -186,6 +205,7 @@ class AdminValidation(UnitETestFramework):
         # Admin commands have no power until included into block
         self.admin.generate(1)
 
+        # Previous command has changed admin keys. Old address is invalid
         self.rejects([end_permissioning_cmd],
                      admin_address,
                      "b'admin-not-authorized'")

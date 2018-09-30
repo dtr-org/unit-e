@@ -33,6 +33,11 @@ def prev_n_blocks_have_txs_from(node, validator_address, n):
     return False
 
 
+# Checks that administrator can blacklist active validator and he can't vote
+# anymore. Check is performed in two steps: first, ensure that validator is
+# voting by checking for presence of his votes in blocks.
+# Second, blacklist validator and check that there are no more votes from him
+# in blocks
 class VoteBlacklisting(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
