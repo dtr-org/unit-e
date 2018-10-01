@@ -131,15 +131,11 @@ class AdminValidation(UnitETestFramework):
         # Because: p2pkh, non-multisig
         self.rejects([end_permissioning_cmd],
                      self.admin.getnewaddress("", "legacy"),
-                     "b'admin-invalid-script-sig'")
+                     "b'admin-invalid-witness'")
         # Because: non-multisig
         self.rejects([end_permissioning_cmd],
                      self.admin.getnewaddress("", "p2sh-segwit"),
-                     "b'admin-invalid-script-sig'")
-        # Because: non-multisig, bech32
-        self.rejects([end_permissioning_cmd],
-                     self.admin.getnewaddress("", "bech32"),
-                     "b'admin-invalid-script-sig'")
+                     "b'admin-invalid-witness'")
         # Because: invalid admin keys are not imported yet
         self.rejects([end_permissioning_cmd],
                      self.create_new_multisig(2, 3, "p2sh-segwit"),
@@ -150,18 +146,13 @@ class AdminValidation(UnitETestFramework):
         # Because: non-multisig
         self.rejects([end_permissioning_cmd],
                      admin_addresses[0],
-                     "b'admin-invalid-script-sig'")
+                     "b'admin-invalid-witness'")
 
         # Because: 2-of-2 multisig, non-segwit
         self.rejects([end_permissioning_cmd],
                      self.admin.addmultisigaddress(2, admin_addresses[0:2], "",
                                                    "legacy")["address"],
-                     "b'admin-invalid-script-sig'")
-        # Because: non-segwit
-        self.rejects([end_permissioning_cmd],
-                     self.admin.addmultisigaddress(2, admin_addresses, "",
-                                                   "bech32")["address"],
-                     "b'admin-invalid-script-sig'")
+                     "b'admin-invalid-witness'")
 
         # Because: 2-of-2 multisig
         self.rejects([end_permissioning_cmd],

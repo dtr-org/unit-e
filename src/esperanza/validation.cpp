@@ -262,15 +262,6 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
     return state.DoS(10, false, REJECT_INVALID, "admin-no-commands");
   }
 
-  const auto &scriptSig = tx.vin.front().scriptSig;
-  CScript::const_iterator it = scriptSig.begin();
-
-  opcodetype opcode;
-  // See BIP-141
-  if (!scriptSig.GetOp(it, opcode) || opcode != 34) {
-    return state.DoS(10, false, REJECT_INVALID, "admin-invalid-script-sig");
-  }
-
   const auto &witness = tx.vin.front().scriptWitness;
 
   std::vector<CPubKey> keys;
