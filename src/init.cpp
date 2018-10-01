@@ -46,6 +46,7 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validationinterface.h>
+#include <snapshot/creator.h>
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
@@ -1667,6 +1668,9 @@ bool AppInitMain()
             }
         }
     }
+
+    // initialize snapshot creation
+    snapshot::Creator::Init(pcoinsdbview.get(), scheduler);
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.
