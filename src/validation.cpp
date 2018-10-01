@@ -1007,9 +1007,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 "%s: Accepting deposit to mempool with id %s.\n", __func__,
                 tx.GetHash().GetHex());
 
-            if (!esperanza::CheckDepositTransaction(state, tx)){
+            if (!esperanza::CheckDepositTransaction(state, tx)) {
               LogPrint(BCLog::FINALIZATION,
-                  "%s: Deposit cannot be included into mempool: %s, txid: %s\n",
+                  "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
                   __func__,
                   state.GetRejectReason(),
                   tx.GetHash().GetHex());
@@ -3366,9 +3366,9 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 __func__,
                 tx->GetHash().GetHex());
 
-            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)){
+            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)) {
               LogPrint(BCLog::FINALIZATION,
-                       "%s: Deposit cannot be included into mempool: %s,txid: %s\n",
+                       "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
                        __func__,
                        state.GetRejectReason(),
                        tx->GetHash().GetHex());
