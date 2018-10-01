@@ -6,6 +6,7 @@
 from decimal import Decimal
 from enum import Enum
 from test_framework.messages import ser_compact_size
+import codecs
 
 ADMIN_TX_TYPE = 7
 
@@ -15,6 +16,11 @@ class AdminCommandType(Enum):
     REMOVE_FROM_WHITELIST = 1
     RESET_ADMINS = 2
     END_PERMISSIONING = 3
+
+
+def compact_size_to_str(size):
+    str_bytes = codecs.encode(ser_compact_size(size), 'hex')
+    return str(str_bytes, 'utf-8')
 
 
 class Admin:
@@ -27,11 +33,11 @@ class Admin:
 
         payload_len = len(payload)
 
-        result_string += ser_compact_size(payload_len).hex()
+        result_string += compact_size_to_str(payload_len)
 
         for p in payload:
             bytes_in_payload = len(p) // 2
-            result_string += ser_compact_size(bytes_in_payload).hex()
+            result_string += compact_size_to_str(bytes_in_payload)
             result_string += p
 
         return result_string
