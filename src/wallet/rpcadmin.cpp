@@ -26,13 +26,14 @@ CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
     const auto &scriptPubKey = utxo.m_txOut.scriptPubKey;
     const auto amountIn = utxo.m_txOut.nValue;
 
-    if (!ProduceSignature(TransactionSignatureCreator(wallet, &constTx, i,
+    if (!ProduceSignature(TransactionSignatureCreator(wallet, &constTx,
+                                                      static_cast<unsigned>(i),
                                                       amountIn, SIGHASH_ALL),
                           scriptPubKey, sigdata, &constTx)) {
       throw JSONRPCError(RPC_TRANSACTION_ERROR, "Unable to sign transaction");
     }
 
-    UpdateTransaction(mutableTx, i, sigdata);
+    UpdateTransaction(mutableTx, static_cast<unsigned>(i), sigdata);
   }
 
   CWalletTx walletTx;
