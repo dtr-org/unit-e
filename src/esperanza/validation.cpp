@@ -272,12 +272,7 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
     return state.DoS(10, false, REJECT_INVALID, "admin-invalid-witness");
   }
 
-  esperanza::FinalizationState *esperanza = nullptr;
-  if (pindex != nullptr) {
-    esperanza = esperanza::FinalizationState::GetState(*pindex);
-  } else {
-    esperanza = esperanza::FinalizationState::GetState();
-  }
+  const auto esperanza = esperanza::FinalizationState::GetState(pindex);
 
   AdminKeySet set;
   std::copy_n(keys.begin(), ADMIN_MULTISIG_KEYS, set.begin());
