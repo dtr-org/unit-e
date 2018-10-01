@@ -3,3 +3,5 @@ Language: Cpp
 Standard: Cpp11
 
 KeepEmptyLinesAtTheStartOfBlocks: true
+DerivePointerAlignment: false
+PointerAlignment: Right

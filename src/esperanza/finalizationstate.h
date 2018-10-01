@@ -55,28 +55,28 @@ BETTER_ENUM(
  */
 class FinalizationState {
  public:
-  FinalizationState(const esperanza::FinalizationParams& params);
+  FinalizationState(const esperanza::FinalizationParams &params);
 
   Result InitializeEpoch(int blockHeight);
 
-  Result ValidateDeposit(const uint256& validatorIndex,
-                         const CAmount& depositValue) const;
-  void ProcessDeposit(const uint256& validatorIndex,
-                      const CAmount& depositValue);
+  Result ValidateDeposit(const uint256 &validatorIndex,
+                         const CAmount &depositValue) const;
+  void ProcessDeposit(const uint256 &validatorIndex,
+                      const CAmount &depositValue);
 
-  Result ValidateVote(const Vote& vote) const;
-  void ProcessVote(const Vote& vote);
+  Result ValidateVote(const Vote &vote) const;
+  void ProcessVote(const Vote &vote);
 
-  Result ValidateLogout(const uint256& validatorIndex) const;
-  void ProcessLogout(const uint256& validatorIndex);
+  Result ValidateLogout(const uint256 &validatorIndex) const;
+  void ProcessLogout(const uint256 &validatorIndex);
 
-  Result ValidateWithdraw(const uint256& validatorIndex,
-                          const CAmount& requiredWithdraw) const;
-  void ProcessWithdraw(const uint256& validatorIndex);
+  Result ValidateWithdraw(const uint256 &validatorIndex,
+                          const CAmount &requiredWithdraw) const;
+  void ProcessWithdraw(const uint256 &validatorIndex);
 
-  Result IsSlashable(const Vote& vote1, const Vote& vote2) const;
-  void ProcessSlash(const Vote& vote1, const Vote& vote2,
-                    CAmount& slashingBountyOut);
+  Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
+  void ProcessSlash(const Vote &vote1, const Vote &vote2,
+                    CAmount &slashingBountyOut);
 
   uint32_t GetLastJustifiedEpoch() const;
   uint32_t GetLastFinalizedEpoch() const;
@@ -84,24 +84,24 @@ class FinalizationState {
   uint32_t GetCurrentEpoch() const;
   uint32_t GetCurrentDynasty() const;
 
-  uint64_t GetDepositSize(const uint256& validatorIndex) const;
+  uint64_t GetDepositSize(const uint256 &validatorIndex) const;
 
-  Vote GetRecommendedVote(const uint256& validatorIndex) const;
+  Vote GetRecommendedVote(const uint256 &validatorIndex) const;
 
   std::vector<Validator> GetValidators() const;
-  const Validator* GetValidator(const uint256& validatorIndex) const;
+  const Validator *GetValidator(const uint256 &validatorIndex) const;
 
-  static void Init(const esperanza::FinalizationParams& params);
-  static void Reset(const esperanza::FinalizationParams& params);
+  static void Init(const esperanza::FinalizationParams &params);
+  static void Reset(const esperanza::FinalizationParams &params);
 
-  static FinalizationState* GetState(const CBlockIndex& block);
-  static FinalizationState* GetState();
+  static FinalizationState *GetState(const CBlockIndex &block);
+  static FinalizationState *GetState();
 
-  static uint32_t GetEpoch(const CBlockIndex& blockIndex);
+  static uint32_t GetEpoch(const CBlockIndex &blockIndex);
 
   static bool ValidateDepositAmount(CAmount amount);
 
-  static bool ProcessNewTip(const CBlockIndex& blockIndex, const CBlock& block);
+  static bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
 
  protected:
   mutable CCriticalSection cs_esperanza;
@@ -188,14 +188,14 @@ class FinalizationState {
 
   uint32_t GetEpochsSinceFinalization();
 
-  Result IsVotable(const Validator& validator, const uint256& targetHash,
+  Result IsVotable(const Validator &validator, const uint256 &targetHash,
                    uint32_t targetEpoch, uint32_t sourceEpoch) const;
 
-  bool IsInDynasty(const Validator& validator, uint32_t dynasty) const;
+  bool IsInDynasty(const Validator &validator, uint32_t dynasty) const;
 
-  CAmount ProcessReward(const uint256& validatorIndex, uint64_t reward);
+  CAmount ProcessReward(const uint256 &validatorIndex, uint64_t reward);
 
-  void DeleteValidator(const uint256& validatorIndex);
+  void DeleteValidator(const uint256 &validatorIndex);
 
   uint64_t GetTotalCurDynDeposits();
 
@@ -203,7 +203,7 @@ class FinalizationState {
 
   uint32_t GetEndDynasty() const;
 
-  uint64_t CalculateVoteReward(const Validator& validator) const;
+  uint64_t CalculateVoteReward(const Validator &validator) const;
 
   // Finalization params
   const uint32_t EPOCH_LENGTH;
