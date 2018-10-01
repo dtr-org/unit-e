@@ -808,26 +808,16 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
  * @param block
  * @return the state for the chain tip passed
  */
-FinalizationState *FinalizationState::GetState(const CBlockIndex &blockIndex) {
+FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
   // UNIT-E: Replace the single instance with a map<block,state> to allow for
   // reorganizations.
   return esperanzaState.get();
 }
 
-/**
- * This method returns the State for the active chain tip.
- * @return the state for the active chain tip
- */
-FinalizationState *FinalizationState::GetState() {
-  // UNIT-E: Replace the single instance with a map<block,state> to allow for
-  // reorganizations.
-  return GetState(*chainActive.Tip());
-}
-
-uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) {
+uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
   FinalizationState *state = GetState(blockIndex);
 
-  return static_cast<uint32_t>(blockIndex.nHeight) / state->EPOCH_LENGTH;
+  return static_cast<uint32_t>(blockIndex->nHeight) / state->EPOCH_LENGTH;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -875,7 +865,8 @@ void FinalizationState::Reset(const esperanza::FinalizationParams &params) {
  */
 bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
                                       const CBlock &block) {
-  FinalizationState *state = GetState(blockIndex);
+
+  FinalizationState *state = GetState(&blockIndex);
 
   LogPrint(BCLog::ESPERANZA, "%s: Processing block %d with hash %s.\n",
            __func__, blockIndex.nHeight, block.GetHash().GetHex());

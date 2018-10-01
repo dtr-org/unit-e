@@ -1108,7 +1108,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                     state->m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
                     state->m_lastEsperanzaTx = MakeTransactionRef(tx);
                     state->m_depositEpoch =
-                        esperanza::FinalizationState::GetEpoch(*pIndex);
+                        esperanza::FinalizationState::GetEpoch(pIndex);
                   } else {
                     LogPrint(BCLog::ESPERANZA,
                              "ERROR: %s - Wrong state for validator state with "
@@ -1127,11 +1127,11 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                   if (state->m_phase ==
                       +esperanza::ValidatorState::Phase::IS_VALIDATING) {
 
-                    auto esperanzaState =
-                        esperanza::FinalizationState::GetState(*pIndex);
+                    auto finalizationState =
+                        esperanza::FinalizationState::GetState(pIndex);
 
                     const esperanza::Validator* validator =
-                        esperanzaState->GetValidator(state->m_validatorIndex);
+                        finalizationState->GetValidator(state->m_validatorIndex);
 
                     state->m_endDynasty = validator->m_endDynasty;
 

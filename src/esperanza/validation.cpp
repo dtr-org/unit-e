@@ -31,12 +31,7 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-deposit-script-not-solvable");
   }
 
-  FinalizationState *state = nullptr;
-  if (pindex != nullptr) {
-    state = FinalizationState::GetState(*pindex);
-  } else {
-    state = FinalizationState::GetState();
-  }
+  FinalizationState *state = FinalizationState::GetState(pindex);
 
   esperanza::Result res = state->ValidateDeposit(
       CPubKey(vSolutions[0]).GetHash(), tx.GetValueOut());
@@ -63,37 +58,34 @@ bool IsVoteExpired(const CTransaction &tx) {
   return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
 }
 
-bool CheckLogoutTransaction(CValidationState &state, const CTransaction &tx,
+bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                             const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
   }
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-logout-vout-script-invalid-payvoteslash");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-vout-script-invalid-payvoteslash");
   }
 
   std::vector<std::vector<unsigned char>> vSolutions;
   txnouttype typeRet;
   if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-logout-script-not-solvable");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-script-not-solvable");
   }
 
-  esperanza::FinalizationState *esperanza = nullptr;
-  if (pindex != nullptr) {
-    esperanza = esperanza::FinalizationState::GetState(*pindex);
-  } else {
-    esperanza = esperanza::FinalizationState::GetState();
-  }
+  esperanza::FinalizationState *state =
+      esperanza::FinalizationState::GetState(pindex);
 
   esperanza::Result res =
-      esperanza->ValidateLogout(CPubKey(vSolutions[0]).GetHash());
+      state->ValidateLogout(CPubKey(vSolutions[0]).GetHash());
 
   if (res != +esperanza::Result::SUCCESS) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-esperanza");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-vote-invalid-esperanza");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -108,17 +100,17 @@ bool CheckLogoutTransaction(CValidationState &state, const CTransaction &tx,
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
                       blockHash, true)) {
 
-    return state.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
   }
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-logout-prev-not-deposit-vote-");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-prev-not-deposit-vote-");
   }
 
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-logout-not-same-payvoteslash-script");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-not-same-payvoteslash-script");
   }
 
   return true;
@@ -136,12 +128,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-vote-vout-script-invalid-payvoteslash");
   }
 
-  FinalizationState *state = nullptr;
-  if (pindex != nullptr) {
-    state = FinalizationState::GetState(*pindex);
-  } else {
-    state = FinalizationState::GetState();
-  }
+  FinalizationState *state = FinalizationState::GetState(pindex);
 
   esperanza::Result res = state->ValidateVote(
       CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
