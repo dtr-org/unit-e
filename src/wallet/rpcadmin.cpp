@@ -190,7 +190,7 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
                        "Account has insufficient funds");
   }
 
-  if (totalAmountInInputs != desiredFee) {
+  if (totalAmountInInputs > desiredFee) {
     if (!IsValidDestination(remainderDestination)) {
       throw JSONRPCError(RPC_INVALID_PARAMETER,
                          "No remainder destination provided");
