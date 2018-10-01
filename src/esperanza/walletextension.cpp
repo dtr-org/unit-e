@@ -537,15 +537,15 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                                    const CBlockIndex *blockIndex) {
 
-  FinalizationState *esperanza = FinalizationState::GetState(*blockIndex);
+  FinalizationState *state = FinalizationState::GetState(blockIndex);
 
-  uint32_t dynasty = esperanza->GetCurrentDynasty();
+  uint32_t dynasty = state->GetCurrentDynasty();
 
   if (dynasty > validatorState.m_endDynasty) {
     return;
   }
 
-  uint32_t epoch = FinalizationState::GetEpoch(*blockIndex);
+  uint32_t epoch = FinalizationState::GetEpoch(blockIndex);
 
   // Avoid double votes
   if (validatorState.m_voteMap.find(epoch) != validatorState.m_voteMap.end()) {
@@ -559,7 +559,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
            epoch, dynasty);
 
-  Vote vote = esperanza->GetRecommendedVote(validatorState.m_validatorIndex);
+  Vote vote = state->GetRecommendedVote(validatorState.m_validatorIndex);
 
   // Check for sorrounding votes
   if (vote.m_targetEpoch < validatorState.m_lastTargetEpoch ||
@@ -668,8 +668,8 @@ void WalletExtension::BlockConnected(
         VoteIfNeeded(pblock, pindex);
 
         // In case we are logged out, stop validating.
-        FinalizationState *esperanza = FinalizationState::GetState(*pindex);
-        int currentDynasty = esperanza->GetCurrentDynasty();
+        FinalizationState *state = FinalizationState::GetState(pindex);
+        int currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.m_endDynasty) {
           LOCK(m_enclosingWallet->cs_wallet);
           validatorState.m_phase = ValidatorState::Phase::NOT_VALIDATING;
@@ -677,10 +677,9 @@ void WalletExtension::BlockConnected(
         break;
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
-        FinalizationState *esperanza = FinalizationState::GetState(*pindex);
+        FinalizationState *state = FinalizationState::GetState(pindex);
 
-        if (esperanza->GetLastFinalizedEpoch() >=
-            validatorState.m_depositEpoch) {
+        if (state->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
           {
             LOCK(m_enclosingWallet->cs_wallet);

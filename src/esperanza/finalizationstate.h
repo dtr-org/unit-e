@@ -94,10 +94,9 @@ class FinalizationState {
   static void Init(const esperanza::FinalizationParams &params);
   static void Reset(const esperanza::FinalizationParams &params);
 
-  static FinalizationState *GetState(const CBlockIndex &block);
-  static FinalizationState *GetState();
+  static FinalizationState *GetState(const CBlockIndex *block = nullptr);
 
-  static uint32_t GetEpoch(const CBlockIndex &blockIndex);
+  static uint32_t GetEpoch(const CBlockIndex *blockIndex);
 
   static bool ValidateDepositAmount(CAmount amount);
 
