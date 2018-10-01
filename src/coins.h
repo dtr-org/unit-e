@@ -7,6 +7,7 @@
 #define UNITE_COINS_H
 
 #include <primitives/transaction.h>
+#include <consensus.h>
 #include <compressor.h>
 #include <core_memusage.h>
 #include <hash.h>
@@ -53,6 +54,37 @@ public:
 
     bool IsCoinBase() const {
         return fCoinBase;
+    }
+
+    //! \brief checks if this represents an immature coinbase transaction
+    //!
+    //! UNIT-E: coinbase transactions have to mature, i.e. they have to be
+    //! COINBASE_MATURITY blocks deep in the blockchain (that is: COINBASE_MATURITY
+    //! blocks have to be included in the chain afterwards). This is problematic
+    //! in a Proof-of-Stake context as it does not allow for anything to be spent
+    //! within the first COINBASE_MATURITY blocks of the chain – therefore preventing
+    //! staking. Hence anything in the first COINBASE_MATURITY number of blocks is
+    //! assumed to be mature.
+    //!
+    //! \param spendheight The height at which the TxOut is tried to be spent.
+    bool IsImmatureCoinBase(int spendheight) const {
+        if (!IsCoinBase()) {
+            // can't be immature, immaturity is a term that applies to coinbase
+            // transactions only.
+            return false;
+        }
+        if (nHeight <= COINBASE_MATURITY) {
+            // the first COINBASE_MATURITY blocks are not immature.
+            // the less-then-or-equal comparison is correct as the
+            // genesis block is at height=0 and the 100 blocks afterwards
+            // need to be declared mature too (at height=100 there are
+            // 100+1 block).
+            return false;
+        }
+        // otherwise it depends: Are there less then COINBASE_MATURITY blocks
+        // in between the coinbase and the block in which that coinbases'
+        // txout is tried to be spent? If so, it's immature.
+        return spendheight - nHeight < COINBASE_MATURITY;
     }
 
     template<typename Stream>
