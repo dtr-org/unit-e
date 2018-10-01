@@ -1655,7 +1655,7 @@ UniValue readsnapshot(const JSONRPCRequest &request) {
 
     snapshot::Iterator iter(std::move(idx));
     int totalOutputs = 0;
-    while(iter.Valid()) {
+    while (iter.Valid()) {
         snapshot::UTXOSet utxoSet = iter.GetUTXOSet();
         totalOutputs += utxoSet.m_outputs.size();
 
@@ -1668,9 +1668,11 @@ UniValue readsnapshot(const JSONRPCRequest &request) {
     rootNode.push_back(Pair("total_utxo_sets", iter.GetTotalUTXOSets()));
     rootNode.push_back(Pair("total_outputs", totalOutputs));
 
-    uint32_t id = 0;
-    pcoinsdbview->GetSnapshotId(id);
-    rootNode.push_back(Pair("current_snapshot_id", static_cast<uint64_t>(snapshotId)));
+    {
+        uint32_t id = 0;
+        pcoinsdbview->GetSnapshotId(id);
+        rootNode.push_back(Pair("current_snapshot_id", static_cast<uint64_t>(id)));
+    }
 
     UniValue ids(UniValue::VARR);
     for (uint32_t &id : pcoinsdbview->GetSnapshotIds()) {
@@ -1705,7 +1707,7 @@ UniValue createsnapshot(const JSONRPCRequest &request)
 
     UniValue rootNode(UniValue::VOBJ);
     snapshot::CreationInfo info = creator.Create();
-    if (info.m_status != snapshot::Status::OK) {
+    if (info.m_status != +snapshot::Status::OK) {
         switch(info.m_status) {
             case snapshot::Status::WRITE_ERROR:
                 rootNode.push_back(Pair("error", "can't write to any *.dat files"));

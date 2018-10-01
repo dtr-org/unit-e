@@ -2,12 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_P2P_SNAPSHOT_PROCESSING_H
-#define UNIT_E_P2P_SNAPSHOT_PROCESSING_H
+#ifndef UNITE_SNAPSHOT_P2P_PROCESSING_H
+#define UNITE_SNAPSHOT_P2P_PROCESSING_H
 
-// Returns true if node needs to download the initial snapshot or
-// is in the middle of snapshot downloading. Once it returns false,
-// it stays in this state for entire live of the node.
+//! \brief IsInitialSnapshotDownload checks if we are in the ISD mode
+//!
+//! Returns true if node needs to download the initial snapshot or
+//! is in the middle of snapshot downloading. Once it returns false,
+//! it stays in this state for entire live of the node.
 bool IsInitialSnapshotDownload();
 
-#endif //UNIT_E_P2P_SNAPSHOT_PROCESSING_H
+#endif //UNITE_SNAPSHOT_P2P_PROCESSING_H

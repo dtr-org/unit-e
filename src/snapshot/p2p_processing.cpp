@@ -11,7 +11,7 @@
 #include <validation.h>
 
 bool IsInitialSnapshotDownload() {
-  static std::atomic<bool> latch{false};
+  static std::atomic<bool> latch(false);
   if (latch.load(std::memory_order_relaxed)) {
     return false;
   }
@@ -23,7 +23,7 @@ bool IsInitialSnapshotDownload() {
 
   uint32_t snapshotId;
   if (pcoinsdbview->GetSnapshotId(snapshotId)) {
-    LogPrintf("Leaving IsInitialSnapshotDownload\n");
+    LogPrint(BCLog::NET, "Leaving IsInitialSnapshotDownload\n");
     latch.store(true, std::memory_order_relaxed);
     return false;
   }

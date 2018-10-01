@@ -15,12 +15,12 @@
 
 namespace snapshot {
 
-std::unique_ptr<Creator> g_creator = nullptr;
+std::unique_ptr<Creator> creator = nullptr;
 
 void Creator::Init(CCoinsViewDB *view, CScheduler &scheduler) {
-  if (g_creator == nullptr) {
-    g_creator = MakeUnique<Creator>(view);
-    scheduler.scheduleEvery(std::bind(&Creator::Generate, g_creator.get()),
+  if (creator == nullptr) {
+    creator = MakeUnique<Creator>(view);
+    scheduler.scheduleEvery(std::bind(&Creator::Generate, creator.get()),
                             60 * 60 * 1000);  // every hour
   }
 }
@@ -142,7 +142,5 @@ CreationInfo Creator::Create() {
 
   return info;
 }
-
-CreationInfo Create() { return g_creator->Create(); }
 
 }  // namespace snapshot

@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <string>
 
+#include <better-enums/enum.h>
 #include <scheduler.h>
 #include <snapshot/indexer.h>
 #include <streams.h>
@@ -15,14 +16,18 @@
 
 namespace snapshot {
 
-enum class Status {
+// clang-format off
+BETTER_ENUM(
+  Status,
+  uint8_t,
   OK,
   WRITE_ERROR,                // filesystem issue
   RESERVE_SNAPSHOT_ID_ERROR,  // chainparams DB issue
   SET_SNAPSHOT_ID_ERROR,      // chainparams DB issue
   SET_ALL_SNAPSHOTS_ERROR,    // chainparams DB issue
-  CALC_SNAPSHOT_HASH_ERROR,   // can't calculate the hash
-};
+  CALC_SNAPSHOT_HASH_ERROR    // can't calculate the hash
+)
+// clang-format on
 
 struct CreationInfo {
   Status m_status;
@@ -34,20 +39,20 @@ struct CreationInfo {
 
 class Creator {
  public:
-  // aggregate messages per index
+  //! aggregate messages per index
   uint32_t m_step = DEFAULT_INDEX_STEP;
 
-  // aggregations in one file
+  //! aggregations in one file
   uint32_t m_stepsPerFile = DEFAULT_INDEX_STEP_PER_FILE;
 
-  // how many UTXOSets include into the snapshot.
-  // 0 - all of them.
-  // non 0 value is used only for testing.
+  //! how many UTXOSets include into the snapshot.
+  //! 0 - all of them.
+  //! non 0 value is used only for testing.
   uint64_t m_maxUTXOSets = 0;
 
-  // Initialize global instance of Creator
-  // Must be invoked before calling any other
-  // snapshot::Snapshot* functions
+  //! \brief Init Initializes the instance of Creator
+  //!
+  //! Must be invoked before calling any other snapshot::Snapshot* functions
   static void Init(CCoinsViewDB *view, CScheduler &scheduler);
 
   explicit Creator(CCoinsViewDB *view);
@@ -56,12 +61,9 @@ class Creator {
  private:
   CCoinsViewDB *m_view;
 
-  // calls Create() recurrently
+  //! \brief Generate calls Create() recurrently in the thread
   void Generate();
 };
-
-// called by user via RPC
-CreationInfo Create();
 
 }  // namespace snapshot
 

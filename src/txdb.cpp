@@ -446,7 +446,7 @@ std::vector<uint32_t> CCoinsViewDB::GetSnapshotIds()  {
     return ids;
 }
 
-bool CCoinsViewDB::SetSnapshotIds(std::vector<uint32_t>& ids) {
+bool CCoinsViewDB::SetSnapshotIds(std::vector<uint32_t> &ids) {
     return db.Write(DB_ALL_SNAPSHOTS, ids, true);
 }
 
