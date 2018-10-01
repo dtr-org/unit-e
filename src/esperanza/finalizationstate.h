@@ -73,8 +73,8 @@ class FinalizationState {
   Result ValidateWithdraw(const uint256 &validatorIndex,
                           const CAmount &requestedWithdraw) const;
 
-  Result CalculateWithdrawAmount(
-      const uint256 &validatorIndex, CAmount &withdrawAmountOut) const;
+  Result CalculateWithdrawAmount(const uint256 &validatorIndex,
+                                 CAmount &withdrawAmountOut) const;
 
   void ProcessWithdraw(const uint256 &validatorIndex);
 
