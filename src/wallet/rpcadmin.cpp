@@ -80,28 +80,18 @@ std::vector<esperanza::AdminCommand> ParseCommands(const UniValue &value) {
 
   for (size_t i = 0; i < value.size(); ++i) {
     const auto &command = value[i];
-    const auto &commandName = command["cmd"].get_str();
+    const auto &commandTypeStr = command["cmd"].get_str();
 
-    if (commandName == "end_permissioning") {
-      commands.emplace_back(esperanza::AdminCommand(
-          esperanza::AdminCommandType::END_PERMISSIONING, {}));
-      continue;
+    const auto commandType = esperanza::AdminCommandType::_from_string_nothrow(
+        command["cmd"].get_str().c_str());
+
+    if (!commandType) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER,
+                         "Unknown command: " + commandTypeStr);
     }
 
     const auto &payload = ParsePayload(command["payload"]);
-
-    if (commandName == "whitelist") {
-      commands.emplace_back(esperanza::AdminCommandType::ADD_TO_WHITELIST,
-                            payload);
-    } else if (commandName == "blacklist") {
-      commands.emplace_back(esperanza::AdminCommandType::REMOVE_FROM_WHITELIST,
-                            payload);
-    } else if (commandName == "reset_admins") {
-      commands.emplace_back(esperanza::AdminCommandType::RESET_ADMINS, payload);
-    } else {
-      throw JSONRPCError(RPC_INVALID_PARAMETER,
-                         "Unknown command: " + commandName);
-    }
+    commands.emplace_back(commandType.value(), payload);
   }
 
   return commands;
@@ -132,6 +122,7 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
     return NullUniValue;
   }
 
+  // clang-format off
   if (request.fHelp || request.params.size() < 3 || request.params.size() > 4) {
     throw std::runtime_error(
         "sendadmincommands\n"
@@ -140,14 +131,15 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
         "1. prevouts    (required) input UTXOs. [(tx_hash, out_n)ъ.\n"
         "2. fee         (required) fee you want to pay for this transaction.\n"
         "3. commands    (required) list of commands to send:\n"
-        "                          {'cmd': 'end_permissioning'}\n"
-        "                          {'cmd': 'whitelist', 'payload': <keys>}\n"
-        "                          {'cmd': 'blacklist', 'payload': <keys>}\n"
-        "                          {'cmd': 'reset_admins', 'payload': <keys>}\n"
+        "                          {'cmd': 'END_PERMISSIONING'}\n"
+        "                          {'cmd': 'ADD_TO_WHITELIST', 'payload': <keys>}\n"
+        "                          {'cmd': 'REMOVE_FROM_WHITELIST', 'payload': <keys>}\n"
+        "                          {'cmd': 'RESET_ADMINS', 'payload': <keys>}\n"
         "4. destination (optional) where to send change if any.\n"
         "\nExamples:\n" +
         HelpExampleRpc("sendadmincommands", ""));
   }
+  // clang-format on
 
   wallet->BlockUntilSyncedToCurrentChain();
 

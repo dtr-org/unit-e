@@ -83,7 +83,7 @@ class Admin:
     def authorize_and_disable(framework, admin_node, donor_node=None,
                               fee=Decimal("0.001")):
         admin = Admin.authorize(framework, admin_node, donor_node, fee)
-        admin.send([{'cmd': 'end_permissioning'}], fee)
+        admin.send([{'cmd': 'END_PERMISSIONING'}], fee)
 
     @staticmethod
     def find_output_for_address(node, txid, address):
@@ -123,14 +123,14 @@ class Admin:
 
     def whitelist(self, pubkeys):
         command = {
-            "cmd": "whitelist",
+            "cmd": "ADD_TO_WHITELIST",
             "payload": pubkeys
         }
         return self.send([command])
 
     def blacklist(self, pubkeys):
         command = {
-            "cmd": "blacklist",
+            "cmd": "REMOVE_FROM_WHITELIST",
             "payload": pubkeys
         }
         return self.send([command])
