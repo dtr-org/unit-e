@@ -7,7 +7,7 @@
 #define UNITE_COINS_H
 
 #include <primitives/transaction.h>
-#include <consensus.h>
+#include <consensus/consensus.h>
 #include <compressor.h>
 #include <core_memusage.h>
 #include <hash.h>
