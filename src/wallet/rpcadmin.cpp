@@ -21,18 +21,18 @@ CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
   CTransaction constTx(mutableTx);
   SignatureData sigdata;
 
-  for (unsigned int in = 0; in < constTx.vin.size(); ++in) {
-    const auto data = inputDatas[in];
+  for (size_t i = 0; i < constTx.vin.size(); ++i) {
+    const auto data = inputDatas[i];
     const auto &scriptPubKey = data.m_txOut.scriptPubKey;
     const auto amountIn = data.m_txOut.nValue;
 
-    if (!ProduceSignature(TransactionSignatureCreator(wallet, &constTx, in,
+    if (!ProduceSignature(TransactionSignatureCreator(wallet, &constTx, i,
                                                       amountIn, SIGHASH_ALL),
                           scriptPubKey, sigdata, &constTx)) {
       throw JSONRPCError(RPC_TRANSACTION_ERROR, "Unable to sign transaction");
     }
 
-    UpdateTransaction(mutableTx, in, sigdata);
+    UpdateTransaction(mutableTx, i, sigdata);
   }
 
   CWalletTx walletTx;
