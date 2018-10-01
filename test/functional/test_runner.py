@@ -130,7 +130,6 @@ BASE_SCRIPTS= [
     'feature_spend_genesis.py',
     'rpc_filtertransactions.py',
     'feature_nulldummy.py',
-    'rpc_sendtypeto.py',
     'wallet_import_rescan.py',
     'mining_basic.py',
     'wallet_bumpfee.py',
@@ -178,6 +177,7 @@ EXTENDED_SCRIPTS = [
     'rpc_bind.py',
     # vv Tests less than 30s vv
     'example_test.py',
+    'rpc_sendtypeto.py',
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
