@@ -126,7 +126,7 @@ BASE_SCRIPTS= [
     'p2p_invalid_tx.py',
     'feature_versionbits_warning.py',
     'rpc_preciousblock.py',
-    'esperanza_vote_blacklisting.py'
+    'esperanza_vote_blacklisting.py',
     'wallet_importprunedfunds.py',
     'rpc_signmessage.py',
     'feature_spend_genesis.py',
@@ -154,7 +154,7 @@ BASE_SCRIPTS= [
     'wallet_mnemonicinfo.py',
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
-    'esperanza_admin_validation.py'
+    'esperanza_admin_validation.py',
     'proposer_multiwallet.py',
     'proposer_stakeable_balance.py',
     'proposer_settings.py',
