@@ -6,10 +6,10 @@
 
 namespace esperanza {
 
-Settings::Settings(::ArgsManager& args) : Settings(args, Settings::Default()) {}
+Settings::Settings(::ArgsManager &args) : Settings(args, Settings::Default()) {}
 
 //! initializes the settings by reading them from an args manager.
-Settings::Settings(::ArgsManager& args, const Settings& defaultConfig)
+Settings::Settings(::ArgsManager &args, const Settings &defaultConfig)
     : m_proposing(args.GetBoolArg("-proposing", defaultConfig.m_proposing)),
       m_validating(args.GetBoolArg("-validating", defaultConfig.m_validating)),
       m_numberOfProposerThreads(static_cast<size_t>(args.GetArg(

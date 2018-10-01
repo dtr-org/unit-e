@@ -26,7 +26,7 @@ namespace esperanza {
 //! lifetime of the application. If the settings could not be read from the
 //! ArgsManager or settings have already been set this function returns a
 //! nullptr.
-const Settings* InitSettings(::ArgsManager& args);
+const Settings *InitSettings(::ArgsManager &args);
 }  // namespace esperanza
 
 #endif  // UNIT_E_ESPERANZA_SETTINGS_INIT_H

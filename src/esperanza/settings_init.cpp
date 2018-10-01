@@ -11,7 +11,7 @@ namespace esperanza {
 static std::mutex initLock;
 static std::unique_ptr<Settings> settings = nullptr;
 
-const Settings* InitSettings(::ArgsManager& args) {
+const Settings *InitSettings(::ArgsManager &args) {
   std::unique_lock<decltype(initLock)> lock;
   if (settings) {
     return nullptr;
