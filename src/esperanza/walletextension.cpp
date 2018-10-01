@@ -679,8 +679,7 @@ void WalletExtension::BlockConnected(
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
         FinalizationState *state = FinalizationState::GetState(pindex);
 
-        if (state->GetLastFinalizedEpoch() >=
-            validatorState.m_depositEpoch) {
+        if (state->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
           {
             LOCK(m_enclosingWallet->cs_wallet);
