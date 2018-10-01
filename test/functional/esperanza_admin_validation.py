@@ -125,7 +125,8 @@ class AdminValidation(UnitETestFramework):
 
         self.admin.p2p.wait_for_verack()
 
-        end_permissioning_cmd = "0300"
+        end_permissioning_cmd = Admin.create_raw_command(
+            AdminCommandType.END_PERMISSIONING)
 
         # Because: p2pkh, non-multisig
         self.rejects([end_permissioning_cmd],
@@ -194,11 +195,8 @@ class AdminValidation(UnitETestFramework):
             self.admin.validateaddress(address)["pubkey"] for address in
             new_addresses)
 
-        # RESET_ADMINS + 3 (pubkeys) + (0x21 (33 bytes), pubkey) + ...
-        reset_admin_cmd = "0203" + \
-                          "21" + new_pubkeys[0] + \
-                          "21" + new_pubkeys[1] + \
-                          "21" + new_pubkeys[2]
+        reset_admin_cmd = Admin.create_raw_command(
+            AdminCommandType.RESET_ADMINS, new_pubkeys)
 
         self.accepts([reset_admin_cmd], admin_address)
 

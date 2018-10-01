@@ -4,11 +4,38 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from decimal import Decimal
+from enum import Enum
+from test_framework.messages import ser_compact_size
 
 ADMIN_TX_TYPE = 7
 
 
+class AdminCommandType(Enum):
+    ADD_TO_WHITELIST = 0,
+    REMOVE_FROM_WHITELIST = 1
+    RESET_ADMINS = 2
+    END_PERMISSIONING = 3
+
+
 class Admin:
+    @staticmethod
+    def create_raw_command(command_type: AdminCommandType, payload=None):
+        result_string = "%02d" % command_type.value
+
+        if payload is None:
+            return result_string + "00"
+
+        payload_len = len(payload)
+
+        result_string += ser_compact_size(payload_len).hex()
+
+        for p in payload:
+            bytes_in_payload = len(p) // 2
+            result_string += ser_compact_size(bytes_in_payload).hex()
+            result_string += p
+
+        return result_string
+
     @staticmethod
     def import_admin_keys(node):
         private_keys = ["cQzPd94MUUE6Gtoue6Y86S7apaLwJA223f4Md3GiaX7j7vGDPDXp",
