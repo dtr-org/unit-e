@@ -26,7 +26,7 @@ BETTER_ENUM(
 )
 // clang-format on
 
-CCriticalSection cs_validatorstate;
+static CCriticalSection cs_validatorstate;
 struct ValidatorState {
   typedef _Phase Phase;
 

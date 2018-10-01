@@ -100,7 +100,8 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
                       blockHash, true)) {
 
-    return errState.DoS(10, false, REJECT_INVALID, "bad-logout-no-prev-tx-found");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-no-prev-tx-found");
   }
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
@@ -116,32 +117,28 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
   return true;
 }
 
-
-bool CheckWithdrawTransaction(CValidationState &state, const CTransaction &tx,
-                            const CBlockIndex *pindex) {
+bool CheckWithdrawTransaction(CValidationState &errState,
+                              const CTransaction &tx,
+                              const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() > 3) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
   }
 
   if (!tx.vout[0].scriptPubKey.IsPayToPublicKeyHash()) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-withdraw-vout-script-invalid-p2pkh");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-vout-script-invalid-p2pkh");
   }
 
   std::vector<std::vector<unsigned char>> vSolutions;
   txnouttype typeRet;
   if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-withdraw-script-not-solvable");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-script-not-solvable");
   }
 
-  esperanza::FinalizationState *esperanza = nullptr;
-  if (pindex != nullptr) {
-    esperanza = esperanza::FinalizationState::GetState(*pindex);
-  } else {
-    esperanza = esperanza::FinalizationState::GetState();
-  }
+  esperanza::FinalizationState *state =
+      esperanza::FinalizationState::GetState(pindex);
 
   CTransactionRef prevTx;
   uint256 blockHash;
@@ -151,27 +148,28 @@ bool CheckWithdrawTransaction(CValidationState &state, const CTransaction &tx,
   if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
                       blockHash, true)) {
 
-    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-no-prev-tx-found");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-no-prev-tx-found");
   }
 
   std::vector<std::vector<unsigned char>> prevSolutions;
   txnouttype prevTypeRet;
   if (!Solver(prevTx->vout[0].scriptPubKey, prevTypeRet, prevSolutions)) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-logout-script-not-solvable");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-script-not-solvable");
   }
 
-  esperanza::Result res =
-      esperanza->ValidateWithdraw(CPubKey(prevSolutions[0]).GetHash(),
-                                  tx.vout[0].nValue);
+  esperanza::Result res = state->ValidateWithdraw(
+      CPubKey(prevSolutions[0]).GetHash(), tx.vout[0].nValue);
 
   if (res != +esperanza::Result::SUCCESS) {
-    return state.DoS(10, false, REJECT_INVALID, "bad-withdraw-invalid-esperanza");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-invalid-esperanza");
   }
 
   if (!prevTx->IsLogout() && !prevTx->IsVote()) {
-    return state.DoS(10, false, REJECT_INVALID,
-                     "bad-withdraw-prev-not-logout-or-vote");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-prev-not-logout-or-vote");
   }
 
   return true;
