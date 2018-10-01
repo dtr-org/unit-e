@@ -143,7 +143,7 @@ BASE_SCRIPTS= [
     'wallet_encryption.py',
     'feature_dersig.py',
     'feature_cltv.py',
-    'esperanza_deposit_administration.py'
+    'esperanza_deposit_administration.py',
     'rpc_uptime.py',
     'wallet_txn_doublespend.py',
     'wallet_txn_clone.py --mineblock',
