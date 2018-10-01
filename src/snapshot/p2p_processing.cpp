@@ -16,14 +16,8 @@ bool IsInitialSnapshotDownload() {
     return false;
   }
 
-  LOCK(cs_main);
-  if (latch.load(std::memory_order_relaxed)) {
-    return false;
-  }
-
   uint32_t snapshotId;
   if (pcoinsdbview->GetSnapshotId(snapshotId)) {
-    LogPrint(BCLog::NET, "Leaving IsInitialSnapshotDownload\n");
     latch.store(true, std::memory_order_relaxed);
     return false;
   }
