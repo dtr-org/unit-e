@@ -41,6 +41,8 @@ TEST_EXIT_PASSED = 0
 TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
+COINBASE_MATURITY = 100
+
 class UnitETestFramework():
     """Base class for a unite test script.
 

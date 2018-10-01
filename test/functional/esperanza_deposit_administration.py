@@ -6,7 +6,7 @@
 import os
 
 from test_framework.util import *
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import *
 from test_framework.admin import *
 
 
@@ -63,7 +63,7 @@ class DepositAdministration(UnitETestFramework):
         assert_equal(10000, validator.getbalance())
 
         # Waiting for maturity
-        proposer.generate(120)
+        proposer.generate(COINBASE_MATURITY)
         self.sync_all()
 
         admin = Admin.authorize(self, proposer)

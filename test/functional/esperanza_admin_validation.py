@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.util import *
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import *
 from test_framework.admin import *
 from test_framework.mininode import *
 
@@ -120,7 +120,7 @@ class AdminValidation(UnitETestFramework):
         assert_equal(10000, self.admin.getbalance())
 
         # Waiting for maturity
-        self.admin.generate(120)
+        self.admin.generate(COINBASE_MATURITY)
         self.sync_all()
 
         self.admin.p2p.wait_for_verack()
