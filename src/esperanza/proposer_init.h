@@ -13,14 +13,14 @@ class CWallet;
 
 namespace esperanza {
 
-bool InitProposer(const Settings& settings,
-                  const std::vector<CWallet*>& wallets);
+bool InitProposer(const Settings &settings,
+                  const std::vector<CWallet *> &wallets);
 
 void StartProposer();
 
 void StopProposer();
 
-void WakeProposer(const CWallet* wallet = nullptr);
+void WakeProposer(const CWallet *wallet = nullptr);
 
 }  // namespace esperanza
 

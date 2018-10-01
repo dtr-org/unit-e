@@ -20,7 +20,7 @@ struct Vote {
 
   uint32_t m_targetEpoch;
 
-  bool operator==(const Vote& rhs) const {
+  bool operator==(const Vote &rhs) const {
     return this->m_validatorIndex == rhs.m_validatorIndex &&
            this->m_targetHash == rhs.m_targetHash &&
            this->m_sourceEpoch == rhs.m_sourceEpoch &&

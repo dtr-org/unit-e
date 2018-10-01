@@ -30,15 +30,15 @@ struct Settings {
 
   std::string m_proposerThreadName = "proposer";
 
-  Settings(::ArgsManager& args);
+  Settings(::ArgsManager &args);
 
-  Settings(::ArgsManager& args, const Settings& defaultConfig);
+  Settings(::ArgsManager &args, const Settings &defaultConfig);
 
   // clang-tidy recommends `Config() noexcept = default`, but then `clang`
   // [sic!] fails to compile it. Removing the `noexcept` makes it work, but.
   Settings() noexcept {};  // NOLINT(modernize-use-equals-default)
 
-  static const Settings& Default() {
+  static const Settings &Default() {
     static Settings settings;
     return settings;
   }

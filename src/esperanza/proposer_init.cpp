@@ -14,8 +14,8 @@ namespace esperanza {
 static std::mutex initLock;
 static std::unique_ptr<Proposer> proposer = nullptr;
 
-bool InitProposer(const Settings& settings,
-                  const std::vector<CWallet*>& wallets) {
+bool InitProposer(const Settings &settings,
+                  const std::vector<CWallet *> &wallets) {
   std::unique_lock<decltype(initLock)> lock;
   if (proposer) {
     return false;
@@ -28,7 +28,7 @@ bool InitProposer(const Settings& settings,
   try {
     proposer.reset(new Proposer(settings, wallets));
     return true;
-  } catch (const std::runtime_error& exc) {
+  } catch (const std::runtime_error &exc) {
     LogPrint(BCLog::ESPERANZA, "failed to create proposer threads: %s\n",
              exc.what());
     return false;
@@ -50,7 +50,7 @@ void StopProposer() {
   }
 }
 
-void WakeProposer(const CWallet* wallet) {
+void WakeProposer(const CWallet *wallet) {
   if (proposer) {
     proposer->Wake(wallet);
   }
