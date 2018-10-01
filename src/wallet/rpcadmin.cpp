@@ -8,23 +8,23 @@
 #include <wallet/coincontrol.h>
 #include <utility>
 
-struct InputData {
+struct UTXO {
   COutPoint m_outPoint;
   CTxOut m_txOut;
 
-  InputData(const COutPoint &outPoint, CTxOut txOut)
+  UTXO(const COutPoint &outPoint, CTxOut txOut)
       : m_outPoint(outPoint), m_txOut(std::move(txOut)) {}
 };
 
 CWalletTx SignAndSend(CMutableTransaction &&mutableTx, CWallet *const wallet,
-                      const std::vector<InputData> &inputDatas) {
+                      const std::vector<UTXO> &adminUTXOs) {
   CTransaction constTx(mutableTx);
   SignatureData sigdata;
 
   for (size_t i = 0; i < constTx.vin.size(); ++i) {
-    const auto data = inputDatas[i];
-    const auto &scriptPubKey = data.m_txOut.scriptPubKey;
-    const auto amountIn = data.m_txOut.nValue;
+    const auto &utxo = adminUTXOs[i];
+    const auto &scriptPubKey = utxo.m_txOut.scriptPubKey;
+    const auto amountIn = utxo.m_txOut.nValue;
 
     if (!ProduceSignature(TransactionSignatureCreator(wallet, &constTx, i,
                                                       amountIn, SIGHASH_ALL),
@@ -106,34 +106,23 @@ std::vector<esperanza::AdminCommand> ParseCommands(const UniValue &value) {
   return commands;
 }
 
-std::vector<InputData> GetInputsData(CWallet *const wallet,
-                                     const std::vector<COutPoint> &outPoints) {
-  std::vector<InputData> inputs;
-  for (const auto outPoint : outPoints) {
-    const auto it = wallet->mapWallet.find(outPoint.hash);
-    if (it == wallet->mapWallet.end()) {
-      throw JSONRPCError(RPC_INVALID_PARAMETER,
-                         "Can't find prevout transaction hash");
-    }
-
-    auto const tx = it->second.tx;
-    inputs.emplace_back(outPoint, tx->vout[outPoint.n]);
-  }
-
-  return inputs;
-}
-
-std::vector<COutPoint> ParseOutPoints(const UniValue &node) {
-  std::vector<COutPoint> outs;
+std::vector<UTXO> GetAdminUTXOs(CWallet *const wallet, const UniValue &node) {
+  std::vector<UTXO> utxos;
   for (size_t i = 0; i < node.size(); ++i) {
     const auto &tuple = node[i];
     const auto hash = ParseHashV(tuple[0], "prevoutHash");
     const auto index = static_cast<uint32_t>(tuple[1].get_int64());
 
-    outs.emplace_back(hash, index);
+    const auto it = wallet->mapWallet.find(hash);
+    if (it == wallet->mapWallet.end()) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Can't find admin utxo");
+    }
+
+    auto const tx = it->second.tx;
+    utxos.emplace_back(COutPoint(hash, index), tx->vout[index]);
   }
 
-  return outs;
+  return utxos;
 }
 
 UniValue sendadmincommands(const JSONRPCRequest &request) {
@@ -161,7 +150,7 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
 
   wallet->BlockUntilSyncedToCurrentChain();
 
-  const auto prevoutPoints = ParseOutPoints(request.params[0]);
+  const auto adminUTXOs = GetAdminUTXOs(wallet, request.params[0]);
   const CAmount desiredFee = AmountFromValue(request.params[1]);
   const auto commands = ParseCommands(request.params[2]);
   CTxDestination remainderDestination;
@@ -173,12 +162,11 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
   CMutableTransaction adminTx;
   adminTx.SetType(+TxType::ADMIN);
 
-  const auto inputsData = GetInputsData(wallet, prevoutPoints);
   CAmount totalAmountInInputs = 0;
 
-  for (const auto &inputData : inputsData) {
-    adminTx.vin.emplace_back(inputData.m_outPoint.hash, inputData.m_outPoint.n);
-    totalAmountInInputs += inputData.m_txOut.nValue;
+  for (const auto &utxo : adminUTXOs) {
+    adminTx.vin.emplace_back(utxo.m_outPoint.hash, utxo.m_outPoint.n);
+    totalAmountInInputs += utxo.m_txOut.nValue;
   }
 
   for (const auto &command : commands) {
@@ -201,7 +189,7 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
     adminTx.vout.emplace_back(remainder, scriptPubKey);
   }
 
-  const auto walletTx = SignAndSend(std::move(adminTx), wallet, inputsData);
+  const auto walletTx = SignAndSend(std::move(adminTx), wallet, adminUTXOs);
 
   return walletTx.GetHash().GetHex();
 }
