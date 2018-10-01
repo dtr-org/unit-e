@@ -154,7 +154,7 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
         "                          {'cmd': 'whitelist', 'payload': <keys>}\n"
         "                          {'cmd': 'blacklist', 'payload': <keys>}\n"
         "                          {'cmd': 'reset_admins', 'payload': <keys>}\n"
-        "3. destination (optional) where to send change if any.\n"
+        "4. destination (optional) where to send change if any.\n"
         "\nExamples:\n" +
         HelpExampleRpc("sendadmincommands", ""));
   }
