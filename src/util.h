@@ -107,6 +107,7 @@ namespace BCLog {
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
         ESPERANZA   = (1 << 26),
+        SNAPSHOT    = (1 << 27),
         ALL         = ~(uint32_t)0,
     };
 }
