@@ -176,7 +176,6 @@ class FinalizationState : public FinalizationStateData {
   void ProcessSlash(const Vote &vote1, const Vote &vote2,
                     CAmount &slashingBountyOut);
 
-  void OnBlock(int blockHeight);
   Result ValidateAdminKeys(const AdminKeySet &adminKeys) const;
   void ProcessAdminCommands(const std::vector<AdminCommand> &commands);
 
@@ -231,6 +230,9 @@ class FinalizationState : public FinalizationStateData {
 
  protected:
   const FinalizationParams &m_settings;
+
+ private:
+  void OnBlock(int blockHeight);
 };
 
 }  // namespace esperanza
