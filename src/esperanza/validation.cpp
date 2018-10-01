@@ -237,7 +237,7 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
     return state.DoS(10, false, REJECT_INVALID, "admin-vout-empty");
   }
 
-  size_t valid_commands_num = 0;
+  size_t validCommandsNum = 0;
   bool disablesPermissioning = false;
 
   for (const auto &out : tx.vout) {
@@ -255,10 +255,10 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
       disablesPermissioning = true;
     }
 
-    ++valid_commands_num;
+    ++validCommandsNum;
   }
 
-  if (valid_commands_num == 0) {
+  if (validCommandsNum == 0) {
     return state.DoS(10, false, REJECT_INVALID, "admin-no-commands");
   }
 
