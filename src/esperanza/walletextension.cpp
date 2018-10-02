@@ -669,7 +669,7 @@ void WalletExtension::BlockConnected(
 
         // In case we are logged out, stop validating.
         FinalizationState *state = FinalizationState::GetState(pindex);
-        int currentDynasty = state->GetCurrentDynasty();
+        uint32_t currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.m_endDynasty) {
           LOCK(m_enclosingWallet->cs_wallet);
           validatorState.m_phase = ValidatorState::Phase::NOT_VALIDATING;
