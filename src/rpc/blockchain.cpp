@@ -29,6 +29,7 @@
 #include <snapshot/creator.h>
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
+#include <snapshot/p2p_processing.h>
 
 #include <stdint.h>
 
@@ -1169,6 +1170,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "  \"mediantime\": xxxxxx,         (numeric) median time for the current best block\n"
             "  \"verificationprogress\": xxxx, (numeric) estimate of verification progress [0..1]\n"
             "  \"initialblockdownload\": xxxx, (bool) (debug information) estimate of whether this node is in Initial Block Download mode.\n"
+            "  \"initialsnapshotdownload\": xxxx, (bool) (debug information) estimate of whether this node is in Initial Snapshot Download mode.\n"
             "  \"chainwork\": \"xxxx\"           (string) total amount of work in active chain, in hexadecimal\n"
             "  \"size_on_disk\": xxxxxx,       (numeric) the estimated size of the block and undo files on disk\n"
             "  \"pruned\": xx,                 (boolean) if the blocks are subject to pruning\n"
@@ -1218,6 +1220,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.push_back(Pair("mediantime",            (int64_t)chainActive.Tip()->GetMedianTimePast()));
     obj.push_back(Pair("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip())));
     obj.push_back(Pair("initialblockdownload",  IsInitialBlockDownload()));
+    obj.push_back(Pair("initialsnapshotdownload",  snapshot::IsInitialSnapshotDownload()));
     obj.push_back(Pair("chainwork",             chainActive.Tip()->nChainWork.GetHex()));
     obj.push_back(Pair("size_on_disk",          CalculateCurrentUsage()));
     obj.push_back(Pair("pruned",                fPruneMode));
@@ -1621,6 +1624,46 @@ UniValue savemempool(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
+UniValue listsnapshots(const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() > 0) {
+        throw std::runtime_error(
+            "listsnapshots\n"
+            "\nList all snapshots.\n"
+            "\nExamples:\n"
+                + HelpExampleCli("listsnapshots", "")
+                + HelpExampleRpc("listsnapshots", "")
+        );
+    }
+
+    UniValue rootNode(UniValue::VOBJ);
+    uint32_t snapshotId = 0;
+    if (pcoinsdbview->GetSnapshotId(snapshotId)) {
+        rootNode.push_back(Pair("snapshot_id", int(snapshotId)));
+        auto idx = snapshot::Indexer::Open(snapshotId);
+        if (idx) {
+            rootNode.push_back(Pair("snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
+        }
+    }
+
+    if (pcoinsdbview->GetCandidateSnapshotId(snapshotId)) {
+        rootNode.push_back(Pair("candidate_snapshot_id", int(snapshotId)));
+        auto idx = snapshot::Indexer::Open(snapshotId);
+        if (idx) {
+            rootNode.push_back(Pair("candidate_snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
+        }
+    }
+
+    if (pcoinsdbview->GetInitSnapshotId(snapshotId)) {
+        rootNode.push_back(Pair("init_snapshot_id", int(snapshotId)));
+        auto idx = snapshot::Indexer::Open(snapshotId);
+        if (idx) {
+            rootNode.push_back(Pair("init_snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
+        }
+    }
+
+    return rootNode;
+}
+
 UniValue readsnapshot(const JSONRPCRequest &request) {
     if (request.fHelp || request.params.size() > 1) {
         throw std::runtime_error(
@@ -1771,6 +1814,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "preciousblock",          &preciousblock,          {"blockhash"} },
     { "blockchain",         "createsnapshot",         &createsnapshot,         {"maxutxosets"} },
     { "blockchain",         "readsnapshot",           &readsnapshot,           {"id"} },
+    { "blockchain",         "listsnapshots",          &listsnapshots,          {""} },
 
     /* Not shown in help */
     { "hidden",             "invalidateblock",        &invalidateblock,        {"blockhash"} },

@@ -163,6 +163,7 @@ BASE_SCRIPTS= [
     'feature_help.py',
     'rpc_createsnapshot.py',
     'rpc_readsnapshot.py',
+    'feature_snapshot.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
 ]

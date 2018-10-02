@@ -9,6 +9,7 @@
 #include <coins.h>
 #include <dbwrapper.h>
 #include <chain.h>
+#include <snapshot/indexer.h>
 
 #include <map>
 #include <memory>
@@ -85,9 +86,15 @@ public:
 
     bool GetSnapshotId(uint32_t &idOut);
     bool SetSnapshotId(uint32_t id);
+    bool GetCandidateSnapshotId(uint32_t &idOut);
+    bool SetCandidateSnapshotId(uint32_t id);
+    bool GetInitSnapshotId(uint32_t &idOut);
+    bool SetInitSnapshotId(uint32_t id);
+    bool DeleteInitSnapshotId();
     std::vector<uint32_t> GetSnapshotIds();
     bool SetSnapshotIds(std::vector<uint32_t> &ids);
     bool ReserveSnapshotId(uint32_t &idOut);
+    bool LoadSnapshot(std::unique_ptr<snapshot::Indexer> indexer);
 private:
     // guarantee that all snapshot IDs are generated sequentially
     CCriticalSection cs_reservedSnapshotId;

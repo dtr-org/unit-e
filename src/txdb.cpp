@@ -13,6 +13,7 @@
 #include <util.h>
 #include <ui_interface.h>
 #include <init.h>
+#include <snapshot/iterator.h>
 
 #include <stdint.h>
 
@@ -31,7 +32,9 @@ static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
 
 // use full names to void collision with the Bitcoin naming
-static const std::string DB_SNAPSHOT_ID = "SNAPSHOT_ID";
+static const std::string DB_SNAPSHOT_ID = "SNAPSHOT";
+static const std::string DB_INIT_SNAPSHOT_ID = "INIT_SNAPSHOT";
+static const std::string DB_CANDIDATE_SNAPSHOT_ID = "CANDIDATE_SNAPSHOT";
 static const std::string DB_ALL_SNAPSHOTS = "ALL_SNAPSHOTS";
 
 namespace {
@@ -437,6 +440,26 @@ bool CCoinsViewDB::SetSnapshotId(uint32_t id) {
     return db.Write(DB_SNAPSHOT_ID, id, true);
 }
 
+bool CCoinsViewDB::GetCandidateSnapshotId(uint32_t &idOut) {
+    return db.Read(DB_CANDIDATE_SNAPSHOT_ID, idOut);
+}
+
+bool CCoinsViewDB::SetCandidateSnapshotId(uint32_t id) {
+    return db.Write(DB_CANDIDATE_SNAPSHOT_ID, id, true);
+}
+
+bool CCoinsViewDB::GetInitSnapshotId(uint32_t &idOut) {
+    return db.Read(DB_INIT_SNAPSHOT_ID, idOut);
+}
+
+bool CCoinsViewDB::SetInitSnapshotId(uint32_t id) {
+    return db.Write(DB_INIT_SNAPSHOT_ID, id, true);
+}
+
+bool CCoinsViewDB::DeleteInitSnapshotId() {
+    return db.Erase(DB_INIT_SNAPSHOT_ID, true);
+}
+
 std::vector<uint32_t> CCoinsViewDB::GetSnapshotIds()  {
     std::vector<uint32_t> ids;
     if (!db.Read(DB_ALL_SNAPSHOTS, ids)) {
@@ -466,6 +489,84 @@ bool CCoinsViewDB::ReserveSnapshotId(uint32_t &idOut) {
         idOut = 0;
         return false;
     }
+
+    return true;
+}
+
+bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> indexer) {
+    LogPrint(BCLog::COINDB, "%s: Apply snapshot id=%i.\n", __func__,
+             indexer->GetSnapshotId());
+
+    {
+        // clean the DB. ideally should be empty but can be filled
+        // if previous LoadSnapshot call was interrupted
+        int total = 0;
+        std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
+        while (cursor->Valid()) {
+            COutPoint key;
+            if (cursor->GetKey(key)) {
+                db.Erase(key);
+                ++total;
+            }
+            cursor->Next();
+        }
+        if (total > 0) {
+            LogPrint(BCLog::COINDB, "%s: delete %i keys in the DB\n", __func__,
+                     total);
+        }
+    }
+
+    snapshot::Iterator iter(std::move(indexer));
+    LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n", __func__,
+             iter.GetTotalUTXOSets());
+
+    uint64_t writtenUTXOSets = 0;
+    CCoinsMap coinMap;
+    while (iter.Valid()) {
+        snapshot::UTXOSet &utxoSet = iter.GetUTXOSet();
+        for (auto const &it : utxoSet.m_outputs) {
+            auto entry = CCoinsCacheEntry{};
+            entry.flags |= CCoinsCacheEntry::Flags::DIRTY;
+            entry.flags |= CCoinsCacheEntry::Flags::FRESH;
+            Coin coin(it.second, utxoSet.m_height, utxoSet.m_isCoinBase);
+            entry.coin = coin;
+            coinMap[COutPoint(utxoSet.m_txId, it.first)] = entry;
+        }
+
+        ++writtenUTXOSets;
+
+        if (writtenUTXOSets % 100000 == 0) { // ~12 MB/batch
+            if (!BatchWrite(coinMap, iter.GetBestBlockHash())) {
+                LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
+                return false;
+            }
+            coinMap.clear();
+        }
+
+        // log every 5% of processed messages
+        uint64_t chunk = iter.GetTotalUTXOSets() / 20;
+        if (chunk > 0 && writtenUTXOSets % chunk == 0) {
+            LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
+                     writtenUTXOSets, iter.GetTotalUTXOSets());
+        }
+
+        iter.Next();
+    }
+
+    if (!coinMap.empty()) {
+        if (!BatchWrite(coinMap, iter.GetBestBlockHash())) {
+            LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
+            return false;
+        }
+        coinMap.clear();
+        LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
+                 writtenUTXOSets, iter.GetTotalUTXOSets());
+    }
+
+    assert(iter.GetTotalUTXOSets() == writtenUTXOSets);
+
+    LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXOSets=%i\n",
+             __func__, writtenUTXOSets);
 
     return true;
 }

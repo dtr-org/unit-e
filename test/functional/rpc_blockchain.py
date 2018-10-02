@@ -60,6 +60,7 @@ class BlockchainTest(UnitETestFramework):
             'difficulty',
             'headers',
             'initialblockdownload',
+            'initialsnapshotdownload',
             'mediantime',
             'pruned',
             'size_on_disk',

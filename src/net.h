@@ -720,6 +720,13 @@ public:
     CAmount lastSentFeeFilter;
     int64_t nextSendTimeFeeFilter;
 
+    // keeps track if initial GetSnapshot message was sent.
+    bool sentInitGetSnapshot;
+
+    // keeps track if the initial block request
+    // for the candidate snapshot was sent.
+    bool sentGetParentBlockForSnapshot;
+
     CNode(NodeId id, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn, SOCKET hSocketIn, const CAddress &addrIn, uint64_t nKeyedNetGroupIn, uint64_t nLocalHostNonceIn, const CAddress &addrBindIn, const std::string &addrNameIn = "", bool fInboundIn = false);
     ~CNode();
     CNode(const CNode&) = delete;

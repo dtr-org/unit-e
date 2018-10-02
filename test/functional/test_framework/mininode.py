@@ -47,6 +47,8 @@ MESSAGEMAP = {
     b"tx": msg_tx,
     b"verack": msg_verack,
     b"version": msg_version,
+    b"getsnapshot": msg_getsnapshot,
+    b"snapshot": msg_snapshot,
 }
 
 MAGIC_BYTES = {

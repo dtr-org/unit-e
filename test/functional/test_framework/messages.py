@@ -1356,3 +1356,23 @@ class msg_witness_blocktxn(msg_blocktxn):
         r = b""
         r += self.block_transactions.serialize(with_witness=True)
         return r
+
+
+class msg_getsnapshot:
+    command = b"getsnapshot"
+
+    def serialize(self):
+        r = b""
+        return r
+
+    def deserialize(self, f): pass
+
+
+class msg_snapshot:
+    command = b"snapshot"
+
+    def serialize(self):
+        r = b""
+        return r
+
+    def deserialize(self, f): pass
