@@ -444,7 +444,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
            __func__, wtxOut.GetHash().GetHex());
 
   {
-    LOCK(m_enclosingWallet->cs_wallet);
+    LOCK(cs_validatorstate);
     if (validatorState.m_phase == +ValidatorState::Phase::NOT_VALIDATING) {
       LogPrint(BCLog::ESPERANZA,
                "%s: Validator waiting for deposit confirmation.\n", __func__);
@@ -462,16 +462,20 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   return true;
 }
 
-//! \brief Creates and sends a logout transaction given transaction.
+//! \brief Creates and sends a logout transaction.
 //! \param wtxNewOut [out] the logout transaction created.
 //! \return true if the operation was successful, false otherwise.
 bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
+  LOCK(cs_validatorstate);
+
   CCoinControl coinControl;
   coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
+
   wtxNewOut.fTimeReceivedIsTxTime = true;
   wtxNewOut.BindWallet(m_enclosingWallet);
   wtxNewOut.fFromMe = true;
+
   CReserveKey reservekey(m_enclosingWallet);
   CValidationState state;
 
@@ -520,7 +524,6 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
     UpdateTransaction(txNew, nIn, sigdata);
   }
 
-  // Embed the constructed transaction data in wtxNew.
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
@@ -602,6 +605,8 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                const Vote &vote, CWalletTx &wtxNewOut) {
 
+  LOCK(cs_validatorstate);
+
   wtxNewOut.fTimeReceivedIsTxTime = true;
   wtxNewOut.BindWallet(m_enclosingWallet);
   wtxNewOut.fFromMe = true;
@@ -639,7 +644,6 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
     UpdateTransaction(txNew, nIn, sigdata);
   }
 
-  // Embed the constructed transaction data in wtxNew.
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
@@ -657,13 +661,9 @@ void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
 
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
-    auto currentPhase = ValidatorState::Phase::NOT_VALIDATING;
-    {
-      LOCK(m_enclosingWallet->cs_wallet);
-      currentPhase = validatorState.m_phase;
-    }
 
-    switch (currentPhase) {
+    LOCK(cs_validatorstate);
+    switch (validatorState.m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         VoteIfNeeded(pblock, pindex);
 
@@ -671,7 +671,6 @@ void WalletExtension::BlockConnected(
         FinalizationState *state = FinalizationState::GetState(pindex);
         int currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.m_endDynasty) {
-          LOCK(m_enclosingWallet->cs_wallet);
           validatorState.m_phase = ValidatorState::Phase::NOT_VALIDATING;
         }
         break;
@@ -682,7 +681,6 @@ void WalletExtension::BlockConnected(
         if (state->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
           {
-            LOCK(m_enclosingWallet->cs_wallet);
             validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
 
             LogPrint(BCLog::ESPERANZA,

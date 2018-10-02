@@ -9,6 +9,7 @@
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
 #include <stdint.h>
+#include <sync.h>
 #include <uint256.h>
 #include <map>
 
@@ -25,6 +26,7 @@ BETTER_ENUM(
 )
 // clang-format on
 
+static CCriticalSection cs_validatorstate;
 struct ValidatorState {
   typedef _Phase Phase;
 
