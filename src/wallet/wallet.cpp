@@ -1088,13 +1088,13 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
               switch (tx.GetType()) {
 
                 case TxType::DEPOSIT: {
-                  LOCK(cs_wallet);
-                  esperanza::ValidatorState* state =
-                      &m_stakingExtension.validatorState;
-                  if (state->m_phase == +esperanza::ValidatorState::Phase::
+                  LOCK(esperanza::cs_validatorstate);
+                  esperanza::ValidatorState &state =
+                      m_stakingExtension.validatorState;
+                  if (state.m_phase == +esperanza::ValidatorState::Phase::
                                             WAITING_DEPOSIT_CONFIRMATION) {
 
-                    state->m_phase = esperanza::ValidatorState::Phase::
+                    state.m_phase = esperanza::ValidatorState::Phase::
                         WAITING_DEPOSIT_FINALIZATION;
                     LogPrint(BCLog::ESPERANZA,
                              "%s: Validator waiting for deposit finalization. "
@@ -1105,9 +1105,9 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                     txnouttype typeRet;
                     Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
 
-                    state->m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
-                    state->m_lastEsperanzaTx = MakeTransactionRef(tx);
-                    state->m_depositEpoch =
+                    state.m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
+                    state.m_lastEsperanzaTx = MakeTransactionRef(tx);
+                    state.m_depositEpoch =
                         esperanza::FinalizationState::GetEpoch(pIndex);
                   } else {
                     LogPrint(BCLog::ESPERANZA,
@@ -1115,25 +1115,25 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "deposit %s, %s expected but %s found.\n",
                              __func__, tx.GetHash().GetHex(),
                              "WAITING_DEPOSIT_CONFIRMATION",
-                             state->m_phase._to_string());
+                             state.m_phase._to_string());
                   }
                   break;
                 }
                 case TxType::LOGOUT: {
-                  LOCK(cs_wallet);
-                  esperanza::ValidatorState* state =
-                      &m_stakingExtension.validatorState;
+                  LOCK(esperanza::cs_validatorstate);
+                  esperanza::ValidatorState &state =
+                      m_stakingExtension.validatorState;
 
-                  if (state->m_phase ==
+                  if (state.m_phase ==
                       +esperanza::ValidatorState::Phase::IS_VALIDATING) {
 
                     auto finalizationState =
                         esperanza::FinalizationState::GetState(pIndex);
 
                     const esperanza::Validator* validator =
-                        finalizationState->GetValidator(state->m_validatorIndex);
+                        finalizationState->GetValidator(state.m_validatorIndex);
 
-                    state->m_endDynasty = validator->m_endDynasty;
+                    state.m_endDynasty = validator->m_endDynasty;
 
                   } else {
                     LogPrint(BCLog::ESPERANZA,
@@ -1141,7 +1141,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "logging out. %s expected but %s found.\n",
                              __func__,
                              "IS_VALIDATING",
-                             state->m_phase._to_string());
+                             state.m_phase._to_string());
                   }
                 }
               }

@@ -27,7 +27,7 @@ UniValue deposit(const JSONRPCRequest &request)
         "1. address              (required) the destination for the deposit.\n"
         "2. amount               (required) the amount deposit.\n"
         "\nExamples:\n"
-            + HelpExampleRpc("deposit", ""));
+            + HelpExampleRpc("deposit", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" 150000000000"));
   }
 
   pwallet->BlockUntilSyncedToCurrentChain();
