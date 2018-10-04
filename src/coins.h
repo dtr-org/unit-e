@@ -75,7 +75,7 @@ public:
         }
         if (nHeight <= COINBASE_MATURITY) {
             // the first COINBASE_MATURITY blocks are not immature.
-            // the less-then-or-equal comparison is correct as the
+            // the less-than-or-equal comparison is correct as the
             // genesis block is at height=0 and the 100 blocks afterwards
             // need to be declared mature too (at height=100 there are
             // 100+1 block).
