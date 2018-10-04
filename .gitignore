@@ -117,3 +117,6 @@ test/cache/*
 libuniteconsensus.pc
 contrib/devtools/split-debug.sh
 *.tmp
+confdefs.h
+conftest.c
+conftest.err
