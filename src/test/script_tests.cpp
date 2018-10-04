@@ -1583,4 +1583,146 @@ BOOST_AUTO_TEST_CASE(extract_admin_command_from_witness)
     BOOST_CHECK_EQUAL(key2, HexStr(keys[2]));
 }
 
+
+#if defined(HAVE_CONSENSUS_LIB)
+
+/* Test simple (successful) usage of uniteconsensus_verify_script */
+BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_returns_true)
+{
+    unsigned int libconsensus_flags = 0;
+    int nIn = 0;
+
+    CScript scriptPubKey;
+    CScript scriptSig;
+    CScriptWitness wit;
+
+    scriptPubKey << OP_1;
+    CTransaction creditTx = BuildCreditingTransaction(scriptPubKey, 1);
+    CTransaction spendTx = BuildSpendingTransaction(scriptSig, wit, creditTx);
+
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << spendTx;
+
+    uniteconsensus_error err;
+    int result = uniteconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), nIn, libconsensus_flags, &err);
+    BOOST_CHECK_EQUAL(result, 1);
+    BOOST_CHECK_EQUAL(err, uniteconsensus_ERR_OK);
+}
+
+/* Test uniteconsensus_verify_script returns invalid tx index err*/
+BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_tx_index_err)
+{
+    unsigned int libconsensus_flags = 0;
+    int nIn = 3;
+
+    CScript scriptPubKey;
+    CScript scriptSig;
+    CScriptWitness wit;
+
+    scriptPubKey << OP_EQUAL;
+    CTransaction creditTx = BuildCreditingTransaction(scriptPubKey, 1);
+    CTransaction spendTx = BuildSpendingTransaction(scriptSig, wit, creditTx);
+
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << spendTx;
+
+    uniteconsensus_error err;
+    int result = uniteconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), nIn, libconsensus_flags, &err);
+    BOOST_CHECK_EQUAL(result, 0);
+    BOOST_CHECK_EQUAL(err, uniteconsensus_ERR_TX_INDEX);
+}
+
+/* Test uniteconsensus_verify_script returns tx size mismatch err*/
+BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_tx_size)
+{
+    unsigned int libconsensus_flags = 0;
+    int nIn = 0;
+
+    CScript scriptPubKey;
+    CScript scriptSig;
+    CScriptWitness wit;
+
+    scriptPubKey << OP_EQUAL;
+    CTransaction creditTx = BuildCreditingTransaction(scriptPubKey, 1);
+    CTransaction spendTx = BuildSpendingTransaction(scriptSig, wit, creditTx);
+
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << spendTx;
+
+    uniteconsensus_error err;
+    int result = uniteconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size() * 2, nIn, libconsensus_flags, &err);
+    BOOST_CHECK_EQUAL(result, 0);
+    BOOST_CHECK_EQUAL(err, uniteconsensus_ERR_TX_SIZE_MISMATCH);
+}
+
+/* Test uniteconsensus_verify_script returns invalid tx serialization error */
+BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_tx_serialization)
+{
+    unsigned int libconsensus_flags = 0;
+    int nIn = 0;
+
+    CScript scriptPubKey;
+    CScript scriptSig;
+    CScriptWitness wit;
+
+    scriptPubKey << OP_EQUAL;
+    CTransaction creditTx = BuildCreditingTransaction(scriptPubKey, 1);
+    CTransaction spendTx = BuildSpendingTransaction(scriptSig, wit, creditTx);
+
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << 0xffffffff;
+
+    uniteconsensus_error err;
+    int result = uniteconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), nIn, libconsensus_flags, &err);
+    BOOST_CHECK_EQUAL(result, 0);
+    BOOST_CHECK_EQUAL(err, uniteconsensus_ERR_TX_DESERIALIZE);
+}
+
+/* Test uniteconsensus_verify_script returns amount required error */
+BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_amount_required_err)
+{
+    unsigned int libconsensus_flags = uniteconsensus_SCRIPT_FLAGS_VERIFY_WITNESS;
+    int nIn = 0;
+
+    CScript scriptPubKey;
+    CScript scriptSig;
+    CScriptWitness wit;
+
+    scriptPubKey << OP_EQUAL;
+    CTransaction creditTx = BuildCreditingTransaction(scriptPubKey, 1);
+    CTransaction spendTx = BuildSpendingTransaction(scriptSig, wit, creditTx);
+
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << spendTx;
+
+    uniteconsensus_error err;
+    int result = uniteconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), nIn, libconsensus_flags, &err);
+    BOOST_CHECK_EQUAL(result, 0);
+    BOOST_CHECK_EQUAL(err, uniteconsensus_ERR_AMOUNT_REQUIRED);
+}
+
+/* Test uniteconsensus_verify_script returns invalid flags err */
+BOOST_AUTO_TEST_CASE(uniteconsensus_verify_script_invalid_flags)
+{
+    unsigned int libconsensus_flags = 1 << 3;
+    int nIn = 0;
+
+    CScript scriptPubKey;
+    CScript scriptSig;
+    CScriptWitness wit;
+
+    scriptPubKey << OP_EQUAL;
+    CTransaction creditTx = BuildCreditingTransaction(scriptPubKey, 1);
+    CTransaction spendTx = BuildSpendingTransaction(scriptSig, wit, creditTx);
+
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << spendTx;
+
+    uniteconsensus_error err;
+    int result = uniteconsensus_verify_script(scriptPubKey.data(), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), nIn, libconsensus_flags, &err);
+    BOOST_CHECK_EQUAL(result, 0);
+    BOOST_CHECK_EQUAL(err, uniteconsensus_ERR_INVALID_FLAGS);
+}
+
+#endif
 BOOST_AUTO_TEST_SUITE_END()

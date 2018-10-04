@@ -115,6 +115,7 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
  *    timestamp before)
  * + Contains no strange transactions
  */
+
 class CMainParams : public CChainParams {
 public:
     CMainParams() {
