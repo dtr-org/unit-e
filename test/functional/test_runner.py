@@ -58,17 +58,26 @@ BASE_SCRIPTS= [
     'wallet_hd.py',
     'wallet_backup.py',
     # vv Tests less than 5m vv
+    'feature_maxuploadtarget.py',
+    'mempool_packages.py',
     'feature_block.py',
     'rpc_fundrawtransaction.py',
     'p2p_compactblocks.py',
     'feature_segwit.py',
+    'feature_fee_estimation.py',
     # vv Tests less than 2m vv
+    'feature_bip68_sequence.py',
+    'mining_getblocktemplate_longpoll.py',
     'wallet_basic.py',
     'wallet_accounts.py',
     'p2p_segwit.py',
+    'p2p_timeouts.py',
     'wallet_dump.py',
+    'esperanza_vote.py',
     'rpc_listtransactions.py',
     # vv Tests less than 60s vv
+    'feature_bip9_softforks.py',
+    'p2p_feefilter.py',
     'p2p_sendheaders.py',
     'wallet_zapwallettxes.py',
     'wallet_importmulti.py',
@@ -81,6 +90,7 @@ BASE_SCRIPTS= [
     'wallet_address_types.py',
     'feature_reindex.py',
     # vv Tests less than 30s vv
+    'feature_assumevalid.py',
     'wallet_keypool_topup.py',
     'interface_zmq.py',
     'interface_unite_cli.py',
@@ -107,6 +117,9 @@ BASE_SCRIPTS= [
     'rpc_net.py',
     'wallet_keypool.py',
     'p2p_mempool.py',
+    'esperanza_deposit.py',
+    'esperanza_finalizationstate.py',
+    'esperanza_logout.py',
     'mining_prioritisetransaction.py',
     'p2p_invalid_block.py',
     'p2p_invalid_tx.py',
@@ -114,18 +127,32 @@ BASE_SCRIPTS= [
     'rpc_preciousblock.py',
     'wallet_importprunedfunds.py',
     'rpc_signmessage.py',
+    'feature_spend_genesis.py',
+    'rpc_filtertransactions.py',
     'feature_nulldummy.py',
     'wallet_import_rescan.py',
     'mining_basic.py',
     'wallet_bumpfee.py',
     'rpc_named_arguments.py',
+    'rpc_addressbook.py',
     'wallet_listsinceblock.py',
     'p2p_leak.py',
     'wallet_encryption.py',
     'feature_dersig.py',
     'feature_cltv.py',
     'rpc_uptime.py',
+    'wallet_txn_doublespend.py',
+    'wallet_txn_clone.py --mineblock',
+    'feature_notifications.py',
+    'rpc_invalidateblock.py',
+    'feature_rbf.py',
     'wallet_resendwallettransactions.py',
+    'wallet_mnemonicinfo.py',
+    'wallet_mnemonicnew.py',
+    'wallet_importmasterkey.py',
+    'proposer_multiwallet.py',
+    'proposer_stakeable_balance.py',
+    'proposer_settings.py',
     'feature_minchainwork.py',
     'p2p_fingerprint.py',
     'feature_uacomment.py',
@@ -134,6 +161,8 @@ BASE_SCRIPTS= [
     'p2p_node_network_limited.py',
     'feature_config_args.py',
     'feature_help.py',
+    'rpc_createsnapshot.py',
+    'rpc_readsnapshot.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
 ]
@@ -142,28 +171,15 @@ EXTENDED_SCRIPTS = [
     # These tests are not run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
     'feature_pruning.py',
-    # vv Tests less than 20m vv
-    'feature_fee_estimation.py',
-    # vv Tests less than 5m vv
-    'feature_maxuploadtarget.py',
-    'mempool_packages.py',
     'feature_dbcrash.py',
+    # vv Tests less than 20m vv
+    # vv Tests less than 5m vv
     # vv Tests less than 2m vv
-    'feature_bip68_sequence.py',
-    'mining_getblocktemplate_longpoll.py',
-    'p2p_timeouts.py',
     # vv Tests less than 60s vv
-    'feature_bip9_softforks.py',
-    'p2p_feefilter.py',
     'rpc_bind.py',
     # vv Tests less than 30s vv
-    'feature_assumevalid.py',
     'example_test.py',
-    'wallet_txn_doublespend.py',
-    'wallet_txn_clone.py --mineblock',
-    'feature_notifications.py',
-    'rpc_invalidateblock.py',
-    'feature_rbf.py',
+    'rpc_sendtypeto.py',
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
@@ -410,6 +426,8 @@ class TestHandler:
             log_stderr = tempfile.SpooledTemporaryFile(max_size=2**16)
             test_argv = t.split()
             testdir = "{}/{}_{}".format(self.tmpdir, re.sub(".py$", "", test_argv[0]), portseed)
+            test_file_path = self.tests_dir + test_argv[0]
+            assert os.access(test_file_path, os.X_OK), test_file_path + " is not executable"
             tmpdir_arg = ["--tmpdir={}".format(testdir)]
             self.jobs.append((t,
                               time.time(),
@@ -481,7 +499,7 @@ def check_script_prefixes():
     # convention don't immediately cause the tests to fail.
     LEEWAY = 10
 
-    good_prefixes_re = re.compile("(example|feature|interface|mempool|mining|p2p|rpc|wallet)_")
+    good_prefixes_re = re.compile("(example|esperanza|feature|interface|mempool|mining|p2p|proposer|rpc|wallet)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if len(bad_script_names) > 0:

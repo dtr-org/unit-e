@@ -28,5 +28,6 @@ int64_t GetMockTime();
 void MilliSleep(int64_t n);
 
 std::string DateTimeStrFormat(const char* pszFormat, int64_t nTime);
+std::string DateTimeToString(const int64_t time, const char* pszFormat = "%Y-%m-%d %H:%M:%S");
 
 #endif // UNITE_UTILTIME_H

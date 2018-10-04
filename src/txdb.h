@@ -82,6 +82,15 @@ public:
     //! Attempt to update from an older database format. Returns whether an error occurred.
     bool Upgrade();
     size_t EstimateSize() const override;
+
+    bool GetSnapshotId(uint32_t &idOut);
+    bool SetSnapshotId(uint32_t id);
+    std::vector<uint32_t> GetSnapshotIds();
+    bool SetSnapshotIds(std::vector<uint32_t> &ids);
+    bool ReserveSnapshotId(uint32_t &idOut);
+private:
+    // guarantee that all snapshot IDs are generated sequentially
+    CCriticalSection cs_reservedSnapshotId;
 };
 
 /** Specialization of CCoinsViewCursor to iterate over a CCoinsViewDB */

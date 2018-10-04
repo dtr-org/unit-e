@@ -9,6 +9,8 @@
 #include <tinyformat.h>
 #include <util.h>
 #include <utilstrencodings.h>
+#include <utilmoneystr.h>
+#include <ufp64.h>
 
 #include <assert.h>
 #include <memory>
@@ -24,6 +26,49 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
     txNew.vout[0].nValue = genesisReward;
     txNew.vout[0].scriptPubKey = genesisOutputScript;
+
+    CBlock genesis;
+    genesis.nTime    = nTime;
+    genesis.nBits    = nBits;
+    genesis.nNonce   = nNonce;
+    genesis.nVersion = nVersion;
+    genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
+    genesis.hashPrevBlock.SetNull();
+    genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
+    return genesis;
+}
+
+const std::pair<const char*, CAmount> regTestOutputs[] = {
+    std::make_pair("33a471b2c4d3f45b9ab4707455f7d2e917af5a6e", 10000 * UNIT),
+    std::make_pair("7eac29a2e24c161e2d18d8d1249a6327d18d390f", 10000 * UNIT),
+    std::make_pair("caca901140bf287eff2af36edeb48503cec4eb9f", 10000 * UNIT),
+    std::make_pair("1f34ea7e96d82102b22afed6d53d02715f8f6621", 10000 * UNIT),
+    std::make_pair("eb07ad5db790ee4324b5cdd635709f47e41fd867", 10000 * UNIT),
+};
+const size_t nGenesisOutputsRegtest = sizeof(regTestOutputs) / sizeof(regTestOutputs[0]);
+
+static CBlock CreateGenesisBlockRegTest(uint32_t nTime,
+                                        uint32_t nNonce,
+                                        uint32_t nBits,
+                                        int32_t nVersion,
+                                        const CAmount &genesisReward) {
+
+    const char* pszTimestamp = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
+    const CScript genesisOutputScript = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
+    CMutableTransaction txNew;
+    txNew.nVersion = 1;
+    txNew.vin.resize(1);
+    txNew.vout.resize(1);
+    txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
+    txNew.vout[0].nValue = genesisReward;
+    txNew.vout[0].scriptPubKey = genesisOutputScript;
+
+    txNew.vout.resize(nGenesisOutputsRegtest);
+    for (size_t k = 0; k < nGenesisOutputsRegtest; ++k) {
+        CScript scriptPubKey = CScript() << OP_DUP << OP_HASH160 << ParseHex(regTestOutputs[k].first) << OP_EQUALVERIFY << OP_CHECKSIG;
+        CTxOut out{regTestOutputs[k].second, scriptPubKey};
+        txNew.vout[k] = out;
+    }
 
     CBlock genesis;
     genesis.nTime    = nTime;
@@ -113,10 +158,10 @@ public:
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xf9;
-        pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb4;
-        pchMessageStart[3] = 0xd9;
+        pchMessageStart[0] = 0xee;
+        pchMessageStart[1] = 0xee;
+        pchMessageStart[2] = 0xae;
+        pchMessageStart[3] = 0xc1;
         nDefaultPort = 7182;
         nPruneAfterHeight = 100000;
 
@@ -130,12 +175,7 @@ public:
         // This is fine at runtime as we'll fall back to using them as a oneshot if they dont support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("seed.unite.sipa.be"); // Pieter Wuille, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("dnsseed.bluematt.me"); // Matt Corallo, only supports x9
-        vSeeds.emplace_back("dnsseed.unite.dashjr.org"); // Luke Dashjr
-        vSeeds.emplace_back("seed.unitestats.com"); // Christian Decker, supports x1 - xf
-        vSeeds.emplace_back("seed.unite.jonasschnelli.ch"); // Jonas Schnelli, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("seed.btc.petertodd.org"); // Peter Todd, only supports x1, x5, x9, and xd
+        vSeeds.emplace_back("mainnet-seed.thirdhash.com");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -219,10 +259,10 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000002e9e7b00e1f6dc5123a04aad68dd0f0968d8c7aa45f6640795c37b1"); //1135275
 
-        pchMessageStart[0] = 0x0b;
-        pchMessageStart[1] = 0x11;
-        pchMessageStart[2] = 0x09;
-        pchMessageStart[3] = 0x07;
+        pchMessageStart[0] = 0xfd;
+        pchMessageStart[1] = 0xfc;
+        pchMessageStart[2] = 0xfb;
+        pchMessageStart[3] = 0xfa;
         nDefaultPort = 17182;
         nPruneAfterHeight = 1000;
 
@@ -234,10 +274,7 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("testnet-seed.unite.jonasschnelli.ch");
-        vSeeds.emplace_back("seed.tbtc.petertodd.org");
-        vSeeds.emplace_back("seed.testnet.unite.sprovoost.nl");
-        vSeeds.emplace_back("testnet-seed.bluematt.me"); // Just a static list of stable node(s), only supports x9
+        vSeeds.emplace_back("test-seed.thirdhash.com");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -313,10 +350,10 @@ public:
         nDefaultPort = 18444;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * UNIT);
+        genesis = CreateGenesisBlockRegTest(1296688602, 2, 0x207fffff, 1, 50 * UNIT);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
+        assert(consensus.hashGenesisBlock == uint256S("0x59447f6b31d072aaeb1e08dc0df8772d53f39e5d1afe0494294af566227398de"));
+        assert(genesis.hashMerkleRoot == uint256S("0x60793ec2bde997c3279fbd53e06d7a08d26fd9ce90f9e8fa82e8e35b141687da"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -327,7 +364,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")},
+                {0, uint256S("0x59447f6b31d072aaeb1e08dc0df8772d53f39e5d1afe0494294af566227398de")},
             }
         };
 
@@ -336,6 +373,15 @@ public:
             0,
             0
         };
+
+        finalization.m_epochLength = 5;
+        finalization.m_minDepositSize = 10000 * UNIT;
+        finalization.m_dynastyLogoutDelay = 2;
+        finalization.m_withdrawalEpochDelay = 5;
+        finalization.m_slashFractionMultiplier = 3;
+        finalization.m_bountyFractionDenominator = 25;
+        finalization.m_baseInterestFactor = ufp64::to_ufp64(700);
+        finalization.m_basePenaltyFactor = ufp64::div_2uint(2, 100000);
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -346,6 +392,13 @@ public:
         bech32_hrp = "bcrt";
     }
 };
+
+void CChainParams::UpdateFinalizationParams(esperanza::FinalizationParams &params) {
+
+  if (strNetworkID == "regtest") {
+    finalization = params;
+  }
+}
 
 static std::unique_ptr<CChainParams> globalChainParams;
 
@@ -374,4 +427,9 @@ void SelectParams(const std::string& network)
 void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout)
 {
     globalChainParams->UpdateVersionBitsParameters(d, nStartTime, nTimeout);
+}
+
+void UpdateFinalizationParams(esperanza::FinalizationParams &params)
+{
+    globalChainParams->UpdateFinalizationParams(params);
 }

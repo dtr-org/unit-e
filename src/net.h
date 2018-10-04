@@ -274,7 +274,7 @@ public:
     bool RemoveAddedNode(const std::string& node);
     std::vector<AddedNodeInfo> GetAddedNodeInfo();
 
-    size_t GetNodeCount(NumConnections num);
+    size_t GetNodeCount(NumConnections num = CConnman::CONNECTIONS_ALL);
     void GetNodeStats(std::vector<CNodeStats>& vstats);
     bool DisconnectNode(const std::string& node);
     bool DisconnectNode(NodeId id);

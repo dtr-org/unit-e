@@ -130,15 +130,37 @@ bool CBloomFilter::IsWithinSizeConstraints() const
     return vData.size() <= MAX_BLOOM_FILTER_SIZE && nHashFuncs <= MAX_HASH_FUNCS;
 }
 
+namespace {
+bool TransactionIsRelatedToEsperanza(const CTransaction& tx)
+{
+    switch (tx.GetType()) {
+        case TxType::VOTE:
+        case TxType::DEPOSIT:
+        case TxType::LOGOUT:
+        case TxType::SLASH:
+            return true;
+        case TxType::STANDARD:
+        case TxType::COINSTAKE:
+        case TxType::WITHDRAW:
+            return false;
+    }
+}
+} // annon ns
+
 bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
 {
+    bool matchFinalization = nFlags & MATCH_EPSPERANZA_FINALIZATION;
+
     bool fFound = false;
     // Match if the filter contains the hash of tx
     //  for finding tx when they appear in a block
-    if (isFull)
+    if (isFull) {
         return true;
-    if (isEmpty)
-        return false;
+    }
+    if (isEmpty) {
+        return matchFinalization && TransactionIsRelatedToEsperanza(tx);
+    }
+
     const uint256& hash = tx.GetHash();
     if (contains(hash))
         fFound = true;
@@ -196,6 +218,9 @@ bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
                 return true;
         }
     }
+
+    if (matchFinalization && TransactionIsRelatedToEsperanza(tx))
+        return true;
 
     return false;
 }

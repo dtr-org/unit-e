@@ -13,6 +13,8 @@ JSON_TEST_FILES = \
   test/data/base58_keys_valid.json \
   test/data/base58_encode_decode.json \
   test/data/base58_keys_invalid.json \
+  test/data/bip39_vectors_english.json \
+  test/data/bip39_vectors_japanese.json \
   test/data/tx_invalid.json \
   test/data/tx_valid.json \
   test/data/sighash.json
@@ -28,6 +30,7 @@ UNITE_TESTS =\
   test/addrman_tests.cpp \
   test/amount_tests.cpp \
   test/allocator_tests.cpp \
+  test/base16_tests.cpp \
   test/base32_tests.cpp \
   test/base58_tests.cpp \
   test/base64_tests.cpp \
@@ -40,11 +43,18 @@ UNITE_TESTS =\
   test/checkqueue_tests.cpp \
   test/coins_tests.cpp \
   test/compress_tests.cpp \
+  test/counting_semaphore_tests.cpp \
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
   test/DoS_tests.cpp \
+  test/esperanza/admincommand_tests.cpp \
+  test/esperanza/adminstate_tests.cpp \
+  test/esperanza/finalizationstate_tests.cpp \
+  test/esperanza/finalizationparams_tests.cpp \
+  test/esperanza/validation_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
+  test/interpreter_tests.cpp \
   test/key_tests.cpp \
   test/limitedmap_tests.cpp \
   test/dbwrapper_tests.cpp \
@@ -73,7 +83,11 @@ UNITE_TESTS =\
   test/serialize_tests.cpp \
   test/sighash_tests.cpp \
   test/sigopcount_tests.cpp \
+  test/sign_tests.cpp \
   test/skiplist_tests.cpp \
+  test/snapshot_indexer_tests.cpp \
+  test/snapshot_iterator_tests.cpp \
+  test/snapshot_messages_tests.cpp \
   test/streams_tests.cpp \
   test/test_unite.cpp \
   test/test_unite.h \
@@ -85,11 +99,15 @@ UNITE_TESTS =\
   test/txvalidationcache_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
+  test/util_fun_tests.cpp \
   test/validation_block_tests.cpp \
-  test/versionbits_tests.cpp
+  test/versionbits_tests.cpp \
+  test/waiter_tests.cpp
 
 if ENABLE_WALLET
 UNITE_TESTS += \
+  test/mnemonic_tests.cpp \
+  test/proposer_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \

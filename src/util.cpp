@@ -79,6 +79,8 @@
 #include <openssl/rand.h>
 #include <openssl/conf.h>
 
+#include <array>
+
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
@@ -92,6 +94,7 @@ bool fPrintToDebugLog = true;
 
 bool fLogTimestamps = DEFAULT_LOGTIMESTAMPS;
 bool fLogTimeMicros = DEFAULT_LOGTIMEMICROS;
+bool fLogCategories = DEFAULT_LOGCATEGORIES;
 bool fLogIPs = DEFAULT_LOGIPS;
 std::atomic<bool> fReopenDebugLog(false);
 CTranslationInterface translationInterface;
@@ -252,9 +255,38 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::COINDB, "coindb"},
     {BCLog::QT, "qt"},
     {BCLog::LEVELDB, "leveldb"},
+    {BCLog::ESPERANZA, "esperanza"},
+    {BCLog::SNAPSHOT, "snapshot"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };
+
+//! @see http://supertech.csail.mit.edu/papers/debruijn.pdf
+static std::array<std::string, 32> ComputeDeBrujinLabelTabel()
+{
+    std::array<std::string, 32> categories;
+    for (const auto &logCategory : LogCategories) {
+        if (logCategory.flag == static_cast<uint32_t>(BCLog::NONE) ||
+            logCategory.flag == static_cast<uint32_t>(BCLog::ALL)) {
+            continue;
+        }
+        const uint32_t vec = logCategory.flag;
+        const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+        categories[pos] = logCategory.category;
+    }
+    return categories;
+}
+
+static std::string GetLogCategoryLabel(const BCLog::LogFlags category)
+{
+    if (category == BCLog::NONE) {
+        return "";
+    }
+    static const std::array<std::string, 32> labels = ComputeDeBrujinLabelTabel();
+    const auto vec = static_cast<uint32_t>(category);
+    const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+    return labels[pos];
+}
 
 bool GetLogCategory(uint32_t *f, const std::string *str)
 {
@@ -308,40 +340,48 @@ std::vector<CLogCategoryActive> ListActiveLogCategories()
  * suppress printing of the timestamp when multiple calls are made that don't
  * end in a newline. Initialize it to true, and hold it, in the calling context.
  */
-static std::string LogTimestampStr(const std::string &str, std::atomic_bool *fStartedNewLine)
+static std::string LogTimestampStr(const BCLog::LogFlags category, const std::string &str, std::atomic_bool *fStartedNewLine)
 {
     std::string strStamped;
 
-    if (!fLogTimestamps)
+    if (!fLogTimestamps && !fLogCategories) {
         return str;
+    }
 
     if (*fStartedNewLine) {
-        int64_t nTimeMicros = GetTimeMicros();
-        strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
-        if (fLogTimeMicros)
-            strStamped += strprintf(".%06d", nTimeMicros%1000000);
-        int64_t mocktime = GetMockTime();
-        if (mocktime) {
-            strStamped += " (mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ")";
+        if (fLogTimestamps) {
+          int64_t nTimeMicros = GetTimeMicros();
+          strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
+          if (fLogTimeMicros) {
+              strStamped += strprintf(".%06d", nTimeMicros%1000000);
+          }
+          strStamped += " ";
         }
-        strStamped += ' ' + str;
-    } else
+        if (fLogCategories) {
+            strStamped += strprintf("[%11s] ", GetLogCategoryLabel(category));
+        }
+        if (fLogTimestamps) {
+            int64_t mocktime = GetMockTime();
+            if (mocktime) {
+              strStamped += "(mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ") ";
+            }
+        }
+        strStamped += str;
+    } else {
         strStamped = str;
+    }
 
-    if (!str.empty() && str[str.size()-1] == '\n')
-        *fStartedNewLine = true;
-    else
-        *fStartedNewLine = false;
+    *fStartedNewLine = !str.empty() && str[str.size()-1] == '\n';
 
     return strStamped;
 }
 
-int LogPrintStr(const std::string &str)
+int LogPrintStr(const std::string &str, const BCLog::LogFlags category)
 {
     int ret = 0; // Returns total number of characters written
     static std::atomic_bool fStartedNewLine(true);
 
-    std::string strTimestamped = LogTimestampStr(str, &fStartedNewLine);
+    std::string strTimestamped = LogTimestampStr(category, str, &fStartedNewLine);
 
     if (fPrintToConsole)
     {
@@ -958,4 +998,50 @@ std::string CopyrightHolders(const std::string& strPrefix)
 int64_t GetStartupTime()
 {
     return nStartupTime;
+}
+
+static int DaysInMonth(int year, int month) {
+  return month == 2
+             ? (year % 4 ? 28 : (year % 100 ? 29 : (year % 400 ? 28 : 29)))
+             : ((month - 1) % 7 % 2 ? 30 : 31);
+}
+
+int64_t StrToEpoch(const std::string &input, bool fillMax) {
+  int year, month, day, hours, minutes, seconds;
+  int n = sscanf(input.c_str(), "%d-%d-%dT%d:%d:%d",
+                 &year, &month, &day, &hours, &minutes, &seconds);
+
+  struct tm tm = {};
+
+  if (n > 0 && year >= 1970 && year <= 9999) {
+    tm.tm_year = year - 1900;
+  }
+  if (n > 1 && month > 0 && month < 13) {
+    tm.tm_mon = month - 1;
+  } else if (fillMax) {
+    tm.tm_mon = 11;
+    month = 12;
+  }
+  if (n > 2 && day > 0 && day < 32) {
+    tm.tm_mday = day;
+  } else {
+    tm.tm_mday = fillMax ? DaysInMonth(year, month) : 1;
+  }
+  if (n > 3 && hours >= 0 && hours < 24) {
+    tm.tm_hour = hours;
+  } else if (fillMax) {
+    tm.tm_hour = 23;
+  }
+  if (n > 4 && minutes >= 0 && minutes < 60) {
+    tm.tm_min = minutes;
+  } else if (fillMax) {
+    tm.tm_min = 59;
+  }
+  if (n > 5 && seconds >= 0 && seconds < 60) {
+    tm.tm_sec = seconds;
+  } else if (fillMax) {
+    tm.tm_sec = 59;
+  }
+
+  return (int64_t)mktime(&tm);
 }

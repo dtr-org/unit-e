@@ -119,7 +119,7 @@ ScriptError_t ParseScriptError(const std::string &name)
     return SCRIPT_ERR_UNKNOWN_ERROR;
 }
 
-BOOST_FIXTURE_TEST_SUITE(script_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(script_tests, ReducedTestingSetup)
 
 CMutableTransaction BuildCreditingTransaction(const CScript& scriptPubKey, int nValue = 0)
 {
@@ -1479,6 +1479,108 @@ BOOST_AUTO_TEST_CASE(script_can_append_self)
     d = CScript() << ParseHex(hex) << OP_CHECKSIG << ParseHex(hex) << OP_CHECKSIG;
     s += s;
     BOOST_CHECK(s == d);
+}
+
+BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
+{
+    std::string validatorIndex = "d3905170000000055851e6a2ccf3b9d00d72fd6d49193d45fdaafbe9c406f334";
+    std::string targetHash = "74963700000000055851e6a2ccf3b9d00d72fd6d49193d45fdaafbe9c406f334";
+    uint32_t sourceHeight = 0;
+    uint32_t targetHeight = 3231231;
+
+    esperanza::Vote data = {uint256(ParseHex(validatorIndex)),
+                     uint256(ParseHex(targetHash)),
+                     sourceHeight,
+                     targetHeight};
+
+    CScript s = CScript::EncodeVote(data);
+
+    esperanza::Vote decodeData = CScript::DecodeVote(s);
+
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorIndex);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
+    BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
+}
+
+BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
+{
+    std::string signature = "304402204b9bb63f9b055a7d82841f064167df5d9b774f91a5d76eb807559a03f51dc39f02203af15ccb70a77801afdac05ef1723b07a59da9d3b19a4ced37e53cdc9a0db1bc01";
+    std::string validatorId = "e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1";
+    std::string targetHash = "5abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912";
+    uint32_t sourceHeight = 10;
+    uint32_t targetHeight = 100;
+
+    esperanza::Vote vote{uint256(ParseHex(validatorId)),
+                   uint256(ParseHex(targetHash)),
+                   sourceHeight,
+                   targetHeight};
+
+    CScript encodedVote = CScript::EncodeVote(vote);
+    std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
+
+    CScript s = (CScript() << ParseHex(signature)) << voteVector;
+
+    esperanza::Vote decodeData = CScript::ExtractVoteFromSignature(s);
+
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorId);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
+    BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
+}
+
+BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
+{
+    std::string signature = "304402204b9bb63f9b055a7d82841f064167df5d9b774f91a5d76eb807559a03f51dc39f02203af15ccb70a77801afdac05ef1723b07a59da9d3b19a4ced37e53cdc9a0db1bc01";
+    std::string validatorId = "e10b483d6ce4464ff272d8f2c38defed743b2f274e31c54b8edb1c617c07d0e1";
+    std::string targetHash = "5abcb1b1868582266bdd2d683ece9396cc44673085e0738bc5f173ef8e248912";
+    uint32_t sourceHeight = 10;
+    uint32_t targetHeight = 100;
+
+    esperanza::Vote vote{uint256(ParseHex(validatorId)),
+                         uint256(ParseHex(targetHash)),
+                         sourceHeight,
+                         targetHeight};
+
+    CScript encodedVote = CScript::EncodeVote(vote);
+    std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
+
+    CScriptWitness s;
+    s.stack.push_back(ParseHex(signature));
+    s.stack.push_back(voteVector);
+
+    esperanza::Vote decodeData = CScript::ExtractVoteFromWitness(s);
+
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorId);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
+    BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
+}
+
+BOOST_AUTO_TEST_CASE(extract_admin_command_from_witness)
+{
+    std::string signature1 = "304402206acc44d797f424a2875c90dec3e82c55fca0275cb5e4d4b04f1462ee8377ac3c02206bc51ad98f22de5dbbd9d81ec9c4fb8d0ffffb7b29d0467effa13062a71190cd01";
+    std::string signature2 = "304402202dc4b972c10d517a86ec56b6584071b406f5ad8c892098530dcc06dcc96a28370220092841c527c9878c84b1afe36ccd0e2fcd061f2a0e2cdbfc40c32994a8c51cdd01";
+    std::string data = "5221038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e82102f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa2103d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c53ae";
+
+    CScriptWitness witness;
+    witness.stack.push_back({});
+    witness.stack.push_back(ParseHex(signature1));
+    witness.stack.push_back(ParseHex(signature2));
+    witness.stack.push_back(ParseHex(data));
+
+    std::vector<CPubKey> keys;
+
+    BOOST_CHECK(CScript::ExtractAdminKeysFromWitness(witness, keys));
+    BOOST_CHECK_EQUAL(3, keys.size());
+
+    std::string key0 = "038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e8";
+    std::string key1 = "02f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa";
+    std::string key2 = "03d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c";
+
+    BOOST_CHECK_EQUAL(key0, HexStr(keys[0]));
+    BOOST_CHECK_EQUAL(key1, HexStr(keys[1]));
+    BOOST_CHECK_EQUAL(key2, HexStr(keys[2]));
 }
 
 

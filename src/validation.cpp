@@ -14,6 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <esperanza/validation.h>
 #include <cuckoocache.h>
 #include <hash.h>
 #include <init.h>
@@ -46,6 +47,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/join.hpp>
 #include <boost/thread.hpp>
+
+#include <esperanza/finalizationstate.h>
+#include <tinyformat.h>
 
 #if defined(NDEBUG)
 # error "UnitE cannot be compiled without assertions."
@@ -432,6 +436,11 @@ static void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) 
         LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool\n", expired);
     }
 
+    int votesExpired = pool.ExpireVotes();
+    if (votesExpired != 0) {
+      LogPrint(BCLog::MEMPOOL, "Expired %i votes from the memory pool\n", expired);
+    }
+
     std::vector<COutPoint> vNoSpendsRemaining;
     pool.TrimToSize(limit, &vNoSpendsRemaining);
     for (const COutPoint& removed : vNoSpendsRemaining)
@@ -555,6 +564,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
     LOCK(pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
+
+    if (tx.IsVote()){
+        bypass_limits = true;
+    }
+
     if (pfMissingInputs) {
         *pfMissingInputs = false;
     }
@@ -566,6 +580,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (tx.IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "coinbase");
 
+    //UNIT-E: remove this when we are ready to accept only witness transactions
     // Reject transactions with witness before segregated witness activates (override with -prematurewitness)
     bool witnessEnabled = IsWitnessEnabled(chainActive.Tip(), chainparams.GetConsensus());
     if (!gArgs.GetBoolArg("-prematurewitness", false) && tx.HasWitness() && !witnessEnabled) {
@@ -967,6 +982,60 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // - the transaction is not dependent on any other transactions in the mempool
         bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() && pool.HasNoInputsOf(tx);
 
+        switch (tx.GetType()) {
+          case TxType::VOTE: {
+
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting vote to mempool with id %s.\n",
+                     __func__,
+                     tx.GetHash().GetHex());
+
+            if (!esperanza::CheckVoteTransaction(state, tx)) {
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Vote cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(0, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::DEPOSIT: {
+
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting deposit to mempool with id %s.\n", __func__,
+                tx.GetHash().GetHex());
+
+            if (!esperanza::CheckDepositTransaction(state, tx)){
+              LogPrint(BCLog::ESPERANZA,
+                  "%s: Deposit cannot be included into mempool: %s.\n",
+                  __func__,
+                  state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::LOGOUT: {
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting logout to mempool with id %s.\n", __func__,
+                     tx.GetHash().GetHex());
+
+            if (!esperanza::CheckLogoutTransaction(state, tx)){
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Logout cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckLogoutTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          default: {
+            break;
+          }
+        }
+
         // Store transaction in memory
         pool.addUnchecked(hash, entry, setAncestors, validForFeeEstimation);
 
@@ -1072,6 +1141,64 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 }
 
 
+/*! \brief Retrieve a transaction and block header from disk.
+ *
+ * This function is called from CheckProofOfStake only.
+ *
+ * It does not return the complete block always
+  */
+bool GetTransactionAndBlockHeader(
+        const uint256 &hash,                      /*!< [in] The hash of the transaction to look for. */
+        const Consensus::Params &consensusParams, /*!< [in] The consensus params of the chain. */
+        CTransactionRef &txOut,                   /*!< [out] If the transaction is found it is emitted here. */
+        CBlockHeader &blockHeader                 /*!< [out] If the transaction is found the block header of the block containing it is emitted here. */)
+{
+    CBlockIndex *pindexSlow = nullptr;
+
+    LOCK(cs_main);
+
+    if (fTxIndex) {
+        CDiskTxPos postx;
+        if (pblocktree->ReadTxIndex(hash, postx)) {
+            CAutoFile file(OpenBlockFile(postx, true), SER_DISK, CLIENT_VERSION);
+            if (file.IsNull()) {
+                return error("%s: OpenBlockFile failed", __func__);
+            }
+            try {
+                file >> blockHeader;
+                fseek(file.Get(), postx.nTxOffset, SEEK_CUR);
+                file >> txOut;
+            } catch (const std::exception& e) {
+                return error("%s: Deserialize or I/O error - %s", __func__, e.what());
+            }
+            if (txOut->GetHash() != hash) {
+                return error("%s: txid mismatch", __func__);
+            }
+            return true;
+        }
+    }
+
+    // use coin database to locate block that contains transaction, and scan it
+    const Coin& coin = AccessByTxid(*pcoinsTip, hash);
+    if (!coin.IsSpent()) pindexSlow = chainActive[coin.nHeight];
+
+    if (pindexSlow) {
+        CBlock block;
+        // read and return entire block
+        if (ReadBlockFromDisk(block, pindexSlow, consensusParams)) {
+            for (const auto& tx : block.vtx) {
+                if (tx->GetHash() == hash) {
+                    txOut = tx;
+                    blockHeader = block.GetBlockHeader();
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 
 
 
@@ -1155,28 +1282,41 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     return nSubsidy;
 }
 
-bool IsInitialBlockDownload()
+SyncStatus GetInitialBlockDownloadStatus()
 {
     // Once this function has returned false, it must remain false.
     static std::atomic<bool> latchToFalse{false};
     // Optimization: pre-test latch before taking the lock.
-    if (latchToFalse.load(std::memory_order_relaxed))
-        return false;
-
+    if (latchToFalse.load(std::memory_order_relaxed)) {
+        return SyncStatus::SYNCED;
+    }
     LOCK(cs_main);
-    if (latchToFalse.load(std::memory_order_relaxed))
-        return false;
-    if (fImporting || fReindex)
-        return true;
-    if (chainActive.Tip() == nullptr)
-        return true;
-    if (chainActive.Tip()->nChainWork < nMinimumChainWork)
-        return true;
-    if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
-        return true;
+    if (latchToFalse.load(std::memory_order_relaxed)) {
+        return SyncStatus::SYNCED;
+    }
+    if (fImporting) {
+        return SyncStatus::IMPORTING;
+    }
+    if (fReindex) {
+        return SyncStatus::REINDEXING;
+    }
+    if (chainActive.Tip() == nullptr) {
+        return SyncStatus::NO_TIP;
+    }
+    if (chainActive.Tip()->nChainWork < nMinimumChainWork) {
+        return SyncStatus::MINIMUM_CHAIN_WORK_NOT_REACHED;
+    }
+    if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge)) {
+        return SyncStatus::MAX_TIP_AGE_EXCEEDED;
+    }
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     latchToFalse.store(true, std::memory_order_relaxed);
-    return false;
+    return SyncStatus::SYNCED;
+}
+
+bool IsInitialBlockDownload()
+{
+    return GetInitialBlockDownloadStatus() != +SyncStatus::SYNCED;
 }
 
 CBlockIndex *pindexBestForkTip = nullptr, *pindexBestForkBase = nullptr;
@@ -1810,13 +1950,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
     assert(hashPrevBlock == view.GetBestBlock());
 
-    // Special case for the genesis block, skipping connection of its transactions
-    // (its coinbase is unspendable)
-    if (block.GetHash() == chainparams.GetConsensus().hashGenesisBlock) {
-        if (!fJustCheck)
-            view.SetBestBlock(pindex->GetBlockHash());
-        return true;
-    }
+    // Here we do not skip in case of genesis because we want to be able to spend its coinbase
 
     nBlocksTotal++;
 
@@ -1849,43 +1983,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
     LogPrint(BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO, nTimeCheck * MILLI / nBlocksTotal);
 
-    // Do not allow blocks that contain transactions which 'overwrite' older transactions,
-    // unless those are already completely spent.
-    // If such overwrites are allowed, coinbases and transactions depending upon those
-    // can be duplicated to remove the ability to spend the first instance -- even after
-    // being sent to another address.
-    // See BIP30 and http://r6.ca/blog/20120206T005236Z.html for more information.
-    // This logic is not necessary for memory pool transactions, as AcceptToMemoryPool
-    // already refuses previously-known transaction ids entirely.
-    // This rule was originally applied to all blocks with a timestamp after March 15, 2012, 0:00 UTC.
-    // Now that the whole chain is irreversibly beyond that time it is applied to all blocks except the
-    // two in the chain that violate it. This prevents exploiting the issue against nodes during their
-    // initial block download.
-    bool fEnforceBIP30 = (!pindex->phashBlock) || // Enforce on CreateNewBlock invocations which don't have a hash.
-                          !((pindex->nHeight==91842 && pindex->GetBlockHash() == uint256S("0x00000000000a4d0a398161ffc163c503763b1f4360639393e0e4c8e300e0caec")) ||
-                           (pindex->nHeight==91880 && pindex->GetBlockHash() == uint256S("0x00000000000743f190a18c5577a3c2d2a1f610ae9601ac046a38084ccb7cd721")));
-
-    // Once BIP34 activated it was not possible to create new duplicate coinbases and thus other than starting
-    // with the 2 existing duplicate coinbase pairs, not possible to create overwriting txs.  But by the
-    // time BIP34 activated, in each of the existing pairs the duplicate coinbase had overwritten the first
-    // before the first had been spent.  Since those coinbases are sufficiently buried its no longer possible to create further
-    // duplicate transactions descending from the known pairs either.
-    // If we're on the known chain at height greater than where BIP34 activated, we can save the db accesses needed for the BIP30 check.
-    assert(pindex->pprev);
-    CBlockIndex *pindexBIP34height = pindex->pprev->GetAncestor(chainparams.GetConsensus().BIP34Height);
-    //Only continue to enforce if we're below BIP34 activation height or the block hash at that height doesn't correspond.
-    fEnforceBIP30 = fEnforceBIP30 && (!pindexBIP34height || !(pindexBIP34height->GetBlockHash() == chainparams.GetConsensus().BIP34Hash));
-
-    if (fEnforceBIP30) {
-        for (const auto& tx : block.vtx) {
-            for (size_t o = 0; o < tx->vout.size(); o++) {
-                if (view.HaveCoin(COutPoint(tx->GetHash(), o))) {
-                    return state.DoS(100, error("ConnectBlock(): tried to overwrite transaction"),
-                                     REJECT_INVALID, "bad-txns-BIP30");
-                }
-            }
-        }
-    }
+    // Here there was a check for BIP30 before BIP34 but we consider those already active
 
     // Start enforcing BIP68 (sequence locks) and BIP112 (CHECKSEQUENCEVERIFY) using versionbits logic.
     int nLockTimeFlags = 0;
@@ -1971,12 +2069,15 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
-    if (block.vtx[0]->GetValueOut() > blockReward)
-        return state.DoS(100,
+    bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
+    if(!isGenesisBlock) {
+        CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
+        if (block.vtx[0]->GetValueOut() > blockReward)
+          return state.DoS(100,
                          error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
                                block.vtx[0]->GetValueOut(), blockReward),
-                               REJECT_INVALID, "bad-cb-amount");
+                         REJECT_INVALID, "bad-cb-amount");
+    }
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
@@ -1986,7 +2087,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (fJustCheck)
         return true;
 
-    if (!WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
+    if (!isGenesisBlock && !WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
         return false;
 
     if (!pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
@@ -2371,9 +2472,13 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     }
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
+
+    esperanza::FinalizationState::ProcessNewTip(*pindexNew, blockConnecting);
+
     // Write the chain state to disk, if necessary.
-    if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED))
-        return false;
+    if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED)) {
+      return false;
+    }
     int64_t nTime5 = GetTimeMicros(); nTimeChainState += nTime5 - nTime4;
     LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI, nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
     // Remove conflicting transactions from the mempool.;
@@ -3180,20 +3285,84 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                               ? pindexPrev->GetMedianTimePast()
                               : block.GetBlockTime();
 
+
+    // Enforce rule that the coinbase starts with serialized block height
+    if (nHeight >= consensusParams.BIP34Height) {
+
+        CScript expect = CScript() << nHeight;
+        if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
+              !std::equal(expect.begin(),expect.end(),block.vtx[0]->vin[0].scriptSig.begin())) {
+            return state.DoS(100,
+                           false,
+                           REJECT_INVALID,
+                           "bad-cb-height",
+                           false,
+                           "block height mismatch in coinbase");
+        }
+    }
     // Check that all transactions are finalized
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
         }
-    }
 
-    // Enforce rule that the coinbase starts with serialized block height
-    if (nHeight >= consensusParams.BIP34Height)
-    {
-        CScript expect = CScript() << nHeight;
-        if (block.vtx[0]->vin[0].scriptSig.size() < expect.size() ||
-            !std::equal(expect.begin(), expect.end(), block.vtx[0]->vin[0].scriptSig.begin())) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-height", false, "block height mismatch in coinbase");
+        //UNIT-E: pretty much the same code can be found in AcceptMemoryPoolWorker maybe it wourld be worth unifying
+        switch (tx->GetType()) {
+          case TxType ::VOTE: {
+
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting vote to mempool with id %s.\n",
+                     __func__,
+                     tx->GetHash().GetHex());
+
+            if (!esperanza::CheckVoteTransaction(state, *tx, pindexPrev)) {
+
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Vote cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckVoteTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::DEPOSIT: {
+
+            LogPrint(BCLog::ESPERANZA,
+                "%s: Accepting deposit to mempool with id %s.\n",
+                __func__,
+                tx->GetHash().GetHex());
+
+            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)) {
+              LogPrint(BCLog::ESPERANZA,
+                  "%s: Deposit cannot be included into mempool: %s.\n",
+                  __func__,
+                  state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckDepositTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::LOGOUT: {
+
+            LogPrint(BCLog::ESPERANZA,
+                     "%s: Accepting logout to mempool with id %s.\n",
+                     __func__,
+                     tx->GetHash().GetHex());
+
+            if (!esperanza::CheckLogoutTransaction(state, *tx, pindexPrev)) {
+              LogPrint(BCLog::ESPERANZA,
+                       "%s: Logout cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: CheckLogoutTransaction failed.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          default: {
+            break;
+          }
         }
     }
 
@@ -3478,7 +3647,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     if (!ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
     if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, true))
-        return false;
+        return error("%s: CChainState::ConnectBlock: %s", __func__, FormatStateMessage(state));;
     assert(state.IsValid());
 
     return true;

@@ -78,7 +78,7 @@ static CService ResolveService(std::string ip, int port = 0)
     return ResolveService(ip.c_str(), port);
 }
 
-BOOST_FIXTURE_TEST_SUITE(addrman_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(addrman_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(addrman_simple)
 {

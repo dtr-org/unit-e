@@ -10,9 +10,13 @@
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <protocol.h>
+#include <esperanza/finalizationparams.h>
+#include <esperanza/params.h>
 
 #include <memory>
 #include <vector>
+#include <chain.h>
+#include <amount.h>
 
 struct SeedSpec6 {
     uint8_t addr[16];
@@ -52,6 +56,9 @@ public:
     };
 
     const Consensus::Params& GetConsensus() const { return consensus; }
+
+    const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
+    const esperanza::Params& GetEsperanza() const { return esperanza; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
     int GetDefaultPort() const { return nDefaultPort; }
 
@@ -73,10 +80,14 @@ public:
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
+    void UpdateFinalizationParams(esperanza::FinalizationParams &params);
+
 protected:
     CChainParams() {}
 
     Consensus::Params consensus;
+    esperanza::Params esperanza = esperanza::Params(this);
+    esperanza::FinalizationParams finalization;
     CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
     uint64_t nPruneAfterHeight;
@@ -116,5 +127,10 @@ void SelectParams(const std::string& chain);
  * Allows modifying the Version Bits regtest parameters.
  */
 void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
+
+/**
+ * Allows modifying the esperanza regtest parameters.
+ */
+void UpdateFinalizationParams(esperanza::FinalizationParams &params);
 
 #endif // UNITE_CHAINPARAMS_H

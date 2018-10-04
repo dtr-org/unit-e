@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(timedata_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(timedata_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(util_MedianFilter)
 {

@@ -22,7 +22,7 @@
 // amounts 50 .. 21000000
 #define NUM_MULTIPLES_50UNT 420000
 
-BOOST_FIXTURE_TEST_SUITE(compress_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(compress_tests, ReducedTestingSetup)
 
 bool static TestEncode(uint64_t in) {
     return in == CTxOutCompressor::DecompressAmount(CTxOutCompressor::CompressAmount(in));

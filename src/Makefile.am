@@ -77,8 +77,10 @@ endif
 UNITE_CORE_H = \
   addrdb.h \
   addrman.h \
+  address/address.h \
   base58.h \
   bech32.h \
+  better-enums/enum.h \
   bloom.h \
   blockencodings.h \
   chain.h \
@@ -99,12 +101,41 @@ UNITE_CORE_H = \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  esperanza/admincommand.h \
+  esperanza/adminparams.h \
+  esperanza/adminstate.h \
+  esperanza/checkpoint.h \
+  esperanza/finalizationparams.h \
+  esperanza/finalizationstate.h \
+  esperanza/init.h \
+  esperanza/kernel.h \
+  esperanza/proposer.h \
+  esperanza/proposer_init.h \
+  esperanza/params.h \
+  esperanza/rpcproposer.h \
+  esperanza/settings.h \
+  esperanza/settings_init.h \
+  esperanza/stakevalidation.h \
+  esperanza/validation.h \
+  esperanza/validator.h \
+  esperanza/validatorstate.h \
+  esperanza/vote.h \
+  esperanza/walletextension.h \
   fs.h \
   httprpc.h \
   httpserver.h \
   indirectmap.h \
   init.h \
   key.h \
+  key/mnemonic/mnemonic.h \
+  key/mnemonic/chinese_simplified.h \
+  key/mnemonic/chinese_traditional.h \
+  key/mnemonic/english.h \
+  key/mnemonic/french.h \
+  key/mnemonic/japanese.h \
+  key/mnemonic/spanish.h \
+  key/mnemonic/italian.h \
+  key/mnemonic/korean.h \
   keystore.h \
   dbwrapper.h \
   limitedmap.h \
@@ -128,6 +159,7 @@ UNITE_CORE_H = \
   reverselock.h \
   rpc/blockchain.h \
   rpc/client.h \
+  rpc/esperanza.h \
   rpc/mining.h \
   rpc/protocol.h \
   rpc/safemode.h \
@@ -139,6 +171,11 @@ UNITE_CORE_H = \
   script/sign.h \
   script/standard.h \
   script/ismine.h \
+  snapshot/creator.h \
+  snapshot/indexer.h \
+  snapshot/iterator.h \
+  snapshot/messages.h \
+  snapshot/p2p_processing.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -146,27 +183,38 @@ UNITE_CORE_H = \
   support/events.h \
   support/lockedpool.h \
   sync.h \
+  sync_status.h \
   threadsafety.h \
   threadinterrupt.h \
   timedata.h \
   torcontrol.h \
   txdb.h \
   txmempool.h \
+  ufp64.h \
   ui_interface.h \
   undo.h \
+  unilib/uninorms.h \
+  unilib/utf8.h \
   util.h \
+  utilfun.h \
   utilmoneystr.h \
   utiltime.h \
+  utiltypetags.h \
   validation.h \
   validationinterface.h \
   versionbits.h \
+  waiter.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
   wallet/db.h \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
+  wallet/rpcaddressbook.h \
+  wallet/rpcmnemonic.h \
+  wallet/rpcvalidator.h \
   wallet/rpcwallet.h \
+  wallet/rpcwalletext.h \
   wallet/wallet.h \
   wallet/walletdb.h \
   wallet/walletutil.h \
@@ -194,6 +242,13 @@ libunite_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
+  esperanza/admincommand.cpp \
+  esperanza/adminstate.cpp \
+  esperanza/checkpoint.cpp \
+  esperanza/finalizationstate.cpp \
+  esperanza/finalizationparams.cpp \
+  esperanza/validation.cpp \
+  esperanza/validator.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -209,6 +264,7 @@ libunite_server_a_SOURCES = \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/esperanza.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
   rpc/net.cpp \
@@ -217,6 +273,10 @@ libunite_server_a_SOURCES = \
   rpc/server.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
+  snapshot/creator.cpp \
+  snapshot/indexer.cpp \
+  snapshot/iterator.cpp \
+  snapshot/p2p_processing.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \
@@ -242,13 +302,28 @@ endif
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
+  address/address.cpp \
+  esperanza/init.cpp \
+  esperanza/kernel.cpp \
+  esperanza/proposer.cpp \
+  esperanza/proposer_init.cpp \
+  esperanza/rpcproposer.cpp \
+  esperanza/stakevalidation.cpp \
+  esperanza/walletextension.cpp \
+  key/mnemonic/mnemonic.cpp \
+  unilib/uninorms.cpp \
+  unilib/utf8.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
   wallet/feebumper.cpp \
   wallet/fees.cpp \
   wallet/init.cpp \
   wallet/rpcdump.cpp \
+  wallet/rpcmnemonic.cpp \
+  wallet/rpcvalidator.cpp \
   wallet/rpcwallet.cpp \
+  wallet/rpcwalletext.cpp \
+  wallet/rpcaddressbook.cpp \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
@@ -298,6 +373,7 @@ libunite_consensus_a_SOURCES = \
   primitives/block.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
+  primitives/txtype.h \
   pubkey.cpp \
   pubkey.h \
   script/uniteconsensus.cpp \
@@ -326,6 +402,9 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  esperanza/params.cpp \
+  esperanza/settings.cpp \
+  esperanza/settings_init.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \
@@ -335,6 +414,7 @@ libunite_common_a_SOURCES = \
   scheduler.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  ufp64.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)
 
@@ -361,6 +441,7 @@ libunite_util_a_SOURCES = \
   utilmoneystr.cpp \
   utilstrencodings.cpp \
   utiltime.cpp \
+  waiter.cpp \
   $(UNITE_CORE_H)
 
 if GLIBC_BACK_COMPAT
@@ -393,6 +474,7 @@ united_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_WALLET) \
+  $(LIBUNITE_UTIL) \
   $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \

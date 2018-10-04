@@ -16,14 +16,18 @@
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
 
-UniValue ValueFromAmount(const CAmount& amount)
+std::string AmountToString(const CAmount& amount)
 {
     bool sign = amount < 0;
     int64_t n_abs = (sign ? -amount : amount);
     int64_t quotient = n_abs / UNIT;
     int64_t remainder = n_abs % UNIT;
-    return UniValue(UniValue::VNUM,
-            strprintf("%s%d.%08d", sign ? "-" : "", quotient, remainder));
+    return strprintf("%s%d.%08d", sign ? "-" : "", quotient, remainder);
+}
+
+UniValue ValueFromAmount(const CAmount& amount)
+{
+    return UniValue(UniValue::VNUM, AmountToString(amount));
 }
 
 std::string FormatScript(const CScript& script)
@@ -158,7 +162,8 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
 {
     entry.pushKV("txid", tx.GetHash().GetHex());
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
-    entry.pushKV("version", tx.nVersion);
+    entry.pushKV("version", (int64_t)tx.GetVersion());
+    entry.pushKV("txtype", (int64_t)tx.GetType());
     entry.pushKV("size", (int)::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION));
     entry.pushKV("vsize", (GetTransactionWeight(tx) + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR);
     entry.pushKV("locktime", (int64_t)tx.nLockTime);

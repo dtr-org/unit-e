@@ -10,6 +10,8 @@
 class CRPCTable;
 class CWallet;
 class JSONRPCRequest;
+class CWalletTx;
+class UniValue;
 
 void RegisterWalletRPCCommands(CRPCTable &t);
 
@@ -24,5 +26,6 @@ CWallet *GetWalletForJSONRPCRequest(const JSONRPCRequest& request);
 std::string HelpRequiringPassphrase(CWallet *);
 void EnsureWalletIsUnlocked(CWallet *);
 bool EnsureWalletIsAvailable(CWallet *, bool avoidException);
+void WalletTxToJSON(const CWalletTx &wtx, UniValue &entry, bool filterMode = false);
 
 #endif //UNITE_WALLET_RPCWALLET_H

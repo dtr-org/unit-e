@@ -144,6 +144,22 @@ isminetype IsMine(const CKeyStore &keystore, const CScript& scriptPubKey, bool& 
             return ISMINE_SPENDABLE;
         break;
     }
+
+    case TX_PAYVOTESLASH:
+    {
+        if (vSolutions[0].size() == 33) {
+            keyID = CPubKey(vSolutions[0]).GetID();
+            //UNIT-E: At the moment we do not support SegWit deposit or vote transactions
+            if (sigversion != SIGVERSION_BASE) {
+                isInvalid = true;
+                return ISMINE_NO;
+            }
+            if (keystore.HaveKey(keyID)) {
+                return ISMINE_SPENDABLE;
+            }
+        }
+        break;
+    }
     }
 
     if (keystore.HaveWatchOnly(scriptPubKey)) {

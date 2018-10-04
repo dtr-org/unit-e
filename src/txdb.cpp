@@ -30,6 +30,10 @@ static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
 
+// use full names to void collision with the Bitcoin naming
+static const std::string DB_SNAPSHOT_ID = "SNAPSHOT_ID";
+static const std::string DB_ALL_SNAPSHOTS = "ALL_SNAPSHOTS";
+
 namespace {
 
 struct CoinEntry {
@@ -423,4 +427,45 @@ bool CCoinsViewDB::Upgrade() {
     uiInterface.ShowProgress("", 100, false);
     LogPrintf("[%s].\n", ShutdownRequested() ? "CANCELLED" : "DONE");
     return !ShutdownRequested();
+}
+
+bool CCoinsViewDB::GetSnapshotId(uint32_t &idOut) {
+    return db.Read(DB_SNAPSHOT_ID, idOut);
+}
+
+bool CCoinsViewDB::SetSnapshotId(uint32_t id) {
+    return db.Write(DB_SNAPSHOT_ID, id, true);
+}
+
+std::vector<uint32_t> CCoinsViewDB::GetSnapshotIds()  {
+    std::vector<uint32_t> ids;
+    if (!db.Read(DB_ALL_SNAPSHOTS, ids)) {
+        return std::vector<uint32_t>();
+    }
+
+    return ids;
+}
+
+bool CCoinsViewDB::SetSnapshotIds(std::vector<uint32_t> &ids) {
+    return db.Write(DB_ALL_SNAPSHOTS, ids, true);
+}
+
+bool CCoinsViewDB::ReserveSnapshotId(uint32_t &idOut) {
+    LOCK(cs_reservedSnapshotId);
+
+    std::vector<uint32_t> ids = GetSnapshotIds();
+
+    if (ids.empty()) {
+        idOut = 0;
+    } else {
+        idOut = ids.back() + 1;
+    }
+
+    ids.emplace_back(idOut);
+    if (!db.Write(DB_ALL_SNAPSHOTS, ids, true)) {
+        idOut = 0;
+        return false;
+    }
+
+    return true;
 }

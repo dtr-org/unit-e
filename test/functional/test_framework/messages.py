@@ -570,6 +570,9 @@ class CBlock(CBlockHeader):
             r += ser_vector(self.vtx, "serialize_with_witness")
         else:
             r += ser_vector(self.vtx, "serialize_without_witness")
+        # UNIT-E: serialize an empty block signature on top of the block
+        # this is just an interim solution
+        r += ser_vector([])
         return r
 
     # Calculate the merkle root given a vector of transaction hashes
@@ -1213,14 +1216,15 @@ class msg_headers():
         self.headers = headers if headers is not None else []
 
     def deserialize(self, f):
-        # comment in united indicates these should be deserialized as blocks
-        blocks = deser_vector(f, CBlock)
+        blocks = deser_vector(f, CBlockHeader)
         for x in blocks:
-            self.headers.append(CBlockHeader(x))
+            self.headers.append(x)
 
     def serialize(self):
-        blocks = [CBlock(x) for x in self.headers]
-        return ser_vector(blocks)
+        headers_to_send = []
+        for header in self.headers:
+            headers_to_send.append(CBlockHeader(header))
+        return ser_vector(headers_to_send)
 
     def __repr__(self):
         return "msg_headers(headers=%s)" % repr(self.headers)

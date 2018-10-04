@@ -37,6 +37,7 @@ int64_t GetStartupTime();
 static const bool DEFAULT_LOGTIMEMICROS = false;
 static const bool DEFAULT_LOGIPS        = false;
 static const bool DEFAULT_LOGTIMESTAMPS = true;
+static const bool DEFAULT_LOGCATEGORIES = true;
 extern const char * const DEFAULT_DEBUGLOGFILE;
 
 /** Signals for translation. */
@@ -52,6 +53,7 @@ extern bool fPrintToDebugLog;
 
 extern bool fLogTimestamps;
 extern bool fLogTimeMicros;
+extern bool fLogCategories;
 extern bool fLogIPs;
 extern std::atomic<bool> fReopenDebugLog;
 extern CTranslationInterface translationInterface;
@@ -104,6 +106,8 @@ namespace BCLog {
         COINDB      = (1 << 18),
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
+        ESPERANZA   = (1 << 26),
+        SNAPSHOT    = (1 << 27),
         ALL         = ~(uint32_t)0,
     };
 }
@@ -123,7 +127,7 @@ std::vector<CLogCategoryActive> ListActiveLogCategories();
 bool GetLogCategory(uint32_t *f, const std::string *str);
 
 /** Send a string to the log output */
-int LogPrintStr(const std::string &str);
+int LogPrintStr(const std::string &str, BCLog::LogFlags category = BCLog::NONE);
 
 /** Get format string from VA_ARGS for error reporting */
 template<typename... Args> std::string FormatStringFromLogArgs(const char *fmt, const Args&... args) { return fmt; }
@@ -156,7 +160,14 @@ template<typename T, typename... Args> static inline void MarkUsed(const T& t, c
 
 #define LogPrint(category, ...) do { \
     if (LogAcceptCategory((category))) { \
-        LogPrintf(__VA_ARGS__); \
+            std::string _log_msg_; /* Unlikely name to avoid shadowing variables */ \
+        try { \
+            _log_msg_ = tfm::format(__VA_ARGS__); \
+        } catch (tinyformat::format_error &fmterr) { \
+            /* Original format string will have newline so don't add one here */ \
+            _log_msg_ = "Error \"" + std::string(fmterr.what()) + "\" while formatting log message: " + FormatStringFromLogArgs(__VA_ARGS__); \
+        } \
+        LogPrintStr(_log_msg_, category); \
     } \
 } while(0)
 #endif
@@ -166,6 +177,13 @@ bool error(const char* fmt, const Args&... args)
 {
     LogPrintStr("ERROR: " + tfm::format(fmt, args...) + "\n");
     return false;
+}
+
+template<int errcode, typename... Args>
+int error(const char *fmt, const Args&... args)
+{
+    LogPrintStr("ERROR: " + tfm::format(fmt, args...) + "\n");
+    return errcode;
 }
 
 void PrintExceptionContinue(const std::exception *pex, const char* pszThread);
@@ -347,5 +365,7 @@ std::unique_ptr<T> MakeUnique(Args&&... args)
 {
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+
+int64_t StrToEpoch(const std::string &input, bool fillMax = false);
 
 #endif // UNITE_UTIL_H

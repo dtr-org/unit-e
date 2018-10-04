@@ -11,7 +11,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(getarg_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(getarg_tests, ReducedTestingSetup)
 
 static void ResetArgs(const std::string& strArg)
 {

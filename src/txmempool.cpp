@@ -8,6 +8,7 @@
 #include <consensus/consensus.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <esperanza/validation.h>
 #include <validation.h>
 #include <policy/policy.h>
 #include <policy/fees.h>
@@ -284,7 +285,7 @@ void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, b
         // should be a bit faster.
         // However, if we happen to be in the middle of processing a reorg, then
         // the mempool can be in an inconsistent state.  In this case, the set
-        // of ancestors reachable via mapLinks will be the same as the set of 
+        // of ancestors reachable via mapLinks will be the same as the set of
         // ancestors whose packages include this transaction, because when we
         // add a new transaction to the mempool in addUnchecked(), we assume it
         // has no children, and in the case of a reorg where that assumption is
@@ -916,6 +917,28 @@ void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPool
     for (const txiter& it : stage) {
         removeUnchecked(it, reason);
     }
+}
+
+int CTxMemPool::ExpireVotes() {
+  LOCK(cs);
+  auto it = mempool.mapTx.get<ancestor_score>().begin();
+
+  setEntries toremove;
+  while (it != mapTx.get<ancestor_score>().end()) {
+
+    if (it->GetTx().IsVote()) {
+      if (esperanza::IsVoteExpired(it->GetTx())) {
+          toremove.insert(mapTx.project<0>(it));
+      }
+    }
+    ++it;
+  }
+  setEntries stage;
+  for (txiter removeit : toremove) {
+      CalculateDescendants(removeit, stage);
+  }
+  RemoveStaged(stage, false, MemPoolRemovalReason::OUTDATED_VOTE);
+  return stage.size();
 }
 
 int CTxMemPool::Expire(int64_t time) {

@@ -21,7 +21,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(util_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(util_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(util_criticalsection)
 {
@@ -50,6 +50,7 @@ static const unsigned char ParseHex_expected[65] = {
     0xde, 0x5c, 0x38, 0x4d, 0xf7, 0xba, 0x0b, 0x8d, 0x57, 0x8a, 0x4c, 0x70, 0x2b, 0x6b, 0xf1, 0x1d,
     0x5f
 };
+
 BOOST_AUTO_TEST_CASE(util_ParseHex)
 {
     std::vector<unsigned char> result;

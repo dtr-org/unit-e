@@ -6,6 +6,7 @@
 #ifndef UNITE_WALLET_WALLET_H
 #define UNITE_WALLET_WALLET_H
 
+#include <esperanza/walletextension.h>
 #include <amount.h>
 #include <policy/feerate.h>
 #include <streams.h>
@@ -18,6 +19,7 @@
 #include <wallet/crypter.h>
 #include <wallet/walletdb.h>
 #include <wallet/rpcwallet.h>
+#include <key/mnemonic/mnemonic.h>
 
 #include <algorithm>
 #include <atomic>
@@ -672,8 +674,12 @@ private:
     std::atomic<bool> fAbortRescan;
     std::atomic<bool> fScanningWallet; //controlled by WalletRescanReserver
     std::mutex mutexScanning;
-    friend class WalletRescanReserver;
 
+    friend class WalletRescanReserver;
+    friend class esperanza::WalletExtension;
+
+    const esperanza::Settings& m_esperanzaSettings;
+    esperanza::WalletExtension m_stakingExtension;
 
     /**
      * Select a set of coins such that nValueRet >= nTargetValue and at least
@@ -758,6 +764,9 @@ public:
      */
     mutable CCriticalSection cs_wallet;
 
+    //! Access to the Proof-of-Stake Esperanza extensions to the Wallet.
+    esperanza::WalletExtension& GetWalletExtension();
+
     /** Get database handle used by this wallet. Ideally this function would
      * not be necessary.
      */
@@ -766,8 +775,7 @@ public:
         return *dbw;
     }
 
-    /** Get a name for this wallet for logging/debugging purposes.
-     */
+    //! Get a name for this wallet for logging/debugging purposes.
     std::string GetName() const
     {
         if (dbw) {
@@ -790,13 +798,20 @@ public:
     unsigned int nMasterKeyMaxID;
 
     // Create wallet with dummy database handle
-    CWallet(): dbw(new CWalletDBWrapper())
+    CWallet()
+      : m_esperanzaSettings(esperanza::Settings::Default()),
+        m_stakingExtension(m_esperanzaSettings, this),
+        dbw(new CWalletDBWrapper())
     {
         SetNull();
     }
 
     // Create wallet with passed-in database handle
-    explicit CWallet(std::unique_ptr<CWalletDBWrapper> dbw_in) : dbw(std::move(dbw_in))
+    explicit CWallet(const esperanza::Settings& esperanzaSettings,
+                     std::unique_ptr<CWalletDBWrapper> dbw_in)
+      : m_esperanzaSettings(esperanzaSettings),
+        m_stakingExtension(esperanzaSettings, this),
+        dbw(std::move(dbw_in))
     {
         SetNull();
     }
@@ -980,7 +995,7 @@ public:
      * @note passing nChangePosInOut as -1 will result in setting a random position
      */
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
-                           std::string& strFailReason, const CCoinControl& coin_control, bool sign = true);
+                           std::string& strFailReason, const CCoinControl& coin_control, bool sign = true, TxType type = TxType::STANDARD);
     bool CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CConnman* connman, CValidationState& state);
 
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& entries);
@@ -1105,7 +1120,8 @@ public:
     bool MarkReplaced(const uint256& originalHash, const uint256& newHash);
 
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
-    static CWallet* CreateWalletFromFile(const std::string walletFile);
+    static CWallet* CreateWalletFromFile(const esperanza::Settings& esperanzaSettings,
+                                         const std::string walletFile);
 
     /**
      * Wallet post-init setup
@@ -1123,7 +1139,7 @@ public:
     bool IsHDEnabled() const;
 
     /* Generates a new HD master key (will not be activated) */
-    CPubKey GenerateNewHDMasterKey();
+    CPubKey GenerateNewHDMasterKey(const key::mnemonic::Seed *fromSeed = nullptr);
     
     /* Set the current HD master key (will reset the chain child index counters)
        Sets the master key's version based on the current wallet version (so the

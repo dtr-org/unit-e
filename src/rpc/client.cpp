@@ -143,6 +143,19 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "echojson", 9, "arg9" },
     { "rescanblockchain", 0, "start_height"},
     { "rescanblockchain", 1, "stop_height"},
+
+    { "filtertransactions", 0, "options" },
+    { "filteraddresses", 0, "offset" },
+    { "filteraddresses", 1, "count" },
+    { "filteraddresses", 2, "sort_code" },
+    { "filteraddresses", 4, "match_owned" },
+
+    { "sendtypeto", 2, "outputs" },
+    { "sendtypeto", 5, "test_fee" },
+    { "sendtypeto", 6, "coincontrol" },
+
+    { "createsnapshot", 0, "maxutxosets" },
+    { "readsnapshot", 0, "id" },
 };
 
 class CRPCConvertTable

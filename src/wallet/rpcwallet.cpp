@@ -8,8 +8,8 @@
 #include <chain.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <esperanza/walletextension.h>
 #include <httpserver.h>
-#include <validation.h>
 #include <net.h>
 #include <policy/feerate.h>
 #include <policy/fees.h>
@@ -23,8 +23,10 @@
 #include <timedata.h>
 #include <util.h>
 #include <utilmoneystr.h>
+#include <validation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/feebumper.h>
+#include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>
@@ -34,6 +36,8 @@
 #include <stdint.h>
 
 #include <univalue.h>
+
+#include <functional>
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
@@ -83,7 +87,7 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
     }
 }
 
-void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
+void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool filterMode)
 {
     int confirms = wtx.GetDepthInMainChain();
     entry.push_back(Pair("confirmations", confirms));
@@ -118,8 +122,11 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
     }
     entry.push_back(Pair("bip125-replaceable", rbfStatus));
 
-    for (const std::pair<std::string, std::string>& item : wtx.mapValue)
-        entry.push_back(Pair(item.first, item.second));
+    if (!filterMode) {
+        for (const auto &item : wtx.mapValue) {
+            entry.push_back(Pair(item.first, item.second));
+        }
+    }
 }
 
 std::string AccountFromValue(const UniValue& value)
@@ -3402,6 +3409,7 @@ UniValue generate(const JSONRPCRequest& request)
         throw std::runtime_error(
             "generate nblocks ( maxtries )\n"
             "\nMine up to nblocks blocks immediately (before the RPC call returns) to an address in the wallet.\n"
+            "\nNote: this function can only be used on the regtest network.\n"
             "\nArguments:\n"
             "1. nblocks      (numeric, required) How many blocks are generated immediately.\n"
             "2. maxtries     (numeric, optional) How many iterations to try (default = 1000000).\n"
@@ -3411,6 +3419,10 @@ UniValue generate(const JSONRPCRequest& request)
             "\nGenerate 11 blocks\n"
             + HelpExampleCli("generate", "11")
         );
+    }
+
+    if (!Params().MineBlocksOnDemand()) {
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
     }
 
     int num_generate = request.params[0].get_int();

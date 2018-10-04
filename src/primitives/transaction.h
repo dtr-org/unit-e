@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <amount.h>
+#include <primitives/txtype.h>
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -280,7 +281,16 @@ public:
     // structure, including the hash.
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
-    const int32_t nVersion;
+
+    /*! \brief The 4-byte version field of transactions.
+     *
+     * Change from bitcoin: The version field of transactions is unsigned in UnitE.
+     * This is intentional. The actual version of a transaction are the two lower
+     * bytes of the version field. UnitE distinguishes different types of transactions.
+     * Thus the upper two bytes are used to piggy back that type (also uint16_t) onto
+     * the version field.
+     */
+    const uint32_t nVersion;
     const uint32_t nLockTime;
 
 private:
@@ -330,9 +340,33 @@ public:
      */
     unsigned int GetTotalSize() const;
 
+    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
+    uint16_t GetVersion() const;
+
+    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
+    TxType GetType() const;
+
     bool IsCoinBase() const
     {
         return (vin.size() == 1 && vin[0].prevout.IsNull());
+    }
+
+    bool IsCoinStake() const
+    {
+        //UNIT-E: TODO: Check whether we need this distinction or we can deduce like Bitcoin's IsCoinBase() above
+        return GetType() == +TxType::COINSTAKE;
+    }
+
+    bool IsVote() const {
+        return GetType() == +TxType::VOTE;
+    }
+
+    bool IsLogout() const {
+      return GetType() == +TxType::LOGOUT;
+    }
+
+    bool IsDeposit() const {
+        return GetType() == +TxType::DEPOSIT;
     }
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
@@ -363,7 +397,7 @@ struct CMutableTransaction
 {
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
-    int32_t nVersion;
+    uint32_t nVersion;
     uint32_t nLockTime;
 
     CMutableTransaction();
@@ -384,6 +418,16 @@ struct CMutableTransaction
     CMutableTransaction(deserialize_type, Stream& s) {
         Unserialize(s);
     }
+
+    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
+    uint16_t GetVersion() const;
+
+    void SetVersion(uint16_t version);
+
+    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
+    TxType GetType() const;
+
+    void SetType(TxType type);
 
     /** Compute the hash of this CMutableTransaction. This is computed on the
      * fly, as opposed to GetHash() in CTransaction, which uses a cached result.

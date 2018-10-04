@@ -17,6 +17,7 @@
 #include <policy/feerate.h>
 #include <script/script_error.h>
 #include <sync.h>
+#include <sync_status.h>
 #include <versionbits.h>
 
 #include <algorithm>
@@ -274,10 +275,14 @@ bool LoadChainTip(const CChainParams& chainparams);
 void UnloadBlockIndex();
 /** Run an instance of the script checking thread */
 void ThreadScriptCheck();
+/** Check the current status of the initial block download (what state are we in exactly) */
+SyncStatus GetInitialBlockDownloadStatus();
 /** Check whether we are doing an initial block download (synchronizing from disk or network) */
 bool IsInitialBlockDownload();
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
 bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+/** Retrieve a transaction and the header of the block it is contained in (form memory pool if possible, otherwise form disk). */
+bool GetTransactionAndBlockHeader(const uint256 &hash, const Consensus::Params &consensusParams, CTransactionRef &txOut, CBlockHeader &blockHeader);
 /** Find the best known block, and make it the tip of the block chain */
 bool ActivateBestChain(CValidationState& state, const CChainParams& chainparams, std::shared_ptr<const CBlock> pblock = std::shared_ptr<const CBlock>());
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams);

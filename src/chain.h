@@ -219,6 +219,15 @@ public:
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
 
+    //! Proof-of-Stake: the stake modifier is a hash of some entropy bits to make pre-computing blocks more difficult
+    uint256 bnStakeModifier;
+
+    //! Proof-of-Stake: the previous stake (used for kernel hash and stake modifier)
+    COutPoint prevoutStake;
+
+    //! Proof-of-Stake: total money supply in the chain up to this point (used to calculate PoS-Reward)
+    CAmount nMoneySupply;
+
     void SetNull()
     {
         phashBlock = nullptr;

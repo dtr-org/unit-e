@@ -31,11 +31,31 @@ static inline void SeedInsecureRand(bool fDeterministic = false)
     insecure_rand_ctx = FastRandomContext(insecure_rand_seed);
 }
 
+static inline uint16_t InsecureRand16() { return static_cast<uint16_t>(insecure_rand_ctx.rand32() % 65536); }
 static inline uint32_t InsecureRand32() { return insecure_rand_ctx.rand32(); }
 static inline uint256 InsecureRand256() { return insecure_rand_ctx.rand256(); }
 static inline uint64_t InsecureRandBits(int bits) { return insecure_rand_ctx.randbits(bits); }
 static inline uint64_t InsecureRandRange(uint64_t range) { return insecure_rand_ctx.randrange(range); }
 static inline bool InsecureRandBool() { return insecure_rand_ctx.randbool(); }
+
+static inline void InsecureNewKey(CKey &key, bool fCompressed) {
+  uint256 i = InsecureRand256();
+  key.Set(i.begin(), i.end(), fCompressed);
+  assert(key.IsValid()); // Failure should be very rare
+}
+
+//! Configures almost as much as the BasicTestingSetup
+//! except for chain params - useful for testing stuff
+//! that is actually blockchain agnostic, yet requires
+//! a bit of infrastructure like logging or ECC_Start.
+//! This comment was carefully crafted such that every
+//! line would have the same number of characters, yo.
+struct ReducedTestingSetup {
+    ECCVerifyHandle globalVerifyHandle;
+
+    explicit ReducedTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
+    ~ReducedTestingSetup();
+};
 
 /** Basic testing setup.
  * This just configures logging and chain parameters.
@@ -45,6 +65,9 @@ struct BasicTestingSetup {
 
     explicit BasicTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
     ~BasicTestingSetup();
+
+  // todo: remove after merging https://github.com/bitcoin/bitcoin/commit/d3dae3ddf9fa95d652dfdf44bb496617513644a2
+  fs::path SetDataDir(const std::string& name);
 };
 
 /** Testing setup that configures a complete environment.
