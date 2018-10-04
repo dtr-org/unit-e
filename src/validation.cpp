@@ -433,18 +433,19 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
 static void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) {
     int expired = pool.Expire(GetTime() - age);
     if (expired != 0) {
-        LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool\n", expired);
+        LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool.\n", expired);
     }
 
     int votesExpired = pool.ExpireVotes();
     if (votesExpired != 0) {
-      LogPrint(BCLog::MEMPOOL, "Expired %i votes from the memory pool\n", expired);
+      LogPrint(BCLog::MEMPOOL, "Expired %i votes from the memory pool.\n", votesExpired);
     }
 
     std::vector<COutPoint> vNoSpendsRemaining;
     pool.TrimToSize(limit, &vNoSpendsRemaining);
-    for (const COutPoint& removed : vNoSpendsRemaining)
-        pcoinsTip->Uncache(removed);
+    for (const COutPoint& removed : vNoSpendsRemaining) {
+      pcoinsTip->Uncache(removed);
+    }
 }
 
 /** Convert CValidationState to a human-readable message for logging */

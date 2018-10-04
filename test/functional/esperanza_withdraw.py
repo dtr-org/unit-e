@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
 
@@ -32,7 +33,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
     def run_test(self):
         nodes = self.nodes
-        block_time = 0.1
+        block_time = 1
 
         validator = nodes[0]
 
@@ -85,16 +86,18 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # fact that the endEpoch is startEpoch(endDynasty + 1) )
         for n in range(0, 140):
             self.generate_block(nodes[(n % 3) + 1])
+            time.sleep(block_time)
             sync_blocks(self.nodes)
 
-        withdraw_id = validator.withdraw(validator_address)
+        withdraw_id = validator.withdraw(validator_address)['transactionid']
         self.wait_for_transaction(withdraw_id)
 
         # let's mine the withdraw
         self.generate_block(nodes[1])
         sync_blocks(self.nodes)
 
-        assert_equal(validator.getwalletinfo()['balance'], 10000)
+        # This is the initial deposit - fees for deposit, logout and withdraw
+        assert_equal(math.ceil(validator.getwalletinfo()['balance']), 10000)
 
     def generate_block(self, node):
         i = 0
