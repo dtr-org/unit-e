@@ -435,8 +435,8 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   {
     LOCK2(cs_main, m_enclosingWallet->cs_wallet);
     CValidationState state;
-    if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey, g_connman.get(),
-                                              state)) {
+    if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey,
+                                              g_connman.get(), state)) {
       LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
                __func__);
       return false;

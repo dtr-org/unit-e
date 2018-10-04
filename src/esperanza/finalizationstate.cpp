@@ -110,8 +110,8 @@ Result FinalizationState::InitializeEpoch(int blockHeight) {
         ufp64::mul_by_uint(BASE_PENALTY_FACTOR, GetEpochsSinceFinalization()));
 
     if (m_rewardFactor <= 0) {
-      return fail(Result::INIT_INVALID_REWARD,
-                  "Invalid reward factor %d", m_rewardFactor);
+      return fail(Result::INIT_INVALID_REWARD, "Invalid reward factor %d",
+                  m_rewardFactor);
     }
 
   } else {
@@ -305,9 +305,9 @@ CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
  * Check whether the input provided makes a valid vote.
  */
 Result FinalizationState::IsVotable(const Validator &validator,
-                                               const uint256 &targetHash,
-                                               uint32_t targetEpoch,
-                                               uint32_t sourceEpoch) const {
+                                    const uint256 &targetHash,
+                                    uint32_t targetEpoch,
+                                    uint32_t sourceEpoch) const {
   auto validatorIndex = validator.m_validatorIndex;
 
   auto it = m_checkpoints.find(targetEpoch);
@@ -371,8 +371,8 @@ Result FinalizationState::IsVotable(const Validator &validator,
  * Validates the consistency of the deposit against the current state. This does
  * assume that the normal transaction validation process already took place.
  */
-Result FinalizationState::ValidateDeposit(
-    const uint256 &validatorIndex, const CAmount &depositValue) const {
+Result FinalizationState::ValidateDeposit(const uint256 &validatorIndex,
+                                          const CAmount &depositValue) const {
   LOCK(cs_esperanza);
 
   if (m_validators.find(validatorIndex) != m_validators.end()) {
@@ -433,8 +433,8 @@ Result FinalizationState::ValidateVote(const Vote &vote) const {
                 vote.m_validatorIndex.GetHex());
   }
 
-  Result isVotable = IsVotable(
-      it->second, vote.m_targetHash, vote.m_targetEpoch, vote.m_sourceEpoch);
+  Result isVotable = IsVotable(it->second, vote.m_targetHash,
+                               vote.m_targetEpoch, vote.m_sourceEpoch);
 
   if (isVotable != +Result::SUCCESS) {
     return fail(isVotable, "%s: The tuple (%s, %s, %d, %d) is not votable.\n",
@@ -533,8 +533,7 @@ uint32_t FinalizationState::GetEndDynasty() const {
  * @param validatorIndex the index of the validator that is logging out
  * @return a representation of the outcome
  */
-Result FinalizationState::ValidateLogout(
-    const uint256 &validatorIndex) const {
+Result FinalizationState::ValidateLogout(const uint256 &validatorIndex) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(validatorIndex);
@@ -654,7 +653,7 @@ Result FinalizationState::CalculateWithdrawAmount(
     }
 
     uint64_t recentlySlashed = m_totalSlashed.find(withdrawalEpoch)->second -
-        m_totalSlashed.find(baseEpoch)->second;
+                               m_totalSlashed.find(baseEpoch)->second;
     ufp64::ufp64_t fractionToSlash =
         ufp64::div_2uint(recentlySlashed * SLASH_FRACTION_MULTIPLIER,
                          validator.m_depositsAtLogout);
@@ -696,7 +695,7 @@ void FinalizationState::ProcessWithdraw(const uint256 &validatorIndex) {
  * @return true if the voter is slashable, false otherwise
  */
 Result FinalizationState::IsSlashable(const Vote &vote1,
-                                                 const Vote &vote2) const {
+                                      const Vote &vote2) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(vote1.m_validatorIndex);
@@ -758,8 +757,7 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
     return success();
   }
 
-  return fail(Result::SLASH_NOT_VALID, "%s: Slashing failed",
-              __func__);
+  return fail(Result::SLASH_NOT_VALID, "%s: Slashing failed", __func__);
 }
 
 /**
