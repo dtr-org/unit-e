@@ -432,19 +432,19 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
     return false;
   }
 
-  CValidationState state;
-  if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey, g_connman.get(),
-                                            state)) {
-    LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
-             __func__);
-    return false;
-  }
-
-  LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
-           __func__, wtxOut.GetHash().GetHex());
-
   {
-    LOCK(m_enclosingWallet->cs_wallet);
+    LOCK2(cs_main, m_enclosingWallet->cs_wallet);
+    CValidationState state;
+    if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey, g_connman.get(),
+                                              state)) {
+      LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
+               __func__);
+      return false;
+    }
+
+    LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
+             __func__, wtxOut.GetHash().GetHex());
+
     if (validatorState.m_phase == +ValidatorState::Phase::NOT_VALIDATING) {
       LogPrint(BCLog::FINALIZATION,
                "%s: Validator waiting for deposit confirmation.\n", __func__);
@@ -524,16 +524,15 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
-  m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                       state);
-  if (state.IsInvalid()) {
-    LogPrint(BCLog::FINALIZATION, "%s: Cannot commit logout transaction: %s.\n",
-             __func__, state.GetRejectReason());
-    return false;
-  }
-
   {
-    LOCK(cs_validatorstate);
+    LOCK2(cs_main, m_enclosingWallet->cs_wallet);
+    m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+                                         state);
+    if (state.IsInvalid()) {
+      LogPrint(BCLog::FINALIZATION, "%s: Cannot commit logout transaction: %s.\n",
+               __func__, state.GetRejectReason());
+      return false;
+    }
     validatorState.m_lastEsperanzaTx = wtxNewOut.tx;
   }
 
@@ -684,19 +683,16 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   }
 
   CWalletTx createdTx;
-  {
-    LOCK(cs_validatorstate);
-    CTransactionRef &prevRef = validatorState.m_lastEsperanzaTx;
+  CTransactionRef &prevRef = validatorState.m_lastEsperanzaTx;
 
-    if (SendVote(prevRef, vote, createdTx)) {
+  if (SendVote(prevRef, vote, createdTx)) {
 
-      validatorState.m_voteMap[epoch] = vote;
-      validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
-      validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
-      validatorState.m_lastEsperanzaTx = createdTx.tx;
-      LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
-               createdTx.tx->GetHash().GetHex());
-    }
+    validatorState.m_voteMap[epoch] = vote;
+    validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
+    validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
+    validatorState.m_lastEsperanzaTx = createdTx.tx;
+    LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
+             createdTx.tx->GetHash().GetHex());
   }
 }
 
@@ -767,14 +763,9 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
 
+  LOCK2(cs_main, m_enclosingWallet->cs_wallet);
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
-    auto currentPhase = ValidatorState::Phase::NOT_VALIDATING;
-    {
-      LOCK(m_enclosingWallet->cs_wallet);
-      currentPhase = validatorState.m_phase;
-    }
-
-    switch (currentPhase) {
+    switch (validatorState.m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         VoteIfNeeded(pblock, pindex);
 
@@ -782,7 +773,6 @@ void WalletExtension::BlockConnected(
         FinalizationState *state = FinalizationState::GetState(pindex);
         uint32_t currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.m_endDynasty) {
-          LOCK(m_enclosingWallet->cs_wallet);
           validatorState.m_phase = ValidatorState::Phase::NOT_VALIDATING;
         }
         break;
@@ -792,15 +782,12 @@ void WalletExtension::BlockConnected(
 
         if (state->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
-          {
-            LOCK(m_enclosingWallet->cs_wallet);
-            validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
+          validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
 
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Validator's deposit finalized, the validator index "
-                     "is %s.\n",
-                     __func__, validatorState.m_validatorIndex.GetHex());
-          }
+          LogPrint(BCLog::FINALIZATION,
+                   "%s: Validator's deposit finalized, the validator index "
+                   "is %s.\n",
+                   __func__, validatorState.m_validatorIndex.GetHex());
         }
         break;
       }
