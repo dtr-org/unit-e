@@ -173,12 +173,18 @@ class AdminValidation(UnitETestFramework):
                      admin_address,
                      "b'admin-double-disable'")
 
-        garbage_cmds = ["05", "98478754", "0005", "020100"]
-
-        # Because: meaningless commands can't be parsed -> no commands
-        self.rejects(garbage_cmds,
+        # Because: command is invalid
+        self.rejects(["1234"],
                      admin_address,
-                     "b'admin-no-commands'")
+                     "b'admin-invalid-command'")
+
+        # Because: second command is invalid
+        self.rejects([end_permissioning_cmd, "1234"],
+                     admin_address,
+                     "b'admin-invalid-command'")
+        
+        # This is to ensure end_permissioning was not applied
+        self.admin.generate(1)
 
         # Going to reset admin keys. Generate new keys first
         new_addresses = list(self.admin.getnewaddress() for _ in range(3))
@@ -203,6 +209,11 @@ class AdminValidation(UnitETestFramework):
                                                       "p2sh-segwit")["address"]
 
         self.accepts([end_permissioning_cmd], admin_address)
+        self.admin.generate(1)  # to actually execute above command
+
+        self.rejects([end_permissioning_cmd],
+                     admin_address,
+                     "b'admin-disabled'")
 
         print("Test succeeded.")
 
