@@ -23,6 +23,15 @@ echo "find_package(Qt5Widgets REQUIRED)"
 echo "find_package(Qt5Quick REQUIRED)"
 echo ""
 
+
+echo "find_package(Boost COMPONENTS"
+echo "        system"
+echo "        filesystem"
+echo "        unit_test_framework"
+echo "        REQUIRED)"
+echo ""
+echo 'include_directories(${Boost_INCLUDE_DIRS})'
+
 echo "include_directories(src)"
 find -E src -type d -regex '.+/[^/.]+' | awk '{ print "include_directories(" $0 ")" }'
 
