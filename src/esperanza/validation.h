@@ -18,13 +18,16 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const CBlockIndex *pindex = nullptr);
 
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
+                          const Consensus::Params &consensusParams,
                           const CBlockIndex *pindex = nullptr);
 
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
+                            const Consensus::Params &consensusParams,
                             const CBlockIndex *pindex = nullptr);
 
 bool CheckWithdrawTransaction(CValidationState &errState,
                               const CTransaction &tx,
+                              const Consensus::Params &consensusParams,
                               const CBlockIndex *pindex = nullptr);
 
 }  // namespace esperanza

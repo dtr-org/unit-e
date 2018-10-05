@@ -61,8 +61,8 @@ class FinalizationState {
 
   Result ValidateDeposit(const uint256 &validatorIndex,
                          CAmount depositValue) const;
-  void ProcessDeposit(const uint256 &validatorIndex,
-                      CAmount depositValue);
+
+  void ProcessDeposit(const uint256 &validatorIndex, CAmount depositValue);
 
   Result ValidateVote(const Vote &vote) const;
   void ProcessVote(const Vote &vote);

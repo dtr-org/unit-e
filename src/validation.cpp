@@ -991,7 +991,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                      __func__,
                      tx.GetHash().GetHex());
 
-            if (!esperanza::CheckVoteTransaction(state, tx)) {
+            if (!esperanza::CheckVoteTransaction(state, tx, chainparams.GetConsensus())) {
               LogPrint(BCLog::FINALIZATION,
                        "%s: Vote cannot be included into mempool: %s.\n",
                        __func__,
@@ -1022,7 +1022,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                      "%s: Accepting logout to mempool with id %s.\n", __func__,
                      tx.GetHash().GetHex());
 
-            if (!esperanza::CheckLogoutTransaction(state, tx)){
+            if (!esperanza::CheckLogoutTransaction(state, tx, chainparams.GetConsensus())){
               LogPrint(BCLog::FINALIZATION,
                        "%s: Logout cannot be included into mempool: %s.\n",
                        __func__,
@@ -1037,7 +1037,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 "%s: Accepting withdraw to mempool with id %s.\n", __func__,
                 tx.GetHash().GetHex());
 
-            if (!esperanza::CheckWithdrawTransaction(state, tx)){
+            if (!esperanza::CheckWithdrawTransaction(state, tx, chainparams.GetConsensus())){
               LogPrint(BCLog::ESPERANZA,
                        "%s: Withdraw cannot be included into mempool: %s.\n",
                        __func__,
@@ -3331,7 +3331,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckVoteTransaction(state, *tx, pindexPrev)) {
+            if (!esperanza::CheckVoteTransaction(state, *tx, consensusParams, pindexPrev)) {
 
               LogPrint(BCLog::FINALIZATION,
                        "%s: Vote cannot be included into mempool: %s.\n",
@@ -3366,7 +3366,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckLogoutTransaction(state, *tx, pindexPrev)) {
+            if (!esperanza::CheckLogoutTransaction(state, *tx, consensusParams, pindexPrev)) {
               LogPrint(BCLog::FINALIZATION,
                        "%s: Logout cannot be included into mempool: %s.\n",
                        __func__,
@@ -3381,7 +3381,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      "%s: Accepting withdraw to mempool with id %s.\n", __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckWithdrawTransaction(state, *tx, pindexPrev)){
+            if (!esperanza::CheckWithdrawTransaction(state, *tx, consensusParams, pindexPrev)){
               LogPrint(BCLog::ESPERANZA,
                        "%s: Withdraw cannot be included into mempool: %s.\n",
                        __func__,
