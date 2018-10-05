@@ -364,7 +364,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
 bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
                                 int64_t nSearchTime) {
-  // todo
+  // UNIT-E: todo
   return false;
 }
 
@@ -399,15 +399,15 @@ void WalletExtension::ReadValidatorStateFromFile() {
 }
 
 /**
- * Creates a deposit transaction for the given address and amount.
+ * \brief Creates a deposit transaction for the given address and amount.
  *
- * @param[in] address the destination
- * @param[in] amount
- * @param[out] wtxOut the transaction created
- * @return true if the operation was successful, false otherwise.
+ * \param[in] address the destination
+ * \param[in] amount
+ * \param[out] wtxOut the transaction created
+ * \returns true if the operation was successful, false otherwise.
  */
-bool WalletExtension::SendDeposit(const CTxDestination &address,
-                                  const CAmount &amount, CWalletTx &wtxOut) {
+bool WalletExtension::SendDeposit(const CTxDestination &address, CAmount amount,
+                                  CWalletTx &wtxOut) {
 
   CCoinControl coinControl;
   CAmount nFeeRet;
@@ -463,8 +463,8 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
 }
 
 //! \brief Creates and sends a logout transaction.
-//! \param wtxNewOut [out] the logout transaction created.
-//! \return true if the operation was successful, false otherwise.
+//! \param wtxNewOut[out] the logout transaction created.
+//! \returns true if the operation was successful, false otherwise.
 bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
   CCoinControl coinControl;
@@ -516,7 +516,6 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
           TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
                                       amount, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
-    strFailReason = _("Signing transaction failed");
     return false;
   } else {
     UpdateTransaction(txNew, nIn, sigdata);
@@ -540,8 +539,8 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 }
 
 //! \brief Creates and sends a withdraw transaction.
-//! \param wtxNewOut [out] the withdraw transaction created.
-//! \return true if the operation was successful, false otherwise.
+//! \param wtxNewOut[out] the withdraw transaction created.
+//! \returns true if the operation was successful, false otherwise.
 bool WalletExtension::SendWithdraw(const CTxDestination &address,
                                    CWalletTx &wtxNewOut) {
 
@@ -617,13 +616,11 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   CTransaction txNewConst(txNew);
   uint32_t nIn = 0;
   SignatureData sigdata;
-  std::string strFailReason;
 
   if (!ProduceSignature(
           TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
                                       initialDeposit, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
-    strFailReason = _("Signing transaction failed");
     return false;
   } else {
     UpdateTransaction(txNew, nIn, sigdata);
@@ -698,14 +695,14 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 
 /**
  *
- * Creates a vote transaction starting from a Vote object and a previous
+ * \brief Creates a vote transaction starting from a Vote object and a previous
  * transaction (vote or deposit  reference. It fills inputs, outputs.
  * It does not support an address change between source and destination.
  *
- * @param[in] prevTxRef a reference to the initial DEPOSIT or previous VOTE
+ * \param[in] prevTxRef a reference to the initial DEPOSIT or previous VOTE
  * transaction, depending which one is the most recent
- * @param[in] vote the vote data
- * @param[out] wtxNew the vote transaction committed
+ * \param[in] vote the vote data
+ * \param[out] wtxNew the vote transaction committed
  */
 bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                const Vote &vote, CWalletTx &wtxNewOut) {
