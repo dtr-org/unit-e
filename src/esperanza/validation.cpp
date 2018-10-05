@@ -242,8 +242,12 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
 
   for (const auto &out : tx.vout) {
     AdminCommand command;
-    if (!DecodeAdminCommand(out.scriptPubKey, command)) {
+    if (!MatchAdminCommand(out.scriptPubKey)) {
       continue;
+    }
+
+    if (!DecodeAdminCommand(out.scriptPubKey, command)) {
+      return state.DoS(10, false, REJECT_INVALID, "admin-invalid-command");
     }
 
     if (disablesPermissioning) {

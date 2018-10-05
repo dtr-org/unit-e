@@ -65,6 +65,10 @@ CScript EncodeAdminCommand(const AdminCommand &command) {
   return script;
 }
 
+bool MatchAdminCommand(const CScript &script) {
+  return !script.empty() && script.front() == OP_RETURN;
+}
+
 bool DecodeAdminCommand(const CScript &script, AdminCommand &outAdminCommand) {
   opcodetype opcode;
   CScript::const_iterator it = script.begin();

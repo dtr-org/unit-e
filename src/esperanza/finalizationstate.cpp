@@ -1014,9 +1014,11 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         std::vector<AdminCommand> commands;
         for (const auto &output : tx->vout) {
           AdminCommand command;
-          if (DecodeAdminCommand(output.scriptPubKey, command)) {
-            commands.emplace_back(std::move(command));
+          if (!MatchAdminCommand(output.scriptPubKey)) {
+            continue;
           }
+          DecodeAdminCommand(output.scriptPubKey, command);
+          commands.emplace_back(std::move(command));
         }
 
         state->ProcessAdminCommands(commands);
