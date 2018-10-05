@@ -153,10 +153,11 @@ class TestNode(P2PInterface):
 #    or false, then only the last tx is tested against outcome.)
 
 class TestInstance():
-    def __init__(self, objects=None, sync_every_block=True, sync_every_tx=False):
+    def __init__(self, objects=None, sync_every_block=True, sync_every_tx=False, test_name=""):
         self.blocks_and_transactions = objects if objects else []
         self.sync_every_block = sync_every_block
         self.sync_every_tx = sync_every_tx
+        self.test_name = test_name
 
 class TestManager():
 
@@ -242,9 +243,12 @@ class TestManager():
             for c in self.p2p_connections:
                 if outcome is None:
                     if c.bestblockhash != self.p2p_connections[0].bestblockhash:
+                        logger.error('%s and %s do not have the same bestblockhash (%s, %s)',
+                                     c, self.p2p_connections[0], c.bestblockhash, self.p2p_connections[0].bestblockhash)
                         return False
                 elif isinstance(outcome, RejectResult): # Check that block was rejected w/ code
                     if c.bestblockhash == blockhash:
+                        logger.error('Block was rejected, but %s has blockhash %s', c, c.bestblockhash)
                         return False
                     if blockhash not in c.block_reject_map:
                         logger.error('Block not in reject map: %064x' % (blockhash))
@@ -253,6 +257,7 @@ class TestManager():
                         logger.error('Block rejected with %s instead of expected %s: %064x' % (c.block_reject_map[blockhash], outcome, blockhash))
                         return False
                 elif ((c.bestblockhash == blockhash) != outcome):
+                    logger.error('%s was expected to %s %s', c.bestblockhash, "equal" if outcome else "not equal", blockhash)
                     return False
             return True
 
@@ -290,7 +295,11 @@ class TestManager():
         tests = self.test_generator.get_tests()
         for test_instance in tests:
             test_number += 1
-            logger.info("Running test %d: %s line %s" % (test_number, tests.gi_code.co_filename, tests.gi_frame.f_lineno))
+            if test_instance.test_name:
+                test_name = "\"" + test_instance.test_name + "\" (#" + str(test_number) + ")"
+            else:
+                test_name = "#" + str(test_number)
+            logger.info("Running test %s: %s line %s" % (test_name, tests.gi_code.co_filename, tests.gi_frame.f_lineno))
             # We use these variables to keep track of the last block
             # and last transaction in the tests, which are used
             # if we're not syncing on every block or every tx.
@@ -345,7 +354,7 @@ class TestManager():
                             self.wait_for_pings(self.ping_counter)
                             self.ping_counter += 1
                         if (not self.check_results(tip, outcome)):
-                            raise AssertionError("Test failed at test %d" % test_number)
+                            raise AssertionError("Test failed at test %s" % test_name)
                     else:
                         invqueue.append(CInv(2, block.sha256))
                 elif isinstance(b_or_t, CBlockHeader):
@@ -367,7 +376,7 @@ class TestManager():
                         [ c.send_inv(tx) for c in self.p2p_connections ]
                         self.sync_transaction(tx.sha256, 1)
                         if (not self.check_mempool(tx.sha256, outcome)):
-                            raise AssertionError("Test failed at test %d" % test_number)
+                            raise AssertionError("Test failed at test %s" % test_name)
                     else:
                         invqueue.append(CInv(1, tx.sha256))
                 # Ensure we're not overflowing the inv queue
@@ -382,14 +391,14 @@ class TestManager():
                     invqueue = []
                 self.sync_blocks(block.sha256, len(test_instance.blocks_and_transactions))
                 if (not self.check_results(tip, block_outcome)):
-                    raise AssertionError("Block test failed at test %d" % test_number)
+                    raise AssertionError("Block test failed at test %s" % test_name)
             if (not test_instance.sync_every_tx and tx is not None):
                 if len(invqueue) > 0:
                     [ c.send_message(msg_inv(invqueue)) for c in self.p2p_connections ]
                     invqueue = []
                 self.sync_transaction(tx.sha256, len(test_instance.blocks_and_transactions))
                 if (not self.check_mempool(tx.sha256, tx_outcome)):
-                    raise AssertionError("Mempool test failed at test %d" % test_number)
+                    raise AssertionError("Mempool test failed at test %s" % test_name)
 
         [ c.disconnect_node() for c in self.p2p_connections ]
         self.wait_for_disconnections()
