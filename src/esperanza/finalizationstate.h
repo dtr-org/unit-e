@@ -60,9 +60,9 @@ class FinalizationState {
   Result InitializeEpoch(int blockHeight);
 
   Result ValidateDeposit(const uint256 &validatorIndex,
-                         const CAmount &depositValue) const;
+                         CAmount depositValue) const;
   void ProcessDeposit(const uint256 &validatorIndex,
-                      const CAmount &depositValue);
+                      CAmount depositValue);
 
   Result ValidateVote(const Vote &vote) const;
   void ProcessVote(const Vote &vote);
@@ -71,7 +71,7 @@ class FinalizationState {
   void ProcessLogout(const uint256 &validatorIndex);
 
   Result ValidateWithdraw(const uint256 &validatorIndex,
-                          const CAmount &requestedWithdraw) const;
+                          CAmount requestedWithdraw) const;
 
   Result CalculateWithdrawAmount(const uint256 &validatorIndex,
                                  CAmount &withdrawAmountOut) const;

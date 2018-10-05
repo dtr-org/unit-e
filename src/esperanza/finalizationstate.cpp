@@ -372,7 +372,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
  * assume that the normal transaction validation process already took place.
  */
 Result FinalizationState::ValidateDeposit(const uint256 &validatorIndex,
-                                          const CAmount &depositValue) const {
+                                          CAmount depositValue) const {
   LOCK(cs_esperanza);
 
   if (m_validators.find(validatorIndex) != m_validators.end()) {
@@ -396,7 +396,7 @@ Result FinalizationState::ValidateDeposit(const uint256 &validatorIndex,
  * index.
  */
 void FinalizationState::ProcessDeposit(const uint256 &validatorIndex,
-                                       const CAmount &depositValue) {
+                                       CAmount depositValue) {
   LOCK(cs_esperanza);
 
   uint32_t startDynasty = m_currentDynasty + 2;
@@ -585,8 +585,8 @@ void FinalizationState::ProcessLogout(const uint256 &validatorIndex) {
  * @param validatorIndex
  * @return
  */
-Result FinalizationState::ValidateWithdraw(
-    const uint256 &validatorIndex, const CAmount &requestedWithdraw) const {
+Result FinalizationState::ValidateWithdraw(const uint256 &validatorIndex,
+                                           CAmount requestedWithdraw) const {
   LOCK(cs_esperanza);
 
   CAmount withdrawableAmount = 0;
