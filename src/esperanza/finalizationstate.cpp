@@ -961,6 +961,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
            __func__, blockIndex.nHeight, block.GetHash().GetHex());
 
+  // Used to apply hardcoded parameters for a given block
   state->OnBlock(blockIndex.nHeight);
 
   // We can skip everything for the genesis block since it isn't suppose to
