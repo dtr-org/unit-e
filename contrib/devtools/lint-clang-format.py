@@ -20,9 +20,12 @@ def checkfile(filename):
     print(filename, "is not formatted")
   return isformatted
 
-violations = shared.lib.checkfiles(
+violations = []
+dirs = ["src/esperanza", "src/snapshot"]
+for dir in dirs:
+    violations += shared.lib.checkfiles(
         pattern = ".+\\.(cpp|h)",
-        dir = "src/esperanza",
+        dir = dir,
         action = checkfile)
 
 sys.exit(1 if len(violations) > 0 else 0)
