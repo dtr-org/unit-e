@@ -390,7 +390,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
 
   // UNIT-E: TODO: get staked transactions
   if (!listStaked.empty()) {
-    if (wtx.GetDepthInMainChain() < 1) {
+    if (!wtx.IsInMainChain()) {
       entry.pushKV("category", "orphaned_stake");
     } else {
       entry.pushKV("category", "stake");
@@ -442,7 +442,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
     }
 
     if (wtx.IsCoinBase()) {
-      if (wtx.GetDepthInMainChain() < 1) {
+      if (!wtx.IsInMainChain()) {
         entry.pushKV("category", "orphan");
       } else if (wtx.GetBlocksToMaturity() > 0) {
         entry.pushKV("category", "immature");

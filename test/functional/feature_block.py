@@ -147,15 +147,15 @@ class FullBlockTest(ComparisonTestFramework):
             return PreviousSpendableOutput(spendable_outputs.pop(0).vtx[0], 0)
 
         # returns a test case that asserts that the current tip was accepted
-        def accepted():
-            return TestInstance([[self.tip, True]])
+        def accepted(test_name = ""):
+            return TestInstance([[self.tip, True]], test_name=test_name)
 
         # returns a test case that asserts that the current tip was rejected
-        def rejected(reject = None):
+        def rejected(reject = None, test_name = ""):
             if reject is None:
-                return TestInstance([[self.tip, False]])
+                return TestInstance([[self.tip, False]], test_name=test_name)
             else:
-                return TestInstance([[self.tip, reject]])
+                return TestInstance([[self.tip, reject]], test_name=test_name)
 
         # move the tip back to a previous block
         def tip(number):
@@ -343,26 +343,30 @@ class FullBlockTest(ComparisonTestFramework):
         #                      \-> b3 (1) -> b4 (2)
         tip(15)
         block(20, spend=out[7])
-        yield rejected(RejectResult(16, b'bad-txns-premature-spend-of-coinbase'))
+        # UNIT-E: The first 100 blocks are by definition mature such that the system can
+        # be bootstrapped. At this point in the test the blocks do not have an adequate height
+        # yet as that we could not spend a transaction. Thus we changed from
+        # rejected(RejectResult(16, b'bad-txns-premature-spend-of-coinbase')) to accepted() here.
+        yield accepted(test_name="spend coinbase transaction from the first COINBASE_MATURITY blocks")
 
         # Attempt to spend a coinbase at depth too low (on a fork this time)
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5)
+        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7)
         #                                                                \-> b21 (6) -> b22 (5)
         #                      \-> b3 (1) -> b4 (2)
         tip(13)
         block(21, spend=out[6])
-        yield rejected()
+        yield rejected(test_name="spend immature coinbase transaction from a fork")
 
         block(22, spend=out[5])
         yield rejected()
 
         # Create a block on either side of MAX_BLOCK_BASE_SIZE and make sure its accepted/rejected
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b23 (6)
+        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7) -> b23 (6)
         #                                                                           \-> b24 (6) -> b25 (7)
         #                      \-> b3 (1) -> b4 (2)
-        tip(15)
+        tip(20)
         b23 = block(23, spend=out[6])
         tx = CTransaction()
         script_length = MAX_BLOCK_BASE_SIZE - len(b23.serialize()) - 69
@@ -372,7 +376,7 @@ class FullBlockTest(ComparisonTestFramework):
         b23 = update_block(23, [tx])
         # Make sure the math above worked out to produce a max-sized block
         assert_equal(len(b23.serialize()), MAX_BLOCK_BASE_SIZE)
-        yield accepted()
+        yield accepted(test_name="block of maximum size")
         save_spendable_output()
 
         # Make the next block one byte bigger and check that it fails
