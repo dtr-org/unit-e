@@ -176,6 +176,7 @@ class FinalizationState : public FinalizationStateData {
   void ProcessSlash(const Vote &vote1, const Vote &vote2,
                     CAmount &slashingBountyOut);
 
+  bool IsPermissioningActive() const;
   Result ValidateAdminKeys(const AdminKeySet &adminKeys) const;
   void ProcessAdminCommands(const std::vector<AdminCommand> &commands);
 

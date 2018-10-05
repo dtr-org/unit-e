@@ -229,6 +229,13 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
 
 bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
                            const CBlockIndex *pindex) {
+  const esperanza::FinalizationState *const finalizationState =
+      esperanza::FinalizationState::GetState(pindex);
+
+  if (!finalizationState->IsPermissioningActive()) {
+    return state.DoS(10, false, REJECT_INVALID, "admin-disabled");
+  }
+
   if (tx.vin.empty()) {
     return state.DoS(10, false, REJECT_INVALID, "admin-vin-empty");
   }
@@ -275,9 +282,6 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
       keys.size() != ADMIN_MULTISIG_KEYS) {
     return state.DoS(10, false, REJECT_INVALID, "admin-invalid-witness");
   }
-
-  const esperanza::FinalizationState *const finalizationState =
-      esperanza::FinalizationState::GetState(pindex);
 
   AdminKeySet set;
   std::copy_n(keys.begin(), ADMIN_MULTISIG_KEYS, set.begin());

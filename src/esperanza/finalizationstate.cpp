@@ -700,6 +700,10 @@ void FinalizationState::ProcessWithdraw(const uint256 &validatorIndex) {
   DeleteValidator(validatorIndex);
 }
 
+bool FinalizationState::IsPermissioningActive() const {
+  return m_adminState.IsPermissioningActive();
+}
+
 void FinalizationState::OnBlock(int blockHeight) {
   m_adminState.OnBlock(blockHeight);
 }
