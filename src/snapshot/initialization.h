@@ -5,14 +5,14 @@
 #ifndef UNITE_SNAPSHOT_INITIALIZATION_H
 #define UNITE_SNAPSHOT_INITIALIZATION_H
 
-#include <txdb.h>
 #include <scheduler.h>
+#include <txdb.h>
 
 namespace snapshot {
 
 // Initialize snapshot module
-bool Initialize(CCoinsViewDB* view, CScheduler& scheduler);
+bool Initialize(CCoinsViewDB *view, CScheduler &scheduler);
 
-}
+}  // namespace snapshot
 
-#endif //UNITE_SNAPSHOT_INITIALIZATION_H
+#endif  // UNITE_SNAPSHOT_INITIALIZATION_H

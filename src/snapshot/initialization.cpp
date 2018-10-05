@@ -35,6 +35,11 @@ bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
         }
       }
     }
+  } else {
+    if (gArgs.GetBoolArg("-isd", false)) {
+      LogPrintf("-isd flag can't be set if pruning is disabled.\n");
+      return false;
+    }
   }
 
   Creator::Init(view, scheduler);

@@ -3,9 +3,12 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <snapshot/creator.h>
 
+#include <algorithm>
+
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
 #include <test/test_unite.h>
+#include <util.h>
 #include <validation.h>
 #include <boost/test/unit_test.hpp>
 
@@ -21,10 +24,10 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
   bi->nBits = 246;
   mapBlockIndex[bestBlock] = bi;
 
-  std::unique_ptr<CCoinsViewDB> view(new CCoinsViewDB(0, false, true));
+  auto view = MakeUnique<CCoinsViewDB>(0, false, true);
 
-  uint32_t totalTX = 100;
-  uint32_t coinsPerTX = 2;
+  const uint32_t totalTX = 100;
+  const uint32_t coinsPerTX = 2;
 
   {
     // generate Coins in chainstate
@@ -62,16 +65,13 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
       ids.emplace_back(idx);
 
       // keep up to 5 snapshots
-      uint64_t lastN = 5;
-      if (ids.size() < 5) {
-        lastN = ids.size();
-      }
+      auto lastN = std::min<uint64_t>(5, ids.size());
 
       BOOST_CHECK(view->GetSnapshotIds() ==
                   std::vector<uint32_t>(ids.end() - lastN, ids.end()));
 
       // validate reported state
-      BOOST_CHECK(info.m_status == +snapshot::Status::OK);
+      BOOST_CHECK_EQUAL(info.m_status, +snapshot::Status::OK);
       BOOST_CHECK(!info.m_indexerMeta.m_snapshotHash.IsNull());
       BOOST_CHECK_EQUAL(HexStr(info.m_indexerMeta.m_bestBlockHash),
                         HexStr(bestBlock));

@@ -1779,14 +1779,11 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     }
 
     else if (strCommand == NetMsgType::GETSNAPSHOT) {
-        if (!snapshot::ProcessGetSnapshot(pfrom, vRecv, msgMaker)) {
-            return false;
-        }
-    } else if (strCommand == NetMsgType::SNAPSHOT) {
-        if (!snapshot::ProcessSnapshot(pfrom, vRecv, msgMaker)) {
-            LogPrint(BCLog::NET, "ignore snapshot message\n");
-            return false;
-        }
+        return snapshot::ProcessGetSnapshot(pfrom, vRecv, msgMaker);
+    }
+
+    else if (strCommand == NetMsgType::SNAPSHOT) {
+        return snapshot::ProcessSnapshot(pfrom, vRecv, msgMaker);
     }
 
     else if (strCommand == NetMsgType::ADDR)
@@ -2652,14 +2649,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         // process the parent snapshot block otherwise, fallback to the
         // regular ProcessNewBlock implementation
         snapshot::ProcessSnapshotParentBlock(pblock.get(), [&](){
-          bool fNewBlock = false;
-          ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
-          if (fNewBlock) {
-            pfrom->nLastBlockTime = GetTime();
-          } else {
-            LOCK(cs_main);
-            mapBlockSource.erase(pblock->GetHash());
-          }
+            bool fNewBlock = false;
+            ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
+            if (fNewBlock) {
+                pfrom->nLastBlockTime = GetTime();
+            } else {
+                LOCK(cs_main);
+                mapBlockSource.erase(pblock->GetHash());
+            }
         });
     }
 

@@ -46,8 +46,8 @@ bool ProcessGetSnapshot(CNode *node, CDataStream &data,
   } else {
     // iterate backwards to check the most recent snapshot first
     std::vector<uint32_t> ids = pcoinsdbview->GetSnapshotIds();
-    for (auto i = ids.rbegin(); i != ids.rend(); ++i) {
-      indexer = Indexer::Open(*i);
+    for (auto it = ids.rbegin(); it != ids.rend(); ++it) {
+      indexer = Indexer::Open(*it);
       if (indexer) {
         if (indexer->GetMeta().m_bestBlockHash == get.m_bestBlockHash) {
           break;
@@ -86,7 +86,7 @@ bool ProcessGetSnapshot(CNode *node, CDataStream &data,
   return true;
 }
 
-bool sendGetSnapshot(CNode *node, GetSnapshot &msg,
+bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
                      const CNetMsgMaker &msgMaker) {
   LogPrint(BCLog::NET, "send getsnapshot: peer=%i index=%i count=%i\n",
            node->GetId(), msg.m_utxoSetIndex, msg.m_utxoSetCount);
@@ -96,7 +96,7 @@ bool sendGetSnapshot(CNode *node, GetSnapshot &msg,
 }
 
 // helper function for ProcessSnapshot
-bool saveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
+bool SaveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
                                 const CNetMsgMaker &msgMaker) {
   // todo allow to accept messages not in a sequential order
   // requires to change the Indexer::WriteUTXOSet
@@ -104,7 +104,7 @@ bool saveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
     GetSnapshot get(snap.m_bestBlockHash);
     get.m_utxoSetIndex = indexer->GetMeta().m_totalUTXOSets;
     get.m_utxoSetCount = MAX_UTXO_SET_COUNT;
-    return sendGetSnapshot(node, get, msgMaker);
+    return SendGetSnapshot(node, get, msgMaker);
   }
 
   if (!indexer->WriteUTXOSets(snap.m_utxoSets)) {
@@ -141,7 +141,7 @@ bool saveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
   GetSnapshot get(snap.m_bestBlockHash);
   get.m_utxoSetIndex = snap.m_utxoSetIndex + snap.m_utxoSets.size();
   get.m_utxoSetCount = MAX_UTXO_SET_COUNT;
-  return sendGetSnapshot(node, get, msgMaker);
+  return SendGetSnapshot(node, get, msgMaker);
 }
 
 bool ProcessSnapshot(CNode *node, CDataStream &data,
@@ -190,7 +190,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
       GetSnapshot get(idxMeta.m_bestBlockHash);
       get.m_utxoSetIndex = idxMeta.m_totalUTXOSets;
       get.m_utxoSetCount = MAX_UTXO_SET_COUNT;
-      return sendGetSnapshot(node, get, msgMaker);
+      return SendGetSnapshot(node, get, msgMaker);
     }
 
     if (curBlockIndex->nHeight < msgBlockIndex->nHeight) {
@@ -220,7 +220,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
       }
     }
 
-    return saveSnapshotAndRequestMore(indexer.get(), msg, node, msgMaker);
+    return SaveSnapshotAndRequestMore(indexer.get(), msg, node, msgMaker);
   }
 
   // always create a new snapshot if previous one can't be opened.
@@ -236,7 +236,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   }
   indexer.reset(new Indexer(snapshotId, msg.m_snapshotHash, msg.m_bestBlockHash,
                             DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
-  return saveSnapshotAndRequestMore(indexer.get(), msg, node, msgMaker);
+  return SaveSnapshotAndRequestMore(indexer.get(), msg, node, msgMaker);
 }
 
 bool IsInitialSnapshotDownload() {
@@ -347,7 +347,12 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
   // block is processed
   bool oldCheckBlockIndex = fCheckBlockIndex;
   fCheckBlockIndex = false;
-  regularProcessing();
+  try {
+    regularProcessing();
+  } catch (...) {
+    fCheckBlockIndex = oldCheckBlockIndex;
+    throw;
+  }
   fCheckBlockIndex = oldCheckBlockIndex;
 
   // mark that blocks are pruned to pass CheckBlockIndex
@@ -393,7 +398,7 @@ bool FindNextBlocksToDownload(NodeId nodeId,
     return false;
   }
 
-  uint256 blockHash = LoadCandidateBlockHash();
+  const uint256 blockHash = LoadCandidateBlockHash();
   if (blockHash.IsNull()) {
     // waiting until the candidate snapshot is created
     return true;
@@ -413,14 +418,14 @@ bool FindNextBlocksToDownload(NodeId nodeId,
 
   // this loop is slow but it's only performed once per node and until
   // the corresponded block for the candidate snapshot has been received
-  for (const auto &iter : mapBlockIndex) {
-    CBlockIndex *prev = iter.second->pprev;
+  for (const auto &pair : mapBlockIndex) {
+    CBlockIndex *prev = pair.second->pprev;
     if (!prev) {
       continue;
     }
 
     if (prev->GetBlockHash() == blockHash) {
-      blocks.emplace_back(iter.second);
+      blocks.emplace_back(pair.second);
 
       g_connman->ForNode(nodeId, [](CNode *node) {
         node->sentGetParentBlockForSnapshot = true;

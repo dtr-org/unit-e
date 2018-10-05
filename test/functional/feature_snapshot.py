@@ -28,10 +28,6 @@ class SnapshotTest(UnitETestFramework):
             [],
         ]
 
-    def setup_nodes(self):
-        self.add_nodes(self.num_nodes, self.extra_args)
-        self.start_nodes()
-
     def setup_network(self):
         self.setup_nodes()
 

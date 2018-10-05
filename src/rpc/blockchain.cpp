@@ -1639,7 +1639,7 @@ UniValue listsnapshots(const JSONRPCRequest &request) {
     uint32_t snapshotId = 0;
     if (pcoinsdbview->GetSnapshotId(snapshotId)) {
         rootNode.push_back(Pair("snapshot_id", int(snapshotId)));
-        auto idx = snapshot::Indexer::Open(snapshotId);
+        std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(snapshotId);
         if (idx) {
             rootNode.push_back(Pair("snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
         }
@@ -1647,7 +1647,7 @@ UniValue listsnapshots(const JSONRPCRequest &request) {
 
     if (pcoinsdbview->GetCandidateSnapshotId(snapshotId)) {
         rootNode.push_back(Pair("candidate_snapshot_id", int(snapshotId)));
-        auto idx = snapshot::Indexer::Open(snapshotId);
+        std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(snapshotId);
         if (idx) {
             rootNode.push_back(Pair("candidate_snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
         }
@@ -1655,7 +1655,7 @@ UniValue listsnapshots(const JSONRPCRequest &request) {
 
     if (pcoinsdbview->GetInitSnapshotId(snapshotId)) {
         rootNode.push_back(Pair("init_snapshot_id", int(snapshotId)));
-        auto idx = snapshot::Indexer::Open(snapshotId);
+        std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(snapshotId);
         if (idx) {
             rootNode.push_back(Pair("init_snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
         }
@@ -1690,7 +1690,7 @@ UniValue readsnapshot(const JSONRPCRequest &request) {
         }
     }
 
-    auto idx = snapshot::Indexer::Open(snapshotId);
+    std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(snapshotId);
     if (idx == nullptr) {
         rootNode.push_back(Pair("error", "can't read snapshot"));
         return rootNode;

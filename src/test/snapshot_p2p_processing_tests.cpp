@@ -19,7 +19,7 @@
 BOOST_FIXTURE_TEST_SUITE(snapshot_p2p_processing_tests, TestingSetup)
 
 CNode *mockNode() {
-  uint32_t ip{0xa0b0c001};
+  uint32_t ip = 0xa0b0c001;
   in_addr s{ip};
   CService service(CNetAddr(s), 8333);
   CAddress addr(service, NODE_NONE);
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   uint256 bestBlockHash = uint256S("aa");
   uint256 snapshotHash = uint256S(
       "dc5e01885aaa4e50881d90ed9010632a805c5c019918059fa6d3fe5e9ddc54f0");
-  uint64_t totalMessages{6};
+  const uint64_t totalMessages = 6;
 
   // simulate that header was already received
   mapBlockIndex[bestBlockHash] = new CBlockIndex;
@@ -131,12 +131,12 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   bi3->nHeight = 3;
   bi3->pprev = bi2;
 
-  auto k = mapBlockIndex.insert(std::make_pair(uint256S("aa"), bi1)).first;
-  bi1->phashBlock = &k->first;
-  k = mapBlockIndex.insert(std::make_pair(uint256S("bb"), bi2)).first;
-  bi2->phashBlock = &k->first;
-  k = mapBlockIndex.insert(std::make_pair(uint256S("cc"), bi3)).first;
-  bi3->phashBlock = &k->first;
+  auto pair = mapBlockIndex.emplace(uint256S("aa"), bi1).first;
+  bi1->phashBlock = &pair->first;
+  pair = mapBlockIndex.emplace(uint256S("bb"), bi2).first;
+  bi2->phashBlock = &pair->first;
+  pair = mapBlockIndex.emplace(uint256S("cc"), bi3).first;
+  bi3->phashBlock = &pair->first;
 
   CNetMsgMaker msgMaker(1);
   std::unique_ptr<CNode> node(mockNode());
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   snapshot::isdMode = true;
 
   // return 0 blocks as we have not received the parent header of the snapshot
-  auto candidate = std::make_pair(uint256S("aa"), new CBlockIndex);
+  const auto candidate = std::make_pair(uint256S("aa"), new CBlockIndex);
   auto record1 = mapBlockIndex.insert(candidate).first;
   record1->second->phashBlock = &record1->first;
   snapshot::StoreCandidateBlockHash(candidate.first);
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   BOOST_CHECK(blocks.empty());
 
   // return the parent blockIndex of the snapshot to download
-  auto parent = std::make_pair(uint256S("bb"), new CBlockIndex);
+  const auto parent = std::make_pair(uint256S("bb"), new CBlockIndex);
   auto record2 = mapBlockIndex.insert(parent).first;
   record2->second->phashBlock = &record2->first;
   record2->second->pprev = record1->second;
