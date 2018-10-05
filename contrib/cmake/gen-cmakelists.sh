@@ -23,7 +23,6 @@ echo "find_package(Qt5Widgets REQUIRED)"
 echo "find_package(Qt5Quick REQUIRED)"
 echo ""
 
-
 echo "find_package(Boost COMPONENTS"
 echo "        system"
 echo "        filesystem"
