@@ -7,15 +7,13 @@
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
 #include <snapshot/messages.h>
+#include <snapshot/state.h>
 #include <sync.h>
 #include <txdb.h>
 #include <util.h>
 #include <validation.h>
 
 namespace snapshot {
-
-bool isdMode = false;
-std::atomic<bool> initialHeadersDownloaded(false);
 
 // todo: remove it after merging
 // https://github.com/bitcoin/bitcoin/commit/92fabcd443322dcfdf2b3477515fae79e8647d86
@@ -239,23 +237,8 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   return SaveSnapshotAndRequestMore(indexer.get(), msg, node, msgMaker);
 }
 
-bool IsInitialSnapshotDownload() {
-  static std::atomic<bool> latch(false);
-  if (latch.load(std::memory_order_relaxed)) {
-    return false;
-  }
-
-  uint32_t snapshotId;
-  if (pcoinsdbview->GetSnapshotId(snapshotId)) {
-    latch.store(true, std::memory_order_relaxed);
-    return false;
-  }
-
-  return true;
-}
-
 void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
-  if (!isdMode) {
+  if (!IsISDEnabled()) {
     return;
   }
 
@@ -268,7 +251,7 @@ void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
     return;
   }
 
-  if (!initialHeadersDownloaded.load()) {
+  if (!IsHeadersDownloaded()) {
     return;
   }
 
@@ -390,7 +373,7 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
 bool FindNextBlocksToDownload(NodeId nodeId,
                               std::vector<const CBlockIndex *> &blocks)
     EXCLUSIVE_LOCKS_REQUIRED(cs_main) {
-  if (!isdMode) {
+  if (!IsISDEnabled()) {
     return false;
   }
 
@@ -438,19 +421,6 @@ bool FindNextBlocksToDownload(NodeId nodeId,
 
   // we still haven't received the parent block of the snapshot
   return true;
-}
-
-CCriticalSection cs_candidateBlockHash;
-uint256 _candidateBlockHash;
-
-void StoreCandidateBlockHash(uint256 hash) {
-  LOCK(cs_candidateBlockHash);
-  _candidateBlockHash = hash;
-}
-
-uint256 LoadCandidateBlockHash() {
-  LOCK(cs_candidateBlockHash);
-  return _candidateBlockHash;
 }
 
 }  // namespace snapshot

@@ -9,6 +9,7 @@
 #include <serialize.h>
 #include <snapshot/indexer.h>
 #include <snapshot/p2p_processing.h>
+#include <snapshot/state.h>
 #include <util.h>
 #include <validation.h>
 #include <boost/thread.hpp>

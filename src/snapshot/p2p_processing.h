@@ -18,12 +18,6 @@ namespace snapshot {
 
 constexpr uint16_t MAX_UTXO_SET_COUNT = 10000;
 
-// true if we're running in the Initial Snapshot Download mode.
-extern bool isdMode;
-
-// track when the ISD can be started
-extern std::atomic<bool> initialHeadersDownloaded;
-
 bool ProcessGetSnapshot(CNode *node, CDataStream &data,
                         const CNetMsgMaker &msgMaker);
 
@@ -55,13 +49,6 @@ bool ProcessGetSnapshot(CNode *node, CDataStream &data,
 bool ProcessSnapshot(CNode *node, CDataStream &data,
                      const CNetMsgMaker &msgMaker);
 
-//! \brief IsInitialSnapshotDownload checks if we are in the ISD mode
-//!
-//! Returns true if node needs to download the initial snapshot or
-//! is in the middle of snapshot downloading. Once it returns false,
-//! it stays in this state for entire live of the node.
-bool IsInitialSnapshotDownload();
-
 // Starts the initial snapshot download if needed
 void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker);
 
@@ -73,12 +60,7 @@ bool FindNextBlocksToDownload(NodeId nodeId,
 
 void ProcessSnapshotParentBlock(CBlock *parentBlock,
                                 std::function<void()> regularProcessing);
-
-//! StoreCandidateBlockHash and LoadCandidateBlockHash mimic the atomic::store
-//! and atomic::load for uint256. Used to cache the hash instead of performing
-//! a lookup to the disk
-void StoreCandidateBlockHash(uint256 hash);
-uint256 LoadCandidateBlockHash();
+;
 
 }  // namespace snapshot
 

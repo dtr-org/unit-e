@@ -177,6 +177,7 @@ UNITE_CORE_H = \
   snapshot/iterator.h \
   snapshot/messages.h \
   snapshot/p2p_processing.h \
+  snapshot/state.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -279,6 +280,7 @@ libunite_server_a_SOURCES = \
   snapshot/initialization.cpp \
   snapshot/iterator.cpp \
   snapshot/p2p_processing.cpp \
+  snapshot/state.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \

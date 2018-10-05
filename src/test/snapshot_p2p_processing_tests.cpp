@@ -4,6 +4,8 @@
 
 #include <snapshot/p2p_processing.h>
 
+#include <memory>
+
 #include <chainparams.h>
 #include <net.h>
 #include <netaddress.h>
@@ -11,6 +13,7 @@
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
 #include <snapshot/messages.h>
+#include <snapshot/state.h>
 #include <test/test_unite.h>
 #include <validation.h>
 #include <version.h>
@@ -18,16 +21,16 @@
 
 BOOST_FIXTURE_TEST_SUITE(snapshot_p2p_processing_tests, TestingSetup)
 
-CNode *mockNode() {
+std::unique_ptr<CNode> mockNode() {
   uint32_t ip = 0xa0b0c001;
   in_addr s{ip};
   CService service(CNetAddr(s), 8333);
   CAddress addr(service, NODE_NONE);
 
-  CNode *node =
-      new CNode(0, ServiceFlags(NODE_NETWORK | NODE_WITNESS), 0, INVALID_SOCKET,
-                addr, 0, 0, CAddress(), "", /*fInboundIn=*/
-                false);
+  auto node = MakeUnique<CNode>(0, ServiceFlags(NODE_NETWORK | NODE_WITNESS), 0,
+                                INVALID_SOCKET, addr, 0, 0, CAddress(),
+                                "", /*fInboundIn=*/
+                                false);
   node->nVersion = 1;
   node->fSuccessfullyConnected = true;
   return node;
@@ -186,9 +189,9 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
-  snapshot::isdMode = true;
+  snapshot::EnableISDMode();
   snapshot::StoreCandidateBlockHash(uint256());
-  snapshot::initialHeadersDownloaded = true;
+  snapshot::HeadersDownloaded();
 
   CNetMsgMaker msgMaker(1);
   std::unique_ptr<CNode> node(mockNode());
@@ -212,7 +215,7 @@ BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
-  snapshot::isdMode = true;
+  snapshot::EnableISDMode();
 
   // return 0 blocks as we have not received the parent header of the snapshot
   const auto candidate = std::make_pair(uint256S("aa"), new CBlockIndex);

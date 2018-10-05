@@ -29,7 +29,7 @@
 #include <snapshot/creator.h>
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
-#include <snapshot/p2p_processing.h>
+#include <snapshot/state.h>
 
 #include <stdint.h>
 

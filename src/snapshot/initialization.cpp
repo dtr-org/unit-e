@@ -10,6 +10,7 @@
 #include <snapshot/creator.h>
 #include <snapshot/indexer.h>
 #include <snapshot/p2p_processing.h>
+#include <snapshot/state.h>
 #include <util.h>
 #include <validation.h>
 
@@ -18,7 +19,7 @@ namespace snapshot {
 bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
   if (fPruneMode) {
     if (gArgs.GetBoolArg("-isd", false)) {
-      snapshot::isdMode = true;
+      snapshot::EnableISDMode();
       LogPrintf("Initial Snapshot Download mode is enabled.\n");
     }
 

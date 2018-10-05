@@ -30,6 +30,7 @@
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
 #include <snapshot/p2p_processing.h>
+#include <snapshot/state.h>
 
 #include <memory>
 
@@ -1408,7 +1409,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             LogPrint(BCLog::NET, "more getheaders (%d) to end to peer=%d (startheight:%d)\n", pindexLast->nHeight, pfrom->GetId(), pfrom->nStartingHeight);
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexLast), uint256()));
         } else {
-            snapshot::initialHeadersDownloaded.store(true);
+            snapshot::HeadersDownloaded();
         }
 
         bool fCanDirectFetch = CanDirectFetch(chainparams.GetConsensus());
