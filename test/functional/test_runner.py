@@ -65,6 +65,7 @@ BASE_SCRIPTS= [
     'p2p_compactblocks.py',
     'feature_segwit.py',
     'feature_fee_estimation.py',
+    'esperanza_withdraw.py',
     # vv Tests less than 2m vv
     'feature_bip68_sequence.py',
     'mining_getblocktemplate_longpoll.py',
@@ -118,7 +119,6 @@ BASE_SCRIPTS= [
     'wallet_keypool.py',
     'p2p_mempool.py',
     'esperanza_deposit.py',
-    'esperanza_withdraw.py',
     'esperanza_finalizationstate.py',
     'esperanza_logout.py',
     'mining_prioritisetransaction.py',
