@@ -2473,8 +2473,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
-    esperanza::FinalizationState::ProcessNewTip(*pindexNew, blockConnecting);
-
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED)) {
       return false;
@@ -3601,9 +3599,9 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 {
 
     AssertLockNotHeld(cs_main);
+    CBlockIndex *pindex = nullptr;
 
     {
-        CBlockIndex *pindex = nullptr;
         if (fNewBlock) *fNewBlock = false;
         CValidationState state;
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
@@ -3623,6 +3621,9 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
     }
 
     NotifyHeaderTip();
+
+    assert(pindex != nullptr);
+    esperanza::FinalizationState::ProcessNewTip(*pindex, *pblock);
 
     CValidationState state; // Only used to report errors, not invalidity - ignore it
     if (!g_chainstate.ActivateBestChain(state, chainparams, pblock))

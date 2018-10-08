@@ -25,6 +25,9 @@ static std::shared_ptr<FinalizationState> esperanzaState;
 
 static CCriticalSection cs_init_lock;
 
+CCriticalSection FinalizationState::cs_storage;
+FinalizationState::Storage FinalizationState::m_storage;
+
 const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 
 template <typename... Args>
@@ -37,31 +40,16 @@ inline Result fail(Result error, const char *fmt, const Args &... args) {
 Result success() { return Result::SUCCESS; }
 
 FinalizationState::FinalizationState(
-    const esperanza::FinalizationParams &params)
-    : m_mainHashJustified(false),
-      m_currentEpoch(0),
-      m_currentDynasty(0),
-      m_curDynDeposits(0),
-      m_prevDynDeposits(0),
-      m_expectedSrcEpoch(0),
-      m_lastFinalizedEpoch(0),
-      m_lastJustifiedEpoch(0),
-      m_lastVoterRescale(0),
-      m_lastNonVoterRescale(0),
-      m_rewardFactor(0),
-      EPOCH_LENGTH(params.m_epochLength),
-      MIN_DEPOSIT_SIZE(params.m_minDepositSize),
-      DYNASTY_LOGOUT_DELAY(params.m_dynastyLogoutDelay),
-      WITHDRAWAL_EPOCH_DELAY(params.m_withdrawalEpochDelay),
-      SLASH_FRACTION_MULTIPLIER(params.m_slashFractionMultiplier),
-      BOUNTY_FRACTION_DENOMINATOR(params.m_bountyFractionDenominator),
-      BASE_INTEREST_FACTOR(params.m_baseInterestFactor),
-      BASE_PENALTY_FACTOR(params.m_basePenaltyFactor) {
+    const esperanza::FinalizationParams &settings) : settings(settings) {
   m_depositScaleFactor[0] = BASE_DEPOSIT_SCALE_FACTOR;
   m_checkpoints[0] = Checkpoint{};
   m_checkpoints[0].m_isJustified = true;
   m_checkpoints[0].m_isFinalized = true;
 }
+
+FinalizationState::FinalizationState(FinalizationState const &parent)
+  : FinalizationStateData(parent),
+    settings(parent.settings) {}
 
 /**
  * If the block height passed is the first of a new epoch, then we prepare the
@@ -71,7 +59,7 @@ FinalizationState::FinalizationState(
 esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
   LOCK(cs_esperanza);
 
-  auto newEpoch = static_cast<uint32_t>(blockHeight) / EPOCH_LENGTH;
+  auto newEpoch = static_cast<uint32_t>(blockHeight) / settings.m_epochLength;
 
   if (newEpoch != m_currentEpoch + 1) {
     return fail(esperanza::Result::INIT_WRONG_EPOCH,
@@ -103,11 +91,11 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   if (DepositExists()) {
     ufp64::ufp64_t interestBase =
-        ufp64::div(BASE_INTEREST_FACTOR, GetSqrtOfTotalDeposits());
+        ufp64::div(settings.m_baseInterestFactor, GetSqrtOfTotalDeposits());
 
     m_rewardFactor = ufp64::add(
         interestBase,
-        ufp64::mul_by_uint(BASE_PENALTY_FACTOR, GetEpochsSinceFinalization()));
+        ufp64::mul_by_uint(settings.m_basePenaltyFactor, GetEpochsSinceFinalization()));
 
     if (m_rewardFactor <= 0) {
       return fail(esperanza::Result::INIT_INVALID_REWARD,
@@ -382,10 +370,10 @@ esperanza::Result FinalizationState::ValidateDeposit(
                 __func__, validatorIndex.GetHex());
   }
 
-  if (depositValue < MIN_DEPOSIT_SIZE) {
+  if (depositValue < settings.m_minDepositSize) {
     return fail(esperanza::Result::DEPOSIT_INSUFFICIENT,
                 "%s: The deposit value must be %d > %d.\n", __func__,
-                depositValue, MIN_DEPOSIT_SIZE);
+                depositValue, settings.m_minDepositSize);
   }
 
   return success();
@@ -524,7 +512,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 }
 
 uint32_t FinalizationState::GetEndDynasty() const {
-  return m_currentDynasty + DYNASTY_LOGOUT_DELAY;
+  return m_currentDynasty + settings.m_dynastyLogoutDelay;
 }
 
 /**
@@ -611,7 +599,7 @@ esperanza::Result FinalizationState::ValidateWithdraw(
   }
 
   uint32_t endEpoch = m_dynastyStartEpoch.find(endDynasty + 1)->second;
-  uint32_t withdrawalEpoch = endEpoch + WITHDRAWAL_EPOCH_DELAY;
+  uint32_t withdrawalEpoch = endEpoch + settings.m_withdrawalEpochDelay;
 
   if (m_currentEpoch < withdrawalEpoch) {
     return fail(esperanza::Result::WITHDRAW_TOO_EARLY,
@@ -626,16 +614,16 @@ esperanza::Result FinalizationState::ValidateWithdraw(
 
   } else {
     uint32_t baseEpoch;
-    if (2 * WITHDRAWAL_EPOCH_DELAY > withdrawalEpoch) {
+    if (2 * settings.m_withdrawalEpochDelay > withdrawalEpoch) {
       baseEpoch = 0;
     } else {
-      baseEpoch = withdrawalEpoch - 2 * WITHDRAWAL_EPOCH_DELAY;
+      baseEpoch = withdrawalEpoch - 2 * settings.m_withdrawalEpochDelay;
     }
 
     uint64_t recentlySlashed = m_totalSlashed.find(withdrawalEpoch)->second -
                                m_totalSlashed.find(baseEpoch)->second;
     ufp64::ufp64_t fractionToSlash =
-        ufp64::div_2uint(recentlySlashed * SLASH_FRACTION_MULTIPLIER,
+        ufp64::div_2uint(recentlySlashed * settings.m_slashFractionMultiplier,
                          validator.m_depositsAtLogout);
 
     uint64_t depositSize =
@@ -759,7 +747,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
 
   // Slash the offending validator, and give a 4% "finder's fee"
   CAmount validatorDeposit = GetDepositSize(validatorIndex);
-  CAmount slashingBounty = validatorDeposit / BOUNTY_FRACTION_DENOMINATOR;
+  CAmount slashingBounty = validatorDeposit / settings.m_bountyFractionDenominator;
   m_totalSlashed[m_currentEpoch] += validatorDeposit;
   m_validators[validatorIndex].m_isSlashed = true;
 
@@ -805,22 +793,37 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
+FinalizationState *FinalizationState::Storage::findOrCreate(const CBlockIndex *index) {
+  if(index == nullptr || index->pprev == nullptr || index->phashBlock == nullptr) {
+    return esperanzaState.get();
+  }
+  auto const hash = index->GetBlockHash();
+  auto it = states.find(hash);
+  if(it == states.end()) {
+    FinalizationState f(*findOrCreate(index->pprev));
+    it = states.emplace(hash, FinalizationState(*findOrCreate(index->pprev))).first;
+  }
+  return &it->second;
+}
+
 /**
  * This method should return the right State instance that represents
  * the block before the given block. This method is gonna be used mostly
  * @param block
  * @return the state for the chain tip passed
  */
-FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
-  // UNIT-E: Replace the single instance with a map<block,state> to allow for
-  // reorganizations.
-  return esperanzaState.get();
+FinalizationState *FinalizationState::GetState(const CBlockIndex *index) {
+  LOCK(cs_storage);
+  if(index == nullptr) {
+    index = chainActive.Tip();
+  }
+  return m_storage.findOrCreate(index);
 }
 
 uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
   FinalizationState *state = GetState(blockIndex);
 
-  return static_cast<uint32_t>(blockIndex->nHeight) / state->EPOCH_LENGTH;
+  return static_cast<uint32_t>(blockIndex->nHeight) / state->settings.m_epochLength;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -844,7 +847,7 @@ const Validator *FinalizationState::GetValidator(
 }
 
 bool FinalizationState::ValidateDepositAmount(CAmount amount) {
-  return amount >= GetState()->MIN_DEPOSIT_SIZE;
+  return amount >= GetState()->settings.m_minDepositSize;
 }
 
 void FinalizationState::Init(const esperanza::FinalizationParams &params) {
@@ -881,7 +884,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   }
 
   // This is the first block of a new epoch.
-  if (blockIndex.nHeight % state->EPOCH_LENGTH == 0) {
+  if (blockIndex.nHeight % state->settings.m_epochLength == 0) {
     state->InitializeEpoch(blockIndex.nHeight);
   }
 
@@ -920,7 +923,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
   // This is the last block for the current epoch and it represent it, so we
   // update the targetHash.
-  if (blockIndex.nHeight % state->EPOCH_LENGTH == state->EPOCH_LENGTH - 1) {
+  if (blockIndex.nHeight % state->settings.m_epochLength == state->settings.m_epochLength - 1) {
     LogPrint(
         BCLog::FINALIZATION,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
