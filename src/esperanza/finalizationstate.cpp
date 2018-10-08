@@ -292,7 +292,7 @@ CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
                                          uint64_t reward) {
 
   Validator &validator = m_validators.at(validatorIndex);
-  m_validators[validatorIndex].m_deposit = validator.m_deposit + reward;
+  validator.m_deposit = validator.m_deposit + reward;
   uint32_t startDynasty = validator.m_startDynasty;
   uint32_t endDynasty = validator.m_endDynasty;
 
