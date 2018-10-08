@@ -94,7 +94,7 @@ public:
     std::vector<uint32_t> GetSnapshotIds();
     bool SetSnapshotIds(std::vector<uint32_t> &ids);
     bool ReserveSnapshotId(uint32_t &idOut);
-    bool LoadSnapshot(std::unique_ptr<snapshot::Indexer> indexer);
+    bool LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer);
 private:
     // guarantee that all snapshot IDs are generated sequentially
     CCriticalSection cs_reservedSnapshotId;

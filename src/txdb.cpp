@@ -493,7 +493,7 @@ bool CCoinsViewDB::ReserveSnapshotId(uint32_t &idOut) {
     return true;
 }
 
-bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> indexer) {
+bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
     LogPrint(BCLog::COINDB, "%s: Apply snapshot id=%i.\n", __func__,
              indexer->GetSnapshotId());
 
