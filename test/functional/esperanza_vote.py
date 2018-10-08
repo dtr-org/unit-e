@@ -57,9 +57,9 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         sync_blocks(self.nodes)
 
-        deptx1 = nodes[1].deposit(address1, 1500)['transactionid']
-        deptx2 = nodes[2].deposit(address2, 2000)['transactionid']
-        deptx3 = nodes[3].deposit(address3, 1500)['transactionid']
+        deptx1 = nodes[1].deposit(address1, 1500)
+        deptx2 = nodes[2].deposit(address2, 2000)
+        deptx3 = nodes[3].deposit(address3, 1500)
 
         self.wait_for_transaction(deptx1)
         self.wait_for_transaction(deptx2)

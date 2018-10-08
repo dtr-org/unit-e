@@ -56,9 +56,7 @@ UniValue deposit(const JSONRPCRequest &request)
   CWalletTx tx;
   extWallet.SendDeposit(address, amount, tx);
 
-  result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
-
-  return result;
+  return tx.GetHash().GetHex();
 }
 
 UniValue withdraw(const JSONRPCRequest &request)
@@ -102,9 +100,7 @@ UniValue withdraw(const JSONRPCRequest &request)
   CWalletTx tx;
   extWallet.SendWithdraw(address, tx);
 
-  result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
-
-  return result;
+  return tx.GetHash().GetHex();
 }
 
 UniValue logout(const JSONRPCRequest& request) {
@@ -143,9 +139,7 @@ UniValue logout(const JSONRPCRequest& request) {
   CWalletTx tx;
   extWallet.SendLogout(tx);
 
-  result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
-
-  return result;
+  return tx.GetHash().GetHex();
 }
 
 UniValue getvalidatorinfo(const JSONRPCRequest &request){

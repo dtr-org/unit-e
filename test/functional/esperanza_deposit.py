@@ -58,7 +58,7 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         sync_blocks(self.nodes)
 
-        txid = validator.deposit(payto, 10000)['transactionid']
+        txid = validator.deposit(payto, 10000)
 
         # wait for transaction to propagate
         self.wait_for_transaction(txid)

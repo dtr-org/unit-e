@@ -56,7 +56,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         sync_blocks(self.nodes)
 
-        deposit_tx = validator.deposit(validator_address, 10000)['transactionid']
+        deposit_tx = validator.deposit(validator_address, 10000)
 
         # wait for transaction to propagate
         self.wait_for_transaction(deposit_tx)
@@ -73,7 +73,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
-        logout_tx = validator.logout()['transactionid']
+        logout_tx = validator.logout()
         self.wait_for_transaction(logout_tx)
 
         # wait for 2 dynasties since logout so we are not required to vote anymore
@@ -93,7 +93,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
             time.sleep(block_time)
             sync_blocks(self.nodes)
 
-        withdraw_id = validator.withdraw(validator_address)['transactionid']
+        withdraw_id = validator.withdraw(validator_address)
         self.wait_for_transaction(withdraw_id)
 
         # let's mine the withdraw
