@@ -71,7 +71,7 @@ bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash) {
 
   std::pair<std::map<COutPoint, uint256>::iterator, bool> ret;
   ret = mapStakeSeen.insert(std::pair<COutPoint, uint256>(kernel, blockHash));
-  if (ret.second == false) {  // already exists
+  if (!ret.second) {  // already exists
     ret.first->second = blockHash;
   } else {
     listStakeSeen.push_back(kernel);
@@ -151,7 +151,7 @@ bool CheckBlock(const CBlock &pblock) {
       "\nproofhash: "
       "%s  \ntarget: %s\n",
       hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
-  if (LogAcceptCategory(BCLog::ESPERANZA)) {
+  if (LogAcceptCategory(BCLog::VALIDATION)) {
     LogPrintf("block %s\n", pblock.ToString());
     LogPrintf("out %s\n", FormatMoney(pblock.vtx[0]->GetValueOut()));
   }

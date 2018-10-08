@@ -93,7 +93,7 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   }
 
   initSemaphore.acquire(numThreads);
-  LogPrint(BCLog::ESPERANZA, "%d proposer threads initialized.\n", numThreads);
+  LogPrint(BCLog::PROPOSING, "%d proposer threads initialized.\n", numThreads);
 
   return threads;
 }
@@ -152,13 +152,13 @@ int64_t seconds(const Duration t) {
 }
 
 void Proposer::Run(Proposer::Thread &thread) {
-  LogPrint(BCLog::ESPERANZA, "%s: initialized.\n", thread.m_threadName.c_str());
+  LogPrint(BCLog::PROPOSING, "%s: initialized.\n", thread.m_threadName.c_str());
   for (const auto wallet : thread.m_wallets) {
-    LogPrint(BCLog::ESPERANZA, "  responsible for: %s\n", wallet->GetName());
+    LogPrint(BCLog::PROPOSING, "  responsible for: %s\n", wallet->GetName());
   }
   thread.m_initSemaphore.release();
   thread.m_startSemaphore.acquire();
-  LogPrint(BCLog::ESPERANZA, "%s: started.\n", thread.m_threadName.c_str());
+  LogPrint(BCLog::PROPOSING, "%s: started.\n", thread.m_threadName.c_str());
 
   while (!thread.m_interrupted) {
     try {
@@ -261,7 +261,7 @@ void Proposer::Run(Proposer::Thread &thread) {
                 .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
 
         if (!blockTemplate) {
-          LogPrint(BCLog::ESPERANZA, "%s/%s: failed to get block template",
+          LogPrint(BCLog::PROPOSING, "%s/%s: failed to get block template",
                    thread.m_threadName, wallet->GetName());
           continue;
         }
@@ -270,7 +270,7 @@ void Proposer::Run(Proposer::Thread &thread) {
                                 searchTime)) {
           const CBlock &block = blockTemplate->block;
           if (!ProposeBlock(blockTemplate->block)) {
-            LogPrint(BCLog::ESPERANZA, "%s/%s: failed to propose block",
+            LogPrint(BCLog::PROPOSING, "%s/%s: failed to propose block",
                      thread.m_threadName, wallet->GetName());
             continue;
           }
@@ -284,16 +284,16 @@ void Proposer::Run(Proposer::Thread &thread) {
     } catch (const std::runtime_error &error) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
-      LogPrint(BCLog::ESPERANZA, "%s: exception in proposer thread: %s\n",
+      LogPrint(BCLog::PROPOSING, "%s: exception in proposer thread: %s\n",
                thread.m_threadName, error.what());
     } catch (...) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
-      LogPrint(BCLog::ESPERANZA, "%s: unknown exception in proposer thread.\n",
+      LogPrint(BCLog::PROPOSING, "%s: unknown exception in proposer thread.\n",
                thread.m_threadName);
     }
   }
-  LogPrint(BCLog::ESPERANZA, "%s: stopping...\n", thread.m_threadName);
+  LogPrint(BCLog::PROPOSING, "%s: stopping...\n", thread.m_threadName);
   thread.m_stopSemaphore.release();
 }
 

@@ -985,13 +985,13 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         switch (tx.GetType()) {
           case TxType::VOTE: {
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                      "%s: Accepting vote to mempool with id %s.\n",
                      __func__,
                      tx.GetHash().GetHex());
 
             if (!esperanza::CheckVoteTransaction(state, tx)) {
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                        "%s: Vote cannot be included into mempool: %s.\n",
                        __func__,
                        state.GetRejectReason());
@@ -1002,12 +1002,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
           }
           case TxType::DEPOSIT: {
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                 "%s: Accepting deposit to mempool with id %s.\n", __func__,
                 tx.GetHash().GetHex());
 
             if (!esperanza::CheckDepositTransaction(state, tx)){
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                   "%s: Deposit cannot be included into mempool: %s.\n",
                   __func__,
                   state.GetRejectReason());
@@ -1017,12 +1017,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             break;
           }
           case TxType::LOGOUT: {
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                      "%s: Accepting logout to mempool with id %s.\n", __func__,
                      tx.GetHash().GetHex());
 
             if (!esperanza::CheckLogoutTransaction(state, tx)){
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                        "%s: Logout cannot be included into mempool: %s.\n",
                        __func__,
                        state.GetRejectReason());
@@ -3310,14 +3310,14 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         switch (tx->GetType()) {
           case TxType ::VOTE: {
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                      "%s: Accepting vote to mempool with id %s.\n",
                      __func__,
                      tx->GetHash().GetHex());
 
             if (!esperanza::CheckVoteTransaction(state, *tx, pindexPrev)) {
 
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                        "%s: Vote cannot be included into mempool: %s.\n",
                        __func__,
                        state.GetRejectReason());
@@ -3328,13 +3328,13 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
           }
           case TxType::DEPOSIT: {
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                 "%s: Accepting deposit to mempool with id %s.\n",
                 __func__,
                 tx->GetHash().GetHex());
 
             if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)) {
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                   "%s: Deposit cannot be included into mempool: %s.\n",
                   __func__,
                   state.GetRejectReason());
@@ -3345,13 +3345,13 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
           }
           case TxType::LOGOUT: {
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                      "%s: Accepting logout to mempool with id %s.\n",
                      __func__,
                      tx->GetHash().GetHex());
 
             if (!esperanza::CheckLogoutTransaction(state, *tx, pindexPrev)) {
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                        "%s: Logout cannot be included into mempool: %s.\n",
                        __func__,
                        state.GetRejectReason());
