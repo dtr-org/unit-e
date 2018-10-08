@@ -60,8 +60,6 @@ bool FindNextBlocksToDownload(NodeId nodeId,
 
 void ProcessSnapshotParentBlock(CBlock *parentBlock,
                                 std::function<void()> regularProcessing);
-;
-
 }  // namespace snapshot
 
 #endif  // UNITE_SNAPSHOT_P2P_PROCESSING_H

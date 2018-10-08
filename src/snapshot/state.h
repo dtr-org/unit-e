@@ -19,7 +19,7 @@ namespace snapshot {
 //! 4. snapshot applied (leave ISD)
 class State {
  public:
-  explicit State()
+  State()
       : m_isdMode(false), m_isdLatch(false), m_headersDownloaded(false){};
 
   void StoreCandidateBlockHash(uint256 hash);
