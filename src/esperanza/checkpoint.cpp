@@ -14,20 +14,12 @@ Checkpoint::Checkpoint()
       m_voteSet() {}
 
 uint64_t Checkpoint::GetCurDynastyVotes(uint32_t epoch) {
-  auto it = m_curDynastyVotes.find(epoch);
-  if (it == m_curDynastyVotes.end()) {
-    m_curDynastyVotes[epoch] = 0;
-    return 0;
-  }
-  return it->second;
+  auto pair = m_curDynastyVotes.emplace(epoch, 0);
+  return pair.first->second;
 }
 uint64_t Checkpoint::GetPrevDynastyVotes(uint32_t epoch) {
-  auto it = m_prevDynastyVotes.find(epoch);
-  if (it == m_prevDynastyVotes.end()) {
-    m_prevDynastyVotes[epoch] = 0;
-    return 0;
-  }
-  return it->second;
+  auto pair = m_prevDynastyVotes.emplace(epoch, 0);
+  return pair.first->second;
 }
 
 }  // namespace esperanza

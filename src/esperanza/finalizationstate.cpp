@@ -985,12 +985,8 @@ uint64_t FinalizationState::GetTotalSlashed(uint32_t epoch) const {
 }
 
 uint64_t FinalizationState::GetDynastyDelta(uint32_t dynasty) {
-  auto it = m_dynastyDeltas.find(dynasty);
-  if (it == m_dynastyDeltas.end()) {
-    m_dynastyDeltas[dynasty] = 0L;
-    return 0;
-  }
-  return it->second;
+  auto pair = m_dynastyDeltas.emplace(dynasty, 0);
+  return pair.first->second;
 }
 
 Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
