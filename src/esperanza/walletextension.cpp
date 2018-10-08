@@ -499,7 +499,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   CTxOut txout(amount, scriptPubKey);
   txNew.vout.push_back(txout);
 
-  const unsigned int nBytes =
+  const auto nBytes =
       static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
 
   const CAmount fees =
@@ -605,7 +605,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   // will be included.
   FeeCalculation feeCalc;
 
-  const unsigned int nBytes =
+  const auto nBytes =
       static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
 
   const CAmount fees =
