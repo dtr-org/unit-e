@@ -290,10 +290,11 @@ uint64_t FinalizationState::GetTotalPrevDynDeposits() {
 
 CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
                                          uint64_t reward) {
-  m_validators[validatorIndex].m_deposit =
-      m_validators.at(validatorIndex).m_deposit + reward;
-  uint32_t startDynasty = m_validators.at(validatorIndex).m_startDynasty;
-  uint32_t endDynasty = m_validators.at(validatorIndex).m_endDynasty;
+
+  Validator &validator = m_validators.at(validatorIndex);
+  m_validators[validatorIndex].m_deposit = validator.m_deposit + reward;
+  uint32_t startDynasty = validator.m_startDynasty;
+  uint32_t endDynasty = validator.m_endDynasty;
 
   if ((startDynasty <= m_currentDynasty) && (m_currentDynasty < endDynasty)) {
     m_curDynDeposits += reward;
@@ -309,7 +310,7 @@ CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
   }
 
   return ufp64::mul_to_uint(GetDepositScaleFactor(m_currentEpoch),
-                            m_validators.at(validatorIndex).m_deposit);
+                            validator.m_deposit);
 
   // UNIT-E: Here is where we should reward proposers if we want
 }
