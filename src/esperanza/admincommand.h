@@ -27,8 +27,8 @@ BETTER_ENUM(
 
 class AdminCommand {
  public:
-  AdminCommand(const AdminCommandType &command_type,
-               const std::vector<CPubKey> &pubkeys);
+  AdminCommand(const AdminCommandType &commandType,
+               const std::vector<CPubKey> &payload);
 
   AdminCommand();
 
