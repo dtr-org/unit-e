@@ -46,7 +46,7 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validationinterface.h>
-#include <snapshot/creator.h>
+#include <snapshot/initialization.h>
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
@@ -394,6 +394,8 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-prune=<n>", strprintf(_("Reduce storage requirements by enabling pruning (deleting) of old blocks. This allows the pruneblockchain RPC to be called to delete specific blocks, and enables automatic pruning of old blocks if a target size in MiB is provided. This mode is incompatible with -txindex and -rescan. "
             "Warning: Reverting this setting requires re-downloading the entire blockchain. "
             "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)"), MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024));
+    strUsage += HelpMessageOpt("-isd", _("Enable Initial Snapshot Download. Can be enabled only if -prune is set."));
+    strUsage += HelpMessageOpt("-createsnapshot", _("Creates snapshot of UTXOs (default: 1); -createsnapshot=0 disables snapshot creation"));
     strUsage += HelpMessageOpt("-reindex-chainstate", _("Rebuild chain state from the currently indexed blocks"));
     strUsage += HelpMessageOpt("-reindex", _("Rebuild chain state and block index from the blk*.dat files on disk"));
 #ifndef WIN32
@@ -1672,8 +1674,10 @@ bool AppInitMain()
         }
     }
 
-    // initialize snapshot creation
-    snapshot::Creator::Init(pcoinsdbview.get(), scheduler);
+    if (!snapshot::Initialize(pcoinsdbview.get(), scheduler)) {
+        LogPrintf("Error initializing snapshot component. Check other snapshot logs for details. Exiting\n");
+        return false;
+    }
 
     // As LoadBlockIndex can take several minutes, it's possible the user
     // requested to kill the GUI during the last operation. If so, exit.

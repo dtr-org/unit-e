@@ -29,6 +29,8 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
+#include <snapshot/p2p_processing.h>
+#include <snapshot/state.h>
 
 #include <memory>
 
@@ -466,6 +468,10 @@ bool PeerHasHeader(CNodeState *state, const CBlockIndex *pindex)
 void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<const CBlockIndex*>& vBlocks, NodeId& nodeStaller, const Consensus::Params& consensusParams) {
     if (count == 0)
         return;
+
+    if (snapshot::FindNextBlocksToDownload(nodeid, vBlocks)) {
+        return;
+    }
 
     vBlocks.reserve(vBlocks.size() + count);
     CNodeState *state = State(nodeid);
@@ -1402,6 +1408,8 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             // from there instead.
             LogPrint(BCLog::NET, "more getheaders (%d) to end to peer=%d (startheight:%d)\n", pindexLast->nHeight, pfrom->GetId(), pfrom->nStartingHeight);
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexLast), uint256()));
+        } else {
+            snapshot::HeadersDownloaded();
         }
 
         bool fCanDirectFetch = CanDirectFetch(chainparams.GetConsensus());
@@ -1769,6 +1777,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         LOCK(cs_main);
         Misbehaving(pfrom->GetId(), 1);
         return false;
+    }
+
+    else if (strCommand == NetMsgType::GETSNAPSHOT) {
+        return snapshot::ProcessGetSnapshot(pfrom, vRecv, msgMaker);
+    }
+
+    else if (strCommand == NetMsgType::SNAPSHOT) {
+        return snapshot::ProcessSnapshot(pfrom, vRecv, msgMaker);
     }
 
     else if (strCommand == NetMsgType::ADDR)
@@ -2631,14 +2647,18 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // so the race between here and cs_main in ProcessNewBlock is fine.
             mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
         }
-        bool fNewBlock = false;
-        ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
-        if (fNewBlock) {
-            pfrom->nLastBlockTime = GetTime();
-        } else {
-            LOCK(cs_main);
-            mapBlockSource.erase(pblock->GetHash());
-        }
+        // process the parent snapshot block otherwise, fallback to the
+        // regular ProcessNewBlock implementation
+        snapshot::ProcessSnapshotParentBlock(pblock.get(), [&](){
+            bool fNewBlock = false;
+            ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
+            if (fNewBlock) {
+                pfrom->nLastBlockTime = GetTime();
+            } else {
+                LOCK(cs_main);
+                mapBlockSource.erase(pblock->GetHash());
+            }
+        });
     }
 
 
@@ -3232,6 +3252,8 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
             if (pto->vAddrToSend.capacity() > 40)
                 pto->vAddrToSend.shrink_to_fit();
         }
+
+        snapshot::StartInitialSnapshotDownload(pto, msgMaker);
 
         // Start block sync
         if (pindexBestHeader == nullptr)
