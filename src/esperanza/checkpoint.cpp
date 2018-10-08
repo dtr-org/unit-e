@@ -16,14 +16,16 @@ Checkpoint::Checkpoint()
 uint64_t Checkpoint::GetCurDynastyVotes(uint32_t epoch) {
   auto it = m_curDynastyVotes.find(epoch);
   if (it == m_curDynastyVotes.end()) {
-    return m_curDynastyVotes[epoch] = 0;
+    m_curDynastyVotes[epoch] = 0;
+    return 0;
   }
   return it->second;
 }
 uint64_t Checkpoint::GetPrevDynastyVotes(uint32_t epoch) {
   auto it = m_prevDynastyVotes.find(epoch);
   if (it == m_prevDynastyVotes.end()) {
-    return m_prevDynastyVotes[epoch] = 0;
+    m_prevDynastyVotes[epoch] = 0;
+    return 0;
   }
   return it->second;
 }
