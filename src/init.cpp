@@ -395,7 +395,7 @@ std::string HelpMessage(HelpMessageMode mode)
             "Warning: Reverting this setting requires re-downloading the entire blockchain. "
             "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)"), MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024));
     strUsage += HelpMessageOpt("-isd", _("Enable Initial Snapshot Download. Can be enabled only if -prune is set."));
-    strUsage += HelpMessageOpt("-disablesnapshot", _("Disable snapshot generation."));
+    strUsage += HelpMessageOpt("-createsnapshot", _("Creates snapshot of UTXOs (default: 1); -createsnapshot=0 disables snapshot creation"));
     strUsage += HelpMessageOpt("-reindex-chainstate", _("Rebuild chain state from the currently indexed blocks"));
     strUsage += HelpMessageOpt("-reindex", _("Rebuild chain state and block index from the blk*.dat files on disk"));
 #ifndef WIN32

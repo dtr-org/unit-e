@@ -43,7 +43,7 @@ bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
     }
   }
 
-  if (!gArgs.GetBoolArg("-disablesnapshot", false)) {
+  if (gArgs.GetBoolArg("-createsnapshot", true)) {
     Creator::Init(view, scheduler);
   }
 
