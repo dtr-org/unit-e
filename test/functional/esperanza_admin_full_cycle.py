@@ -3,8 +3,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-import os
-
 from test_framework.util import *
 from test_framework.test_framework import *
 from test_framework.admin import *
