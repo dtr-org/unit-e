@@ -19,7 +19,7 @@ class SpendGenensisTest(UnitETestFramework):
 
         # Make the coinbase mature
         node.generate(100)
-        assert (node.getwalletinfo()['balance'] == 10000)
+        assert (node.getbalance() == 10000)
 
         # Send a tx to yourself spending the tx
         node.sendtoaddress(node.getnewaddress(), 5000)

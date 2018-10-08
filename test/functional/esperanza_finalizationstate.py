@@ -60,7 +60,7 @@ def setup_deposit(self, nodes):
         n.importmasterkey(master_keys[i])
         n.new_address = n.getnewaddress("", "legacy")
 
-        assert_equal(n.getwalletinfo()['balance'], 10000)
+        assert_equal(n.getbalance(), 10000)
 
     # wait for coinbase maturity
     for n in range(0, 120):

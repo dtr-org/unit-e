@@ -49,7 +49,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         address2 = nodes[2].getnewaddress("", "legacy")
         address3 = nodes[3].getnewaddress("", "legacy")
 
-        assert(all(nodes[i].getwalletinfo()['balance'] == 10000 for i in range(0, 4)))
+        assert(all(nodes[i].getbalance() == 10000 for i in range(0, 4)))
 
         # wait for coinbase maturity
         for n in range(0, 120):

@@ -48,7 +48,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         validator_address = validator.getnewaddress("", "legacy")
 
-        assert_equal(validator.getwalletinfo()['balance'], 10000)
+        assert_equal(validator.getbalance(), 10000)
 
         # wait for coinbase maturity
         for n in range(0, 120):
@@ -101,7 +101,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         sync_blocks(self.nodes)
 
         # This is the initial deposit - fees for deposit, logout and withdraw
-        assert_equal(math.ceil(validator.getwalletinfo()['balance']), 10000)
+        assert_equal(math.ceil(validator.getbalance()), 10000)
 
     def generate_block(self, node):
         i = 0
