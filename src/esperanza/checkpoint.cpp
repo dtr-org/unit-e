@@ -29,4 +29,5 @@ uint64_t Checkpoint::GetPrevDynastyVotes(uint32_t epoch) {
   }
   return it->second;
 }
+
 }  // namespace esperanza
