@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import math
-from test_framework.util import *
+from test_framework.util import json
+from test_framework.util import assert_equal
+from test_framework.util import sync_blocks
+from test_framework.util import time
+from test_framework.util import JSONRPCException
 from test_framework.test_framework import UnitETestFramework
 
 
