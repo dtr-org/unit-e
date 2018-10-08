@@ -1675,7 +1675,7 @@ bool AppInitMain()
     }
 
     if (!snapshot::Initialize(pcoinsdbview.get(), scheduler)) {
-        LogPrintf("Can't initialize a snapshot. Exiting.\n");
+        LogPrintf("Error initializing snapshot component. Check other snapshot logs for details. Exiting\n");
         return false;
     }
 
