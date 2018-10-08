@@ -178,7 +178,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     if (CheckKernel(pindexPrev, nBits, nTime, prevoutStake, &nBlockTime)) {
       LOCK(m_enclosingWallet->cs_wallet);
       // Found a kernel
-      LogPrint(BCLog::ESPERANZA, "%s: Kernel found.\n", __func__);
+      LogPrint(BCLog::PROPOSING, "%s: Kernel found.\n", __func__);
 
       const CTxOut &kernelOut = pcoin.first->tx->vout[pcoin.second];
 
@@ -197,23 +197,23 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       }
 
       if (!Solver(pscriptPubKey, whichType, vSolutions)) {
-        LogPrint(BCLog::ESPERANZA, "%s: Failed to parse kernel.\n", __func__);
+        LogPrint(BCLog::PROPOSING, "%s: Failed to parse kernel.\n", __func__);
         break;
       }
 
-      LogPrint(BCLog::ESPERANZA, "%s: Parsed kernel type=%d.\n", __func__,
+      LogPrint(BCLog::PROPOSING, "%s: Parsed kernel type=%d.\n", __func__,
                whichType);
       CKeyID spendId;
       if (whichType == TX_PUBKEYHASH) {
         spendId = CKeyID(uint160(vSolutions[0]));
       } else {
-        LogPrint(BCLog::ESPERANZA, "%s: No support for kernel type=%d.\n",
+        LogPrint(BCLog::PROPOSING, "%s: No support for kernel type=%d.\n",
                  __func__, whichType);
         break;  // only support pay to address (pay to pubkey hash)
       }
 
       if (!m_enclosingWallet->GetKey(spendId, key)) {
-        LogPrint(BCLog::ESPERANZA,
+        LogPrint(BCLog::PROPOSING,
                  "%s: Failed to get key for kernel type=%d.\n", __func__,
                  whichType);
         break;  // unable to find corresponding key
@@ -242,7 +242,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       CTxOut out(0, scriptPubKeyKernel);
       txNew.vout.emplace_back(out);
 
-      LogPrint(BCLog::ESPERANZA, "%s: Added kernel.\n", __func__);
+      LogPrint(BCLog::PROPOSING, "%s: Added kernel.\n", __func__);
 
       setCoins.erase(it);
       break;
@@ -295,7 +295,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     nCredit += prevOut.nValue;
     vwtxPrev.push_back(pcoin.first);
 
-    LogPrint(BCLog::ESPERANZA, "%s: Combining kernel %s, %d.\n", __func__,
+    LogPrint(BCLog::PROPOSING, "%s: Combining kernel %s, %d.\n", __func__,
              pcoin.first->GetHash().ToString(), pcoin.second);
     nStakesCombined++;
     setCoins.erase(itc);
@@ -390,7 +390,7 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 // UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
   if (m_settings.m_validating && !m_settings.m_proposing) {
-    LogPrint(BCLog::ESPERANZA, "%s: -validating is enabled for wallet %s.\n",
+    LogPrint(BCLog::FINALIZATION, "%s: -validating is enabled for wallet %s.\n",
              __func__, m_enclosingWallet->GetName());
 
     validatorState = ValidatorState();
@@ -427,7 +427,7 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
           vecSend, wtxOut, reservekey, nFeeRet, nChangePosInOut, sError,
           coinControl, true, TxType::DEPOSIT)) {
 
-    LogPrint(BCLog::ESPERANZA, "%s: Cannot create deposit transaction.\n",
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot create deposit transaction.\n",
              __func__);
     return false;
   }
@@ -435,18 +435,18 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   CValidationState state;
   if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey, g_connman.get(),
                                             state)) {
-    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit deposit transaction.\n",
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
              __func__);
     return false;
   }
 
-  LogPrint(BCLog::ESPERANZA, "%s: Created new deposit transaction %s.\n",
+  LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
            __func__, wtxOut.GetHash().GetHex());
 
   {
     LOCK(m_enclosingWallet->cs_wallet);
     if (validatorState.m_phase == +ValidatorState::Phase::NOT_VALIDATING) {
-      LogPrint(BCLog::ESPERANZA,
+      LogPrint(BCLog::FINALIZATION,
                "%s: Validator waiting for deposit confirmation.\n", __func__);
 
       validatorState.m_phase =
@@ -526,7 +526,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
                                        state);
   if (state.IsInvalid()) {
-    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit logout transaction: %s.\n",
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot commit logout transaction: %s.\n",
              __func__, state.GetRejectReason());
     return false;
   }
@@ -549,13 +549,13 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 
   // Avoid double votes
   if (validatorState.m_voteMap.find(epoch) != validatorState.m_voteMap.end()) {
-    LogPrint(BCLog::ESPERANZA,
+    LogPrint(BCLog::FINALIZATION,
              "%s: Attampting to make a double vote for epoch %s.\n", __func__,
              epoch);
     return;
   }
 
-  LogPrint(BCLog::ESPERANZA,
+  LogPrint(BCLog::FINALIZATION,
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
            epoch, dynasty);
 
@@ -565,7 +565,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   if (vote.m_targetEpoch < validatorState.m_lastTargetEpoch ||
       vote.m_sourceEpoch < validatorState.m_lastSourceEpoch) {
 
-    LogPrint(BCLog::ESPERANZA,
+    LogPrint(BCLog::FINALIZATION,
              "%s: Attampting to make a sorround vote, source: %s, target: %s"
              " prevSource %s, prevTarget: %s.\n",
              __func__, vote.m_sourceEpoch, vote.m_targetEpoch,
@@ -583,7 +583,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
     validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
     validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
     validatorState.m_lastEsperanzaTx = createdTx.tx;
-    LogPrint(BCLog::ESPERANZA, "%s: Casted vote with id %s.\n", __func__,
+    LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
              createdTx.tx->GetHash().GetHex());
   }
 }
@@ -645,7 +645,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
                                        state);
   if (state.IsInvalid()) {
-    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit vote transaction: %s.\n",
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot commit vote transaction: %s.\n",
              __func__, state.GetRejectReason());
     return false;
   }
@@ -685,7 +685,7 @@ void WalletExtension::BlockConnected(
             LOCK(m_enclosingWallet->cs_wallet);
             validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                      "%s: Validator's deposit finalized, the validator index "
                      "is %s.\n",
                      __func__, validatorState.m_validatorIndex.GetHex());

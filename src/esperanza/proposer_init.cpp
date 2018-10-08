@@ -21,7 +21,7 @@ bool InitProposer(const Settings &settings,
     return false;
   }
   if (!settings.m_proposing) {
-    LogPrint(BCLog::ESPERANZA,
+    LogPrint(BCLog::FINALIZATION,
              "not starting proposer, proposing is not activated.\n");
     return true;
   }
@@ -29,7 +29,7 @@ bool InitProposer(const Settings &settings,
     proposer.reset(new Proposer(settings, wallets));
     return true;
   } catch (const std::runtime_error &exc) {
-    LogPrint(BCLog::ESPERANZA, "failed to create proposer threads: %s\n",
+    LogPrint(BCLog::FINALIZATION, "failed to create proposer threads: %s\n",
              exc.what());
     return false;
   }
@@ -37,16 +37,16 @@ bool InitProposer(const Settings &settings,
 
 void StartProposer() {
   if (proposer) {
-    LogPrint(BCLog::ESPERANZA, "starting proposer threads...\n");
+    LogPrint(BCLog::FINALIZATION, "starting proposer threads...\n");
     proposer->Start();
   }
 }
 
 void StopProposer() {
   if (proposer) {
-    LogPrint(BCLog::ESPERANZA, "stopping proposer threads...\n");
+    LogPrint(BCLog::FINALIZATION, "stopping proposer threads...\n");
     proposer->Stop();
-    LogPrint(BCLog::ESPERANZA, "all proposer threads exited.\n");
+    LogPrint(BCLog::FINALIZATION, "all proposer threads exited.\n");
   }
 }
 

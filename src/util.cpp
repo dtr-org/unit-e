@@ -255,7 +255,9 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::COINDB, "coindb"},
     {BCLog::QT, "qt"},
     {BCLog::LEVELDB, "leveldb"},
-    {BCLog::ESPERANZA, "esperanza"},
+    {BCLog::VALIDATION, "validation"},
+    {BCLog::PROPOSING, "proposing"},
+    {BCLog::FINALIZATION, "finalization"},
     {BCLog::SNAPSHOT, "snapshot"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
@@ -358,7 +360,7 @@ static std::string LogTimestampStr(const BCLog::LogFlags category, const std::st
           strStamped += " ";
         }
         if (fLogCategories) {
-            strStamped += strprintf("[%11s] ", GetLogCategoryLabel(category));
+            strStamped += strprintf("[%12s] ", GetLogCategoryLabel(category));
         }
         if (fLogTimestamps) {
             int64_t mocktime = GetMockTime();

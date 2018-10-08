@@ -30,7 +30,7 @@ const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 template <typename... Args>
 inline Result fail(Result error, const char *fmt, const Args &... args) {
   std::string reason = tfm::format(fmt, args...);
-  LogPrint(BCLog::ESPERANZA, "ERROR: %s.\n", reason);
+  LogPrint(BCLog::FINALIZATION, "ERROR: %s.\n", reason);
   return error;
 }
 
@@ -79,7 +79,7 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
                 m_currentEpoch + 1, newEpoch);
   }
 
-  LogPrint(BCLog::ESPERANZA, "%s: New epoch found, this epoch is the %d.\n",
+  LogPrint(BCLog::FINALIZATION, "%s: New epoch found, this epoch is the %d.\n",
            __func__, newEpoch);
 
   m_checkpoints[newEpoch] = Checkpoint{};
@@ -88,8 +88,8 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   m_currentEpoch = newEpoch;
 
-  LogPrint(BCLog::ESPERANZA, "%s: Epoch block found at height %d.\n", __func__,
-           blockHeight);
+  LogPrint(BCLog::FINALIZATION, "%s: Epoch block found at height %d.\n",
+           __func__, blockHeight);
 
   m_lastVoterRescale = ufp64::add_uint(GetCollectiveRewardFactor(), 1);
 
@@ -123,7 +123,7 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   IncrementDynasty();
 
-  LogPrint(BCLog::ESPERANZA,
+  LogPrint(BCLog::FINALIZATION,
            "%s: Epoch with height %d initialized. The current dynasty is %s.\n",
            __func__, newEpoch, m_currentDynasty);
 
@@ -141,7 +141,7 @@ void FinalizationState::InstaFinalize() {
   m_lastJustifiedEpoch = epoch - 1;
   m_lastFinalizedEpoch = epoch - 1;
 
-  LogPrint(BCLog::ESPERANZA, "%s: Finalized block for epoch %d.\n", __func__,
+  LogPrint(BCLog::FINALIZATION, "%s: Finalized block for epoch %d.\n", __func__,
            epoch);
 }
 
@@ -158,7 +158,7 @@ void FinalizationState::IncrementDynasty() {
     m_curDynDeposits += m_dynastyDeltas[m_currentDynasty];
     m_dynastyStartEpoch[m_currentDynasty] = epoch;
 
-    LogPrint(BCLog::ESPERANZA, "%s: New current dynasty is %d.\n", __func__,
+    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty is %d.\n", __func__,
              m_currentDynasty);
     // UNIT-E: we can clear old checkpoints (up to lastFinalizedEpoch - 1)
   }
@@ -249,7 +249,7 @@ Vote FinalizationState::GetRecommendedVote(
   vote.m_targetEpoch = m_currentEpoch;
   vote.m_sourceEpoch = m_expectedSrcEpoch;
 
-  LogPrint(BCLog::ESPERANZA,
+  LogPrint(BCLog::FINALIZATION,
            "%s: Getting recommended vote for epoch %d and dynasty %d is: { %s, "
            "%d, %d }.\n",
            __func__, m_currentEpoch, m_currentDynasty,
@@ -409,7 +409,7 @@ void FinalizationState::ProcessDeposit(const uint256 &validatorIndex,
 
   m_dynastyDeltas[startDynasty] += scaledDeposit;
 
-  LogPrint(BCLog::ESPERANZA,
+  LogPrint(BCLog::FINALIZATION,
            "%s: Add deposit %s for validator in dynasty %d.\n", __func__,
            validatorIndex.GetHex(), startDynasty);
 }
@@ -443,8 +443,9 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
                 vote.m_targetEpoch);
   }
 
-  LogPrint(BCLog::ESPERANZA, "%s: Validator %s vote (%s, %d, %d) is valid.\n",
-           __func__, vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
+  LogPrint(BCLog::FINALIZATION,
+           "%s: Validator %s vote (%s, %d, %d) is valid.\n", __func__,
+           vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
            vote.m_sourceEpoch, vote.m_targetEpoch);
 
   return success();
@@ -458,7 +459,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 
   m_checkpoints[vote.m_targetEpoch].m_voteMap.insert(vote.m_validatorIndex);
 
-  LogPrint(BCLog::ESPERANZA,
+  LogPrint(BCLog::FINALIZATION,
            "%s: Validator %s voted successfully (%s, %d, %d).\n", __func__,
            vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
            vote.m_sourceEpoch, vote.m_targetEpoch);
@@ -508,17 +509,17 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     m_lastJustifiedEpoch = targetEpoch;
     m_mainHashJustified = true;
 
-    LogPrint(BCLog::ESPERANZA, "%s: Epoch %d justified.\n", __func__,
+    LogPrint(BCLog::FINALIZATION, "%s: Epoch %d justified.\n", __func__,
              targetEpoch);
 
     if (targetEpoch == sourceEpoch + 1) {
       m_checkpoints[sourceEpoch].m_isFinalized = true;
       m_lastFinalizedEpoch = sourceEpoch;
-      LogPrint(BCLog::ESPERANZA, "%s: Epoch %d finalized.\n", __func__,
+      LogPrint(BCLog::FINALIZATION, "%s: Epoch %d finalized.\n", __func__,
                sourceEpoch);
     }
   }
-  LogPrint(BCLog::ESPERANZA, "%s: Vote from validator %s processed.\n",
+  LogPrint(BCLog::FINALIZATION, "%s: Vote from validator %s processed.\n",
            __func__, validatorIndex.GetHex());
 }
 
@@ -575,8 +576,9 @@ void FinalizationState::ProcessLogout(const uint256 &validatorIndex) {
   validator.m_depositsAtLogout = m_curDynDeposits;
   m_dynastyDeltas[endDynasty] -= validator.m_deposit;
 
-  LogPrint(BCLog::ESPERANZA, "%s: Vote from validator %s logging out at %d.\n",
-           __func__, validatorIndex.GetHex(), endDynasty);
+  LogPrint(BCLog::FINALIZATION,
+           "%s: Vote from validator %s logging out at %d.\n", __func__,
+           validatorIndex.GetHex(), endDynasty);
 }
 
 /**
@@ -647,8 +649,9 @@ esperanza::Result FinalizationState::ValidateWithdraw(
           ufp64::sub(ufp64::to_ufp64(1), fractionToSlash), depositSize);
     }
 
-    LogPrint(BCLog::ESPERANZA, "%s: Withdraw from validator %s of %d units.\n",
-             __func__, validatorIndex.GetHex(), endDynasty, withdrawAmountOut);
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Withdraw from validator %s of %d units.\n", __func__,
+             validatorIndex.GetHex(), endDynasty, withdrawAmountOut);
   }
 
   if (withdrawAmountOut != requiredWithdraw) {
@@ -760,7 +763,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
   m_totalSlashed[m_currentEpoch] += validatorDeposit;
   m_validators[validatorIndex].m_isSlashed = true;
 
-  LogPrint(BCLog::ESPERANZA,
+  LogPrint(BCLog::FINALIZATION,
            "%s: Slashing validator with deposit hash %s of %d units, taking %d "
            "as bounty.\n",
            __func__, validatorIndex.GetHex(), validatorDeposit, slashingBounty);
@@ -868,7 +871,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
   FinalizationState *state = GetState(&blockIndex);
 
-  LogPrint(BCLog::ESPERANZA, "%s: Processing block %d with hash %s.\n",
+  LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
            __func__, blockIndex.nHeight, block.GetHash().GetHex());
 
   // We can skip everything for the genesis block since it isn't suppose to
@@ -919,7 +922,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   // update the targetHash.
   if (blockIndex.nHeight % state->EPOCH_LENGTH == state->EPOCH_LENGTH - 1) {
     LogPrint(
-        BCLog::ESPERANZA,
+        BCLog::FINALIZATION,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
         __func__, block.GetHash().GetHex());
     state->m_recommendedTargetHash = block.GetHash();

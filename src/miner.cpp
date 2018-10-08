@@ -201,7 +201,7 @@ void BlockAssembler::AddVoteTxs()
             CValidationState state;
             if (esperanza::CheckVoteTransaction(state, mi->GetTx())) {
               AddToBlock(mempool.mapTx.project<0>(mi));
-              LogPrint(BCLog::ESPERANZA, "%s: Add vote with id %s to a new block.\n",
+              LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
                        __func__,
                        mi->GetTx().GetHash().GetHex());
             }

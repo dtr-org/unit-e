@@ -1096,7 +1096,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
 
                     state->m_phase = esperanza::ValidatorState::Phase::
                         WAITING_DEPOSIT_FINALIZATION;
-                    LogPrint(BCLog::ESPERANZA,
+                    LogPrint(BCLog::FINALIZATION,
                              "%s: Validator waiting for deposit finalization. "
                              "Deposit hash %s.\n",
                              __func__, tx.GetHash().GetHex());
@@ -1110,7 +1110,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                     state->m_depositEpoch =
                         esperanza::FinalizationState::GetEpoch(pIndex);
                   } else {
-                    LogPrint(BCLog::ESPERANZA,
+                    LogPrint(BCLog::FINALIZATION,
                              "ERROR: %s - Wrong state for validator state with "
                              "deposit %s, %s expected but %s found.\n",
                              __func__, tx.GetHash().GetHex(),
@@ -1136,7 +1136,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                     state->m_endDynasty = validator->m_endDynasty;
 
                   } else {
-                    LogPrint(BCLog::ESPERANZA,
+                    LogPrint(BCLog::FINALIZATION,
                              "ERROR: %s - Wrong state for validator state when "
                              "logging out. %s expected but %s found.\n",
                              __func__,
