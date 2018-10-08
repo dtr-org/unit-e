@@ -443,7 +443,7 @@ static void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) 
 
     std::vector<COutPoint> vNoSpendsRemaining;
     pool.TrimToSize(limit, &vNoSpendsRemaining);
-    for (const COutPoint& removed : vNoSpendsRemaining) {
+    for (const COutPoint &removed : vNoSpendsRemaining) {
       pcoinsTip->Uncache(removed);
     }
 }

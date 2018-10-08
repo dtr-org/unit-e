@@ -3033,9 +3033,8 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                 if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL), scriptPubKey, sigdata)) {
                     strFailReason = _("Signing transaction failed");
                     return false;
-                } else {
-                    UpdateTransaction(txNew, nIn, sigdata);
                 }
+                UpdateTransaction(txNew, nIn, sigdata);
                 nIn++;
             }
         }

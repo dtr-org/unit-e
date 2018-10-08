@@ -517,9 +517,8 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
                                       amount, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
     return false;
-  } else {
-    UpdateTransaction(txNew, nIn, sigdata);
   }
+  UpdateTransaction(txNew, nIn, sigdata);
 
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
@@ -622,9 +621,8 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
                                       initialDeposit, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
     return false;
-  } else {
-    UpdateTransaction(txNew, nIn, sigdata);
   }
+  UpdateTransaction(txNew, nIn, sigdata);
 
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
@@ -740,9 +738,8 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                       amount, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
     return false;
-  } else {
-    UpdateTransaction(txNew, nIn, sigdata);
   }
+  UpdateTransaction(txNew, nIn, sigdata);
 
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
