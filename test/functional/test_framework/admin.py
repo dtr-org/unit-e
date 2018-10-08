@@ -89,7 +89,7 @@ class Admin:
     def authorize_and_disable(framework, admin_node, donor_node=None,
                               fee=Decimal("0.001")):
         admin = Admin.authorize(framework, admin_node, donor_node, fee)
-        admin.send([{'cmd': 'END_PERMISSIONING'}], fee)
+        admin.end_permissioning()
 
     @staticmethod
     def find_output_for_address(node, txid, address):
@@ -140,3 +140,6 @@ class Admin:
             "payload": pubkeys
         }
         return self.send([command])
+
+    def end_permissioning(self):
+        return self.send([{'cmd': 'END_PERMISSIONING'}])

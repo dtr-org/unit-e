@@ -10,6 +10,21 @@ from test_framework.test_framework import *
 from test_framework.admin import *
 
 
+# We want to ensure that tx was rejected, but we don't want to check for
+# absence of this transaction. Instead we check for presence of reject event
+# in node log
+def assert_tx_rejected(node, txid):
+    log = os.path.join(node.datadir, "regtest", "debug.log")
+
+    needle = "Deposit cannot be included into mempool: " \
+             "bad-deposit-invalid-esperanza, txid: %s" % txid
+    with open(log) as file:
+        for line in file:
+            if needle in line:
+                return
+
+    raise AssertionError("Rejection proof is not found")
+
 # Checks basic validator administration scenario
 # At first validator is not whitelisted - and his deposit tx should be treated
 # as invalid. Later validator is whitelisted. This time deposit tx should pass
@@ -28,21 +43,6 @@ class DepositAdministration(UnitETestFramework):
             ['-proposing=0', '-validating=1', '-debug=all',
              '-esperanzaconfig=' + json_params]]
         self.setup_clean_chain = True
-
-    # We want to ensure that tx was rejected, but we don't want to check for
-    # absence of this transaction. Instead we check for presence of reject event
-    # in node log
-    def assert_tx_rejected(self, node, txid):
-        log = os.path.join(node.datadir, "regtest", "debug.log")
-
-        needle = "Deposit cannot be included into mempool: " \
-                 "bad-deposit-invalid-esperanza, txid: %s" % txid
-        with open(log) as file:
-            for line in file:
-                if needle in line:
-                    return
-
-        raise AssertionError("Rejection proof is not found")
 
     def run_test(self):
         proposer = self.nodes[0]
@@ -77,7 +77,7 @@ class DepositAdministration(UnitETestFramework):
 
         # Validator is not in the whitelist and not allowed to deposit
         invalid_tx = validator.deposit(address, 2000)["transactionid"]
-        self.assert_tx_rejected(validator, invalid_tx)
+        assert_tx_rejected(validator, invalid_tx)
 
         pubkey = validator.validateaddress(address)["pubkey"]
 
