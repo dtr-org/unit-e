@@ -57,10 +57,15 @@ FinalizationState::FinalizationState(
       BOUNTY_FRACTION_DENOMINATOR(params.m_bountyFractionDenominator),
       BASE_INTEREST_FACTOR(params.m_baseInterestFactor),
       BASE_PENALTY_FACTOR(params.m_basePenaltyFactor) {
+
   m_depositScaleFactor[0] = BASE_DEPOSIT_SCALE_FACTOR;
-  m_checkpoints[0] = Checkpoint{};
-  m_checkpoints[0].m_isJustified = true;
-  m_checkpoints[0].m_isFinalized = true;
+  m_totalSlashed[0] = 0;
+  m_dynastyDeltas[0] = 0;
+
+  Checkpoint cp = Checkpoint();
+  cp.m_isJustified = true;
+  cp.m_isFinalized = true;
+  m_checkpoints[0] = cp;
 }
 
 /**
@@ -82,9 +87,10 @@ Result FinalizationState::InitializeEpoch(int blockHeight) {
   LogPrint(BCLog::FINALIZATION, "%s: New epoch found, this epoch is the %d.\n",
            __func__, newEpoch);
 
-  m_checkpoints[newEpoch] = Checkpoint{};
-  m_checkpoints[newEpoch].m_curDynastyDeposits = GetTotalCurDynDeposits();
-  m_checkpoints[newEpoch].m_prevDynastyDeposits = GetTotalPrevDynDeposits();
+  Checkpoint cp = Checkpoint();
+  cp.m_curDynastyDeposits = GetTotalCurDynDeposits();
+  cp.m_prevDynastyDeposits = GetTotalPrevDynDeposits();
+  m_checkpoints[newEpoch] = cp;
 
   m_currentEpoch = newEpoch;
 
@@ -97,9 +103,9 @@ Result FinalizationState::InitializeEpoch(int blockHeight) {
       ufp64::div(m_lastVoterRescale, (ufp64::add_uint(m_rewardFactor, 1)));
 
   m_depositScaleFactor[newEpoch] =
-      ufp64::mul(m_lastNonVoterRescale, m_depositScaleFactor[newEpoch - 1]);
+      ufp64::mul(m_lastNonVoterRescale, GetDepositScaleFactor(newEpoch - 1));
 
-  m_totalSlashed[newEpoch] = m_totalSlashed[newEpoch - 1];
+  m_totalSlashed[newEpoch] = GetTotalSlashed(newEpoch - 1);
 
   if (DepositExists()) {
     ufp64::ufp64_t interestBase =
@@ -136,8 +142,10 @@ Result FinalizationState::InitializeEpoch(int blockHeight) {
 void FinalizationState::InstaFinalize() {
   uint32_t epoch = this->m_currentEpoch;
   m_mainHashJustified = true;
-  m_checkpoints[epoch - 1].m_isJustified = true;
-  m_checkpoints[epoch - 1].m_isFinalized = true;
+
+  Checkpoint &cp = GetCheckpoint(epoch - 1);
+  cp.m_isJustified = true;
+  cp.m_isFinalized = true;
   m_lastJustifiedEpoch = epoch - 1;
   m_lastFinalizedEpoch = epoch - 1;
 
@@ -151,11 +159,11 @@ void FinalizationState::InstaFinalize() {
 void FinalizationState::IncrementDynasty() {
   uint32_t epoch = this->m_currentEpoch;
 
-  if (epoch > 1 && m_checkpoints[epoch - 2].m_isFinalized) {
+  if (epoch > 1 && GetCheckpoint(epoch - 2).m_isFinalized) {
 
     m_currentDynasty += 1;
     m_prevDynDeposits = m_curDynDeposits;
-    m_curDynDeposits += m_dynastyDeltas[m_currentDynasty];
+    m_curDynDeposits += GetDynastyDelta(m_currentDynasty);
     m_dynastyStartEpoch[m_currentDynasty] = epoch;
 
     LogPrint(BCLog::FINALIZATION, "%s: New current dynasty is %d.\n", __func__,
@@ -179,11 +187,11 @@ ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
   }
 
   ufp64::ufp64_t curVoteFraction = ufp64::div_2uint(
-      m_checkpoints[epoch - 1].m_curDynastyVotes[m_expectedSrcEpoch],
+      GetCheckpoint(epoch - 1).GetCurDynastyVotes(m_expectedSrcEpoch),
       m_curDynDeposits);
 
   ufp64::ufp64_t prevVoteFraction = ufp64::div_2uint(
-      m_checkpoints[epoch - 1].m_prevDynastyVotes[m_expectedSrcEpoch],
+      GetCheckpoint(epoch - 1).GetPrevDynastyVotes(m_expectedSrcEpoch),
       m_prevDynDeposits);
 
   ufp64::ufp64_t voteFraction = ufp64::min(curVoteFraction, prevVoteFraction);
@@ -200,7 +208,7 @@ bool FinalizationState::DepositExists() {
 
 ufp64::ufp64_t FinalizationState::GetSqrtOfTotalDeposits() {
   uint64_t totalDeposits =
-      1 + ufp64::mul_to_uint(m_depositScaleFactor[m_currentEpoch - 1],
+      1 + ufp64::mul_to_uint(GetDepositScaleFactor(m_currentEpoch - 1),
                              std::max(m_prevDynDeposits, m_curDynDeposits));
 
   return ufp64::sqrt_uint(totalDeposits);
@@ -267,20 +275,25 @@ bool FinalizationState::IsInDynasty(const Validator &validator,
 }
 
 uint64_t FinalizationState::GetTotalCurDynDeposits() {
-  return ufp64::mul_to_uint(m_depositScaleFactor[m_currentEpoch],
+  return ufp64::mul_to_uint(GetDepositScaleFactor(m_currentEpoch),
                             m_curDynDeposits);
 }
 
 uint64_t FinalizationState::GetTotalPrevDynDeposits() {
-  return ufp64::mul_to_uint(m_depositScaleFactor[m_currentEpoch - 1],
+
+  if (m_currentEpoch == 0) {
+    return 0;
+  }
+  return ufp64::mul_to_uint(GetDepositScaleFactor(m_currentEpoch - 1),
                             m_prevDynDeposits);
 }
 
 CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
                                          uint64_t reward) {
-  m_validators[validatorIndex].m_deposit += reward;
-  uint32_t startDynasty = m_validators[validatorIndex].m_startDynasty;
-  uint32_t endDynasty = m_validators[validatorIndex].m_endDynasty;
+  m_validators[validatorIndex].m_deposit =
+      m_validators.at(validatorIndex).m_deposit + reward;
+  uint32_t startDynasty = m_validators.at(validatorIndex).m_startDynasty;
+  uint32_t endDynasty = m_validators.at(validatorIndex).m_endDynasty;
 
   if ((startDynasty <= m_currentDynasty) && (m_currentDynasty < endDynasty)) {
     m_curDynDeposits += reward;
@@ -292,11 +305,11 @@ CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
   }
 
   if (endDynasty < DEFAULT_END_DYNASTY) {
-    m_dynastyDeltas[endDynasty] -= reward;
+    m_dynastyDeltas[endDynasty] = GetDynastyDelta(endDynasty) - reward;
   }
 
-  return ufp64::mul_to_uint(m_depositScaleFactor[m_currentEpoch],
-                            m_validators[validatorIndex].m_deposit);
+  return ufp64::mul_to_uint(GetDepositScaleFactor(m_currentEpoch),
+                            m_validators.at(validatorIndex).m_deposit);
 
   // UNIT-E: Here is where we should reward proposers if we want
 }
@@ -318,8 +331,8 @@ Result FinalizationState::IsVotable(const Validator &validator,
   }
 
   auto &targetCheckpoint = it->second;
-  bool alreadyVoted = targetCheckpoint.m_voteMap.find(validatorIndex) !=
-                      targetCheckpoint.m_voteMap.end();
+  bool alreadyVoted = targetCheckpoint.m_voteSet.find(validatorIndex) !=
+                      targetCheckpoint.m_voteSet.end();
 
   if (alreadyVoted) {
     return fail(Result::VOTE_ALREADY_VOTED,
@@ -402,12 +415,12 @@ void FinalizationState::ProcessDeposit(const uint256 &validatorIndex,
   uint32_t startDynasty = m_currentDynasty + 2;
   uint64_t scaledDeposit =
       ufp64::div_to_uint(static_cast<uint64_t>(depositValue),
-                         m_depositScaleFactor[m_currentEpoch]);
+                         GetDepositScaleFactor(m_currentEpoch));
 
   m_validators.insert(std::pair<uint256, Validator>(
       validatorIndex, Validator(scaledDeposit, startDynasty, validatorIndex)));
 
-  m_dynastyDeltas[startDynasty] += scaledDeposit;
+  m_dynastyDeltas[startDynasty] = GetDynastyDelta(startDynasty) + scaledDeposit;
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Add deposit %s for validator in dynasty %d.\n", __func__,
@@ -457,7 +470,7 @@ Result FinalizationState::ValidateVote(const Vote &vote) const {
 void FinalizationState::ProcessVote(const Vote &vote) {
   LOCK(cs_esperanza);
 
-  m_checkpoints[vote.m_targetEpoch].m_voteMap.insert(vote.m_validatorIndex);
+  GetCheckpoint(vote.m_targetEpoch).m_voteSet.insert(vote.m_validatorIndex);
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Validator %s voted successfully (%s, %d, %d).\n", __func__,
@@ -467,25 +480,25 @@ void FinalizationState::ProcessVote(const Vote &vote) {
   const uint256 &validatorIndex = vote.m_validatorIndex;
   uint32_t sourceEpoch = vote.m_sourceEpoch;
   uint32_t targetEpoch = vote.m_targetEpoch;
-  const Validator &validator = m_validators[validatorIndex];
+  const Validator &validator = m_validators.at(validatorIndex);
 
   bool inCurDynasty = IsInDynasty(validator, m_currentDynasty);
   bool inPrevDynasty = IsInDynasty(validator, m_currentDynasty - 1);
 
   uint64_t curDynastyVotes =
-      m_checkpoints[targetEpoch].m_curDynastyVotes[sourceEpoch];
+      GetCheckpoint(targetEpoch).GetCurDynastyVotes(sourceEpoch);
 
   uint64_t prevDynastyVotes =
-      m_checkpoints[targetEpoch].m_prevDynastyVotes[sourceEpoch];
+      GetCheckpoint(targetEpoch).GetPrevDynastyVotes(sourceEpoch);
 
   if (inCurDynasty) {
     curDynastyVotes += validator.m_deposit;
-    m_checkpoints[targetEpoch].m_curDynastyVotes[sourceEpoch] = curDynastyVotes;
+    GetCheckpoint(targetEpoch).m_curDynastyVotes[sourceEpoch] = curDynastyVotes;
   }
 
   if (inPrevDynasty) {
     prevDynastyVotes += validator.m_deposit;
-    m_checkpoints[targetEpoch].m_prevDynastyVotes[sourceEpoch] =
+    GetCheckpoint(targetEpoch).m_prevDynastyVotes[sourceEpoch] =
         prevDynastyVotes;
   }
 
@@ -504,8 +517,8 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 
   bool enoughVotes = isTwoThirdsCurDyn && isTwoThirdsPrevDyn;
 
-  if (enoughVotes && !m_checkpoints[targetEpoch].m_isJustified) {
-    m_checkpoints[targetEpoch].m_isJustified = true;
+  if (enoughVotes && !GetCheckpoint(targetEpoch).m_isJustified) {
+    GetCheckpoint(targetEpoch).m_isJustified = true;
     m_lastJustifiedEpoch = targetEpoch;
     m_mainHashJustified = true;
 
@@ -513,7 +526,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
              targetEpoch);
 
     if (targetEpoch == sourceEpoch + 1) {
-      m_checkpoints[sourceEpoch].m_isFinalized = true;
+      GetCheckpoint(sourceEpoch).m_isFinalized = true;
       m_lastFinalizedEpoch = sourceEpoch;
       LogPrint(BCLog::FINALIZATION, "%s: Epoch %d finalized.\n", __func__,
                sourceEpoch);
@@ -568,16 +581,16 @@ Result FinalizationState::ValidateLogout(const uint256 &validatorIndex) const {
 void FinalizationState::ProcessLogout(const uint256 &validatorIndex) {
   LOCK(cs_esperanza);
 
-  Validator &validator = m_validators[validatorIndex];
+  Validator &validator = m_validators.at(validatorIndex);
 
-  uint32_t endDynasty = GetEndDynasty();
-  validator.m_endDynasty = endDynasty;
+  uint32_t endDyn = GetEndDynasty();
+  validator.m_endDynasty = endDyn;
   validator.m_depositsAtLogout = m_curDynDeposits;
-  m_dynastyDeltas[endDynasty] -= validator.m_deposit;
+  m_dynastyDeltas[endDyn] = GetDynastyDelta(endDyn) - validator.m_deposit;
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Vote from validator %s logging out at %d.\n", __func__,
-           validatorIndex.GetHex(), endDynasty);
+           validatorIndex.GetHex(), endDyn);
 }
 
 /**
@@ -641,8 +654,8 @@ Result FinalizationState::CalculateWithdrawAmount(
   }
 
   if (!validator.m_isSlashed) {
-    withdrawAmountOut = ufp64::mul_to_uint(
-        m_depositScaleFactor.find(endEpoch)->second, validator.m_deposit);
+    withdrawAmountOut = ufp64::mul_to_uint(GetDepositScaleFactor(endEpoch),
+                                           validator.m_deposit);
 
   } else {
     uint32_t baseEpoch;
@@ -652,15 +665,15 @@ Result FinalizationState::CalculateWithdrawAmount(
       baseEpoch = withdrawalEpoch - 2 * WITHDRAWAL_EPOCH_DELAY;
     }
 
-    uint64_t recentlySlashed = m_totalSlashed.find(withdrawalEpoch)->second -
-                               m_totalSlashed.find(baseEpoch)->second;
+    uint64_t recentlySlashed =
+        GetTotalSlashed(withdrawalEpoch) - GetTotalSlashed(baseEpoch);
+
     ufp64::ufp64_t fractionToSlash =
         ufp64::div_2uint(recentlySlashed * SLASH_FRACTION_MULTIPLIER,
                          validator.m_depositsAtLogout);
 
-    uint64_t depositSize =
-        ufp64::mul_to_uint(m_depositScaleFactor.find(withdrawalEpoch)->second,
-                           validator.m_deposit);
+    uint64_t depositSize = ufp64::mul_to_uint(
+        GetDepositScaleFactor(withdrawalEpoch), validator.m_deposit);
 
     if (fractionToSlash >= ufp64::to_ufp64(1)) {
       withdrawAmountOut = 0;
@@ -773,30 +786,34 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
   // Slash the offending validator, and give a 4% "finder's fee"
   CAmount validatorDeposit = GetDepositSize(validatorIndex);
   CAmount slashingBounty = validatorDeposit / BOUNTY_FRACTION_DENOMINATOR;
-  m_totalSlashed[m_currentEpoch] += validatorDeposit;
-  m_validators[validatorIndex].m_isSlashed = true;
+
+  m_totalSlashed[m_currentEpoch] =
+      GetTotalSlashed(m_currentEpoch) + validatorDeposit;
+
+  m_validators.at(validatorIndex).m_isSlashed = true;
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Slashing validator with deposit hash %s of %d units, taking %d "
            "as bounty.\n",
            __func__, validatorIndex.GetHex(), validatorDeposit, slashingBounty);
 
-  uint32_t endDynasty = m_validators[validatorIndex].m_endDynasty;
+  uint32_t endDynasty = m_validators.at(validatorIndex).m_endDynasty;
 
   // if validator not logged out yet, remove total from next dynasty
   // and forcibly logout next dynasty
   if (m_currentDynasty < endDynasty) {
-    CAmount deposit = m_validators[validatorIndex].m_deposit;
-    m_dynastyDeltas[m_currentDynasty + 1] -= deposit;
-    m_validators[validatorIndex].m_endDynasty = m_currentDynasty + 1;
+    CAmount deposit = m_validators.at(validatorIndex).m_deposit;
+    m_dynastyDeltas[m_currentDynasty + 1] =
+        GetDynastyDelta(m_currentDynasty + 1) - deposit;
+    m_validators.at(validatorIndex).m_endDynasty = m_currentDynasty + 1;
 
     // if validator was already staged for logout at end_dynasty,
     // ensure that we don't doubly remove from total
     if (endDynasty < DEFAULT_END_DYNASTY) {
-      m_dynastyDeltas[endDynasty] += deposit;
+      m_dynastyDeltas[endDynasty] = GetDynastyDelta(endDynasty) + deposit;
     } else {
       // if no previously logged out, remember the total deposits at logout
-      m_validators[validatorIndex].m_depositsAtLogout =
+      m_validators.at(validatorIndex).m_depositsAtLogout =
           GetTotalCurDynDeposits();
     }
   }
@@ -952,6 +969,32 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   }
 
   return true;
+}
+// Private accessors used to avoid map's operator[] potential side effects.
+ufp64::ufp64_t FinalizationState::GetDepositScaleFactor(uint32_t epoch) const {
+  auto it = m_depositScaleFactor.find(epoch);
+  assert(it != m_depositScaleFactor.end());
+  return it->second;
+}
+
+uint64_t FinalizationState::GetTotalSlashed(uint32_t epoch) const {
+  auto it = m_totalSlashed.find(epoch);
+  assert(it != m_totalSlashed.end());
+  return it->second;
+}
+
+uint64_t FinalizationState::GetDynastyDelta(uint32_t dynasty) {
+  auto it = m_dynastyDeltas.find(dynasty);
+  if (it == m_dynastyDeltas.end()) {
+    return m_dynastyDeltas[dynasty] = 0L;
+  }
+  return it->second;
+}
+
+Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
+  auto it = m_checkpoints.find(epoch);
+  assert(it != m_checkpoints.end());
+  return it->second;
 }
 
 }  // namespace esperanza
