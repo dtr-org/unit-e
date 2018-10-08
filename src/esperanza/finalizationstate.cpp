@@ -88,8 +88,8 @@ esperanza::Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   m_currentEpoch = newEpoch;
 
-  LogPrint(BCLog::FINALIZATION, "%s: Epoch block found at height %d.\n", __func__,
-           blockHeight);
+  LogPrint(BCLog::FINALIZATION, "%s: Epoch block found at height %d.\n",
+           __func__, blockHeight);
 
   m_lastVoterRescale = ufp64::add_uint(GetCollectiveRewardFactor(), 1);
 
@@ -443,8 +443,9 @@ esperanza::Result FinalizationState::ValidateVote(const Vote &vote) const {
                 vote.m_targetEpoch);
   }
 
-  LogPrint(BCLog::FINALIZATION, "%s: Validator %s vote (%s, %d, %d) is valid.\n",
-           __func__, vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
+  LogPrint(BCLog::FINALIZATION,
+           "%s: Validator %s vote (%s, %d, %d) is valid.\n", __func__,
+           vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
            vote.m_sourceEpoch, vote.m_targetEpoch);
 
   return success();
@@ -575,8 +576,9 @@ void FinalizationState::ProcessLogout(const uint256 &validatorIndex) {
   validator.m_depositsAtLogout = m_curDynDeposits;
   m_dynastyDeltas[endDynasty] -= validator.m_deposit;
 
-  LogPrint(BCLog::FINALIZATION, "%s: Vote from validator %s logging out at %d.\n",
-           __func__, validatorIndex.GetHex(), endDynasty);
+  LogPrint(BCLog::FINALIZATION,
+           "%s: Vote from validator %s logging out at %d.\n", __func__,
+           validatorIndex.GetHex(), endDynasty);
 }
 
 /**
@@ -647,8 +649,9 @@ esperanza::Result FinalizationState::ValidateWithdraw(
           ufp64::sub(ufp64::to_ufp64(1), fractionToSlash), depositSize);
     }
 
-    LogPrint(BCLog::FINALIZATION, "%s: Withdraw from validator %s of %d units.\n",
-             __func__, validatorIndex.GetHex(), endDynasty, withdrawAmountOut);
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Withdraw from validator %s of %d units.\n", __func__,
+             validatorIndex.GetHex(), endDynasty, withdrawAmountOut);
   }
 
   if (withdrawAmountOut != requiredWithdraw) {
