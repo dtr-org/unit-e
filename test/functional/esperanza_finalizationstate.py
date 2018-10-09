@@ -4,6 +4,9 @@ from test_framework.util import json
 from test_framework.util import assert_equal
 from test_framework.util import sync_blocks
 from test_framework.util import JSONRPCException
+from test_framework.util import connect_nodes_bi
+from test_framework.util import disconnect_nodes
+from test_framework.util import wait_until
 from test_framework.test_framework import UnitETestFramework
 
 block_time = 1
