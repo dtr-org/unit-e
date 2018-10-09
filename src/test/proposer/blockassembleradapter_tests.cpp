@@ -13,6 +13,8 @@
 
 #include <proposer/transactionpicker.h>
 
+#include <cstdio>
+
 struct RegtestingSetup : public TestingSetup {
   RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
 };
@@ -21,12 +23,14 @@ BOOST_FIXTURE_TEST_SUITE(blockassembleradapter_tests, RegtestingSetup)
 
 BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
 
+  // this test checks the technical correctness, that is basically
+  // that it does not crash and does yield a value. for a proper test
+  // transactions will have to be mocked.
+
   std::unique_ptr<proposer::TransactionPicker> blockAssemblerAdapter =
       proposer::TransactionPicker::BlockAssemblerAdapter(::Params());
 
   proposer::TransactionPicker::PickTransactionsParameters params;
-
-//  chainActive.SetTip();
 
   auto result = blockAssemblerAdapter->PickTransactions(params);
 
@@ -34,6 +38,9 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
   for (const auto fee : result.m_fees) {
     fees += fee;
   }
+
+  printf("%s\n", std::to_string(fees).c_str());
+
   BOOST_CHECK_GE(fees, 0);
 }
 
