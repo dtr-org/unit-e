@@ -63,7 +63,7 @@ class TransactionPicker {
   virtual PickTransactionsResult PickTransactions(
       const PickTransactionsParameters &) = 0;
 
-  virtual ~TransactionPicker() = 0;
+  virtual ~TransactionPicker() = default;
 
   //! \brief Factory method for creating a BlockAssemblerAdapter
   static std::unique_ptr<TransactionPicker> BlockAssemblerAdapter(

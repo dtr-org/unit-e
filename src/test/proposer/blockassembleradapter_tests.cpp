@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
+#include <validation.h>
 #include <test/test_unite.h>
 
 #include <string>
@@ -12,7 +13,11 @@
 
 #include <proposer/transactionpicker.h>
 
-BOOST_FIXTURE_TEST_SUITE(blockassembleradapter_tests, BasicTestingSetup)
+struct RegtestingSetup : public TestingSetup {
+  RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
+};
+
+BOOST_FIXTURE_TEST_SUITE(blockassembleradapter_tests, RegtestingSetup)
 
 BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
 
@@ -20,6 +25,8 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
       proposer::TransactionPicker::BlockAssemblerAdapter(::Params());
 
   proposer::TransactionPicker::PickTransactionsParameters params;
+
+//  chainActive.SetTip();
 
   auto result = blockAssemblerAdapter->PickTransactions(params);
 

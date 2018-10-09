@@ -64,7 +64,8 @@ class BlockAssemblerAdapter final : public TransactionPicker {
     // coinstake transaction is left to the component using a
     // TransactionPicker to build a block. Therefore we just pass an
     // empty script to the blockAssembler.
-    CScript script;
+    CScript script(1);
+    script.push_back(OP_RETURN);
     std::unique_ptr<CBlockTemplate> blockTemplate =
         blockAssembler.CreateNewBlock(script, /* fMineWitnessTx */ true);
 
