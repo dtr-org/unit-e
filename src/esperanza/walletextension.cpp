@@ -442,11 +442,12 @@ bool WalletExtension::SendDeposit(const CTxDestination &address, CAmount amount,
       return false;
     }
 
-    if (state.IsInvalid()) {
-      LogPrint(BCLog::FINALIZATION, "%s: Cannot verify deposit transaction: %s.\n",
-               __func__, state.GetRejectReason());
-      return false;
-    }
+  if (state.IsInvalid()) {
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Cannot verify deposit transaction: %s.\n", __func__,
+             state.GetRejectReason());
+    return false;
+  }
 
     LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
              __func__, wtxOut.GetHash().GetHex());
