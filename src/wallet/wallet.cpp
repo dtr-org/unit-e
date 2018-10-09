@@ -1159,18 +1159,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                       +esperanza::ValidatorState::Phase::IS_VALIDATING;
 
                   if (state->m_phase == expectedPhase) {
-
-                      const auto vote =
-                          CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig);
-
-                      const auto epoch =
-                          esperanza::FinalizationState::GetEpoch(pIndex);
-
-                      state->m_voteMap[epoch] = vote;
-                      state->m_lastTargetEpoch = vote.m_targetEpoch;
-                      state->m_lastSourceEpoch = vote.m_sourceEpoch;
                       state->m_lastEsperanzaTx = ptx;
-
                   } else {
                     LogPrint(BCLog::FINALIZATION,
                              "ERROR: %s - Wrong state for validator state when "
