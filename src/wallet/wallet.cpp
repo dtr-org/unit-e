@@ -1091,8 +1091,11 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                   LOCK(cs_wallet);
                   esperanza::ValidatorState* state =
                       &m_stakingExtension.validatorState;
-                  if (state->m_phase == +esperanza::ValidatorState::Phase::
-                                            WAITING_DEPOSIT_CONFIRMATION) {
+
+                  const auto expectedPhase = +esperanza::ValidatorState::Phase::
+                      WAITING_DEPOSIT_CONFIRMATION;
+
+                  if (state->m_phase == expectedPhase) {
 
                     state->m_phase = esperanza::ValidatorState::Phase::
                         WAITING_DEPOSIT_FINALIZATION;
@@ -1114,7 +1117,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "ERROR: %s - Wrong state for validator state with "
                              "deposit %s, %s expected but %s found.\n",
                              __func__, tx.GetHash().GetHex(),
-                             "WAITING_DEPOSIT_CONFIRMATION",
+                             expectedPhase._to_string(),
                              state->m_phase._to_string());
                   }
                   break;
@@ -1124,8 +1127,10 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                   esperanza::ValidatorState* state =
                       &m_stakingExtension.validatorState;
 
-                  if (state->m_phase ==
-                      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
+                  const auto expectedPhase =
+                      +esperanza::ValidatorState::Phase::IS_VALIDATING;
+
+                  if (state->m_phase == expectedPhase) {
 
                     auto finalizationState =
                         esperanza::FinalizationState::GetState(pIndex);
@@ -1140,7 +1145,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "ERROR: %s - Wrong state for validator state when "
                              "logging out. %s expected but %s found.\n",
                              __func__,
-                             "IS_VALIDATING",
+                             expectedPhase._to_string(),
                              state->m_phase._to_string());
                   }
                   break;
@@ -1150,8 +1155,10 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                   esperanza::ValidatorState* state =
                       &m_stakingExtension.validatorState;
 
-                  if (state->m_phase ==
-                      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
+                  const auto expectedPhase =
+                      +esperanza::ValidatorState::Phase::IS_VALIDATING;
+
+                  if (state->m_phase == expectedPhase) {
 
                       const auto vote =
                           CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig);
@@ -1169,7 +1176,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "ERROR: %s - Wrong state for validator state when "
                              "voting. %s expected but %s found.\n",
                              __func__,
-                             "IS_VALIDATING",
+                             expectedPhase._to_string(),
                              state->m_phase._to_string());
                   }
                   break;
