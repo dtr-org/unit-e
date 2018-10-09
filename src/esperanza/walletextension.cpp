@@ -440,6 +440,12 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
     return false;
   }
 
+  if (state.IsInvalid()) {
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot verify deposit transaction: %s.\n",
+             __func__, state.GetRejectReason());
+    return false;
+  }
+
   LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
            __func__, wtxOut.GetHash().GetHex());
 
@@ -579,10 +585,6 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 
   if (SendVote(prevRef, vote, createdTx)) {
 
-    validatorState.m_voteMap[epoch] = vote;
-    validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
-    validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
-    validatorState.m_lastEsperanzaTx = createdTx.tx;
     LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
              createdTx.tx->GetHash().GetHex());
   }

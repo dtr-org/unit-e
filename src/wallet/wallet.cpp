@@ -1143,6 +1143,36 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "IS_VALIDATING",
                              state->m_phase._to_string());
                   }
+                  break;
+                }
+                case TxType::VOTE: {
+                  LOCK(cs_wallet);
+                  esperanza::ValidatorState* state =
+                      &m_stakingExtension.validatorState;
+
+                  if (state->m_phase ==
+                      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
+
+                      const auto vote =
+                          CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig);
+
+                      const auto epoch =
+                          esperanza::FinalizationState::GetEpoch(pIndex);
+
+                      state->m_voteMap[epoch] = vote;
+                      state->m_lastTargetEpoch = vote.m_targetEpoch;
+                      state->m_lastSourceEpoch = vote.m_sourceEpoch;
+                      state->m_lastEsperanzaTx = ptx;
+
+                  } else {
+                    LogPrint(BCLog::FINALIZATION,
+                             "ERROR: %s - Wrong state for validator state when "
+                             "voting. %s expected but %s found.\n",
+                             __func__,
+                             "IS_VALIDATING",
+                             state->m_phase._to_string());
+                  }
+                  break;
                 }
               }
             }
