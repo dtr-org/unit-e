@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 
-from test_framework.util import *
+from test_framework.util import json
+from test_framework.util import assert_equal
+from test_framework.util import sync_blocks
+from test_framework.util import JSONRPCException
+from test_framework.util import connect_nodes_bi
+from test_framework.util import disconnect_nodes
+from test_framework.util import wait_until
 from test_framework.test_framework import UnitETestFramework
 
 block_time = 1
@@ -57,7 +63,7 @@ def setup_deposit(self, nodes):
         n.importmasterkey(master_keys[i])
         n.new_address = n.getnewaddress("", "legacy")
 
-        assert_equal(n.getwalletinfo()['balance'], 10000)
+        assert_equal(n.getbalance(), 10000)
 
     # wait for coinbase maturity
     for n in range(0, 120):
@@ -67,7 +73,7 @@ def setup_deposit(self, nodes):
     sync_blocks(self.nodes[0:len(nodes)])
 
     for n in nodes:
-        deptx = n.deposit(n.new_address, 1500)['transactionid']
+        deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx)
 
     # finalize deposits and start voting

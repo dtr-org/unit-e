@@ -39,19 +39,19 @@ BETTER_ENUM(
   WITHDRAW_BEFORE_END_DYNASTY,
   WITHDRAW_TOO_EARLY,
   WITHDRAW_NOT_A_VALIDATOR,
+  WITHDRAW_WRONG_AMOUNT,
   SLASH_SAME_VOTE,
   SLASH_NOT_SAME_VALIDATOR,
   SLASH_TOO_EARLY,
   SLASH_ALREADY_SLASHED,
   SLASH_NOT_VALID,
-  SLASH_NOT_A_VALIDATOR,
-  WITHDRAW_WRONG_AMOUNT
+  SLASH_NOT_A_VALIDATOR
 )
 // clang-format on
 
 /**
- * This class is NOT thread safe, any public method that is actually changing
- * the internal state should be guarded against concurrent access.
+ * This class is thread safe, any public method that is actually changing
+ * the internal state is guarded against concurrent access.
  */
 class FinalizationState {
  public:
@@ -60,9 +60,9 @@ class FinalizationState {
   Result InitializeEpoch(int blockHeight);
 
   Result ValidateDeposit(const uint256 &validatorIndex,
-                         const CAmount &depositValue) const;
-  void ProcessDeposit(const uint256 &validatorIndex,
-                      const CAmount &depositValue);
+                         CAmount depositValue) const;
+
+  void ProcessDeposit(const uint256 &validatorIndex, CAmount depositValue);
 
   Result ValidateVote(const Vote &vote) const;
   void ProcessVote(const Vote &vote);
@@ -71,7 +71,11 @@ class FinalizationState {
   void ProcessLogout(const uint256 &validatorIndex);
 
   Result ValidateWithdraw(const uint256 &validatorIndex,
-                          const CAmount &requiredWithdraw) const;
+                          CAmount requestedWithdraw) const;
+
+  Result CalculateWithdrawAmount(const uint256 &validatorIndex,
+                                 CAmount &withdrawAmountOut) const;
+
   void ProcessWithdraw(const uint256 &validatorIndex);
 
   Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
@@ -108,18 +112,19 @@ class FinalizationState {
   /**
    * A quick comment on the types chosen to represent the various class members:
    * uint32_t - is enough to represent any epoch (even with one epoch a second
-   * it would last ~136 yrs) uint64_t - is enough to represent any amount of
-   * UNIT-E coins (total_supply=(e * 10^17) and log2(total_supply)=~58 ) ufp64_t
-   * - is a way to represent a decimal number with integer part up to 10E9 and
-   * decimal part with precision of 10E-8. Using this type is safe as long as
-   * the above conditions are met. For example multiplications between ufp64t
-   * and uint64_t are for example safe since for the intermediate step a bigger
-   * int type is used, but if the result is not representable by 32 bits then
-   * the final value will overflow.
+   * it would last ~136 yrs)
+   * uint64_t - is enough to represent any amount of UNIT-E coins
+   * (total_supply=(e * 10^17) and log2(total_supply)=~58 )
+   * ufp64_t - is a way to represent a decimal number with integer part up to
+   * 10E9 and decimal part with precision of 10E-8. Using this type is safe as
+   * long as the above conditions are met. For example multiplications between
+   * ufp64t and uint64_t are for example safe since for the intermediate step a
+   * bigger int type is used, but if the result is not representable by 32 bits
+   * then the final value will overflow.
    */
 
   // Map of epoch number to checkpoint
-  std::map<uint64_t, Checkpoint> m_checkpoints;
+  std::map<uint32_t, Checkpoint> m_checkpoints;
 
   // Map of epoch number to dynasty number
   std::map<uint32_t, uint32_t> m_epochToDynasty;
@@ -139,16 +144,16 @@ class FinalizationState {
   // Map of the epoch number with the deposit scale factor
   std::map<uint32_t, ufp64::ufp64_t> m_depositScaleFactor;
 
-  // Running total of deposits slashed
+  // Map of the epoch number with the running total of deposits slashed
   std::map<uint32_t, uint64_t> m_totalSlashed;
 
-  // Is the current expected hash justified
+  // Is true if the current expected hash justified
   bool m_mainHashJustified;
 
-  // the current epoch number
+  // The current epoch number
   uint32_t m_currentEpoch;
 
-  // the current dynasy number
+  // The current dynasy number
   uint32_t m_currentDynasty;
 
   // Total scaled deposits in the current dynasty
@@ -157,6 +162,7 @@ class FinalizationState {
   // Total scaled deposits in the previous dynasty
   uint64_t m_prevDynDeposits;
 
+  // Expected source epoch
   uint32_t m_expectedSrcEpoch;
 
   // Number of the last finalized epoch
@@ -203,6 +209,11 @@ class FinalizationState {
   uint32_t GetEndDynasty() const;
 
   uint64_t CalculateVoteReward(const Validator &validator) const;
+
+  ufp64::ufp64_t GetDepositScaleFactor(uint32_t epoch) const;
+  uint64_t GetTotalSlashed(uint32_t epoch) const;
+  Checkpoint &GetCheckpoint(uint32_t epoch);
+  uint64_t GetDynastyDelta(uint32_t dynasty);
 
   // Finalization params
   const uint32_t EPOCH_LENGTH;

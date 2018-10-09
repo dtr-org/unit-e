@@ -59,6 +59,7 @@ bool IsVoteExpired(const CTransaction &tx) {
 }
 
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
+                            const Consensus::Params &consensusParams,
                             const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
@@ -85,7 +86,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 
   if (res != +esperanza::Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-invalid-esperanza");
+                        "bad-logout-invalid-esperanza");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -97,15 +98,16 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 
   // We have to look into the tx database to find the prev tx, hence the
   // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, consensusParams,
                       blockHash, true)) {
 
-    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-no-prev-tx-found");
   }
 
   if (!prevTx->IsDeposit() && !prevTx->IsVote()) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-logout-prev-not-deposit-vote-");
+                        "bad-logout-prev-not-deposit-or-vote");
   }
 
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
@@ -116,7 +118,67 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
   return true;
 }
 
+bool CheckWithdrawTransaction(CValidationState &errState,
+                              const CTransaction &tx,
+                              const Consensus::Params &consensusParams,
+                              const CBlockIndex *pindex) {
+
+  if (tx.vin.size() != 1 || tx.vout.size() > 3) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
+  }
+
+  if (!tx.vout[0].scriptPubKey.IsPayToPublicKeyHash()) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-vout-script-invalid-p2pkh");
+  }
+
+  std::vector<std::vector<unsigned char>> vSolutions;
+  txnouttype typeRet;
+  if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-script-not-solvable");
+  }
+
+  esperanza::FinalizationState *state =
+      esperanza::FinalizationState::GetState(pindex);
+
+  CTransactionRef prevTx;
+  uint256 blockHash;
+
+  // We have to look into the tx database to find the prev tx, hence the
+  // use of fAllowSlow = true
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, consensusParams,
+                      blockHash, true)) {
+
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-no-prev-tx-found");
+  }
+
+  std::vector<std::vector<unsigned char>> prevSolutions;
+  txnouttype prevTypeRet;
+  if (!Solver(prevTx->vout[0].scriptPubKey, prevTypeRet, prevSolutions)) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-logout-script-not-solvable");
+  }
+
+  esperanza::Result res = state->ValidateWithdraw(
+      CPubKey(prevSolutions[0]).GetHash(), tx.vout[0].nValue);
+
+  if (res != +esperanza::Result::SUCCESS) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-invalid-esperanza");
+  }
+
+  if (!prevTx->IsLogout() && !prevTx->IsVote()) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-prev-not-logout-or-vote");
+  }
+
+  return true;
+}
+
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
+                          const Consensus::Params &consensusParams,
                           const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
@@ -146,7 +208,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   uint256 blockHash;
   // We have to look into the tx database to find the prev tx, hence the
   // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, ::Params().GetConsensus(),
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, consensusParams,
                       blockHash, true)) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
   }

@@ -364,7 +364,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
 bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
                                 int64_t nSearchTime) {
-  // todo
+  // UNIT-E: todo
   return false;
 }
 
@@ -399,15 +399,15 @@ void WalletExtension::ReadValidatorStateFromFile() {
 }
 
 /**
- * Creates a deposit transaction for the given address and amount.
+ * \brief Creates a deposit transaction for the given address and amount.
  *
- * @param[in] address the destination
- * @param[in] amount
- * @param[out] wtxOut the transaction created
- * @return true if the operation was successful, false otherwise.
+ * \param[in] address the destination
+ * \param[in] amount
+ * \param[out] wtxOut the transaction created
+ * \returns true if the operation was successful, false otherwise.
  */
-bool WalletExtension::SendDeposit(const CTxDestination &address,
-                                  const CAmount &amount, CWalletTx &wtxOut) {
+bool WalletExtension::SendDeposit(const CTxDestination &address, CAmount amount,
+                                  CWalletTx &wtxOut) {
 
   CCoinControl coinControl;
   CAmount nFeeRet;
@@ -432,19 +432,19 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
     return false;
   }
 
-  CValidationState state;
-  if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey, g_connman.get(),
-                                            state)) {
-    LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
-             __func__);
-    return false;
-  }
-
-  LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
-           __func__, wtxOut.GetHash().GetHex());
-
   {
-    LOCK(m_enclosingWallet->cs_wallet);
+    LOCK2(cs_main, m_enclosingWallet->cs_wallet);
+    CValidationState state;
+    if (!m_enclosingWallet->CommitTransaction(wtxOut, reservekey,
+                                              g_connman.get(), state)) {
+      LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
+               __func__);
+      return false;
+    }
+
+    LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
+             __func__, wtxOut.GetHash().GetHex());
+
     if (validatorState.m_phase == +ValidatorState::Phase::NOT_VALIDATING) {
       LogPrint(BCLog::FINALIZATION,
                "%s: Validator waiting for deposit confirmation.\n", __func__);
@@ -462,16 +462,18 @@ bool WalletExtension::SendDeposit(const CTxDestination &address,
   return true;
 }
 
-//! \brief Creates and sends a logout transaction given transaction.
-//! \param wtxNewOut [out] the logout transaction created.
-//! \return true if the operation was successful, false otherwise.
+//! \brief Creates and sends a logout transaction.
+//! \param wtxNewOut[out] the logout transaction created.
+//! \returns true if the operation was successful, false otherwise.
 bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
   CCoinControl coinControl;
   coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
+
   wtxNewOut.fTimeReceivedIsTxTime = true;
   wtxNewOut.BindWallet(m_enclosingWallet);
   wtxNewOut.fFromMe = true;
+
   CReserveKey reservekey(m_enclosingWallet);
   CValidationState state;
 
@@ -497,7 +499,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   CTxOut txout(amount, scriptPubKey);
   txNew.vout.push_back(txout);
 
-  const unsigned int nBytes =
+  const auto nBytes =
       static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
 
   const CAmount fees =
@@ -514,20 +516,123 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
           TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
                                       amount, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
-    strFailReason = _("Signing transaction failed");
     return false;
-  } else {
-    UpdateTransaction(txNew, nIn, sigdata);
+  }
+  UpdateTransaction(txNew, nIn, sigdata);
+
+  wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
+
+  {
+    LOCK2(cs_main, m_enclosingWallet->cs_wallet);
+    m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+                                         state);
+    if (state.IsInvalid()) {
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Cannot commit logout transaction: %s.\n", __func__,
+               state.GetRejectReason());
+      return false;
+    }
+    validatorState.m_lastEsperanzaTx = wtxNewOut.tx;
   }
 
-  // Embed the constructed transaction data in wtxNew.
+  return true;
+}
+
+//! \brief Creates and sends a withdraw transaction.
+//! \param wtxNewOut[out] the withdraw transaction created.
+//! \returns true if the operation was successful, false otherwise.
+bool WalletExtension::SendWithdraw(const CTxDestination &address,
+                                   CWalletTx &wtxNewOut) {
+
+  CCoinControl coinControl;
+  coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
+
+  wtxNewOut.fTimeReceivedIsTxTime = true;
+  wtxNewOut.BindWallet(m_enclosingWallet);
+  wtxNewOut.fFromMe = true;
+
+  CReserveKey reservekey(m_enclosingWallet);
+  CValidationState errState;
+  CKeyID keyID = boost::get<CKeyID>(address);
+  CPubKey pubKey;
+  m_enclosingWallet->GetPubKey(keyID, pubKey);
+
+  CMutableTransaction txNew;
+  txNew.SetType(TxType::WITHDRAW);
+
+  if (validatorState.m_phase == +ValidatorState::Phase::IS_VALIDATING) {
+    return error("%s: Cannot withdraw with an active validator, logout first.",
+                 __func__);
+  }
+
+  CTransactionRef prevTx = validatorState.m_lastEsperanzaTx;
+
+  const std::vector<unsigned char> pkv = ToByteVector(pubKey.GetID());
+  const CScript &scriptPubKey = CScript::CreateP2PKHScript(pkv);
+
+  txNew.vin.push_back(
+      CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
+
+  // Calculate how much we have left of the initial withdraw
+  CAmount initialDeposit = prevTx->vout[0].nValue;
+  esperanza::FinalizationState *state =
+      esperanza::FinalizationState::GetState();
+
+  CAmount currentDeposit = 0;
+
+  esperanza::Result res = state->CalculateWithdrawAmount(
+      validatorState.m_validatorIndex, currentDeposit);
+
+  if (res != +Result::SUCCESS) {
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot calculate withdraw amount: %s.\n",
+             __func__, res._to_string());
+    return false;
+  }
+
+  CAmount toWithdraw = std::min(currentDeposit, initialDeposit);
+
+  CTxOut txout(toWithdraw, scriptPubKey);
+  txNew.vout.push_back(txout);
+
+  CAmount amountToBurn = initialDeposit - toWithdraw;
+
+  if (amountToBurn > 0) {
+    CTxOut burnTx(amountToBurn, CScript::CreateUnspendableScript());
+    txNew.vout.push_back(burnTx);
+  }
+
+  // We need to pay some minimal fees if we wanna make sure that the withdraw
+  // will be included.
+  FeeCalculation feeCalc;
+
+  const auto nBytes =
+      static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
+
+  const CAmount fees =
+      GetMinimumFee(nBytes, coinControl, ::mempool, ::feeEstimator, &feeCalc);
+
+  txNew.vout[0].nValue -= fees;
+
+  CTransaction txNewConst(txNew);
+  uint32_t nIn = 0;
+  SignatureData sigdata;
+
+  if (!ProduceSignature(
+          TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
+                                      initialDeposit, SIGHASH_ALL),
+          scriptPubKey, sigdata, &txNewConst)) {
+    return false;
+  }
+  UpdateTransaction(txNew, nIn, sigdata);
+
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                       state);
-  if (state.IsInvalid()) {
-    LogPrint(BCLog::FINALIZATION, "%s: Cannot commit logout transaction: %s.\n",
-             __func__, state.GetRejectReason());
+                                       errState);
+  if (errState.IsInvalid()) {
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Cannot commit withdraw transaction: %s.\n", __func__,
+             errState.GetRejectReason());
     return false;
   }
 
@@ -590,14 +695,14 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 
 /**
  *
- * Creates a vote transaction starting from a Vote object and a previous
+ * \brief Creates a vote transaction starting from a Vote object and a previous
  * transaction (vote or deposit  reference. It fills inputs, outputs.
  * It does not support an address change between source and destination.
  *
- * @param[in] prevTxRef a reference to the initial DEPOSIT or previous VOTE
+ * \param[in] prevTxRef a reference to the initial DEPOSIT or previous VOTE
  * transaction, depending which one is the most recent
- * @param[in] vote the vote data
- * @param[out] wtxNew the vote transaction committed
+ * \param[in] vote the vote data
+ * \param[out] wtxNew the vote transaction committed
  */
 bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                const Vote &vote, CWalletTx &wtxNewOut) {
@@ -635,11 +740,9 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                       amount, SIGHASH_ALL),
           scriptPubKey, sigdata, &txNewConst)) {
     return false;
-  } else {
-    UpdateTransaction(txNew, nIn, sigdata);
   }
+  UpdateTransaction(txNew, nIn, sigdata);
 
-  // Embed the constructed transaction data in wtxNew.
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
@@ -656,14 +759,9 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
 
+  LOCK2(cs_main, m_enclosingWallet->cs_wallet);
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
-    auto currentPhase = ValidatorState::Phase::NOT_VALIDATING;
-    {
-      LOCK(m_enclosingWallet->cs_wallet);
-      currentPhase = validatorState.m_phase;
-    }
-
-    switch (currentPhase) {
+    switch (validatorState.m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         VoteIfNeeded(pblock, pindex);
 
@@ -671,7 +769,6 @@ void WalletExtension::BlockConnected(
         FinalizationState *state = FinalizationState::GetState(pindex);
         uint32_t currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.m_endDynasty) {
-          LOCK(m_enclosingWallet->cs_wallet);
           validatorState.m_phase = ValidatorState::Phase::NOT_VALIDATING;
         }
         break;
@@ -681,15 +778,12 @@ void WalletExtension::BlockConnected(
 
         if (state->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
-          {
-            LOCK(m_enclosingWallet->cs_wallet);
-            validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
+          validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
 
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Validator's deposit finalized, the validator index "
-                     "is %s.\n",
-                     __func__, validatorState.m_validatorIndex.GetHex());
-          }
+          LogPrint(BCLog::FINALIZATION,
+                   "%s: Validator's deposit finalized, the validator index "
+                   "is %s.\n",
+                   __func__, validatorState.m_validatorIndex.GetHex());
         }
         break;
       }

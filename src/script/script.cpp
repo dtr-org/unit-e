@@ -210,7 +210,7 @@ bool CScript::IsPayToPublicKeyHash() const
         (*this)[24] == OP_CHECKSIG);
 }
 
-CScript CScript::CreatePayVoteSlashScript(CPubKey pubkey)
+CScript CScript::CreatePayVoteSlashScript(const CPubKey &pubkey)
 {
     return CScript() <<
                      ToByteVector(pubkey) <<
@@ -234,6 +234,15 @@ CScript CScript::CreatePayVoteSlashScript(CPubKey pubkey)
 
                      OP_ENDIF <<
                      OP_ENDIF;
+}
+
+CScript CScript::CreateUnspendableScript() {
+    return CScript() << OP_RETURN;
+}
+
+CScript CScript::CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash) {
+    return CScript() << OP_DUP << OP_HASH160
+            << publicKeyHash << OP_EQUALVERIFY << OP_CHECKSIG;
 }
 
 bool CScript::MatchPayToPublicKeyHash(size_t ofs) const

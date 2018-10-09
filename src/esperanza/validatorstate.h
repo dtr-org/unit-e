@@ -9,6 +9,7 @@
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
 #include <stdint.h>
+#include <sync.h>
 #include <uint256.h>
 #include <map>
 

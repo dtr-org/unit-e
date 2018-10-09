@@ -27,7 +27,7 @@ UniValue deposit(const JSONRPCRequest &request)
         "1. address              (required) the destination for the deposit.\n"
         "2. amount               (required) the amount deposit.\n"
         "\nExamples:\n"
-            + HelpExampleRpc("deposit", ""));
+            + HelpExampleRpc("deposit", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" 150000000000"));
   }
 
   pwallet->BlockUntilSyncedToCurrentChain();
@@ -56,9 +56,51 @@ UniValue deposit(const JSONRPCRequest &request)
   CWalletTx tx;
   extWallet.SendDeposit(address, amount, tx);
 
-  result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
+  return tx.GetHash().GetHex();
+}
 
-  return result;
+UniValue withdraw(const JSONRPCRequest &request)
+{
+
+  CWallet* const pwallet = GetWalletForJSONRPCRequest(request);
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)){
+    return NullUniValue;
+  }
+
+  esperanza::WalletExtension& extWallet = pwallet->GetWalletExtension();
+
+  if (request.fHelp || request.params.size() != 1) {
+
+    throw std::runtime_error(
+        "withdraw\n"
+        "Withdraw all funds form the validator's deposit and makes them available for the given address."
+        "\nArguments:\n"
+        "1. address              (required) the destination for the withdrawn funds.\n"
+        "\nExamples:\n"
+            + HelpExampleRpc("withdraw", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\""));
+  }
+
+  pwallet->BlockUntilSyncedToCurrentChain();
+
+  if (!extWallet.nIsValidatorEnabled){
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
+  }
+
+  UniValue result(UniValue::VOBJ);
+
+  CTxDestination address = DecodeDestination(request.params[0].get_str());
+  if (!IsValidDestination(address)) {
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+  }
+
+  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::Phase::IS_VALIDATING){
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is validating, logout first.");
+  }
+
+  CWalletTx tx;
+  extWallet.SendWithdraw(address, tx);
+
+  return tx.GetHash().GetHex();
 }
 
 UniValue logout(const JSONRPCRequest& request) {
@@ -97,9 +139,7 @@ UniValue logout(const JSONRPCRequest& request) {
   CWalletTx tx;
   extWallet.SendLogout(tx);
 
-  result.push_back(Pair("transactionid", tx.GetHash().GetHex()));
-
-  return result;
+  return tx.GetHash().GetHex();
 }
 
 UniValue getvalidatorinfo(const JSONRPCRequest &request){
@@ -159,6 +199,7 @@ static const CRPCCommand commands[] =
       //  --------------------- ------------------------    -----------------------  ----------
         { "wallet",             "deposit",                  &deposit,                  {"address", "amount"} },
         { "wallet",             "logout",                   &logout,                   {} },
+        { "wallet",             "withdraw",                 &withdraw,                 {"address"} },
         { "wallet",             "getvalidatorinfo",         &getvalidatorinfo,         {} },
     };
 
