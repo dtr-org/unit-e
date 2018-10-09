@@ -24,7 +24,7 @@ BOOST_FIXTURE_TEST_SUITE(blockassembleradapter_tests, RegtestingSetup)
 BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
 
   // this test checks the technical correctness, that is basically
-  // that it does not crash and does yield a value. for a proper test
+  // that it does not crash and does yield a value. For a proper test
   // transactions will have to be mocked.
 
   std::unique_ptr<proposer::TransactionPicker> blockAssemblerAdapter =
