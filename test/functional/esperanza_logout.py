@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-from test_framework.util import *
+from test_framework.util import json
+from test_framework.util import assert_equal
+from test_framework.util import sync_blocks
+from test_framework.util import time
+from test_framework.util import JSONRPCException
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -43,7 +47,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         payto = validator.getnewaddress("", "legacy")
 
-        assert_equal(validator.getwalletinfo()['balance'], 10000)
+        assert_equal(validator.getbalance(), 10000)
 
         # wait for coinbase maturity
         for n in range(0, 120):
@@ -51,7 +55,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         sync_blocks(self.nodes)
 
-        deposit_tx = validator.deposit(payto, 10000)['transactionid']
+        deposit_tx = validator.deposit(payto, 10000)
 
         # wait for transaction to propagate
         self.wait_for_transaction(deposit_tx)
@@ -68,7 +72,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
-        logout_tx = validator.logout()['transactionid']
+        logout_tx = validator.logout()
         self.wait_for_transaction(logout_tx)
 
         # wait for 2 dynasties since logout so we are not required to vote anymore

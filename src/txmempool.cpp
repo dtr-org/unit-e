@@ -937,7 +937,10 @@ int CTxMemPool::ExpireVotes() {
   for (txiter removeit : toremove) {
       CalculateDescendants(removeit, stage);
   }
-  RemoveStaged(stage, false, MemPoolRemovalReason::OUTDATED_VOTE);
+
+  if (stage.size() > 0) {
+    RemoveStaged(stage, false, MemPoolRemovalReason::OUTDATED_VOTE);
+  }
   return stage.size();
 }
 

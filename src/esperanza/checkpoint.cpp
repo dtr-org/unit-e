@@ -11,6 +11,15 @@ Checkpoint::Checkpoint()
       m_isFinalized(false),
       m_curDynastyDeposits(0),
       m_prevDynastyDeposits(0),
-      m_voteMap() {}
+      m_voteSet() {}
+
+uint64_t Checkpoint::GetCurDynastyVotes(uint32_t epoch) {
+  auto pair = m_curDynastyVotes.emplace(epoch, 0);
+  return pair.first->second;
+}
+uint64_t Checkpoint::GetPrevDynastyVotes(uint32_t epoch) {
+  auto pair = m_prevDynastyVotes.emplace(epoch, 0);
+  return pair.first->second;
+}
 
 }  // namespace esperanza

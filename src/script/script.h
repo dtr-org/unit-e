@@ -666,7 +666,9 @@ public:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
-    static CScript CreatePayVoteSlashScript(CPubKey pubkey);
+    static CScript CreatePayVoteSlashScript(const CPubKey &pubkey);
+    static CScript CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash);
+    static CScript CreateUnspendableScript();
 
     bool IsPayToPublicKeyHash() const;
     bool IsPayToScriptHash() const;
