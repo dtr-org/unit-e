@@ -406,7 +406,7 @@ void WalletExtension::ReadValidatorStateFromFile() {
  * \param[out] wtxOut the transaction created
  * \returns true if the operation was successful, false otherwise.
  */
-bool WalletExtension::SendDeposit(const CTxDestination &address, CAmount amount,
+bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
                                   CWalletTx &wtxOut) {
 
   CCoinControl coinControl;
@@ -416,7 +416,6 @@ bool WalletExtension::SendDeposit(const CTxDestination &address, CAmount amount,
   std::vector<CRecipient> vecSend;
 
   CReserveKey reservekey(m_enclosingWallet);
-  CKeyID keyID = boost::get<CKeyID>(address);
   CPubKey pubKey;
   m_enclosingWallet->GetPubKey(keyID, pubKey);
 

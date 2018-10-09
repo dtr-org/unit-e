@@ -42,6 +42,11 @@ UniValue deposit(const JSONRPCRequest &request)
   if (!IsValidDestination(address)) {
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
   }
+  CKeyID *keyID = boost::get<CKeyID>(&address);
+
+  if (keyID == nullptr) {
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address must be a P2H address");
+  }
 
   CAmount amount = AmountFromValue(request.params[1]);
 
@@ -54,7 +59,7 @@ UniValue deposit(const JSONRPCRequest &request)
   }
 
   CWalletTx tx;
-  extWallet.SendDeposit(address, amount, tx);
+  extWallet.SendDeposit(*keyID, amount, tx);
 
   return tx.GetHash().GetHex();
 }
