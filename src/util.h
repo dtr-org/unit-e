@@ -110,6 +110,7 @@ namespace BCLog {
         PROPOSING    = (1 << 25),
         FINALIZATION = (1 << 26),
         SNAPSHOT     = (1 << 27),
+        ADMIN        = (1 << 28),
         ALL          = ~(uint32_t)0,
     };
 }

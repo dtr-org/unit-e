@@ -1050,12 +1050,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
           }
           case TxType::ADMIN: {
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::ADMIN,
                      "%s: Accepting admin transaction to mempool with id %s.\n",
                      __func__, tx.GetHash().GetHex());
 
             if (!esperanza::CheckAdminTransaction(state, tx)) {
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::ADMIN,
                        "%s: Admin transaction cannot be included into mempool: %s.\n",
                        __func__,
                        state.GetRejectReason());
@@ -3411,12 +3411,12 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
           }
           case TxType::ADMIN: {
 
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::ADMIN,
                 "%s: Accepting admin transaction to mempool with id %s.\n",
                 __func__, tx->GetHash().GetHex());
 
             if (!esperanza::CheckAdminTransaction(state, *tx, pindexPrev)) {
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::ADMIN,
                   "%s: Admin transaction cannot be included into mempool: %s.\n",
                    __func__,
                    state.GetRejectReason());
