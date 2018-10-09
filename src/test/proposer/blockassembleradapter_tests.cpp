@@ -39,8 +39,7 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
     fees += fee;
   }
 
-  printf("%s\n", std::to_string(fees).c_str());
-
+  // do something with the result to prevent it being optimized away
   BOOST_CHECK_GE(fees, 0);
 }
 
