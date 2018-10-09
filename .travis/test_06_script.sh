@@ -42,7 +42,7 @@ if [ "$RUN_TESTS" = "true" ]; then
 fi
 
 if [ "$TRAVIS_EVENT_TYPE" = "cron" ]; then
-  extended="--extended --exclude feature_pruning,feature_dbcrash,rpc_sendtypeto"
+  extended="--extended --exclude feature_pruning,feature_dbcrash"
 fi
 
 if [ "$RUN_TESTS" = "true" ]; then
