@@ -527,8 +527,9 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
     m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
                                          state);
     if (state.IsInvalid()) {
-      LogPrint(BCLog::FINALIZATION, "%s: Cannot commit logout transaction: %s.\n",
-               __func__, state.GetRejectReason());
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Cannot commit logout transaction: %s.\n", __func__,
+               state.GetRejectReason());
       return false;
     }
     validatorState.m_lastEsperanzaTx = wtxNewOut.tx;
@@ -583,7 +584,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
       validatorState.m_validatorIndex, currentDeposit);
 
   if (res != +Result::SUCCESS) {
-    LogPrint(BCLog::ESPERANZA, "%s: Cannot calculate withdraw amount: %s.\n",
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot calculate withdraw amount: %s.\n",
              __func__, res._to_string());
     return false;
   }
@@ -629,8 +630,9 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
                                        errState);
   if (errState.IsInvalid()) {
-    LogPrint(BCLog::ESPERANZA, "%s: Cannot commit withdraw transaction: %s.\n",
-             __func__, errState.GetRejectReason());
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Cannot commit withdraw transaction: %s.\n", __func__,
+             errState.GetRejectReason());
     return false;
   }
 

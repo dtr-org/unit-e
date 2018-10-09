@@ -1033,12 +1033,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             break;
           }
           case TxType::WITHDRAW: {
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                 "%s: Accepting withdraw to mempool with id %s.\n", __func__,
                 tx.GetHash().GetHex());
 
             if (!esperanza::CheckWithdrawTransaction(state, tx, chainparams.GetConsensus())){
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                        "%s: Withdraw cannot be included into mempool: %s.\n",
                        __func__,
                        state.GetRejectReason());
@@ -3377,12 +3377,12 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
             break;
           }
           case TxType::WITHDRAW: {
-            LogPrint(BCLog::ESPERANZA,
+            LogPrint(BCLog::FINALIZATION,
                      "%s: Accepting withdraw to mempool with id %s.\n", __func__,
                      tx->GetHash().GetHex());
 
             if (!esperanza::CheckWithdrawTransaction(state, *tx, consensusParams, pindexPrev)){
-              LogPrint(BCLog::ESPERANZA,
+              LogPrint(BCLog::FINALIZATION,
                        "%s: Withdraw cannot be included into mempool: %s.\n",
                        __func__,
                        state.GetRejectReason());
