@@ -66,15 +66,16 @@ class SendtypetoTest(UnitETestFramework):
 
         # Estimate fee
         estimate_fee = True
+        outputs = [{'address': '2NBYu3St3rtzJb8AzvraXnXCUxEuCs23eZo', 'amount': 0.1}]
         fee_per_byte = Decimal('0.001') / 1000
         self.nodes[0].settxfee(fee_per_byte * 1000)
         fees = self.nodes[0].sendtypeto('unite', 'unite', outputs, 'comment', 'comment-to', estimate_fee)
-        assert_equal(fees['fee'], fees['bytes'] * fee_per_byte)
+        assert_greater_than(Decimal('1e-7'), abs(fee_per_byte - fees['fee'] / fees['bytes']))
 
         fee_per_byte *= 2
         coin_control = {'fee_rate': fee_per_byte * 1000}
         fees = self.nodes[0].sendtypeto('unite', 'unite', outputs, 'comment', 'comment-to', estimate_fee, coin_control)
-        assert_equal(fees['fee'], fees['bytes'] * fee_per_byte)
+        assert_greater_than(Decimal('1e-7'), abs(fee_per_byte - fees['fee'] / fees['bytes']))
 
 
 if __name__ == "__main__":
