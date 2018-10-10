@@ -539,7 +539,6 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
                state.GetRejectReason());
       return false;
     }
-    validatorState.m_lastEsperanzaTx = wtxNewOut.tx;
   }
 
   return true;

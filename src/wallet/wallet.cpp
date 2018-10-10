@@ -1139,6 +1139,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                         finalizationState->GetValidator(state->m_validatorIndex);
 
                     state->m_endDynasty = validator->m_endDynasty;
+                    state->m_lastEsperanzaTx = ptx;
 
                   } else {
                     LogPrint(BCLog::FINALIZATION,
