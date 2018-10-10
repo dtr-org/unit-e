@@ -2,15 +2,15 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#ifndef UNIT_E_PROPOSER_TRANSACTIONPICKER_H
+#define UNIT_E_PROPOSER_TRANSACTIONPICKER_H
+
 #include <amount.h>
 #include <chainparams.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 
 #include <vector>
-
-#ifndef UNIT_E_PROPOSER_TRANSACTIONPICKER_H
-#define UNIT_E_PROPOSER_TRANSACTIONPICKER_H
 
 namespace proposer {
 
@@ -39,7 +39,7 @@ class TransactionPicker {
     //! BIP141 introduced a new method for computing the max block
     //! size which is the block weight. The block weight is defined
     //! as base-size * 3 + total_size. According to BIP141 the block
-    //! weight must be less-then-or-equal-to 4M.
+    //! weight must be less-than-or-equal-to 4M.
     unsigned int m_maxWeight = DEFAULT_BLOCK_MAX_WEIGHT;
     //! \brief The minimum sum of transaction fees
     //!
