@@ -153,6 +153,7 @@ UNITE_CORE_H = \
   policy/policy.h \
   policy/rbf.h \
   pow.h \
+  proposer/transactionpicker.h \
   protocol.h \
   random.h \
   reverse_iterator.h \
@@ -264,6 +265,7 @@ libunite_server_a_SOURCES = \
   policy/policy.cpp \
   policy/rbf.cpp \
   pow.cpp \
+  proposer/transactionpicker.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
   rpc/esperanza.cpp \
