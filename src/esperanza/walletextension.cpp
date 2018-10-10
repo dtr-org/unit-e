@@ -653,7 +653,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 
   uint32_t dynasty = state->GetCurrentDynasty();
 
-  if (dynasty > validatorState.m_endDynasty) {
+  if (dynasty >= validatorState.m_endDynasty) {
     return;
   }
 
