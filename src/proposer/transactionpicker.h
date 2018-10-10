@@ -5,12 +5,12 @@
 #ifndef UNIT_E_PROPOSER_TRANSACTIONPICKER_H
 #define UNIT_E_PROPOSER_TRANSACTIONPICKER_H
 
+#include <vector>
+
 #include <amount.h>
 #include <chainparams.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
-
-#include <vector>
 
 namespace proposer {
 
