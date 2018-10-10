@@ -656,6 +656,10 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
     return;
   }
 
+  if (dynasty < validatorState.m_startDynasty) {
+    return;
+  }
+
   uint32_t epoch = FinalizationState::GetEpoch(blockIndex);
 
   // Avoid double votes

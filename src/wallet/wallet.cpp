@@ -1108,10 +1108,20 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                     txnouttype typeRet;
                     Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
 
-                    state.m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
+                    const auto validatorIndex = CPubKey(vSolutions[0]).GetHash();
+
+                    const auto finalizationState =
+                        esperanza::FinalizationState::GetState(pIndex);
+
+                    const esperanza::Validator* validator =
+                        finalizationState->GetValidator(validatorIndex);
+
+                    state.m_validatorIndex = validatorIndex;
                     state.m_lastEsperanzaTx = ptx;
                     state.m_depositEpoch =
                         esperanza::FinalizationState::GetEpoch(pIndex);
+                    state.m_startDynasty = validator->m_startDynasty;
+
                   } else {
                     LogPrint(BCLog::FINALIZATION,
                              "ERROR: %s - Wrong state for validator state with "
