@@ -69,10 +69,8 @@ class BlockAssemblerAdapter final : public TransactionPicker {
     std::unique_ptr<CBlockTemplate> blockTemplate =
         blockAssembler.CreateNewBlock(script, /* fMineWitnessTx */ true);
 
-    PickTransactionsResult result{std::move(blockTemplate->block.vtx),
+    return PickTransactionsResult{std::move(blockTemplate->block.vtx),
                                   std::move(blockTemplate->vTxFees)};
-
-    return result;
   };
 };
 
