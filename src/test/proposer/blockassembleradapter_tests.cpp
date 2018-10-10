@@ -3,8 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
-#include <validation.h>
 #include <test/test_unite.h>
+#include <validation.h>
 
 #include <string>
 #include <vector>
