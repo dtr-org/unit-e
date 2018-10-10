@@ -13,8 +13,6 @@
 
 #include <proposer/transactionpicker.h>
 
-#include <cstdio>
-
 struct RegtestingSetup : public TestingSetup {
   RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
 };
