@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
   // transactions will have to be mocked.
 
   std::unique_ptr<proposer::TransactionPicker> blockAssemblerAdapter =
-      proposer::TransactionPicker::BlockAssemblerAdapter(::Params());
+      proposer::TransactionPicker::MakeBlockAssemblerAdapter(::Params());
 
   proposer::TransactionPicker::PickTransactionsParameters params;
 

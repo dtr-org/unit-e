@@ -74,11 +74,11 @@ class BlockAssemblerAdapter final : public TransactionPicker {
   };
 };
 
-std::unique_ptr<TransactionPicker> TransactionPicker::BlockAssemblerAdapter(
+std::unique_ptr<TransactionPicker> TransactionPicker::MakeBlockAssemblerAdapter(
     const CChainParams &chainParams) {
 
   return std::unique_ptr<TransactionPicker>(
-      new class BlockAssemblerAdapter(chainParams));
+      new BlockAssemblerAdapter(chainParams));
 }
 
 }  // namespace proposer

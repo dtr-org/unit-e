@@ -66,7 +66,7 @@ class TransactionPicker {
   virtual ~TransactionPicker() = default;
 
   //! \brief Factory method for creating a BlockAssemblerAdapter
-  static std::unique_ptr<TransactionPicker> BlockAssemblerAdapter(
+  static std::unique_ptr<TransactionPicker> MakeBlockAssemblerAdapter(
       const ::CChainParams &);
 };
 
