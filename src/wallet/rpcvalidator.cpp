@@ -40,12 +40,12 @@ UniValue deposit(const JSONRPCRequest &request)
 
   CTxDestination address = DecodeDestination(request.params[0].get_str());
   if (!IsValidDestination(address)) {
-    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
   }
   CKeyID *keyID = boost::get<CKeyID>(&address);
 
   if (keyID == nullptr) {
-    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address must be a P2H address");
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Address must be a P2PKH address.");
   }
 
   CAmount amount = AmountFromValue(request.params[1]);
@@ -59,7 +59,9 @@ UniValue deposit(const JSONRPCRequest &request)
   }
 
   CWalletTx tx;
-  extWallet.SendDeposit(*keyID, amount, tx);
+  if (!extWallet.SendDeposit(*keyID, amount, tx)) {
+    throw JSONRPCError(RPC_TRANSACTION_ERROR, "Cannot create deposit.");
+  }
 
   return tx.GetHash().GetHex();
 }
@@ -210,6 +212,7 @@ static const CRPCCommand commands[] =
 
 void RegisterValidatorRPCCommands(CRPCTable &t)
 {
-  for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)
-    t.appendCommand(commands[vcidx].name, &commands[vcidx]);
+  for (const auto &command : commands) {
+    t.appendCommand(command.name, &command);
+  }
 }
