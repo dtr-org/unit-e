@@ -27,7 +27,7 @@ class RpcReadSnapshotTest(UnitETestFramework):
             "snapshot_hash",
             "snapshot_id",
             "total_outputs",
-            "total_utxo_sets",
+            "total_tx_utxo_sets",
         ])
         assert_equal(res['snapshot_id'], 0)
         assert_equal(res['current_snapshot_id'], 0)

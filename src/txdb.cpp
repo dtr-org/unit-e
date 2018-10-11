@@ -518,24 +518,24 @@ bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
 
     snapshot::Iterator iter(std::move(indexer));
     LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n", __func__,
-             iter.GetTotalUTXOSets());
+             iter.GetTotalTxUTXOSets());
 
-    uint64_t writtenUTXOSets = 0;
+    uint64_t writtenTxUTXOSets = 0;
     CCoinsMap coinMap;
     while (iter.Valid()) {
-        snapshot::UTXOSet &utxoSet = iter.GetUTXOSet();
-        for (auto const &it : utxoSet.m_outputs) {
+        snapshot::TxUTXOSet &TxUTXOSet = iter.GetTxUTXOSet();
+        for (auto const &it : TxUTXOSet.m_outputs) {
             auto entry = CCoinsCacheEntry{};
             entry.flags |= CCoinsCacheEntry::Flags::DIRTY;
             entry.flags |= CCoinsCacheEntry::Flags::FRESH;
-            Coin coin(it.second, utxoSet.m_height, utxoSet.m_isCoinBase);
+            Coin coin(it.second, TxUTXOSet.m_height, TxUTXOSet.m_isCoinBase);
             entry.coin = coin;
-            coinMap[COutPoint(utxoSet.m_txId, it.first)] = entry;
+            coinMap[COutPoint(TxUTXOSet.m_txId, it.first)] = entry;
         }
 
-        ++writtenUTXOSets;
+        ++writtenTxUTXOSets;
 
-        if (writtenUTXOSets % 100000 == 0) { // ~12 MB/batch
+        if (writtenTxUTXOSets % 100000 == 0) { // ~12 MB/batch
             if (!BatchWrite(coinMap, iter.GetBestBlockHash())) {
                 LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
                 return false;
@@ -544,10 +544,10 @@ bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
         }
 
         // log every 5% of processed messages
-        uint64_t chunk = iter.GetTotalUTXOSets() / 20;
-        if (chunk > 0 && writtenUTXOSets % chunk == 0) {
+        uint64_t chunk = iter.GetTotalTxUTXOSets() / 20;
+        if (chunk > 0 && writtenTxUTXOSets % chunk == 0) {
             LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
-                     writtenUTXOSets, iter.GetTotalUTXOSets());
+                     writtenTxUTXOSets, iter.GetTotalTxUTXOSets());
         }
 
         iter.Next();
@@ -560,13 +560,13 @@ bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
         }
         coinMap.clear();
         LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
-                 writtenUTXOSets, iter.GetTotalUTXOSets());
+                 writtenTxUTXOSets, iter.GetTotalTxUTXOSets());
     }
 
-    assert(iter.GetTotalUTXOSets() == writtenUTXOSets);
+    assert(iter.GetTotalTxUTXOSets() == writtenTxUTXOSets);
 
-    LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXOSets=%i\n",
-             __func__, writtenUTXOSets);
+    LogPrint(BCLog::COINDB, "%s: finished snapshot loading. TxUTXOSets=%i\n",
+             __func__, writtenTxUTXOSets);
 
     return true;
 }

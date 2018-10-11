@@ -66,8 +66,8 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   for (uint64_t i = 0; i < totalMessages / 2; ++i) {
     // simulate receiving the snapshot response
     snapshot::Snapshot snap;
-    snapshot::UTXOSet utxoSet1;
-    snapshot::UTXOSet utxoSet2;
+    snapshot::TxUTXOSet utxoSet1;
+    snapshot::TxUTXOSet utxoSet2;
     utxoSet1.m_txId = uint256FromUint64(i * 2);
     utxoSet2.m_txId = uint256FromUint64(i * 2 + 1);
     snap.m_utxoSets.emplace_back(utxoSet1);
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
     snap.m_snapshotHash = snapshotHash;
     snap.m_bestBlockHash = bestBlockHash;
     snap.m_utxoSetIndex = i * 2;
-    snap.m_totalUTXOSets = totalMessages;
+    snap.m_totalTxUTXOSets = totalMessages;
 
     CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
     body << snap;
@@ -107,12 +107,12 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   BOOST_CHECK(pcoinsdbview->GetCandidateSnapshotId(snapId));
   std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(snapId));
   BOOST_CHECK(idx->GetMeta().m_bestBlockHash == bestBlockHash);
-  BOOST_CHECK(idx->GetMeta().m_totalUTXOSets == totalMessages);
+  BOOST_CHECK(idx->GetMeta().m_totalTxUTXOSets == totalMessages);
 
   uint64_t i{0};
   snapshot::Iterator iter(std::move(idx));
   while (iter.Valid()) {
-    BOOST_CHECK(iter.GetUTXOSet().m_txId.GetUint64(0) == i);
+    BOOST_CHECK(iter.GetTxUTXOSet().m_txId.GetUint64(0) == i);
     ++i;
     iter.Next();
   }
@@ -145,10 +145,10 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   std::unique_ptr<CNode> node(mockNode());
 
   snapshot::Snapshot snap;
-  snap.m_utxoSets.emplace_back(snapshot::UTXOSet());
+  snap.m_utxoSets.emplace_back(snapshot::TxUTXOSet());
   snap.m_bestBlockHash = bi1->GetBlockHash();
   snap.m_utxoSetIndex = 0;
-  snap.m_totalUTXOSets = 5;
+  snap.m_totalTxUTXOSets = 5;
   CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
   body << snap;
 

@@ -26,7 +26,7 @@ namespace snapshot {
 // | size | type    | field           | description
 // | 32   | uint256 | m_snapshotHash  |
 // | 32   | uint256 | m_bestBlockHash | at which hash the snapshot was created
-// | 8    | uint64  | m_totalUTXOSets | total number of UTXO sets in snapshot
+// | 8    | uint64  | m_totalTxUTXOSets | total number of UTXO sets in snapshot
 // | 4    | uint32  | m_step          | number of aggregated UTXO sets
 // | 4    | uint32  | m_stepsPerFile  | number of aggregations per file
 //
@@ -78,7 +78,7 @@ namespace snapshot {
 // we use the following formula:
 // lastFullIndex = max((the last index in the last file - 1), 0)
 // utxoSetsExceptLastFile = m_step * m_stepsPerFile * (number of files - 1)
-// utxoSetsInLastIndex = m_totalUTXOSets-utxoSetsExceptLastFile-lastFullIndex
+// utxoSetsInLastIndex = m_totalTxUTXOSets-utxoSetsExceptLastFile-lastFullIndex
 //
 // utxo???.dat is the file that stores m_step*m_stepsPerFile UTXO sets
 // UTXO Set
@@ -101,21 +101,21 @@ const char *const SNAPSHOT_FOLDER = "snapshots";
 struct Meta {
   uint256 m_snapshotHash;
   uint256 m_bestBlockHash;
-  uint64_t m_totalUTXOSets;
+  uint64_t m_totalTxUTXOSets;
   uint32_t m_step;
   uint32_t m_stepsPerFile;
 
   Meta()
       : m_snapshotHash(),
         m_bestBlockHash(),
-        m_totalUTXOSets(0),
+        m_totalTxUTXOSets(0),
         m_step(0),
         m_stepsPerFile(0) {}
 
   Meta(const uint256 &snapshotHash, const uint256 &bestBlockHash)
       : m_snapshotHash(snapshotHash),
         m_bestBlockHash(bestBlockHash),
-        m_totalUTXOSets(0),
+        m_totalTxUTXOSets(0),
         m_step(0),
         m_stepsPerFile(0) {}
 
@@ -125,7 +125,7 @@ struct Meta {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
     READWRITE(m_bestBlockHash);
-    READWRITE(m_totalUTXOSets);
+    READWRITE(m_totalTxUTXOSets);
     READWRITE(m_step);
     READWRITE(m_stepsPerFile);
   }
@@ -147,11 +147,11 @@ class Indexer {
 
   uint32_t GetSnapshotId() { return m_snapshotId; }
   const Meta &GetMeta() { return m_meta; }
-  bool WriteUTXOSets(const std::vector<UTXOSet> &list);
-  bool WriteUTXOSet(const UTXOSet &utxoSet);
+  bool WriteTxUTXOSets(const std::vector<TxUTXOSet> &list);
+  bool WriteTxUTXOSet(const TxUTXOSet &utxoSet);
 
   //! \brief GetClosestIdx returns the file which contains the expected
-  //! index and adjusts the file cursor as close as possible to the UTXOSet.
+  //! index and adjusts the file cursor as close as possible to the TxUTXOSet.
   //!
   //! \param utxoSetLeftOut how many records left in the current file
   //! \param utxoSetReadOut how many records read (including all files)
@@ -163,7 +163,7 @@ class Indexer {
   //! \brief Flush flushes data in the memory to disk.
   //!
   //! Can be invoked after each write. It's automatically called when it's time
-  //! to switch the file. Must be manually invoked after the last WriteUTXOSet.
+  //! to switch the file. Must be manually invoked after the last WriteTxUTXOSet.
   bool Flush();
 
  private:

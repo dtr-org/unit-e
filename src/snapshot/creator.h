@@ -45,10 +45,10 @@ class Creator {
   //! aggregations in one file
   uint32_t m_stepsPerFile = DEFAULT_INDEX_STEP_PER_FILE;
 
-  //! how many UTXOSets include into the snapshot.
+  //! how many TxUTXOSets include into the snapshot.
   //! 0 - all of them.
   //! non 0 value is used only for testing.
-  uint64_t m_maxUTXOSets = 0;
+  uint64_t m_maxTxUTXOSets = 0;
 
   //! \brief Init Initializes the instance of Creator
   //!

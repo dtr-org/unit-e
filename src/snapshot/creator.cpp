@@ -65,17 +65,17 @@ CreationInfo Creator::Create() {
       if (!outputs.empty() && key.hash != prevTxHash) {
         info.m_totalOutputs += outputs.size();
 
-        UTXOSet utxoSet{prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
+        TxUTXOSet utxoSet{prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
                         std::move(outputs)};
 
         outputs.clear();
 
-        if (!indexer.WriteUTXOSet(utxoSet)) {
+        if (!indexer.WriteTxUTXOSet(utxoSet)) {
           info.m_status = Status::WRITE_ERROR;
           return info;
         }
 
-        if (indexer.GetMeta().m_totalUTXOSets == m_maxUTXOSets) {
+        if (indexer.GetMeta().m_totalTxUTXOSets == m_maxTxUTXOSets) {
           break;
         }
       }
@@ -91,11 +91,11 @@ CreationInfo Creator::Create() {
   if (!outputs.empty()) {
     info.m_totalOutputs += outputs.size();
 
-    UTXOSet utxoSet(prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
+    TxUTXOSet utxoSet(prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
                     std::move(outputs));
     outputs.clear();
 
-    if (!indexer.WriteUTXOSet(utxoSet)) {
+    if (!indexer.WriteTxUTXOSet(utxoSet)) {
       info.m_status = Status::WRITE_ERROR;
       return info;
     }

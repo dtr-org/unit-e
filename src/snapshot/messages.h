@@ -11,21 +11,35 @@
 
 namespace snapshot {
 
-// UTXOSet type is used to store records on disk too
-struct UTXOSet {
+using TxOutIndex = uint32_t;
+
+//! \brief A TxUTXOSet it a subset of the global utxo set for a given Tx.
+//!
+//! Storing each UTXO individually including TxId wastes memory/storage as
+//! UTXOs are grouped within a Transaction and thus share the same TxId. A
+//! TxUTXOSet is the set of UTXOs that belong to a specific transaction.
+struct TxUTXOSet {
+
+  //! The transaction id for all the UTXOs in this TxTxUTXOSet
   uint256 m_txId;
-  uint32_t m_height;  // at which block height the TX was included
+
+  //! The height of the block in which the transaction was included
+  uint32_t m_height;
+
+  //! Whether the transaction which harbours this utxo set was a coinbase tx.
   bool m_isCoinBase;
-  std::map<uint32_t, CTxOut> m_outputs;  // key is the CTxOut index
 
-  UTXOSet() : m_txId(), m_height(0), m_isCoinBase(false), m_outputs() {}
+  //! The set of UTXOs for this transaction, mapped by their index within it.
+  std::map<TxOutIndex, CTxOut> m_outputs;
 
-  UTXOSet(uint256 txId, uint32_t height, bool isCoinBase,
-          std::map<uint32_t, CTxOut> outMap)
+  TxUTXOSet() : m_txId(), m_height(0), m_isCoinBase(false), m_outputs() {}
+
+  TxUTXOSet(uint256 txId, uint32_t height, bool isCoinBase,
+            std::map<TxOutIndex, CTxOut> outMap)
       : m_txId(txId),
         m_height(height),
         m_isCoinBase(isCoinBase),
-        m_outputs{std::move(outMap)} {}
+        m_outputs(std::move(outMap)) {}
 
   ADD_SERIALIZE_METHODS;
 
@@ -66,19 +80,19 @@ struct GetSnapshot {
 
 //! \brief Snapshot message is used to reply to GetSnapshot P2P request.
 //!
-//! When m_totalUTXOSets == m_utxoSetIndex + m_utxoSets.size() this chunk is
+//! When m_totalTxUTXOSets == m_utxoSetIndex + m_utxoSets.size() this chunk is
 //! considered the last chunk of the snapshot.
 struct Snapshot {
   uint256 m_snapshotHash;
   uint256 m_bestBlockHash;
-  uint64_t m_totalUTXOSets;
+  uint64_t m_totalTxUTXOSets;
   uint64_t m_utxoSetIndex;
-  std::vector<UTXOSet> m_utxoSets;
+  std::vector<TxUTXOSet> m_utxoSets;
 
   Snapshot()
       : m_snapshotHash(),
         m_bestBlockHash(),
-        m_totalUTXOSets(0),
+        m_totalTxUTXOSets(0),
         m_utxoSetIndex(0),
         m_utxoSets() {}
 
@@ -88,7 +102,7 @@ struct Snapshot {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
     READWRITE(m_bestBlockHash);
-    READWRITE(m_totalUTXOSets);
+    READWRITE(m_totalTxUTXOSets);
     READWRITE(m_utxoSetIndex);
     READWRITE(m_utxoSets);
   }

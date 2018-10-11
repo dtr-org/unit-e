@@ -12,7 +12,7 @@ BOOST_FIXTURE_TEST_SUITE(snapshot_messages_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   CDataStream s(SER_NETWORK, INIT_PROTO_VERSION);
-  auto utxoSet = snapshot::UTXOSet();
+  auto utxoSet = snapshot::TxUTXOSet();
   s << utxoSet;
 
   std::string exp;
@@ -119,10 +119,10 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   // serialize filled
   msg.m_snapshotHash.SetHex("aa");
   msg.m_bestBlockHash.SetHex("bb");
-  msg.m_totalUTXOSets = 25000000;
+  msg.m_totalTxUTXOSets = 25000000;
   msg.m_utxoSetIndex = 128;
 
-  snapshot::UTXOSet utxoSet;
+  snapshot::TxUTXOSet utxoSet;
   utxoSet.m_height = 53;
   utxoSet.m_isCoinBase = true;
   utxoSet.m_txId.SetHex("bb");
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   snapshot::Snapshot msg2;
   stream >> msg2;
   BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
-  BOOST_CHECK_EQUAL(msg.m_totalUTXOSets, msg2.m_totalUTXOSets);
+  BOOST_CHECK_EQUAL(msg.m_totalTxUTXOSets, msg2.m_totalTxUTXOSets);
   BOOST_CHECK_EQUAL(msg.m_utxoSetIndex, msg2.m_utxoSetIndex);
   BOOST_CHECK_EQUAL(msg.m_utxoSets.size(), msg2.m_utxoSets.size());
   BOOST_CHECK_EQUAL(msg.m_utxoSets[0].m_txId, msg2.m_utxoSets[0].m_txId);
