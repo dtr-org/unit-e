@@ -80,8 +80,7 @@ class WalletExtension {
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             std::string &error);
 
-  bool SendDeposit(const CTxDestination &address, CAmount amount,
-                   CWalletTx &wtxOut);
+  bool SendDeposit(const CKeyID &keyID, CAmount amount, CWalletTx &wtxOut);
 
   bool SendVote(const CTransactionRef &depositRef, const Vote &vote,
                 CWalletTx &wtxNewOut);

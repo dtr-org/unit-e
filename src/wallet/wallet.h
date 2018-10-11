@@ -838,6 +838,7 @@ public:
         nRelockTime = 0;
         fAbortRescan = false;
         fScanningWallet = false;
+        m_last_block_processed = nullptr;
     }
 
     std::map<uint256, CWalletTx> mapWallet;

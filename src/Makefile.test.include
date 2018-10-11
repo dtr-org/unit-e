@@ -74,6 +74,8 @@ UNITE_TESTS =\
   test/random_tests.cpp \
   test/reverselock_tests.cpp \
   test/rpc_tests.cpp \
+  test/rpc_test_utils.h \
+  test/rpc_test_utils.cpp \
   test/sanity_tests.cpp \
   test/scheduler_tests.cpp \
   test/script_P2SH_tests.cpp \
@@ -92,8 +94,8 @@ UNITE_TESTS =\
   test/snapshot_p2p_processing_tests.cpp \
   test/snapshot_state_tests.cpp \
   test/streams_tests.cpp \
-  test/test_unite.cpp \
   test/test_unite.h \
+  test/test_unite.cpp \
   test/test_unite_main.cpp \
   test/timedata_tests.cpp \
   test/torcontrol_tests.cpp \
@@ -112,6 +114,7 @@ UNITE_TESTS += \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
   test/proposer/proposer_tests.cpp \
+  wallet/test/rpcvalidator_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \
