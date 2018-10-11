@@ -167,9 +167,9 @@ class Proposer {
   const std::vector<std::unique_ptr<Thread>> m_threads;
 
   static std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
-      const esperanza::Settings &settings, const std::vector<CWallet *> &wallets,
-      CountingSemaphore &initSemaphore, CountingSemaphore &startSemaphore,
-      CountingSemaphore &stopSemaphore);
+      const esperanza::Settings &settings,
+      const std::vector<CWallet *> &wallets, CountingSemaphore &initSemaphore,
+      CountingSemaphore &startSemaphore, CountingSemaphore &stopSemaphore);
 
   static void Run(Thread &);
 };

@@ -21,11 +21,15 @@ def checkfile(filename):
   return isformatted
 
 violations = []
-dirs = ["src/esperanza", "src/snapshot"]
+dirs = [
+  "src/esperanza",
+  "src/proposer",
+  "src/snapshot"
+]
 for dir in dirs:
-    violations += shared.lib.checkfiles(
-        pattern = ".+\\.(cpp|h)",
-        dir = dir,
-        action = checkfile)
+  violations += shared.lib.checkfiles(
+    pattern = ".+\\.(cpp|h)",
+    dir = dir,
+    action = checkfile)
 
 sys.exit(1 if len(violations) > 0 else 0)
