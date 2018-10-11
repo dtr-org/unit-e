@@ -2,19 +2,19 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/proposer_init.h>
+#include <proposer/proposer_init.h>
 
-#include <esperanza/proposer.h>
+#include <proposer/proposer.h>
 #include <util.h>
 
 #include <mutex>
 
-namespace esperanza {
+namespace proposer {
 
 static std::mutex initLock;
 static std::unique_ptr<Proposer> proposer = nullptr;
 
-bool InitProposer(const Settings &settings,
+bool InitProposer(const esperanza::Settings &settings,
                   const std::vector<CWallet *> &wallets) {
   std::unique_lock<decltype(initLock)> lock;
   if (proposer) {
@@ -56,4 +56,4 @@ void WakeProposer(const CWallet *wallet) {
   }
 }
 
-}  // namespace esperanza
+}  // namespace proposer

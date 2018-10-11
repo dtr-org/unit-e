@@ -52,8 +52,8 @@
 #include <wallet/wallet.h>
 #include <esperanza/settings.h>
 #include <esperanza/settings_init.h>
-#include <esperanza/proposer_init.h>
-#include <esperanza/rpcproposer.h>
+#include <proposer/proposer_init.h>
+#include <rpc/proposer.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -200,7 +200,7 @@ void Shutdown()
     StopRPC();
     StopHTTPServer();
 #ifdef ENABLE_WALLET
-    esperanza::StopProposer();
+    proposer::StopProposer();
     FlushWallets();
 #endif
     MapPort(false);
@@ -1854,10 +1854,10 @@ bool AppInitMain()
 
     // ********************************************************* Step 13: start proposing
 
-    if (!esperanza::InitProposer(*esperanzaSettings, vpwallets)) {
+    if (!proposer::InitProposer(*esperanzaSettings, vpwallets)) {
         return false;
     }
-    esperanza::StartProposer();
+    proposer::StartProposer();
 #endif
 
     LogPrintf("Started up.\n");

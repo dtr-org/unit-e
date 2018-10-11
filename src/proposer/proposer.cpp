@@ -3,7 +3,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/proposer.h>
+#include <proposer/proposer.h>
 
 #include <address/address.h>
 #include <chainparams.h>
@@ -21,9 +21,10 @@
 #include <chrono>
 #include <memory>
 
-namespace esperanza {
+namespace proposer {
 
-Proposer::Thread::Thread(const std::string &threadName, const Settings &config,
+Proposer::Thread::Thread(const std::string &threadName,
+                         const esperanza::Settings &config,
                          const std::vector<CWallet *> &wallets,
                          CountingSemaphore &initSemaphore,
                          CountingSemaphore &startSemaphore,
@@ -59,7 +60,7 @@ void Proposer::Thread::SetStatus(const Proposer::Status status,
 }
 
 std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
-    const Settings &settings, const std::vector<CWallet *> &wallets,
+    const esperanza::Settings &settings, const std::vector<CWallet *> &wallets,
     CountingSemaphore &initSemaphore, CountingSemaphore &startSemaphore,
     CountingSemaphore &stopSemaphore) {
   // total number of threads can not exceed number of wallets
@@ -98,7 +99,7 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   return threads;
 }
 
-Proposer::Proposer(const Settings &settings,
+Proposer::Proposer(const esperanza::Settings &settings,
                    const std::vector<CWallet *> &wallets)
     : m_initSemaphore(0),
       m_startSemaphore(0),
@@ -269,7 +270,7 @@ void Proposer::Run(Proposer::Thread &thread) {
         if (walletExt.SignBlock(blockTemplate.get(), bestHeight + 1,
                                 searchTime)) {
           const CBlock &block = blockTemplate->block;
-          if (!ProposeBlock(blockTemplate->block)) {
+          if (!esperanza::ProposeBlock(blockTemplate->block)) {
             LogPrint(BCLog::PROPOSING, "%s/%s: failed to propose block",
                      thread.m_threadName, wallet->GetName());
             continue;
@@ -297,4 +298,4 @@ void Proposer::Run(Proposer::Thread &thread) {
   thread.m_stopSemaphore.release();
 }
 
-}  // namespace esperanza
+}  // namespace proposer

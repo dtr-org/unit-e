@@ -5,12 +5,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <esperanza/walletextension.h>
+
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/kernel.h>
-#include <esperanza/proposer.h>
 #include <esperanza/stakevalidation.h>
-#include <esperanza/walletextension.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
@@ -792,7 +792,7 @@ void WalletExtension::BlockConnected(
   }
 }
 
-const Proposer::State &WalletExtension::GetProposerState() const {
+const proposer::Proposer::State &WalletExtension::GetProposerState() const {
   return m_proposerState;
 }
 

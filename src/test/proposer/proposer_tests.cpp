@@ -2,14 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/proposer.h>
+#include <proposer/proposer.h>
 #include <test/test_unite.h>
 #include <wallet/wallet.h>
 #include <boost/test/unit_test.hpp>
 
 #include <thread>
 
-namespace esperanza {
+namespace proposer {
 
 struct None {};
 
@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(start_stop) {
   CWallet wallet;
   wallets.emplace_back(&wallet);
 
-  esperanza::Proposer proposer(config, wallets);
+  proposer::Proposer proposer(config, wallets);
 
   proposer.Start();
   proposer.Stop();
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(stop_twice) {
   CWallet wallet;
   wallets.emplace_back(&wallet);
 
-  esperanza::Proposer proposer(config, wallets);
+  proposer::Proposer proposer(config, wallets);
 
   proposer.Start();
   proposer.Stop();
@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(stop_without_start) {
   CWallet wallet;
   wallets.emplace_back(&wallet);
 
-  esperanza::Proposer proposer(config, wallets);
+  proposer::Proposer proposer(config, wallets);
 
   proposer.Stop();
 }
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(stop_twice_without_start) {
   CWallet wallet;
   wallets.emplace_back(&wallet);
 
-  esperanza::Proposer proposer(config, wallets);
+  proposer::Proposer proposer(config, wallets);
 
   proposer.Stop();
   proposer.Stop();
@@ -106,8 +106,8 @@ BOOST_AUTO_TEST_CASE(wallet_distribution) {
   wallets.emplace_back(&w10);
   wallets.emplace_back(&w11);
 
-  esperanza::Proposer proposer(config, wallets);
-  esperanza::ProposerSpy spy(proposer);
+  proposer::Proposer proposer(config, wallets);
+  proposer::ProposerSpy spy(proposer);
 
   BOOST_CHECK(spy.numThreads() == 3);
   BOOST_CHECK(spy.wallets(0).size() == 4);
@@ -136,8 +136,8 @@ BOOST_AUTO_TEST_CASE(single_wallet_too_many_threads_specified) {
   CWallet wallet;
   wallets.emplace_back(&wallet);
 
-  esperanza::Proposer proposer(config, wallets);
-  esperanza::ProposerSpy spy(proposer);
+  proposer::Proposer proposer(config, wallets);
+  proposer::ProposerSpy spy(proposer);
 
   BOOST_CHECK(spy.numThreads() == 1);
   BOOST_CHECK(spy.wallets(0).size() == 1);
@@ -153,8 +153,8 @@ BOOST_AUTO_TEST_CASE(single_wallet_too_few_threads_specified) {
   CWallet wallet;
   wallets.emplace_back(&wallet);
 
-  esperanza::Proposer proposer(config, wallets);
-  esperanza::ProposerSpy spy(proposer);
+  proposer::Proposer proposer(config, wallets);
+  proposer::ProposerSpy spy(proposer);
 
   BOOST_CHECK(spy.numThreads() == 1);
   BOOST_CHECK(spy.wallets(0).size() == 1);

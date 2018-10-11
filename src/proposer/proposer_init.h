@@ -11,9 +11,9 @@
 
 class CWallet;
 
-namespace esperanza {
+namespace proposer {
 
-bool InitProposer(const Settings &settings,
+bool InitProposer(const esperanza::Settings &settings,
                   const std::vector<CWallet *> &wallets);
 
 void StartProposer();
@@ -22,6 +22,6 @@ void StopProposer();
 
 void WakeProposer(const CWallet *wallet = nullptr);
 
-}  // namespace esperanza
+}  // namespace proposer
 
 #endif  // UNIT_E_PROPOSER_INIT_H
