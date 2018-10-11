@@ -98,7 +98,7 @@ bool Iterator::MoveCursorTo(uint64_t utxoSetIndex) {
 }
 
 bool Iterator::GetTxUTXOSets(uint64_t utxoSetIndex, uint16_t count,
-                           std::vector<TxUTXOSet> &utxoSetOut) {
+                             std::vector<TxUTXOSet> &utxoSetOut) {
   if (!MoveCursorTo(utxoSetIndex)) {
     return false;
   }

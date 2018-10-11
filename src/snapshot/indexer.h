@@ -163,7 +163,8 @@ class Indexer {
   //! \brief Flush flushes data in the memory to disk.
   //!
   //! Can be invoked after each write. It's automatically called when it's time
-  //! to switch the file. Must be manually invoked after the last WriteTxUTXOSet.
+  //! to switch the file. Must be manually invoked after the last
+  //! WriteTxUTXOSet.
   bool Flush();
 
  private:

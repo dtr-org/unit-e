@@ -66,7 +66,7 @@ CreationInfo Creator::Create() {
         info.m_totalOutputs += outputs.size();
 
         TxUTXOSet utxoSet{prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
-                        std::move(outputs)};
+                          std::move(outputs)};
 
         outputs.clear();
 
@@ -92,7 +92,7 @@ CreationInfo Creator::Create() {
     info.m_totalOutputs += outputs.size();
 
     TxUTXOSet utxoSet(prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
-                    std::move(outputs));
+                      std::move(outputs));
     outputs.clear();
 
     if (!indexer.WriteTxUTXOSet(utxoSet)) {

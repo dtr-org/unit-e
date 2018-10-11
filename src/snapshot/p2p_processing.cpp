@@ -71,7 +71,7 @@ bool ProcessGetSnapshot(CNode *node, CDataStream &data,
   snapshot.m_utxoSetIndex = get.m_utxoSetIndex;
 
   if (!iter.GetTxUTXOSets(snapshot.m_utxoSetIndex, get.m_utxoSetCount,
-                        snapshot.m_utxoSets)) {
+                          snapshot.m_utxoSets)) {
     LogPrint(BCLog::NET, "getsnapshot: no messages. index=%i count=%i\n",
              snapshot.m_utxoSetIndex, get.m_utxoSetCount);
     return false;
