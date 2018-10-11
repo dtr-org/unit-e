@@ -641,11 +641,10 @@ static void AddWalletToUri(JSONRPCRequest &request, const std::string &wallet)
 static UniValue CallRPC(const JSONRPCRequest &request)
 {
     const CRPCCommand *cmd = tableRPC[request.strMethod];
-
     if (!cmd) {
         throw std::runtime_error(strprintf("CallRPC Unknown command, %s.", request.strMethod));
     }
-    rpcfn_type method = tableRPC[request.strMethod]->actor;
+    rpcfn_type method = cmd->actor;
 
     try {
         return (*method)(request);
@@ -664,37 +663,37 @@ UniValue runstrings(const JSONRPCRequest &request)
         );
     }
 
-    std::string strMethod = request.params[0].get_str();
-    std::string strWallet = request.params[1].get_str();
+    std::string method = request.params[0].get_str();
+    std::string wallet = request.params[1].get_str();
 
-    if (strMethod == "runstrings") {
+    if (method == "runstrings") {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid method.");
     }
 
-    std::vector<std::string> vArgs;
+    std::vector<std::string> args;
 
-    for (size_t i = 2; i < request.params.size(); ++i)
-    {
-        if (!request.params[i].isStr())
+    for (size_t i = 2; i < request.params.size(); ++i) {
+        if (!request.params[i].isStr()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameters must all be strings.");
-        vArgs.push_back(request.params[i].get_str());
+        }
+        args.push_back(request.params[i].get_str());
     }
 
-    JSONRPCRequest newrequest;
-    newrequest.strMethod = strMethod;
-    newrequest.fHelp = request.fHelp;
-    newrequest.params = RPCConvertValues(strMethod, vArgs);
-    newrequest.id = request.id;
-    newrequest.authUser = request.authUser;
+    JSONRPCRequest newRequest;
+    newRequest.strMethod = method;
+    newRequest.fHelp = request.fHelp;
+    newRequest.params = RPCConvertValues(method, args);
+    newRequest.id = request.id;
+    newRequest.authUser = request.authUser;
 
     // Keep incoming URI if no wallet is specified
-    if (!strWallet.empty()) {
-        AddWalletToUri(newrequest, strWallet);
+    if (!wallet.empty()) {
+        AddWalletToUri(newRequest, wallet);
     } else {
-        newrequest.URI = request.URI;
+        newRequest.URI = request.URI;
     }
 
-    return CallRPC(newrequest);
+    return CallRPC(newRequest);
 }
 
 static UniValue getinfo_deprecated(const JSONRPCRequest& request)
