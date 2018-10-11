@@ -70,7 +70,6 @@ UNITE_TESTS =\
   test/policyestimator_tests.cpp \
   test/pow_tests.cpp \
   test/prevector_tests.cpp \
-  test/proposer/blockassembleradapter_tests.cpp \
   test/raii_event_tests.cpp \
   test/random_tests.cpp \
   test/reverselock_tests.cpp \
@@ -111,7 +110,8 @@ UNITE_TESTS =\
 if ENABLE_WALLET
 UNITE_TESTS += \
   test/mnemonic_tests.cpp \
-  test/proposer_tests.cpp \
+  test/proposer/blockassembleradapter_tests.cpp \
+  test/proposer/proposer_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \

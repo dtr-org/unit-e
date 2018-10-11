@@ -2,11 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/rpcproposer.h>
+#include <rpc/proposer.h>
 
 #include <core_io.h>
-#include <esperanza/proposer.h>
-#include <esperanza/proposer_init.h>
+#include <proposer/proposer.h>
+#include <proposer/proposer_init.h>
 #include <net.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
@@ -50,7 +50,7 @@ UniValue proposerstatus(const JSONRPCRequest &request) {
 }
 
 UniValue proposerwake(const JSONRPCRequest &request) {
-  esperanza::WakeProposer();
+  proposer::WakeProposer();
   return proposerstatus(request);
 }
 
@@ -58,8 +58,8 @@ UniValue proposerwake(const JSONRPCRequest &request) {
 static const CRPCCommand commands[] = {
 //  category               name                      actor (function)         argNames
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
-    { "esperanza",         "proposerstatus",         &proposerstatus,         {}},
-    { "esperanza",         "proposerwake",           &proposerwake,           {}},
+    { "proposer",         "proposerstatus",         &proposerstatus,         {}},
+    { "proposer",         "proposerwake",           &proposerwake,           {}},
 };
 // clang-format on
 

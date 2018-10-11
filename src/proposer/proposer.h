@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ESPERANZA_PROPOSER_H
-#define UNITE_ESPERANZA_PROPOSER_H
+#ifndef UNITE_PROPOSER_PROPOSER_H
+#define UNITE_PROPOSER_PROPOSER_H
 
 #include <better-enums/enum.h>
 #include <esperanza/settings.h>
@@ -20,7 +20,7 @@
 
 class CWallet;
 
-namespace esperanza {
+namespace proposer {
 
 // a stub for testing – specializations of this class have access to the
 // Proposer's guts
@@ -81,7 +81,7 @@ class Proposer {
   Proposer(
       //! [in] a name to derive thread names from (groupName-1, groupName-2,
       //! ...)
-      const Settings &,
+      const esperanza::Settings &,
       //! [in] a reference to all wallets to propose from
       const std::vector<CWallet *> &wallets);
 
@@ -105,7 +105,7 @@ class Proposer {
     const std::string m_threadName;
 
     //! unmodifiable reference to esperanza configuration
-    const Settings &m_settings;
+    const esperanza::Settings &m_settings;
 
     //! will be set to true to stop the thread
     std::atomic<bool> m_interrupted;
@@ -130,7 +130,7 @@ class Proposer {
         //! [in] a name for this thread.
         const std::string &,
         //! [in] a reference to the global esperanza config
-        const Settings &,
+        const esperanza::Settings &,
         //! [in] the wallets which this thread is responsible for.
         const std::vector<CWallet *> &,
         //! a semaphore for synchronizing initialization
@@ -167,13 +167,13 @@ class Proposer {
   const std::vector<std::unique_ptr<Thread>> m_threads;
 
   static std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
-      const Settings &settings, const std::vector<CWallet *> &wallets,
+      const esperanza::Settings &settings, const std::vector<CWallet *> &wallets,
       CountingSemaphore &initSemaphore, CountingSemaphore &startSemaphore,
       CountingSemaphore &stopSemaphore);
 
   static void Run(Thread &);
 };
 
-}  // namespace esperanza
+}  // namespace proposer
 
-#endif  // UNITE_ESPERANZA_PROPOSER_H
+#endif  // UNITE_PROPOSER_PROPOSER_H

@@ -6,12 +6,12 @@
 #define UNITE_ESPERANZA_WALLETEXTENSION_H
 
 #include <amount.h>
-#include <esperanza/proposer.h>
 #include <esperanza/validatorstate.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
 #include <primitives/transaction.h>
+#include <proposer/proposer.h>
 
 #include <cstddef>
 #include <cstdint>
@@ -29,7 +29,7 @@ namespace esperanza {
 //! in bitcoin-core. The alterations done to wallet.h/wallet.cpp are kept to
 //! a minimum. All extended functionality should be put here.
 class WalletExtension {
-  friend class esperanza::Proposer;
+  friend class proposer::Proposer;
 
  private:
   //! a reference to the esperanza settings
@@ -45,7 +45,7 @@ class WalletExtension {
   int m_deepestTxnDepth = 0;
 
   //! the state of proposing blocks from this wallet
-  Proposer::State m_proposerState;
+  proposer::Proposer::State m_proposerState;
 
   void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                     const CBlockIndex *pindex);
@@ -95,7 +95,7 @@ class WalletExtension {
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
                       const CBlockIndex *pindex);
 
-  const Proposer::State &GetProposerState() const;
+  const proposer::Proposer::State &GetProposerState() const;
 
   ValidatorState validatorState;
   bool nIsValidatorEnabled = false;

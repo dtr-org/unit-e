@@ -109,10 +109,7 @@ UNITE_CORE_H = \
   esperanza/finalizationstate.h \
   esperanza/init.h \
   esperanza/kernel.h \
-  esperanza/proposer.h \
-  esperanza/proposer_init.h \
   esperanza/params.h \
-  esperanza/rpcproposer.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
   esperanza/stakevalidation.h \
@@ -153,6 +150,8 @@ UNITE_CORE_H = \
   policy/policy.h \
   policy/rbf.h \
   pow.h \
+  proposer/proposer.h \
+  proposer/proposer_init.h \
   proposer/transactionpicker.h \
   protocol.h \
   random.h \
@@ -162,6 +161,7 @@ UNITE_CORE_H = \
   rpc/client.h \
   rpc/esperanza.h \
   rpc/mining.h \
+  rpc/proposer.h \
   rpc/protocol.h \
   rpc/safemode.h \
   rpc/server.h \
@@ -265,7 +265,6 @@ libunite_server_a_SOURCES = \
   policy/policy.cpp \
   policy/rbf.cpp \
   pow.cpp \
-  proposer/transactionpicker.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
   rpc/esperanza.cpp \
@@ -311,12 +310,13 @@ libunite_wallet_a_SOURCES = \
   address/address.cpp \
   esperanza/init.cpp \
   esperanza/kernel.cpp \
-  esperanza/proposer.cpp \
-  esperanza/proposer_init.cpp \
-  esperanza/rpcproposer.cpp \
   esperanza/stakevalidation.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
+  proposer/proposer.cpp \
+  proposer/proposer_init.cpp \
+  proposer/transactionpicker.cpp \
+  rpc/proposer.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \
   wallet/crypter.cpp \
