@@ -267,6 +267,7 @@ libunite_server_a_SOURCES = \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
+  rpc/client.cpp \
   rpc/esperanza.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \

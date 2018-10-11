@@ -158,6 +158,7 @@ BASE_SCRIPTS= [
     'feature_minchainwork.py',
     'p2p_fingerprint.py',
     'feature_uacomment.py',
+    'rpc_runstrings.py',
     'p2p_unrequested_blocks.py',
     'feature_logging.py',
     'p2p_node_network_limited.py',
