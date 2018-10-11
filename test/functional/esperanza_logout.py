@@ -62,11 +62,12 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         # mine 20 blocks (2 dynasties if we keep finalizing) to allow the deposit to get included in a block
         # and dynastyLogoutDelay to expire
-        for n in range(0, 20):
+        # +1 block to include a vote that was casted in 20th block
+        for n in range(0, 21):
             self.generate_block(nodes[(n % 3) + 1])
-            sync_blocks(self.nodes)
+            self.sync_all()
 
-        assert_equal(validator.getblockchaininfo()['blocks'], 140)
+        assert_equal(validator.getblockchaininfo()['blocks'], 141)
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]

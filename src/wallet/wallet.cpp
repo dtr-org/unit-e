@@ -1089,12 +1089,15 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
 
                 case TxType::DEPOSIT: {
                   LOCK(cs_wallet);
-                  esperanza::ValidatorState* state =
-                      &m_stakingExtension.validatorState;
-                  if (state->m_phase == +esperanza::ValidatorState::Phase::
-                                            WAITING_DEPOSIT_CONFIRMATION) {
+                  esperanza::ValidatorState& state =
+                      m_stakingExtension.validatorState;
 
-                    state->m_phase = esperanza::ValidatorState::Phase::
+                  const auto expectedPhase = +esperanza::ValidatorState::Phase::
+                      WAITING_DEPOSIT_CONFIRMATION;
+
+                  if (state.m_phase == expectedPhase) {
+
+                    state.m_phase = esperanza::ValidatorState::Phase::
                         WAITING_DEPOSIT_FINALIZATION;
                     LogPrint(BCLog::FINALIZATION,
                              "%s: Validator waiting for deposit finalization. "
@@ -1105,44 +1108,69 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                     txnouttype typeRet;
                     Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
 
-                    state->m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
-                    state->m_lastEsperanzaTx = MakeTransactionRef(tx);
-                    state->m_depositEpoch =
+                    state.m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
+                    state.m_lastEsperanzaTx = ptx;
+                    state.m_depositEpoch =
                         esperanza::FinalizationState::GetEpoch(pIndex);
+
                   } else {
                     LogPrint(BCLog::FINALIZATION,
                              "ERROR: %s - Wrong state for validator state with "
                              "deposit %s, %s expected but %s found.\n",
                              __func__, tx.GetHash().GetHex(),
-                             "WAITING_DEPOSIT_CONFIRMATION",
-                             state->m_phase._to_string());
+                             expectedPhase._to_string(),
+                             state.m_phase._to_string());
                   }
                   break;
                 }
                 case TxType::LOGOUT: {
                   LOCK(cs_wallet);
-                  esperanza::ValidatorState* state =
-                      &m_stakingExtension.validatorState;
+                  esperanza::ValidatorState& state =
+                      m_stakingExtension.validatorState;
 
-                  if (state->m_phase ==
-                      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
+                  const auto expectedPhase =
+                      +esperanza::ValidatorState::Phase::IS_VALIDATING;
+
+                  if (state.m_phase == expectedPhase) {
 
                     auto finalizationState =
                         esperanza::FinalizationState::GetState(pIndex);
 
                     const esperanza::Validator* validator =
-                        finalizationState->GetValidator(state->m_validatorIndex);
+                        finalizationState->GetValidator(state.m_validatorIndex);
 
-                    state->m_endDynasty = validator->m_endDynasty;
+                    state.m_endDynasty = validator->m_endDynasty;
+                    state.m_lastEsperanzaTx = ptx;
 
                   } else {
                     LogPrint(BCLog::FINALIZATION,
                              "ERROR: %s - Wrong state for validator state when "
                              "logging out. %s expected but %s found.\n",
                              __func__,
-                             "IS_VALIDATING",
-                             state->m_phase._to_string());
+                             expectedPhase._to_string(),
+                             state.m_phase._to_string());
                   }
+                  break;
+                }
+                case TxType::VOTE: {
+                  LOCK(cs_wallet);
+                  esperanza::ValidatorState& state =
+                      m_stakingExtension.validatorState;
+
+                  const auto expectedPhase =
+                      +esperanza::ValidatorState::Phase::IS_VALIDATING;
+
+                  if (state.m_phase == expectedPhase) {
+                      state.m_lastEsperanzaTx = ptx;
+                  } else {
+                    LogPrint(BCLog::FINALIZATION,
+                             "ERROR: %s - Wrong state for validator state when "
+                             "voting. %s expected but %s found.\n",
+                             __func__,
+                             expectedPhase._to_string(),
+                             state.m_phase._to_string());
+                  }
+                  break;
                 }
                 default: { break; }
               }

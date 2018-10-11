@@ -442,6 +442,13 @@ bool WalletExtension::SendDeposit(const CTxDestination &address, CAmount amount,
       return false;
     }
 
+    if (state.IsInvalid()) {
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Cannot verify deposit transaction: %s.\n", __func__,
+               state.GetRejectReason());
+      return false;
+    }
+
     LogPrint(BCLog::FINALIZATION, "%s: Created new deposit transaction %s.\n",
              __func__, wtxOut.GetHash().GetHex());
 
@@ -532,7 +539,6 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
                state.GetRejectReason());
       return false;
     }
-    validatorState.m_lastEsperanzaTx = wtxNewOut.tx;
   }
 
   return true;
@@ -646,7 +652,11 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
 
   uint32_t dynasty = state->GetCurrentDynasty();
 
-  if (dynasty > validatorState.m_endDynasty) {
+  if (dynasty >= validatorState.m_endDynasty) {
+    return;
+  }
+
+  if (dynasty < validatorState.m_startDynasty) {
     return;
   }
 
@@ -683,11 +693,10 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   CTransactionRef &prevRef = validatorState.m_lastEsperanzaTx;
 
   if (SendVote(prevRef, vote, createdTx)) {
-
     validatorState.m_voteMap[epoch] = vote;
     validatorState.m_lastTargetEpoch = vote.m_targetEpoch;
     validatorState.m_lastSourceEpoch = vote.m_sourceEpoch;
-    validatorState.m_lastEsperanzaTx = createdTx.tx;
+
     LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
              createdTx.tx->GetHash().GetHex());
   }
@@ -779,6 +788,11 @@ void WalletExtension::BlockConnected(
         if (state->GetLastFinalizedEpoch() >= validatorState.m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
           validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
+
+          const esperanza::Validator *validator =
+              state->GetValidator(validatorState.m_validatorIndex);
+
+          validatorState.m_startDynasty = validator->m_startDynasty;
 
           LogPrint(BCLog::FINALIZATION,
                    "%s: Validator's deposit finalized, the validator index "
