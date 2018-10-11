@@ -12,9 +12,11 @@ def formatcpp(filename):
   subprocess.call(["clang-format", "-i", "-style=file", filename])
   return True
 
-violations = shared.lib.checkfiles(
+dirs = ["src/esperanza", "src/snapshot"]
+for dir in dirs:
+  shared.lib.checkfiles(
         pattern = ".+\\.(cpp|h)",
-        dir = "src/esperanza",
+        dir = dir,
         action = formatcpp)
 
 sys.exit(0)

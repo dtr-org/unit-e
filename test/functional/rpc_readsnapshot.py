@@ -31,20 +31,20 @@ class RpcReadSnapshotTest(UnitETestFramework):
         ])
         assert_equal(res['snapshot_id'], 0)
         assert_equal(res['current_snapshot_id'], 0)
-        assert_equal(res['total_utxo_sets'], 10)
+        assert_equal(res['total_tx_utxo_sets'], 10)
 
         # read new current snapshot
         node.createsnapshot(20)
         res = node.readsnapshot()
         assert_equal(res['snapshot_id'], 1)
         assert_equal(res['current_snapshot_id'], 1)
-        assert_equal(res['total_utxo_sets'], 20)
+        assert_equal(res['total_tx_utxo_sets'], 20)
 
         # read previous snapshot
         res = node.readsnapshot(0)
         assert_equal(res['snapshot_id'], 0)
         assert_equal(res['current_snapshot_id'], 1)
-        assert_equal(res['total_utxo_sets'], 10)
+        assert_equal(res['total_tx_utxo_sets'], 10)
 
 
 if __name__ == '__main__':
