@@ -44,12 +44,13 @@ BOOST_AUTO_TEST_CASE(deposit_bech32_not_supported) {
   AssertRPCError(command, RPC_INVALID_ADDRESS_OR_KEY);
 }
 
-BOOST_AUTO_TEST_CASE(deposit_p2pkh_supported) {
+BOOST_AUTO_TEST_CASE(deposit_p2pkh_supported_but_not_enough_funds) {
 
   CWallet &wallet = SetupWallet(pwalletMain.get());
   CTxDestination p2pkh = GetDestination(wallet, OUTPUT_TYPE_LEGACY);
 
   std::string command = "deposit " + EncodeDestination(p2pkh) + " 1000000";
+  //Fails creating the transaction since there aren't enough funds
   AssertRPCError(command, RPC_TRANSACTION_ERROR);
 }
 
