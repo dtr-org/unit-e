@@ -789,6 +789,11 @@ void WalletExtension::BlockConnected(
           // Deposit is finalized there is no possible rollback
           validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
 
+          const esperanza::Validator *validator =
+              state->GetValidator(validatorState.m_validatorIndex);
+
+          validatorState.m_startDynasty = validator->m_startDynasty;
+
           LogPrint(BCLog::FINALIZATION,
                    "%s: Validator's deposit finalized, the validator index "
                    "is %s.\n",
