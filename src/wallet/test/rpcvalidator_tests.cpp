@@ -38,9 +38,9 @@ BOOST_AUTO_TEST_CASE(deposit_p2sh_segwit_not_supported) {
 BOOST_AUTO_TEST_CASE(deposit_bech32_not_supported) {
 
   CWallet &wallet = SetupWallet(pwalletMain.get());
-  CTxDestination beck32 = GetDestination(wallet, OUTPUT_TYPE_BECH32);
+  CTxDestination bech32 = GetDestination(wallet, OUTPUT_TYPE_BECH32);
 
-  std::string command = "deposit " + EncodeDestination(beck32) + " 1000000";
+  std::string command = "deposit " + EncodeDestination(bech32) + " 1000000";
   AssertRPCError(command, RPC_INVALID_ADDRESS_OR_KEY);
 }
 
