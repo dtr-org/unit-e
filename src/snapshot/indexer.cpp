@@ -83,7 +83,7 @@ Indexer::Indexer(uint32_t snapshotId, Meta meta,
     m_fileId = m_dirIdx.rbegin()->first;
 
     uint64_t s = (m_dirIdx.size() - 1) * m_meta.m_step * m_meta.m_stepsPerFile;
-    m_fileMsgs = static_cast<uint32_t>(m_meta.m_totalUTXOSets - s);
+    m_fileMsgs = static_cast<uint32_t>(m_meta.m_totalTxUTXOSets - s);
     m_fileIdx = m_dirIdx.rbegin()->second;
 
     if (!m_fileIdx.empty()) {
@@ -93,17 +93,17 @@ Indexer::Indexer(uint32_t snapshotId, Meta meta,
   }
 }
 
-bool Indexer::WriteUTXOSets(const std::vector<UTXOSet> &list) {
+bool Indexer::WriteTxUTXOSets(const std::vector<TxUTXOSet> &list) {
   for (const auto &msg : list) {
-    if (!WriteUTXOSet(msg)) {
+    if (!WriteTxUTXOSet(msg)) {
       return false;
     }
   }
   return true;
 }
 
-bool Indexer::WriteUTXOSet(const UTXOSet &utxoSet) {
-  auto fileId = static_cast<uint32_t>(m_meta.m_totalUTXOSets /
+bool Indexer::WriteTxUTXOSet(const TxUTXOSet &utxoSet) {
+  auto fileId = static_cast<uint32_t>(m_meta.m_totalTxUTXOSets /
                                       (m_meta.m_step * m_meta.m_stepsPerFile));
   if (fileId > m_fileId) {
     if (!FlushFile()) {
@@ -122,7 +122,7 @@ bool Indexer::WriteUTXOSet(const UTXOSet &utxoSet) {
   uint32_t idx = m_fileMsgs / m_meta.m_step;
   m_fileIdx[idx] = static_cast<uint32_t>(m_stream.size()) + m_fileBytes;
 
-  ++m_meta.m_totalUTXOSets;
+  ++m_meta.m_totalTxUTXOSets;
   ++m_fileMsgs;
 
   return true;
@@ -149,7 +149,8 @@ FILE *Indexer::GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
 
   if (m_dirIdx.find(fileId + 1) == m_dirIdx.end()) {
     // last file can have less messages than m_step * stepPerFile
-    auto msgInFile = static_cast<uint32_t>(m_meta.m_totalUTXOSets - prevCount);
+    auto msgInFile =
+        static_cast<uint32_t>(m_meta.m_totalTxUTXOSets - prevCount);
     utxoSetLeftOut = msgInFile - index * m_meta.m_step;
   } else {
     utxoSetLeftOut =

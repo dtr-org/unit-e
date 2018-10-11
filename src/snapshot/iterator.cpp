@@ -20,7 +20,7 @@ Iterator::Iterator(std::unique_ptr<Indexer> &&indexer)
       m_file(nullptr),
       m_readTotal(0),
       m_utxoSetLeft(0) {
-  if (m_indexer->GetMeta().m_totalUTXOSets > 0) {
+  if (m_indexer->GetMeta().m_totalTxUTXOSets > 0) {
     Next();
   }
 }
@@ -33,15 +33,15 @@ bool Iterator::Valid() {
     return false;
   }
 
-  return (m_readTotal <= m_indexer->GetMeta().m_totalUTXOSets);
+  return (m_readTotal <= m_indexer->GetMeta().m_totalTxUTXOSets);
 }
 
 void Iterator::Next() {
-  if (m_readTotal > m_indexer->GetMeta().m_totalUTXOSets) {
+  if (m_readTotal > m_indexer->GetMeta().m_totalTxUTXOSets) {
     return;  // whole snapshot is read
   }
 
-  if (m_readTotal == m_indexer->GetMeta().m_totalUTXOSets) {
+  if (m_readTotal == m_indexer->GetMeta().m_totalTxUTXOSets) {
     ++m_readTotal;  // mark as end of snapshot
     return;
   }
@@ -66,7 +66,7 @@ void Iterator::Next() {
 }
 
 bool Iterator::MoveCursorTo(uint64_t utxoSetIndex) {
-  if (m_indexer->GetMeta().m_totalUTXOSets <= utxoSetIndex) {
+  if (m_indexer->GetMeta().m_totalTxUTXOSets <= utxoSetIndex) {
     return false;
   }
 
@@ -97,8 +97,8 @@ bool Iterator::MoveCursorTo(uint64_t utxoSetIndex) {
   return true;
 }
 
-bool Iterator::GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
-                           std::vector<UTXOSet> &utxoSetOut) {
+bool Iterator::GetTxUTXOSets(uint64_t utxoSetIndex, uint16_t count,
+                             std::vector<TxUTXOSet> &utxoSetOut) {
   if (!MoveCursorTo(utxoSetIndex)) {
     return false;
   }
@@ -116,7 +116,7 @@ bool Iterator::GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
       break;
     }
 
-    utxoSetOut.emplace_back(GetUTXOSet());
+    utxoSetOut.emplace_back(GetTxUTXOSet());
     ++n;
 
     Next();

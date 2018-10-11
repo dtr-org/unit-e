@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
       BOOST_CHECK(!info.m_indexerMeta.m_snapshotHash.IsNull());
       BOOST_CHECK_EQUAL(HexStr(info.m_indexerMeta.m_bestBlockHash),
                         HexStr(bestBlock));
-      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSets, totalTX);
+      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalTxUTXOSets, totalTX);
       BOOST_CHECK_EQUAL(info.m_totalOutputs,
                         static_cast<int>(totalTX * coinsPerTX));
 
@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
         ++count;
         iter.Next();
       }
-      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSets, count);
+      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalTxUTXOSets, count);
     }
   }
 

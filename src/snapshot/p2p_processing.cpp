@@ -67,11 +67,11 @@ bool ProcessGetSnapshot(CNode *node, CDataStream &data,
   Snapshot snapshot;
   snapshot.m_snapshotHash = iter.GetSnapshotHash();
   snapshot.m_bestBlockHash = iter.GetBestBlockHash();
-  snapshot.m_totalUTXOSets = iter.GetTotalUTXOSets();
+  snapshot.m_totalTxUTXOSets = iter.GetTotalTxUTXOSets();
   snapshot.m_utxoSetIndex = get.m_utxoSetIndex;
 
-  if (!iter.GetUTXOSets(snapshot.m_utxoSetIndex, get.m_utxoSetCount,
-                        snapshot.m_utxoSets)) {
+  if (!iter.GetTxUTXOSets(snapshot.m_utxoSetIndex, get.m_utxoSetCount,
+                          snapshot.m_utxoSets)) {
     LogPrint(BCLog::NET, "getsnapshot: no messages. index=%i count=%i\n",
              snapshot.m_utxoSetIndex, get.m_utxoSetCount);
     return false;
@@ -97,15 +97,15 @@ bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
 bool SaveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
                                 const CNetMsgMaker &msgMaker) {
   // todo allow to accept messages not in a sequential order
-  // requires to change the Indexer::WriteUTXOSet
-  if (indexer->GetMeta().m_totalUTXOSets != snap.m_utxoSetIndex) {
+  // requires to change the Indexer::WriteTxUTXOSet
+  if (indexer->GetMeta().m_totalTxUTXOSets != snap.m_utxoSetIndex) {
     GetSnapshot get(snap.m_bestBlockHash);
-    get.m_utxoSetIndex = indexer->GetMeta().m_totalUTXOSets;
+    get.m_utxoSetIndex = indexer->GetMeta().m_totalTxUTXOSets;
     get.m_utxoSetCount = MAX_UTXO_SET_COUNT;
     return SendGetSnapshot(node, get, msgMaker);
   }
 
-  if (!indexer->WriteUTXOSets(snap.m_utxoSets)) {
+  if (!indexer->WriteTxUTXOSets(snap.m_utxoSets)) {
     LogPrint(BCLog::NET, "snapshot: can't write message\n");
     return false;
   }
@@ -115,7 +115,7 @@ bool SaveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
     return false;
   }
 
-  if (indexer->GetMeta().m_totalUTXOSets == snap.m_totalUTXOSets) {
+  if (indexer->GetMeta().m_totalTxUTXOSets == snap.m_totalTxUTXOSets) {
     uint256 snapHash = indexer->CalcSnapshotHash();
     if (snapHash != snap.m_snapshotHash) {
       LogPrint(BCLog::NET, "snapshot: invalid hash. has=%s got=%s\n",
@@ -152,9 +152,9 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   Snapshot msg;
   data >> msg;
   LogPrint(BCLog::NET, "snapshot: received index=%i len=%i total=%i\n",
-           msg.m_utxoSetIndex, msg.m_utxoSets.size(), msg.m_totalUTXOSets);
+           msg.m_utxoSetIndex, msg.m_utxoSets.size(), msg.m_totalTxUTXOSets);
 
-  if (msg.m_utxoSetIndex + msg.m_utxoSets.size() > msg.m_totalUTXOSets) {
+  if (msg.m_utxoSetIndex + msg.m_utxoSets.size() > msg.m_totalTxUTXOSets) {
     LogPrint(BCLog::NET, "snapshot: invalid message index\n");
     return false;
   }
@@ -186,7 +186,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
 
       // ask the peer if it has the same snapshot
       GetSnapshot get(idxMeta.m_bestBlockHash);
-      get.m_utxoSetIndex = idxMeta.m_totalUTXOSets;
+      get.m_utxoSetIndex = idxMeta.m_totalTxUTXOSets;
       get.m_utxoSetCount = MAX_UTXO_SET_COUNT;
       return SendGetSnapshot(node, get, msgMaker);
     }
