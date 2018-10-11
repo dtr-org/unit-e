@@ -107,14 +107,14 @@ UNITE_TESTS =\
   test/util_fun_tests.cpp \
   test/validation_block_tests.cpp \
   test/versionbits_tests.cpp \
-  test/waiter_tests.cpp \
-  test/wallet/rpcvalidator_tests.cpp
+  test/waiter_tests.cpp
 
 if ENABLE_WALLET
 UNITE_TESTS += \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
   test/proposer/proposer_tests.cpp \
+  wallet/test/rpcvalidator_tests.cpp
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \
