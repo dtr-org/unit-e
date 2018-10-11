@@ -114,7 +114,7 @@ UNITE_TESTS += \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
   test/proposer/proposer_tests.cpp \
-  wallet/test/rpcvalidator_tests.cpp
+  wallet/test/rpcvalidator_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
   wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \
