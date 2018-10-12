@@ -26,7 +26,6 @@ UNITE_INCLUDES += $(UNIVALUE_CFLAGS)
 LIBUNITE_SERVER=libunite_server.a
 LIBUNITE_COMMON=libunite_common.a
 LIBUNITE_CONSENSUS=libunite_consensus.a
-LIBUNITE_CLI=libunite_cli.a
 LIBUNITE_UTIL=libunite_util.a
 LIBUNITE_CRYPTO=crypto/libunite_crypto.a
 LIBUNITEQT=qt/libuniteqt.a
@@ -53,7 +52,6 @@ EXTRA_LIBRARIES += \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_SERVER) \
-  $(LIBUNITE_CLI) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_ZMQ)
 
@@ -455,12 +453,6 @@ if GLIBC_BACK_COMPAT
 libunite_util_a_SOURCES += compat/glibc_compat.cpp
 endif
 
-# cli: shared between unite-cli and unite-qt
-libunite_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
-libunite_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-libunite_cli_a_SOURCES = \
-  $(UNITE_CORE_H)
-
 nodist_libunite_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
@@ -502,7 +494,6 @@ unite_cli_SOURCES += unite-cli-res.rc
 endif
 
 unite_cli_LDADD = \
-  $(LIBUNITE_CLI) \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CRYPTO)
