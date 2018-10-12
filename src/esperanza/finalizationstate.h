@@ -167,6 +167,8 @@ public:
 
   Vote GetRecommendedVote(const uint256 &validatorIndex) const;
 
+  uint256 GetCheckpointHash(uint32_t epoch) const;
+
   std::vector<Validator> GetValidators() const;
   const Validator *GetValidator(const uint256 &validatorIndex) const;
 
@@ -203,9 +205,9 @@ private:
   struct Storage {
     std::map<uint256, FinalizationState> states;
     FinalizationState *findOrCreate(const CBlockIndex *index);
+    CCriticalSection cs_storage;
   };
 
-  static CCriticalSection cs_storage;
   static Storage m_storage;
 
 protected:

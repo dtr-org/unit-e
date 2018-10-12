@@ -25,7 +25,6 @@ static std::shared_ptr<FinalizationState> esperanzaState;
 
 static CCriticalSection cs_init_lock;
 
-CCriticalSection FinalizationState::cs_storage;
 FinalizationState::Storage FinalizationState::m_storage;
 
 const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
@@ -245,6 +244,11 @@ Vote FinalizationState::GetRecommendedVote(
            m_expectedSrcEpoch);
 
   return vote;
+}
+
+uint256 FinalizationState::GetCheckpointHash(uint32_t epoch) const {
+  auto it = m_epochToCheckpointHash.find(epoch);
+  return it == m_epochToCheckpointHash.end() ? uint256() : it->second;
 }
 
 bool FinalizationState::IsInDynasty(const Validator &validator,
@@ -794,6 +798,7 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
 }
 
 FinalizationState *FinalizationState::Storage::findOrCreate(const CBlockIndex *index) {
+  LOCK(cs_storage);
   if(index == nullptr || index->pprev == nullptr || index->phashBlock == nullptr) {
     return esperanzaState.get();
   }
@@ -813,7 +818,6 @@ FinalizationState *FinalizationState::Storage::findOrCreate(const CBlockIndex *i
  * @return the state for the chain tip passed
  */
 FinalizationState *FinalizationState::GetState(const CBlockIndex *index) {
-  LOCK(cs_storage);
   if(index == nullptr) {
     index = chainActive.Tip();
   }
@@ -869,6 +873,7 @@ void FinalizationState::Reset(const esperanza::FinalizationParams &params) {
  * @param block the new block added.
  * @return true if the method was successful, false otherwise.
  */
+// UNIT-E @sfrolov: func gonna be renamed to ProcessNewBlock
 bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
                                       const CBlock &block) {
 
