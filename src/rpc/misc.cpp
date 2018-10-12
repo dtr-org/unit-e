@@ -627,14 +627,15 @@ UniValue echo(const JSONRPCRequest& request)
 
 static void AddWalletToUri(JSONRPCRequest &request, const std::string &wallet)
 {
-    if (!wallet.empty()) {
-        char *encodedURI = evhttp_uriencode(wallet.c_str(), wallet.size(), false);
-        if (encodedURI) {
-            request.URI = "/wallet/"+ std::string(encodedURI);
-            free(encodedURI);
-        } else {
-            throw std::runtime_error("uri-encode failed");
-        }
+    if (wallet.empty()) {
+        return;
+    }
+    char *encodedURI = evhttp_uriencode(wallet.c_str(), wallet.size(), false);
+    if (encodedURI) {
+        request.URI = "/wallet/"+ std::string(encodedURI);
+        free(encodedURI);
+    } else {
+        throw std::runtime_error("uri-encode failed");
     }
 }
 
@@ -648,8 +649,7 @@ static UniValue CallRPC(const JSONRPCRequest &request)
 
     try {
         return (*method)(request);
-    }
-    catch (const UniValue &objError) {
+    } catch (const UniValue &objError) {
         throw std::runtime_error(find_value(objError, "message").get_str());
     }
 }
@@ -659,7 +659,7 @@ UniValue runstringcommand(const JSONRPCRequest &request)
     if (request.params.size() < 2) {
         throw std::runtime_error(
             "runstringcommand \"method\" \"wallet\" (\"arg1\" \"arg2\" ...)\n"
-            "\nRun method with all arguments as strings. It converts arguments to JSON if necessary.\n"
+            "\nRun method with all parameters as strings. It converts parameters to JSON if necessary.\n"
             "The purpose of this method is to aid implementation of RPC consoles in desktop clients.\n"
         );
     }
