@@ -23,12 +23,13 @@
 
 namespace snapshot {
 // meta.dat
-// | size | type    | field           | description
-// | 32   | uint256 | m_snapshotHash  |
-// | 32   | uint256 | m_bestBlockHash | at which hash the snapshot was created
-// | 8    | uint64  | m_totalUTXOSets | total number of UTXO sets in snapshot
-// | 4    | uint32  | m_step          | number of aggregated UTXO sets
-// | 4    | uint32  | m_stepsPerFile  | number of aggregations per file
+// | size | type    | field              | description
+// | 32   | uint256 | m_snapshotHash     |
+// | 32   | uint256 | m_bestBlockHash    | at which hash the snapshot was
+// created | 8    | uint64  | m_totalUTXOSubsets | total number of all UTXO
+// subsets | 4    | uint32  | m_step             | number of aggregated UTXO
+// subsets | 4    | uint32  | m_stepsPerFile     | number of aggregations per
+// file
 //
 // index.dat
 // | size | type    | field | description
@@ -77,11 +78,11 @@ namespace snapshot {
 // the last file can have less then m_step messages. To know exactly the number
 // we use the following formula:
 // lastFullIndex = max((the last index in the last file - 1), 0)
-// utxoSetsExceptLastFile = m_step * m_stepsPerFile * (number of files - 1)
-// utxoSetsInLastIndex = m_totalUTXOSets-utxoSetsExceptLastFile-lastFullIndex
+// subsetExceptLastFile = m_step * m_stepsPerFile * (number of files - 1)
+// subsetInLastIndex = m_totalUTXOSubsets-subsetExceptLastFile-lastFullIndex
 //
-// utxo???.dat is the file that stores m_step*m_stepsPerFile UTXO sets
-// UTXO Set
+// utxo???.dat is the file that stores m_step*m_stepsPerFile UTXO subsets
+// UTXOSubset
 // | size | type    | field      | description
 // | 32   | uint256 | txId       | TX ID that contains UTXOs
 // | 4    | uint32  | height     | at which bloch height the TX was created
@@ -101,21 +102,21 @@ const char *const SNAPSHOT_FOLDER = "snapshots";
 struct Meta {
   uint256 m_snapshotHash;
   uint256 m_bestBlockHash;
-  uint64_t m_totalUTXOSets;
+  uint64_t m_totalUTXOSubsets;
   uint32_t m_step;
   uint32_t m_stepsPerFile;
 
   Meta()
       : m_snapshotHash(),
         m_bestBlockHash(),
-        m_totalUTXOSets(0),
+        m_totalUTXOSubsets(0),
         m_step(0),
         m_stepsPerFile(0) {}
 
   Meta(const uint256 &snapshotHash, const uint256 &bestBlockHash)
       : m_snapshotHash(snapshotHash),
         m_bestBlockHash(bestBlockHash),
-        m_totalUTXOSets(0),
+        m_totalUTXOSubsets(0),
         m_step(0),
         m_stepsPerFile(0) {}
 
@@ -125,7 +126,7 @@ struct Meta {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
     READWRITE(m_bestBlockHash);
-    READWRITE(m_totalUTXOSets);
+    READWRITE(m_totalUTXOSubsets);
     READWRITE(m_step);
     READWRITE(m_stepsPerFile);
   }
@@ -147,23 +148,24 @@ class Indexer {
 
   uint32_t GetSnapshotId() { return m_snapshotId; }
   const Meta &GetMeta() { return m_meta; }
-  bool WriteUTXOSets(const std::vector<UTXOSet> &list);
-  bool WriteUTXOSet(const UTXOSet &utxoSet);
+  bool WriteUTXOSubsets(const std::vector<UTXOSubset> &list);
+  bool WriteUTXOSubset(const UTXOSubset &utxoSubset);
 
   //! \brief GetClosestIdx returns the file which contains the expected
-  //! index and adjusts the file cursor as close as possible to the UTXOSet.
+  //! index and adjusts the file cursor as close as possible to the UTXOSubset.
   //!
-  //! \param utxoSetLeftOut how many records left in the current file
-  //! \param utxoSetReadOut how many records read (including all files)
-  FILE *GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
-                      uint64_t &utxoSetReadOut);
+  //! \param subsetLeftOut how many records left in the current file
+  //! \param subsetReadOut how many records read (including all files)
+  FILE *GetClosestIdx(uint64_t subsetIndex, uint32_t &subsetLeftOut,
+                      uint64_t &subsetReadOut);
 
   uint256 CalcSnapshotHash();
 
   //! \brief Flush flushes data in the memory to disk.
   //!
   //! Can be invoked after each write. It's automatically called when it's time
-  //! to switch the file. Must be manually invoked after the last WriteUTXOSet.
+  //! to switch the file. Must be manually invoked after the last
+  //! WriteUTXOSubset.
   bool Flush();
 
  private:

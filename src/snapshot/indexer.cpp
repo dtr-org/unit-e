@@ -83,7 +83,7 @@ Indexer::Indexer(uint32_t snapshotId, Meta meta,
     m_fileId = m_dirIdx.rbegin()->first;
 
     uint64_t s = (m_dirIdx.size() - 1) * m_meta.m_step * m_meta.m_stepsPerFile;
-    m_fileMsgs = static_cast<uint32_t>(m_meta.m_totalUTXOSets - s);
+    m_fileMsgs = static_cast<uint32_t>(m_meta.m_totalUTXOSubsets - s);
     m_fileIdx = m_dirIdx.rbegin()->second;
 
     if (!m_fileIdx.empty()) {
@@ -93,17 +93,17 @@ Indexer::Indexer(uint32_t snapshotId, Meta meta,
   }
 }
 
-bool Indexer::WriteUTXOSets(const std::vector<UTXOSet> &list) {
+bool Indexer::WriteUTXOSubsets(const std::vector<UTXOSubset> &list) {
   for (const auto &msg : list) {
-    if (!WriteUTXOSet(msg)) {
+    if (!WriteUTXOSubset(msg)) {
       return false;
     }
   }
   return true;
 }
 
-bool Indexer::WriteUTXOSet(const UTXOSet &utxoSet) {
-  auto fileId = static_cast<uint32_t>(m_meta.m_totalUTXOSets /
+bool Indexer::WriteUTXOSubset(const UTXOSubset &utxoSubset) {
+  auto fileId = static_cast<uint32_t>(m_meta.m_totalUTXOSubsets /
                                       (m_meta.m_step * m_meta.m_stepsPerFile));
   if (fileId > m_fileId) {
     if (!FlushFile()) {
@@ -118,19 +118,19 @@ bool Indexer::WriteUTXOSet(const UTXOSet &utxoSet) {
     m_fileBytes = 0;
     m_fileId = fileId;
   }
-  m_stream << utxoSet;
+  m_stream << utxoSubset;
   uint32_t idx = m_fileMsgs / m_meta.m_step;
   m_fileIdx[idx] = static_cast<uint32_t>(m_stream.size()) + m_fileBytes;
 
-  ++m_meta.m_totalUTXOSets;
+  ++m_meta.m_totalUTXOSubsets;
   ++m_fileMsgs;
 
   return true;
 }
 
-FILE *Indexer::GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
-                             uint64_t &utxoSetReadOut) {
-  auto fileId = static_cast<uint32_t>(utxoSetIndex /
+FILE *Indexer::GetClosestIdx(uint64_t subsetIndex, uint32_t &subsetLeftOut,
+                             uint64_t &subsetReadOut) {
+  auto fileId = static_cast<uint32_t>(subsetIndex /
                                       (m_meta.m_step * m_meta.m_stepsPerFile));
   if (m_dirIdx.find(fileId) == m_dirIdx.end()) {
     return nullptr;
@@ -138,21 +138,21 @@ FILE *Indexer::GetClosestIdx(uint64_t utxoSetIndex, uint32_t &utxoSetLeftOut,
 
   IdxMap idxMap = m_dirIdx.at(fileId);
   uint32_t prevCount = fileId * m_meta.m_step * m_meta.m_stepsPerFile;
-  auto index = static_cast<uint32_t>(utxoSetIndex - prevCount) / m_meta.m_step;
+  auto index = static_cast<uint32_t>(subsetIndex - prevCount) / m_meta.m_step;
 
   if (idxMap.find(index) == idxMap.end()) {
     return nullptr;
   }
 
-  utxoSetReadOut =
+  subsetReadOut =
       fileId * m_meta.m_step * m_meta.m_stepsPerFile + index * m_meta.m_step;
 
   if (m_dirIdx.find(fileId + 1) == m_dirIdx.end()) {
     // last file can have less messages than m_step * stepPerFile
-    auto msgInFile = static_cast<uint32_t>(m_meta.m_totalUTXOSets - prevCount);
-    utxoSetLeftOut = msgInFile - index * m_meta.m_step;
+    auto msgInFile = static_cast<uint32_t>(m_meta.m_totalUTXOSubsets - prevCount);
+    subsetLeftOut = msgInFile - index * m_meta.m_step;
   } else {
-    utxoSetLeftOut =
+    subsetLeftOut =
         m_meta.m_step * m_meta.m_stepsPerFile - index * m_meta.m_step;
   }
 

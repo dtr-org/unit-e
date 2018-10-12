@@ -154,7 +154,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendtypeto", 5, "test_fee" },
     { "sendtypeto", 6, "coincontrol" },
 
-    { "createsnapshot", 0, "maxutxosets" },
+    { "createsnapshot", 0, "maxutxosubsets" },
     { "readsnapshot", 0, "id" },
 };
 

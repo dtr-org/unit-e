@@ -1699,8 +1699,8 @@ UniValue readsnapshot(const JSONRPCRequest &request) {
     snapshot::Iterator iter(std::move(idx));
     int totalOutputs = 0;
     while (iter.Valid()) {
-        snapshot::UTXOSet utxoSet = iter.GetUTXOSet();
-        totalOutputs += utxoSet.m_outputs.size();
+        snapshot::UTXOSubset subset = iter.GetUTXOSubset();
+        totalOutputs += subset.m_outputs.size();
 
         iter.Next();
     }
@@ -1708,7 +1708,7 @@ UniValue readsnapshot(const JSONRPCRequest &request) {
     rootNode.push_back(Pair("snapshot_hash", iter.GetSnapshotHash().GetHex()));
     rootNode.push_back(Pair("snapshot_id", int(iter.GetSnapshotId())));
     rootNode.push_back(Pair("best_block_hash", iter.GetBestBlockHash().GetHex()));
-    rootNode.push_back(Pair("total_utxo_sets", iter.GetTotalUTXOSets()));
+    rootNode.push_back(Pair("total_utxo_subsets", iter.GetTotalUTXOSubsets()));
     rootNode.push_back(Pair("total_outputs", totalOutputs));
 
     {
@@ -1730,11 +1730,10 @@ UniValue createsnapshot(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() > 1) {
         throw std::runtime_error(
-            "createsnapshot (<maxutxosets>)\n"
-            "\nCreates the snapshot of the UTXOs on the disk.\n"
-            "\nCreates the snapshot of the UTXOs on the disk.\n"
+            "createsnapshot (<maxutxosubsets>)\n"
+            "\nCreates the snapshot of the UTXO subsets on the disk.\n"
             "\nArguments:\n"
-            "1. maxutxosets (numeric, optional) Maximum transactions to dump into the file"
+            "1. maxutxosubsets (numeric, optional) Maximum UTXO subsets to dump into the file"
             "\nExamples:\n"
                 + HelpExampleCli("createsnapshot", "10")
                 + HelpExampleRpc("createsnapshot", "10")
@@ -1745,7 +1744,7 @@ UniValue createsnapshot(const JSONRPCRequest &request)
 
     snapshot::Creator creator(pcoinsdbview.get());
     if (!request.params.empty()) {
-        creator.m_maxUTXOSets = static_cast<uint64_t>(request.params[0].get_int64());
+        creator.m_maxUTXOSubsets = static_cast<uint64_t>(request.params[0].get_int64());
     }
 
     UniValue rootNode(UniValue::VOBJ);
@@ -1772,7 +1771,7 @@ UniValue createsnapshot(const JSONRPCRequest &request)
 
     rootNode.push_back(Pair("snapshot_hash", info.m_indexerMeta.m_snapshotHash.GetHex()));
     rootNode.push_back(Pair("best_block_hash", info.m_indexerMeta.m_bestBlockHash.GetHex()));
-    rootNode.push_back(Pair("total_utxo_sets", info.m_indexerMeta.m_totalUTXOSets));
+    rootNode.push_back(Pair("total_utxo_subsets", info.m_indexerMeta.m_totalUTXOSubsets));
     rootNode.push_back(Pair("total_outputs", info.m_totalOutputs));
 
     uint32_t snapshotId = 0;
@@ -1812,7 +1811,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "verifychain",            &verifychain,            {"checklevel","nblocks"} },
 
     { "blockchain",         "preciousblock",          &preciousblock,          {"blockhash"} },
-    { "blockchain",         "createsnapshot",         &createsnapshot,         {"maxutxosets"} },
+    { "blockchain",         "createsnapshot",         &createsnapshot,         {"maxutxosubsets"} },
     { "blockchain",         "readsnapshot",           &readsnapshot,           {"id"} },
     { "blockchain",         "listsnapshots",          &listsnapshots,          {""} },
 

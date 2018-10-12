@@ -12,8 +12,8 @@ BOOST_FIXTURE_TEST_SUITE(snapshot_messages_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   CDataStream s(SER_NETWORK, INIT_PROTO_VERSION);
-  auto utxoSet = snapshot::UTXOSet();
-  s << utxoSet;
+  auto subset = snapshot::UTXOSubset();
+  s << subset;
 
   std::string exp;
   exp =
@@ -25,10 +25,10 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   BOOST_CHECK_EQUAL(HexStr(s), exp);
   s.clear();
 
-  utxoSet.m_txId.SetHex("aa");
-  utxoSet.m_height = 0xbb;
-  utxoSet.m_isCoinBase = true;
-  s << utxoSet;
+  subset.m_txId.SetHex("aa");
+  subset.m_height = 0xbb;
+  subset.m_isCoinBase = true;
+  s << subset;
   exp =
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
@@ -39,8 +39,8 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
                       "expected: " << HexStr(s) << " got: " << exp);
   s.clear();
 
-  utxoSet.m_outputs[2] = CTxOut();
-  s << utxoSet;
+  subset.m_outputs[2] = CTxOut();
+  s << subset;
   exp =
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
@@ -56,8 +56,8 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   auto out = CTxOut();
   out.nValue = 0xcc;
   out.scriptPubKey << OP_RETURN;
-  utxoSet.m_outputs[2] = out;
-  s << utxoSet;
+  subset.m_outputs[2] = out;
+  s << subset;
   exp =
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
@@ -75,8 +75,8 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
 BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
   snapshot::GetSnapshot msg;
   msg.m_bestBlockHash.SetHex("bb");
-  msg.m_utxoSetIndex = 55;
-  msg.m_utxoSetCount = 17;
+  msg.m_utxoSubsetIndex = 55;
+  msg.m_utxoSubsetCount = 17;
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << msg;
@@ -94,8 +94,8 @@ BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
   snapshot::GetSnapshot msg2;
   stream >> msg2;
   BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
-  BOOST_CHECK_EQUAL(msg.m_utxoSetIndex, msg2.m_utxoSetIndex);
-  BOOST_CHECK_EQUAL(msg.m_utxoSetCount, msg2.m_utxoSetCount);
+  BOOST_CHECK_EQUAL(msg.m_utxoSubsetIndex, msg2.m_utxoSubsetIndex);
+  BOOST_CHECK_EQUAL(msg.m_utxoSubsetCount, msg2.m_utxoSubsetCount);
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
@@ -119,17 +119,17 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   // serialize filled
   msg.m_snapshotHash.SetHex("aa");
   msg.m_bestBlockHash.SetHex("bb");
-  msg.m_totalUTXOSets = 25000000;
-  msg.m_utxoSetIndex = 128;
+  msg.m_totalUTXOSubsets = 25000000;
+  msg.m_utxoSubsetIndex = 128;
 
-  snapshot::UTXOSet utxoSet;
-  utxoSet.m_height = 53;
-  utxoSet.m_isCoinBase = true;
-  utxoSet.m_txId.SetHex("bb");
+  snapshot::UTXOSubset subset;
+  subset.m_height = 53;
+  subset.m_isCoinBase = true;
+  subset.m_txId.SetHex("bb");
   CScript script;
   script << OP_RETURN;
-  utxoSet.m_outputs[5] = CTxOut(5, script);
-  msg.m_utxoSets.emplace_back(utxoSet);
+  subset.m_outputs[5] = CTxOut(5, script);
+  msg.m_utxoSubsets.emplace_back(subset);
 
   stream.clear();
   stream << msg;
@@ -158,12 +158,12 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   snapshot::Snapshot msg2;
   stream >> msg2;
   BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
-  BOOST_CHECK_EQUAL(msg.m_totalUTXOSets, msg2.m_totalUTXOSets);
-  BOOST_CHECK_EQUAL(msg.m_utxoSetIndex, msg2.m_utxoSetIndex);
-  BOOST_CHECK_EQUAL(msg.m_utxoSets.size(), msg2.m_utxoSets.size());
-  BOOST_CHECK_EQUAL(msg.m_utxoSets[0].m_txId, msg2.m_utxoSets[0].m_txId);
-  BOOST_CHECK_EQUAL(msg.m_utxoSets[0].m_outputs.size(),
-                    msg2.m_utxoSets[0].m_outputs.size());
+  BOOST_CHECK_EQUAL(msg.m_totalUTXOSubsets, msg2.m_totalUTXOSubsets);
+  BOOST_CHECK_EQUAL(msg.m_utxoSubsetIndex, msg2.m_utxoSubsetIndex);
+  BOOST_CHECK_EQUAL(msg.m_utxoSubsets.size(), msg2.m_utxoSubsets.size());
+  BOOST_CHECK_EQUAL(msg.m_utxoSubsets[0].m_txId, msg2.m_utxoSubsets[0].m_txId);
+  BOOST_CHECK_EQUAL(msg.m_utxoSubsets[0].m_outputs.size(),
+                    msg2.m_utxoSubsets[0].m_outputs.size());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

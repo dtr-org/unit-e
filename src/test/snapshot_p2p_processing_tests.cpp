@@ -66,16 +66,16 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   for (uint64_t i = 0; i < totalMessages / 2; ++i) {
     // simulate receiving the snapshot response
     snapshot::Snapshot snap;
-    snapshot::UTXOSet utxoSet1;
-    snapshot::UTXOSet utxoSet2;
-    utxoSet1.m_txId = uint256FromUint64(i * 2);
-    utxoSet2.m_txId = uint256FromUint64(i * 2 + 1);
-    snap.m_utxoSets.emplace_back(utxoSet1);
-    snap.m_utxoSets.emplace_back(utxoSet2);
+    snapshot::UTXOSubset subset1;
+    snapshot::UTXOSubset subset2;
+    subset1.m_txId = uint256FromUint64(i * 2);
+    subset2.m_txId = uint256FromUint64(i * 2 + 1);
+    snap.m_utxoSubsets.emplace_back(subset1);
+    snap.m_utxoSubsets.emplace_back(subset2);
     snap.m_snapshotHash = snapshotHash;
     snap.m_bestBlockHash = bestBlockHash;
-    snap.m_utxoSetIndex = i * 2;
-    snap.m_totalUTXOSets = totalMessages;
+    snap.m_utxoSubsetIndex = i * 2;
+    snap.m_totalUTXOSubsets = totalMessages;
 
     CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
     body << snap;
@@ -94,9 +94,9 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
       BOOST_CHECK_EQUAL(get.m_bestBlockHash.GetHex(),
                         snap.m_bestBlockHash.GetHex());
 
-      uint64_t expSize = snap.m_utxoSets.size() + (i * 2);
-      BOOST_CHECK_EQUAL(get.m_utxoSetIndex, expSize);
-      BOOST_CHECK(get.m_utxoSetCount == snapshot::MAX_UTXO_SET_COUNT);
+      uint64_t expSize = snap.m_utxoSubsets.size() + (i * 2);
+      BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, expSize);
+      BOOST_CHECK(get.m_utxoSubsetCount == snapshot::MAX_UTXO_SET_COUNT);
       node->vSendMsg.clear();
     } else {  // finish snapshot downloading
       BOOST_CHECK(node->vSendMsg.empty());
@@ -107,12 +107,12 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   BOOST_CHECK(pcoinsdbview->GetCandidateSnapshotId(snapId));
   std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(snapId));
   BOOST_CHECK(idx->GetMeta().m_bestBlockHash == bestBlockHash);
-  BOOST_CHECK(idx->GetMeta().m_totalUTXOSets == totalMessages);
+  BOOST_CHECK(idx->GetMeta().m_totalUTXOSubsets == totalMessages);
 
   uint64_t i{0};
   snapshot::Iterator iter(std::move(idx));
   while (iter.Valid()) {
-    BOOST_CHECK(iter.GetUTXOSet().m_txId.GetUint64(0) == i);
+    BOOST_CHECK(iter.GetUTXOSubset().m_txId.GetUint64(0) == i);
     ++i;
     iter.Next();
   }
@@ -145,10 +145,10 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   std::unique_ptr<CNode> node(mockNode());
 
   snapshot::Snapshot snap;
-  snap.m_utxoSets.emplace_back(snapshot::UTXOSet());
+  snap.m_utxoSubsets.emplace_back(snapshot::UTXOSubset());
   snap.m_bestBlockHash = bi1->GetBlockHash();
-  snap.m_utxoSetIndex = 0;
-  snap.m_totalUTXOSets = 5;
+  snap.m_utxoSubsetIndex = 0;
+  snap.m_totalUTXOSubsets = 5;
   CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
   body << snap;
 
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   snapshot::GetSnapshot get;
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
   BOOST_CHECK_EQUAL(get.m_bestBlockHash, bi1->GetBlockHash());
-  BOOST_CHECK_EQUAL(get.m_utxoSetIndex, 1);
+  BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, 1);
   node->vSendMsg.clear();
 
   // switch to higher block height and ask for the next chunk
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   BOOST_CHECK_EQUAL(snapId, 1);
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
   BOOST_CHECK_EQUAL(get.m_bestBlockHash, bi3->GetBlockHash());
-  BOOST_CHECK_EQUAL(get.m_utxoSetIndex, 1);
+  BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, 1);
   node->vSendMsg.clear();
 
   // don't switch to lower block height but ask the peer if it has the next
@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   BOOST_CHECK_EQUAL(snapId, 1);
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
   BOOST_CHECK_EQUAL(get.m_bestBlockHash, bi3->GetBlockHash());
-  BOOST_CHECK_EQUAL(get.m_utxoSetIndex, 1);
+  BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, 1);
   node->vSendMsg.clear();
 }
 
@@ -205,8 +205,8 @@ BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
   snapshot::GetSnapshot get;
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
   BOOST_CHECK(get.m_bestBlockHash.IsNull());
-  BOOST_CHECK_EQUAL(get.m_utxoSetIndex, 0);
-  BOOST_CHECK_EQUAL(get.m_utxoSetCount, snapshot::MAX_UTXO_SET_COUNT);
+  BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, 0);
+  BOOST_CHECK_EQUAL(get.m_utxoSubsetCount, snapshot::MAX_UTXO_SET_COUNT);
   BOOST_CHECK(node->sentInitGetSnapshot);
 
   node->vSendMsg.clear();
