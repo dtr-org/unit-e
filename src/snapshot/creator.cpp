@@ -7,6 +7,7 @@
 #include <clientversion.h>
 #include <fs.h>
 #include <serialize.h>
+#include <snapshot/chainstate_iterator.h>
 #include <snapshot/indexer.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
@@ -47,58 +48,26 @@ CreationInfo Creator::Create() {
   }
   LogPrint(BCLog::SNAPSHOT, "reserve id=%i for the new snapshot\n", snapshotId);
 
-  std::unique_ptr<CCoinsViewCursor> cursor(m_view->Cursor());
-
+  ChainstateIterator iter(m_view);
   Indexer indexer(snapshotId, /* m_snapshotHash */ uint256(),
-                  cursor->GetBestBlock(), m_step, m_stepsPerFile);
+                  iter.GetBestBlock(), m_step, m_stepsPerFile);
 
-  std::map<uint32_t, CTxOut> outputs;
-  Coin prevCoin;
-  uint256 prevTxHash;
-
-  while (cursor->Valid()) {
+  while (iter.Valid()) {
     boost::this_thread::interruption_point();
 
-    COutPoint key;
-    Coin coin;
-    if (cursor->GetKey(key) && cursor->GetValue(coin)) {
-      if (!outputs.empty() && key.hash != prevTxHash) {
-        info.m_totalOutputs += outputs.size();
+    UTXOSubset subset = iter.GetUTXOSubset();
+    info.m_totalOutputs += subset.m_outputs.size();
 
-        UTXOSubset subset{prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
-                          std::move(outputs)};
-
-        outputs.clear();
-
-        if (!indexer.WriteUTXOSubset(subset)) {
-          info.m_status = Status::WRITE_ERROR;
-          return info;
-        }
-
-        if (indexer.GetMeta().m_totalUTXOSubsets == m_maxUTXOSubsets) {
-          break;
-        }
-      }
-
-      outputs[key.n] = coin.out;
-    }
-    prevCoin = coin;
-    prevTxHash = key.hash;
-
-    cursor->Next();
-  }
-
-  if (!outputs.empty()) {
-    info.m_totalOutputs += outputs.size();
-
-    UTXOSubset utxoSet(prevTxHash, prevCoin.nHeight, prevCoin.IsCoinBase(),
-                       std::move(outputs));
-    outputs.clear();
-
-    if (!indexer.WriteUTXOSubset(utxoSet)) {
+    if (!indexer.WriteUTXOSubset(subset)) {
       info.m_status = Status::WRITE_ERROR;
       return info;
     }
+
+    if (indexer.GetMeta().m_totalUTXOSubsets == m_maxUTXOSubsets) {
+      break;
+    }
+
+    iter.Next();
   }
 
   if (!indexer.Flush()) {
