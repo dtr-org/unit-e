@@ -48,7 +48,7 @@ static void gej_from_multiset_var(secp256k1_gej *target,  const secp256k1_multis
  *  Pass inverse=0 to generate the group element, or inverse=1 to generate its inverse
  */
 static void ge_from_data_var(secp256k1_ge *target, const unsigned char *input, size_t inputLen, int inverse) {
-    secp256k1_sha256 hasher;
+    secp256k1_sha256_t hasher;
     unsigned char buffer[8+32];
     unsigned char trial[32];
     uint64_t prefix;
@@ -149,7 +149,7 @@ int secp256k1_multiset_combine(const secp256k1_context* ctx, secp256k1_multiset 
 
 /** Hash the multiset into resultHash */
 int secp256k1_multiset_finalize(const secp256k1_context* ctx, unsigned char *resultHash, const secp256k1_multiset *multiset) {
-    secp256k1_sha256 hasher;
+    secp256k1_sha256_t hasher;
     unsigned char buffer[64];
     secp256k1_gej gej;
     secp256k1_ge ge;

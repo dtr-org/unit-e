@@ -14,6 +14,7 @@
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
 #include <crypto/sha512.h>
+#include <secp256k1/include/secp256k1_multiset.h>
 
 /* Number of bytes to hash per iteration */
 static const uint64_t BUFFER_SIZE = 1000*1000;
@@ -87,6 +88,39 @@ static void FastRandom_1bit(benchmark::State& state)
     }
 }
 
+static void ECMH(benchmark::State& state)
+{
+    secp256k1_context *ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    std::vector<uint8_t> in(BUFFER_SIZE, 0);
+
+    uint8_t hash[32];
+    while (state.KeepRunning()) {
+        secp256k1_multiset multiset;
+        secp256k1_multiset_init(ctx, &multiset);
+
+        secp256k1_multiset_add(ctx, &multiset, in.data(), in.size());
+        secp256k1_multiset_finalize(ctx, hash, &multiset);
+    }
+
+    secp256k1_context_destroy(ctx);
+}
+
+static void ECMH_32b(benchmark::State& state)
+{
+    secp256k1_context *ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+    std::vector<uint8_t> in(32,0);
+
+    while (state.KeepRunning()) {
+        secp256k1_multiset multiset;
+        secp256k1_multiset_init(ctx, &multiset);
+
+        secp256k1_multiset_add(ctx, &multiset, in.data(), in.size());
+        secp256k1_multiset_finalize(ctx, in.data(), &multiset);
+    }
+
+    secp256k1_context_destroy(ctx);
+}
+
 BENCHMARK(RIPEMD160, 440);
 BENCHMARK(SHA1, 570);
 BENCHMARK(SHA256, 340);
@@ -96,3 +130,6 @@ BENCHMARK(SHA256_32b, 4700 * 1000);
 BENCHMARK(SipHash_32b, 40 * 1000 * 1000);
 BENCHMARK(FastRandom_32bit, 110 * 1000 * 1000);
 BENCHMARK(FastRandom_1bit, 440 * 1000 * 1000);
+
+BENCHMARK(ECMH, 250);
+BENCHMARK(ECMH_32b, 60 * 1000);
