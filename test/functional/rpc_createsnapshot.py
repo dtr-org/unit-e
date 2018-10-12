@@ -21,10 +21,10 @@ class RpcCreateSnapshotTest(UnitETestFramework):
             "current_snapshot_id",
             "snapshot_hash",
             "total_outputs",
-            "total_utxo_sets",
+            "total_utxo_subsets",
         ])
         assert_equal(res['current_snapshot_id'], 0)
-        assert_equal(res['total_utxo_sets'], 201)
+        assert_equal(res['total_utxo_subsets'], 201)
         assert_equal(res['total_outputs'], 205)
         assert_equal(res['best_block_hash'], node.getbestblockhash())
         assert_equal(res['snapshot_hash'], node.readsnapshot(res['current_snapshot_id'])['snapshot_hash'])
@@ -33,7 +33,7 @@ class RpcCreateSnapshotTest(UnitETestFramework):
         node = self.nodes[0]
         res = node.createsnapshot(10)
         assert_equal(res['current_snapshot_id'], 1)
-        assert_equal(res['total_utxo_sets'], 10)
+        assert_equal(res['total_utxo_subsets'], 10)
         assert_equal(res['total_outputs'], 10)
         assert_equal(res['best_block_hash'], node.getbestblockhash())
         assert_equal(res['snapshot_hash'], node.readsnapshot(res['current_snapshot_id'])['snapshot_hash'])

@@ -19,8 +19,8 @@ Iterator::Iterator(std::unique_ptr<Indexer> &&indexer)
     : m_indexer(std::move(indexer)),
       m_file(nullptr),
       m_readTotal(0),
-      m_utxoSetLeft(0) {
-  if (m_indexer->GetMeta().m_totalUTXOSets > 0) {
+      m_subsetLeft(0) {
+  if (m_indexer->GetMeta().m_totalUTXOSubsets > 0) {
     Next();
   }
 }
@@ -33,52 +33,52 @@ bool Iterator::Valid() {
     return false;
   }
 
-  return (m_readTotal <= m_indexer->GetMeta().m_totalUTXOSets);
+  return (m_readTotal <= m_indexer->GetMeta().m_totalUTXOSubsets);
 }
 
 void Iterator::Next() {
-  if (m_readTotal > m_indexer->GetMeta().m_totalUTXOSets) {
+  if (m_readTotal > m_indexer->GetMeta().m_totalUTXOSubsets) {
     return;  // whole snapshot is read
   }
 
-  if (m_readTotal == m_indexer->GetMeta().m_totalUTXOSets) {
+  if (m_readTotal == m_indexer->GetMeta().m_totalUTXOSubsets) {
     ++m_readTotal;  // mark as end of snapshot
     return;
   }
 
   // switch to the next file
-  if (m_utxoSetLeft == 0) {
+  if (m_subsetLeft == 0) {
     closeFile();
 
-    m_file = m_indexer->GetClosestIdx(m_readTotal, m_utxoSetLeft, m_readTotal);
+    m_file = m_indexer->GetClosestIdx(m_readTotal, m_subsetLeft, m_readTotal);
     if (!m_file) {
       return;
     }
   }
 
-  // CAutoFile is used as a helper to unserialize one utxoSet record but we
+  // CAutoFile is used as a helper to unserialize one utxoSubset record but we
   // don't want to close the file so we release the ownership right away
   CAutoFile f(m_file, SER_DISK, PROTOCOL_VERSION);
-  f >> m_utxoSet;
+  f >> m_utxoSubset;
   ++m_readTotal;
-  --m_utxoSetLeft;
+  --m_subsetLeft;
   f.release();
 }
 
-bool Iterator::MoveCursorTo(uint64_t utxoSetIndex) {
-  if (m_indexer->GetMeta().m_totalUTXOSets <= utxoSetIndex) {
+bool Iterator::MoveCursorTo(uint64_t subsetIndex) {
+  if (m_indexer->GetMeta().m_totalUTXOSubsets <= subsetIndex) {
     return false;
   }
 
   // prevent reading the first message twice
   // when after the initialization MoveCursorTo(0) is invoked
-  if (m_readTotal == 1 && utxoSetIndex == 0) {
+  if (m_readTotal == 1 && subsetIndex == 0) {
     return true;
   }
 
   closeFile();
 
-  m_file = m_indexer->GetClosestIdx(utxoSetIndex, m_utxoSetLeft, m_readTotal);
+  m_file = m_indexer->GetClosestIdx(subsetIndex, m_subsetLeft, m_readTotal);
   if (!m_file) {
     return false;
   }
@@ -87,7 +87,7 @@ bool Iterator::MoveCursorTo(uint64_t utxoSetIndex) {
 
   // keep reading more messages
   // until the index is equal to requested
-  while (m_readTotal < utxoSetIndex + 1) {
+  while (m_readTotal < subsetIndex + 1) {
     if (!Valid()) {
       return false;
     }
@@ -97,9 +97,9 @@ bool Iterator::MoveCursorTo(uint64_t utxoSetIndex) {
   return true;
 }
 
-bool Iterator::GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
-                           std::vector<UTXOSet> &utxoSetOut) {
-  if (!MoveCursorTo(utxoSetIndex)) {
+bool Iterator::GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
+                              std::vector<UTXOSubset> &subsetsOut) {
+  if (!MoveCursorTo(subsetIndex)) {
     return false;
   }
 
@@ -107,8 +107,8 @@ bool Iterator::GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
   // message size in P2P. 10K UTXO Sets is ~1MB and on Bitcoin data doesn't grow
   // more than 1.2MB but theoretically it can go beyond the 4MB limit
 
-  utxoSetOut.clear();
-  utxoSetOut.reserve(count);
+  subsetsOut.clear();
+  subsetsOut.reserve(count);
 
   uint16_t n = 0;
   while (Valid()) {
@@ -116,7 +116,7 @@ bool Iterator::GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
       break;
     }
 
-    utxoSetOut.emplace_back(GetUTXOSet());
+    subsetsOut.emplace_back(GetUTXOSubset());
     ++n;
 
     Next();

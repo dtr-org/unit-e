@@ -11,17 +11,17 @@
 
 namespace snapshot {
 
-// UTXOSet type is used to store records on disk too
-struct UTXOSet {
+// UTXOSubset type is used to store records on disk too
+struct UTXOSubset {
   uint256 m_txId;
   uint32_t m_height;  // at which block height the TX was included
   bool m_isCoinBase;
   std::map<uint32_t, CTxOut> m_outputs;  // key is the CTxOut index
 
-  UTXOSet() : m_txId(), m_height(0), m_isCoinBase(false), m_outputs() {}
+  UTXOSubset() : m_txId(), m_height(0), m_isCoinBase(false), m_outputs() {}
 
-  UTXOSet(uint256 txId, uint32_t height, bool isCoinBase,
-          std::map<uint32_t, CTxOut> outMap)
+  UTXOSubset(uint256 txId, uint32_t height, bool isCoinBase,
+             std::map<uint32_t, CTxOut> outMap)
       : m_txId(txId),
         m_height(height),
         m_isCoinBase(isCoinBase),
@@ -42,45 +42,48 @@ struct UTXOSet {
 //!
 //! During the initial request to peers it has the following values:
 //! bestBlockHash = empty
-//! m_utxoSetIndex = 0
-//! m_utxoSetCount = >0
+//! m_utxoSubsetIndex = 0
+//! m_utxoSubsetCount = >0
 struct GetSnapshot {
   uint256 m_bestBlockHash;
-  uint64_t m_utxoSetIndex;
-  uint16_t m_utxoSetCount;
+  uint64_t m_utxoSubsetIndex;
+  uint16_t m_utxoSubsetCount;
 
-  GetSnapshot() : m_bestBlockHash(), m_utxoSetIndex(0), m_utxoSetCount(0) {}
+  GetSnapshot()
+      : m_bestBlockHash(), m_utxoSubsetIndex(0), m_utxoSubsetCount(0) {}
 
   explicit GetSnapshot(const uint256 &bestBlockHash)
-      : m_bestBlockHash(bestBlockHash), m_utxoSetIndex(0), m_utxoSetCount(0) {}
+      : m_bestBlockHash(bestBlockHash),
+        m_utxoSubsetIndex(0),
+        m_utxoSubsetCount(0) {}
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_bestBlockHash);
-    READWRITE(m_utxoSetIndex);
-    READWRITE(m_utxoSetCount);
+    READWRITE(m_utxoSubsetIndex);
+    READWRITE(m_utxoSubsetCount);
   }
 };
 
 //! \brief Snapshot message is used to reply to GetSnapshot P2P request.
 //!
-//! When m_totalUTXOSets == m_utxoSetIndex + m_utxoSets.size() this chunk is
-//! considered the last chunk of the snapshot.
+//! When m_totalUTXOSubsets == m_utxoSubsetIndex + m_utxoSubsets.size() this
+//! chunk is considered the last chunk of the snapshot.
 struct Snapshot {
   uint256 m_snapshotHash;
   uint256 m_bestBlockHash;
-  uint64_t m_totalUTXOSets;
-  uint64_t m_utxoSetIndex;
-  std::vector<UTXOSet> m_utxoSets;
+  uint64_t m_totalUTXOSubsets;
+  uint64_t m_utxoSubsetIndex;
+  std::vector<UTXOSubset> m_utxoSubsets;
 
   Snapshot()
       : m_snapshotHash(),
         m_bestBlockHash(),
-        m_totalUTXOSets(0),
-        m_utxoSetIndex(0),
-        m_utxoSets() {}
+        m_totalUTXOSubsets(0),
+        m_utxoSubsetIndex(0),
+        m_utxoSubsets() {}
 
   ADD_SERIALIZE_METHODS;
 
@@ -88,9 +91,9 @@ struct Snapshot {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
     READWRITE(m_bestBlockHash);
-    READWRITE(m_totalUTXOSets);
-    READWRITE(m_utxoSetIndex);
-    READWRITE(m_utxoSets);
+    READWRITE(m_totalUTXOSubsets);
+    READWRITE(m_utxoSubsetIndex);
+    READWRITE(m_utxoSubsets);
   }
 };
 

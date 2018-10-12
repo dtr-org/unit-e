@@ -20,13 +20,13 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
     uint256 blockHash = uint256S("aa");
     snapshot::Indexer idx(0, uint256(), blockHash, 3, 2);
     for (uint32_t i = 0; i < msgsToGenerate; ++i) {
-      snapshot::UTXOSet utxoSet;
-      utxoSet.m_txId.SetHex(std::to_string(i));
+      snapshot::UTXOSubset subset;
+      subset.m_txId.SetHex(std::to_string(i));
 
       CTxOut out;
       out.nValue = 1000 + i;
-      utxoSet.m_outputs[i] = out;
-      idx.WriteUTXOSet(utxoSet);
+      subset.m_outputs[i] = out;
+      idx.WriteUTXOSubset(subset);
     }
     BOOST_CHECK(idx.Flush());
   }
@@ -40,13 +40,13 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
     BOOST_CHECK_EQUAL(
         HexStr(iter.GetBestBlockHash()),
         "aa00000000000000000000000000000000000000000000000000000000000000");
-    BOOST_CHECK_EQUAL(iter.GetTotalUTXOSets(), msgsToGenerate);
+    BOOST_CHECK_EQUAL(iter.GetTotalUTXOSubsets(), msgsToGenerate);
 
     // iterate sequentially
     uint32_t count = 0;
     while (iter.Valid()) {
       uint32_t value = 1000 + count;
-      BOOST_CHECK_EQUAL(iter.GetUTXOSet().m_outputs.at(count).nValue, value);
+      BOOST_CHECK_EQUAL(iter.GetUTXOSubset().m_outputs.at(count).nValue, value);
       iter.Next();
       ++count;
     }
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
     for (uint32_t i = 0; i < msgsToGenerate; ++i) {
       BOOST_CHECK(iter.MoveCursorTo(i));
       int value = 1000 + i;
-      BOOST_CHECK_EQUAL(iter.GetUTXOSet().m_outputs.at(i).nValue, value);
+      BOOST_CHECK_EQUAL(iter.GetUTXOSubset().m_outputs.at(i).nValue, value);
     }
 
     // iterate via cursor moving backward
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
       BOOST_CHECK(iter.MoveCursorTo(i - 1));
 
       uint32_t value = 1000 + i - 1;
-      BOOST_CHECK_EQUAL(iter.GetUTXOSet().m_outputs.at(i - 1).nValue, value);
+      BOOST_CHECK_EQUAL(iter.GetUTXOSubset().m_outputs.at(i - 1).nValue, value);
     }
   }
 }

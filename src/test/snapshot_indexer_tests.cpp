@@ -25,12 +25,12 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_flush) {
   uint64_t totalMsgs = step * stepsPerFile * 3;
   for (uint64_t i = 0; i < totalMsgs; ++i) {
     BOOST_CHECK(idx->Flush());
-    snapshot::UTXOSet utxoSet;
+    snapshot::UTXOSubset subset;
     CDataStream s(SER_DISK, PROTOCOL_VERSION);
     s << i << uint64_t(0) << uint64_t(0) << uint64_t(0);
-    s >> utxoSet.m_txId;
-    streamIn << utxoSet;
-    BOOST_CHECK(idx->WriteUTXOSet(utxoSet));
+    s >> subset.m_txId;
+    streamIn << subset;
+    BOOST_CHECK(idx->WriteUTXOSubset(subset));
   }
   BOOST_CHECK(idx->Flush());
 
@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_flush) {
   snapshot::Iterator iter(std::move(idx));
   for (uint64_t i = 0; i < totalMsgs; ++i) {
     BOOST_CHECK(iter.MoveCursorTo(i));
-    streamOut << iter.GetUTXOSet();
+    streamOut << iter.GetUTXOSubset();
   }
 
   BOOST_CHECK_EQUAL(HexStr(streamIn), HexStr(streamOut));
@@ -57,10 +57,10 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   CDataStream stream(SER_DISK, PROTOCOL_VERSION);
   uint64_t totalMsgs = (step * stepsPerFile) * 2 + step;
   for (uint64_t i = 0; i < totalMsgs; ++i) {
-    snapshot::UTXOSet utxoSet;
+    snapshot::UTXOSubset utxoSet;
     stream << utxoSet;
-    BOOST_CHECK(indexer.WriteUTXOSet(utxoSet));
-    BOOST_CHECK_EQUAL(indexer.GetMeta().m_totalUTXOSets, i + 1);
+    BOOST_CHECK(indexer.WriteUTXOSubset(utxoSet));
+    BOOST_CHECK_EQUAL(indexer.GetMeta().m_totalUTXOSubsets, i + 1);
   }
 
   fs::path dir = GetDataDir() / "snapshots" / std::to_string(snapshotId);
@@ -100,12 +100,12 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
     s << uint64_t(0);
     s << uint64_t(0);
     s << uint64_t(0);
-    snapshot::UTXOSet utxoSet;
+    snapshot::UTXOSubset utxoSet;
     s >> utxoSet.m_txId;
 
     streamIn << utxoSet;
-    BOOST_CHECK(indexer->WriteUTXOSet(utxoSet));
-    BOOST_CHECK_EQUAL(indexer->GetMeta().m_totalUTXOSets, i + 1);
+    BOOST_CHECK(indexer->WriteUTXOSubset(utxoSet));
+    BOOST_CHECK_EQUAL(indexer->GetMeta().m_totalUTXOSubsets, i + 1);
     BOOST_CHECK(indexer->Flush());
     indexer = snapshot::Indexer::Open(snapshotId);
     BOOST_CHECK(indexer);
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   CDataStream streamOut(SER_DISK, PROTOCOL_VERSION);
   for (uint64_t i = 0; i < totalMsgs; ++i) {
     BOOST_CHECK(iter.MoveCursorTo(i));
-    auto msg = iter.GetUTXOSet();
+    auto msg = iter.GetUTXOSubset();
     streamOut << msg;
     BOOST_CHECK_EQUAL(msg.m_txId.GetUint64(0), i);
   }
@@ -159,8 +159,8 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
 
   uint64_t totalMsgs = (step * stepsPerFile) * 2 + step;
   for (uint64_t i = 0; i < totalMsgs; ++i) {
-    BOOST_CHECK(indexer.WriteUTXOSet(snapshot::UTXOSet()));
-    BOOST_CHECK_EQUAL(indexer.GetMeta().m_totalUTXOSets, i + 1);
+    BOOST_CHECK(indexer.WriteUTXOSubset(snapshot::UTXOSubset()));
+    BOOST_CHECK_EQUAL(indexer.GetMeta().m_totalUTXOSubsets, i + 1);
   }
   BOOST_CHECK(indexer.Flush());
 
@@ -170,7 +170,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
                     HexStr(snapshotHash));
   BOOST_CHECK_EQUAL(HexStr(openedIdx->GetMeta().m_bestBlockHash),
                     HexStr(bestBlockHash));
-  BOOST_CHECK_EQUAL(openedIdx->GetMeta().m_totalUTXOSets, totalMsgs);
+  BOOST_CHECK_EQUAL(openedIdx->GetMeta().m_totalUTXOSubsets, totalMsgs);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

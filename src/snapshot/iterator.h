@@ -27,24 +27,26 @@ class Iterator {
   uint256 GetSnapshotHash() { return m_indexer->GetMeta().m_snapshotHash; }
   uint32_t GetSnapshotId() { return m_indexer->GetSnapshotId(); }
   uint256 GetBestBlockHash() { return m_indexer->GetMeta().m_bestBlockHash; }
-  uint64_t GetTotalUTXOSets() { return m_indexer->GetMeta().m_totalUTXOSets; }
+  uint64_t GetTotalUTXOSubsets() {
+    return m_indexer->GetMeta().m_totalUTXOSubsets;
+  }
 
-  UTXOSet &GetUTXOSet() { return m_utxoSet; }
-  bool GetUTXOSets(uint64_t utxoSetIndex, uint16_t count,
-                   std::vector<UTXOSet> &utxoSetOut);
+  UTXOSubset &GetUTXOSubset() { return m_utxoSubset; }
+  bool GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
+                      std::vector<UTXOSubset> &subsetsOut);
 
   bool Valid();
   void Next();
-  bool MoveCursorTo(uint64_t utxoSetIndex);
+  bool MoveCursorTo(uint64_t subsetIndex);
 
  private:
   std::unique_ptr<Indexer> m_indexer;
 
-  FILE *m_file;            // current opened file
-  uint64_t m_readTotal;    // keep track of read all UTXOSet
-  uint32_t m_utxoSetLeft;  // unread UTXOSet in the current file
+  FILE *m_file;           // current opened file
+  uint64_t m_readTotal;   // keep track of read all UTXOSubset
+  uint32_t m_subsetLeft;  // unread UTXOSubset in the current file
 
-  UTXOSet m_utxoSet;
+  UTXOSubset m_utxoSubset;
 
   void closeFile();
 };
