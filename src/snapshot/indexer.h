@@ -22,78 +22,81 @@
 #include <version.h>
 
 namespace snapshot {
-// meta.dat
-// | size | type    | field              | description
-// | 32   | uint256 | m_snapshotHash     |
-// | 32   | uint256 | m_bestBlockHash    | at which hash the snapshot was
-// created | 8    | uint64  | m_totalUTXOSubsets | total number of all UTXO
-// subsets | 4    | uint32  | m_step             | number of aggregated UTXO
-// subsets | 4    | uint32  | m_stepsPerFile     | number of aggregations per
-// file
-//
-// index.dat
-// | size | type    | field | description
-// | N    | varInt  | size  | size of the map
-// | 4    | uint32  | key   | stores fileID starts from 0
-// | N    | IdxMap  | value | stores file index
-//
-// IdxMap
-// | size | type    | field | description
-// | N    | varInt  | size  | size of the map
-// | 4    | uint32  | key   | index (0, 1, 2, ...)
-// | 4    | uint32  | value | bytes to read from the beginning of the file
-// |      |         |       | until the end of the index
-//
-// Example (m_step 10, m_stepsPerFile 3)
-//
-// To understand in which file the needed required message index is:
-// fileId = neededIndex / (m_step * m_stepsPerFile)
-// fileId = 24 / (10 * 3) = 0.8 = utxo0.dat
-// fileId = 57 / (10 * 3) = 1.9 = utxo1.dat
-// fileId = 63 / (10 * 3) = 2.1 = utxo2.dat
-//
-// Once the file is detected, we update the neededIndex according to its
-// fileId position:
-// neededIndex = neededIndex - m_step * m_stepsPerFile * fileId
-// neededIndex = 15 - 10 * 3 * 0 = 15
-// neededIndex = 57 - 10 * 3 * 1 = 27
-// neededIndex = 63 - 10 * 3 * 2 = 3
-//
-// IdxMap for one file might look like this:
-// 0: 100 // 100 bytes store first 10 messages
-// 1: 250 // 250 bytes store first 20 messages
-// 2: 350 // 350 bytes store first 21-30 messages
-// note: last index might have less than 10 messages if this IdxMap is for the
-// last file.
-//
-// To read the N message from the file, we first find the closest index.
-// closestIndex = neededIndex / step
-// closestIndex = 15 / 10 = 1
-// closestIndex = 27 / 10 = 2
-//
-// To calculate how many bytes to skip from the file:
-// IdxMap[min(closestIndex - 1, 0)]
-//
-// Every index in IdxMap aggregates m_step messages but the last index of
-// the last file can have less then m_step messages. To know exactly the number
-// we use the following formula:
-// lastFullIndex = max((the last index in the last file - 1), 0)
-// subsetExceptLastFile = m_step * m_stepsPerFile * (number of files - 1)
-// subsetInLastIndex = m_totalUTXOSubsets-subsetExceptLastFile-lastFullIndex
-//
-// utxo???.dat is the file that stores m_step*m_stepsPerFile UTXO subsets
-// UTXOSubset
-// | size | type    | field      | description
-// | 32   | uint256 | txId       | TX ID that contains UTXOs
-// | 4    | uint32  | height     | at which bloch height the TX was created
-// | 1    | bool    | isCoinBase |
-// | N    | varInt  | size       | size of the map
-// | 4    | uint32  | key        | CTxOut index
-// | N    | CTxOut  | value      | contains amount and script
-//
-// utxo???.dat file has an incremental suffix starting from 0.
-// File doesn't contain the length of messages/bytes that needs to be read.
-// This info should be taken from the index
+//! meta.dat
+//! | size | type    | field              | description
+//! | 32   | uint256 | m_snapshotHash     |
+//! | 32   | uint256 | m_bestBlockHash    | at which hash the snapshot was
+//! |      |         |                    | created
+//! | 8    | uint64  | m_totalUTXOSubsets | total number of all UTXO
+//! |      |         |                    | subsets
+//! | 4    | uint32  | m_step             | number of aggregated UTXO
+//! |      |         |                    | subsets
+//! | 4    | uint32  | m_stepsPerFile     | number of aggregations per
+//! file
+//!
+//! index.dat
+//! | size | type    | field | description
+//! | N    | varInt  | size  | size of the map
+//! | 4    | uint32  | key   | stores fileID starts from 0
+//! | N    | IdxMap  | value | stores file index
+//!
+//! IdxMap
+//! | size | type    | field | description
+//! | N    | varInt  | size  | size of the map
+//! | 4    | uint32  | key   | index (0, 1, 2, ...)
+//! | 4    | uint32  | value | bytes to read from the beginning of the file
+//! |      |         |       | until the end of the index
+//!
+//! Example (m_step 10, m_stepsPerFile 3)
+//!
+//! To understand in which file the needed required message index is:
+//! fileId = neededIndex / (m_step * m_stepsPerFile)
+//! fileId = 24 / (10 * 3) = 0.8 = utxo0.dat
+//! fileId = 57 / (10 * 3) = 1.9 = utxo1.dat
+//! fileId = 63 / (10 * 3) = 2.1 = utxo2.dat
+//!
+//! Once the file is detected, we update the neededIndex according to its
+//! fileId position:
+//! neededIndex = neededIndex - m_step * m_stepsPerFile * fileId
+//! neededIndex = 15 - 10 * 3 * 0 = 15
+//! neededIndex = 57 - 10 * 3 * 1 = 27
+//! neededIndex = 63 - 10 * 3 * 2 = 3
+//!
+//! IdxMap for one file might look like this:
+//! 0: 100 // 100 bytes store first 10 messages
+//! 1: 250 // 250 bytes store first 20 messages
+//! 2: 350 // 350 bytes store first 21-30 messages
+//! note: last index might have less than 10 messages if this IdxMap is for the
+//! last file.
+//!
+//! To read the N message from the file, we first find the closest index.
+//! closestIndex = neededIndex / step
+//! closestIndex = 15 / 10 = 1
+//! closestIndex = 27 / 10 = 2
+//!
+//! To calculate how many bytes to skip from the file:
+//! IdxMap[min(closestIndex - 1, 0)]
+//!
+//! Every index in IdxMap aggregates m_step messages but the last index of
+//! the last file can have less then m_step messages. To know exactly the number
+//! we use the following formula:
+//! lastFullIndex = max((the last index in the last file - 1), 0)
+//! subsetExceptLastFile = m_step * m_stepsPerFile * (number of files - 1)
+//! subsetInLastIndex = m_totalUTXOSubsets-subsetExceptLastFile-lastFullIndex
+//!
+//! utxo???.dat is the file that stores m_step*m_stepsPerFile UTXO subsets
+//! UTXOSubset
+//! | size | type    | field      | description
+//! | 32   | uint256 | txId       | TX ID that contains UTXOs
+//! | 4    | uint32  | height     | at which bloch height the TX was created
+//! | 1    | bool    | isCoinBase |
+//! | N    | varInt  | size       | size of the map
+//! | 4    | uint32  | key        | CTxOut index
+//! | N    | CTxOut  | value      | contains amount and script
+//!
+//! utxo???.dat file has an incremental suffix starting from 0.
+//! File doesn't contain the length of messages/bytes that needs to be read.
+//! This info should be taken from the index
 
 constexpr uint32_t DEFAULT_INDEX_STEP = 1000;
 constexpr uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
