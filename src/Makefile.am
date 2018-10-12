@@ -158,7 +158,7 @@ UNITE_CORE_H = \
   reverse_iterator.h \
   reverselock.h \
   rpc/blockchain.h \
-  rpc/client.h \
+  rpc/parameter_conversion.h \
   rpc/esperanza.h \
   rpc/mining.h \
   rpc/proposer.h \
@@ -267,7 +267,6 @@ libunite_server_a_SOURCES = \
   pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
-  rpc/client.cpp \
   rpc/esperanza.cpp \
   rpc/mining.cpp \
   rpc/misc.cpp \
@@ -439,6 +438,7 @@ libunite_util_a_SOURCES = \
   compat/strnlen.cpp \
   fs.cpp \
   random.cpp \
+  rpc/parameter_conversion.cpp \
   rpc/protocol.cpp \
   rpc/util.cpp \
   support/cleanse.cpp \
@@ -459,7 +459,6 @@ endif
 libunite_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_cli_a_SOURCES = \
-  rpc/client.cpp \
   $(UNITE_CORE_H)
 
 nodist_libunite_util_a_SOURCES = $(srcdir)/obj/build.h

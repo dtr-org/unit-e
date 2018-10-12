@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <rpc/server.h>
-#include <rpc/client.h>
+#include <rpc/parameter_conversion.h>
 
 #include <base58.h>
 #include <core_io.h>

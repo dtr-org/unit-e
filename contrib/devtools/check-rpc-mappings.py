@@ -22,7 +22,7 @@ SOURCES = [
     "src/wallet/rpcwalletext.cpp",
 ]
 # Source file (relative to root) containing conversion mapping
-SOURCE_CLIENT = 'src/rpc/client.cpp'
+SOURCE_CLIENT = 'src/rpc/parameter_conversion.cpp'
 # Argument names that should be ignored in consistency checks
 IGNORE_DUMMY_ARGS = {'dummy', 'arg0', 'arg1', 'arg2', 'arg3', 'arg4', 'arg5', 'arg6', 'arg7', 'arg8', 'arg9'}
 

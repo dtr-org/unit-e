@@ -1,4 +1,4 @@
-#include <rpc/client.h>
+#include <rpc/parameter_conversion.h>
 #include <rpc/server.h>
 #include <test/rpc_test_utils.h>
 

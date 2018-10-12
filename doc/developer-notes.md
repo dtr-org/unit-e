@@ -665,7 +665,8 @@ A few guidelines for introducing and reviewing new RPC interfaces:
   - *Rationale*: Troubleshooting a node in safe mode is difficult if half the
     RPCs don't work.
 
-- Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams` in `rpc/client.cpp`.
+- Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams`
+  in `rpc/parameter_conversion.cpp`.
 
   - *Rationale*: `unite-cli` and the GUI debug console use this table to determine how to
     convert a plaintext command line to JSON. If the types don't match, the method can be unusable

@@ -15,7 +15,7 @@
 #include <chainparams.h>
 #include <netbase.h>
 #include <rpc/server.h>
-#include <rpc/client.h>
+#include <rpc/parameter_conversion.h>
 #include <util.h>
 
 #include <openssl/crypto.h>
