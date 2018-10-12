@@ -78,7 +78,8 @@ bool ProcessGetSnapshot(CNode *node, CDataStream &data,
   }
 
   LogPrint(BCLog::NET, "send snapshot: peer=%i index=%i count=%i\n",
-           node->GetId(), snapshot.m_utxoSubsetIndex, snapshot.m_utxoSubsets.size());
+           node->GetId(), snapshot.m_utxoSubsetIndex,
+           snapshot.m_utxoSubsets.size());
 
   g_connman->PushMessage(node, msgMaker.Make(NetMsgType::SNAPSHOT, snapshot));
   return true;
@@ -152,9 +153,11 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   Snapshot msg;
   data >> msg;
   LogPrint(BCLog::NET, "snapshot: received index=%i len=%i total=%i\n",
-           msg.m_utxoSubsetIndex, msg.m_utxoSubsets.size(), msg.m_totalUTXOSubsets);
+           msg.m_utxoSubsetIndex, msg.m_utxoSubsets.size(),
+           msg.m_totalUTXOSubsets);
 
-  if (msg.m_utxoSubsetIndex + msg.m_utxoSubsets.size() > msg.m_totalUTXOSubsets) {
+  if (msg.m_utxoSubsetIndex + msg.m_utxoSubsets.size() >
+      msg.m_totalUTXOSubsets) {
     LogPrint(BCLog::NET, "snapshot: invalid message index\n");
     return false;
   }

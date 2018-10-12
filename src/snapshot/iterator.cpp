@@ -50,8 +50,7 @@ void Iterator::Next() {
   if (m_subsetLeft == 0) {
     closeFile();
 
-    m_file =
-        m_indexer->GetClosestIdx(m_readTotal, m_subsetLeft, m_readTotal);
+    m_file = m_indexer->GetClosestIdx(m_readTotal, m_subsetLeft, m_readTotal);
     if (!m_file) {
       return;
     }
@@ -79,8 +78,7 @@ bool Iterator::MoveCursorTo(uint64_t subsetIndex) {
 
   closeFile();
 
-  m_file =
-      m_indexer->GetClosestIdx(subsetIndex, m_subsetLeft, m_readTotal);
+  m_file = m_indexer->GetClosestIdx(subsetIndex, m_subsetLeft, m_readTotal);
   if (!m_file) {
     return false;
   }

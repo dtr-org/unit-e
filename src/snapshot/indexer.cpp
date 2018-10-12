@@ -149,7 +149,8 @@ FILE *Indexer::GetClosestIdx(uint64_t subsetIndex, uint32_t &subsetLeftOut,
 
   if (m_dirIdx.find(fileId + 1) == m_dirIdx.end()) {
     // last file can have less messages than m_step * stepPerFile
-    auto msgInFile = static_cast<uint32_t>(m_meta.m_totalUTXOSubsets - prevCount);
+    auto msgInFile =
+        static_cast<uint32_t>(m_meta.m_totalUTXOSubsets - prevCount);
     subsetLeftOut = msgInFile - index * m_meta.m_step;
   } else {
     subsetLeftOut =
