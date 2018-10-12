@@ -654,19 +654,20 @@ static UniValue CallRPC(const JSONRPCRequest &request)
     }
 }
 
-UniValue runstrings(const JSONRPCRequest &request)
+UniValue runstringcommand(const JSONRPCRequest &request)
 {
     if (request.params.size() < 2) {
         throw std::runtime_error(
-            "runstrings \"method\" \"wallet\" (\"arg1\" \"arg2\" ...)\n"
-            "\nRun method with all inputs as strings.\n"
+            "runstringcommand \"method\" \"wallet\" (\"arg1\" \"arg2\" ...)\n"
+            "\nRun method with all arguments as strings. It converts arguments to JSON if necessary.\n"
+            "The purpose of this method is to aid implementation of RPC consoles in desktop clients.\n"
         );
     }
 
     std::string method = request.params[0].get_str();
     std::string wallet = request.params[1].get_str();
 
-    if (method == "runstrings") {
+    if (method == "runstringcommand") {
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid method.");
     }
 
@@ -723,7 +724,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "echo",                   &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "getinfo",                &getinfo_deprecated,     {}},
-    { "hidden",             "runstrings",             &runstrings,             {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
+    { "hidden",             "runstringcommand",       &runstringcommand,       {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 };
 
 void RegisterMiscRPCCommands(CRPCTable &t)
