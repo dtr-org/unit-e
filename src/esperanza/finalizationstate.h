@@ -215,15 +215,7 @@ class FinalizationState {
   Checkpoint &GetCheckpoint(uint32_t epoch);
   uint64_t GetDynastyDelta(uint32_t dynasty);
 
-  // Finalization params
-  const uint32_t EPOCH_LENGTH;
-  const CAmount MIN_DEPOSIT_SIZE;
-  const uint32_t DYNASTY_LOGOUT_DELAY;
-  const uint32_t WITHDRAWAL_EPOCH_DELAY;
-  const int64_t SLASH_FRACTION_MULTIPLIER;
-  const int64_t BOUNTY_FRACTION_DENOMINATOR;
-  const ufp64::ufp64_t BASE_INTEREST_FACTOR;
-  const ufp64::ufp64_t BASE_PENALTY_FACTOR;
+  const FinalizationParams &settings;
 };
 
 }  // namespace esperanza

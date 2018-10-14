@@ -49,14 +49,7 @@ FinalizationState::FinalizationState(
       m_lastVoterRescale(0),
       m_lastNonVoterRescale(0),
       m_rewardFactor(0),
-      EPOCH_LENGTH(params.m_epochLength),
-      MIN_DEPOSIT_SIZE(params.m_minDepositSize),
-      DYNASTY_LOGOUT_DELAY(params.m_dynastyLogoutDelay),
-      WITHDRAWAL_EPOCH_DELAY(params.m_withdrawalEpochDelay),
-      SLASH_FRACTION_MULTIPLIER(params.m_slashFractionMultiplier),
-      BOUNTY_FRACTION_DENOMINATOR(params.m_bountyFractionDenominator),
-      BASE_INTEREST_FACTOR(params.m_baseInterestFactor),
-      BASE_PENALTY_FACTOR(params.m_basePenaltyFactor) {
+      settings(params){
 
   m_depositScaleFactor[0] = BASE_DEPOSIT_SCALE_FACTOR;
   m_totalSlashed[0] = 0;
@@ -75,8 +68,7 @@ FinalizationState::FinalizationState(
  */
 Result FinalizationState::InitializeEpoch(int blockHeight) {
   LOCK(cs_esperanza);
-
-  auto newEpoch = static_cast<uint32_t>(blockHeight) / EPOCH_LENGTH;
+  auto newEpoch = static_cast<uint32_t>(blockHeight) / settings.m_epochLength;
 
   if (newEpoch != m_currentEpoch + 1) {
     return fail(Result::INIT_WRONG_EPOCH,
@@ -109,11 +101,11 @@ Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   if (DepositExists()) {
     ufp64::ufp64_t interestBase =
-        ufp64::div(BASE_INTEREST_FACTOR, GetSqrtOfTotalDeposits());
+      ufp64::div(settings.m_baseInterestFactor, GetSqrtOfTotalDeposits());
 
     m_rewardFactor = ufp64::add(
         interestBase,
-        ufp64::mul_by_uint(BASE_PENALTY_FACTOR, GetEpochsSinceFinalization()));
+        ufp64::mul_by_uint(settings.m_basePenaltyFactor, GetEpochsSinceFinalization()));
 
     if (m_rewardFactor <= 0) {
       return fail(Result::INIT_INVALID_REWARD, "Invalid reward factor %d",
@@ -396,10 +388,10 @@ Result FinalizationState::ValidateDeposit(const uint256 &validatorIndex,
                 __func__, validatorIndex.GetHex());
   }
 
-  if (depositValue < MIN_DEPOSIT_SIZE) {
+  if (depositValue < settings.m_minDepositSize) {
     return fail(Result::DEPOSIT_INSUFFICIENT,
                 "%s: The deposit value must be %d > %d.\n", __func__,
-                depositValue, MIN_DEPOSIT_SIZE);
+                depositValue, settings.m_minDepositSize);
   }
 
   return success();
@@ -538,7 +530,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 }
 
 uint32_t FinalizationState::GetEndDynasty() const {
-  return m_currentDynasty + DYNASTY_LOGOUT_DELAY;
+  return m_currentDynasty + settings.m_dynastyLogoutDelay;
 }
 
 /**
@@ -645,7 +637,7 @@ Result FinalizationState::CalculateWithdrawAmount(
   }
 
   uint32_t endEpoch = m_dynastyStartEpoch.find(endDynasty + 1)->second;
-  uint32_t withdrawalEpoch = endEpoch + WITHDRAWAL_EPOCH_DELAY;
+  uint32_t withdrawalEpoch = endEpoch + settings.m_withdrawalEpochDelay;
 
   if (m_currentEpoch < withdrawalEpoch) {
     return fail(Result::WITHDRAW_TOO_EARLY,
@@ -660,17 +652,17 @@ Result FinalizationState::CalculateWithdrawAmount(
 
   } else {
     uint32_t baseEpoch;
-    if (2 * WITHDRAWAL_EPOCH_DELAY > withdrawalEpoch) {
+    if (2 * settings.m_withdrawalEpochDelay > withdrawalEpoch) {
       baseEpoch = 0;
     } else {
-      baseEpoch = withdrawalEpoch - 2 * WITHDRAWAL_EPOCH_DELAY;
+      baseEpoch = withdrawalEpoch - 2 * settings.m_withdrawalEpochDelay;
     }
 
     uint64_t recentlySlashed =
         GetTotalSlashed(withdrawalEpoch) - GetTotalSlashed(baseEpoch);
 
     ufp64::ufp64_t fractionToSlash =
-        ufp64::div_2uint(recentlySlashed * SLASH_FRACTION_MULTIPLIER,
+        ufp64::div_2uint(recentlySlashed * settings.m_slashFractionMultiplier,
                          validator.m_depositsAtLogout);
 
     uint64_t depositSize = ufp64::mul_to_uint(
@@ -786,7 +778,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
 
   // Slash the offending validator, and give a 4% "finder's fee"
   CAmount validatorDeposit = GetDepositSize(validatorIndex);
-  CAmount slashingBounty = validatorDeposit / BOUNTY_FRACTION_DENOMINATOR;
+  CAmount slashingBounty = validatorDeposit / settings.m_bountyFractionDenominator;
 
   m_totalSlashed[m_currentEpoch] =
       GetTotalSlashed(m_currentEpoch) + validatorDeposit;
@@ -851,7 +843,7 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
 uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
   FinalizationState *state = GetState(blockIndex);
 
-  return static_cast<uint32_t>(blockIndex->nHeight) / state->EPOCH_LENGTH;
+  return static_cast<uint32_t>(blockIndex->nHeight) / state->settings.m_epochLength;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -875,7 +867,7 @@ const Validator *FinalizationState::GetValidator(
 }
 
 bool FinalizationState::ValidateDepositAmount(CAmount amount) {
-  return amount >= GetState()->MIN_DEPOSIT_SIZE;
+  return amount >= GetState()->settings.m_minDepositSize;
 }
 
 void FinalizationState::Init(const esperanza::FinalizationParams &params) {
@@ -912,7 +904,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   }
 
   // This is the first block of a new epoch.
-  if (blockIndex.nHeight % state->EPOCH_LENGTH == 0) {
+  if (blockIndex.nHeight % state->settings.m_epochLength == 0) {
     state->InitializeEpoch(blockIndex.nHeight);
   }
 
@@ -961,7 +953,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
   // This is the last block for the current epoch and it represent it, so we
   // update the targetHash.
-  if (blockIndex.nHeight % state->EPOCH_LENGTH == state->EPOCH_LENGTH - 1) {
+  if (blockIndex.nHeight % state->settings.m_epochLength == state->settings.m_epochLength - 1) {
     LogPrint(
         BCLog::FINALIZATION,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",

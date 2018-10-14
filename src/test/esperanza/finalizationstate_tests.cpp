@@ -36,11 +36,11 @@ class FinalizationStateSpy : public FinalizationState {
   std::map<uint32_t, Checkpoint>& Checkpoints() { return const_cast<std::map<uint32_t, Checkpoint> &>(m_checkpoints); }
   uint256* RecommendedTargetHash() { return &m_recommendedTargetHash; }
 
-  int64_t EPOCH_LENGTH() const { return FinalizationState::EPOCH_LENGTH; }
-  CAmount MIN_DEPOSIT_SIZE() const { return FinalizationState::MIN_DEPOSIT_SIZE; }
-  int64_t DYNASTY_LOGOUT_DELAY() const { return FinalizationState::DYNASTY_LOGOUT_DELAY; }
-  int64_t WITHDRAWAL_EPOCH_DELAY() const { return FinalizationState::WITHDRAWAL_EPOCH_DELAY; }
-  int64_t BOUNTY_FRACTION_DENOMINATOR() const { return FinalizationState::BOUNTY_FRACTION_DENOMINATOR; }
+  int64_t EPOCH_LENGTH() const { return settings.m_epochLength; }
+  CAmount MIN_DEPOSIT_SIZE() const { return settings.m_minDepositSize; }
+  int64_t DYNASTY_LOGOUT_DELAY() const { return settings.m_dynastyLogoutDelay; }
+  int64_t WITHDRAWAL_EPOCH_DELAY() const { return settings.m_withdrawalEpochDelay; }
+  int64_t BOUNTY_FRACTION_DENOMINATOR() const { return settings.m_bountyFractionDenominator; }
 
   using FinalizationState::GetCurrentDynasty;
   using FinalizationState::GetDepositSize;
