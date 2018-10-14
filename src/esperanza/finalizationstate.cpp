@@ -36,9 +36,9 @@ inline Result fail(Result error, const char *fmt, const Args &... args) {
 
 Result success() { return Result::SUCCESS; }
 
-FinalizationState::FinalizationState(const esperanza::FinalizationParams &params)
-  : FinalizationStateData(),
-    m_settings(params) {
+FinalizationState::FinalizationState(
+    const esperanza::FinalizationParams &params)
+    : FinalizationStateData(), m_settings(params) {
   m_depositScaleFactor[0] = BASE_DEPOSIT_SCALE_FACTOR;
   m_totalSlashed[0] = 0;
   m_dynastyDeltas[0] = 0;
@@ -50,8 +50,7 @@ FinalizationState::FinalizationState(const esperanza::FinalizationParams &params
 }
 
 FinalizationState::FinalizationState(const FinalizationState &parent)
-  : FinalizationStateData(parent),
-    m_settings(parent.m_settings) {}
+    : FinalizationStateData(parent), m_settings(parent.m_settings) {}
 
 /**
  * If the block height passed is the first of a new epoch, then we prepare the
@@ -93,11 +92,11 @@ Result FinalizationState::InitializeEpoch(int blockHeight) {
 
   if (DepositExists()) {
     ufp64::ufp64_t interestBase =
-      ufp64::div(m_settings.m_baseInterestFactor, GetSqrtOfTotalDeposits());
+        ufp64::div(m_settings.m_baseInterestFactor, GetSqrtOfTotalDeposits());
 
     m_rewardFactor = ufp64::add(
-        interestBase,
-        ufp64::mul_by_uint(m_settings.m_basePenaltyFactor, GetEpochsSinceFinalization()));
+        interestBase, ufp64::mul_by_uint(m_settings.m_basePenaltyFactor,
+                                         GetEpochsSinceFinalization()));
 
     if (m_rewardFactor <= 0) {
       return fail(Result::INIT_INVALID_REWARD, "Invalid reward factor %d",
@@ -770,7 +769,8 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
 
   // Slash the offending validator, and give a 4% "finder's fee"
   CAmount validatorDeposit = GetDepositSize(validatorIndex);
-  CAmount slashingBounty = validatorDeposit / m_settings.m_bountyFractionDenominator;
+  CAmount slashingBounty =
+      validatorDeposit / m_settings.m_bountyFractionDenominator;
 
   m_totalSlashed[m_currentEpoch] =
       GetTotalSlashed(m_currentEpoch) + validatorDeposit;
@@ -835,7 +835,8 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
 uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
   FinalizationState *state = GetState(blockIndex);
 
-  return static_cast<uint32_t>(blockIndex->nHeight) / state->m_settings.m_epochLength;
+  return static_cast<uint32_t>(blockIndex->nHeight) /
+         state->m_settings.m_epochLength;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -945,7 +946,8 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
   // This is the last block for the current epoch and it represent it, so we
   // update the targetHash.
-  if (blockIndex.nHeight % state->m_settings.m_epochLength == state->m_settings.m_epochLength - 1) {
+  if (blockIndex.nHeight % state->m_settings.m_epochLength ==
+      state->m_settings.m_epochLength - 1) {
     LogPrint(
         BCLog::FINALIZATION,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
