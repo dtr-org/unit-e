@@ -190,6 +190,8 @@ class FinalizationState : public FinalizationStateData {
 
   Vote GetRecommendedVote(const uint256 &validatorIndex) const;
 
+  uint256 GetCheckpointHash(uint32_t epoch) const;
+
   std::vector<Validator> GetValidators() const;
   const Validator *GetValidator(const uint256 &validatorIndex) const;
 
@@ -228,6 +230,13 @@ class FinalizationState : public FinalizationStateData {
   uint64_t GetDynastyDelta(uint32_t dynasty);
 
   mutable CCriticalSection cs_esperanza;
+
+  struct Storage {
+    std::map<uint256, FinalizationState> states;
+    FinalizationState *FindOrCreate(const CBlockIndex *index);
+    CCriticalSection cs_storage;
+  };
+  static Storage m_storage;
 
  protected:
   const FinalizationParams &m_settings;

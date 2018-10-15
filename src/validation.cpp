@@ -65,6 +65,13 @@ namespace {
     struct CBlockIndexWorkComparator
     {
         bool operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
+            // Sort by bigger epoch. Don't care about common justified checkpoint as it's
+            // being checked on ProcessNewBlock()
+            auto sa = esperanza::FinalizationState::GetState(pa);
+            auto sb = esperanza::FinalizationState::GetState(pb);
+            if (sa->GetLastJustifiedEpoch() > sb->GetLastJustifiedEpoch()) return false;
+            if (sa->GetLastJustifiedEpoch() < sb->GetLastJustifiedEpoch()) return true;
+
             // First sort by most total work, ...
             if (pa->nChainWork > pb->nChainWork) return false;
             if (pa->nChainWork < pb->nChainWork) return true;
@@ -2506,8 +2513,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
-    esperanza::FinalizationState::ProcessNewTip(*pindexNew, blockConnecting);
-
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED)) {
       return false;
@@ -3662,13 +3667,23 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     return true;
 }
 
+static bool IsForkedAfter(const uint256 &checkpoint, const CBlockIndex *pindex)
+{
+    for (auto p = pindex; p != nullptr; p = p->pprev) { // UNIT-E TODO apply some limit maybe?
+        if (p->GetBlockHash() == checkpoint) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock)
 {
 
     AssertLockNotHeld(cs_main);
+    CBlockIndex *pindex = nullptr;
 
     {
-        CBlockIndex *pindex = nullptr;
         if (fNewBlock) *fNewBlock = false;
         CValidationState state;
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
@@ -3688,6 +3703,26 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
     }
 
     NotifyHeaderTip();
+
+    assert(pindex != nullptr);
+    esperanza::FinalizationState::ProcessNewTip(*pindex, *pblock);
+
+    auto c = esperanza::FinalizationState::GetState(chainActive.Tip()); // current
+    auto n = esperanza::FinalizationState::GetState(pindex); // new
+
+    if (n->GetLastJustifiedEpoch() < c->GetLastJustifiedEpoch()) {
+        // UNIT-E TODO delete from the disk? If not, skip this condition.
+        LogPrintf("Reject outdated justified epoch: %d %d\n", n->GetLastJustifiedEpoch(), c->GetLastJustifiedEpoch());
+        return true;
+    }
+
+    // Check whether new block's chain has forked after current's chain last justified block
+    uint256 checkpoint = c->GetCheckpointHash(c->GetLastJustifiedEpoch());
+    if (!checkpoint.IsNull() && !IsForkedAfter(checkpoint, pindex)) {
+        // UNIT-E TODO delete from the disk?
+        LogPrintf("Reject as not found\n");
+        return true;
+    }
 
     CValidationState state; // Only used to report errors, not invalidity - ignore it
     if (!g_chainstate.ActivateBestChain(state, chainparams, pblock))

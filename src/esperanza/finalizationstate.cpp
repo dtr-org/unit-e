@@ -26,6 +26,8 @@ static std::shared_ptr<FinalizationState> esperanzaState;
 
 static CCriticalSection cs_init_lock;
 
+FinalizationState::Storage FinalizationState::m_storage;
+
 const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 
 template <typename... Args>
@@ -253,6 +255,11 @@ Vote FinalizationState::GetRecommendedVote(
            m_expectedSrcEpoch);
 
   return vote;
+}
+
+uint256 FinalizationState::GetCheckpointHash(uint32_t epoch) const {
+  auto it = m_epochToCheckpointHash.find(epoch);
+  return it == m_epochToCheckpointHash.end() ? uint256() : it->second;
 }
 
 bool FinalizationState::IsInDynasty(const Validator &validator,
@@ -890,16 +897,27 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
-/**
- * This method should return the right State instance that represents
- * the block before the given block. This method is gonna be used mostly
- * @param block
- * @return the state for the chain tip passed
- */
+FinalizationState *FinalizationState::Storage::FindOrCreate(
+    const CBlockIndex *index) {
+  LOCK(cs_storage);
+  if (index == nullptr || index->pprev == nullptr ||
+      index->phashBlock == nullptr) {
+    return esperanzaState.get();
+  }
+  auto const hash = index->GetBlockHash();
+  auto it = states.find(hash);
+  if (it == states.end()) {
+    it = states.emplace(hash, FinalizationState(*FindOrCreate(index->pprev)))
+             .first;
+  }
+  return &it->second;
+}
+
 FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
-  // UNIT-E: Replace the single instance with a map<block,state> to allow for
-  // reorganizations.
-  return esperanzaState.get();
+  if (blockIndex == nullptr) {
+    blockIndex = chainActive.Tip();
+  }
+  return m_storage.FindOrCreate(blockIndex);
 }
 
 uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
