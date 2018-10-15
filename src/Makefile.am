@@ -172,6 +172,7 @@ UNITE_CORE_H = \
   script/sign.h \
   script/standard.h \
   script/ismine.h \
+  snapshot/chainstate_iterator.h \
   snapshot/creator.h \
   snapshot/indexer.h \
   snapshot/initialization.h \
@@ -276,6 +277,7 @@ libunite_server_a_SOURCES = \
   rpc/server.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
+  snapshot/chainstate_iterator.cpp \
   snapshot/creator.cpp \
   snapshot/indexer.cpp \
   snapshot/initialization.cpp \
