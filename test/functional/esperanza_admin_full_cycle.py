@@ -3,50 +3,87 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.util import *
-from test_framework.test_framework import *
-from test_framework.admin import *
-from esperanza_deposit_administration import assert_tx_rejected
-from esperanza_vote_blacklisting import prev_n_blocks_have_txs_from
+from test_framework.util import json, connect_nodes_bi, assert_equal, \
+    assert_raises_rpc_error
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.admin import Admin
+
+MIN_DEPOSIT_SIZE = 1000
+WITHDRAWAL_EPOCH_DELAY = 5
+DYNASTY_LOGOUT_DELAY = 2
+EPOCH_LENGTH = 10
 
 
-# Checks whole administration workflow, from whitelisgin/blacklisting to life
+def block_contains_txs_from(block, address):
+    for tx in block["tx"]:
+        for out in tx["vout"]:
+            script_pub_key = out["scriptPubKey"]
+            addresses = script_pub_key.get("addresses", None)
+            if addresses is None:
+                continue
+
+            if address in addresses:
+                return True
+
+    return False
+
+
+def prev_n_blocks_have_txs_from(node, validator_address, n):
+    height = node.getblockcount()
+    for i in range(0, n):
+        block_hash = node.getblockhash(height - i)
+        block = node.getblock(block_hash, 2)
+        if block_contains_txs_from(block, validator_address):
+            return True
+
+    return False
+
+
+# Checks whole administration workflow, from whitelisting/blacklisting to life
 # after END_PERMISSIONING
 class AdminFullCycle(UnitETestFramework):
     class ValidatorWrapper:
-        def __init__(self, framework, node):
+        def __init__(self, framework, node, n_utxos_needed):
             super().__init__()
             self.node = node
             self.address = node.getnewaddress("", "legacy")
             self.pubkey = node.validateaddress(self.address)["pubkey"]
             self.framework = framework
 
-            # split funds into several UTXOs
-            exchange_tx = node.sendtoaddress(self.address, 7000)
-            framework.wait_for_transaction(exchange_tx, timeout=10)
-            exchange_tx = node.sendtoaddress(self.address, 4000)
-            framework.wait_for_transaction(exchange_tx, timeout=10)
+            # Workaround for a bug: When validator tx is rejected - funds it
+            # used are locked for some time. Split the only 10k UTXO into
+            # several by sending to self
+            max_utxo = node.getbalance()
+            for i in range(n_utxos_needed - 1):
+                max_utxo -= (MIN_DEPOSIT_SIZE + 1)
+                exchange_tx = node.sendtoaddress(self.address, max_utxo)
+                framework.wait_for_transaction(exchange_tx, timeout=10)
 
         def deposit_reject(self):
-            tx = self.node.deposit(self.address, 2000)["transactionid"]
-            assert_tx_rejected(self.node, tx)
+            assert_raises_rpc_error(None, "Cannot create deposit",
+                                    self.node.deposit, self.address,
+                                    MIN_DEPOSIT_SIZE)
 
         def deposit_ok(self):
-            tx = self.node.deposit(self.address, 2000)["transactionid"]
+            tx = self.node.deposit(self.address, MIN_DEPOSIT_SIZE)
             self.framework.wait_for_transaction(tx, timeout=10)
 
         def logout_ok(self):
-            tx = self.node.logout()["transactionid"]
+            tx = self.node.logout()
+            self.framework.wait_for_transaction(tx, timeout=10)
+
+        def withdraw_ok(self):
+            tx = self.node.withdraw(self.address)
             self.framework.wait_for_transaction(tx, timeout=10)
 
     def set_test_params(self):
         self.num_nodes = 4
 
         params_data = {
-            'epochLength': 10,
-            'minDepositSize': 1500,
-            'dynastyLogoutDelay': 2,
-            'withdrawalEpochDelay': 12
+            'epochLength': EPOCH_LENGTH,
+            'minDepositSize': MIN_DEPOSIT_SIZE,
+            'dynastyLogoutDelay': DYNASTY_LOGOUT_DELAY,
+            'withdrawalEpochDelay': WITHDRAWAL_EPOCH_DELAY
         }
         json_params = json.dumps(params_data)
 
@@ -63,9 +100,22 @@ class AdminFullCycle(UnitETestFramework):
         ]
         self.setup_clean_chain = True
 
-    def run_test(self):
-        proposer = self.nodes[0]
+    def setup_network(self):
+        super().setup_network()
 
+        # Fully connected graph works faster
+        for i in range(self.num_nodes):
+            for j in range(i + 1, self.num_nodes):
+                connect_nodes_bi(self.nodes, i, j)
+
+    def sync_generate(self, node, n_blocks):
+        # When it comes to checking votes - it is important to always sync
+        # all - this guarantees that votes are not outdated/stuck anywhere
+        for _ in range(n_blocks):
+            node.generate(1)
+            self.sync_all()
+
+    def run_test(self):
         self.nodes[0].importmasterkey(
             'swap fog boost power mountain pair gallery crush price fiscal '
             'thing supreme chimney drastic grab acquire any cube cereal '
@@ -87,69 +137,73 @@ class AdminFullCycle(UnitETestFramework):
             assert_equal(10000, node.getbalance())
 
         # Waiting for maturity
-        proposer.generate(COINBASE_MATURITY)
+        self.nodes[0].generate(COINBASE_MATURITY)
         self.sync_all()
 
         # introduce actors
         proposer = self.nodes[0]
         admin = Admin.authorize(self, proposer)
-        validator1 = AdminFullCycle.ValidatorWrapper(self, self.nodes[1])
-        validator2 = AdminFullCycle.ValidatorWrapper(self, self.nodes[2])
-        validator3 = AdminFullCycle.ValidatorWrapper(self, self.nodes[3])
+        validator1 = AdminFullCycle.ValidatorWrapper(self, self.nodes[1], 3)
+        validator2 = AdminFullCycle.ValidatorWrapper(self, self.nodes[2], 3)
+        validator3 = AdminFullCycle.ValidatorWrapper(self, self.nodes[3], 1)
 
-        # No validators are whitelisted, v1, v2 will fail, v3 abstains
+        # No validators are whitelisted any deposits should fail
         validator1.deposit_reject()
         validator2.deposit_reject()
 
-        # Whitelist v1, v1 succeeds, v2 fails, v3 abstains
+        # Whitelist v1
         admin.whitelist([validator1.pubkey])
         validator1.deposit_ok()
-        validator2.deposit_reject()
+        validator2.deposit_reject()  # ensure only v1 is whitelisted
 
-        n_blocks = 40
-        proposer.generate(n_blocks)
-        assert (
-            prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks))
-        assert (not prev_n_blocks_have_txs_from(proposer, validator2.address,
-                                                n_blocks))
-        assert (not prev_n_blocks_have_txs_from(proposer, validator3.address,
-                                                n_blocks))
+        # Whitelist v2
+        admin.whitelist([validator2.pubkey])
+        validator2.deposit_ok()
 
-        # Blacklist v1, no votes allowed anymore
+        # Whitelist v3
+        admin.whitelist([validator3.pubkey])
+        validator3.deposit_ok()
+
+        # Generate some blocks and check that validators are voting
+        n_blocks = 2 * EPOCH_LENGTH
+        self.sync_generate(proposer, n_blocks)
+
+        assert (prev_n_blocks_have_txs_from(proposer, validator1.address,
+                                            n_blocks))
+        assert (prev_n_blocks_have_txs_from(proposer, validator2.address,
+                                            n_blocks))
+        assert (prev_n_blocks_have_txs_from(proposer, validator3.address,
+                                            n_blocks))
+
+        # Blacklist v1
         admin.blacklist([validator1.pubkey])
-
-        # print("attach")
-        # input()
-        # print("continue")
-        proposer.generate(n_blocks)
-        self.sync_all()
+        self.sync_generate(proposer, n_blocks)
 
         assert (not prev_n_blocks_have_txs_from(proposer, validator1.address,
                                                 n_blocks))
-        assert (not prev_n_blocks_have_txs_from(proposer, validator2.address,
-                                                n_blocks))
-        assert (not prev_n_blocks_have_txs_from(proposer, validator3.address,
-                                                n_blocks))
+        assert (prev_n_blocks_have_txs_from(proposer, validator2.address,
+                                            n_blocks))
+        assert (prev_n_blocks_have_txs_from(proposer, validator3.address,
+                                            n_blocks))
 
         # v1 should be able to logout even if blacklisted
-        # UNIT-E: TODO: there is a bug preventing logout:
-        # When one of the blacklisted votes is committed - it is first put into
-        # the wallet and marked as spent, but only then admin validation happens
-        # So at the moment of logout input is thought as spent, but actually not
-        # validator1.logout_ok()
+        validator1.logout_ok()
 
-        # permissioning ended, all validators should be able to deposit
+        self.sync_generate(proposer, DYNASTY_LOGOUT_DELAY * EPOCH_LENGTH)
+        self.sync_generate(proposer, WITHDRAWAL_EPOCH_DELAY * EPOCH_LENGTH)
+        self.sync_generate(proposer, EPOCH_LENGTH)
+
+        validator1.withdraw_ok()
+
+        # End permissioning, v1 should be able to deposit again, v2 and v3
+        # should continue voting
         admin.end_permissioning()
 
-        # UNIT-E: TODO: add validator1 here after withdraw and bug above are
-        # fixed
-        validator2.deposit_ok()
-        validator3.deposit_ok()
+        # TODO:
+        # validator1.deposit_ok()
+        self.sync_generate(proposer, n_blocks)
 
-        proposer.generate(n_blocks)
-        self.sync_all()
-
-        # UNIT-E: TODO: the bug!
+        # TODO:
         # assert (
         #     prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks))
         assert (
