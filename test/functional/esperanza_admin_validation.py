@@ -182,7 +182,7 @@ class AdminValidation(UnitETestFramework):
         self.rejects([end_permissioning_cmd, "1234"],
                      admin_address,
                      "b'admin-invalid-command'")
-        
+
         # This is to ensure end_permissioning was not applied
         self.admin.generate(1)
 
