@@ -280,6 +280,7 @@ libunite_server_a_SOURCES = \
   snapshot/indexer.cpp \
   snapshot/initialization.cpp \
   snapshot/iterator.cpp \
+  snapshot/messages.cpp \
   snapshot/p2p_processing.cpp \
   snapshot/state.cpp \
   timedata.cpp \

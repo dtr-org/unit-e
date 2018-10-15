@@ -5,10 +5,13 @@
 #ifndef UNITE_SNAPSHOT_MESSAGES_H
 #define UNITE_SNAPSHOT_MESSAGES_H
 
+#include <vector>
+
+#include <coins.h>
 #include <primitives/transaction.h>
+#include <secp256k1_multiset.h>
 #include <serialize.h>
 #include <uint256.h>
-#include <coins.h>
 
 namespace snapshot {
 
@@ -135,6 +138,34 @@ struct UTXO {
     READWRITE(m_txOutIndex);
     READWRITE(m_txOut);
   }
+};
+
+class SnapshotHash {
+ public:
+  SnapshotHash();
+  SnapshotHash(const SnapshotHash &) = delete;
+  SnapshotHash &operator=(const SnapshotHash &) = delete;
+
+  void AddUTXO(const UTXO &utxo);
+  void SubUTXO(const UTXO &utxo);
+
+  //! GetHash returns the hash that represents the snapshot
+  //! and must be stored inside CoinBase TX.
+  uint256 GetHash();
+
+  // Serialize methods are used to store the state in chainstate DB
+  template <typename Stream>
+  void Serialize(Stream &s) const {
+    s.write((const char *)m_multiset.d, sizeof(m_multiset.d));
+  }
+
+  template <typename Stream>
+  void Unserialize(Stream &s) {
+    s.read((char *)m_multiset.d, sizeof(m_multiset.d));
+  }
+
+ private:
+  secp256k1_multiset m_multiset;
 };
 
 }  // namespace snapshot
