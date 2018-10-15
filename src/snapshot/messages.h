@@ -8,10 +8,13 @@
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <uint256.h>
+#include <coins.h>
 
 namespace snapshot {
 
-// UTXOSubset type is used to store records on disk too
+//! UTXOSubset type is used to transfer the snapshot over P2P and to store the
+//! snapshot on disk too. It is used instead of UTXO because it has more compact
+//! form, doesn't repeat TX specific fields for each output.
 struct UTXOSubset {
   uint256 m_txId;
   uint32_t m_height;  // at which block height the TX was included
@@ -94,6 +97,43 @@ struct Snapshot {
     READWRITE(m_totalUTXOSubsets);
     READWRITE(m_utxoSubsetIndex);
     READWRITE(m_utxoSubsets);
+  }
+};
+
+//! UTXO is used to calculate the snapshot hash. It is used instead of more
+//! compact UTXOSubset struct because it allows to add/subtract one output
+//! without constructing the whole Tx which could be expensive (require lookup
+//! to the disk)
+struct UTXO {
+  uint256 m_txId;
+  uint32_t m_height;
+  bool m_isCoinBase;
+  uint32_t m_txOutIndex;
+  CTxOut m_txOut;
+
+  UTXO()
+      : m_txId(),
+        m_height(0),
+        m_isCoinBase(false),
+        m_txOutIndex(0),
+        m_txOut() {}
+
+  UTXO(COutPoint &out, Coin &coin)
+      : m_txId(out.hash),
+        m_height(coin.nHeight),
+        m_isCoinBase(coin.IsCoinBase()),
+        m_txOutIndex(out.n),
+        m_txOut(coin.out) {}
+
+  ADD_SERIALIZE_METHODS;
+
+  template <typename Stream, typename Operation>
+  inline void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_txId);
+    READWRITE(m_height);
+    READWRITE(m_isCoinBase);
+    READWRITE(m_txOutIndex);
+    READWRITE(m_txOut);
   }
 };
 

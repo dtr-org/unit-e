@@ -166,4 +166,74 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
                     msg2.m_utxoSubsets[0].m_outputs.size());
 }
 
+BOOST_AUTO_TEST_CASE(utxo_construct) {
+  COutPoint out;
+  Coin coin;
+  snapshot::UTXO utxo1(out, coin);
+  BOOST_CHECK_EQUAL(utxo1.m_txId, out.hash);
+  BOOST_CHECK_EQUAL(utxo1.m_txOutIndex, out.n);
+  BOOST_CHECK_EQUAL(utxo1.m_height, coin.nHeight);
+  BOOST_CHECK_EQUAL(utxo1.m_isCoinBase, coin.IsCoinBase());
+  BOOST_CHECK(utxo1.m_txOut == coin.out);
+
+  out.hash.SetHex("aa");
+  out.n = 10;
+  coin.nHeight = 250;
+  coin.fCoinBase = 1;
+  coin.out.nValue = 35;
+  coin.out.scriptPubKey << OP_RETURN;
+
+  snapshot::UTXO utxo2(out, coin);
+  BOOST_CHECK_EQUAL(utxo2.m_txId, out.hash);
+  BOOST_CHECK_EQUAL(utxo2.m_txOutIndex, out.n);
+  BOOST_CHECK_EQUAL(utxo2.m_height, coin.nHeight);
+  BOOST_CHECK_EQUAL(utxo2.m_isCoinBase, coin.IsCoinBase());
+  BOOST_CHECK(utxo2.m_txOut == coin.out);
+}
+
+BOOST_AUTO_TEST_CASE(utxo_serialization) {
+  snapshot::UTXO utxo1;
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  stream << utxo1;
+  BOOST_CHECK_EQUAL(stream.size(), 50);
+
+  std::string got = HexStr(stream);
+  std::string exp =
+      "00000000000000000000000000000000"  // txId
+      "00000000000000000000000000000000"  //
+      "00000000"                          // height
+      "00"                                // isCoinBase
+      "00000000"                          // txOutIndex
+      "ffffffffffffffff"                  // CAmount(-1)
+      "00";                               // script length
+  BOOST_CHECK_EQUAL(got, exp);
+  stream.clear();
+
+  COutPoint out;
+  out.hash.SetHex("aa");
+  out.n = 10;
+  Coin coin;
+  coin.nHeight = 250;
+  coin.fCoinBase = 1;
+  coin.out.nValue = 35;
+  coin.out.scriptPubKey << OP_RETURN;
+
+  snapshot::UTXO utxo2(out, coin);
+  stream << utxo2;
+  BOOST_CHECK_EQUAL(stream.size(), 51);
+
+  got = HexStr(stream);
+  exp =
+      "aa000000000000000000000000000000"  // txId
+      "00000000000000000000000000000000"  //
+      "fa000000"                          // height
+      "01"                                // isCoinBase
+      "0a000000"                          // txOutIndex
+      "2300000000000000"                  // CAmount
+      "01"                                // script length
+      "6a";                               // script
+  BOOST_CHECK_EQUAL(got, exp);
+  stream.clear();
+}
+
 BOOST_AUTO_TEST_SUITE_END()
