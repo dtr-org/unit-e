@@ -24,8 +24,8 @@ tool to clean up patches automatically before submission.
     braces are required, and the `then` and `else` clauses must appear
     correctly indented on a new line.
 
-- **Symbol naming conventions**. These are required for new code but no need
-change the old one just for the sake of renaming, only if the logic is touched.
+- **Symbol naming conventions**. These are required for the new code but no need
+to change the old one just for the sake of renaming, only if the logic is touched.
   - Variable and namespace names are all lowercase, and may use `_` to
     separate words (snake_case).
     - Class member variables have a `m_` prefix.
