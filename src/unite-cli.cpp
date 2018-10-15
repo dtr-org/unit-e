@@ -10,7 +10,7 @@
 #include <chainparamsbase.h>
 #include <clientversion.h>
 #include <fs.h>
-#include <rpc/client.h>
+#include <rpc/parameter_conversion.h>
 #include <rpc/protocol.h>
 #include <util.h>
 #include <utilstrencodings.h>

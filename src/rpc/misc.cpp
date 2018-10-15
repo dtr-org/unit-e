@@ -14,6 +14,7 @@
 #include <net.h>
 #include <netbase.h>
 #include <rpc/blockchain.h>
+#include <rpc/parameter_conversion.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <timedata.h>
@@ -32,6 +33,7 @@
 #endif
 
 #include <univalue.h>
+#include <event2/http.h>
 
 #ifdef ENABLE_WALLET
 class DescribeAddressVisitor : public boost::static_visitor<UniValue>
@@ -623,6 +625,78 @@ UniValue echo(const JSONRPCRequest& request)
     return request.params;
 }
 
+static void AddWalletToUri(JSONRPCRequest &request, const std::string &wallet)
+{
+    if (wallet.empty()) {
+        return;
+    }
+    char *encodedURI = evhttp_uriencode(wallet.c_str(), wallet.size(), false);
+    if (encodedURI) {
+        request.URI = "/wallet/"+ std::string(encodedURI);
+        free(encodedURI);
+    } else {
+        throw std::runtime_error("uri-encode failed");
+    }
+}
+
+static UniValue CallRPC(const JSONRPCRequest &request)
+{
+    const CRPCCommand *cmd = tableRPC[request.strMethod];
+    if (!cmd) {
+        throw std::runtime_error(strprintf("CallRPC Unknown command, %s.", request.strMethod));
+    }
+    rpcfn_type method = cmd->actor;
+
+    try {
+        return (*method)(request);
+    } catch (const UniValue &objError) {
+        throw std::runtime_error(find_value(objError, "message").get_str());
+    }
+}
+
+UniValue runstringcommand(const JSONRPCRequest &request)
+{
+    if (request.params.size() < 2) {
+        throw std::runtime_error(
+            "runstringcommand \"method\" \"wallet\" (\"arg1\" \"arg2\" ...)\n"
+            "\nRun method with all parameters as strings. It converts parameters to JSON if necessary.\n"
+            "The purpose of this method is to aid implementation of RPC consoles in desktop clients.\n"
+        );
+    }
+
+    std::string method = request.params[0].get_str();
+    std::string wallet = request.params[1].get_str();
+
+    if (method == "runstringcommand") {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid method.");
+    }
+
+    std::vector<std::string> args;
+
+    for (size_t i = 2; i < request.params.size(); ++i) {
+        if (!request.params[i].isStr()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameters must all be strings.");
+        }
+        args.push_back(request.params[i].get_str());
+    }
+
+    JSONRPCRequest newRequest;
+    newRequest.strMethod = method;
+    newRequest.fHelp = request.fHelp;
+    newRequest.params = RPCConvertValues(method, args);
+    newRequest.id = request.id;
+    newRequest.authUser = request.authUser;
+
+    // Keep incoming URI if no wallet is specified
+    if (!wallet.empty()) {
+        AddWalletToUri(newRequest, wallet);
+    } else {
+        newRequest.URI = request.URI;
+    }
+
+    return CallRPC(newRequest);
+}
+
 static UniValue getinfo_deprecated(const JSONRPCRequest& request)
 {
     throw JSONRPCError(RPC_METHOD_NOT_FOUND,
@@ -650,6 +724,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "echo",                   &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "echojson",               &echo,                   {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
     { "hidden",             "getinfo",                &getinfo_deprecated,     {}},
+    { "hidden",             "runstringcommand",       &runstringcommand,       {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 };
 
 void RegisterMiscRPCCommands(CRPCTable &t)
