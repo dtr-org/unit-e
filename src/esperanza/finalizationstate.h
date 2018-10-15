@@ -50,12 +50,99 @@ BETTER_ENUM(
 // clang-format on
 
 /**
+ * This class is the base data-class with all the data required by
+ * FinalizationState. If you need to add new data member to FinalizationState
+ * you probably would add it here.
+ */
+class FinalizationStateData {
+ protected:
+  FinalizationStateData() = default;
+  FinalizationStateData(const FinalizationStateData &) = default;
+  FinalizationStateData(FinalizationStateData &&) = default;
+  ~FinalizationStateData() = default;
+
+  /**
+   * A quick comment on the types chosen to represent the various class members:
+   * uint32_t - is enough to represent any epoch (even with one epoch a second
+   * it would last ~136 yrs)
+   * uint64_t - is enough to represent any amount of UNIT-E coins
+   * (total_supply=(e * 10^17) and log2(total_supply)=~58 )
+   * ufp64_t - is a way to represent a decimal number with integer part up to
+   * 10E9 and decimal part with precision of 10E-8. Using this type is safe as
+   * long as the above conditions are met. For example multiplications between
+   * ufp64t and uint64_t are for example safe since for the intermediate step a
+   * bigger int type is used, but if the result is not representable by 32 bits
+   * then the final value will overflow.
+   */
+
+  // Map of epoch number to checkpoint
+  std::map<uint32_t, Checkpoint> m_checkpoints;
+
+  // Map of epoch number to dynasty number
+  std::map<uint32_t, uint32_t> m_epochToDynasty;
+
+  // Map of epoch number to the starting epoch for that dynasty
+  std::map<uint32_t, uint32_t> m_dynastyStartEpoch;
+
+  // Map of epoch number to checkpoint hash
+  std::map<uint32_t, uint256> m_epochToCheckpointHash;
+
+  // List of validators
+  std::map<uint256, Validator> m_validators;
+
+  // Map of the dynasty number with the delta in deposits with the previous one
+  std::map<uint32_t, uint64_t> m_dynastyDeltas;
+
+  // Map of the epoch number with the deposit scale factor
+  std::map<uint32_t, ufp64::ufp64_t> m_depositScaleFactor;
+
+  // Map of the epoch number with the running total of deposits slashed
+  std::map<uint32_t, uint64_t> m_totalSlashed;
+
+  // Is true if the current expected hash justified
+  bool m_mainHashJustified = false;
+
+  // The current epoch number
+  uint32_t m_currentEpoch = 0;
+
+  // The current dynasy number
+  uint32_t m_currentDynasty = 0;
+
+  // Total scaled deposits in the current dynasty
+  uint64_t m_curDynDeposits = 0;
+
+  // Total scaled deposits in the previous dynasty
+  uint64_t m_prevDynDeposits = 0;
+
+  // Expected source epoch
+  uint32_t m_expectedSrcEpoch = 0;
+
+  // Number of the last finalized epoch
+  uint32_t m_lastFinalizedEpoch = 0;
+
+  // Number of the last justified epoch
+  uint32_t m_lastJustifiedEpoch = 0;
+
+  // Hash of the last checkpoint
+  uint256 m_recommendedTargetHash;
+
+  ufp64::ufp64_t m_lastVoterRescale = 0;
+
+  ufp64::ufp64_t m_lastNonVoterRescale = 0;
+
+  // Reward for voting as fraction of deposit size
+  ufp64::ufp64_t m_rewardFactor = 0;
+};
+
+/**
  * This class is thread safe, any public method that is actually changing
  * the internal state is guarded against concurrent access.
  */
-class FinalizationState {
+class FinalizationState : public FinalizationStateData {
  public:
   FinalizationState(const esperanza::FinalizationParams &params);
+  FinalizationState(const FinalizationState &parent);
+  FinalizationState(FinalizationState &&) = default;
 
   Result InitializeEpoch(int blockHeight);
 
@@ -106,124 +193,31 @@ class FinalizationState {
 
   static bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
 
- protected:
-  mutable CCriticalSection cs_esperanza;
-
-  /**
-   * A quick comment on the types chosen to represent the various class members:
-   * uint32_t - is enough to represent any epoch (even with one epoch a second
-   * it would last ~136 yrs)
-   * uint64_t - is enough to represent any amount of UNIT-E coins
-   * (total_supply=(e * 10^17) and log2(total_supply)=~58 )
-   * ufp64_t - is a way to represent a decimal number with integer part up to
-   * 10E9 and decimal part with precision of 10E-8. Using this type is safe as
-   * long as the above conditions are met. For example multiplications between
-   * ufp64t and uint64_t are for example safe since for the intermediate step a
-   * bigger int type is used, but if the result is not representable by 32 bits
-   * then the final value will overflow.
-   */
-
-  // Map of epoch number to checkpoint
-  std::map<uint32_t, Checkpoint> m_checkpoints;
-
-  // Map of epoch number to dynasty number
-  std::map<uint32_t, uint32_t> m_epochToDynasty;
-
-  // Map of epoch number to the starting epoch for that dynasty
-  std::map<uint32_t, uint32_t> m_dynastyStartEpoch;
-
-  // Map of epoch number to checkpoint hash
-  std::map<uint32_t, uint256> m_epochToCheckpointHash;
-
-  // List of validators
-  std::map<uint256, Validator> m_validators;
-
-  // Map of the dynasty number with the delta in deposits with the previous one
-  std::map<uint32_t, uint64_t> m_dynastyDeltas;
-
-  // Map of the epoch number with the deposit scale factor
-  std::map<uint32_t, ufp64::ufp64_t> m_depositScaleFactor;
-
-  // Map of the epoch number with the running total of deposits slashed
-  std::map<uint32_t, uint64_t> m_totalSlashed;
-
-  // Is true if the current expected hash justified
-  bool m_mainHashJustified;
-
-  // The current epoch number
-  uint32_t m_currentEpoch;
-
-  // The current dynasy number
-  uint32_t m_currentDynasty;
-
-  // Total scaled deposits in the current dynasty
-  uint64_t m_curDynDeposits;
-
-  // Total scaled deposits in the previous dynasty
-  uint64_t m_prevDynDeposits;
-
-  // Expected source epoch
-  uint32_t m_expectedSrcEpoch;
-
-  // Number of the last finalized epoch
-  uint32_t m_lastFinalizedEpoch;
-
-  // Number of the last justified epoch
-  uint32_t m_lastJustifiedEpoch;
-
-  // Hash of the last checkpoint
-  uint256 m_recommendedTargetHash;
-
-  ufp64::ufp64_t m_lastVoterRescale;
-
-  ufp64::ufp64_t m_lastNonVoterRescale;
-
-  // Reward for voting as fraction of deposit size
-  ufp64::ufp64_t m_rewardFactor;
-
+ private:
   void InstaFinalize();
-
   void IncrementDynasty();
-
   ufp64::ufp64_t GetCollectiveRewardFactor();
-
   bool DepositExists();
-
   ufp64::ufp64_t GetSqrtOfTotalDeposits();
-
   uint32_t GetEpochsSinceFinalization();
-
   Result IsVotable(const Validator &validator, const uint256 &targetHash,
                    uint32_t targetEpoch, uint32_t sourceEpoch) const;
-
   bool IsInDynasty(const Validator &validator, uint32_t dynasty) const;
-
   CAmount ProcessReward(const uint256 &validatorIndex, uint64_t reward);
-
   void DeleteValidator(const uint256 &validatorIndex);
-
   uint64_t GetTotalCurDynDeposits();
-
   uint64_t GetTotalPrevDynDeposits();
-
   uint32_t GetEndDynasty() const;
-
   uint64_t CalculateVoteReward(const Validator &validator) const;
-
   ufp64::ufp64_t GetDepositScaleFactor(uint32_t epoch) const;
   uint64_t GetTotalSlashed(uint32_t epoch) const;
   Checkpoint &GetCheckpoint(uint32_t epoch);
   uint64_t GetDynastyDelta(uint32_t dynasty);
 
-  // Finalization params
-  const uint32_t EPOCH_LENGTH;
-  const CAmount MIN_DEPOSIT_SIZE;
-  const uint32_t DYNASTY_LOGOUT_DELAY;
-  const uint32_t WITHDRAWAL_EPOCH_DELAY;
-  const int64_t SLASH_FRACTION_MULTIPLIER;
-  const int64_t BOUNTY_FRACTION_DENOMINATOR;
-  const ufp64::ufp64_t BASE_INTEREST_FACTOR;
-  const ufp64::ufp64_t BASE_PENALTY_FACTOR;
+  mutable CCriticalSection cs_esperanza;
+
+ protected:
+  const FinalizationParams &m_settings;
 };
 
 }  // namespace esperanza
