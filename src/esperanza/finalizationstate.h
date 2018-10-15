@@ -50,8 +50,8 @@ BETTER_ENUM(
 // clang-format on
 
 /**
- * This class is base data-class with all the data required by
- * FinalizationState. If you need to add new data member to FinalizxationState
+ * This class is the base data-class with all the data required by
+ * FinalizationState. If you need to add new data member to FinalizationState
  * you probably would add it here.
  */
 class FinalizationStateData {
