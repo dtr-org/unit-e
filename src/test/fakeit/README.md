@@ -24,7 +24,7 @@ When(Method(mock,foo)).Return(1); // Method mock.foo will return 1 once.
 // Fetch the mock instance.
 SomeInterface &i = mock.get();
 
-// Will print "1". 
+// Will print "1".
 cout << i.foo(0);
 
 
