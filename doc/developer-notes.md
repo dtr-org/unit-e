@@ -38,6 +38,15 @@ code.
   - `nullptr` is preferred over `NULL` or `(void*)0`.
   - `static_assert` is preferred over `assert` where possible. Generally; compile-time checking is preferred over run-time checking.
 
+UNIT-E tag
+------------
+
+In case of comments and TODOs that are pertinent only to the UNIT-E code please create a code comment like:
+
+```
+//UNIT-E: very specific comment about unit-e
+```
+
 Doxygen comments
 -----------------
 
