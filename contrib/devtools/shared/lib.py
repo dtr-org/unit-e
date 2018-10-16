@@ -18,16 +18,27 @@ def changeto(dir = "."):
       sys.exit(1)
   os.chdir(dir)
 
+def listchangedfiles():
+  ps = subprocess.Popen("git diff --cached --name-status --relative",
+                        shell=True,
+                        stdout=subprocess.PIPE)
+  result = []
+  for line in ps.stdout.read().decode("utf-8").splitlines():
+    status, filename = line.split()
+    if status in ["A", "M"]:
+      result += [filename]
+  return result
+
 def listfiles(glob = "*"):
   ps = subprocess.Popen("git ls-files '*'", shell=True, stdout=subprocess.PIPE)
   lines = ps.stdout.read().decode("utf-8")
   return list(filter(None, lines.split("\n")))
 
-def checkfiles(action, pattern = None, glob = "*", dir = ".", invert = False):
+def checkfiles(action, pattern = None, glob = "*", dir = ".", invert = False, only_changed = False):
   workingdirectory = os.getcwd()
   try:
     changeto(dir)
-    fileset = listfiles()
+    fileset = listchangedfiles() if only_changed else listfiles()
     violations = []
     for filename in fileset:
       if pattern:
@@ -39,4 +50,3 @@ def checkfiles(action, pattern = None, glob = "*", dir = ".", invert = False):
     return violations
   finally:
     os.chdir(workingdirectory) # restory working directory
-
