@@ -490,7 +490,7 @@ Current subtrees include:
 - src/leveldb
   - Upstream at https://github.com/google/leveldb ; Maintained by Google, but open important PRs to Core to avoid delay
 
-- src/libsecp256k1
+- src/libsecp256k1 (git-subtree-check.sh disabled, [see commit](https://github.com/dtr-org/unit-e/commit/2ce66bf6785f48829ccf38541030dfafc625075c#diff-70ef4fa9031cf833f5275c97deb9005aR11))
   - Upstream at https://github.com/bitcoin-core/secp256k1/ ; actively maintaned by Core contributors.
 
 - src/crypto/ctaes
