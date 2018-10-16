@@ -4,7 +4,7 @@ from test_framework.util import assert_equal
 from test_framework.util import sync_blocks
 from test_framework.util import JSONRPCException
 from test_framework.test_framework import UnitETestFramework
-
+from test_framework.admin import Admin
 
 class EsperanzaDepositTest(UnitETestFramework):
 
@@ -53,10 +53,13 @@ class EsperanzaDepositTest(UnitETestFramework):
         assert_equal(validator.getbalance(), 10000)
 
         # wait for coinbase maturity
-        for n in range(0, 120):
+        for n in range(0, 119):
             self.generate_block(nodes[1])
 
         sync_blocks(self.nodes)
+
+        # generates 1 more block
+        Admin.authorize_and_disable(self, nodes[1])
 
         txid = validator.deposit(payto, 10000)
 

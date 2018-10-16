@@ -108,7 +108,8 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         threadGroup.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
 
-        esperanza::FinalizationState::Reset(Params().GetFinalization());
+        esperanza::FinalizationState::Reset(chainparams.GetFinalization(),
+                                            chainparams.GetAdminParams());
 
         mempool.setSanityCheck(1.0);
         pblocktree.reset(new CBlockTreeDB(1 << 20, true));

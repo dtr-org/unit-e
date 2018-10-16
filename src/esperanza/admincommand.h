@@ -18,17 +18,17 @@ namespace esperanza {
 BETTER_ENUM(
   AdminCommandType,
   uint8_t,
-  ADD_TO_WHITELIST,
-  REMOVE_FROM_WHITELIST,
-  RESET_ADMINS,
-  END_PERMISSIONING
+  ADD_TO_WHITELIST = 0,
+  REMOVE_FROM_WHITELIST = 1,
+  RESET_ADMINS = 2,
+  END_PERMISSIONING = 3
 )
 // clang-format on
 
 class AdminCommand {
  public:
-  AdminCommand(const AdminCommandType &command_type,
-               const std::vector<CPubKey> &pubkeys);
+  AdminCommand(const AdminCommandType &commandType,
+               const std::vector<CPubKey> &payload);
 
   AdminCommand();
 
@@ -56,6 +56,7 @@ class AdminCommand {
   std::vector<CPubKey> m_payload;
 };
 
+bool MatchAdminCommand(const CScript &script);
 bool DecodeAdminCommand(const CScript &script, AdminCommand &outAdminCommand);
 
 CScript EncodeAdminCommand(const AdminCommand &command);

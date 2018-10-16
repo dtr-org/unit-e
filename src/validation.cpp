@@ -1007,11 +1007,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 "%s: Accepting deposit to mempool with id %s.\n", __func__,
                 tx.GetHash().GetHex());
 
-            if (!esperanza::CheckDepositTransaction(state, tx)){
+            if (!esperanza::CheckDepositTransaction(state, tx)) {
               LogPrint(BCLog::FINALIZATION,
-                  "%s: Deposit cannot be included into mempool: %s.\n",
+                  "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
                   __func__,
-                  state.GetRejectReason());
+                  state.GetRejectReason(),
+                  tx.GetHash().GetHex());
 
               return state.DoS(10, error("%s: Deposit cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
@@ -1044,6 +1045,22 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        state.GetRejectReason());
 
               return state.DoS(10, error("%s: Withdraw cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::ADMIN: {
+
+            LogPrint(BCLog::ADMIN,
+                     "%s: Accepting admin transaction to mempool with id %s.\n",
+                     __func__, tx.GetHash().GetHex());
+
+            if (!esperanza::CheckAdminTransaction(state, tx)) {
+              LogPrint(BCLog::ADMIN,
+                       "%s: Admin transaction cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return false;
             }
             break;
           }
@@ -3351,9 +3368,10 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
 
             if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)) {
               LogPrint(BCLog::FINALIZATION,
-                  "%s: Deposit cannot be included into mempool: %s.\n",
-                  __func__,
-                  state.GetRejectReason());
+                       "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
+                       __func__,
+                       state.GetRejectReason(),
+                       tx->GetHash().GetHex());
 
               return state.DoS(10, error("%s: Deposit cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
@@ -3388,6 +3406,22 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        state.GetRejectReason());
 
               return state.DoS(10, error("%s: Withdraw cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::ADMIN: {
+
+            LogPrint(BCLog::ADMIN,
+                "%s: Accepting admin transaction to mempool with id %s.\n",
+                __func__, tx->GetHash().GetHex());
+
+            if (!esperanza::CheckAdminTransaction(state, *tx, pindexPrev)) {
+              LogPrint(BCLog::ADMIN,
+                  "%s: Admin transaction cannot be included into mempool: %s.\n",
+                   __func__,
+                   state.GetRejectReason());
+
+              return false;
             }
             break;
           }

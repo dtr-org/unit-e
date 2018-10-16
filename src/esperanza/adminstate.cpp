@@ -60,4 +60,8 @@ void AdminState::RemoveValidator(const uint256 &validatorIndex) {
 
 void AdminState::EndPermissioning() { m_permissioningIsActive = false; }
 
+bool AdminState::IsPermissioningActive() const {
+  return m_permissioningIsActive;
+}
+
 }  // namespace esperanza

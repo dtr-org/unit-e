@@ -259,6 +259,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::PROPOSING, "proposing"},
     {BCLog::FINALIZATION, "finalization"},
     {BCLog::SNAPSHOT, "snapshot"},
+    {BCLog::ADMIN, "admin"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };

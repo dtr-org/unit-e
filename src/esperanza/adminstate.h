@@ -38,6 +38,7 @@ class AdminState {
   void AddValidator(const uint256 &validatorIndex);
   void RemoveValidator(const uint256 &validatorIndex);
   void EndPermissioning();
+  bool IsPermissioningActive() const;
 };
 
 }  // namespace esperanza

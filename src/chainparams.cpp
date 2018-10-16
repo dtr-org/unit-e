@@ -47,6 +47,27 @@ const std::pair<const char*, CAmount> regTestOutputs[] = {
 };
 const size_t nGenesisOutputsRegtest = sizeof(regTestOutputs) / sizeof(regTestOutputs[0]);
 
+esperanza::AdminKeySet CreateRegTestAdminKeys() {
+  const auto key0Data = ParseHex(
+      "038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e8");
+
+  const auto key1Data = ParseHex(
+      "02f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa");
+
+  const auto key2Data = ParseHex(
+      "03d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c");
+
+  CPubKey key0(key0Data.begin(), key0Data.end());
+  CPubKey key1(key1Data.begin(), key1Data.end());
+  CPubKey key2(key2Data.begin(), key2Data.end());
+
+  assert(key0.IsValid());
+  assert(key1.IsValid());
+  assert(key2.IsValid());
+
+  return {{key0, key1, key2}};
+}
+
 static CBlock CreateGenesisBlockRegTest(uint32_t nTime,
                                         uint32_t nNonce,
                                         uint32_t nBits,
@@ -382,6 +403,8 @@ public:
         finalization.m_bountyFractionDenominator = 25;
         finalization.m_baseInterestFactor = ufp64::to_ufp64(700);
         finalization.m_basePenaltyFactor = ufp64::div_2uint(2, 100000);
+
+        adminParams.m_blockToAdminKeys.emplace(0, CreateRegTestAdminKeys());
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);

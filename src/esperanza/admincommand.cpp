@@ -9,9 +9,9 @@
 
 namespace esperanza {
 
-AdminCommand::AdminCommand(const AdminCommandType &command_type,
-                           const std::vector<CPubKey> &pubkeys)
-    : m_commandType(command_type), m_payload(pubkeys) {}
+AdminCommand::AdminCommand(const AdminCommandType &commandType,
+                           const std::vector<CPubKey> &payload)
+    : m_commandType(commandType), m_payload(payload) {}
 
 AdminCommand::AdminCommand()
     : m_commandType(AdminCommandType::REMOVE_FROM_WHITELIST) {}
@@ -63,6 +63,10 @@ CScript EncodeAdminCommand(const AdminCommand &command) {
   CScript script = CScript() << OP_RETURN << data;
 
   return script;
+}
+
+bool MatchAdminCommand(const CScript &script) {
+  return !script.empty() && script.front() == OP_RETURN;
 }
 
 bool DecodeAdminCommand(const CScript &script, AdminCommand &outAdminCommand) {

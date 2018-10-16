@@ -21,7 +21,7 @@ esperanza::AdminKeySet MakeKeySet() {
 }
 
 BOOST_AUTO_TEST_CASE(empty_params_mean_no_admin) {
-  esperanza::AdminParams emptyParams = {};
+  esperanza::AdminParams emptyParams;
   esperanza::AdminState state(emptyParams);
 
   const auto validatorIndex = MakePubKey().GetHash();
@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(reset_admin_soft) {
   const auto set0 = MakeKeySet();
   const auto set1 = MakeKeySet();
 
-  esperanza::AdminParams params = {};
+  esperanza::AdminParams params;
   params.m_blockToAdminKeys.emplace(0, set0);
 
   esperanza::AdminState state(params);
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(reset_admin_hard) {
   const auto set0 = MakeKeySet();
   const auto set1 = MakeKeySet();
 
-  esperanza::AdminParams params = {};
+  esperanza::AdminParams params;
   params.m_blockToAdminKeys.emplace(0, set0);
   params.m_blockToAdminKeys.emplace(42, set1);
 
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(reset_admin_hard) {
 }
 
 BOOST_AUTO_TEST_CASE(change_white_list_soft) {
-  esperanza::AdminParams params = {};
+  esperanza::AdminParams params;
   params.m_blockToAdminKeys.emplace(0, MakeKeySet());
   esperanza::AdminState state(params);
 
@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(change_white_list_hard) {
 }
 
 BOOST_AUTO_TEST_CASE(end_permissioning) {
-  esperanza::AdminParams params = {};
+  esperanza::AdminParams params;
   params.m_blockToAdminKeys.emplace(0, MakeKeySet());
   esperanza::AdminState state(params);
 

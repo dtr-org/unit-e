@@ -23,7 +23,8 @@ BETTER_ENUM(
   VOTE = 3,
   LOGOUT = 4,
   SLASH = 5,
-  WITHDRAW = 6
+  WITHDRAW = 6,
+  ADMIN = 7
 )
 // clang-format on
 

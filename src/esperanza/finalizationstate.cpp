@@ -36,9 +36,13 @@ inline Result fail(Result error, const char *fmt, const Args &... args) {
 
 Result success() { return Result::SUCCESS; }
 
+FinalizationStateData::FinalizationStateData(const AdminParams &adminParams)
+    : m_adminState(adminParams) {}
+
 FinalizationState::FinalizationState(
-    const esperanza::FinalizationParams &params)
-    : FinalizationStateData(), m_settings(params) {
+    const esperanza::FinalizationParams &params,
+    const esperanza::AdminParams &adminParams)
+    : FinalizationStateData(adminParams), m_settings(params) {
   m_depositScaleFactor[0] = BASE_DEPOSIT_SCALE_FACTOR;
   m_totalSlashed[0] = 0;
   m_dynastyDeltas[0] = 0;
@@ -372,6 +376,12 @@ Result FinalizationState::ValidateDeposit(const uint256 &validatorIndex,
                                           CAmount depositValue) const {
   LOCK(cs_esperanza);
 
+  if (!m_adminState.IsValidatorAuthorized(validatorIndex)) {
+    return fail(esperanza::Result::ADMIN_BLACKLISTED,
+                "%s: Validator is blacklisted: %s.\n", __func__,
+                validatorIndex.GetHex());
+  }
+
   if (m_validators.find(validatorIndex) != m_validators.end()) {
     return fail(Result::DEPOSIT_ALREADY_VALIDATOR,
                 "%s: Validator with deposit hash of %s already "
@@ -422,6 +432,12 @@ uint64_t FinalizationState::CalculateVoteReward(
  */
 Result FinalizationState::ValidateVote(const Vote &vote) const {
   LOCK(cs_esperanza);
+
+  if (!m_adminState.IsValidatorAuthorized(vote.m_validatorIndex)) {
+    return fail(esperanza::Result::ADMIN_BLACKLISTED,
+                "%s: Validator is blacklisted: %s.\n", __func__,
+                vote.m_validatorIndex.GetHex());
+  }
 
   auto it = m_validators.find(vote.m_validatorIndex);
   if (it == m_validators.end()) {
@@ -684,6 +700,59 @@ void FinalizationState::ProcessWithdraw(const uint256 &validatorIndex) {
   DeleteValidator(validatorIndex);
 }
 
+bool FinalizationState::IsPermissioningActive() const {
+  return m_adminState.IsPermissioningActive();
+}
+
+void FinalizationState::OnBlock(int blockHeight) {
+  m_adminState.OnBlock(blockHeight);
+}
+
+Result FinalizationState::ValidateAdminKeys(
+    const AdminKeySet &adminKeys) const {
+  LOCK(cs_esperanza);
+
+  if (m_adminState.IsAdminAuthorized(adminKeys)) {
+    return esperanza::Result::SUCCESS;
+  }
+
+  return fail(esperanza::Result::ADMIN_NOT_AUTHORIZED,
+              "Provided pubkeys do not belong to admin");
+}
+
+void FinalizationState::ProcessAdminCommands(
+    const std::vector<AdminCommand> &commands) {
+  LOCK(cs_esperanza);
+
+  for (const auto &command : commands) {
+    switch (command.GetCommandType()) {
+      case AdminCommandType::ADD_TO_WHITELIST: {
+        for (const auto &pubkey : command.GetPayload()) {
+          m_adminState.AddValidator(pubkey.GetHash());
+        }
+        break;
+      }
+      case AdminCommandType::REMOVE_FROM_WHITELIST: {
+        for (const auto &pubkey : command.GetPayload()) {
+          m_adminState.RemoveValidator(pubkey.GetHash());
+        }
+        break;
+      }
+      case AdminCommandType::RESET_ADMINS: {
+        const auto &pubkeys = command.GetPayload();
+        AdminKeySet set;
+        std::copy_n(pubkeys.begin(), ADMIN_MULTISIG_KEYS, set.begin());
+        m_adminState.ResetAdmin(set);
+        break;
+      }
+      case AdminCommandType::END_PERMISSIONING: {
+        m_adminState.EndPermissioning();
+        break;
+      }
+    }
+  }
+}
+
 /**
  * Checks whether two distinct votes from the same voter are proved being a
  * slashable misbehaviour.
@@ -863,16 +932,18 @@ bool FinalizationState::ValidateDepositAmount(CAmount amount) {
   return amount >= GetState()->m_settings.m_minDepositSize;
 }
 
-void FinalizationState::Init(const esperanza::FinalizationParams &params) {
+void FinalizationState::Init(const esperanza::FinalizationParams &params,
+                             const esperanza::AdminParams &adminParams) {
   LOCK(cs_init_lock);
 
   if (!esperanzaState) {
-    esperanzaState = std::make_shared<FinalizationState>(params);
+    esperanzaState = std::make_shared<FinalizationState>(params, adminParams);
   }
 }
 
-void FinalizationState::Reset(const esperanza::FinalizationParams &params) {
-  esperanzaState = std::make_shared<FinalizationState>(params);
+void FinalizationState::Reset(const esperanza::FinalizationParams &params,
+                              const esperanza::AdminParams &adminParams) {
+  esperanzaState = std::make_shared<FinalizationState>(params, adminParams);
 }
 
 /**
@@ -889,6 +960,9 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
   LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
            __func__, blockIndex.nHeight, block.GetHash().GetHex());
+
+  // Used to apply hardcoded parameters for a given block
+  state->OnBlock(blockIndex.nHeight);
 
   // We can skip everything for the genesis block since it isn't suppose to
   // contain esperanza's transactions.
@@ -940,6 +1014,22 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         }
         break;
       }
+
+      case TxType::ADMIN: {
+        std::vector<AdminCommand> commands;
+        for (const auto &output : tx->vout) {
+          AdminCommand command;
+          if (!MatchAdminCommand(output.scriptPubKey)) {
+            continue;
+          }
+          DecodeAdminCommand(output.scriptPubKey, command);
+          commands.emplace_back(std::move(command));
+        }
+
+        state->ProcessAdminCommands(commands);
+        break;
+      }
+
       default: { break; }
     }
   }
