@@ -9,6 +9,7 @@
 
 #include <snapshot/creator.h>
 #include <snapshot/indexer.h>
+#include <snapshot/messages.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
 #include <util.h>
@@ -17,6 +18,11 @@
 namespace snapshot {
 
 bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
+  if (!snapshot::InitSecp256k1Context()) {
+    LogPrintf("Can't initialize secp256k1_context for the snapshot hash.\n");
+    return false;
+  }
+
   if (fPruneMode) {
     if (gArgs.GetBoolArg("-isd", false)) {
       snapshot::EnableISDMode();

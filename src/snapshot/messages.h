@@ -20,9 +20,14 @@ namespace snapshot {
 //! form, doesn't repeat TX specific fields for each output.
 struct UTXOSubset {
   uint256 m_txId;
-  uint32_t m_height;  // at which block height the TX was included
+
+  //! at which block height the TX was included
+  uint32_t m_height;
+
   bool m_isCoinBase;
-  std::map<uint32_t, CTxOut> m_outputs;  // key is the CTxOut index
+
+  //! key is the CTxOut index
+  std::map<uint32_t, CTxOut> m_outputs;
 
   UTXOSubset() : m_txId(), m_height(0), m_isCoinBase(false), m_outputs() {}
 
@@ -121,7 +126,7 @@ struct UTXO {
         m_txOutIndex(0),
         m_txOut() {}
 
-  UTXO(COutPoint &out, Coin &coin)
+  UTXO(const COutPoint &out, const Coin &coin)
       : m_txId(out.hash),
         m_height(coin.nHeight),
         m_isCoinBase(coin.IsCoinBase()),
@@ -144,7 +149,9 @@ class SnapshotHash {
  public:
   SnapshotHash();
   SnapshotHash(const SnapshotHash &) = delete;
+  SnapshotHash(const SnapshotHash &&) = delete;
   SnapshotHash &operator=(const SnapshotHash &) = delete;
+  SnapshotHash &operator=(const SnapshotHash &&) = delete;
 
   void AddUTXO(const UTXO &utxo);
   void SubUTXO(const UTXO &utxo);
@@ -156,17 +163,22 @@ class SnapshotHash {
   // Serialize methods are used to store the state in chainstate DB
   template <typename Stream>
   void Serialize(Stream &s) const {
-    s.write((const char *)m_multiset.d, sizeof(m_multiset.d));
+    s.write(reinterpret_cast<const char *>(m_multiset.d), sizeof(m_multiset.d));
   }
 
   template <typename Stream>
   void Unserialize(Stream &s) {
-    s.read((char *)m_multiset.d, sizeof(m_multiset.d));
+    s.read(reinterpret_cast<char *>(m_multiset.d), sizeof(m_multiset.d));
   }
 
  private:
   secp256k1_multiset m_multiset;
 };
+
+//! InitSecp256k1Context initializes secp256k1_context
+//! Used to verify that the context is successfully created otherwise,
+//! the node must be stopped
+bool InitSecp256k1Context();
 
 }  // namespace snapshot
 

@@ -9,51 +9,36 @@
 
 namespace snapshot {
 
-namespace {
-class Secp256k1Context {
- public:
-  Secp256k1Context() {
-    m_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-  }
-  ~Secp256k1Context() { secp256k1_context_destroy(m_ctx); }
+secp256k1_context *context = nullptr;
 
-  Secp256k1Context(const Secp256k1Context &) = delete;
-  Secp256k1Context &operator=(const Secp256k1Context &) = delete;
-
-  static secp256k1_context *Get() {
-    static Secp256k1Context ctx;
-    return ctx.m_ctx;
-  }
-
- private:
-  secp256k1_context *m_ctx;
-};
-}  // anonymous namespace
-
-SnapshotHash::SnapshotHash() {
-  secp256k1_multiset_init(Secp256k1Context::Get(), &m_multiset);
+bool InitSecp256k1Context() {
+  context = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
+  return context != nullptr;
 }
+
+SnapshotHash::SnapshotHash() { secp256k1_multiset_init(context, &m_multiset); }
 
 void SnapshotHash::AddUTXO(const UTXO &utxo) {
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << utxo;
 
-  secp256k1_multiset_add(Secp256k1Context::Get(), &m_multiset,
-                         (const uint8_t *)stream.data(), stream.size());
+  secp256k1_multiset_add(context, &m_multiset,
+                         reinterpret_cast<const uint8_t *>(stream.data()),
+                         stream.size());
 }
 
 void SnapshotHash::SubUTXO(const snapshot::UTXO &utxo) {
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << utxo;
 
-  secp256k1_multiset_remove(Secp256k1Context::Get(), &m_multiset,
-                            (const uint8_t *)stream.data(), stream.size());
+  secp256k1_multiset_remove(context, &m_multiset,
+                            reinterpret_cast<const uint8_t *>(stream.data()),
+                            stream.size());
 }
 
 uint256 SnapshotHash::GetHash() {
   uint256 hash;
-  secp256k1_multiset_finalize(Secp256k1Context::Get(), hash.begin(),
-                              &m_multiset);
+  secp256k1_multiset_finalize(context, hash.begin(), &m_multiset);
   return hash;
 }
 
