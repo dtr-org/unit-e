@@ -166,4 +166,176 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
                     msg2.m_utxoSubsets[0].m_outputs.size());
 }
 
+BOOST_AUTO_TEST_CASE(utxo_construct) {
+  COutPoint out;
+  Coin coin;
+  snapshot::UTXO utxo1(out, coin);
+  BOOST_CHECK_EQUAL(utxo1.m_txId, out.hash);
+  BOOST_CHECK_EQUAL(utxo1.m_txOutIndex, out.n);
+  BOOST_CHECK_EQUAL(utxo1.m_height, coin.nHeight);
+  BOOST_CHECK_EQUAL(utxo1.m_isCoinBase, coin.IsCoinBase());
+  BOOST_CHECK(utxo1.m_txOut == coin.out);
+
+  out.hash.SetHex("aa");
+  out.n = 10;
+  coin.nHeight = 250;
+  coin.fCoinBase = 1;
+  coin.out.nValue = 35;
+  coin.out.scriptPubKey << OP_RETURN;
+
+  snapshot::UTXO utxo2(out, coin);
+  BOOST_CHECK_EQUAL(utxo2.m_txId, out.hash);
+  BOOST_CHECK_EQUAL(utxo2.m_txOutIndex, out.n);
+  BOOST_CHECK_EQUAL(utxo2.m_height, coin.nHeight);
+  BOOST_CHECK_EQUAL(utxo2.m_isCoinBase, coin.IsCoinBase());
+  BOOST_CHECK(utxo2.m_txOut == coin.out);
+}
+
+BOOST_AUTO_TEST_CASE(utxo_serialization) {
+  snapshot::UTXO utxo1;
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  stream << utxo1;
+  BOOST_CHECK_EQUAL(stream.size(), 50);
+
+  std::string got = HexStr(stream);
+  std::string exp =
+      "00000000000000000000000000000000"  // txId
+      "00000000000000000000000000000000"  //
+      "00000000"                          // height
+      "00"                                // isCoinBase
+      "00000000"                          // txOutIndex
+      "ffffffffffffffff"                  // CAmount(-1)
+      "00";                               // script length
+  BOOST_CHECK_EQUAL(got, exp);
+  stream.clear();
+
+  COutPoint out;
+  out.hash.SetHex("aa");
+  out.n = 10;
+  Coin coin;
+  coin.nHeight = 250;
+  coin.fCoinBase = 1;
+  coin.out.nValue = 35;
+  coin.out.scriptPubKey << OP_RETURN;
+
+  snapshot::UTXO utxo2(out, coin);
+  stream << utxo2;
+  BOOST_CHECK_EQUAL(stream.size(), 51);
+
+  got = HexStr(stream);
+  exp =
+      "aa000000000000000000000000000000"  // txId
+      "00000000000000000000000000000000"  //
+      "fa000000"                          // height
+      "01"                                // isCoinBase
+      "0a000000"                          // txOutIndex
+      "2300000000000000"                  // CAmount
+      "01"                                // script length
+      "6a";                               // script
+  BOOST_CHECK_EQUAL(got, exp);
+  stream.clear();
+}
+
+BOOST_AUTO_TEST_CASE(snapshot_hash) {
+  // expected results are hardcoded to guarantee that hashes
+  // didn't change over time
+  snapshot::UTXO a;
+  a.m_txId.SetHex("aa");
+  snapshot::UTXO b;
+  b.m_txId.SetHex("bb");
+  snapshot::UTXO c;
+  c.m_txId.SetHex("cc");
+
+  std::string aHash =
+      "f6c2923841b0d6aacf454291fa4c44f6"
+      "d5836ee91098fc3f98497ea9f6fa48d6";
+  std::string bHash =
+      "b5718879a3303b7d78623cf230c381ce"
+      "ef87b7d3889ccd9565817ac502412dea";
+  std::string abSumHash =
+      "b050bd6cb8381459a3f066d5ca3133ea"
+      "55e6761326f28bdd5c47b7402aeff741";
+
+  {
+    // test adding and reverting UTXOs
+    // null == a + b - b - a
+    snapshot::SnapshotHash hash;
+    BOOST_CHECK(hash.GetHash().IsNull());
+    hash.AddUTXO(a);
+    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
+    hash.AddUTXO(b);
+    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), abSumHash);
+    hash.SubUTXO(b);
+    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
+    hash.SubUTXO(a);
+    BOOST_CHECK(hash.GetHash().IsNull());
+  }
+
+  {
+    // test that order doesn't matter
+    // a + b == b + a
+    snapshot::SnapshotHash hash1;
+    snapshot::SnapshotHash hash2;
+    hash1.AddUTXO(a);
+    hash1.AddUTXO(b);
+    hash2.AddUTXO(b);
+    hash2.AddUTXO(a);
+    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), abSumHash);
+    BOOST_CHECK_EQUAL(hash2.GetHash().GetHex(), abSumHash);
+  }
+
+  {
+    // that subtraction
+    // b = a + b + c - a - c
+    snapshot::SnapshotHash hash1;
+    hash1.AddUTXO(a);
+    hash1.AddUTXO(b);
+    hash1.AddUTXO(c);
+    hash1.SubUTXO(a);
+    hash1.SubUTXO(c);
+
+    snapshot::SnapshotHash hash2;
+    hash2.AddUTXO(b);
+
+    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), bHash);
+    BOOST_CHECK_EQUAL(hash2.GetHash().GetHex(), bHash);
+  }
+
+  {
+    // negative case
+    // null = -a + a
+    // a = -a + a + a
+    snapshot::SnapshotHash hash;
+    hash.SubUTXO(a);
+    BOOST_CHECK(!hash.GetHash().IsNull());
+    hash.AddUTXO(a);
+    BOOST_CHECK(hash.GetHash().IsNull());
+    hash.AddUTXO(a);
+    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
+  }
+
+  {
+    // restore snapshotHash from disk
+
+    snapshot::SnapshotHash hash1;
+    hash1.AddUTXO(a);
+    hash1.AddUTXO(b);
+
+    // simulate storing multiset data on disk
+    CDataStream stream(SER_DISK, PROTOCOL_VERSION);
+    stream << hash1;
+
+    // read multiset data from disk
+    snapshot::SnapshotHash hash2;
+    stream >> hash2;
+
+    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), hash2.GetHash().GetHex());
+    hash1.AddUTXO(c);
+    hash1.SubUTXO(a);
+    hash2.AddUTXO(c);
+    hash2.SubUTXO(a);
+    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), hash2.GetHash().GetHex());
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

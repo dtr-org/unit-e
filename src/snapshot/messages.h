@@ -5,18 +5,29 @@
 #ifndef UNITE_SNAPSHOT_MESSAGES_H
 #define UNITE_SNAPSHOT_MESSAGES_H
 
+#include <vector>
+
+#include <coins.h>
 #include <primitives/transaction.h>
+#include <secp256k1_multiset.h>
 #include <serialize.h>
 #include <uint256.h>
 
 namespace snapshot {
 
-// UTXOSubset type is used to store records on disk too
+//! UTXOSubset type is used to transfer the snapshot over P2P and to store the
+//! snapshot on disk too. It is used instead of UTXO because it has more compact
+//! form, doesn't repeat TX specific fields for each output.
 struct UTXOSubset {
   uint256 m_txId;
-  uint32_t m_height;  // at which block height the TX was included
+
+  //! at which block height the TX was included
+  uint32_t m_height;
+
   bool m_isCoinBase;
-  std::map<uint32_t, CTxOut> m_outputs;  // key is the CTxOut index
+
+  //! key is the CTxOut index
+  std::map<uint32_t, CTxOut> m_outputs;
 
   UTXOSubset() : m_txId(), m_height(0), m_isCoinBase(false), m_outputs() {}
 
@@ -96,6 +107,78 @@ struct Snapshot {
     READWRITE(m_utxoSubsets);
   }
 };
+
+//! UTXO is used to calculate the snapshot hash. It is used instead of more
+//! compact UTXOSubset struct because it allows to add/subtract one output
+//! without constructing the whole Tx which could be expensive (require lookup
+//! to the disk)
+struct UTXO {
+  uint256 m_txId;
+  uint32_t m_height;
+  bool m_isCoinBase;
+  uint32_t m_txOutIndex;
+  CTxOut m_txOut;
+
+  UTXO()
+      : m_txId(),
+        m_height(0),
+        m_isCoinBase(false),
+        m_txOutIndex(0),
+        m_txOut() {}
+
+  UTXO(const COutPoint &out, const Coin &coin)
+      : m_txId(out.hash),
+        m_height(coin.nHeight),
+        m_isCoinBase(coin.IsCoinBase()),
+        m_txOutIndex(out.n),
+        m_txOut(coin.out) {}
+
+  ADD_SERIALIZE_METHODS;
+
+  template <typename Stream, typename Operation>
+  inline void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_txId);
+    READWRITE(m_height);
+    READWRITE(m_isCoinBase);
+    READWRITE(m_txOutIndex);
+    READWRITE(m_txOut);
+  }
+};
+
+class SnapshotHash {
+ public:
+  SnapshotHash();
+  SnapshotHash(const SnapshotHash &) = delete;
+  SnapshotHash(SnapshotHash &&) = delete;
+  SnapshotHash &operator=(const SnapshotHash &) = delete;
+  SnapshotHash &operator=(SnapshotHash &&) = delete;
+
+  void AddUTXO(const UTXO &utxo);
+  void SubUTXO(const UTXO &utxo);
+
+  //! GetHash returns the hash that represents the snapshot
+  //! and must be stored inside CoinBase TX.
+  uint256 GetHash();
+
+  // Serialize methods are used to store the state in chainstate DB
+  template <typename Stream>
+  void Serialize(Stream &s) const {
+    s.write(reinterpret_cast<const char *>(m_multiset.d), sizeof(m_multiset.d));
+  }
+
+  template <typename Stream>
+  void Unserialize(Stream &s) {
+    s.read(reinterpret_cast<char *>(m_multiset.d), sizeof(m_multiset.d));
+  }
+
+ private:
+  secp256k1_multiset m_multiset;
+};
+
+//! InitSecp256k1Context initializes secp256k1_context
+//! Used to verify that the context is successfully created otherwise,
+//! the node must be stopped
+bool InitSecp256k1Context();
 
 }  // namespace snapshot
 
