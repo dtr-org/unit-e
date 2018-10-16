@@ -18,6 +18,16 @@ code.
   - Class names, function names and method names are UpperCamelCase
     (PascalCase). Do not prefix class names with `C`.
 
+- **Includes**. Make sure to always use `<>` notation instead of the "".
+  This is done mostly for consistency with the current codebase.
+
+- **If-Statements**. Always use braces around if statements, even blocks
+  that contain just one statement.
+
+- **Pointer and Reference declarations**. When declaring a pointer/reference
+  variable or argument you must put the * or & adjacent to the variable name.
+  This is also reflected in the `.clang-format` file.
+
 - **Uniform initialization**. Rationale:
   [Uniform initialization isn't](https://medium.com/@barryrevzin/uniform-initialization-isnt-82533d3b9c11).
   - In call sites: *Use parentheses to initialize in all cases. Use braces only for the specific behavior that braces provide.*
