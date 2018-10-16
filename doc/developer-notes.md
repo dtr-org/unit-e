@@ -3,26 +3,9 @@ Developer Notes
 
 Various coding styles have been used during the history of the codebase,
 and the result is not very consistent. However, we're now trying to converge to
-a single style, which is specified below. When writing patches, favor the new
-style over attempting to mimic the surrounding style, except for move-only
-commits.
-
-Do not submit patches solely to modify the style of existing code.
-
-- **Indentation and whitespace rules** as specified in
-[src/.clang-format](/src/.clang-format). You can use the provided
-[clang-format-diff script](/contrib/devtools/README.md#clang-format-diffpy)
-tool to clean up patches automatically before submission.
-  - Braces on new lines for namespaces, classes, functions, methods.
-  - Braces on the same line for everything else.
-  - 4 space indentation (no tabs) for every block except namespaces.
-  - No indentation for `public`/`protected`/`private` or for `namespace`.
-  - No extra spaces inside parenthesis; don't do ( this )
-  - No space after function names; one space after `if`, `for` and `while`.
-  - If an `if` only has a single-statement `then`-clause, it can appear
-    on the same line as the `if`, without braces. In every other case,
-    braces are required, and the `then` and `else` clauses must appear
-    correctly indented on a new line.
+a single style. We are sticking to the
+[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html),
+with a few additional rules:
 
 - **Symbol naming conventions**. These are preferred in new code, but are not
 required when doing so would need changes to significant pieces of existing
@@ -35,43 +18,15 @@ code.
   - Class names, function names and method names are UpperCamelCase
     (PascalCase). Do not prefix class names with `C`.
 
+- **Uniform initialization**. Rationale:
+  [Uniform initialization isn't](https://medium.com/@barryrevzin/uniform-initialization-isnt-82533d3b9c11).
+  - In call sites: *Use parentheses to initialize in all cases. Use braces only for the specific behavior that braces provide.*
+  - When declaring classes: *Avoid writing class interfaces in which an ambiguity between uniform initialization and list-initializer syntax might arise.*
+
 - **Miscellaneous**
   - `++i` is preferred over `i++`.
   - `nullptr` is preferred over `NULL` or `(void*)0`.
   - `static_assert` is preferred over `assert` where possible. Generally; compile-time checking is preferred over run-time checking.
-
-Block style example:
-```c++
-int g_count = 0;
-
-namespace foo
-{
-class Class
-{
-    std::string m_name;
-
-public:
-    bool Function(const std::string& s, int n)
-    {
-        // Comment summarising what this section of code does
-        for (int i = 0; i < n; ++i) {
-            int total_sum = 0;
-            // When something fails, return early
-            if (!Something()) return false;
-            ...
-            if (SomethingElse(i)) {
-                total_sum += ComputeSomething(g_count);
-            } else {
-                DoSomething(m_name, total_sum);
-            }
-        }
-
-        // Success return is usually at the end
-        return true;
-    }
-}
-} // namespace foo
-```
 
 Doxygen comments
 -----------------
@@ -79,50 +34,37 @@ Doxygen comments
 To facilitate the generation of documentation, use doxygen-compatible comment blocks for functions, methods and fields.
 
 For example, to describe a function use:
+
 ```c++
-/**
- * ... text ...
- * @param[in] arg1    A description
- * @param[in] arg2    Another argument description
- * @pre Precondition for function...
- */
-bool function(int arg1, const char *arg2)
+//! \brief one-line description
+//!
+//! ... optional long description ...
+//! @param[in] arg1    A description
+//! @param[in] arg2    Another argument description
+//! @pre Precondition for function...
+bool function(int arg1, const char *arg2) {
 ```
-A complete list of `@xxx` commands can be found at http://www.stack.nl/~dimitri/doxygen/manual/commands.html.
-As Doxygen recognizes the comments by the delimiters (`/**` and `*/` in this case), you don't
-*need* to provide any commands for a comment to be valid; just a description text is fine.
 
 To describe a class use the same construct above the class definition:
+
 ```c++
-/**
- * Alerts are for notifying old versions if they become too obsolete and
- * need to upgrade. The message is displayed in the status bar.
- * @see GetWarnings()
- */
-class CAlert
-{
+//! \brief one-line description
+//!
+//! Alerts are for notifying old versions if they become too obsolete and
+//! need to upgrade. The message is displayed in the status bar.
+//! @see GetWarnings()
+class CAlert {
 ```
 
 To describe a member or variable use:
-```c++
-int var; //!< Detailed description after the member
-```
 
-or
-```cpp
-//! Description before the member
+```c++
+//! Detailed description
 int var;
 ```
 
-Also OK:
-```c++
-///
-/// ... text ...
-///
-bool function2(int arg1, const char *arg2)
-```
-
 Not OK (used plenty in the current source, but not picked up):
+
 ```c++
 //
 // ... text ...
@@ -413,8 +355,7 @@ E.g. in member initializers, prepend `_` to the argument name shadowing the
 member name:
 
 ```c++
-class AddressBookPage
-{
+class AddressBookPage {
     Mode mode;
 }
 
