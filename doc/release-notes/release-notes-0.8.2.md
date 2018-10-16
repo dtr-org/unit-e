@@ -24,7 +24,7 @@ your machine.
 
 Fee Policy changes
 
-The default fee for low-priority transactions is lowered from 0.0005 UNT 
+The default fee for low-priority transactions is lowered from 0.0005 UNT
 (for each 1,000 bytes in the transaction; an average transaction is
 about 500 bytes) to 0.0001 UNT.
 

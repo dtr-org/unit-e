@@ -100,7 +100,7 @@ class MempoolPackagesTest(UnitETestFramework):
         for x in chain:
             ancestor_fees += mempool[x]['fee']
             assert_equal(mempool[x]['ancestorfees'], ancestor_fees * UNIT + 1000)
-        
+
         # Undo the prioritisetransaction for later tests
         self.nodes[0].prioritisetransaction(txid=chain[0], fee_delta=-1000)
 
@@ -232,7 +232,7 @@ class MempoolPackagesTest(UnitETestFramework):
         signedtx = self.nodes[0].signrawtransaction(rawtx)
         txid = self.nodes[0].sendrawtransaction(signedtx['hex'])
         sync_mempools(self.nodes)
-        
+
         # Now try to disconnect the tip on each node...
         self.nodes[1].invalidateblock(self.nodes[1].getbestblockhash())
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())

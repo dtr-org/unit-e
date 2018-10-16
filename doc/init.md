@@ -53,11 +53,11 @@ Paths
 
 All three configurations assume several paths that might need to be adjusted.
 
-Binary:              `/usr/bin/united`  
-Configuration file:  `/etc/unite/unite.conf`  
-Data directory:      `/var/lib/united`  
-PID file:            `/var/run/united/united.pid` (OpenRC and Upstart) or `/var/lib/united/united.pid` (systemd)  
-Lock file:           `/var/lock/subsys/united` (CentOS)  
+Binary:              `/usr/bin/united`
+Configuration file:  `/etc/unite/unite.conf`
+Data directory:      `/var/lib/united`
+PID file:            `/var/run/united/united.pid` (OpenRC and Upstart) or `/var/lib/united/united.pid` (systemd)
+Lock file:           `/var/lock/subsys/united` (CentOS)
 
 The configuration file, PID directory (if applicable) and data directory
 should all be owned by the unite user and group.  It is advised for security
@@ -67,10 +67,10 @@ can then be controlled by group membership.
 
 ### Mac OS X
 
-Binary:              `/usr/local/bin/united`  
-Configuration file:  `~/Library/Application Support/UnitE/unite.conf`  
-Data directory:      `~/Library/Application Support/UnitE`  
-Lock file:           `~/Library/Application Support/UnitE/.lock`  
+Binary:              `/usr/local/bin/united`
+Configuration file:  `~/Library/Application Support/UnitE/unite.conf`
+Data directory:      `~/Library/Application Support/UnitE`
+Lock file:           `~/Library/Application Support/UnitE/.lock`
 
 Installing Service Configuration
 -----------------------------------
