@@ -2,7 +2,7 @@ UnitE Core version 0.10.3 is now available from:
 
   <https://unite.org/bin/unite-core-0.10.3/>
 
-This is a new minor version release, bringing security fixes and translation 
+This is a new minor version release, bringing security fixes and translation
 updates. It is recommended to upgrade to this version as soon as possible.
 
 Please report bugs using the issue tracker at github:

@@ -13,7 +13,7 @@ For developers, changes to unite's remote-procedure-call API:
 
 * New rpc command "sendmany" to send unites to more than one address in a single transaction.
 
-* Several bug fixes, including a serious intermittent bug that would sometimes cause united to stop accepting rpc requests. 
+* Several bug fixes, including a serious intermittent bug that would sometimes cause united to stop accepting rpc requests.
 
 * -logtimestamps option, to add a timestamp to each line in debug.log.
 
