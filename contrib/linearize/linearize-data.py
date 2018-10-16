@@ -168,11 +168,11 @@ class BlockDataCopier:
 
 		self.blkCountOut = self.blkCountOut + 1
 		if blkTS > self.highTS:
-			self.highTS = blkTS
+		    self.highTS = blkTS
 
 		if (self.blkCountOut % 1000) == 0:
-			print('%i blocks scanned, %i blocks written (of %i, %.1f%% complete)' %
-					(self.blkCountIn, self.blkCountOut, len(self.blkindex), 100.0 * self.blkCountOut / len(self.blkindex)))
+		    print('%i blocks scanned, %i blocks written (of %i, %.1f%% complete)' %
+                        (self.blkCountIn, self.blkCountOut, len(self.blkindex), 100.0 * self.blkCountOut / len(self.blkindex)))
 
 	def inFileName(self, fn):
 		return os.path.join(self.settings['input'], "blk%05d.dat" % fn)
