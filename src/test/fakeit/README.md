@@ -32,7 +32,7 @@ cout << i.foo(0);
 Verify method invocation
 ```cpp
 Mock<SomeInterface> mock;
-		
+
 When(Method(mock,foo)).Return(0);
 
 SomeInterface &i = mock.get();
