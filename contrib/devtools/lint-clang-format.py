@@ -9,16 +9,6 @@ import sys
 
 import shared.lib
 
-def checkfile(filename):
-  ps = subprocess.Popen("clang-format -style=file " + filename,
-                        shell=True,
-                        stdout=subprocess.PIPE)
-  formatted = ps.stdout.read().decode("utf-8")
-  with open(filename, "rb") as file:
-    unformatted = file.read().decode("utf-8")
-  isformatted = formatted == unformatted
-  return isformatted
-
 def formatfile(filename):
   ps = subprocess.Popen("clang-format -style=file -i " + filename,
                         shell=True,
@@ -31,31 +21,26 @@ def gitadd(filename):
                         stdout=subprocess.PIPE)
   return ps.wait()
 
-def git_changed_files():
-  ps = subprocess.Popen("git diff --cached --name-status",
+def checkandupdate(filename, replace = False, addtogit = False):
+  ps = subprocess.Popen("clang-format -style=file " + filename,
                         shell=True,
                         stdout=subprocess.PIPE)
-  result = []
-  for line in ps.stdout.read().decode("utf-8").splitlines():
-    status, filename = line.split()
-    if status in ["A", "M"]:
-      result += [filename]
-  return result
-
-def is_unite(filename):
-  dirs = [
-    "src/esperanza",
-    "src/proposer",
-    "src/snapshot"
-  ]
-  for d in dirs:
-    if filename.startswith(d):
-      return True
-  return False;
-
-def filter_unite(files):
-  return [f for f in files if is_unite(f)]
-
+  formatted = ps.stdout.read().decode("utf-8")
+  with open(filename, "rb") as file:
+    unformatted = file.read().decode("utf-8")
+  isformatted = formatted == unformatted
+  if not isformatted:
+    if replace:
+      if formatfile(filename) == 0:
+        if addtogit:
+          if gitadd(filename) == 0:
+            print(filename, "has been formatted and added to commit")
+            return True
+        else:
+          print(filename, "has been formatted")
+    else:
+      print(filename, "is not formatted")
+  return isformatted
 
 def help(argv):
   print("Using: {0} [--check-commit] [--replace [--git-add]]".format(argv[0]))
@@ -80,38 +65,13 @@ def main(argv):
     "src/snapshot"
   ]
   violations = []
-  if iscurrentcommit:
-    violations = [f for f in filter_unite(git_changed_files()) if not checkfile(f)]
-  else:
-    for dir in dirs:
-      dir_v = shared.lib.checkfiles(
-        pattern = ".+\\.(cpp|h)",
-        dir = dir,
-        action = checkfile)
-      for v in dir_v:
-        violations += ["{}/{}".format(dir, v)]
-  if len(violations) == 0:
-    return 0
-  print("Unformatted files:")
-  for v in violations:
-    print("*", v)
-  if autoformat:
-    ok = True
-    for v in violations:
-      ok = ok and formatfile(v) == 0
-    if ok:
-      print("... have been formatted.")
-      if autogitadd:
-        ok = True
-        for v in violations:
-          ok = ok and gitadd(v) == 0
-        if ok:
-          print("... and added back into commit.")
-          return 0
-      else:
-        print("Now you can add it into your commit.")
-  return 1
-
+  for dir in dirs:
+    violations += shared.lib.checkfiles(
+      pattern = ".+\\.(cpp|h)",
+      dir = dir,
+      action = lambda f : checkandupdate(f, replace=autoformat, addtogit=autogitadd),
+      only_changed = iscurrentcommit)
+  return 0 if len(violations) == 0 else 1
 
 if __name__ == "__main__":
   sys.exit(main(sys.argv))
