@@ -149,9 +149,9 @@ class SnapshotHash {
  public:
   SnapshotHash();
   SnapshotHash(const SnapshotHash &) = delete;
-  SnapshotHash(const SnapshotHash &&) = delete;
+  SnapshotHash(SnapshotHash &&) = delete;
   SnapshotHash &operator=(const SnapshotHash &) = delete;
-  SnapshotHash &operator=(const SnapshotHash &&) = delete;
+  SnapshotHash &operator=(SnapshotHash &&) = delete;
 
   void AddUTXO(const UTXO &utxo);
   void SubUTXO(const UTXO &utxo);
