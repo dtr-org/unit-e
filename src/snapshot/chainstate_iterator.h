@@ -21,8 +21,11 @@ class ChainstateIterator {
   explicit ChainstateIterator(CCoinsViewDB *view);
   bool Valid();
   void Next();
-  const UTXOSubset &GetUTXOSubset() { return m_utxoSubset; }
-  const uint256 &GetBestBlock() { return m_cursor->GetBestBlock(); }
+  const UTXOSubset &GetUTXOSubset() const { return m_utxoSubset; }
+  const uint256 &GetBestBlock() const { return m_cursor->GetBestBlock(); }
+  const SnapshotHash &GetSnapshotHash() const {
+    return m_cursor->GetSnapshotHash();
+  }
 
  private:
   bool m_valid;

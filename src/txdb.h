@@ -76,8 +76,9 @@ public:
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
+    snapshot::SnapshotHash GetSnapshotHash() const override;
     std::vector<uint256> GetHeadBlocks() const override;
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) override;
+    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
     CCoinsViewCursor *Cursor() const override;
 
     //! Attempt to update from an older database format. Returns whether an error occurred.
@@ -95,6 +96,7 @@ public:
     bool SetSnapshotIds(std::vector<uint32_t> &ids);
     bool ReserveSnapshotId(uint32_t &idOut);
     bool LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer);
+    bool SetSnapshotHash(const snapshot::SnapshotHash &hash);
 private:
     // guarantee that all snapshot IDs are generated sequentially
     CCriticalSection cs_reservedSnapshotId;
@@ -114,8 +116,8 @@ public:
     void Next() override;
 
 private:
-    CCoinsViewDBCursor(CDBIterator* pcursorIn, const uint256 &hashBlockIn):
-        CCoinsViewCursor(hashBlockIn), pcursor(pcursorIn) {}
+    CCoinsViewDBCursor(CDBIterator* pcursorIn, const uint256 &hashBlockIn, const snapshot::SnapshotHash &snapshotHash):
+        CCoinsViewCursor(hashBlockIn, snapshotHash), pcursor(pcursorIn) {}
     std::unique_ptr<CDBIterator> pcursor;
     std::pair<char, COutPoint> keyTmp;
 

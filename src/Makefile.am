@@ -188,6 +188,7 @@ UNITE_CORE_H = \
   snapshot/messages.h \
   snapshot/p2p_processing.h \
   snapshot/rpc_processing.h \
+  snapshot/snapshot_validation.h \
   snapshot/state.h \
   staking/kernel.h \
   staking/stakingwallet.h \
@@ -296,6 +297,7 @@ libunite_server_a_SOURCES = \
   snapshot/messages.cpp \
   snapshot/p2p_processing.cpp \
   snapshot/rpc_processing.cpp \
+  snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
   timedata.cpp \
   torcontrol.cpp \
@@ -441,6 +443,7 @@ libunite_common_a_SOURCES = \
   scheduler.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  snapshot/messages.cpp \
   ufp64.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)

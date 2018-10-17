@@ -7,11 +7,12 @@
 
 #include <vector>
 
-#include <coins.h>
 #include <primitives/transaction.h>
 #include <secp256k1_multiset.h>
 #include <serialize.h>
 #include <uint256.h>
+
+class Coin;
 
 namespace snapshot {
 
@@ -126,12 +127,7 @@ struct UTXO {
         m_txOutIndex(0),
         m_txOut() {}
 
-  UTXO(const COutPoint &out, const Coin &coin)
-      : m_txId(out.hash),
-        m_height(coin.nHeight),
-        m_isCoinBase(coin.IsCoinBase()),
-        m_txOutIndex(out.n),
-        m_txOut(coin.out) {}
+  UTXO(const COutPoint &out, const Coin &coin);
 
   ADD_SERIALIZE_METHODS;
 
@@ -148,28 +144,17 @@ struct UTXO {
 class SnapshotHash {
  public:
   SnapshotHash();
-  SnapshotHash(const SnapshotHash &) = delete;
-  SnapshotHash(SnapshotHash &&) = delete;
-  SnapshotHash &operator=(const SnapshotHash &) = delete;
-  SnapshotHash &operator=(SnapshotHash &&) = delete;
+  explicit SnapshotHash(const std::vector<uint8_t> &data);
 
   void AddUTXO(const UTXO &utxo);
   void SubUTXO(const UTXO &utxo);
 
   //! GetHash returns the hash that represents the snapshot
   //! and must be stored inside CoinBase TX.
-  uint256 GetHash();
+  uint256 GetHash() const;
 
-  // Serialize methods are used to store the state in chainstate DB
-  template <typename Stream>
-  void Serialize(Stream &s) const {
-    s.write(reinterpret_cast<const char *>(m_multiset.d), sizeof(m_multiset.d));
-  }
-
-  template <typename Stream>
-  void Unserialize(Stream &s) {
-    s.read(reinterpret_cast<char *>(m_multiset.d), sizeof(m_multiset.d));
-  }
+  //! GetData returns internals of the hash and used to restore the state.
+  std::vector<uint8_t> GetData() const;
 
  private:
   secp256k1_multiset m_multiset;
@@ -177,7 +162,11 @@ class SnapshotHash {
 
 //! InitSecp256k1Context creates secp256k1_context. If creation failed,
 //! the node must be stopped
-bool InitSecp256k1Context();
+bool CreateSecp256k1Context();
+
+//! DeleteSecp256k1Context destroys secp256k1_context. Must be invoked before
+//! creating a new context
+void DeleteSecp256k1Context();
 
 //! DestroySecp256k1Context destroys secp256k1_context. Must be invoked before
 //! creating a new context

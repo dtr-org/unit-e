@@ -1,6 +1,7 @@
 branches:
   only:
     - master
+    - add_snapshot_hash_to_chainstate
 sudo: required
 dist: trusty
 os: linux

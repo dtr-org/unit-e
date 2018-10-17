@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
 
   uint256 bestBlockHash = uint256S("aa");
   uint256 snapshotHash = uint256S(
-      "dc5e01885aaa4e50881d90ed9010632a805c5c019918059fa6d3fe5e9ddc54f0");
+      "920d33e3b53521c00827e998cbe2f63161f96cd1cd07e698eda393dffff0c0fe");
   const uint64_t totalMessages = 6;
 
   // simulate that header was already received
@@ -70,6 +70,8 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
     snapshot::UTXOSubset subset2;
     subset1.m_txId = uint256FromUint64(i * 2);
     subset2.m_txId = uint256FromUint64(i * 2 + 1);
+    subset1.m_outputs[0] = CTxOut();
+    subset2.m_outputs[0] = CTxOut();
     snap.m_utxoSubsets.emplace_back(subset1);
     snap.m_utxoSubsets.emplace_back(subset2);
     snap.m_snapshotHash = snapshotHash;

@@ -162,8 +162,6 @@ class Indexer {
   FILE *GetClosestIdx(uint64_t subsetIndex, uint32_t &subsetLeftOut,
                       uint64_t &subsetReadOut);
 
-  uint256 CalcSnapshotHash();
-
   //! \brief Flush flushes data in the memory to disk.
   //!
   //! Can be invoked after each write. It's automatically called when it's time

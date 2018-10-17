@@ -4,14 +4,24 @@
 
 #include <snapshot/messages.h>
 
+#include <algorithm>
+
+#include <coins.h>
 #include <streams.h>
 #include <version.h>
 
 namespace snapshot {
 
+UTXO::UTXO(const COutPoint &out, const Coin &coin)
+    : m_txId(out.hash),
+      m_height(coin.nHeight),
+      m_isCoinBase(coin.IsCoinBase()),
+      m_txOutIndex(out.n),
+      m_txOut(coin.out) {}
+
 secp256k1_context *context = nullptr;
 
-bool InitSecp256k1Context() {
+bool CreateSecp256k1Context() {
   context = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
   return context != nullptr;
 }
@@ -19,6 +29,11 @@ bool InitSecp256k1Context() {
 void DestroySecp256k1Context() { secp256k1_context_destroy(context); }
 
 SnapshotHash::SnapshotHash() { secp256k1_multiset_init(context, &m_multiset); }
+
+SnapshotHash::SnapshotHash(const std::vector<uint8_t> &data) {
+  assert(data.size() == sizeof(m_multiset.d));
+  std::copy(data.begin(), data.end(), m_multiset.d);
+}
 
 void SnapshotHash::AddUTXO(const UTXO &utxo) {
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
@@ -38,10 +53,16 @@ void SnapshotHash::SubUTXO(const snapshot::UTXO &utxo) {
                             stream.size());
 }
 
-uint256 SnapshotHash::GetHash() {
+uint256 SnapshotHash::GetHash() const {
   uint256 hash;
   secp256k1_multiset_finalize(context, hash.begin(), &m_multiset);
   return hash;
+}
+
+std::vector<uint8_t> SnapshotHash::GetData() const {
+  std::vector<uint8_t> data(sizeof(m_multiset.d));
+  std::copy(std::begin(m_multiset.d), std::end(m_multiset.d), data.begin());
+  return data;
 }
 
 }  // namespace snapshot

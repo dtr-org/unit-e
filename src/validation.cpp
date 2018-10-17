@@ -50,6 +50,7 @@
 
 #include <esperanza/finalizationstate.h>
 #include <tinyformat.h>
+#include <snapshot/snapshot_validation.h>
 
 #if defined(NDEBUG)
 # error "UnitE cannot be compiled without assertions."
@@ -2071,6 +2072,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
                                  REJECT_INVALID, "bad-txns-nonfinal");
             }
+        }
+
+        if (!snapshot::ValidateCandidateBlockTx(tx, pindex, &view)) {
+            return state.DoS(100, error("%s: tx doesn't pass snapshot validation", __func__),
+                           REJECT_INVALID, "bad-txns-snapshot-hash");
         }
 
         // GetTransactionSigOpCost counts 3 types of sigops:

@@ -39,6 +39,12 @@ class Iterator {
   void Next();
   bool MoveCursorTo(uint64_t subsetIndex);
 
+  //! CalculateHash calculates the hash of the full snapshot content.
+  //! After calling this function the cursor will be invalid. To re-use the
+  //! iterator again, it must be explicitly unwind to the beginning.
+  //! iter->MoveCursorTo(0)
+  uint256 CalculateHash();
+
  private:
   std::unique_ptr<Indexer> m_indexer;
 

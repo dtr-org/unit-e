@@ -36,6 +36,7 @@ static const std::string DB_SNAPSHOT_ID = "SNAPSHOT";
 static const std::string DB_INIT_SNAPSHOT_ID = "INIT_SNAPSHOT";
 static const std::string DB_CANDIDATE_SNAPSHOT_ID = "CANDIDATE_SNAPSHOT";
 static const std::string DB_ALL_SNAPSHOTS = "ALL_SNAPSHOTS";
+static const std::string DB_SNAPSHOT_HASH_DATA = "SNAPSHOT_HASH_DATA";
 
 namespace {
 
@@ -88,7 +89,7 @@ std::vector<uint256> CCoinsViewDB::GetHeadBlocks() const {
     return vhashHeadBlocks;
 }
 
-bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
+bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) {
     CDBBatch batch(db);
     size_t count = 0;
     size_t changed = 0;
@@ -106,6 +107,8 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
         }
     }
 
+    // todo(kostia): recover snapshot hash from the crash
+
     // In the first batch, mark the database as being in the middle of a
     // transition from old_tip to hashBlock.
     // A vector is used for future extensibility, as we may want to support
@@ -116,10 +119,11 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
     for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end();) {
         if (it->second.flags & CCoinsCacheEntry::DIRTY) {
             CoinEntry entry(&it->first);
-            if (it->second.coin.IsSpent())
+            if (it->second.coin.IsSpent()) {
                 batch.Erase(entry);
-            else
+            } else {
                 batch.Write(entry, it->second.coin);
+            }
             changed++;
         }
         count++;
@@ -142,6 +146,7 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
     // In the last batch, mark the database as consistent with hashBlock again.
     batch.Erase(DB_HEAD_BLOCKS);
     batch.Write(DB_BEST_BLOCK, hashBlock);
+    batch.Write(DB_SNAPSHOT_HASH_DATA, snapshotHash.GetData());
 
     LogPrint(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
     bool ret = db.WriteBatch(batch);
@@ -179,7 +184,7 @@ bool CBlockTreeDB::ReadLastBlockFile(int &nFile) {
 
 CCoinsViewCursor *CCoinsViewDB::Cursor() const
 {
-    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock());
+    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock(), GetSnapshotHash());
     /* It seems that there are no "const iterators" for LevelDB.  Since we
        only need read operations on it, use a const-cast to get around
        that restriction.  */
@@ -493,6 +498,18 @@ bool CCoinsViewDB::ReserveSnapshotId(uint32_t &idOut) {
     return true;
 }
 
+snapshot::SnapshotHash CCoinsViewDB::GetSnapshotHash() const {
+    std::vector<uint8_t>data;
+    if (db.Read(DB_SNAPSHOT_HASH_DATA, data)) {
+        return snapshot::SnapshotHash(data);
+    }
+    return snapshot::SnapshotHash();
+}
+
+bool CCoinsViewDB::SetSnapshotHash(const snapshot::SnapshotHash &hash) {
+  return db.Write(DB_SNAPSHOT_HASH_DATA, hash.GetData());
+}
+
 bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
     LogPrint(BCLog::COINDB, "%s: Apply snapshot id=%i.\n", __func__,
              indexer->GetSnapshotId());
@@ -536,7 +553,7 @@ bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
         ++writtenSubsets;
 
         if (writtenSubsets % 100000 == 0) { // ~12 MB/batch
-            if (!BatchWrite(coinMap, iter.GetBestBlockHash())) {
+            if (!BatchWrite(coinMap, iter.GetBestBlockHash(), {})) {
                 LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
                 return false;
             }
@@ -554,7 +571,7 @@ bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
     }
 
     if (!coinMap.empty()) {
-        if (!BatchWrite(coinMap, iter.GetBestBlockHash())) {
+        if (!BatchWrite(coinMap, iter.GetBestBlockHash(), {})) {
             LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
             return false;
         }

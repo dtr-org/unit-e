@@ -51,7 +51,8 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   uint32_t snapshotId = 0;
   uint32_t step = 3;
   uint32_t stepsPerFile = 2;
-  snapshot::Indexer indexer(snapshotId, uint256(), uint256(), step,
+  uint256 snapshotHash = uint256S("aa");
+  snapshot::Indexer indexer(snapshotId, snapshotHash, uint256(), step,
                             stepsPerFile);
 
   CDataStream stream(SER_DISK, PROTOCOL_VERSION);
@@ -73,12 +74,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   BOOST_CHECK(fs::exists(dir / "index.dat"));
   BOOST_CHECK(!fs::exists(dir / "utxo3.dat"));
 
-  BOOST_CHECK(!indexer.GetMeta().m_snapshotHash.IsNull());
-  uint256 hash;
-  CSHA256()
-      .Write((unsigned char*)&(*stream.begin()), stream.size())
-      .Finalize(hash.begin());
-  BOOST_CHECK_EQUAL(HexStr(indexer.GetMeta().m_snapshotHash), HexStr(hash));
+  BOOST_CHECK_EQUAL(indexer.GetMeta().m_snapshotHash.GetHex(), snapshotHash.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
@@ -88,8 +84,9 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   uint32_t snapshotId = 0;
   uint32_t step = 3;
   uint32_t stepsPerFile = 3;
+  uint256 snapshotHash = uint256S("aa");
   std::unique_ptr<snapshot::Indexer> indexer(new snapshot::Indexer(
-      snapshotId, uint256(), uint256(), step, stepsPerFile));
+      snapshotId, snapshotHash, uint256(), step, stepsPerFile));
 
   // close and re-open indexer after each write
   uint64_t totalMsgs = (step * stepsPerFile) * 3 + step;
@@ -121,7 +118,6 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   // validate the content
   indexer = snapshot::Indexer::Open(snapshotId);
   BOOST_CHECK(indexer);
-  BOOST_CHECK(!indexer->GetMeta().m_snapshotHash.IsNull());
 
   snapshot::Iterator iter(std::move(indexer));
   CDataStream streamOut(SER_DISK, PROTOCOL_VERSION);
@@ -132,16 +128,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
     BOOST_CHECK_EQUAL(msg.m_txId.GetUint64(0), i);
   }
   BOOST_CHECK_EQUAL(HexStr(streamIn), HexStr(streamOut));
-
-  uint256 hash;
-  CSHA256()
-      .Write((unsigned char*)&(*streamIn.begin()), streamIn.size())
-      .Finalize(hash.begin());
-  // indexer calculates only once, after the first flush
-  // so we are re-calculating the snapshot hash here.
-  indexer = snapshot::Indexer::Open(snapshotId);
-  BOOST_CHECK(indexer);
-  BOOST_CHECK_EQUAL(HexStr(indexer->CalcSnapshotHash()), HexStr(hash));
+  BOOST_CHECK_EQUAL(iter.GetSnapshotHash().GetHex(), snapshotHash.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {

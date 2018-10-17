@@ -321,13 +321,8 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     hash1.AddUTXO(a);
     hash1.AddUTXO(b);
 
-    // simulate storing multiset data on disk
-    CDataStream stream(SER_DISK, PROTOCOL_VERSION);
-    stream << hash1;
-
-    // read multiset data from disk
-    snapshot::SnapshotHash hash2;
-    stream >> hash2;
+    // simulate reading snapshot data from disk
+    snapshot::SnapshotHash hash2(hash1.GetData());
 
     BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), hash2.GetHash().GetHex());
     hash1.AddUTXO(c);
