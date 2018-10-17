@@ -100,7 +100,15 @@ UniValue withdraw(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
   }
 
-  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::Phase::IS_VALIDATING){
+  if(extWallet.validatorState.m_lastEsperanzaTx == nullptr) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
+  }
+
+  if(extWallet.validatorState.m_lastEsperanzaTx->IsWithdraw()) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Already withdrawn.");
+  }
+
+  if (extWallet.validatorState.m_phase != +esperanza::ValidatorState::Phase::NOT_VALIDATING){
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is validating, logout first.");
   }
 
@@ -176,24 +184,6 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
   pwallet->BlockUntilSyncedToCurrentChain();
 
   UniValue obj(UniValue::VOBJ);
-
-  std::string status;
-
-  switch (extWallet.validatorState.m_phase) {
-    case esperanza::ValidatorState::Phase::NOT_VALIDATING:
-      status = "NOT_VALIDATING";
-      break;
-    case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION:
-      status = "WAITING_DEPOSIT_CONFIRMATION";
-      break;
-    case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION:
-      status = "WAITING_DEPOSIT_FINALIZATION";
-      break;
-    case esperanza::ValidatorState::Phase::IS_VALIDATING:
-      status = "IS_VALIDATING";
-      break;
-    default: status = "UNKNOWN";
-  }
 
   obj.pushKV("enabled", gArgs.GetBoolArg("-validating", true));
   obj.pushKV("validator_status", extWallet.validatorState.m_phase._to_string());

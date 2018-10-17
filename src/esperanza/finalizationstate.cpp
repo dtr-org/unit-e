@@ -4,6 +4,7 @@
 
 #include <chainparams.h>
 #include <esperanza/finalizationstate.h>
+#include <esperanza/validation.h>
 #include <esperanza/vote.h>
 #include <script/ismine.h>
 #include <stdio.h>
@@ -985,32 +986,28 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       }
 
       case TxType::DEPOSIT: {
-        std::vector<std::vector<unsigned char>> vSolutions;
-        txnouttype typeRet;
+        uint256 validatorIndex = uint256();
 
-        if (Solver(tx->vout[0].scriptPubKey, typeRet, vSolutions)) {
-          state->ProcessDeposit(CPubKey(vSolutions[0]).GetHash(),
-                                tx->GetValueOut());
+        if (ExtractValidatorIndex(*tx.get(), validatorIndex)) {
+          state->ProcessDeposit(validatorIndex, tx->GetValueOut());
         }
         break;
       }
 
       case TxType::LOGOUT: {
-        std::vector<std::vector<unsigned char>> vSolutions;
-        txnouttype typeRet;
+        uint256 validatorIndex = uint256();
 
-        if (Solver(tx->vout[0].scriptPubKey, typeRet, vSolutions)) {
-          state->ProcessLogout(CPubKey(vSolutions[0]).GetHash());
+        if (ExtractValidatorIndex(*tx.get(), validatorIndex)) {
+          state->ProcessLogout(validatorIndex);
         }
         break;
       }
 
       case TxType::WITHDRAW: {
-        std::vector<std::vector<unsigned char>> vSolutions;
-        txnouttype typeRet;
+        uint256 validatorIndex = uint256();
 
-        if (Solver(tx->vout[0].scriptPubKey, typeRet, vSolutions)) {
-          state->ProcessWithdraw(CPubKey(vSolutions[0]).GetHash());
+        if (ExtractValidatorIndex(*tx.get(), validatorIndex)) {
+          state->ProcessWithdraw(validatorIndex);
         }
         break;
       }

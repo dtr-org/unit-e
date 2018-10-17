@@ -401,7 +401,7 @@ void WalletExtension::ReadValidatorStateFromFile() {
 /**
  * \brief Creates a deposit transaction for the given address and amount.
  *
- * \param[in] address the destination
+ * \param[in] keyID the destination pubkey
  * \param[in] amount
  * \param[out] wtxOut the transaction created
  * \returns true if the operation was successful, false otherwise.

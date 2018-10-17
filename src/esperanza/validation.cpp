@@ -32,14 +32,19 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-deposit-script-not-solvable");
   }
 
-  FinalizationState *state = FinalizationState::GetState(pindex);
+  uint256 validatorIndex = uint256();
 
-  esperanza::Result res = state->ValidateDeposit(
-      CPubKey(vSolutions[0]).GetHash(), tx.GetValueOut());
-
-  if (res != +esperanza::Result::SUCCESS) {
+  if (!ExtractValidatorIndex(tx, validatorIndex)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-deposit-invalid-esperanza");
+                        "bad-deposit-cannot-extract-validator-index");
+  }
+
+  const FinalizationState *state = FinalizationState::GetState(pindex);
+
+  const Result res = state->ValidateDeposit(validatorIndex, tx.GetValueOut());
+
+  if (res != +Result::SUCCESS) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-deposit-invalid-state");
   }
 
   return true;
@@ -54,7 +59,7 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 bool IsVoteExpired(const CTransaction &tx) {
 
   Vote vote = CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig);
-  FinalizationState *state = FinalizationState::GetState();
+  const FinalizationState *state = FinalizationState::GetState();
 
   return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
 }
@@ -79,15 +84,19 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-logout-script-not-solvable");
   }
 
-  esperanza::FinalizationState *state =
-      esperanza::FinalizationState::GetState(pindex);
+  uint256 validatorIndex = uint256();
 
-  esperanza::Result res =
-      state->ValidateLogout(CPubKey(vSolutions[0]).GetHash());
-
-  if (res != +esperanza::Result::SUCCESS) {
+  if (!ExtractValidatorIndex(tx, validatorIndex)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-logout-invalid-esperanza");
+                        "bad-logout-cannot-extract-validator-index");
+  }
+
+  const FinalizationState *state = FinalizationState::GetState(pindex);
+
+  const Result res = state->ValidateLogout(validatorIndex);
+
+  if (res != +Result::SUCCESS) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-logout-invalid-state");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -140,9 +149,6 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                         "bad-withdraw-script-not-solvable");
   }
 
-  esperanza::FinalizationState *state =
-      esperanza::FinalizationState::GetState(pindex);
-
   CTransactionRef prevTx;
   uint256 blockHash;
 
@@ -162,12 +168,20 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                         "bad-logout-script-not-solvable");
   }
 
-  esperanza::Result res = state->ValidateWithdraw(
-      CPubKey(prevSolutions[0]).GetHash(), tx.vout[0].nValue);
+  uint256 validatorIndex = uint256();
 
-  if (res != +esperanza::Result::SUCCESS) {
+  if (!ExtractValidatorIndex(tx, validatorIndex)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-withdraw-invalid-esperanza");
+                        "bad-logout-cannot-extract-validator-index");
+  }
+
+  const FinalizationState *state = FinalizationState::GetState(pindex);
+
+  const Result res = state->ValidateWithdraw(validatorIndex, tx.vout[0].nValue);
+
+  if (res != +Result::SUCCESS) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-withdraw-invalid-state");
   }
 
   if (!prevTx->IsLogout() && !prevTx->IsVote()) {
@@ -191,12 +205,12 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-vote-vout-script-invalid-payvoteslash");
   }
 
-  FinalizationState *state = FinalizationState::GetState(pindex);
+  const FinalizationState *state = FinalizationState::GetState(pindex);
 
-  esperanza::Result res = state->ValidateVote(
+  const Result res = state->ValidateVote(
       CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig));
 
-  if (res != +esperanza::Result::SUCCESS) {
+  if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-vote-invalid-esperanza");
   }
@@ -292,6 +306,48 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
   }
 
   return true;
+}
+
+bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorIndexOut) {
+
+  switch (tx.GetType()) {
+    case TxType::DEPOSIT:
+    case TxType::LOGOUT: {
+      std::vector<std::vector<unsigned char>> vSolutions;
+      txnouttype typeRet;
+
+      if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+        validatorIndexOut = CPubKey(vSolutions[0]).GetHash();
+        return true;
+      }
+      return false;
+    }
+    case TxType::WITHDRAW: {
+      std::vector<std::vector<unsigned char>> vSolutions;
+      txnouttype typeRet;
+      if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+        return false;
+      }
+
+      // At the moment P2PKH is the only format supported for withdraws
+      if (typeRet == TX_PUBKEYHASH) {
+        const CScript scriptSig = tx.vin[0].scriptSig;
+        auto pc = scriptSig.begin();
+        std::vector<unsigned char> vData;
+        opcodetype opcode;
+
+        // Skip the first value (signature)
+        scriptSig.GetOp(pc, opcode);
+
+        // Retrieve the public key
+        scriptSig.GetOp(pc, opcode, vData);
+        validatorIndexOut = CPubKey(vData).GetHash();
+        return true;
+      }
+      return false;
+    }
+    default: { return false; }
+  }
 }
 
 }  // namespace esperanza
