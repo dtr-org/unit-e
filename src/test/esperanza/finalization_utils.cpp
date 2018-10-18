@@ -18,7 +18,7 @@ CTransaction CreateBaseTransaction(const CTransaction &spendableTx,
   mutTx.vin[0].prevout.hash = spendableTx.GetHash();
   mutTx.vin[0].prevout.n = 0;
 
-  CTxOut out{amount, scriptPubKey};
+  CTxOut out(amount, scriptPubKey);
   mutTx.vout.push_back(out);
 
   // Sign
@@ -32,7 +32,7 @@ CTransaction CreateBaseTransaction(const CTransaction &spendableTx,
   mutTx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
                                      << ToByteVector(spendableKey.GetPubKey());
 
-  return CTransaction{mutTx};
+  return CTransaction(mutTx);
 }
 
 CTransaction CreateVoteTx(esperanza::Vote &vote) {
@@ -57,7 +57,7 @@ CTransaction CreateVoteTx(esperanza::Vote &vote) {
   CTxOut out{10000, scriptPubKey};
   mutTx.vout.push_back(out);
 
-  return CTransaction{mutTx};
+  return CTransaction(mutTx);
 }
 
 CTransaction CreateDepositTx(const CTransaction &spendableTx,

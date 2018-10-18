@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
   tx.SetType(TxType::DEPOSIT);
   tx.vin.resize(1);
   tx.vout.resize(1);
-  CTransaction prevTx{tx};
+  CTransaction prevTx(tx);
 
   CTransaction deposit = CreateDepositTx(prevTx, k, 10000);
   uint256 validatorIndex = uint256();
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
   tx.SetType(TxType::DEPOSIT);
   tx.vin.resize(1);
   tx.vout.resize(1);
-  CTransaction prevTx{tx};
+  CTransaction prevTx(tx);
 
   CTransaction logout = CreateLogoutTx(prevTx, k, 10000);
   uint256 validatorIndex = uint256();
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
   tx.SetType(TxType::LOGOUT);
   tx.vin.resize(1);
   tx.vout.resize(1);
-  CTransaction prevTx{tx};
+  CTransaction prevTx(tx);
 
   CTransaction withdraw = CreateWithdrawTx(prevTx, k, 10000);
   uint256 validatorIndex = uint256();
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
   tx.SetType(TxType::STANDARD);
   tx.vin.resize(1);
   tx.vout.resize(1);
-  CTransaction prevTx{tx};
+  CTransaction prevTx(tx);
 
   CTransaction p2pkh = CreateP2PKHTx(prevTx, k, 10000);
   uint256 validatorIndex = uint256();
