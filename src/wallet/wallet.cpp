@@ -11,6 +11,7 @@
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
+#include <esperanza/validation.h>
 #include <fs.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
@@ -1076,14 +1077,6 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 }
             }
 
-            CWalletTx wtx(this, ptx);
-
-            // Get merkle branch if transaction was found in a block
-            if (pIndex != nullptr) {
-                wtx.SetMerkleBranch(pIndex, posInBlock);
-            }
-            bool rv = AddToWallet(wtx, false);
-
             if (pIndex != nullptr) {
               switch (tx.GetType()) {
 
@@ -1104,11 +1097,15 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "Deposit hash %s.\n",
                              __func__, tx.GetHash().GetHex());
 
-                    std::vector<std::vector<unsigned char>> vSolutions;
-                    txnouttype typeRet;
-                    Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions);
+                    uint256 validatorIndex = uint256();
 
-                    state.m_validatorIndex = CPubKey(vSolutions[0]).GetHash();
+                    if(!esperanza::ExtractValidatorIndex(tx, validatorIndex)) {
+                      LogPrint(BCLog::FINALIZATION,
+                               "ERROR: %s - Cannot extract validator index.\n");
+                      return false;
+                    }
+
+                    state.m_validatorIndex = validatorIndex;
                     state.m_lastEsperanzaTx = ptx;
                     state.m_depositEpoch =
                         esperanza::FinalizationState::GetEpoch(pIndex);
@@ -1120,6 +1117,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              __func__, tx.GetHash().GetHex(),
                              expectedPhase._to_string(),
                              state.m_phase._to_string());
+                    return false;
                   }
                   break;
                 }
@@ -1149,6 +1147,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              __func__,
                              expectedPhase._to_string(),
                              state.m_phase._to_string());
+                    return false;
                   }
                   break;
                 }
@@ -1169,6 +1168,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              __func__,
                              expectedPhase._to_string(),
                              state.m_phase._to_string());
+                    return false;
                   }
                   break;
                 }
@@ -1176,7 +1176,13 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
               }
             }
 
-            return rv;
+            CWalletTx wtx(this, ptx);
+
+            // Get merkle branch if transaction was found in a block
+            if (pIndex != nullptr) {
+              wtx.SetMerkleBranch(pIndex, posInBlock);
+            }
+            return AddToWallet(wtx, false);
         }
     }
     return false;

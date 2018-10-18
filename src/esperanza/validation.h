@@ -9,6 +9,7 @@
 #include <chain.h>
 #include <consensus/validation.h>
 #include <primitives/block.h>
+#include <primitives/transaction.h>
 
 namespace esperanza {
 
@@ -32,6 +33,14 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 
 bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
                            const CBlockIndex *pindex = nullptr);
+
+//! \brief Extracts the validator index from the transaction if applicable.
+//! The function supports only LOGOUT, DEPOSIT and WITHDRAW, anything else
+//! will return false.
+//! \param tx
+//! \param validatorIndexOut
+//! \return true if successful, false otherwise.
+bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorIndexOut);
 
 }  // namespace esperanza
 
