@@ -323,28 +323,19 @@ bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorIndexOut) {
       return false;
     }
     case TxType::WITHDRAW: {
-      std::vector<std::vector<unsigned char>> vSolutions;
-      txnouttype typeRet;
-      if (!Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-        return false;
-      }
 
-      // At the moment P2PKH is the only format supported for withdraws
-      if (typeRet == TX_PUBKEYHASH) {
-        const CScript scriptSig = tx.vin[0].scriptSig;
-        auto pc = scriptSig.begin();
-        std::vector<unsigned char> vData;
-        opcodetype opcode;
+      const CScript scriptSig = tx.vin[0].scriptSig;
+      auto pc = scriptSig.begin();
+      std::vector<unsigned char> vData;
+      opcodetype opcode;
 
-        // Skip the first value (signature)
-        scriptSig.GetOp(pc, opcode);
+      // Skip the first value (signature)
+      scriptSig.GetOp(pc, opcode);
 
-        // Retrieve the public key
-        scriptSig.GetOp(pc, opcode, vData);
-        validatorIndexOut = CPubKey(vData).GetHash();
-        return true;
-      }
-      return false;
+      // Retrieve the public key
+      scriptSig.GetOp(pc, opcode, vData);
+      validatorIndexOut = CPubKey(vData).GetHash();
+      return true;
     }
     default: { return false; }
   }
