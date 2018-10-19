@@ -1530,12 +1530,13 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
     CScript s = (CScript() << ParseHex(signature)) << voteVector;
 
     std::vector<unsigned char> extractedVoteSig;
-    esperanza::Vote decodeData = CScript::ExtractVoteFromSignature(s, extractedVoteSig);
+    esperanza::Vote decodeVote;
+    BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(s, decodeVote, extractedVoteSig));
 
-    BOOST_CHECK_EQUAL(decodeData.m_validatorAddress.GetHex(), validatorAddress);
-    BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash), targetHash);
-    BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
-    BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(decodeVote.m_validatorAddress.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodeVote.m_targetHash), targetHash);
+    BOOST_CHECK_EQUAL(decodeVote.m_sourceEpoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodeVote.m_targetEpoch, targetHeight);
     BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
                       HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }

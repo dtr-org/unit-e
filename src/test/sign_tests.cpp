@@ -11,6 +11,8 @@
 #include <string.h>
 #include <test/test_unite.h>
 #include <util.h>
+#include <boost/test/unit_test.hpp>
+#include <boost/test/unit_test_log.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(sign_tests, ReducedTestingSetup)
 
@@ -59,9 +61,9 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
 
   BOOST_CHECK_EQUAL(SCRIPT_ERR_OK, serror);
 
+  esperanza::Vote signedVote;
   std::vector<unsigned char> extractedVoteSig;
-  esperanza::Vote signedVote =
-      CScript::ExtractVoteFromSignature(sigdata.scriptSig, extractedVoteSig);
+  BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(sigdata.scriptSig, signedVote, extractedVoteSig));
 
   BOOST_CHECK_EQUAL(vote.m_validatorAddress.GetHex(), signedVote.m_validatorAddress.GetHex());
   BOOST_CHECK_EQUAL(vote.m_targetHash, signedVote.m_targetHash);

@@ -444,7 +444,8 @@ esperanza::Vote CScript::ExtractVoteFromWitness(const CScriptWitness &witness,
     return DecodeVote(voteScript, voteSig);
 }
 
-esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig,
+bool CScript::ExtractVoteFromVoteSignature(const CScript &scriptSig,
+                                                  esperanza::Vote &vote
                                                   std::vector<unsigned char> &voteSig)
 {
     const_iterator pc = scriptSig.begin();
@@ -452,12 +453,51 @@ esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig,
     opcodetype opcode;
 
     //Skip the first value (txSig)
-    scriptSig.GetOp(pc, opcode);
+    if(!scriptSig.GetOp(pc, opcode)) {
+        return false;
+    }
 
     //Unpack the vote
-    scriptSig.GetOp(pc, opcode, vData);
+    if(!scriptSig.GetOp(pc, opcode, vData)) {
+        return false;
+    }
+
     CScript voteScript(vData.begin(), vData.end());
-    return DecodeVote(voteScript, voteSig);
+    vote = DecodeVote(voteScript, voteSig);
+
+    return true;
+}
+
+bool CScript::ExtractVoteFromSlashSignature(const CScript &scriptSig,
+    esperanza::Vote &vote1,
+    esperanza::Vote &vote2,
+    std::vector<unsigned char> &vote1Sig,
+    std::vector<unsigned char> &vote2Sig)
+{
+  const_iterator pc = scriptSig.begin();
+  std::vector<unsigned char> vData;
+  opcodetype opcode;
+
+  //Skip the first value (txSig)
+  if(!scriptSig.GetOp(pc, opcode)) {
+      return false;
+  }
+
+  //Unpack the first vote
+  if(!scriptSig.GetOp(pc, opcode, vData)) {
+    return false;
+  }
+  CScript voteScript = CScript(vData.begin(), vData.end());
+  vote1 = DecodeVote(voteScript, vote1Sig);
+
+  //Unpack the second vote
+  if(!scriptSig.GetOp(pc, opcode, vData)) {
+    return false;
+  }
+  voteScript = CScript(vData.begin(), vData.end());
+  vote2 = DecodeVote(voteScript);
+
+  return true;
 }
 
 bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,

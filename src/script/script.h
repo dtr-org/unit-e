@@ -221,9 +221,6 @@ struct CScriptWitness
     // encoding them as a CScript that pushes them.
     std::vector<std::vector<unsigned char> > stack;
 
-    // Some compilers complain without a default constructor
-    CScriptWitness() { }
-
     bool IsNull() const { return stack.empty(); }
 
     void SetNull() { stack.clear(); stack.shrink_to_fit(); }
@@ -693,7 +690,8 @@ public:
     static esperanza::Vote DecodeVote(const CScript &script, std::vector<unsigned char> &voteSig);
     static CScript EncodeVote(const esperanza::Vote &data, const std::vector<unsigned char> &voteSig);
     static esperanza::Vote ExtractVoteFromWitness(const CScriptWitness &scriptSig, std::vector<unsigned char> &voteSig);
-    static esperanza::Vote ExtractVoteFromSignature(const CScript &scriptSig, std::vector<unsigned char> &voteSig);
+    static bool ExtractVoteFromVoteSignature(const CScript &scriptSig, esperanza::Vote &vote, std::vector<unsigned char> &voteSig);
+    static bool ExtractVoteFromSlashSignature(const CScript &scriptSig, esperanza::Vote &vote1, esperanza::Vote &vote2);
     static bool ExtractAdminKeysFromWitness(const CScriptWitness &witness, std::vector<CPubKey> &outKeys);
 
     /**

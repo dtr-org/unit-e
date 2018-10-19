@@ -4,7 +4,6 @@
 
 #include <test/test_unite.h>
 
-#include <chainparams.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <crypto/sha256.h>

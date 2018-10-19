@@ -10,23 +10,26 @@
 
 namespace esperanza {
 
-Params::Params(const CChainParams *chainParams) : m_chainParams(chainParams) {
+Parameters::Parameters(const CChainParams *chainParams)
+    : m_chainParams(chainParams) {
   assert(chainParams != nullptr);
 }
 
-uint32_t Params::GetModifierInterval() const { return m_modifierInterval; }
+uint32_t Parameters::GetModifierInterval() const { return m_modifierInterval; }
 
-uint32_t Params::GetStakeMinConfirmations() const {
+uint32_t Parameters::GetStakeMinConfirmations() const {
   return m_stakeMinConfirmations;
 }
 
-uint32_t Params::GetTargetSpacing() const { return m_targetSpacing; }
+uint32_t Parameters::GetTargetSpacing() const { return m_targetSpacing; }
 
-uint32_t Params::GetTargetTimespan() const { return m_targetTimespan; }
+uint32_t Parameters::GetTargetTimespan() const { return m_targetTimespan; }
 
-int64_t Params::GetStakeTimestampMask() const { return m_stakeTimestampMask; }
+int64_t Parameters::GetStakeTimestampMask() const {
+  return m_stakeTimestampMask;
+}
 
-int64_t Params::GetCoinYearReward(int64_t nTime) const {
+int64_t Parameters::GetCoinYearReward(int64_t nTime) const {
   static const int64_t nSecondsInYear = 365 * 24 * 60 * 60;
 
   if (m_chainParams->NetworkIDString() != "regtest") {
@@ -42,8 +45,8 @@ int64_t Params::GetCoinYearReward(int64_t nTime) const {
   return m_coinYearReward;
 }
 
-int64_t Params::GetProofOfStakeReward(const CBlockIndex *pindexPrev,
-                                      int64_t nFees) const {
+int64_t Parameters::GetProofOfStakeReward(const CBlockIndex *pindexPrev,
+                                          int64_t nFees) const {
   int64_t nSubsidy;
 
   nSubsidy = (pindexPrev->nMoneySupply / UNIT) *

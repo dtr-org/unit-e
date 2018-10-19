@@ -58,8 +58,8 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 //! \returns true if the vote is expired, false otherwise.
 bool IsVoteExpired(const CTransaction &tx) {
 
-  std::vector<unsigned char> voteSig;
-  Vote vote = CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig, voteSig);
+  Vote vote;
+  assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig));
   const FinalizationState *state = FinalizationState::GetState();
 
   return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
@@ -208,13 +208,15 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
 
+  Vote vote;
   std::vector<unsigned char> voteSig;
-  const Result res = state->ValidateVote(
-      CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig, voteSig));
+  if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
+  }
+  const Result res = state->ValidateVote(vote);
 
   if (res != +Result::SUCCESS) {
-    return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-invalid-esperanza");
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
   }
 
   // We keep the check for the prev at the end because is the most expensive

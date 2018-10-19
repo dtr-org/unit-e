@@ -15,7 +15,7 @@ namespace esperanza {
 /*!
  * \brief Esperanza Proof-of-Stake specific blockchain parameters.
  */
-class Params final {
+class Parameters final {
 
  private:
   //! chain params these params are embedded in
@@ -37,8 +37,10 @@ class Params final {
 
   int64_t m_coinYearReward = 2 * EEES;  // 2% per year
 
+  Parameters();
+
  public:
-  Params(const CChainParams *chainParams);
+  Parameters(const CChainParams *chainParams);
 
   uint32_t GetModifierInterval() const;
 
