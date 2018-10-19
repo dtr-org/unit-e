@@ -300,10 +300,9 @@ class TestManager():
         tests = self.test_generator.get_tests()
         for test_instance in tests:
             test_number += 1
+            test_name = "#" + str(test_number)
             if test_instance.test_name:
-                test_name = "\"" + test_instance.test_name + "\" (#" + str(test_number) + ")"
-            else:
-                test_name = "#" + str(test_number)
+                test_name += " \"" + test_instance.test_name + "\""
             logger.info("Running test %s: %s line %s" % (test_name, tests.gi_code.co_filename, tests.gi_frame.f_lineno))
             # We use these variables to keep track of the last block
             # and last transaction in the tests, which are used

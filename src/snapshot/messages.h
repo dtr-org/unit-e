@@ -153,6 +153,10 @@ class SnapshotHash {
   //! and must be stored inside CoinBase TX.
   uint256 GetHash() const;
 
+  std::vector<uint8_t> GetHashVector() const;
+
+  void Clear();
+
   //! GetData returns internals of the hash and used to restore the state.
   std::vector<uint8_t> GetData() const;
 
@@ -162,7 +166,7 @@ class SnapshotHash {
 
 //! InitSecp256k1Context creates secp256k1_context. If creation failed,
 //! the node must be stopped
-bool CreateSecp256k1Context();
+bool InitSecp256k1Context();
 
 //! DeleteSecp256k1Context destroys secp256k1_context. Must be invoked before
 //! creating a new context

@@ -16,7 +16,7 @@ Generate 427 more blocks.
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, create_block, add_witness_commitment
+from test_framework.blocktools import create_coinbase, create_block, add_witness_commitment, get_tip_snapshot_meta
 from test_framework.script import CScript
 from io import BytesIO
 import time
@@ -110,7 +110,8 @@ class NULLDUMMYTest(UnitETestFramework):
 
 
     def block_submit(self, node, txs, witness = False, accept = False):
-        block = create_block(self.tip, create_coinbase(self.lastblockheight + 1), self.lastblocktime + 1)
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        block = create_block(self.tip, create_coinbase(self.lastblockheight + 1, snapshot_hash), self.lastblocktime + 1)
         block.nVersion = 4
         for tx in txs:
             tx.rehash()

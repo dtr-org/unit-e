@@ -13,6 +13,7 @@
 #include <test/test_unite.h>
 #include <validation.h>
 #include <validationinterface.h>
+#include <snapshot/messages.h>
 
 struct RegtestingSetup : public TestingSetup {
     RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
@@ -46,7 +47,13 @@ struct TestSubscriber : public CValidationInterface {
     }
 };
 
-std::shared_ptr<CBlock> Block(const uint256& prev_hash)
+struct BlockData {
+  std::shared_ptr<CBlock> block;
+  snapshot::SnapshotHash hash;
+  uint32_t height;
+};
+
+BlockData Block(const BlockData &prevData)
 {
     static int i = 0;
     static uint64_t time = Params().GenesisBlock().nTime;
@@ -56,15 +63,21 @@ std::shared_ptr<CBlock> Block(const uint256& prev_hash)
 
     auto ptemplate = BlockAssembler(Params()).CreateNewBlock(pubKey, false);
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
-    pblock->hashPrevBlock = prev_hash;
+    pblock->hashPrevBlock = prevData.block->GetHash();
     pblock->nTime = ++time;
 
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vout.resize(1);
+    txCoinbase.vin[0].scriptSig = CScript() << (prevData.height + 1) << prevData.hash.GetHashVector() << OP_0;
     txCoinbase.vin[0].scriptWitness.SetNull();
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
 
-    return pblock;
+    snapshot::SnapshotHash newHash(prevData.hash.GetData());
+    const COutPoint out(pblock->vtx[0]->GetHash(), 0);
+    const Coin coin(pblock->vtx[0]->vout[0], prevData.height + 1, true);
+    newHash.AddUTXO(snapshot::UTXO(out, coin));
+
+    return BlockData{pblock, newHash, prevData.height + 1};
 }
 
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
@@ -79,43 +92,46 @@ std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
 }
 
 // construct a valid block
-const std::shared_ptr<const CBlock> GoodBlock(const uint256& prev_hash)
+const BlockData GoodBlock(const BlockData& prevData)
 {
-    return FinalizeBlock(Block(prev_hash));
+    BlockData data = Block(prevData);
+    FinalizeBlock(data.block);
+    return data;
 }
 
 // construct an invalid block (but with a valid header)
-const std::shared_ptr<const CBlock> BadBlock(const uint256& prev_hash)
+const BlockData BadBlock(const BlockData& prevData)
 {
-    auto pblock = Block(prev_hash);
+    BlockData data = Block(prevData);
 
     CMutableTransaction coinbase_spend;
-    coinbase_spend.vin.push_back(CTxIn(COutPoint(pblock->vtx[0]->GetHash(), 0), CScript(), 0));
-    coinbase_spend.vout.push_back(pblock->vtx[0]->vout[0]);
+    coinbase_spend.vin.push_back(CTxIn(COutPoint(data.block->vtx[0]->GetHash(), 0), CScript(), 0));
+    coinbase_spend.vout.push_back(data.block->vtx[0]->vout[0]);
 
     CTransactionRef tx = MakeTransactionRef(coinbase_spend);
-    pblock->vtx.push_back(tx);
+    data.block->vtx.push_back(tx);
 
-    auto ret = FinalizeBlock(pblock);
-    return ret;
+    FinalizeBlock(data.block);
+    return data;
 }
 
-void BuildChain(const uint256& root, int height, const unsigned int invalid_rate, const unsigned int branch_rate, const unsigned int max_size, std::vector<std::shared_ptr<const CBlock>>& blocks)
+void BuildChain(const BlockData &root, int height, const unsigned int invalid_rate, const unsigned int branch_rate, const unsigned int max_size, std::vector<std::shared_ptr<const CBlock>>& blocks)
 {
     if (height <= 0 || blocks.size() >= max_size) return;
 
     bool gen_invalid = GetRand(100) < invalid_rate;
     bool gen_fork = GetRand(100) < branch_rate;
 
-    const std::shared_ptr<const CBlock> pblock = gen_invalid ? BadBlock(root) : GoodBlock(root);
-    blocks.push_back(pblock);
+    const BlockData blockData = gen_invalid ? BadBlock(root) : GoodBlock(root);
+    blocks.push_back(blockData.block);
     if (!gen_invalid) {
-        BuildChain(pblock->GetHash(), height - 1, invalid_rate, branch_rate, max_size, blocks);
+        BuildChain(blockData, height - 1, invalid_rate, branch_rate, max_size, blocks);
     }
 
     if (gen_fork) {
-        blocks.push_back(GoodBlock(root));
-        BuildChain(blocks.back()->GetHash(), height - 1, invalid_rate, branch_rate, max_size, blocks);
+        const BlockData data = GoodBlock(root);
+        blocks.push_back(data.block);
+        BuildChain(data, height - 1, invalid_rate, branch_rate, max_size, blocks);
     }
 }
 
@@ -123,9 +139,30 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 {
     // build a large-ish chain that's likely to have some forks
     std::vector<std::shared_ptr<const CBlock>> blocks;
+
+    BlockData genesisData;
+    {
+        genesisData.block = std::make_shared<CBlock>(Params().GenesisBlock());
+        genesisData.height = 0;
+
+        for (size_t txIdx = 0; txIdx < genesisData.block->vtx.size(); ++txIdx) {
+            auto &tx = genesisData.block->vtx[txIdx];
+            for (size_t i = 0; i < tx->vout.size(); ++i) {
+                auto &out = tx->vout[i];
+                if (out.scriptPubKey.IsUnspendable()) {
+                  continue;
+                }
+
+                const COutPoint outPoint(tx->GetHash(), i);
+                const Coin coin(out, 0, txIdx == 0);
+                genesisData.hash.AddUTXO(snapshot::UTXO(outPoint, coin));
+            }
+        }
+    }
+
     while (blocks.size() < 50) {
         blocks.clear();
-        BuildChain(Params().GenesisBlock().GetHash(), 100, 15, 10, 500, blocks);
+        BuildChain(genesisData, 100, 15, 10, 500, blocks);
     }
 
     bool ignored;

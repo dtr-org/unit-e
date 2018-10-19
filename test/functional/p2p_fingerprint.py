@@ -10,7 +10,14 @@ the node should pretend that it does not have it to avoid fingerprinting.
 
 import time
 
-from test_framework.blocktools import (create_block, create_coinbase)
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+    get_tip_snapshot_meta,
+    calc_snapshot_hash,
+    UTXO,
+    COutPoint,
+)
 from test_framework.mininode import (
     CInv,
     P2PInterface,
@@ -32,16 +39,17 @@ class P2PFingerprintTest(UnitETestFramework):
         self.num_nodes = 1
 
     # Build a chain of blocks on top of given one
-    def build_chain(self, nblocks, prev_hash, prev_height, prev_median_time):
+    def build_chain(self, nblocks, prev_hash, prev_height, prev_median_time, snapshot_meta):
         blocks = []
         for _ in range(nblocks):
-            coinbase = create_coinbase(prev_height + 1)
+            coinbase = create_coinbase(prev_height + 1, snapshot_meta.hash)
             block_time = prev_median_time + 1
             block = create_block(int(prev_hash, 16), coinbase, block_time)
             block.solve()
-
             blocks.append(block)
             prev_hash = block.hash
+            utxo = UTXO(prev_height + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo])
             prev_height += 1
             prev_median_time = block_time
         return blocks
@@ -84,13 +92,15 @@ class P2PFingerprintTest(UnitETestFramework):
         self.nodes[0].setmocktime(int(time.time()) - 60 * 24 * 60 * 60)
 
         # Generating a chain of 10 blocks
-        block_hashes = self.nodes[0].generate(nblocks=10)
+        block_hashes = self.nodes[0].generate(nblocks=8)
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        block_hashes += self.nodes[0].generate(nblocks=2)
 
         # Create longer chain starting 2 blocks before current tip
         height = len(block_hashes) - 2
         block_hash = block_hashes[height - 1]
         block_time = self.nodes[0].getblockheader(block_hash)["mediantime"] + 1
-        new_blocks = self.build_chain(5, block_hash, height, block_time)
+        new_blocks = self.build_chain(5, block_hash, height, block_time, snapshot_meta)
 
         # Force reorg to a longer chain
         node0.send_message(msg_headers(new_blocks))

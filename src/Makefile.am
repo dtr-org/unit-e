@@ -444,6 +444,8 @@ libunite_common_a_SOURCES = \
   script/sign.cpp \
   script/standard.cpp \
   snapshot/messages.cpp \
+  snapshot/iterator.cpp \
+  snapshot/indexer.cpp \
   ufp64.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)

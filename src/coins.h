@@ -15,6 +15,7 @@
 #include <serialize.h>
 #include <uint256.h>
 #include <snapshot/messages.h>
+#include <snapshot/indexer.h>
 
 #include <assert.h>
 #include <stdint.h>
@@ -210,6 +211,9 @@ public:
     //! Get a cursor to iterate over the whole state
     virtual CCoinsViewCursor *Cursor() const;
 
+    //! Removes all coins from the DB. Is invoked only once before applying the snapshot
+    virtual void ClearCoins();
+
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() {}
 
@@ -233,6 +237,7 @@ public:
     std::vector<uint256> GetHeadBlocks() const override;
     void SetBackend(CCoinsView &viewIn);
     bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
+    void ClearCoins() override;
     CCoinsViewCursor *Cursor() const override;
     size_t EstimateSize() const override;
 };
@@ -310,6 +315,13 @@ public:
      * If false is returned, the state of this cache (and its backing view) will be undefined.
      */
     bool Flush();
+
+    //! ApplySnapshot adds all UTXOs from the snapshot to the cache and then invokes Flush().
+    //! If false is returned, the state of this cache (and its backing view) will be undefined.
+    bool ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer);
+
+    //! Removes coins from the cache and from the base DB
+    void ClearCoins() override;
 
     /**
      * Removes the UTXO with the given outpoint from the cache, if it is

@@ -2076,7 +2076,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
         if (!snapshot::ValidateCandidateBlockTx(tx, pindex, &view)) {
             return state.DoS(100, error("%s: tx doesn't pass snapshot validation", __func__),
-                           REJECT_INVALID, "bad-txns-snapshot-hash");
+                           REJECT_INVALID, "bad-cb-snapshot-hash");
         }
 
         // GetTransactionSigOpCost counts 3 types of sigops:

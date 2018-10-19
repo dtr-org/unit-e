@@ -178,6 +178,24 @@ class TestNode():
             self.log.exception("Unable to stop node.")
         del self.p2ps[:]
 
+    # drain_main_signal_callbacks_pending: waits until all nodes process internal signals
+    # and become available for new p2p messages.
+    def drain_main_signal_callbacks_pending(self):
+        queue_size = self.getmainsignalscallbackspending()
+        while queue_size > 10:
+            time.sleep(1)
+            timeout = time.time() + 20
+            left = queue_size
+            while time.time() < timeout:
+                left = self.getmainsignalscallbackspending()
+                if left != queue_size:
+                    break
+                time.sleep(0.5)
+            if left == queue_size:
+                assert_greater_than_or_equal(10, left)  # print message
+            else:
+                queue_size = left
+
     def is_node_stopped(self):
         """Checks whether the node has stopped.
 

@@ -321,14 +321,11 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
 
   std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(snapshotId);
   assert(idx);
-  if (!pcoinsdbview->LoadSnapshot(std::move(idx))) {
+  if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
     // if we can't write the snapshot, we have an issue with the DB
     // and most likely we can't recover.
     return regularProcessing();
   }
-
-  // update the cache
-  pcoinsTip->SetBestBlock(blockHash);
 
   // disable block index check as at this stage we still have genesis block set
   // in setBlockIndexCandidates. It will be automatically removed after new

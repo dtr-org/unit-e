@@ -31,13 +31,14 @@ Start three nodes:
 """
 import time
 
-from test_framework.blocktools import (create_block, create_coinbase)
+from test_framework.blocktools import (create_block, create_coinbase, get_tip_snapshot_meta, calc_snapshot_hash)
 from test_framework.key import CECKey
 from test_framework.mininode import (CBlockHeader,
                                      COutPoint,
                                      CTransaction,
                                      CTxIn,
                                      CTxOut,
+                                     UTXO,
                                      network_thread_join,
                                      network_thread_start,
                                      P2PInterface,
@@ -115,22 +116,29 @@ class AssumeValidTest(UnitETestFramework):
 
         # Create the first block with a coinbase output to our key
         height = 1
-        block = create_block(self.tip, create_coinbase(height, coinbase_pubkey), self.block_time)
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        coinbase = create_coinbase(height, snapshot_meta.hash, coinbase_pubkey)
+        block = create_block(self.tip, coinbase, self.block_time)
         self.blocks.append(block)
         self.block_time += 1
         block.solve()
         # Save the coinbase for later
         self.block1 = block
         self.tip = block.sha256
+        utxo1 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo1])
         height += 1
 
         # Bury the block 100 deep so the coinbase output is spendable
         for i in range(100):
-            block = create_block(self.tip, create_coinbase(height), self.block_time)
+            coinbase = create_coinbase(height, snapshot_meta.hash)
+            block = create_block(self.tip, coinbase, self.block_time)
             block.solve()
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
+            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo])
             height += 1
 
         # Create a transaction spending the coinbase output with an invalid (null) signature
@@ -139,7 +147,8 @@ class AssumeValidTest(UnitETestFramework):
         tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE])))
         tx.calc_sha256()
 
-        block102 = create_block(self.tip, create_coinbase(height), self.block_time)
+        coinbase = create_coinbase(height, snapshot_meta.hash)
+        block102 = create_block(self.tip, coinbase, self.block_time)
         self.block_time += 1
         block102.vtx.extend([tx])
         block102.hashMerkleRoot = block102.calc_merkle_root()
@@ -148,16 +157,23 @@ class AssumeValidTest(UnitETestFramework):
         self.blocks.append(block102)
         self.tip = block102.sha256
         self.block_time += 1
+
+        utxo2 = UTXO(height, False, COutPoint(tx.sha256, 0), tx.vout[0])
+        utxo3 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [utxo1], [utxo2, utxo3])
         height += 1
 
         # Bury the assumed valid block 2100 deep
         for i in range(2100):
-            block = create_block(self.tip, create_coinbase(height), self.block_time)
+            coinbase = create_coinbase(height, snapshot_meta.hash)
+            block = create_block(self.tip, coinbase, self.block_time)
             block.nVersion = 4
             block.solve()
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
+            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo])
             height += 1
 
         # We're adding new connections so terminate the network thread

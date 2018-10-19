@@ -22,9 +22,11 @@ from test_framework.mininode import network_thread_start
 import struct
 
 class PreviousSpendableOutput():
-    def __init__(self, tx = CTransaction(), n = -1):
+    def __init__(self, tx = CTransaction(), n=-1, height=0):
         self.tx = tx
         self.n = n  # the output we're spending
+        self.height = height  # at which height the tx was created
+        self.is_coin_base = tx.is_coin_base()
 
 #  Use this class for tests that require behavior other than normal "mininode" behavior.
 #  For now, it is used to serialize a bloated varint (b64).
@@ -62,6 +64,7 @@ class FullBlockTest(ComparisonTestFramework):
         self.num_nodes = 1
         self.setup_clean_chain = True
         self.block_heights = {}
+        self.block_snapshot_meta = {}  # key(block_hash) : value(SnapshotMeta)
         self.coinbase_key = CECKey()
         self.coinbase_key.set_secretbytes(b"horsebattery")
         self.coinbase_pubkey = self.coinbase_key.get_pubkey()
@@ -103,6 +106,48 @@ class FullBlockTest(ComparisonTestFramework):
         tx.rehash()
         return tx
 
+    def find_spend(self, prevout):
+        for num in self.blocks:
+            block = self.blocks[num]
+            for tx in block.vtx:
+                if tx.sha256 == prevout.hash:
+                    if block.sha256 not in self.block_heights:
+                        continue
+
+                    height = self.block_heights[block.sha256]
+                    return PreviousSpendableOutput(tx, prevout.n, height)
+
+
+    def set_block_snapshot_meta(self, block, spend=None):
+        block_height = self.block_heights[block.sha256]
+        inputs = []
+        outputs = []
+        for tx_idx, tx in enumerate(block.vtx):
+            if tx_idx != 0:  # coinbase doesn't spend outputs
+                for vin in tx.vin:
+                    if spend is None:
+                        spend = self.find_spend(vin.prevout)
+                    if spend is None:
+                        continue
+                    if len(spend.tx.vout) <= spend.n:
+                        continue
+                    out = spend.tx.vout[spend.n]
+                    if out.is_unspendable():
+                        continue
+                    utxo = UTXO(spend.height, spend.is_coin_base, vin.prevout, out)
+                    inputs.append(utxo)
+                    spend = None
+            for idx, out in enumerate(tx.vout):
+                if out.is_unspendable():
+                    continue
+                utxo = UTXO(block_height, tx_idx == 0, COutPoint(tx.sha256, idx), out)
+                outputs.append(utxo)
+
+        assert_equal(block_height, self.block_heights[block.hashPrevBlock]+1)
+        prev_meta = self.block_snapshot_meta[block.hashPrevBlock]
+        new_meta = calc_snapshot_hash(self.nodes[0], prev_meta.data, inputs, outputs)
+        self.block_snapshot_meta[block.sha256] = new_meta
+
     def next_block(self, number, spend=None, additional_coinbase_value=0, script=CScript([OP_TRUE]), solve=True):
         if self.tip == None:
             base_block_hash = self.genesis_hash
@@ -110,10 +155,17 @@ class FullBlockTest(ComparisonTestFramework):
         else:
             base_block_hash = self.tip.sha256
             block_time = self.tip.nTime + 1
+
+        if base_block_hash == self.genesis_hash:
+            meta = get_tip_snapshot_meta(self.nodes[0])
+            self.block_snapshot_meta[base_block_hash] = meta
+
         # First create the coinbase
         height = self.block_heights[base_block_hash] + 1
-        coinbase = create_coinbase(height, self.coinbase_pubkey)
+        snapshot_hash = self.block_snapshot_meta[base_block_hash].hash
+        coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
         coinbase.vout[0].nValue += additional_coinbase_value
+
         coinbase.rehash()
         if spend == None:
             block = create_block(base_block_hash, coinbase, block_time)
@@ -131,6 +183,8 @@ class FullBlockTest(ComparisonTestFramework):
         self.block_heights[block.sha256] = height
         assert number not in self.blocks
         self.blocks[number] = block
+        self.set_block_snapshot_meta(block, spend)
+
         return block
 
     def get_tests(self):
@@ -144,7 +198,9 @@ class FullBlockTest(ComparisonTestFramework):
 
         # get an output that we previously marked as spendable
         def get_spendable_output():
-            return PreviousSpendableOutput(spendable_outputs.pop(0).vtx[0], 0)
+            block = spendable_outputs.pop(0)
+            tx = block.vtx[0]
+            return PreviousSpendableOutput(tx, 0, self.block_heights[block.sha256])
 
         # returns a test case that asserts that the current tip was accepted
         def accepted(test_name = ""):
@@ -173,8 +229,16 @@ class FullBlockTest(ComparisonTestFramework):
             if block.sha256 != old_sha256:
                 self.block_heights[block.sha256] = self.block_heights[old_sha256]
                 del self.block_heights[old_sha256]
+                del self.block_snapshot_meta[old_sha256]
             self.blocks[block_number] = block
+            self.set_block_snapshot_meta(block)
             return block
+
+        def comp_snapshot_hash(block_number):
+            tip_meta = get_tip_snapshot_meta(self.nodes[0])
+            block = self.blocks[block_number]
+            cur_meta = self.block_snapshot_meta[block.sha256]
+            assert_equal(tip_meta.hash, cur_meta.hash)
 
         # shorthand for functions
         block = self.next_block
@@ -189,6 +253,7 @@ class FullBlockTest(ComparisonTestFramework):
         block(0)
         save_spendable_output()
         yield accepted()
+        comp_snapshot_hash(0)
 
 
         # Now we need that block to mature so we can spend the coinbase.
@@ -198,6 +263,7 @@ class FullBlockTest(ComparisonTestFramework):
             test.blocks_and_transactions.append([self.tip, True])
             save_spendable_output()
         yield test
+        comp_snapshot_hash(5098)
 
         # collect spendable outputs now to avoid cluttering the code later on
         out = []
@@ -210,10 +276,12 @@ class FullBlockTest(ComparisonTestFramework):
         block(1, spend=out[0])
         save_spendable_output()
         yield accepted()
+        comp_snapshot_hash(1)
 
         block(2, spend=out[1])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(2)
 
         # so fork like this:
         #
@@ -223,8 +291,9 @@ class FullBlockTest(ComparisonTestFramework):
         # Nothing should happen at this point. We saw b2 first so it takes priority.
         tip(1)
         b3 = block(3, spend=out[1])
-        txout_b3 = PreviousSpendableOutput(b3.vtx[1], 0)
+        txout_b3 = PreviousSpendableOutput(b3.vtx[1], 0, self.block_heights[b3.sha256])
         yield rejected()
+        comp_snapshot_hash(2)
 
 
         # Now we add another block to make the alternative chain longer.
@@ -233,6 +302,7 @@ class FullBlockTest(ComparisonTestFramework):
         #                      \-> b3 (1) -> b4 (2)
         block(4, spend=out[2])
         yield accepted()
+        comp_snapshot_hash(4)
 
 
         # ... and back to the first chain.
@@ -242,9 +312,11 @@ class FullBlockTest(ComparisonTestFramework):
         block(5, spend=out[2])
         save_spendable_output()
         yield rejected()
+        comp_snapshot_hash(4)
 
         block(6, spend=out[3])
         yield accepted()
+        comp_snapshot_hash(6)
 
         # Try to create a fork that double-spends
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (3)
@@ -253,9 +325,11 @@ class FullBlockTest(ComparisonTestFramework):
         tip(5)
         block(7, spend=out[2])
         yield rejected()
+        comp_snapshot_hash(6)
 
         block(8, spend=out[4])
         yield rejected()
+        comp_snapshot_hash(6)
 
         # Try to create a block that has too much fee
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (3)
@@ -264,6 +338,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(6)
         block(9, spend=out[4], additional_coinbase_value=1)
         yield rejected(RejectResult(16, b'bad-cb-amount'))
+        comp_snapshot_hash(6)
 
         # Create a fork that ends in a block with too much fee (the one that causes the reorg)
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -272,9 +347,11 @@ class FullBlockTest(ComparisonTestFramework):
         tip(5)
         block(10, spend=out[3])
         yield rejected()
+        comp_snapshot_hash(6)
 
         block(11, spend=out[4], additional_coinbase_value=1)
         yield rejected(RejectResult(16, b'bad-cb-amount'))
+        comp_snapshot_hash(6)
 
 
         # Try again, but with a valid fork first
@@ -289,14 +366,17 @@ class FullBlockTest(ComparisonTestFramework):
         # Deliver the block header for b12, and the block b13.
         # b13 should be accepted but the tip won't advance until b12 is delivered.
         yield TestInstance([[CBlockHeader(b12), None], [b13, False]])
+        comp_snapshot_hash(6)
 
         save_spendable_output()
         # b14 is invalid, but the node won't know that until it tries to connect
         # Tip still can't advance because b12 is missing
         block(14, spend=out[5], additional_coinbase_value=1)
         yield rejected()
+        comp_snapshot_hash(6)
 
         yield TestInstance([[b12, True, b13.sha256]]) # New tip should be b13.
+        comp_snapshot_hash(13)
 
         # Add a block with MAX_BLOCK_SIGOPS and one with one more sigop
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -309,12 +389,14 @@ class FullBlockTest(ComparisonTestFramework):
         block(15, spend=out[5], script=lots_of_checksigs)
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(15)
 
 
         # Test that a block with too many checksigs is rejected
         too_many_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS))
         block(16, spend=out[6], script=too_many_checksigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
+        comp_snapshot_hash(15)
 
 
         # Attempt to spend a transaction created on a different fork
@@ -324,6 +406,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(15)
         block(17, spend=txout_b3)
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
+        comp_snapshot_hash(15)
 
         # Attempt to spend a transaction created on a different fork (on a fork this time)
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -333,9 +416,11 @@ class FullBlockTest(ComparisonTestFramework):
         tip(13)
         block(18, spend=txout_b3)
         yield rejected()
+        comp_snapshot_hash(15)
 
         block(19, spend=out[6])
         yield rejected()
+        comp_snapshot_hash(15)
 
         # Attempt to spend a coinbase at depth too low
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -348,6 +433,7 @@ class FullBlockTest(ComparisonTestFramework):
         # yet as that we could not spend a transaction. Thus we changed from
         # rejected(RejectResult(16, b'bad-txns-premature-spend-of-coinbase')) to accepted() here.
         yield accepted(test_name="spend coinbase transaction from the first COINBASE_MATURITY blocks")
+        comp_snapshot_hash(20)
 
         # Attempt to spend a coinbase at depth too low (on a fork this time)
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -357,9 +443,11 @@ class FullBlockTest(ComparisonTestFramework):
         tip(13)
         block(21, spend=out[6])
         yield rejected(test_name="spend immature coinbase transaction from a fork")
+        comp_snapshot_hash(20)
 
         block(22, spend=out[5])
         yield rejected()
+        comp_snapshot_hash(20)
 
         # Create a block on either side of MAX_BLOCK_BASE_SIZE and make sure its accepted/rejected
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -378,6 +466,7 @@ class FullBlockTest(ComparisonTestFramework):
         assert_equal(len(b23.serialize()), MAX_BLOCK_BASE_SIZE)
         yield accepted(test_name="block of maximum size")
         save_spendable_output()
+        comp_snapshot_hash(23)
 
         # Make the next block one byte bigger and check that it fails
         tip(15)
@@ -388,9 +477,11 @@ class FullBlockTest(ComparisonTestFramework):
         b24 = update_block(24, [tx])
         assert_equal(len(b24.serialize()), MAX_BLOCK_BASE_SIZE+1)
         yield rejected(RejectResult(16, b'bad-blk-length'))
+        comp_snapshot_hash(23)
 
         block(25, spend=out[7])
         yield rejected()
+        comp_snapshot_hash(23)
 
         # Create blocks with a coinbase input script size out of range
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
@@ -405,10 +496,12 @@ class FullBlockTest(ComparisonTestFramework):
         # transactions, and updates the required state.
         b26 = update_block(26, [])
         yield rejected(RejectResult(16, b'bad-cb-length'))
+        comp_snapshot_hash(23)
 
         # Extend the b26 chain to make sure united isn't accepting b26
         block(27, spend=out[7])
         yield rejected(False)
+        comp_snapshot_hash(23)
 
         # Now try a too-large-coinbase script
         tip(15)
@@ -417,19 +510,23 @@ class FullBlockTest(ComparisonTestFramework):
         b28.vtx[0].rehash()
         b28 = update_block(28, [])
         yield rejected(RejectResult(16, b'bad-cb-length'))
+        comp_snapshot_hash(23)
 
         # Extend the b28 chain to make sure united isn't accepting b28
         block(29, spend=out[7])
         yield rejected(False)
+        comp_snapshot_hash(23)
 
         # b30 has a max-sized coinbase scriptSig.
         tip(23)
         b30 = block(30)
-        b30.vtx[0].vin[0].scriptSig = b'\x00' * 100
+        b30.vtx[0].vin[0].scriptSig += b'\x00' * (99-len(b30.vtx[0].vin[0].scriptSig))
+        assert_equal(len(b30.vtx[0].vin[0].scriptSig), 100)
         b30.vtx[0].rehash()
         b30 = update_block(30, [])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(30)
 
         # b31 - b35 - check sigops of OP_CHECKMULTISIG / OP_CHECKMULTISIGVERIFY / OP_CHECKSIGVERIFY
         #
@@ -445,12 +542,14 @@ class FullBlockTest(ComparisonTestFramework):
         assert_equal(get_legacy_sigopcount_block(b31), MAX_BLOCK_SIGOPS)
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(31)
 
         # this goes over the limit because the coinbase has one sigop
         too_many_multisigs = CScript([OP_CHECKMULTISIG] * (MAX_BLOCK_SIGOPS // 20))
         b32 = block(32, spend=out[9], script=too_many_multisigs)
         assert_equal(get_legacy_sigopcount_block(b32), MAX_BLOCK_SIGOPS + 1)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
+        comp_snapshot_hash(31)
 
 
         # CHECKMULTISIGVERIFY
@@ -459,10 +558,12 @@ class FullBlockTest(ComparisonTestFramework):
         block(33, spend=out[9], script=lots_of_multisigs)
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(33)
 
         too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * (MAX_BLOCK_SIGOPS // 20))
         block(34, spend=out[10], script=too_many_multisigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
+        comp_snapshot_hash(33)
 
 
         # CHECKSIGVERIFY
@@ -471,10 +572,12 @@ class FullBlockTest(ComparisonTestFramework):
         b35 = block(35, spend=out[10], script=lots_of_checksigs)
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(35)
 
         too_many_checksigs = CScript([OP_CHECKSIGVERIFY] * (MAX_BLOCK_SIGOPS))
         block(36, spend=out[11], script=too_many_checksigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
+        comp_snapshot_hash(35)
 
 
         # Check spending of a transaction in a block which failed to connect
@@ -488,15 +591,17 @@ class FullBlockTest(ComparisonTestFramework):
         # save 37's spendable output, but then double-spend out11 to invalidate the block
         tip(35)
         b37 = block(37, spend=out[11])
-        txout_b37 = PreviousSpendableOutput(b37.vtx[1], 0)
+        txout_b37 = PreviousSpendableOutput(b37.vtx[1], 0, self.block_heights[b37.sha256])
         tx = create_and_sign_tx(out[11].tx, out[11].n, 0)
         b37 = update_block(37, [tx])
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
+        comp_snapshot_hash(35)
 
         # attempt to spend b37's first non-coinbase tx, at which point b37 was still considered valid
         tip(35)
         block(38, spend=txout_b37)
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
+        comp_snapshot_hash(35)
 
         # Check P2SH SigOp counting
         #
@@ -547,6 +652,7 @@ class FullBlockTest(ComparisonTestFramework):
         b39 = update_block(39, [])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(39)
 
 
         # Test sigops in P2SH redeem scripts
@@ -588,6 +694,7 @@ class FullBlockTest(ComparisonTestFramework):
         new_txs.append(tx)
         update_block(40, new_txs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
+        comp_snapshot_hash(39)
 
         # same as b40, but one less sigop
         tip(39)
@@ -600,6 +707,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx.rehash()
         update_block(41, [tx])
         yield accepted()
+        comp_snapshot_hash(41)
 
         # Fork off of b39 to create a constant base again
         #
@@ -610,10 +718,12 @@ class FullBlockTest(ComparisonTestFramework):
         block(42, spend=out[12])
         yield rejected()
         save_spendable_output()
+        comp_snapshot_hash(41)
 
         block(43, spend=out[13])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(43)
 
 
         # Test a number of really invalid scenarios
@@ -624,7 +734,9 @@ class FullBlockTest(ComparisonTestFramework):
         # The next few blocks are going to be created "by hand" since they'll do funky things, such as having
         # the first transaction be non-coinbase, etc.  The purpose of b44 is to make sure this works.
         height = self.block_heights[self.tip.sha256] + 1
-        coinbase = create_coinbase(height, self.coinbase_pubkey)
+        snapshot_hash = self.block_snapshot_meta[self.tip.sha256].hash
+        coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
+
         b44 = CBlock()
         b44.nTime = self.tip.nTime + 1
         b44.hashPrevBlock = self.tip.sha256
@@ -635,7 +747,9 @@ class FullBlockTest(ComparisonTestFramework):
         self.tip = b44
         self.block_heights[b44.sha256] = height
         self.blocks[44] = b44
+        self.set_block_snapshot_meta(b44)
         yield accepted()
+        comp_snapshot_hash(44)
 
         # A block with a non-coinbase as the first tx
         non_coinbase = create_tx(out[15].tx, out[15].n, 1)
@@ -650,7 +764,9 @@ class FullBlockTest(ComparisonTestFramework):
         self.block_heights[b45.sha256] = self.block_heights[self.tip.sha256]+1
         self.tip = b45
         self.blocks[45] = b45
+        self.set_block_snapshot_meta(b45)
         yield rejected(RejectResult(16, b'bad-cb-missing'))
+        comp_snapshot_hash(44)
 
         # A block with no txns
         tip(44)
@@ -665,8 +781,10 @@ class FullBlockTest(ComparisonTestFramework):
         self.tip = b46
         assert 46 not in self.blocks
         self.blocks[46] = b46
+        self.set_block_snapshot_meta(b46)
         s = ser_uint256(b46.hashMerkleRoot)
         yield rejected(RejectResult(16, b'bad-blk-length'))
+        comp_snapshot_hash(44)
 
         # A block with invalid work
         tip(44)
@@ -676,6 +794,7 @@ class FullBlockTest(ComparisonTestFramework):
             b47.nNonce += 1
             b47.rehash()
         yield rejected(RejectResult(16, b'high-hash'))
+        comp_snapshot_hash(44)
 
         # A block with timestamp > 2 hrs in the future
         tip(44)
@@ -683,6 +802,7 @@ class FullBlockTest(ComparisonTestFramework):
         b48.nTime = int(time.time()) + 60 * 60 * 3
         b48.solve()
         yield rejected(RejectResult(16, b'time-too-new'))
+        comp_snapshot_hash(44)
 
         # A block with an invalid merkle hash
         tip(44)
@@ -690,6 +810,7 @@ class FullBlockTest(ComparisonTestFramework):
         b49.hashMerkleRoot += 1
         b49.solve()
         yield rejected(RejectResult(16, b'bad-txnmrklroot'))
+        comp_snapshot_hash(44)
 
         # A block with an incorrect POW limit
         tip(44)
@@ -697,13 +818,16 @@ class FullBlockTest(ComparisonTestFramework):
         b50.nBits = b50.nBits - 1
         b50.solve()
         yield rejected(RejectResult(16, b'bad-diffbits'))
+        comp_snapshot_hash(44)
 
         # A block with two coinbase txns
         tip(44)
+        snapshot_hash = self.block_snapshot_meta[self.tip.sha256].hash
         b51 = block(51)
-        cb2 = create_coinbase(51, self.coinbase_pubkey)
+        cb2 = create_coinbase(51, snapshot_hash, self.coinbase_pubkey)
         b51 = update_block(51, [cb2])
         yield rejected(RejectResult(16, b'bad-cb-multiple'))
+        comp_snapshot_hash(44)
 
         # A block w/ duplicate txns
         # Note: txns have to be in the right position in the merkle tree to trigger this error
@@ -712,6 +836,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx = create_tx(b52.vtx[1], 0, 1)
         b52 = update_block(52, [tx, tx])
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
+        comp_snapshot_hash(44)
 
         # Test block timestamps
         #  -> b31 (8) -> b33 (9) -> b35 (10) -> b39 (11) -> b42 (12) -> b43 (13) -> b53 (14) -> b55 (15)
@@ -721,12 +846,14 @@ class FullBlockTest(ComparisonTestFramework):
         block(53, spend=out[14])
         yield rejected() # rejected since b44 is at same height
         save_spendable_output()
+        comp_snapshot_hash(44)
 
         # invalid timestamp (b35 is 5 blocks back, so its time is MedianTimePast)
         b54 = block(54, spend=out[15])
         b54.nTime = b35.nTime - 1
         b54.solve()
         yield rejected(RejectResult(16, b'time-too-old'))
+        comp_snapshot_hash(44)
 
         # valid timestamp
         tip(53)
@@ -735,6 +862,7 @@ class FullBlockTest(ComparisonTestFramework):
         update_block(55, [])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(55)
 
 
         # Test CVE-2012-2459
@@ -779,6 +907,7 @@ class FullBlockTest(ComparisonTestFramework):
         b56 = update_block(56, [tx1])
         assert_equal(b56.hash, b57.hash)
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
+        comp_snapshot_hash(55)
 
         # b57p2 - a good block with 6 tx'es, don't submit until end
         tip(55)
@@ -789,6 +918,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx3 = create_tx(tx2, 0, 1)
         tx4 = create_tx(tx3, 0, 1)
         b57p2 = update_block("57p2", [tx, tx1, tx2, tx3, tx4])
+        # b57p2_meta = self.block_snapshot_meta[b57p2.block.sha256]
 
         # b56p2 - copy b57p2, duplicate two non-consecutive tx's
         tip(55)
@@ -798,13 +928,18 @@ class FullBlockTest(ComparisonTestFramework):
         assert_equal(len(b56p2.vtx),6)
         b56p2 = update_block("b56p2", [tx3, tx4])
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
+        comp_snapshot_hash(55)
 
         tip("57p2")
+        update_block("57p2", [])  # refresh snapshot hash in cache
         yield accepted()
+        comp_snapshot_hash("57p2")
 
         tip(57)
+        update_block(57, [])  # refresh snapshot hash in cache
         yield rejected()  #rejected because 57p2 seen first
         save_spendable_output()
+        comp_snapshot_hash("57p2")
 
         # Test a few invalid tx types
         #
@@ -822,6 +957,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx.calc_sha256()
         b58 = update_block(58, [tx])
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
+        comp_snapshot_hash("57p2")
 
         # tx with output value > input value out of range
         tip(57)
@@ -829,12 +965,14 @@ class FullBlockTest(ComparisonTestFramework):
         tx = create_and_sign_tx(out[17].tx, out[17].n, 51*UNIT)
         b59 = update_block(59, [tx])
         yield rejected(RejectResult(16, b'bad-txns-in-belowout'))
+        comp_snapshot_hash("57p2")
 
         # reset to good chain
         tip(57)
         b60 = block(60, spend=out[17])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(60)
 
         # Test tx.isFinal is properly rejected (not an exhaustive tx.isFinal test, that should be in data-driven transaction tests)
         #
@@ -852,6 +990,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx.calc_sha256()
         b62 = update_block(62, [tx])
         yield rejected(RejectResult(16, b'bad-txns-nonfinal'))
+        comp_snapshot_hash(60)
 
 
         # Test a non-final coinbase is also rejected
@@ -866,6 +1005,7 @@ class FullBlockTest(ComparisonTestFramework):
         b63.vtx[0].rehash()
         b63 = update_block(63, [])
         yield rejected(RejectResult(16, b'bad-txns-nonfinal'))
+        comp_snapshot_hash(60)
 
 
         #  This checks that a block with a bloated VARINT between the block_header and the array of tx such that
@@ -900,6 +1040,7 @@ class FullBlockTest(ComparisonTestFramework):
         b64a = update_block("64a", [tx])
         assert_equal(len(b64a.serialize()), MAX_BLOCK_BASE_SIZE + 8)
         yield TestInstance([[self.tip, None]])
+        comp_snapshot_hash(60)
 
         # comptool workaround: to make sure b64 is delivered, manually erase b64a from blockstore
         self.test.block_store.erase(b64a.sha256)
@@ -913,6 +1054,7 @@ class FullBlockTest(ComparisonTestFramework):
         update_block(64, [])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(64)
 
         # Spend an output created in the block itself
         #
@@ -925,6 +1067,7 @@ class FullBlockTest(ComparisonTestFramework):
         update_block(65, [tx1, tx2])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(65)
 
         # Attempt to spend an output created later in the same block
         #
@@ -936,6 +1079,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx2 = create_and_sign_tx(tx1, 0, 1)
         update_block(66, [tx2, tx1])
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
+        comp_snapshot_hash(65)
 
         # Attempt to double-spend a transaction created in a block
         #
@@ -950,6 +1094,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx3 = create_and_sign_tx(tx1, 0, 2)
         update_block(67, [tx1, tx2, tx3])
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
+        comp_snapshot_hash(65)
 
         # More tests of block subsidy
         #
@@ -968,6 +1113,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx = create_and_sign_tx(out[20].tx, out[20].n, out[20].tx.vout[0].nValue-9)
         update_block(68, [tx])
         yield rejected(RejectResult(16, b'bad-cb-amount'))
+        comp_snapshot_hash(65)
 
         tip(65)
         b69 = block(69, additional_coinbase_value=10)
@@ -975,6 +1121,7 @@ class FullBlockTest(ComparisonTestFramework):
         update_block(69, [tx])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(69)
 
         # Test spending the outpoint of a non-existent transaction
         #
@@ -990,6 +1137,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx.vout.append(CTxOut(1, b""))
         update_block(70, [tx])
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
+        comp_snapshot_hash(69)
 
 
         # Test accepting an invalid block which has the same hash as a valid one (via merkle tree tricks)
@@ -1016,9 +1164,12 @@ class FullBlockTest(ComparisonTestFramework):
 
         tip(71)
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
+        comp_snapshot_hash(69)
+
         tip(72)
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(72)
 
 
         # Test some invalid scripts and MAX_BLOCK_SIGOPS
@@ -1054,6 +1205,7 @@ class FullBlockTest(ComparisonTestFramework):
         b73 = update_block(73, [tx])
         assert_equal(get_legacy_sigopcount_block(b73), MAX_BLOCK_SIGOPS+1)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
+        comp_snapshot_hash(72)
 
         # b74/75 - if we push an invalid script element, all prevous sigops are counted,
         #          but sigops after the element are not counted.
@@ -1079,6 +1231,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx = create_and_sign_tx(out[22].tx, 0, 1, CScript(a))
         b74 = update_block(74, [tx])
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
+        comp_snapshot_hash(72)
 
         tip(72)
         b75 = block(75)
@@ -1093,6 +1246,7 @@ class FullBlockTest(ComparisonTestFramework):
         b75 = update_block(75, [tx])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(75)
 
         # Check that if we push an element filled with CHECKSIGs, they are not counted
         tip(75)
@@ -1104,6 +1258,7 @@ class FullBlockTest(ComparisonTestFramework):
         b76 = update_block(76, [tx])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(76)
 
         # Test transaction resurrection
         #
@@ -1129,16 +1284,19 @@ class FullBlockTest(ComparisonTestFramework):
         update_block(77, [tx77])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(77)
 
         block(78)
         tx78 = create_tx(tx77, 0, 9*UNIT)
         update_block(78, [tx78])
         yield accepted()
+        comp_snapshot_hash(78)
 
         block(79)
         tx79 = create_tx(tx78, 0, 8*UNIT)
         update_block(79, [tx79])
         yield accepted()
+        comp_snapshot_hash(79)
 
         # mempool should be empty
         assert_equal(len(self.nodes[0].getrawmempool()), 0)
@@ -1147,14 +1305,17 @@ class FullBlockTest(ComparisonTestFramework):
         block(80, spend=out[25])
         yield rejected()
         save_spendable_output()
+        comp_snapshot_hash(79)
 
         block(81, spend=out[26])
         yield rejected() # other chain is same length
         save_spendable_output()
+        comp_snapshot_hash(79)
 
         block(82, spend=out[27])
         yield accepted()  # now this chain is longer, triggers re-org
         save_spendable_output()
+        comp_snapshot_hash(82)
 
         # now check that tx78 and tx79 have been put back into the peer's mempool
         mempool = self.nodes[0].getrawmempool()
@@ -1179,6 +1340,7 @@ class FullBlockTest(ComparisonTestFramework):
         update_block(83, [tx1, tx2])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(83)
 
 
         # Reorg on/off blocks that have OP_RETURN in them (and try to spend them)
@@ -1207,28 +1369,34 @@ class FullBlockTest(ComparisonTestFramework):
         update_block(84, [tx1,tx2,tx3,tx4,tx5])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(84)
 
         tip(83)
         block(85, spend=out[29])
         yield rejected()
+        comp_snapshot_hash(84)
 
         block(86, spend=out[30])
         yield accepted()
+        comp_snapshot_hash(86)
 
         tip(84)
         block(87, spend=out[30])
         yield rejected()
         save_spendable_output()
+        comp_snapshot_hash(86)
 
         block(88, spend=out[31])
         yield accepted()
         save_spendable_output()
+        comp_snapshot_hash(88)
 
         # trying to spend the OP_RETURN output is rejected
         block("89a", spend=out[32])
         tx = create_tx(tx1, 0, 0, CScript([OP_TRUE]))
         update_block("89a", [tx])
         yield rejected()
+        comp_snapshot_hash(88)
 
 
         #  Test re-org of a week's worth of blocks (1088 blocks)
@@ -1254,6 +1422,7 @@ class FullBlockTest(ComparisonTestFramework):
 
             yield test1
             chain1_tip = i
+            comp_snapshot_hash(chain1_tip)
 
             # now create alt chain of same length
             tip(88)
@@ -1262,15 +1431,35 @@ class FullBlockTest(ComparisonTestFramework):
                 block("alt"+str(i))
                 test2.blocks_and_transactions.append([self.tip, False])
             yield test2
+            comp_snapshot_hash(chain1_tip)
 
             # extend alt chain to trigger re-org
             block("alt" + str(chain1_tip + 1))
             yield accepted()
+            comp_snapshot_hash("alt" + str(chain1_tip + 1))
 
             # ... and re-org back to the first chain
             tip(chain1_tip)
             block(chain1_tip + 1)
             yield rejected()
+            comp_snapshot_hash("alt" + str(chain1_tip + 1))
+            block(chain1_tip + 2)
+
+            yield accepted()
+            comp_snapshot_hash(chain1_tip + 2)
+
+            chain1_tip += 2
+
+            # reject block with invalid snapshot hash
+            height = self.block_heights[self.tip.sha256] + 1
+            snapshot_hash = self.block_snapshot_meta[self.tip.hashPrevBlock].hash
+            coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
+            chain1b3 = block(chain1_tip + 1)
+            chain1b3.vtx[0] = coinbase
+            update_block(chain1_tip + 1, [])
+            yield rejected(RejectResult(16, b'bad-cb-snapshot-hash'))
+
+            tip(chain1_tip)
             block(chain1_tip + 2)
             yield accepted()
 

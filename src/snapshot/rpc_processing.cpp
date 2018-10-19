@@ -173,6 +173,68 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
   return rootNode;
 }
 
+UniValue calcsnapshothash(const JSONRPCRequest &request) {
+  if (request.fHelp || request.params.size() < 2) {
+    throw std::runtime_error(
+        "calcsnapshothash\n"
+        "\nReturns snapshot hash and its data after arithmetic calculations\n"
+        "\nArguments:\n"
+        "1. \"inputs\" (hex, required) serialized UTXOs to subtract.\n"
+        "2. \"outputs\" (hex, required) serialized UTXOs to add.\n"
+        "3. \"snapshotData\" (hex, optional) initial snapshot data.\n"
+        "\nExamples:\n" +
+            HelpExampleCli("calcsnapshothash", "0100 0100 0000") +
+            HelpExampleRpc("calcsnapshothash", "0100 0100 0000"));
+  }
+
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  for (int i = 0; i < 2; ++i) {
+    std::vector<uint8_t> data = ParseHex(request.params[i].get_str());
+    stream.write(reinterpret_cast<char *>(data.data()), data.size());
+  }
+
+  std::vector<UTXO> inputs;
+  std::vector<UTXO> outputs;
+  stream >> inputs;
+  stream >> outputs;
+
+  SnapshotHash hash;
+  if (request.params.size() == 3) {
+    hash = SnapshotHash(ParseHex(request.params[2].get_str()));
+  }
+
+  for (const auto &in : inputs) {
+    hash.SubUTXO(in);
+  }
+
+  for (const auto &out : outputs) {
+    hash.AddUTXO(out);
+  }
+
+  UniValue root(UniValue::VOBJ);
+  root.push_back(Pair("hash", HexStr(hash.GetHash())));
+  root.push_back(Pair("data", HexStr(hash.GetData())));
+  return root;
+}
+
+UniValue gettipsnapshot(const JSONRPCRequest &request) {
+  if (request.fHelp) {
+    throw std::runtime_error(
+        "gettipsnapshot\n"
+        "\nReturns the snapshot hash of the tip\n"
+        "\nExamples:\n" +
+            HelpExampleCli("gettipsnapshot", "") +
+            HelpExampleRpc("gettipsnapshot", ""));
+  }
+
+  UniValue root(UniValue::VOBJ);
+  SnapshotHash hash = pcoinsTip->GetSnapshotHash();
+  root.push_back(Pair("hash", HexStr(hash.GetHash())));
+  root.push_back(Pair("data", HexStr(hash.GetData())));
+
+  return root;
+}
+
 // clang-format off
 static const CRPCCommand commands[] = {
     // category     name                 actor (function)   argNames
@@ -180,6 +242,8 @@ static const CRPCCommand commands[] = {
     { "blockchain", "createsnapshot",   &createsnapshot,   {"maxutxosubsets"} },
     { "blockchain", "readsnapshot",     &readsnapshot,     {"id"} },
     { "blockchain", "listsnapshots",    &listsnapshots,    {""} },
+    { "blockchain", "gettipsnapshot",   &gettipsnapshot,   {}},
+    { "blockchain", "calcsnapshothash", &calcsnapshothash, {}},
 };
 // clang-format on
 

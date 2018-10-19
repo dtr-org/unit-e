@@ -9,7 +9,6 @@
 #include <coins.h>
 #include <dbwrapper.h>
 #include <chain.h>
-#include <snapshot/indexer.h>
 
 #include <map>
 #include <memory>
@@ -80,6 +79,7 @@ public:
     std::vector<uint256> GetHeadBlocks() const override;
     bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
     CCoinsViewCursor *Cursor() const override;
+    void ClearCoins() override;
 
     //! Attempt to update from an older database format. Returns whether an error occurred.
     bool Upgrade();
@@ -95,7 +95,6 @@ public:
     std::vector<uint32_t> GetSnapshotIds();
     bool SetSnapshotIds(std::vector<uint32_t> &ids);
     bool ReserveSnapshotId(uint32_t &idOut);
-    bool LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer);
     bool SetSnapshotHash(const snapshot::SnapshotHash &hash);
 private:
     // guarantee that all snapshot IDs are generated sequentially
