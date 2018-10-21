@@ -148,7 +148,7 @@ class InjectionError {
 class UnregisteredDependenciesError : public InjectionError {
  public:
   std::vector<std::pair<std::string, std::type_index>> m_missingDependencies;
-  UnregisteredDependenciesError(
+  explicit UnregisteredDependenciesError(
       std::vector<std::pair<std::string, std::type_index>>
           &&missingDependencies)
       : m_missingDependencies(std::move(missingDependencies)){};
