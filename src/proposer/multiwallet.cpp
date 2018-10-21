@@ -12,7 +12,9 @@ namespace proposer {
 class MultiWalletAdapter : public MultiWallet {
 
  public:
-  const std::vector<CWallet *> GetWallets() const override { return vpwallets; }
+  const std::vector<CWallet *> &GetWallets() const override {
+    return vpwallets;
+  }
 };
 
 std::unique_ptr<MultiWallet> MultiWallet::MakeMultiWallet() {

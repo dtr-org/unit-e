@@ -15,7 +15,7 @@ namespace proposer {
 class MultiWallet {
 
  public:
-  virtual const std::vector<CWallet *> GetWallets() const = 0;
+  virtual const std::vector<CWallet *> &GetWallets() const = 0;
 
   virtual ~MultiWallet() = default;
 

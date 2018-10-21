@@ -172,11 +172,16 @@ template <typename I>
 class Injector {
 
  protected:
-  using Method = void (*)(I *);
   // `I` is not available in derived classes, a using declaration makes it
   // available though. Although the derived class will fill its own name in `I`,
   // that name is not known from the COMPONENT macro.
   using InjectorType = I;
+
+  // a function pointer to a function that takes an Injector as its first
+  // argument. Used for static methos to act as if they were non-static member
+  // methods, but we need a stable function pointer to them (thus static) and
+  // they need access to the injector (hence it's passed in).
+  using Method = void (*)(InjectorType *);
 
   struct Component {
     std::string m_name;
@@ -259,6 +264,20 @@ class Injector {
   }
 
  public:
+  //! \brief check and compute initialization order
+  //!
+  //! This function is useful to check the correctness of the Injector, sort of
+  //! like a dry run. It will throw the same exceptions as Initialize() would,
+  //! but will not actually initialize any component.
+  //!
+  //! \throws UnregisteredDependenciesError if the Injector contains a component
+  //! that depends on a type which is not bound (i.e. no Component of that type
+  //! is defined)
+  //!
+  //! \throws CircularDependenciesError if the dependency graph contains cycles.
+  //!
+  //! \return If the dependency graph checks out: a vector of
+  //! type_index objects
   std::vector<std::type_index> DetermineInitializationOrder() const {
     CheckDependencies();
     std::vector<std::pair<std::type_index, std::type_index>> dependencyGraph;

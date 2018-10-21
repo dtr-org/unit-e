@@ -9,6 +9,7 @@
 
 #include <proposer/blockproposer.h>
 #include <proposer/chainstate.h>
+#include <proposer/multiwallet.h>
 #include <proposer/network.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_settings.h>
@@ -20,6 +21,9 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(ChainState, proposer::ChainState, proposer::ChainState::MakeChain)
 
+  COMPONENT(MultiWallet, proposer::MultiWallet,
+            proposer::MultiWallet::MakeMultiWallet);
+
   COMPONENT(TransactionPicker, proposer::TransactionPicker,
             proposer::TransactionPicker::MakeBlockAssemblerAdapter)
 
@@ -29,6 +33,10 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(ProposerSettings, proposer::Settings,
             proposer::Settings::MakeSettings)
+
+  COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::MakeProposer,
+            proposer::Settings, proposer::MultiWallet, proposer::Network,
+            proposer::ChainState, proposer::BlockProposer)
 };
 
 #endif  // UNIT_E_INJECTOR_H

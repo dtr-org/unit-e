@@ -50,11 +50,12 @@ void Proposer::Thread::SetStatus(const Status status, CWallet *const wallet) {
 }
 
 std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
-    const std::vector<CWallet *> &wallets) {
+    Dependency<MultiWallet> multiWallet) {
+  const std::vector<CWallet *> &wallets = multiWallet->GetWallets();
   // total number of threads can not exceed number of wallets
   const size_t numThreads =
       std::min(wallets.size(),
-               std::max<size_t>(1, m_settings.m_numberOfProposerThreads));
+               std::max<size_t>(1, m_settings->m_numberOfProposerThreads));
 
   using WalletIndex = size_t;
   using ThreadIndex = size_t;
@@ -76,7 +77,7 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
       thisThreadsWallets.push_back(wallets[entry->second]);
     }
     std::string threadName =
-        m_settings.m_proposerThreadName + "-" + std::to_string(threadIx);
+        m_settings->m_proposerThreadName + "-" + std::to_string(threadIx);
     threads.emplace_back(std::unique_ptr<Proposer::Thread>(
         new Proposer::Thread(threadName, *this, thisThreadsWallets)));
   }
@@ -87,8 +88,8 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   return threads;
 }
 
-Proposer::Proposer(const esperanza::Settings &settings,
-                   const std::vector<CWallet *> &wallets,
+Proposer::Proposer(Dependency<Settings> settings,
+                   Dependency<MultiWallet> multiWallet,
                    Dependency<Network> networkInterface,
                    Dependency<ChainState> chainInterface,
                    Dependency<BlockProposer> blockProposer)
@@ -99,7 +100,7 @@ Proposer::Proposer(const esperanza::Settings &settings,
       m_initSemaphore(0),
       m_startSemaphore(0),
       m_stopSemaphore(0),
-      m_threads(CreateProposerThreads(wallets)) {}
+      m_threads(CreateProposerThreads(multiWallet)) {}
 
 Proposer::~Proposer() { Stop(); }
 
@@ -173,7 +174,7 @@ void Proposer::Run(Proposer::Thread &thread) {
         continue;
       }
 
-      int bestHeight;
+      uint32_t bestHeight;
       int64_t bestTime;
       {
         LOCK(thread.m_proposer.m_chain->GetLock());
@@ -187,7 +188,7 @@ void Proposer::Run(Proposer::Thread &thread) {
 
       for (auto *wallet : thread.m_wallets) {
         const int64_t gracePeriod =
-            seconds(thread.m_proposer.m_settings.m_minProposeInterval);
+            seconds(thread.m_proposer.m_settings->m_minProposeInterval);
         const int64_t lastTimeProposed =
             wallet->GetWalletExtension().m_proposerState.m_lastTimeProposed;
         const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
@@ -221,7 +222,7 @@ void Proposer::Run(Proposer::Thread &thread) {
       // and induce a sleep for a different duration. The thread as a whole
       // only has to sleep as long as the minimum of these durations to check
       // the wallet which is due next in time.
-      auto sleepFor = thread.m_proposer.m_settings.m_proposerSleep;
+      auto sleepFor = thread.m_proposer.m_settings->m_proposerSleep;
       const auto setSleepDuration =
           [&sleepFor](const decltype(sleepFor) amount) {
             sleepFor = std::min(sleepFor, amount);
@@ -231,7 +232,7 @@ void Proposer::Run(Proposer::Thread &thread) {
 
         const int64_t waitTill =
             walletExt.m_proposerState.m_lastTimeProposed +
-            seconds(thread.m_proposer.m_settings.m_minProposeInterval);
+            seconds(thread.m_proposer.m_settings->m_minProposeInterval);
         if (bestTime < waitTill) {
           const decltype(sleepFor) amount =
               std::chrono::seconds(waitTill - bestTime);
@@ -296,6 +297,14 @@ void Proposer::Run(Proposer::Thread &thread) {
   }
   LogPrint(BCLog::PROPOSING, "%s: stopping...\n", thread.m_threadName);
   thread.m_proposer.m_stopSemaphore.release();
+}
+
+std::unique_ptr<Proposer> Proposer::MakeProposer(
+    Dependency<Settings> settings, Dependency<MultiWallet> multiWallet,
+    Dependency<Network> network, Dependency<ChainState> chainState,
+    Dependency<BlockProposer> blockProposer) {
+  return MakeUnique<Proposer>(settings, multiWallet, network, chainState,
+                              blockProposer);
 }
 
 }  // namespace proposer

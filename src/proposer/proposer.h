@@ -12,7 +12,9 @@
 #include <primitives/block.h>
 #include <proposer/blockproposer.h>
 #include <proposer/chainstate.h>
+#include <proposer/multiwallet.h>
 #include <proposer/network.h>
+#include <proposer/proposer_settings.h>
 #include <proposer/proposer_status.h>
 #include <proposer/sync.h>
 #include <proposer/waiter.h>
@@ -38,17 +40,14 @@ class Proposer {
   friend struct ProposerAccess;
 
  public:
-  Proposer(
-      //! [in] esperanza settings
-      const esperanza::Settings &,
-      //! [in] a reference to all wallets to propose from
-      const std::vector<CWallet *> &,
-      //! dependency on network interface
-      Dependency<Network>,
-      //! dependency on chain interface
-      Dependency<ChainState>,
-      //! dependency on block proposer
-      Dependency<BlockProposer>);
+  static std::unique_ptr<Proposer> MakeProposer(Dependency<Settings>,
+                                                Dependency<MultiWallet>,
+                                                Dependency<Network>,
+                                                Dependency<ChainState>,
+                                                Dependency<BlockProposer>);
+
+  Proposer(Dependency<Settings>, Dependency<MultiWallet>, Dependency<Network>,
+           Dependency<ChainState>, Dependency<BlockProposer>);
 
   ~Proposer();
 
@@ -105,13 +104,9 @@ class Proposer {
     }
   };
 
-  //! reference to esperanza settings
-  const esperanza::Settings &m_settings;
-
+  Dependency<Settings> m_settings;
   Dependency<Network> m_network;
-
   Dependency<ChainState> m_chain;
-
   Dependency<BlockProposer> m_blockProposer;
 
   //! a semaphore for synchronizing initialization
@@ -126,7 +121,7 @@ class Proposer {
   const std::vector<std::unique_ptr<Thread>> m_threads;
 
   std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
-      const std::vector<CWallet *> &wallets);
+      Dependency<MultiWallet>);
 
   static void Run(Thread &);
 };
