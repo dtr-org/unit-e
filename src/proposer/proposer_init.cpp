@@ -4,20 +4,21 @@
 
 #include <proposer/proposer_init.h>
 
-#include <proposer/proposer.h>
+#include <injector.h>
 #include <util.h>
 
 #include <mutex>
+#include <utility>
 
 namespace proposer {
 
 static std::mutex initLock;
-static std::unique_ptr<Proposer> proposer = nullptr;
+static std::unique_ptr<UnitEInjector> injector = nullptr;
 
 bool InitProposer(const esperanza::Settings &settings,
                   const std::vector<CWallet *> &wallets) {
   std::unique_lock<decltype(initLock)> lock;
-  if (proposer) {
+  if (injector) {
     return false;
   }
   if (!settings.m_proposing) {
@@ -25,34 +26,36 @@ bool InitProposer(const esperanza::Settings &settings,
              "not starting proposer, proposing is not activated.\n");
     return true;
   }
+  auto _injector = MakeUnique<UnitEInjector>();
+  injector.swap(_injector);
   try {
-    proposer.reset(new Proposer(settings, wallets));
-    return true;
+    injector->Initialize();
   } catch (const std::runtime_error &exc) {
     LogPrint(BCLog::FINALIZATION, "failed to create proposer threads: %s\n",
              exc.what());
     return false;
   }
+  return true;
 }
 
 void StartProposer() {
-  if (proposer) {
+  if (injector) {
     LogPrint(BCLog::FINALIZATION, "starting proposer threads...\n");
-    proposer->Start();
+    injector->GetProposer()->Start();
   }
 }
 
 void StopProposer() {
-  if (proposer) {
+  if (injector) {
     LogPrint(BCLog::FINALIZATION, "stopping proposer threads...\n");
-    proposer->Stop();
+    injector->GetProposer()->Stop();
     LogPrint(BCLog::FINALIZATION, "all proposer threads exited.\n");
   }
 }
 
 void WakeProposer(const CWallet *wallet) {
-  if (proposer) {
-    proposer->Wake(wallet);
+  if (injector) {
+    injector->GetProposer()->Wake(wallet);
   }
 }
 

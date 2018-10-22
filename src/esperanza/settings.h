@@ -19,17 +19,6 @@ struct Settings {
   //! Whether this node should be a validator.
   bool m_validating = false;
 
-  //! How many threads to use for proposing. At least 1, at most number of
-  //! wallets.
-  size_t m_numberOfProposerThreads = 1;
-
-  std::chrono::milliseconds m_proposerSleep = std::chrono::seconds(30);
-
-  //! Minimum interval between proposing blocks
-  std::chrono::milliseconds m_minProposeInterval = std::chrono::seconds(4);
-
-  std::string m_proposerThreadName = "proposer";
-
   Settings(::ArgsManager &args);
 
   Settings(::ArgsManager &args, const Settings &defaultConfig);

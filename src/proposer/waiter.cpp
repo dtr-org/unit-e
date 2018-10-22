@@ -2,7 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <waiter.h>
+#include <proposer/waiter.h>
+
+namespace proposer {
 
 void Waiter::Wait() {
   std::unique_lock<decltype(m_mutex)> lock(m_mutex);
@@ -15,3 +17,5 @@ void Waiter::Wake() {
   m_waiting.clear();
   m_condition.notify_all();
 }
+
+}  // namespace proposer

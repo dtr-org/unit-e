@@ -5,16 +5,16 @@
 
 #include <chainparams.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/kernel.h>
 #include <esperanza/params.h>
-#include <esperanza/stakevalidation.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
+#include <staking/kernel.h>
+#include <staking/stakevalidation.h>
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validation.h>
 
-namespace esperanza {
+namespace staking {
 
 static const size_t MAX_STAKE_SEEN_SIZE = 1000;
 
@@ -125,7 +125,7 @@ bool CheckBlock(const CBlock &pblock) {
   uint256 proofHash, hashTarget;
   uint256 hashBlock = pblock.GetHash();
 
-  if (!esperanza::CheckStakeUnique(pblock, false)) {  // Check in SignBlock also
+  if (!staking::CheckStakeUnique(pblock, false)) {  // Check in SignBlock also
     return error("%s: %s CheckStakeUnique failed.", __func__,
                  hashBlock.GetHex());
   }
@@ -140,8 +140,8 @@ bool CheckBlock(const CBlock &pblock) {
                  hashBlock.GetHex(), pblock.hashPrevBlock.GetHex());
   }
   // verify hash target and signature of coinstake tx
-  if (!esperanza::CheckProofOfStake(mi->second, *pblock.vtx[0], pblock.nTime,
-                                    pblock.nBits, proofHash, hashTarget)) {
+  if (!staking::CheckProofOfStake(mi->second, *pblock.vtx[0], pblock.nTime,
+                                  pblock.nBits, proofHash, hashTarget)) {
     return error("%s: proof-of-stake checking failed.", __func__);
   }
 
@@ -166,15 +166,4 @@ bool CheckBlock(const CBlock &pblock) {
   return true;
 }
 
-bool ProposeBlock(const CBlock &block) {
-  if (!CheckBlock(block)) {
-    return false;
-  }
-  std::shared_ptr<const CBlock> shared_pblock =
-      std::make_shared<const CBlock>(block);
-  return ProcessNewBlock(::Params(), shared_pblock,
-                         /* fForceProcessing */ true,
-                         /* fNewBlock out */ nullptr);
-}
-
-}  // namespace esperanza
+}  // namespace staking

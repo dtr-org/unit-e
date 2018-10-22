@@ -2,13 +2,15 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_ESPERANZA_WAITER_H
-#define UNIT_E_ESPERANZA_WAITER_H
+#ifndef UNIT_E_PROPOSER_WAITER_H
+#define UNIT_E_PROPOSER_WAITER_H
 
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+
+namespace proposer {
 
 class Waiter {
  private:
@@ -33,4 +35,6 @@ class Waiter {
   void Wake();
 };
 
-#endif  // UNIT_E_WAITER_H
+}  // namespace proposer
+
+#endif  // UNIT_E_PROPOSER_WAITER_H

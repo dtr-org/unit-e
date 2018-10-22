@@ -7,7 +7,7 @@
 
 #include <functional>
 
-//! left-associative fold of anything that can be iterated over.
+//! \brief left-associative fold of anything that can be iterated over.
 template <template <typename...> class Container, class A, class B,
           typename Combiner, typename... Args>
 B fold_left(const Combiner combine, const B start,
@@ -19,7 +19,7 @@ B fold_left(const Combiner combine, const B start,
   return current;
 }
 
-//! right-associative fold of anything that can be iterated over.
+//! \brief right-associative fold of anything that can be iterated over.
 template <template <typename...> class Container, class A, class B,
           typename Combiner, typename... Args>
 B fold_right(const Combiner combine, const B start,
@@ -31,7 +31,7 @@ B fold_right(const Combiner combine, const B start,
   return current;
 }
 
-//! left-associative fold that tracks all successive reduced values.
+//! \brief left-associative fold that tracks all successive reduced values.
 template <template <typename...> class Container, class A, class B,
           typename Combiner, typename... Args>
 Container<B, Args...> scan_left(const Combiner combine, const B start,
@@ -46,7 +46,19 @@ Container<B, Args...> scan_left(const Combiner combine, const B start,
   return result;
 }
 
-//! zip two containers using a generic zipper function.
+//! \brief apply a functor on a container.
+template <template <typename...> class Container, class Functor, class A,
+          class B, typename... Args>
+Container<B, Args...> map(const Functor f,
+                          const Container<A, Args...> &container) {
+  B result;
+  for (auto it = container.cbegin(); it < container.cend(); ++it) {
+    result.push_back(f(*it));
+  }
+  return result;
+}
+
+//! \brief zip two containers using a generic zipper function.
 //!
 //! Example: zip_with (plus, [1, 2, 3], [4, 5, 6]) -> [5, 7, 9]
 //!
@@ -99,8 +111,7 @@ Container<A, Args...> drop_while(const Predicate predicate,
   return result;
 }
 
-//! return a new container that contains only the elements the predicate
-//! applies to.
+//! \brief build a container containing only elements satisfying a predicate
 template <template <typename...> class Container, class A, typename Predicate,
           typename... Args>
 Container<A, Args...> filter(const Predicate predicate,

@@ -4,12 +4,12 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_ESPERANZA_KERNEL_H
-#define UNIT_E_ESPERANZA_KERNEL_H
+#ifndef UNITE_STAKING_KERNEL_H
+#define UNITE_STAKING_KERNEL_H
 
 #include <validation.h>
 
-namespace esperanza {
+namespace staking {
 
 /*!
  * Compute the hash modifier for proof-of-stake
@@ -49,6 +49,6 @@ bool CheckKernel(const CBlockIndex *pindexPrev, unsigned int nBits,
                  int64_t nTime, const COutPoint &prevout,
                  int64_t *pBlockTime = nullptr);
 
-}  // namespace esperanza
+}  // namespace staking
 
-#endif  // UNIT_E_ESPERANZA_KERNEL_H
+#endif  // UNITE_STAKING_KERNEL_H

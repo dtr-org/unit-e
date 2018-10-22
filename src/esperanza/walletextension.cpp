@@ -9,12 +9,12 @@
 
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/kernel.h>
-#include <esperanza/stakevalidation.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
 #include <script/standard.h>
+#include <staking/kernel.h>
+#include <staking/stakevalidation.h>
 #include <util.h>
 #include <utilfun.h>
 #include <validation.h>
@@ -82,14 +82,15 @@ void WalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins) {
         const auto &txout = tx->vout[i];
 
         COutPoint kernel(wtxid, i);
-        if (!CheckStakeUnused(kernel) || m_enclosingWallet->IsSpent(wtxid, i) ||
+        if (!staking::CheckStakeUnused(kernel) ||
+            m_enclosingWallet->IsSpent(wtxid, i) ||
             m_enclosingWallet->IsLockedCoin(wtxid, i)) {
           continue;
         }
 
         const CScript &pscriptPubKey = txout.scriptPubKey;
         CKeyID keyID;
-        if (!ExtractStakingKeyID(pscriptPubKey, keyID)) {
+        if (!staking::ExtractStakingKeyID(pscriptPubKey, keyID)) {
           continue;
         }
         if (m_enclosingWallet->HaveKey(keyID)) {
@@ -104,7 +105,7 @@ void WalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins) {
   shuffle(vCoins.begin(), vCoins.end(), std::mt19937(std::random_device()()));
 }
 
-bool WalletExtension::SelectCoinsForStaking(
+static bool SelectCoinsForStaking(
     int64_t nTargetValue, std::vector<::COutput> &availableCoinsForStaking,
     std::set<std::pair<const ::CWalletTx *, unsigned int>> &setCoinsRet,
     int64_t &nValueRet) {
@@ -143,7 +144,7 @@ bool WalletExtension::SelectCoinsForStaking(
 bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
                                       int nBlockHeight, int64_t nFees,
                                       ::CMutableTransaction &txNew,
-                                      ::CKey &key) {
+                                      ::CKey &keyOut) {
   CBlockIndex *pindexPrev = chainActive.Tip();
   arith_uint256 bnTargetPerCoinDay;
   bnTargetPerCoinDay.SetCompact(nBits);
@@ -175,7 +176,8 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     COutPoint prevoutStake = COutPoint(pcoin.first->GetHash(), pcoin.second);
 
     int64_t nBlockTime;
-    if (CheckKernel(pindexPrev, nBits, nTime, prevoutStake, &nBlockTime)) {
+    if (staking::CheckKernel(pindexPrev, nBits, nTime, prevoutStake,
+                             &nBlockTime)) {
       LOCK(m_enclosingWallet->cs_wallet);
       // Found a kernel
       LogPrint(BCLog::PROPOSING, "%s: Kernel found.\n", __func__);
@@ -188,9 +190,9 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       CScript pscriptPubKey = kernelOut.scriptPubKey;
       CScript coinstakePath;
       bool fConditionalStake = false;
-      if (HasIsCoinstakeOp(pscriptPubKey)) {
+      if (staking::HasIsCoinstakeOp(pscriptPubKey)) {
         fConditionalStake = true;
-        if (!GetCoinstakeScriptPath(pscriptPubKey, coinstakePath)) {
+        if (!staking::GetCoinstakeScriptPath(pscriptPubKey, coinstakePath)) {
           continue;
         }
         pscriptPubKey = coinstakePath;
@@ -212,7 +214,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
         break;  // only support pay to address (pay to pubkey hash)
       }
 
-      if (!m_enclosingWallet->GetKey(spendId, key)) {
+      if (!m_enclosingWallet->GetKey(spendId, keyOut)) {
         LogPrint(BCLog::PROPOSING,
                  "%s: Failed to get key for kernel type=%d.\n", __func__,
                  whichType);
@@ -259,7 +261,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   size_t nStakesCombined = 0;
   it = setCoins.begin();
   while (it != setCoins.end()) {
-    if (nStakesCombined >= m_proposerState.m_maxStakeCombine) {
+    if (nStakesCombined >= m_proposerSettings->m_maxStakeCombine) {
       break;
     }
 
@@ -269,7 +271,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     }
 
     // Stop adding more inputs if value is already pretty significant
-    if (nCredit >= m_proposerState.m_stakeCombineThreshold) {
+    if (nCredit >= m_proposerSettings->m_stakeCombineThreshold) {
       break;
     }
 
@@ -287,7 +289,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       break;
     }
     // Do not add additional significant input
-    if (prevOut.nValue >= m_proposerState.m_stakeCombineThreshold) {
+    if (prevOut.nValue >= m_proposerSettings->m_stakeCombineThreshold) {
       continue;
     }
 
@@ -316,7 +318,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   nCredit += nRewardOut;
 
   // Set output amount, split outputs if > nStakeSplitThreshold
-  if (nCredit >= m_proposerState.m_stakeSplitThreshold) {
+  if (nCredit >= m_proposerSettings->m_stakeSplitThreshold) {
     CTxOut outSplit(0, scriptPubKeyKernel);
 
     txNew.vout.back().nValue = nCredit / 2;
@@ -360,12 +362,6 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
 
   // Successfully generated coinstake
   return true;
-}
-
-bool WalletExtension::SignBlock(::CBlockTemplate *pblocktemplate, int nHeight,
-                                int64_t nSearchTime) {
-  // UNIT-E: todo
-  return false;
 }
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
@@ -805,7 +801,7 @@ void WalletExtension::BlockConnected(
   }
 }
 
-const proposer::Proposer::State &WalletExtension::GetProposerState() const {
+const proposer::State &WalletExtension::GetProposerState() const {
   return m_proposerState;
 }
 

@@ -9,6 +9,7 @@
 
 #include <amount.h>
 #include <chainparams.h>
+#include <dependency.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 
@@ -41,6 +42,7 @@ class TransactionPicker {
     //! as base-size * 3 + total_size. According to BIP141 the block
     //! weight must be less-than-or-equal-to 4M.
     unsigned int m_maxWeight = DEFAULT_BLOCK_MAX_WEIGHT;
+
     //! \brief The minimum sum of transaction fees
     //!
     //! The incentive to include transactions into a block is to
@@ -66,10 +68,9 @@ class TransactionPicker {
   virtual ~TransactionPicker() = default;
 
   //! \brief Factory method for creating a BlockAssemblerAdapter
-  static std::unique_ptr<TransactionPicker> MakeBlockAssemblerAdapter(
-      const ::CChainParams &);
+  static std::unique_ptr<TransactionPicker> MakeBlockAssemblerAdapter();
 };
 
 }  // namespace proposer
 
-#endif  // UNIT_E_TRANSACTIONPICKER_H
+#endif  // UNIT_E_PROPOSER_TRANSACTIONPICKER_H

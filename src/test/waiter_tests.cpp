@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <test/test_unite.h>
-#include <waiter.h>
+#include <proposer/waiter.h>
 #include <boost/test/unit_test.hpp>
 
 #include <atomic>
@@ -14,7 +14,7 @@
 BOOST_AUTO_TEST_SUITE(waiter_tests)
 
 BOOST_AUTO_TEST_CASE(wait_and_wake_test) {
-  Waiter waiter;
+  proposer::Waiter waiter;
 
   std::atomic<bool> result(false);
   std::atomic<bool> started(false);
