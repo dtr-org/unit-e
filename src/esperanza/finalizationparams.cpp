@@ -39,7 +39,6 @@ bool ParseFinalizationParams(std::string jsonString,
 
   int64_t baseInterestFactor = ParseNum(json, "baseInterestFactor", 7);
   if (baseInterestFactor < 0) {
-    fprintf(stderr, "Error: Param baseInterestFactor must be positive!\n");
     return false;
   }
   paramsOut.m_baseInterestFactor =
@@ -47,7 +46,6 @@ bool ParseFinalizationParams(std::string jsonString,
 
   int64_t basePenaltyFactor = ParseNum(json, "basePenaltyFactor", 2);
   if (basePenaltyFactor < 0) {
-    fprintf(stderr, "Error: Param basePenaltyFactor must be positive!\n");
     return false;
   }
   paramsOut.m_basePenaltyFactor =
