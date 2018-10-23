@@ -1271,7 +1271,7 @@ bool AppInitMain()
 #ifdef ENABLE_WALLET
     const esperanza::Settings* esperanzaSettings = esperanza::InitSettings(gArgs);
     if (!esperanzaSettings) {
-        LogPrintf("Failed to read settings from comand line arguments.\n");
+        LogPrintf("Failed to read settings from command line arguments.\n");
         return false;
     }
 #endif
@@ -1284,6 +1284,9 @@ bool AppInitMain()
         esperanza::FinalizationParams params;
         if (esperanza::ParseFinalizationParams(gArgs.GetArg("-esperanzaconfig", ""), params)) {
             UpdateFinalizationParams(params);
+        } else {
+            LogPrintf("Can't parse -esperanzaconfig. See previous logs for details.\n");
+            return false;
         }
     }
 
