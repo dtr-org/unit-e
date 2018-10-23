@@ -41,7 +41,7 @@ bool ParseFinalizationParams(std::string jsonString,
 
   int64_t baseInterestFactor = ParseNum(json, "baseInterestFactor", 7);
   if (baseInterestFactor < 0) {
-    LogPrintf("Param baseInterestFactor must a positive number.\n");
+    LogPrintf("Param baseInterestFactor must be a positive number.\n");
     return false;
   }
   paramsOut.m_baseInterestFactor =
