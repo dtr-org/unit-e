@@ -1,6 +1,7 @@
-#include "finalizationparams.h"
 #include <esperanza/finalizationparams.h>
+
 #include <univalue/include/univalue.h>
+#include <util.h>
 
 namespace esperanza {
 
@@ -23,6 +24,7 @@ bool ParseFinalizationParams(std::string jsonString,
 
   UniValue json;
   if (!json.read(jsonString)) {
+    LogPrintf("Malformed json object: %s\n", jsonString);
     return false;
   }
 
@@ -39,6 +41,7 @@ bool ParseFinalizationParams(std::string jsonString,
 
   int64_t baseInterestFactor = ParseNum(json, "baseInterestFactor", 7);
   if (baseInterestFactor < 0) {
+    LogPrintf("Param baseInterestFactor must a positive number.\n");
     return false;
   }
   paramsOut.m_baseInterestFactor =
@@ -46,6 +49,7 @@ bool ParseFinalizationParams(std::string jsonString,
 
   int64_t basePenaltyFactor = ParseNum(json, "basePenaltyFactor", 2);
   if (basePenaltyFactor < 0) {
+    LogPrintf("Param basePenaltyFactor must be a positive number.\n");
     return false;
   }
   paramsOut.m_basePenaltyFactor =
