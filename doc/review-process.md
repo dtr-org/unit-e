@@ -10,7 +10,7 @@ Code review is mandatory for all code which goes into UnitE repositories. We tre
 
 All changes are going through the same review process independent of from whom they are coming.
 
-The review is done through GitHub pull requests. 
+The review is done through GitHub pull requests.
 
 All automatic checks such as style, unit, or functional tests which run on the pull request must pass to consider the pull request for acceptance.
 
