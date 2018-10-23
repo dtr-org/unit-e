@@ -24,7 +24,7 @@ Once approved, the pull request is merged to the main branch.
 
 If you have write access to the repo create a branch in the repo with your changes and create a pull request from this branch.
 
-If you don't have write access for the repo, create a topic branch, and create the pull request to the main repo from the branch of your fork.
+If you don't have write access to the repo, fork it, create a topic branch in your fork, and create the pull request to the main repo from this branch of the fork.
 
 Assign reviewers if you want to get feedback from specific people. Generally everybody is free to comment on any pull request.
 
