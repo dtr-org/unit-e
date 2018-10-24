@@ -52,35 +52,6 @@ about Git.
   - Push changes to your fork
   - Create pull request
 
-The title of the pull request should be prefixed by the component or area that
-the pull request affects. Valid areas as:
-
-  - *Consensus* for changes to consensus critical code
-  - *Docs* for changes to the documentation
-  - *Qt* for changes to unite-qt
-  - *Mining* for changes to the mining code
-  - *Net* or *P2P* for changes to the peer-to-peer network code
-  - *RPC/REST/ZMQ* for changes to the RPC, REST or ZMQ APIs
-  - *Scripts and tools* for changes to the scripts and tools
-  - *Tests* for changes to the unite unit tests or QA tests
-  - *Trivial* should **only** be used for PRs that do not change generated
-    executable code. Notably, refactors (change of function arguments and code
-    reorganization) and changes in behavior should **not** be marked as trivial.
-    Examples of trivial PRs are changes to:
-    - comments
-    - whitespace
-    - variable names
-    - logging and messages
-  - *Utils and libraries* for changes to the utils and libraries
-  - *Wallet* for changes to the wallet code
-
-Examples:
-
-    Consensus: Add new opcode for BIP-XXXX OP_CHECKAWESOMESIG
-    Net: Automatically create hidden service, listen on Tor
-    Qt: Add feed bump button
-    Trivial: Fix typo in init.cpp
-
 Note that translations should not be submitted as pull requests, please see
 [Translation Process](https://github.com/unite/unite/blob/master/doc/translation_process.md)
 for more information on helping with translations.
