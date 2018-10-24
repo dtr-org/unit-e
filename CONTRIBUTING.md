@@ -22,11 +22,21 @@ The codebase is maintained using the "contributor workflow" where everyone
 without exception contributes patch proposals using "pull requests". This
 facilitates social contribution, easy testing and peer review.
 
+### Workflow overview
+
 To contribute a patch, the workflow is as follows:
 
   1. Fork repository
   1. Create topic branch
   1. Commit patches
+  1. Push changes to your fork
+  1. Create pull request
+  1. Code review
+  1. Merging or closing the pull request
+
+The following sections explain the details of the different steps.
+
+### Commit patches
 
 The project coding conventions in the [developer notes](doc/developer-notes.md)
 must be adhered to.
@@ -49,8 +59,7 @@ will cause the corresponding issue to be closed when the pull request is merged.
 Please refer to the [Git manual](https://git-scm.com/doc) for more information
 about Git.
 
-  - Push changes to your fork
-  - Create pull request
+### Create pull request
 
 If a pull request is not to be considered for merging (yet), please
 prefix the title with [WIP] or use [Tasks Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
@@ -61,47 +70,12 @@ patch does together with any justification/reasoning. You should include
 references to any discussions (for example other tickets or mailing list
 discussions).
 
-At this stage one should expect comments and review from other contributors. You
-can add more commits to your pull request by committing them locally and pushing
-to your fork until you have satisfied all feedback.
-
-Squashing Commits
----------------------------
-If your pull request is accepted for merging, you may be asked by a maintainer
-to squash and or [rebase](https://git-scm.com/docs/git-rebase) your commits
-before it will be merged. The basic squashing workflow is shown below.
-
-    git checkout your_branch_name
-    git rebase -i HEAD~n
-    # n is normally the number of commits in the pull
-    # set commits from 'pick' to 'squash', save and quit
-    # on the next screen, edit/refine commit messages
-    # save and quit
-    git push -f # (force push to GitHub)
-
-If you have problems with squashing (or other workflows with `git`), you can
-alternatively enable "Allow edits from maintainers" in the right GitHub
-sidebar and ask for help in the pull request.
-
-Please refrain from creating several pull requests for the same change.
-Use the pull request that is already open (or was created earlier) to amend
-changes. This preserves the discussion and review that happened earlier for
-the respective change set.
-
-The length of time required for peer review is unpredictable and will vary from
-pull request to pull request.
-
-
-Pull Request Philosophy
------------------------
-
 Patchsets should always be focused. For example, a pull request could add a
 feature, fix a bug, or refactor code; but not a mixture. Please also avoid super
 pull requests which attempt to do too much, are overly large, or overly complex
 as this makes review difficult.
 
-
-### Features
+#### Features
 
 When adding a new feature, thought must be given to the long term technical debt
 and maintenance that feature may require after inclusion. Before proposing a new
@@ -109,8 +83,7 @@ feature that will require maintenance, please consider if you are willing to
 maintain it (including bug fixing). If features get orphaned with no maintainer
 in the future, they may be removed by the Repository Maintainer.
 
-
-### Refactoring
+#### Refactoring
 
 Refactoring is a necessary part of any software project's evolution. The
 following guidelines cover refactoring pull requests for the project.
@@ -132,41 +105,9 @@ Trivial pull requests or pull requests that refactor the code with no clear
 benefits may be immediately closed by the maintainers to reduce unnecessary
 workload on reviewing.
 
+### Code Review
 
-"Decision Making" Process
--------------------------
-
-The following applies to code changes to the UnitE Core project (and related
-projects such as libsecp256k1), and is not to be confused with overall UnitE
-Network Protocol consensus changes.
-
-Whether a pull request is merged into UnitE Core rests with the project merge
-maintainers and ultimately the project lead.
-
-Maintainers will take into consideration if a patch is in line with the general
-principles of the project; meets the minimum standards for inclusion; and will
-judge the general consensus of contributors.
-
-In general, all pull requests must:
-
-  - Have a clear use case, fix a demonstrable bug or serve the greater good of
-    the project (for example refactoring for modularisation);
-  - Be well peer reviewed;
-  - Have unit tests and functional tests where appropriate;
-  - Follow code style guidelines ([C++](doc/developer-notes.md), [functional tests](test/functional/README.md));
-  - Not break the existing test suite;
-  - Where bugs are fixed, where possible, there should be unit tests
-    demonstrating the bug and also proving the fix. This helps prevent regression.
-
-Patches that change UnitE consensus rules are considerably more involved than
-normal because they affect the entire ecosystem and so must be preceded by
-extensive mailing list discussions and have a numbered BIP. While each case will
-be different, one should be prepared to expend more time and effort than for
-other kinds of patches because of increased peer review and consensus building
-requirements.
-
-
-### Peer Review
+#### Peer Review
 
 Anyone may participate in peer review which is expressed by comments in the pull
 request. Typically reviewers will review the code for obvious errors, as well as
@@ -203,6 +144,71 @@ Where a patch set proposes to change the UnitE consensus, it must have been
 discussed extensively on the mailing list and IRC, be accompanied by a widely
 discussed BIP and have a generally widely perceived technical consensus of being
 a worthwhile change based on the judgement of the maintainers.
+
+#### Adding changes to the pull request
+
+At this stage one should expect comments and review from other contributors. You
+can add more commits to your pull request by committing them locally and pushing
+to your fork until you have satisfied all feedback.
+
+#### Decision by maintainers
+
+The following applies to code changes to the UnitE Core project (and related
+projects such as libsecp256k1), and is not to be confused with overall UnitE
+Network Protocol consensus changes.
+
+Whether a pull request is merged into UnitE Core rests with the project merge
+maintainers and ultimately the project lead.
+
+Maintainers will take into consideration if a patch is in line with the general
+principles of the project; meets the minimum standards for inclusion; and will
+judge the general consensus of contributors.
+
+In general, all pull requests must:
+
+  - Have a clear use case, fix a demonstrable bug or serve the greater good of
+    the project (for example refactoring for modularisation);
+  - Be well peer reviewed;
+  - Have unit tests and functional tests where appropriate;
+  - Follow code style guidelines ([C++](doc/developer-notes.md), [functional tests](test/functional/README.md));
+  - Not break the existing test suite;
+  - Where bugs are fixed, where possible, there should be unit tests
+    demonstrating the bug and also proving the fix. This helps prevent regression.
+
+Patches that change UnitE consensus rules are considerably more involved than
+normal because they affect the entire ecosystem and so must be preceded by
+extensive mailing list discussions and have a numbered BIP. While each case will
+be different, one should be prepared to expend more time and effort than for
+other kinds of patches because of increased peer review and consensus building
+requirements.
+
+### Merging or closing the pull request
+
+#### Squashing Commits
+
+If your pull request is accepted for merging, you may be asked by a maintainer
+to squash and or [rebase](https://git-scm.com/docs/git-rebase) your commits
+before it will be merged. The basic squashing workflow is shown below.
+
+    git checkout your_branch_name
+    git rebase -i HEAD~n
+    # n is normally the number of commits in the pull
+    # set commits from 'pick' to 'squash', save and quit
+    # on the next screen, edit/refine commit messages
+    # save and quit
+    git push -f # (force push to GitHub)
+
+If you have problems with squashing (or other workflows with `git`), you can
+alternatively enable "Allow edits from maintainers" in the right GitHub
+sidebar and ask for help in the pull request.
+
+Please refrain from creating several pull requests for the same change.
+Use the pull request that is already open (or was created earlier) to amend
+changes. This preserves the discussion and review that happened earlier for
+the respective change set.
+
+The length of time required for peer review is unpredictable and will vary from
+pull request to pull request.
 
 
 Release Policy
