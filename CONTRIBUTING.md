@@ -52,10 +52,6 @@ about Git.
   - Push changes to your fork
   - Create pull request
 
-Note that translations should not be submitted as pull requests, please see
-[Translation Process](https://github.com/unite/unite/blob/master/doc/translation_process.md)
-for more information on helping with translations.
-
 If a pull request is not to be considered for merging (yet), please
 prefix the title with [WIP] or use [Tasks Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
 in the body of the pull request to indicate tasks are pending.
