@@ -6,21 +6,17 @@ welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
 
-Firstly in terms of structure, there is no particular concept of "Core
-developers" in the sense of privileged people. Open source often naturally
-revolves around meritocracy where longer term contributors gain more trust from
-the developer community. However, some hierarchy is necessary for practical
-purposes. As such there are repository "maintainers" who are responsible for
-merging pull requests as well as a "lead maintainer" who is responsible for the
-release cycle, overall merging, moderation and appointment of maintainers.
+There is a team of maintainers who take care of central responsibilities such as merging pull requests, releasing, moderation, and appointment of maintainers. Maintainers are part of the overall community and there is a path for contributors to become maintainers if they show to be capable and willing to take over this responsibility.
 
 
 Contributor Workflow
 --------------------
 
 The codebase is maintained using the "contributor workflow" where everyone
-without exception contributes patch proposals using "pull requests". This
+without exception contributes patch proposals using GitHub pull requests. This
 facilitates social contribution, easy testing and peer review.
+
+We treat the term code generously in this context and apply it not only to the program code itself but to everything which is stored in the code repository, including documentation.
 
 ### Workflow overview
 
@@ -36,6 +32,16 @@ To contribute a patch, the workflow is as follows:
 
 The following sections explain the details of the different steps.
 
+### Fork repository
+
+To start a new patch fork the unit-e repository on GitHub or, if you already have a fork, update its master branch to the latest version.
+
+This workflow is the same for everybody including those who have write access to the main repo to have a consistent, symmetric, and fair workflow. So don't create pull requests as branches in the main repo.
+
+### Create topic branch
+
+Create a topic branch in your fork to add your changes there. This makes it easier to work on multiple changes in parallel and to track the main repo in the master branch.
+
 ### Commit patches
 
 The project coding conventions in the [developer notes](doc/developer-notes.md)
@@ -50,7 +56,7 @@ Commit messages should be verbose by default consisting of a short subject line
 paragraph(s), unless the title alone is self-explanatory (like "Corrected typo
 in init.cpp") in which case a single title line is sufficient. Commit messages should be
 helpful to people reading your code in the future, so explain the reasoning for
-your decisions. Further explanation [here](http://chris.beams.io/posts/git-commit/).
+your decisions. See further explanation in Chris Beams' excellent post ["How to write a commit message"](http://chris.beams.io/posts/git-commit/).
 
 If a particular commit references another issue, please add the reference. For
 example: `refs #1234` or `fixes #4321`. Using the `fixes` or `closes` keywords
@@ -61,27 +67,28 @@ about Git.
 
 ### Create pull request
 
-If a pull request is not to be considered for merging (yet), please
-prefix the title with [WIP] or use [Tasks Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
-in the body of the pull request to indicate tasks are pending.
+Open a pull request in the GitHub UI from your branch to the main repository.
 
-The body of the pull request should contain enough description about what the
-patch does together with any justification/reasoning. You should include
-references to any discussions (for example other tickets or mailing list
-discussions).
+Add any additional context or references which are relevant to the process of reviewing the changes to the body of the pull request. Information relevant to understanding the changes itself should be in the code and commit messages.
+
+Assign reviewers if you want to get feedback from specific people. Generally everybody is free to comment on any pull request.
 
 Patchsets should always be focused. For example, a pull request could add a
 feature, fix a bug, or refactor code; but not a mixture. Please also avoid super
 pull requests which attempt to do too much, are overly large, or overly complex
 as this makes review difficult.
 
+If a pull request is not to be considered for merging (yet), please
+prefix the title with [WIP]. You can use [Tasks Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
+in the body of the pull request to indicate tasks are pending.
+
+If you continue to work in the pull request and it gets to a state where it's ready to be merged, remove the `[WIP]` and notify reviewers that it's ready to be reviewed for merge.
+
 #### Features
 
-When adding a new feature, thought must be given to the long term technical debt
-and maintenance that feature may require after inclusion. Before proposing a new
+When adding a new feature, thought must be given to the long term maintenance that feature may require after inclusion. Before proposing a new
 feature that will require maintenance, please consider if you are willing to
-maintain it (including bug fixing). If features get orphaned with no maintainer
-in the future, they may be removed by the Repository Maintainer.
+maintain it (including bug fixing).
 
 #### Refactoring
 
@@ -97,24 +104,21 @@ behaviour of code within the pull request (bugs must be preserved as is).
 Project maintainers aim for a quick turnaround on refactoring pull requests, so
 where possible keep them short, uncomplex and easy to verify.
 
-Pull requests that refactor the code should not be made by new contributors. It
-requires a certain level of experience to know where the code belongs to and to
-understand the full ramification (including rebase effort of open pull requests).
-
-Trivial pull requests or pull requests that refactor the code with no clear
-benefits may be immediately closed by the maintainers to reduce unnecessary
-workload on reviewing.
-
 ### Code Review
+
+Code review is essential to keep up code quality. It also is a great way to learn and to positively collaborate. Good code review improves the code and the team.
+
+Some great general resources about code review are [Designing awesome code reviews](https://medium.com/unpacking-trunk-club/designing-awesome-code-reviews-5a0d9cd867e3) (an overview of how to do code reviews that are good for code and people) and [Awesome code review](https://github.com/joho/awesome-code-review) (a curated list of resources related to code review).
 
 #### Peer Review
 
 Anyone may participate in peer review which is expressed by comments in the pull
-request. Typically reviewers will review the code for obvious errors, as well as
+request. Use the features of the GitHub review system. Comment on the code, propose changes, ask questions, and add a summary of your review.
+
+Typically reviewers will review the code for obvious errors, as well as
 test out the patch set and opine on the technical merits of the patch. Project
 maintainers take into account the peer review when determining if there is
-consensus to merge a pull request (remember that discussions may have been
-spread out over GitHub, mailing list and IRC discussions). The following
+consensus to merge a pull request. The following
 language is used within pull-request comments:
 
   - ACK means "I have tested the code and I agree it should be merged";
@@ -127,23 +131,17 @@ language is used within pull-request comments:
   - Concept ACK means "I agree in the general principle of this pull request";
   - Nit refers to trivial, often non-blocking issues.
 
-Reviewers should include the commit hash which they reviewed in their comments.
-
-Project maintainers reserve the right to weigh the opinions of peer reviewers
-using common sense judgement and also may weight based on meritocracy: Those
-that have demonstrated a deeper commitment and understanding towards the project
-(over time) or have clear domain expertise may naturally have more weight, as
-one would expect in all walks of life.
-
 Where a patch set affects consensus critical code, the bar will be set much
 higher in terms of discussion and peer review requirements, keeping in mind that
 mistakes could be very costly to the wider community. This includes refactoring
 of consensus critical code.
 
-Where a patch set proposes to change the UnitE consensus, it must have been
-discussed extensively on the mailing list and IRC, be accompanied by a widely
-discussed BIP and have a generally widely perceived technical consensus of being
-a worthwhile change based on the judgement of the maintainers.
+Patches that change UnitE consensus rules are considerably more involved than
+normal because they affect the entire ecosystem and so must be preceded by
+extensive discussions and have a numbered improvement proposal. While each case will
+be different, one should be prepared to expend more time and effort than for
+other kinds of patches because of increased peer review and consensus building
+requirements.
 
 #### Adding changes to the pull request
 
@@ -151,14 +149,25 @@ At this stage one should expect comments and review from other contributors. You
 can add more commits to your pull request by committing them locally and pushing
 to your fork until you have satisfied all feedback.
 
+Add changes as additional commits so that it gives a clear history and that the discussion in the pull request on GitHub can be followed along the code.
+
+Find a balance between improving an existing pull request or doing changes as a new pull request after the first one has been merged. We are striving for quality but not for perfection. Small pull requests help with that because they make reviews easier and more effective.
+
+Never force push to a review branch as this breaks the history of the pull request on GitHub, might invalidate or confuse discussions, and forces people who have local checkouts of the branch to re-checkout.
+
+In case you want to clean up commits in a pull requests by rebasing, which changes the history, submit them as a new pull request and close the old one. Try to find the right point in time for this when it does not interfere with ongoing discussions or leave the cleanup to the final squash on merge. Reference the old pull request by adding something like `Supersedes #123` in the body of the new pull request.
+
 #### Decision by maintainers
 
 The following applies to code changes to the UnitE Core project (and related
 projects such as libsecp256k1), and is not to be confused with overall UnitE
 Network Protocol consensus changes.
 
-Whether a pull request is merged into UnitE Core rests with the project merge
-maintainers and ultimately the project lead.
+Whether a pull request is merged into UnitE Core rests with the project maintainers. A pull request needs approval of at least one maintainer to be merged. If changes might have a critical impact, experts on the area of the change have to approve. Maintainers and experts are documented in the MAINTAINERS.md file.
+
+If maintainers ask for changes, and the changes have been done by adding additional commits to the pull request, they need to approve the changes before the pull request can be merged.
+
+Approval is expressed by using the GitHub review mechanics. If, as a maintainer, you approve the patch for merge, select the "approve" option in the GitHub UI when submitting your review. If you request changes, select the corresponding option to require submission and review of additional changes.
 
 Maintainers will take into consideration if a patch is in line with the general
 principles of the project; meets the minimum standards for inclusion; and will
@@ -171,44 +180,21 @@ In general, all pull requests must:
   - Be well peer reviewed;
   - Have unit tests and functional tests where appropriate;
   - Follow code style guidelines ([C++](doc/developer-notes.md), [functional tests](test/functional/README.md));
-  - Not break the existing test suite;
+  - Not break the existing test suite, all checks such as style, unit, or functional tests must pass;
   - Where bugs are fixed, where possible, there should be unit tests
     demonstrating the bug and also proving the fix. This helps prevent regression.
 
-Patches that change UnitE consensus rules are considerably more involved than
-normal because they affect the entire ecosystem and so must be preceded by
-extensive mailing list discussions and have a numbered BIP. While each case will
-be different, one should be prepared to expend more time and effort than for
-other kinds of patches because of increased peer review and consensus building
-requirements.
+There are special areas of the code which need expert review. As a maintainer it is your responsibility to involve others if you see that the change is touching these special areas. A definition of who is expert on which area of the code is in the MAINTAINERS.md file.
 
 ### Merging or closing the pull request
 
-#### Squashing Commits
+Once approved, somebody with write access can merge the pull request. This should usually not be the author of the pull request, if it came from somebody with write access to the repo.
 
-If your pull request is accepted for merging, you may be asked by a maintainer
-to squash and or [rebase](https://git-scm.com/docs/git-rebase) your commits
-before it will be merged. The basic squashing workflow is shown below.
+Pull requests are squashed on merge to keep the history of the code clean and not pollute it with work in progress commits or artifacts of discussions in the pull request. The commit message should reflect the outcome of the discussion and describe what ends up in the commit being merged. The history of the pull request with its discussion can be looked up on GitHub.
 
-    git checkout your_branch_name
-    git rebase -i HEAD~n
-    # n is normally the number of commits in the pull
-    # set commits from 'pick' to 'squash', save and quit
-    # on the next screen, edit/refine commit messages
-    # save and quit
-    git push -f # (force push to GitHub)
+Use the GitHub button for squashing and merging.
 
-If you have problems with squashing (or other workflows with `git`), you can
-alternatively enable "Allow edits from maintainers" in the right GitHub
-sidebar and ask for help in the pull request.
-
-Please refrain from creating several pull requests for the same change.
-Use the pull request that is already open (or was created earlier) to amend
-changes. This preserves the discussion and review that happened earlier for
-the respective change set.
-
-The length of time required for peer review is unpredictable and will vary from
-pull request to pull request.
+There are some exceptions to the rule to squash commits, for example when merging upstream code and the commits and authors should be kept as they are.
 
 
 Release Policy
