@@ -1,0 +1,5 @@
+# Code areas where changes need special approval by experts
+/src/esperanza/ @Gnappuraz
+/src/proposer/ @scravy
+/src/snapshot/ @kostyantyn
+/src/staking/ @scravy @Gnappuraz
