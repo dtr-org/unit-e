@@ -6,7 +6,7 @@ welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
 
-There is a team of maintainers who take care of central responsibilities such as merging pull requests, releasing, moderation, and appointment of maintainers. Maintainers are part of the overall community and there is a path for contributors to become maintainers if they show to be capable and willing to take over this responsibility.
+There is a team of maintainers who take care of responsibilities such as merging pull requests, releasing, moderation, and appointment of maintainers. Maintainers are part of the overall community and there is a path for contributors to become maintainers if they show to be capable and willing to take over this responsibility.
 
 
 Contributor Workflow
