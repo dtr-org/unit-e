@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(constructor) {
 
 // InitializeEpoch tests
 
-BOOST_AUTO_TEST_CASE(initialize_epcoh_wrong_height_passed) {
+BOOST_AUTO_TEST_CASE(initialize_epoch_wrong_height_passed) {
 
   FinalizationStateSpy state;
 
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(initialize_epcoh_wrong_height_passed) {
   BOOST_CHECK_EQUAL(0, state.GetLastJustifiedEpoch());
 }
 
-BOOST_AUTO_TEST_CASE(initialize_epcoh_insta_finalize) {
+BOOST_AUTO_TEST_CASE(initialize_epoch_insta_finalize) {
 
   FinalizationStateSpy spy;
 

@@ -16,14 +16,6 @@
 
 namespace esperanza {
 
-/**
- * UNIT-E: It is now simplistic to imply only one State; to be able to
- * handle intra-dynasty forks and continue with a consistent state it's gonna be
- * necessary to store a snapshot of the state for each block from at least the
- * last justified one.
- */
-static std::shared_ptr<FinalizationState> esperanzaState;
-
 static CCriticalSection cs_init_lock;
 
 FinalizationState::Storage FinalizationState::m_storage;
@@ -897,27 +889,66 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
-FinalizationState *FinalizationState::Storage::FindOrCreate(
-    const CBlockIndex *index) {
+FinalizationState *FinalizationState::Storage::Find(const CBlockIndex *index) {
+  if (index->nHeight == 0 || index->phashBlock == 0) {
+    return GetGenesisState();
+  }
   LOCK(cs_storage);
-  if (index == nullptr || index->pprev == nullptr ||
-      index->phashBlock == nullptr) {
-    return esperanzaState.get();
+  auto it = m_states.find(index->GetBlockHash());
+  return it == m_states.end() ? nullptr : &it->second;
+}
+
+std::tuple<FinalizationState *, bool> FinalizationState::Storage::FindOrCreate(
+    const CBlockIndex *index) {
+  if (index == nullptr) {
+    return {nullptr, false};
   }
-  auto const hash = index->GetBlockHash();
-  auto it = states.find(hash);
-  if (it == states.end()) {
-    it = states.emplace(hash, FinalizationState(*FindOrCreate(index->pprev)))
-             .first;
+  if (auto state = Find(index)) {
+    return {state, true};
   }
-  return &it->second;
+  auto prev = Find(index->pprev);
+  if (prev == nullptr) {
+    LogPrint(BCLog::FINALIZATION, "Cannot find parent state (%s) for %s\n",
+             index->pprev->GetBlockHash().GetHex(),
+             index->GetBlockHash().GetHex());
+    return {nullptr, false};
+  }
+  LOCK(cs_storage);
+  auto it =
+      m_states.emplace(index->GetBlockHash(), FinalizationState(*prev)).first;
+  return {&it->second, false};
+}
+
+void FinalizationState::Storage::Init(
+    const esperanza::FinalizationParams &params,
+    const esperanza::AdminParams &adminParams) {
+  LOCK(cs_storage);
+  m_genesis_state.reset(new FinalizationState(params, adminParams));
+}
+
+void FinalizationState::Storage::Reset(
+    const esperanza::FinalizationParams &params,
+    const esperanza::AdminParams &adminParams) {
+  LOCK(cs_storage);
+  m_states.clear();
+  m_genesis_state.reset(new FinalizationState(params, adminParams));
+}
+
+FinalizationState *FinalizationState::Storage::GetGenesisState() {
+  LOCK(cs_storage);
+  assert(m_genesis_state != nullptr);
+  return m_genesis_state.get();
 }
 
 FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
   if (blockIndex == nullptr) {
     blockIndex = chainActive.Tip();
   }
-  return m_storage.FindOrCreate(blockIndex);
+  if (blockIndex == nullptr) {
+    return m_storage.GetGenesisState();
+  }
+  assert(blockIndex != nullptr);
+  return m_storage.Find(blockIndex);
 }
 
 uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
@@ -954,15 +985,13 @@ bool FinalizationState::ValidateDepositAmount(CAmount amount) {
 void FinalizationState::Init(const esperanza::FinalizationParams &params,
                              const esperanza::AdminParams &adminParams) {
   LOCK(cs_init_lock);
-
-  if (!esperanzaState) {
-    esperanzaState = std::make_shared<FinalizationState>(params, adminParams);
-  }
+  m_storage.Init(params, adminParams);
 }
 
 void FinalizationState::Reset(const esperanza::FinalizationParams &params,
                               const esperanza::AdminParams &adminParams) {
-  esperanzaState = std::make_shared<FinalizationState>(params, adminParams);
+  LOCK(cs_init_lock);
+  m_storage.Reset(params, adminParams);
 }
 
 /**
@@ -975,10 +1004,21 @@ void FinalizationState::Reset(const esperanza::FinalizationParams &params,
 bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
                                       const CBlock &block) {
 
-  FinalizationState *state = GetState(&blockIndex);
-
   LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
            __func__, blockIndex.nHeight, block.GetHash().GetHex());
+
+  FinalizationState *state;
+  bool found;
+  std::tie(state, found) = m_storage.FindOrCreate(&blockIndex);
+  if (found) {
+    LogPrint(BCLog::FINALIZATION, "It's already processed\n");
+    return true;  // This block should be already processed
+  }
+
+  if (state == nullptr) {
+    LogPrint(BCLog::FINALIZATION, "Cannot create FinalizationState.\n");
+    return false;
+  }
 
   // Used to apply hardcoded parameters for a given block
   state->OnBlock(blockIndex.nHeight);
@@ -1062,6 +1102,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
   return true;
 }
+
 // Private accessors used to avoid map's operator[] potential side effects.
 ufp64::ufp64_t FinalizationState::GetDepositScaleFactor(uint32_t epoch) const {
   auto it = m_depositScaleFactor.find(epoch);
@@ -1084,6 +1125,10 @@ Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
   auto it = m_checkpoints.find(epoch);
   assert(it != m_checkpoints.end());
   return it->second;
+}
+
+int FinalizationState::GetBlockHeightForEpoch(uint32_t epoch) const {
+  return static_cast<int>(epoch * m_settings.m_epochLength);
 }
 
 }  // namespace esperanza

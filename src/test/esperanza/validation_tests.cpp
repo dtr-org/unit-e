@@ -17,8 +17,8 @@ const int64_t EPOCH_LENGTH = 50;
 BOOST_FIXTURE_TEST_SUITE(finalization_validation_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(isvoteexpired) {
-
   FinalizationState *esperanza = FinalizationState::GetState();
+  assert(esperanza != nullptr);
 
   uint256 validatorIndex = GetRandHash();
 

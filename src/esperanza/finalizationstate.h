@@ -192,6 +192,8 @@ class FinalizationState : public FinalizationStateData {
 
   uint256 GetCheckpointHash(uint32_t epoch) const;
 
+  int GetBlockHeightForEpoch(uint32_t epoch) const;
+
   std::vector<Validator> GetValidators() const;
   const Validator *GetValidator(const uint256 &validatorIndex) const;
 
@@ -231,10 +233,27 @@ class FinalizationState : public FinalizationStateData {
 
   mutable CCriticalSection cs_esperanza;
 
-  struct Storage {
-    std::map<uint256, FinalizationState> states;
-    FinalizationState *FindOrCreate(const CBlockIndex *index);
+  class Storage {
+   public:
+    /** Find or create FinalizationState for the `index`.
+     * If found, return { state, true }
+     * If not found but created, return { newstate, false } where newstate is a
+     * copy of `index`->pprev, and supposed to be processed by
+     * `ProcessNewTip()`. If not found, return { nullptr, false }
+     */
+    FinalizationState *Find(const CBlockIndex *index);
+    std::tuple<FinalizationState *, bool> FindOrCreate(
+        const CBlockIndex *index);
+    void Init(const esperanza::FinalizationParams &params,
+              const esperanza::AdminParams &adminParams);
+    void Reset(const esperanza::FinalizationParams &params,
+               const esperanza::AdminParams &adminParams);
+    FinalizationState *GetGenesisState();
+
+   private:
+    std::map<uint256, FinalizationState> m_states;
     CCriticalSection cs_storage;
+    std::unique_ptr<FinalizationState> m_genesis_state;
   };
   static Storage m_storage;
 

@@ -61,6 +61,7 @@ class FullBlockTest(ComparisonTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
+        self.extra_args = [['-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 99999}']]
         self.block_heights = {}
         self.coinbase_key = CECKey()
         self.coinbase_key.set_secretbytes(b"horsebattery")
