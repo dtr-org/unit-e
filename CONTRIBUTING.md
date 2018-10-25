@@ -137,8 +137,9 @@ mistakes could be very costly to the wider community. This includes refactoring
 of consensus critical code.
 
 Patches that change UnitE consensus rules are considerably more involved than
-normal because they affect the entire ecosystem and so must be preceded by
-extensive discussions and have a numbered improvement proposal. While each case will
+normal because they affect the entire ecosystem. They must be accompanied by a design document and a discussion will have preceded it, which should be referenced (for example the pull request which merged the design document).
+
+While each case will
 be different, one should be prepared to expend more time and effort than for
 other kinds of patches because of increased peer review and consensus building
 requirements.
