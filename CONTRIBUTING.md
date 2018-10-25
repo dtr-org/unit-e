@@ -79,10 +79,10 @@ pull requests which attempt to do too much, are overly large, or overly complex
 as this makes review difficult.
 
 If a pull request is not to be considered for merging (yet), please
-prefix the title with [WIP]. You can use [Tasks Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
+prefix the title with `WIP:`. You can use [Tasks Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
 in the body of the pull request to indicate tasks are pending.
 
-If you continue to work in the pull request and it gets to a state where it's ready to be merged, remove the `[WIP]` and notify reviewers that it's ready to be reviewed for merge.
+If you continue to work in the pull request and it gets to a state where it's ready to be merged, remove the `WIP:` and notify reviewers that it's ready to be reviewed for merge.
 
 #### Features
 
