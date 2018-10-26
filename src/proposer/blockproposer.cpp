@@ -7,8 +7,7 @@
 #include <consensus/merkle.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
-#include <script.h>
-#include <sign.h>
+#include <script/script.h>
 #include <wallet/wallet.h>
 
 namespace proposer {
@@ -83,9 +82,10 @@ class BlockProposerImpl : public BlockProposer {
     coinstakeParameters.blockHeight = parameters.blockHeight;
     coinstakeParameters.wallet = parameters.wallet;
 
-    const CTransaction coinstakeTransaction = BuildCoinstakeTransaction();
+    const CTransaction coinstakeTransaction =
+        BuildCoinstakeTransaction(coinstakeParameters);
 
-    TransactionPicker::PickTransactionsParameters pickTransactionsParameters{};
+    TransactionPicker::PickTransactionsParameters pickTransactionsParameters;
 
     TransactionPicker::PickTransactionsResult transactionsResult =
         m_transactionPicker->PickTransactions(pickTransactionsParameters);
@@ -93,7 +93,7 @@ class BlockProposerImpl : public BlockProposer {
     CBlock block;
 
     block.nTime = static_cast<uint32_t>(parameters.blockTime);
-        block.vtx = transactionsResult.m_transactions;
+    block.vtx = transactionsResult.m_transactions;
 
     bool isValid = false;
     block.hashMerkleRoot = ::BlockMerkleRoot(block, &isValid);

@@ -6,7 +6,6 @@
 #define UNIT_E_STAKING_STAKINGWALLET_H
 
 #include <amount.h>
-#include <sign.h>
 
 #include <vector>
 
