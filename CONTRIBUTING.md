@@ -14,6 +14,8 @@ purposes. As such there are repository "maintainers" who are responsible for
 merging pull requests as well as a "lead maintainer" who is responsible for the
 release cycle, overall merging, moderation and appointment of maintainers.
 
+The UnitE team is committed to fostering a welcoming and harassment-free environment. All participants are expected to adhere to our [code of conduct](CODE_OF_CONDUCT.md).
+
 
 Contributor Workflow
 --------------------

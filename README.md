@@ -18,6 +18,8 @@ For more information, as well as an immediately useable, binary version of
 the UnitE Core software, see https://unite.org/en/download, or read the
 [original whitepaper](https://bitcoincore.org/unite.pdf).
 
+The UnitE team is committed to fostering a welcoming and harassment-free environment. All participants are expected to adhere to our [code of conduct](CODE_OF_CONDUCT.md).
+
 License
 -------
 
