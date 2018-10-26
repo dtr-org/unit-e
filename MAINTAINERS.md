@@ -22,3 +22,4 @@ There are some areas of the code where changes might have a critical impact. The
 * Proposer: [Julian Fleischer](https://github.com/scravy)
 * Snapshotting: [Kostiantyn Stepaniuk](https://github.com/kostyantyn)
 * Staking: [Julian Fleischer](https://github.com/scravy), [Matteo Sumberaz](https://github.com/Gnappuraz)
+* Permissioning system: [Aleksandr Mikhailov](https://github.com/AM5800)
