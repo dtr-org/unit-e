@@ -16,7 +16,7 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
     return true;
   }
 
-  if (!tx.IsCoinBase()) {
+  if (!tx.IsCoinStake()) {
     return true;
   }
 

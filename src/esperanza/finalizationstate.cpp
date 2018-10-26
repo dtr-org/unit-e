@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <esperanza/finalizationstate.h>
+#include <esperanza/checks.h>
 
 #include <chainparams.h>
 #include <esperanza/validation.h>

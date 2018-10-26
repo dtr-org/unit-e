@@ -6,6 +6,7 @@
 #ifndef UNITE_ESPERANZA_VALIDATION_H
 #define UNITE_ESPERANZA_VALIDATION_H
 
+#include <blockchain/blockchain_parameters.h>
 #include <chain.h>
 #include <consensus/validation.h>
 #include <primitives/block.h>
@@ -19,22 +20,23 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const CBlockIndex *pindex = nullptr);
 
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
-                          const Consensus::Params &consensusParams,
+                          const blockchain::Parameters &,
                           const CBlockIndex *pindex = nullptr);
 
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
-                            const Consensus::Params &consensusParams,
+                            const blockchain::Parameters &,
                             const CBlockIndex *pindex = nullptr);
 
 bool CheckWithdrawTransaction(CValidationState &errState,
                               const CTransaction &tx,
-                              const Consensus::Params &consensusParams,
+                              const blockchain::Parameters &,
                               const CBlockIndex *pindex = nullptr);
 
 bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
                            const CBlockIndex *pindex = nullptr);
 
 //! \brief Extracts the validator index from the transaction if applicable.
+//!
 //! The function supports only LOGOUT, DEPOSIT and WITHDRAW, anything else
 //! will return false.
 //! \param tx

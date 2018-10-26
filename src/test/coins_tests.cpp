@@ -321,7 +321,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
                 else {
                     coinbase_coins.insert(COutPoint(tx.GetHash(), 0));
                 }
-                assert(CTransaction(tx).IsCoinBase());
+                assert(CTransaction(tx).IsCoinStake());
             }
 
             // 17/20 times reconnect previous or add a regular tx
@@ -333,14 +333,14 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
                     auto utxod = FindRandomFrom(disconnected_coins);
                     tx = std::get<0>(utxod->second);
                     prevout = tx.vin[0].prevout;
-                    if (!CTransaction(tx).IsCoinBase() && !utxoset.count(prevout)) {
+                    if (!CTransaction(tx).IsCoinStake() && !utxoset.count(prevout)) {
                         disconnected_coins.erase(utxod->first);
                         continue;
                     }
 
                     // If this tx is already IN the UTXO, then it must be a coinbase, and it must be a duplicate
                     if (utxoset.count(utxod->first)) {
-                        assert(CTransaction(tx).IsCoinBase());
+                        assert(CTransaction(tx).IsCoinStake());
                         assert(duplicate_coins.count(utxod->first));
                     }
                     disconnected_coins.erase(utxod->first);
@@ -353,7 +353,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
                     // Construct the tx to spend the coins of prevouthash
                     tx.vin[0].prevout = prevout;
-                    assert(!CTransaction(tx).IsCoinBase());
+                    assert(!CTransaction(tx).IsCoinStake());
                 }
                 // In this simple test coins only have two states, spent or unspent, save the unspent state to restore
                 old_coin = result[prevout];
@@ -372,7 +372,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // Update the expected result to know about the new output coins
             assert(tx.vout.size() == 1);
             const COutPoint outpoint(tx.GetHash(), 0);
-            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinBase());
+            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinStake());
 
             // Call UpdateCoins on the top cache
             CTxUndo undo;
@@ -395,7 +395,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // Remove new outputs
             result[utxod->first].Clear();
             // If not coinbase restore prevout
-            if (!tx.IsCoinBase()) {
+            if (!tx.IsCoinStake()) {
                 result[tx.vin[0].prevout] = orig_coin;
             }
 
@@ -404,7 +404,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // remove outputs
             stack.back()->SpendCoin(utxod->first);
             // restore inputs
-            if (!tx.IsCoinBase()) {
+            if (!tx.IsCoinStake()) {
                 const COutPoint &out = tx.vin[0].prevout;
                 Coin coin = undo.vprevout[0];
                 ApplyTxInUndo(std::move(coin), *(stack.back()), out);
@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
             // Update the utxoset
             utxoset.erase(utxod->first);
-            if (!tx.IsCoinBase())
+            if (!tx.IsCoinStake())
                 utxoset.insert(tx.vin[0].prevout);
         }
 

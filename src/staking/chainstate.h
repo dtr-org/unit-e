@@ -64,6 +64,9 @@ class ChainState {
   //! <validation.h>::chainActive.Tip()->GetBlockHeader()
   virtual std::unique_ptr<const CBlockHeader> GetTip() const = 0;
 
+  //! \brief returns the hash of the utxo set at the current tip's height.
+  virtual uint256 GetTipUTXOSetHash() const = 0;
+
   //! \brief add a new block at the current active chains tip.
   virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) = 0;
 

@@ -24,9 +24,9 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
+    uint256 hashWitnessMerkleRoot;
     uint32_t nTime;
     uint32_t nBits;
-    uint32_t nNonce;
 
     CBlockHeader()
     {
@@ -40,9 +40,9 @@ public:
         READWRITE(this->nVersion);
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
+        READWRITE(hashWitnessMerkleRoot);
         READWRITE(nTime);
         READWRITE(nBits);
-        READWRITE(nNonce);
     }
 
     void SetNull()
@@ -52,7 +52,6 @@ public:
         hashMerkleRoot.SetNull();
         nTime = 0;
         nBits = 0;
-        nNonce = 0;
     }
 
     bool IsNull() const
@@ -62,9 +61,9 @@ public:
 
     uint256 GetHash() const;
 
-    int64_t GetBlockTime() const
+    uint64_t GetBlockTime() const
     {
-        return (int64_t)nTime;
+        return nTime;
     }
 };
 
@@ -117,9 +116,9 @@ public:
         block.nVersion       = nVersion;
         block.hashPrevBlock  = hashPrevBlock;
         block.hashMerkleRoot = hashMerkleRoot;
+        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
         block.nTime          = nTime;
         block.nBits          = nBits;
-        block.nNonce         = nNonce;
         return block;
     }
 

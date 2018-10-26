@@ -8,7 +8,6 @@
 #include <keystore.h>
 #include <net.h>
 #include <net_processing.h>
-#include <pow.h>
 #include <script/sign.h>
 #include <serialize.h>
 #include <util.h>
@@ -68,7 +67,8 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
     // This test requires that we have a chain with non-zero work.
     LOCK(cs_main);
     BOOST_CHECK(chainActive.Tip() != nullptr);
-    BOOST_CHECK(chainActive.Tip()->nChainWork > 0);
+    // UNIT-E TODO chainWork -> PoS
+//    BOOST_CHECK(chainActive.Tip()->nChainWork > 0);
 
     // Test starts here
     LOCK(dummyNode1.cs_sendProcessing);
@@ -108,7 +108,7 @@ void AddRandomOutboundPeer(std::vector<CNode *> &vNodes, PeerLogicValidation &pe
 
 BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
 {
-    const Consensus::Params& consensusParams = Params().GetConsensus();
+    const auto& consensusParams = Params().BlockchainParameters();
     constexpr int nMaxOutbound = 8;
     CConnman::Options options;
     options.nMaxConnections = 125;
@@ -130,7 +130,8 @@ BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
         BOOST_CHECK(node->fDisconnect == false);
     }
 
-    SetMockTime(GetTime() + 3*consensusParams.nPowTargetSpacing + 1);
+    // UNIT-E TODO check this (PoS)
+    SetMockTime(GetTime() + 3*consensusParams.blockTimeSeconds + 1);
 
     // Now tip should definitely be stale, and we should look for an extra
     // outbound peer

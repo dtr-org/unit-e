@@ -8,7 +8,6 @@
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <miner.h>
-#include <pow.h>
 #include <random.h>
 #include <test/test_unite.h>
 #include <validation.h>
@@ -57,12 +56,12 @@ struct BlockData {
 BlockData Block(const BlockData &prevData)
 {
     static int i = 0;
-    static uint64_t time = Params().GenesisBlock().nTime;
+    static uint64_t time = Params().BlockchainParameters().genesisBlock->block.GetBlockTime();
 
     CScript pubKey;
     pubKey << i++ << OP_TRUE;
 
-    auto ptemplate = BlockAssembler(Params()).CreateNewBlock(pubKey, false);
+    auto ptemplate = BlockAssembler(::Params().BlockchainParameters()).CreateNewBlock(pubKey);
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
     pblock->hashPrevBlock = prevData.block->GetHash();
     pblock->nTime = ++time;
@@ -87,9 +86,10 @@ std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
 {
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
 
-    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
-        ++(pblock->nNonce);
-    }
+    // UNIT-E TODO fix me
+//    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
+//        ++(pblock->nNonce);
+//    }
 
     return pblock;
 }
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 
     BlockData genesisData;
     {
-        genesisData.block = std::make_shared<CBlock>(Params().GenesisBlock());
+        genesisData.block = std::make_shared<CBlock>(Params().BlockchainParameters().genesisBlock->block);
         genesisData.height = 0;
 
         for (size_t txIdx = 0; txIdx < genesisData.block->vtx.size(); ++txIdx) {
@@ -173,11 +173,13 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     std::vector<CBlockHeader> headers;
     std::transform(blocks.begin(), blocks.end(), std::back_inserter(headers), [](std::shared_ptr<const CBlock> b) { return b->GetBlockHeader(); });
 
+    const auto& params = Params().BlockchainParameters();
+
     // Process all the headers so we understand the toplogy of the chain
-    BOOST_CHECK(ProcessNewBlockHeaders(headers, state, Params()));
+    BOOST_CHECK(ProcessNewBlockHeaders(headers, state, params));
 
     // Connect the genesis block and drain any outstanding events
-    ProcessNewBlock(Params(), std::make_shared<CBlock>(Params().GenesisBlock()), true, &ignored);
+    ProcessNewBlock(params, std::make_shared<CBlock>(params.genesisBlock->block), true, &ignored);
     SyncWithValidationInterfaceQueue();
 
     // subscribe to events (this subscriber will validate event ordering)
@@ -198,13 +200,13 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 //            bool ignored;
             for (int i = 0; i < 1000; i++) {
                 auto block = blocks[GetRand(blocks.size() - 1)];
-                ProcessNewBlock(Params(), block, true, &ignored);
+                ProcessNewBlock(Params().BlockchainParameters(), block, true, &ignored);
             }
 
             // to make sure that eventually we process the full chain - do it here
             for (auto block : blocks) {
                 if (block->vtx.size() == 1) {
-                    bool processed = ProcessNewBlock(Params(), block, true, &ignored);
+                    bool processed = ProcessNewBlock(Params().BlockchainParameters(), block, true, &ignored);
                     assert(processed);
                 }
             }

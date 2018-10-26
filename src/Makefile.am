@@ -108,13 +108,12 @@ UNITE_CORE_H = \
   esperanza/adminparams.h \
   esperanza/adminstate.h \
   esperanza/checkpoint.h \
+  esperanza/checks.h \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
-  esperanza/params.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
-  esperanza/validation.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
   esperanza/vote.h \
@@ -152,7 +151,6 @@ UNITE_CORE_H = \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pow.h \
   proposer/blockproposer.h \
   proposer/multiwallet.h \
   proposer/proposer.h \
@@ -268,9 +266,9 @@ libunite_server_a_SOURCES = \
   esperanza/admincommand.cpp \
   esperanza/adminstate.cpp \
   esperanza/checkpoint.cpp \
+  esperanza/checks.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/finalizationparams.cpp \
-  esperanza/validation.cpp \
   esperanza/validator.cpp \
   httprpc.cpp \
   httpserver.cpp \
@@ -284,7 +282,6 @@ libunite_server_a_SOURCES = \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
-  pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
   rpc/finalization.cpp \
@@ -348,8 +345,6 @@ libunite_wallet_a_SOURCES = \
   proposer/sync.cpp \
   proposer/waiter.cpp \
   rpc/proposer.cpp \
-  staking/kernel.cpp \
-  staking/stakevalidation.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \
   wallet/crypter.cpp \
@@ -444,7 +439,6 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  esperanza/params.cpp \
   esperanza/settings.cpp \
   esperanza/settings_init.cpp \
   key.cpp \

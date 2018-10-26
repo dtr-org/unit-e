@@ -54,7 +54,7 @@ public:
     //! empty constructor
     Coin() : fCoinBase(false), nHeight(0) { }
 
-    bool IsCoinBase() const {
+    bool IsCoinStake() const {
         return fCoinBase;
     }
 
@@ -70,7 +70,7 @@ public:
     //!
     //! \param spendheight The height at which the TxOut is tried to be spent.
     bool IsImmatureCoinBase(int spendheight) const {
-        if (!IsCoinBase()) {
+        if (!IsCoinStake()) {
             // can't be immature, immaturity is a term that applies to coinbase
             // transactions only.
             return false;

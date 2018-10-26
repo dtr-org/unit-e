@@ -6,6 +6,7 @@
 #ifndef UNITE_NET_PROCESSING_H
 #define UNITE_NET_PROCESSING_H
 
+#include <blockchain/blockchain_parameters.h>
 #include <net.h>
 #include <validationinterface.h>
 #include <consensus/params.h>
@@ -62,7 +63,7 @@ public:
     bool SendMessages(CNode* pto, std::atomic<bool>& interrupt) override;
 
     void ConsiderEviction(CNode *pto, int64_t time_in_seconds);
-    void CheckForStaleTipAndEvictPeers(const Consensus::Params &consensusParams);
+    void CheckForStaleTipAndEvictPeers(const blockchain::Parameters &);
     void EvictExtraOutboundPeers(int64_t time_in_seconds);
 
 private:
