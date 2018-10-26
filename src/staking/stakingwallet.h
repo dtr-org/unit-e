@@ -6,11 +6,13 @@
 #define UNIT_E_STAKING_STAKINGWALLET_H
 
 #include <amount.h>
+#include <sign.h>
 
 #include <vector>
 
 class COutput;
 class CKey;
+class CWalletTx;
 struct CMutableTransaction;
 
 namespace staking {
@@ -29,6 +31,10 @@ class StakingWallet {
                                int nBlockHeight, int64_t nFees,
                                ::CMutableTransaction &txNew,
                                ::CKey &keyOut) = 0;
+
+  //! \brief
+  virtual void SignInput(CWalletTx *walletTx, CMutableTransaction &mutableTx,
+                         unsigned int txInIndex) const = 0;
 
   virtual ~StakingWallet() = default;
 };

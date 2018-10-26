@@ -8,7 +8,9 @@
 #include <proposer/chainstate.h>
 
 #include <dependency.h>
+#include <primitives/transaction.h>
 #include <proposer/transactionpicker.h>
+#include <pubkey.h>
 #include <staking/stakingwallet.h>
 
 #include <stdint.h>
@@ -16,6 +18,7 @@
 
 class CBlock;
 class CWallet;
+class CWalletTx;
 
 namespace proposer {
 
@@ -65,6 +68,27 @@ class BlockProposer {
 
   virtual std::shared_ptr<const CBlock> ProposeBlock(
       const ProposeBlockParameters &) = 0;
+
+  //! \brief
+  struct CoinstakeParameters {
+    //! \brief
+    uint32_t blockHeight;
+
+    //! \brief
+    uint256 utxoSetHash;
+
+    //! \brief
+    CPubKey pubKey;
+
+    //! \brief
+    staking::StakingWallet *wallet;
+
+    //! \brief
+    std::vector<CWalletTx *> stake;
+  };
+
+  virtual CTransaction BuildCoinstakeTransaction(
+      const CoinstakeParameters &) const = 0;
 
   virtual ~BlockProposer() = default;
 

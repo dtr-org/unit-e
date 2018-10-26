@@ -801,6 +801,23 @@ void WalletExtension::BlockConnected(
   }
 }
 
+void WalletExtension::SignInput(CWalletTx *walletTx,
+                                CMutableTransaction &mutableTx,
+                                const unsigned int txInIndex) const {
+  CTxIn &txIn = mutableTx.vin[txInIndex];
+  const int prevOutIndex = txIn.prevout.n;
+  const CTxOut &prevOut = walletTx->tx->vout[prevOutIndex];
+  const CTransaction constTx(mutableTx);
+  const CScript &prevOutScriptPubKey = prevOut.scriptPubKey;
+
+  const ::TransactionSignatureCreator tsc(m_enclosingWallet, &constTx,
+                                          txInIndex, prevOut.nValue);
+
+  ::SignatureData signatureData;
+  ::ProduceSignature(tsc, prevOutScriptPubKey, signatureData);
+  ::UpdateTransaction(mutableTx, txInIndex, signatureData);
+}
+
 const proposer::State &WalletExtension::GetProposerState() const {
   return m_proposerState;
 }

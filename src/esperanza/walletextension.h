@@ -94,6 +94,9 @@ class WalletExtension : public staking::StakingWallet {
 
   const proposer::State &GetProposerState() const;
 
+  void SignInput(CWalletTx *walletTx, CMutableTransaction &mutableTx,
+                 unsigned int txInIndex) const override;
+
   ValidatorState validatorState;
   bool nIsValidatorEnabled = false;
 };
