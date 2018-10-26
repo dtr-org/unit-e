@@ -133,17 +133,18 @@ arith_uint256 GetBlockProof(const CBlockIndex& block)
     return (~bnTarget / (bnTarget + 1)) + 1;
 }
 
-int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& from, const CBlockIndex& tip, const Consensus::Params& params)
+int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& from, const CBlockIndex& tip, const blockchain::Parameters& params)
 {
     arith_uint256 r;
     int sign = 1;
-    if (to.nChainWork > from.nChainWork) {
-        r = to.nChainWork - from.nChainWork;
-    } else {
-        r = from.nChainWork - to.nChainWork;
-        sign = -1;
-    }
-    r = r * arith_uint256(params.nPowTargetSpacing) / GetBlockProof(tip);
+    // UNIT-E TODO check this
+//    if (to.nChainWork > from.nChainWork) {
+//        r = to.nChainWork - from.nChainWork;
+//    } else {
+//        r = from.nChainWork - to.nChainWork;
+//        sign = -1;
+//    }
+    r = r * arith_uint256(params.blockTimeSeconds) / GetBlockProof(tip);
     if (r.bits() > 63) {
         return sign * std::numeric_limits<int64_t>::max();
     }

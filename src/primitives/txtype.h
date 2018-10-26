@@ -9,10 +9,8 @@
 
 //! \brief The type of a transaction (see CTransaction)
 //!
-//! In Bitcoin transactions have versions and are always of the same type. In
-//! UnitE transactions have a version and a type as transactions can be one of
-//! different types. UnitE distinguishes different types of transactions for
-//! implementing Proof-of-Stake.
+//! A description of the different unit-e transaction types is given in
+//! ADR-18 (https://github.com/dtr-org/unit-e-docs/blob/master/adrs/2018-11-02-ADR-18%20unit-e%20Transaction%20Types.md)
 // clang-format off
 BETTER_ENUM(
   TxType,

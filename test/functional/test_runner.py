@@ -158,7 +158,6 @@ BASE_SCRIPTS= [
     'proposer_multiwallet.py',
     'proposer_stakeable_balance.py',
     'proposer_settings.py',
-    'feature_minchainwork.py',
     'p2p_fingerprint.py',
     'feature_uacomment.py',
     'rpc_runstringcommand.py',

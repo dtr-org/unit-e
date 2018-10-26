@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(utxo_construct) {
   BOOST_CHECK_EQUAL(utxo1.m_outPoint.hash, out.hash);
   BOOST_CHECK_EQUAL(utxo1.m_outPoint.n, out.n);
   BOOST_CHECK_EQUAL(utxo1.m_height, coin.nHeight);
-  BOOST_CHECK_EQUAL(utxo1.m_isCoinBase, coin.IsCoinBase());
+  BOOST_CHECK_EQUAL(utxo1.m_isCoinBase, coin.IsCoinStake());
   BOOST_CHECK(utxo1.m_txOut == coin.out);
 
   out.hash.SetHex("aa");
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(utxo_construct) {
   BOOST_CHECK_EQUAL(utxo2.m_outPoint.hash, out.hash);
   BOOST_CHECK_EQUAL(utxo2.m_outPoint.n, out.n);
   BOOST_CHECK_EQUAL(utxo2.m_height, coin.nHeight);
-  BOOST_CHECK_EQUAL(utxo2.m_isCoinBase, coin.IsCoinBase());
+  BOOST_CHECK_EQUAL(utxo2.m_isCoinBase, coin.IsCoinStake());
   BOOST_CHECK(utxo2.m_txOut == coin.out);
 }
 

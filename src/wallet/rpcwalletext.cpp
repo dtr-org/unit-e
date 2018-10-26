@@ -441,7 +441,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
       outputs.push_back(output);
     }
 
-    if (wtx.IsCoinBase()) {
+    if (wtx.IsCoinStake()) {
       if (!wtx.IsInMainChain()) {
         entry.pushKV("category", "orphan");
       } else if (wtx.GetBlocksToMaturity() > 0) {

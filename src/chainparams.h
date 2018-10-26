@@ -12,12 +12,12 @@
 #include <protocol.h>
 #include <esperanza/adminparams.h>
 #include <esperanza/finalizationparams.h>
-#include <esperanza/params.h>
 
 #include <memory>
 #include <vector>
 #include <chain.h>
 #include <amount.h>
+#include <blockchain/blockchain_parameters.h>
 
 struct SeedSpec6 {
     uint8_t addr[16];
@@ -59,12 +59,10 @@ public:
     const Consensus::Params& GetConsensus() const { return consensus; }
 
     const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
-    const esperanza::Params& GetEsperanza() const { return esperanza; }
     const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
     int GetDefaultPort() const { return nDefaultPort; }
 
-    const CBlock& GenesisBlock() const { return genesis; }
     /** Default value for -checkmempool and -checkblockindex argument */
     bool DefaultConsistencyChecks() const { return fDefaultConsistencyChecks; }
     /** Policy: Filter transactions that do not match well-defined patterns */
@@ -84,11 +82,17 @@ public:
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
     void UpdateFinalizationParams(esperanza::FinalizationParams &params);
 
+    const blockchain::Parameters& BlockchainParameters() const {
+      return parameters();
+    };
+
 protected:
     CChainParams() {}
 
+    using F = const blockchain::Parameters& (*)();
+
     Consensus::Params consensus;
-    esperanza::Params esperanza = esperanza::Params(this);
+    F parameters;
     esperanza::FinalizationParams finalization;
     esperanza::AdminParams adminParams;
     CMessageHeader::MessageStartChars pchMessageStart;
@@ -98,7 +102,6 @@ protected:
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     std::string bech32_hrp;
     std::string strNetworkID;
-    CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;

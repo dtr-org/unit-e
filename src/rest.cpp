@@ -219,8 +219,9 @@ static bool rest_block(HTTPRequest* req,
         if (fHavePruned && !(pblockindex->nStatus & BLOCK_HAVE_DATA) && pblockindex->nTx > 0)
             return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not available (pruned data)");
 
-        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+        if (!ReadBlockFromDisk(block, pblockindex, Params().BlockchainParameters())) {
             return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
+        }
     }
 
     CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
@@ -341,8 +342,9 @@ static bool rest_mempool_contents(HTTPRequest* req, const std::string& strURIPar
 
 static bool rest_tx(HTTPRequest* req, const std::string& strURIPart)
 {
-    if (!CheckWarmup(req))
+    if (!CheckWarmup(req)) {
         return false;
+    }
     std::string hashStr;
     const RetFormat rf = ParseDataFormat(hashStr, strURIPart);
 
@@ -352,8 +354,9 @@ static bool rest_tx(HTTPRequest* req, const std::string& strURIPart)
 
     CTransactionRef tx;
     uint256 hashBlock = uint256();
-    if (!GetTransaction(hash, tx, Params().GetConsensus(), hashBlock, true))
+    if (!GetTransaction(hash, tx, Params().BlockchainParameters(), hashBlock, true)) {
         return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
+    }
 
     CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
     ssTx << tx;

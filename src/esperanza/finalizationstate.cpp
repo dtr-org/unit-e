@@ -4,7 +4,7 @@
 
 #include <chainparams.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/validation.h>
+#include <esperanza/checks.h>
 #include <esperanza/vote.h>
 #include <script/ismine.h>
 #include <stdio.h>

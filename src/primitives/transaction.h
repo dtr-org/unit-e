@@ -346,14 +346,7 @@ public:
     //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
     TxType GetType() const;
 
-    bool IsCoinBase() const
-    {
-        return (vin.size() == 1 && vin[0].prevout.IsNull());
-    }
-
-    bool IsCoinStake() const
-    {
-        //UNIT-E: TODO: Check whether we need this distinction or we can deduce like Bitcoin's IsCoinBase() above
+    bool IsCoinStake() const {
         return GetType() == +TxType::COINSTAKE;
     }
 

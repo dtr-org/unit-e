@@ -6,6 +6,7 @@
 #ifndef UNITE_MINER_H
 #define UNITE_MINER_H
 
+#include <blockchain/blockchain_parameters.h>
 #include <primitives/block.h>
 #include <txmempool.h>
 
@@ -143,7 +144,7 @@ private:
     // Chain context for the block
     int nHeight;
     int64_t nLockTimeCutoff;
-    const CChainParams& chainparams;
+    const blockchain::Parameters& chainparams;
 
 public:
     struct Options {
@@ -152,11 +153,11 @@ public:
         CFeeRate blockMinFeeRate;
     };
 
-    explicit BlockAssembler(const CChainParams& params);
-    BlockAssembler(const CChainParams& params, const Options& options);
+    explicit BlockAssembler(const blockchain::Parameters&);
+    BlockAssembler(const blockchain::Parameters&, const Options& options);
 
     /** Construct a new block template with coinbase to scriptPubKeyIn */
-    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true);
+    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn);
 
 private:
     // utility functions
@@ -197,8 +198,6 @@ private:
     int UpdatePackagesForAdded(const CTxMemPool::setEntries& alreadyAdded, indexed_modified_transaction_set &mapModifiedTx);
 };
 
-/** Modify the extranonce in a block */
-void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
-int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
+int64_t UpdateTime(CBlockHeader* pblock, const blockchain::Parameters& consensusParams, const CBlockIndex* pindexPrev);
 
 #endif // UNITE_MINER_H

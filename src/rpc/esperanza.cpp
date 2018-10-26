@@ -1,5 +1,4 @@
 #include <chainparams.h>
-#include <esperanza/params.h>
 #include <esperanza/finalizationstate.h>
 #include <rpc/safemode.h>
 #include <rpc/server.h>

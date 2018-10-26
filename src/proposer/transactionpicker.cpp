@@ -41,10 +41,10 @@ namespace proposer {
 class BlockAssemblerAdapter final : public TransactionPicker {
 
  private:
-  const CChainParams &m_chainParams;
+  const blockchain::Parameters &m_chainParams;
 
  public:
-  explicit BlockAssemblerAdapter(const CChainParams &chainParams)
+  explicit BlockAssemblerAdapter(const blockchain::Parameters &chainParams)
       : m_chainParams(chainParams) {}
 
   ~BlockAssemblerAdapter() override = default;
@@ -67,7 +67,7 @@ class BlockAssemblerAdapter final : public TransactionPicker {
     CScript script(1);
     script.push_back(OP_RETURN);
     std::unique_ptr<CBlockTemplate> blockTemplate =
-        blockAssembler.CreateNewBlock(script, /* fMineWitnessTx */ true);
+        blockAssembler.CreateNewBlock(script);
 
     return PickTransactionsResult{std::move(blockTemplate->block.vtx),
                                   std::move(blockTemplate->vTxFees)};
@@ -78,7 +78,7 @@ std::unique_ptr<TransactionPicker>
 TransactionPicker::MakeBlockAssemblerAdapter() {
 
   return std::unique_ptr<TransactionPicker>(
-      new BlockAssemblerAdapter(::Params()));
+      new BlockAssemblerAdapter(::Params().BlockchainParameters()));
 }
 
 }  // namespace proposer

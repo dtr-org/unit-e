@@ -5,8 +5,7 @@
 #include <chainparams.h>
 #include <esperanza/adminparams.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/params.h>
-#include <esperanza/validation.h>
+#include <esperanza/checks.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>
@@ -66,7 +65,7 @@ bool IsVoteExpired(const CTransaction &tx) {
 }
 
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
-                            const Consensus::Params &consensusParams,
+                            const blockchain::Parameters &parameters,
                             const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
@@ -109,7 +108,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 
   // We have to look into the tx database to find the prev tx, hence the
   // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, consensusParams,
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, parameters,
                       blockHash, true)) {
 
     return errState.DoS(10, false, REJECT_INVALID,
@@ -131,7 +130,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 
 bool CheckWithdrawTransaction(CValidationState &errState,
                               const CTransaction &tx,
-                              const Consensus::Params &consensusParams,
+                              const blockchain::Parameters &parameters,
                               const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() > 3) {
@@ -155,7 +154,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 
   // We have to look into the tx database to find the prev tx, hence the
   // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, consensusParams,
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, parameters,
                       blockHash, true)) {
 
     return errState.DoS(10, false, REJECT_INVALID,
@@ -194,7 +193,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 }
 
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
-                          const Consensus::Params &consensusParams,
+                          const blockchain::Parameters &parameters,
                           const CBlockIndex *pindex) {
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
@@ -225,7 +224,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   uint256 blockHash;
   // We have to look into the tx database to find the prev tx, hence the
   // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, consensusParams,
+  if (!GetTransaction(tx.vin[0].prevout.hash, prevTx, parameters,
                       blockHash, true)) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
   }

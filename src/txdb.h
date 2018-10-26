@@ -6,6 +6,7 @@
 #ifndef UNITE_TXDB_H
 #define UNITE_TXDB_H
 
+#include <blockchain/blockchain_parameters.h>
 #include <coins.h>
 #include <dbwrapper.h>
 #include <chain.h>
@@ -141,7 +142,7 @@ public:
     bool WriteTxIndex(const std::vector<std::pair<uint256, CDiskTxPos> > &vect);
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
-    bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
+    bool LoadBlockIndexGuts(const blockchain::Parameters&, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
 };
 
 #endif // UNITE_TXDB_H

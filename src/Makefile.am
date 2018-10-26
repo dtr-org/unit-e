@@ -79,6 +79,8 @@ UNITE_CORE_H = \
   base58.h \
   bech32.h \
   better-enums/enum.h \
+  blockchain/blockchain_parameters.h \
+  blockchain/blockchain_genesis.h \
   bloom.h \
   blockencodings.h \
   chain.h \
@@ -105,13 +107,12 @@ UNITE_CORE_H = \
   esperanza/adminparams.h \
   esperanza/adminstate.h \
   esperanza/checkpoint.h \
+  esperanza/checks.h \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
-  esperanza/params.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
-  esperanza/validation.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
   esperanza/vote.h \
@@ -149,7 +150,6 @@ UNITE_CORE_H = \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pow.h \
   proposer/blockproposer.h \
   proposer/chainstate.h \
   proposer/multiwallet.h \
@@ -191,9 +191,7 @@ UNITE_CORE_H = \
   snapshot/rpc_processing.h \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
-  staking/kernel.h \
   staking/stakingwallet.h \
-  staking/stakevalidation.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -262,9 +260,9 @@ libunite_server_a_SOURCES = \
   esperanza/admincommand.cpp \
   esperanza/adminstate.cpp \
   esperanza/checkpoint.cpp \
+  esperanza/checks.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/finalizationparams.cpp \
-  esperanza/validation.cpp \
   esperanza/validator.cpp \
   httprpc.cpp \
   httpserver.cpp \
@@ -278,7 +276,6 @@ libunite_server_a_SOURCES = \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
-  pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
   rpc/esperanza.cpp \
@@ -339,8 +336,6 @@ libunite_wallet_a_SOURCES = \
   proposer/sync.cpp \
   proposer/waiter.cpp \
   rpc/proposer.cpp \
-  staking/kernel.cpp \
-  staking/stakevalidation.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \
   wallet/crypter.cpp \
@@ -428,12 +423,13 @@ libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
   base58.cpp \
   bech32.cpp \
+  blockchain/blockchain_genesis.cpp \
+  blockchain/blockchain_parameters.cpp \
   chainparams.cpp \
   coins.cpp \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  esperanza/params.cpp \
   esperanza/settings.cpp \
   esperanza/settings_init.cpp \
   key.cpp \

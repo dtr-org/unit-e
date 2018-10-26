@@ -15,7 +15,7 @@ namespace snapshot {
 UTXO::UTXO(const COutPoint &out, const Coin &coin)
     : m_outPoint(out),
       m_height(coin.nHeight),
-      m_isCoinBase(coin.IsCoinBase()),
+      m_isCoinBase(coin.IsCoinStake()),
       m_txOut(coin.out) {}
 
 secp256k1_context *context = nullptr;

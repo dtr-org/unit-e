@@ -536,7 +536,6 @@ class CBlockHeader():
             self.hashMerkleRoot = header.hashMerkleRoot
             self.nTime = header.nTime
             self.nBits = header.nBits
-            self.nNonce = header.nNonce
             self.sha256 = header.sha256
             self.hash = header.hash
             self.calc_sha256()
@@ -547,7 +546,6 @@ class CBlockHeader():
         self.hashMerkleRoot = 0
         self.nTime = 0
         self.nBits = 0
-        self.nNonce = 0
         self.sha256 = None
         self.hash = None
 
@@ -557,7 +555,6 @@ class CBlockHeader():
         self.hashMerkleRoot = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
         self.nBits = struct.unpack("<I", f.read(4))[0]
-        self.nNonce = struct.unpack("<I", f.read(4))[0]
         self.sha256 = None
         self.hash = None
 
@@ -568,7 +565,6 @@ class CBlockHeader():
         r += ser_uint256(self.hashMerkleRoot)
         r += struct.pack("<I", self.nTime)
         r += struct.pack("<I", self.nBits)
-        r += struct.pack("<I", self.nNonce)
         return r
 
     def calc_sha256(self):
@@ -579,7 +575,6 @@ class CBlockHeader():
             r += ser_uint256(self.hashMerkleRoot)
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
-            r += struct.pack("<I", self.nNonce)
             self.sha256 = uint256_from_str(hash256(r))
             self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
 
@@ -589,9 +584,9 @@ class CBlockHeader():
         return self.sha256
 
     def __repr__(self):
-        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x)" \
+        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x)" \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,
-               time.ctime(self.nTime), self.nBits, self.nNonce)
+               time.ctime(self.nTime), self.nBits)
 
 
 class CBlock(CBlockHeader):

@@ -8,14 +8,18 @@
 #include <proposer/chainstate.h>
 
 #include <dependency.h>
+#include <primitives/transaction.h>
 #include <proposer/transactionpicker.h>
+#include <pubkey.h>
 #include <staking/stakingwallet.h>
+#include <boost/optional.hpp>
 
 #include <stdint.h>
 #include <memory>
 
 class CBlock;
 class CWallet;
+class CWalletTx;
 
 namespace proposer {
 

@@ -183,7 +183,7 @@ void Proposer::Run(Proposer::Thread &thread) {
       }
 
       const int64_t currentTime = thread.m_proposer.m_network->GetTime();
-      const int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
+      const int64_t mask = (1 << 4) - 1;
       const int64_t searchTime = currentTime & ~mask;
 
       for (auto *wallet : thread.m_wallets) {
@@ -254,8 +254,8 @@ void Proposer::Run(Proposer::Thread &thread) {
 
         CScript coinbaseScript;
         std::unique_ptr<CBlockTemplate> blockTemplate =
-            BlockAssembler(::Params())
-                .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
+            BlockAssembler(::Params().BlockchainParameters())
+                .CreateNewBlock(coinbaseScript);
 
         if (!blockTemplate) {
           LogPrint(BCLog::PROPOSING, "%s/%s: failed to get block template",

@@ -1,5 +1,5 @@
 #include <esperanza/finalizationstate.h>
-#include <esperanza/validation.h>
+#include <esperanza/checks.h>
 #include <keystore.h>
 #include <random.h>
 #include <script/script.h>

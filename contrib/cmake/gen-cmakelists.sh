@@ -37,6 +37,7 @@ find -E src -type d -regex '.+/[^/.]+' | awk '{ print "include_directories(" $0 
 echo ""
 
 echo "add_executable(unit_e"
+find -E src -type l -regex '.+\.[ch](pp)?' | awk '{ print "      " $0 }'
 find -E src -type f -regex '.+\.[ch](pp)?' | awk '{ print "      " $0 }'
 echo ")"
 ) > CMakeLists.txt

@@ -26,7 +26,7 @@
 namespace key {
 namespace mnemonic {
 
-static const unsigned char* mnLanguages[] = {
+static const unsigned char *mnLanguages[] = {
     english_txt,
     french_txt,
     japanese_txt,
@@ -62,11 +62,17 @@ static const std::string
 
 static const std::string
     languagesTags[static_cast<uint16_t>(Language::_size_constant)] = {
-        "english",   "french",    "japanese", "spanish",
-        "chinese_s", "chinese_t", "italian",  "korean",
+        "english",
+        "french",
+        "japanese",
+        "spanish",
+        "chinese_s",
+        "chinese_t",
+        "italian",
+        "korean",
 };
 
-static void ReplaceStrInPlace(std::string& subject, const std::string search,
+static void ReplaceStrInPlace(std::string &subject, const std::string search,
                               const std::string replace) {
   size_t pos = 0;
   while ((pos = subject.find(search, pos)) != std::string::npos) {
@@ -75,7 +81,7 @@ static void ReplaceStrInPlace(std::string& subject, const std::string search,
   }
 }
 
-static std::string& LTrimWhitespace(std::string& s) {
+static std::string &LTrimWhitespace(std::string &s) {
   std::string::iterator i;
   for (i = s.begin(); i != s.end(); ++i) {
     if (!std::isspace(*i)) {
@@ -88,7 +94,7 @@ static std::string& LTrimWhitespace(std::string& s) {
   return s;
 }
 
-static std::string& RTrimWhitespace(std::string& s) {
+static std::string &RTrimWhitespace(std::string &s) {
   std::string::reverse_iterator i;
   for (i = s.rbegin(); i != s.rend(); ++i) {
     if (!std::isspace(*i)) {
@@ -101,20 +107,20 @@ static std::string& RTrimWhitespace(std::string& s) {
   return s;
 }
 
-static std::string& TrimWhitespace(std::string& s) {
+static std::string &TrimWhitespace(std::string &s) {
   LTrimWhitespace(s);
   RTrimWhitespace(s);
   return s;
 }
 
-static void NormaliseUnicode(std::string& str) {
+static void NormaliseUnicode(std::string &str) {
   std::u32string u32;
   ufal::unilib::utf8::decode(str, u32);
   ufal::unilib::uninorms::nfkd(u32);
   ufal::unilib::utf8::encode(u32, str);
 }
 
-static void NormaliseInput(std::string& str) {
+static void NormaliseInput(std::string &str) {
   TrimWhitespace(str);
   NormaliseUnicode(str);
 }
@@ -127,9 +133,9 @@ std::string GetLanguageTag(const Language language) {
   return languagesTags[static_cast<int>(language)];
 }
 
-int GetWord(int o, const char* pwl, int max, std::string& sWord) {
+int GetWord(int o, const char *pwl, int max, std::string &sWord) {
   sWord = "";
-  char* pt = (char*)pwl;
+  char *pt = (char *)pwl;
   while (o > 0) {
     if (*pt == '\n') {
       o--;
@@ -151,9 +157,9 @@ int GetWord(int o, const char* pwl, int max, std::string& sWord) {
   return 1;
 }
 
-int GetWordOffset(const char* p, const char* pwl, int max, int& o) {
+int GetWordOffset(const char *p, const char *pwl, int max, int &o) {
   // List must end with \n
-  char* pt = (char*)pwl;
+  char *pt = (char *)pwl;
   int l = strlen(p);
   int i = 0;
   int c = 0;
@@ -180,7 +186,7 @@ int GetWordOffset(const char* p, const char* pwl, int max, int& o) {
   return 1;
 }
 
-boost::optional<Language> DetectLanguage(const std::string& sWordList) {
+boost::optional<Language> DetectLanguage(const std::string &sWordList) {
   char tmp[2048];
   if (sWordList.size() >= 2048) {
     return boost::none;
@@ -193,7 +199,7 @@ boost::optional<Language> DetectLanguage(const std::string& sWordList) {
   for (size_t l = 0; l < Language::_size_constant; ++l) {
     strcpy(tmp, sWordList.c_str());
 
-    char* pwl = (char*)mnLanguages[l];
+    char *pwl = (char *)mnLanguages[l];
     int m = mnLanguageLens[l];
 
     // The chinese dialects have many words in common, match full phrase
@@ -204,7 +210,7 @@ boost::optional<Language> DetectLanguage(const std::string& sWordList) {
 
     int nHit = 0;
     int nMiss = 0;
-    char* p;
+    char *p;
     p = strtok(tmp, " ");
     while (p != nullptr) {
       int ofs;
@@ -232,15 +238,15 @@ boost::optional<Language> DetectLanguage(const std::string& sWordList) {
   return boost::none;
 }
 
-int Encode(Language language, const std::vector<uint8_t>& vEntropy,
-           std::string& sWordList, std::string& sError) {
+int Encode(Language language, const std::vector<uint8_t> &vEntropy,
+           std::string &sWordList, std::string &sError) {
   sWordList = "";
 
   const int nLanguage = language._to_index();
 
   // Checksum is 1st n bytes of the sha256 hash
   uint8_t hash[32];
-  CSHA256().Write(&vEntropy[0], vEntropy.size()).Finalize((uint8_t*)hash);
+  CSHA256().Write(&vEntropy[0], vEntropy.size()).Finalize((uint8_t *)hash);
 
   int nCsSize = vEntropy.size() / 4;  // 32 / 8
   if (nCsSize < 1 || nCsSize > 256) {
@@ -291,7 +297,7 @@ int Encode(Language language, const std::vector<uint8_t>& vEntropy,
     i += 11;
   }
 
-  char* pwl = (char*)mnLanguages[nLanguage];
+  char *pwl = (char *)mnLanguages[nLanguage];
   int m = mnLanguageLens[nLanguage];
 
   for (size_t k = 0; k < vWord.size(); ++k) {
@@ -316,8 +322,8 @@ int Encode(Language language, const std::vector<uint8_t>& vEntropy,
   return 0;
 }
 
-int Decode(Language language, const std::string& sWordListIn,
-           std::vector<uint8_t>& vEntropy, std::string& sError,
+int Decode(Language language, const std::string &sWordListIn,
+           std::vector<uint8_t> &vEntropy, std::string &sError,
            bool fIgnoreChecksum) {
   const int nLanguage = static_cast<int>(language);
 
@@ -332,12 +338,12 @@ int Decode(Language language, const std::string& sWordListIn,
 
   strcpy(tmp, sWordList.c_str());
 
-  char* pwl = (char*)mnLanguages[nLanguage];
+  char *pwl = (char *)mnLanguages[nLanguage];
   int m = mnLanguageLens[nLanguage];
 
   std::vector<int> vWordInts;
 
-  char* p;
+  char *p;
   p = strtok(tmp, " ");
   while (p != nullptr) {
     int ofs;
@@ -405,7 +411,7 @@ int Decode(Language language, const std::string& sWordListIn,
   vEntropy.resize(nBytesEntropy);
 
   uint8_t hash[32];
-  CSHA256().Write(&vEntropy[0], vEntropy.size()).Finalize((uint8_t*)hash);
+  CSHA256().Write(&vEntropy[0], vEntropy.size()).Finalize((uint8_t *)hash);
 
   std::vector<uint8_t> vCSTest;
 
@@ -425,9 +431,9 @@ int Decode(Language language, const std::string& sWordListIn,
   return 0;
 }
 
-static int mnemonicKdf(const uint8_t* password, size_t lenPassword,
-                       const uint8_t* salt, size_t lenSalt, size_t nIterations,
-                       uint8_t* out) {
+static int mnemonicKdf(const uint8_t *password, size_t lenPassword,
+                       const uint8_t *salt, size_t lenSalt, size_t nIterations,
+                       uint8_t *out) {
   /*
   https://tools.ietf.org/html/rfc2898
   5.2 PBKDF2
@@ -452,7 +458,7 @@ static int mnemonicKdf(const uint8_t* password, size_t lenPassword,
   CHMAC_SHA512 ctx(password, lenPassword);
   CHMAC_SHA512 ctx_state = ctx;
   ctx.Write(salt, lenSalt);
-  ctx.Write((uint8_t*)&one, 4);
+  ctx.Write((uint8_t *)&one, 4);
   ctx.Finalize(r);
   memcpy(out, r, 64);
 
@@ -469,8 +475,8 @@ static int mnemonicKdf(const uint8_t* password, size_t lenPassword,
   return 0;
 }
 
-int ToSeed(const std::string& sMnemonic, const std::string& sPasswordIn,
-           std::vector<uint8_t>& vSeed) {
+int ToSeed(const std::string &sMnemonic, const std::string &sPasswordIn,
+           std::vector<uint8_t> &vSeed) {
   vSeed.resize(64);
 
   std::string sWordList = sMnemonic;
@@ -483,16 +489,16 @@ int ToSeed(const std::string& sMnemonic, const std::string& sPasswordIn,
 
   std::string sSalt = std::string("mnemonic") + sPassword;
 
-  if (0 != mnemonicKdf((uint8_t*)sWordList.data(), sWordList.size(),
-                       (uint8_t*)sSalt.data(), sSalt.size(), nIterations,
+  if (0 != mnemonicKdf((uint8_t *)sWordList.data(), sWordList.size(),
+                       (uint8_t *)sSalt.data(), sSalt.size(), nIterations,
                        &vSeed[0])) {
     return error<1>("%s: mnemonicKdf failed.", __func__);
   }
   return 0;
 }
 
-int AddChecksum(Language language, const std::string& sWordListIn,
-                std::string& sWordListOut, std::string& sError) {
+int AddChecksum(Language language, const std::string &sWordListIn,
+                std::string &sWordListOut, std::string &sError) {
   sWordListOut = "";
   int rv;
   std::vector<uint8_t> vEntropy;
@@ -508,10 +514,10 @@ int AddChecksum(Language language, const std::string& sWordListIn,
   return 0;
 }
 
-int GetWord(Language language, int nWord, std::string& sWord,
-            std::string& sError) {
+int GetWord(Language language, int nWord, std::string &sWord,
+            std::string &sError) {
   const int nLanguage = static_cast<int>(language);
-  char* pwl = (char*)mnLanguages[nLanguage];
+  char *pwl = (char *)mnLanguages[nLanguage];
   int m = mnLanguageLens[nLanguage];
 
   if (0 != GetWord(nWord, pwl, m, sWord)) {
@@ -523,7 +529,7 @@ int GetWord(Language language, int nWord, std::string& sWord,
   return 0;
 }
 
-Seed::Seed(const std::string& mnemonic, const std::string& passphrase) {
+Seed::Seed(const std::string &mnemonic, const std::string &passphrase) {
   boost::optional<Language> maybeLanguage = DetectLanguage(mnemonic);
   if (boost::none == maybeLanguage) {
     throw std::runtime_error(
@@ -546,21 +552,21 @@ Seed::Seed(const std::string& mnemonic, const std::string& passphrase) {
   m_extKey58.SetKey(m_extKey);
 }
 
-const std::string& Seed::GetHumandReadableLanguage() const {
+const std::string &Seed::GetHumandReadableLanguage() const {
   return languagesDesc[static_cast<int>(m_language)];
 }
 
-const std::string& Seed::GetLanguageTag() const {
+const std::string &Seed::GetLanguageTag() const {
   return languagesTags[static_cast<int>(m_language)];
 }
 
-const std::string& Seed::GetHexSeed() const { return m_hexSeed; }
+const std::string &Seed::GetHexSeed() const { return m_hexSeed; }
 
-const std::string& Seed::GetHexEntropy() const { return m_hexEntropy; }
+const std::string &Seed::GetHexEntropy() const { return m_hexEntropy; }
 
-const CExtKey& Seed::GetExtKey() const { return m_extKey; }
+const CExtKey &Seed::GetExtKey() const { return m_extKey; }
 
-const CUnitEExtKey& Seed::GetExtKey58() const { return m_extKey58; }
+const CUnitEExtKey &Seed::GetExtKey58() const { return m_extKey58; }
 
 }  // namespace mnemonic
 

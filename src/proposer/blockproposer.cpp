@@ -5,6 +5,10 @@
 #include <proposer/blockproposer.h>
 
 #include <consensus/merkle.h>
+#include <primitives/transaction.h>
+#include <pubkey.h>
+#include <script/script.h>
+#include <wallet/wallet.h>
 
 namespace proposer {
 
@@ -14,16 +18,81 @@ class BlockProposerImpl : public BlockProposer {
   Dependency<ChainState> m_chain;
   Dependency<TransactionPicker> m_transactionPicker;
 
+  //! \brief builds the meta txin (zeroth txin in a coinstake tx)
+  //!
+  //! The meta txin is the zeroth input of a coinstake transaction. It does
+  //! not refer to any UTXO but contains meta data:
+  //!
+  //! - the height of the block
+  //! - the utxo set hash (to support snapshot/fast sync)
+  //!
+  //! The meta txin is accompanied by a witness program that contains the
+  //! public key that is used to sign the block.
+  CTxIn BuildMetaTxIn(const uint32_t blockHeight, const uint256 &utxoSetHash,
+                      const CPubKey &pubKey) const {
+
+    std::vector<uint8_t> serializedUTXOSetHash(utxoSetHash.begin(),
+                                               utxoSetHash.end());
+
+    CTxIn txIn;
+    txIn.prevout.SetNull();
+    txIn.scriptSig = CScript() << static_cast<int64_t>(blockHeight)
+                               << serializedUTXOSetHash << 0x00;
+    txIn.scriptWitness.stack.emplace_back(pubKey.begin(), pubKey.end());
+
+    return txIn;
+  }
+
  public:
   explicit BlockProposerImpl(Dependency<ChainState> chain,
                              Dependency<TransactionPicker> transactionPicker)
       : m_chain(chain), m_transactionPicker(transactionPicker) {}
 
+  CTransaction BuildCoinstakeTransaction(const uint32_t blockHeight,
+                                         const uint256 &utxoSetHash,
+                                         const CPubKey &pubKey,
+                                         staking::StakingWallet *wallet,
+                                         ::std::vector<CWalletTx *> stake) const {
+
+    CMutableTransaction mutableTx;
+    mutableTx.SetType(TxType::COINSTAKE);
+    mutableTx.SetVersion(1);
+
+    // create meta input
+    mutableTx.vin.emplace_back(BuildMetaTxIn(blockHeight, utxoSetHash, pubKey));
+
+    // create stake inputs
+    for (const auto &coin : stake) {
+      const int ix = coin->nIndex;
+      mutableTx.vin.emplace_back(coin->tx->GetHash(), ix);
+    }
+
+    // sign inputs
+    unsigned int txInIndex = 1;
+    for (const auto &coin : stake) {
+      wallet->SignInput(coin, mutableTx, txInIndex);
+      ++txInIndex;
+    }
+
+    return CTransaction(mutableTx);
+  }
+
   std::shared_ptr<const CBlock> ProposeBlock(
       const ProposeBlockParameters &parameters) override {
 
+    std::vector<CWalletTx *> stake;
+
+    uint256 utxoSetHash = uint256();
+    CPubKey pubKey;
+
+    const CTransaction coinstakeTransaction = BuildCoinstakeTransaction(
+        parameters.blockHeight, utxoSetHash, pubKey, parameters.wallet, stake);
+
     TransactionPicker::PickTransactionsParameters pickTransactionsParameters{};
 
+    // UNIT-E TODO the transaction picker should be told about the weight of the
+    // coinstake transaction. Most coinstake transactions have exactly the same
+    // length.
     TransactionPicker::PickTransactionsResult transactionsResult =
         m_transactionPicker->PickTransactions(pickTransactionsParameters);
 

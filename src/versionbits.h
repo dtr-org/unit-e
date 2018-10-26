@@ -52,17 +52,17 @@ extern const struct VBDeploymentInfo VersionBitsDeploymentInfo[];
  */
 class AbstractThresholdConditionChecker {
 protected:
-    virtual bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const =0;
-    virtual int64_t BeginTime(const Consensus::Params& params) const =0;
-    virtual int64_t EndTime(const Consensus::Params& params) const =0;
-    virtual int Period(const Consensus::Params& params) const =0;
-    virtual int Threshold(const Consensus::Params& params) const =0;
+    virtual bool Condition(const CBlockIndex* pindex, const blockchain::Parameters& params) const =0;
+    virtual int64_t BeginTime(const blockchain::Parameters& params) const =0;
+    virtual int64_t EndTime(const blockchain::Parameters& params) const =0;
+    virtual int Period(const blockchain::Parameters& params) const =0;
+    virtual int Threshold(const blockchain::Parameters& params) const =0;
 
 public:
-    BIP9Stats GetStateStatisticsFor(const CBlockIndex* pindex, const Consensus::Params& params) const;
+    BIP9Stats GetStateStatisticsFor(const CBlockIndex* pindex, const blockchain::Parameters& params) const;
     // Note that the functions below take a pindexPrev as input: they compute information for block B based on its parent.
-    ThresholdState GetStateFor(const CBlockIndex* pindexPrev, const Consensus::Params& params, ThresholdConditionCache& cache) const;
-    int GetStateSinceHeightFor(const CBlockIndex* pindexPrev, const Consensus::Params& params, ThresholdConditionCache& cache) const;
+    ThresholdState GetStateFor(const CBlockIndex* pindexPrev, const blockchain::Parameters& params, ThresholdConditionCache& cache) const;
+    int GetStateSinceHeightFor(const CBlockIndex* pindexPrev, const blockchain::Parameters& params, ThresholdConditionCache& cache) const;
 };
 
 struct VersionBitsCache
@@ -72,9 +72,9 @@ struct VersionBitsCache
     void Clear();
 };
 
-ThresholdState VersionBitsState(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos, VersionBitsCache& cache);
-BIP9Stats VersionBitsStatistics(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos);
-int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev, const Consensus::Params& params, Consensus::DeploymentPos pos, VersionBitsCache& cache);
-uint32_t VersionBitsMask(const Consensus::Params& params, Consensus::DeploymentPos pos);
+ThresholdState VersionBitsState(const CBlockIndex* pindexPrev, const blockchain::Parameters& params, Consensus::DeploymentPos pos, VersionBitsCache& cache);
+BIP9Stats VersionBitsStatistics(const CBlockIndex* pindexPrev, const blockchain::Parameters& params, Consensus::DeploymentPos pos);
+int VersionBitsStateSinceHeight(const CBlockIndex* pindexPrev, const blockchain::Parameters& params, Consensus::DeploymentPos pos, VersionBitsCache& cache);
+uint32_t VersionBitsMask(const blockchain::Parameters& params, Consensus::DeploymentPos pos);
 
 #endif
