@@ -138,6 +138,11 @@ class Inj : public Injector<Inj> {
   COMPONENT(C, InjTestNS::M, InjTestNS::M::Make, InjTestNS::A, InjTestNS::W)
 };
 
+template <typename T>
+struct LessPtr {
+  bool operator()(const T *a, const T *b) const { return *a < *b; }
+};
+
 BOOST_AUTO_TEST_SUITE(dependency_injector_tests)
 
 BOOST_AUTO_TEST_CASE(topological_sort_empty_graph) {
@@ -200,8 +205,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_complex_strings) {
       {&str[5], &str[2]}, {&str[2], &str[3]}, {&str[3], &str[1]},
       {&str[4], &str[1]}, {&str[0], &str[4]}, {&str[0], &str[5]}};
   const boost::optional<std::vector<std::string *>> sorted =
-      InjectorUtil::TopologicalSort<std::string *,
-                                    InjectorUtil::LessPtr<std::string>>(edges);
+      InjectorUtil::TopologicalSort<std::string *, LessPtr<std::string>>(edges);
   BOOST_CHECK(sorted);
   const std::vector<std::string *> result = sorted.get();
   const std::vector<std::string> expected = {"0", "4", "5", "2", "3", "1"};

@@ -1,7 +1,7 @@
 #include <amount.h>
 #include <consensus/validation.h>
-#include <esperanza/finalizationparams.h>
 #include <esperanza/finalization_utils.h>
+#include <esperanza/finalizationparams.h>
 #include <esperanza/vote.h>
 #include <keystore.h>
 #include <primitives/transaction.h>
@@ -34,7 +34,6 @@ BOOST_FIXTURE_TEST_CASE(mempool_accept_deposit, TestChain100Setup) {
   BOOST_CHECK_EQUAL(mempool.size(), initialPoolSize + 1);
 }
 
-BOOST_FIXTURE_TEST_CASE(tx_mempool_accept_vote, TestChain100Setup) {
-}
+BOOST_FIXTURE_TEST_CASE(tx_mempool_accept_vote, TestChain100Setup) {}
 
 BOOST_AUTO_TEST_SUITE_END()

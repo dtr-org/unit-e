@@ -22,7 +22,7 @@ bool InitProposer(const esperanza::Settings &settings,
     return false;
   }
   if (!settings.m_proposing) {
-    LogPrint(BCLog::FINALIZATION,
+    LogPrint(BCLog::PROPOSING,
              "not starting proposer, proposing is not activated.\n");
     return true;
   }
@@ -30,9 +30,9 @@ bool InitProposer(const esperanza::Settings &settings,
   injector.swap(_injector);
   try {
     injector->Initialize();
-  } catch (const std::runtime_error &exc) {
-    LogPrint(BCLog::FINALIZATION, "failed to create proposer threads: %s\n",
-             exc.what());
+  } catch (const InjectionError &err) {
+    LogPrint(BCLog::PROPOSING, "failed to create proposer subsystem: %s\n",
+             err.ErrorMessage());
     return false;
   }
   return true;
@@ -40,16 +40,16 @@ bool InitProposer(const esperanza::Settings &settings,
 
 void StartProposer() {
   if (injector) {
-    LogPrint(BCLog::FINALIZATION, "starting proposer threads...\n");
+    LogPrint(BCLog::PROPOSING, "starting proposer threads...\n");
     injector->GetProposer()->Start();
   }
 }
 
 void StopProposer() {
   if (injector) {
-    LogPrint(BCLog::FINALIZATION, "stopping proposer threads...\n");
+    LogPrint(BCLog::PROPOSING, "stopping proposer threads...\n");
     injector->GetProposer()->Stop();
-    LogPrint(BCLog::FINALIZATION, "all proposer threads exited.\n");
+    LogPrint(BCLog::PROPOSING, "all proposer threads exited.\n");
   }
 }
 
