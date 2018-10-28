@@ -13,6 +13,7 @@ namespace proposer {
 
 class ChainStateAdapter final : public ChainState {
 
+ public:
   CCriticalSection &GetLock() const override { return cs_main; }
 
   uint32_t GetHeight() const override {
@@ -31,6 +32,13 @@ class ChainStateAdapter final : public ChainState {
     return MakeUnique<const CBlockHeader>(tip->GetBlockHeader());
   }
 
+  uint256 GetTipUTXOSetHash() const override {
+    // UNIT-E stub: requires kostia's implementation, tip->GetSnapshotHash()-> yada
+    // yada yada
+    return uint256();
+  }
+
+ private:
   bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override {
     bool newBlock;
     return ::ProcessNewBlock(::Params(), pblock, true, &newBlock);

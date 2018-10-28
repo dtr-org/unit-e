@@ -24,16 +24,19 @@ class StakingWallet {
  public:
   virtual CAmount GetStakeableBalance() const = 0;
 
-  virtual void AvailableCoinsForStaking(std::vector<::COutput> &vCoins) = 0;
-
-  virtual bool CreateCoinStake(unsigned int nBits, int64_t nTime,
-                               int nBlockHeight, int64_t nFees,
-                               ::CMutableTransaction &txNew,
-                               ::CKey &keyOut) = 0;
-
-  //! \brief
-  virtual void SignInput(CWalletTx *walletTx, CMutableTransaction &mutableTx,
-                         unsigned int txInIndex) const = 0;
+  //! \brief Signs an input in a Transaction and updates that transaction.
+  //!
+  //! Signing an input means to add the scriptSig and witness data. These things
+  //! are complected with the structure of transactions, hence a mutable
+  //! transaction that will be altered by invoking this function has to be
+  //! passed in.
+  virtual void SignInput(
+      //! The wallet that holds the private keys etc. to perform the signing.
+      CWalletTx *walletTx,
+      //! The transaction that hosts the input to sign
+      CMutableTransaction &mutableTx,
+      //! The index of the input within that transaction
+      unsigned int txInIndex) const = 0;
 
   virtual ~StakingWallet() = default;
 };

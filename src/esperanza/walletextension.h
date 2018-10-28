@@ -69,12 +69,6 @@ class WalletExtension : public staking::StakingWallet {
 
   CAmount GetStakeableBalance() const override;
 
-  void AvailableCoinsForStaking(std::vector<::COutput> &vCoins) override;
-
-  bool CreateCoinStake(unsigned int nBits, int64_t nTime, int nBlockHeight,
-                       int64_t nFees, ::CMutableTransaction &txNew,
-                       ::CKey &keyOut) override;
-
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             std::string &error);
 

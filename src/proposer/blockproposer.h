@@ -69,21 +69,21 @@ class BlockProposer {
   virtual std::shared_ptr<const CBlock> ProposeBlock(
       const ProposeBlockParameters &) = 0;
 
-  //! \brief
+  //! \brief All the ingredients needed in a coinstake tx. Stir, don't shake.
   struct CoinstakeParameters {
-    //! \brief
+    //! \brief The block height at which this coinstake tx gonna be included.
     uint32_t blockHeight;
 
-    //! \brief
+    //! \brief The utxo set hash at the given block height.
     uint256 utxoSetHash;
 
-    //! \brief
+    //! \brief The public key used for signing the block.
     CPubKey pubKey;
 
-    //! \brief
+    //! \brief The wallet used for signing and spending.
     staking::StakingWallet *wallet;
 
-    //! \brief
+    //! \brief The coins to stake and put in the coinstake transaction.
     std::vector<CWalletTx *> stake;
   };
 
