@@ -16,7 +16,7 @@ The maintainer team can be reached on GitHub as @unit-e/maintainers, it consists
 * [Julian Fleischer](https://github.com/scravy)
 * [Gil Danziger](https://github.com/thothd)
 
-There are some areas of the code where changes might have a critical impact. These need special review by the following experts. Changes can only be merged if the respective expert has approved them. Automatic assignment of reviewers is configured in [CODEOWNERS](.github/CODEOWNERS).
+There are some areas of the code where changes might have a critical impact. While the maintainers act as a team, these code areas need special review by domain experts. The domain experts are listed below. Add them as reviewers on pull requests which are touching the respective areas.
 
 * Esperanza: [Matteo Sumberaz](https://github.com/Gnappuraz)
 * Proposer: [Julian Fleischer](https://github.com/scravy)
