@@ -45,7 +45,8 @@ The following sections explain the details of the different steps.
 ### Fork repository
 
 To start a new patch fork the unit-e repository on GitHub or, if you already
-have a fork, update its master branch to the latest version.
+have a fork, [update its master
+branch](https://help.github.com/articles/syncing-a-fork/) to the latest version.
 
 This workflow is the same for everybody including those who have write access to
 the main repo to have a consistent, symmetric, and fair workflow. So don't
