@@ -73,7 +73,7 @@ Open a pull request in the GitHub UI from your branch to the main repository.
 
 Add any additional context or references which are relevant to the process of reviewing the changes to the body of the pull request. Information relevant to understanding the changes itself should be in the code and commit messages.
 
-Assign reviewers if you want to get feedback from specific people. Generally everybody is free to comment on any pull request.
+Assign reviewers if you want to get feedback from specific people. Generally everybody is free to comment on any pull request. It's expected from assigned reviewers to give feedback on the pull request. They might remove themselves or add others if they feel that they can't approve the pull request themselves.
 
 Patchsets should always be focused. For example, a pull request could add a
 feature, fix a bug, or refactor code; but not a mixture. Please also avoid super
@@ -85,6 +85,8 @@ prefix the title with `WIP:`. You can use [Tasks Lists](https://help.github.com/
 in the body of the pull request to indicate tasks are pending.
 
 If you continue to work in the pull request and it gets to a state where it's ready to be merged, remove the `WIP:` and notify reviewers that it's ready to be reviewed for merge.
+
+Use this mechanism also to get early feedback on concepts or incomplete implementations which aren't integrated with the overall code yet. Create a pull request on master with the `WIP:` prefix in the title so the discussion is available in the main project but it's clear that the code doesn't get merged as it is.
 
 #### Features
 
@@ -156,9 +158,7 @@ Add changes as additional commits so that it gives a clear history and that the 
 
 Find a balance between improving an existing pull request or doing changes as a new pull request after the first one has been merged. We are striving for quality but not for perfection. Small pull requests help with that because they make reviews easier and more effective.
 
-Never force push to a review branch as this breaks the history of the pull request on GitHub, might invalidate or confuse discussions, and forces people who have local checkouts of the branch to re-checkout.
-
-In case you want to clean up commits in a pull requests by rebasing, which changes the history, submit them as a new pull request and close the old one. Try to find the right point in time for this when it does not interfere with ongoing discussions or leave the cleanup to the final squash on merge. Reference the old pull request by adding something like `Supersedes #123` in the body of the new pull request.
+When you are rebasing a branch of a pull request to merge in other changes from master or to clean up commits you need to force push to share your changes. Be aware that this breaks the history of the pull request on GitHub, might invalidate or confuse discussions, and forces people who have local checkouts of the branch to re-checkout. Be careful when force pushing. You might want to consider opening a new pull request when that makes things clearer without adding too much effort or noise.
 
 #### Decision by maintainers
 
@@ -166,11 +166,13 @@ The following applies to code changes to the UnitE Core project (and related
 projects such as libsecp256k1), and is not to be confused with overall UnitE
 Network Protocol consensus changes.
 
-Whether a pull request is merged into UnitE Core rests with the project maintainers. A pull request needs approval of at least one maintainer to be merged. If changes might have a critical impact, experts on the area of the change have to approve. Maintainers and experts are documented in the MAINTAINERS.md file.
+Whether and when a pull request is merged into UnitE Core rests with the project maintainers. A pull request needs approval of at least one maintainer to be merged. A maintainer can not approve a pull request they authored themselves. They need at least one other maintainer to approve the pull request.
 
 If maintainers ask for changes, and the changes have been done by adding additional commits to the pull request, they need to approve the changes before the pull request can be merged.
 
 Approval is expressed by using the GitHub review mechanics. If, as a maintainer, you approve the patch for merge, select the "approve" option in the GitHub UI when submitting your review. If you request changes, select the corresponding option to require submission and review of additional changes.
+
+Approval of a pull request is a strong statement. It expresses that the approver takes responsibility that the change will work, does not break anything else, has sufficient test coverage, and will be maintained in the future. Approving a pull request expresses the same level of confidence that the change is good to be shipped as actually merging it.
 
 Maintainers will take into consideration if a patch is in line with the general
 principles of the project; meets the minimum standards for inclusion; and will
@@ -191,11 +193,11 @@ There are special areas of the code which need expert review. As a maintainer it
 
 ### Merging or closing the pull request
 
-Once approved, somebody with write access can merge the pull request. This should usually not be the author of the pull request, if it came from somebody with write access to the repo.
+Once approved, a maintainer with write access will merge the pull request.
 
 Pull requests are squashed on merge to keep the history of the code clean and not pollute it with work in progress commits or artifacts of discussions in the pull request. The commit message should reflect the outcome of the discussion and describe what ends up in the commit being merged. The history of the pull request with its discussion can be looked up on GitHub.
 
-Use the GitHub button for squashing and merging.
+Use the GitHub button for squashing and merging. Be careful with editing the commit message during the squash as this is what directly will end up in the main code branch. Copy relevant information from the pull request description as needed.
 
 There are some exceptions to the rule to squash commits, for example when merging upstream code and the commits and authors should be kept as they are.
 
