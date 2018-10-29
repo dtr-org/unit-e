@@ -24,18 +24,8 @@
 
 namespace InjectorUtil {
 
-template <typename T>
-struct Less {
-  bool operator()(const T a, const T b) const { return a < b; }
-};
-
-template <typename T>
-struct LessPtr {
-  bool operator()(const T *a, const T *b) const { return *a < *b; }
-};
-
 //! \brief Kahn's Algorithm for topological sorting
-template <typename T, typename C = Less<T>>
+template <typename T, typename C = std::less<T>>
 static boost::optional<std::vector<T>> TopologicalSort(
     const std::vector<std::pair<T, T>> &edges) {
   std::vector<T> result;
@@ -67,6 +57,10 @@ static boost::optional<std::vector<T>> TopologicalSort(
   if (outgoing.empty()) {
     return boost::optional<std::vector<T>>(std::move(result));
   }
+  // if the outgoing map still has edges in it then a circle was
+  // detected which could never be added to the set of nodes with
+  // no incoming edges (the circular back-reference would always
+  // be an incoming one).
   return boost::none;
 }
 
@@ -87,6 +81,10 @@ struct TypeInfoHelper<> {
   static void Get(std::vector<std::type_index> &acc) {}
 };
 
+//! \brief reflects the types given as template parameters
+//!
+//! Returns a vector of type_index objects that describe the types given
+//! in the template arguments. Useful in macros or other templates.
 template <typename... TS>
 std::vector<std::type_index> TypeInfo() {
   std::vector<std::type_index> typeIndices;
