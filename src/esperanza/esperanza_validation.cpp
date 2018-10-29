@@ -6,7 +6,7 @@
 #include <esperanza/adminparams.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/params.h>
-#include <esperanza/validation.h>
+#include <esperanza/esperanza_validation.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>

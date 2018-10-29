@@ -11,7 +11,7 @@
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/validation.h>
+#include <esperanza/esperanza_validation.h>
 #include <fs.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>

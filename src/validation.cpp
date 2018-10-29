@@ -14,7 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
-#include <esperanza/validation.h>
+#include <esperanza/esperanza_validation.h>
 #include <cuckoocache.h>
 #include <hash.h>
 #include <init.h>

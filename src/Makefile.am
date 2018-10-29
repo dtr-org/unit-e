@@ -105,13 +105,13 @@ UNITE_CORE_H = \
   esperanza/adminparams.h \
   esperanza/adminstate.h \
   esperanza/checkpoint.h \
+  esperanza/esperanza_validation.h \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
   esperanza/params.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
-  esperanza/validation.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
   esperanza/vote.h \
@@ -259,9 +259,9 @@ libunite_server_a_SOURCES = \
   esperanza/admincommand.cpp \
   esperanza/adminstate.cpp \
   esperanza/checkpoint.cpp \
+  esperanza/esperanza_validation.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/finalizationparams.cpp \
-  esperanza/validation.cpp \
   esperanza/validator.cpp \
   httprpc.cpp \
   httpserver.cpp \

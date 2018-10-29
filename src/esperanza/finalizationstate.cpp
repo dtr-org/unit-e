@@ -2,9 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <chainparams.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/validation.h>
+
+#include <chainparams.h>
+#include <esperanza/esperanza_validation.h>
 #include <esperanza/vote.h>
 #include <script/ismine.h>
 #include <stdio.h>

@@ -8,7 +8,7 @@
 #include <consensus/consensus.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
-#include <esperanza/validation.h>
+#include <esperanza/esperanza_validation.h>
 #include <validation.h>
 #include <policy/policy.h>
 #include <policy/fees.h>
