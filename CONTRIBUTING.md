@@ -8,6 +8,8 @@ contributing.
 
 There is a team of maintainers who take care of responsibilities such as merging pull requests, releasing, moderation, and appointment of maintainers. Maintainers are part of the overall community and there is a path for contributors to become maintainers if they show to be capable and willing to take over this responsibility.
 
+The UnitE team is committed to fostering a welcoming and harassment-free environment. All participants are expected to adhere to our [code of conduct](CODE_OF_CONDUCT.md).
+
 
 Contributor Workflow
 --------------------
