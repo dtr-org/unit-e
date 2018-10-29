@@ -2,11 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <esperanza/esperanza_validation.h>
+
 #include <chainparams.h>
 #include <esperanza/adminparams.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/params.h>
-#include <esperanza/esperanza_validation.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>

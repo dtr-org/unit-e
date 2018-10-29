@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <esperanza/init.h>
+#include <esperanza/esperanza_init.h>
 
 #include <util.h>
 

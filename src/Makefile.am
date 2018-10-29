@@ -105,10 +105,10 @@ UNITE_CORE_H = \
   esperanza/adminparams.h \
   esperanza/adminstate.h \
   esperanza/checkpoint.h \
+  esperanza/esperanza_init.h \
   esperanza/esperanza_validation.h \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
-  esperanza/init.h \
   esperanza/params.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
@@ -320,7 +320,7 @@ libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   address/address.cpp \
-  esperanza/init.cpp \
+  esperanza/esperanza_init.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/blockproposer.cpp \
