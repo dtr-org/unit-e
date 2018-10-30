@@ -18,6 +18,7 @@
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/finalizationparams.h>
+#include <esperanza/init.h>
 #include <fs.h>
 #include <httpserver.h>
 #include <httprpc.h>
@@ -538,6 +539,8 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE));
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
+
+    esperanza::GetHelpString(showDebug);
 
     return strUsage;
 }
