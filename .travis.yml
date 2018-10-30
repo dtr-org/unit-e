@@ -83,7 +83,7 @@ jobs:
     - stage: test
       env: >-
         HOST=x86_64-unknown-linux-gnu
-        PACKAGES="python3-zmq qt4-dev-tools libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev xvfb"
+        PACKAGES="python3-zmq qt4-dev-tools libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.3++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev xvfb"
         NO_DEPENDS=1
         NEED_XVFB=1
         RUN_TESTS=true
