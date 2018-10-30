@@ -18,6 +18,7 @@
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/finalizationparams.h>
+#include <esperanza/init.h>
 #include <fs.h>
 #include <httpserver.h>
 #include <httprpc.h>
@@ -446,6 +447,7 @@ std::string HelpMessage(HelpMessageMode mode)
 
 #ifdef ENABLE_WALLET
     strUsage += GetWalletHelpString(showDebug);
+    strUsage += esperanza::GetHelpString(showDebug);
 #endif
 
 #if ENABLE_ZMQ
