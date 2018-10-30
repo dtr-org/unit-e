@@ -8,9 +8,17 @@
 #include <wallet/wallet.h>
 #include <boost/test/unit_test.hpp>
 
-#include <test/fakeit/fakeit.hpp>
-
 #include <thread>
+
+#ifdef __GNUG__
+
+// Fakeit does not work with GCC's devirtualization
+// which is enabled with -O2 (the default) or higher.
+#pragma GCC optimize("no-devirtualize")
+
+#endif
+
+#include <test/fakeit/fakeit.hpp>
 
 namespace proposer {
 
