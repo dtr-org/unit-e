@@ -49,7 +49,8 @@ class BlockProposerImpl : public BlockProposer {
       : m_chain(chain), m_transactionPicker(transactionPicker) {}
 
   CTransaction BuildCoinstakeTransaction(
-      const CoinstakeParameters &parameters) const override {
+      const CoinstakeParameters &parameters, staking::StakingWallet *wallet,
+      std::vector<CWalletTx *> stake) const override {
 
     CMutableTransaction mutableTx;
     mutableTx.SetType(TxType::COINSTAKE);
@@ -60,19 +61,29 @@ class BlockProposerImpl : public BlockProposer {
         parameters.blockHeight, parameters.utxoSetHash, parameters.pubKey));
 
     // create stake inputs
-    for (const auto &coin : parameters.stake) {
+    for (const auto &coin : stake) {
       const int ix = coin->nIndex;
       mutableTx.vin.emplace_back(coin->tx->GetHash(), ix);
     }
 
     // sign inputs
     unsigned int txInIndex = 1;
-    for (const auto &coin : parameters.stake) {
-      parameters.wallet->SignInput(coin, mutableTx, txInIndex);
+    for (const auto &coin : stake) {
+      wallet->SignInput(coin, mutableTx, txInIndex);
       ++txInIndex;
     }
 
     return CTransaction(mutableTx);
+  }
+
+  boost::optional<CoinstakeParameters> ReadCoinstakeTransaction(
+      const CTransaction &tx) {
+
+    if (tx.vin.size() < 2) {
+      return boost::none;
+    }
+
+    tx.vin[0].scriptSig.GetOp()
   }
 
   std::shared_ptr<const CBlock> ProposeBlock(
@@ -80,12 +91,13 @@ class BlockProposerImpl : public BlockProposer {
 
     CoinstakeParameters coinstakeParameters;
     coinstakeParameters.blockHeight = parameters.blockHeight;
-    coinstakeParameters.wallet = parameters.wallet;
 
-    const CTransaction coinstakeTransaction =
-        BuildCoinstakeTransaction(coinstakeParameters);
+    std::vector<CWalletTx *> stake;
 
-    TransactionPicker::PickTransactionsParameters pickTransactionsParameters;
+    const CTransaction coinstakeTransaction = BuildCoinstakeTransaction(
+        coinstakeParameters, parameters.wallet, stake);
+
+    TransactionPicker::PickTransactionsParameters pickTransactionsParameters{};
 
     TransactionPicker::PickTransactionsResult transactionsResult =
         m_transactionPicker->PickTransactions(pickTransactionsParameters);

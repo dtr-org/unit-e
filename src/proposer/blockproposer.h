@@ -12,6 +12,7 @@
 #include <proposer/transactionpicker.h>
 #include <pubkey.h>
 #include <staking/stakingwallet.h>
+#include <boost/optional.hpp>
 
 #include <stdint.h>
 #include <memory>
@@ -79,16 +80,17 @@ class BlockProposer {
 
     //! \brief The public key used for signing the block.
     CPubKey pubKey;
-
-    //! \brief The wallet used for signing and spending.
-    staking::StakingWallet *wallet;
-
-    //! \brief The coins to stake and put in the coinstake transaction.
-    std::vector<CWalletTx *> stake;
   };
 
   virtual CTransaction BuildCoinstakeTransaction(
-      const CoinstakeParameters &) const = 0;
+      const CoinstakeParameters &,
+      //! \brief The wallet used for signing and spending.
+      staking::StakingWallet *wallet,
+      //! \brief The coins to stake and put in the coinstake transaction.
+      std::vector<CWalletTx *> stake) const = 0;
+
+  virtual boost::optional<CoinstakeParameters> ReadCoinstakeTransaction(
+      const CTransaction &) const = 0;
 
   virtual ~BlockProposer() = default;
 
