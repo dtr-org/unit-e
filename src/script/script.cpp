@@ -468,7 +468,7 @@ bool CScript::ExtractVoteFromVoteSignature(const CScript &scriptSig,
     return true;
 }
 
-bool CScript::ExtractVoteFromSlashSignature(const CScript &scriptSig,
+bool CScript::ExtractVotesFromSlashSignature(const CScript &scriptSig,
     esperanza::Vote &vote1,
     esperanza::Vote &vote2,
     std::vector<unsigned char> &vote1Sig,
