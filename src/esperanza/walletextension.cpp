@@ -394,14 +394,6 @@ void WalletExtension::ReadValidatorStateFromFile() {
   }
 }
 
-/**
- * \brief Creates a deposit transaction for the given address and amount.
- *
- * \param[in] keyID the destination pubkey
- * \param[in] amount
- * \param[out] wtxOut the transaction created
- * \returns true if the operation was successful, false otherwise.
- */
 bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
                                   CWalletTx &wtxOut) {
 
@@ -464,9 +456,6 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   return true;
 }
 
-//! \brief Creates and sends a logout transaction.
-//! \param wtxNewOut[out] the logout transaction created.
-//! \returns true if the operation was successful, false otherwise.
 bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
   CCoinControl coinControl;
@@ -539,9 +528,6 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   return true;
 }
 
-//! \brief Creates and sends a withdraw transaction.
-//! \param wtxNewOut[out] the withdraw transaction created.
-//! \returns true if the operation was successful, false otherwise.
 bool WalletExtension::SendWithdraw(const CTxDestination &address,
                                    CWalletTx &wtxNewOut) {
 
