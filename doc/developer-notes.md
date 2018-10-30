@@ -4,8 +4,12 @@ Developer Notes
 Various coding styles have been used during the history of the codebase,
 and the result is not very consistent. However, we're now trying to converge to
 a single style. We are sticking to the
-[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html),
-with a few additional rules:
+[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
+
+This includes aiming for a [maximum line length of 80
+characters](https://google.github.io/styleguide/cppguide.html#Line_Length).
+
+There are a few additional rules:
 
 - **Symbol naming conventions**. These are preferred in new code, but are not
 required when doing so would need changes to significant pieces of existing
