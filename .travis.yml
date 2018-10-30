@@ -71,6 +71,7 @@ jobs:
         UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports"
 # Win32
     - stage: test
+      dist: trusty
       env: >-
         HOST=i686-w64-mingw32
         DPKG_ADD_ARCH="i386"
@@ -101,6 +102,7 @@ jobs:
         USE_SHELL="/bin/dash"
 # Win64
     - stage: test
+      dist: trusty
       env: >-
         HOST=x86_64-w64-mingw32
         DPKG_ADD_ARCH="i386"
