@@ -447,6 +447,7 @@ std::string HelpMessage(HelpMessageMode mode)
 
 #ifdef ENABLE_WALLET
     strUsage += GetWalletHelpString(showDebug);
+    strUsage += esperanza::GetHelpString(showDebug);
 #endif
 
 #if ENABLE_ZMQ
@@ -539,8 +540,6 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE));
         strUsage += HelpMessageOpt("-rpcservertimeout=<n>", strprintf("Timeout during HTTP requests (default: %d)", DEFAULT_HTTP_SERVER_TIMEOUT));
     }
-
-    esperanza::GetHelpString(showDebug);
 
     return strUsage;
 }
