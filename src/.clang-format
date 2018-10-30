@@ -5,3 +5,8 @@ Standard: Cpp11
 KeepEmptyLinesAtTheStartOfBlocks: true
 DerivePointerAlignment: false
 PointerAlignment: Right
+
+# Maximum 80 characters per line is recommended but not enforced. Run
+# `clang-format -style="{ColumnLimit: 80}"` to format according to the
+# recommendation.
+ColumnLimit: 0
