@@ -78,13 +78,27 @@ class WalletExtension : public staking::StakingWallet {
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             std::string &error);
 
+  //! \brief Creates a deposit transaction for the given address and amount.
+  //!
+  //! \param[in] keyID the destination pubkey
+  //! \param[in] amount
+  //! \param[out] wtxOut the transaction created
+  //! \returns true if the operation was successful, false otherwise.
   bool SendDeposit(const CKeyID &keyID, CAmount amount, CWalletTx &wtxOut);
 
   bool SendVote(const CTransactionRef &depositRef, const Vote &vote,
                 CWalletTx &wtxNewOut);
 
+  //! \brief Creates and sends a logout transaction.
+  //!
+  //! \param wtxNewOut[out] the logout transaction created.
+  //! \returns true if the operation was successful, false otherwise.
   bool SendLogout(CWalletTx &wtxNewOut);
 
+  //! \brief Creates and sends a withdraw transaction.
+  //!
+  //! \param wtxNewOut[out] the withdraw transaction created.
+  //! \returns true if the operation was successful, false otherwise.
   bool SendWithdraw(const CTxDestination &address, CWalletTx &wtxNewOut);
 
   void ReadValidatorStateFromFile();
