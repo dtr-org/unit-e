@@ -146,7 +146,13 @@ class TestNode():
     def drain_main_signal_callbacks_pending(self):
         """Waits until the node processes internal signals and becomes available for new p2p messages."""
         queue_size = self.getmainsignalscallbackspending()
+
+        # if node has in the queue more than 10 pending callbacks,
+        # it stops accepting new p2p messages until it drains the queue.
+        # see CChainState::ActivateBestChain
         while queue_size > 10:
+            # In normal scenario we don't end up in this loop but if there is
+            # a large re-organization the queue size can jump to >1K
             time.sleep(1)
             timeout = time.time() + 20
             left = queue_size
