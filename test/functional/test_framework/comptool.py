@@ -204,7 +204,7 @@ class TestManager():
                 for node in self.p2p_connections
             )
 
-        [n.drain_main_signal_callbacks_pending() for n in self.nodes]
+        [ n.drain_main_signal_callbacks_pending() for n in self.nodes ]
 
         # --> error if not requested
         wait_until(blocks_requested, attempts=20*num_blocks, lock=mininode_lock)
@@ -355,7 +355,7 @@ class TestManager():
                             self.sync_blocks(block.sha256, 1)
                         else:
                             [ c.send_message(msg_block(block)) for c in self.p2p_connections ]
-                            [n.drain_main_signal_callbacks_pending() for n in self.nodes]
+                            [ n.drain_main_signal_callbacks_pending() for n in self.nodes ]
                             [ c.send_ping(self.ping_counter) for c in self.p2p_connections ]
                             self.wait_for_pings(self.ping_counter)
                             self.ping_counter += 1
