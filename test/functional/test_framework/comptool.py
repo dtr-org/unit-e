@@ -170,15 +170,16 @@ class TestManager():
         self.nodes          = []
 
     def add_all_connections(self, nodes):
-        self.nodes = nodes
         for i in range(len(nodes)):
             # Create a p2p connection to each node
             node = TestNode(self.block_store, self.tx_store)
             node.peer_connect('127.0.0.1', p2p_port(i))
             self.p2p_connections.append(node)
+            self.nodes.append(nodes[i])
 
     def clear_all_connections(self):
         self.p2p_connections = []
+        self.nodes = []
 
     def wait_for_disconnections(self):
         def disconnected():
