@@ -346,6 +346,20 @@ UniValue syncwithvalidationinterfacequeue(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
+UniValue getmainsignalscallbackspending(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 0) {
+        throw std::runtime_error(
+            "getmainsignalscallbackspending\n"
+            "\nReturns number of pending callbacks in CMainSignals.\n"
+            "\nExamples:\n"
+                + HelpExampleCli("getmainsignalscallbackspending","")
+                + HelpExampleRpc("getmainsignalscallbackspending","")
+        );
+    }
+    return int(GetMainSignals().CallbacksPending());
+}
+
 UniValue getdifficulty(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -1822,6 +1836,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "waitforblock",           &waitforblock,           {"blockhash","timeout"} },
     { "hidden",             "waitforblockheight",     &waitforblockheight,     {"height","timeout"} },
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, {} },
+    { "hidden",             "getmainsignalscallbackspending", &getmainsignalscallbackspending, {}},
 };
 
 void RegisterBlockchainRPCCommands(CRPCTable &t)

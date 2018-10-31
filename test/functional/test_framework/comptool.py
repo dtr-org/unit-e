@@ -167,8 +167,10 @@ class TestManager():
         self.block_store    = BlockStore(datadir)
         self.tx_store       = TxStore(datadir)
         self.ping_counter   = 1
+        self.nodes          = []
 
     def add_all_connections(self, nodes):
+        self.nodes = nodes
         for i in range(len(nodes)):
             # Create a p2p connection to each node
             node = TestNode(self.block_store, self.tx_store)
@@ -189,7 +191,7 @@ class TestManager():
     def wait_for_pings(self, counter):
         def received_pongs():
             return all(node.received_ping_response(counter) for node in self.p2p_connections)
-        wait_until(received_pongs, lock=mininode_lock)
+        wait_until(received_pongs, timeout=90, lock=mininode_lock)
 
     # sync_blocks: Wait for all connections to request the blockhash given
     # then send get_headers to find out the tip of each node, and synchronize
@@ -200,6 +202,8 @@ class TestManager():
                 blockhash in node.block_request_map and node.block_request_map[blockhash]
                 for node in self.p2p_connections
             )
+
+        [n.drain_main_signal_callbacks_pending() for n in self.nodes]
 
         # --> error if not requested
         wait_until(blocks_requested, attempts=20*num_blocks, lock=mininode_lock)
@@ -350,6 +354,7 @@ class TestManager():
                             self.sync_blocks(block.sha256, 1)
                         else:
                             [ c.send_message(msg_block(block)) for c in self.p2p_connections ]
+                            [n.drain_main_signal_callbacks_pending() for n in self.nodes]
                             [ c.send_ping(self.ping_counter) for c in self.p2p_connections ]
                             self.wait_for_pings(self.ping_counter)
                             self.ping_counter += 1

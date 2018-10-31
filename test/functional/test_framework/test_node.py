@@ -22,6 +22,7 @@ from .util import (
     rpc_url,
     wait_until,
     p2p_port,
+    assert_greater_than_or_equal,
 )
 
 # For Python 3.4 compatibility
@@ -142,12 +143,30 @@ class TestNode():
             wallet_path = "wallet/%s" % wallet_name
             return self.rpc / wallet_path
 
+    def drain_main_signal_callbacks_pending(self):
+        """Waits until the node processes internal signals and becomes available for new p2p messages."""
+        queue_size = self.getmainsignalscallbackspending()
+        while queue_size > 10:
+            time.sleep(1)
+            timeout = time.time() + 20
+            left = queue_size
+            while time.time() < timeout:
+                left = self.getmainsignalscallbackspending()
+                if left != queue_size:
+                    break
+                time.sleep(0.5)
+            if left == queue_size:
+                assert_greater_than_or_equal(10, left)  # print message
+            else:
+                queue_size = left
+
     def stop_node(self):
         """Stop the node."""
         if not self.running:
             return
         self.log.debug("Stopping node")
         try:
+            self.drain_main_signal_callbacks_pending()
             self.stop()
         except http.client.CannotSendRequest:
             self.log.exception("Unable to stop node.")
