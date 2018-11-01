@@ -3595,7 +3595,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
 
         if (!CheckCandidateFinalization(pindexPrev->nHeight + 1)) {
-            return error("%s: block %s came from previous finalized epoch\n", __func__, hash.ToString());
+            return state.Invalid(error("%s: block %s came from previous finalized epoch\n", __func__, hash.ToString()), REJECT_INVALID, "invalid-epoch");
         }
     }
     if (pindex == nullptr)
