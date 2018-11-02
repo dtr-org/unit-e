@@ -287,6 +287,7 @@ void Shutdown()
 #endif
     globalVerifyHandle.reset();
     ECC_Stop();
+    snapshot::Deinitialize();
     LogPrintf("%s: done\n", __func__);
 }
 
@@ -1589,6 +1590,11 @@ bool AppInitMain()
                 pcoinsdbview.reset(new CCoinsViewDB(nCoinDBCache, false, fReset || fReindexChainState));
                 pcoinscatcher.reset(new CCoinsViewErrorCatcher(pcoinsdbview.get()));
 
+                if (!snapshot::Initialize(pcoinsdbview.get(), scheduler)) {
+                    LogPrintf("Error initializing snapshot component. Check other snapshot logs for details. Exiting\n");
+                    return false;
+                }
+
                 // If necessary, upgrade from older database format.
                 // This is a no-op if we cleared the coinsviewdb with -reindex or -reindex-chainstate
                 if (!pcoinsdbview->Upgrade()) {
@@ -1678,11 +1684,6 @@ bool AppInitMain()
                 return InitError(strLoadError);
             }
         }
-    }
-
-    if (!snapshot::Initialize(pcoinsdbview.get(), scheduler)) {
-        LogPrintf("Error initializing snapshot component. Check other snapshot logs for details. Exiting\n");
-        return false;
     }
 
     // As LoadBlockIndex can take several minutes, it's possible the user

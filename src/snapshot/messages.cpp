@@ -11,10 +11,12 @@ namespace snapshot {
 
 secp256k1_context *context = nullptr;
 
-bool InitSecp256k1Context() {
+bool CreateSecp256k1Context() {
   context = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
   return context != nullptr;
 }
+
+void DeleteSecp256k1Context() { secp256k1_context_destroy(context); }
 
 SnapshotHash::SnapshotHash() { secp256k1_multiset_init(context, &m_multiset); }
 

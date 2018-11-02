@@ -17,6 +17,7 @@
 #include <rpc/server.h>
 #include <rpc/register.h>
 #include <script/sigcache.h>
+#include <snapshot/messages.h>
 
 #include <memory>
 
@@ -49,6 +50,7 @@ ReducedTestingSetup::ReducedTestingSetup(const std::string& chainName)
   SHA256AutoDetect();
   RandomInit();
   ECC_Start();
+  assert(snapshot::CreateSecp256k1Context());
   SetupEnvironment();
   SetupNetworking();
   InitSignatureCache();
@@ -61,6 +63,7 @@ ReducedTestingSetup::ReducedTestingSetup(const std::string& chainName)
 ReducedTestingSetup::~ReducedTestingSetup()
 {
   ECC_Stop();
+  snapshot::DeleteSecp256k1Context();
 }
 
 BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
@@ -68,6 +71,7 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
         SHA256AutoDetect();
         RandomInit();
         ECC_Start();
+        assert(snapshot::CreateSecp256k1Context());
         SetupEnvironment();
         SetupNetworking();
         InitSignatureCache();
@@ -89,6 +93,7 @@ fs::path BasicTestingSetup::SetDataDir(const std::string& name)
 BasicTestingSetup::~BasicTestingSetup()
 {
         ECC_Stop();
+        snapshot::DeleteSecp256k1Context();
 }
 
 TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(chainName)

@@ -10,8 +10,11 @@
 
 namespace snapshot {
 
-// Initialize snapshot module
+//! Initialize snapshot module
 bool Initialize(CCoinsViewDB *view, CScheduler &scheduler);
+
+//! Deinitialize cleans up initialized objects
+void Deinitialize();
 
 }  // namespace snapshot
 

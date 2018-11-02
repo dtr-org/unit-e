@@ -18,14 +18,14 @@
 namespace snapshot {
 
 bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
-  if (!snapshot::InitSecp256k1Context()) {
-    LogPrintf("Can't initialize secp256k1_context for the snapshot hash.\n");
+  if (!CreateSecp256k1Context()) {
+    LogPrintf("Can't create secp256k1_context for the snapshot hash.\n");
     return false;
   }
 
   if (fPruneMode) {
     if (gArgs.GetBoolArg("-isd", false)) {
-      snapshot::EnableISDMode();
+      EnableISDMode();
       LogPrintf("Initial Snapshot Download mode is enabled.\n");
     }
 
@@ -55,5 +55,7 @@ bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
 
   return true;
 }
+
+void Deinitialize() { DeleteSecp256k1Context(); }
 
 }  // namespace snapshot
