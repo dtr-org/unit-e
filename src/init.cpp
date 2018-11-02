@@ -48,6 +48,7 @@
 #include <utilmoneystr.h>
 #include <validationinterface.h>
 #include <snapshot/initialization.h>
+#include <snapshot/rpc_processing.h>
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
@@ -1349,6 +1350,7 @@ bool AppInitMain()
      */
     RegisterAllCoreRPCCommands(tableRPC);
     RegisterEsperanzaRPCCommands(tableRPC);
+    snapshot::RegisterRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
     RegisterProposerRPCCommands(tableRPC);
     RegisterWalletRPC(tableRPC);
