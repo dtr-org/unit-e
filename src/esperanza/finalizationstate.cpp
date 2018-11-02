@@ -1010,7 +1010,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   FinalizationState *state;
   bool found;
   std::tie(state, found) = m_storage.FindOrCreate(&blockIndex);
-  if (found) {
+  if (found && state != m_storage.GetGenesisState()) {
     LogPrint(BCLog::FINALIZATION, "It's already processed\n");
     return true;  // This block should be already processed
   }
@@ -1129,6 +1129,17 @@ Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
 
 int FinalizationState::GetBlockHeightForEpoch(uint32_t epoch) const {
   return static_cast<int>(epoch * m_settings.m_epochLength);
+}
+
+bool FinalizationState::IsHeightInCurrentDynasty(int height) const {
+  auto epoch = GetLastFinalizedEpoch();
+  return epoch == 0 || height >= GetBlockHeightForEpoch(epoch + 1);
+}
+
+bool FinalizationState::IsHeightInCurrentDynasty(int height, const CBlockIndex *pindex) {
+  auto *state = esperanza::FinalizationState::GetState(pindex);
+  assert(state != nullptr);
+  return state->IsHeightInCurrentDynasty(height);
 }
 
 }  // namespace esperanza

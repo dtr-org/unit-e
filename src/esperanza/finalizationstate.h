@@ -194,6 +194,8 @@ class FinalizationState : public FinalizationStateData {
 
   int GetBlockHeightForEpoch(uint32_t epoch) const;
 
+  bool IsHeightInCurrentDynasty(int height) const;
+
   std::vector<Validator> GetValidators() const;
   const Validator *GetValidator(const uint256 &validatorIndex) const;
 
@@ -209,6 +211,9 @@ class FinalizationState : public FinalizationStateData {
   static bool ValidateDepositAmount(CAmount amount);
 
   static bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
+
+  /** Check if `height` belongs to the epochs next after last finalization according to `pindex` */
+  static bool IsHeightInCurrentDynasty(int height, const CBlockIndex *pindex);
 
  private:
   void InstaFinalize();

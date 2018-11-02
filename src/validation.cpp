@@ -204,7 +204,6 @@ private:
     CBlockIndex* FindMostWorkChain();
     bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams);
     bool ProcessFinalizationState(const Consensus::Params &params, CBlockIndex *pindex, const CBlock *pblock);
-    bool CheckCandidateFinalization(int height);
 
     bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params);
 } g_chainstate;
@@ -2510,6 +2509,8 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
+    esperanza::FinalizationState::ProcessNewTip(*pindexNew, blockConnecting);
+
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FLUSH_STATE_IF_NEEDED)) {
       return false;
@@ -3540,12 +3541,6 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     return true;
 }
 
-bool CChainState::CheckCandidateFinalization(int height) {
-    auto state = esperanza::FinalizationState::GetState(chainActive.Tip());
-    auto epoch = state->GetLastFinalizedEpoch();
-    return height > state->GetBlockHeightForEpoch(epoch);
-}
-
 bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex)
 {
     AssertLockHeld(cs_main);
@@ -3594,8 +3589,8 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
             }
         }
 
-        if (!CheckCandidateFinalization(pindexPrev->nHeight + 1)) {
-            return state.Invalid(error("%s: block %s came from previous finalized epoch\n", __func__, hash.ToString()), REJECT_INVALID, "invalid-epoch");
+        if (!esperanza::FinalizationState::IsHeightInCurrentDynasty(pindexPrev->nHeight + 1, chainActive.Tip())) {
+            return state.Invalid(error("%s: block %s came from previous dynasty\n", __func__, hash.ToString()), REJECT_INVALID, "invalid-epoch");
         }
     }
     if (pindex == nullptr)
@@ -3743,12 +3738,14 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
         bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
+        LogPrintf("CheckBlock: %d\n", ret);
 
         LOCK(cs_main);
 
         if (ret) {
             // Store to disk
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
+            LogPrintf("AcceptBlock: %d\n", ret);
         }
         if (!ret) {
             GetMainSignals().BlockChecked(*pblock, state);

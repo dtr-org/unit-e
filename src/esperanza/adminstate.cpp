@@ -33,7 +33,6 @@ bool AdminState::IsAdminAuthorized(const AdminKeySet &keys) const {
   if (!m_permissioningIsActive) {
     return false;
   }
-
   return keys == m_adminPubKeys;
 }
 

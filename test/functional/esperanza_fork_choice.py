@@ -25,19 +25,26 @@ class P2P(P2PInterface):
 
     def on_inv(self, message):
         for inv in message.inv:
-            if inv.type == 2: # MSG_BLOCK
+            if inv.type == 2 or inv.type == 2 | (1 << 30): # MSG_BLOCK or MSG_WITNESS_BLOCK
                 self.test.on_block_accepted(inv.hash)
 
     def on_reject(self, message):
         self.test.on_block_rejected(message.data)
 
+    def on_getdata(self, message):
+        for inv in message.inv:
+            if inv.type == 2 or inv.type == 2 | (1 << 30): # MSG_BLOCK or MSG_WITNESS_BLOCK
+                self.test.on_block_requested(inv.hash)
 
-class FinalizationForkChoice(UnitETestFramework):
+
+# Check that node rejects blocks which are behind the current last finalized epoch
+class FinalizationForkChoiceBase(UnitETestFramework):
     def __init__(self):
         super().__init__()
         self.blocks = {}
         self.accepted = set()
         self.rejected = set()
+        self.requested = set()
 
     def set_test_params(self):
         self.num_nodes = 1
@@ -56,6 +63,9 @@ class FinalizationForkChoice(UnitETestFramework):
     def on_block_rejected(self, hash):
         self.rejected.add(hash)
 
+    def on_block_requested(self, hash):
+        self.requested.add(hash)
+
     def wait_accepted(self, hash, timeout=5):
         if not timeout is None:
             stop_at = time.time() + timeout
@@ -67,7 +77,6 @@ class FinalizationForkChoice(UnitETestFramework):
             time.sleep(0.1)
             if not timeout is None and time.time() >= stop_at:
                 raise RuntimeError("Block {0} hasn't been accepted".format(hash))
-
 
     def wait_rejected(self, hash, timeout=5, inverse=False):
         if not timeout is None:
@@ -90,6 +99,17 @@ class FinalizationForkChoice(UnitETestFramework):
                         return
                     else:
                         raise RuntimeError("Block {0} hasn't been rejected".format(hash))
+
+    def wait_requested(self, hash, timeout=5):
+        if not timeout is None:
+            stop_at = time.time() + timeout
+        while True:
+            if hash in self.requested:
+                return
+            time.sleep(0.1)
+            if not timeout is None and time.time() >= stop_at:
+                raise RuntimeError("Block {0} hasn't been requested".format(hash))
+
 
     def wait_not_rejected(self, hash, timeout=1):
         return self.wait_rejected(hash, timeout=timeout, inverse=True)
@@ -133,6 +153,12 @@ class FinalizationForkChoice(UnitETestFramework):
         self.send_message(msg_block(block))
         return block
 
+    def send_header(self, block):
+        self.send_message(msg_headers([block]))
+        return block
+
+
+class FinalizationForkChoiceBasic(FinalizationForkChoiceBase):
     def run_test(self):
         block = self.create_block
         send = self.send_block
@@ -153,17 +179,18 @@ class FinalizationForkChoice(UnitETestFramework):
 
         # do not reject...
         tmp = send(block(a[9], "tmp"))
-        not_rejected(tmp.sha256)
+        not_rejected(tmp.sha256) # it's actually silently rejected if node hasn't explicitly requested this block
 
         tip = a[15] = send(block(a[14]))
         accepted(tip.sha256)
         self.check_esperanza(current_epoch=3, last_finalized_epoch=2, last_justified_epoch=2)
 
-        # we're in new epoch, reject
+        # we're in a new epoch, reject
         tmp = send(block(a[9], "tmp2"))
         rejected(tmp.sha256)
 
         self.nodes[0].p2p.disconnect_node()
 
+
 if __name__ == '__main__':
-    FinalizationForkChoice().main()
+    FinalizationForkChoiceBasic().main()

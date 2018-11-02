@@ -180,5 +180,60 @@ class ExpiredVoteTest(UnitETestFramework):
         assert_equal(p1.getblockchaininfo()['blocks'], 161)
 
 
+class FinalizationForkChoice(UnitETestFramework):
+    def set_test_params(self):
+        test_setup(self, 2, 1)
+
+    def setup_network(self):
+        self.setup_nodes()
+        # create a connection v1 -> p1 <- p2 <- v
+        connect_nodes_bi(self.nodes, 0, 1)
+        connect_nodes_bi(self.nodes, 0, 2)
+        connect_nodes_bi(self.nodes, 1, 2)
+
+    def run_test(self):
+        p0 = self.nodes[0]
+        p1 = self.nodes[1]
+        v = self.nodes[2]
+
+        setup_deposit(self, [v])
+        sync_blocks([p0, p1, v])
+
+        # get to up to block 148, just one before the new checkpoint
+        for n in range(0, 8):
+            generate_block(p0)
+
+        assert_equal(p0.getblockchaininfo()['blocks'], 148)
+        sync_blocks([p0, p1, v])
+
+        # disconnect p0 from p1 and v
+        disconnect_nodes(p0, 2)
+        disconnect_nodes(p0, 1)
+
+        self.log.info("---1")
+        # generate long chain in p0 but don't justify it
+        for n in range(0, 50):
+            generate_block(p0)
+        assert_equal(p0.getblockchaininfo()['blocks'], 198)
+
+        self.log.info("---2")
+        # generate short chain in p1 and justify it
+        for n in range(0, 30):
+            generate_block(p1)
+        sync_blocks([p1, v])
+
+        assert_equal(p1.getblockchaininfo()['blocks'], 178)
+
+        self.log.info("---3")
+        # connect p0 with p1
+        connect_nodes_bi(self.nodes, 0, 1)
+
+        # check if p0 accepted shortest in terms of blocks but longest justified chain
+        assert_equal(p0.getblockchaininfo()['blocks'], 178)
+        assert_equal(p1.getblockchaininfo()['blocks'], 178)
+        assert_equal(v.getblockchaininfo()['blocks'], 178)
+
+
 if __name__ == '__main__':
     ExpiredVoteTest().main()
+    # FinalizationForkChoice().main()
