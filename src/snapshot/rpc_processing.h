@@ -13,6 +13,4 @@ void RegisterRPCCommands(CRPCTable &t);
 
 }  // namespace snapshot
 
-
-
-#endif //UNIT_E_SNAPSHOT_RPC_PROCESSING_H
+#endif  //UNIT_E_SNAPSHOT_RPC_PROCESSING_H
