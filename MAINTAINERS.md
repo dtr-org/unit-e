@@ -23,13 +23,6 @@ handle):
 
 There are some areas of the code where changes might have a critical impact.
 While the maintainers act as a team, these code areas need special review by
-domain experts. The domain experts are listed below. Add them as reviewers on
-pull requests which are touching the respective areas.
-
-* Esperanza: [Matteo Sumberaz](https://github.com/Gnappuraz)
-* Proposer: [Julian Fleischer](https://github.com/scravy)
-* Snapshotting: [Kostiantyn Stepaniuk](https://github.com/kostyantyn)
-* Staking: [Julian Fleischer](https://github.com/scravy), [Matteo
-  Sumberaz](https://github.com/Gnappuraz)
-* Permissioning system - manages validator whitelist and stores it in the
-  blockchain: [Aleksandr Mikhailov](https://github.com/AM5800)
+domain experts. See the [list of experts](.github/CODEOWNERS) in the GitHub
+reviewer configuration. Add them as reviewers on pull requests which are
+touching the respective areas, if they are not added automatically.
