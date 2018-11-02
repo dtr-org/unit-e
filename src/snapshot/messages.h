@@ -179,9 +179,9 @@ class SnapshotHash {
 //! the node must be stopped
 bool CreateSecp256k1Context();
 
-//! DeleteSecp256k1Context destroys secp256k1_context. Must be invoked before
+//! DestroySecp256k1Context destroys secp256k1_context. Must be invoked before
 //! creating a new context
-void DeleteSecp256k1Context();
+void DestroySecp256k1Context();
 
 }  // namespace snapshot
 

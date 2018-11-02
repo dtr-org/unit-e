@@ -63,7 +63,7 @@ ReducedTestingSetup::ReducedTestingSetup(const std::string& chainName)
 ReducedTestingSetup::~ReducedTestingSetup()
 {
   ECC_Stop();
-  snapshot::DeleteSecp256k1Context();
+  snapshot::DestroySecp256k1Context();
 }
 
 BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
@@ -93,7 +93,7 @@ fs::path BasicTestingSetup::SetDataDir(const std::string& name)
 BasicTestingSetup::~BasicTestingSetup()
 {
         ECC_Stop();
-        snapshot::DeleteSecp256k1Context();
+        snapshot::DestroySecp256k1Context();
 }
 
 TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(chainName)

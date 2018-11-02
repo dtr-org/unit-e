@@ -16,7 +16,7 @@ bool CreateSecp256k1Context() {
   return context != nullptr;
 }
 
-void DeleteSecp256k1Context() { secp256k1_context_destroy(context); }
+void DestroySecp256k1Context() { secp256k1_context_destroy(context); }
 
 SnapshotHash::SnapshotHash() { secp256k1_multiset_init(context, &m_multiset); }
 

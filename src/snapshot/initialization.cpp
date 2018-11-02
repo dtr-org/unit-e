@@ -56,6 +56,6 @@ bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
   return true;
 }
 
-void Deinitialize() { DeleteSecp256k1Context(); }
+void Deinitialize() { DestroySecp256k1Context(); }
 
 }  // namespace snapshot
