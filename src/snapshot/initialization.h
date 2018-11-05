@@ -5,7 +5,6 @@
 #ifndef UNITE_SNAPSHOT_INITIALIZATION_H
 #define UNITE_SNAPSHOT_INITIALIZATION_H
 
-#include <rpc/server.h>
 #include <scheduler.h>
 #include <txdb.h>
 
