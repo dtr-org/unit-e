@@ -109,22 +109,19 @@ struct Snapshot {
   }
 };
 
-//! UTXO is used to calculate the snapshot hash. It is used instead of more
-//! compact UTXOSubset struct because it allows to add/subtract one output
-//! without constructing the whole Tx which could be expensive (require lookup
-//! to the disk)
+//! UTXO is a representation of a single output and used to calculate the
+//! snapshot hash. Coin class (which has the same schema) is not used as it
+//! doesn't follow the P2P serialization convention.
 struct UTXO {
-  uint256 m_txId;
+  COutPoint m_outPoint;
   uint32_t m_height;
   bool m_isCoinBase;
-  uint32_t m_txOutIndex;
   CTxOut m_txOut;
 
   UTXO()
-      : m_txId(),
+      : m_outPoint(),
         m_height(0),
         m_isCoinBase(false),
-        m_txOutIndex(0),
         m_txOut() {}
 
   UTXO(const COutPoint &out, const Coin &coin);
@@ -133,10 +130,9 @@ struct UTXO {
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_txId);
+    READWRITE(m_outPoint);
     READWRITE(m_height);
     READWRITE(m_isCoinBase);
-    READWRITE(m_txOutIndex);
     READWRITE(m_txOut);
   }
 };

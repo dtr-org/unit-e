@@ -334,32 +334,30 @@ class CTxOut():
 
 class UTXO:
     def __init__(self, height, isCoinBase, outpoint, txOut):
+        self.outpoint = outpoint
         self.height = height
         self.isCoinBase = isCoinBase
-        self.txId = outpoint.hash
-        self.txOutIndex = outpoint.n
         self.txOut = txOut
 
     def deserialize(self, f):
-        self.txId = deser_uint256(f)
+        self.outpoint = COutPoint()
+        self.outpoint.deserialize(f)
         self.height = struct.unpack("<I", f.read(4))[0]
         self.isCoinBase = struct.unpack("<B", f.read[1])[0]
-        self.txOutIndex = struct.unpack("<I", f.read(4))[0]
         self.txOut = CTxOut()
         self.txOut.deserialize(f)
 
     def serialize(self):
         r = b""
-        r += ser_uint256(self.txId)
+        r += self.outpoint.serialize()
         r += struct.pack("<I", self.height)
         r += struct.pack("<B", self.isCoinBase)
-        r += struct.pack("<I", self.txOutIndex)
         r += self.txOut.serialize()
         return r
 
     def __repr__(self):
-        return "UTXO(txId=%064x height=%i isCoinBase=%i txOutIndex=%i txOut=%s)" \
-            % (self.txId, self.height, self.isCoinBase, self.txOutIndex, repr(self.txOut))
+        return "UTXO(outpoint=%s height=%i isCoinBase=%i txOut=%s)" \
+            % (self.outpoint, self.height, self.isCoinBase, repr(self.txOut))
 
 
 class CScriptWitness():

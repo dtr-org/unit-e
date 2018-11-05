@@ -170,8 +170,8 @@ BOOST_AUTO_TEST_CASE(utxo_construct) {
   COutPoint out;
   Coin coin;
   snapshot::UTXO utxo1(out, coin);
-  BOOST_CHECK_EQUAL(utxo1.m_txId, out.hash);
-  BOOST_CHECK_EQUAL(utxo1.m_txOutIndex, out.n);
+  BOOST_CHECK_EQUAL(utxo1.m_outPoint.hash, out.hash);
+  BOOST_CHECK_EQUAL(utxo1.m_outPoint.n, out.n);
   BOOST_CHECK_EQUAL(utxo1.m_height, coin.nHeight);
   BOOST_CHECK_EQUAL(utxo1.m_isCoinBase, coin.IsCoinBase());
   BOOST_CHECK(utxo1.m_txOut == coin.out);
@@ -184,8 +184,8 @@ BOOST_AUTO_TEST_CASE(utxo_construct) {
   coin.out.scriptPubKey << OP_RETURN;
 
   snapshot::UTXO utxo2(out, coin);
-  BOOST_CHECK_EQUAL(utxo2.m_txId, out.hash);
-  BOOST_CHECK_EQUAL(utxo2.m_txOutIndex, out.n);
+  BOOST_CHECK_EQUAL(utxo2.m_outPoint.hash, out.hash);
+  BOOST_CHECK_EQUAL(utxo2.m_outPoint.n, out.n);
   BOOST_CHECK_EQUAL(utxo2.m_height, coin.nHeight);
   BOOST_CHECK_EQUAL(utxo2.m_isCoinBase, coin.IsCoinBase());
   BOOST_CHECK(utxo2.m_txOut == coin.out);
@@ -201,9 +201,9 @@ BOOST_AUTO_TEST_CASE(utxo_serialization) {
   std::string exp =
       "00000000000000000000000000000000"  // txId
       "00000000000000000000000000000000"  //
+      "ffffffff"                          // txOutIndex
       "00000000"                          // height
       "00"                                // isCoinBase
-      "00000000"                          // txOutIndex
       "ffffffffffffffff"                  // CAmount(-1)
       "00";                               // script length
   BOOST_CHECK_EQUAL(got, exp);
@@ -226,9 +226,9 @@ BOOST_AUTO_TEST_CASE(utxo_serialization) {
   exp =
       "aa000000000000000000000000000000"  // txId
       "00000000000000000000000000000000"  //
+      "0a000000"                          // txOutIndex
       "fa000000"                          // height
       "01"                                // isCoinBase
-      "0a000000"                          // txOutIndex
       "2300000000000000"                  // CAmount
       "01"                                // script length
       "6a";                               // script
@@ -240,21 +240,21 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
   // expected results are hardcoded to guarantee that hashes
   // didn't change over time
   snapshot::UTXO a;
-  a.m_txId.SetHex("aa");
+  a.m_outPoint.hash.SetHex("aa");
   snapshot::UTXO b;
-  b.m_txId.SetHex("bb");
+  b.m_outPoint.hash.SetHex("bb");
   snapshot::UTXO c;
-  c.m_txId.SetHex("cc");
+  c.m_outPoint.hash.SetHex("cc");
 
   std::string aHash =
-      "f6c2923841b0d6aacf454291fa4c44f6"
-      "d5836ee91098fc3f98497ea9f6fa48d6";
+      "c5187acefd9af6b74e33bd90566117ed"
+      "6ddd133066aedbd320e72f308fdf43fd";
   std::string bHash =
-      "b5718879a3303b7d78623cf230c381ce"
-      "ef87b7d3889ccd9565817ac502412dea";
+      "a2ce994bf78ff551825bac5d1cefe0e7"
+      "02c8582738531e6944b624e05c767bf6";
   std::string abSumHash =
-      "b050bd6cb8381459a3f066d5ca3133ea"
-      "55e6761326f28bdd5c47b7402aeff741";
+      "54bbc8ece5a75d21684592ce812c441c"
+      "929a875c2a06910a408001626f3b6ddd";
 
   {
     // test adding and reverting UTXOs
