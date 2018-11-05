@@ -183,8 +183,8 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
         "2. \"outputs\" (hex, required) serialized UTXOs to add.\n"
         "3. \"snapshotData\" (hex, optional) initial snapshot data.\n"
         "\nExamples:\n" +
-            HelpExampleCli("calcsnapshothash", "0100 0100 0000") +
-            HelpExampleRpc("calcsnapshothash", "0100 0100 0000"));
+        HelpExampleCli("calcsnapshothash", "0100 0100 0000") +
+        HelpExampleRpc("calcsnapshothash", "0100 0100 0000"));
   }
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
@@ -223,8 +223,8 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
         "gettipsnapshot\n"
         "\nReturns the snapshot hash of the tip\n"
         "\nExamples:\n" +
-            HelpExampleCli("gettipsnapshot", "") +
-            HelpExampleRpc("gettipsnapshot", ""));
+        HelpExampleCli("gettipsnapshot", "") +
+        HelpExampleRpc("gettipsnapshot", ""));
   }
 
   UniValue root(UniValue::VOBJ);
