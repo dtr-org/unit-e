@@ -5,8 +5,8 @@
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
 
-#ifndef UNIT_E_ESPERANZA_FINALIZATION_UTILS_H
-#define UNIT_E_ESPERANZA_FINALIZATION_UTILS_H
+#ifndef UNIT_E__TESTS_ESPERANZA_FINALIZATION_UTILS_H
+#define UNIT_E__TESTS_ESPERANZA_FINALIZATION_UTILS_H
 
 CTransaction CreateVoteTx(esperanza::Vote &vote);
 
@@ -22,4 +22,4 @@ CTransaction CreateWithdrawTx(const CTransaction &spendableTx,
 CTransaction CreateP2PKHTx(const CTransaction &spendableTx,
                            const CKey &spendableKey, CAmount amount);
 
-#endif  // UNIT_E_ESPERANZA_FINALIZATION_UTILS_H
+#endif  // UNIT_E__TESTS_ESPERANZA_FINALIZATION_UTILS_H
