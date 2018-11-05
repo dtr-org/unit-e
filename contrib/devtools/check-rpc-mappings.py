@@ -20,6 +20,7 @@ SOURCES = [
     "src/wallet/rpcaddressbook.cpp",
     "src/wallet/rpcwallet.cpp",
     "src/wallet/rpcwalletext.cpp",
+    "src/snapshot/rpc_processing.cpp",
 ]
 # Source file (relative to root) containing conversion mapping
 SOURCE_CLIENT = 'src/rpc/parameter_conversion.cpp'
