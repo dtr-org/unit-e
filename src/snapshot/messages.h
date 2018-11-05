@@ -143,7 +143,7 @@ class SnapshotHash {
   explicit SnapshotHash(const std::vector<uint8_t> &data);
 
   void AddUTXO(const UTXO &utxo);
-  void SubUTXO(const UTXO &utxo);
+  void SubtractUTXO(const UTXO &utxo);
 
   //! GetHash returns the hash that represents the snapshot
   //! and must be stored inside CoinBase TX.

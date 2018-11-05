@@ -204,7 +204,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   }
 
   for (const auto &in : inputs) {
-    hash.SubUTXO(in);
+    hash.SubtractUTXO(in);
   }
 
   for (const auto &out : outputs) {

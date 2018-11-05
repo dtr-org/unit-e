@@ -43,7 +43,7 @@ void SnapshotHash::AddUTXO(const UTXO &utxo) {
                          stream.size());
 }
 
-void SnapshotHash::SubUTXO(const snapshot::UTXO &utxo) {
+void SnapshotHash::SubtractUTXO(const snapshot::UTXO &utxo) {
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << utxo;
 

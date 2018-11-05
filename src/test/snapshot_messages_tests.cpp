@@ -265,9 +265,9 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
     hash.AddUTXO(b);
     BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), abSumHash);
-    hash.SubUTXO(b);
+    hash.SubtractUTXO(b);
     BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
-    hash.SubUTXO(a);
+    hash.SubtractUTXO(a);
     BOOST_CHECK(hash.GetHash().IsNull());
   }
 
@@ -291,8 +291,8 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     hash1.AddUTXO(a);
     hash1.AddUTXO(b);
     hash1.AddUTXO(c);
-    hash1.SubUTXO(a);
-    hash1.SubUTXO(c);
+    hash1.SubtractUTXO(a);
+    hash1.SubtractUTXO(c);
 
     snapshot::SnapshotHash hash2;
     hash2.AddUTXO(b);
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     // null = -a + a
     // a = -a + a + a
     snapshot::SnapshotHash hash;
-    hash.SubUTXO(a);
+    hash.SubtractUTXO(a);
     BOOST_CHECK(!hash.GetHash().IsNull());
     hash.AddUTXO(a);
     BOOST_CHECK(hash.GetHash().IsNull());
@@ -326,9 +326,9 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
 
     BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), hash2.GetHash().GetHex());
     hash1.AddUTXO(c);
-    hash1.SubUTXO(a);
+    hash1.SubtractUTXO(a);
     hash2.AddUTXO(c);
-    hash2.SubUTXO(a);
+    hash2.SubtractUTXO(a);
     BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), hash2.GetHash().GetHex());
   }
 }

@@ -88,7 +88,7 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
     if (!inserted) {
         if (!it->second.coin.IsSpent()) {
             // remove old UTXO before replacing it
-            snapshotHash.SubUTXO(snapshot::UTXO(outpoint, it->second.coin));
+            snapshotHash.SubtractUTXO(snapshot::UTXO(outpoint, it->second.coin));
         }
     }
 
@@ -113,7 +113,7 @@ bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);
     if (it == cacheCoins.end()) return false;
     cachedCoinsUsage -= it->second.coin.DynamicMemoryUsage();
-    snapshotHash.SubUTXO(snapshot::UTXO(outpoint, it->second.coin));
+    snapshotHash.SubtractUTXO(snapshot::UTXO(outpoint, it->second.coin));
     if (moveout) {
         *moveout = std::move(it->second.coin);
     }
