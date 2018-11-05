@@ -237,64 +237,63 @@ void CCoinsViewCache::Uncache(const COutPoint& hash)
 }
 
 void CCoinsViewCache::ClearCoins() {
-  base->ClearCoins();
-  cacheCoins.clear();
-  snapshotHash.Clear();
-  cachedCoinsUsage = 0;
+    base->ClearCoins();
+    cacheCoins.clear();
+    snapshotHash.Clear();
+    cachedCoinsUsage = 0;
 }
 
 bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
-  LogPrint(BCLog::COINDB, "%s: Apply snapshot id=%i.\n", __func__,
-           indexer->GetSnapshotId());
+    LogPrint(BCLog::COINDB, "%s: Apply snapshot id=%i.\n", __func__, indexer->GetSnapshotId());
 
-  ClearCoins();
+    ClearCoins();
 
-  snapshot::Iterator iter(std::move(indexer));
-  LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n", __func__,
-           iter.GetTotalUTXOSubsets());
+    snapshot::Iterator iter(std::move(indexer));
+    LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n", __func__, iter.GetTotalUTXOSubsets());
 
-  hashBlock = iter.GetBestBlockHash();
+    hashBlock = iter.GetBestBlockHash();
 
-  uint64_t writtenSubsets = 0;
-  while (iter.Valid()) {
-    snapshot::UTXOSubset &subset = iter.GetUTXOSubset();
-    for (auto const &p : subset.m_outputs) {
-      COutPoint out(subset.m_txId, p.first);
-      Coin coin(p.second, subset.m_height, subset.m_isCoinBase);
-      AddCoin(out, std::move(coin), true);
+    uint64_t writtenSubsets = 0;
+    constexpr uint64_t batchSize = 100000;
+    while (iter.Valid()) {
+        snapshot::UTXOSubset &subset = iter.GetUTXOSubset();
+        for (auto const &p : subset.m_outputs) {
+            COutPoint out(subset.m_txId, p.first);
+            Coin coin(p.second, subset.m_height, subset.m_isCoinBase);
+            AddCoin(out, std::move(coin), true);
+        }
+
+        ++writtenSubsets;
+
+        if (writtenSubsets % batchSize == 0) { // ~12 MB/batch
+            if (!Flush()) {
+                LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
+                return false;
+            }
+        }
+
+        // log every 5% of processed messages
+        uint64_t chunk = iter.GetTotalUTXOSubsets() / 20;
+        if (chunk > 0 && writtenSubsets % chunk == 0) {
+            LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
+                     writtenSubsets, iter.GetTotalUTXOSubsets());
+        }
+
+        iter.Next();
     }
 
-    ++writtenSubsets;
-
-    if (writtenSubsets % 100000 == 0) { // ~12 MB/batch
-      if (!Flush()) {
+    if (!Flush()) {
         LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
         return false;
-      }
     }
 
-    // log every 5% of processed messages
-    uint64_t chunk = iter.GetTotalUTXOSubsets() / 20;
-    if (chunk > 0 && writtenSubsets % chunk == 0) {
-      LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
-               writtenSubsets, iter.GetTotalUTXOSubsets());
-    }
+    assert(iter.GetTotalUTXOSubsets() == writtenSubsets);
+    assert(snapshotHash.GetHash() == iter.GetSnapshotHash());
 
-    iter.Next();
-  }
+    LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXO subsets=%i\n",
+             __func__, writtenSubsets);
 
-  if (!Flush()) {
-    LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
-    return false;
-  }
-
-  assert(iter.GetTotalUTXOSubsets() == writtenSubsets);
-  assert(snapshotHash.GetHash() == iter.GetSnapshotHash());
-
-  LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXO subsets=%i\n",
-           __func__, writtenSubsets);
-
-  return true;
+    return true;
 }
 
 unsigned int CCoinsViewCache::GetCacheSize() const {
