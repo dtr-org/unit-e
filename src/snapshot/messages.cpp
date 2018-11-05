@@ -11,7 +11,7 @@ namespace snapshot {
 
 secp256k1_context *context = nullptr;
 
-bool CreateSecp256k1Context() {
+bool InitSecp256k1Context() {
   context = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
   return context != nullptr;
 }

@@ -175,9 +175,9 @@ class SnapshotHash {
   secp256k1_multiset m_multiset;
 };
 
-//! CreateSecp256k1Context creates secp256k1_context. If creation failed,
+//! InitSecp256k1Context creates secp256k1_context. If creation failed,
 //! the node must be stopped
-bool CreateSecp256k1Context();
+bool InitSecp256k1Context();
 
 //! DestroySecp256k1Context destroys secp256k1_context. Must be invoked before
 //! creating a new context

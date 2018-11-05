@@ -18,8 +18,8 @@
 namespace snapshot {
 
 bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
-  if (!CreateSecp256k1Context()) {
-    LogPrintf("Can't create secp256k1_context for the snapshot hash.\n");
+  if (!InitSecp256k1Context()) {
+    LogPrintf("Can't initialize secp256k1_context for the snapshot hash.\n");
     return false;
   }
 
