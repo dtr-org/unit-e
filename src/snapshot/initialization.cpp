@@ -19,8 +19,7 @@ namespace snapshot {
 
 bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
   if (!InitSecp256k1Context()) {
-    LogPrintf("Can't initialize secp256k1_context for the snapshot hash.\n");
-    return false;
+    return error("Can't initialize secp256k1_context for the snapshot hash.");
   }
 
   if (fPruneMode) {
@@ -44,8 +43,7 @@ bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
     }
   } else {
     if (gArgs.GetBoolArg("-isd", false)) {
-      LogPrintf("-isd flag can't be set if pruning is disabled.\n");
-      return false;
+      return error("-isd flag can't be set if pruning is disabled.\n");
     }
   }
 
