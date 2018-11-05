@@ -116,11 +116,10 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, con
     for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end();) {
         if (it->second.flags & CCoinsCacheEntry::DIRTY) {
             CoinEntry entry(&it->first);
-            if (it->second.coin.IsSpent()) {
+            if (it->second.coin.IsSpent())
                 batch.Erase(entry);
-            } else {
+            else
                 batch.Write(entry, it->second.coin);
-            }
             changed++;
         }
         count++;
@@ -504,21 +503,20 @@ snapshot::SnapshotHash CCoinsViewDB::GetSnapshotHash() const {
 }
 
 bool CCoinsViewDB::SetSnapshotHash(const snapshot::SnapshotHash &hash) {
-  return db.Write(DB_SNAPSHOT_HASH_DATA, hash.GetData());
+    return db.Write(DB_SNAPSHOT_HASH_DATA, hash.GetData());
 }
 
 void CCoinsViewDB::ClearCoins() {
-  int total = 0;
-  std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
-  while (cursor->Valid()) {
-    COutPoint key;
-    if (cursor->GetKey(key)) {
-      db.Erase(key);
-      ++total;
+    int total = 0;
+    std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
+    while (cursor->Valid()) {
+        COutPoint key;
+        if (cursor->GetKey(key)) {
+            db.Erase(key);
+            ++total;
+        }
+        cursor->Next();
     }
-    cursor->Next();
-  }
 
-  LogPrint(BCLog::COINDB, "%s: deleted %i keys in the DB\n", __func__,
-           total);
+    LogPrint(BCLog::COINDB, "%s: deleted %i keys in the DB\n", __func__, total);
 }
