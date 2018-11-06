@@ -648,6 +648,14 @@ inline void Unserialize(Stream& is, prevector<N, T>& v)
 /**
  * array
  */
+
+//! \brief serializes an std::array
+//!
+//! Uses the same serialization format as std::vector and prevector would.
+//! This implies that the length of the content is written ahead of the content
+//! using WriteCompactSize. This way the serialized data can be deserialized
+//! into an std::vector or a prevector. The serialized data should independent
+//! of the implemented data structure used to represent the data in memory.
 template<typename Stream, typename C, size_t N>
 void Serialize(Stream& os, const std::array<C, N>& arr)
 {
@@ -658,6 +666,14 @@ void Serialize(Stream& os, const std::array<C, N>& arr)
     os.write((char*)arr.data(), N * sizeof(C));
 }
 
+//! \brief deserialized an std::array
+//!
+//! Uses the same serialization format as std::vector and prevector would.
+//! Reads the length of the content first (which is a compact integer). If
+//! the data to deserialize is longer than the array to read the data into
+//! then the remaining data is silently skipped. If the data to deserialize is
+//! shorter than the array to read the data into then the remaining cells in
+//! that array are zeroed.
 template<typename Stream, typename C, size_t N>
 void Unserialize(Stream& is, std::array<C, N>& arr)
 {
