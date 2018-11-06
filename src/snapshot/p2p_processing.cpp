@@ -180,7 +180,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   }
 
   if (indexer) {
-    const snapshot::Meta &idxMeta = indexer->GetMeta();
+    const Meta &idxMeta = indexer->GetMeta();
 
     CBlockIndex *curBlockIndex = LookupBlockIndex(idxMeta.m_bestBlockHash);
     assert(curBlockIndex);
@@ -319,7 +319,7 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
   uint32_t snapshotId;
   assert(pcoinsdbview->GetCandidateSnapshotId(snapshotId));
 
-  std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(snapshotId);
+  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotId);
   assert(idx);
   if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
     // if we can't write the snapshot, we have an issue with the DB
