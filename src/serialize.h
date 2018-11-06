@@ -8,6 +8,7 @@
 
 #include <compat/endian.h>
 
+#include <array>
 #include <algorithm>
 #include <assert.h>
 #include <ios>
@@ -498,6 +499,12 @@ template<typename Stream, typename T, typename A, typename V> void Unserialize_i
 template<typename Stream, typename T, typename A> inline void Unserialize(Stream& is, std::vector<T, A>& v);
 
 /**
+ * array
+ */
+template<typename Stream, unsigned int N, typename T> inline void Serialize(Stream& os, const std::array<T, N>& v);
+template<typename Stream, unsigned int N, typename T> inline void Unserialize(Stream& is, std::array<T, N>& v);
+
+/**
  * pair
  */
 template<typename Stream, typename K, typename T> void Serialize(Stream& os, const std::pair<K, T>& item);
@@ -634,6 +641,39 @@ template<typename Stream, unsigned int N, typename T>
 inline void Unserialize(Stream& is, prevector<N, T>& v)
 {
     Unserialize_impl(is, v, T());
+}
+
+
+
+/**
+ * array
+ */
+template<typename Stream, typename C, size_t N>
+void Serialize(Stream& os, const std::array<C, N>& arr)
+{
+    static_assert(std::is_trivial<C>::value, "component type must be a POD type");
+    static_assert(std::is_standard_layout<C>::value, "component type must be a POD type");
+
+    WriteCompactSize(os, N);
+    os.write((char*)arr.data(), N * sizeof(C));
+}
+
+template<typename Stream, typename C, size_t N>
+void Unserialize(Stream& is, std::array<C, N>& arr)
+{
+    static_assert(std::is_trivial<C>::value, "component type must be a POD type");
+    static_assert(std::is_standard_layout<C>::value, "component type must be a POD type");
+
+    const size_t nSize = ReadCompactSize(is);
+    if (nSize == N) {
+        is.read((char*)arr.data(), N * sizeof(C));
+    } else if (nSize < N) {
+        is.read((char*)arr.data(), nSize * sizeof(C));
+        memset((char*)arr.data() + nSize, 0, (N - nSize) * sizeof(C));
+    } else { // nSize > N
+        is.read((char*)arr.data(), N * sizeof(C));
+        is.ignore(nSize - N);
+    }
 }
 
 

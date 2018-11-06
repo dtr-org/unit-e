@@ -365,4 +365,68 @@ BOOST_AUTO_TEST_CASE(class_methods)
     BOOST_CHECK(methodtest3 == methodtest4);
 }
 
+BOOST_AUTO_TEST_CASE(serialize_std_array)
+{
+    std::array<char, 5> arr = { 'h', 'e', 'l', 'l', 'o' };
+    CDataStream ss(SER_DISK, 0);
+    ss << arr;
+    CSerializeData d;
+    ss.GetAndClear(d);
+    BOOST_CHECK_EQUAL(ss[0], 5);
+    BOOST_CHECK_EQUAL(ss[1], 'h');
+    BOOST_CHECK_EQUAL(ss[2], 'e');
+    BOOST_CHECK_EQUAL(ss[3], 'l');
+    BOOST_CHECK_EQUAL(ss[4], 'l');
+    BOOST_CHECK_EQUAL(ss[5], 'o');
+}
+
+BOOST_AUTO_TEST_CASE(unserialize_std_array)
+{
+    std::array<char, 5> arr;
+    CDataStream ss(SER_DISK, 0);
+    char data[6] = {5, 'h', 'e', 'l', 'l', 'o'};
+    ss.write(&data[0], 6);
+    ss >> arr;
+    BOOST_CHECK_EQUAL(arr[0], 'h');
+    BOOST_CHECK_EQUAL(arr[1], 'e');
+    BOOST_CHECK_EQUAL(arr[2], 'l');
+    BOOST_CHECK_EQUAL(arr[3], 'l');
+    BOOST_CHECK_EQUAL(arr[4], 'o');
+}
+
+BOOST_AUTO_TEST_CASE(unserialize_std_array_input_too_short)
+{
+    std::array<char, 5> arr;
+    CDataStream ss(SER_DISK, 0);
+    char data[4] = {3, 'f', 'o', 'o'};
+    ss.write(&data[0], 4);
+    ss >> arr;
+    BOOST_CHECK_EQUAL(arr[0], 'f');
+    BOOST_CHECK_EQUAL(arr[1], 'o');
+    BOOST_CHECK_EQUAL(arr[2], 'o');
+    BOOST_CHECK_EQUAL(arr[3], '\0');
+    BOOST_CHECK_EQUAL(arr[4], '\0');
+}
+
+BOOST_AUTO_TEST_CASE(unserialize_std_array_input_overlong)
+{
+    std::array<char, 5> arr;
+    CDataStream ss(SER_DISK, 0);
+    char data[17] = {10, 'h', 'e', 'l', 'l', 'o', 't', 'h', 'e', 'r', 'e',
+                     5,  's', 't', 'u', 'f', 'f'};
+    ss.write(&data[0], 17);
+    ss >> arr;
+    BOOST_CHECK_EQUAL(arr[0], 'h');
+    BOOST_CHECK_EQUAL(arr[1], 'e');
+    BOOST_CHECK_EQUAL(arr[2], 'l');
+    BOOST_CHECK_EQUAL(arr[3], 'l');
+    BOOST_CHECK_EQUAL(arr[4], 'o');
+    ss >> arr;
+    BOOST_CHECK_EQUAL(arr[0], 's');
+    BOOST_CHECK_EQUAL(arr[1], 't');
+    BOOST_CHECK_EQUAL(arr[2], 'u');
+    BOOST_CHECK_EQUAL(arr[3], 'f');
+    BOOST_CHECK_EQUAL(arr[4], 'f');
+}
+
 BOOST_AUTO_TEST_SUITE_END()
