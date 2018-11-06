@@ -15,25 +15,11 @@ import os
 ################################################################################
 
 EXCLUDE = [
-    # libsecp256k1:
-    'src/secp256k1/include/secp256k1.h',
-    'src/secp256k1/include/secp256k1_ecdh.h',
-    'src/secp256k1/include/secp256k1_recovery.h',
-    'src/secp256k1/include/secp256k1_schnorr.h',
-    'src/secp256k1/src/java/org_unite_NativeSecp256k1.c',
-    'src/secp256k1/src/java/org_unite_NativeSecp256k1.h',
-    'src/secp256k1/src/java/org_unite_Secp256k1Context.c',
-    'src/secp256k1/src/java/org_unite_Secp256k1Context.h',
-    # univalue:
-    'src/univalue/test/object.cpp',
-    'src/univalue/lib/univalue_escapes.h',
     # auto generated:
     'src/qt/unitestrings.cpp',
     'src/chainparamsseeds.h',
     # other external copyrights:
     'src/tinyformat.h',
-    'src/leveldb/util/env_win.cc',
-    'src/crypto/ctaes/bench.c',
     'test/functional/test_framework/bignum.py',
     # python init:
     '*__init__.py',
@@ -43,7 +29,18 @@ EXCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in EXCLUDE]))
 INCLUDE = ['*.h', '*.cpp', '*.cc', '*.c', '*.py']
 INCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in INCLUDE]))
 
+EXCLUDE_DIRS = [
+    # git subtrees
+    "src/crypto/ctaes/",
+    "src/secp256k1/",
+    "src/univalue/",
+    "src/leveldb/",
+]
+
 def applies_to_file(filename):
+    for dir in EXCLUDE_DIRS:
+        if filename.startswith(dir):
+            return False
     return ((EXCLUDE_COMPILED.match(filename) is None) and
             (INCLUDE_COMPILED.match(filename) is not None))
 
@@ -81,15 +78,15 @@ ANY_COPYRIGHT_STYLE_OR_YEAR_STYLE = ("%s %s" % (ANY_COPYRIGHT_STYLE,
 ANY_COPYRIGHT_COMPILED = re.compile(ANY_COPYRIGHT_STYLE_OR_YEAR_STYLE)
 
 def compile_copyright_regex(copyright_style, year_style, name):
-    return re.compile('%s %s %s' % (copyright_style, year_style, name))
+    return re.compile('%s %s,? %s' % (copyright_style, year_style, name))
 
 EXPECTED_HOLDER_NAMES = [
     "Satoshi Nakamoto\n",
     "The Bitcoin Core developers\n",
     "The Bitcoin Core developers \n",
-    "UnitE Core Developers\n",
-    "the UnitE Core developers\n",
-    "The UnitE developers\n",
+    "Bitcoin Core Developers\n",
+    "the Bitcoin Core developers\n",
+    "The Bitcoin developers\n",
     "The LevelDB Authors\. All rights reserved\.\n",
     "BitPay Inc\.\n",
     "BitPay, Inc\.\n",
@@ -107,6 +104,17 @@ EXPECTED_HOLDER_NAMES = [
     "Jan-Klaas Kollhof\n",
     "Sam Rushing\n",
     "ArtForz -- public domain half-a-node\n",
+    "The Unit-e developers\n",
+    "The Zcash developers\n",
+    "Jeremy Rubin\n",
+    "The PPCoin developers\n",
+    "The BlackCoin developers\n",
+    "The Particl Core developers\n",
+    "The Particl developers\n",
+    "The ShadowCoin developers\n",
+    "Institute of Formal and Applied Linguistics, Faculty of", # Multi-line
+    "Intel Corporation",
+    "Anton Bachin"
 ]
 
 DOMINANT_STYLE_COMPILED = {}
