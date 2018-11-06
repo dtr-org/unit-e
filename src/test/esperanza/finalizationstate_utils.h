@@ -2,10 +2,10 @@
 #define UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
 
 #include <esperanza/finalizationstate.h>
-#include <boost/test/unit_test.hpp>
-#include <boost/test/unit_test_log.hpp>
 #include <random.h>
 #include <test/test_unite.h>
+#include <boost/test/unit_test.hpp>
+#include <boost/test/unit_test_log.hpp>
 
 using namespace esperanza;
 
@@ -45,5 +45,4 @@ class FinalizationStateSpy : public FinalizationState {
   using FinalizationState::ProcessWithdraw;
 };
 
-
-#endif //UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
+#endif  //UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H
