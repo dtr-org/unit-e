@@ -6,11 +6,11 @@ welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
 
-There is a team of maintainers who take care of responsibilities such as merging
-pull requests, releasing, moderation, and appointment of maintainers.
-Maintainers are part of the overall community and there is a path for
-contributors to become maintainers if they show to be capable and willing to
-take over this responsibility.
+There is a team of [maintainers](MAINTAINERS.md) who take care of
+responsibilities such as merging pull requests, releasing, moderation, and
+appointment of maintainers. Maintainers are part of the overall community and
+there is a path for contributors to become maintainers if they show to be
+capable and willing to take over this responsibility.
 
 The UnitE team is committed to fostering a welcoming and harassment-free
 environment. All participants are expected to adhere to our [code of
@@ -217,7 +217,8 @@ Network Protocol consensus changes.
 Whether and when a pull request is merged into UnitE Core rests with the project
 maintainers. A pull request needs approval of at least one maintainer to be
 merged. A maintainer can not approve a pull request they authored themselves.
-They need at least one other maintainer to approve the pull request.
+They need at least one other maintainer to approve the pull request. The list of
+maintainers is documented in [MAINTAINERS.md](MAINTAINERS.md).
 
 If maintainers ask for changes, and the changes have been done by adding
 additional commits to the pull request, they need to approve the changes before
@@ -255,7 +256,7 @@ In general, all pull requests must:
 There are special areas of the code which need expert review. As a maintainer it
 is your responsibility to involve others if you see that the change is touching
 these special areas. A definition of who is expert on which area of the code is
-in the MAINTAINERS.md file.
+in the [MAINTAINERS.md](MAINTAINERS.md) file.
 
 ### Merging or closing the pull request
 
