@@ -166,6 +166,7 @@ BASE_SCRIPTS= [
     'p2p_node_network_limited.py',
     'feature_config_args.py',
     'feature_help.py',
+    'rpc_calcsnapshothash.py',
     'rpc_createsnapshot.py',
     'rpc_readsnapshot.py',
     'feature_snapshot.py',

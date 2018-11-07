@@ -13,6 +13,7 @@ from .address import (
 from .mininode import *
 from .script import (
     CScript,
+    CScriptNum,
     OP_0,
     OP_1,
     OP_CHECKMULTISIG,
@@ -81,13 +82,30 @@ def serialize_script_num(value):
         r[-1] |= 0x80
     return r
 
+
+def create_coinbase2(height, snapshot_hash, pubkey=None):
+    coinbase = CTransaction()
+    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff),
+                              CScript([CScriptNum(height), ser_uint256(snapshot_hash), OP_0]), 0xffffffff))
+    coinbaseoutput = CTxOut()
+    coinbaseoutput.nValue = 50 * UNIT
+    halvings = int(height/150) # regtest
+    coinbaseoutput.nValue >>= halvings
+    if (pubkey != None):
+        coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
+    else:
+        coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
+    coinbase.vout = [ coinbaseoutput ]
+    coinbase.calc_sha256()
+    return coinbase
+
 # Create a coinbase transaction, assuming no miner fees.
 # If pubkey is passed in, the coinbase output will be a P2PK output;
 # otherwise an anyone-can-spend output.
-def create_coinbase(height, pubkey = None):
+def create_coinbase(height, snapshot_hash, pubkey = None):
     coinbase = CTransaction()
-    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff),
-                ser_string(serialize_script_num(height)), 0xffffffff))
+    script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash), OP_0])
+    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
     coinbaseoutput = CTxOut()
     coinbaseoutput.nValue = 50 * UNIT
     halvings = int(height/150) # regtest
@@ -170,3 +188,22 @@ def send_to_witness(use_p2wsh, node, utxo, pubkey, encode_p2sh, amount, sign=Tru
             tx_to_witness = ToHex(tx)
 
     return node.sendrawtransaction(tx_to_witness)
+
+
+class SnapshotMeta:
+    def __init__(self, res):
+        self.hash = uint256_from_str(hex_str_to_bytes(res['hash']))
+        self.data = res['data']
+
+
+def get_tip_snapshot_meta(node):
+    return SnapshotMeta(node.gettipsnapshot())
+
+
+def calc_snapshot_hash(node, snapshot_data, inputs, outputs):
+    res = node.calcsnapshothash(
+        bytes_to_hex_str(ser_vector(inputs)),
+        bytes_to_hex_str(ser_vector(outputs)),
+        snapshot_data
+    )
+    return SnapshotMeta(res)

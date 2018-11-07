@@ -7,11 +7,12 @@
 
 #include <vector>
 
-#include <coins.h>
 #include <primitives/transaction.h>
 #include <secp256k1_multiset.h>
 #include <serialize.h>
 #include <uint256.h>
+
+class Coin;
 
 namespace snapshot {
 
@@ -108,39 +109,30 @@ struct Snapshot {
   }
 };
 
-//! UTXO is used to calculate the snapshot hash. It is used instead of more
-//! compact UTXOSubset struct because it allows to add/subtract one output
-//! without constructing the whole Tx which could be expensive (require lookup
-//! to the disk)
+//! UTXO is a representation of a single output and used to calculate the
+//! snapshot hash. Coin class (which has the same schema) is not used as it
+//! doesn't follow the P2P serialization convention.
 struct UTXO {
-  uint256 m_txId;
+  COutPoint m_outPoint;
   uint32_t m_height;
   bool m_isCoinBase;
-  uint32_t m_txOutIndex;
   CTxOut m_txOut;
 
   UTXO()
-      : m_txId(),
+      : m_outPoint(),
         m_height(0),
         m_isCoinBase(false),
-        m_txOutIndex(0),
         m_txOut() {}
 
-  UTXO(const COutPoint &out, const Coin &coin)
-      : m_txId(out.hash),
-        m_height(coin.nHeight),
-        m_isCoinBase(coin.IsCoinBase()),
-        m_txOutIndex(out.n),
-        m_txOut(coin.out) {}
+  UTXO(const COutPoint &out, const Coin &coin);
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_txId);
+    READWRITE(m_outPoint);
     READWRITE(m_height);
     READWRITE(m_isCoinBase);
-    READWRITE(m_txOutIndex);
     READWRITE(m_txOut);
   }
 };
@@ -148,28 +140,21 @@ struct UTXO {
 class SnapshotHash {
  public:
   SnapshotHash();
-  SnapshotHash(const SnapshotHash &) = delete;
-  SnapshotHash(SnapshotHash &&) = delete;
-  SnapshotHash &operator=(const SnapshotHash &) = delete;
-  SnapshotHash &operator=(SnapshotHash &&) = delete;
+  explicit SnapshotHash(const std::vector<uint8_t> &data);
 
   void AddUTXO(const UTXO &utxo);
-  void SubUTXO(const UTXO &utxo);
+  void SubtractUTXO(const UTXO &utxo);
 
   //! GetHash returns the hash that represents the snapshot
   //! and must be stored inside CoinBase TX.
-  uint256 GetHash();
+  uint256 GetHash() const;
 
-  // Serialize methods are used to store the state in chainstate DB
-  template <typename Stream>
-  void Serialize(Stream &s) const {
-    s.write(reinterpret_cast<const char *>(m_multiset.d), sizeof(m_multiset.d));
-  }
+  std::vector<uint8_t> GetHashVector() const;
 
-  template <typename Stream>
-  void Unserialize(Stream &s) {
-    s.read(reinterpret_cast<char *>(m_multiset.d), sizeof(m_multiset.d));
-  }
+  void Clear();
+
+  //! GetData returns internals of the hash and used to restore the state.
+  std::vector<uint8_t> GetData() const;
 
  private:
   secp256k1_multiset m_multiset;

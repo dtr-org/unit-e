@@ -247,6 +247,7 @@ class BIP68Test(UnitETestFramework):
             cur_time += 600
 
         assert(tx2.hash in self.nodes[0].getrawmempool())
+        tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=True)
         test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=False)
@@ -302,11 +303,14 @@ class BIP68Test(UnitETestFramework):
         tip = int(self.nodes[0].getblockhash(self.nodes[0].getblockcount()-1), 16)
         height = self.nodes[0].getblockcount()
         for i in range(2):
-            block = create_block(tip, create_coinbase(height), cur_time)
+            coinbase = create_coinbase(height, tip_snapshot_meta.hash)
+            block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3
             block.rehash()
             block.solve()
             tip = block.sha256
+            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, [], [utxo])
             height += 1
             self.nodes[0].submitblock(ToHex(block))
             cur_time += 1
@@ -357,7 +361,8 @@ class BIP68Test(UnitETestFramework):
 
         # make a block that violates bip68; ensure that the tip updates
         tip = int(self.nodes[0].getbestblockhash(), 16)
-        block = create_block(tip, create_coinbase(self.nodes[0].getblockcount()+1))
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        block = create_block(tip, create_coinbase(self.nodes[0].getblockcount()+1, snapshot_hash))
         block.nVersion = 3
         block.vtx.extend([tx1, tx2, tx3])
         block.hashMerkleRoot = block.calc_merkle_root()

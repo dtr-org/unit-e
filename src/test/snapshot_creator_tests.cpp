@@ -24,7 +24,9 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
   bi->nBits = 246;
   mapBlockIndex[bestBlock] = bi;
 
-  auto view = MakeUnique<CCoinsViewDB>(0, false, true);
+  auto viewDB = MakeUnique<CCoinsViewDB>(0, false, true);
+  auto viewCache = MakeUnique<CCoinsViewCache>(viewDB.get());
+  viewCache->SetBestBlock(bestBlock);
 
   const uint32_t totalTX = 100;
   const uint32_t coinsPerTX = 2;
@@ -39,16 +41,13 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
       s << i / coinsPerTX;
       point.hash.SetHex(HexStr(s));
 
-      CCoinsCacheEntry entry;
-      entry.flags |= CCoinsCacheEntry::Flags::DIRTY;
-      entry.coin = Coin();
-      entry.coin.out.nValue = 1;
-      map[point] = entry;
+      Coin coin(CTxOut(1, CScript()), 1, false);
+      viewCache->AddCoin(point, std::move(coin), false);
     }
-    BOOST_CHECK(view->BatchWrite(map, bestBlock));
+    BOOST_CHECK(viewCache->Flush());
   }
 
-  snapshot::Creator creator(view.get());
+  snapshot::Creator creator(viewDB.get());
   creator.m_step = 3;
   creator.m_stepsPerFile = 2;
 
@@ -60,19 +59,21 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
 
       // validate snapshot ID
       uint32_t snapshotId{0};
-      BOOST_CHECK(view->GetSnapshotId(snapshotId));
+      BOOST_CHECK(viewDB->GetSnapshotId(snapshotId));
       BOOST_CHECK_EQUAL(snapshotId, idx);
       ids.emplace_back(idx);
 
       // keep up to 5 snapshots
       auto lastN = std::min<uint64_t>(5, ids.size());
 
-      BOOST_CHECK(view->GetSnapshotIds() ==
+      BOOST_CHECK(viewDB->GetSnapshotIds() ==
                   std::vector<uint32_t>(ids.end() - lastN, ids.end()));
 
       // validate reported state
       BOOST_CHECK_EQUAL(info.m_status, +snapshot::Status::OK);
       BOOST_CHECK(!info.m_indexerMeta.m_snapshotHash.IsNull());
+      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_snapshotHash.GetHex(),
+                        viewDB->GetSnapshotHash().GetHash().GetHex());
       BOOST_CHECK_EQUAL(HexStr(info.m_indexerMeta.m_bestBlockHash),
                         HexStr(bestBlock));
       BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSubsets, totalTX);

@@ -71,7 +71,7 @@ UNITE_TESTS = \
   test/mempool_tests.cpp \
   test/merkle_tests.cpp \
   test/merkleblock_tests.cpp \
-  test/miner_tests.cpp \
+  # test/miner_tests.cpp will be replaced with proposer_tests.cpp \
   test/multisig_tests.cpp \
   test/net_tests.cpp \
   test/netbase_tests.cpp \
@@ -103,6 +103,7 @@ UNITE_TESTS = \
   test/snapshot_messages_tests.cpp \
   test/snapshot_p2p_processing_tests.cpp \
   test/snapshot_state_tests.cpp \
+  test/snapshot_validation_tests.cpp \
   test/streams_tests.cpp \
   test/test_unite.h \
   test/test_unite.cpp \

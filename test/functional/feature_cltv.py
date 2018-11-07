@@ -11,7 +11,7 @@ Test that the CHECKLOCKTIMEVERIFY soft-fork activates at (regtest) block height
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import *
-from test_framework.blocktools import create_coinbase, create_block
+from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta
 from test_framework.script import CScript, OP_1NEGATE, OP_CHECKLOCKTIMEVERIFY, OP_DROP, CScriptNum
 from io import BytesIO
 
@@ -86,7 +86,8 @@ class BIP65Test(UnitETestFramework):
 
         tip = self.nodes[0].getbestblockhash()
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
-        block = create_block(int(tip, 16), create_coinbase(CLTV_HEIGHT - 1), block_time)
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        block = create_block(int(tip, 16), create_coinbase(CLTV_HEIGHT - 1, snapshot_hash), block_time)
         block.nVersion = 3
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
@@ -98,7 +99,8 @@ class BIP65Test(UnitETestFramework):
         self.log.info("Test that blocks must now be at least version 4")
         tip = block.sha256
         block_time += 1
-        block = create_block(tip, create_coinbase(CLTV_HEIGHT), block_time)
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        block = create_block(tip, create_coinbase(CLTV_HEIGHT, snapshot_hash), block_time)
         block.nVersion = 3
         block.solve()
         self.nodes[0].p2p.send_and_ping(msg_block(block))

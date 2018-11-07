@@ -13,7 +13,6 @@
 #include <util.h>
 #include <ui_interface.h>
 #include <init.h>
-#include <snapshot/iterator.h>
 
 #include <stdint.h>
 
@@ -36,6 +35,7 @@ static const std::string DB_SNAPSHOT_ID = "SNAPSHOT";
 static const std::string DB_INIT_SNAPSHOT_ID = "INIT_SNAPSHOT";
 static const std::string DB_CANDIDATE_SNAPSHOT_ID = "CANDIDATE_SNAPSHOT";
 static const std::string DB_ALL_SNAPSHOTS = "ALL_SNAPSHOTS";
+static const std::string DB_SNAPSHOT_HASH_DATA = "SNAPSHOT_HASH_DATA";
 
 namespace {
 
@@ -88,7 +88,7 @@ std::vector<uint256> CCoinsViewDB::GetHeadBlocks() const {
     return vhashHeadBlocks;
 }
 
-bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
+bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) {
     CDBBatch batch(db);
     size_t count = 0;
     size_t changed = 0;
@@ -142,6 +142,7 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
     // In the last batch, mark the database as consistent with hashBlock again.
     batch.Erase(DB_HEAD_BLOCKS);
     batch.Write(DB_BEST_BLOCK, hashBlock);
+    batch.Write(DB_SNAPSHOT_HASH_DATA, snapshotHash.GetData());
 
     LogPrint(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
     bool ret = db.WriteBatch(batch);
@@ -179,7 +180,7 @@ bool CBlockTreeDB::ReadLastBlockFile(int &nFile) {
 
 CCoinsViewCursor *CCoinsViewDB::Cursor() const
 {
-    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock());
+    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock(), GetSnapshotHash());
     /* It seems that there are no "const iterators" for LevelDB.  Since we
        only need read operations on it, use a const-cast to get around
        that restriction.  */
@@ -493,80 +494,29 @@ bool CCoinsViewDB::ReserveSnapshotId(uint32_t &idOut) {
     return true;
 }
 
-bool CCoinsViewDB::LoadSnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
-    LogPrint(BCLog::COINDB, "%s: Apply snapshot id=%i.\n", __func__,
-             indexer->GetSnapshotId());
+snapshot::SnapshotHash CCoinsViewDB::GetSnapshotHash() const {
+    std::vector<uint8_t>data;
+    if (db.Read(DB_SNAPSHOT_HASH_DATA, data)) {
+        return snapshot::SnapshotHash(data);
+    }
+    return snapshot::SnapshotHash();
+}
 
-    {
-        // clean the DB. ideally should be empty but can be filled
-        // if previous LoadSnapshot call was interrupted
-        int total = 0;
-        std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
-        while (cursor->Valid()) {
-            COutPoint key;
-            if (cursor->GetKey(key)) {
-                db.Erase(key);
-                ++total;
-            }
-            cursor->Next();
+bool CCoinsViewDB::SetSnapshotHash(const snapshot::SnapshotHash &hash) {
+    return db.Write(DB_SNAPSHOT_HASH_DATA, hash.GetData());
+}
+
+void CCoinsViewDB::ClearCoins() {
+    int total = 0;
+    std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
+    while (cursor->Valid()) {
+        COutPoint key;
+        if (cursor->GetKey(key)) {
+            db.Erase(key);
+            ++total;
         }
-        if (total > 0) {
-            LogPrint(BCLog::COINDB, "%s: delete %i keys in the DB\n", __func__,
-                     total);
-        }
+        cursor->Next();
     }
 
-    snapshot::Iterator iter(std::move(indexer));
-    LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n", __func__,
-             iter.GetTotalUTXOSubsets());
-
-    uint64_t writtenSubsets = 0;
-    CCoinsMap coinMap;
-    while (iter.Valid()) {
-        snapshot::UTXOSubset &subset = iter.GetUTXOSubset();
-        for (auto const &it : subset.m_outputs) {
-            auto entry = CCoinsCacheEntry{};
-            entry.flags |= CCoinsCacheEntry::Flags::DIRTY;
-            entry.flags |= CCoinsCacheEntry::Flags::FRESH;
-            Coin coin(it.second, subset.m_height, subset.m_isCoinBase);
-            entry.coin = coin;
-            coinMap[COutPoint(subset.m_txId, it.first)] = entry;
-        }
-
-        ++writtenSubsets;
-
-        if (writtenSubsets % 100000 == 0) { // ~12 MB/batch
-            if (!BatchWrite(coinMap, iter.GetBestBlockHash())) {
-                LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
-                return false;
-            }
-            coinMap.clear();
-        }
-
-        // log every 5% of processed messages
-        uint64_t chunk = iter.GetTotalUTXOSubsets() / 20;
-        if (chunk > 0 && writtenSubsets % chunk == 0) {
-            LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
-                     writtenSubsets, iter.GetTotalUTXOSubsets());
-        }
-
-        iter.Next();
-    }
-
-    if (!coinMap.empty()) {
-        if (!BatchWrite(coinMap, iter.GetBestBlockHash())) {
-            LogPrint(BCLog::COINDB, "%s: can't write batch\n", __func__);
-            return false;
-        }
-        coinMap.clear();
-        LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
-                 writtenSubsets, iter.GetTotalUTXOSubsets());
-    }
-
-    assert(iter.GetTotalUTXOSubsets() == writtenSubsets);
-
-    LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXO subsets=%i\n",
-             __func__, writtenSubsets);
-
-    return true;
+    LogPrint(BCLog::COINDB, "%s: deleted %i keys in the DB\n", __func__, total);
 }

@@ -10,7 +10,7 @@ Test that the DERSIG soft-fork activates at (regtest) height 1251.
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import *
-from test_framework.blocktools import create_coinbase, create_block
+from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta
 from test_framework.script import CScript
 from io import BytesIO
 
@@ -74,7 +74,8 @@ class BIP66Test(UnitETestFramework):
 
         tip = self.nodes[0].getbestblockhash()
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
-        block = create_block(int(tip, 16), create_coinbase(DERSIG_HEIGHT - 1), block_time)
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        block = create_block(int(tip, 16), create_coinbase(DERSIG_HEIGHT - 1, snapshot_hash), block_time)
         block.nVersion = 2
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
@@ -87,7 +88,8 @@ class BIP66Test(UnitETestFramework):
         self.log.info("Test that blocks must now be at least version 3")
         tip = block.sha256
         block_time += 1
-        block = create_block(tip, create_coinbase(DERSIG_HEIGHT), block_time)
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        block = create_block(tip, create_coinbase(DERSIG_HEIGHT, snapshot_hash), block_time)
         block.nVersion = 2
         block.rehash()
         block.solve()

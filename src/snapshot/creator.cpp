@@ -49,7 +49,7 @@ CreationInfo Creator::Create() {
   LogPrint(BCLog::SNAPSHOT, "reserve id=%i for the new snapshot\n", snapshotId);
 
   ChainstateIterator iter(m_view);
-  Indexer indexer(snapshotId, /* m_snapshotHash */ uint256(),
+  Indexer indexer(snapshotId, iter.GetSnapshotHash().GetHash(),
                   iter.GetBestBlock(), m_step, m_stepsPerFile);
 
   while (iter.Valid()) {

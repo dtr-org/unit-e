@@ -46,7 +46,7 @@ bip112tx_special - test negative argument to OP_CSV
 from test_framework.test_framework import ComparisonTestFramework
 from test_framework.util import *
 from test_framework.mininode import ToHex, CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, create_block
+from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta, calc_snapshot_hash, UTXO, COutPoint
 from test_framework.comptool import TestInstance, TestManager
 from test_framework.script import *
 from io import BytesIO
@@ -134,12 +134,15 @@ class BIP68_112_113Test(ComparisonTestFramework):
         return test_blocks
 
     def create_test_block(self, txs, version = 536870912):
-        block = create_block(self.tip, create_coinbase(self.tipheight + 1), self.last_block_time + 600)
+        coinbase = create_coinbase(self.tipheight + 1, self.tip_snapshot_meta.hash)
+        block = create_block(self.tip, coinbase, self.last_block_time + 600)
         block.nVersion = version
         block.vtx.extend(txs)
         block.hashMerkleRoot = block.calc_merkle_root()
         block.rehash()
         block.solve()
+        utxo = UTXO(self.tipheight + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        self.tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], self.tip_snapshot_meta.data, [], [utxo])
         return block
 
     def create_bip68txs(self, bip68inputs, txversion, locktime_delta = 0):
@@ -203,6 +206,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         long_past_time = int(time.time()) - 600 * 1000 # enough to build up to 1000 blocks 10 minutes apart without worrying about getting into the future
         self.nodes[0].setmocktime(long_past_time - 100) # enough so that the generated blocks will still all be before long_past_time
         self.coinbase_blocks = self.nodes[0].generate(1 + 16 + 2*32 + 1) # 82 blocks generated for inputs
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         self.nodes[0].setmocktime(0) # set time back to present so yielded blocks aren't in the future as we advance last_block_time
         self.tipheight = 82 # height of the next block to build
         self.last_block_time = long_past_time
@@ -267,6 +271,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
 
         self.nodes[0].setmocktime(self.last_block_time + 600)
         inputblockhash = self.nodes[0].generate(1)[0] # 1 block generated for inputs to be in chain at height 572
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         self.nodes[0].setmocktime(0)
         self.tip = int("0x" + inputblockhash, 0)
         self.tipheight += 1
@@ -332,6 +337,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         success_txs.extend(all_rlt_txs(bip112txs_vary_OP_CSV_9_v1))
         yield TestInstance([[self.create_test_block(success_txs), True]]) # 6
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         ### Version 2 txs ###
         success_txs = []
@@ -350,7 +356,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         success_txs.extend(all_rlt_txs(bip112txs_vary_OP_CSV_9_v2))
         yield TestInstance([[self.create_test_block(success_txs), True]]) # 7
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
-
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # 1 more version 4 block to get us to height 575 so the fork should now be active for the next block
         test_blocks = self.generate_blocks(1, 4)
@@ -369,6 +375,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         bip113signed2 = self.sign_transaction(self.nodes[0], bip113tx_v2)
         for bip113tx in [bip113signed1, bip113signed2]:
             yield TestInstance([[self.create_test_block([bip113tx]), False]]) # 9,10
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         # BIP 113 tests should now pass if the locktime is < MTP
         bip113tx_v1.nLockTime = self.last_block_time - 600 * 5 - 1 # < MTP of prior block
         bip113signed1 = self.sign_transaction(self.nodes[0], bip113tx_v1)
@@ -377,6 +384,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         for bip113tx in [bip113signed1, bip113signed2]:
             yield TestInstance([[self.create_test_block([bip113tx]), True]]) # 11,12
             self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # Next block height = 580 after 4 blocks of random version
         test_blocks = self.generate_blocks(4, 1234)
@@ -389,6 +397,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         success_txs.extend(all_rlt_txs(bip68txs_v1))
         yield TestInstance([[self.create_test_block(success_txs), True]]) # 14
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         ### Version 2 txs ###
         bip68success_txs = []
@@ -399,6 +408,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
                     bip68success_txs.append(bip68txs_v2[1][b25][b22][b18])
         yield TestInstance([[self.create_test_block(bip68success_txs), True]]) # 15
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         # All txs without flag fail as we are at delta height = 8 < 10 and delta time = 8 * 600 < 10 * 512
         bip68timetxs = []
         for b25 in range(2):
@@ -406,12 +416,14 @@ class BIP68_112_113Test(ComparisonTestFramework):
                 bip68timetxs.append(bip68txs_v2[0][b25][1][b18])
         for tx in bip68timetxs:
             yield TestInstance([[self.create_test_block([tx]), False]]) # 16 - 19
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         bip68heighttxs = []
         for b25 in range(2):
             for b18 in range(2):
                 bip68heighttxs.append(bip68txs_v2[0][b25][0][b18])
         for tx in bip68heighttxs:
             yield TestInstance([[self.create_test_block([tx]), False]]) # 20 - 23
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # Advance one block to 581
         test_blocks = self.generate_blocks(1, 1234)
@@ -421,8 +433,10 @@ class BIP68_112_113Test(ComparisonTestFramework):
         bip68success_txs.extend(bip68timetxs)
         yield TestInstance([[self.create_test_block(bip68success_txs), True]]) # 25
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for tx in bip68heighttxs:
             yield TestInstance([[self.create_test_block([tx]), False]]) # 26 - 29
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # Advance one block to 582
         test_blocks = self.generate_blocks(1, 1234)
@@ -432,12 +446,14 @@ class BIP68_112_113Test(ComparisonTestFramework):
         bip68success_txs.extend(bip68heighttxs)
         yield TestInstance([[self.create_test_block(bip68success_txs), True]]) # 31
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
 
         ### BIP 112 ###
         ### Version 1 txs ###
         # -1 OP_CSV tx should fail
         yield TestInstance([[self.create_test_block([bip112tx_special_v1]), False]]) #32
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         # If SEQUENCE_LOCKTIME_DISABLE_FLAG is set in argument to OP_CSV, version 1 txs should still pass
         success_txs = []
         for b25 in range(2):
@@ -447,6 +463,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
                     success_txs.append(bip112txs_vary_OP_CSV_9_v1[1][b25][b22][b18])
         yield TestInstance([[self.create_test_block(success_txs), True]]) # 33
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # If SEQUENCE_LOCKTIME_DISABLE_FLAG is unset in argument to OP_CSV, version 1 txs should now fail
         fail_txs = []
@@ -460,10 +477,12 @@ class BIP68_112_113Test(ComparisonTestFramework):
 
         for tx in fail_txs:
             yield TestInstance([[self.create_test_block([tx]), False]]) # 34 - 81
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         ### Version 2 txs ###
         # -1 OP_CSV tx should fail
         yield TestInstance([[self.create_test_block([bip112tx_special_v2]), False]]) #82
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # If SEQUENCE_LOCKTIME_DISABLE_FLAG is set in argument to OP_CSV, version 2 txs should pass (all sequence locks are met)
         success_txs = []
@@ -475,6 +494,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
 
         yield TestInstance([[self.create_test_block(success_txs), True]]) # 83
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         ## SEQUENCE_LOCKTIME_DISABLE_FLAG is unset in argument to OP_CSV for all remaining txs ##
         # All txs with nSequence 9 should fail either due to earlier mismatch or failing the CSV check
@@ -487,6 +507,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
 
         for tx in fail_txs:
             yield TestInstance([[self.create_test_block([tx]), False]]) # 84 - 107
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # If SEQUENCE_LOCKTIME_DISABLE_FLAG is set in nSequence, tx should fail
         fail_txs = []
@@ -496,6 +517,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
                     fail_txs.append(bip112txs_vary_nSequence_v2[1][b25][b22][b18]) # 8/16 of vary_nSequence
         for tx in fail_txs:
             yield TestInstance([[self.create_test_block([tx]), False]]) # 108-115
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # If sequencelock types mismatch, tx should fail
         fail_txs = []
@@ -505,6 +527,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
                 fail_txs.append(bip112txs_vary_OP_CSV_v2[0][b25][1][b18]) # 12/16 of vary_OP_CSV
         for tx in fail_txs:
             yield TestInstance([[self.create_test_block([tx]), False]]) # 116-123
+            self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # Remaining txs should pass, just test masking works properly
         success_txs = []
@@ -514,6 +537,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
                 success_txs.append(bip112txs_vary_OP_CSV_v2[0][b25][0][b18]) # 16/16 of vary_OP_CSV
         yield TestInstance([[self.create_test_block(success_txs), True]]) # 124
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # Additional test, of checking that comparison of two time types works properly
         time_txs = []
@@ -525,6 +549,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
                 time_txs.append(signtx)
         yield TestInstance([[self.create_test_block(time_txs), True]]) # 125
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
+        self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         ### Missing aspects of test
         ##  Testing empty stack fails

@@ -14,6 +14,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
   uint32_t msgsToGenerate = 20;
+  snapshot::SnapshotHash snapshotHash;
 
   {
     // generate the snapshot
@@ -27,8 +28,20 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
       out.nValue = 1000 + i;
       subset.m_outputs[i] = out;
       idx.WriteUTXOSubset(subset);
+      snapshotHash.AddUTXO(
+          snapshot::UTXO(COutPoint(subset.m_txId, i), Coin(out, 0, false)));
     }
     BOOST_CHECK(idx.Flush());
+  }
+
+  {
+    // test snapshot calculation
+    // open the snapshot
+    std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(0);
+    BOOST_CHECK(idx != nullptr);
+    snapshot::Iterator iter(std::move(idx));
+    BOOST_CHECK_EQUAL(iter.CalculateHash().GetHex(),
+                      snapshotHash.GetHash().GetHex());
   }
 
   {

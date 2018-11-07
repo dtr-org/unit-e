@@ -23,7 +23,7 @@ import itertools
 from test_framework.test_framework import ComparisonTestFramework
 from test_framework.util import *
 from test_framework.mininode import CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, create_block
+from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta, calc_snapshot_hash, UNIT, UTXO, COutPoint, CTxOut
 from test_framework.comptool import TestInstance, TestManager
 from test_framework.script import CScript, OP_1NEGATE, OP_CHECKSEQUENCEVERIFY, OP_DROP
 
@@ -59,12 +59,15 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
     def generate_blocks(self, number, version, test_blocks = []):
         for i in range(number):
-            block = create_block(self.tip, create_coinbase(self.height), self.last_block_time + 1)
+            coinbase = create_coinbase(self.height, self.snapshot_meta.hash)
+            block = create_block(self.tip, coinbase, self.last_block_time + 1)
             block.nVersion = version
             block.rehash()
             block.solve()
             test_blocks.append([block, True])
             self.last_block_time += 1
+            utxo = UTXO(self.height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, [], [utxo])
             self.tip = block.sha256
             self.height += 1
         return test_blocks
@@ -83,6 +86,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         self.tip = int("0x" + self.nodes[0].getbestblockhash(), 0)
         self.nodeaddress = self.nodes[0].getnewaddress()
         self.last_block_time = int(time.time())
+        self.snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'defined')
         assert_equal(self.get_bip9_status(bipName)['since'], 0)
@@ -198,12 +202,20 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         spendtx.rehash()
         invalidatePostSignature(spendtx)
         spendtx.rehash()
-        block = create_block(self.tip, create_coinbase(self.height), self.last_block_time + 1)
+        coinbase = create_coinbase(self.height, self.snapshot_meta.hash)
+        block = create_block(self.tip, coinbase, self.last_block_time + 1)
         block.nVersion = activated_version
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
         block.rehash()
         block.solve()
+
+        cb_data = self.nodes[0].gettxout(self.nodes[0].getblock(self.coinbase_blocks[0])['tx'][0], 0)
+        cb_out = CTxOut(int(cb_data['value']*UNIT), hex_str_to_bytes(cb_data['scriptPubKey']['hex']))
+        utxo1 = UTXO(1, True, spendtx.vin[0].prevout, cb_out)
+        utxo2 = UTXO(self.height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        utxo3 = UTXO(self.height, False, COutPoint(spendtx.sha256, 0), spendtx.vout[0])
+        self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, [utxo1], [utxo2, utxo3])
 
         self.last_block_time += 1
         self.tip = block.sha256
@@ -228,7 +240,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         invalidatePostSignature(spendtx)
         spendtx.rehash()
 
-        block = create_block(self.tip, create_coinbase(self.height), self.last_block_time + 1)
+        block = create_block(self.tip, create_coinbase(self.height, self.snapshot_meta.hash), self.last_block_time + 1)
         block.nVersion = 5
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()

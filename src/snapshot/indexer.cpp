@@ -223,10 +223,6 @@ bool Indexer::FlushIndex() {
 }
 
 bool Indexer::FlushMeta() {
-  if (m_meta.m_snapshotHash.IsNull()) {
-    m_meta.m_snapshotHash = CalcSnapshotHash();
-  }
-
   CAutoFile file(fsbridge::fopen(m_dirPath / "meta.dat", "wb"), SER_DISK,
                  CLIENT_VERSION);
   if (file.IsNull()) {
@@ -236,31 +232,6 @@ bool Indexer::FlushMeta() {
   file << m_meta;
 
   return true;
-}
-
-uint256 Indexer::CalcSnapshotHash() {
-  CSHA256 sha256;
-  uint256 hash;
-  for (auto &i : m_dirIdx) {
-    fs::path filePath = m_dirPath / FileName(i.first);
-    FILE *f = fsbridge::fopen(filePath, "rb");
-    if (!f) {
-      return hash;
-    }
-
-    CAutoFile file(f, SER_DISK, PROTOCOL_VERSION);
-    uint32_t fileSize = i.second.rbegin()->second;
-    std::vector<unsigned char> buf(fileSize);
-    size_t n = fread(buf.data(), 1, fileSize, f);
-    if (n != fileSize) {
-      return hash;
-    }
-
-    sha256.Write(buf.data(), fileSize);
-  }
-
-  sha256.Finalize(hash.begin());
-  return hash;
 }
 
 }  // namespace snapshot

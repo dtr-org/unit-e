@@ -11,7 +11,7 @@ Version 2 compact blocks are post-segwit (wtxids)
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.blocktools import create_block, create_coinbase, add_witness_commitment
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
@@ -103,7 +103,9 @@ class CompactBlocksTest(UnitETestFramework):
         height = node.getblockcount()
         tip = node.getbestblockhash()
         mtp = node.getblockheader(tip)['mediantime']
-        block = create_block(int(tip, 16), create_coinbase(height + 1), mtp + 1)
+
+        meta = get_tip_snapshot_meta(node)
+        block = create_block(int(tip, 16), create_coinbase(height + 1, meta.hash), mtp + 1)
         block.nVersion = 4
         if segwit:
             add_witness_commitment(block)

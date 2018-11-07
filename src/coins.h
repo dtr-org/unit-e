@@ -14,6 +14,8 @@
 #include <memusage.h>
 #include <serialize.h>
 #include <uint256.h>
+#include <snapshot/messages.h>
+#include <snapshot/indexer.h>
 
 #include <assert.h>
 #include <stdint.h>
@@ -157,7 +159,7 @@ typedef std::unordered_map<COutPoint, CCoinsCacheEntry, SaltedOutpointHasher> CC
 class CCoinsViewCursor
 {
 public:
-    CCoinsViewCursor(const uint256 &hashBlockIn): hashBlock(hashBlockIn) {}
+    CCoinsViewCursor(const uint256 &hashBlockIn, const snapshot::SnapshotHash &snapshotHash): hashBlock(hashBlockIn), snapshotHash(snapshotHash) {}
     virtual ~CCoinsViewCursor() {}
 
     virtual bool GetKey(COutPoint &key) const = 0;
@@ -169,8 +171,12 @@ public:
 
     //! Get best block at the time this cursor was created
     const uint256 &GetBestBlock() const { return hashBlock; }
+
+    //! Get snapshot hash at the time this cursor as created
+    const snapshot::SnapshotHash &GetSnapshotHash() const { return snapshotHash; }
 private:
     uint256 hashBlock;
+    snapshot::SnapshotHash snapshotHash;
 };
 
 /** Abstract view on the open txout dataset. */
@@ -189,18 +195,24 @@ public:
     //! Retrieve the block hash whose state this CCoinsView currently represents
     virtual uint256 GetBestBlock() const;
 
+    //! Retrieve the snapshot hash whose state this CCoinsView currently represents
+    virtual snapshot::SnapshotHash GetSnapshotHash() const;
+
     //! Retrieve the range of blocks that may have been only partially written.
     //! If the database is in a consistent state, the result is the empty vector.
     //! Otherwise, a two-element vector is returned consisting of the new and
     //! the old block hash, in that order.
     virtual std::vector<uint256> GetHeadBlocks() const;
 
-    //! Do a bulk modification (multiple Coin changes + BestBlock change).
+    //! Do a bulk modification (multiple Coin changes + BestBlock + snapshotHash change).
     //! The passed mapCoins can be modified.
-    virtual bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock);
+    virtual bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash);
 
     //! Get a cursor to iterate over the whole state
     virtual CCoinsViewCursor *Cursor() const;
+
+    //! Removes all coins from the DB. Is invoked only once before applying the snapshot
+    virtual void ClearCoins();
 
     //! As we use CCoinsViews polymorphically, have a virtual destructor
     virtual ~CCoinsView() {}
@@ -221,9 +233,11 @@ public:
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
+    snapshot::SnapshotHash GetSnapshotHash() const override;
     std::vector<uint256> GetHeadBlocks() const override;
     void SetBackend(CCoinsView &viewIn);
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) override;
+    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
+    void ClearCoins() override;
     CCoinsViewCursor *Cursor() const override;
     size_t EstimateSize() const override;
 };
@@ -238,6 +252,7 @@ protected:
      * declared as "const".  
      */
     mutable uint256 hashBlock;
+    mutable snapshot::SnapshotHash snapshotHash;
     mutable CCoinsMap cacheCoins;
 
     /* Cached dynamic memory usage for the inner Coin objects. */
@@ -255,8 +270,9 @@ public:
     bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
+    snapshot::SnapshotHash GetSnapshotHash() const override;
     void SetBestBlock(const uint256 &hashBlock);
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) override;
+    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) override;
     CCoinsViewCursor* Cursor() const override {
         throw std::logic_error("CCoinsViewCache cursor iteration not supported.");
     }
@@ -299,6 +315,13 @@ public:
      * If false is returned, the state of this cache (and its backing view) will be undefined.
      */
     bool Flush();
+
+    //! ApplySnapshot adds all UTXOs from the snapshot to the cache and then invokes Flush().
+    //! If false is returned, the state of this cache (and its backing view) will be undefined.
+    bool ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer);
+
+    //! Removes coins from the cache and from the base DB
+    void ClearCoins() override;
 
     /**
      * Removes the UTXO with the given outpoint from the cache, if it is

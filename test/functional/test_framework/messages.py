@@ -270,6 +270,9 @@ class COutPoint():
         r += struct.pack("<I", self.n)
         return r
 
+    def is_null(self):
+        return self.hash == 0
+
     def __repr__(self):
         return "COutPoint(hash=%064x n=%i)" % (self.hash, self.n)
 
@@ -317,10 +320,44 @@ class CTxOut():
         r += ser_string(self.scriptPubKey)
         return r
 
+    def is_unspendable(self):
+        if len(self.scriptPubKey) > 0:
+            return self.scriptPubKey[0] == 0x6a or len(self.scriptPubKey) > 10000
+        return False
+
+
     def __repr__(self):
         return "CTxOut(nValue=%i.%08i scriptPubKey=%s)" \
             % (self.nValue // UNIT, self.nValue % UNIT,
                bytes_to_hex_str(self.scriptPubKey))
+
+
+class UTXO:
+    def __init__(self, height, isCoinBase, outpoint, txOut):
+        self.outpoint = outpoint
+        self.height = height
+        self.isCoinBase = isCoinBase
+        self.txOut = txOut
+
+    def deserialize(self, f):
+        self.outpoint = COutPoint()
+        self.outpoint.deserialize(f)
+        self.height = struct.unpack("<I", f.read(4))[0]
+        self.isCoinBase = struct.unpack("<B", f.read[1])[0]
+        self.txOut = CTxOut()
+        self.txOut.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.outpoint.serialize()
+        r += struct.pack("<I", self.height)
+        r += struct.pack("<B", self.isCoinBase)
+        r += self.txOut.serialize()
+        return r
+
+    def __repr__(self):
+        return "UTXO(outpoint=%s height=%i isCoinBase=%i txOut=%s)" \
+            % (self.outpoint, self.height, self.isCoinBase, repr(self.txOut))
 
 
 class CScriptWitness():
@@ -480,6 +517,9 @@ class CTransaction():
             if tout.nValue < 0 or tout.nValue > 21000000 * UNIT:
                 return False
         return True
+
+    def is_coin_base(self):
+        return len(self.vin) == 1 and self.vin[0].prevout.is_null()
 
     def __repr__(self):
         return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \

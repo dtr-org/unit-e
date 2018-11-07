@@ -12,7 +12,7 @@ import copy
 from binascii import b2a_hex
 from decimal import Decimal
 
-from test_framework.blocktools import create_coinbase
+from test_framework.blocktools import create_coinbase, get_tip_snapshot_meta
 from test_framework.mininode import CBlock
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error
@@ -51,7 +51,8 @@ class MiningTest(UnitETestFramework):
         assert 'proposal' in tmpl['capabilities']
         assert 'coinbasetxn' not in tmpl
 
-        coinbase_tx = create_coinbase(height=int(tmpl["height"]) + 1)
+        snapshot_hash = get_tip_snapshot_meta(node).hash
+        coinbase_tx = create_coinbase(height=int(tmpl["height"]) + 1, snapshot_hash=snapshot_hash)
         # sequence numbers must not be max for nLockTime to have effect
         coinbase_tx.vin[0].nSequence = 2 ** 32 - 2
         coinbase_tx.rehash()

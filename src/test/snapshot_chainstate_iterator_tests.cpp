@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(chainstate_iterator) {
 
         map[point] = entry;
       }
-      BOOST_CHECK(view->BatchWrite(map, uint256S("aa")));
+      BOOST_CHECK(view->BatchWrite(map, uint256S("aa"), {}));
     }
   }
 

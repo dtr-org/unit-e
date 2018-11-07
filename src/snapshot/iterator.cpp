@@ -125,6 +125,27 @@ bool Iterator::GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
   return true;
 }
 
+uint256 Iterator::CalculateHash() {
+  // unwind to the beginning if needed
+  if (m_readTotal > 1) {
+    MoveCursorTo(0);
+  }
+
+  SnapshotHash hash;
+  while (Valid()) {
+    UTXOSubset subset = GetUTXOSubset();
+    for (const auto &p : subset.m_outputs) {
+      const COutPoint out(subset.m_txId, p.first);
+      const Coin coin(p.second, subset.m_height, subset.m_isCoinBase);
+      hash.AddUTXO(UTXO(out, coin));
+    }
+
+    Next();
+  }
+
+  return hash.GetHash();
+}
+
 void Iterator::closeFile() {
   if (m_file) {
     fclose(m_file);

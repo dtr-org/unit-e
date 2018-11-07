@@ -31,6 +31,7 @@
 #include <memory>
 #include <queue>
 #include <utility>
+#include <txdb.h>
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -159,6 +160,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nLastBlockTx = nBlockTx;
     nLastBlockWeight = nBlockWeight;
 
+    std::vector<uint8_t> snapshotHash = pcoinsTip->GetSnapshotHash().GetHashVector();
+
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
@@ -166,7 +169,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout.resize(1);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    coinbaseTx.vin[0].scriptSig = CScript() << CScriptNum::serialize(nHeight) << OP_0;
+    coinbaseTx.vin[0].scriptSig = CScript() << CScriptNum::serialize(nHeight) << snapshotHash << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
     pblocktemplate->vTxFees[0] = -nFees;
@@ -471,8 +474,10 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     }
     ++nExtraNonce;
     unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
+
+    std::vector<uint8_t> snapshotHash = pcoinsTip->GetSnapshotHash().GetHashVector();
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
-    txCoinbase.vin[0].scriptSig = (CScript() << CScriptNum::serialize(nHeight) << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
+    txCoinbase.vin[0].scriptSig = (CScript() << CScriptNum::serialize(nHeight) << snapshotHash << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));

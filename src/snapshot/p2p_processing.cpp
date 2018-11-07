@@ -95,7 +95,8 @@ bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
 }
 
 // helper function for ProcessSnapshot
-bool SaveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
+bool SaveSnapshotAndRequestMore(std::unique_ptr<Indexer> &&indexer,
+                                Snapshot &snap, CNode *node,
                                 const CNetMsgMaker &msgMaker) {
   // todo allow to accept messages not in a sequential order
   // requires to change the Indexer::WriteUTXOSubset
@@ -117,7 +118,8 @@ bool SaveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
   }
 
   if (indexer->GetMeta().m_totalUTXOSubsets == snap.m_totalUTXOSubsets) {
-    uint256 snapHash = indexer->CalcSnapshotHash();
+    Iterator iterator(std::move(indexer));
+    uint256 snapHash = iterator.CalculateHash();
     if (snapHash != snap.m_snapshotHash) {
       LogPrint(BCLog::NET, "snapshot: invalid hash. has=%s got=%s\n",
                HexStr(snapHash), HexStr(snap.m_snapshotHash));
@@ -127,11 +129,11 @@ bool SaveSnapshotAndRequestMore(Indexer *indexer, Snapshot &snap, CNode *node,
       return false;
     }
 
-    if (!pcoinsdbview->SetCandidateSnapshotId(indexer->GetSnapshotId())) {
+    if (!pcoinsdbview->SetCandidateSnapshotId(iterator.GetSnapshotId())) {
       LogPrint(BCLog::NET, "snapshot: can't set the final snapshot id\n");
       return false;
     }
-    StoreCandidateBlockHash(indexer->GetMeta().m_bestBlockHash);
+    StoreCandidateBlockHash(iterator.GetBestBlockHash());
 
     LogPrint(BCLog::NET, "snapshot: finished downloading the snapshot\n");
     return true;
@@ -178,7 +180,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   }
 
   if (indexer) {
-    const snapshot::Meta &idxMeta = indexer->GetMeta();
+    const Meta &idxMeta = indexer->GetMeta();
 
     CBlockIndex *curBlockIndex = LookupBlockIndex(idxMeta.m_bestBlockHash);
     assert(curBlockIndex);
@@ -221,7 +223,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
       }
     }
 
-    return SaveSnapshotAndRequestMore(indexer.get(), msg, node, msgMaker);
+    return SaveSnapshotAndRequestMore(std::move(indexer), msg, node, msgMaker);
   }
 
   // always create a new snapshot if previous one can't be opened.
@@ -237,7 +239,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   }
   indexer.reset(new Indexer(snapshotId, msg.m_snapshotHash, msg.m_bestBlockHash,
                             DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
-  return SaveSnapshotAndRequestMore(indexer.get(), msg, node, msgMaker);
+  return SaveSnapshotAndRequestMore(std::move(indexer), msg, node, msgMaker);
 }
 
 void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
@@ -317,16 +319,13 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
   uint32_t snapshotId;
   assert(pcoinsdbview->GetCandidateSnapshotId(snapshotId));
 
-  std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(snapshotId);
+  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotId);
   assert(idx);
-  if (!pcoinsdbview->LoadSnapshot(std::move(idx))) {
+  if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
     // if we can't write the snapshot, we have an issue with the DB
     // and most likely we can't recover.
     return regularProcessing();
   }
-
-  // update the cache
-  pcoinsTip->SetBestBlock(blockHash);
 
   // disable block index check as at this stage we still have genesis block set
   // in setBlockIndexCandidates. It will be automatically removed after new
