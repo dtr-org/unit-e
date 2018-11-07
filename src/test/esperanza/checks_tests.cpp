@@ -71,8 +71,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
   CTransaction invalidVote(mutedTx);
   Consensus::Params params = Params().GetConsensus();
   CValidationState errState;
-  BOOST_CHECK(
-      CheckVoteTransaction(errState, invalidVote, params) == false);
+  BOOST_CHECK(CheckVoteTransaction(errState, invalidVote, params) == false);
 
   BOOST_CHECK_EQUAL("bad-vote-data-format", errState.GetRejectReason());
 }
