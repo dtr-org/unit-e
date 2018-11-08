@@ -149,7 +149,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
 
-    AddVoteTxs();
+    AddVoteAndSlashTxs();
 
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
@@ -194,22 +194,35 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     return std::move(pblocktemplate);
 }
 
-void BlockAssembler::AddVoteTxs()
+void BlockAssembler::AddVoteAndSlashTxs()
 {
     CTxMemPool::indexed_transaction_set::index<ancestor_score>::type::iterator mi = mempool.mapTx.get<ancestor_score>().begin();
 
     while (mi != mempool.mapTx.get<ancestor_score>().end()) {
 
-        if(mi->GetTx().IsVote()) {
-            CValidationState state;
-            if (esperanza::CheckVoteTransaction(state, mi->GetTx(), chainparams.GetConsensus())) {
-              AddToBlock(mempool.mapTx.project<0>(mi));
-              LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
-                       __func__,
-                       mi->GetTx().GetHash().GetHex());
-            }
+      switch (mi->GetTx().GetType()) {
+        case TxType::VOTE: {
+          CValidationState state;
+          if (esperanza::CheckVoteTransaction(state, mi->GetTx(), chainparams.GetConsensus())) {
+            AddToBlock(mempool.mapTx.project<0>(mi));
+            LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
+                     __func__,
+                     mi->GetTx().GetHash().GetHex());
+          }
+          break;
         }
-        ++mi;
+        case TxType::SLASH: {
+          CValidationState state;
+          if (esperanza::CheckSlashTransaction(state, mi->GetTx(), chainparams.GetConsensus())) {
+            AddToBlock(mempool.mapTx.project<0>(mi));
+            LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
+                     __func__,
+                     mi->GetTx().GetHash().GetHex());
+          }
+          break;
+        }
+        default: {break;}
+      }
     }
 }
 

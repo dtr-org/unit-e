@@ -567,7 +567,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     AssertLockHeld(cs_main);
     LOCK(pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
 
-    if (tx.IsVote()){
+    if (tx.IsVote() || tx.IsSlash()){
         bypass_limits = true;
     }
 
