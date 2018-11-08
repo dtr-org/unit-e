@@ -31,10 +31,14 @@ UniValue CallRPC(std::string args) {
   }
 }
 
-void AssertRPCError(std::string call, RPCErrorCode error) {
+void AssertRPCError(std::string call, RPCErrorCode error, const std::string &message) {
   try {
     CallRPC(std::move(call));
+    assert(false); // an exception should be thrown before this point.
   } catch (const RPCErrorResult &err) {
-    BOOST_CHECK((err.errorCode == error));
+    if (!message.empty()) {
+      BOOST_CHECK_EQUAL(err.message, message);
+    }
+    BOOST_CHECK_EQUAL(err.errorCode, error);
   }
 }

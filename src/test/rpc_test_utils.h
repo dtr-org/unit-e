@@ -14,6 +14,7 @@ struct RPCErrorResult {
 //! \return the unserialized result.
 UniValue CallRPC(std::string args);
 
-void AssertRPCError(std::string call, RPCErrorCode error);
+void AssertRPCError(std::string call, RPCErrorCode error,
+                    const std::string &message = "");
 
-#endif  // UNIT_E_TEST_RPC_TEST_UTILS_H
+#endif // UNIT_E_TEST_RPC_TEST_UTILS_H

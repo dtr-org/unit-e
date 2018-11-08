@@ -31,6 +31,10 @@ WalletExtension::WalletExtension(const Settings &settings,
                                  ::CWallet *enclosingWallet)
     : m_settings(settings), m_enclosingWallet(enclosingWallet) {
   assert(enclosingWallet != nullptr);
+
+  if (settings.m_validating) {
+    nIsValidatorEnabled = true;
+  }
 }
 
 CAmount WalletExtension::GetStakeableBalance() const {
