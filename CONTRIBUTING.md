@@ -83,6 +83,71 @@ will cause the corresponding issue to be closed when the pull request is merged.
 Please refer to the [Git manual](https://git-scm.com/doc) for more information
 about Git.
 
+#### Sign your work
+
+UnitE has adopted the [Developer Certificate of Origin
+(DCO)](https://developercertificate.org/) (see
+[ADR-16](https://github.com/dtr-org/unit-e-docs/blob/master/adrs/2018-10-22-ADR-16-Adopt%20DCO.md)
+for details). That means if you submit a change you sign it off by adding a line
+
+    Signed-off-by: Random J Developer <random@developer.example.org>
+
+with your name and email address at the end of every commit message. By adding
+the "Signed-off-by" you state that you have have the right to contribute this change
+and that you do so under the MIT license. The full statement you agree to is the
+[Developer Certificate of Origin](https://developercertificate.org/):
+
+    Developer Certificate of Origin
+    Version 1.1
+
+    Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+    1 Letterman Drive
+    Suite D4700
+    San Francisco, CA, 94129
+
+    Everyone is permitted to copy and distribute verbatim copies of this
+    license document, but changing it is not allowed.
+
+
+    Developer's Certificate of Origin 1.1
+
+    By making a contribution to this project, I certify that:
+
+    (a) The contribution was created in whole or in part by me and I
+        have the right to submit it under the open source license
+        indicated in the file; or
+
+    (b) The contribution is based upon previous work that, to the best
+        of my knowledge, is covered under an appropriate open source
+        license and I have the right under that license to submit that
+        work with modifications, whether created in whole or in part
+        by me, under the same open source license (unless I am
+        permitted to submit under a different license), as indicated
+        in the file; or
+
+    (c) The contribution was provided directly to me by some other
+        person who certified (a), (b) or (c) and I have not modified
+        it.
+
+    (d) I understand and agree that this project and the contribution
+        are public and that a record of the contribution (including all
+        personal information I submit with it, including my sign-off) is
+        maintained indefinitely and may be redistributed consistent with
+        this project or the open source license(s) involved.
+
+When you are passing on patches or are merging changes contributed by others
+preserve the "Signed-off-by" lines at the end of the commit messages and add
+your own one.
+
+You can use git to add the message for you by using the `-s` or `--signoff`
+option:
+
+    git commit -s -m "My commit message"
+
+This can be automated using a git hook. Copy the script at
+`contrib/githooks/prepare-commit-msg` to your local `.git/hooks` directory and
+make sure it's executable.
+
 ### Create pull request
 
 Open a pull request in the GitHub UI from your branch to the main repository.
