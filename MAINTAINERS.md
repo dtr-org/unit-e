@@ -12,6 +12,8 @@ of the following individuals (listed in alphabetical order of the GitHub
 handle):
 
 * [Aleksandr Mikhailov (@AM5800)](https://github.com/AM5800)
+* [Andrés Correa Casablanca (@castarco)](https://github.com/castarco)
+* [Mihai Ciumeica (@cmihai)](https://github.com/cmihai)
 * [Cornelius Schumacher (@cornelius)](https://github.com/cornelius)
 * [Stanislav Frolov (@frolosofsky)](https://github.com/frolosofsky)
 * [Matteo Sumberaz (@Gnappuraz)](https://github.com/Gnappuraz)
