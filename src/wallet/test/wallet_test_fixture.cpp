@@ -9,7 +9,7 @@
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
 
-WalletTestingSetup::WalletTestingSetup(const std::string& chainName):
+WalletTestingSetup::WalletTestingSetup(const bool isValidator, const std::string& chainName):
     TestingSetup(chainName)
 {
     bitdb.MakeMock();
@@ -18,7 +18,12 @@ WalletTestingSetup::WalletTestingSetup(const std::string& chainName):
     g_address_type = OUTPUT_TYPE_DEFAULT;
     g_change_type = OUTPUT_TYPE_DEFAULT;
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
-    pwalletMain = MakeUnique<CWallet>(esperanza::Settings::Default(), std::move(dbw));
+
+    esperanza::Settings settings = esperanza::Settings::Default();
+    settings.m_validating = isValidator;
+    settings.m_proposing = !isValidator;
+
+    pwalletMain = MakeUnique<CWallet>(settings, std::move(dbw));
     pwalletMain->LoadWallet(fFirstRun);
     vpwallets.insert(vpwallets.begin(), &*pwalletMain);
     RegisterValidationInterface(pwalletMain.get());
