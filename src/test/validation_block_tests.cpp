@@ -49,6 +49,7 @@ struct TestSubscriber : public CValidationInterface {
 
 struct BlockData {
   std::shared_ptr<CBlock> block;
+  uint256 stakeModifier;
   snapshot::SnapshotHash hash;
   uint32_t height;
 };
@@ -68,7 +69,8 @@ BlockData Block(const BlockData &prevData)
 
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vout.resize(1);
-    txCoinbase.vin[0].scriptSig = CScript() << (prevData.height + 1) << prevData.hash.GetHashVector() << OP_0;
+    std::vector<uint8_t> snapshotHash = prevData.hash.GetHashVector(prevData.stakeModifier);
+    txCoinbase.vin[0].scriptSig = CScript() << (prevData.height + 1) << snapshotHash << OP_0;
     txCoinbase.vin[0].scriptWitness.SetNull();
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
 
@@ -77,7 +79,8 @@ BlockData Block(const BlockData &prevData)
     const Coin coin(pblock->vtx[0]->vout[0], prevData.height + 1, true);
     newHash.AddUTXO(snapshot::UTXO(out, coin));
 
-    return BlockData{pblock, newHash, prevData.height + 1};
+    uint256 newSM = prevData.stakeModifier;
+    return BlockData{pblock, newSM, newHash, prevData.height + 1};
 }
 
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)

@@ -103,13 +103,15 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   snapshot::Snapshot msg;
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << msg;
-  BOOST_CHECK_EQUAL(stream.size(), 81);
+  BOOST_CHECK_EQUAL(stream.size(), 113);
 
   std::string got = HexStr(stream);
   std::string exp =
       "00000000000000000000000000000000"  // snapshot hash
       "00000000000000000000000000000000"  //
       "00000000000000000000000000000000"  // block hash
+      "00000000000000000000000000000000"  //
+      "00000000000000000000000000000000"  // stake modifier
       "00000000000000000000000000000000"  //
       "0000000000000000"                  // total utxo sets
       "0000000000000000"                  // utxo set index
@@ -119,6 +121,7 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   // serialize filled
   msg.m_snapshotHash.SetHex("aa");
   msg.m_bestBlockHash.SetHex("bb");
+  msg.m_stakeModifier.SetHex("cc");
   msg.m_totalUTXOSubsets = 25000000;
   msg.m_utxoSubsetIndex = 128;
 
@@ -133,13 +136,15 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
 
   stream.clear();
   stream << msg;
-  BOOST_CHECK_EQUAL(stream.size(), 133);
+  BOOST_CHECK_EQUAL(stream.size(), 165);
 
   got = HexStr(stream);
   exp =
       "aa000000000000000000000000000000"  // snapshot hash
       "00000000000000000000000000000000"  //
       "bb000000000000000000000000000000"  // block hash
+      "00000000000000000000000000000000"  //
+      "cc000000000000000000000000000000"  // stake modifier
       "00000000000000000000000000000000"  //
       "40787d0100000000"                  // total utxo sets
       "8000000000000000"                  // index
@@ -158,6 +163,7 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   snapshot::Snapshot msg2;
   stream >> msg2;
   BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
+  BOOST_CHECK_EQUAL(msg.m_stakeModifier, msg2.m_stakeModifier);
   BOOST_CHECK_EQUAL(msg.m_totalUTXOSubsets, msg2.m_totalUTXOSubsets);
   BOOST_CHECK_EQUAL(msg.m_utxoSubsetIndex, msg2.m_utxoSubsetIndex);
   BOOST_CHECK_EQUAL(msg.m_utxoSubsets.size(), msg2.m_utxoSubsets.size());
@@ -239,6 +245,10 @@ BOOST_AUTO_TEST_CASE(utxo_serialization) {
 BOOST_AUTO_TEST_CASE(snapshot_hash) {
   // expected results are hardcoded to guarantee that hashes
   // didn't change over time
+  uint256 stakeModifier;
+  snapshot::SnapshotHash h;
+  std::string nullHash = h.GetHash(stakeModifier).GetHex();
+
   snapshot::UTXO a;
   a.m_outPoint.hash.SetHex("aa");
   snapshot::UTXO b;
@@ -247,28 +257,45 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
   c.m_outPoint.hash.SetHex("cc");
 
   std::string aHash =
-      "c5187acefd9af6b74e33bd90566117ed"
-      "6ddd133066aedbd320e72f308fdf43fd";
+      "cf51b4881eef3133d8869fbff8754fa2"
+      "40432e82f684acbd044922305d60f22b";
   std::string bHash =
-      "a2ce994bf78ff551825bac5d1cefe0e7"
-      "02c8582738531e6944b624e05c767bf6";
+      "556d2f4b047588d55bcbcb95f0527acf"
+      "23de3a23cf2266878f1310948151d1fb";
   std::string abSumHash =
-      "54bbc8ece5a75d21684592ce812c441c"
-      "929a875c2a06910a408001626f3b6ddd";
+      "e831ef80a29eb00be2f3cc90cc21f3fa"
+      "cb8d02ae111c1ab1f918c77c56c897d2";
+
+  {
+    // hashing twice produces the same result
+    snapshot::SnapshotHash hash;
+    hash.AddUTXO(a);
+    hash.AddUTXO(b);
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), abSumHash);
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), abSumHash);
+
+    // changing stake modifier produces different hash
+    uint256 newSM;
+    newSM.SetHex("bb");
+    BOOST_CHECK(hash.GetHash(newSM).GetHex() != abSumHash);
+
+    // changing stake modifier doesn't change underline UTXO data
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), abSumHash);
+  }
 
   {
     // test adding and reverting UTXOs
     // null == a + b - b - a
     snapshot::SnapshotHash hash;
-    BOOST_CHECK(hash.GetHash().IsNull());
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), nullHash);
     hash.AddUTXO(a);
-    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), aHash);
     hash.AddUTXO(b);
-    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), abSumHash);
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), abSumHash);
     hash.SubtractUTXO(b);
-    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), aHash);
     hash.SubtractUTXO(a);
-    BOOST_CHECK(hash.GetHash().IsNull());
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), nullHash);
   }
 
   {
@@ -280,8 +307,8 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     hash1.AddUTXO(b);
     hash2.AddUTXO(b);
     hash2.AddUTXO(a);
-    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), abSumHash);
-    BOOST_CHECK_EQUAL(hash2.GetHash().GetHex(), abSumHash);
+    BOOST_CHECK_EQUAL(hash1.GetHash(stakeModifier).GetHex(), abSumHash);
+    BOOST_CHECK_EQUAL(hash2.GetHash(stakeModifier).GetHex(), abSumHash);
   }
 
   {
@@ -297,8 +324,8 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     snapshot::SnapshotHash hash2;
     hash2.AddUTXO(b);
 
-    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), bHash);
-    BOOST_CHECK_EQUAL(hash2.GetHash().GetHex(), bHash);
+    BOOST_CHECK_EQUAL(hash1.GetHash(stakeModifier).GetHex(), bHash);
+    BOOST_CHECK_EQUAL(hash2.GetHash(stakeModifier).GetHex(), bHash);
   }
 
   {
@@ -307,11 +334,11 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     // a = -a + a + a
     snapshot::SnapshotHash hash;
     hash.SubtractUTXO(a);
-    BOOST_CHECK(!hash.GetHash().IsNull());
+    BOOST_CHECK(hash.GetHash(stakeModifier).GetHex() != nullHash);
     hash.AddUTXO(a);
-    BOOST_CHECK(hash.GetHash().IsNull());
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), nullHash);
     hash.AddUTXO(a);
-    BOOST_CHECK_EQUAL(hash.GetHash().GetHex(), aHash);
+    BOOST_CHECK_EQUAL(hash.GetHash(stakeModifier).GetHex(), aHash);
   }
 
   {
@@ -324,12 +351,12 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
     // simulate reading snapshot data from disk
     snapshot::SnapshotHash hash2(hash1.GetData());
 
-    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), hash2.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(hash1.GetHash(stakeModifier).GetHex(), hash2.GetHash(stakeModifier).GetHex());
     hash1.AddUTXO(c);
     hash1.SubtractUTXO(a);
     hash2.AddUTXO(c);
     hash2.SubtractUTXO(a);
-    BOOST_CHECK_EQUAL(hash1.GetHash().GetHex(), hash2.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(hash1.GetHash(stakeModifier).GetHex(), hash2.GetHash(stakeModifier).GetHex());
   }
 }
 

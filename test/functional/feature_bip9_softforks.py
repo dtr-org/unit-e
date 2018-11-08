@@ -67,7 +67,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
             test_blocks.append([block, True])
             self.last_block_time += 1
             utxo = UTXO(self.height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, [], [utxo])
+            self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, 0, [], [utxo])
             self.tip = block.sha256
             self.height += 1
         return test_blocks
@@ -215,7 +215,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         utxo1 = UTXO(1, True, spendtx.vin[0].prevout, cb_out)
         utxo2 = UTXO(self.height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
         utxo3 = UTXO(self.height, False, COutPoint(spendtx.sha256, 0), spendtx.vout[0])
-        self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, [utxo1], [utxo2, utxo3])
+        self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, 0, [utxo1], [utxo2, utxo3])
 
         self.last_block_time += 1
         self.tip = block.sha256

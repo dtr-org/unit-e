@@ -119,7 +119,7 @@ bool SaveSnapshotAndRequestMore(std::unique_ptr<Indexer> &&indexer,
 
   if (indexer->GetMeta().m_totalUTXOSubsets == snap.m_totalUTXOSubsets) {
     Iterator iterator(std::move(indexer));
-    uint256 snapHash = iterator.CalculateHash();
+    uint256 snapHash = iterator.CalculateHash(snap.m_stakeModifier);
     if (snapHash != snap.m_snapshotHash) {
       LogPrint(BCLog::NET, "snapshot: invalid hash. has=%s got=%s\n",
                HexStr(snapHash), HexStr(snap.m_snapshotHash));

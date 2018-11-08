@@ -15,7 +15,8 @@ from test_framework.messages import (
     uint256_from_str,
     UTXO,
     COutPoint,
-    CTxOut
+    CTxOut,
+    ser_uint256,
 )
 
 
@@ -26,22 +27,26 @@ class RpcCalcSnapshotHashTest(UnitETestFramework):
     def run_test(self):
         def assert_not_equal(thing1, thing2, *args):
             if thing1 == thing2 or any(thing1 == arg for arg in args):
-                raise AssertionError("equal(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
+                raise AssertionError("equal(%s)" % " != ".join(str(arg) for arg in (thing1, thing2) + args))
 
         def ser_utxos(utxos):
             return bytes_to_hex_str(ser_vector(utxos))
 
         def calcsnapshothash(inputs, outputs, *prev_hash):
-            return self.nodes[0].calcsnapshothash(ser_utxos(inputs), ser_utxos(outputs), *prev_hash)
+            sm = bytes_to_hex_str(ser_uint256(0))
+            return self.nodes[0].calcsnapshothash(ser_utxos(inputs), ser_utxos(outputs), sm, *prev_hash)
 
         def def_utxo(height):
             hex_id = hex_str_to_bytes('0' * 64)
             uint256 = uint256_from_str(hex_id)
             return UTXO(height, 0, COutPoint(uint256, 0), CTxOut(0, b""))
 
-        # empty inputs and outputs produce empty hash
+        # empty inputs and outputs doesn't produce empty hash
+        # as it includes stake modifier
         empty = calcsnapshothash([], [])
-        assert_equal(empty['hash'], '0' * 64)
+        assert_equal(len(empty['hash']), 64)
+        assert_equal(len(empty['data']), 192)
+        assert_not_equal(empty['hash'], '0' * 64)
         assert_equal(empty['data'], '0' * 192)
 
         # test hash generation

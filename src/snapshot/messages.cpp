@@ -52,14 +52,23 @@ void SnapshotHash::SubtractUTXO(const UTXO &utxo) {
                             stream.size());
 }
 
-uint256 SnapshotHash::GetHash() const {
+uint256 SnapshotHash::GetHash(uint256 stakeModifier) const {
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  stream << stakeModifier;
+
+  // don't modify the existing hash with extra meta data
+  secp256k1_multiset multiset = m_multiset;
+  secp256k1_multiset_add(context, &multiset,
+                         reinterpret_cast<const uint8_t *>(stream.data()),
+                         stream.size());
+
   uint256 hash;
-  secp256k1_multiset_finalize(context, hash.begin(), &m_multiset);
+  secp256k1_multiset_finalize(context, hash.begin(), &multiset);
   return hash;
 }
 
-std::vector<uint8_t> SnapshotHash::GetHashVector() const {
-  uint256 hash = GetHash();
+std::vector<uint8_t> SnapshotHash::GetHashVector(uint256 stakeModifier) const {
+  uint256 hash = GetHash(stakeModifier);
   return std::vector<uint8_t>(hash.begin(), hash.end());
 }
 

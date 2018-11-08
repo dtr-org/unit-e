@@ -288,8 +288,6 @@ bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer
     }
 
     assert(iter.GetTotalUTXOSubsets() == writtenSubsets);
-    assert(snapshotHash.GetHash() == iter.GetSnapshotHash());
-
     LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXO subsets=%i\n",
              __func__, writtenSubsets);
 

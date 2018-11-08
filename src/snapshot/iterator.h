@@ -43,7 +43,7 @@ class Iterator {
   //! After calling this function the cursor will be invalid. To re-use the
   //! iterator again, it must be explicitly unwind to the beginning.
   //! iter->MoveCursorTo(0)
-  uint256 CalculateHash();
+  uint256 CalculateHash(uint256 stakeModifier);
 
  private:
   std::unique_ptr<Indexer> m_indexer;

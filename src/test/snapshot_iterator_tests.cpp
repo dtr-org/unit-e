@@ -35,13 +35,12 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
   }
 
   {
-    // test snapshot calculation
-    // open the snapshot
+    // test snapshot hash calculation
     std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(0);
     BOOST_CHECK(idx != nullptr);
     snapshot::Iterator iter(std::move(idx));
-    BOOST_CHECK_EQUAL(iter.CalculateHash().GetHex(),
-                      snapshotHash.GetHash().GetHex());
+    BOOST_CHECK_EQUAL(iter.CalculateHash(uint256()).GetHex(),
+                      snapshotHash.GetHash(uint256()).GetHex());
   }
 
   {
