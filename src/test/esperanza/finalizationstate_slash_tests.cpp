@@ -111,7 +111,6 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
 
   Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
   Vote v2 = {validatorAddress, uint256S("6"), 3, 5};
-  CAmount bounty = 0;
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -140,7 +139,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
   }
 
   BOOST_CHECK_EQUAL(spy.IsSlashable(v1, v2), +Result::SUCCESS);
-  spy.ProcessSlash(v1, v2, bounty);
+  spy.ProcessSlash(v1, v2);
 
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                     +Result::SUCCESS);
@@ -157,7 +156,6 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
   // This is a double vote
   Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
   Vote v2 = {validatorAddress, uint256S("6"), 3, 5};
-  CAmount bounty = 0;
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -186,10 +184,10 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
   }
 
   BOOST_CHECK_EQUAL(spy.IsSlashable(v1, v2), +Result::SUCCESS);
-  spy.ProcessSlash(v1, v2, bounty);
+  spy.ProcessSlash(v1, v2);
 
   CAmount totalDeposit = spy.GetDepositSize(validatorAddress);
-  BOOST_CHECK_EQUAL(bounty, totalDeposit / spy.BountyFractionDenominator());
+  BOOST_CHECK_EQUAL(0, totalDeposit);
 }
 
 BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
@@ -201,7 +199,6 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
   // This is a surrounding
   Vote v1 = {validatorAddress, uint256S("5"), 1, 5};
   Vote v2 = {validatorAddress, uint256S("4"), 3, 4};
-  CAmount bounty = 0;
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -230,10 +227,10 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
   }
 
   BOOST_CHECK_EQUAL(spy.IsSlashable(v1, v2), +Result::SUCCESS);
-  spy.ProcessSlash(v1, v2, bounty);
+  spy.ProcessSlash(v1, v2);
 
   CAmount totalDeposit = spy.GetDepositSize(validatorAddress);
-  BOOST_CHECK_EQUAL(bounty, totalDeposit / spy.BountyFractionDenominator());
+  BOOST_CHECK_EQUAL(0, totalDeposit);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

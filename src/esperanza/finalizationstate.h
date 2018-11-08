@@ -173,8 +173,7 @@ class FinalizationState : public FinalizationStateData {
   void ProcessWithdraw(const uint160 &validatorAddress);
 
   Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
-  void ProcessSlash(const Vote &vote1, const Vote &vote2,
-                    CAmount &slashingBountyOut);
+  void ProcessSlash(const Vote &vote1, const Vote &vote2);
 
   bool IsPermissioningActive() const;
   Result ValidateAdminKeys(const AdminKeySet &adminKeys) const;

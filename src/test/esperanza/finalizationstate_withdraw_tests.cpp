@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
     // Slash after a while
     if (i == 200) {
       BOOST_CHECK_EQUAL(spy.IsSlashable(v1, v2), +Result::SUCCESS);
-      spy.ProcessSlash(v1, v2, bounty);
+      spy.ProcessSlash(v1, v2);
     }
   }
 

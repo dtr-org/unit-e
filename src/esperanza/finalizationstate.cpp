@@ -234,7 +234,7 @@ uint64_t FinalizationState::GetDepositSize(
   auto validatorIt = m_validators.find(validatorAddress);
   auto depositScaleIt = m_depositScaleFactor.find(m_currentEpoch);
 
-  if (validatorIt != m_validators.end() &&
+  if (validatorIt != m_validators.end() && !validatorIt->second.m_isSlashed &&
       depositScaleIt != m_depositScaleFactor.end()) {
     return ufp64::mul_to_uint(depositScaleIt->second,
                               validatorIt->second.m_deposit);
@@ -837,18 +837,13 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
 
 /**
  * Given two votes, performs a slash against the validator who performed them.
- * It also returns the bounty that the reporter shoul be awarded of.
  */
-void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
-                                     CAmount &slashingBountyOut) {
+void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2) {
   LOCK(cs_esperanza);
 
   const uint160 &validatorAddress = vote1.m_validatorAddress;
 
-  // Slash the offending validator, and give a 4% "finder's fee"
   CAmount validatorDeposit = GetDepositSize(validatorAddress);
-  CAmount slashingBounty =
-      validatorDeposit / m_settings.m_bountyFractionDenominator;
 
   m_totalSlashed[m_currentEpoch] =
       GetTotalSlashed(m_currentEpoch) + validatorDeposit;
@@ -856,9 +851,8 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
   m_validators.at(validatorAddress).m_isSlashed = true;
 
   LogPrint(BCLog::FINALIZATION,
-           "%s: Slashing validator with deposit hash %s of %d units, taking %d "
-           "as bounty.\n",
-           __func__, validatorAddress.GetHex(), validatorDeposit, slashingBounty);
+           "%s: Slashing validator with deposit hash %s of %d units.\n",
+           __func__, validatorAddress.GetHex(), validatorDeposit);
 
   uint32_t endDynasty = m_validators.at(validatorAddress).m_endDynasty;
 
@@ -880,8 +874,6 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
           GetTotalCurDynDeposits();
     }
   }
-
-  slashingBountyOut = slashingBounty;
 }
 
 uint32_t FinalizationState::GetCurrentEpoch() const { return m_currentEpoch; }

@@ -40,8 +40,8 @@ struct ValidatorState {
         m_startDynasty(std::numeric_limits<uint32_t>::max()) {}
 
   Phase m_phase = Phase::NOT_VALIDATING;
-  uint160 m_validatorAddress;
-  CTransactionRef m_lastEsperanzaTx;
+  uint256 m_validatorAddress = uint256S("0");
+  CTransactionRef m_lastEsperanzaTx = nullptr;
   std::map<uint32_t, Vote> m_voteMap;
 
   uint32_t m_lastSourceEpoch;

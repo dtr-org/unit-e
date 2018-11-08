@@ -7,6 +7,7 @@
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/params.h>
+#include <finalization/vote_recorder.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>
@@ -16,6 +17,9 @@ namespace esperanza {
 
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const CBlockIndex *pindex) {
+
+  assert(tx.GetType() == +TxType::DEPOSIT);
+
   if (tx.vin.empty() || tx.vout.empty()) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
   }
@@ -58,6 +62,8 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 //! \returns true if the vote is expired, false otherwise.
 bool IsVoteExpired(const CTransaction &tx) {
 
+  assert(tx.GetType() == +TxType::VOTE);
+
   Vote vote;
   assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig));
   const FinalizationState *state = FinalizationState::GetState();
@@ -68,6 +74,8 @@ bool IsVoteExpired(const CTransaction &tx) {
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                             const Consensus::Params &consensusParams,
                             const CBlockIndex *pindex) {
+
+  assert(tx.GetType() == +TxType::LOGOUT);
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
@@ -134,6 +142,8 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                               const Consensus::Params &consensusParams,
                               const CBlockIndex *pindex) {
 
+  assert(tx.GetType() == +TxType::WITHDRAW);
+
   if (tx.vin.size() != 1 || tx.vout.size() > 3) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
   }
@@ -197,6 +207,8 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const Consensus::Params &consensusParams,
                           const CBlockIndex *pindex) {
 
+  assert(tx.GetType() == +TxType::VOTE);
+
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
   }
@@ -214,6 +226,11 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
   }
   const Result res = state->ValidateVote(vote);
+
+  if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
+      res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
+    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(tx, vote);
+  }
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
@@ -240,6 +257,33 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-vote-not-same-payvoteslash-script");
+  }
+
+  return true;
+}
+
+bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
+                           const Consensus::Params &consensusParams,
+                           const CBlockIndex *pindex) {
+
+  assert(tx.GetType() == +TxType::SLASH);
+
+  if (tx.vin.size() != 1 || tx.vout.size() != 2) {
+    return errState.DoS(100, false, REJECT_INVALID, "bad-slash-malformed");
+  }
+
+  Vote vote1;
+  Vote vote2;
+  if (!CScript::ExtractVotesFromSlashSignature(tx.vin[0].scriptSig, vote1,
+                                               vote2)) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-slash-data-format");
+  }
+
+  const FinalizationState *state = FinalizationState::GetState(pindex);
+  esperanza::Result res = state->IsSlashable(vote1, vote2);
+
+  if (res != +esperanza::Result::SUCCESS) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-slash-not-slashable");
   }
 
   return true;

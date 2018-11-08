@@ -35,6 +35,11 @@ class Vote {
                               std::vector<unsigned char> &voteSigOut);
 
   uint256 GetHash() const;
+
+  std::string ToString() {
+    return m_validatorIndex.GetHex() + ", " + m_targetHash.GetHex() + ", " +
+           std::to_string(m_sourceEpoch) + ", " + std::to_string(m_targetEpoch);
+  }
 };
 
 }  // namespace esperanza

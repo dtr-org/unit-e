@@ -1049,6 +1049,21 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
             break;
           }
+          case TxType::SLASH: {
+            LogPrint(BCLog::FINALIZATION,
+                     "%s: Accepting slash to mempool with id %s.\n", __func__,
+                     tx.GetHash().GetHex());
+
+            if (!esperanza::CheckSlashTransaction(state, tx, chainparams.GetConsensus())){
+              LogPrint(BCLog::FINALIZATION,
+                       "%s: Slash cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: Slash cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
           case TxType::ADMIN: {
 
             LogPrint(BCLog::ADMIN,
@@ -1061,7 +1076,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        __func__,
                        state.GetRejectReason());
 
-              return false;
+              return state.DoS(10, error("%s: Admin transaction cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
@@ -3412,6 +3427,21 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        state.GetRejectReason());
 
               return state.DoS(10, error("%s: Withdraw cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+            }
+            break;
+          }
+          case TxType::SLASH: {
+            LogPrint(BCLog::FINALIZATION,
+                     "%s: Accepting slash to mempool with id %s.\n", __func__,
+                     tx->GetHash().GetHex());
+
+            if (!esperanza::CheckSlashTransaction(state, *tx, consensusParams, pindexPrev)){
+              LogPrint(BCLog::FINALIZATION,
+                       "%s: Slash cannot be included into mempool: %s.\n",
+                       __func__,
+                       state.GetRejectReason());
+
+              return state.DoS(10, error("%s: Slash cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
