@@ -36,8 +36,8 @@ UniValue deposit(const JSONRPCRequest &request)
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
-  if (!extWallet.nIsValidatorEnabled){
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
+  if (!extWallet.nIsValidatorEnabled || !extWallet.validatorState){
+    throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
   }
 
   CTxDestination address = DecodeDestination(request.params[0].get_str());
@@ -52,7 +52,8 @@ UniValue deposit(const JSONRPCRequest &request)
 
   CAmount amount = AmountFromValue(request.params[1]);
 
-  if (extWallet.validatorState.m_phase == +esperanza::ValidatorState::Phase::IS_VALIDATING){
+  esperanza::ValidatorState &validator = extWallet.validatorState.get();
+  if (validator.m_phase == +esperanza::ValidatorState::Phase::IS_VALIDATING){
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
   }
 
@@ -91,8 +92,8 @@ UniValue withdraw(const JSONRPCRequest &request)
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
-  if (!extWallet.nIsValidatorEnabled){
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
+  if (!extWallet.nIsValidatorEnabled || !extWallet.validatorState){
+    throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
   }
 
   CTxDestination address = DecodeDestination(request.params[0].get_str());
@@ -100,15 +101,16 @@ UniValue withdraw(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
   }
 
-  if(extWallet.validatorState.m_lastEsperanzaTx == nullptr) {
+  esperanza::ValidatorState &validator = extWallet.validatorState.get();
+  if(validator.m_lastEsperanzaTx == nullptr) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
   }
 
-  if(extWallet.validatorState.m_lastEsperanzaTx->IsWithdraw()) {
+  if(validator.m_lastEsperanzaTx->IsWithdraw()) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Already withdrawn.");
   }
 
-  if (extWallet.validatorState.m_phase != +esperanza::ValidatorState::Phase::NOT_VALIDATING){
+  if (validator.m_phase != +esperanza::ValidatorState::Phase::NOT_VALIDATING){
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is validating, logout first.");
   }
 
@@ -139,11 +141,12 @@ UniValue logout(const JSONRPCRequest& request) {
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
-  if (!extWallet.nIsValidatorEnabled) {
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
+  if (!extWallet.nIsValidatorEnabled || !extWallet.validatorState){
+    throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
   }
 
-  if (extWallet.validatorState.m_phase !=
+  esperanza::ValidatorState &validator = extWallet.validatorState.get();
+  if (validator.m_phase !=
       +esperanza::ValidatorState::Phase::IS_VALIDATING) {
     throw JSONRPCError(RPC_INVALID_PARAMETER,
                        "The node is not validating validating.");
@@ -181,10 +184,11 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
+  esperanza::ValidatorState &validator = extWallet.validatorState.get();
   UniValue obj(UniValue::VOBJ);
 
   obj.pushKV("enabled", gArgs.GetBoolArg("-validating", true));
-  obj.pushKV("validator_status", extWallet.validatorState.m_phase._to_string());
+  obj.pushKV("validator_status", validator.m_phase._to_string());
 
   return obj;
 }
