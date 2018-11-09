@@ -998,7 +998,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(0, error("%s: Vote cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckVoteTransaction
             }
             break;
           }
@@ -1015,7 +1015,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                   state.GetRejectReason(),
                   tx.GetHash().GetHex());
 
-              return state.DoS(10, error("%s: Deposit cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckDepositTransaction
             }
             break;
           }
@@ -1030,7 +1030,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Logout cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckLogoutTransaction
             }
             break;
           }
@@ -1045,7 +1045,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Withdraw cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckWithdrawTransaction
             }
             break;
           }
@@ -1060,7 +1060,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Slash cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckSlashTransaction
             }
             break;
           }
@@ -1076,7 +1076,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Admin transaction cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckAdminTransaction
             }
             break;
           }
@@ -3376,7 +3376,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Vote cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckVoteTransaction
             }
             break;
           }
@@ -3394,7 +3394,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        state.GetRejectReason(),
                        tx->GetHash().GetHex());
 
-              return state.DoS(10, error("%s: Deposit cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckDepositTransaction
             }
             break;
           }
@@ -3411,7 +3411,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Logout cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckLogoutTransaction
             }
             break;
           }
@@ -3426,7 +3426,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Withdraw cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckWithdrawTransaction
             }
             break;
           }
@@ -3441,7 +3441,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                        __func__,
                        state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Slash cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckSlashTransaction
             }
             break;
           }
@@ -3457,7 +3457,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                    __func__,
                    state.GetRejectReason());
 
-              return state.DoS(10, error("%s: Admin transaction cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
+              return false; //state already filled by CheckAdminTransaction
             }
             break;
           }
