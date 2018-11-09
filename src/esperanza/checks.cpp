@@ -225,14 +225,8 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
   }
-  const Result res = state->ValidateVote(vote);
 
-  if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
-      res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
-    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(tx, vote);
-  }
-
-  if (res != +Result::SUCCESS) {
+  if (state->ValidateVote(vote) != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
   }
 
