@@ -210,8 +210,8 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
         return false;
       }
       indexer.reset(new Indexer(snapshotId, msg.m_snapshotHash,
-                                msg.m_bestBlockHash, DEFAULT_INDEX_STEP,
-                                DEFAULT_INDEX_STEP_PER_FILE));
+                                msg.m_bestBlockHash, msg.m_stakeModifier,
+                                DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
     } else {
       // we don't know which snapshot is the correct one at this stage
       // so we assume the initial one.
@@ -238,6 +238,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
     return false;
   }
   indexer.reset(new Indexer(snapshotId, msg.m_snapshotHash, msg.m_bestBlockHash,
+                            msg.m_stakeModifier,
                             DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
   return SaveSnapshotAndRequestMore(std::move(indexer), msg, node, msgMaker);
 }

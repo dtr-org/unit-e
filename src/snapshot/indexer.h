@@ -105,6 +105,7 @@ const char *const SNAPSHOT_FOLDER = "snapshots";
 struct Meta {
   uint256 m_snapshotHash;
   uint256 m_bestBlockHash;
+  uint256 m_stakeModifier;
   uint64_t m_totalUTXOSubsets;
   uint32_t m_step;
   uint32_t m_stepsPerFile;
@@ -112,13 +113,15 @@ struct Meta {
   Meta()
       : m_snapshotHash(),
         m_bestBlockHash(),
+        m_stakeModifier(),
         m_totalUTXOSubsets(0),
         m_step(0),
         m_stepsPerFile(0) {}
 
-  Meta(const uint256 &snapshotHash, const uint256 &bestBlockHash)
+  Meta(const uint256 &snapshotHash, const uint256 &bestBlockHash, const uint256 &stakeModifier)
       : m_snapshotHash(snapshotHash),
         m_bestBlockHash(bestBlockHash),
+        m_stakeModifier(stakeModifier),
         m_totalUTXOSubsets(0),
         m_step(0),
         m_stepsPerFile(0) {}
@@ -129,6 +132,7 @@ struct Meta {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
     READWRITE(m_bestBlockHash);
+    READWRITE(m_stakeModifier);
     READWRITE(m_totalUTXOSubsets);
     READWRITE(m_step);
     READWRITE(m_stepsPerFile);
@@ -146,8 +150,8 @@ class Indexer {
   static bool Delete(uint32_t snapshotId);
 
   explicit Indexer(uint32_t snapshotId, const uint256 &snapshotHash,
-                   const uint256 &blockHash, uint32_t step,
-                   uint32_t stepsPerFile);
+                   const uint256 &blockHash, const uint256 &stakeModifier,
+                   uint32_t step, uint32_t stepsPerFile);
 
   uint32_t GetSnapshotId() { return m_snapshotId; }
   const Meta &GetMeta() { return m_meta; }

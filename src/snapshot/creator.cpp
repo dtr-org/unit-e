@@ -52,7 +52,7 @@ CreationInfo Creator::Create() {
 
   uint256 stakeModifier = mapBlockIndex.at(iter.GetBestBlock())->bnStakeModifier;
   uint256 snapshotHash = iter.GetSnapshotHash().GetHash(stakeModifier);
-  Indexer indexer(snapshotId, snapshotHash, iter.GetBestBlock(),
+  Indexer indexer(snapshotId, snapshotHash, iter.GetBestBlock(), stakeModifier,
                   m_step, m_stepsPerFile);
 
   while (iter.Valid()) {

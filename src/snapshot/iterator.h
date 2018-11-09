@@ -27,6 +27,7 @@ class Iterator {
   uint256 GetSnapshotHash() { return m_indexer->GetMeta().m_snapshotHash; }
   uint32_t GetSnapshotId() { return m_indexer->GetSnapshotId(); }
   uint256 GetBestBlockHash() { return m_indexer->GetMeta().m_bestBlockHash; }
+  uint256 GetStakeModifier() { return m_indexer->GetMeta().m_stakeModifier; }
   uint64_t GetTotalUTXOSubsets() {
     return m_indexer->GetMeta().m_totalUTXOSubsets;
   }
