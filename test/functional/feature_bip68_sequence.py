@@ -310,7 +310,7 @@ class BIP68Test(UnitETestFramework):
             block.solve()
             tip = block.sha256
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, [], [utxo])
+            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, 0, [], [utxo])
             height += 1
             self.nodes[0].submitblock(ToHex(block))
             cur_time += 1

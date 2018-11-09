@@ -40,7 +40,8 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
     return false;
   }
 
-  return view.GetSnapshotHash().GetHash() == uint256(buf);
+  uint256 sm = blockIndex->pprev->bnStakeModifier;
+  return view.GetSnapshotHash().GetHash(sm) == uint256(buf);
 }
 
 }  // namespace snapshot

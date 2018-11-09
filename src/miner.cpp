@@ -160,7 +160,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nLastBlockTx = nBlockTx;
     nLastBlockWeight = nBlockWeight;
 
-    std::vector<uint8_t> snapshotHash = pcoinsTip->GetSnapshotHash().GetHashVector();
+    std::vector<uint8_t> snapshotHash = pcoinsTip->GetSnapshotHash().GetHashVector(chainActive.Tip()->bnStakeModifier);
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
@@ -475,7 +475,7 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     ++nExtraNonce;
     unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
 
-    std::vector<uint8_t> snapshotHash = pcoinsTip->GetSnapshotHash().GetHashVector();
+    std::vector<uint8_t> snapshotHash = pcoinsTip->GetSnapshotHash().GetHashVector(pindexPrev->bnStakeModifier);
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vin[0].scriptSig = (CScript() << CScriptNum::serialize(nHeight) << snapshotHash << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);

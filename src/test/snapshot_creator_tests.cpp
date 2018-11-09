@@ -19,9 +19,11 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
   uint256 bestBlock = uint256S("aa");
+  uint256 stakeModifier = uint256S("bb");
   auto bi = new CBlockIndex();
   bi->nTime = 1269211443;
   bi->nBits = 246;
+  bi->bnStakeModifier = stakeModifier;
   mapBlockIndex[bestBlock] = bi;
 
   auto viewDB = MakeUnique<CCoinsViewDB>(0, false, true);
@@ -73,7 +75,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
       BOOST_CHECK_EQUAL(info.m_status, +snapshot::Status::OK);
       BOOST_CHECK(!info.m_indexerMeta.m_snapshotHash.IsNull());
       BOOST_CHECK_EQUAL(info.m_indexerMeta.m_snapshotHash.GetHex(),
-                        viewDB->GetSnapshotHash().GetHash().GetHex());
+                        viewDB->GetSnapshotHash().GetHash(stakeModifier).GetHex());
       BOOST_CHECK_EQUAL(HexStr(info.m_indexerMeta.m_bestBlockHash),
                         HexStr(bestBlock));
       BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSubsets, totalTX);

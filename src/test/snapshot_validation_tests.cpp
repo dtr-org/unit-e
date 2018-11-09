@@ -44,44 +44,51 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
 
   {
     // snapshot hash is incorrect
+    CBlockIndex block;
+    block.nHeight = 100;
+    CBlockIndex prevBlock;
+    prevBlock.bnStakeModifier = uint256S("aa");
+    block.pprev = &prevBlock;
+
     snapshot::SnapshotHash hash1;
     hash1.AddUTXO(snapshot::UTXO());
     BOOST_CHECK(pcoinsdbview->SetSnapshotHash(hash1));
 
     CMutableTransaction mtx;
-    CBlockIndex idx;
-    idx.nHeight = 100;
     CTxIn in;
 
-    uint256 h = snapshot::SnapshotHash().GetHash();
+    uint256 h = snapshot::SnapshotHash().GetHash(prevBlock.bnStakeModifier);
     std::vector<uint8_t> hash(h.begin(), h.end());
-    in.scriptSig << idx.nHeight << hash << OP_0;
+    in.scriptSig << block.nHeight << hash << OP_0;
     mtx.vin.emplace_back(in);
     CTransaction tx(mtx);
 
     CCoinsViewCache view(pcoinsdbview.get());
-    BOOST_CHECK(!snapshot::ValidateCandidateBlockTx(tx, &idx, view));
+    BOOST_CHECK(!snapshot::ValidateCandidateBlockTx(tx, &block, view));
   }
 
   {
     // snapshot hash is correct
+    CBlockIndex block;
+    block.nHeight = 100;
+    CBlockIndex prevBlock;
+    prevBlock.bnStakeModifier = uint256S("aa");
+    block.pprev = &prevBlock;
+
     snapshot::SnapshotHash snapHash;
     snapHash.AddUTXO(snapshot::UTXO());
     BOOST_CHECK(pcoinsdbview->SetSnapshotHash(snapHash));
-    uint256 hash = snapHash.GetHash();
+    uint256 hash = snapHash.GetHash(prevBlock.bnStakeModifier);
 
     CMutableTransaction mtx;
-    CBlockIndex idx;
-    idx.nHeight = 100;
     CTxIn in;
-
     std::vector<uint8_t> data(hash.begin(), hash.end());
-    in.scriptSig << idx.nHeight << data << OP_0;
+    in.scriptSig << block.nHeight << data << OP_0;
     mtx.vin.emplace_back(in);
     CTransaction tx(mtx);
 
     CCoinsViewCache view(pcoinsdbview.get());
-    BOOST_CHECK(snapshot::ValidateCandidateBlockTx(tx, &idx, view));
+    BOOST_CHECK(snapshot::ValidateCandidateBlockTx(tx, &block, view));
   }
 }
 

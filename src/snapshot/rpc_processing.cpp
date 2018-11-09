@@ -175,16 +175,37 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
 
 UniValue calcsnapshothash(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() < 2) {
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+
+    stream << std::vector<UTXO>(1);
+    std::string inputs = HexStr(stream);
+    stream.clear();
+
+    stream << std::vector<UTXO>(1);
+    std::string outputs = HexStr(stream);
+    stream.clear();
+
+    stream << uint256S("aa");
+    std::string stakeModifier = HexStr(stream);
+    stream.clear();
+
+    SnapshotHash hash;
+    stream << hash.GetData();
+    std::string snapshotData = HexStr(stream);
+    stream.clear();
+
+    std::string example = inputs + " " + outputs + " " + stakeModifier + " " + snapshotData;
     throw std::runtime_error(
         "calcsnapshothash\n"
         "\nReturns snapshot hash and its data after arithmetic calculations\n"
         "\nArguments:\n"
         "1. \"inputs\" (hex, required) serialized UTXOs to subtract.\n"
         "2. \"outputs\" (hex, required) serialized UTXOs to add.\n"
-        "3. \"snapshotData\" (hex, optional) initial snapshot data.\n"
+        "3. \"stakeModifier\" (hex, required) stake modifier of the current block\n"
+        "4. \"snapshotData\" (hex, optional) initial snapshot data.\n"
         "\nExamples:\n" +
-        HelpExampleCli("calcsnapshothash", "0100 0100 0000") +
-        HelpExampleRpc("calcsnapshothash", "0100 0100 0000"));
+        HelpExampleCli("calcsnapshothash", example) +
+        HelpExampleRpc("calcsnapshothash", example));
   }
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
@@ -198,9 +219,11 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   stream >> inputs;
   stream >> outputs;
 
+  uint256 stakeModifier = uint256(ParseHex(request.params[2].get_str()));
+
   SnapshotHash hash;
-  if (request.params.size() == 3) {
-    hash = SnapshotHash(ParseHex(request.params[2].get_str()));
+  if (request.params.size() == 4) {
+    hash = SnapshotHash(ParseHex(request.params[3].get_str()));
   }
 
   for (const auto &in : inputs) {
@@ -212,7 +235,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   }
 
   UniValue root(UniValue::VOBJ);
-  root.push_back(Pair("hash", HexStr(hash.GetHash())));
+  root.push_back(Pair("hash", HexStr(hash.GetHash(stakeModifier))));
   root.push_back(Pair("data", HexStr(hash.GetData())));
   return root;
 }
@@ -228,8 +251,10 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
   }
 
   UniValue root(UniValue::VOBJ);
+
+  LOCK(cs_main);
   SnapshotHash hash = pcoinsTip->GetSnapshotHash();
-  root.push_back(Pair("hash", HexStr(hash.GetHash())));
+  root.push_back(Pair("hash", HexStr(hash.GetHash(chainActive.Tip()->bnStakeModifier))));
   root.push_back(Pair("data", HexStr(hash.GetData())));
 
   return root;

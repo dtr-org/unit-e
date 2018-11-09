@@ -63,7 +63,7 @@ class InvalidTxRequestTest(ComparisonTestFramework):
             self.block_time += 1
             test.blocks_and_transactions.append([block, True])
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             height += 1
         yield test
 

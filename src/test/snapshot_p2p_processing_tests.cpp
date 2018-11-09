@@ -56,12 +56,14 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   std::unique_ptr<CNode> node(mockNode());
 
   uint256 bestBlockHash = uint256S("aa");
+  uint256 stakeModifier = uint256S("bb");
   uint256 snapshotHash = uint256S(
-      "920d33e3b53521c00827e998cbe2f63161f96cd1cd07e698eda393dffff0c0fe");
+      "8674e0471df333b5235e923396cfa06d5a4c6779bb6607f09f00d6d92610c926");
   const uint64_t totalMessages = 6;
 
   // simulate that header was already received
   mapBlockIndex[bestBlockHash] = new CBlockIndex;
+  mapBlockIndex[bestBlockHash]->bnStakeModifier.SetHex("aa");
 
   for (uint64_t i = 0; i < totalMessages / 2; ++i) {
     // simulate receiving the snapshot response
@@ -76,6 +78,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
     snap.m_utxoSubsets.emplace_back(subset2);
     snap.m_snapshotHash = snapshotHash;
     snap.m_bestBlockHash = bestBlockHash;
+    snap.m_stakeModifier = stakeModifier;
     snap.m_utxoSubsetIndex = i * 2;
     snap.m_totalUTXOSubsets = totalMessages;
 

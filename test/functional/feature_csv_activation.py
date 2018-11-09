@@ -142,7 +142,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         block.rehash()
         block.solve()
         utxo = UTXO(self.tipheight + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        self.tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], self.tip_snapshot_meta.data, [], [utxo])
+        self.tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], self.tip_snapshot_meta.data, 0, [], [utxo])
         return block
 
     def create_bip68txs(self, bip68inputs, txversion, locktime_delta = 0):

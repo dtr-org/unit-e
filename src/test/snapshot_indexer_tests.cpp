@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_flush) {
   uint32_t step = 3;
   uint32_t stepsPerFile = 2;
   std::unique_ptr<snapshot::Indexer> idx(
-      new snapshot::Indexer(0, uint256(), uint256(), step, stepsPerFile));
+      new snapshot::Indexer(0, uint256(), uint256(), uint256(), step, stepsPerFile));
   CDataStream streamIn(SER_DISK, PROTOCOL_VERSION);
 
   uint64_t totalMsgs = step * stepsPerFile * 3;
@@ -52,8 +52,8 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   uint32_t step = 3;
   uint32_t stepsPerFile = 2;
   uint256 snapshotHash = uint256S("aa");
-  snapshot::Indexer indexer(snapshotId, snapshotHash, uint256(), step,
-                            stepsPerFile);
+  snapshot::Indexer indexer(snapshotId, snapshotHash, uint256(), uint256(),
+                            step, stepsPerFile);
 
   CDataStream stream(SER_DISK, PROTOCOL_VERSION);
   uint64_t totalMsgs = (step * stepsPerFile) * 2 + step;
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   uint32_t stepsPerFile = 3;
   uint256 snapshotHash = uint256S("aa");
   std::unique_ptr<snapshot::Indexer> indexer(new snapshot::Indexer(
-      snapshotId, snapshotHash, uint256(), step, stepsPerFile));
+      snapshotId, snapshotHash, uint256(), uint256(), step, stepsPerFile));
 
   // close and re-open indexer after each write
   uint64_t totalMsgs = (step * stepsPerFile) * 3 + step;
@@ -140,9 +140,10 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
   uint32_t stepsPerFile = 2;
   uint256 snapshotHash = uint256S("aa");
   uint256 bestBlockHash = uint256S("bb");
+  uint256 stakeModifier = uint256S("cc");
 
-  snapshot::Indexer indexer(snapshotId, snapshotHash, bestBlockHash, step,
-                            stepsPerFile);
+  snapshot::Indexer indexer(snapshotId, snapshotHash, bestBlockHash,
+                            stakeModifier, step, stepsPerFile);
 
   uint64_t totalMsgs = (step * stepsPerFile) * 2 + step;
   for (uint64_t i = 0; i < totalMsgs; ++i) {
@@ -157,6 +158,8 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
                     HexStr(snapshotHash));
   BOOST_CHECK_EQUAL(HexStr(openedIdx->GetMeta().m_bestBlockHash),
                     HexStr(bestBlockHash));
+  BOOST_CHECK_EQUAL(HexStr(openedIdx->GetMeta().m_stakeModifier),
+                    HexStr(stakeModifier));
   BOOST_CHECK_EQUAL(openedIdx->GetMeta().m_totalUTXOSubsets, totalMsgs);
 }
 

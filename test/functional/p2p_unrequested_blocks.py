@@ -128,7 +128,7 @@ class AcceptBlockTest(UnitETestFramework):
         block_h1f.solve()
         test_node.send_message(msg_block(block_h1f))
         utxo = UTXO(1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, [], [utxo])
+        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, [], [utxo])
 
         test_node.sync_with_ping()
         tip_entry_found = False
@@ -146,7 +146,7 @@ class AcceptBlockTest(UnitETestFramework):
         block_h2f.solve()
         test_node.send_message(msg_block(block_h2f))
         utxo = UTXO(2, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, [], [utxo])
+        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, [], [utxo])
 
         test_node.sync_with_ping()
         # Since the earlier block was not processed by node, the new block
@@ -168,7 +168,7 @@ class AcceptBlockTest(UnitETestFramework):
         block_h3.solve()
         test_node.send_message(msg_block(block_h3))
         utxo = UTXO(3, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, [], [utxo])
+        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, [], [utxo])
 
         test_node.sync_with_ping()
         # Since the earlier block was not processed by node, the new block
@@ -198,7 +198,7 @@ class AcceptBlockTest(UnitETestFramework):
             all_blocks.append(next_block)
             tip = next_block
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, [], [utxo])
+            fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, [], [utxo])
             all_snapshots.append(fork_snapshot_meta)
 
         # Now send the block at height 5 and check that it wasn't accepted (missing header)
@@ -278,12 +278,12 @@ class AcceptBlockTest(UnitETestFramework):
         block_289f = create_block(all_blocks[284].sha256, coinbase, all_blocks[284].nTime+1)
         block_289f.solve()
         utxo = UTXO(289, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], all_snapshots[284].data, [], [utxo])
+        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], all_snapshots[284].data, 0, [], [utxo])
         coinbase290f = create_coinbase(290, fork_snapshot_meta.hash)
         block_290f = create_block(block_289f.sha256, coinbase290f, block_289f.nTime+1)
         block_290f.solve()
         utxo = UTXO(290, True, COutPoint(coinbase290f.sha256, 0), coinbase290f.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, [], [utxo])
+        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, [], [utxo])
         coinbase = create_coinbase(291, fork_snapshot_meta.hash)
         block_291 = create_block(block_290f.sha256, coinbase, block_290f.nTime+1)
         # block_291 spends a coinbase below maturity!
@@ -293,12 +293,12 @@ class AcceptBlockTest(UnitETestFramework):
         utxo1 = UTXO(290, True, COutPoint(coinbase290f.sha256, 0), coinbase290f.vout[0])
         utxo2 = UTXO(291, False, COutPoint(block_291.vtx[-1].sha256, 1), block_291.vtx[-1].vout[0])
         utxo3 = UTXO(291, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, [], [utxo3])
+        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, [], [utxo3])
         coinbase = create_coinbase(292, fork_snapshot_meta.hash)
         block_292 = create_block(block_291.sha256, coinbase, block_291.nTime+1)
         block_292.solve()
         utxo = UTXO(292, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, [], [utxo3])
+        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, [], [utxo3])
 
         # Now send all the headers on the chain and enough blocks to trigger reorg
         headers_message = msg_headers()

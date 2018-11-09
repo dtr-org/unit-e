@@ -126,7 +126,7 @@ class AssumeValidTest(UnitETestFramework):
         self.block1 = block
         self.tip = block.sha256
         utxo1 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo1])
+        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo1])
         height += 1
 
         # Bury the block 100 deep so the coinbase output is spendable
@@ -138,7 +138,7 @@ class AssumeValidTest(UnitETestFramework):
             self.tip = block.sha256
             self.block_time += 1
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             height += 1
 
         # Create a transaction spending the coinbase output with an invalid (null) signature
@@ -160,7 +160,7 @@ class AssumeValidTest(UnitETestFramework):
 
         utxo2 = UTXO(height, False, COutPoint(tx.sha256, 0), tx.vout[0])
         utxo3 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [utxo1], [utxo2, utxo3])
+        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [utxo1], [utxo2, utxo3])
         height += 1
 
         # Bury the assumed valid block 2100 deep
@@ -173,7 +173,7 @@ class AssumeValidTest(UnitETestFramework):
             self.tip = block.sha256
             self.block_time += 1
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, [], [utxo])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             height += 1
 
         # We're adding new connections so terminate the network thread

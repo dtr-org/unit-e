@@ -145,7 +145,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         assert_equal(block_height, self.block_heights[block.hashPrevBlock]+1)
         prev_meta = self.block_snapshot_meta[block.hashPrevBlock]
-        new_meta = calc_snapshot_hash(self.nodes[0], prev_meta.data, inputs, outputs)
+        new_meta = calc_snapshot_hash(self.nodes[0], prev_meta.data, 0, inputs, outputs)
         self.block_snapshot_meta[block.sha256] = new_meta
 
     def next_block(self, number, spend=None, additional_coinbase_value=0, script=CScript([OP_TRUE]), solve=True):

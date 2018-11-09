@@ -86,6 +86,7 @@ struct GetSnapshot {
 struct Snapshot {
   uint256 m_snapshotHash;
   uint256 m_bestBlockHash;
+  uint256 m_stakeModifier;
   uint64_t m_totalUTXOSubsets;
   uint64_t m_utxoSubsetIndex;
   std::vector<UTXOSubset> m_utxoSubsets;
@@ -93,6 +94,7 @@ struct Snapshot {
   Snapshot()
       : m_snapshotHash(),
         m_bestBlockHash(),
+        m_stakeModifier(),
         m_totalUTXOSubsets(0),
         m_utxoSubsetIndex(0),
         m_utxoSubsets() {}
@@ -103,6 +105,7 @@ struct Snapshot {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
     READWRITE(m_bestBlockHash);
+    READWRITE(m_stakeModifier);
     READWRITE(m_totalUTXOSubsets);
     READWRITE(m_utxoSubsetIndex);
     READWRITE(m_utxoSubsets);
@@ -146,10 +149,13 @@ class SnapshotHash {
   void SubtractUTXO(const UTXO &utxo);
 
   //! GetHash returns the hash that represents the snapshot
-  //! and must be stored inside CoinBase TX.
-  uint256 GetHash() const;
+  //!
+  //! \param stakeModifier which points to the same height as the snapshot hash
+  //! \return the hash which is stored inside the coinstake TX
+  uint256 GetHash(uint256 stakeModifier) const;
 
-  std::vector<uint8_t> GetHashVector() const;
+  //! GetHashVector is a proxy to GetHash
+  std::vector<uint8_t> GetHashVector(uint256 stakeModifier) const;
 
   void Clear();
 

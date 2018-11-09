@@ -50,9 +50,10 @@ bool Indexer::Delete(uint32_t snapshotId) {
 }
 
 Indexer::Indexer(uint32_t snapshotId, const uint256 &snapshotHash,
-                 const uint256 &blockHash, uint32_t step, uint32_t stepsPerFile)
+                 const uint256 &blockHash, const uint256 &stakeModifier,
+                 uint32_t step, uint32_t stepsPerFile)
     : m_snapshotId(snapshotId),
-      m_meta(snapshotHash, blockHash),
+      m_meta(snapshotHash, blockHash, stakeModifier),
       m_stream(SER_DISK, PROTOCOL_VERSION),
       m_fileId(0),
       m_fileMsgs(0),

@@ -49,8 +49,11 @@ CreationInfo Creator::Create() {
   LogPrint(BCLog::SNAPSHOT, "reserve id=%i for the new snapshot\n", snapshotId);
 
   ChainstateIterator iter(m_view);
-  Indexer indexer(snapshotId, iter.GetSnapshotHash().GetHash(),
-                  iter.GetBestBlock(), m_step, m_stepsPerFile);
+
+  uint256 stakeModifier = mapBlockIndex.at(iter.GetBestBlock())->bnStakeModifier;
+  uint256 snapshotHash = iter.GetSnapshotHash().GetHash(stakeModifier);
+  Indexer indexer(snapshotId, snapshotHash, iter.GetBestBlock(), stakeModifier,
+                  m_step, m_stepsPerFile);
 
   while (iter.Valid()) {
     boost::this_thread::interruption_point();
