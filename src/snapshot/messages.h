@@ -149,7 +149,9 @@ class SnapshotHash {
   void SubtractUTXO(const UTXO &utxo);
 
   //! GetHash returns the hash that represents the snapshot
-  //! and must be stored inside CoinBase TX.
+  //!
+  //! \param stakeModifier which points to the same height as the snapshot hash
+  //! \return the hash which is stored inside the coinstake TX
   uint256 GetHash(uint256 stakeModifier) const;
 
   //! GetHashVector is a proxy to GetHash
