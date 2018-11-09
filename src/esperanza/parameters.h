@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ESPERANZA_PARAMS_H
-#define UNITE_ESPERANZA_PARAMS_H
+#ifndef UNITE_ESPERANZA_PARAMETERS_H
+#define UNITE_ESPERANZA_PARAMETERS_H
 
 #include <chain.h>
 #include <stdint.h>
@@ -60,4 +60,4 @@ class Parameters final {
 
 }  // namespace esperanza
 
-#endif  // UNITE_ESPERANZA_PARAMS_H
+#endif  // UNITE_ESPERANZA_PARAMETERS_H

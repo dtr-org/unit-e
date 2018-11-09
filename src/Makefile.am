@@ -111,7 +111,7 @@ UNITE_CORE_H = \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
-  esperanza/params.h \
+  esperanza/parameters.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
   esperanza/validator.h \
@@ -444,7 +444,7 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  esperanza/params.cpp \
+  esperanza/parameters.cpp \
   esperanza/settings.cpp \
   esperanza/settings_init.cpp \
   key.cpp \

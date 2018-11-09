@@ -989,7 +989,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       case TxType::DEPOSIT: {
         uint160 validatorAddress = uint160();
 
-        assert(ExtractValidatorAddress(*tx.get(), validatorAddress));
+        assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessDeposit(validatorAddress, tx->GetValueOut());
         break;
       }
@@ -997,7 +997,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       case TxType::LOGOUT: {
         uint160 validatorAddress = uint160();
 
-        assert(ExtractValidatorAddress(*tx.get(), validatorAddress));
+        assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessLogout(validatorAddress);
         break;
       }
@@ -1005,7 +1005,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       case TxType::WITHDRAW: {
         uint160 validatorAddress = uint160();
 
-        assert(ExtractValidatorAddress(*tx.get(), validatorAddress));
+        assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessWithdraw(validatorAddress);
         break;
       }

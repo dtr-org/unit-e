@@ -5,7 +5,7 @@
 
 #include <chainparams.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/params.h>
+#include <esperanza/parameters.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <staking/kernel.h>
