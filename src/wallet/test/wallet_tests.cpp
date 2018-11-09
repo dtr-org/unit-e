@@ -188,11 +188,11 @@ BOOST_AUTO_TEST_CASE(coin_selection_tests)
         add_coin( 3*UNIT);
         add_coin( 4*UNIT); // now we have 5+6+7+8+18+20+30+100+200+300+400 = 1094 cents
         BOOST_CHECK( testWallet.SelectCoinsMinConf(95 * EEES, 1, 1, 0, vCoins, setCoinsRet, nValueRet));
-        BOOST_CHECK_EQUAL(nValueRet, 1 * UNIT);  // we should get 1 UNT in 1 coin
+        BOOST_CHECK_EQUAL(nValueRet, 1 * UNIT);  // we should get 1 UTE in 1 coin
         BOOST_CHECK_EQUAL(setCoinsRet.size(), 1U);
 
         BOOST_CHECK( testWallet.SelectCoinsMinConf(195 * EEES, 1, 1, 0, vCoins, setCoinsRet, nValueRet));
-        BOOST_CHECK_EQUAL(nValueRet, 2 * UNIT);  // we should get 2 UNT in 1 coin
+        BOOST_CHECK_EQUAL(nValueRet, 2 * UNIT);  // we should get 2 UTE in 1 coin
         BOOST_CHECK_EQUAL(setCoinsRet.size(), 1U);
 
         // empty the wallet and start again, now with fractions of a cent, to test small change avoidance
