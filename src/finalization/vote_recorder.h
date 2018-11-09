@@ -23,19 +23,15 @@ class VoteRecorder {
   // Contains the most recent vote casted by any validator
   std::map<uint256, esperanza::Vote> voteCache;
 
-  esperanza::WalletExtension &wallet;
-
   static CCriticalSection cs_recorder;
   static std::shared_ptr<VoteRecorder> g_voteRecorder;
 
   boost::optional<esperanza::Vote> FindOffendingVote(esperanza::Vote vote);
 
  public:
-  explicit VoteRecorder(esperanza::WalletExtension &wallet);
-
   void RecordVote(const CTransaction &transaction, const esperanza::Vote &vote);
 
-  static void InitVoteRecorder(esperanza::WalletExtension &wallet);
+  static void Init();
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 

@@ -1082,9 +1082,9 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
 
                 case TxType::DEPOSIT: {
                   LOCK(cs_wallet);
-                  assert(m_stakingExtension.validatorState);
+                  assert(m_walletExtension.validatorState);
                   esperanza::ValidatorState& state =
-                      m_stakingExtension.validatorState.get();
+                      m_walletExtension.validatorState.get();
 
                   const auto expectedPhase = +esperanza::ValidatorState::Phase::
                       WAITING_DEPOSIT_CONFIRMATION;
@@ -1124,9 +1124,9 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 }
                 case TxType::LOGOUT: {
                   LOCK(cs_wallet);
-                  assert(m_stakingExtension.validatorState);
+                  assert(m_walletExtension.validatorState);
                   esperanza::ValidatorState& state =
-                      m_stakingExtension.validatorState.get();
+                      m_walletExtension.validatorState.get();
 
                   const auto expectedPhase =
                       +esperanza::ValidatorState::Phase::IS_VALIDATING;
@@ -1155,9 +1155,9 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 }
                 case TxType::VOTE: {
                   LOCK(cs_wallet);
-                  assert(m_stakingExtension.validatorState);
+                  assert(m_walletExtension.validatorState);
                   esperanza::ValidatorState& state =
-                      m_stakingExtension.validatorState.get();
+                      m_walletExtension.validatorState.get();
 
                   const auto expectedPhase =
                       +esperanza::ValidatorState::Phase::IS_VALIDATING;
@@ -1177,7 +1177,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 }
                 case TxType::SLASH: {
                   LOCK(cs_wallet);
-                  m_stakingExtension.validatorState->m_phase = esperanza::ValidatorState::Phase::NOT_VALIDATING;
+                  m_walletExtension.validatorState->m_phase = esperanza::ValidatorState::Phase::NOT_VALIDATING;
                   LogPrint(BCLog::FINALIZATION, "DOOM: You have been slashed!");
                 }
                 default: { break; }
@@ -1351,6 +1351,11 @@ void CWallet::TransactionAddedToMempool(const CTransactionRef& ptx) {
     }
 }
 
+void CWallet::SlashingConditionDetected(const CTransaction &transaction, const esperanza::Vote &vote1, const esperanza::Vote &vote2) {
+    LOCK(cs_wallet);
+    m_walletExtension.SendSlash(transaction, vote1, vote2);
+}
+
 void CWallet::TransactionRemovedFromMempool(const CTransactionRef &ptx) {
     LOCK(cs_wallet);
     auto it = mapWallet.find(ptx->GetHash());
@@ -1380,7 +1385,7 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
 
     m_last_block_processed = pindex;
 
-    m_stakingExtension.BlockConnected(pblock, pindex);
+    m_walletExtension.BlockConnected(pblock, pindex);
 }
 
 void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
@@ -4057,7 +4062,7 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::Settings& esperanzaSetti
         }
     }
 
-    walletInstance->m_stakingExtension.ReadValidatorStateFromFile();
+    walletInstance->m_walletExtension.ReadValidatorStateFromFile();
 
     LogPrintf(" wallet      %15dms\n", GetTimeMillis() - nStart);
 
@@ -4355,5 +4360,5 @@ CTxDestination CWallet::AddAndGetDestinationForScript(const CScript& script, Out
 }
 
 esperanza::WalletExtension& CWallet::GetWalletExtension() {
-    return this->m_stakingExtension;
+    return this->m_walletExtension;
 }

@@ -759,11 +759,12 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 }
 
 bool WalletExtension::SendSlash(const CTransaction &prevTx, const Vote &vote1,
-                                const Vote &vote2, CWalletTx &wtxNewOut) {
+                                const Vote &vote2) {
 
-  wtxNewOut.fTimeReceivedIsTxTime = true;
-  wtxNewOut.BindWallet(m_enclosingWallet);
-  wtxNewOut.fFromMe = true;
+  CWalletTx slashTx;
+  slashTx.fTimeReceivedIsTxTime = true;
+  slashTx.BindWallet(m_enclosingWallet);
+  slashTx.fFromMe = true;
 
   CMutableTransaction txNew;
   txNew.SetType(TxType::SLASH);
@@ -792,10 +793,10 @@ bool WalletExtension::SendSlash(const CTransaction &prevTx, const Vote &vote1,
   }
   UpdateTransaction(txNew, nIn, sigdata);
 
-  wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
+  slashTx.SetTx(MakeTransactionRef(std::move(txNew)));
 
   CReserveKey reservekey(m_enclosingWallet);
-  m_enclosingWallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+  m_enclosingWallet->CommitTransaction(slashTx, reservekey, g_connman.get(),
                                        errState);
   if (errState.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit slash transaction: %s.\n",

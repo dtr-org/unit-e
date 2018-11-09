@@ -118,10 +118,8 @@ class WalletExtension : public staking::StakingWallet {
   //! \param prevTx the transaction to be slashed.
   //! \param vote1 the first vote extracted from the transaction.
   //! \param vote2 the second vote retrieved from the historic data.
-  //! \param wtxNewOut the slash transaction created.
   //! \returns true if the operation is succesful, false otehrwise.
-  bool SendSlash(const CTransaction &prevTx, const Vote &vote1, const Vote &vote2,
-                 CWalletTx &wtxNewOut);
+  bool SendSlash(const CTransaction &prevTx, const Vote &vote1, const Vote &vote2);
 
   void ReadValidatorStateFromFile();
 

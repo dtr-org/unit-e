@@ -6,14 +6,10 @@ namespace finalization {
 CCriticalSection VoteRecorder::cs_recorder;
 std::shared_ptr<VoteRecorder> VoteRecorder::g_voteRecorder;
 
-VoteRecorder::VoteRecorder(esperanza::WalletExtension &wallet)
-    : wallet(wallet) {}
-
 void VoteRecorder::RecordVote(const CTransaction &transaction,
                               const esperanza::Vote &vote) {
 
   LOCK(cs_recorder);
-  assert(wallet.validatorState);
 
   esperanza::FinalizationState *state =
       esperanza::FinalizationState::GetState();
@@ -23,23 +19,14 @@ void VoteRecorder::RecordVote(const CTransaction &transaction,
     return;
   }
 
-  // We don't need to hold a lock here since this should not change after
-  // startup.
-  if (!wallet.nIsValidatorEnabled) {
-    return;
-  }
-
-  if (wallet.validatorState.get().m_validatorIndex == vote.m_validatorIndex) {
-    // Assume that votes casted by the node itself are valid.
-    return;
-  }
-
   boost::optional<esperanza::Vote> offendingVote = FindOffendingVote(vote);
   if (offendingVote) {
     esperanza::Result res = state->IsSlashable(vote, offendingVote.get());
     if (res == +esperanza::Result::SUCCESS) {
-      CWalletTx outTx;
-      wallet.SendSlash(transaction, vote, offendingVote.get(), outTx);
+      GetMainSignals().SlashingConditionDetected(transaction, vote, offendingVote.get());
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Slashable event found. Sending signal to the wallet.",
+               __func__);
     } else {
       //If this happens then it needs urgent attention and fixing
       LogPrint(BCLog::FINALIZATION,
@@ -100,10 +87,10 @@ boost::optional<esperanza::Vote> VoteRecorder::FindOffendingVote(const esperanza
   return boost::none;
 }
 
-void VoteRecorder::InitVoteRecorder(esperanza::WalletExtension &wallet) {
+void VoteRecorder::Init() {
   LOCK(cs_recorder);
   if (!g_voteRecorder) {
-    g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder(wallet));
+    g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder());
   }
 }
 
