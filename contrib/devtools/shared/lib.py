@@ -19,14 +19,13 @@ def changeto(dir = "."):
   os.chdir(dir)
 
 def listchangedfiles():
-  ps = subprocess.Popen("git diff --cached --name-status --relative",
+  ps = subprocess.Popen("git diff --cached --name-status --relative --diff-filter=AM",
                         shell=True,
                         stdout=subprocess.PIPE)
   result = []
   for line in ps.stdout.read().decode("utf-8").splitlines():
-    status, filename = line.split()
-    if status in ["A", "M"]:
-      result += [filename]
+    _, filename = line.split()
+    result += [filename]
   return result
 
 def listfiles(glob = "*"):
