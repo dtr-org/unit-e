@@ -175,6 +175,26 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
 
 UniValue calcsnapshothash(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() < 2) {
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+
+    stream << std::vector<UTXO>(1);
+    std::string inputs = HexStr(stream);
+    stream.clear();
+
+    stream << std::vector<UTXO>(1);
+    std::string outputs = HexStr(stream);
+    stream.clear();
+
+    stream << uint256S("aa");
+    std::string stakeModifier = HexStr(stream);
+    stream.clear();
+
+    SnapshotHash hash;
+    stream << hash.GetData();
+    std::string snapshotData = HexStr(stream);
+    stream.clear();
+
+    std::string example = inputs + " " + outputs + " " + stakeModifier + " " + snapshotData;
     throw std::runtime_error(
         "calcsnapshothash\n"
         "\nReturns snapshot hash and its data after arithmetic calculations\n"
@@ -184,8 +204,8 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
         "3. \"stakeModifier\" (hex, required) stake modifier of the current block\n"
         "4. \"snapshotData\" (hex, optional) initial snapshot data.\n"
         "\nExamples:\n" +
-        HelpExampleCli("calcsnapshothash", "0100 0100 aabb... aabb...") +
-        HelpExampleRpc("calcsnapshothash", "0100 0100 aabb... aabb..."));
+        HelpExampleCli("calcsnapshothash", example) +
+        HelpExampleRpc("calcsnapshothash", example));
   }
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
