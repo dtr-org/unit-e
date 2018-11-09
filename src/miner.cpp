@@ -203,6 +203,7 @@ void BlockAssembler::AddVoteAndSlashTxs()
       switch (mi->GetTx().GetType()) {
         case TxType::VOTE: {
           CValidationState state;
+          //Check again in case the vote became invalid in the meanwhile (different target now)
           if (esperanza::CheckVoteTransaction(state, mi->GetTx(), chainparams.GetConsensus())) {
             AddToBlock(mempool.mapTx.project<0>(mi));
             LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
@@ -212,13 +213,10 @@ void BlockAssembler::AddVoteAndSlashTxs()
           break;
         }
         case TxType::SLASH: {
-          CValidationState state;
-          if (esperanza::CheckSlashTransaction(state, mi->GetTx(), chainparams.GetConsensus())) {
             AddToBlock(mempool.mapTx.project<0>(mi));
-            LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
+            LogPrint(BCLog::FINALIZATION, "%s: Add slash with id %s to a new block.\n",
                      __func__,
                      mi->GetTx().GetHash().GetHex());
-          }
           break;
         }
         default: {break;}

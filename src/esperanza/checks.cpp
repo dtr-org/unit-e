@@ -268,7 +268,7 @@ bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
 
   assert(tx.GetType() == +TxType::SLASH);
 
-  if (tx.vin.size() != 1 || tx.vout.size() != 2) {
+  if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(100, false, REJECT_INVALID, "bad-slash-malformed");
   }
 

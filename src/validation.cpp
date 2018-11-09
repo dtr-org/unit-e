@@ -3457,7 +3457,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                    __func__,
                    state.GetRejectReason());
 
-              return false;
+              return state.DoS(10, error("%s: Admin transaction cannot be included into mempool.", __func__), state.GetRejectCode(), state.GetRejectReason());
             }
             break;
           }
