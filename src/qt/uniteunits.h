@@ -56,9 +56,9 @@ public:
      */
     enum Unit
     {
-        UNT,
-        mUNT,
-        uUNT
+        UTE,
+        mUTE,
+        uUTE
     };
 
     enum SeparatorStyle

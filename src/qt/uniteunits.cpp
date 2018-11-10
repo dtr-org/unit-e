@@ -17,9 +17,9 @@ UnitEUnits::UnitEUnits(QObject *parent):
 QList<UnitEUnits::Unit> UnitEUnits::availableUnits()
 {
     QList<UnitEUnits::Unit> unitlist;
-    unitlist.append(UNT);
-    unitlist.append(mUNT);
-    unitlist.append(uUNT);
+    unitlist.append(UTE);
+    unitlist.append(mUTE);
+    unitlist.append(uUTE);
     return unitlist;
 }
 
@@ -27,9 +27,9 @@ bool UnitEUnits::valid(int unit)
 {
     switch(unit)
     {
-    case UNT:
-    case mUNT:
-    case uUNT:
+    case UTE:
+    case mUTE:
+    case uUTE:
         return true;
     default:
         return false;
@@ -40,9 +40,9 @@ QString UnitEUnits::longName(int unit)
 {
     switch(unit)
     {
-    case UNT: return QString("UNT");
-    case mUNT: return QString("mUNT");
-    case uUNT: return QString::fromUtf8("µUNT (bits)");
+    case UTE: return QString("UTE");
+    case mUTE: return QString("mUTE");
+    case uUTE: return QString::fromUtf8("µUTE (bits)");
     default: return QString("???");
     }
 }
@@ -51,7 +51,7 @@ QString UnitEUnits::shortName(int unit)
 {
     switch(unit)
     {
-    case uUNT: return QString::fromUtf8("bits");
+    case uUTE: return QString::fromUtf8("bits");
     default:   return longName(unit);
     }
 }
@@ -60,9 +60,9 @@ QString UnitEUnits::description(int unit)
 {
     switch(unit)
     {
-    case UNT: return QString("UnitEs");
-    case mUNT: return QString("Milli-UnitEs (1 / 1" THIN_SP_UTF8 "000)");
-    case uUNT: return QString("Micro-UnitEs (bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case UTE: return QString("UnitEs");
+    case mUTE: return QString("Milli-UnitEs (1 / 1" THIN_SP_UTF8 "000)");
+    case uUTE: return QString("Micro-UnitEs (bits) (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }
 }
@@ -71,9 +71,9 @@ qint64 UnitEUnits::factor(int unit)
 {
     switch(unit)
     {
-    case UNT:  return 100000000;
-    case mUNT: return 100000;
-    case uUNT: return 100;
+    case UTE:  return 100000000;
+    case mUTE: return 100000;
+    case uUTE: return 100;
     default:   return 100000000;
     }
 }
@@ -82,9 +82,9 @@ int UnitEUnits::decimals(int unit)
 {
     switch(unit)
     {
-    case UNT: return 8;
-    case mUNT: return 5;
-    case uUNT: return 2;
+    case UTE: return 8;
+    case mUTE: return 5;
+    case uUTE: return 2;
     default: return 0;
     }
 }

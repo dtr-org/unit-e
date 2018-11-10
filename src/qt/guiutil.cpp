@@ -186,7 +186,7 @@ bool parseUnitEURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if(!UnitEUnits::parse(UnitEUnits::UNT, i->second, &rv.amount))
+                if(!UnitEUnits::parse(UnitEUnits::UTE, i->second, &rv.amount))
                 {
                     return false;
                 }
@@ -225,7 +225,7 @@ QString formatUnitEURI(const SendCoinsRecipient &info)
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(UnitEUnits::format(UnitEUnits::UNT, info.amount, false, UnitEUnits::separatorNever));
+        ret += QString("?amount=%1").arg(UnitEUnits::format(UnitEUnits::UTE, info.amount, false, UnitEUnits::separatorNever));
         paramCount++;
     }
 
