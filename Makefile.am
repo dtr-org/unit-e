@@ -294,5 +294,5 @@ clean-local:
 	rm -rf test/functional/__pycache__ test/functional/test_framework/__pycache__ test/cache
 
 all-local:
-	@test ! -f .git/hooks/prepare-commit-msg && echo "Setup githook prepare-commit-msg" && cp contrib/githooks/prepare-commit-msg .git/hooks/prepare-commit-msg || true
-	@test ! -f .git/hooks/pre-commit && echo "Setup githook pre-commit" && cp contrib/githooks/pre-commit .git/hooks/pre-commit || true
+	@test -d .git && test ! -f .git/hooks/prepare-commit-msg && echo "Setup githook prepare-commit-msg" && cp contrib/githooks/prepare-commit-msg .git/hooks/prepare-commit-msg || true
+	@test -d .git && test ! -f .git/hooks/pre-commit && echo "Setup githook pre-commit" && cp contrib/githooks/pre-commit .git/hooks/pre-commit || true
