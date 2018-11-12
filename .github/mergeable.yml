@@ -1,0 +1,7 @@
+mergeable:
+  pull_requests:
+    label: 'work in progress'
+    title: 'wip'
+    description:
+      no-empty: true
+
