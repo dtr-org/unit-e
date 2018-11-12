@@ -1,5 +1,5 @@
 ---
-*Thanks for contributing! Here are some hints how to create great pull request:*
+*Thanks for contributing! Here are some hints how to create a great pull request:*
 
 * Follow the guidelines from
   https://github.com/dtr-org/unit-e/blob/master/CONTRIBUTING.md
