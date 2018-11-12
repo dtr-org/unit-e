@@ -9,8 +9,8 @@
 
 namespace snapshot {
 
-std::unique_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
-  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / std::to_string(snapshotId));
+std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshotHash) {
+  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshotHash.GetHex());
 
   Meta meta;
   {
@@ -34,11 +34,11 @@ std::unique_ptr<Indexer> Indexer::Open(uint32_t snapshotId) {
     file >> dirIdx;
   }
 
-  return std::unique_ptr<Indexer>(new Indexer(snapshotId, meta, dirIdx));
+  return std::unique_ptr<Indexer>(new Indexer(meta, dirIdx));
 }
 
-bool Indexer::Delete(uint32_t snapshotId) {
-  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / std::to_string(snapshotId));
+bool Indexer::Delete(const uint256 &snapshotHash) {
+  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshotHash.GetHex());
   try {
     fs::remove_all(dirPath);
     return true;
@@ -49,16 +49,15 @@ bool Indexer::Delete(uint32_t snapshotId) {
   }
 }
 
-Indexer::Indexer(uint32_t snapshotId, const uint256 &snapshotHash,
-                 const uint256 &blockHash, const uint256 &stakeModifier,
+Indexer::Indexer(const uint256 &snapshotHash, const uint256 &blockHash,
+                 const uint256 &stakeModifier,
                  uint32_t step, uint32_t stepsPerFile)
-    : m_snapshotId(snapshotId),
-      m_meta(snapshotHash, blockHash, stakeModifier),
+    : m_meta(snapshotHash, blockHash, stakeModifier),
       m_stream(SER_DISK, PROTOCOL_VERSION),
       m_fileId(0),
       m_fileMsgs(0),
       m_fileBytes(0),
-      m_dirPath(GetDataDir() / SNAPSHOT_FOLDER / std::to_string(m_snapshotId)) {
+      m_dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshotHash.GetHex()) {
   assert(step > 0);
   assert(stepsPerFile > 0);
   m_meta.m_step = step;
@@ -67,16 +66,14 @@ Indexer::Indexer(uint32_t snapshotId, const uint256 &snapshotHash,
   TryCreateDirectories(m_dirPath);
 }
 
-Indexer::Indexer(uint32_t snapshotId, Meta meta,
-                 std::map<uint32_t, IdxMap> dirIdx)
-    : m_snapshotId(snapshotId),
-      m_meta(meta),
+Indexer::Indexer(const Meta &meta, std::map<uint32_t, IdxMap> dirIdx)
+    : m_meta(meta),
       m_stream(SER_DISK, PROTOCOL_VERSION),
       m_dirIdx(std::move(dirIdx)),
       m_fileId(0),
       m_fileMsgs(0),
       m_fileBytes(0),
-      m_dirPath(GetDataDir() / SNAPSHOT_FOLDER / std::to_string(m_snapshotId)) {
+      m_dirPath(GetDataDir() / SNAPSHOT_FOLDER / m_meta.m_snapshotHash.GetHex()) {
   assert(m_meta.m_step > 0);
   assert(m_meta.m_stepsPerFile > 0);
 

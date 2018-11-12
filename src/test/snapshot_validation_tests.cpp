@@ -52,7 +52,9 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
 
     snapshot::SnapshotHash hash1;
     hash1.AddUTXO(snapshot::UTXO());
-    BOOST_CHECK(pcoinsdbview->SetSnapshotHash(hash1));
+
+    CCoinsMap map;
+    BOOST_CHECK(pcoinsdbview->BatchWrite(map, uint256S("aa"), hash1));
 
     CMutableTransaction mtx;
     CTxIn in;
@@ -77,7 +79,8 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
 
     snapshot::SnapshotHash snapHash;
     snapHash.AddUTXO(snapshot::UTXO());
-    BOOST_CHECK(pcoinsdbview->SetSnapshotHash(snapHash));
+    CCoinsMap map;
+    BOOST_CHECK(pcoinsdbview->BatchWrite(map, uint256S("aa"), snapHash));
     uint256 hash = snapHash.GetHash(prevBlock.bnStakeModifier);
 
     CMutableTransaction mtx;

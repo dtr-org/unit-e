@@ -6,6 +6,7 @@
 
 #include <snapshot/indexer.h>
 #include <snapshot/p2p_processing.h>
+#include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
 #include <sync.h>
 #include <util.h>
@@ -19,10 +20,18 @@ namespace snapshot {
 
 int64_t createSnapshotPerEpoch = 0;
 
+struct Job {
+  // create snapshot
+  std::unique_ptr<Creator> creator = nullptr;
+
+  // finalize snapshots
+  CBlockIndex *blockIndex = nullptr;
+};
+
 std::thread creatorThread;
 std::mutex mutex;
 std::condition_variable cv;
-std::queue<std::unique_ptr<Creator>> jobs;
+std::queue<std::unique_ptr<Job>> jobs;
 std::atomic_bool interrupt(false);
 
 void ProcessCreatorQueue() {
@@ -34,14 +43,22 @@ void ProcessCreatorQueue() {
       continue;
     }
 
-    std::unique_ptr<Creator> creator = std::move(jobs.front());
+    std::unique_ptr<Job> job = std::move(jobs.front());
     jobs.pop();
     lock.unlock();
 
-    CreationInfo info = creator->Create();
-    if (info.m_status != +Status::OK) {
-      LogPrint(BCLog::SNAPSHOT, "%s: ERROR: can't create snapshot %s\n", __func__, info.m_status);
+    if (job->creator) {
+      CreationInfo info = job->creator->Create();
+      if (info.m_status != +Status::OK) {
+        LogPrint(BCLog::SNAPSHOT, "%s: can't create snapshot %s\n", __func__, info.m_status);
+      }
     }
+
+    if (job->blockIndex) {
+      FinalizeSnapshots(job->blockIndex);
+    }
+
+    SaveSnapshotIndex();
   }
 
   LogPrint(BCLog::SNAPSHOT, "%s: interrupted\n", __func__);
@@ -64,7 +81,7 @@ void Creator::Deinit() {
   }
 }
 
-Creator::Creator(CCoinsViewDB *view) : m_view(view), m_iter(view) {}
+Creator::Creator(CCoinsViewDB *view) : m_iter(view) {}
 
 void Creator::GenerateOrSkip(uint32_t currentEpoch) {
   if (createSnapshotPerEpoch <= 0) {
@@ -77,7 +94,7 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
     return;
   }
 
-  if ((currentEpoch + 1) % createSnapshotPerEpoch != 0) {
+  if (currentEpoch > 0 && (currentEpoch + 1) % createSnapshotPerEpoch != 0) {
     return;
   }
 
@@ -85,9 +102,18 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
   // uses disk data to create the snapshot
   FlushStateToDisk();
 
-  auto creator = MakeUnique<Creator>(pcoinsdbview.get());
+  std::unique_ptr<Job> job(new Job);
+  job->creator = MakeUnique<Creator>(pcoinsdbview.get());
   std::lock_guard<std::mutex> lock(mutex);
-  jobs.push(std::move(creator));
+  jobs.push(std::move(job));
+  cv.notify_one();
+}
+
+void Creator::FinalizeSnapshots(const CBlockIndex *blockIndex) {
+  std::unique_ptr<Job> job(new Job);
+  job->blockIndex = const_cast<CBlockIndex *>(blockIndex);
+  std::lock_guard<std::mutex> lock(mutex);
+  jobs.push(std::move(job));
   cv.notify_one();
 }
 
@@ -96,23 +122,17 @@ CCriticalSection cs_snapshotCreation;
 CreationInfo Creator::Create() {
   LOCK(cs_snapshotCreation);
 
-  uint256 stakeModifier = mapBlockIndex.at(m_iter.GetBestBlock())->bnStakeModifier;
-  uint256 snapshotHash = m_iter.GetSnapshotHash().GetHash(stakeModifier);
+  CBlockIndex *blockIndex = mapBlockIndex.at(m_iter.GetBestBlock());
+  uint256 snapshotHash = m_iter.GetSnapshotHash().GetHash(
+      blockIndex->bnStakeModifier);
+  std::vector<uint256> toRemove = AddSnapshotHash(snapshotHash, blockIndex);
+
   LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
-           m_iter.GetBestBlock().ToString(), snapshotHash.ToString());
+           m_iter.GetBestBlock().GetHex(), snapshotHash.GetHex());
 
   CreationInfo info;
-
-  uint32_t snapshotId = 0;
-  if (!m_view->ReserveSnapshotId(snapshotId)) {
-    info.m_status = Status::RESERVE_SNAPSHOT_ID_ERROR;
-    return info;
-  }
-  LogPrint(BCLog::SNAPSHOT, "reserve new snapshot_id=%i for snapshot_hash=%s\n",
-           snapshotId, snapshotHash.ToString());
-
-  Indexer indexer(snapshotId, snapshotHash, m_iter.GetBestBlock(), stakeModifier,
-                  m_step, m_stepsPerFile);
+  Indexer indexer(snapshotHash, blockIndex->GetBlockHash(),
+                  blockIndex->bnStakeModifier, m_step, m_stepsPerFile);
 
   while (m_iter.Valid()) {
     boost::this_thread::interruption_point();
@@ -143,32 +163,12 @@ CreationInfo Creator::Create() {
   }
   info.m_indexerMeta = indexer.GetMeta();
 
-  if (!m_view->SetSnapshotId(snapshotId)) {
-    info.m_status = Status::SET_SNAPSHOT_ID_ERROR;
-    return info;
-  }
-  LogPrint(BCLog::SNAPSHOT, "snapshot_id=%i is created\n", snapshotId);
+  LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is created\n", snapshotHash.GetHex());
 
-  std::vector<uint32_t> ids = m_view->GetSnapshotIds();
-  uint64_t keepSnapshots = 5;
-  if (ids.size() > keepSnapshots) {
-    std::vector<uint32_t> newIds;
-    newIds.reserve(keepSnapshots);
-
-    for (uint64_t i = 0; i < ids.size() - keepSnapshots; ++i) {
-      if (Indexer::Delete(ids.at(i))) {
-        LogPrint(BCLog::SNAPSHOT, "snapshot_id=%i is deleted\n", ids.at(i));
-      } else {
-        // collect IDs that can't be deleted,
-        // will be re-tried during next snapshot creation
-        newIds.emplace_back(ids.at(i));
-      }
-    }
-    newIds.insert(newIds.end(), ids.end() - keepSnapshots, ids.end());
-
-    if (!m_view->SetSnapshotIds(newIds)) {
-      info.m_status = Status::SET_ALL_SNAPSHOTS_ERROR;
-      return info;
+  for (const auto &hash : toRemove) {
+    if (Indexer::Delete(hash)) {
+      ConfirmRemoved(hash);
+      LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is deleted\n", hash.GetHex());
     }
   }
 

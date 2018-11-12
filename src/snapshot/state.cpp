@@ -4,7 +4,7 @@
 
 #include <snapshot/state.h>
 
-#include <txdb.h>
+#include <snapshot/snapshot_index.h>
 #include <validation.h>
 
 namespace snapshot {
@@ -24,8 +24,8 @@ bool State::IsInitialSnapshotDownload() {
     return false;
   }
 
-  uint32_t snapshotId;
-  if (pcoinsdbview->GetSnapshotId(snapshotId)) {
+  uint256 snapshotHash;
+  if (GetLatestFinalizedSnapshotHash(snapshotHash)) {
     m_isdLatch.store(true, std::memory_order_relaxed);
     return false;
   }

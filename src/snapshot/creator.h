@@ -23,11 +23,8 @@ BETTER_ENUM(
   Status,
   uint8_t,
   OK,
-  WRITE_ERROR,                // filesystem issue
-  RESERVE_SNAPSHOT_ID_ERROR,  // chainparams DB issue
-  SET_SNAPSHOT_ID_ERROR,      // chainparams DB issue
-  SET_ALL_SNAPSHOTS_ERROR,    // chainparams DB issue
-  CALC_SNAPSHOT_HASH_ERROR    // can't calculate the hash
+  WRITE_ERROR,              // filesystem issue
+  CALC_SNAPSHOT_HASH_ERROR  // can't calculate the hash
 )
 // clang-format on
 
@@ -60,6 +57,7 @@ class Creator {
   //! Must be invoked before calling any other snapshot::Snapshot* functions
   static void Init(const Params &params);
 
+  //! Deinit deallocates resources created by Init()
   static void Deinit();
 
   explicit Creator(CCoinsViewDB *view);
@@ -74,8 +72,11 @@ class Creator {
   //! \@param currentEpoch is the current epoch number which starts from 0
   static void GenerateOrSkip(uint32_t currentEpoch);
 
+  //! FinalizeSnapshots marks snapshots of the same branch as blockIndex
+  //! and up to its height finalized
+  static void FinalizeSnapshots(const CBlockIndex *blockIndex);
+
  private:
-  CCoinsViewDB *m_view;
   ChainstateIterator m_iter;
 };
 

@@ -6,12 +6,11 @@
 #define UNITE_SNAPSHOT_INITIALIZATION_H
 
 #include <snapshot/params.h>
-#include <txdb.h>
 
 namespace snapshot {
 
 //! Initialize snapshot module
-bool Initialize(CCoinsViewDB *view, const Params &params);
+bool Initialize(const Params &params);
 
 //! Deinitialize cleans up initialized objects
 void Deinitialize();

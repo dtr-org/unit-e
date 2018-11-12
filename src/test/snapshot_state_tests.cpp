@@ -5,6 +5,7 @@
 #include <snapshot/state.h>
 
 #include <snapshot/indexer.h>
+#include <snapshot/snapshot_index.h>
 #include <test/test_unite.h>
 #include <validation.h>
 #include <boost/test/unit_test.hpp>
@@ -15,9 +16,14 @@ BOOST_AUTO_TEST_CASE(is_initial_snapshot_download) {
   SetDataDir("snapshot_state");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
+  auto *bi = new CBlockIndex;
+  bi->nHeight = 1;
+  bi->phashBlock = &mapBlockIndex.emplace(uint256S("aa"), bi).first->first;
+  snapshot::AddSnapshotHash(uint256S("cc"), bi);
+
   snapshot::State state;
   BOOST_CHECK(state.IsInitialSnapshotDownload());
-  pcoinsdbview->SetSnapshotId(0);
+  snapshot::FinalizeSnapshots(bi);
   BOOST_CHECK(!state.IsInitialSnapshotDownload());
 }
 

@@ -11,13 +11,14 @@
 #include <snapshot/indexer.h>
 #include <snapshot/messages.h>
 #include <snapshot/p2p_processing.h>
+#include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
 #include <util.h>
 #include <validation.h>
 
 namespace snapshot {
 
-bool Initialize(CCoinsViewDB *view, const Params &params) {
+bool Initialize(const Params &params) {
   if (!InitSecp256k1Context()) {
     return error("Can't initialize secp256k1_context for the snapshot hash.");
   }
@@ -28,16 +29,16 @@ bool Initialize(CCoinsViewDB *view, const Params &params) {
       LogPrintf("Initial Snapshot Download mode is enabled.\n");
     }
 
-    uint32_t id = 0;
-    if (view->GetSnapshotId(id)) {
+    uint256 snapshotHash;
+    if (GetLatestFinalizedSnapshotHash(snapshotHash)) {
       LogPrintf("Snapshot was successfully applied.\n");
     } else {
-      if (view->GetCandidateSnapshotId(id)) {
-        std::unique_ptr<Indexer> idx = Indexer::Open(id);
+      for (const Checkpoint &p : GetSnapshotCheckpoints()) {
+        std::unique_ptr<Indexer> idx = Indexer::Open(p.snapshotHash);
         if (idx) {
-          StoreCandidateBlockHash(idx->GetMeta().m_bestBlockHash);
+          StoreCandidateBlockHash(idx->GetMeta().m_blockHash);
           LogPrintf("Candidate snapshot for the block %s has found.\n",
-                    idx->GetMeta().m_bestBlockHash.GetHex());
+                    idx->GetMeta().m_blockHash.GetHex());
         }
       }
     }
@@ -47,6 +48,7 @@ bool Initialize(CCoinsViewDB *view, const Params &params) {
     }
   }
 
+  LoadSnapshotIndex();
   Creator::Init(params);
 
   return true;
@@ -56,6 +58,7 @@ void Deinitialize() {
   LogPrint(BCLog::SNAPSHOT, "%s invoked\n", __func__);
   DestroySecp256k1Context();
   Creator::Deinit();
+  SaveSnapshotIndex();
 }
 
 }  // namespace snapshot

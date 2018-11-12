@@ -1036,7 +1036,9 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         break;
       }
 
-      default: { break; }
+      default: {
+        break;
+      }
     }
   }
 
@@ -1055,10 +1057,19 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
         __func__, block.GetHash().GetHex());
     state->m_recommendedTargetHash = block.GetHash();
+
+    // mark snapshots finalized up to the last finalized block
+    int64_t height = (state->m_lastFinalizedEpoch + 1) * state->m_settings.m_epochLength - 1;
+    if (height == blockIndex.nHeight) {  // instant confirmation
+      snapshot::Creator::FinalizeSnapshots(&blockIndex);
+    } else {
+      snapshot::Creator::FinalizeSnapshots(chainActive[height]);
+    }
   }
 
   return true;
 }
+
 // Private accessors used to avoid map's operator[] potential side effects.
 ufp64::ufp64_t FinalizationState::GetDepositScaleFactor(uint32_t epoch) const {
   auto it = m_depositScaleFactor.find(epoch);

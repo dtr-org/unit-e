@@ -9,6 +9,7 @@
 #include <coins.h>
 #include <dbwrapper.h>
 #include <chain.h>
+#include <snapshot/snapshot_index.h>
 
 #include <map>
 #include <memory>
@@ -85,20 +86,8 @@ public:
     bool Upgrade();
     size_t EstimateSize() const override;
 
-    bool GetSnapshotId(uint32_t &idOut);
-    bool SetSnapshotId(uint32_t id);
-    bool GetCandidateSnapshotId(uint32_t &idOut);
-    bool SetCandidateSnapshotId(uint32_t id);
-    bool GetInitSnapshotId(uint32_t &idOut);
-    bool SetInitSnapshotId(uint32_t id);
-    bool DeleteInitSnapshotId();
-    std::vector<uint32_t> GetSnapshotIds();
-    bool SetSnapshotIds(std::vector<uint32_t> &ids);
-    bool ReserveSnapshotId(uint32_t &idOut);
-    bool SetSnapshotHash(const snapshot::SnapshotHash &hash);
-private:
-    // guarantee that all snapshot IDs are generated sequentially
-    CCriticalSection cs_reservedSnapshotId;
+    bool SetSnapshotIndex(const snapshot::SnapshotIndex &snapshotIndex);
+    bool GetSnapshotIndex(snapshot::SnapshotIndex &snapshotIndexOut);
 };
 
 /** Specialization of CCoinsViewCursor to iterate over a CCoinsViewDB */

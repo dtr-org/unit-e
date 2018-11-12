@@ -25,7 +25,7 @@ namespace snapshot {
 //! meta.dat
 //! | size | type    | field              | description
 //! | 32   | uint256 | m_snapshotHash     |
-//! | 32   | uint256 | m_bestBlockHash    | at which hash the snapshot was
+//! | 32   | uint256 | m_blockHash        | at which block hash the snapshot was
 //! |      |         |                    | created
 //! | 8    | uint64  | m_totalUTXOSubsets | total number of all UTXO
 //! |      |         |                    | subsets
@@ -104,7 +104,7 @@ const char *const SNAPSHOT_FOLDER = "snapshots";
 
 struct Meta {
   uint256 m_snapshotHash;
-  uint256 m_bestBlockHash;
+  uint256 m_blockHash;
   uint256 m_stakeModifier;
   uint64_t m_totalUTXOSubsets;
   uint32_t m_step;
@@ -112,15 +112,15 @@ struct Meta {
 
   Meta()
       : m_snapshotHash(),
-        m_bestBlockHash(),
+        m_blockHash(),
         m_stakeModifier(),
         m_totalUTXOSubsets(0),
         m_step(0),
         m_stepsPerFile(0) {}
 
-  Meta(const uint256 &snapshotHash, const uint256 &bestBlockHash, const uint256 &stakeModifier)
+  Meta(const uint256 &snapshotHash, const uint256 &blockHash, const uint256 &stakeModifier)
       : m_snapshotHash(snapshotHash),
-        m_bestBlockHash(bestBlockHash),
+        m_blockHash(blockHash),
         m_stakeModifier(stakeModifier),
         m_totalUTXOSubsets(0),
         m_step(0),
@@ -131,7 +131,7 @@ struct Meta {
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(m_snapshotHash);
-    READWRITE(m_bestBlockHash);
+    READWRITE(m_blockHash);
     READWRITE(m_stakeModifier);
     READWRITE(m_totalUTXOSubsets);
     READWRITE(m_step);
@@ -146,14 +146,13 @@ class Indexer {
   //! until the end of this index.
   using IdxMap = std::map<uint32_t, uint32_t>;
 
-  static std::unique_ptr<Indexer> Open(uint32_t snapshotId);
-  static bool Delete(uint32_t snapshotId);
+  static std::unique_ptr<Indexer> Open(const uint256 &snapshotHash);
+  static bool Delete(const uint256 &snapshotHash);
 
-  explicit Indexer(uint32_t snapshotId, const uint256 &snapshotHash,
-                   const uint256 &blockHash, const uint256 &stakeModifier,
+  explicit Indexer(const uint256 &snapshotHash, const uint256 &blockHash,
+                   const uint256 &stakeModifier,
                    uint32_t step, uint32_t stepsPerFile);
 
-  uint32_t GetSnapshotId() { return m_snapshotId; }
   const Meta &GetMeta() { return m_meta; }
   bool WriteUTXOSubsets(const std::vector<UTXOSubset> &list);
   bool WriteUTXOSubset(const UTXOSubset &utxoSubset);
@@ -174,8 +173,6 @@ class Indexer {
   bool Flush();
 
  private:
-  uint32_t m_snapshotId;  // folder in the data dir is equal to ID
-
   Meta m_meta;
   CDataStream m_stream;  // stores original messages
 
@@ -186,8 +183,7 @@ class Indexer {
   uint32_t m_fileBytes;                 // written bytes in the current file.
   fs::path m_dirPath;
 
-  explicit Indexer(uint32_t snapshotId, Meta meta,
-                   std::map<uint32_t, IdxMap> dirIdx);
+  explicit Indexer(const Meta &meta, std::map<uint32_t, IdxMap> dirIdx);
 
   std::string FileName(uint32_t fileId);
 

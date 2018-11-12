@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_flush) {
   uint32_t step = 3;
   uint32_t stepsPerFile = 2;
   std::unique_ptr<snapshot::Indexer> idx(
-      new snapshot::Indexer(0, uint256(), uint256(), uint256(), step, stepsPerFile));
+      new snapshot::Indexer(uint256(), uint256(), uint256(), step, stepsPerFile));
   CDataStream streamIn(SER_DISK, PROTOCOL_VERSION);
 
   uint64_t totalMsgs = step * stepsPerFile * 3;
@@ -48,11 +48,10 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   SetDataDir("snapshot_indexer_writer");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t snapshotId = 0;
   uint32_t step = 3;
   uint32_t stepsPerFile = 2;
   uint256 snapshotHash = uint256S("aa");
-  snapshot::Indexer indexer(snapshotId, snapshotHash, uint256(), uint256(),
+  snapshot::Indexer indexer(snapshotHash, uint256(), uint256(),
                             step, stepsPerFile);
 
   CDataStream stream(SER_DISK, PROTOCOL_VERSION);
@@ -64,7 +63,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
     BOOST_CHECK_EQUAL(indexer.GetMeta().m_totalUTXOSubsets, i + 1);
   }
 
-  fs::path dir = GetDataDir() / "snapshots" / std::to_string(snapshotId);
+  fs::path dir = GetDataDir() / "snapshots" / snapshotHash.GetHex();
   BOOST_CHECK(fs::exists(dir / "utxo0.dat"));
   BOOST_CHECK(fs::exists(dir / "utxo1.dat"));
   BOOST_CHECK(!fs::exists(dir / "utxo2.dat"));
@@ -81,12 +80,11 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   SetDataDir("snapshot_indexer_resume_writing");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t snapshotId = 0;
   uint32_t step = 3;
   uint32_t stepsPerFile = 3;
   uint256 snapshotHash = uint256S("aa");
   std::unique_ptr<snapshot::Indexer> indexer(new snapshot::Indexer(
-      snapshotId, snapshotHash, uint256(), uint256(), step, stepsPerFile));
+      snapshotHash, uint256(), uint256(), step, stepsPerFile));
 
   // close and re-open indexer after each write
   uint64_t totalMsgs = (step * stepsPerFile) * 3 + step;
@@ -104,11 +102,11 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
     BOOST_CHECK(indexer->WriteUTXOSubset(utxoSet));
     BOOST_CHECK_EQUAL(indexer->GetMeta().m_totalUTXOSubsets, i + 1);
     BOOST_CHECK(indexer->Flush());
-    indexer = snapshot::Indexer::Open(snapshotId);
+    indexer = snapshot::Indexer::Open(snapshotHash);
     BOOST_CHECK(indexer);
   }
 
-  fs::path dir = GetDataDir() / "snapshots" / std::to_string(snapshotId);
+  fs::path dir = GetDataDir() / "snapshots" / snapshotHash.GetHex();
   BOOST_CHECK(fs::exists(dir / "utxo0.dat"));
   BOOST_CHECK(fs::exists(dir / "utxo1.dat"));
   BOOST_CHECK(fs::exists(dir / "utxo2.dat"));
@@ -116,7 +114,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   BOOST_CHECK(!fs::exists(dir / "utxo4.dat"));
 
   // validate the content
-  indexer = snapshot::Indexer::Open(snapshotId);
+  indexer = snapshot::Indexer::Open(snapshotHash);
   BOOST_CHECK(indexer);
 
   snapshot::Iterator iter(std::move(indexer));
@@ -135,14 +133,13 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
   SetDataDir("snapshot_indexer_open");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
-  uint32_t snapshotId = 0;
   uint32_t step = 3;
   uint32_t stepsPerFile = 2;
   uint256 snapshotHash = uint256S("aa");
   uint256 bestBlockHash = uint256S("bb");
   uint256 stakeModifier = uint256S("cc");
 
-  snapshot::Indexer indexer(snapshotId, snapshotHash, bestBlockHash,
+  snapshot::Indexer indexer(snapshotHash, bestBlockHash,
                             stakeModifier, step, stepsPerFile);
 
   uint64_t totalMsgs = (step * stepsPerFile) * 2 + step;
@@ -152,11 +149,11 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
   }
   BOOST_CHECK(indexer.Flush());
 
-  auto openedIdx = snapshot::Indexer::Open(snapshotId);
+  auto openedIdx = snapshot::Indexer::Open(snapshotHash);
   BOOST_CHECK(openedIdx);
   BOOST_CHECK_EQUAL(HexStr(openedIdx->GetMeta().m_snapshotHash),
                     HexStr(snapshotHash));
-  BOOST_CHECK_EQUAL(HexStr(openedIdx->GetMeta().m_bestBlockHash),
+  BOOST_CHECK_EQUAL(HexStr(openedIdx->GetMeta().m_blockHash),
                     HexStr(bestBlockHash));
   BOOST_CHECK_EQUAL(HexStr(openedIdx->GetMeta().m_stakeModifier),
                     HexStr(stakeModifier));

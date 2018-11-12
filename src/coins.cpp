@@ -244,7 +244,8 @@ void CCoinsViewCache::ClearCoins() {
 }
 
 bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
-    LogPrint(BCLog::COINDB, "%s: Apply snapshot id=%i.\n", __func__, indexer->GetSnapshotId());
+    LogPrint(BCLog::COINDB, "%s: Apply snapshot hash=%s.\n",
+             __func__, indexer->GetMeta().m_snapshotHash.GetHex());
 
     ClearCoins();
 

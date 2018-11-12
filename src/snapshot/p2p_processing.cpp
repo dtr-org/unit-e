@@ -7,6 +7,7 @@
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
 #include <snapshot/messages.h>
+#include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
 #include <sync.h>
 #include <txdb.h>
@@ -30,29 +31,29 @@ bool ProcessGetSnapshot(CNode *node, CDataStream &data,
 
   std::unique_ptr<Indexer> indexer = nullptr;
   if (get.m_bestBlockHash.IsNull()) {  // initial request
-    uint32_t snapshotId;
-    if (!pcoinsdbview->GetSnapshotId(snapshotId)) {
-      LogPrint(BCLog::NET, "getsnapshot: no current snapshot\n");
+    uint256 snapshotHash;
+    if (!GetLatestFinalizedSnapshotHash(snapshotHash)) {
+      LogPrint(BCLog::NET, "getsnapshot: no finalized snapshots\n");
       return false;
     }
 
-    indexer = Indexer::Open(snapshotId);
+    indexer = Indexer::Open(snapshotHash);
     if (!indexer) {
-      LogPrint(BCLog::NET, "getsnapshot: can't read snapshot %i\n", snapshotId);
+      LogPrint(BCLog::NET, "getsnapshot: can't read snapshot %s\n",
+               snapshotHash.GetHex());
       return false;
     }
   } else {
-    // iterate backwards to check the most recent snapshot first
-    std::vector<uint32_t> ids = pcoinsdbview->GetSnapshotIds();
-    for (auto it = ids.rbegin(); it != ids.rend(); ++it) {
-      indexer = Indexer::Open(*it);
-      if (indexer) {
-        if (indexer->GetMeta().m_bestBlockHash == get.m_bestBlockHash) {
-          break;
-        } else {
-          indexer = nullptr;
-        }
-      }
+    const CBlockIndex *msgBlockIndex = LookupBlockIndex(get.m_bestBlockHash);
+    if (!msgBlockIndex) {
+      LogPrint(BCLog::NET, "snapshot: unknown block hash=%s\n",
+               get.m_bestBlockHash.GetHex());
+      return false;
+    }
+
+    uint256 snapshotHash;
+    if (GetFinalizedSnapshotHash(msgBlockIndex, snapshotHash)) {
+      indexer = Indexer::Open(snapshotHash);
     }
     if (!indexer) {
       // todo: send notfound that node can ask for newer snapshot
@@ -95,7 +96,8 @@ bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
 }
 
 // helper function for ProcessSnapshot
-bool SaveSnapshotAndRequestMore(std::unique_ptr<Indexer> &&indexer,
+bool SaveSnapshotAndRequestMore(const CBlockIndex *blockIndex,
+                                std::unique_ptr<Indexer> &&indexer,
                                 Snapshot &snap, CNode *node,
                                 const CNetMsgMaker &msgMaker) {
   // todo allow to accept messages not in a sequential order
@@ -125,14 +127,10 @@ bool SaveSnapshotAndRequestMore(std::unique_ptr<Indexer> &&indexer,
                HexStr(snapHash), HexStr(snap.m_snapshotHash));
 
       // restart the initial download from the beginning.
-      pcoinsdbview->DeleteInitSnapshotId();
+      SnapshotIndex::DeleteSnapshot(snap.m_snapshotHash);
       return false;
     }
 
-    if (!pcoinsdbview->SetCandidateSnapshotId(iterator.GetSnapshotId())) {
-      LogPrint(BCLog::NET, "snapshot: can't set the final snapshot id\n");
-      return false;
-    }
     StoreCandidateBlockHash(iterator.GetBestBlockHash());
 
     LogPrint(BCLog::NET, "snapshot: finished downloading the snapshot\n");
@@ -174,15 +172,15 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   }
 
   std::unique_ptr<Indexer> indexer = nullptr;
-  uint32_t snapshotId;
-  if (pcoinsdbview->GetInitSnapshotId(snapshotId)) {
-    indexer = Indexer::Open(snapshotId);
+  for (const Checkpoint &p : GetSnapshotCheckpoints()) {
+    indexer = Indexer::Open(p.snapshotHash);
+    break;
   }
 
   if (indexer) {
     const Meta &idxMeta = indexer->GetMeta();
 
-    CBlockIndex *curBlockIndex = LookupBlockIndex(idxMeta.m_bestBlockHash);
+    CBlockIndex *curBlockIndex = LookupBlockIndex(idxMeta.m_blockHash);
     assert(curBlockIndex);
 
     if (curBlockIndex->nHeight > msgBlockIndex->nHeight) {
@@ -190,7 +188,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
                curBlockIndex->nHeight, msgBlockIndex->nHeight);
 
       // ask the peer if it has the same snapshot
-      GetSnapshot get(idxMeta.m_bestBlockHash);
+      GetSnapshot get(idxMeta.m_blockHash);
       get.m_utxoSubsetIndex = idxMeta.m_totalUTXOSubsets;
       get.m_utxoSubsetCount = MAX_UTXO_SET_COUNT;
       return SendGetSnapshot(node, get, msgMaker);
@@ -200,22 +198,17 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
       LogPrint(BCLog::NET, "snapshot: switch to new height. has=%i got=%i\n",
                curBlockIndex->nHeight, msgBlockIndex->nHeight);
 
-      if (!pcoinsdbview->ReserveSnapshotId(snapshotId)) {
-        LogPrint(BCLog::NET, "snapshot: can't reserve snapshot ID\n");
-        return false;
-      }
+      // delete old snapshot first
+      SnapshotIndex::DeleteSnapshot(idxMeta.m_snapshotHash);
 
-      if (!pcoinsdbview->SetInitSnapshotId(snapshotId)) {
-        LogPrint(BCLog::NET, "snapshot: can't update initial snapshot ID\n");
-        return false;
-      }
-      indexer.reset(new Indexer(snapshotId, msg.m_snapshotHash,
-                                msg.m_bestBlockHash, msg.m_stakeModifier,
+      AddSnapshotHash(msg.m_snapshotHash, msgBlockIndex);
+      indexer.reset(new Indexer(msg.m_snapshotHash, msg.m_bestBlockHash,
+                                msg.m_stakeModifier,
                                 DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
     } else {
       // we don't know which snapshot is the correct one at this stage
       // so we assume the initial one.
-      // todo check what other peers are sending and switch to majority
+      // todo rely on esperanza finalization. ADR-21
       if (idxMeta.m_snapshotHash != msg.m_snapshotHash) {
         LogPrint(BCLog::NET, "snapshot: reject snapshot hash. has=%s got=%s\n",
                  idxMeta.m_snapshotHash.GetHex(), msg.m_snapshotHash.GetHex());
@@ -223,24 +216,23 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
       }
     }
 
-    return SaveSnapshotAndRequestMore(std::move(indexer), msg, node, msgMaker);
+    return SaveSnapshotAndRequestMore(msgBlockIndex,
+                                      std::move(indexer), msg, node, msgMaker);
   }
 
   // always create a new snapshot if previous one can't be opened.
   // otherwise, node is stuck and can't resume initial snapshot download
-  if (!pcoinsdbview->ReserveSnapshotId(snapshotId)) {
-    LogPrint(BCLog::NET, "snapshot: can't reserve snapshot ID\n");
-    return false;
-  }
 
-  if (!pcoinsdbview->SetInitSnapshotId(snapshotId)) {
-    LogPrint(BCLog::NET, "snapshot: can't update initial snapshot ID\n");
-    return false;
+  for (const Checkpoint &p : GetSnapshotCheckpoints()) {
+    SnapshotIndex::DeleteSnapshot(p.snapshotHash);
   }
-  indexer.reset(new Indexer(snapshotId, msg.m_snapshotHash, msg.m_bestBlockHash,
+  AddSnapshotHash(msg.m_snapshotHash, msgBlockIndex);
+
+  indexer.reset(new Indexer(msg.m_snapshotHash, msg.m_bestBlockHash,
                             msg.m_stakeModifier,
                             DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
-  return SaveSnapshotAndRequestMore(std::move(indexer), msg, node, msgMaker);
+  return SaveSnapshotAndRequestMore(msgBlockIndex, std::move(indexer), msg, node,
+                                    msgMaker);
 }
 
 void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
@@ -288,6 +280,8 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
     return regularProcessing();
   }
 
+  uint256 snapshotHash;
+  CBlockIndex *snapshotBlockIndex;
   {
     LOCK(cs_main);
 
@@ -315,12 +309,12 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
     }
 
     chainActive.SetTip(blockIndex->pprev);
+
+    snapshotBlockIndex = blockIndex->pprev;
+    assert(GetSnapshotHash(snapshotBlockIndex, snapshotHash));
   }
 
-  uint32_t snapshotId;
-  assert(pcoinsdbview->GetCandidateSnapshotId(snapshotId));
-
-  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotId);
+  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotHash);
   assert(idx);
   if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
     // if we can't write the snapshot, we have an issue with the DB
@@ -370,7 +364,10 @@ void ProcessSnapshotParentBlock(CBlock *parentBlock,
   }
 
   // at this stage we are leaving ISD
-  assert(pcoinsdbview->SetSnapshotId(snapshotId));
+  FinalizeSnapshots(snapshotBlockIndex);
+  uint256 hash;
+  assert(GetLatestFinalizedSnapshotHash(hash));
+  assert(snapshotHash == hash);
 }
 
 bool FindNextBlocksToDownload(NodeId nodeId,

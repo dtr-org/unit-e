@@ -161,7 +161,7 @@ BASE_SCRIPTS= [
     'feature_help.py',
     'rpc_calcsnapshothash.py',
     'rpc_createsnapshot.py',
-    'rpc_readsnapshot.py',
+    'rpc_getblocksnapshot.py',
     'feature_snapshot.py',
     'feature_snapshot_creation.py',
     'example_test.py',

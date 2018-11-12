@@ -15,11 +15,21 @@
 #include <snapshot/messages.h>
 #include <snapshot/state.h>
 #include <test/test_unite.h>
+#include <snapshot/snapshot_index.h>
 #include <validation.h>
 #include <version.h>
 #include <boost/test/unit_test.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(snapshot_p2p_processing_tests, TestingSetup)
+
+bool HasSnapshotHash(const uint256 &hash) {
+  for (const snapshot::Checkpoint &p : snapshot::GetSnapshotCheckpoints()) {
+    if (p.snapshotHash == hash) {
+      return true;
+    }
+  }
+  return false;
+}
 
 std::unique_ptr<CNode> mockNode() {
   uint32_t ip = 0xa0b0c001;
@@ -62,8 +72,9 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   const uint64_t totalMessages = 6;
 
   // simulate that header was already received
-  mapBlockIndex[bestBlockHash] = new CBlockIndex;
-  mapBlockIndex[bestBlockHash]->bnStakeModifier.SetHex("aa");
+  auto bi = new CBlockIndex;
+  bi->bnStakeModifier = stakeModifier;
+  bi->phashBlock = &mapBlockIndex.emplace(bestBlockHash, bi).first->first;
 
   for (uint64_t i = 0; i < totalMessages / 2; ++i) {
     // simulate receiving the snapshot response
@@ -108,13 +119,12 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
     }
   }
 
-  uint32_t snapId{0};
-  BOOST_CHECK(pcoinsdbview->GetCandidateSnapshotId(snapId));
-  std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(snapId));
-  BOOST_CHECK(idx->GetMeta().m_bestBlockHash == bestBlockHash);
+  BOOST_CHECK(HasSnapshotHash(snapshotHash));
+  std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(snapshotHash));
+  BOOST_CHECK(idx->GetMeta().m_blockHash == bestBlockHash);
   BOOST_CHECK(idx->GetMeta().m_totalUTXOSubsets == totalMessages);
 
-  uint64_t i{0};
+  uint64_t i = 0;
   snapshot::Iterator iter(std::move(idx));
   while (iter.Valid()) {
     BOOST_CHECK(iter.GetUTXOSubset().m_txId.GetUint64(0) == i);
@@ -152,6 +162,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   snapshot::Snapshot snap;
   snap.m_utxoSubsets.emplace_back(snapshot::UTXOSubset());
   snap.m_bestBlockHash = bi1->GetBlockHash();
+  snap.m_snapshotHash = uint256S("aa");
   snap.m_utxoSubsetIndex = 0;
   snap.m_totalUTXOSubsets = 5;
   CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
@@ -159,9 +170,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
 
   // process first chunk and ask for the next one
   BOOST_CHECK(snapshot::ProcessSnapshot(node.get(), body, msgMaker));
-  uint32_t snapId{0};
-  BOOST_CHECK(pcoinsdbview->GetInitSnapshotId(snapId));
-  BOOST_CHECK_EQUAL(snapId, 0);
+  BOOST_CHECK(HasSnapshotHash(uint256S("aa")));
   snapshot::GetSnapshot get;
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
   BOOST_CHECK_EQUAL(get.m_bestBlockHash, bi1->GetBlockHash());
@@ -170,11 +179,12 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
 
   // switch to higher block height and ask for the next chunk
   snap.m_bestBlockHash = bi3->GetBlockHash();
+  snap.m_snapshotHash = uint256S("bb");
   body << snap;
 
   BOOST_CHECK(snapshot::ProcessSnapshot(node.get(), body, msgMaker));
-  BOOST_CHECK(pcoinsdbview->GetInitSnapshotId(snapId));
-  BOOST_CHECK_EQUAL(snapId, 1);
+  BOOST_CHECK(!HasSnapshotHash(uint256S("aa")));
+  BOOST_CHECK(HasSnapshotHash(uint256S("bb")));
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
   BOOST_CHECK_EQUAL(get.m_bestBlockHash, bi3->GetBlockHash());
   BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, 1);
@@ -183,10 +193,11 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   // don't switch to lower block height but ask the peer if it has the next
   // chunk of our snapshot
   snap.m_bestBlockHash = bi2->GetBlockHash();
+  snap.m_snapshotHash = uint256S("cc");
   body << snap;
   BOOST_CHECK(snapshot::ProcessSnapshot(node.get(), body, msgMaker));
-  BOOST_CHECK(pcoinsdbview->GetInitSnapshotId(snapId));
-  BOOST_CHECK_EQUAL(snapId, 1);
+  BOOST_CHECK(!HasSnapshotHash(uint256S("cc")));
+  BOOST_CHECK(HasSnapshotHash(uint256S("bb")));
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
   BOOST_CHECK_EQUAL(get.m_bestBlockHash, bi3->GetBlockHash());
   BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, 1);

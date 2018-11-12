@@ -4,11 +4,14 @@
 
 #include <snapshot/rpc_processing.h>
 
+#include <chainparams.h>
 #include <rpc/server.h>
 #include <serialize.h>
 #include <snapshot/creator.h>
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
+#include <snapshot/snapshot_index.h>
+#include <snapshot/snapshot_validation.h>
 #include <streams.h>
 #include <univalue.h>
 #include <utilstrencodings.h>
@@ -17,102 +20,122 @@
 
 namespace snapshot {
 
+UniValue SnapshotNode(const uint256 &snapshotHash) {
+  UniValue node(UniValue::VOBJ);
+  node.push_back(Pair("snapshot_hash", snapshotHash.GetHex()));
+  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotHash);
+  if (!idx) {
+    node.push_back(Pair("valid", false));
+    return node;
+  }
+
+  node.push_back(Pair("valid", true));
+  node.push_back(Pair("block_hash", idx->GetMeta().m_blockHash.GetHex()));
+  node.push_back(Pair("block_height", mapBlockIndex[idx->GetMeta().m_blockHash]->nHeight));
+  node.push_back(Pair("stake_modifier", idx->GetMeta().m_stakeModifier.GetHex()));
+  node.push_back(Pair("total_utxo_subsets", idx->GetMeta().m_totalUTXOSubsets));
+
+  uint64_t outputs = 0;
+  Iterator iter(std::move(idx));
+  while (iter.Valid()) {
+    outputs += iter.GetUTXOSubset().m_outputs.size();
+    iter.Next();
+  }
+  node.push_back(Pair("total_outputs", outputs));
+
+  return node;
+}
+
 UniValue listsnapshots(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() > 0) {
     throw std::runtime_error(
         "listsnapshots\n"
-        "\nList all snapshots.\n"
+        "\nLists all snapshots.\n"
         "\nExamples:\n" +
-        HelpExampleCli("listsnapshots", "") + HelpExampleRpc("listsnapshots", ""));
+        HelpExampleCli("listsnapshots", "") +
+        HelpExampleRpc("listsnapshots", ""));
   }
 
-  UniValue rootNode(UniValue::VOBJ);
-  uint32_t snapshotId = 0;
-  if (pcoinsdbview->GetSnapshotId(snapshotId)) {
-    rootNode.push_back(Pair("snapshot_id", int(snapshotId)));
-    std::unique_ptr<Indexer> idx = Indexer::Open(snapshotId);
-    if (idx) {
-      rootNode.push_back(Pair("snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
-    }
+  UniValue listNode(UniValue::VARR);
+  for (const Checkpoint &p : GetSnapshotCheckpoints()) {
+    UniValue node = SnapshotNode(p.snapshotHash);
+    node.push_back(Pair("snapshot_finalized", p.finalized));
+    listNode.push_back(node);
   }
 
-  if (pcoinsdbview->GetCandidateSnapshotId(snapshotId)) {
-    rootNode.push_back(Pair("candidate_snapshot_id", int(snapshotId)));
-    std::unique_ptr<Indexer> idx = Indexer::Open(snapshotId);
-    if (idx) {
-      rootNode.push_back(Pair("candidate_snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
-    }
-  }
-
-  if (pcoinsdbview->GetInitSnapshotId(snapshotId)) {
-    rootNode.push_back(Pair("init_snapshot_id", int(snapshotId)));
-    std::unique_ptr<Indexer> idx = Indexer::Open(snapshotId);
-    if (idx) {
-      rootNode.push_back(Pair("init_snapshot_hash", idx->GetMeta().m_snapshotHash.GetHex()));
-    }
-  }
-
-  return rootNode;
+  return listNode;
 }
 
-UniValue readsnapshot(const JSONRPCRequest &request) {
+UniValue getblocksnapshot(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() > 1) {
     throw std::runtime_error(
-        "readsnapshot (<id>)\n"
-        "\nReads the snapshot and prints its content.\n"
+        "getblocksnapshot (<blockhash>)\n"
+        "\nReturns the snapshot hash of the block.\n"
         "\nArguments:\n"
-        "1. id (numeric, optional) Which snapshot to read. "
-        "If id is missing, read the current one."
+        "1. blockhash (hex, optional) block hash to lookup. If missing, the top is used. "
         "\nExamples:\n" +
-        HelpExampleCli("readsnapshot", "0") + HelpExampleRpc("readsnapshot", "0"));
+        HelpExampleCli("getblocksnapshot", "0000000000d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03") +
+        HelpExampleRpc("getblocksnapshot", "0000000000d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"));
   }
 
   UniValue rootNode(UniValue::VOBJ);
 
-  uint32_t snapshotId = 0;
+  CBlockIndex *blockIndex = chainActive.Tip();
   if (!request.params.empty()) {
-    snapshotId = static_cast<uint32_t>(request.params[0].get_int());
+    uint256 blockHash = uint256S(request.params[0].get_str());
+    auto it = mapBlockIndex.find(blockHash);
+    if (it == mapBlockIndex.end()) {
+      rootNode.push_back(Pair("error", "invalid block hash"));
+      return rootNode;
+    }
+    blockIndex = it->second;
+  }
+
+  uint256 snapshotHash;
+  if (blockIndex == chainActive.Tip()) {
+    snapshotHash = pcoinsTip->GetSnapshotHash().GetHash(blockIndex->bnStakeModifier);
   } else {
-    if (!pcoinsdbview->GetSnapshotId(snapshotId)) {
-      rootNode.push_back(Pair("error", "snapshot is missing"));
+    CBlockIndex *parent = chainActive[blockIndex->nHeight + 1];
+    if (parent->pprev != blockIndex) {
+      // requested block is not in the active chain
+      bool found = false;
+      for (const auto &p : mapBlockIndex) {
+        if (p.second->pprev == blockIndex) {
+          parent = p.second;
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) {
+        rootNode.push_back(Pair("error", "can't retrieve snapshot hash of the fork"));
+        return rootNode;
+      }
+    }
+
+    CBlock block;
+    if (!ReadBlockFromDisk(block, parent, ::Params().GetConsensus())) {
+      rootNode.push_back(Pair("error", "can't read block from disk"));
+      return rootNode;
+    }
+
+    if (!ReadSnapshotHashFromTx(*block.vtx[0].get(), snapshotHash)) {
+      rootNode.push_back(Pair("error", "block doesn't contain snapshot hash"));
       return rootNode;
     }
   }
 
-  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotId);
-  if (idx == nullptr) {
-    rootNode.push_back(Pair("error", "can't read snapshot"));
-    return rootNode;
+  UniValue node = SnapshotNode(snapshotHash);
+  for (const Checkpoint &p : GetSnapshotCheckpoints()) {
+    if (p.snapshotHash == snapshotHash) {
+      node.push_back(Pair("snapshot_finalized", p.finalized));
+      return node;
+    }
   }
 
-  Iterator iter(std::move(idx));
-  int totalOutputs = 0;
-  while (iter.Valid()) {
-    UTXOSubset subset = iter.GetUTXOSubset();
-    totalOutputs += subset.m_outputs.size();
-
-    iter.Next();
-  }
-
-  rootNode.push_back(Pair("snapshot_hash", iter.GetSnapshotHash().GetHex()));
-  rootNode.push_back(Pair("snapshot_id", int(iter.GetSnapshotId())));
-  rootNode.push_back(Pair("best_block_hash", iter.GetBestBlockHash().GetHex()));
-  rootNode.push_back(Pair("total_utxo_subsets", iter.GetTotalUTXOSubsets()));
-  rootNode.push_back(Pair("total_outputs", totalOutputs));
-
-  {
-    uint32_t id = 0;
-    pcoinsdbview->GetSnapshotId(id);
-    rootNode.push_back(Pair("current_snapshot_id", static_cast<uint64_t>(id)));
-  }
-
-  UniValue ids(UniValue::VARR);
-  for (uint32_t &id : pcoinsdbview->GetSnapshotIds()) {
-    ids.push_back(static_cast<uint64_t>(id));
-  }
-  rootNode.push_back(Pair("all_snapshot_ids", ids));
-
-  return rootNode;
+  node.push_back(Pair("snapshot_deleted", true));
+  node.push_back(Pair("block_hash", blockIndex->GetBlockHash().GetHex()));
+  return node;
 }
 
 UniValue createsnapshot(const JSONRPCRequest &request) {
@@ -133,18 +156,12 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
     creator.m_maxUTXOSubsets = static_cast<uint64_t>(request.params[0].get_int64());
   }
 
-  UniValue rootNode(UniValue::VOBJ);
   CreationInfo info = creator.Create();
   if (info.m_status != +Status::OK) {
+    UniValue rootNode(UniValue::VOBJ);
     switch (info.m_status) {
       case Status::WRITE_ERROR:
         rootNode.push_back(Pair("error", "can't write to any *.dat files"));
-        break;
-      case Status::RESERVE_SNAPSHOT_ID_ERROR:
-        rootNode.push_back(Pair("error", "can't reserve snapshot ID"));
-        break;
-      case Status::SET_SNAPSHOT_ID_ERROR:
-        rootNode.push_back(Pair("error", "can't set new snapshot ID"));
         break;
       case Status::CALC_SNAPSHOT_HASH_ERROR:
         rootNode.push_back(Pair("error", "can't calculate hash of the snapshot"));
@@ -155,22 +172,7 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
     return rootNode;
   }
 
-  rootNode.push_back(Pair("snapshot_hash", info.m_indexerMeta.m_snapshotHash.GetHex()));
-  rootNode.push_back(Pair("best_block_hash", info.m_indexerMeta.m_bestBlockHash.GetHex()));
-  rootNode.push_back(Pair("total_utxo_subsets", info.m_indexerMeta.m_totalUTXOSubsets));
-  rootNode.push_back(Pair("total_outputs", info.m_totalOutputs));
-
-  uint32_t snapshotId = 0;
-  pcoinsdbview->GetSnapshotId(snapshotId);
-  rootNode.push_back(Pair("current_snapshot_id", static_cast<uint64_t>(snapshotId)));
-
-  UniValue ids(UniValue::VARR);
-  for (uint32_t &id : pcoinsdbview->GetSnapshotIds()) {
-    ids.push_back(static_cast<uint64_t>(id));
-  }
-  rootNode.push_back(Pair("all_snapshot_ids", ids));
-
-  return rootNode;
+  return SnapshotNode(info.m_indexerMeta.m_snapshotHash);
 }
 
 UniValue calcsnapshothash(const JSONRPCRequest &request) {
@@ -265,7 +267,7 @@ static const CRPCCommand commands[] = {
     // category     name                 actor (function)   argNames
     // --------     -----------------   ----------------   --------
     { "blockchain", "createsnapshot",   &createsnapshot,   {"maxutxosubsets"} },
-    { "blockchain", "readsnapshot",     &readsnapshot,     {"id"} },
+    { "blockchain", "getblocksnapshot", &getblocksnapshot, {"blockhash"} },
     { "blockchain", "listsnapshots",    &listsnapshots,    {""} },
     { "blockchain", "gettipsnapshot",   &gettipsnapshot,   {}},
     { "blockchain", "calcsnapshothash", &calcsnapshothash, {}},
