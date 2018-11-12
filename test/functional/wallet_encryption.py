@@ -36,6 +36,9 @@ class WalletEncryptionTest(UnitETestFramework):
         # Test that the wallet is encrypted
         assert_raises_rpc_error(-13, "Please enter the wallet passphrase with walletpassphrase first", self.nodes[0].dumpprivkey, address)
 
+        # Test encryption status attribute
+        assert_equal('LOCKED', self.nodes[0].getwalletinfo()['encryption_status'])
+
         # Check that walletpassphrase works
         self.nodes[0].walletpassphrase(passphrase, 2)
         assert_equal(privkey, self.nodes[0].dumpprivkey(address))
@@ -46,6 +49,11 @@ class WalletEncryptionTest(UnitETestFramework):
 
         # Test wrong passphrase
         assert_raises_rpc_error(-14, "wallet passphrase entered was incorrect", self.nodes[0].walletpassphrase, passphrase + "wrong", 10)
+
+        # Test unlocking for staking only
+        self.nodes[0].walletpassphrase(passphrase, 2, True)
+        assert_equal('UNLOCKED_FOR_STAKING_ONLY', self.nodes[0].getwalletinfo()['encryption_status'])
+        assert_raises_rpc_error(-13, "Wallet is unlocked for staking only", self.nodes[0].dumpprivkey, address)
 
         # Test walletlock
         self.nodes[0].walletpassphrase(passphrase, 84600)

@@ -123,7 +123,9 @@ public:
     {
         Unencrypted,  // !wallet->IsCrypted()
         Locked,       // wallet->IsCrypted() && wallet->IsLocked()
-        Unlocked      // wallet->IsCrypted() && !wallet->IsLocked()
+        Unlocked,     // wallet->IsCrypted() && !wallet->IsLocked() &&
+                      // !wallet->GetWalletExtension().m_staking_only
+        UnlockedForStakingOnly,  // otherwise
     };
 
     OptionsModel *getOptionsModel();

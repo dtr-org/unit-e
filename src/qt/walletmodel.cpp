@@ -402,6 +402,10 @@ WalletModel::EncryptionStatus WalletModel::getEncryptionStatus() const
     {
         return Locked;
     }
+    else if (wallet->GetWalletExtension().m_staking_only)
+    {
+        return UnlockedForStakingOnly;
+    }
     else
     {
         return Unlocked;
