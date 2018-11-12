@@ -2,17 +2,25 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <chainparams.h>
 #include <esperanza/finalizationstate.h>
+
+#include <chainparams.h>
 #include <esperanza/validation.h>
 #include <esperanza/vote.h>
 #include <script/ismine.h>
-#include <stdio.h>
+#include <snapshot/creator.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
 #include <validation.h>
+
+#include <stdint.h>
+#include <algorithm>
+#include <cassert>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace esperanza {
 
@@ -1030,6 +1038,12 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
       default: { break; }
     }
+  }
+
+  if ((blockIndex.nHeight + 2) % state->m_settings.m_epochLength == 0) {
+    // Generate the snapshot for the block which is one block behind the last one.
+    // The last epoch block will contain the snapshot hash pointing to this snapshot.
+    snapshot::Creator::GenerateOrSkip(state->m_currentEpoch);
   }
 
   // This is the last block for the current epoch and it represent it, so we

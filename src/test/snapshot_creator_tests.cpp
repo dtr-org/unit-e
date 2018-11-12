@@ -49,14 +49,13 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
     BOOST_CHECK(viewCache->Flush());
   }
 
-  snapshot::Creator creator(viewDB.get());
-  creator.m_step = 3;
-  creator.m_stepsPerFile = 2;
-
   {
     // create snapshots
     std::vector<uint32_t> ids;
     for (uint32_t idx = 0; idx < 10; ++idx) {
+      snapshot::Creator creator(viewDB.get());
+      creator.m_step = 3;
+      creator.m_stepsPerFile = 2;
       snapshot::CreationInfo info = creator.Create();
 
       // validate snapshot ID

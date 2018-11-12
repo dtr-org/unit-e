@@ -406,6 +406,8 @@ public:
 
         adminParams.m_blockToAdminKeys.emplace(0, CreateRegTestAdminKeys());
 
+        snapshotParams.createSnapshotPerEpoch = gArgs.GetArg("-createsnapshot", 1);
+
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);

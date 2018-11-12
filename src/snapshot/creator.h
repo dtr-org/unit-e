@@ -5,14 +5,16 @@
 #ifndef UNITE_SNAPSHOT_CREATOR_H
 #define UNITE_SNAPSHOT_CREATOR_H
 
-#include <stdint.h>
-#include <string>
-
 #include <better-enums/enum.h>
 #include <scheduler.h>
+#include <snapshot/chainstate_iterator.h>
 #include <snapshot/indexer.h>
+#include <snapshot/params.h>
 #include <streams.h>
 #include <txdb.h>
+
+#include <stdint.h>
+#include <string>
 
 namespace snapshot {
 
@@ -37,6 +39,9 @@ struct CreationInfo {
   CreationInfo() : m_status(Status::OK), m_totalOutputs(0) {}
 };
 
+//! Creator class accepts the CCoinsViewDB and takes the cursor of it
+//! at the point of object construction. Once the Create() function is called,
+//! creator object should be thrown way. It's not designed to be re-used.
 class Creator {
  public:
   //! aggregate messages per index
@@ -53,16 +58,25 @@ class Creator {
   //! \brief Init Initializes the instance of Creator
   //!
   //! Must be invoked before calling any other snapshot::Snapshot* functions
-  static void Init(CCoinsViewDB *view, CScheduler &scheduler);
+  static void Init(const Params &params);
+
+  static void Deinit();
 
   explicit Creator(CCoinsViewDB *view);
+
+  //! Create creates the snapshot of the current chainstate DB
   CreationInfo Create();
+
+  //! GenerateOrSkip checks if the snapshot must be created for the current epoch
+  //! according to the ChainParams.createSnapshotPerEpoch. Snapshot creation is
+  //! performed in a separate thread.
+  //!
+  //! \@param currentEpoch is the current epoch number which starts from 0
+  static void GenerateOrSkip(uint32_t currentEpoch);
 
  private:
   CCoinsViewDB *m_view;
-
-  //! \brief Generate calls Create() recurrently in the thread
-  void Generate();
+  ChainstateIterator m_iter;
 };
 
 }  // namespace snapshot

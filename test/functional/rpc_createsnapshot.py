@@ -10,9 +10,15 @@ from test_framework.util import assert_equal
 class RpcCreateSnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
+        self.extra_args = [
+            ["-createsnapshot=0"]
+        ]
+        self.setup_clean_chain = True
 
     def test_full_snapshot_creation(self):
         node = self.nodes[0]
+        node.generatetoaddress(50, node.getnewaddress())
+
         res = node.createsnapshot()
         keys = sorted(res.keys())
         assert_equal(keys, [
@@ -24,8 +30,8 @@ class RpcCreateSnapshotTest(UnitETestFramework):
             "total_utxo_subsets",
         ])
         assert_equal(res['current_snapshot_id'], 0)
-        assert_equal(res['total_utxo_subsets'], 201)
-        assert_equal(res['total_outputs'], 205)
+        assert_equal(res['total_utxo_subsets'], 51)
+        assert_equal(res['total_outputs'], 55)
         assert_equal(res['best_block_hash'], node.getbestblockhash())
         assert_equal(res['snapshot_hash'], node.readsnapshot(res['current_snapshot_id'])['snapshot_hash'])
 

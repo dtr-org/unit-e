@@ -13,6 +13,7 @@
 #include <esperanza/adminparams.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/params.h>
+#include <snapshot/params.h>
 
 #include <memory>
 #include <vector>
@@ -61,6 +62,7 @@ public:
     const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
     const esperanza::Params& GetEsperanza() const { return esperanza; }
     const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
+    const snapshot::Params& GetSnapshotParams() const { return snapshotParams; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
     int GetDefaultPort() const { return nDefaultPort; }
 
@@ -91,6 +93,7 @@ protected:
     esperanza::Params esperanza = esperanza::Params(this);
     esperanza::FinalizationParams finalization;
     esperanza::AdminParams adminParams;
+    snapshot::Params snapshotParams;
     CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
     uint64_t nPruneAfterHeight;

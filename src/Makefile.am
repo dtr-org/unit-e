@@ -190,6 +190,7 @@ UNITE_CORE_H = \
   snapshot/iterator.h \
   snapshot/messages.h \
   snapshot/p2p_processing.h \
+  snapshot/params.h \
   snapshot/rpc_processing.h \
   snapshot/snapshot_validation.h \
   snapshot/state.h \

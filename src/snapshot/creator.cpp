@@ -4,40 +4,102 @@
 
 #include <snapshot/creator.h>
 
-#include <clientversion.h>
-#include <fs.h>
-#include <serialize.h>
-#include <snapshot/chainstate_iterator.h>
 #include <snapshot/indexer.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
+#include <sync.h>
 #include <util.h>
 #include <validation.h>
-#include <boost/thread.hpp>
+
+#include <atomic>
+#include <queue>
+#include <thread>
 
 namespace snapshot {
 
-std::unique_ptr<Creator> creator = nullptr;
+int64_t createSnapshotPerEpoch = 0;
 
-void Creator::Init(CCoinsViewDB *view, CScheduler &scheduler) {
-  if (creator == nullptr) {
-    creator = MakeUnique<Creator>(view);
-    scheduler.scheduleEvery(std::bind(&Creator::Generate, creator.get()),
-                            60 * 60 * 1000);  // every hour
+std::thread creatorThread;
+std::mutex mutex;
+std::condition_variable cv;
+std::queue<std::unique_ptr<Creator>> jobs;
+std::atomic_bool interrupt(false);
+
+void ProcessCreatorQueue() {
+  while (!interrupt) {
+    std::unique_lock<std::mutex> lock(mutex);
+    cv.wait(lock, [] { return !jobs.empty() || interrupt; });
+
+    if (interrupt) {
+      continue;
+    }
+
+    std::unique_ptr<Creator> creator = std::move(jobs.front());
+    jobs.pop();
+    lock.unlock();
+
+    CreationInfo info = creator->Create();
+    if (info.m_status != +Status::OK) {
+      LogPrint(BCLog::SNAPSHOT, "%s: ERROR: can't create snapshot %s\n", __func__, info.m_status);
+    }
+  }
+
+  LogPrint(BCLog::SNAPSHOT, "%s: interrupted\n", __func__);
+}
+
+void Creator::Init(const Params &params) {
+  createSnapshotPerEpoch = params.createSnapshotPerEpoch;
+  creatorThread = std::thread(ProcessCreatorQueue);
+}
+
+void Creator::Deinit() {
+  LogPrint(BCLog::SNAPSHOT, "stopping snapshot creation thread...\n");
+  interrupt = true;
+  cv.notify_one();
+  creatorThread.join();
+
+  // clean unprocessed jobs
+  while (!jobs.empty()) {
+    jobs.pop();
   }
 }
 
-Creator::Creator(CCoinsViewDB *view) : m_view(view) {}
+Creator::Creator(CCoinsViewDB *view) : m_view(view), m_iter(view) {}
 
-void Creator::Generate() {
-  if (IsInitialSnapshotDownload()) {
+void Creator::GenerateOrSkip(uint32_t currentEpoch) {
+  if (createSnapshotPerEpoch <= 0) {
     return;
   }
-  Create();
+
+  // disable if node is syncing with the chain using either full or fast sync
+  if (IsInitialBlockDownload() ||
+      (IsISDEnabled() && IsInitialSnapshotDownload())) {
+    return;
+  }
+
+  if ((currentEpoch + 1) % createSnapshotPerEpoch != 0) {
+    return;
+  }
+
+  // ensure that pcoinsTip flushes its data to disk as creator
+  // uses disk data to create the snapshot
+  FlushStateToDisk();
+
+  auto creator = MakeUnique<Creator>(pcoinsdbview.get());
+  std::lock_guard<std::mutex> lock(mutex);
+  jobs.push(std::move(creator));
+  cv.notify_one();
 }
 
+CCriticalSection cs_snapshotCreation;
+
 CreationInfo Creator::Create() {
-  LogPrint(BCLog::SNAPSHOT, "start creating snapshot\n");
+  LOCK(cs_snapshotCreation);
+
+  uint256 stakeModifier = mapBlockIndex.at(m_iter.GetBestBlock())->bnStakeModifier;
+  uint256 snapshotHash = m_iter.GetSnapshotHash().GetHash(stakeModifier);
+  LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
+           m_iter.GetBestBlock().ToString(), snapshotHash.ToString());
 
   CreationInfo info;
 
@@ -46,19 +108,16 @@ CreationInfo Creator::Create() {
     info.m_status = Status::RESERVE_SNAPSHOT_ID_ERROR;
     return info;
   }
-  LogPrint(BCLog::SNAPSHOT, "reserve id=%i for the new snapshot\n", snapshotId);
+  LogPrint(BCLog::SNAPSHOT, "reserve new snapshot_id=%i for snapshot_hash=%s\n",
+           snapshotId, snapshotHash.ToString());
 
-  ChainstateIterator iter(m_view);
-
-  uint256 stakeModifier = mapBlockIndex.at(iter.GetBestBlock())->bnStakeModifier;
-  uint256 snapshotHash = iter.GetSnapshotHash().GetHash(stakeModifier);
-  Indexer indexer(snapshotId, snapshotHash, iter.GetBestBlock(), stakeModifier,
+  Indexer indexer(snapshotId, snapshotHash, m_iter.GetBestBlock(), stakeModifier,
                   m_step, m_stepsPerFile);
 
-  while (iter.Valid()) {
+  while (m_iter.Valid()) {
     boost::this_thread::interruption_point();
 
-    UTXOSubset subset = iter.GetUTXOSubset();
+    UTXOSubset subset = m_iter.GetUTXOSubset();
     info.m_totalOutputs += subset.m_outputs.size();
 
     if (!indexer.WriteUTXOSubset(subset)) {
@@ -70,7 +129,7 @@ CreationInfo Creator::Create() {
       break;
     }
 
-    iter.Next();
+    m_iter.Next();
   }
 
   if (!indexer.Flush()) {
@@ -88,7 +147,7 @@ CreationInfo Creator::Create() {
     info.m_status = Status::SET_SNAPSHOT_ID_ERROR;
     return info;
   }
-  LogPrint(BCLog::SNAPSHOT, "snapshot id=%i is created\n", snapshotId);
+  LogPrint(BCLog::SNAPSHOT, "snapshot_id=%i is created\n", snapshotId);
 
   std::vector<uint32_t> ids = m_view->GetSnapshotIds();
   uint64_t keepSnapshots = 5;
@@ -98,7 +157,7 @@ CreationInfo Creator::Create() {
 
     for (uint64_t i = 0; i < ids.size() - keepSnapshots; ++i) {
       if (Indexer::Delete(ids.at(i))) {
-        LogPrint(BCLog::SNAPSHOT, "snapshot id=%i is deleted\n", ids.at(i));
+        LogPrint(BCLog::SNAPSHOT, "snapshot_id=%i is deleted\n", ids.at(i));
       } else {
         // collect IDs that can't be deleted,
         // will be re-tried during next snapshot creation

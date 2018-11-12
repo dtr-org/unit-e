@@ -17,7 +17,7 @@
 
 namespace snapshot {
 
-bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
+bool Initialize(CCoinsViewDB *view, const Params &params) {
   if (!InitSecp256k1Context()) {
     return error("Can't initialize secp256k1_context for the snapshot hash.");
   }
@@ -47,13 +47,15 @@ bool Initialize(CCoinsViewDB *view, CScheduler &scheduler) {
     }
   }
 
-  if (gArgs.GetBoolArg("-createsnapshot", true)) {
-    Creator::Init(view, scheduler);
-  }
+  Creator::Init(params);
 
   return true;
 }
 
-void Deinitialize() { DestroySecp256k1Context(); }
+void Deinitialize() {
+  LogPrint(BCLog::SNAPSHOT, "%s invoked\n", __func__);
+  DestroySecp256k1Context();
+  Creator::Deinit();
+}
 
 }  // namespace snapshot

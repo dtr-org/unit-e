@@ -446,7 +446,7 @@ class UnitETestFramework():
 
             for i in range(MAX_NODES):
                 for entry in os.listdir(cache_path(i)):
-                    if entry not in ['wallets', 'chainstate', 'blocks']:
+                    if entry not in ['wallets', 'chainstate', 'blocks', 'snapshots']:
                         os.remove(cache_path(i, entry))
 
         for i in range(self.num_nodes):

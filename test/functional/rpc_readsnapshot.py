@@ -10,9 +10,15 @@ from test_framework.util import assert_equal
 class RpcReadSnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
+        self.extra_args = [
+            ["-createsnapshot=0"]
+        ]
+        self.setup_clean_chain = True
 
     def run_test(self):
         node = self.nodes[0]
+        node.generatetoaddress(20, node.getnewaddress())
+
         res = node.readsnapshot()
         assert_equal(res['error'], "snapshot is missing")
 
