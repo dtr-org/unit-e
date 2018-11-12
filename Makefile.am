@@ -85,7 +85,7 @@ $(OSX_APP)/Contents/PkgInfo:
 
 $(OSX_APP)/Contents/Resources/empty.lproj:
 	$(MKDIR_P) $(@D)
-	@touch $@
+	@touch $@ 
 
 $(OSX_APP)/Contents/Info.plist: $(OSX_PLIST)
 	$(MKDIR_P) $(@D)
@@ -292,7 +292,3 @@ endif
 clean-local:
 	rm -rf coverage_percent.txt test_unite.coverage/ total.coverage/ test/tmp/ cache/ $(OSX_APP)
 	rm -rf test/functional/__pycache__ test/functional/test_framework/__pycache__ test/cache
-
-all-local:
-	@test -d .git && test ! -f .git/hooks/prepare-commit-msg && echo "Setup githook prepare-commit-msg" && cp contrib/githooks/prepare-commit-msg .git/hooks/prepare-commit-msg || true
-	@test -d .git && test ! -f .git/hooks/pre-commit && echo "Setup githook pre-commit" && cp contrib/githooks/pre-commit .git/hooks/pre-commit || true
