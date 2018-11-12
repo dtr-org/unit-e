@@ -69,12 +69,14 @@ and diffs should be easy to read. For this reason do not mix any formatting
 fixes or code moves with actual code changes.
 
 Commit messages should be verbose by default consisting of a short subject line
-(50 chars max), a blank line and detailed explanatory text as separate
+(72 chars max, aim for 50), a blank line and detailed explanatory text as separate
 paragraph(s), unless the title alone is self-explanatory (like "Corrected typo
 in init.cpp") in which case a single title line is sufficient. Commit messages
 should be helpful to people reading your code in the future, so explain the
 reasoning for your decisions. See further explanation in Chris Beams' excellent
 post ["How to write a commit message"](http://chris.beams.io/posts/git-commit/).
+A shorter overview can be found in
+[this gist](https://gist.github.com/robertpainsi/b632364184e70900af4ab688decf6f53).
 
 If a particular commit references another issue, please add the reference. For
 example: `refs #1234` or `fixes #4321`. Using the `fixes` or `closes` keywords
