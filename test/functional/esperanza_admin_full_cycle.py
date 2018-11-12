@@ -199,13 +199,11 @@ class AdminFullCycle(UnitETestFramework):
         # should continue voting
         admin.end_permissioning()
 
-        # TODO:
-        # validator1.deposit_ok()
+        validator1.deposit_ok()
         self.sync_generate(proposer, n_blocks)
 
-        # TODO:
-        # assert (
-        #     prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks))
+        assert (
+            prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks))
         assert (
             prev_n_blocks_have_txs_from(proposer, validator2.address, n_blocks))
         assert (
