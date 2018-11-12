@@ -50,10 +50,9 @@ class BlockchainBalanceTest(UnitETestFramework):
             'theme language fade'
         )
 
-        created_money = Decimal('0')  # TODO: Fix the amount
-        utxo_set = {}  # TODO: Fix the value
+        created_money = nodes[0].gettxoutsetinfo()['total_amount']
 
-        for i in range(10):
+        for i in range(600):
             node_idx = i % 3
             self.generate_block(nodes[node_idx])
 
@@ -66,9 +65,10 @@ class BlockchainBalanceTest(UnitETestFramework):
             coinstake_tx_info = nodes[node_idx].gettransaction(coinstake_tx_id)
 
             created_money += coinstake_tx_info['details'][0]['amount']
-            print()
-            print(repr(created_money))
-            print()
+            assert_equal(
+                created_money,
+                nodes[node_idx].gettxoutsetinfo()['total_amount']
+            )
 
     @staticmethod
     def generate_block(node):
