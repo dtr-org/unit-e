@@ -111,7 +111,7 @@ class WalletExtension : public staking::StakingWallet {
   ValidatorState validatorState;
   bool nIsValidatorEnabled = false;
 
-  //! whether an encrypted wallet is unlocked only for block proposal
+  //! whether an encrypted wallet is unlocked only for staking
   bool m_staking_only = false;
 };
 
