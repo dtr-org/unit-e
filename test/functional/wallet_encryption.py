@@ -50,8 +50,9 @@ class WalletEncryptionTest(UnitETestFramework):
         # Test wrong passphrase
         assert_raises_rpc_error(-14, "wallet passphrase entered was incorrect", self.nodes[0].walletpassphrase, passphrase + "wrong", 10)
 
-        # Test unlocking for staking only
-        self.nodes[0].walletpassphrase(passphrase, 2, True)
+        # Test unlocking for staking only (with unlimited timeout)
+        self.nodes[0].walletpassphrase(passphrase, 0, True)
+        time.sleep(1)
         assert_equal('UNLOCKED_FOR_STAKING_ONLY', self.nodes[0].getwalletinfo()['encryption_status'])
         assert_raises_rpc_error(-13, "Wallet is unlocked for staking only", self.nodes[0].dumpprivkey, address)
 

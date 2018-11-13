@@ -2334,7 +2334,8 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"passphrase\"     (string, required) The wallet passphrase\n"
             "2. timeout            (numeric, required) The time to keep the decryption key in seconds; capped at 100000000 (~3 years).\n"
-            "3. staking_only       (boolean, optional, default=false) Unlock the wallet for staking, but not for other operations.\n"
+            "3. staking_only       (boolean, optional, default=false) Unlock the wallet for staking, but not for other operations. Set <timeout> to 0\n"
+            "                      to keep it unlocked indefinitely.\n"
             "\nNote:\n"
             "Issuing the walletpassphrase command while the wallet is already unlocked will set a new unlock\n"
             "time that overrides the old one.\n"
@@ -2394,6 +2395,15 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
     pwallet->GetWalletExtension().m_staking_only = staking_only;
 
     pwallet->TopUpKeyPool();
+
+    // If the wallet is unlocked for staking, allow unlimited timeout
+    if (staking_only && nSleepTime == 0) {
+        pwallet->nRelockTime = 0;
+
+        // Clear previous unlock timer for the wallet
+        RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), [](){}, 0);
+        return NullUniValue;
+    }
 
     pwallet->nRelockTime = GetTime() + nSleepTime;
     RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), boost::bind(LockWallet, pwallet), nSleepTime);
