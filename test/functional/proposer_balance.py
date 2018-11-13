@@ -109,7 +109,6 @@ class ProposerBalanceTest(UnitETestFramework):
             for tx in transactions[1:]:
                 created_money += tx['fee']  # Fee is expressed as negative
 
-            # This should fail now
             assert_equal(
                 created_money,
                 nodes[node_idx].gettxoutsetinfo()['total_amount']
