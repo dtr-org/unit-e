@@ -27,9 +27,7 @@ class ProposerBalanceTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 3
         self.extra_args = [
-            [],
-            [],
-            []
+            [], [], []
         ]
 
     def setup_chain(self):
@@ -104,7 +102,6 @@ class ProposerBalanceTest(UnitETestFramework):
             ]
 
             coinstake_tx_info = transactions[0]
-
             created_money += coinstake_tx_info['details'][0]['amount']
             for tx in transactions[1:]:
                 created_money += tx['fee']  # Fee is expressed as negative
@@ -145,6 +142,7 @@ class ProposerBalanceTest(UnitETestFramework):
             nodes[2].sendtoaddress(node1_address, random_amount()),
         ]
 
+        # We ensure that these transactions will be included in the next block
         sync_mempools(nodes)
 
         # We return this mapping just for convenience, it's not really important
