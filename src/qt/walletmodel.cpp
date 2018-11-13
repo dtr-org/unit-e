@@ -394,21 +394,17 @@ RecentRequestsTableModel *WalletModel::getRecentRequestsTableModel()
 
 WalletModel::EncryptionStatus WalletModel::getEncryptionStatus() const
 {
-    if(!wallet->IsCrypted())
-    {
-        return Unencrypted;
-    }
-    else if(wallet->IsLocked())
-    {
-        return Locked;
-    }
-    else if (wallet->GetWalletExtension().m_staking_only)
-    {
-        return UnlockedForStakingOnly;
-    }
-    else
-    {
-        return Unlocked;
+    using namespace esperanza;
+
+    switch (wallet->GetWalletExtension().GetEncryptionState()) {
+        case EncryptionState::UNENCRYPTED:
+            return Unencrypted;
+        case EncryptionState::UNLOCKED:
+            return Unlocked;
+        case EncryptionState::LOCKED:
+            return Locked;
+        default:
+            return UnlockedForStakingOnly;
     }
 }
 

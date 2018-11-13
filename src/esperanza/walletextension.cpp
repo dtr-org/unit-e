@@ -795,4 +795,23 @@ const proposer::State &WalletExtension::GetProposerState() const {
   return m_proposerState;
 }
 
+EncryptionState WalletExtension::GetEncryptionState() const {
+    if (!m_enclosingWallet->IsCrypted()) {
+        return EncryptionState::UNENCRYPTED;
+    }
+    if (m_enclosingWallet->IsLocked()) {
+        return EncryptionState::LOCKED;
+    }
+    if (m_unlocked_for_staking_only) {
+        return EncryptionState::UNLOCKED_FOR_STAKING_ONLY;
+    }
+    return EncryptionState::UNLOCKED;
+}
+
+bool WalletExtension::Unlock(
+        const SecureString& wallet_passphrase, bool for_staking_only) {
+    m_unlocked_for_staking_only = for_staking_only;
+    return m_enclosingWallet->Unlock(wallet_passphrase);
+}
+
 }  // namespace esperanza

@@ -8,6 +8,7 @@
 #include <amount.h>
 #include <dependency.h>
 #include <esperanza/validatorstate.h>
+#include <esperanza/walletstate.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
@@ -52,6 +53,9 @@ class WalletExtension : public staking::StakingWallet {
 
   //! the state of proposing blocks from this wallet
   proposer::State m_proposerState;
+
+  //! whether an encrypted wallet is unlocked only for staking
+  bool m_unlocked_for_staking_only = false;
 
   void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                     const CBlockIndex *pindex);
@@ -111,8 +115,9 @@ class WalletExtension : public staking::StakingWallet {
   ValidatorState validatorState;
   bool nIsValidatorEnabled = false;
 
-  //! whether an encrypted wallet is unlocked only for staking
-  bool m_staking_only = false;
+  EncryptionState GetEncryptionState() const;
+
+  bool Unlock(const SecureString& wallet_passphrase, bool for_staking_only);
 };
 
 }  // namespace esperanza

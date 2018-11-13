@@ -124,7 +124,7 @@ public:
         Unencrypted,  // !wallet->IsCrypted()
         Locked,       // wallet->IsCrypted() && wallet->IsLocked()
         Unlocked,     // wallet->IsCrypted() && !wallet->IsLocked() &&
-                      // !wallet->GetWalletExtension().m_staking_only
+                      // !wallet->GetWalletExtension().m_unlocked_for_staking_only
         UnlockedForStakingOnly,  // otherwise
     };
 

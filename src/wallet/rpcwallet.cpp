@@ -86,7 +86,7 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
     }
 
-    if (pwallet->GetWalletExtension().m_staking_only) {
+    if (pwallet->GetWalletExtension().GetEncryptionState() == +esperanza::EncryptionState::UNLOCKED_FOR_STAKING_ONLY) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Wallet is unlocked for staking only.");
     }
 }
@@ -2326,7 +2326,7 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 3) {
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3) {
         throw std::runtime_error(
             "walletpassphrase \"passphrase\" timeout [staking_only]\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
@@ -2383,16 +2383,14 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
 
     if (strWalletPass.length() > 0)
     {
-        if (!pwallet->Unlock(strWalletPass)) {
+        if (!pwallet->GetWalletExtension().Unlock(strWalletPass, staking_only)) {
             throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect.");
         }
     }
     else
         throw std::runtime_error(
-            "walletpassphrase <passphrase> <timeout>\n"
+            "walletpassphrase <passphrase> <timeout> [<staking_only>]\n"
             "Stores the wallet decryption key in memory for <timeout> seconds.");
-
-    pwallet->GetWalletExtension().m_staking_only = staking_only;
 
     pwallet->TopUpKeyPool();
 
@@ -2828,18 +2826,13 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     if (!masterKeyID.IsNull() && pwallet->CanSupportFeature(FEATURE_HD_SPLIT)) {
         obj.push_back(Pair("keypoolsize_hd_internal",   (int64_t)(pwallet->GetKeyPoolSize() - kpExternalSize)));
     }
-    if (!pwallet->IsCrypted()) {
-        obj.push_back(Pair("encryption_status", "UNENCRYPTED"));
-    } else if (pwallet->IsLocked()) {
+
+    auto state = pwallet->GetWalletExtension().GetEncryptionState();
+    obj.push_back(Pair("encryption_state", state._to_string()));
+    if (state != +esperanza::EncryptionState::UNENCRYPTED) {
         obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
-        obj.push_back(Pair("encryption_status", "LOCKED"));
-    } else if (pwallet->GetWalletExtension().m_staking_only) {
-        obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
-        obj.push_back(Pair("encryption_status", "UNLOCKED_FOR_STAKING_ONLY"));
-    } else {
-        obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
-        obj.push_back(Pair("encryption_status", "UNLOCKED"));
     }
+
     obj.push_back(Pair("paytxfee",      ValueFromAmount(payTxFee.GetFeePerK())));
     if (!masterKeyID.IsNull())
          obj.push_back(Pair("hdmasterkeyid", masterKeyID.GetHex()));
