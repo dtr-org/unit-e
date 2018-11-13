@@ -117,7 +117,7 @@ class WalletExtension : public staking::StakingWallet {
 
   EncryptionState GetEncryptionState() const;
 
-  bool Unlock(const SecureString& wallet_passphrase, bool for_staking_only);
+  bool Unlock(const SecureString &wallet_passphrase, bool for_staking_only);
 };
 
 }  // namespace esperanza

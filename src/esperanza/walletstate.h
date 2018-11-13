@@ -10,6 +10,7 @@
 
 namespace esperanza {
 
+// clang-format off
 BETTER_ENUM(
     EncryptionState,
     uint8_t,
@@ -18,9 +19,8 @@ BETTER_ENUM(
     UNLOCKED,
     UNLOCKED_FOR_STAKING_ONLY
 );
+// clang-format on
 
 }  // namespace esperanza
 
 #endif  // UNITE_ESPERANZA_WALLETSTATE_H
-
-
