@@ -24,6 +24,12 @@ from test_framework.util import (
 
 
 class ProposerBalanceTest(UnitETestFramework):
+    """
+    This test checks that non-adversarial proposers keep consistent blockchain
+    balances (i.e. the sum of the UTXO set amounts is equal to the accumulated
+    inflation rewards)
+    """
+
     def set_test_params(self):
         self.num_nodes = 3
         self.extra_args = [
@@ -56,7 +62,7 @@ class ProposerBalanceTest(UnitETestFramework):
         self.__test_transaction_blocks_balance(created_money, nodes)
 
     def __test_empty_blocks_balance(self, created_money, nodes):
-        for i in range(300):
+        for i in range(90):
             node_idx = i % 3
 
             self.__generate_block(nodes, node_idx)
@@ -82,7 +88,7 @@ class ProposerBalanceTest(UnitETestFramework):
         rnd_state = rnd_getstate()  # We do this to isolate this test
         seed(3141592)
 
-        for i in range(15):
+        for i in range(12):
             node_idx = i % 3
 
             # We keep track of each transaction's "origin" in order to make
