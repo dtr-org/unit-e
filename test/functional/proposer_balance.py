@@ -109,8 +109,10 @@ class ProposerBalanceTest(UnitETestFramework):
 
             coinstake_tx_info = transactions[0]
             created_money += coinstake_tx_info['details'][0]['amount']
+
+            # We want to subtract the fees because are not created money
             for tx in transactions[1:]:
-                created_money += tx['fee']  # Fee is expressed as negative
+                created_money -= abs(tx['fee'])  # Fee is expressed as negative
 
             assert_equal(
                 created_money,
