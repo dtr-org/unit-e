@@ -980,8 +980,9 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
     switch (tx->GetType()) {
 
       case TxType::VOTE: {
+        std::vector<unsigned char> voteSig;
         state->ProcessVote(
-            CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
+            CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig, voteSig));
         break;
       }
 

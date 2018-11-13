@@ -35,7 +35,7 @@ CTransaction CreateBaseTransaction(const CTransaction &spendableTx,
   return CTransaction(mutTx);
 }
 
-CTransaction CreateVoteTx(esperanza::Vote &vote) {
+CTransaction CreateVoteTx(esperanza::Vote &vote, const CKey &spendableKey) {
 
   CMutableTransaction mutTx;
   mutTx.SetType(TxType::VOTE);
@@ -43,7 +43,10 @@ CTransaction CreateVoteTx(esperanza::Vote &vote) {
   mutTx.vin.resize(1);
   uint256 signature = GetRandHash();
 
-  CScript encodedVote = CScript::EncodeVote(vote);
+  std::vector<unsigned char> voteSig;
+  spendableKey.Sign(vote.GetHash(), voteSig);
+  CScript encodedVote = CScript::EncodeVote(vote, voteSig);
+
   std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
 
   CScript voteScript = (CScript() << ToByteVector(signature)) << voteVector;

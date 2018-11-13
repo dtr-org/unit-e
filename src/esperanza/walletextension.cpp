@@ -714,10 +714,14 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
     return error("%s: Cannot create votes for non-validators.", __func__);
   }
 
-  CScript scriptSig = CScript::EncodeVote(vote);
-
   const CScript &scriptPubKey = prevTxRef->vout[0].scriptPubKey;
   const CAmount amount = prevTxRef->vout[0].nValue;
+
+  std::vector<unsigned char> voteSig;
+  if (!esperanza::Vote::CreateSignature(m_enclosingWallet, vote, voteSig)) {
+    return error("%s: Cannot sign vote.", __func__);
+  }
+  CScript scriptSig = CScript::EncodeVote(vote, voteSig);
 
   txNew.vin.push_back(
       CTxIn(prevTxRef->GetHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));

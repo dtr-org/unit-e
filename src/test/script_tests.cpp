@@ -1494,14 +1494,18 @@ BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
                      sourceHeight,
                      targetHeight};
 
-    CScript s = CScript::EncodeVote(data);
+    std::vector<unsigned char> voteSig;
+    CScript s = CScript::EncodeVote(data, voteSig);
 
-    esperanza::Vote decodeData = CScript::DecodeVote(s);
+    std::vector<unsigned char> extractedVoteSig;
+    esperanza::Vote decodeData = CScript::DecodeVote(s, extractedVoteSig);
 
     BOOST_CHECK_EQUAL(decodeData.m_validatorAddress.GetHex(), validatorAddress);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
+                      HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
 
 BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
@@ -1517,17 +1521,21 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
                    sourceHeight,
                    targetHeight};
 
-    CScript encodedVote = CScript::EncodeVote(vote);
+    std::vector<unsigned char> voteSig;
+    CScript encodedVote = CScript::EncodeVote(vote, voteSig);
     std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
 
     CScript s = (CScript() << ParseHex(signature)) << voteVector;
 
-    esperanza::Vote decodeData = CScript::ExtractVoteFromSignature(s);
+    std::vector<unsigned char> extractedVoteSig;
+    esperanza::Vote decodeData = CScript::ExtractVoteFromSignature(s, extractedVoteSig);
 
     BOOST_CHECK_EQUAL(decodeData.m_validatorAddress.GetHex(), validatorAddress);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
+                      HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
 
 BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
@@ -1543,19 +1551,23 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
                          sourceHeight,
                          targetHeight};
 
-    CScript encodedVote = CScript::EncodeVote(vote);
+    std::vector<unsigned char> voteSig;
+    CScript encodedVote = CScript::EncodeVote(vote, voteSig);
     std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
 
     CScriptWitness s;
     s.stack.push_back(ParseHex(signature));
     s.stack.push_back(voteVector);
 
-    esperanza::Vote decodeData = CScript::ExtractVoteFromWitness(s);
+    std::vector<unsigned char> extractedVoteSig;
+    esperanza::Vote decodeData = CScript::ExtractVoteFromWitness(s, extractedVoteSig);
 
     BOOST_CHECK_EQUAL(decodeData.m_validatorAddress.GetHex(), validatorAddress);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
+                      HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
 
 BOOST_AUTO_TEST_CASE(extract_admin_command_from_witness)

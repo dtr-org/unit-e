@@ -687,10 +687,10 @@ public:
     /** Check if the script contains valid OP_CODES */
     bool HasValidOps() const;
 
-    static esperanza::Vote DecodeVote(const CScript &script);
-    static CScript EncodeVote(const esperanza::Vote &data);
-    static esperanza::Vote ExtractVoteFromWitness(const CScriptWitness &scriptSig);
-    static esperanza::Vote ExtractVoteFromSignature(const CScript &scriptSig);
+    static esperanza::Vote DecodeVote(const CScript &script, std::vector<unsigned char> &voteSig);
+    static CScript EncodeVote(const esperanza::Vote &data, const std::vector<unsigned char> &voteSig);
+    static esperanza::Vote ExtractVoteFromWitness(const CScriptWitness &scriptSig, std::vector<unsigned char> &voteSig);
+    static esperanza::Vote ExtractVoteFromSignature(const CScript &scriptSig, std::vector<unsigned char> &voteSig);
     static bool ExtractAdminKeysFromWitness(const CScriptWitness &witness, std::vector<CPubKey> &outKeys);
 
     /**

@@ -266,6 +266,7 @@ libunite_server_a_SOURCES = \
   esperanza/finalizationparams.cpp \
   esperanza/validation.cpp \
   esperanza/validator.cpp \
+  esperanza/vote.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
