@@ -2821,6 +2821,7 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     if (!pwallet->IsCrypted()) {
         obj.push_back(Pair("encryption_status", "UNENCRYPTED"));
     } else if (pwallet->IsLocked()) {
+        obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
         obj.push_back(Pair("encryption_status", "LOCKED"));
     } else if (pwallet->GetWalletExtension().m_staking_only) {
         obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
