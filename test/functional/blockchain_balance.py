@@ -6,7 +6,7 @@
 """Test Blockchain's rewards & UTXOs balance consistency"""
 
 from random import (
-    random,
+    randint,
     seed,
     setstate as rnd_setstate,
     getstate as rnd_getstate
@@ -17,9 +17,6 @@ from decimal import Decimal
 from test_framework.authproxy import JSONRPCException
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import sync_blocks, assert_equal
-
-
-flt2dec = Decimal.from_float
 
 
 class BlockchainBalanceTest(UnitETestFramework):
@@ -114,17 +111,17 @@ class BlockchainBalanceTest(UnitETestFramework):
     ):
         # The transactions themselves are not very important, but we want to
         # ensure that is hard to manually adjust the test to make it pass
+        # WARNING: Decimal objects with "too much" precision will cause errors
+        nodes[0].settxfee(Decimal(randint(10000, 19999)) / 100000000)
+        nodes[1].settxfee(Decimal(randint(10000, 19999)) / 100000000)
+        nodes[2].settxfee(Decimal(randint(10000, 19999)) / 100000000)
 
-        nodes[0].settxfee(flt2dec(0.0001))  # + 0.001 * random()))
-        nodes[1].settxfee(flt2dec(0.0001))  # + 0.001 * random()))
-        nodes[2].settxfee(flt2dec(0.0001))  # + 0.001 * random()))
-
-        nodes[0].sendtoaddress(node1_address, flt2dec(1.0 + random()))
-        nodes[0].sendtoaddress(node2_address, flt2dec(1.0 + random()))
-        nodes[1].sendtoaddress(node0_address, flt2dec(1.0 + random()))
-        nodes[1].sendtoaddress(node2_address, flt2dec(1.0 + random()))
-        nodes[2].sendtoaddress(node0_address, flt2dec(1.0 + random()))
-        nodes[2].sendtoaddress(node1_address, flt2dec(1.0 + random()))
+        nodes[0].sendtoaddress(node1_address, Decimal(randint(100, 199)) / 100)
+        nodes[0].sendtoaddress(node2_address, Decimal(randint(100, 199)) / 100)
+        nodes[1].sendtoaddress(node0_address, Decimal(randint(100, 199)) / 100)
+        nodes[1].sendtoaddress(node2_address, Decimal(randint(100, 199)) / 100)
+        nodes[2].sendtoaddress(node0_address, Decimal(randint(100, 199)) / 100)
+        nodes[2].sendtoaddress(node1_address, Decimal(randint(100, 199)) / 100)
 
     def __load_wallets(self, nodes):
         nodes[0].importmasterkey(
