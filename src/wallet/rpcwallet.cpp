@@ -85,6 +85,10 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
     if (pwallet->IsLocked()) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
     }
+
+    if (pwallet->GetWalletExtension().GetEncryptionState() == +esperanza::EncryptionState::UNLOCKED_FOR_STAKING_ONLY) {
+        throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Wallet is unlocked for staking only.");
+    }
 }
 
 void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool filterMode)
@@ -2322,14 +2326,16 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 2) {
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 3) {
         throw std::runtime_error(
-            "walletpassphrase \"passphrase\" timeout\n"
+            "walletpassphrase \"passphrase\" timeout [staking_only]\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
             "This is needed prior to performing transactions related to private keys such as sending unites\n"
             "\nArguments:\n"
             "1. \"passphrase\"     (string, required) The wallet passphrase\n"
             "2. timeout            (numeric, required) The time to keep the decryption key in seconds; capped at 100000000 (~3 years).\n"
+            "3. staking_only       (boolean, optional, default=false) Unlock the wallet for staking, but not for other operations. Set <timeout> to 0\n"
+            "                      to keep it unlocked indefinitely.\n"
             "\nNote:\n"
             "Issuing the walletpassphrase command while the wallet is already unlocked will set a new unlock\n"
             "time that overrides the old one.\n"
@@ -2370,18 +2376,32 @@ UniValue walletpassphrase(const JSONRPCRequest& request)
         nSleepTime = MAX_SLEEP_TIME;
     }
 
+    bool staking_only = false;
+    if (!request.params[2].isNull()) {
+        staking_only = request.params[2].get_bool();
+    }
+
     if (strWalletPass.length() > 0)
     {
-        if (!pwallet->Unlock(strWalletPass)) {
+        if (!pwallet->GetWalletExtension().Unlock(strWalletPass, staking_only)) {
             throw JSONRPCError(RPC_WALLET_PASSPHRASE_INCORRECT, "Error: The wallet passphrase entered was incorrect.");
         }
     }
     else
         throw std::runtime_error(
-            "walletpassphrase <passphrase> <timeout>\n"
+            "walletpassphrase <passphrase> <timeout> [<staking_only>]\n"
             "Stores the wallet decryption key in memory for <timeout> seconds.");
 
     pwallet->TopUpKeyPool();
+
+    // If the wallet is unlocked for staking, allow unlimited timeout
+    if (staking_only && nSleepTime == 0) {
+        pwallet->nRelockTime = 0;
+
+        // Clear previous unlock timer for the wallet
+        RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), [](){}, 0);
+        return NullUniValue;
+    }
 
     pwallet->nRelockTime = GetTime() + nSleepTime;
     RPCRunLater(strprintf("lockwallet(%s)", pwallet->GetName()), boost::bind(LockWallet, pwallet), nSleepTime);
@@ -2774,6 +2794,7 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
             "  \"keypoolsize\": xxxx,             (numeric) how many new keys are pre-generated (only counts external keys)\n"
             "  \"keypoolsize_hd_internal\": xxxx, (numeric) how many new keys are pre-generated for internal use (used for change outputs, only appears if the wallet is using this feature, otherwise external keys are used)\n"
             "  \"unlocked_until\": ttt,           (numeric) the timestamp in seconds since epoch (midnight Jan 1 1970 GMT) that the wallet is unlocked for transfers, or 0 if the wallet is locked\n"
+            "  \"encryption_state\": xxxxx,       (string) the wallet's encryption status (UNENCRYPTED, LOCKED, UNLOCKED, UNLOCKED_FOR_STAKING_ONLY)\n"
             "  \"paytxfee\": x.xxxx,              (numeric) the transaction fee configuration, set in " + CURRENCY_UNIT + "/kB\n"
             "  \"hdmasterkeyid\": \"<hash160>\"     (string, optional) the Hash160 of the HD master pubkey (only present when HD is enabled)\n"
             "}\n"
@@ -2805,9 +2826,13 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     if (!masterKeyID.IsNull() && pwallet->CanSupportFeature(FEATURE_HD_SPLIT)) {
         obj.push_back(Pair("keypoolsize_hd_internal",   (int64_t)(pwallet->GetKeyPoolSize() - kpExternalSize)));
     }
-    if (pwallet->IsCrypted()) {
+
+    auto state = pwallet->GetWalletExtension().GetEncryptionState();
+    obj.push_back(Pair("encryption_state", state._to_string()));
+    if (state != +esperanza::EncryptionState::UNENCRYPTED) {
         obj.push_back(Pair("unlocked_until", pwallet->nRelockTime));
     }
+
     obj.push_back(Pair("paytxfee",      ValueFromAmount(payTxFee.GetFeePerK())));
     if (!masterKeyID.IsNull())
          obj.push_back(Pair("hdmasterkeyid", masterKeyID.GetHex()));

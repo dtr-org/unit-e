@@ -116,6 +116,7 @@ UNITE_CORE_H = \
   esperanza/validatorstate.h \
   esperanza/vote.h \
   esperanza/walletextension.h \
+  esperanza/walletstate.h \
   fs.h \
   httprpc.h \
   httpserver.h \
