@@ -50,7 +50,7 @@ class ProposerBalanceTest(UnitETestFramework):
         self.test_transaction_blocks_balance(created_money, nodes)
 
     def test_empty_blocks_balance(self, created_money, nodes):
-        for i in range(90):
+        for i in range(15):
             node_idx = i % 3
 
             self.generate_block(nodes, node_idx)
