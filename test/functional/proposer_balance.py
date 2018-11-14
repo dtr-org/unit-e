@@ -69,9 +69,9 @@ class ProposerBalanceTest(UnitETestFramework):
 
     def test_transaction_blocks_balance(self, created_money, nodes):
         # We'll use theses addresses to generate transactions
-        node0_address = nodes[0].getaccountaddress('')
-        node1_address = nodes[1].getaccountaddress('')
-        node2_address = nodes[2].getaccountaddress('')
+        node0_address = nodes[0].getnewaddress()
+        node1_address = nodes[1].getnewaddress()
+        node2_address = nodes[2].getnewaddress()
 
         rnd_state = rnd_getstate()  # We do this to isolate this test
         seed(3141592)
