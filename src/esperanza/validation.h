@@ -40,7 +40,8 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
 //! \param tx
 //! \param validatorAddressOut
 //! \return true if successful, false otherwise.
-bool ExtractValidatorIndex(const CTransaction &tx, uint160 &validatorAddressOut);
+bool ExtractValidatorAddress(const CTransaction &tx,
+                             uint160 &validatorAddressOut);
 
 }  // namespace esperanza
 

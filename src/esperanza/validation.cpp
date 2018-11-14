@@ -34,9 +34,9 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 
   uint160 validatorAddress = uint160();
 
-  if (!ExtractValidatorIndex(tx, validatorAddress)) {
+  if (!ExtractValidatorAddress(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-deposit-cannot-extract-validator-index");
+                        "bad-deposit-cannot-extract-validator-address");
   }
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
@@ -87,9 +87,9 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 
   uint160 validatorAddress = uint160();
 
-  if (!ExtractValidatorIndex(tx, validatorAddress)) {
+  if (!ExtractValidatorAddress(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-logout-cannot-extract-validator-index");
+                        "bad-logout-cannot-extract-validator-address");
   }
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
@@ -171,9 +171,9 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 
   uint160 validatorAddress = uint160();
 
-  if (!ExtractValidatorIndex(tx, validatorAddress)) {
+  if (!ExtractValidatorAddress(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-logout-cannot-extract-validator-index");
+                        "bad-logout-cannot-extract-validator-address");
   }
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
@@ -310,7 +310,8 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
   return true;
 }
 
-bool ExtractValidatorIndex(const CTransaction &tx, uint160 &validatorAddressOut) {
+bool ExtractValidatorAddress(const CTransaction &tx,
+                             uint160 &validatorAddressOut) {
 
   switch (tx.GetType()) {
     case TxType::DEPOSIT:

@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   esperanza::Vote vote{pk.GetID(), GetRandHash(), 10, 100};
 
   std::vector<unsigned char> voteSig;
-  esperanza::Vote::CreateSignature(&keystore, vote, voteSig);
+  BOOST_CHECK(esperanza::Vote::CreateSignature(&keystore, vote, voteSig));
 
   CScript voteScript = CScript::EncodeVote(vote, voteSig);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, voteScript, CTxIn::SEQUENCE_FINAL));

@@ -39,10 +39,10 @@ uint256 GetVoteHash(esperanza::Vote vote) {
 
   CHashWriter ss(SER_GETHASH, 0);
 
-  ss << vote.m_validatorIndex;
+  ss << vote.m_validatorAddress;
+  ss << vote.m_targetHash;
   ss << vote.m_sourceEpoch;
   ss << vote.m_targetEpoch;
-  ss << vote.m_targetHash;
 
   return ss.GetHash();
 }
@@ -56,7 +56,7 @@ CTransaction CreateVoteTx(esperanza::Vote &vote, const CKey &spendableKey) {
   uint256 signature = GetRandHash();
 
   std::vector<unsigned char> voteSig;
-  spendableKey.Sign(GetVoteHash(vote), voteSig);
+  BOOST_CHECK(spendableKey.Sign(GetVoteHash(vote), voteSig));
   CScript encodedVote = CScript::EncodeVote(vote, voteSig);
 
   std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());

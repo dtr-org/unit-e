@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
 
   CTransaction deposit = CreateDepositTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(deposit, validatorAddress));
+  BOOST_CHECK(ExtractValidatorAddress(deposit, validatorAddress));
 
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
 
   CTransaction logout = CreateLogoutTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(logout, validatorAddress));
+  BOOST_CHECK(ExtractValidatorAddress(logout, validatorAddress));
 
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
 
   CTransaction withdraw = CreateWithdrawTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(withdraw, validatorAddress));
+  BOOST_CHECK(ExtractValidatorAddress(withdraw, validatorAddress));
 
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
 
   CTransaction p2pkh = CreateP2PKHTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
+  BOOST_CHECK(ExtractValidatorAddress(p2pkh, validatorAddress) == false);
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_vote_fails) {
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_vote_fails) {
 
   CTransaction p2pkh = CreateVoteTx(vote, k);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
+  BOOST_CHECK(ExtractValidatorAddress(p2pkh, validatorAddress) == false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
