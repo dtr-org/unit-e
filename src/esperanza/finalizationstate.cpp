@@ -211,19 +211,19 @@ uint32_t FinalizationState::GetEpochsSinceFinalization() {
 
 /**
  * Removes a validator from the validator list.
- * @param validatorIndex the index of the validator to remove.
+ * @param validatorAddress the index of the validator to remove.
  */
-void FinalizationState::DeleteValidator(const uint256 &validatorIndex) {
+void FinalizationState::DeleteValidator(const uint256 &validatorAddress) {
   LOCK(cs_esperanza);
 
-  m_validators.erase(validatorIndex);
+  m_validators.erase(validatorAddress);
 }
 
 uint64_t FinalizationState::GetDepositSize(
-    const uint256 &validatorIndex) const {
+    const uint256 &validatorAddress) const {
   LOCK(cs_esperanza);
 
-  auto validatorIt = m_validators.find(validatorIndex);
+  auto validatorIt = m_validators.find(validatorAddress);
   auto depositScaleIt = m_depositScaleFactor.find(m_currentEpoch);
 
   if (validatorIt != m_validators.end() &&
@@ -236,11 +236,11 @@ uint64_t FinalizationState::GetDepositSize(
 }
 
 Vote FinalizationState::GetRecommendedVote(
-    const uint256 &validatorIndex) const {
+    const uint256 &validatorAddress) const {
   LOCK(cs_esperanza);
 
   Vote vote;
-  vote.m_validatorIndex = validatorIndex;
+  vote.m_validatorAddress = validatorAddress;
   vote.m_targetHash = m_recommendedTargetHash;
   vote.m_targetEpoch = m_currentEpoch;
   vote.m_sourceEpoch = m_expectedSrcEpoch;
@@ -276,10 +276,10 @@ uint64_t FinalizationState::GetTotalPrevDynDeposits() {
                             m_prevDynDeposits);
 }
 
-CAmount FinalizationState::ProcessReward(const uint256 &validatorIndex,
+CAmount FinalizationState::ProcessReward(const uint256 &validatorAddress,
                                          uint64_t reward) {
 
-  Validator &validator = m_validators.at(validatorIndex);
+  Validator &validator = m_validators.at(validatorAddress);
   validator.m_deposit = validator.m_deposit + reward;
   uint32_t startDynasty = validator.m_startDynasty;
   uint32_t endDynasty = validator.m_endDynasty;
@@ -310,7 +310,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
                                     const uint256 &targetHash,
                                     uint32_t targetEpoch,
                                     uint32_t sourceEpoch) const {
-  auto validatorIndex = validator.m_validatorIndex;
+  auto validatorAddress = validator.m_validatorAddress;
 
   auto it = m_checkpoints.find(targetEpoch);
   if (it == m_checkpoints.end()) {
@@ -320,20 +320,20 @@ Result FinalizationState::IsVotable(const Validator &validator,
   }
 
   auto &targetCheckpoint = it->second;
-  bool alreadyVoted = targetCheckpoint.m_voteSet.find(validatorIndex) !=
+  bool alreadyVoted = targetCheckpoint.m_voteSet.find(validatorAddress) !=
                       targetCheckpoint.m_voteSet.end();
 
   if (alreadyVoted) {
     return fail(Result::VOTE_ALREADY_VOTED,
                 "%s: the validator %s has already voted for target epoch %d.\n",
-                __func__, validatorIndex.GetHex(), targetEpoch);
+                __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
   if (targetHash != m_recommendedTargetHash) {
     return fail(Result::VOTE_WRONG_TARGET_HASH,
                 "%s: the validator %s is voting for the %s, instead of the "
                 "recommended targetHash %s.\n",
-                __func__, validatorIndex.GetHex(), targetHash.GetHex(),
+                __func__, validatorAddress.GetHex(), targetHash.GetHex(),
                 m_recommendedTargetHash.GetHex());
   }
 
@@ -341,7 +341,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
     return fail(
         Result::VOTE_WRONG_TARGET_EPOCH,
         "%s: the validator %s is voting for the wrong target epoch %d.\n",
-        __func__, validatorIndex.GetHex(), targetEpoch);
+        __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
   it = m_checkpoints.find(sourceEpoch);
@@ -356,7 +356,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
     return fail(
         Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED,
         "%s: the validator %s is voting for a non justified source epoch %d.\n",
-        __func__, validatorIndex.GetHex(), targetEpoch);
+        __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
   if (IsInDynasty(validator, m_currentDynasty) ||
@@ -366,28 +366,28 @@ Result FinalizationState::IsVotable(const Validator &validator,
 
   return fail(Result::VOTE_NOT_VOTABLE,
               "%s: validator %s is not in dynasty %d nor the previous.\n",
-              __func__, validatorIndex.GetHex(), m_currentDynasty);
+              __func__, validatorAddress.GetHex(), m_currentDynasty);
 }
 
 /**
  * Validates the consistency of the deposit against the current state. This does
  * assume that the normal transaction validation process already took place.
  */
-Result FinalizationState::ValidateDeposit(const uint256 &validatorIndex,
+Result FinalizationState::ValidateDeposit(const uint256 &validatorAddress,
                                           CAmount depositValue) const {
   LOCK(cs_esperanza);
 
-  if (!m_adminState.IsValidatorAuthorized(validatorIndex)) {
+  if (!m_adminState.IsValidatorAuthorized(validatorAddress)) {
     return fail(esperanza::Result::ADMIN_BLACKLISTED,
                 "%s: Validator is blacklisted: %s.\n", __func__,
-                validatorIndex.GetHex());
+                validatorAddress.GetHex());
   }
 
-  if (m_validators.find(validatorIndex) != m_validators.end()) {
+  if (m_validators.find(validatorAddress) != m_validators.end()) {
     return fail(Result::DEPOSIT_ALREADY_VALIDATOR,
                 "%s: Validator with deposit hash of %s already "
                 "exists.\n",
-                __func__, validatorIndex.GetHex());
+                __func__, validatorAddress.GetHex());
   }
 
   if (depositValue < m_settings.m_minDepositSize) {
@@ -403,7 +403,7 @@ Result FinalizationState::ValidateDeposit(const uint256 &validatorIndex,
  * Performs a deposit for the given amount and for the validator with the given
  * index.
  */
-void FinalizationState::ProcessDeposit(const uint256 &validatorIndex,
+void FinalizationState::ProcessDeposit(const uint256 &validatorAddress,
                                        CAmount depositValue) {
   LOCK(cs_esperanza);
 
@@ -413,13 +413,13 @@ void FinalizationState::ProcessDeposit(const uint256 &validatorIndex,
                          GetDepositScaleFactor(m_currentEpoch));
 
   m_validators.insert(std::pair<uint256, Validator>(
-      validatorIndex, Validator(scaledDeposit, startDynasty, validatorIndex)));
+      validatorAddress, Validator(scaledDeposit, startDynasty, validatorAddress)));
 
   m_dynastyDeltas[startDynasty] = GetDynastyDelta(startDynasty) + scaledDeposit;
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Add deposit %s for validator in dynasty %d.\n", __func__,
-           validatorIndex.GetHex(), startDynasty);
+           validatorAddress.GetHex(), startDynasty);
 }
 
 uint64_t FinalizationState::CalculateVoteReward(
@@ -434,17 +434,17 @@ uint64_t FinalizationState::CalculateVoteReward(
 Result FinalizationState::ValidateVote(const Vote &vote) const {
   LOCK(cs_esperanza);
 
-  if (!m_adminState.IsValidatorAuthorized(vote.m_validatorIndex)) {
+  if (!m_adminState.IsValidatorAuthorized(vote.m_validatorAddress)) {
     return fail(esperanza::Result::ADMIN_BLACKLISTED,
                 "%s: Validator is blacklisted: %s.\n", __func__,
-                vote.m_validatorIndex.GetHex());
+                vote.m_validatorAddress.GetHex());
   }
 
-  auto it = m_validators.find(vote.m_validatorIndex);
+  auto it = m_validators.find(vote.m_validatorAddress);
   if (it == m_validators.end()) {
     return fail(Result::VOTE_NOT_BY_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
-                vote.m_validatorIndex.GetHex());
+                vote.m_validatorAddress.GetHex());
   }
 
   Result isVotable = IsVotable(it->second, vote.m_targetHash,
@@ -452,14 +452,14 @@ Result FinalizationState::ValidateVote(const Vote &vote) const {
 
   if (isVotable != +Result::SUCCESS) {
     return fail(isVotable, "%s: The tuple (%s, %s, %d, %d) is not votable.\n",
-                __func__, vote.m_validatorIndex.GetHex(),
+                __func__, vote.m_validatorAddress.GetHex(),
                 vote.m_targetHash.GetHex(), vote.m_sourceEpoch,
                 vote.m_targetEpoch);
   }
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Validator %s vote (%s, %d, %d) is valid.\n", __func__,
-           vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
+           vote.m_validatorAddress.GetHex(), vote.m_targetHash.GetHex(),
            vote.m_sourceEpoch, vote.m_targetEpoch);
 
   return success();
@@ -471,17 +471,17 @@ Result FinalizationState::ValidateVote(const Vote &vote) const {
 void FinalizationState::ProcessVote(const Vote &vote) {
   LOCK(cs_esperanza);
 
-  GetCheckpoint(vote.m_targetEpoch).m_voteSet.insert(vote.m_validatorIndex);
+  GetCheckpoint(vote.m_targetEpoch).m_voteSet.insert(vote.m_validatorAddress);
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Validator %s voted successfully (%s, %d, %d).\n", __func__,
-           vote.m_validatorIndex.GetHex(), vote.m_targetHash.GetHex(),
+           vote.m_validatorAddress.GetHex(), vote.m_targetHash.GetHex(),
            vote.m_sourceEpoch, vote.m_targetEpoch);
 
-  const uint256 &validatorIndex = vote.m_validatorIndex;
+  const uint256 &validatorAddress = vote.m_validatorAddress;
   uint32_t sourceEpoch = vote.m_sourceEpoch;
   uint32_t targetEpoch = vote.m_targetEpoch;
-  const Validator &validator = m_validators.at(validatorIndex);
+  const Validator &validator = m_validators.at(validatorAddress);
 
   bool inCurDynasty = IsInDynasty(validator, m_currentDynasty);
   bool inPrevDynasty = IsInDynasty(validator, m_currentDynasty - 1);
@@ -505,7 +505,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 
   if (m_expectedSrcEpoch == sourceEpoch) {
     uint64_t reward = CalculateVoteReward(validator);
-    ProcessReward(validatorIndex, reward);
+    ProcessReward(validatorAddress, reward);
   }
 
   bool isTwoThirdsCurDyn =
@@ -534,7 +534,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     }
   }
   LogPrint(BCLog::FINALIZATION, "%s: Vote from validator %s processed.\n",
-           __func__, validatorIndex.GetHex());
+           __func__, validatorAddress.GetHex());
 }
 
 uint32_t FinalizationState::GetEndDynasty() const {
@@ -544,17 +544,17 @@ uint32_t FinalizationState::GetEndDynasty() const {
 /**
  * Validates the consistency of the logout against the current state. This does
  * assume that the normal transaction validation process already took place.
- * @param validatorIndex the index of the validator that is logging out
+ * @param validatorAddress the index of the validator that is logging out
  * @return a representation of the outcome
  */
-Result FinalizationState::ValidateLogout(const uint256 &validatorIndex) const {
+Result FinalizationState::ValidateLogout(const uint256 &validatorAddress) const {
   LOCK(cs_esperanza);
 
-  auto it = m_validators.find(validatorIndex);
+  auto it = m_validators.find(validatorAddress);
   if (it == m_validators.end()) {
     return fail(Result::LOGOUT_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
-                validatorIndex.GetHex());
+                validatorAddress.GetHex());
   }
 
   uint32_t endDynasty = GetEndDynasty();
@@ -564,13 +564,13 @@ Result FinalizationState::ValidateLogout(const uint256 &validatorIndex) const {
     return fail(Result::LOGOUT_NOT_A_VALIDATOR,
                 "%s: the validator with address %s is logging out before the "
                 "start dynasty.\n",
-                __func__, validator.m_validatorIndex.GetHex());
+                __func__, validator.m_validatorAddress.GetHex());
   }
 
   if (validator.m_endDynasty <= endDynasty) {
     return fail(Result::LOGOUT_ALREADY_DONE,
                 "%s: the validator with address %s already logget out.\n",
-                __func__, validator.m_validatorIndex.GetHex());
+                __func__, validator.m_validatorAddress.GetHex());
   }
 
   return success();
@@ -579,10 +579,10 @@ Result FinalizationState::ValidateLogout(const uint256 &validatorIndex) const {
 /**
  * Performs a logout for the validator with the given index.
  */
-void FinalizationState::ProcessLogout(const uint256 &validatorIndex) {
+void FinalizationState::ProcessLogout(const uint256 &validatorAddress) {
   LOCK(cs_esperanza);
 
-  Validator &validator = m_validators.at(validatorIndex);
+  Validator &validator = m_validators.at(validatorAddress);
 
   uint32_t endDyn = GetEndDynasty();
   validator.m_endDynasty = endDyn;
@@ -591,21 +591,21 @@ void FinalizationState::ProcessLogout(const uint256 &validatorIndex) {
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Vote from validator %s logging out at %d.\n", __func__,
-           validatorIndex.GetHex(), endDyn);
+           validatorAddress.GetHex(), endDyn);
 }
 
 /**
- * Validates a withdraw operation for the given validatorIndex.
- * @param validatorIndex
+ * Validates a withdraw operation for the given validatorAddress.
+ * @param validatorAddress
  * @return
  */
-Result FinalizationState::ValidateWithdraw(const uint256 &validatorIndex,
+Result FinalizationState::ValidateWithdraw(const uint256 &validatorAddress,
                                            CAmount requestedWithdraw) const {
   LOCK(cs_esperanza);
 
   CAmount withdrawableAmount = 0;
 
-  Result res = CalculateWithdrawAmount(validatorIndex, withdrawableAmount);
+  Result res = CalculateWithdrawAmount(validatorAddress, withdrawableAmount);
 
   if (res != +Result::SUCCESS) {
     return res;
@@ -621,16 +621,16 @@ Result FinalizationState::ValidateWithdraw(const uint256 &validatorIndex,
 }
 
 Result FinalizationState::CalculateWithdrawAmount(
-    const uint256 &validatorIndex, CAmount &withdrawAmountOut) const {
+    const uint256 &validatorAddress, CAmount &withdrawAmountOut) const {
   LOCK(cs_esperanza);
 
   withdrawAmountOut = 0;
 
-  auto it = m_validators.find(validatorIndex);
+  auto it = m_validators.find(validatorAddress);
   if (it == m_validators.end()) {
     return fail(Result::WITHDRAW_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
-                validatorIndex.GetHex());
+                validatorAddress.GetHex());
   }
 
   const auto &validator = it->second;
@@ -685,7 +685,7 @@ Result FinalizationState::CalculateWithdrawAmount(
 
     LogPrint(BCLog::FINALIZATION,
              "%s: Withdraw from validator %s of %d units.\n", __func__,
-             validatorIndex.GetHex(), endDynasty, withdrawAmountOut);
+             validatorAddress.GetHex(), endDynasty, withdrawAmountOut);
   }
 
   return success();
@@ -695,10 +695,10 @@ Result FinalizationState::CalculateWithdrawAmount(
  * Performes a withdraw operation for the validator with the given index, in
  * fact removing him from the validators list.
  */
-void FinalizationState::ProcessWithdraw(const uint256 &validatorIndex) {
+void FinalizationState::ProcessWithdraw(const uint256 &validatorAddress) {
   LOCK(cs_esperanza);
 
-  DeleteValidator(validatorIndex);
+  DeleteValidator(validatorAddress);
 }
 
 bool FinalizationState::IsPermissioningActive() const {
@@ -765,24 +765,24 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
                                       const Vote &vote2) const {
   LOCK(cs_esperanza);
 
-  auto it = m_validators.find(vote1.m_validatorIndex);
+  auto it = m_validators.find(vote1.m_validatorAddress);
   if (it == m_validators.end()) {
     return fail(Result::SLASH_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
-                vote1.m_validatorIndex.GetHex());
+                vote1.m_validatorAddress.GetHex());
   }
   const Validator &validator1 = it->second;
 
-  it = m_validators.find(vote2.m_validatorIndex);
+  it = m_validators.find(vote2.m_validatorAddress);
   if (it == m_validators.end()) {
     return fail(Result::SLASH_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
-                vote2.m_validatorIndex.GetHex());
+                vote2.m_validatorAddress.GetHex());
   }
   const Validator &validator2 = it->second;
 
-  uint256 validatorIndex1 = validator1.m_validatorIndex;
-  uint256 validatorIndex2 = validator2.m_validatorIndex;
+  uint256 validatorAddress1 = validator1.m_validatorAddress;
+  uint256 validatorAddress2 = validator2.m_validatorAddress;
 
   uint32_t sourceEpoch1 = vote1.m_sourceEpoch;
   uint32_t targetEpoch1 = vote1.m_targetEpoch;
@@ -790,7 +790,7 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
   uint32_t sourceEpoch2 = vote2.m_sourceEpoch;
   uint32_t targetEpoch2 = vote2.m_targetEpoch;
 
-  if (validatorIndex1 != validatorIndex2) {
+  if (validatorAddress1 != validatorAddress2) {
     return fail(Result::SLASH_NOT_SAME_VALIDATOR,
                 "%s: votes have not be casted by the same validator.\n",
                 __func__);
@@ -799,14 +799,14 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
   if (validator1.m_startDynasty > m_currentDynasty) {
     return fail(Result::SLASH_TOO_EARLY,
                 "%s: validator with deposit hash %s is not yet voting.\n",
-                __func__, vote1.m_validatorIndex.GetHex());
+                __func__, vote1.m_validatorAddress.GetHex());
   }
 
   if (validator1.m_isSlashed) {
     return fail(
         Result::SLASH_ALREADY_SLASHED,
         "%s: validator with deposit hash %s has been already slashed.\n",
-        __func__, vote1.m_validatorIndex.GetHex());
+        __func__, vote1.m_validatorAddress.GetHex());
   }
 
   if (vote1.m_targetHash == vote2.m_targetHash) {
@@ -835,32 +835,32 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
                                      CAmount &slashingBountyOut) {
   LOCK(cs_esperanza);
 
-  const uint256 &validatorIndex = vote1.m_validatorIndex;
+  const uint256 &validatorAddress = vote1.m_validatorAddress;
 
   // Slash the offending validator, and give a 4% "finder's fee"
-  CAmount validatorDeposit = GetDepositSize(validatorIndex);
+  CAmount validatorDeposit = GetDepositSize(validatorAddress);
   CAmount slashingBounty =
       validatorDeposit / m_settings.m_bountyFractionDenominator;
 
   m_totalSlashed[m_currentEpoch] =
       GetTotalSlashed(m_currentEpoch) + validatorDeposit;
 
-  m_validators.at(validatorIndex).m_isSlashed = true;
+  m_validators.at(validatorAddress).m_isSlashed = true;
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Slashing validator with deposit hash %s of %d units, taking %d "
            "as bounty.\n",
-           __func__, validatorIndex.GetHex(), validatorDeposit, slashingBounty);
+           __func__, validatorAddress.GetHex(), validatorDeposit, slashingBounty);
 
-  uint32_t endDynasty = m_validators.at(validatorIndex).m_endDynasty;
+  uint32_t endDynasty = m_validators.at(validatorAddress).m_endDynasty;
 
   // if validator not logged out yet, remove total from next dynasty
   // and forcibly logout next dynasty
   if (m_currentDynasty < endDynasty) {
-    CAmount deposit = m_validators.at(validatorIndex).m_deposit;
+    CAmount deposit = m_validators.at(validatorAddress).m_deposit;
     m_dynastyDeltas[m_currentDynasty + 1] =
         GetDynastyDelta(m_currentDynasty + 1) - deposit;
-    m_validators.at(validatorIndex).m_endDynasty = m_currentDynasty + 1;
+    m_validators.at(validatorAddress).m_endDynasty = m_currentDynasty + 1;
 
     // if validator was already staged for logout at end_dynasty,
     // ensure that we don't doubly remove from total
@@ -868,7 +868,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
       m_dynastyDeltas[endDynasty] = GetDynastyDelta(endDynasty) + deposit;
     } else {
       // if no previously logged out, remember the total deposits at logout
-      m_validators.at(validatorIndex).m_depositsAtLogout =
+      m_validators.at(validatorAddress).m_depositsAtLogout =
           GetTotalCurDynDeposits();
     }
   }
@@ -918,9 +918,9 @@ std::vector<Validator> FinalizationState::GetValidators() const {
 }
 
 const Validator *FinalizationState::GetValidator(
-    const uint256 &validatorIndex) const {
+    const uint256 &validatorAddress) const {
 
-  auto it = m_validators.find(validatorIndex);
+  auto it = m_validators.find(validatorAddress);
 
   if (it != m_validators.end()) {
     return &it->second;
@@ -986,28 +986,28 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       }
 
       case TxType::DEPOSIT: {
-        uint256 validatorIndex = uint256();
+        uint256 validatorAddress = uint256();
 
-        if (ExtractValidatorIndex(*tx.get(), validatorIndex)) {
-          state->ProcessDeposit(validatorIndex, tx->GetValueOut());
+        if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
+          state->ProcessDeposit(validatorAddress, tx->GetValueOut());
         }
         break;
       }
 
       case TxType::LOGOUT: {
-        uint256 validatorIndex = uint256();
+        uint256 validatorAddress = uint256();
 
-        if (ExtractValidatorIndex(*tx.get(), validatorIndex)) {
-          state->ProcessLogout(validatorIndex);
+        if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
+          state->ProcessLogout(validatorAddress);
         }
         break;
       }
 
       case TxType::WITHDRAW: {
-        uint256 validatorIndex = uint256();
+        uint256 validatorAddress = uint256();
 
-        if (ExtractValidatorIndex(*tx.get(), validatorIndex)) {
-          state->ProcessWithdraw(validatorIndex);
+        if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
+          state->ProcessWithdraw(validatorAddress);
         }
         break;
       }

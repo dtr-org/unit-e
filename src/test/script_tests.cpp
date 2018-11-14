@@ -1483,12 +1483,12 @@ BOOST_AUTO_TEST_CASE(script_can_append_self)
 
 BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
 {
-    std::string validatorIndex = "d3905170000000055851e6a2ccf3b9d00d72fd6d49193d45fdaafbe9c406f334";
+    std::string validatorAddress = "d3905170000000055851e6a2ccf3b9d00d72fd6d49193d45fdaafbe9c406f334";
     std::string targetHash = "74963700000000055851e6a2ccf3b9d00d72fd6d49193d45fdaafbe9c406f334";
     uint32_t sourceHeight = 0;
     uint32_t targetHeight = 3231231;
 
-    esperanza::Vote data = {uint256(ParseHex(validatorIndex)),
+    esperanza::Vote data = {uint256(ParseHex(validatorAddress)),
                      uint256(ParseHex(targetHash)),
                      sourceHeight,
                      targetHeight};
@@ -1497,7 +1497,7 @@ BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
 
     esperanza::Vote decodeData = CScript::DecodeVote(s);
 
-    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorIndex);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorAddress.begin(), decodeData.m_validatorAddress.end()), validatorAddress);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
@@ -1523,7 +1523,7 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
 
     esperanza::Vote decodeData = CScript::ExtractVoteFromSignature(s);
 
-    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorId);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorAddress.begin(), decodeData.m_validatorAddress.end()), validatorId);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);
@@ -1551,7 +1551,7 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
 
     esperanza::Vote decodeData = CScript::ExtractVoteFromWitness(s);
 
-    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorIndex.begin(), decodeData.m_validatorIndex.end()), validatorId);
+    BOOST_CHECK_EQUAL(HexStr(decodeData.m_validatorAddress.begin(), decodeData.m_validatorAddress.end()), validatorId);
     BOOST_CHECK_EQUAL(HexStr(decodeData.m_targetHash.begin(), decodeData.m_targetHash.end()), targetHash);
     BOOST_CHECK_EQUAL(decodeData.m_sourceEpoch, sourceHeight);
     BOOST_CHECK_EQUAL(decodeData.m_targetEpoch, targetHeight);

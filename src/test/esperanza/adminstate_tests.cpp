@@ -24,9 +24,9 @@ BOOST_AUTO_TEST_CASE(empty_params_mean_no_admin) {
   esperanza::AdminParams emptyParams;
   esperanza::AdminState state(emptyParams);
 
-  const auto validatorIndex = MakePubKey().GetHash();
+  const auto validatorAddress = MakePubKey().GetHash();
 
-  BOOST_CHECK(state.IsValidatorAuthorized(validatorIndex));
+  BOOST_CHECK(state.IsValidatorAuthorized(validatorAddress));
 }
 
 BOOST_AUTO_TEST_CASE(reset_admin_soft) {

@@ -12,7 +12,7 @@ namespace esperanza {
 
 struct Vote {
 
-  uint256 m_validatorIndex;
+  uint256 m_validatorAddress;
 
   uint256 m_targetHash;
 
@@ -21,7 +21,7 @@ struct Vote {
   uint32_t m_targetEpoch;
 
   bool operator==(const Vote &rhs) const {
-    return this->m_validatorIndex == rhs.m_validatorIndex &&
+    return this->m_validatorAddress == rhs.m_validatorAddress &&
            this->m_targetHash == rhs.m_targetHash &&
            this->m_sourceEpoch == rhs.m_sourceEpoch &&
            this->m_targetEpoch == rhs.m_targetEpoch;

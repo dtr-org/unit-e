@@ -33,10 +33,10 @@ class AdminState {
 
   void OnBlock(int blockHeight);
   bool IsAdminAuthorized(const AdminKeySet &keys) const;
-  bool IsValidatorAuthorized(const uint256 &validatorIndex) const;
+  bool IsValidatorAuthorized(const uint256 &validatorAddress) const;
   void ResetAdmin(const AdminKeySet &newKeys);
-  void AddValidator(const uint256 &validatorIndex);
-  void RemoveValidator(const uint256 &validatorIndex);
+  void AddValidator(const uint256 &validatorAddress);
+  void RemoveValidator(const uint256 &validatorAddress);
   void EndPermissioning();
   bool IsPermissioningActive() const;
 };

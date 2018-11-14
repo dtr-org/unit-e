@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   esperanza::Vote signedVote =
       CScript::ExtractVoteFromSignature(sigdata.scriptSig);
 
-  BOOST_CHECK_EQUAL(vote.m_validatorIndex, signedVote.m_validatorIndex);
+  BOOST_CHECK_EQUAL(vote.m_validatorAddress, signedVote.m_validatorAddress);
   BOOST_CHECK_EQUAL(vote.m_targetHash, signedVote.m_targetHash);
   BOOST_CHECK_EQUAL(vote.m_sourceEpoch, signedVote.m_sourceEpoch);
   BOOST_CHECK_EQUAL(vote.m_targetEpoch, signedVote.m_targetEpoch);

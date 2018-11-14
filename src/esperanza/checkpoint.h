@@ -26,7 +26,7 @@ class Checkpoint {
   std::map<uint32_t, uint64_t> m_curDynastyVotes;
   std::map<uint32_t, uint64_t> m_prevDynastyVotes;
 
-  // Set of validatorIndexes for validators that voted that checkpoint
+  // Set of validatorAddresses for validators that voted that checkpoint
   std::set<uint256> m_voteSet;
 
   uint64_t GetCurDynastyVotes(uint32_t epoch);

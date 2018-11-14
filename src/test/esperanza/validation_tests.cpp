@@ -20,13 +20,13 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
 
   FinalizationState *esperanza = FinalizationState::GetState();
 
-  uint256 validatorIndex = GetRandHash();
+  uint256 validatorAddress = GetRandHash();
 
   BOOST_CHECK_EQUAL(
-      esperanza->ValidateDeposit(validatorIndex, MIN_DEPOSIT_SIZE),
+      esperanza->ValidateDeposit(validatorAddress, MIN_DEPOSIT_SIZE),
       +Result::SUCCESS);
 
-  esperanza->ProcessDeposit(validatorIndex, MIN_DEPOSIT_SIZE);
+  esperanza->ProcessDeposit(validatorAddress, MIN_DEPOSIT_SIZE);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
   for (int i = 1; i < 6; i++) {
@@ -67,10 +67,10 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
   CTransaction prevTx(tx);
 
   CTransaction deposit = CreateDepositTx(prevTx, k, 10000);
-  uint256 validatorIndex = uint256();
-  BOOST_CHECK(ExtractValidatorIndex(deposit, validatorIndex));
+  uint256 validatorAddress = uint256();
+  BOOST_CHECK(ExtractValidatorIndex(deposit, validatorAddress));
 
-  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorIndex);
+  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorAddress);
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
@@ -88,10 +88,10 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
   CTransaction prevTx(tx);
 
   CTransaction logout = CreateLogoutTx(prevTx, k, 10000);
-  uint256 validatorIndex = uint256();
-  BOOST_CHECK(ExtractValidatorIndex(logout, validatorIndex));
+  uint256 validatorAddress = uint256();
+  BOOST_CHECK(ExtractValidatorIndex(logout, validatorAddress));
 
-  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorIndex);
+  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorAddress);
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
@@ -109,10 +109,10 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
   CTransaction prevTx(tx);
 
   CTransaction withdraw = CreateWithdrawTx(prevTx, k, 10000);
-  uint256 validatorIndex = uint256();
-  BOOST_CHECK(ExtractValidatorIndex(withdraw, validatorIndex));
+  uint256 validatorAddress = uint256();
+  BOOST_CHECK(ExtractValidatorIndex(withdraw, validatorAddress));
 
-  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorIndex);
+  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorAddress);
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
@@ -130,8 +130,8 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
   CTransaction prevTx(tx);
 
   CTransaction p2pkh = CreateP2PKHTx(prevTx, k, 10000);
-  uint256 validatorIndex = uint256();
-  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorIndex) == false);
+  uint256 validatorAddress = uint256();
+  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_vote_fails) {
@@ -139,8 +139,8 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_vote_fails) {
   Vote vote{};
 
   CTransaction p2pkh = CreateVoteTx(vote);
-  uint256 validatorIndex = uint256();
-  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorIndex) == false);
+  uint256 validatorAddress = uint256();
+  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
