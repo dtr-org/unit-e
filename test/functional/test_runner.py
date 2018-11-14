@@ -77,6 +77,7 @@ BASE_SCRIPTS= [
     'wallet_dump.py',
     'esperanza_vote.py',
     'rpc_listtransactions.py',
+    'proposer_balance.py',
     # vv Tests less than 60s vv
     'feature_bip9_softforks.py',
     'p2p_feefilter.py',
