@@ -16,9 +16,9 @@ static const uint32_t DEFAULT_END_DYNASTY =
 class Validator {
  public:
   Validator();
-  Validator(uint64_t deposit, uint32_t startDynasty, uint256 validatorAddress);
+  Validator(uint64_t deposit, uint32_t startDynasty, uint160 validatorAddress);
 
-  uint256 m_validatorAddress;
+  uint160 m_validatorAddress;
   uint64_t m_deposit;
   uint32_t m_startDynasty;
   uint32_t m_endDynasty;

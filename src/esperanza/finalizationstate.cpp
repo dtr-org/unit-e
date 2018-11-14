@@ -213,14 +213,14 @@ uint32_t FinalizationState::GetEpochsSinceFinalization() {
  * Removes a validator from the validator list.
  * @param validatorAddress the index of the validator to remove.
  */
-void FinalizationState::DeleteValidator(const uint256 &validatorAddress) {
+void FinalizationState::DeleteValidator(const uint160 &validatorAddress) {
   LOCK(cs_esperanza);
 
   m_validators.erase(validatorAddress);
 }
 
 uint64_t FinalizationState::GetDepositSize(
-    const uint256 &validatorAddress) const {
+    const uint160 &validatorAddress) const {
   LOCK(cs_esperanza);
 
   auto validatorIt = m_validators.find(validatorAddress);
@@ -236,7 +236,7 @@ uint64_t FinalizationState::GetDepositSize(
 }
 
 Vote FinalizationState::GetRecommendedVote(
-    const uint256 &validatorAddress) const {
+    const uint160 &validatorAddress) const {
   LOCK(cs_esperanza);
 
   Vote vote;
@@ -276,7 +276,7 @@ uint64_t FinalizationState::GetTotalPrevDynDeposits() {
                             m_prevDynDeposits);
 }
 
-CAmount FinalizationState::ProcessReward(const uint256 &validatorAddress,
+CAmount FinalizationState::ProcessReward(const uint160 &validatorAddress,
                                          uint64_t reward) {
 
   Validator &validator = m_validators.at(validatorAddress);
@@ -373,7 +373,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
  * Validates the consistency of the deposit against the current state. This does
  * assume that the normal transaction validation process already took place.
  */
-Result FinalizationState::ValidateDeposit(const uint256 &validatorAddress,
+Result FinalizationState::ValidateDeposit(const uint160 &validatorAddress,
                                           CAmount depositValue) const {
   LOCK(cs_esperanza);
 
@@ -403,7 +403,7 @@ Result FinalizationState::ValidateDeposit(const uint256 &validatorAddress,
  * Performs a deposit for the given amount and for the validator with the given
  * index.
  */
-void FinalizationState::ProcessDeposit(const uint256 &validatorAddress,
+void FinalizationState::ProcessDeposit(const uint160 &validatorAddress,
                                        CAmount depositValue) {
   LOCK(cs_esperanza);
 
@@ -412,7 +412,7 @@ void FinalizationState::ProcessDeposit(const uint256 &validatorAddress,
       ufp64::div_to_uint(static_cast<uint64_t>(depositValue),
                          GetDepositScaleFactor(m_currentEpoch));
 
-  m_validators.insert(std::pair<uint256, Validator>(
+  m_validators.insert(std::pair<uint160, Validator>(
       validatorAddress, Validator(scaledDeposit, startDynasty, validatorAddress)));
 
   m_dynastyDeltas[startDynasty] = GetDynastyDelta(startDynasty) + scaledDeposit;
@@ -478,7 +478,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
            vote.m_validatorAddress.GetHex(), vote.m_targetHash.GetHex(),
            vote.m_sourceEpoch, vote.m_targetEpoch);
 
-  const uint256 &validatorAddress = vote.m_validatorAddress;
+  const uint160 &validatorAddress = vote.m_validatorAddress;
   uint32_t sourceEpoch = vote.m_sourceEpoch;
   uint32_t targetEpoch = vote.m_targetEpoch;
   const Validator &validator = m_validators.at(validatorAddress);
@@ -547,7 +547,7 @@ uint32_t FinalizationState::GetEndDynasty() const {
  * @param validatorAddress the index of the validator that is logging out
  * @return a representation of the outcome
  */
-Result FinalizationState::ValidateLogout(const uint256 &validatorAddress) const {
+Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(validatorAddress);
@@ -579,7 +579,7 @@ Result FinalizationState::ValidateLogout(const uint256 &validatorAddress) const 
 /**
  * Performs a logout for the validator with the given index.
  */
-void FinalizationState::ProcessLogout(const uint256 &validatorAddress) {
+void FinalizationState::ProcessLogout(const uint160 &validatorAddress) {
   LOCK(cs_esperanza);
 
   Validator &validator = m_validators.at(validatorAddress);
@@ -599,7 +599,7 @@ void FinalizationState::ProcessLogout(const uint256 &validatorAddress) {
  * @param validatorAddress
  * @return
  */
-Result FinalizationState::ValidateWithdraw(const uint256 &validatorAddress,
+Result FinalizationState::ValidateWithdraw(const uint160 &validatorAddress,
                                            CAmount requestedWithdraw) const {
   LOCK(cs_esperanza);
 
@@ -621,7 +621,7 @@ Result FinalizationState::ValidateWithdraw(const uint256 &validatorAddress,
 }
 
 Result FinalizationState::CalculateWithdrawAmount(
-    const uint256 &validatorAddress, CAmount &withdrawAmountOut) const {
+    const uint160 &validatorAddress, CAmount &withdrawAmountOut) const {
   LOCK(cs_esperanza);
 
   withdrawAmountOut = 0;
@@ -695,7 +695,7 @@ Result FinalizationState::CalculateWithdrawAmount(
  * Performes a withdraw operation for the validator with the given index, in
  * fact removing him from the validators list.
  */
-void FinalizationState::ProcessWithdraw(const uint256 &validatorAddress) {
+void FinalizationState::ProcessWithdraw(const uint160 &validatorAddress) {
   LOCK(cs_esperanza);
 
   DeleteValidator(validatorAddress);
@@ -729,13 +729,13 @@ void FinalizationState::ProcessAdminCommands(
     switch (command.GetCommandType()) {
       case AdminCommandType::ADD_TO_WHITELIST: {
         for (const auto &pubkey : command.GetPayload()) {
-          m_adminState.AddValidator(pubkey.GetHash());
+          m_adminState.AddValidator(pubkey.GetID());
         }
         break;
       }
       case AdminCommandType::REMOVE_FROM_WHITELIST: {
         for (const auto &pubkey : command.GetPayload()) {
-          m_adminState.RemoveValidator(pubkey.GetHash());
+          m_adminState.RemoveValidator(pubkey.GetID());
         }
         break;
       }
@@ -781,8 +781,8 @@ Result FinalizationState::IsSlashable(const Vote &vote1,
   }
   const Validator &validator2 = it->second;
 
-  uint256 validatorAddress1 = validator1.m_validatorAddress;
-  uint256 validatorAddress2 = validator2.m_validatorAddress;
+  uint160 validatorAddress1 = validator1.m_validatorAddress;
+  uint160 validatorAddress2 = validator2.m_validatorAddress;
 
   uint32_t sourceEpoch1 = vote1.m_sourceEpoch;
   uint32_t targetEpoch1 = vote1.m_targetEpoch;
@@ -835,7 +835,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2,
                                      CAmount &slashingBountyOut) {
   LOCK(cs_esperanza);
 
-  const uint256 &validatorAddress = vote1.m_validatorAddress;
+  const uint160 &validatorAddress = vote1.m_validatorAddress;
 
   // Slash the offending validator, and give a 4% "finder's fee"
   CAmount validatorDeposit = GetDepositSize(validatorAddress);
@@ -918,7 +918,7 @@ std::vector<Validator> FinalizationState::GetValidators() const {
 }
 
 const Validator *FinalizationState::GetValidator(
-    const uint256 &validatorAddress) const {
+    const uint160 &validatorAddress) const {
 
   auto it = m_validators.find(validatorAddress);
 
@@ -986,7 +986,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       }
 
       case TxType::DEPOSIT: {
-        uint256 validatorAddress = uint256();
+        uint160 validatorAddress = uint160();
 
         if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
           state->ProcessDeposit(validatorAddress, tx->GetValueOut());
@@ -995,7 +995,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       }
 
       case TxType::LOGOUT: {
-        uint256 validatorAddress = uint256();
+        uint160 validatorAddress = uint160();
 
         if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
           state->ProcessLogout(validatorAddress);
@@ -1004,7 +1004,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       }
 
       case TxType::WITHDRAW: {
-        uint256 validatorAddress = uint256();
+        uint160 validatorAddress = uint160();
 
         if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
           state->ProcessWithdraw(validatorAddress);

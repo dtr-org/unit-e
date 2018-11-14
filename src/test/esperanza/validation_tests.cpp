@@ -4,6 +4,7 @@
 #include <random.h>
 #include <script/script.h>
 #include <test/esperanza/finalization_utils.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 #include <util.h>
 #include <boost/test/unit_test.hpp>
@@ -20,7 +21,7 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
 
   FinalizationState *esperanza = FinalizationState::GetState();
 
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
 
   BOOST_CHECK_EQUAL(
       esperanza->ValidateDeposit(validatorAddress, MIN_DEPOSIT_SIZE),
@@ -36,19 +37,19 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
 
   uint256 targetHash = uint256();
 
-  Vote expired{GetRandHash(), targetHash, 0, 2};
+  Vote expired{RandValidatorAddr(), targetHash, 0, 2};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(expired)), true);
 
-  Vote current{GetRandHash(), targetHash, 0, 6};
+  Vote current{RandValidatorAddr(), targetHash, 0, 6};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(current)), false);
 
-  Vote afterLastFinalization{GetRandHash(), targetHash, 0, 4};
+  Vote afterLastFinalization{RandValidatorAddr(), targetHash, 0, 4};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(afterLastFinalization)), false);
 
-  Vote future{GetRandHash(), targetHash, 0, 12};
+  Vote future{RandValidatorAddr(), targetHash, 0, 12};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(future)), false);
 
-  Vote currentOtherFork{GetRandHash(), GetRandHash(), 0, 6};
+  Vote currentOtherFork{RandValidatorAddr(), GetRandHash(), 0, 6};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(currentOtherFork)), false);
 }
 
@@ -67,10 +68,10 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
   CTransaction prevTx(tx);
 
   CTransaction deposit = CreateDepositTx(prevTx, k, 10000);
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
   BOOST_CHECK(ExtractValidatorIndex(deposit, validatorAddress));
 
-  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorAddress);
+  BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
@@ -88,10 +89,10 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
   CTransaction prevTx(tx);
 
   CTransaction logout = CreateLogoutTx(prevTx, k, 10000);
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
   BOOST_CHECK(ExtractValidatorIndex(logout, validatorAddress));
 
-  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorAddress);
+  BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
@@ -109,10 +110,10 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
   CTransaction prevTx(tx);
 
   CTransaction withdraw = CreateWithdrawTx(prevTx, k, 10000);
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
   BOOST_CHECK(ExtractValidatorIndex(withdraw, validatorAddress));
 
-  BOOST_CHECK_EQUAL(k.GetPubKey().GetHash(), validatorAddress);
+  BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
@@ -130,7 +131,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
   CTransaction prevTx(tx);
 
   CTransaction p2pkh = CreateP2PKHTx(prevTx, k, 10000);
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
   BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
 }
 
@@ -139,7 +140,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_vote_fails) {
   Vote vote{};
 
   CTransaction p2pkh = CreateVoteTx(vote);
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
   BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
 }
 

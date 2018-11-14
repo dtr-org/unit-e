@@ -390,7 +390,7 @@ esperanza::Vote CScript::DecodeVote(const CScript &script)
 
     std::vector<unsigned char> validator;
     script.GetOp(it, opcode, validator);
-    uint256 validatorAddress(validator);
+    uint160 validatorAddress(validator);
 
     std::vector<unsigned char> target;
     script.GetOp(it, opcode, target);

@@ -16,7 +16,7 @@ Validator::Validator()
       m_depositsAtLogout(0) {}
 
 Validator::Validator(uint64_t deposit, uint32_t startDynasty,
-                     uint256 validatorAddress)
+                     uint160 validatorAddress)
     : m_validatorAddress(validatorAddress),
       m_deposit(deposit),
       m_startDynasty(startDynasty),

@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 BOOST_AUTO_TEST_CASE(getrecommendedvote) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(getrecommendedvote) {
 
   Vote res = spy.GetRecommendedVote(validatorAddress);
 
-  BOOST_CHECK_EQUAL(res.m_validatorAddress, validatorAddress);
+  BOOST_CHECK_EQUAL(res.m_validatorAddress.GetHex(), validatorAddress.GetHex());
   BOOST_CHECK_EQUAL(res.m_sourceEpoch, 3);
   BOOST_CHECK_EQUAL(res.m_targetEpoch, 7);
   BOOST_CHECK_EQUAL(res.m_targetHash, targetHash);

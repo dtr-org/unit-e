@@ -12,7 +12,7 @@ namespace esperanza {
 
 struct Vote {
 
-  uint256 m_validatorAddress;
+  uint160 m_validatorAddress;
 
   uint256 m_targetHash;
 

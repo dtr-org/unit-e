@@ -92,7 +92,7 @@ class FinalizationStateData {
   std::map<uint32_t, uint256> m_epochToCheckpointHash;
 
   // List of validators
-  std::map<uint256, Validator> m_validators;
+  std::map<uint160, Validator> m_validators;
 
   // Map of the dynasty number with the delta in deposits with the previous one
   std::map<uint32_t, uint64_t> m_dynastyDeltas;
@@ -153,24 +153,24 @@ class FinalizationState : public FinalizationStateData {
 
   Result InitializeEpoch(int blockHeight);
 
-  Result ValidateDeposit(const uint256 &validatorAddress,
+  Result ValidateDeposit(const uint160 &validatorAddress,
                          CAmount depositValue) const;
 
-  void ProcessDeposit(const uint256 &validatorAddress, CAmount depositValue);
+  void ProcessDeposit(const uint160 &validatorAddress, CAmount depositValue);
 
   Result ValidateVote(const Vote &vote) const;
   void ProcessVote(const Vote &vote);
 
-  Result ValidateLogout(const uint256 &validatorAddress) const;
-  void ProcessLogout(const uint256 &validatorAddress);
+  Result ValidateLogout(const uint160 &validatorAddress) const;
+  void ProcessLogout(const uint160 &validatorAddress);
 
-  Result ValidateWithdraw(const uint256 &validatorAddress,
+  Result ValidateWithdraw(const uint160 &validatorAddress,
                           CAmount requestedWithdraw) const;
 
-  Result CalculateWithdrawAmount(const uint256 &validatorAddress,
+  Result CalculateWithdrawAmount(const uint160 &validatorAddress,
                                  CAmount &withdrawAmountOut) const;
 
-  void ProcessWithdraw(const uint256 &validatorAddress);
+  void ProcessWithdraw(const uint160 &validatorAddress);
 
   Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
   void ProcessSlash(const Vote &vote1, const Vote &vote2,
@@ -186,12 +186,12 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetCurrentEpoch() const;
   uint32_t GetCurrentDynasty() const;
 
-  uint64_t GetDepositSize(const uint256 &validatorAddress) const;
+  uint64_t GetDepositSize(const uint160 &validatorAddress) const;
 
-  Vote GetRecommendedVote(const uint256 &validatorAddress) const;
+  Vote GetRecommendedVote(const uint160 &validatorAddress) const;
 
   std::vector<Validator> GetValidators() const;
-  const Validator *GetValidator(const uint256 &validatorAddress) const;
+  const Validator *GetValidator(const uint160 &validatorAddress) const;
 
   static void Init(const esperanza::FinalizationParams &params,
                    const esperanza::AdminParams &adminParams);
@@ -216,8 +216,8 @@ class FinalizationState : public FinalizationStateData {
   Result IsVotable(const Validator &validator, const uint256 &targetHash,
                    uint32_t targetEpoch, uint32_t sourceEpoch) const;
   bool IsInDynasty(const Validator &validator, uint32_t dynasty) const;
-  CAmount ProcessReward(const uint256 &validatorAddress, uint64_t reward);
-  void DeleteValidator(const uint256 &validatorAddress);
+  CAmount ProcessReward(const uint160 &validatorAddress, uint64_t reward);
+  void DeleteValidator(const uint160 &validatorAddress);
   uint64_t GetTotalCurDynDeposits();
   uint64_t GetTotalPrevDynDeposits();
   uint32_t GetEndDynasty() const;

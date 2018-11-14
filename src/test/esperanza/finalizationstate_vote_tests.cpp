@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
   uint256 targetHash = GetRandHash();
   *spy.RecommendedTargetHash() = targetHash;
 
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // e0/d0 - a deposit is made
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
   uint256 targetHash = GetRandHash();
   *spy.RecommendedTargetHash() = targetHash;
 
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   *spy.RecommendedTargetHash() = GetRandHash();
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 
 BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not
@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
 BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not
@@ -226,8 +226,8 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
 BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress_1 = GetRandHash();
-  uint256 validatorAddress_2 = GetRandHash();
+  uint160 validatorAddress_1 = RandValidatorAddr();
+  uint160 validatorAddress_2 = RandValidatorAddr();
   CAmount depositSize_1 = spy.MinDepositSize();
   CAmount depositSize_2 = spy.MinDepositSize() * 2;
 
@@ -265,8 +265,8 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
 BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress_1 = GetRandHash();
-  uint256 validatorAddress_2 = GetRandHash();
+  uint160 validatorAddress_1 = RandValidatorAddr();
+  uint160 validatorAddress_2 = RandValidatorAddr();
   CAmount depositSize_1 = spy.MinDepositSize();
   CAmount depositSize_2 = spy.MinDepositSize() * 3;
 

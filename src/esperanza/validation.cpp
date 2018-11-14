@@ -32,7 +32,7 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-deposit-script-not-solvable");
   }
 
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
 
   if (!ExtractValidatorIndex(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -84,7 +84,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-logout-script-not-solvable");
   }
 
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
 
   if (!ExtractValidatorIndex(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -168,7 +168,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                         "bad-logout-script-not-solvable");
   }
 
-  uint256 validatorAddress = uint256();
+  uint160 validatorAddress = uint160();
 
   if (!ExtractValidatorIndex(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -308,7 +308,7 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
   return true;
 }
 
-bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorAddressOut) {
+bool ExtractValidatorIndex(const CTransaction &tx, uint160 &validatorAddressOut) {
 
   switch (tx.GetType()) {
     case TxType::DEPOSIT:
@@ -317,7 +317,7 @@ bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorAddressOut)
       txnouttype typeRet;
 
       if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-        validatorAddressOut = CPubKey(vSolutions[0]).GetHash();
+        validatorAddressOut = CPubKey(vSolutions[0]).GetID();
         return true;
       }
       return false;
@@ -334,7 +334,7 @@ bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorAddressOut)
 
       // Retrieve the public key
       scriptSig.GetOp(pc, opcode, vData);
-      validatorAddressOut = CPubKey(vData).GetHash();
+      validatorAddressOut = CPubKey(vData).GetID();
       return true;
     }
     default: { return false; }

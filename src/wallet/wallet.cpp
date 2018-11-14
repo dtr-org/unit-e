@@ -1097,7 +1097,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "Deposit hash %s.\n",
                              __func__, tx.GetHash().GetHex());
 
-                    uint256 validatorAddress = uint256();
+                    uint160 validatorAddress = uint160();
 
                     if(!esperanza::ExtractValidatorIndex(tx, validatorAddress)) {
                       LogPrint(BCLog::FINALIZATION,

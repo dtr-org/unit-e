@@ -5,6 +5,7 @@
 #include <addrman.h>
 #include <esperanza/admincommand.h>
 #include <esperanza/adminstate.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
@@ -24,7 +25,7 @@ BOOST_AUTO_TEST_CASE(empty_params_mean_no_admin) {
   esperanza::AdminParams emptyParams;
   esperanza::AdminState state(emptyParams);
 
-  const auto validatorAddress = MakePubKey().GetHash();
+  const auto validatorAddress = RandValidatorAddr();
 
   BOOST_CHECK(state.IsValidatorAuthorized(validatorAddress));
 }
@@ -83,7 +84,7 @@ BOOST_AUTO_TEST_CASE(change_white_list_soft) {
   params.m_blockToAdminKeys.emplace(0, MakeKeySet());
   esperanza::AdminState state(params);
 
-  const auto validator = MakePubKey().GetHash();
+  const auto validator = RandValidatorAddr();
 
   BOOST_CHECK(!state.IsValidatorAuthorized(validator));
 
@@ -100,8 +101,8 @@ BOOST_AUTO_TEST_CASE(change_white_list_hard) {
   esperanza::AdminParams params = {};
   params.m_blockToAdminKeys.emplace(0, MakeKeySet());
 
-  const auto validator1 = MakePubKey().GetHash();
-  const auto validator2 = MakePubKey().GetHash();
+  const auto validator1 = RandValidatorAddr();
+  const auto validator2 = RandValidatorAddr();
 
   params.m_blockToWhiteList[0] = {};
   params.m_blockToWhiteList[1] = {validator1};
@@ -145,7 +146,7 @@ BOOST_AUTO_TEST_CASE(end_permissioning) {
   params.m_blockToAdminKeys.emplace(0, MakeKeySet());
   esperanza::AdminState state(params);
 
-  const auto validator = MakePubKey().GetHash();
+  const auto validator = RandValidatorAddr();
 
   BOOST_CHECK(!state.IsValidatorAuthorized(validator));
 

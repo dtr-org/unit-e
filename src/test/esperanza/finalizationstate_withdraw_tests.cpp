@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(validate_withdraw_not_a_validator) {
   FinalizationStateSpy spy;
   CAmount withdrawAmount = 0;
 
-  BOOST_CHECK_EQUAL(spy.ValidateWithdraw(GetRandHash(), withdrawAmount),
+  BOOST_CHECK_EQUAL(spy.ValidateWithdraw(RandValidatorAddr(), withdrawAmount),
                     +Result::WITHDRAW_NOT_A_VALIDATOR);
 }
 
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
 
   FinalizationStateSpy spy;
   CAmount withdrawAmount = 0;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
 BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
 
   FinalizationStateSpy spy;
   CAmount withdrawAmount = 0;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not

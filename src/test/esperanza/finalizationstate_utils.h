@@ -18,8 +18,8 @@ class FinalizationStateSpy : public FinalizationState {
   uint64_t *CurDynDeposits() { return &m_curDynDeposits; }
   uint64_t *PrevDynDeposits() { return &m_prevDynDeposits; }
   uint64_t *RewardFactor() { return &m_rewardFactor; }
-  std::map<uint256, Validator> &Validators() { return m_validators; }
-  std::map<uint256, Validator> *pValidators() { return &m_validators; }
+  std::map<uint160, Validator> &Validators() { return m_validators; }
+  std::map<uint160, Validator> *pValidators() { return &m_validators; }
   std::map<uint32_t, Checkpoint> &Checkpoints() {
     return const_cast<std::map<uint32_t, Checkpoint> &>(m_checkpoints);
   }
@@ -44,5 +44,7 @@ class FinalizationStateSpy : public FinalizationState {
   using FinalizationState::ProcessVote;
   using FinalizationState::ProcessWithdraw;
 };
+
+uint160 RandValidatorAddr();
 
 #endif  //UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H

@@ -5,7 +5,7 @@ BOOST_FIXTURE_TEST_SUITE(finalizationstate_deposit_tests, ReducedTestingSetup)
 BOOST_AUTO_TEST_CASE(validate_deposit_tx_not_enough_deposit) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize() - 1;
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(validate_deposit_tx_double_deposit) {
 
   FinalizationStateSpy spy;
 
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
@@ -29,8 +29,8 @@ BOOST_AUTO_TEST_CASE(validate_deposit_tx_double_deposit) {
 BOOST_AUTO_TEST_CASE(process_deposit_tx) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
-  uint256 validatorAddress2 = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
+  uint160 validatorAddress2 = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(process_deposit_tx) {
   spy.ProcessDeposit(validatorAddress, depositSize);
   spy.ProcessDeposit(validatorAddress2, depositSize);
 
-  std::map<uint256, Validator> validators = spy.Validators();
+  std::map<uint160, Validator> validators = spy.Validators();
   auto it = validators.find(validatorAddress2);
   BOOST_CHECK(it != validators.end());
 

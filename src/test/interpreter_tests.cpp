@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(signaturehash_vote)
     CPubKey pk = k.GetPubKey();
 
     CScript prevScriptPK = CScript::CreatePayVoteSlashScript(pk);
-    esperanza::Vote vote{GetRandHash(), GetRandHash(), 10, 100};
+    esperanza::Vote vote{pk.GetID(), GetRandHash(), 10, 100};
 
     CMutableTransaction tx;
     tx.SetType(TxType::VOTE);

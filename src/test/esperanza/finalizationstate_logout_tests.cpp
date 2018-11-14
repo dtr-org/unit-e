@@ -6,14 +6,14 @@ BOOST_AUTO_TEST_CASE(validate_logout_not_a_validator) {
 
   FinalizationStateSpy spy;
 
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(GetRandHash()),
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(RandValidatorAddr()),
                     +Result::LOGOUT_NOT_A_VALIDATOR);
 }
 
 BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
@@ -26,7 +26,7 @@ BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
 BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
 BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
   FinalizationStateSpy spy;
-  uint256 validatorAddress = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
   // For simplicity we keep the targetHash constant since it does not
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
 
-  std::map<uint256, Validator> validators = spy.Validators();
+  std::map<uint160, Validator> validators = spy.Validators();
   Validator validator = validators.find(validatorAddress)->second;
   BOOST_CHECK_EQUAL(702, validator.m_endDynasty);
 }
