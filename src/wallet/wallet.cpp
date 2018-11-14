@@ -1097,15 +1097,15 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                              "Deposit hash %s.\n",
                              __func__, tx.GetHash().GetHex());
 
-                    uint256 validatorIndex = uint256();
+                    uint160 validatorAddress = uint160();
 
-                    if(!esperanza::ExtractValidatorIndex(tx, validatorIndex)) {
+                    if(!esperanza::ExtractValidatorIndex(tx, validatorAddress)) {
                       LogPrint(BCLog::FINALIZATION,
                                "ERROR: %s - Cannot extract validator index.\n");
                       return false;
                     }
 
-                    state.m_validatorIndex = validatorIndex;
+                    state.m_validatorAddress = validatorAddress;
                     state.m_lastEsperanzaTx = ptx;
                     state.m_depositEpoch =
                         esperanza::FinalizationState::GetEpoch(pIndex);
@@ -1135,7 +1135,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                         esperanza::FinalizationState::GetState(pIndex);
 
                     const esperanza::Validator* validator =
-                        finalizationState->GetValidator(state.m_validatorIndex);
+                        finalizationState->GetValidator(state.m_validatorAddress);
 
                     state.m_endDynasty = validator->m_endDynasty;
                     state.m_lastEsperanzaTx = ptx;

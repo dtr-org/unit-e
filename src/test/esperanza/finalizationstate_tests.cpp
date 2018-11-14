@@ -74,12 +74,12 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 BOOST_AUTO_TEST_CASE(getrecommendedvote) {
 
   FinalizationStateSpy spy;
-  uint256 validatorIndex = GetRandHash();
+  uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorIndex, depositSize),
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
-  spy.ProcessDeposit(validatorIndex, depositSize);
+  spy.ProcessDeposit(validatorAddress, depositSize);
 
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
@@ -98,9 +98,9 @@ BOOST_AUTO_TEST_CASE(getrecommendedvote) {
   uint256 targetHash = GetRandHash();
   *spy.RecommendedTargetHash() = targetHash;
 
-  Vote res = spy.GetRecommendedVote(validatorIndex);
+  Vote res = spy.GetRecommendedVote(validatorAddress);
 
-  BOOST_CHECK_EQUAL(res.m_validatorIndex, validatorIndex);
+  BOOST_CHECK_EQUAL(res.m_validatorAddress.GetHex(), validatorAddress.GetHex());
   BOOST_CHECK_EQUAL(res.m_sourceEpoch, 3);
   BOOST_CHECK_EQUAL(res.m_targetEpoch, 7);
   BOOST_CHECK_EQUAL(res.m_targetHash, targetHash);

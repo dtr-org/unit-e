@@ -30,7 +30,7 @@ struct ValidatorState {
   typedef _Phase Phase;
 
   ValidatorState()
-      : m_validatorIndex(),
+      : m_validatorAddress(),
         m_lastEsperanzaTx(nullptr),
         m_voteMap(),
         m_lastSourceEpoch(0),
@@ -40,7 +40,7 @@ struct ValidatorState {
         m_startDynasty(std::numeric_limits<uint32_t>::max()) {}
 
   Phase m_phase = Phase::NOT_VALIDATING;
-  uint256 m_validatorIndex;
+  uint160 m_validatorAddress;
   CTransactionRef m_lastEsperanzaTx;
   std::map<uint32_t, Vote> m_voteMap;
 

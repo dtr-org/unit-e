@@ -8,7 +8,7 @@
 namespace esperanza {
 
 Validator::Validator()
-    : m_validatorIndex(),
+    : m_validatorAddress(),
       m_deposit(0),
       m_startDynasty(0),
       m_endDynasty(DEFAULT_END_DYNASTY),
@@ -16,8 +16,8 @@ Validator::Validator()
       m_depositsAtLogout(0) {}
 
 Validator::Validator(uint64_t deposit, uint32_t startDynasty,
-                     uint256 validatorIndex)
-    : m_validatorIndex(validatorIndex),
+                     uint160 validatorAddress)
+    : m_validatorAddress(validatorAddress),
       m_deposit(deposit),
       m_startDynasty(startDynasty),
       m_endDynasty(DEFAULT_END_DYNASTY),

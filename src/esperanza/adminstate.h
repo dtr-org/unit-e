@@ -24,7 +24,7 @@ namespace esperanza {
 //! - Whether permissioing era is over
 class AdminState {
   AdminKeySet m_adminPubKeys;
-  std::set<uint256> m_whiteList;
+  std::set<uint160> m_whiteList;
   const AdminParams &m_adminParams;
   bool m_permissioningIsActive;
 
@@ -33,10 +33,10 @@ class AdminState {
 
   void OnBlock(int blockHeight);
   bool IsAdminAuthorized(const AdminKeySet &keys) const;
-  bool IsValidatorAuthorized(const uint256 &validatorIndex) const;
+  bool IsValidatorAuthorized(const uint160 &validatorAddress) const;
   void ResetAdmin(const AdminKeySet &newKeys);
-  void AddValidator(const uint256 &validatorIndex);
-  void RemoveValidator(const uint256 &validatorIndex);
+  void AddValidator(const uint160 &validatorAddress);
+  void RemoveValidator(const uint160 &validatorAddress);
   void EndPermissioning();
   bool IsPermissioningActive() const;
 };

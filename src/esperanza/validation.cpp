@@ -32,16 +32,16 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-deposit-script-not-solvable");
   }
 
-  uint256 validatorIndex = uint256();
+  uint160 validatorAddress = uint160();
 
-  if (!ExtractValidatorIndex(tx, validatorIndex)) {
+  if (!ExtractValidatorIndex(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-deposit-cannot-extract-validator-index");
   }
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
 
-  const Result res = state->ValidateDeposit(validatorIndex, tx.GetValueOut());
+  const Result res = state->ValidateDeposit(validatorAddress, tx.GetValueOut());
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-deposit-invalid-state");
@@ -84,16 +84,16 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-logout-script-not-solvable");
   }
 
-  uint256 validatorIndex = uint256();
+  uint160 validatorAddress = uint160();
 
-  if (!ExtractValidatorIndex(tx, validatorIndex)) {
+  if (!ExtractValidatorIndex(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-logout-cannot-extract-validator-index");
   }
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
 
-  const Result res = state->ValidateLogout(validatorIndex);
+  const Result res = state->ValidateLogout(validatorAddress);
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-logout-invalid-state");
@@ -168,16 +168,16 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                         "bad-logout-script-not-solvable");
   }
 
-  uint256 validatorIndex = uint256();
+  uint160 validatorAddress = uint160();
 
-  if (!ExtractValidatorIndex(tx, validatorIndex)) {
+  if (!ExtractValidatorIndex(tx, validatorAddress)) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-logout-cannot-extract-validator-index");
   }
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
 
-  const Result res = state->ValidateWithdraw(validatorIndex, tx.vout[0].nValue);
+  const Result res = state->ValidateWithdraw(validatorAddress, tx.vout[0].nValue);
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -308,7 +308,7 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
   return true;
 }
 
-bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorIndexOut) {
+bool ExtractValidatorIndex(const CTransaction &tx, uint160 &validatorAddressOut) {
 
   switch (tx.GetType()) {
     case TxType::DEPOSIT:
@@ -317,7 +317,7 @@ bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorIndexOut) {
       txnouttype typeRet;
 
       if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-        validatorIndexOut = CPubKey(vSolutions[0]).GetHash();
+        validatorAddressOut = CPubKey(vSolutions[0]).GetID();
         return true;
       }
       return false;
@@ -334,7 +334,7 @@ bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorIndexOut) {
 
       // Retrieve the public key
       scriptSig.GetOp(pc, opcode, vData);
-      validatorIndexOut = CPubKey(vData).GetHash();
+      validatorAddressOut = CPubKey(vData).GetID();
       return true;
     }
     default: { return false; }

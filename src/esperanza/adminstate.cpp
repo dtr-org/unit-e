@@ -37,12 +37,12 @@ bool AdminState::IsAdminAuthorized(const AdminKeySet &keys) const {
   return keys == m_adminPubKeys;
 }
 
-bool AdminState::IsValidatorAuthorized(const uint256 &validatorIndex) const {
+bool AdminState::IsValidatorAuthorized(const uint160 &validatorAddress) const {
   if (!m_permissioningIsActive) {
     return true;
   }
 
-  const auto it = m_whiteList.find(validatorIndex);
+  const auto it = m_whiteList.find(validatorAddress);
   return it != m_whiteList.end();
 }
 
@@ -50,12 +50,12 @@ void AdminState::ResetAdmin(const AdminKeySet &newKeys) {
   m_adminPubKeys = newKeys;
 }
 
-void AdminState::AddValidator(const uint256 &validatorIndex) {
-  m_whiteList.insert(validatorIndex);
+void AdminState::AddValidator(const uint160 &validatorAddress) {
+  m_whiteList.insert(validatorAddress);
 }
 
-void AdminState::RemoveValidator(const uint256 &validatorIndex) {
-  m_whiteList.erase(validatorIndex);
+void AdminState::RemoveValidator(const uint160 &validatorAddress) {
+  m_whiteList.erase(validatorAddress);
 }
 
 void AdminState::EndPermissioning() { m_permissioningIsActive = false; }

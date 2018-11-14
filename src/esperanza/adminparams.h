@@ -20,7 +20,7 @@ using AdminKeySet = std::array<CPubKey, ADMIN_MULTISIG_KEYS>;
 //! \brief Esperanza Permissioning-specific blockchain parameters
 struct AdminParams {
   std::map<int, AdminKeySet> m_blockToAdminKeys;
-  std::map<int, std::vector<uint256>> m_blockToWhiteList;
+  std::map<int, std::vector<uint160>> m_blockToWhiteList;
 };
 
 }  // namespace esperanza

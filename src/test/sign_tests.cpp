@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   txn.SetType(TxType::VOTE);
   txn.nLockTime = 0;
 
-  esperanza::Vote vote{GetRandHash(), GetRandHash(), 10, 100};
+  esperanza::Vote vote{pk.GetID(), GetRandHash(), 10, 100};
   CScript voteScript = CScript::EncodeVote(vote);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, voteScript, CTxIn::SEQUENCE_FINAL));
 
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   esperanza::Vote signedVote =
       CScript::ExtractVoteFromSignature(sigdata.scriptSig);
 
-  BOOST_CHECK_EQUAL(vote.m_validatorIndex, signedVote.m_validatorIndex);
+  BOOST_CHECK_EQUAL(vote.m_validatorAddress.GetHex(), signedVote.m_validatorAddress.GetHex());
   BOOST_CHECK_EQUAL(vote.m_targetHash, signedVote.m_targetHash);
   BOOST_CHECK_EQUAL(vote.m_sourceEpoch, signedVote.m_sourceEpoch);
   BOOST_CHECK_EQUAL(vote.m_targetEpoch, signedVote.m_targetEpoch);

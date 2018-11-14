@@ -390,7 +390,7 @@ esperanza::Vote CScript::DecodeVote(const CScript &script)
 
     std::vector<unsigned char> validator;
     script.GetOp(it, opcode, validator);
-    uint256 validatorIndex(validator);
+    uint160 validatorAddress(validator);
 
     std::vector<unsigned char> target;
     script.GetOp(it, opcode, target);
@@ -408,7 +408,7 @@ esperanza::Vote CScript::DecodeVote(const CScript &script)
     for (size_t i = 0; i < targetEpochVec.size(); i++) {
         targetEpoch |= targetEpochVec[i] << 8*i;
     }
-    vote.m_validatorIndex = validatorIndex;
+    vote.m_validatorAddress = validatorAddress;
     vote.m_targetHash = targetHash;
     vote.m_sourceEpoch = sourceEpoch;
     vote.m_targetEpoch = targetEpoch;
@@ -418,7 +418,7 @@ esperanza::Vote CScript::DecodeVote(const CScript &script)
 
 CScript CScript::EncodeVote(const esperanza::Vote &data)
 {
-    return CScript() << ToByteVector(data.m_validatorIndex)
+    return CScript() << ToByteVector(data.m_validatorAddress)
                      << ToByteVector(data.m_targetHash)
                      << CScriptNum::serialize(data.m_sourceEpoch)
                      << CScriptNum::serialize(data.m_targetEpoch);

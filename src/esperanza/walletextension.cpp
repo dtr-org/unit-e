@@ -572,7 +572,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   CAmount currentDeposit = 0;
 
   esperanza::Result res = state->CalculateWithdrawAmount(
-      validatorState.m_validatorIndex, currentDeposit);
+      validatorState.m_validatorAddress, currentDeposit);
 
   if (res != +Result::SUCCESS) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot calculate withdraw amount: %s.\n",
@@ -659,7 +659,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
            epoch, dynasty);
 
-  Vote vote = state->GetRecommendedVote(validatorState.m_validatorIndex);
+  Vote vote = state->GetRecommendedVote(validatorState.m_validatorAddress);
 
   // Check for sorrounding votes
   if (vote.m_targetEpoch < validatorState.m_lastTargetEpoch ||
@@ -775,14 +775,14 @@ void WalletExtension::BlockConnected(
           validatorState.m_phase = ValidatorState::Phase::IS_VALIDATING;
 
           const esperanza::Validator *validator =
-              state->GetValidator(validatorState.m_validatorIndex);
+              state->GetValidator(validatorState.m_validatorAddress);
 
           validatorState.m_startDynasty = validator->m_startDynasty;
 
           LogPrint(BCLog::FINALIZATION,
                    "%s: Validator's deposit finalized, the validator index "
                    "is %s.\n",
-                   __func__, validatorState.m_validatorIndex.GetHex());
+                   __func__, validatorState.m_validatorAddress.GetHex());
         }
         break;
       }

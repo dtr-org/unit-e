@@ -38,9 +38,9 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
 //! The function supports only LOGOUT, DEPOSIT and WITHDRAW, anything else
 //! will return false.
 //! \param tx
-//! \param validatorIndexOut
+//! \param validatorAddressOut
 //! \return true if successful, false otherwise.
-bool ExtractValidatorIndex(const CTransaction &tx, uint256 &validatorIndexOut);
+bool ExtractValidatorIndex(const CTransaction &tx, uint160 &validatorAddressOut);
 
 }  // namespace esperanza
 
