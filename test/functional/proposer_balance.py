@@ -32,41 +32,29 @@ class ProposerBalanceTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 3
-        self.extra_args = [
-            [], [], []
-        ]
-
-    def setup_chain(self):
-        # The test starts with a pre-constructed chain
-        super().setup_chain()
-
-    def setup_network(self):
-        # The nodes are connected as a chain by default, in order to have to
-        # ability to easily split the network
-        super().setup_network()
 
     def run_test(self):
         nodes = self.nodes
 
         # We import the wallet master keys so the nodes will be able to use some
         # funds as a stake to propose blocks (and to make transactions as well)
-        self.__load_wallets(nodes)
+        self.load_wallets(nodes)
 
         # We start our tests with an initial amount of created money
         created_money = nodes[0].gettxoutsetinfo()['total_amount']
 
         # First: Checking without transactions, votes nor slashing
-        created_money = self.__test_empty_blocks_balance(created_money, nodes)
+        created_money = self.test_empty_blocks_balance(created_money, nodes)
 
         # Second: Checking with transactions & fees
-        self.__test_transaction_blocks_balance(created_money, nodes)
+        self.test_transaction_blocks_balance(created_money, nodes)
 
-    def __test_empty_blocks_balance(self, created_money, nodes):
+    def test_empty_blocks_balance(self, created_money, nodes):
         for i in range(90):
             node_idx = i % 3
 
-            self.__generate_block(nodes, node_idx)
-            block_info = self.__get_last_block_info(node_idx, nodes)
+            self.generate_block(nodes, node_idx)
+            block_info = self.get_last_block_info(node_idx, nodes)
 
             coinstake_tx_id = block_info['tx'][0]
             coinstake_tx_info = nodes[node_idx].gettransaction(coinstake_tx_id)
@@ -79,7 +67,7 @@ class ProposerBalanceTest(UnitETestFramework):
 
         return created_money
 
-    def __test_transaction_blocks_balance(self, created_money, nodes):
+    def test_transaction_blocks_balance(self, created_money, nodes):
         # We'll use theses addresses to generate transactions
         node0_address = nodes[0].getaccountaddress('')
         node1_address = nodes[1].getaccountaddress('')
@@ -94,12 +82,12 @@ class ProposerBalanceTest(UnitETestFramework):
             # We keep track of each transaction's "origin" in order to make
             # easier testing (gettransaction only works if the transaction was
             # created by the node's wallet).
-            tx_map = self.__execute_random_transactions(
+            tx_map = self.execute_random_transactions(
                 node0_address, node1_address, node2_address, nodes
             )
 
-            self.__generate_block(nodes, node_idx)
-            block_info = self.__get_last_block_info(node_idx, nodes)
+            self.generate_block(nodes, node_idx)
+            block_info = self.get_last_block_info(node_idx, nodes)
 
             transactions = [
                 # We fallback to node_idx for the 0th transaction
@@ -121,11 +109,11 @@ class ProposerBalanceTest(UnitETestFramework):
 
         rnd_setstate(rnd_state)
 
-    def __get_last_block_info(self, node_idx, nodes):
+    def get_last_block_info(self, node_idx, nodes):
         best_block_hash = nodes[node_idx].getbestblockhash()
         return nodes[node_idx].getblock(best_block_hash)
 
-    def __execute_random_transactions(
+    def execute_random_transactions(
             self, node0_address, node1_address, node2_address, nodes
     ):
         def random_fee():
@@ -160,7 +148,7 @@ class ProposerBalanceTest(UnitETestFramework):
             tx_ids[4]: 2, tx_ids[5]: 2
         }
 
-    def __load_wallets(self, nodes):
+    def load_wallets(self, nodes):
         nodes[0].importmasterkey(
             'chef gas expect never jump rebel huge rabbit venue nature dwarf '
             'pact below surprise foam magnet science sister shrimp blanket '
@@ -178,17 +166,13 @@ class ProposerBalanceTest(UnitETestFramework):
         )
 
     @staticmethod
-    def __generate_block(nodes, node_idx):
-        # It is rare but possible that a block was valid at the moment of
-        # creation but invalid at submission. This is to account for those cases
-        for i in range(5):
-            try:
-                nodes[node_idx].generate(1)
-                sync_blocks(nodes)
-                return
-            except JSONRPCException as exp:
-                print("error generating block:", exp.error)
-        raise AssertionError("Node %s cannot generate block" % node_idx)
+    def generate_block(nodes, node_idx):
+        try:
+            nodes[node_idx].generate(1)
+            sync_blocks(nodes)
+        except JSONRPCException as exp:
+            print("error generating block:", exp.error)
+            raise AssertionError("Node %s cannot generate block" % node_idx)
 
 
 if __name__ == '__main__':
