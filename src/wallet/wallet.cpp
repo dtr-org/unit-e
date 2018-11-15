@@ -1099,7 +1099,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
 
                     uint160 validatorAddress = uint160();
 
-                    if(!esperanza::ExtractValidatorIndex(tx, validatorAddress)) {
+                    if(!esperanza::ExtractValidatorAddress(tx, validatorAddress)) {
                       LogPrint(BCLog::FINALIZATION,
                                "ERROR: %s - Cannot extract validator index.\n");
                       return false;

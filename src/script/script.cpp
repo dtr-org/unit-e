@@ -382,11 +382,14 @@ bool CScript::HasValidOps() const
 
 
 //UNIT-E: this can be probably optimized for faster access
-esperanza::Vote CScript::DecodeVote(const CScript &script)
+esperanza::Vote CScript::DecodeVote(const CScript &script, std::vector<unsigned char> &voteSig)
 {
     esperanza::Vote vote;
     CScript::const_iterator it = script.begin();
     opcodetype opcode;
+
+    //Recover the voteSig
+    script.GetOp(it, opcode, voteSig);
 
     std::vector<unsigned char> validator;
     script.GetOp(it, opcode, validator);
@@ -416,38 +419,45 @@ esperanza::Vote CScript::DecodeVote(const CScript &script)
     return vote;
 }
 
-CScript CScript::EncodeVote(const esperanza::Vote &data)
+CScript CScript::EncodeVote(const esperanza::Vote &data,
+                            const std::vector<unsigned char> &voteSig)
 {
-    return CScript() << ToByteVector(data.m_validatorAddress)
+    assert(!voteSig.empty());
+
+    return CScript() << voteSig
+                     << ToByteVector(data.m_validatorAddress)
                      << ToByteVector(data.m_targetHash)
                      << CScriptNum::serialize(data.m_sourceEpoch)
                      << CScriptNum::serialize(data.m_targetEpoch);
 }
 
-esperanza::Vote CScript::ExtractVoteFromWitness(const CScriptWitness &witness)
+esperanza::Vote CScript::ExtractVoteFromWitness(const CScriptWitness &witness,
+                                                std::vector<unsigned char> &voteSig)
 {
     CScriptWitness wt{witness};
 
-    //We want to skip the first element since is the signature of the vote content
+    //We want to skip the first element since is the signature of the transaction
     auto it = ++(wt.stack.begin());
+
     CScript voteScript(it->begin(), it->end());
 
-    return DecodeVote(voteScript);
+    return DecodeVote(voteScript, voteSig);
 }
 
-esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig)
+esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig,
+                                                  std::vector<unsigned char> &voteSig)
 {
     const_iterator pc = scriptSig.begin();
     std::vector<unsigned char> vData;
     opcodetype opcode;
 
-    //Skip the first value (voteSig)
+    //Skip the first value (txSig)
     scriptSig.GetOp(pc, opcode);
 
     //Unpack the vote
     scriptSig.GetOp(pc, opcode, vData);
     CScript voteScript(vData.begin(), vData.end());
-    return DecodeVote(voteScript);
+    return DecodeVote(voteScript, voteSig);
 }
 
 bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,

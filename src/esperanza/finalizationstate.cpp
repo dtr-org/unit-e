@@ -980,15 +980,16 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
     switch (tx->GetType()) {
 
       case TxType::VOTE: {
+        std::vector<unsigned char> voteSig;
         state->ProcessVote(
-            CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig));
+            CScript::ExtractVoteFromSignature(tx->vin[0].scriptSig, voteSig));
         break;
       }
 
       case TxType::DEPOSIT: {
         uint160 validatorAddress = uint160();
 
-        if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
+        if (ExtractValidatorAddress(*tx.get(), validatorAddress)) {
           state->ProcessDeposit(validatorAddress, tx->GetValueOut());
         }
         break;
@@ -997,7 +998,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       case TxType::LOGOUT: {
         uint160 validatorAddress = uint160();
 
-        if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
+        if (ExtractValidatorAddress(*tx.get(), validatorAddress)) {
           state->ProcessLogout(validatorAddress);
         }
         break;
@@ -1006,7 +1007,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       case TxType::WITHDRAW: {
         uint160 validatorAddress = uint160();
 
-        if (ExtractValidatorIndex(*tx.get(), validatorAddress)) {
+        if (ExtractValidatorAddress(*tx.get(), validatorAddress)) {
           state->ProcessWithdraw(validatorAddress);
         }
         break;

@@ -8,10 +8,14 @@
 #include <stdint.h>
 #include <uint256.h>
 
+class CKeyID;
+class CKeyStore;
+
 namespace esperanza {
 
-struct Vote {
+class Vote {
 
+ public:
   uint160 m_validatorAddress;
 
   uint256 m_targetHash;
@@ -26,6 +30,11 @@ struct Vote {
            this->m_sourceEpoch == rhs.m_sourceEpoch &&
            this->m_targetEpoch == rhs.m_targetEpoch;
   }
+
+  static bool CreateSignature(CKeyStore *keystore, const Vote &vote,
+                              std::vector<unsigned char> &voteSigOut);
+
+  uint256 GetHash() const;
 };
 
 }  // namespace esperanza

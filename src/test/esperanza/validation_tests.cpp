@@ -21,7 +21,9 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
 
   FinalizationState *esperanza = FinalizationState::GetState();
 
-  uint160 validatorAddress = RandValidatorAddr();
+  CKey k;
+  InsecureNewKey(k, true);
+  uint160 validatorAddress = k.GetPubKey().GetID();
 
   BOOST_CHECK_EQUAL(
       esperanza->ValidateDeposit(validatorAddress, MIN_DEPOSIT_SIZE),
@@ -38,25 +40,22 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
   uint256 targetHash = uint256();
 
   Vote expired{RandValidatorAddr(), targetHash, 0, 2};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(expired)), true);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(expired, k)), true);
 
   Vote current{RandValidatorAddr(), targetHash, 0, 6};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(current)), false);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(current, k)), false);
 
   Vote afterLastFinalization{RandValidatorAddr(), targetHash, 0, 4};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(afterLastFinalization)), false);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(afterLastFinalization, k)), false);
 
   Vote future{RandValidatorAddr(), targetHash, 0, 12};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(future)), false);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(future, k)), false);
 
   Vote currentOtherFork{RandValidatorAddr(), GetRandHash(), 0, 6};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(currentOtherFork)), false);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(currentOtherFork, k)), false);
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
-
-  SeedInsecureRand();
-  CBasicKeyStore keystore;
 
   CKey k;
   InsecureNewKey(k, true);
@@ -69,15 +68,12 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
 
   CTransaction deposit = CreateDepositTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(deposit, validatorAddress));
+  BOOST_CHECK(ExtractValidatorAddress(deposit, validatorAddress));
 
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
-
-  SeedInsecureRand();
-  CBasicKeyStore keystore;
 
   CKey k;
   InsecureNewKey(k, true);
@@ -90,15 +86,12 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
 
   CTransaction logout = CreateLogoutTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(logout, validatorAddress));
+  BOOST_CHECK(ExtractValidatorAddress(logout, validatorAddress));
 
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
-
-  SeedInsecureRand();
-  CBasicKeyStore keystore;
 
   CKey k;
   InsecureNewKey(k, true);
@@ -111,15 +104,12 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
 
   CTransaction withdraw = CreateWithdrawTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(withdraw, validatorAddress));
+  BOOST_CHECK(ExtractValidatorAddress(withdraw, validatorAddress));
 
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
-
-  SeedInsecureRand();
-  CBasicKeyStore keystore;
 
   CKey k;
   InsecureNewKey(k, true);
@@ -132,16 +122,19 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
 
   CTransaction p2pkh = CreateP2PKHTx(prevTx, k, 10000);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
+  BOOST_CHECK(ExtractValidatorAddress(p2pkh, validatorAddress) == false);
 }
 
 BOOST_AUTO_TEST_CASE(extractvalidatorindex_vote_fails) {
 
   Vote vote{};
 
-  CTransaction p2pkh = CreateVoteTx(vote);
+  CKey k;
+  InsecureNewKey(k, true);
+
+  CTransaction p2pkh = CreateVoteTx(vote, k);
   uint160 validatorAddress = uint160();
-  BOOST_CHECK(ExtractValidatorIndex(p2pkh, validatorAddress) == false);
+  BOOST_CHECK(ExtractValidatorAddress(p2pkh, validatorAddress) == false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
