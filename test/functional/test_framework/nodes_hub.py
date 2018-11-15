@@ -21,26 +21,33 @@ class NodesHub:
     In this class, we refer to the nodes through their index in the self.nodes property.
     """
 
-    def __init__(self, loop, nodes, base_port, ip_address='127.0.0.1'):
+    def __init__(self, loop, nodes, base_port, host='127.0.0.1'):
         self.loop = loop  # type: AbstractEventLoop
         self.nodes = nodes
 
-        self.ip_address = ip_address  # We'll bind to this IP address
+        self.host = host
         self.base_port = base_port
 
         self.node2node_delays = {}
 
-        self.fake_listener_tasks = []
-        self.setup_fake_listeners()
+        self.proxy_tasks = []
+        self.proxy_transports = {}
 
-    def setup_fake_listeners(self):
+        self.setup_proxies()
+
+    def setup_proxies(self):
+        """
+        This method creates a listener proxy for each node, the connections from each proxy to the real node that they
+        represent will be done whenever a node connects to the proxy.
+        """
+
         for i, node in enumerate(self.nodes):
             fake_listener_coroutine = self.loop.create_server(
                 protocol_factory=self.get_fake_listener_class(i),
-                host=self.ip_address,
-                port=self.get_fake_node_port(i)
+                host=self.host,
+                port=self.get_proxy_port(i)
             )
-            self.fake_listener_tasks.append(self.loop.create_task(fake_listener_coroutine))
+            self.proxy_tasks.append(self.loop.create_task(fake_listener_coroutine))
 
     def get_fake_listener_class(self, node_idx):
         """
@@ -49,29 +56,32 @@ class NodesHub:
 
         hub_ref = self
 
-        class FakeListener(Protocol):
+        class NodeProxy(Protocol):
             def connection_made(self, transport):
-                pass
+                # It will be the hub the responsible to send data, not this object
+                hub_ref.proxy_transports[node_idx] = transport
 
             def connection_lost(self, exc):
+                # TODO: Should we do something here?
                 pass
 
             def data_received(self, data):
                 pass
 
             def eof_received(self):
+                # TODO: Should we do something here?
                 pass
 
-        return FakeListener
+        return NodeProxy
 
-    def get_real_node_port(self, node_idx):
+    def get_node_port(self, node_idx):
         return self.base_port + 2 * node_idx
 
-    def get_fake_node_port(self, node_idx):
+    def get_proxy_port(self, node_idx):
         return self.base_port + 2 * node_idx + 1
 
-    def get_fake_node_address(self, node_idx):
-        return '%s:%s' % (self.ip_address, self.get_fake_node_port(node_idx))
+    def get_proxy_address(self, node_idx):
+        return '%s:%s' % (self.host, self.get_proxy_port(node_idx))
 
     def set_nodes_delay(self, src_idx, dst_idx, ms_delay):
         if ms_delay == 0:
@@ -89,7 +99,7 @@ class NodesHub:
         # TODO: Check which is the proper connection order (we have to take care of the "handshaking" protocol
 
         client_node = self.nodes[outbound_idx]
-        server_address = self.get_fake_node_address(inbound_idx)
+        proxy_address = self.get_proxy_address(inbound_idx)
 
-        client_node.addnode(server_address, 'add')     # Add the "server" to the outgoing connections list
-        client_node.addnode(server_address, 'onetry')  # Establish connection to the server
+        client_node.addnode(proxy_address, 'add')     # Add the proxy to the outgoing connections list
+        client_node.addnode(proxy_address, 'onetry')  # Establish connection to the proxy
