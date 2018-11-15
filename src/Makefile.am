@@ -326,7 +326,6 @@ libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   address/address.cpp \
   esperanza/init.cpp \
-  esperanza/vote.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/blockproposer.cpp \
@@ -436,6 +435,7 @@ libunite_common_a_SOURCES = \
   esperanza/params.cpp \
   esperanza/settings.cpp \
   esperanza/settings_init.cpp \
+  esperanza/vote.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \
