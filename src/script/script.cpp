@@ -422,6 +422,8 @@ esperanza::Vote CScript::DecodeVote(const CScript &script, std::vector<unsigned 
 CScript CScript::EncodeVote(const esperanza::Vote &data,
                             const std::vector<unsigned char> &voteSig)
 {
+    assert(!voteSig.empty());
+
     return CScript() << voteSig
                      << ToByteVector(data.m_validatorAddress)
                      << ToByteVector(data.m_targetHash)

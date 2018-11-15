@@ -57,12 +57,12 @@ CTransaction CreateVoteTx(esperanza::Vote &vote, const CKey &spendableKey) {
 
   std::vector<unsigned char> voteSig;
   BOOST_CHECK(spendableKey.Sign(GetVoteHash(vote), voteSig));
-  CScript encodedVote = CScript::EncodeVote(vote, voteSig);
 
-  std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
+  CScript voteScript = CScript::EncodeVote(vote, voteSig);
+  std::vector<unsigned char> voteVector(voteScript.begin(), voteScript.end());
 
-  CScript voteScript = (CScript() << ToByteVector(signature)) << voteVector;
-  mutTx.vin[0] = (CTxIn(GetRandHash(), 0, voteScript));
+  CScript scriptSig = (CScript() << ToByteVector(signature)) << voteVector;
+  mutTx.vin[0] = (CTxIn(GetRandHash(), 0, scriptSig));
 
   uint256 keyHash = GetRandHash();
   CKey k;

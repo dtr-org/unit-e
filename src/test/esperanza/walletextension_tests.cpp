@@ -1,12 +1,13 @@
 #include <amount.h>
 #include <consensus/validation.h>
-#include <esperanza/finalization_utils.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/vote.h>
+#include <key.h>
 #include <keystore.h>
 #include <primitives/transaction.h>
 #include <primitives/txtype.h>
 #include <script/script.h>
+#include <test/esperanza/finalization_utils.h>
 #include <test/test_unite.h>
 #include <txmempool.h>
 #include <validation.h>
@@ -14,26 +15,23 @@
 
 BOOST_AUTO_TEST_SUITE(walletextension_tests)
 
-BOOST_FIXTURE_TEST_CASE(mempool_accept_deposit, TestChain100Setup) {
+BOOST_FIXTURE_TEST_CASE(vote_signature, ReducedTestingSetup) {
 
-  CAmount amount = 1 * UNIT;
-  CTransaction depositTx = CreateDeposit(coinbaseTxns[0], coinbaseKey, amount);
+  CBasicKeyStore keystore;
+  CKey k;
+  InsecureNewKey(k, true);
+  keystore.AddKey(k);
 
-  CValidationState state;
+  CPubKey pk = k.GetPubKey();
 
-  LOCK(cs_main);
+  esperanza::Vote vote{pk.GetID(), GetRandHash(), 10, 100};
+  std::vector<unsigned char> voteSig;
+  BOOST_CHECK(esperanza::Vote::CreateSignature(&keystore, vote, voteSig));
 
-  unsigned long initialPoolSize = mempool.size();
+  std::vector<unsigned char> expectedSig;
+  k.Sign(vote.GetHash(), expectedSig);
 
-  BOOST_CHECK_EQUAL(
-      true, AcceptToMemoryPool(mempool, state, MakeTransactionRef(depositTx),
-                               nullptr /* pfMissingInputs */,
-                               nullptr /* plTxnReplaced */,
-                               true /* bypass_limits */, 0 /* nAbsurdFee */));
-
-  BOOST_CHECK_EQUAL(mempool.size(), initialPoolSize + 1);
+  BOOST_CHECK_EQUAL(HexStr(expectedSig), HexStr(voteSig));
 }
-
-BOOST_FIXTURE_TEST_CASE(tx_mempool_accept_vote, TestChain100Setup) {}
 
 BOOST_AUTO_TEST_SUITE_END()

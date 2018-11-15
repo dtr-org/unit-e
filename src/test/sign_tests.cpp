@@ -11,9 +11,9 @@
 BOOST_FIXTURE_TEST_SUITE(sign_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(producesignature_vote) {
+
   SeedInsecureRand();
   CBasicKeyStore keystore;
-
   CKey k;
   InsecureNewKey(k, true);
   keystore.AddKey(k);
@@ -26,8 +26,9 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
 
   esperanza::Vote vote{pk.GetID(), GetRandHash(), 10, 100};
 
+  //we don't need to test here the signing process, that is already tested elsewhere
   std::vector<unsigned char> voteSig;
-  BOOST_CHECK(esperanza::Vote::CreateSignature(&keystore, vote, voteSig));
+  BOOST_CHECK(k.Sign(GetRandHash(), voteSig));
 
   CScript voteScript = CScript::EncodeVote(vote, voteSig);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, voteScript, CTxIn::SEQUENCE_FINAL));
@@ -62,8 +63,6 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   BOOST_CHECK_EQUAL(vote.m_targetHash, signedVote.m_targetHash);
   BOOST_CHECK_EQUAL(vote.m_sourceEpoch, signedVote.m_sourceEpoch);
   BOOST_CHECK_EQUAL(vote.m_targetEpoch, signedVote.m_targetEpoch);
-  BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
-                    HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
 
 BOOST_AUTO_TEST_CASE(producesignature_logout) {

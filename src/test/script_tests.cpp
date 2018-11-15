@@ -1494,7 +1494,8 @@ BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
                      sourceHeight,
                      targetHeight};
 
-    std::vector<unsigned char> voteSig;
+    uint256 randomSig = GetRandHash();
+    std::vector<unsigned char> voteSig = std::vector<unsigned char>(randomSig.begin(), randomSig.end());
     CScript s = CScript::EncodeVote(data, voteSig);
 
     std::vector<unsigned char> extractedVoteSig;
@@ -1521,7 +1522,8 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
                    sourceHeight,
                    targetHeight};
 
-    std::vector<unsigned char> voteSig;
+    uint256 randomSig = GetRandHash();
+    std::vector<unsigned char> voteSig = std::vector<unsigned char>(randomSig.begin(), randomSig.end());
     CScript encodedVote = CScript::EncodeVote(vote, voteSig);
     std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
 
@@ -1551,7 +1553,8 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
                          sourceHeight,
                          targetHeight};
 
-    std::vector<unsigned char> voteSig;
+    uint256 randomSig = GetRandHash();
+    std::vector<unsigned char> voteSig = std::vector<unsigned char>(randomSig.begin(), randomSig.end());
     CScript encodedVote = CScript::EncodeVote(vote, voteSig);
     std::vector<unsigned char> voteVector(encodedVote.begin(), encodedVote.end());
 

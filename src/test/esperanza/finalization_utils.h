@@ -1,4 +1,5 @@
 #include <esperanza/vote.h>
+#include <key.h>
 #include <primitives/transaction.h>
 
 #ifndef UNIT_E_TESTS_ESPERANZA_FINALIZATION_UTILS_H

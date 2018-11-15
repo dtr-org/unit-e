@@ -49,6 +49,7 @@ BOOST_AUTO_TEST_CASE(signaturehash_vote)
     CMutableTransaction tx;
     tx.SetType(TxType::VOTE);
     std::vector<unsigned char> voteSig;
+    BOOST_CHECK(k.Sign(GetRandHash(), voteSig));
     CTxIn txin(GetRandHash(), 0, CScript::EncodeVote(vote, voteSig));
     tx.vin.push_back(txin);
     CAmount amount = 10000;
