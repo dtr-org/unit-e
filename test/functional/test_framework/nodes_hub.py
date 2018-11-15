@@ -5,6 +5,9 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
+from asyncio import AbstractEventLoop, Protocol
+
+
 class NodesHub:
     """
     A central hub to connect all the nodes at test/simulation time. It has many purposes:
@@ -18,13 +21,48 @@ class NodesHub:
     In this class, we refer to the nodes through their index in the self.nodes property.
     """
 
-    def __init__(self, nodes, base_port, ip_address='127.0.0.1'):
+    def __init__(self, loop, nodes, base_port, ip_address='127.0.0.1'):
+        self.loop = loop  # type: AbstractEventLoop
         self.nodes = nodes
 
         self.ip_address = ip_address  # We'll bind to this IP address
         self.base_port = base_port
 
         self.node2node_delays = {}
+
+        self.fake_listener_tasks = []
+        self.setup_fake_listeners()
+
+    def setup_fake_listeners(self):
+        for i, node in enumerate(self.nodes):
+            fake_listener_coroutine = self.loop.create_server(
+                protocol_factory=self.get_fake_listener_class(i),
+                host=self.ip_address,
+                port=self.get_fake_node_port(i)
+            )
+            self.fake_listener_tasks.append(self.loop.create_task(fake_listener_coroutine))
+
+    def get_fake_listener_class(self, node_idx):
+        """
+        This method acts like a closure, allowing us to dynamically define anonymous classes at runtime.
+        """
+
+        hub_ref = self
+
+        class FakeListener(Protocol):
+            def connection_made(self, transport):
+                pass
+
+            def connection_lost(self, exc):
+                pass
+
+            def data_received(self, data):
+                pass
+
+            def eof_received(self):
+                pass
+
+        return FakeListener
 
     def get_real_node_port(self, node_idx):
         return self.base_port + 2 * node_idx
@@ -50,5 +88,8 @@ class NodesHub:
         # TODO: Connect the hub to the "server" node
         # TODO: Check which is the proper connection order (we have to take care of the "handshaking" protocol
 
-        # The "client" node will connect to the hub instead of directly connecting to the "server"
-        self.nodes[outbound_idx].addnode(self.get_fake_node_address(inbound_idx), 'onetry')
+        client_node = self.nodes[outbound_idx]
+        server_address = self.get_fake_node_address(inbound_idx)
+
+        client_node.addnode(server_address, 'add')     # Add the "server" to the outgoing connections list
+        client_node.addnode(server_address, 'onetry')  # Establish connection to the server
