@@ -132,4 +132,12 @@ BOOST_AUTO_TEST_CASE(merkle_test)
     }
 }
 
+BOOST_AUTO_TEST_CASE(merkle_test_single_leaf)
+{
+  uint256 txhash = GetRandHash();
+  const std::vector<uint256> merkleTree{txhash};
+  uint256 result = ComputeMerkleRoot(merkleTree);
+  BOOST_CHECK_EQUAL(txhash.GetHex(), result.GetHex());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
