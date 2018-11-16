@@ -16,6 +16,8 @@ from asyncio import (
 from logging import getLogger
 from struct import pack, unpack
 
+from test_framework.util import p2p_port
+
 
 MSG_HEADER_LENGTH = 4 + 12 + 4 + 4
 
@@ -73,12 +75,11 @@ class NodesHub:
     distinguish between nodes listening for connections and nodes that proactively ask for a new connection.
     """
 
-    def __init__(self, loop, nodes, base_port, host='127.0.0.1'):
+    def __init__(self, loop, nodes, host='127.0.0.1'):
         self.loop = loop  # type: AbstractEventLoop
         self.nodes = nodes
 
         self.host = host
-        self.base_port = base_port
 
         self.node2node_delays = {}  # This allows us to specify asymmetric delays
 
@@ -203,10 +204,10 @@ class NodesHub:
         return ProxyRelay
 
     def get_node_port(self, node_idx):
-        return self.base_port + 2 * node_idx
+        return p2p_port(node_idx)
 
     def get_proxy_port(self, node_idx):
-        return self.base_port + 2 * node_idx + 1
+        return p2p_port(len(self.nodes) + 1 + node_idx)
 
     def get_proxy_address(self, node_idx):
         return '%s:%s' % (self.host, self.get_proxy_port(node_idx))
