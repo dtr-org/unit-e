@@ -8,6 +8,7 @@
 from asyncio import (
     AbstractEventLoop,
     Protocol,
+    Transport,
     coroutine,
     sleep as asyncio_sleep
 )
@@ -73,7 +74,10 @@ class NodesHub:
         client2server_pair = hub_ref.pending_connection
 
         class NodeProxy(Protocol):
-            def connection_made(self, transport):
+            def __init__(self):
+                self.recvb = b''
+
+            def connection_made(self, transport: Transport):
                 hub_ref.client2proxy_transports[client2server_pair] = transport
 
             def connection_lost(self, exc):
@@ -86,7 +90,9 @@ class NodesHub:
                 if client2server_pair in hub_ref.node2node_delays:
                     yield from asyncio_sleep(hub_ref.node2node_delays[client2server_pair])
 
-                pass
+                # TODO: override messages that contain information about IP addresses and ports
+                proxy2server_transport = hub_ref.proxy2server_transports[client2server_pair]  # type: Transport
+                proxy2server_transport.write(data)
 
             def eof_received(self):
                 pass  # TODO: Should we do something here?
@@ -103,7 +109,10 @@ class NodesHub:
         server2client_pair = client2server_pair[::-1]
 
         class ProxyRelay(Protocol):
-            def connection_made(self, transport):
+            def __init__(self):
+                self.recvb = b''
+
+            def connection_made(self, transport: Transport):
                 hub_ref.proxy2server_transports[client2server_pair] = transport
 
             def connection_lost(self, exc):
@@ -116,7 +125,9 @@ class NodesHub:
                 if server2client_pair in hub_ref.node2node_delays:
                     yield from asyncio_sleep(hub_ref.node2node_delays[server2client_pair])
 
-                pass
+                # TODO: override messages that contain information about IP addresses and ports
+                client2proxy_transport = hub_ref.client2proxy_transports[client2server_pair]  # type: Transport
+                client2proxy_transport.write(data)
 
             def eof_received(self):
                 pass  # TODO: Should we do something here?
