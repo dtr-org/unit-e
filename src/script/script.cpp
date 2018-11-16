@@ -445,7 +445,7 @@ esperanza::Vote CScript::ExtractVoteFromWitness(const CScriptWitness &witness,
 }
 
 bool CScript::ExtractVoteFromVoteSignature(const CScript &scriptSig,
-                                                  esperanza::Vote &vote
+                                                  esperanza::Vote &vote,
                                                   std::vector<unsigned char> &voteSig)
 {
     const_iterator pc = scriptSig.begin();
@@ -495,7 +495,7 @@ bool CScript::ExtractVotesFromSlashSignature(const CScript &scriptSig,
     return false;
   }
   voteScript = CScript(vData.begin(), vData.end());
-  vote2 = DecodeVote(voteScript);
+  vote2 = DecodeVote(voteScript, vote2Sig);
 
   return true;
 }

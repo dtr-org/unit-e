@@ -227,8 +227,8 @@ void FinalizationState::DeleteValidator(const uint160 &validatorAddress) {
   m_validators.erase(validatorAddress);
 }
 
-uint64_t FinalizationState::GetDepositSize(
-    const uint160 &validatorAddress) const {
+uint64_t
+FinalizationState::GetDepositSize(const uint160 &validatorAddress) const {
   LOCK(cs_esperanza);
 
   auto validatorIt = m_validators.find(validatorAddress);
@@ -421,7 +421,8 @@ void FinalizationState::ProcessDeposit(const uint160 &validatorAddress,
                          GetDepositScaleFactor(m_currentEpoch));
 
   m_validators.insert(std::pair<uint160, Validator>(
-      validatorAddress, Validator(scaledDeposit, startDynasty, validatorAddress)));
+      validatorAddress,
+      Validator(scaledDeposit, startDynasty, validatorAddress)));
 
   m_dynastyDeltas[startDynasty] = GetDynastyDelta(startDynasty) + scaledDeposit;
 
@@ -430,8 +431,8 @@ void FinalizationState::ProcessDeposit(const uint160 &validatorAddress,
            validatorAddress.GetHex(), startDynasty);
 }
 
-uint64_t FinalizationState::CalculateVoteReward(
-    const Validator &validator) const {
+uint64_t
+FinalizationState::CalculateVoteReward(const Validator &validator) const {
   return ufp64::mul_to_uint(m_rewardFactor, validator.m_deposit);
 }
 
@@ -555,7 +556,8 @@ uint32_t FinalizationState::GetEndDynasty() const {
  * @param validatorAddress the index of the validator that is logging out
  * @return a representation of the outcome
  */
-Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const {
+Result
+FinalizationState::ValidateLogout(const uint160 &validatorAddress) const {
   LOCK(cs_esperanza);
 
   auto it = m_validators.find(validatorAddress);
@@ -628,8 +630,9 @@ Result FinalizationState::ValidateWithdraw(const uint160 &validatorAddress,
   return success();
 }
 
-Result FinalizationState::CalculateWithdrawAmount(
-    const uint160 &validatorAddress, CAmount &withdrawAmountOut) const {
+Result
+FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddress,
+                                           CAmount &withdrawAmountOut) const {
   LOCK(cs_esperanza);
 
   withdrawAmountOut = 0;
@@ -717,8 +720,8 @@ void FinalizationState::OnBlock(int blockHeight) {
   m_adminState.OnBlock(blockHeight);
 }
 
-Result FinalizationState::ValidateAdminKeys(
-    const AdminKeySet &adminKeys) const {
+Result
+FinalizationState::ValidateAdminKeys(const AdminKeySet &adminKeys) const {
   LOCK(cs_esperanza);
 
   if (m_adminState.IsAdminAuthorized(adminKeys)) {
@@ -917,8 +920,8 @@ std::vector<Validator> FinalizationState::GetValidators() const {
   return res;
 }
 
-const Validator *FinalizationState::GetValidator(
-    const uint160 &validatorAddress) const {
+const Validator *
+FinalizationState::GetValidator(const uint160 &validatorAddress) const {
 
   auto it = m_validators.find(validatorAddress);
 
@@ -980,8 +983,10 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
     switch (tx->GetType()) {
 
       case TxType::VOTE: {
+        Vote vote;
         std::vector<unsigned char> voteSig;
-        assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig));
+        assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote,
+                                                     voteSig));
         state->ProcessVote(vote);
         break;
       }

@@ -1,3 +1,4 @@
+#include "vote_recorder.h"
 #include <finalization/vote_recorder.h>
 #include <wallet/wallet.h>
 
@@ -15,20 +16,22 @@ void VoteRecorder::RecordVote(const CTransaction &transaction,
       esperanza::FinalizationState::GetState();
 
   // Check if the vote comes from a validator
-  if (!state->GetValidator(vote.m_validatorIndex)) {
+  if (!state->GetValidator(vote.m_validatorAddress)) {
     return;
   }
 
-  boost::optional<esperanza::Vote> offendingVote = FindOffendingVote(vote);
+  //TODO: Register vote
+  boost::optional<VoteRecord> offendingVote = FindOffendingVote(vote);
   if (offendingVote) {
-    esperanza::Result res = state->IsSlashable(vote, offendingVote.get());
+    esperanza::Result res = state->IsSlashable(vote, offendingVote.get().vote);
     if (res == +esperanza::Result::SUCCESS) {
-      GetMainSignals().SlashingConditionDetected(transaction, vote, offendingVote.get());
+      GetMainSignals().SlashingConditionDetected(transaction, VoteRecord{vote, },
+                                                 offendingVote.get());
       LogPrint(BCLog::FINALIZATION,
                "%s: Slashable event found. Sending signal to the wallet.",
                __func__);
     } else {
-      //If this happens then it needs urgent attention and fixing
+      // If this happens then it needs urgent attention and fixing
       LogPrint(BCLog::FINALIZATION,
                "ERROR: The offending vote found is not valid: %s, cannot "
                "reliably identify slashable votes.",
@@ -38,18 +41,18 @@ void VoteRecorder::RecordVote(const CTransaction &transaction,
   }
 }
 
-boost::optional<esperanza::Vote> VoteRecorder::FindOffendingVote(const esperanza::Vote vote) {
+boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vote vote) {
 
-  auto cacheIt = voteCache.find(vote.m_validatorIndex);
+  auto cacheIt = voteCache.find(vote.m_validatorAddress);
   if (cacheIt != voteCache.end()) {
-    if (cacheIt->second == vote) {
+    if (cacheIt->second.vote == vote) {
       // Result was cached
       return boost::none;
     }
   }
 
   esperanza::Vote slashCandidate;
-  auto it = voteRecords.find(vote.m_validatorIndex);
+  auto it = voteRecords.find(vote.m_validatorAddress);
   if (it != voteRecords.end()) {
 
     auto voteMap = it->second;
@@ -57,31 +60,24 @@ boost::optional<esperanza::Vote> VoteRecorder::FindOffendingVote(const esperanza
     // Check for double votes
     auto vit = voteMap.find(vote.m_targetEpoch);
     if (vit != voteMap.end()) {
-      if (vit->second.m_targetHash != vote.m_targetHash) {
+      if (vit->second.vote.m_targetHash != vote.m_targetHash) {
         return vit->second;
       }
-    } else {
-      voteMap.emplace(vote.m_targetEpoch, vote);
     }
 
     // Check for a surrounding vote
     vit = voteMap.lower_bound(vote.m_sourceEpoch);
     while (vit != voteMap.begin()) {
-      if (vit->second.m_sourceEpoch < vote.m_targetEpoch) {
-        if ((vit->second.m_sourceEpoch > vote.m_sourceEpoch &&
-             vit->second.m_targetEpoch < vote.m_targetEpoch) ||
-            (vit->second.m_sourceEpoch < vote.m_sourceEpoch &&
-             vit->second.m_targetEpoch > vote.m_targetEpoch)) {
+      if (vit->second.vote.m_sourceEpoch < vote.m_targetEpoch) {
+        if ((vit->second.vote.m_sourceEpoch > vote.m_sourceEpoch &&
+             vit->second.vote.m_targetEpoch < vote.m_targetEpoch) ||
+            (vit->second.vote.m_sourceEpoch < vote.m_sourceEpoch &&
+             vit->second.vote.m_targetEpoch > vote.m_targetEpoch)) {
           return vit->second;
         }
       }
       ++vit;
     }
-
-  } else {
-    std::map<uint32_t, esperanza::Vote> newMap;
-    newMap.emplace(vote.m_targetEpoch, vote);
-    voteRecords.emplace(vote.m_validatorIndex, newMap);
   }
 
   return boost::none;
@@ -97,4 +93,6 @@ void VoteRecorder::Init() {
 std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
   return g_voteRecorder;
 }
-}  // namespace finalization
+
+CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
+} // namespace finalization

@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include "vote.h"
 #include <esperanza/vote.h>
 #include <key.h>
 #include <keystore.h>
@@ -31,4 +32,8 @@ uint256 Vote::GetHash() const {
   return ss.GetHash();
 }
 
+std::string Vote::ToString() {
+  return m_validatorAddress.GetHex() + ", " + m_targetHash.GetHex() + ", " +
+         std::to_string(m_sourceEpoch) + ", " + std::to_string(m_targetEpoch);
+}
 }  // namespace esperanza

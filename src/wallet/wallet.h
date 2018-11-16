@@ -7,6 +7,7 @@
 #define UNITE_WALLET_WALLET_H
 
 #include <esperanza/walletextension.h>
+#include <finalization/vote_recorder.h>
 #include <amount.h>
 #include <policy/feerate.h>
 #include <streams.h>
@@ -962,7 +963,7 @@ public:
     bool AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose=true);
     bool LoadToWallet(const CWalletTx& wtxIn);
     void TransactionAddedToMempool(const CTransactionRef& tx) override;
-    void SlashingConditionDetected(const CTransaction &transaction, const esperanza::Vote &vote1, const esperanza::Vote &vote2);
+    void SlashingConditionDetected(const CTransaction &transaction, const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) override;
     void BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex *pindex, const std::vector<CTransactionRef>& vtxConflicted) override;
     void BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) override;
     bool AddToWalletIfInvolvingMe(const CTransactionRef& tx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);

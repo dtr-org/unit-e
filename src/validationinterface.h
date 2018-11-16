@@ -6,6 +6,7 @@
 #ifndef UNITE_VALIDATIONINTERFACE_H
 #define UNITE_VALIDATIONINTERFACE_H
 
+#include <finalization/vote_recorder.h>
 #include <primitives/transaction.h> // CTransaction(Ref)
 
 #include <functional>
@@ -118,7 +119,7 @@ protected:
     /**
      * Notifies listeners that a slashable event has be detected
      */
-    virtual void SlashingConditionDetected(const CTransaction &transaction, const esperanza::Vote &vote1, const esperanza::Vote &vote2) {};
+    virtual void SlashingConditionDetected(const CTransaction &transaction, const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {};
 
     friend void ::RegisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterValidationInterface(CValidationInterface*);
@@ -160,7 +161,7 @@ public:
     void Broadcast(int64_t nBestBlockTime, CConnman* connman);
     void BlockChecked(const CBlock&, const CValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
-    void SlashingConditionDetected(const CTransaction &, const esperanza::Vote &, const esperanza::Vote &);
+    void SlashingConditionDetected(const CTransaction &, const finalization::VoteRecord &, const finalization::VoteRecord &);
 };
 
 CMainSignals& GetMainSignals();

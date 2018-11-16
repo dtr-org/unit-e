@@ -515,10 +515,10 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   SignatureData sigdata;
   std::string strFailReason;
 
-  if (!ProduceSignature(
-          TransactionSignatureCreator(m_enclosing_wallet, &txNewConst, nIn,
-                                      amount, SIGHASH_ALL),
-          scriptPubKey, sigdata, &txNewConst)) {
+  if (!ProduceSignature(TransactionSignatureCreator(m_enclosing_wallet,
+                                                    &txNewConst, nIn, amount,
+                                                    SIGHASH_ALL),
+                        scriptPubKey, sigdata, &txNewConst)) {
     return false;
   }
   UpdateTransaction(txNew, nIn, sigdata);
@@ -737,10 +737,10 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   uint32_t nIn = 0;
   SignatureData sigdata;
 
-  if (!ProduceSignature(
-          TransactionSignatureCreator(m_enclosing_wallet, &txNewConst, nIn,
-                                      amount, SIGHASH_ALL),
-          scriptPubKey, sigdata, &txNewConst)) {
+  if (!ProduceSignature(TransactionSignatureCreator(m_enclosing_wallet,
+                                                    &txNewConst, nIn, amount,
+                                                    SIGHASH_ALL),
+                        scriptPubKey, sigdata, &txNewConst)) {
     return false;
   }
   UpdateTransaction(txNew, nIn, sigdata);
@@ -758,8 +758,9 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   return true;
 }
 
-bool WalletExtension::SendSlash(const CTransaction &prevTx, const Vote &vote1,
-                                const Vote &vote2) {
+bool WalletExtension::SendSlash(const CTransaction &prevTx,
+                                const finalization::VoteRecord &vote1,
+                                const finalization::VoteRecord &vote2) {
 
   CWalletTx slashTx;
   slashTx.fTimeReceivedIsTxTime = true;
@@ -771,7 +772,7 @@ bool WalletExtension::SendSlash(const CTransaction &prevTx, const Vote &vote1,
 
   CValidationState errState;
 
-  CScript scriptSig = CScript::EncodeVote(vote1) + CScript::EncodeVote(vote2);
+  CScript scriptSig = vote1.GetScript() + vote2.GetScript();
 
   const CScript burnScript = CScript::CreateUnspendableScript();
 
@@ -871,8 +872,8 @@ EncryptionState WalletExtension::GetEncryptionState() const {
   return EncryptionState::UNLOCKED;
 }
 
-bool WalletExtension::Unlock(
-    const SecureString &wallet_passphrase, bool for_staking_only) {
+bool WalletExtension::Unlock(const SecureString &wallet_passphrase,
+                             bool for_staking_only) {
   m_unlocked_for_staking_only = for_staking_only;
   return m_enclosing_wallet->Unlock(wallet_passphrase);
 }

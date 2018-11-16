@@ -29,7 +29,7 @@ struct MainSignalsInstance {
     boost::signals2::signal<void (int64_t nBestBlockTime, CConnman* connman)> Broadcast;
     boost::signals2::signal<void (const CBlock&, const CValidationState&)> BlockChecked;
     boost::signals2::signal<void (const CBlockIndex *, const std::shared_ptr<const CBlock>&)> NewPoWValidBlock;
-    boost::signals2::signal<void (const CTransaction &, const esperanza::Vote &, const esperanza::Vote &)> SlashingConditionDetected;
+    boost::signals2::signal<void (const CTransaction &, const finalization::VoteRecord &, const finalization::VoteRecord &)> SlashingConditionDetected;
 
     // We are not allowed to assume the scheduler only runs in one thread,
     // but must ensure all callbacks happen in-order, so we end up creating
@@ -184,6 +184,6 @@ void CMainSignals::NewPoWValidBlock(const CBlockIndex *pindex, const std::shared
     m_internals->NewPoWValidBlock(pindex, block);
 }
 
-void CMainSignals::SlashingConditionDetected(const CTransaction &transaction, const esperanza::Vote &vote1, const esperanza::Vote &vote2) {
+void CMainSignals::SlashingConditionDetected(const CTransaction &transaction, const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {
     m_internals->SlashingConditionDetected(transaction, vote1, vote2);
 }

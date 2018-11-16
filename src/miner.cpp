@@ -221,6 +221,7 @@ void BlockAssembler::AddVoteAndSlashTxs()
         }
         default: {break;}
       }
+      ++mi;
     }
 }
 

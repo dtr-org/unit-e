@@ -61,8 +61,10 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
 BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
 
-  Vote vote = Vote{GetRandHash(), GetRandHash(), 0, 2};
-  CTransaction tx = CreateVoteTx(vote);
+  CKey key;
+  key.MakeNewKey(true);
+  Vote vote = Vote{key.GetPubKey().GetID(), GetRandHash(), 0, 2};
+  CTransaction tx = CreateVoteTx(vote, key);
   CMutableTransaction mutedTx(tx);
 
   // Replace the vote with something meaningless

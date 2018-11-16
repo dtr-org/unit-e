@@ -65,6 +65,7 @@ bool IsVoteExpired(const CTransaction &tx) {
   assert(tx.GetType() == +TxType::VOTE);
 
   Vote vote;
+  std::vector<unsigned char> voteSig;
   assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig));
   const FinalizationState *state = FinalizationState::GetState();
 
@@ -268,8 +269,10 @@ bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
 
   Vote vote1;
   Vote vote2;
+  std::vector<unsigned char> vote1Sig;
+  std::vector<unsigned char> vote2Sig;
   if (!CScript::ExtractVotesFromSlashSignature(tx.vin[0].scriptSig, vote1,
-                                               vote2)) {
+                                               vote2, vote1Sig, vote2Sig)) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-slash-data-format");
   }
 

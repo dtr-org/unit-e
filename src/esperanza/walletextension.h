@@ -9,6 +9,7 @@
 #include <dependency.h>
 #include <esperanza/validatorstate.h>
 #include <esperanza/walletstate.h>
+#include <finalization/vote_recorder.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
@@ -90,9 +91,10 @@ class WalletExtension : public staking::StakingWallet {
   //! \returns true if the operation was successful, false otherwise.
   bool SendDeposit(const CKeyID &keyID, CAmount amount, CWalletTx &wtxOut);
 
-  //! \brief Creates a vote transaction starting from a Vote object and a previous
-  //! transaction (vote or deposit  reference. It fills inputs, outputs.
-  //! It does not support an address change between source and destination.
+  //! \brief Creates a vote transaction starting from a Vote object and a
+  //! previous transaction (vote or deposit  reference. It fills inputs,
+  //! outputs. It does not support an address change between source and
+  //! destination.
   //!
   //! \param[in] prevTxRef a reference to the initial DEPOSIT or previous VOTE
   //! transaction, depending which one is the most recent
@@ -119,7 +121,9 @@ class WalletExtension : public staking::StakingWallet {
   //! \param vote1 the first vote extracted from the transaction.
   //! \param vote2 the second vote retrieved from the historic data.
   //! \returns true if the operation is succesful, false otehrwise.
-  bool SendSlash(const CTransaction &prevTx, const Vote &vote1, const Vote &vote2);
+  bool SendSlash(const CTransaction &prevTx,
+                 const finalization::VoteRecord &vote1,
+                 const finalization::VoteRecord &vote2);
 
   void ReadValidatorStateFromFile();
 
