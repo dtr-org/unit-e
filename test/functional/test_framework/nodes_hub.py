@@ -12,6 +12,43 @@ from asyncio import (
     coroutine,
     sleep as asyncio_sleep
 )
+from struct import pack, unpack
+
+
+MSG_HEADER_LENGTH = 4 + 12 + 4 + 4
+
+
+def process_buffer(node_port, buffer, transport: Transport):
+    """
+    This function helps he hub to impersonate nodes by modifying 'version' messages changing the "from" addresses.
+    """
+    while len(buffer) < MSG_HEADER_LENGTH:  # We do nothing until we have (magic + command + length + checksum)
+
+        # We only care about command & msglen, but not about messages correctness.
+        msglen = unpack("<i", buffer[4 + 12:4 + 12 + 4])[0]
+
+        # We wait until we have the full message
+        if len(buffer) < MSG_HEADER_LENGTH + msglen:
+            return
+
+        command = buffer[4:4 + 12].split(b"\x00", 1)[0]
+
+        if b'version' == command:
+            # We want to inject the proxy's port info
+            msg = buffer[MSG_HEADER_LENGTH:MSG_HEADER_LENGTH + msglen]
+            msg = (
+                    msg[:4 + 8 + 8 + 26 + (4 + 8 + 16)] +
+                    pack('!H', node_port) +
+                    msg[4 + 8 + 8 + 26 + (4 + 8 + 16 + 2):]
+            )
+            transport.write(buffer[:MSG_HEADER_LENGTH] + msg)
+        else:
+            # We pass an unaltered message
+            transport.write(buffer[:MSG_HEADER_LENGTH + msglen])
+
+        buffer = buffer[MSG_HEADER_LENGTH + msglen:]
+
+    return buffer
 
 
 class NodesHub:
@@ -74,6 +111,9 @@ class NodesHub:
         client2server_pair = hub_ref.pending_connection
 
         class NodeProxy(Protocol):
+            def __init__(self):
+                self.recvbuf = b''
+
             def connection_made(self, transport: Transport):
                 hub_ref.client2proxy_transports[client2server_pair] = transport
 
@@ -81,22 +121,26 @@ class NodesHub:
                 pass  # TODO: Should we do something here?
 
             def data_received(self, data):
-                hub_ref.loop.create_task(self.on_data_received(data))
+                hub_ref.loop.create_task(self.__handle_received_data(data))
+
+            def eof_received(self):
+                pass  # TODO: Should we do something here?
 
             @coroutine
-            def on_data_received(self, data):
+            def __handle_received_data(self, data):
                 while client2server_pair not in hub_ref.proxy2server_transports:
                     yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
 
                 if client2server_pair in hub_ref.node2node_delays:
                     yield from asyncio_sleep(hub_ref.node2node_delays[client2server_pair])
 
-                # TODO: override messages that contain information about IP addresses and ports
-                proxy2server_transport = hub_ref.proxy2server_transports[client2server_pair]  # type: Transport
-                proxy2server_transport.write(data)
-
-            def eof_received(self):
-                pass  # TODO: Should we do something here?
+                if len(data) > 0:
+                    self.recvbuf += data
+                    self.recvbuf = process_buffer(
+                        node_port=hub_ref.get_proxy_port(client2server_pair[0]),
+                        buffer=self.recvbuf,
+                        transport=hub_ref.proxy2server_transports[client2server_pair]
+                    )
 
         return NodeProxy
 
@@ -110,6 +154,9 @@ class NodesHub:
         server2client_pair = client2server_pair[::-1]
 
         class ProxyRelay(Protocol):
+            def __init__(self):
+                self.recvbuf = b''
+
             def connection_made(self, transport: Transport):
                 hub_ref.proxy2server_transports[client2server_pair] = transport
 
@@ -117,22 +164,26 @@ class NodesHub:
                 pass  # TODO: Should we do something here?
 
             def data_received(self, data):
-                hub_ref.loop.create_task(self.on_data_received(data))
+                hub_ref.loop.create_task(self.__handle_received_data(data))
+
+            def eof_received(self):
+                pass  # TODO: Should we do something here?
 
             @coroutine
-            def on_data_received(self, data):
+            def __handle_received_data(self, data):
                 while client2server_pair not in hub_ref.client2proxy_transports:
                     yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
 
                 if server2client_pair in hub_ref.node2node_delays:
                     yield from asyncio_sleep(hub_ref.node2node_delays[server2client_pair])
 
-                # TODO: override messages that contain information about IP addresses and ports
-                client2proxy_transport = hub_ref.client2proxy_transports[client2server_pair]  # type: Transport
-                client2proxy_transport.write(data)
-
-            def eof_received(self):
-                pass  # TODO: Should we do something here?
+                if len(data) > 0:
+                    self.recvbuf += data
+                    self.recvbuf = process_buffer(
+                        node_port=hub_ref.get_proxy_port(client2server_pair[1]),
+                        buffer=self.recvbuf,
+                        transport=hub_ref.client2proxy_transports[client2server_pair]
+                    )
 
         return ProxyRelay
 
