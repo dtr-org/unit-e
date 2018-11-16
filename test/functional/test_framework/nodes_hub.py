@@ -8,6 +8,7 @@
 from asyncio import (
     AbstractEventLoop,
     Protocol,
+    Task,
     Transport,
     coroutine,
     sleep as asyncio_sleep
@@ -118,7 +119,7 @@ class NodesHub:
                 hub_ref.client2proxy_transports[client2server_pair] = transport
 
             def connection_lost(self, exc):
-                pass  # TODO: Should we do something here?
+                hub_ref.disconnect_nodes(*client2server_pair)
 
             def data_received(self, data):
                 hub_ref.loop.create_task(self.__handle_received_data(data))
@@ -161,7 +162,7 @@ class NodesHub:
                 hub_ref.proxy2server_transports[client2server_pair] = transport
 
             def connection_lost(self, exc):
-                pass  # TODO: Should we do something here?
+                hub_ref.disconnect_nodes(*client2server_pair)
 
             def data_received(self, data):
                 hub_ref.loop.create_task(self.__handle_received_data(data))
@@ -201,6 +202,25 @@ class NodesHub:
             self.node2node_delays.pop((outbound_idx, inbound_idx), None)
         else:
             self.node2node_delays[(outbound_idx, inbound_idx)] = delay  # delay is measured in seconds
+
+    def disconnect_nodes(self, outbound_idx, inbound_idx):
+        client2proxy_transport = self.client2proxy_transports[(outbound_idx, inbound_idx)]  # type: Transport
+        proxy2server_transport = self.proxy2server_transports[(outbound_idx, inbound_idx)]  # type: Transport
+        relay_task = self.relay_tasks[(outbound_idx, inbound_idx)]  # type: Task
+
+        if not client2proxy_transport.is_closing():
+            client2proxy_transport.close()
+
+        if not proxy2server_transport.is_closing():
+            proxy2server_transport.close()
+
+        if not relay_task.cancelled():
+            relay_task.cancel()
+
+        # Removing references
+        del self.client2proxy_transports[(outbound_idx, inbound_idx)]
+        del self.proxy2server_transports[(outbound_idx, inbound_idx)]
+        del self.relay_tasks[(outbound_idx, inbound_idx)]
 
     @coroutine
     def connect_nodes(self, outbound_idx: int, inbound_idx: int):
