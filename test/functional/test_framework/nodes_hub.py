@@ -13,10 +13,14 @@ from asyncio import (
     coroutine,
     sleep as asyncio_sleep
 )
+from logging import getLogger
 from struct import pack, unpack
 
 
 MSG_HEADER_LENGTH = 4 + 12 + 4 + 4
+
+
+logger = getLogger("TestFramework.mininode")
 
 
 def process_buffer(node_port, buffer, transport: Transport):
@@ -116,9 +120,11 @@ class NodesHub:
                 self.recvbuf = b''
 
             def connection_made(self, transport: Transport):
+                logger.info('Client %s connected to proxy %s' % client2server_pair[:])
                 hub_ref.client2proxy_transports[client2server_pair] = transport
 
             def connection_lost(self, exc):
+                logger.info('Connection lost between client %s and proxy %s' % client2server_pair[:])
                 hub_ref.disconnect_nodes(*client2server_pair)
 
             def data_received(self, data):
@@ -159,9 +165,17 @@ class NodesHub:
                 self.recvbuf = b''
 
             def connection_made(self, transport: Transport):
+                logger.info(
+                    'Created connection between proxy and its associated node %s to receive messages from node %s' %
+                    server2client_pair
+                )
                 hub_ref.proxy2server_transports[client2server_pair] = transport
 
             def connection_lost(self, exc):
+                logger.info(
+                    'Lost connection between proxy and its associated node %s to receive messages from node %s' %
+                    server2client_pair
+                )
                 hub_ref.disconnect_nodes(*client2server_pair)
 
             def data_received(self, data):
