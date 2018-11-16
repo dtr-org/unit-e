@@ -678,7 +678,9 @@ public:
     bool IsPayVoteSlashScript() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
+    bool IsRemoteStakingScript() const;
     bool MatchPayToPublicKeyHash(size_t ofs) const;
+    bool MatchPayToPublicKeySha256(size_t ofs) const;
     bool MatchPayVoteSlashScript(size_t ofs) const;
     bool MatchVoteScript(size_t ofs) const;
     bool MatchSlashScript(size_t ofs) const;
@@ -695,6 +697,7 @@ public:
     static esperanza::Vote ExtractVoteFromWitness(const CScriptWitness &scriptSig, std::vector<unsigned char> &voteSig);
     static esperanza::Vote ExtractVoteFromSignature(const CScript &scriptSig, std::vector<unsigned char> &voteSig);
     static bool ExtractAdminKeysFromWitness(const CScriptWitness &witness, std::vector<CPubKey> &outKeys);
+    static bool SplitRemoteStakingScript(const CScript &script, CScript &stakingScript, CScript &spendingScript);
 
     /**
      * Returns whether the script is guaranteed to fail at execution,

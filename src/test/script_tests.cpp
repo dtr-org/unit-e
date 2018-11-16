@@ -1622,6 +1622,42 @@ BOOST_AUTO_TEST_CASE(push_tx_type)
     }
 }
 
+BOOST_AUTO_TEST_CASE(split_remote_staking_script)
+{
+    std::string keyHash160 = "8dd36db6ed8e9d56aa10aad9db1321208be82bce";
+    std::string keyHash256 = "f6c5081e8ee9d76a0abe8ad271bca9bf51d0da8fe56ec835addf1518ba4c853b";
+    CScript s;
+    s << OP_PUSH_TX_TYPE << OP_1 << OP_EQUAL << OP_IF
+      << OP_DUP << OP_HASH160 << ParseHex(keyHash160) << OP_EQUALVERIFY << OP_CHECKSIG
+      << OP_ELSE
+      << OP_DUP << OP_SHA256 << ParseHex(keyHash256) << OP_EQUALVERIFY << OP_CHECKSIG
+      << OP_ENDIF;
+
+    CScript stakingScript, spendingScript;
+    BOOST_CHECK(CScript::SplitRemoteStakingScript(s, stakingScript, spendingScript));
+    BOOST_CHECK(stakingScript.IsPayToPublicKeyHash());
+    BOOST_CHECK(spendingScript.MatchPayToPublicKeySha256(0));
+    BOOST_CHECK_EQUAL(spendingScript.size(), 37);
+
+    s.clear();
+    s << OP_PUSH_TX_TYPE << OP_1 << OP_EQUAL << OP_IF
+      << OP_HASH160 << ParseHex(keyHash160) << OP_EQUAL
+      << OP_ELSE
+      << OP_DUP << OP_HASH160 << ParseHex(keyHash160) << OP_EQUALVERIFY << OP_CHECKSIG
+      << OP_ENDIF;
+
+    BOOST_CHECK(CScript::SplitRemoteStakingScript(s, stakingScript, spendingScript));
+    BOOST_CHECK(stakingScript.IsPayToScriptHash());
+    BOOST_CHECK(spendingScript.IsPayToPublicKeyHash());
+
+    s.clear();
+    s << OP_PUSH_TX_TYPE << OP_1 << OP_EQUAL << OP_IF
+      << OP_HASH160 << ParseHex(keyHash160) << OP_EQUAL
+      << OP_ENDIF;
+
+    BOOST_CHECK(!CScript::SplitRemoteStakingScript(s, stakingScript, spendingScript));
+}
+
 #if defined(HAVE_CONSENSUS_LIB)
 
 /* Test simple (successful) usage of uniteconsensus_verify_script */

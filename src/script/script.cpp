@@ -256,6 +256,16 @@ bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
         (*this)[ofs + 24] == OP_CHECKSIG);
 }
 
+bool CScript::MatchPayToPublicKeySha256(size_t ofs) const {
+    // Extra-fast test for pay-to-script-sha256 CScripts:
+    return (this->size() - ofs >= 37 && // TODO: fix length check
+        (*this)[ofs + 0] == OP_DUP &&
+        (*this)[ofs + 1] == OP_SHA256 &&
+        (*this)[ofs + 2] == 0x20 &&
+        (*this)[ofs + 35] == OP_EQUALVERIFY &&
+        (*this)[ofs + 36] == OP_CHECKSIG);
+}
+
 bool CScript::MatchPayVoteSlashScript(size_t ofs) const
 {
     // Extra-fast test for pay-vote-slash script hash CScripts:
@@ -332,6 +342,23 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     }
     return false;
 }
+
+bool CScript::IsRemoteStakingScript() const
+{
+    return (//this->size() == 68 &&
+        (*this)[0] == OP_PUSH_TX_TYPE &&
+        (*this)[1] == OP_1 &&
+        (*this)[2] == OP_EQUAL &&
+        (*this)[3] == OP_IF &&
+//        MatchPayToPublicKeyHash(4) &&
+//        (*this)[29] == OP_ELSE &&
+//        MatchPayToPublicKeySha256(30) &&
+        (*this)[this->size() - 1] == OP_ENDIF);
+    // TODO: fix implementation
+    // stakingScript is one of (P2PKH, P2SH, MULTISIG)
+    // spendingScript is one of (P2PKH256, P2SH, MULTISIG)
+}
+
 
 bool CScript::IsPushOnly(const_iterator pc) const
 {
@@ -500,4 +527,37 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     }
 
     return it == script.end();
+}
+
+bool CScript::SplitRemoteStakingScript(const CScript &script, CScript &stakingScript, CScript &spendingScript)
+{
+    // TODO: why not member function
+    opcodetype opcode;
+    CScript::const_iterator it = script.begin();
+
+    for (int i = 0; i < 4; ++i) {
+        if (!script.GetOp(it, opcode)) {
+            return false;
+        }
+    }
+    if (opcode != OP_IF) {
+        return false;
+    }
+
+    CScript::const_iterator begin = it;
+    while (opcode != OP_ELSE) {
+        if (!script.GetOp(it, opcode)) {
+            return false;
+        }
+    }
+    stakingScript = CScript(begin, it - 1);
+
+    begin = it;
+    while (opcode != OP_ENDIF) {
+        if (!script.GetOp(it, opcode)) {
+            return false;
+        }
+    }
+    spendingScript = CScript(begin, it - 1);
+    return true;
 }
