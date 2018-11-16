@@ -221,6 +221,8 @@ struct CScriptWitness
     // encoding them as a CScript that pushes them.
     std::vector<std::vector<unsigned char>> stack;
 
+    CScriptWitness() { }
+
     bool IsNull() const { return stack.empty(); }
 
     void SetNull() { stack.clear(); stack.shrink_to_fit(); }
