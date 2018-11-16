@@ -11,6 +11,10 @@ from asyncio import (
     coroutine,
     sleep as asyncio_sleep
 )
+from collections import namedtuple
+
+
+PendingConnection = namedtuple('PendingConnection', 'outbound_idx, inbound_idx')
 
 
 class NodesHub:
@@ -36,7 +40,10 @@ class NodesHub:
         self.node2node_delays = {}
 
         self.proxy_tasks = []
-        self.proxy_transports = {}
+        self.node2proxy_transports = {}
+
+        self.relay_tasks = {}
+        self.proxy2node_transports = {}
 
         self.pending_connection = None  # Lock-like object used by NodesHub.connect_nodes
 
@@ -49,38 +56,59 @@ class NodesHub:
         """
 
         for i, node in enumerate(self.nodes):
-            fake_listener_coroutine = self.loop.create_server(
+            proxy_coroutine = self.loop.create_server(
                 protocol_factory=self.get_proxy_class(),
                 host=self.host,
                 port=self.get_proxy_port(i)
             )
-            self.proxy_tasks.append(self.loop.create_task(fake_listener_coroutine))
+            self.proxy_tasks.append(self.loop.create_task(proxy_coroutine))
 
     def get_proxy_class(self):
         """
-        This method acts like a closure, allowing us to dynamically define anonymous classes at runtime.
+        This method is a closure, allowing us to dynamically define anonymous classes at runtime for proxy objects
         """
 
+        # Capturing references for our closure
         hub_ref = self
-        pending_connection = hub_ref.pending_connection  # We have to capture this reference in our closure
+        pending_connection = hub_ref.pending_connection
 
         class NodeProxy(Protocol):
             def connection_made(self, transport):
-                # It will be the hub the responsible to send data, not this object
-                hub_ref.proxy_transports[pending_connection] = transport
+                hub_ref.node2proxy_transports[pending_connection] = transport
 
             def connection_lost(self, exc):
-                # TODO: Should we do something here?
-                pass
+                pass  # TODO: Should we do something here?
 
             def data_received(self, data):
                 pass
 
             def eof_received(self):
-                # TODO: Should we do something here?
-                pass
+                pass  # TODO: Should we do something here?
 
         return NodeProxy
+
+    def get_proxy_relay_class(self):
+        """
+        This method is a closure, allowing us to dynamically define anonymous classes at runtime for proxy relay objects
+        """
+
+        hub_ref = self
+        pending_connection = hub_ref.pending_connection
+
+        class ProxyRelay(Protocol):
+            def connection_made(self, transport):
+                hub_ref.proxy2node_transports[pending_connection] = transport
+
+            def connection_lost(self, exc):
+                pass  # TODO: Should we do something here?
+
+            def data_received(self, data):
+                pass
+
+            def eof_received(self):
+                pass  # TODO: Should we do something here?
+
+        return ProxyRelay
 
     def get_node_port(self, node_idx):
         return self.base_port + 2 * node_idx
@@ -91,14 +119,14 @@ class NodesHub:
     def get_proxy_address(self, node_idx):
         return '%s:%s' % (self.host, self.get_proxy_port(node_idx))
 
-    def set_nodes_delay(self, src_idx, dst_idx, ms_delay):
+    def set_nodes_delay(self, outbound_idx, inbound_idx, ms_delay):
         if ms_delay == 0:
-            self.node2node_delays.pop((src_idx, dst_idx), None)
+            self.node2node_delays.pop((outbound_idx, inbound_idx), None)
         else:
-            self.node2node_delays[(src_idx, dst_idx)] = ms_delay
+            self.node2node_delays[(outbound_idx, inbound_idx)] = ms_delay
 
     @coroutine
-    def connect_nodes(self, outbound_idx, inbound_idx):
+    def connect_nodes(self, outbound_idx: int, inbound_idx: int):
         """
         :param outbound_idx: It refers to the "client" (the one asking for a new connection)
         :param inbound_idx: It refers to the "server" (the one listening for new connections)
@@ -114,22 +142,44 @@ class NodesHub:
             yield from asyncio_sleep(0)
 
         # We acquire the lock. This tuple is also useful for the NodeProxy instance.
-        pending_connection = (outbound_idx, inbound_idx)
+        pending_connection = PendingConnection(outbound_idx=outbound_idx, inbound_idx=inbound_idx)
         self.pending_connection = pending_connection
 
-        if pending_connection in self.proxy_transports:
+        if pending_connection in self.node2proxy_transports:
             self.pending_connection = None
-            raise RuntimeError('Connection between node%s and node%s already established' % (outbound_idx, inbound_idx))
+            raise RuntimeError('Connection (node%s --> node%s) already established' % pending_connection)
 
-        client_node = self.nodes[outbound_idx]
-        proxy_address = self.get_proxy_address(inbound_idx)
-
-        client_node.addnode(proxy_address, 'add')     # Add the proxy to the outgoing connections list
-        client_node.addnode(proxy_address, 'onetry')  # Connect to the proxy. Will trigger NodeProxy.connection_made
-
-        # Here we wait until we are sure that NodeProxy.connection_made has been called.
-        while pending_connection not in self.proxy_transports:
-            yield from asyncio_sleep(0)
+        yield from self.connect_node_to_proxy(pending_connection)  # 1st step: connect "client" to the proxy
+        yield from self.connect_proxy_to_node(pending_connection)  # 2nd step: connect proxy to its associated node
 
         # We release the lock
         self.pending_connection = None
+
+    def connect_node_to_proxy(self, pending_connection: PendingConnection):
+        """
+        Establishes a connection between a real node and the proxy representing another node
+        """
+        client_node = self.nodes[pending_connection.outbound_idx]
+        proxy_address = self.get_proxy_address(pending_connection.inbound_idx)
+
+        client_node.addnode(proxy_address, 'add')  # Add the proxy to the outgoing connections list
+        client_node.addnode(proxy_address, 'onetry')  # Connect to the proxy. Will trigger NodeProxy.connection_made
+
+        # We wait until we are sure that NodeProxy.connection_made has been called.
+        while pending_connection not in self.node2proxy_transports:
+            yield from asyncio_sleep(0)
+
+    def connect_proxy_to_node(self, pending_connection: PendingConnection):
+        """
+        Creates a client that connects to a node and relays messages between that node and its associated proxy
+        """
+
+        relay_coroutine = self.loop.create_connection(
+            protocol_factory=self.get_proxy_relay_class(),
+            host=self.host,
+            port=self.get_node_port(pending_connection.inbound_idx)
+        )
+        self.relay_tasks[pending_connection] = self.loop.create_task(relay_coroutine)
+
+        while pending_connection not in self.proxy2node_transports:
+            yield from asyncio_sleep(0)
