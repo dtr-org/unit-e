@@ -74,9 +74,6 @@ class NodesHub:
         client2server_pair = hub_ref.pending_connection
 
         class NodeProxy(Protocol):
-            def __init__(self):
-                self.recvb = b''
-
             def connection_made(self, transport: Transport):
                 hub_ref.client2proxy_transports[client2server_pair] = transport
 
@@ -84,6 +81,10 @@ class NodesHub:
                 pass  # TODO: Should we do something here?
 
             def data_received(self, data):
+                hub_ref.loop.create_task(self.on_data_received(data))
+
+            @coroutine
+            def on_data_received(self, data):
                 while client2server_pair not in hub_ref.proxy2server_transports:
                     yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
 
@@ -109,9 +110,6 @@ class NodesHub:
         server2client_pair = client2server_pair[::-1]
 
         class ProxyRelay(Protocol):
-            def __init__(self):
-                self.recvb = b''
-
             def connection_made(self, transport: Transport):
                 hub_ref.proxy2server_transports[client2server_pair] = transport
 
@@ -119,6 +117,10 @@ class NodesHub:
                 pass  # TODO: Should we do something here?
 
             def data_received(self, data):
+                hub_ref.loop.create_task(self.on_data_received(data))
+
+            @coroutine
+            def on_data_received(self, data):
                 while client2server_pair not in hub_ref.client2proxy_transports:
                     yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
 
