@@ -10,7 +10,7 @@
 
 #include <thread>
 
-#ifdef __GNUG__
+#if defined(__GNUG__) and not defined(__clang__)
 
 // Fakeit does not work with GCC's devirtualization
 // which is enabled with -O2 (the default) or higher.
