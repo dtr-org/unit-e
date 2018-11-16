@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <keystore.h>
+#include <test/esperanza/finalization_utils.h>
 #include <test/esperanza/finalizationstate_utils.h>
 #include <ufp64.h>
 #include <util.h>
@@ -108,6 +109,50 @@ BOOST_AUTO_TEST_CASE(getrecommendedvote) {
   BOOST_CHECK_EQUAL(res.m_sourceEpoch, 3);
   BOOST_CHECK_EQUAL(res.m_targetEpoch, 7);
   BOOST_CHECK_EQUAL(res.m_targetHash, targetHash);
+}
+
+BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
+
+  FinalizationState::Init(FinalizationParams(), AdminParams());
+  auto state = FinalizationState::GetState();
+
+  uint160 validatorAddress = uint160S("00112233445566778899");
+
+  CKey k;
+  InsecureNewKey(k, true);
+
+  CBlockIndex blockIndex;
+  CBlock block;
+
+  CMutableTransaction tx;
+  tx.vin.resize(1);
+  tx.vout.resize(1);
+  CTransaction prevTx(tx);
+
+  CTransactionRef deposit = MakeTransactionRef(CreateDepositTx(tx, k, 10000));
+  block.vtx = std::vector<CTransactionRef>{deposit};
+
+  uint256 depositHash = deposit->GetHash();
+  FinalizationState::ProcessNewTip(blockIndex, block);
+  BOOST_CHECK_EQUAL(depositHash.GetHex(), state->GetLastTxHash(validatorAddress).GetHex());
+
+  //  CTransactionRef vote = &CreateVoteTx();
+  //  block.vtx = std::vector<CTransactionRef>{vote};
+  //  uint256 voteHash = vote->GetHash();
+  //  FinalizationState::ProcessNewTip(blockIndex, block);
+  //  BOOST_CHECK_EQUAL(voteHash.GetHex(), state->GetLastTxHash(validatorAddress));
+  //
+  //  CTransactionRef logout = &CreateLogoutTx();
+  //  block.vtx = std::vector<CTransactionRef>{logout};
+  //  uint256 logoutHash = logout->GetHash();
+  //  FinalizationState::ProcessNewTip(blockIndex, block);
+  //  BOOST_CHECK_EQUAL(logoutHash.GetHex(), state->GetLastTxHash(validatorAddress));
+  //
+  //  CTransactionRef withdraw = &CreateWithdrawTx();
+  //  block.vtx = std::vector<CTransactionRef>{withdraw};
+  //  uint256 withdrawHash = withdraw->GetHash();
+  //  FinalizationState::ProcessNewTip(blockIndex, block);
+  //  BOOST_CHECK_EQUAL(withdrawHash.GetHex(), state->GetLastTxHash(validatorAddress));
 }
 
 // Other tests

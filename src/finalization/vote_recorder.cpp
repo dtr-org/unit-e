@@ -1,6 +1,6 @@
-#include "vote_recorder.h"
 #include <finalization/vote_recorder.h>
-#include <wallet/wallet.h>
+#include <validationinterface.h>
+#include <util.h>
 
 namespace finalization {
 

@@ -161,13 +161,13 @@ class FinalizationState : public FinalizationStateData {
   Result ValidateVote(const Vote &vote) const;
   void ProcessVote(const Vote &vote);
 
-  Result ValidateLogout(const uint160 &validatorAddress) const;
+  Result ValidateLogout(const uint160 &validatorAddr) const;
   void ProcessLogout(const uint160 &validatorAddress);
 
   Result ValidateWithdraw(const uint160 &validatorAddress,
                           CAmount requestedWithdraw) const;
 
-  Result CalculateWithdrawAmount(const uint160 &validatorAddress,
+  Result CalculateWithdrawAmount(const uint160 &validatorAddr,
                                  CAmount &withdrawAmountOut) const;
 
   void ProcessWithdraw(const uint160 &validatorAddress);
@@ -185,12 +185,12 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetCurrentEpoch() const;
   uint32_t GetCurrentDynasty() const;
 
-  uint64_t GetDepositSize(const uint160 &validatorAddress) const;
+  uint64_t GetDepositSize(const uint160 &validatorAddr) const;
 
   Vote GetRecommendedVote(const uint160 &validatorAddress) const;
 
   std::vector<Validator> GetValidators() const;
-  const Validator *GetValidator(const uint160 &validatorAddress) const;
+  const Validator *GetValidator(const uint160 &valAddr) const;
 
   static void Init(const esperanza::FinalizationParams &params,
                    const esperanza::AdminParams &adminParams);
@@ -204,6 +204,11 @@ class FinalizationState : public FinalizationStateData {
   static bool ValidateDepositAmount(CAmount amount);
 
   static bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
+
+  //! \brief Retrives the hash of the last finalization transaction performed by the validator
+  //! \param validatorAddress
+  //! \return the hash of the last finalization transaction performed by the validator
+  uint256 GetLastTxHash(uint160 validatorAddress);
 
  private:
   void InstaFinalize();
@@ -225,6 +230,7 @@ class FinalizationState : public FinalizationStateData {
   uint64_t GetTotalSlashed(uint32_t epoch) const;
   Checkpoint &GetCheckpoint(uint32_t epoch);
   uint64_t GetDynastyDelta(uint32_t dynasty);
+  void RegisterValidatorTx(uint160 validatorAddress, CTransactionRef tx);
 
   mutable CCriticalSection cs_esperanza;
 

@@ -227,11 +227,10 @@ void FinalizationState::DeleteValidator(const uint160 &validatorAddress) {
   m_validators.erase(validatorAddress);
 }
 
-uint64_t
-FinalizationState::GetDepositSize(const uint160 &validatorAddress) const {
+uint64_t FinalizationState::GetDepositSize(const uint160 &validatorAddr) const {
   LOCK(cs_esperanza);
 
-  auto validatorIt = m_validators.find(validatorAddress);
+  auto validatorIt = m_validators.find(validatorAddr);
   auto depositScaleIt = m_depositScaleFactor.find(m_currentEpoch);
 
   if (validatorIt != m_validators.end() && !validatorIt->second.m_isSlashed &&
@@ -553,18 +552,17 @@ uint32_t FinalizationState::GetEndDynasty() const {
 /**
  * Validates the consistency of the logout against the current state. This does
  * assume that the normal transaction validation process already took place.
- * @param validatorAddress the index of the validator that is logging out
+ * @param validatorAddr the index of the validator that is logging out
  * @return a representation of the outcome
  */
-Result
-FinalizationState::ValidateLogout(const uint160 &validatorAddress) const {
+Result FinalizationState::ValidateLogout(const uint160 &validatorAddr) const {
   LOCK(cs_esperanza);
 
-  auto it = m_validators.find(validatorAddress);
+  auto it = m_validators.find(validatorAddr);
   if (it == m_validators.end()) {
     return fail(Result::LOGOUT_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
-                validatorAddress.GetHex());
+                validatorAddr.GetHex());
   }
 
   uint32_t endDynasty = GetEndDynasty();
@@ -631,17 +629,17 @@ Result FinalizationState::ValidateWithdraw(const uint160 &validatorAddress,
 }
 
 Result
-FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddress,
+FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddr,
                                            CAmount &withdrawAmountOut) const {
   LOCK(cs_esperanza);
 
   withdrawAmountOut = 0;
 
-  auto it = m_validators.find(validatorAddress);
+  auto it = m_validators.find(validatorAddr);
   if (it == m_validators.end()) {
     return fail(Result::WITHDRAW_NOT_A_VALIDATOR,
                 "%s: No validator with index %s found.\n", __func__,
-                validatorAddress.GetHex());
+                validatorAddr.GetHex());
   }
 
   const auto &validator = it->second;
@@ -696,7 +694,7 @@ FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddress,
 
     LogPrint(BCLog::FINALIZATION,
              "%s: Withdraw from validator %s of %d units.\n", __func__,
-             validatorAddress.GetHex(), endDynasty, withdrawAmountOut);
+             validatorAddr.GetHex(), endDynasty, withdrawAmountOut);
   }
 
   return success();
@@ -920,10 +918,9 @@ std::vector<Validator> FinalizationState::GetValidators() const {
   return res;
 }
 
-const Validator *
-FinalizationState::GetValidator(const uint160 &validatorAddress) const {
+const Validator *FinalizationState::GetValidator(const uint160 &valAddr) const {
 
-  auto it = m_validators.find(validatorAddress);
+  auto it = m_validators.find(valAddr);
 
   if (it != m_validators.end()) {
     return &it->second;
@@ -988,6 +985,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote,
                                                      voteSig));
         state->ProcessVote(vote);
+        state->RegisterValidatorTx(vote.m_validatorAddress, tx);
         break;
       }
 
@@ -996,6 +994,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
         assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessDeposit(validatorAddress, tx->GetValueOut());
+        state->RegisterValidatorTx(validatorAddress, tx);
         break;
       }
 
@@ -1004,6 +1003,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
         assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessLogout(validatorAddress);
+        state->RegisterValidatorTx(validatorAddress, tx);
         break;
       }
 
@@ -1012,6 +1012,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
         assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessWithdraw(validatorAddress);
+        state->RegisterValidatorTx(validatorAddress, tx);
         break;
       }
 
@@ -1086,6 +1087,18 @@ Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
   auto it = m_checkpoints.find(epoch);
   assert(it != m_checkpoints.end());
   return it->second;
+}
+
+void FinalizationState::RegisterValidatorTx(uint160 validatorAddress,
+                                            CTransactionRef tx) {
+
+  Validator &validator = m_validators.at(validatorAddress);
+  validator.m_lastTransactionHash = tx->GetHash();
+}
+
+uint256 FinalizationState::GetLastTxHash(uint160 validatorAddress) {
+  Validator &validator = m_validators.at(validatorAddress);
+  return validator.m_lastTransactionHash;
 }
 
 }  // namespace esperanza
