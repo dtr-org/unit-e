@@ -121,6 +121,11 @@ void VoteRecorder::Init() {
   }
 }
 
+void VoteRecorder::Reset() {
+  LOCK(cs_recorder);
+  g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder());
+}
+
 std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
   return g_voteRecorder;
 }

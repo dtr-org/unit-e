@@ -34,12 +34,12 @@ BOOST_AUTO_TEST_CASE(singleton) {
 
 BOOST_AUTO_TEST_CASE(record_votes) {
 
-  FinalizationState::Init(FinalizationParams(), AdminParams());
+  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Init();
+  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();
@@ -71,12 +71,12 @@ BOOST_AUTO_TEST_CASE(record_votes) {
 
 BOOST_AUTO_TEST_CASE(record_double_vote) {
 
-  FinalizationState::Init(FinalizationParams(), AdminParams());
+  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Init();
+  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();
@@ -102,12 +102,12 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
-  FinalizationState::Init(FinalizationParams(), AdminParams());
+  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Init();
+  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();
@@ -131,12 +131,12 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 }
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
-  FinalizationState::Init(FinalizationParams(), AdminParams());
+  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Init();
+  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();

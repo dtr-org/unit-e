@@ -944,6 +944,7 @@ void FinalizationState::Init(const esperanza::FinalizationParams &params,
 
 void FinalizationState::Reset(const esperanza::FinalizationParams &params,
                               const esperanza::AdminParams &adminParams) {
+  LOCK(cs_init_lock);
   esperanzaState = std::make_shared<FinalizationState>(params, adminParams);
 }
 

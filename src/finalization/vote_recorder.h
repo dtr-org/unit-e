@@ -42,6 +42,7 @@ public:
                                       uint32_t epoch) const;
 
   static void Init();
+  static void Reset();
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 

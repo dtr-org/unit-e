@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(getrecommendedvote) {
 
 BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
 
-  FinalizationState::Init(FinalizationParams(), AdminParams());
+  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   CKey k;
