@@ -44,15 +44,14 @@ def process_buffer(node_port, buffer, transport: Transport):
         logger.debug('Processing command %s' % str(command))
 
         if b'version' == command:
-            # We want to inject the proxy's port info
             msg = buffer[MSG_HEADER_LENGTH:MSG_HEADER_LENGTH + msglen]
             msg = (
                     msg[:4 + 8 + 8 + 26 + (4 + 8 + 16)] +
-                    pack('!H', node_port) +
+                    pack('!H', node_port) +  # Injecting the proxy's port info
                     msg[4 + 8 + 8 + 26 + (4 + 8 + 16 + 2):]
             )
 
-            msg_checksum = hash256(msg)[:4]  # That's a double sha256
+            msg_checksum = hash256(msg)[:4]  # That's a truncated double sha256
             new_header = buffer[:MSG_HEADER_LENGTH - 4] + msg_checksum
 
             transport.write(new_header + msg)
@@ -121,11 +120,30 @@ class NodesHub:
             else:
                 self.proxy_coroutines.append(proxy_coroutine)
 
-    def run_sync_setup(self):
+    def sync_start_proxies(self):
         """
-        Helper to make easier using NodesHub in non-asyncio aware code
+        Helper to make easier using NodesHub in non-asyncio aware code. Not directly executed in constructor to ensure
+        decoupling between constructive & behavioral patterns.
+
+        It starts the nodes's proxies.
         """
         self.loop.run_until_complete(gather(*self.proxy_coroutines))
+
+    def sync_biconnect_nodes_as_linked_list(self, nodes_list=None):
+        """
+        Helper to make easier using NodesHub in non-asyncio aware code.
+        Connects nodes as a linked list.
+        """
+        if nodes_list is None:
+            nodes_list = range(len(self.nodes) - 1)
+
+        connection_futures = []
+
+        for i in nodes_list:
+            connection_futures.append(self.connect_nodes(i, i + 1))
+            connection_futures.append(self.connect_nodes(i + 1, i))
+
+        self.loop.run_until_complete(gather(*connection_futures))
 
     def get_proxy_class(self):
         """
