@@ -137,11 +137,20 @@ class NodesHub:
         if nodes_list is None:
             nodes_list = range(len(self.nodes) - 1)
 
+        if 0 == len(nodes_list):
+            return
+
+        # This gives us extra flexibility: unordered lists, or topologies different than linked list
+        i, node_pairs = nodes_list[0], []
+        for j in nodes_list[1:]:
+            node_pairs.append((i, j))
+            i = j
+
         connection_futures = []
 
-        for i in nodes_list:
-            connection_futures.append(self.connect_nodes(i, i + 1))
-            connection_futures.append(self.connect_nodes(i + 1, i))
+        for i, j in node_pairs:
+            connection_futures.append(self.connect_nodes(i, j))
+            connection_futures.append(self.connect_nodes(j, i))
 
         self.loop.run_until_complete(gather(*connection_futures))
 
