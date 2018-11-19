@@ -35,7 +35,7 @@ class Vote {
                               std::vector<unsigned char> &voteSigOut);
 
   uint256 GetHash() const;
-  std::string ToString();
+  std::string ToString() const;
 };
 
 }  // namespace esperanza

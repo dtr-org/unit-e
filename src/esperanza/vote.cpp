@@ -32,7 +32,7 @@ uint256 Vote::GetHash() const {
   return ss.GetHash();
 }
 
-std::string Vote::ToString() {
+std::string Vote::ToString() const {
   return m_validatorAddress.GetHex() + ", " + m_targetHash.GetHex() + ", " +
          std::to_string(m_sourceEpoch) + ", " + std::to_string(m_targetEpoch);
 }

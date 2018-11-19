@@ -7,8 +7,7 @@ namespace finalization {
 CCriticalSection VoteRecorder::cs_recorder;
 std::shared_ptr<VoteRecorder> VoteRecorder::g_voteRecorder;
 
-void VoteRecorder::RecordVote(const CTransaction &transaction,
-                              const esperanza::Vote &vote,
+void VoteRecorder::RecordVote(const esperanza::Vote &vote,
                               const std::vector<unsigned char> voteSig) {
 
   LOCK(cs_recorder);
@@ -29,7 +28,7 @@ void VoteRecorder::RecordVote(const CTransaction &transaction,
   auto it = voteRecords.find(vote.m_validatorAddress);
   if (it != voteRecords.end()) {
     auto inIt = it->second.find(vote.m_targetEpoch);
-    if(inIt == it->second.end()) {
+    if (inIt == it->second.end()) {
       it->second.emplace(vote.m_targetEpoch, voteRecord);
     }
   } else {
@@ -57,7 +56,8 @@ void VoteRecorder::RecordVote(const CTransaction &transaction,
   }
 }
 
-boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vote vote) {
+boost::optional<VoteRecord>
+VoteRecorder::FindOffendingVote(const esperanza::Vote vote) {
 
   auto cacheIt = voteCache.find(vote.m_validatorAddress);
   if (cacheIt != voteCache.end()) {
@@ -83,7 +83,7 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
 
     // Check for a surrounding vote
     vit = voteMap.lower_bound(vote.m_sourceEpoch);
-    while (vit != voteMap.begin()) {
+    while (vit != voteMap.end()) {
       if (vit->second.vote.m_sourceEpoch < vote.m_targetEpoch) {
         if ((vit->second.vote.m_sourceEpoch > vote.m_sourceEpoch &&
              vit->second.vote.m_targetEpoch < vote.m_targetEpoch) ||
@@ -94,6 +94,21 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
       }
       ++vit;
     }
+  }
+
+  return boost::none;
+}
+
+boost::optional<VoteRecord>
+VoteRecorder::GetVote(const uint160 validatorAddress, uint32_t epoch) const {
+
+  auto it = voteRecords.find(validatorAddress);
+  if (it != voteRecords.end()) {
+    auto it2 = it->second.find(epoch);
+    if (it2 != it->second.end()) {
+      return it2->second;
+    }
+    return boost::none;
   }
 
   return boost::none;

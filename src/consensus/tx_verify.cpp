@@ -217,7 +217,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &errState, bool f
 
       if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
           res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
-        finalization::VoteRecorder::GetVoteRecorder()->RecordVote(tx, vote, voteSig);
+        finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig);
       }
 
       if (res != +esperanza::Result::SUCCESS) {
