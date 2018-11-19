@@ -135,7 +135,7 @@ class NodesHub:
         Connects nodes as a linked list.
         """
         if nodes_list is None:
-            nodes_list = range(len(self.nodes) - 1)
+            nodes_list = range(len(self.nodes))
 
         if 0 == len(nodes_list):
             return
