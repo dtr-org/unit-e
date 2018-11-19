@@ -36,6 +36,7 @@ BOOST_FIXTURE_TEST_CASE(vote_signature, ReducedTestingSetup) {
   k.Sign(vote.GetHash(), expectedSig);
 
   BOOST_CHECK_EQUAL(HexStr(expectedSig), HexStr(voteSig));
+  BOOST_CHECK(esperanza::Vote::CheckSignature(pk, vote, voteSig));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

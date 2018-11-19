@@ -66,7 +66,8 @@ bool IsVoteExpired(const CTransaction &tx) {
 
   Vote vote;
   std::vector<unsigned char> voteSig;
-  assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig));
+  assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote,
+                                               voteSig));
   const FinalizationState *state = FinalizationState::GetState();
 
   return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
@@ -189,7 +190,8 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
 
-  const Result res = state->ValidateWithdraw(validatorAddress, tx.vout[0].nValue);
+  const Result res =
+      state->ValidateWithdraw(validatorAddress, tx.vout[0].nValue);
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -223,8 +225,19 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
 
   Vote vote;
   std::vector<unsigned char> voteSig;
-  if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
+  if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote,
+                                             voteSig)) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
+  }
+
+  CPubKey pubkey;
+  if (!ExtractValidatorPubkey(tx, pubkey)) {
+    return errState.DoS(10, false, REJECT_INVALID,
+                        "bad-scriptpubkey-pubkey-format");
+  }
+
+  if (!esperanza::Vote::CheckSignature(pubkey, vote, voteSig)) {
+    return errState.DoS(100, false, REJECT_INVALID, "bad-vote-signature");
   }
 
   if (state->ValidateVote(vote) != +Result::SUCCESS) {
@@ -351,6 +364,22 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
   }
 
   return true;
+}
+
+bool ExtractValidatorPubkey(const CTransaction &tx, CPubKey &pubkeyOut) {
+  switch (tx.GetType()) {
+    case TxType::VOTE: {
+      std::vector<std::vector<unsigned char>> vSolutions;
+      txnouttype typeRet;
+
+      if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+        pubkeyOut = CPubKey(vSolutions[0]);
+        return true;
+      }
+      return false;
+    }
+    default: { return false; }
+  }
 }
 
 bool ExtractValidatorAddress(const CTransaction &tx,

@@ -38,7 +38,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
                            const CBlockIndex *pindex = nullptr);
 
-//! \brief Extracts the validator index from the transaction if applicable.
+//! \brief Extracts the validator address from the transaction if applicable.
 //! The function supports only LOGOUT, DEPOSIT and WITHDRAW, anything else
 //! will return false.
 //! \param tx
@@ -46,6 +46,15 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
 //! \return true if successful, false otherwise.
 bool ExtractValidatorAddress(const CTransaction &tx,
                              uint160 &validatorAddressOut);
+
+//! \brief Extracts the validator pubkey from the transaction if applicable.
+//! The function supports only VOTE as tx type, anything else will return false.
+//! \param tx
+//! \param pubkeyOut
+//! \return true if successful, false otherwise.
+
+bool ExtractValidatorPubkey(const CTransaction &tx,
+                            CPubKey &pubkeyOut);
 
 }  // namespace esperanza
 

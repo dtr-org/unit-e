@@ -20,6 +20,11 @@ bool Vote::CreateSignature(CKeyStore *keystore, const Vote &vote,
   return privKey.Sign(vote.GetHash(), voteSigOut);
 }
 
+bool Vote::CheckSignature(CPubKey pubkey, const Vote &vote,
+                          std::vector<unsigned char> &voteSig) {
+  return pubkey.Verify(vote.GetHash(), voteSig);
+}
+
 uint256 Vote::GetHash() const {
 
   CHashWriter ss(SER_GETHASH, 0);
