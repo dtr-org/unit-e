@@ -17,6 +17,7 @@ from asyncio import (
 from logging import getLogger
 from struct import pack, unpack
 
+from test_framework.messages import hash256
 from test_framework.util import p2p_port
 
 
@@ -50,7 +51,11 @@ def process_buffer(node_port, buffer, transport: Transport):
                     pack('!H', node_port) +
                     msg[4 + 8 + 8 + 26 + (4 + 8 + 16 + 2):]
             )
-            transport.write(buffer[:MSG_HEADER_LENGTH] + msg)
+
+            msg_checksum = hash256(msg)[:4]  # That's a double sha256
+            new_header = buffer[:MSG_HEADER_LENGTH - 4] + msg_checksum
+
+            transport.write(new_header + msg)
         else:
             # We pass an unaltered message
             transport.write(buffer[:MSG_HEADER_LENGTH + msglen])
@@ -141,7 +146,7 @@ class NodesHub:
                 hub_ref.client2proxy_transports[self.client2server_pair] = transport
 
             def connection_lost(self, exc):
-                logger.info('Connection lost between client %s and proxy %s' % self.client2server_pair[:])
+                logger.info('Lost connection between client %s and proxy %s' % self.client2server_pair[:])
                 hub_ref.disconnect_nodes(*self.client2server_pair)
 
             def data_received(self, data):
@@ -241,23 +246,23 @@ class NodesHub:
             self.node2node_delays[(outbound_idx, inbound_idx)] = delay  # delay is measured in seconds
 
     def disconnect_nodes(self, outbound_idx, inbound_idx):
-        client2proxy_transport = self.client2proxy_transports[(outbound_idx, inbound_idx)]  # type: Transport
-        proxy2server_transport = self.proxy2server_transports[(outbound_idx, inbound_idx)]  # type: Transport
-        relay_task = self.relay_tasks[(outbound_idx, inbound_idx)]  # type: Task
+        client2proxy_transport = self.client2proxy_transports.get((outbound_idx, inbound_idx), None)  # type: Transport
+        proxy2server_transport = self.proxy2server_transports.get((outbound_idx, inbound_idx), None)  # type: Transport
+        relay_task = self.relay_tasks.get((outbound_idx, inbound_idx), None)  # type: Task
 
-        if not client2proxy_transport.is_closing():
+        if client2proxy_transport is not None and not client2proxy_transport.is_closing():
             client2proxy_transport.close()
 
-        if not proxy2server_transport.is_closing():
+        if proxy2server_transport is not None and not proxy2server_transport.is_closing():
             proxy2server_transport.close()
 
-        if not relay_task.cancelled():
+        if relay_task is not None and not relay_task.cancelled():
             relay_task.cancel()
 
         # Removing references
-        del self.client2proxy_transports[(outbound_idx, inbound_idx)]
-        del self.proxy2server_transports[(outbound_idx, inbound_idx)]
-        del self.relay_tasks[(outbound_idx, inbound_idx)]
+        self.client2proxy_transports.pop((outbound_idx, inbound_idx), None)
+        self.proxy2server_transports.pop((outbound_idx, inbound_idx), None)
+        self.relay_tasks.pop((outbound_idx, inbound_idx), None)
 
     @coroutine
     def connect_nodes(self, outbound_idx: int, inbound_idx: int):
