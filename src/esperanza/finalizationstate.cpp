@@ -1016,6 +1016,20 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         break;
       }
 
+      case TxType::SLASH: {
+        uint160 validatorAddress = uint160();
+
+        esperanza::Vote vote1;
+        esperanza::Vote vote2;
+        std::vector<unsigned char> voteSig1;
+        std::vector<unsigned char> voteSig2;
+        CScript::ExtractVotesFromSlashSignature(tx->vin[0].scriptSig, vote1,
+                                                vote2, voteSig1, voteSig2);
+
+        state->ProcessSlash(vote1, vote2);
+        break;
+      }
+
       case TxType::ADMIN: {
         std::vector<AdminCommand> commands;
         for (const auto &output : tx->vout) {
