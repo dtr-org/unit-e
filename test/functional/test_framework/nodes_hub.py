@@ -11,6 +11,7 @@ from asyncio import (
     Task,
     Transport,
     coroutine,
+    gather,
     sleep as asyncio_sleep
 )
 from logging import getLogger
@@ -75,7 +76,7 @@ class NodesHub:
     distinguish between nodes listening for connections and nodes that proactively ask for a new connection.
     """
 
-    def __init__(self, loop, nodes, host='127.0.0.1'):
+    def __init__(self, loop, nodes, host='127.0.0.1', sync_setup=False):
         self.loop = loop  # type: AbstractEventLoop
         self.nodes = nodes
 
@@ -83,6 +84,7 @@ class NodesHub:
 
         self.node2node_delays = {}  # This allows us to specify asymmetric delays
 
+        self.proxy_coroutines = []
         self.proxy_tasks = []
         self.client2proxy_transports = {}
 
@@ -91,12 +93,14 @@ class NodesHub:
 
         self.pending_connection = None  # Lock-like object used by NodesHub.connect_nodes
 
-        self.setup_proxies()
+        self.setup_proxies(sync_setup)
 
-    def setup_proxies(self):
+    def setup_proxies(self, sync_setup=False):
         """
         This method creates a listener proxy for each node, the connections from each proxy to the real node that they
         represent will be done whenever a node connects to the proxy.
+
+        If sync_setup=False, then the connections are scheduled, but will be performed only when we start the loop.
         """
 
         for i, node in enumerate(self.nodes):
@@ -105,28 +109,39 @@ class NodesHub:
                 host=self.host,
                 port=self.get_proxy_port(i)
             )
-            self.proxy_tasks.append(self.loop.create_task(proxy_coroutine))
+
+            if not sync_setup:
+                self.proxy_tasks.append(self.loop.create_task(proxy_coroutine))
+            else:
+                self.proxy_coroutines.append(proxy_coroutine)
+
+    def run_sync_setup(self):
+        """
+        Helper to make easier using NodesHub in non-asyncio aware code
+        """
+        self.loop.run_until_complete(gather(*self.proxy_coroutines))
 
     def get_proxy_class(self):
         """
         This method is a closure, allowing us to dynamically define anonymous classes at runtime for proxy objects
         """
 
-        # Capturing references for our closure
-        hub_ref = self
-        client2server_pair = hub_ref.pending_connection
+        hub_ref = self  # Capturing references for our closure
 
         class NodeProxy(Protocol):
             def __init__(self):
+                self.client2server_pair = None
                 self.recvbuf = b''
 
             def connection_made(self, transport: Transport):
-                logger.info('Client %s connected to proxy %s' % client2server_pair[:])
-                hub_ref.client2proxy_transports[client2server_pair] = transport
+                self.client2server_pair = hub_ref.pending_connection
+
+                logger.info('Client %s connected to proxy %s' % self.client2server_pair[:])
+                hub_ref.client2proxy_transports[self.client2server_pair] = transport
 
             def connection_lost(self, exc):
-                logger.info('Connection lost between client %s and proxy %s' % client2server_pair[:])
-                hub_ref.disconnect_nodes(*client2server_pair)
+                logger.info('Connection lost between client %s and proxy %s' % self.client2server_pair[:])
+                hub_ref.disconnect_nodes(*self.client2server_pair)
 
             def data_received(self, data):
                 hub_ref.loop.create_task(self.__handle_received_data(data))
@@ -136,18 +151,18 @@ class NodesHub:
 
             @coroutine
             def __handle_received_data(self, data):
-                while client2server_pair not in hub_ref.proxy2server_transports:
+                while self.client2server_pair not in hub_ref.proxy2server_transports:
                     yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
 
-                if client2server_pair in hub_ref.node2node_delays:
-                    yield from asyncio_sleep(hub_ref.node2node_delays[client2server_pair])
+                if self.client2server_pair in hub_ref.node2node_delays:
+                    yield from asyncio_sleep(hub_ref.node2node_delays[self.client2server_pair])
 
                 if len(data) > 0:
                     self.recvbuf += data
                     self.recvbuf = process_buffer(
-                        node_port=hub_ref.get_proxy_port(client2server_pair[0]),
+                        node_port=hub_ref.get_proxy_port(self.client2server_pair[0]),
                         buffer=self.recvbuf,
-                        transport=hub_ref.proxy2server_transports[client2server_pair]
+                        transport=hub_ref.proxy2server_transports[self.client2server_pair]
                     )
 
         return NodeProxy
@@ -245,7 +260,7 @@ class NodesHub:
         """
 
         # We have to wait until all the proxies are configured and listening
-        while len(self.proxy_tasks) < len(self.nodes):
+        while len(self.proxy_tasks) + len(self.proxy_coroutines) < len(self.nodes):
             yield from asyncio_sleep(0)
 
         # We have to be sure that all the previous calls to connect_nodes have finished. Because we are using
