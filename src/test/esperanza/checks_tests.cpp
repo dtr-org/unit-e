@@ -16,9 +16,6 @@
 
 using namespace esperanza;
 
-const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
-const int64_t EPOCH_LENGTH = 50;
-
 BOOST_FIXTURE_TEST_SUITE(finalization_validation_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {

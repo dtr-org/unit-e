@@ -15,6 +15,9 @@ using namespace esperanza;
 
 const FinalizationParams params{};
 
+const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
+const int64_t EPOCH_LENGTH = 50;
+
 class FinalizationStateSpy : public FinalizationState {
  public:
   FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}

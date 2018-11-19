@@ -1,6 +1,6 @@
 #include <finalization/vote_recorder.h>
-#include <validationinterface.h>
 #include <util.h>
+#include <validationinterface.h>
 
 namespace finalization {
 
@@ -8,7 +8,8 @@ CCriticalSection VoteRecorder::cs_recorder;
 std::shared_ptr<VoteRecorder> VoteRecorder::g_voteRecorder;
 
 void VoteRecorder::RecordVote(const CTransaction &transaction,
-                              const esperanza::Vote &vote) {
+                              const esperanza::Vote &vote,
+                              const std::vector<unsigned char> voteSig) {
 
   LOCK(cs_recorder);
 
@@ -20,12 +21,27 @@ void VoteRecorder::RecordVote(const CTransaction &transaction,
     return;
   }
 
-  //TODO: Register vote
   boost::optional<VoteRecord> offendingVote = FindOffendingVote(vote);
+
+  VoteRecord voteRecord{vote, voteSig};
+
+  // Record the vote
+  auto it = voteRecords.find(vote.m_validatorAddress);
+  if (it != voteRecords.end()) {
+    auto inIt = it->second.find(vote.m_targetEpoch);
+    if(inIt == it->second.end()) {
+      it->second.emplace(vote.m_targetEpoch, voteRecord);
+    }
+  } else {
+    std::map<uint32_t, VoteRecord> newMap;
+    newMap.emplace(vote.m_targetEpoch, voteRecord);
+    voteRecords.emplace(vote.m_validatorAddress, newMap);
+  }
+
   if (offendingVote) {
     esperanza::Result res = state->IsSlashable(vote, offendingVote.get().vote);
     if (res == +esperanza::Result::SUCCESS) {
-      GetMainSignals().SlashingConditionDetected(transaction, VoteRecord{vote, },
+      GetMainSignals().SlashingConditionDetected(VoteRecord{vote, voteSig},
                                                  offendingVote.get());
       LogPrint(BCLog::FINALIZATION,
                "%s: Slashable event found. Sending signal to the wallet.",

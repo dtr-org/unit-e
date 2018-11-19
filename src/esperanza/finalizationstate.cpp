@@ -219,7 +219,7 @@ uint32_t FinalizationState::GetEpochsSinceFinalization() {
 
 /**
  * Removes a validator from the validator list.
- * @param validatorAddress the index of the validator to remove.
+ * @param validatorAddress the address of the validator to remove.
  */
 void FinalizationState::DeleteValidator(const uint160 &validatorAddress) {
   LOCK(cs_esperanza);
@@ -1012,7 +1012,6 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
         assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessWithdraw(validatorAddress);
-        state->RegisterValidatorTx(validatorAddress, tx);
         break;
       }
 
@@ -1089,15 +1088,15 @@ Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
   return it->second;
 }
 
-void FinalizationState::RegisterValidatorTx(uint160 validatorAddress,
+void FinalizationState::RegisterValidatorTx(uint160 &validatorAddress,
                                             CTransactionRef tx) {
 
   Validator &validator = m_validators.at(validatorAddress);
   validator.m_lastTransactionHash = tx->GetHash();
 }
 
-uint256 FinalizationState::GetLastTxHash(uint160 validatorAddress) {
-  Validator &validator = m_validators.at(validatorAddress);
+uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
+  const Validator &validator = m_validators.at(validatorAddress);
   return validator.m_lastTransactionHash;
 }
 

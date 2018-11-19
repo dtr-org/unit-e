@@ -758,8 +758,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   return true;
 }
 
-bool WalletExtension::SendSlash(const CTransaction &prevTx,
-                                const finalization::VoteRecord &vote1,
+bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
                                 const finalization::VoteRecord &vote2) {
 
   CWalletTx slashTx;
@@ -776,10 +775,18 @@ bool WalletExtension::SendSlash(const CTransaction &prevTx,
 
   const CScript burnScript = CScript::CreateUnspendableScript();
 
-  txNew.vin.push_back(
-      CTxIn(prevTx.GetHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+  FinalizationState *state = FinalizationState::GetState();
+  uint160 validatorAddress = vote1.vote.m_validatorAddress;
+  const uint256 txHash = state->GetLastTxHash(validatorAddress);
 
-  CTxOut burnOut(prevTx.vout[0].nValue, burnScript);
+  CTransactionRef lastSlashableTx;
+  uint256 blockHash;
+  GetTransaction(txHash, lastSlashableTx, Params().GetConsensus(), blockHash, true);
+
+  txNew.vin.push_back(
+      CTxIn(txHash, 0, scriptSig, CTxIn::SEQUENCE_FINAL));
+
+  CTxOut burnOut(lastSlashableTx->vout[0].nValue, burnScript);
   txNew.vout.push_back(burnOut);
 
   CTransaction txNewConst(txNew);

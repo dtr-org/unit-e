@@ -208,7 +208,7 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Retrives the hash of the last finalization transaction performed by the validator
   //! \param validatorAddress
   //! \return the hash of the last finalization transaction performed by the validator
-  uint256 GetLastTxHash(uint160 validatorAddress);
+  uint256 GetLastTxHash(uint160 &validatorAddress) const;
 
  private:
   void InstaFinalize();
@@ -230,7 +230,7 @@ class FinalizationState : public FinalizationStateData {
   uint64_t GetTotalSlashed(uint32_t epoch) const;
   Checkpoint &GetCheckpoint(uint32_t epoch);
   uint64_t GetDynastyDelta(uint32_t dynasty);
-  void RegisterValidatorTx(uint160 validatorAddress, CTransactionRef tx);
+  void RegisterValidatorTx(uint160 &validatorAddress, CTransactionRef tx);
 
   mutable CCriticalSection cs_esperanza;
 

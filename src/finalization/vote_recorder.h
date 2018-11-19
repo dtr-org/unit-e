@@ -35,7 +35,8 @@ private:
   boost::optional<VoteRecord> FindOffendingVote(esperanza::Vote vote);
 
 public:
-  void RecordVote(const CTransaction &transaction, const esperanza::Vote &vote);
+  void RecordVote(const CTransaction &transaction, const esperanza::Vote &vote,
+                  const std::vector<unsigned char> voteSig);
 
   static void Init();
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();

@@ -1351,9 +1351,9 @@ void CWallet::TransactionAddedToMempool(const CTransactionRef& ptx) {
     }
 }
 
-void CWallet::SlashingConditionDetected(const CTransaction &transaction, const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {
+void CWallet::SlashingConditionDetected(const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {
     LOCK(cs_wallet);
-    m_walletExtension.SendSlash(transaction, vote1, vote2);
+    m_walletExtension.SendSlash(vote1, vote2);
 }
 
 void CWallet::TransactionRemovedFromMempool(const CTransactionRef &ptx) {
