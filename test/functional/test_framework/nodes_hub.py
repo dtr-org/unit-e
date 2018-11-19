@@ -41,7 +41,7 @@ def process_buffer(node_port, buffer, transport: Transport):
             return
 
         command = buffer[4:4 + 12].split(b"\x00", 1)[0]
-        logger.info('Processing command %s' % str(command))
+        logger.debug('Processing command %s' % str(command))
 
         if b'version' == command:
             # We want to inject the proxy's port info
@@ -142,11 +142,11 @@ class NodesHub:
             def connection_made(self, transport: Transport):
                 self.client2server_pair = hub_ref.pending_connection
 
-                logger.info('Client %s connected to proxy %s' % self.client2server_pair[:])
+                logger.debug('Client %s connected to proxy %s' % self.client2server_pair[:])
                 hub_ref.client2proxy_transports[self.client2server_pair] = transport
 
             def connection_lost(self, exc):
-                logger.info('Lost connection between client %s and proxy %s' % self.client2server_pair[:])
+                logger.debug('Lost connection between client %s and proxy %s' % self.client2server_pair[:])
                 hub_ref.disconnect_nodes(*self.client2server_pair)
 
             def data_received(self, data):
@@ -164,7 +164,7 @@ class NodesHub:
                     yield from asyncio_sleep(hub_ref.node2node_delays[self.client2server_pair])
 
                 if len(data) > 0:
-                    logger.info(
+                    logger.debug(
                         'Proxy connection %s received %s bytes' % (repr(self.client2server_pair), len(data))
                     )
                     self.recvbuf += data
@@ -190,14 +190,14 @@ class NodesHub:
                 self.recvbuf = b''
 
             def connection_made(self, transport: Transport):
-                logger.info(
+                logger.debug(
                     'Created connection between proxy and its associated node %s to receive messages from node %s' %
                     server2client_pair
                 )
                 hub_ref.proxy2server_transports[client2server_pair] = transport
 
             def connection_lost(self, exc):
-                logger.info(
+                logger.debug(
                     'Lost connection between proxy and its associated node %s to receive messages from node %s' %
                     server2client_pair
                 )
@@ -218,7 +218,7 @@ class NodesHub:
                     yield from asyncio_sleep(hub_ref.node2node_delays[server2client_pair])
 
                 if len(data) > 0:
-                    logger.info(
+                    logger.debug(
                         'Proxy relay connection %s received %s bytes' % (repr(client2server_pair), len(data))
                     )
                     self.recvbuf += data
