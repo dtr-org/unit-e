@@ -23,14 +23,14 @@ from test_framework.util import p2p_port
 MSG_HEADER_LENGTH = 4 + 12 + 4 + 4
 
 
-logger = getLogger("TestFramework.mininode")
+logger = getLogger("TestFramework.nodes_hub")
 
 
 def process_buffer(node_port, buffer, transport: Transport):
     """
     This function helps he hub to impersonate nodes by modifying 'version' messages changing the "from" addresses.
     """
-    while len(buffer) < MSG_HEADER_LENGTH:  # We do nothing until we have (magic + command + length + checksum)
+    while len(buffer) > MSG_HEADER_LENGTH:  # We do nothing until we have (magic + command + length + checksum)
 
         # We only care about command & msglen, but not about messages correctness.
         msglen = unpack("<i", buffer[4 + 12:4 + 12 + 4])[0]
@@ -40,6 +40,7 @@ def process_buffer(node_port, buffer, transport: Transport):
             return
 
         command = buffer[4:4 + 12].split(b"\x00", 1)[0]
+        logger.info('Processing command %s' % str(command))
 
         if b'version' == command:
             # We want to inject the proxy's port info
@@ -158,6 +159,9 @@ class NodesHub:
                     yield from asyncio_sleep(hub_ref.node2node_delays[self.client2server_pair])
 
                 if len(data) > 0:
+                    logger.info(
+                        'Proxy connection %s received %s bytes' % (repr(self.client2server_pair), len(data))
+                    )
                     self.recvbuf += data
                     self.recvbuf = process_buffer(
                         node_port=hub_ref.get_proxy_port(self.client2server_pair[0]),
@@ -209,6 +213,9 @@ class NodesHub:
                     yield from asyncio_sleep(hub_ref.node2node_delays[server2client_pair])
 
                 if len(data) > 0:
+                    logger.info(
+                        'Proxy relay connection %s received %s bytes' % (repr(client2server_pair), len(data))
+                    )
                     self.recvbuf += data
                     self.recvbuf = process_buffer(
                         node_port=hub_ref.get_proxy_port(client2server_pair[1]),
