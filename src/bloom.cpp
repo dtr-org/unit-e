@@ -131,19 +131,22 @@ bool CBloomFilter::IsWithinSizeConstraints() const
 }
 
 namespace {
-bool TransactionIsRelatedToEsperanza(const CTransaction& tx)
+bool IsFinalizationTransaction(const CTransaction &tx)
 {
     switch (tx.GetType()) {
         case TxType::VOTE:
         case TxType::DEPOSIT:
         case TxType::LOGOUT:
         case TxType::SLASH:
-        case TxType::ADMIN:
+        case TxType::ADMIN: {
             return true;
+        }
         case TxType::STANDARD:
         case TxType::COINSTAKE:
-        case TxType::WITHDRAW:
+        case TxType::WITHDRAW: {
             return false;
+        }
+        default: {return false;}
     }
 }
 } // annon ns
@@ -159,7 +162,7 @@ bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
         return true;
     }
     if (isEmpty) {
-        return matchFinalization && TransactionIsRelatedToEsperanza(tx);
+        return matchFinalization && IsFinalizationTransaction(tx);
     }
 
     const uint256& hash = tx.GetHash();
@@ -171,7 +174,7 @@ bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
         const CTxOut& txout = tx.vout[i];
         // Match if the filter contains any arbitrary script data element in any scriptPubKey in tx
         // If this matches, also add the specific output that was matched.
-        // This means clients don't have to update the filter themselves when a new relevant tx 
+        // This means clients don't have to update the filter themselves when a new relevant tx
         // is discovered in order to find spending transactions, which avoids round-tripping and race conditions.
         CScript::const_iterator pc = txout.scriptPubKey.begin();
         std::vector<unsigned char> data;
@@ -220,8 +223,9 @@ bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
         }
     }
 
-    if (matchFinalization && TransactionIsRelatedToEsperanza(tx))
+    if (matchFinalization && IsFinalizationTransaction(tx)) {
         return true;
+    }
 
     return false;
 }
