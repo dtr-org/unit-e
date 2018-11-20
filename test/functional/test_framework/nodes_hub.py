@@ -29,7 +29,7 @@ logger = getLogger("TestFramework.nodes_hub")
 
 def process_buffer(node_port, buffer, transport: Transport):
     """
-    This function helps he hub to impersonate nodes by modifying 'version' messages changing the "from" addresses.
+    This function helps the hub to impersonate nodes by modifying 'version' messages changing the "from" addresses.
     """
     while len(buffer) > MSG_HEADER_LENGTH:  # We do nothing until we have (magic + command + length + checksum)
 
@@ -140,15 +140,9 @@ class NodesHub:
         if 0 == len(nodes_list):
             return
 
-        # This gives us extra flexibility: unordered lists, or topologies different than linked list
-        i, node_pairs = nodes_list[0], []
-        for j in nodes_list[1:]:
-            node_pairs.append((i, j))
-            i = j
-
         connection_futures = []
 
-        for i, j in node_pairs:
+        for i, j in zip(nodes_list, nodes_list[1:]):
             connection_futures.append(self.connect_nodes(i, j))
             connection_futures.append(self.connect_nodes(j, i))
 
@@ -178,9 +172,6 @@ class NodesHub:
 
             def data_received(self, data):
                 hub_ref.loop.create_task(self.__handle_received_data(data))
-
-            def eof_received(self):
-                pass  # TODO: Should we do something here?
 
             @coroutine
             def __handle_received_data(self, data):
@@ -232,9 +223,6 @@ class NodesHub:
 
             def data_received(self, data):
                 hub_ref.loop.create_task(self.__handle_received_data(data))
-
-            def eof_received(self):
-                pass  # TODO: Should we do something here?
 
             @coroutine
             def __handle_received_data(self, data):
