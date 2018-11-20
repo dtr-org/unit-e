@@ -138,16 +138,14 @@ bool IsFinalizationTransaction(const CTransaction &tx)
         case TxType::DEPOSIT:
         case TxType::LOGOUT:
         case TxType::SLASH:
-        case TxType::ADMIN: {
+        case TxType::ADMIN:
             return true;
-        }
         case TxType::STANDARD:
         case TxType::COINSTAKE:
-        case TxType::WITHDRAW: {
+        case TxType::WITHDRAW:
             return false;
-        }
-        default: {return false;}
     }
+    return false;
 }
 } // annon ns
 
