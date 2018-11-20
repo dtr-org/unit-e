@@ -93,6 +93,7 @@ bool fPrintToConsole = false;
 bool fPrintToDebugLog = true;
 
 bool fLogTimestamps = DEFAULT_LOGTIMESTAMPS;
+bool fLogThreadNames = DEFAULT_LOGTHREADNAMES;
 bool fLogTimeMicros = DEFAULT_LOGTIMEMICROS;
 bool fLogCategories = DEFAULT_LOGCATEGORIES;
 bool fLogIPs = DEFAULT_LOGIPS;
@@ -338,14 +339,49 @@ std::vector<CLogCategoryActive> ListActiveLogCategories()
     return ret;
 }
 
+static std::string GetLogTimestamp()
+{
+    std::string timestampStr;
+    int64_t nTimeMicros = GetTimeMicros();
+    timestampStr = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
+    if (fLogTimeMicros) {
+        timestampStr += strprintf(".%06d", nTimeMicros%1000000);
+    }
+    return timestampStr;
+}
+
+static std::string GetLogThreadName()
+{
+    // Only the first 15 characters are used (16 - NUL terminator)
+#if defined(PR_GET_NAME)
+    char thread_name[16];
+    int rc = ::prctl(PR_GET_NAME, thread_name, 0, 0, 0);
+    if (rc == 0) {
+        return thread_name;
+    } else {
+        return "";
+    }
+#elif defined(MAC_OSX)
+    char thread_name[16];
+    int rc = pthread_getname_np(pthread_self(), thread_name);
+    if (rc == 0) {
+        return thread_name;
+     } else {
+        return "";
+     }
+#else
+    return "";
+#endif
+}
+
 /**
  * fStartedNewLine is a state variable held by the calling context that will
  * suppress printing of the timestamp when multiple calls are made that don't
  * end in a newline. Initialize it to true, and hold it, in the calling context.
  */
-static std::string LogTimestampStr(const BCLog::LogFlags category, const std::string &str, std::atomic_bool *fStartedNewLine)
+static std::string LogPrependHeader(const BCLog::LogFlags category, const std::string &str, std::atomic_bool *fStartedNewLine)
 {
-    std::string strStamped;
+    std::string logHeader;
 
     if (!fLogTimestamps && !fLogCategories) {
         return str;
@@ -353,30 +389,30 @@ static std::string LogTimestampStr(const BCLog::LogFlags category, const std::st
 
     if (*fStartedNewLine) {
         if (fLogTimestamps) {
-          int64_t nTimeMicros = GetTimeMicros();
-          strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
-          if (fLogTimeMicros) {
-              strStamped += strprintf(".%06d", nTimeMicros%1000000);
-          }
-          strStamped += " ";
+            logHeader += GetLogTimestamp();
+            logHeader += " ";
         }
+
+        if (fLogThreadNames) {
+            logHeader += strprintf("%15s ", GetLogThreadName());
+        }
+
         if (fLogCategories) {
-            strStamped += strprintf("[%12s] ", GetLogCategoryLabel(category));
+            logHeader += strprintf("[%12s] ", GetLogCategoryLabel(category));
         }
+
         if (fLogTimestamps) {
             int64_t mocktime = GetMockTime();
             if (mocktime) {
-              strStamped += "(mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ") ";
+              logHeader += "(mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ") ";
             }
         }
-        strStamped += str;
-    } else {
-        strStamped = str;
     }
 
+    logHeader += str;
     *fStartedNewLine = !str.empty() && str[str.size()-1] == '\n';
 
-    return strStamped;
+    return logHeader;
 }
 
 int LogPrintStr(const std::string &str, const BCLog::LogFlags category)
@@ -384,7 +420,7 @@ int LogPrintStr(const std::string &str, const BCLog::LogFlags category)
     int ret = 0; // Returns total number of characters written
     static std::atomic_bool fStartedNewLine(true);
 
-    std::string strTimestamped = LogTimestampStr(category, str, &fStartedNewLine);
+    std::string strTimestamped = LogPrependHeader(category, str, &fStartedNewLine);
 
     if (fPrintToConsole)
     {
