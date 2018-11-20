@@ -355,10 +355,8 @@ License Policy
 
 By contributing to this repository, you agree to license your work under the
 [MIT license](https://opensource.org/licenses/MIT). We use the [Developer
-Certificate of Origin
-(DCO)](https://github.com/dtr-org/unit-e/blob/master/CONTRIBUTING.md#sign-your-work)
-to make clear that you have the right to contribute your changes and do so under
-the chosen license.
+Certificate of Origin (DCO)](#sign-your-work) to make clear that you have the
+right to contribute your changes and do so under the chosen license.
 
 There are very few exceptions where files have different licenses than MIT. In
 these cases contributions need to follow the stated license. New files should
