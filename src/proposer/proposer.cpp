@@ -148,6 +148,7 @@ int64_t seconds(const Duration t) {
 }
 
 void Proposer::Run(Proposer::Thread &thread) {
+  RenameThread(thread.m_threadName.c_str());
   LogPrint(BCLog::PROPOSING, "%s: initialized.\n", thread.m_threadName.c_str());
   for (const auto wallet : thread.m_wallets) {
     LogPrint(BCLog::PROPOSING, "  responsible for: %s\n", wallet->GetName());

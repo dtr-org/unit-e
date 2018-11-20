@@ -858,6 +858,10 @@ void InitLogging()
     fLogCategories = gArgs.GetBoolArg("-logcategories", DEFAULT_LOGCATEGORIES);
     fLogIPs = gArgs.GetBoolArg("-logips", DEFAULT_LOGIPS);
 
+    if (fLogThreadNames) {
+        SetThreadDebugName("united");
+    }
+
     LogPrintf("\n\n"
               R"(           )  (                                                                                )" "\n"
               R"(        ( /(  )\ )  *   )                                                                      )" "\n"

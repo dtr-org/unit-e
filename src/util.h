@@ -332,6 +332,7 @@ std::string HelpMessageOpt(const std::string& option, const std::string& message
  */
 int GetNumCores();
 
+void SetThreadDebugName(const char* name);
 void RenameThread(const char* name);
 
 /**

@@ -99,7 +99,10 @@ bool fLogCategories = DEFAULT_LOGCATEGORIES;
 bool fLogIPs = DEFAULT_LOGIPS;
 std::atomic<bool> fReopenDebugLog(false);
 CTranslationInterface translationInterface;
-thread_local std::string threadName;
+
+// Cannot use std::string here as mingw doesn't support thread_local variables with destructors
+// see also: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83562
+thread_local char threadName[16];
 
 /** Log categories bitfield. */
 std::atomic<uint32_t> logCategories(0);
@@ -365,7 +368,7 @@ static std::string LogPrependHeader(const BCLog::LogFlags category, const std::s
 {
     std::string logHeader;
 
-    if (!fLogTimestamps && !fLogCategories) {
+    if (!fLogTimestamps && !fLogCategories && !fLogThreadNames) {
         return str;
     }
 
@@ -938,9 +941,14 @@ void runCommand(const std::string& strCommand)
         LogPrintf("runCommand error: system(%s) returned %d\n", strCommand, nErr);
 }
 
+void SetThreadDebugName(const char* name) {
+    auto name_len = std::strlen(name);
+    std::strncpy(threadName, name, std::min(name_len, sizeof(threadName)-1)); // -1 is for the '\0'
+}
+
 void RenameThread(const char* name)
 {
-    threadName = name;
+    SetThreadDebugName(name);
 #if defined(PR_SET_NAME)
     // Only the first 15 characters are used (16 - NUL terminator)
     ::prctl(PR_SET_NAME, name, 0, 0, 0);
