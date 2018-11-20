@@ -1018,7 +1018,6 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
       }
 
       case TxType::SLASH: {
-        uint160 validatorAddress = uint160();
 
         esperanza::Vote vote1;
         esperanza::Vote vote2;
