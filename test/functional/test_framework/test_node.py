@@ -166,14 +166,14 @@ class TestNode():
             else:
                 queue_size = left
 
-    def stop_node(self):
+    def stop_node(self, expected_stderr='', wait=0):
         """Stop the node."""
         if not self.running:
             return
         self.log.debug("Stopping node")
         try:
             self.drain_main_signal_callbacks_pending()
-            self.stop()
+            self.stop(wait=wait)
         except http.client.CannotSendRequest:
             self.log.exception("Unable to stop node.")
         del self.p2ps[:]
