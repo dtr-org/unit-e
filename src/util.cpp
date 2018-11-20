@@ -99,6 +99,7 @@ bool fLogCategories = DEFAULT_LOGCATEGORIES;
 bool fLogIPs = DEFAULT_LOGIPS;
 std::atomic<bool> fReopenDebugLog(false);
 CTranslationInterface translationInterface;
+thread_local std::string threadName;
 
 /** Log categories bitfield. */
 std::atomic<uint32_t> logCategories(0);
@@ -352,26 +353,7 @@ static std::string GetLogTimestamp()
 
 static std::string GetLogThreadName()
 {
-    // Only the first 15 characters are used (16 - NUL terminator)
-#if defined(PR_GET_NAME)
-    char thread_name[16];
-    int rc = ::prctl(PR_GET_NAME, thread_name, 0, 0, 0);
-    if (rc == 0) {
-        return thread_name;
-    } else {
-        return "";
-    }
-#elif defined(MAC_OSX)
-    char thread_name[16];
-    int rc = pthread_getname_np(pthread_self(), thread_name);
-    if (rc == 0) {
-        return thread_name;
-     } else {
-        return "";
-     }
-#else
-    return "";
-#endif
+    return threadName;
 }
 
 /**
@@ -958,6 +940,7 @@ void runCommand(const std::string& strCommand)
 
 void RenameThread(const char* name)
 {
+    threadName = name;
 #if defined(PR_SET_NAME)
     // Only the first 15 characters are used (16 - NUL terminator)
     ::prctl(PR_SET_NAME, name, 0, 0, 0);
@@ -966,9 +949,6 @@ void RenameThread(const char* name)
 
 #elif defined(MAC_OSX)
     pthread_setname_np(name);
-#else
-    // Prevent warnings for unused parameters...
-    (void)name;
 #endif
 }
 
