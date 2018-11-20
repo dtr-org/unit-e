@@ -754,7 +754,7 @@ void StartTorControl(boost::thread_group& threadGroup, CScheduler& scheduler)
         return;
     }
 
-    torControlThread = boost::thread(boost::bind(&TraceThread<void (*)()>, "torcontrol", &TorControlThread));
+    torControlThread = boost::thread(boost::bind(&TraceThread<void (*)()>, "torctrl", &TorControlThread));
 }
 
 void InterruptTorControl()
