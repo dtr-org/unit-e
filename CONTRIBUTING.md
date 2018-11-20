@@ -349,10 +349,45 @@ Release Policy
 
 The project leader is the release manager for each UnitE Core release.
 
-Copyright
----------
+
+License Policy
+--------------
 
 By contributing to this repository, you agree to license your work under the
-MIT license unless specified otherwise in `contrib/debian/copyright` or at
-the top of the file itself. Any work contributed where you are not the original
-author must contain its license header with the original author(s) and source.
+[MIT license](https://opensource.org/licenses/MIT). We use the [Developer
+Certificate of Origin (DCO)](#sign-your-work) to make clear that you have the
+right to contribute your changes and do so under the chosen license.
+
+There are very few exceptions where files have different licenses than MIT. In
+these cases contributions need to follow the stated license. New files should
+always be contributed under the MIT license.
+
+Each file is required to have a license header which contains a copyright notice
+and states the license under which the file is licensed. While it is not
+strictly required from a legal point of view to do that for every single file,
+it does add clarity, also for the case a file is taken out of context of the
+repository.
+
+The copyright notice states who holds the copyright of the file and when the
+copyrightable work was done. It usually is in the form of "Copyright (c)
+<year-range> <name>". For the work done by the Unit-e community we use "The
+Unit-e developers" as the overall name. More fine-grained attribution is
+recorded in the git history.
+
+Never remove a copyright notice unless you remove all of the code covered by it.
+
+Add a copyright notice when you add a substantial amount of work not covered by
+the existing copyright notice.
+
+There is a script to add license headers to new files, update year ranges in
+copyright notices, and create reports about copyright statements in
+[`contrib/devtools/copyright_header.py`](contrib/devtools/copyright_header.py).
+You can use that to add a proper license header when you are creating new files.
+
+If you are incorporating code from other sources make sure that its license
+allows that, keep license headers and attributions, and add a reference to its
+original source.
+
+The file `contrib/debian/copyright` contains a full list of licenses used in
+Unit-e and to which files they apply. This is used for Debian packaging but also
+can serve as a general machine-readable form of license information.
