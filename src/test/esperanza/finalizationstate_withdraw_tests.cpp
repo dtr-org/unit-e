@@ -167,7 +167,6 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   // This is a double vote
   Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
   Vote v2 = {validatorAddress, uint256S("6"), 3, 5};
-  CAmount bounty = 0;
 
   // Just to be sure we are after the lock period
   int endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 10;
