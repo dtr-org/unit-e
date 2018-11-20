@@ -8,6 +8,7 @@ AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS)
 AM_CXXFLAGS = $(HARDENED_CXXFLAGS) $(ERROR_CXXFLAGS)
 AM_CPPFLAGS = $(HARDENED_CPPFLAGS)
 EXTRA_LIBRARIES =
+LIBTOOLFLAGS = "--preserve-dup-deps"
 
 if EMBEDDED_UNIVALUE
 LIBUNIVALUE = univalue/libunivalue.la
@@ -337,7 +338,6 @@ libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
-  esperanza/vote.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/blockproposer.cpp \
@@ -447,6 +447,7 @@ libunite_common_a_SOURCES = \
   esperanza/parameters.cpp \
   esperanza/settings.cpp \
   esperanza/settings_init.cpp \
+  esperanza/vote.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \
@@ -512,6 +513,7 @@ united_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_WALLET) \
+  $(LIBUNITE_COMMON) \
   $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \

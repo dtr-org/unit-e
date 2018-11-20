@@ -34,12 +34,10 @@ BOOST_AUTO_TEST_CASE(singleton) {
 
 BOOST_AUTO_TEST_CASE(record_votes) {
 
-  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();
@@ -71,12 +69,10 @@ BOOST_AUTO_TEST_CASE(record_votes) {
 
 BOOST_AUTO_TEST_CASE(record_double_vote) {
 
-  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();
@@ -107,7 +103,6 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();
@@ -136,7 +131,6 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
-  VoteRecorder::Reset();
   auto recorder = VoteRecorder::GetVoteRecorder();
 
   uint160 validatorAddress = RandValidatorAddr();

@@ -10,7 +10,7 @@
 
 using namespace esperanza;
 
-BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, TestingSetup)
 
 // Constructor tests
 
@@ -113,7 +113,6 @@ BOOST_AUTO_TEST_CASE(getrecommendedvote) {
 
 BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
 
-  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   CKey k;

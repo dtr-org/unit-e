@@ -86,6 +86,7 @@ Result FinalizationState::InitializeEpoch(int blockHeight) {
   Checkpoint cp = Checkpoint();
   cp.m_curDynastyDeposits = GetTotalCurDynDeposits();
   cp.m_prevDynastyDeposits = GetTotalPrevDynDeposits();
+  std::cout << "Adding new epoch " << newEpoch << std::endl;
   m_checkpoints[newEpoch] = cp;
 
   m_currentEpoch = newEpoch;
@@ -1099,6 +1100,7 @@ uint64_t FinalizationState::GetDynastyDelta(uint32_t dynasty) {
 
 Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
   auto it = m_checkpoints.find(epoch);
+  std::cout << "GetCheckpoint( " << epoch << " )" << std::endl;
   assert(it != m_checkpoints.end());
   return it->second;
 }
