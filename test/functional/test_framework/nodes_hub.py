@@ -24,7 +24,7 @@ from test_framework.util import p2p_port
 MSG_HEADER_LENGTH = 4 + 12 + 4 + 4
 
 
-logger = getLogger("TestFramework.nodes_hub")
+logger = getLogger('TestFramework.nodes_hub')
 
 
 def process_buffer(node_port, buffer, transport: Transport):
@@ -40,7 +40,7 @@ def process_buffer(node_port, buffer, transport: Transport):
         if len(buffer) < MSG_HEADER_LENGTH + msglen:
             return
 
-        command = buffer[4:4 + 12].split(b"\x00", 1)[0]
+        command = buffer[4:4 + 12].split(b'\x00', 1)[0]
         logger.debug('Processing command %s' % str(command))
 
         if b'version' == command:
