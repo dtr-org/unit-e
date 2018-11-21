@@ -153,6 +153,9 @@ Generally useful functions.
 #### [test_framework/mininode.py](test_framework/mininode.py)
 Basic code to support P2P connectivity to a united.
 
+#### [test_framework/nodes_hub.py](test_framework/nodes_hub.py)
+Utility to introduce arbitrary delays between nodes and/or spy network traffic.
+
 #### [test_framework/comptool.py](test_framework/comptool.py)
 Framework for comparison-tool style, P2P tests.
 
