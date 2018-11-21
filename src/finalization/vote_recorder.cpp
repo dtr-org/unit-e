@@ -49,7 +49,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
       // If this happens then it needs urgent attention and fixing
       LogPrint(BCLog::FINALIZATION,
                "ERROR: The offending vote found is not valid: %s, cannot "
-               "reliably identify slashable votes.",
+               "reliably identify slashable votes. Please fix.",
                res._to_string());
       assert(false);
     }
