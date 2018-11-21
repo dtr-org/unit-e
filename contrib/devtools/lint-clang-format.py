@@ -60,6 +60,7 @@ def main(argv):
   iscurrentcommit = "--check-commit" in argv
   dirs = [
     "src/esperanza",
+    "src/key",
     "src/proposer",
     "src/snapshot",
     "src/test/esperanza",
