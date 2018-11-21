@@ -82,7 +82,6 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.generate(VB_PERIOD - VB_THRESHOLD + 1)
 
         # Check that we're not getting any versionbit-related errors in get*info()
-        assert(not VB_PATTERN.match(node.getmininginfo()["warnings"]))
         assert(not VB_PATTERN.match(node.getnetworkinfo()["warnings"]))
 
         self.log.info("Check that there is a warning if >50 blocks in the last 100 were an unknown version")
@@ -91,7 +90,6 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.generate(VB_PERIOD - VB_THRESHOLD)
 
         # Check that get*info() shows the 51/100 unknown block version error.
-        assert(WARN_UNKNOWN_RULES_MINED in node.getmininginfo()["warnings"])
         assert(WARN_UNKNOWN_RULES_MINED in node.getnetworkinfo()["warnings"])
 
         self.log.info("Check that there is a warning if previous VB_BLOCKS have >=VB_THRESHOLD blocks with unknown versionbits version.")
@@ -108,7 +106,6 @@ class VersionBitsWarningTest(UnitETestFramework):
         # Generating one more block will be enough to generate an error.
         node.generate(1)
         # Check that get*info() shows the versionbits unknown rules warning
-        assert(WARN_UNKNOWN_RULES_ACTIVE in node.getmininginfo()["warnings"])
         assert(WARN_UNKNOWN_RULES_ACTIVE in node.getnetworkinfo()["warnings"])
         # Check that the alert file shows the versionbits unknown rules warning
         wait_until(lambda: self.versionbits_in_alert_file(), timeout=60)

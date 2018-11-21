@@ -90,11 +90,6 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'defined')
         assert_equal(self.get_bip9_status(bipName)['since'], 0)
-        tmpl = self.nodes[0].getblocktemplate({})
-        assert(bipName not in tmpl['rules'])
-        assert(bipName not in tmpl['vbavailable'])
-        assert_equal(tmpl['vbrequired'], 0)
-        assert_equal(tmpl['version'], 0x20000000)
 
         # Test 1
         # Advance from DEFINED to STARTED
@@ -105,11 +100,6 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         assert_equal(self.get_bip9_status(bipName)['since'], 144)
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 0)
         assert_equal(self.get_bip9_status(bipName)['statistics']['count'], 0)
-        tmpl = self.nodes[0].getblocktemplate({})
-        assert(bipName not in tmpl['rules'])
-        assert_equal(tmpl['vbavailable'][bipName], bitno)
-        assert_equal(tmpl['vbrequired'], 0)
-        assert(tmpl['version'] & activated_version)
 
         # Test 1-A
         # check stats after max number of "signalling not" blocks such that LOCKED_IN still possible this period
@@ -153,11 +143,6 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         assert_equal(self.get_bip9_status(bipName)['since'], 144)
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 0)
         assert_equal(self.get_bip9_status(bipName)['statistics']['count'], 0)
-        tmpl = self.nodes[0].getblocktemplate({})
-        assert(bipName not in tmpl['rules'])
-        assert_equal(tmpl['vbavailable'][bipName], bitno)
-        assert_equal(tmpl['vbrequired'], 0)
-        assert(tmpl['version'] & activated_version)
 
         # Test 3
         # 108 out of 144 signal bit 1 to achieve LOCKED_IN
@@ -180,8 +165,6 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'locked_in')
         assert_equal(self.get_bip9_status(bipName)['since'], 576)
-        tmpl = self.nodes[0].getblocktemplate({})
-        assert(bipName not in tmpl['rules'])
 
         # Test 4
         # 143 more version 536870913 blocks (waiting period-1)
@@ -190,8 +173,6 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'locked_in')
         assert_equal(self.get_bip9_status(bipName)['since'], 576)
-        tmpl = self.nodes[0].getblocktemplate({})
-        assert(bipName not in tmpl['rules'])
 
         # Test 5
         # Check that the new rule is enforced
@@ -224,11 +205,6 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'active')
         assert_equal(self.get_bip9_status(bipName)['since'], 720)
-        tmpl = self.nodes[0].getblocktemplate({})
-        assert(bipName in tmpl['rules'])
-        assert(bipName not in tmpl['vbavailable'])
-        assert_equal(tmpl['vbrequired'], 0)
-        assert(not (tmpl['version'] & (1 << bitno)))
 
         # Test 6
         # Check that the new sequence lock rules are enforced

@@ -60,18 +60,14 @@ BASE_SCRIPTS= [
     # vv Tests less than 5m vv
     'feature_maxuploadtarget.py',
     'mempool_packages.py',
-    'feature_block.py',
+    'feature_block.py --runbarelyexpensive=false',
     'rpc_fundrawtransaction.py',
-    'p2p_compactblocks.py',
     'feature_segwit.py',
     'feature_fee_estimation.py',
     'esperanza_withdraw.py',
     # vv Tests less than 2m vv
-    'feature_bip68_sequence.py',
-    'mining_getblocktemplate_longpoll.py',
     'wallet_basic.py',
     'wallet_accounts.py',
-    'p2p_segwit.py',
     'esperanza_admin_full_cycle.py',
     'p2p_timeouts.py',
     'wallet_dump.py',
@@ -127,16 +123,12 @@ BASE_SCRIPTS= [
     'p2p_invalid_block.py',
     'p2p_invalid_tx.py',
     'feature_versionbits_warning.py',
-    'rpc_preciousblock.py',
     'wallet_importprunedfunds.py',
     'rpc_signmessage.py',
     'feature_spend_genesis.py',
     'rpc_filtertransactions.py',
-    'feature_nulldummy.py',
     'rpc_sendtypeto.py',
     'wallet_import_rescan.py',
-    'mining_basic.py',
-    'wallet_bumpfee.py',
     'rpc_named_arguments.py',
     'rpc_addressbook.py',
     'wallet_listsinceblock.py',
@@ -189,8 +181,18 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 30s vv
 ]
 
+# UNIT-E TODO:
+DISABLED_SCRIPTS = [
+    'wallet_bumpfee.py',
+    'feature_bip68_sequence.py',
+    'p2p_segwit.py',
+    'feature_nulldummy.py',
+    'p2p_compactblocks.py',
+    'rpc_preciousblock.py',
+]
+
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
-ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS
+ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS
 
 NON_SCRIPTS = [
     # These are python files that live in the functional tests directory, but are not test scripts.
