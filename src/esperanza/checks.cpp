@@ -54,12 +54,6 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
   return true;
 }
 
-//! \brief Check if the vote is referring to an epoch before the last known
-//! finalization. This should be safe since finalization should prevent reorgs.
-//! It assumes that the vote is well formed and in general parsable. It does not
-//! make anycheck over the validity of the vote transaction.
-//! \param tx transaction containing the vote.
-//! \returns true if the vote is expired, false otherwise.
 bool IsVoteExpired(const CTransaction &tx) {
 
   assert(tx.GetType() == +TxType::VOTE);
