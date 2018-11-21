@@ -17,9 +17,6 @@ struct VoteRecord {
   CScript GetScript() const;
 };
 
-// We have to add to the cache when a new vote is add. We can remove from the
-// cache when 1. there is slashing (or we see someone being slashed), 2.
-// when the validator has withdrawn.
 class VoteRecorder {
 private:
   // Contains a map by validatorId. Each entry contains a map of the target
