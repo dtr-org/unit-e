@@ -19,7 +19,7 @@ class FinalizationParams final {
 
  public:
   //! Number of blocks between epochs
-  int32_t m_epochLength = 50;
+  uint32_t m_epochLength = 50;
 
   CAmount m_minDepositSize = 1500 * UNIT;
 
