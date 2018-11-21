@@ -79,6 +79,8 @@ UNITE_CORE_H = \
   base58.h \
   bech32.h \
   better-enums/enum.h \
+  blockchain/blockchain_genesis.h \
+  blockchain/blockchain_parameters.h \
   bloom.h \
   blockencodings.h \
   chain.h \
@@ -429,6 +431,8 @@ libunite_common_a_SOURCES = \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
+  blockchain/blockchain_genesis.cpp \
+  blockchain/blockchain_parameters.cpp \
   coins.cpp \
   compressor.cpp \
   core_read.cpp \
