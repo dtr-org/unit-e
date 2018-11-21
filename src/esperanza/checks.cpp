@@ -391,6 +391,7 @@ bool ExtractValidatorAddress(const CTransaction &tx,
       txnouttype typeRet;
 
       if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+        assert(typeRet == TX_PAYVOTESLASH);
         validatorAddressOut = CPubKey(vSolutions[0]).GetID();
         return true;
       }
