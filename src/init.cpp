@@ -488,6 +488,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-help-debug", _("Show all debugging options (usage: --help -help-debug)"));
     strUsage += HelpMessageOpt("-logips", strprintf(_("Include IP addresses in debug output (default: %u)"), DEFAULT_LOGIPS));
     strUsage += HelpMessageOpt("-logtimestamps", strprintf(_("Prepend debug output with timestamp (default: %u)"), DEFAULT_LOGTIMESTAMPS));
+    strUsage += HelpMessageOpt("-logthreadnames", strprintf(_("Include thread name in debug output (default: %u)"), DEFAULT_LOGTHREADNAMES));
     if (showDebug) {
         strUsage += HelpMessageOpt("-logcategories", strprintf("Add categories to each debug log output (default: %u)", DEFAULT_LOGCATEGORIES));
         strUsage += HelpMessageOpt("-logtimemicros", strprintf("Add microsecond precision to debug timestamps (default: %u)", DEFAULT_LOGTIMEMICROS));
@@ -852,9 +853,14 @@ void InitLogging()
 {
     fPrintToConsole = gArgs.GetBoolArg("-printtoconsole", false);
     fLogTimestamps = gArgs.GetBoolArg("-logtimestamps", DEFAULT_LOGTIMESTAMPS);
+    fLogThreadNames = gArgs.GetBoolArg("-logthreadnames", DEFAULT_LOGTHREADNAMES);
     fLogTimeMicros = gArgs.GetBoolArg("-logtimemicros", DEFAULT_LOGTIMEMICROS);
     fLogCategories = gArgs.GetBoolArg("-logcategories", DEFAULT_LOGCATEGORIES);
     fLogIPs = gArgs.GetBoolArg("-logips", DEFAULT_LOGIPS);
+
+    if (fLogThreadNames) {
+        SetThreadDebugName("united");
+    }
 
     LogPrintf("\n\n"
               R"(           )  (                                                                                )" "\n"

@@ -37,6 +37,7 @@ int64_t GetStartupTime();
 static const bool DEFAULT_LOGTIMEMICROS = false;
 static const bool DEFAULT_LOGIPS        = false;
 static const bool DEFAULT_LOGTIMESTAMPS = true;
+static const bool DEFAULT_LOGTHREADNAMES = false;
 static const bool DEFAULT_LOGCATEGORIES = true;
 extern const char * const DEFAULT_DEBUGLOGFILE;
 
@@ -52,6 +53,7 @@ extern bool fPrintToConsole;
 extern bool fPrintToDebugLog;
 
 extern bool fLogTimestamps;
+extern bool fLogThreadNames;
 extern bool fLogTimeMicros;
 extern bool fLogCategories;
 extern bool fLogIPs;
@@ -330,6 +332,7 @@ std::string HelpMessageOpt(const std::string& option, const std::string& message
  */
 int GetNumCores();
 
+void SetThreadDebugName(const char* name);
 void RenameThread(const char* name);
 
 /**

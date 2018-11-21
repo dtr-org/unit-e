@@ -93,11 +93,16 @@ bool fPrintToConsole = false;
 bool fPrintToDebugLog = true;
 
 bool fLogTimestamps = DEFAULT_LOGTIMESTAMPS;
+bool fLogThreadNames = DEFAULT_LOGTHREADNAMES;
 bool fLogTimeMicros = DEFAULT_LOGTIMEMICROS;
 bool fLogCategories = DEFAULT_LOGCATEGORIES;
 bool fLogIPs = DEFAULT_LOGIPS;
 std::atomic<bool> fReopenDebugLog(false);
 CTranslationInterface translationInterface;
+
+// Cannot use std::string here as mingw doesn't support thread_local variables with destructors
+// see also: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83562
+thread_local char threadName[16];
 
 /** Log categories bitfield. */
 std::atomic<uint32_t> logCategories(0);
@@ -338,45 +343,61 @@ std::vector<CLogCategoryActive> ListActiveLogCategories()
     return ret;
 }
 
+static std::string GetLogTimestamp()
+{
+    std::string timestampStr;
+    int64_t nTimeMicros = GetTimeMicros();
+    timestampStr = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
+    if (fLogTimeMicros) {
+        timestampStr += strprintf(".%06d", nTimeMicros%1000000);
+    }
+    return timestampStr;
+}
+
+static std::string GetLogThreadName()
+{
+    return threadName;
+}
+
 /**
  * fStartedNewLine is a state variable held by the calling context that will
  * suppress printing of the timestamp when multiple calls are made that don't
  * end in a newline. Initialize it to true, and hold it, in the calling context.
  */
-static std::string LogTimestampStr(const BCLog::LogFlags category, const std::string &str, std::atomic_bool *fStartedNewLine)
+static std::string LogPrependHeader(const BCLog::LogFlags category, const std::string &str, std::atomic_bool *fStartedNewLine)
 {
-    std::string strStamped;
+    std::string logHeader;
 
-    if (!fLogTimestamps && !fLogCategories) {
+    if (!fLogTimestamps && !fLogCategories && !fLogThreadNames) {
         return str;
     }
 
     if (*fStartedNewLine) {
         if (fLogTimestamps) {
-          int64_t nTimeMicros = GetTimeMicros();
-          strStamped = DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTimeMicros/1000000);
-          if (fLogTimeMicros) {
-              strStamped += strprintf(".%06d", nTimeMicros%1000000);
-          }
-          strStamped += " ";
+            logHeader += GetLogTimestamp();
+            logHeader += " ";
         }
+
+        if (fLogThreadNames) {
+            logHeader += strprintf("%15s ", GetLogThreadName());
+        }
+
         if (fLogCategories) {
-            strStamped += strprintf("[%12s] ", GetLogCategoryLabel(category));
+            logHeader += strprintf("[%12s] ", GetLogCategoryLabel(category));
         }
+
         if (fLogTimestamps) {
             int64_t mocktime = GetMockTime();
             if (mocktime) {
-              strStamped += "(mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ") ";
+              logHeader += "(mocktime: " + DateTimeStrFormat("%Y-%m-%d %H:%M:%S", mocktime) + ") ";
             }
         }
-        strStamped += str;
-    } else {
-        strStamped = str;
     }
 
+    logHeader += str;
     *fStartedNewLine = !str.empty() && str[str.size()-1] == '\n';
 
-    return strStamped;
+    return logHeader;
 }
 
 int LogPrintStr(const std::string &str, const BCLog::LogFlags category)
@@ -384,7 +405,7 @@ int LogPrintStr(const std::string &str, const BCLog::LogFlags category)
     int ret = 0; // Returns total number of characters written
     static std::atomic_bool fStartedNewLine(true);
 
-    std::string strTimestamped = LogTimestampStr(category, str, &fStartedNewLine);
+    std::string strTimestamped = LogPrependHeader(category, str, &fStartedNewLine);
 
     if (fPrintToConsole)
     {
@@ -920,8 +941,14 @@ void runCommand(const std::string& strCommand)
         LogPrintf("runCommand error: system(%s) returned %d\n", strCommand, nErr);
 }
 
+void SetThreadDebugName(const char* name) {
+    auto name_len = std::strlen(name);
+    std::strncpy(threadName, name, std::min(name_len, sizeof(threadName)-1)); // -1 is for the '\0'
+}
+
 void RenameThread(const char* name)
 {
+    SetThreadDebugName(name);
 #if defined(PR_SET_NAME)
     // Only the first 15 characters are used (16 - NUL terminator)
     ::prctl(PR_SET_NAME, name, 0, 0, 0);
@@ -930,9 +957,6 @@ void RenameThread(const char* name)
 
 #elif defined(MAC_OSX)
     pthread_setname_np(name);
-#else
-    // Prevent warnings for unused parameters...
-    (void)name;
 #endif
 }
 
