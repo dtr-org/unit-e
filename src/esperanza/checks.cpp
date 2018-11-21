@@ -367,19 +367,18 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
 }
 
 bool ExtractValidatorPubkey(const CTransaction &tx, CPubKey &pubkeyOut) {
-  switch (tx.GetType()) {
-    case TxType::VOTE: {
-      std::vector<std::vector<unsigned char>> vSolutions;
-      txnouttype typeRet;
+  if (tx.IsVote()) {
 
-      if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-        pubkeyOut = CPubKey(vSolutions[0]);
-        return true;
-      }
-      return false;
+    std::vector<std::vector<unsigned char>> vSolutions;
+    txnouttype typeRet;
+
+    if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+      pubkeyOut = CPubKey(vSolutions[0]);
+      return true;
     }
-    default: { return false; }
+    return false;
   }
+  return false;
 }
 
 bool ExtractValidatorAddress(const CTransaction &tx,
