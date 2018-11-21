@@ -151,28 +151,54 @@ class FinalizationState : public FinalizationStateData {
   FinalizationState(const FinalizationState &parent);
   FinalizationState(FinalizationState &&) = default;
 
+  //! \brief If the block height passed is the first of a new epoch, then we prepare the
+  //! new epoch.
+  //! @param blockHeight the block height.
   Result InitializeEpoch(int blockHeight);
 
+  //! \brief Validates the consistency of the deposit against the current state.
+  //!
+  //! This does assume that the normal transaction validation process already took place.
   Result ValidateDeposit(const uint160 &validatorAddress,
                          CAmount depositValue) const;
 
+  //! Performs a deposit for the given amount and for the validator with the given address.
   void ProcessDeposit(const uint160 &validatorAddress, CAmount depositValue);
 
+  //! \brief Validates the vote of the deposit against the current state.
+  //!
+  //! This does assume that the normal transaction validation process already took place.
   Result ValidateVote(const Vote &vote) const;
+
+  //! Performs a vote using the given vote input.
   void ProcessVote(const Vote &vote);
 
-  Result ValidateLogout(const uint160 &validatorAddr) const;
+  //! \brief Validates the consistency of the logout against the current state.
+  //!
+  //! This does assume that the normal transaction validation process already took place.
+  Result ValidateLogout(const uint160 &validatorAddress) const;
+
+  //! Performs a logout for the validator with the given address.
   void ProcessLogout(const uint160 &validatorAddress);
 
+  //! \brief Validates the consistency of the witdhraw against the current state.
+  //!
+  //! This does assume that the normal transaction validation process already took place.
   Result ValidateWithdraw(const uint160 &validatorAddress,
                           CAmount requestedWithdraw) const;
 
-  Result CalculateWithdrawAmount(const uint160 &validatorAddr,
+  Result CalculateWithdrawAmount(const uint160 &validatorAddress,
                                  CAmount &withdrawAmountOut) const;
 
+  //! Performes a withdraw operation for the validator with the given address, in
+  //! fact removing him from the validators map.
   void ProcessWithdraw(const uint160 &validatorAddress);
 
+  //! \brief Checks whether two distinct votes from the same voter are proven being a
+  //! slashable misbehaviour.
   Result IsSlashable(const Vote &vote1, const Vote &vote2) const;
+
+  //! Given two votes, performs a slash against the validator who casted them.
   void ProcessSlash(const Vote &vote1, const Vote &vote2);
 
   bool IsPermissioningActive() const;
@@ -185,43 +211,63 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetCurrentEpoch() const;
   uint32_t GetCurrentDynasty() const;
 
-  uint64_t GetDepositSize(const uint160 &validatorAddr) const;
+  uint64_t GetDepositSize(const uint160 &validatorAddress) const;
 
   Vote GetRecommendedVote(const uint160 &validatorAddress) const;
 
   std::vector<Validator> GetValidators() const;
-  const Validator *GetValidator(const uint160 &valAddr) const;
+  const Validator *GetValidator(const uint160 &validatorAddress) const;
 
   static void Init(const esperanza::FinalizationParams &params,
                    const esperanza::AdminParams &adminParams);
+
   static void Reset(const esperanza::FinalizationParams &params,
                     const esperanza::AdminParams &adminParams);
 
+  //! \brief Returns the finalization state for the given block.
   static FinalizationState *GetState(const CBlockIndex *block = nullptr);
 
   static uint32_t GetEpoch(const CBlockIndex *blockIndex);
 
   static bool ValidateDepositAmount(CAmount amount);
 
+  //! \brief Processes the next chain tip passed.
+  //!
+  //! This method encapsulates all the logic necessary to make the finalization
+  //! state progress by one block.
+  //! \param blockIndex
+  //! \param block
+  //! \return
   static bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
 
-  //! \brief Retrives the hash of the last finalization transaction performed by the validator
-  //! \param validatorAddress
-  //! \return the hash of the last finalization transaction performed by the validator
+  //! \brief Retrives the hash of the last finalization transaction performed by the validator.
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
 
  private:
+  //!In case there is nobody available to finalize we finalize automatically.
   void InstaFinalize();
+
+  //! Increments the current dynasty if finalization has been reached.
   void IncrementDynasty();
+
   ufp64::ufp64_t GetCollectiveRewardFactor();
+
+  //! Checks if ther is any deposit from validators in the curDyn and prevDyn.
   bool DepositExists();
+
   ufp64::ufp64_t GetSqrtOfTotalDeposits();
   uint32_t GetEpochsSinceFinalization();
+
+  //! Checks if the validator can create a valid vote with the given parameters.
   Result IsVotable(const Validator &validator, const uint256 &targetHash,
                    uint32_t targetEpoch, uint32_t sourceEpoch) const;
+
   bool IsInDynasty(const Validator &validator, uint32_t dynasty) const;
   CAmount ProcessReward(const uint160 &validatorAddress, uint64_t reward);
+
+  //! Removes a validator from the validator map.
   void DeleteValidator(const uint160 &validatorAddress);
+
   uint64_t GetTotalCurDynDeposits();
   uint64_t GetTotalPrevDynDeposits();
   uint32_t GetEndDynasty() const;
