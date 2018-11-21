@@ -123,6 +123,9 @@ class WalletExtension : public staking::StakingWallet {
   bool SendSlash(const finalization::VoteRecord &vote1,
                  const finalization::VoteRecord &vote2);
 
+  bool AddToWalletIfInvolvingMe(const CTransactionRef &tx,
+                                const CBlockIndex *pIndex);
+
   void ReadValidatorStateFromFile();
 
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,

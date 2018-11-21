@@ -32,7 +32,7 @@ class FinalizationStateSpy : public FinalizationState {
   }
   uint256 *RecommendedTargetHash() { return &m_recommendedTargetHash; }
 
-  int64_t EpochLength() const { return m_settings.m_epochLength; }
+  uint32_t EpochLength() const { return m_settings.m_epochLength; }
   CAmount MinDepositSize() const { return m_settings.m_minDepositSize; }
   int64_t DynastyLogoutDelay() const { return m_settings.m_dynastyLogoutDelay; }
   int64_t WithdrawalEpochDelay() const {
