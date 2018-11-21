@@ -453,7 +453,7 @@ bool CScript::ExtractVoteFromVoteSignature(const CScript &scriptSig,
     opcodetype opcode;
 
     //Skip the first value (txSig)
-    if(!scriptSig.GetOp(pc, opcode)) {
+    if (!scriptSig.GetOp(pc, opcode)) {
         return false;
     }
 
