@@ -65,6 +65,8 @@ BOOST_AUTO_TEST_CASE(record_votes) {
   BOOST_CHECK(!listener.slashingDetected);
   BOOST_CHECK_EQUAL(vote2.GetHash(),
                     recorder->GetVote(validatorAddress, 3)->vote.GetHash());
+
+  UnregisterValidationInterface(&listener);
 }
 
 BOOST_AUTO_TEST_CASE(record_double_vote) {
@@ -94,6 +96,8 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
   BOOST_CHECK_EQUAL(vote1.GetHash(),
                     recorder->GetVote(validatorAddress, 10)->vote.GetHash());
   BOOST_CHECK(listener.slashingDetected);
+
+  UnregisterValidationInterface(&listener);
 }
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
@@ -123,6 +127,8 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
   BOOST_CHECK_EQUAL(innerVote.GetHash(),
                     recorder->GetVote(validatorAddress, 9)->vote.GetHash());
   BOOST_CHECK(listener.slashingDetected);
+
+  UnregisterValidationInterface(&listener);
 }
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
@@ -151,6 +157,8 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
   BOOST_CHECK_EQUAL(outerVote.GetHash(),
                     recorder->GetVote(validatorAddress, 10)->vote.GetHash());
   BOOST_CHECK(listener.slashingDetected);
+
+  UnregisterValidationInterface(&listener);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
