@@ -137,8 +137,7 @@ combine_logs.py -c <test data directory> | less -r
 will pipe the colorized logs from the test into less.
 
 Use `--tracerpc` to trace out all the RPC calls and responses to the console. For
-some tests (eg any that use `submitblock` to submit a full block over RPC),
-this can result in a lot of screen output.
+some tests this can result in a lot of screen output.
 
 By default, the test data directory will be deleted after a successful run.
 Use `--nocleanup` to leave the test data directory intact. The test data

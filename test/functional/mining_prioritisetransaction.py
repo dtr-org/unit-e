@@ -132,16 +132,7 @@ class PrioritiseTransactionTest(UnitETestFramework):
         assert_equal(self.nodes[0].sendrawtransaction(tx_hex), tx_id)
         assert(tx_id in self.nodes[0].getrawmempool())
 
-        # Test that calling prioritisetransaction is sufficient to trigger
-        # getblocktemplate to (eventually) return a new block.
-        mock_time = int(time.time())
-        self.nodes[0].setmocktime(mock_time)
-        template = self.nodes[0].getblocktemplate()
-        self.nodes[0].prioritisetransaction(txid=tx_id, fee_delta=-int(self.relayfee*UNIT))
-        self.nodes[0].setmocktime(mock_time+10)
-        new_template = self.nodes[0].getblocktemplate()
-
-        assert(template != new_template)
+        # UNIT-E TODO: assert that a block will be included in a transaction
 
 if __name__ == '__main__':
     PrioritiseTransactionTest().main()

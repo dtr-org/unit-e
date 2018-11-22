@@ -74,18 +74,9 @@ class SegWitTest(UnitETestFramework):
 
         self.log.info("Verify sigops are counted in GBT with pre-BIP141 rules before the fork")
         txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 1)
-        tmpl = self.nodes[0].getblocktemplate({})
-        assert(tmpl['sizelimit'] == 1000000)
-        assert('weightlimit' not in tmpl)
-        assert(tmpl['sigoplimit'] == 20000)
-        assert(tmpl['transactions'][0]['hash'] == txid)
-        assert(tmpl['transactions'][0]['sigops'] == 2)
-        tmpl = self.nodes[0].getblocktemplate({'rules':['segwit']})
-        assert(tmpl['sizelimit'] == 1000000)
-        assert('weightlimit' not in tmpl)
-        assert(tmpl['sigoplimit'] == 20000)
-        assert(tmpl['transactions'][0]['hash'] == txid)
-        assert(tmpl['transactions'][0]['sigops'] == 2)
+
+        # UNIT-E TODO: check that blocks are mines using segwit (was getblocktemplate)
+
         self.nodes[0].generate(1) #block 162
 
         balance_presetup = self.nodes[0].getbalance()
@@ -195,12 +186,8 @@ class SegWitTest(UnitETestFramework):
 
         self.log.info("Verify sigops are counted in GBT with BIP141 rules after the fork")
         txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 1)
-        tmpl = self.nodes[0].getblocktemplate({'rules':['segwit']})
-        assert(tmpl['sizelimit'] >= 3999577)  # actual maximum size is lower due to minimum mandatory non-witness data
-        assert(tmpl['weightlimit'] == 4000000)
-        assert(tmpl['sigoplimit'] == 80000)
-        assert(tmpl['transactions'][0]['txid'] == txid)
-        assert(tmpl['transactions'][0]['sigops'] == 8)
+
+        # UNIT-E TODO: verify that new blocks contain segwit transactions
 
         self.nodes[0].generate(1) # Mine a block to clear the gbt cache
 
@@ -233,20 +220,9 @@ class SegWitTest(UnitETestFramework):
         assert(tx.wit.is_null())
         assert(txid3 in self.nodes[0].getrawmempool())
 
-        # Now try calling getblocktemplate() without segwit support.
-        template = self.nodes[0].getblocktemplate()
+        # UNIT-E TODO: Now try calling getblocktemplate() without segwit support.
 
-        # Check that tx1 is the only transaction of the 3 in the template.
-        template_txids = [ t['txid'] for t in template['transactions'] ]
-        assert(txid2 not in template_txids and txid3 not in template_txids)
-        assert(txid1 in template_txids)
-
-        # Check that running with segwit support results in all 3 being included.
-        template = self.nodes[0].getblocktemplate({"rules": ["segwit"]})
-        template_txids = [ t['txid'] for t in template['transactions'] ]
-        assert(txid1 in template_txids)
-        assert(txid2 in template_txids)
-        assert(txid3 in template_txids)
+        # UNIT-E TODO: Check that running with segwit support results in all 3 being included.
 
         # Check that wtxid is properly reported in mempool entry
         assert_equal(int(self.nodes[0].getmempoolentry(txid3)["wtxid"], 16), tx.calc_sha256(True))
