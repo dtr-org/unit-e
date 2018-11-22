@@ -4,7 +4,7 @@
 #include <esperanza/finalizationstate.h>
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
-#include <boost/core/noncopyable.hpp>
+#include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 #include <map>
 #include <memory>
