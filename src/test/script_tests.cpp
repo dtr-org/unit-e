@@ -1599,6 +1599,28 @@ BOOST_AUTO_TEST_CASE(extract_admin_command_from_witness)
     BOOST_CHECK_EQUAL(key2, HexStr(keys[2]));
 }
 
+BOOST_AUTO_TEST_CASE(push_tx_type)
+{
+    CScript script;
+    script << OP_PUSH_TX_TYPE;
+
+    for (auto tx_type : TxType::_values()) {
+        CMutableTransaction tx;
+        tx.SetType(tx_type);
+        MutableTransactionSignatureChecker checker(&tx, 0, 0);
+
+        ScriptError err;
+        std::vector<std::vector<unsigned char> > stack;
+        BOOST_CHECK(EvalScript(stack, script, SCRIPT_VERIFY_NONE, checker, SIGVERSION_BASE, &err));
+        BOOST_CHECK_EQUAL(stack.size(), 1);
+        if (static_cast<int>(tx_type) == 0) {
+            BOOST_CHECK_EQUAL(stack[0].size(), 0);
+        } else {
+            BOOST_CHECK_EQUAL(stack[0].size(), 1);
+            BOOST_CHECK_EQUAL(stack[0][0], static_cast<int>(tx_type));
+        }
+    }
+}
 
 #if defined(HAVE_CONSENSUS_LIB)
 

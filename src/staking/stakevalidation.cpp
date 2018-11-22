@@ -22,47 +22,12 @@ static std::map<COutPoint, uint256> mapStakeSeen;
 static std::list<COutPoint> listStakeSeen;
 
 bool HasIsCoinstakeOp(const CScript &scriptIn) {
-  CScript::const_iterator pc = scriptIn.begin();
-
-  if (pc == scriptIn.end()) {
-    return false;
-  }
-  opcodetype opcode;
-  std::vector<unsigned char> vchPushValue;
-
-  if (!scriptIn.GetOp(pc, opcode, vchPushValue)) {
-    return false;
-  }
-  return opcode == OP_ISCOINSTAKE;
+  // UNIT-E: TODO: remove this function
+  return false;
 }
 
 bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut) {
-  CScript::const_iterator pc = scriptIn.begin();
-  CScript::const_iterator pend = scriptIn.end();
-  CScript::const_iterator pcStart = pc;
-
-  opcodetype opcode;
-  std::vector<unsigned char> pushValue;
-
-  bool foundOp = false;
-  while (pc < pend) {
-    if (!scriptIn.GetOp(pc, opcode, pushValue)) {
-      break;
-    }
-    if (!foundOp && opcode == OP_ISCOINSTAKE) {
-      ++pc;  // skip over if
-
-      pcStart = pc;
-      foundOp = true;
-      continue;
-    }
-    if (foundOp && opcode == OP_ELSE) {
-      --pc;
-      scriptOut = CScript(pcStart, pc);
-      return true;
-    }
-  }
-
+  // UNIT-E: TODO: remove this function
   return false;
 }
 
