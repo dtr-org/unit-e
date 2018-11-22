@@ -689,10 +689,10 @@ public:
     /** Check if the script contains valid OP_CODES */
     bool HasValidOps() const;
 
-    static esperanza::Vote DecodeVote(const CScript &script, std::vector<unsigned char> &voteSig);
-    static CScript EncodeVote(const esperanza::Vote &data, const std::vector<unsigned char> &voteSig);
-    static esperanza::Vote ExtractVoteFromWitness(const CScriptWitness &scriptSig, std::vector<unsigned char> &voteSig);
-    static bool ExtractVoteFromVoteSignature(const CScript &scriptSig, esperanza::Vote &vote, std::vector<unsigned char> &voteSig);
+    static bool DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSigOut);
+    static CScript EncodeVote(const esperanza::Vote &data, const std::vector<unsigned char> &voteSigOut);
+    static bool ExtractVoteFromWitness(const CScriptWitness &witness, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSigOut);
+    static bool ExtractVoteFromVoteSignature(const CScript &scriptSig, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSigOut);
     static bool ExtractVotesFromSlashSignature(const CScript &scriptSig, esperanza::Vote &vote1, esperanza::Vote &vote2, std::vector<unsigned char> &vote1Sig, std::vector<unsigned char> &vote2Sig);
     static bool ExtractAdminKeysFromWitness(const CScriptWitness &witness, std::vector<CPubKey> &outKeys);
 

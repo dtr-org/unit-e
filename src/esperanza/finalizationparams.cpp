@@ -33,7 +33,7 @@ bool ParseFinalizationParams(std::string jsonString,
   }
 
   paramsOut.m_epochLength =
-      static_cast<uint32_t>(ParseNum(json, "epochLength", (uint32_t)50));
+      static_cast<uint32_t>(ParseNum(json, "epochLength", 50));
 
   paramsOut.m_minDepositSize = ParseNum(json, "minDepositSize", 1500 * UNIT);
   paramsOut.m_dynastyLogoutDelay = ParseNum(json, "dynastyLogoutDelay", 700);

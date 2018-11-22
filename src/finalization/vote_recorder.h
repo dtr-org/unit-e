@@ -1,12 +1,13 @@
 #ifndef UNIT_E_FINALIZATION_VOTE_RECORDER_H
 #define UNIT_E_FINALIZATION_VOTE_RECORDER_H
 
-#include <boost/optional.hpp>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/vote.h>
+#include <primitives/transaction.h>
+#include <boost/core/noncopyable.hpp>
+#include <boost/optional.hpp>
 #include <map>
 #include <memory>
-#include <primitives/transaction.h>
 
 namespace finalization {
 
@@ -17,9 +18,9 @@ struct VoteRecord {
   CScript GetScript() const;
 };
 
-class VoteRecorder {
-private:
-  // Contains a map by validatorId. Each entry contains a map of the target
+class VoteRecorder : private boost::noncopyable {
+ private:
+  // Contains a map by validatorAddress. Each entry contains a map of the target
   // epoch height with the actual vote
   std::map<uint160, std::map<uint32_t, VoteRecord>> voteRecords;
 
@@ -29,11 +30,11 @@ private:
   static CCriticalSection cs_recorder;
   static std::shared_ptr<VoteRecorder> g_voteRecorder;
 
-  boost::optional<VoteRecord> FindOffendingVote(esperanza::Vote vote);
+  boost::optional<VoteRecord> FindOffendingVote(const esperanza::Vote &vote);
 
-public:
+ public:
   void RecordVote(const esperanza::Vote &vote,
-                  const std::vector<unsigned char> voteSig);
+                  const std::vector<unsigned char> &voteSig);
 
   boost::optional<VoteRecord> GetVote(const uint160 validatorAddress,
                                       uint32_t epoch) const;
@@ -43,6 +44,6 @@ public:
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 
-} // namespace finalization
+}  // namespace finalization
 
-#endif // UNIT_E_FINALIZATION_VOTE_RECORDER_H
+#endif  // UNIT_E_FINALIZATION_VOTE_RECORDER_H

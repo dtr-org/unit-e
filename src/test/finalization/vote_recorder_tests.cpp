@@ -102,7 +102,6 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
-  FinalizationState::Reset(FinalizationParams(), AdminParams());
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
@@ -132,7 +131,7 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 }
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
-  FinalizationState::Reset(FinalizationParams(), AdminParams());
+
   auto state = FinalizationState::GetState();
 
   SlashListener listener;
