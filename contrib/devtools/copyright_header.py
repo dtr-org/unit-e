@@ -23,10 +23,12 @@ EXCLUDE = [
     'test/functional/test_framework/bignum.py',
     # python init:
     '*__init__.py',
+    # tests cases for the copyright_header.py script:
+    'contrib/devtools/test_copyright_header.py'
 ]
 EXCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in EXCLUDE]))
 
-INCLUDE = ['*.h', '*.cpp', '*.cc', '*.c', '*.py']
+INCLUDE = ['*.h', '*.cpp', '*.cc', '*.c', '*.py', '*.js', '*.ts']
 INCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in INCLUDE]))
 
 EXCLUDE_DIRS = [
@@ -35,6 +37,8 @@ EXCLUDE_DIRS = [
     "src/secp256k1/",
     "src/univalue/",
     "src/leveldb/",
+    # translation files for Qt client
+    "src/qt/locale/"
 ]
 
 def applies_to_file(filename):
@@ -347,7 +351,7 @@ def write_file_lines(filename, file_lines):
 # update header years execution
 ################################################################################
 
-COPYRIGHT = 'Copyright \(c\)'
+COPYRIGHT = 'Copyright \([cC]\)'
 YEAR = "20[0-9][0-9]"
 YEAR_RANGE = '(%s)(-%s)?' % (YEAR, YEAR)
 HOLDER = 'The Unit-e developers'
@@ -464,8 +468,14 @@ def update_cmd(argv):
 
 def get_header_lines(header, start_year, end_year):
     lines = header.split('\n')[1:-1]
-    lines[0] = lines[0] % year_range_to_str(start_year, end_year)
-    return [line + '\n' for line in lines]
+    processed_header = ''
+    for line in lines:
+        if '%s' in line:
+            processed_header += line % year_range_to_str(start_year, end_year)
+        else:
+            processed_header += line
+        processed_header += '\n'
+    return processed_header
 
 CPP_HEADER = '''
 // Copyright (c) %s The Unit-e developers
@@ -485,6 +495,30 @@ PYTHON_HEADER = '''
 
 def get_python_header_lines_to_insert(start_year, end_year):
     return reversed(get_header_lines(PYTHON_HEADER, start_year, end_year))
+
+JAVASCRIPT_HEADER = '''
+/*
+ * Copyright (C) %s The Unit-e developers
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+'''
+
+def get_javascript_header_lines_to_insert(start_year, end_year):
+    return reversed(get_header_lines(JAVASCRIPT_HEADER, start_year, end_year))
 
 ################################################################################
 # query git for year of last change
@@ -523,6 +557,12 @@ def insert_python_header(filename, file_lines, start_year, end_year):
         file_lines.insert(insert_idx, line)
     write_file_lines(filename, file_lines)
 
+def insert_javascript_header(filename, file_lines, start_year, end_year):
+    header_lines = get_javascript_header_lines_to_insert(start_year, end_year)
+    for line in header_lines:
+        file_lines.insert(0, line)
+    write_file_lines(filename, file_lines)
+
 def insert_cpp_header(filename, file_lines, start_year, end_year):
     header_lines = get_cpp_header_lines_to_insert(start_year, end_year)
     for line in header_lines:
@@ -537,6 +577,8 @@ def exec_insert_header(filename, style):
     start_year, end_year = get_git_change_year_range(filename)
     if style == 'python':
         insert_python_header(filename, file_lines, start_year, end_year)
+    elif style == 'javascript':
+        insert_javascript_header(filename, file_lines, start_year, end_year)
     else:
         insert_cpp_header(filename, file_lines, start_year, end_year)
 
@@ -577,11 +619,13 @@ def insert_cmd(argv):
     if not os.path.isfile(filename):
         sys.exit("*** bad filename: %s" % filename)
     _, extension = os.path.splitext(filename)
-    if extension not in ['.h', '.cpp', '.cc', '.c', '.py']:
+    if extension not in ['.h', '.cpp', '.cc', '.c', '.py', '.js', '.ts']:
         sys.exit("*** cannot insert for file extension %s" % extension)
 
     if extension == '.py':
         style = 'python'
+    elif extension == '.js' or extension == '.ts':
+        style = 'javascript'
     else:
         style = 'cpp'
     exec_insert_header(filename, style)
