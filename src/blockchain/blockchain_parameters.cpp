@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The unit-e core developers
+// Copyright (c) 2018 The The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -17,7 +17,6 @@ Parameters BuildMainNetParameters() {
   p.blockStakeTimestampIntervalSeconds = 16;
   p.blockTimeSeconds = 16;
   p.relayNonStandardTransactions = false;
-  p.requireStandard = true;
   p.mineBlocksOnDemand = false;
   p.maximumBlockSize = 1000000;
   p.maximumBlockWeight = 4000000;
@@ -25,17 +24,10 @@ Parameters BuildMainNetParameters() {
   p.maximumBlockSigopsCost = 80000;
   p.coinstakeMaturity = 100;
   p.rewardFunction = [](const Parameters &p, MoneySupply s, BlockHeight h) -> CAmount {
+    // UNIT-E: This reward function is not here to stay, it is just some simple reward function as in particl
     constexpr uint64_t secondsInAYear = 365 * 24 * 60 * 60;
     // 2 percent inflation (2% of current money supply distributed over all blocks in a year)
     return (s * 2 / 100) / (secondsInAYear / p.blockStakeTimestampIntervalSeconds);
-  };
-  p.rewardFunction = [](const Parameters &p, MoneySupply s, BlockHeight h) -> CAmount {
-    constexpr CAmount initial_reward = 50 * UNIT;
-    int halvings = h / 210000;
-    if (halvings >= 64) {
-      return 0;
-    }
-    return initial_reward >> halvings;
   };
   p.messageStartChars[0] = 0xee;
   p.messageStartChars[1] = 0xee;
@@ -59,7 +51,6 @@ Parameters BuildTestNetParameters() {
   Parameters p = Parameters::MainNet();
   p.networkName = "test";
   p.relayNonStandardTransactions = true;
-  p.requireStandard = false;
   p.messageStartChars[0] = 0xfd;
   p.messageStartChars[1] = 0xfc;
   p.messageStartChars[2] = 0xfb;

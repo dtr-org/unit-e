@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The unit-e core developers
+// Copyright (c) 2018 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -68,23 +68,22 @@ struct Parameters {
   const char *networkName;
 
   //! \brief The genesis hash of the genesis block of this chain.
-  //!
-  //!
   const char *genesisBlockHash;
 
   //! \brief The genesis block of this chain.
-  //!
-  //! This fied
   GenesisBlock const *genesisBlock;
 
-  //! \brief
+  //! \brief The usable staking timestamps
   //!
+  //! The kernel protocol for Proof of Stake masks timestamps such that a proposer
+  //! can use the same stake only every blockStakeTimestampIntervalSeconds. That is:
+  //! The blocktime used to compute the kernel hash is always:
+  //!
+  //! kernel_hash_ingredient = current_time - (current_time % blockStakeTimestampIntervalSeconds)
   //!
   std::uint32_t blockStakeTimestampIntervalSeconds;
 
   //! \brief frequency of blocks (a block time of 37 secs is one block every 37 secs)
-  //!
-  //!
   std::uint32_t blockTimeSeconds;
 
   //! \brief Whether nodes in this network should relay non-standard transactions by default or not.
@@ -95,6 +94,9 @@ struct Parameters {
   //! is set to true. This parameter can be overriden by a client, it is a
   //! network policy.
   bool relayNonStandardTransactions;
+
+  //! \brief The maximum allowed block size (MAX_BLOCK_SIZE).
+  std::uint32_t maximumBlockSize;
 
   //! \brief The maximum allowed weight for a block.
   //!
@@ -108,8 +110,6 @@ struct Parameters {
   //! number of outputs (i.e. a lot more outputs than inputs) then the effective
   //! block size might not be much bigger than MAX_BLOCK_SIZE.
   std::uint32_t maximumBlockWeight;
-
-  std::uint32_t maximumBlockSize;
 
   //! \brief The maximum allowed size for a serialized block, in bytes.
   //!
@@ -127,8 +127,6 @@ struct Parameters {
   std::uint32_t maximumBlockSigopsCost;
 
   //! \brief Coinstake transaction outputs can only be used for staking at this depth.
-  //!
-  //!
   BlockHeight coinstakeMaturity;
 
   //! \brief The function calculating the reward for a newly proposed block.
@@ -136,11 +134,6 @@ struct Parameters {
   //! See description of "RewardFunction". The reward function can (and should)
   //! be given as a pure lambda function.
   RewardFunction rewardFunction;
-
-  //! \brief
-  //!
-  //!
-  bool requireStandard;
 
   //! \brief Whether to allow the "generatetoaddress" and "generate" RPC calls.
   bool mineBlocksOnDemand;
@@ -159,7 +152,7 @@ struct Parameters {
   //!
   //! See https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki
   //!
-  //! TODO: Use a better-enum for deployments to not resort to the MAX_VERSION_BITS_DEPLOYMENTS hack
+  //! UNIT-E: Use a better-enum for deployments to not resort to the MAX_VERSION_BITS_DEPLOYMENTS hack
   //! (the hack here is to utilize one extra enum for the number of enum values)
   Consensus::BIP9Deployment vDeployments[Consensus::MAX_VERSION_BITS_DEPLOYMENTS];
 

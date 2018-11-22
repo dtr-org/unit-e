@@ -430,9 +430,9 @@ libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
   base58.cpp \
   bech32.cpp \
-  chainparams.cpp \
   blockchain/blockchain_genesis.cpp \
   blockchain/blockchain_parameters.cpp \
+  chainparams.cpp \
   coins.cpp \
   compressor.cpp \
   core_read.cpp \
