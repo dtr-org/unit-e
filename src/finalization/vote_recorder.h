@@ -20,6 +20,9 @@ struct VoteRecord {
 
 class VoteRecorder : private boost::noncopyable {
  private:
+
+  VoteRecorder() = default;
+
   // Contains a map by validatorAddress. Each entry contains a map of the target
   // epoch height with the actual vote
   std::map<uint160, std::map<uint32_t, VoteRecord>> voteRecords;

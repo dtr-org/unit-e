@@ -66,6 +66,20 @@ BOOST_AUTO_TEST_CASE(record_votes) {
   BOOST_CHECK_EQUAL(vote2.GetHash(),
                     recorder->GetVote(validatorAddress, 3)->vote.GetHash());
 
+  // Test that almost surrounding votes are not detected as slashable
+  esperanza::Vote outerVote{validatorAddress, GetRandHash(), 3, 10};
+  esperanza::Vote innerVote{validatorAddress, GetRandHash(), 3, 9};
+
+  recorder->RecordVote(outerVote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(outerVote.GetHash(),
+                    recorder->GetVote(validatorAddress, 10)->vote.GetHash());
+  BOOST_CHECK(!listener.slashingDetected);
+
+  recorder->RecordVote(innerVote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(innerVote.GetHash(),
+                    recorder->GetVote(validatorAddress, 9)->vote.GetHash());
+  BOOST_CHECK(!listener.slashingDetected);
+
   UnregisterValidationInterface(&listener);
 }
 

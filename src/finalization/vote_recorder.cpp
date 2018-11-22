@@ -27,7 +27,6 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   // Record the vote
   auto validatorIt = voteRecords.find(vote.m_validatorAddress);
   if (validatorIt != voteRecords.end()) {
-    auto recordIt = validatorIt->second.find(vote.m_targetEpoch);
     validatorIt->second.emplace(vote.m_targetEpoch, voteRecord);
   } else {
     std::map<uint32_t, VoteRecord> newMap;
@@ -111,13 +110,15 @@ boost::optional<VoteRecord> VoteRecorder::GetVote(const uint160 validatorAddress
 void VoteRecorder::Init() {
   LOCK(cs_recorder);
   if (!g_voteRecorder) {
-    g_voteRecorder = std::make_shared<VoteRecorder>(new VoteRecorder());
+    //not using make_shared since the ctor is private
+    g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder());
   }
 }
 
 void VoteRecorder::Reset() {
   LOCK(cs_recorder);
-  g_voteRecorder = std::make_shared<VoteRecorder>(new VoteRecorder());
+  //not using make_shared since the ctor is private
+  g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder());
 }
 
 std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {

@@ -384,7 +384,6 @@ bool CScript::HasValidOps() const
 //UNIT-E: this can be probably optimized for faster access
 bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSig)
 {
-    esperanza::Vote vote;
     CScript::const_iterator it = script.begin();
     opcodetype opcode;
 
@@ -423,10 +422,10 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
         targetEpoch |= targetEpochVec[i] << 8*i;
     }
 
-    vote.m_validatorAddress = validatorAddress;
-    vote.m_targetHash = targetHash;
-    vote.m_sourceEpoch = sourceEpoch;
-    vote.m_targetEpoch = targetEpoch;
+    voteOut.m_validatorAddress = validatorAddress;
+    voteOut.m_targetHash = targetHash;
+    voteOut.m_sourceEpoch = sourceEpoch;
+    voteOut.m_targetEpoch = targetEpoch;
 
     return true;
 }
