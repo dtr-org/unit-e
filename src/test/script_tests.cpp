@@ -1499,13 +1499,13 @@ BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
     CScript s = CScript::EncodeVote(data, voteSig);
 
     std::vector<unsigned char> extractedVoteSig;
-    esperanza::Vote decodeVote;
-    BOOST_CHECK(CScript::DecodeVote(s, decodeVote, extractedVoteSig));
+    esperanza::Vote decodedVote;
+    BOOST_CHECK(CScript::DecodeVote(s, decodedVote, extractedVoteSig));
 
-    BOOST_CHECK_EQUAL(decodeVote.m_validatorAddress.GetHex(), validatorAddress);
-    BOOST_CHECK_EQUAL(HexStr(decodeVote.m_targetHash), targetHash);
-    BOOST_CHECK_EQUAL(decodeVote.m_sourceEpoch, sourceHeight);
-    BOOST_CHECK_EQUAL(decodeVote.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_validatorAddress.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_targetHash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_sourceEpoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_targetEpoch, targetHeight);
     BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
                       HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
@@ -1531,13 +1531,13 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
     CScript s = (CScript() << ParseHex(signature)) << voteVector;
 
     std::vector<unsigned char> extractedVoteSig;
-    esperanza::Vote decodeVote;
-    BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(s, decodeVote, extractedVoteSig));
+    esperanza::Vote decodedVote;
+    BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(s, decodedVote, extractedVoteSig));
 
-    BOOST_CHECK_EQUAL(decodeVote.m_validatorAddress.GetHex(), validatorAddress);
-    BOOST_CHECK_EQUAL(HexStr(decodeVote.m_targetHash), targetHash);
-    BOOST_CHECK_EQUAL(decodeVote.m_sourceEpoch, sourceHeight);
-    BOOST_CHECK_EQUAL(decodeVote.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_validatorAddress.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_targetHash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_sourceEpoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_targetEpoch, targetHeight);
     BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
                       HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }

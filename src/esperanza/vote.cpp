@@ -19,7 +19,7 @@ bool Vote::CreateSignature(CKeyStore *keystore, const Vote &vote,
   return privKey.Sign(vote.GetHash(), voteSigOut);
 }
 
-bool Vote::CheckSignature(CPubKey pubkey, const Vote &vote,
+bool Vote::CheckSignature(const CPubKey &pubkey, const Vote &vote,
                           std::vector<unsigned char> &voteSig) {
   return pubkey.Verify(vote.GetHash(), voteSig);
 }
@@ -37,7 +37,9 @@ uint256 Vote::GetHash() const {
 }
 
 std::string Vote::ToString() const {
-  return m_validatorAddress.GetHex() + ", " + m_targetHash.GetHex() + ", " +
-         std::to_string(m_sourceEpoch) + ", " + std::to_string(m_targetEpoch);
+  return m_validatorAddress.GetHex() + ", " +
+         m_targetHash.GetHex() + ", " +
+         std::to_string(m_sourceEpoch) + ", " +
+         std::to_string(m_targetEpoch);
 }
 }  // namespace esperanza

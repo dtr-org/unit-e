@@ -39,7 +39,7 @@ class VoteRecorder : private boost::noncopyable {
   void RecordVote(const esperanza::Vote &vote,
                   const std::vector<unsigned char> &voteSig);
 
-  boost::optional<VoteRecord> GetVote(const uint160 validatorAddress,
+  boost::optional<VoteRecord> GetVote(const uint160 &validatorAddress,
                                       uint32_t epoch) const;
 
   static void Init();

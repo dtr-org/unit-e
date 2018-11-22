@@ -196,32 +196,31 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
 void BlockAssembler::AddVoteAndSlashTxs()
 {
-    CTxMemPool::indexed_transaction_set::index<ancestor_score>::type::iterator mi = mempool.mapTx.get<ancestor_score>().begin();
+    auto mi = mempool.mapTx.get<ancestor_score>().begin();
+    for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {
 
-    while (mi != mempool.mapTx.get<ancestor_score>().end()) {
-
-      switch (mi->GetTx().GetType()) {
-        case TxType::VOTE: {
-          CValidationState state;
-          //Check again in case the vote became invalid in the meanwhile (different target now)
-          if (esperanza::CheckVoteTransaction(state, mi->GetTx(), chainparams.GetConsensus())) {
-            AddToBlock(mempool.mapTx.project<0>(mi));
-            LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
-                     __func__,
-                     mi->GetTx().GetHash().GetHex());
-          }
-          break;
+        if (mi->GetTx().IsVote()) {
+            CValidationState state;
+            //Check again in case the vote became invalid in the meanwhile (different target now)
+            if (esperanza::CheckVoteTransaction(state,
+                                                mi->GetTx(),
+                                                chainparams.GetConsensus())) {
+                AddToBlock(mempool.mapTx.project<0>(mi));
+                LogPrint(BCLog::FINALIZATION,
+                         "%s: Add vote with id %s to a new block.\n",
+                         __func__,
+                         mi->GetTx().GetHash().GetHex());
+            }
+            continue;
         }
-        case TxType::SLASH: {
+        if (mi->GetTx().IsSlash()) {
+
             AddToBlock(mempool.mapTx.project<0>(mi));
             LogPrint(BCLog::FINALIZATION, "%s: Add slash with id %s to a new block.\n",
                      __func__,
                      mi->GetTx().GetHash().GetHex());
-          break;
+            continue;
         }
-        default: {break;}
-      }
-      ++mi;
     }
 }
 

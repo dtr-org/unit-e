@@ -184,8 +184,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
 
-  const Result res =
-      state->ValidateWithdraw(validatorAddress, tx.vout[0].nValue);
+  const Result res = state->ValidateWithdraw(validatorAddress, tx.vout[0].nValue);
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -284,7 +283,7 @@ bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
   }
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
-  esperanza::Result res = state->IsSlashable(vote1, vote2);
+  const esperanza::Result res = state->IsSlashable(vote1, vote2);
 
   if (res != +esperanza::Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-slash-not-slashable");
@@ -370,7 +369,6 @@ bool ExtractValidatorPubkey(const CTransaction &tx, CPubKey &pubkeyOut) {
       pubkeyOut = CPubKey(vSolutions[0]);
       return true;
     }
-    return false;
   }
   return false;
 }

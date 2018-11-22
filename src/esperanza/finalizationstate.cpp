@@ -644,8 +644,7 @@ void FinalizationState::OnBlock(int blockHeight) {
   m_adminState.OnBlock(blockHeight);
 }
 
-Result
-FinalizationState::ValidateAdminKeys(const AdminKeySet &adminKeys) const {
+Result FinalizationState::ValidateAdminKeys(const AdminKeySet &adminKeys) const {
   LOCK(cs_esperanza);
 
   if (m_adminState.IsAdminAuthorized(adminKeys)) {
@@ -760,7 +759,7 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2) {
 
   const uint160 &validatorAddress = vote1.m_validatorAddress;
 
-  CAmount validatorDeposit = GetDepositSize(validatorAddress);
+  const CAmount validatorDeposit = GetDepositSize(validatorAddress);
 
   m_totalSlashed[m_currentEpoch] =
       GetTotalSlashed(m_currentEpoch) + validatorDeposit;
@@ -771,12 +770,12 @@ void FinalizationState::ProcessSlash(const Vote &vote1, const Vote &vote2) {
            "%s: Slashing validator with deposit hash %s of %d units.\n",
            __func__, validatorAddress.GetHex(), validatorDeposit);
 
-  uint32_t endDynasty = m_validators.at(validatorAddress).m_endDynasty;
+  const uint32_t endDynasty = m_validators.at(validatorAddress).m_endDynasty;
 
   // if validator not logged out yet, remove total from next dynasty
   // and forcibly logout next dynasty
   if (m_currentDynasty < endDynasty) {
-    CAmount deposit = m_validators.at(validatorAddress).m_deposit;
+    const CAmount deposit = m_validators.at(validatorAddress).m_deposit;
     m_dynastyDeltas[m_currentDynasty + 1] =
         GetDynastyDelta(m_currentDynasty + 1) - deposit;
     m_validators.at(validatorAddress).m_endDynasty = m_currentDynasty + 1;

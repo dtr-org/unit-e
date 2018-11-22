@@ -12,8 +12,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
 
   LOCK(cs_recorder);
 
-  esperanza::FinalizationState *state =
-      esperanza::FinalizationState::GetState();
+  esperanza::FinalizationState *state = esperanza::FinalizationState::GetState();
 
   // Check if the vote comes from a validator
   if (!state->GetValidator(vote.m_validatorAddress)) {
@@ -25,7 +24,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   VoteRecord voteRecord{vote, voteSig};
 
   // Record the vote
-  auto validatorIt = voteRecords.find(vote.m_validatorAddress);
+  const auto validatorIt = voteRecords.find(vote.m_validatorAddress);
   if (validatorIt != voteRecords.end()) {
     validatorIt->second.emplace(vote.m_targetEpoch, voteRecord);
   } else {
@@ -55,7 +54,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
 
 boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vote &vote) {
 
-  auto cacheIt = voteCache.find(vote.m_validatorAddress);
+  const auto cacheIt = voteCache.find(vote.m_validatorAddress);
   if (cacheIt != voteCache.end()) {
     if (cacheIt->second.vote == vote) {
       // Result was cached
@@ -64,13 +63,13 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
   }
 
   esperanza::Vote slashCandidate;
-  auto validatorIt = voteRecords.find(vote.m_validatorAddress);
+  const auto validatorIt = voteRecords.find(vote.m_validatorAddress);
   if (validatorIt != voteRecords.end()) {
 
     const auto &voteMap = validatorIt->second;
 
     // Check for double votes
-    auto recordIt = voteMap.find(vote.m_targetEpoch);
+    const auto recordIt = voteMap.find(vote.m_targetEpoch);
     if (recordIt != voteMap.end()) {
       if (recordIt->second.vote.m_targetHash != vote.m_targetHash) {
         return recordIt->second;
@@ -78,9 +77,8 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
     }
 
     // Check for a surrounding vote
-    recordIt = voteMap.lower_bound(vote.m_sourceEpoch);
-    while (recordIt != voteMap.end()) {
-      const VoteRecord &record = recordIt->second;
+    for (auto it = voteMap.lower_bound(vote.m_sourceEpoch); it != voteMap.end(); ++it) {
+      const VoteRecord &record = it->second;
       if (record.vote.m_sourceEpoch < vote.m_targetEpoch) {
         if ((record.vote.m_sourceEpoch > vote.m_sourceEpoch &&
              record.vote.m_targetEpoch < vote.m_targetEpoch) ||
@@ -89,17 +87,16 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
           return record;
         }
       }
-      ++recordIt;
     }
   }
   return boost::none;
 }
 
-boost::optional<VoteRecord> VoteRecorder::GetVote(const uint160 validatorAddress, uint32_t epoch) const {
+boost::optional<VoteRecord> VoteRecorder::GetVote(const uint160 &validatorAddress, uint32_t epoch) const {
 
-  auto validatorIt = voteRecords.find(validatorAddress);
+  const auto validatorIt = voteRecords.find(validatorAddress);
   if (validatorIt != voteRecords.end()) {
-    auto recordIt = validatorIt->second.find(epoch);
+    const auto recordIt = validatorIt->second.find(epoch);
     if (recordIt != validatorIt->second.end()) {
       return recordIt->second;
     }
@@ -117,8 +114,7 @@ void VoteRecorder::Init() {
 
 void VoteRecorder::Reset() {
   LOCK(cs_recorder);
-  //not using make_shared since the ctor is private
-  g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder());
+  g_voteRecorder.reset(new VoteRecorder());
 }
 
 std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
@@ -126,4 +122,5 @@ std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
 }
 
 CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
+
 }  // namespace finalization
