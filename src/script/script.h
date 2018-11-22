@@ -188,7 +188,7 @@ enum opcodetype
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
 
-    // UNIT-E: Custom operation to push transaction type to the stack
+    // Custom operation to push transaction type to the stack
     OP_PUSH_TX_TYPE = 0xb8,
     OP_NOP9 = OP_PUSH_TX_TYPE,
 

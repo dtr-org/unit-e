@@ -22,12 +22,12 @@ static std::map<COutPoint, uint256> mapStakeSeen;
 static std::list<COutPoint> listStakeSeen;
 
 bool HasIsCoinstakeOp(const CScript &scriptIn) {
-  // TODO: remove this function
+  // UNIT-E: TODO: remove this function
   return false;
 }
 
 bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut) {
-  // TODO: remove this function
+  // UNIT-E: TODO: remove this function
   return false;
 }
 
