@@ -27,43 +27,6 @@ MSG_HEADER_LENGTH = 4 + 12 + 4 + 4
 logger = getLogger('TestFramework.nodes_hub')
 
 
-def process_buffer(node_port, buffer, transport: Transport):
-    """
-    This function helps the hub to impersonate nodes by modifying 'version' messages changing the "from" addresses.
-    """
-    while len(buffer) > MSG_HEADER_LENGTH:  # We do nothing until we have (magic + command + length + checksum)
-
-        # We only care about command & msglen, but not about messages correctness.
-        msglen = unpack("<i", buffer[4 + 12:4 + 12 + 4])[0]
-
-        # We wait until we have the full message
-        if len(buffer) < MSG_HEADER_LENGTH + msglen:
-            return
-
-        command = buffer[4:4 + 12].split(b'\x00', 1)[0]
-        logger.debug('Processing command %s' % str(command))
-
-        if b'version' == command:
-            msg = buffer[MSG_HEADER_LENGTH:MSG_HEADER_LENGTH + msglen]
-            msg = (
-                    msg[:4 + 8 + 8 + 26 + (4 + 8 + 16)] +
-                    pack('!H', node_port) +  # Injecting the proxy's port info
-                    msg[4 + 8 + 8 + 26 + (4 + 8 + 16 + 2):]
-            )
-
-            msg_checksum = hash256(msg)[:4]  # That's a truncated double sha256
-            new_header = buffer[:MSG_HEADER_LENGTH - 4] + msg_checksum
-
-            transport.write(new_header + msg)
-        else:
-            # We pass an unaltered message
-            transport.write(buffer[:MSG_HEADER_LENGTH + msglen])
-
-        buffer = buffer[MSG_HEADER_LENGTH + msglen:]
-
-    return buffer
-
-
 class NodesHub:
     """
     A central hub to connect all the nodes at test/simulation time. It has many purposes:
@@ -110,7 +73,7 @@ class NodesHub:
 
         for i, node in enumerate(self.nodes):
             proxy_coroutine = self.loop.create_server(
-                protocol_factory=self.get_proxy_class(),
+                protocol_factory=lambda hub_ref=self: NodeProxy(hub_ref),
                 host=self.host,
                 port=self.get_proxy_port(i)
             )
@@ -147,52 +110,6 @@ class NodesHub:
             connection_futures.append(self.connect_nodes(j, i))
 
         self.loop.run_until_complete(gather(*connection_futures))
-
-    def get_proxy_class(self):
-        """
-        This method is a closure, allowing us to dynamically define anonymous classes at runtime for proxy objects
-        """
-
-        hub_ref = self  # Capturing references for our closure
-
-        class NodeProxy(Protocol):
-            def __init__(self):
-                self.client2server_pair = None
-                self.recvbuf = b''
-
-            def connection_made(self, transport: Transport):
-                self.client2server_pair = hub_ref.pending_connection
-
-                logger.debug('Client %s connected to proxy %s' % self.client2server_pair[:])
-                hub_ref.client2proxy_transports[self.client2server_pair] = transport
-
-            def connection_lost(self, exc):
-                logger.debug('Lost connection between client %s and proxy %s' % self.client2server_pair[:])
-                hub_ref.disconnect_nodes(*self.client2server_pair)
-
-            def data_received(self, data):
-                hub_ref.loop.create_task(self.__handle_received_data(data))
-
-            @coroutine
-            def __handle_received_data(self, data):
-                while self.client2server_pair not in hub_ref.proxy2server_transports:
-                    yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
-
-                if self.client2server_pair in hub_ref.node2node_delays:
-                    yield from asyncio_sleep(hub_ref.node2node_delays[self.client2server_pair])
-
-                if len(data) > 0:
-                    logger.debug(
-                        'Proxy connection %s received %s bytes' % (repr(self.client2server_pair), len(data))
-                    )
-                    self.recvbuf += data
-                    self.recvbuf = process_buffer(
-                        node_port=hub_ref.get_proxy_port(self.client2server_pair[0]),
-                        buffer=self.recvbuf,
-                        transport=hub_ref.proxy2server_transports[self.client2server_pair]
-                    )
-
-        return NodeProxy
 
     def get_proxy_relay_class(self):
         """
@@ -337,3 +254,79 @@ class NodesHub:
             port=self.get_node_port(inbound_idx)
         )
         self.relay_tasks[(outbound_idx, inbound_idx)] = self.loop.create_task(relay_coroutine)
+
+
+class NodeProxy(Protocol):
+    def __init__(self, hub_ref):
+        self.hub_ref = hub_ref
+        self.client2server_pair = None
+        self.recvbuf = b''
+
+    def connection_made(self, transport: Transport):
+        self.client2server_pair = self.hub_ref.pending_connection
+
+        logger.debug('Client %s connected to proxy %s' % self.client2server_pair[:])
+        self.hub_ref.client2proxy_transports[self.client2server_pair] = transport
+
+    def connection_lost(self, exc):
+        logger.debug('Lost connection between client %s and proxy %s' % self.client2server_pair[:])
+        self.hub_ref.disconnect_nodes(*self.client2server_pair)
+
+    def data_received(self, data):
+        self.hub_ref.loop.create_task(self.__handle_received_data(data))
+
+    @coroutine
+    def __handle_received_data(self, data):
+        while self.client2server_pair not in self.hub_ref.proxy2server_transports:
+            yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
+
+        if self.client2server_pair in self.hub_ref.node2node_delays:
+            yield from asyncio_sleep(self.hub_ref.node2node_delays[self.client2server_pair])
+
+        if len(data) > 0:
+            logger.debug(
+                'Proxy connection %s received %s bytes' % (repr(self.client2server_pair), len(data))
+            )
+            self.recvbuf += data
+            self.recvbuf = process_buffer(
+                node_port=self.hub_ref.get_proxy_port(self.client2server_pair[0]),
+                buffer=self.recvbuf,
+                transport=self.hub_ref.proxy2server_transports[self.client2server_pair]
+            )
+
+
+def process_buffer(node_port, buffer, transport: Transport):
+    """
+    This function helps the hub to impersonate nodes by modifying 'version' messages changing the "from" addresses.
+    """
+    while len(buffer) > MSG_HEADER_LENGTH:  # We do nothing until we have (magic + command + length + checksum)
+
+        # We only care about command & msglen, but not about messages correctness.
+        msglen = unpack("<i", buffer[4 + 12:4 + 12 + 4])[0]
+
+        # We wait until we have the full message
+        if len(buffer) < MSG_HEADER_LENGTH + msglen:
+            return
+
+        command = buffer[4:4 + 12].split(b'\x00', 1)[0]
+        logger.debug('Processing command %s' % str(command))
+
+        if b'version' == command:
+            msg = buffer[MSG_HEADER_LENGTH:MSG_HEADER_LENGTH + msglen]
+            msg = (
+                    msg[:4 + 8 + 8 + 26 + (4 + 8 + 16)] +
+                    pack('!H', node_port) +  # Injecting the proxy's port info
+                    msg[4 + 8 + 8 + 26 + (4 + 8 + 16 + 2):]
+            )
+
+            msg_checksum = hash256(msg)[:4]  # That's a truncated double sha256
+            new_header = buffer[:MSG_HEADER_LENGTH - 4] + msg_checksum
+
+            transport.write(new_header + msg)
+        else:
+            # We pass an unaltered message
+            transport.write(buffer[:MSG_HEADER_LENGTH + msglen])
+
+        buffer = buffer[MSG_HEADER_LENGTH + msglen:]
+
+    return buffer
