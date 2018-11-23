@@ -13,8 +13,6 @@
 #include <policy/policy.h>
 #include <primitives/txtype.h>
 #include <script/standard.h>
-#include <staking/kernel.h>
-#include <staking/stakevalidation.h>
 #include <util.h>
 #include <utilfun.h>
 #include <validation.h>
