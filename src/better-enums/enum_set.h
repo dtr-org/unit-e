@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The unit-e core developers
+// Copyright (c) 2018 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,9 +10,11 @@
 
 namespace {
 
-std::array<std::size_t, 256> ComputeTable() {
-  std::array<std::size_t, 256> table{};
-  for (std::size_t i = 0; i < 256; ++i) {
+constexpr std::size_t NUM_BYTE_VALUES = 256;
+
+std::array<std::size_t, NUM_BYTE_VALUES> ComputeTable() noexcept {
+  std::array<std::size_t, NUM_BYTE_VALUES> table{};
+  for (std::size_t i = 0; i < NUM_BYTE_VALUES; ++i) {
     table[i] = 0;
     std::size_t b = i;
     while (b > 0) {
@@ -25,20 +27,21 @@ std::array<std::size_t, 256> ComputeTable() {
   return table;
 }
 
-std::size_t CountBitsInByte(const std::uint8_t byte) {
-  static std::array<std::size_t, 256> table = ComputeTable();
-  return table[byte];
-}
+std::array<std::size_t, NUM_BYTE_VALUES> numberOfBitsSetPerByte = ComputeTable();
 
 }  // namespace
 
+std::size_t CountBitsSet(const std::uint8_t byte) {
+  return numberOfBitsSetPerByte[byte];
+}
+
 template <typename T>
-std::size_t CountOneBits(T n) {
+std::size_t CountBitsSet(T n) {
   static_assert(std::is_integral<T>::value, "T must be an integral type.");
   static_assert(std::is_unsigned<T>::value, "T must be an unsigned type.");
   std::size_t count = 0;
   while (n != 0) {
-    count += CountBitsInByte(static_cast<std::uint8_t>(n & 0xff));
+    count += CountBitsSet(static_cast<std::uint8_t>(n & 0xff));
     n >>= 8;
   }
   return count;
@@ -60,21 +63,26 @@ class EnumSet {
 
  public:
   EnumSet() : m_bits(0){};
-  EnumSet(const EnumSet &) = default;
-  EnumSet &operator=(const EnumSet &) = default;
+  EnumSet(const EnumSet<Enum> &) = default;
+  EnumSet(std::initializer_list<Enum> es) : m_bits(0) {
+    for (const auto e : es) {
+      Add(e);
+    }
+  }
+  EnumSet<Enum> &operator=(const EnumSet<Enum> &) = default;
 
   class iterator {
    private:
-    const EnumSet *m_parent;
+    const EnumSet<Enum> *m_parent;
     std::size_t m_index;
 
    public:
-    iterator(const EnumSet &parent) : m_parent(&parent), m_index(0) {
+    explicit iterator(const EnumSet<Enum> &parent) : m_parent(&parent), m_index(0) {
       while (m_index < 64 && (m_parent->m_bits & (ONE << m_index)) == 0) {
         ++m_index;
       };
     }
-    iterator(const EnumSet &parent, const std::size_t index) : m_parent(&parent), m_index(index) {}
+    iterator(const EnumSet<Enum> &parent, const std::size_t index) : m_parent(&parent), m_index(index) {}
     iterator(const iterator &it) = default;
     iterator &operator=(const iterator &it) = default;
     iterator &operator++() {
@@ -93,10 +101,7 @@ class EnumSet {
   using const_iterator = iterator;
 
   iterator begin() const {
-    if (IsEmpty()) {
-      return end();
-    }
-    return iterator(*this);
+    return IsEmpty() ? end() : iterator(*this);
   }
 
   iterator end() const {
@@ -104,40 +109,92 @@ class EnumSet {
     return endIterator;
   }
 
+  const_iterator cbegin() const {
+    return begin();
+  }
+
+  const_iterator cend() const {
+    return end();
+  }
+
   void Add(const Enum value) {
     m_bits |= (ONE << value._value);
   }
 
-  EnumSet &operator+=(const Enum value) {
+  void Remove(const Enum value) {
+    m_bits &= ~(ONE << value._value);
+  }
+
+  //! \brief set union
+  EnumSet<Enum> operator+(const EnumSet<Enum> other) const {
+    return EnumSet(m_bits | other.m_bits);
+  }
+
+  //! \brief set difference
+  EnumSet<Enum> operator-(const EnumSet<Enum> other) const {
+    return EnumSet(m_bits & ~other.m_bits);
+  }
+
+  //! \brief set intersection
+  EnumSet<Enum> operator^(const EnumSet<Enum> other) const {
+    return EnumSet(m_bits & other.m_bits);
+  }
+
+  EnumSet<Enum> &operator+=(const Enum value) {
     Add(value);
     return *this;
   }
 
-  // in a nice language this would be ++=
-  EnumSet &operator+=(const EnumSet<Enum> other) {
+  EnumSet<Enum> &operator-=(const Enum value) {
+    Remove(value);
+    return *this;
+  }
+
+  EnumSet<Enum> &operator+=(const EnumSet<Enum> other) {
     *this = *this + other;
     return *this;
   }
 
-  // in a nice language this would be ++
-  EnumSet operator+(const EnumSet other) {
-    return EnumSet(m_bits | other.m_bits);
+  EnumSet<Enum> &operator-=(const EnumSet<Enum> other) {
+    *this = *this - other;
+    return *this;
   }
 
-  EnumSet operator+(const Enum value) {
+  EnumSet<Enum> &operator^=(const EnumSet<Enum> other) {
+    *this = *this ^ other;
+    return *this;
+  }
+
+  EnumSet<Enum> operator+(const Enum value) const {
     return EnumSet(m_bits) += value;
   }
 
-  bool operator==(const EnumSet &other) {
+  EnumSet<Enum> operator-(const Enum value) const {
+    return EnumSet(m_bits) -= value;
+  }
+
+  bool operator==(const EnumSet<Enum> &other) const {
     return m_bits == other.m_bits;
   }
 
-  bool operator!=(const EnumSet &other) {
+  bool operator!=(const EnumSet<Enum> &other) const {
     return m_bits != other.m_bits;
   }
 
-  bool operator<(const EnumSet &other) {
+  bool operator<(const EnumSet<Enum> &other) const {
     return m_bits < other.m_bits;
+  }
+
+  bool operator<=(const EnumSet<Enum> &other) const {
+    return m_bits <= other.m_bits;
+  }
+
+  bool operator>(const EnumSet<Enum> &other) const {
+    return m_bits > other.m_bits;
+  }
+
+  bool operator>=(const EnumSet<Enum> &other) const {
+    return m_bits >= other.m_bits;
   }
 
   bool Contains(Enum value) const {
@@ -149,7 +206,7 @@ class EnumSet {
   }
 
   std::size_t GetSize() const {
-    return CountOneBits(m_bits);
+    return CountBitsSet(m_bits);
   }
 };
 
