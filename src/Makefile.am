@@ -79,6 +79,7 @@ UNITE_CORE_H = \
   base58.h \
   bech32.h \
   better-enums/enum.h \
+  better-enums/enum_set.h \
   blockchain/blockchain_genesis.h \
   blockchain/blockchain_parameters.h \
   bloom.h \
