@@ -136,7 +136,7 @@ class EnumSet {
   }
 
   //! \brief set intersection
-  EnumSet<Enum> operator^(const EnumSet<Enum> other) const {
+  EnumSet<Enum> operator&(const EnumSet<Enum> other) const {
     return EnumSet(m_bits & other.m_bits);
   }
 
@@ -160,8 +160,8 @@ class EnumSet {
     return *this;
   }
 
-  EnumSet<Enum> &operator^=(const EnumSet<Enum> other) {
-    *this = *this ^ other;
+  EnumSet<Enum> &operator&=(const EnumSet<Enum> other) {
+    *this = *this & other;
     return *this;
   }
 
