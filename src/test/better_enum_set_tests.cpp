@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(check_intersection) {
   s2 += SomeTestEnum::F;
   s2 += SomeTestEnum::H;
 
-  EnumSet<SomeTestEnum> s3 = s1 ^ s2;
+  EnumSet<SomeTestEnum> s3 = s1 & s2;
 
   // clang-format off
   BOOST_CHECK(!s3.Contains(SomeTestEnum::A));
