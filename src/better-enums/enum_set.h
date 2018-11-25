@@ -74,7 +74,7 @@ class EnumSet {
   class iterator {
    private:
     const EnumSet<Enum> *m_parent;
-    std::size_t m_index = 0;
+    std::size_t m_index;
 
    public:
     explicit iterator(const EnumSet<Enum> &parent) : m_parent(&parent), m_index(0) {
