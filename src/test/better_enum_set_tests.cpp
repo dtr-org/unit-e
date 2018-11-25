@@ -245,4 +245,58 @@ BOOST_AUTO_TEST_CASE(check_initializer_list) {
   // clang-format on
 }
 
+BOOST_AUTO_TEST_CASE(empty_iterator) {
+  EnumSet<SomeTestEnum> s{};
+  std::set<SomeTestEnum> s2;
+  std::size_t count = 0;
+  for (const auto &e : s) {
+    if (++count > s.GetSize()) {
+      break;
+    }
+    s2.emplace(e);
+  }
+  BOOST_CHECK(count == s.GetSize());
+}
+
+BOOST_AUTO_TEST_CASE(iterator_with_one_element) {
+  EnumSet<SomeTestEnum> s{SomeTestEnum::A};
+  std::set<SomeTestEnum> s2;
+  std::size_t count = 0;
+  for (const auto &e : s) {
+    if (++count > s.GetSize()) {
+      break;
+    }
+    s2.emplace(e);
+  }
+  BOOST_CHECK(count == s.GetSize());
+}
+
+BOOST_AUTO_TEST_CASE(iterator_checks) {
+  EnumSet<SomeTestEnum> s{SomeTestEnum::C, SomeTestEnum::D, SomeTestEnum::G};
+  std::set<SomeTestEnum> s2;
+  std::size_t count = 0;
+  for (const auto &e : s) {
+    if (++count > s.GetSize()) {
+      break;
+    }
+    s2.emplace(e);
+  }
+  BOOST_CHECK(count == s.GetSize());
+}
+
+BOOST_AUTO_TEST_CASE(iterator_on_set_with_all_elements) {
+  EnumSet<SomeTestEnum> s{SomeTestEnum::A, SomeTestEnum::B, SomeTestEnum::C,
+                          SomeTestEnum::D, SomeTestEnum::E, SomeTestEnum::F,
+                          SomeTestEnum::G, SomeTestEnum::H};
+  std::set<SomeTestEnum> s2;
+  std::size_t count = 0;
+  for (const auto &e : s) {
+    if (++count > s.GetSize()) {
+      break;
+    }
+    s2.emplace(e);
+  }
+  BOOST_CHECK(count == s.GetSize());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
