@@ -17,7 +17,7 @@ class MultiWalletAdapter : public MultiWallet {
   }
 };
 
-std::unique_ptr<MultiWallet> MultiWallet::MakeMultiWallet() {
+std::unique_ptr<MultiWallet> MultiWallet::New() {
   return MakeUnique<MultiWalletAdapter>();
 }
 

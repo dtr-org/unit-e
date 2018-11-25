@@ -35,7 +35,7 @@ struct Settings {
 
   size_t m_maxStakeCombine = 3;
 
-  static std::unique_ptr<Settings> MakeSettings() {
+  static std::unique_ptr<Settings> New() {
     return MakeUnique<Settings>();
   }
 };

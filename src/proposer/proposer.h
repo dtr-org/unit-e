@@ -40,11 +40,11 @@ class Proposer {
   friend struct ProposerAccess;
 
  public:
-  static std::unique_ptr<Proposer> MakeProposer(Dependency<Settings>,
-                                                Dependency<MultiWallet>,
-                                                Dependency<Network>,
-                                                Dependency<ChainState>,
-                                                Dependency<BlockProposer>);
+  static std::unique_ptr<Proposer> New(Dependency<Settings>,
+                                       Dependency<MultiWallet>,
+                                       Dependency<Network>,
+                                       Dependency<ChainState>,
+                                       Dependency<BlockProposer>);
 
   Proposer(Dependency<Settings>, Dependency<MultiWallet>, Dependency<Network>,
            Dependency<ChainState>, Dependency<BlockProposer>);

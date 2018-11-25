@@ -26,7 +26,7 @@ class Network {
 
   virtual ~Network() = default;
 
-  static std::unique_ptr<Network> MakeNetwork();
+  static std::unique_ptr<Network> New();
 };
 
 }  // namespace proposer

@@ -58,9 +58,9 @@ class GenesisBlockBuilder {
   //! \brief Builds the genesis block using the given parameters.
   virtual const CBlock Build() const = 0;
 
-  static std::unique_ptr<GenesisBlockBuilder> New();
-
   virtual ~GenesisBlockBuilder() = default;
+
+  static std::unique_ptr<GenesisBlockBuilder> New();
 };
 
 }  // namespace blockchain

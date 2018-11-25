@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(base32_tests, ReducedTestingSetup)
+BOOST_AUTO_TEST_SUITE(base32_tests)
 
 BOOST_AUTO_TEST_CASE(base32_testvectors)
 {

@@ -76,7 +76,7 @@ class ChainState {
   virtual ~ChainState() = default;
 
   //! \brief Factory method for creating a Chain.
-  static std::unique_ptr<ChainState> MakeChain();
+  static std::unique_ptr<ChainState> New();
 };
 
 }  // namespace proposer
