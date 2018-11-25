@@ -80,7 +80,7 @@ class EnumSet {
     explicit iterator(const EnumSet<Enum> &parent) : m_parent(&parent), m_index(0) {
       while (m_index < 64 && (m_parent->m_bits & (ONE << m_index)) == 0) {
         ++m_index;
-      };
+      }
     }
     iterator(const EnumSet<Enum> &parent, const std::size_t index) : m_parent(&parent), m_index(index) {}
     iterator(const iterator &it) = default;
@@ -105,8 +105,7 @@ class EnumSet {
   }
 
   iterator end() const {
-    static iterator endIterator = iterator(*this, 64);
-    return endIterator;
+    return iterator(*this, 64);
   }
 
   const_iterator cbegin() const {
