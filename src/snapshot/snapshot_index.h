@@ -121,6 +121,9 @@ class SnapshotIndex {
   //! DeleteSnapshot deletes snapshot from disk
   static void DeleteSnapshot(const uint256 &snapshotHash);
 
+  // used in tests only
+  static void Clear();
+
  private:
   //! maximum snapshots to keep
   uint32_t m_maxSnapshots;

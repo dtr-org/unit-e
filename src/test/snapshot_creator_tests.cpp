@@ -27,6 +27,7 @@ bool HasSnapshotHash(const uint256 &hash) {
 BOOST_AUTO_TEST_CASE(snapshot_creator) {
   SetDataDir("snapshot_creator");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
+  assert(snapshot::GetSnapshotCheckpoints().empty());
 
   uint256 bestBlock = uint256S("aa");
   auto bi = new CBlockIndex();
@@ -73,6 +74,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
 
       std::vector<snapshot::Checkpoint> checkpoints =
           snapshot::GetSnapshotCheckpoints();
+      BOOST_CHECK(!checkpoints.empty());
       BOOST_CHECK(checkpoints.size() <= 5);
 
       if (idx == 4) {

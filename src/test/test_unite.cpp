@@ -51,6 +51,7 @@ ReducedTestingSetup::ReducedTestingSetup(const std::string& chainName)
   RandomInit();
   ECC_Start();
   assert(snapshot::InitSecp256k1Context());
+  snapshot::SnapshotIndex::Clear();
   SetupEnvironment();
   SetupNetworking();
   InitSignatureCache();
@@ -72,6 +73,7 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
         RandomInit();
         ECC_Start();
         assert(snapshot::InitSecp256k1Context());
+        snapshot::SnapshotIndex::Clear();
         SetupEnvironment();
         SetupNetworking();
         InitSignatureCache();

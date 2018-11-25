@@ -143,6 +143,12 @@ void SnapshotIndex::DeleteSnapshot(const uint256 &snapshotHash) {
   g_snapshotIndex.DeleteSnapshotHash(snapshotHash);
 }
 
+void SnapshotIndex::Clear() {
+  for (const auto &c : g_snapshotIndex.GetSnapshotCheckpoints()) {
+    g_snapshotIndex.DeleteSnapshotHash(c.snapshotHash);
+  }
+}
+
 std::vector<uint256> SnapshotIndex::FinalizeSnapshots(const CBlockIndex *blockIndex) {
   LOCK(m_cs);
 
