@@ -17,6 +17,10 @@ from test_framework.test_framework import UnitETestFramework
 
 
 class UnitEHubTestFramework(UnitETestFramework, metaclass=ABCMeta):
+    """
+    Extends UnitETestFramework to simplify tests using NodesHub, which could be useful to test the effects of arbitrary
+    network delays over the system.
+    """
     def __init__(self, loop: AbstractEventLoop = None):
         super().__init__()
 
