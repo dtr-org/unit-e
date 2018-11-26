@@ -176,7 +176,6 @@ BOOST_AUTO_TEST_CASE(finalization) {
   // c1 - c3 - c4
   removed = index.AddSnapshotHash(uint256S("c4"), b4.get());
   BOOST_CHECK(removed.empty());
-  index.ConfirmRemoved(removed[0]);
   removed = index.FinalizeSnapshots(b4.get());
   BOOST_CHECK(removed.empty());
 
