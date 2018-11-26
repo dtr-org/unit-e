@@ -57,22 +57,22 @@ class Creator {
   //! Must be invoked before calling any other snapshot::Snapshot* functions
   static void Init(const Params &params);
 
-  //! Deinit deallocates resources created by Init()
+  //! Deallocates resources created by Init()
   static void Deinit();
 
   explicit Creator(CCoinsViewDB *view);
 
-  //! Create creates the snapshot of the current chainstate DB
+  //! Creates the snapshot of the current chainstate DB
   CreationInfo Create();
 
-  //! GenerateOrSkip checks if the snapshot must be created for the current epoch
+  //! Checks if the snapshot must be created for the current epoch
   //! according to the ChainParams.createSnapshotPerEpoch. Snapshot creation is
   //! performed in a separate thread.
   //!
   //! \@param currentEpoch is the current epoch number which starts from 0
   static void GenerateOrSkip(uint32_t currentEpoch);
 
-  //! FinalizeSnapshots marks snapshots of the same branch as blockIndex
+  //! Marks snapshots of the same branch as blockIndex
   //! and up to its height finalized
   static void FinalizeSnapshots(const CBlockIndex *blockIndex);
 
