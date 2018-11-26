@@ -31,7 +31,7 @@
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
-#include <rpc/esperanza.h>
+#include <rpc/finalization.h>
 #include <rpc/server.h>
 #include <rpc/register.h>
 #include <rpc/safemode.h>
@@ -1356,7 +1356,7 @@ bool AppInitMain()
      * available in the GUI RPC console even if external calls are disabled.
      */
     RegisterAllCoreRPCCommands(tableRPC);
-    RegisterEsperanzaRPCCommands(tableRPC);
+    RegisterFinalizationRPCCommands(tableRPC);
     snapshot::RegisterRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
     RegisterProposerRPCCommands(tableRPC);

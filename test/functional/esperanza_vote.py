@@ -85,7 +85,7 @@ class EsperanzaVoteTest(UnitETestFramework):
             sync_blocks(self.nodes)
             time.sleep(block_time)
 
-        resp = nodes[0].getesperanzastate()
+        resp = nodes[0].getfinalizationstate()
         assert_equal(resp["currentEpoch"], 17)
         assert_equal(resp["currentDynasty"], 16)
         assert_equal(resp["lastFinalizedEpoch"], 15)

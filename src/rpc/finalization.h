@@ -9,6 +9,6 @@
 
 class CRPCTable;
 
-void RegisterEsperanzaRPCCommands(CRPCTable &t);
+void RegisterFinalizationRPCCommands(CRPCTable &t);
 
 #endif // UNITE_RPC_ESPERANZA_H

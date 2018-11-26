@@ -40,8 +40,6 @@ UniValue deposit(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
   }
 
-  UniValue result(UniValue::VOBJ);
-
   CTxDestination address = DecodeDestination(request.params[0].get_str());
   if (!IsValidDestination(address)) {
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
@@ -97,8 +95,6 @@ UniValue withdraw(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
   }
 
-  UniValue result(UniValue::VOBJ);
-
   CTxDestination address = DecodeDestination(request.params[0].get_str());
   if (!IsValidDestination(address)) {
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
@@ -146,8 +142,6 @@ UniValue logout(const JSONRPCRequest& request) {
   if (!extWallet.nIsValidatorEnabled) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Validating is disabled.");
   }
-
-  UniValue result(UniValue::VOBJ);
 
   if (extWallet.validatorState.m_phase !=
       +esperanza::ValidatorState::Phase::IS_VALIDATING) {
