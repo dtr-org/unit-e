@@ -39,9 +39,6 @@ class NodesHub:
     establish one new connection to B, and another one to C.
 
     In this class, we refer to the nodes through their index in the self.nodes property.
-
-    Even if in P2P protocols it makes no sense to use the distinction client-server, we'll use these terms here to
-    distinguish between nodes listening for connections and nodes that proactively ask for a new connection.
     """
 
     def __init__(self, loop, nodes, host='127.0.0.1', sync_setup=False):
@@ -54,10 +51,10 @@ class NodesHub:
 
         self.proxy_coroutines = []
         self.proxy_tasks = []
-        self.client2proxy_transports = {}
+        self.sender2proxy_transports = {}
 
         self.relay_tasks = {}
-        self.proxy2server_transports = {}
+        self.proxy2receiver_transports = {}
 
         self.pending_connection = None  # Lock-like object used by NodesHub.connect_nodes
 
@@ -72,7 +69,7 @@ class NodesHub:
         """
 
         for i, node in enumerate(self.nodes):
-            proxy_coroutine = self.loop.create_server(
+            proxy_coroutine = self.loop.create_receiver(
                 protocol_factory=lambda: NodeProxy(hub_ref=self),
                 host=self.host,
                 port=self.get_proxy_port(i)
@@ -127,29 +124,29 @@ class NodesHub:
             self.node2node_delays[(outbound_idx, inbound_idx)] = delay  # delay is measured in seconds
 
     def disconnect_nodes(self, outbound_idx, inbound_idx):
-        client2proxy_transport = self.client2proxy_transports.get((outbound_idx, inbound_idx), None)  # type: Transport
-        proxy2server_transport = self.proxy2server_transports.get((outbound_idx, inbound_idx), None)  # type: Transport
+        sender2proxy_transport = self.sender2proxy_transports.get((outbound_idx, inbound_idx), None)  # type: Transport
+        proxy2receiver_transport = self.proxy2receiver_transports.get((outbound_idx, inbound_idx), None)  # type: Transport
         relay_task = self.relay_tasks.get((outbound_idx, inbound_idx), None)  # type: Task
 
-        if client2proxy_transport is not None and not client2proxy_transport.is_closing():
-            client2proxy_transport.close()
+        if sender2proxy_transport is not None and not sender2proxy_transport.is_closing():
+            sender2proxy_transport.close()
 
-        if proxy2server_transport is not None and not proxy2server_transport.is_closing():
-            proxy2server_transport.close()
+        if proxy2receiver_transport is not None and not proxy2receiver_transport.is_closing():
+            proxy2receiver_transport.close()
 
         if relay_task is not None and not relay_task.cancelled():
             relay_task.cancel()
 
         # Removing references
-        self.client2proxy_transports.pop((outbound_idx, inbound_idx), None)
-        self.proxy2server_transports.pop((outbound_idx, inbound_idx), None)
+        self.sender2proxy_transports.pop((outbound_idx, inbound_idx), None)
+        self.proxy2receiver_transports.pop((outbound_idx, inbound_idx), None)
         self.relay_tasks.pop((outbound_idx, inbound_idx), None)
 
     @coroutine
     def connect_nodes(self, outbound_idx: int, inbound_idx: int):
         """
-        :param outbound_idx: It refers to the "client" (the one asking for a new connection)
-        :param inbound_idx: It refers to the "server" (the one listening for new connections)
+        :param outbound_idx: It refers to the "sender" (the one asking for a new connection)
+        :param inbound_idx: It refers to the "receiver" (the one listening for new connections)
         """
 
         # We have to wait until all the proxies are configured and listening
@@ -165,40 +162,40 @@ class NodesHub:
         self.pending_connection = (outbound_idx, inbound_idx)
 
         if (
-                self.pending_connection in self.client2proxy_transports or
-                self.pending_connection in self.proxy2server_transports
+                self.pending_connection in self.sender2proxy_transports or
+                self.pending_connection in self.proxy2receiver_transports
         ):
             raise RuntimeError('Connection (node%s --> node%s) already established' % self.pending_connection[:])
 
-        self.connect_client_to_proxy(*self.pending_connection)  # 1st step: connect "client" to the proxy
-        self.connect_proxy_to_server(*self.pending_connection)  # 2nd step: connect proxy 2 its associated node
+        self.connect_sender_to_proxy(*self.pending_connection)  # 1st step: connect "sender" to the proxy
+        self.connect_proxy_to_receiver(*self.pending_connection)  # 2nd step: connect proxy 2 its associated node
 
         # We wait until we know that all the connections have been properly created
         while (
-                self.pending_connection not in self.client2proxy_transports or
-                self.pending_connection not in self.proxy2server_transports
+                self.pending_connection not in self.sender2proxy_transports or
+                self.pending_connection not in self.proxy2receiver_transports
         ):
             yield from asyncio_sleep(0)
 
         self.pending_connection = None  # We release the lock
 
-    def connect_client_to_proxy(self, outbound_idx, inbound_idx):
+    def connect_sender_to_proxy(self, outbound_idx, inbound_idx):
         """
         Establishes a connection between a real node and the proxy representing another node
         """
-        client_node = self.nodes[outbound_idx]
+        sender_node = self.nodes[outbound_idx]
         proxy_address = self.get_proxy_address(inbound_idx)
 
-        client_node.addnode(proxy_address, 'add')     # Add the proxy to the outgoing connections list
-        client_node.addnode(proxy_address, 'onetry')  # Connect to the proxy. Will trigger NodeProxy.connection_made
+        sender_node.addnode(proxy_address, 'add')     # Add the proxy to the outgoing connections list
+        sender_node.addnode(proxy_address, 'onetry')  # Connect to the proxy. Will trigger NodeProxy.connection_made
 
-    def connect_proxy_to_server(self, outbound_idx, inbound_idx):
+    def connect_proxy_to_receiver(self, outbound_idx, inbound_idx):
         """
-        Creates a client that connects to a node and relays messages between that node and its associated proxy
+        Creates a sender that connects to a node and relays messages between that node and its associated proxy
         """
 
         relay_coroutine = self.loop.create_connection(
-            protocol_factory=lambda c2sp=self.pending_connection: ProxyRelay(hub_ref=self, client2server_pair=c2sp),
+            protocol_factory=lambda c2sp=self.pending_connection: ProxyRelay(hub_ref=self, sender2receiver_pair=c2sp),
             host=self.host,
             port=self.get_node_port(inbound_idx)
         )
@@ -208,83 +205,83 @@ class NodesHub:
 class NodeProxy(Protocol):
     def __init__(self, hub_ref):
         self.hub_ref = hub_ref
-        self.client2server_pair = None
+        self.sender2receiver_pair = None
         self.recvbuf = b''
 
     def connection_made(self, transport: Transport):
-        self.client2server_pair = self.hub_ref.pending_connection
+        self.sender2receiver_pair = self.hub_ref.pending_connection
 
-        logger.debug('Client %s connected to proxy %s' % self.client2server_pair[:])
-        self.hub_ref.client2proxy_transports[self.client2server_pair] = transport
+        logger.debug('Client %s connected to proxy %s' % self.sender2receiver_pair[:])
+        self.hub_ref.sender2proxy_transports[self.sender2receiver_pair] = transport
 
     def connection_lost(self, exc):
-        logger.debug('Lost connection between client %s and proxy %s' % self.client2server_pair[:])
-        self.hub_ref.disconnect_nodes(*self.client2server_pair)
+        logger.debug('Lost connection between sender %s and proxy %s' % self.sender2receiver_pair[:])
+        self.hub_ref.disconnect_nodes(*self.sender2receiver_pair)
 
     def data_received(self, data):
         self.hub_ref.loop.create_task(self.__handle_received_data(data))
 
     @coroutine
     def __handle_received_data(self, data):
-        while self.client2server_pair not in self.hub_ref.proxy2server_transports:
+        while self.sender2receiver_pair not in self.hub_ref.proxy2receiver_transports:
             yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
 
-        if self.client2server_pair in self.hub_ref.node2node_delays:
-            yield from asyncio_sleep(self.hub_ref.node2node_delays[self.client2server_pair])
+        if self.sender2receiver_pair in self.hub_ref.node2node_delays:
+            yield from asyncio_sleep(self.hub_ref.node2node_delays[self.sender2receiver_pair])
 
         if len(data) > 0:
             logger.debug(
-                'Proxy connection %s received %s bytes' % (repr(self.client2server_pair), len(data))
+                'Proxy connection %s received %s bytes' % (repr(self.sender2receiver_pair), len(data))
             )
             self.recvbuf += data
             self.recvbuf = process_buffer(
-                node_port=self.hub_ref.get_proxy_port(self.client2server_pair[0]),
+                node_port=self.hub_ref.get_proxy_port(self.sender2receiver_pair[0]),
                 buffer=self.recvbuf,
-                transport=self.hub_ref.proxy2server_transports[self.client2server_pair]
+                transport=self.hub_ref.proxy2receiver_transports[self.sender2receiver_pair]
             )
 
 
 class ProxyRelay(Protocol):
-    def __init__(self, hub_ref, client2server_pair):
+    def __init__(self, hub_ref, sender2receiver_pair):
         self.hub_ref = hub_ref
-        self.client2server_pair = client2server_pair
-        self.server2client_pair = client2server_pair[::-1]
+        self.sender2receiver_pair = sender2receiver_pair
+        self.receiver2sender_pair = sender2receiver_pair[::-1]
         self.recvbuf = b''
 
     def connection_made(self, transport: Transport):
         logger.debug(
             'Created connection between proxy and its associated node %s to receive messages from node %s' %
-            self.server2client_pair
+            self.receiver2sender_pair
         )
-        self.hub_ref.proxy2server_transports[self.client2server_pair] = transport
+        self.hub_ref.proxy2receiver_transports[self.sender2receiver_pair] = transport
 
     def connection_lost(self, exc):
         logger.debug(
             'Lost connection between proxy and its associated node %s to receive messages from node %s' %
-            self.server2client_pair
+            self.receiver2sender_pair
         )
-        self.hub_ref.disconnect_nodes(*self.client2server_pair)
+        self.hub_ref.disconnect_nodes(*self.sender2receiver_pair)
 
     def data_received(self, data):
         self.hub_ref.loop.create_task(self.__handle_received_data(data))
 
     @coroutine
     def __handle_received_data(self, data):
-        while self.client2server_pair not in self.hub_ref.client2proxy_transports:
+        while self.sender2receiver_pair not in self.hub_ref.sender2proxy_transports:
             yield from asyncio_sleep(0)  # We can't relay the data yet, we need a connection on the other side
 
-        if self.server2client_pair in self.hub_ref.node2node_delays:
-            yield from asyncio_sleep(self.hub_ref.node2node_delays[self.server2client_pair])
+        if self.receiver2sender_pair in self.hub_ref.node2node_delays:
+            yield from asyncio_sleep(self.hub_ref.node2node_delays[self.receiver2sender_pair])
 
         if len(data) > 0:
             logger.debug(
-                'Proxy relay connection %s received %s bytes' % (repr(self.client2server_pair), len(data))
+                'Proxy relay connection %s received %s bytes' % (repr(self.sender2receiver_pair), len(data))
             )
             self.recvbuf += data
             self.recvbuf = process_buffer(
-                node_port=self.hub_ref.get_proxy_port(self.client2server_pair[1]),
+                node_port=self.hub_ref.get_proxy_port(self.sender2receiver_pair[1]),
                 buffer=self.recvbuf,
-                transport=self.hub_ref.client2proxy_transports[self.client2server_pair]
+                transport=self.hub_ref.sender2proxy_transports[self.sender2receiver_pair]
             )
 
 
