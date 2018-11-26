@@ -19,7 +19,7 @@ class MultiWallet {
 
   virtual ~MultiWallet() = default;
 
-  static std::unique_ptr<MultiWallet> MakeMultiWallet();
+  static std::unique_ptr<MultiWallet> New();
 };
 
 }  // namespace proposer

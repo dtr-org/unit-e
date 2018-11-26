@@ -69,7 +69,7 @@ class BlockProposer {
   virtual ~BlockProposer() = default;
 
   //! \brief Factory method for creating a BlockProposer
-  static std::unique_ptr<BlockProposer> MakeBlockProposer(
+  static std::unique_ptr<BlockProposer> New(
       Dependency<ChainState>, Dependency<TransactionPicker>);
 };
 

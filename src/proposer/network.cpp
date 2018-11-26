@@ -17,7 +17,7 @@ class NetworkAdapter : public Network {
   size_t GetNodeCount() override { return g_connman->GetNodeCount(); }
 };
 
-std::unique_ptr<Network> Network::MakeNetwork() {
+std::unique_ptr<Network> Network::New() {
   return std::unique_ptr<Network>(new NetworkAdapter());
 }
 

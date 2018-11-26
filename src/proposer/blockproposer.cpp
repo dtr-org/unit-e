@@ -48,7 +48,7 @@ class BlockProposerImpl : public BlockProposer {
   }
 };
 
-std::unique_ptr<BlockProposer> BlockProposer::MakeBlockProposer(
+std::unique_ptr<BlockProposer> BlockProposer::New(
     Dependency<ChainState> chain,
     Dependency<TransactionPicker> transactionPicker) {
   return std::unique_ptr<BlockProposer>(

@@ -17,24 +17,24 @@
 
 class UnitEInjector : public Injector<UnitEInjector> {
 
-  COMPONENT(Network, proposer::Network, proposer::Network::MakeNetwork)
+  COMPONENT(Network, proposer::Network, proposer::Network::New)
 
-  COMPONENT(ChainState, proposer::ChainState, proposer::ChainState::MakeChain)
+  COMPONENT(ChainState, proposer::ChainState, proposer::ChainState::New)
 
   COMPONENT(MultiWallet, proposer::MultiWallet,
-            proposer::MultiWallet::MakeMultiWallet);
+            proposer::MultiWallet::New);
 
   COMPONENT(TransactionPicker, proposer::TransactionPicker,
             proposer::TransactionPicker::MakeBlockAssemblerAdapter)
 
   COMPONENT(BlockProposer, proposer::BlockProposer,
-            proposer::BlockProposer::MakeBlockProposer, proposer::ChainState,
+            proposer::BlockProposer::New, proposer::ChainState,
             proposer::TransactionPicker)
 
   COMPONENT(ProposerSettings, proposer::Settings,
-            proposer::Settings::MakeSettings)
+            proposer::Settings::New)
 
-  COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::MakeProposer,
+  COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::New,
             proposer::Settings, proposer::MultiWallet, proposer::Network,
             proposer::ChainState, proposer::BlockProposer)
 };

@@ -194,6 +194,7 @@ UNITE_CORE_H = \
   snapshot/rpc_processing.h \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
+  staking/block_validator.h \
   staking/kernel.h \
   staking/stakingwallet.h \
   staking/stakevalidation.h \
@@ -303,6 +304,7 @@ libunite_server_a_SOURCES = \
   snapshot/rpc_processing.cpp \
   snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
+  staking/block_validator.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \

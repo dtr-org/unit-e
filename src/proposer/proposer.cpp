@@ -300,7 +300,7 @@ void Proposer::Run(Proposer::Thread &thread) {
   thread.m_proposer.m_stopSemaphore.release();
 }
 
-std::unique_ptr<Proposer> Proposer::MakeProposer(
+std::unique_ptr<Proposer> Proposer::New(
     Dependency<Settings> settings, Dependency<MultiWallet> multiWallet,
     Dependency<Network> network, Dependency<ChainState> chainState,
     Dependency<BlockProposer> blockProposer) {

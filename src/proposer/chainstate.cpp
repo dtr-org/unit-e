@@ -43,7 +43,7 @@ class ChainStateAdapter final : public ChainState {
   }
 };
 
-std::unique_ptr<ChainState> ChainState::MakeChain() {
+std::unique_ptr<ChainState> ChainState::New() {
   return std::unique_ptr<ChainState>(new ChainStateAdapter());
 }
 
