@@ -44,6 +44,107 @@ const std::pair<const char*, CAmount> regTestOutputs[] = {
     std::make_pair("caca901140bf287eff2af36edeb48503cec4eb9f", 10000 * UNIT),
     std::make_pair("1f34ea7e96d82102b22afed6d53d02715f8f6621", 10000 * UNIT),
     std::make_pair("eb07ad5db790ee4324b5cdd635709f47e41fd867", 10000 * UNIT),
+
+    std::make_pair("123e11b1002245baa28d5ad23b30dfe54f0dfa6d", 10000 * UNIT),  // make hobby code theory brass rice hungry work letter blind atom sleep
+    std::make_pair("2c78252da8fbb60f70e737b57285ff807b463054", 10000 * UNIT),  // citizen ribbon pyramid moral genius vocal fan ticket grass vague catch garage
+    std::make_pair("a4bf9c5e1535c65889429dca2c8f8a96e0ad0680", 10000 * UNIT),  // share wire topple warm basket defense nasty soccer turn weapon village palace
+    std::make_pair("c358153f6176692b723f3f7841eaa4532a955adf", 10000 * UNIT),  // nerve resist drop action crew business fiction act scout enough naive plug
+    std::make_pair("c0ea55a2329f30f562dc765326155d6211450cb5", 10000 * UNIT),  // about tomorrow load oven gain slight sphere youth skirt slide monitor cereal
+    std::make_pair("14eb1d66667cf027e1e031b810c5d85ad0ea422e", 10000 * UNIT),  // flee blood private cross chuckle nut lemon noble endless acquire security certain
+    std::make_pair("c011048dae8e78adef63bcd44af655fc0b0bae3c", 10000 * UNIT),  // balcony bottom fame era sponsor govern affair emotion glimpse stock powder pond
+    std::make_pair("eba13431b66387b94a1943969ffae8778041e71c", 10000 * UNIT),  // nasty judge between shallow fetch gather abandon jewel vacuum desert talk client
+    std::make_pair("52a20f8eae92d8bea6164d1454a525130a69322c", 10000 * UNIT),  // boil cattle wet boat charge build cannon sure hour wide paper devote
+    std::make_pair("0d9de4504bb66ba37344e956f45074f2eb5ff6ed", 10000 * UNIT),  // dust alarm face barely unveil senior exhibit there decade only tree link
+    std::make_pair("7d9da96b4f39d88fe42b5652a1149b204fc64aa9", 10000 * UNIT),  // muscle fly carbon vast raise annual athlete fury glad float mushroom luggage
+    std::make_pair("cc9f0507e8d38f2409e2d9d058824461ec73ee47", 10000 * UNIT),  // bunker strategy picnic nice belt aspect source direct useless genuine protect save
+    std::make_pair("07fe82d639e3f0301819bcff3d6a767279ae80c0", 10000 * UNIT),  // practice grain age liar kiss ordinary position try saddle panda meat antique
+    std::make_pair("2efee86a4236599d448142a49838be2d124dd3cc", 10000 * UNIT),  // typical secret dutch virus feature vital siren stove battle equip flavor annual
+    std::make_pair("b83e6d3941324ea3ec5da0adb1f1e3892de2299e", 10000 * UNIT),  // train bulb potato join favorite glad cactus pave unit army useless hospital
+    std::make_pair("7d023ca654c12de44b53cfb69c2864e0e9d26993", 10000 * UNIT),  // hole drip indoor finish canal hazard dream axis middle exhibit cruise mystery
+    std::make_pair("dd002ac11f8ec612ec103c45f3a13791ffb674a9", 10000 * UNIT),  // cricket alley tape surprise raccoon plate canal burden flock stay trim brick
+    std::make_pair("09ff1c401891565b989448c1fe27e35bc7a8c351", 10000 * UNIT),  // indicate hollow switch task either lunar method acid bulk romance path modify
+    std::make_pair("598a5739af96eda676ff00c480a2b7d0683f7537", 10000 * UNIT),  // describe borrow begin lecture scheme neither carry outer vacant tissue gown dove
+    std::make_pair("0fa51ecf43f4cdc9b21d6a0a114a01a9ff4b3aa7", 10000 * UNIT),  // stay swarm toward february auto fiction enjoy legend milk pencil glove diamond
+    std::make_pair("45f7a1972d4cf542ba3c27446a1a21ee7a4dd943", 10000 * UNIT),  // you atom blur rigid truly jealous enable load soap unable face thing
+    std::make_pair("a5d80fc916213ea5742cfc4b60bff8bff0d7a18e", 10000 * UNIT),  // start major traffic tiger raven traffic document century garbage void tooth stable
+    std::make_pair("2dbd59d14a03d9b414f6f7a58cbfd002ec2deb6a", 10000 * UNIT),  // eternal soul permit hope stairs fruit amused fashion alley snake what old
+    std::make_pair("b522dc3ebee526b9114a28c1dd4a49403f6f136e", 10000 * UNIT),  // end figure either candy exhibit device general wife arch laugh surge enforce
+    std::make_pair("429860390ec073b24c5242fd163109e20a4fc81e", 10000 * UNIT),  // opinion cupboard robust door wrist omit library ribbon modify cage bulk merit
+    std::make_pair("1a0321c9120580a34fe5d4d9e49c91eff100adf7", 10000 * UNIT),  // measure discover prepare ship ladder tunnel uncover honey sea gate peace ramp
+    std::make_pair("324e230d85307563f45349ff9000daef84344cb9", 10000 * UNIT),  // conduct adapt awesome wrong convince cereal together symptom story appear lawsuit hero
+    std::make_pair("f28ba03cdee7ceb1fabdb1498b814a64a54c1ee2", 10000 * UNIT),  // ahead match angry laptop glove task switch dry reject aisle destroy harvest
+    std::make_pair("067c440f405e2f8981f5842b20d1a72911416b2e", 10000 * UNIT),  // skin observe artwork involve spin stand again clap lake fat spell tornado
+    std::make_pair("a018a7e07a6d0dc992f3280917ba84eeb52038f5", 10000 * UNIT),  // tool ridge welcome anxiety dish gentle photo fruit patrol emerge famous reveal
+    std::make_pair("9e8f21197b73ae058c6bff6c7c83cea03cb6d768", 10000 * UNIT),  // method upset oven rich super embody sick sell spider soft diesel where
+    std::make_pair("54b355306866752293760b200a24bed62a340d0f", 10000 * UNIT),  // shock country lens frog manual maple blood piece clock surprise primary story
+    std::make_pair("24dcb8499304497208be87b82edd6899b5e1c0c2", 10000 * UNIT),  // carpet curious inform illness addict embark route answer aerobic resource apple still
+    std::make_pair("68f4c71bb9bc40402ac75b306e404135707800fc", 10000 * UNIT),  // hover panda winter insect follow transfer enroll tent extend border absent minute
+    std::make_pair("65b7e2449fc2862c977fd824d6acc79c6723228e", 10000 * UNIT),  // glance depth crumble pair combine cook fat apple oven pony clay venture
+    std::make_pair("34901a28a878e3cbdb9c2bf1749b739c78585997", 10000 * UNIT),  // clever skill helmet galaxy shy input hen pepper hen catalog excite delay
+    std::make_pair("4f577d4cb38e0be1efc91df5413031fb3a021345", 10000 * UNIT),  // settle lucky face erode view lady section deposit jeans merge then fee
+    std::make_pair("5d176aba621182f3930708ceadb18a9c6fc318e8", 10000 * UNIT),  // trumpet derive march ready cigar east utility pistol leader sausage arrange spare
+    std::make_pair("a91f97c6ec359fe359865ceeadc869945d5b097f", 10000 * UNIT),  // maid enact shove slogan stem ordinary between verify artist disagree people bamboo
+    std::make_pair("f63e1f48e66b846450ed62c12819a43716d2330f", 10000 * UNIT),  // vague million dinner lion basic submit champion case craft square wrist shell
+    std::make_pair("f383709610286788640017efeae26271ca737569", 10000 * UNIT),  // business conduct before tobacco useful buzz detail labor educate soul strike purpose
+    std::make_pair("c5412f2f07ebcf49e4799d3d38f241ad8aaf51c6", 10000 * UNIT),  // burst garlic spike thumb detail design property sing february chimney soccer include
+    std::make_pair("1bbf69b8a2b27c7ddaa482c6a3d8e8d126156219", 10000 * UNIT),  // cradle master clinic struggle garbage miss priority win lizard olive tragic gown
+    std::make_pair("dfb28d749e1be27ef112fbcc1c87a28bfa996bb2", 10000 * UNIT),  // dignity follow flag silent comfort load animal faith frost night hole tornado
+    std::make_pair("5f09b4af359d2c24d8720357010cc69d1b556af6", 10000 * UNIT),  // happy play patient public strike luggage subway gym venue early tired still
+    std::make_pair("3911035bf46109d3805bba41838c7137c06711ac", 10000 * UNIT),  // robot absorb profit medal have shift struggle original happy bleak retire letter
+    std::make_pair("c8cabc37c15d8d03fdef98e2c37471b95845da95", 10000 * UNIT),  // protect dinner wonder live gift demise actual monster obvious gallery accuse daughter
+    std::make_pair("2361a975a21adfa55b076671912ed6daf28f2ed3", 10000 * UNIT),  // ancient nature sentence print amazing crash divide goat style rule review goat
+    std::make_pair("e2c6cca9e56a7196678c625ab2cc466178a51397", 10000 * UNIT),  // jar mansion release today sunset brush teach mule leg clerk join transfer
+    std::make_pair("f7bc52f218171c04adedb321436ca6bbce9a0976", 10000 * UNIT),  // unit mutual steak matter analyst mistake slot below confirm draft fork coconut
+    std::make_pair("3f1e33a633d0fe0bc988629d106d26d102e9eae5", 10000 * UNIT),  // point outer around various ten feature sustain hawk moral mail city loop
+    std::make_pair("2be8b3b68d9827ce9cb43cbcfbe4644b7221312a", 10000 * UNIT),  // maple fix toast jaguar march welcome stomach deposit such sand saddle dress
+    std::make_pair("9bfd819d76177cdf8aec62de31609c924f71d69a", 10000 * UNIT),  // neglect dinosaur used beyond discover task shift visa say cable jar replace
+    std::make_pair("09b4eeaf6c3c264af48804295bf1ebcd56311e06", 10000 * UNIT),  // cruise gesture method toddler roof crash curve robot possible oven scheme obey
+    std::make_pair("777a559c01d71b9607e804cd32ba046457fc3a2b", 10000 * UNIT),  // artist essay olympic neck violin fun raven light crime trade library bulb
+    std::make_pair("ef8fd5d1446f9e4829e91838b47b5aa10ca0fd0b", 10000 * UNIT),  // write skill visual jungle dinner health april damp response surface canoe bring
+    std::make_pair("b4f669a167d895f441b7fd6772aa473bc6ee7f48", 10000 * UNIT),  // blame heavy ordinary beach cinnamon aware walnut spy balcony luggage scale popular
+    std::make_pair("120dd1780927247566c1a410716271f96c4ef5b4", 10000 * UNIT),  // monitor fitness wedding ginger clever pave kingdom meat organ accident curve census
+    std::make_pair("f77b2a995f994902c46bdd7b7f7e7ac519d0de29", 10000 * UNIT),  // regret worry shell immune space tobacco notable vessel frog tomorrow owner champion
+    std::make_pair("52ad376e9a8fce7b5a91ca1c3027586a4c853c01", 10000 * UNIT),  // mass muffin river deputy kingdom soup joy trick kangaroo creek radar hollow
+    std::make_pair("98a35b29eb5e83255241e4adfb967ec8da106aaa", 10000 * UNIT),  // giraffe scan history tenant rapid elbow ginger chef beauty demise concert hybrid
+    std::make_pair("2b1a61b7e47cd3cad5a38926cda723c22b321e1a", 10000 * UNIT),  // road throw intact wave crawl guide news post cost job salon enable
+    std::make_pair("1c655020505e85072a880074b6ec1fa8f5428330", 10000 * UNIT),  // pistol carbon try cloud popular void legend inject eagle breeze critic budget
+    std::make_pair("3986a917ac63c1872759972ce826e0c48aece7a8", 10000 * UNIT),  // oven moral laundry sting cancel mirror weird wrist tenant dilemma matter village
+    std::make_pair("624dcc492715889b8a3bbead1b10e49ee8e93337", 10000 * UNIT),  // kit child ignore seven lock brisk rescue frown scissors bulk seminar round
+    std::make_pair("58da2c39dbac9638f002cf552599cb1f9e3eecd8", 10000 * UNIT),  // boy inspire spare myth depart flock convince card bridge release oyster raise
+    std::make_pair("b0ab64e1fbe197ae9a372f05d50ef93e64d2a957", 10000 * UNIT),  // sketch zero soda cactus bracket dad boost game tragic able twin myth
+    std::make_pair("4af788134a587dc1721d330235a0a91ce3c55404", 10000 * UNIT),  // bus wife stool liberty multiply yard resemble cabbage loud hundred plug farm
+    std::make_pair("11ad8a1387b96d068a8f7519a98933c2c9ea0940", 10000 * UNIT),  // regular view squeeze baby pill green few park maze palace follow maple
+    std::make_pair("b9385684b813607679dce681c648bae76c0ea5fe", 10000 * UNIT),  // grunt broken ranch senior tomorrow antique world relax adjust boil skate history
+    std::make_pair("61d21b1d9ebe0874a62262ac9bb96b0c29e3d614", 10000 * UNIT),  // exhaust clap bitter garment wasp aspect fatigue scale invest fashion shell pet
+    std::make_pair("cf4af742bc7e4b09be80708f2f6d41f513e7ee84", 10000 * UNIT),  // brown tonight neck spot public wage rapid possible pact raise void crime
+    std::make_pair("cae3c2ffa49e9252232e2112ef123887eacba751", 10000 * UNIT),  // claw van bring off act kit drop nation waste recycle wisdom curtain
+    std::make_pair("37d7c5990ab5b3bf44cb889a47d4c61d996f3d2a", 10000 * UNIT),  // purpose pass mad zero panic silver glue main audit silk gap exercise
+    std::make_pair("be067af3c4a8237c33486ae9ce1a4f8d3fe5a102", 10000 * UNIT),  // assume lazy daring convince morning vacuum team parent battle girl wet act
+    std::make_pair("a5a2140402346069b2edf1813184e94196f4eaa8", 10000 * UNIT),  // tiger clog differ maze ostrich boy virtual avocado there brain issue example
+    std::make_pair("c8d1bc9b668fc4afe37c718f8e6fc1ef104e2e5b", 10000 * UNIT),  // dial deposit aspect when element wide arctic bargain mango company aerobic cradle
+    std::make_pair("b7179c9946c9bf49f1e1a96aaeba4b7cfa601735", 10000 * UNIT),  // first reflect script tackle add fix crazy measure skirt mansion wage minimum
+    std::make_pair("8e47f829b98adbd9cd06b2d0c79420f8729f9243", 10000 * UNIT),  // orphan ranch birth select solar problem road hurt ripple modify lion imitate
+    std::make_pair("8f4104d141fe01c9d0a0ae55627650009151ed95", 10000 * UNIT),  // talent inherit master auto motion then unfold creek own rally exit hungry
+    std::make_pair("2cde5ae0eb43f001ac6663813d74cfa4ef380892", 10000 * UNIT),  // letter sense fine pave cancel early struggle volume energy abandon obscure defense
+    std::make_pair("71d81e0433cf491b7f9d0572872d423fe216fb53", 10000 * UNIT),  // sorry soccer index rude once inquiry bench belt lab spirit genre action
+    std::make_pair("1faa4ffa1eb2100f4c56086a030c38f4bc654ca8", 10000 * UNIT),  // sphere ocean category scale fade track polar picnic enjoy grape home ask
+    std::make_pair("0f88c67abafcf665fadbb9850cec774ef1a4ec9b", 10000 * UNIT),  // tumble inquiry grunt arrest salad clay print own blue waste coconut dose
+    std::make_pair("0919e3c62f0ac747aab7a4a591773171d7231fd7", 10000 * UNIT),  // mountain tobacco main giant worry edit brave gaze repair charge addict teach
+    std::make_pair("35d9c169873dc833355d6f0795d66933eb23e2c8", 10000 * UNIT),  // axis silent client hat athlete aerobic shield attack machine salute mind belt
+    std::make_pair("96996943e3e9814b9e6c3b0664d643e4d1a40abf", 10000 * UNIT),  // public expire ramp hat purpose auto rate hotel advance gesture dinner lady
+    std::make_pair("ff8018fa112e7adc7c52cf6c05459fc81b3ebd8a", 10000 * UNIT),  // garage anger lion mosquito aisle sing galaxy smart cube umbrella finger denial
+    std::make_pair("a36cebe652f8689ec6bdf98f8fba3e3f253a5591", 10000 * UNIT),  // label defense job sense easily mixed thrive mandate outdoor region unusual voyage
+    std::make_pair("97c63eb92a797a7312fc4f43b6d5c4d727871548", 10000 * UNIT),  // furnace bright swim inmate brush fault build demise chunk trend jump latin
+    std::make_pair("22bad86540fef03edb1a753faf0bbe8408887465", 10000 * UNIT),  // sock peanut void pair common tray worth lock spend text kidney page
+    std::make_pair("bc512016bf93b1d263a7e70d681cc9a7adc2f983", 10000 * UNIT),  // artefact bike vote squeeze nothing slot exile hold produce pledge gain umbrella
+    std::make_pair("97cc53271c6e0f8f0394eeb593bfd0f35d5a0b75", 10000 * UNIT),  // leader mixed space time degree pudding order hood inquiry plunge vicious adult
+    std::make_pair("eb0e594dc54691c828a94d99a4f2ccb36f400c43", 10000 * UNIT),  // spoon ceiling income lady monster that army utility brick sword genre abuse
+    std::make_pair("73fbde5fb997f180b42412e3b7af95f1bacb8184", 10000 * UNIT),  // solar filter refuse error alone search erosion lobster coconut produce vapor caught
+    std::make_pair("f3f8622584478ad23066314998ef471d6ad6a968", 10000 * UNIT),  // sister easy fruit knife version sibling deal mother alter immune same thunder
+    std::make_pair("28450d93c2b554d787c17b719a70cea902224205", 10000 * UNIT),  // carbon build harsh sister fossil drive simple permit risk cable tank feed
+    std::make_pair("435acf0bb5451438113053defbfc04783493a325", 10000 * UNIT),  // young census zebra smooth mix knee own stumble coffee mule mistake price
+    std::make_pair("4b1142981e9d6fbf0133c8cac682abbb96757de8", 10000 * UNIT),  // slice hard ribbon liberty dwarf bracket height old merge spice drift recall
+    std::make_pair("50ef997eb53326281f7c52191c3abbebf4b5de53", 10000 * UNIT),  // just labor stuff lady motion inmate disagree begin myth attract multiply achieve
 };
 const size_t nGenesisOutputsRegtest = sizeof(regTestOutputs) / sizeof(regTestOutputs[0]);
 
@@ -371,10 +472,10 @@ public:
         nDefaultPort = 18444;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlockRegTest(1296688602, 2, 0x207fffff, 1, 50 * UNIT);
+        genesis = CreateGenesisBlockRegTest(1296688602, 5, 0x207fffff, 1, 50 * UNIT);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x59447f6b31d072aaeb1e08dc0df8772d53f39e5d1afe0494294af566227398de"));
-        assert(genesis.hashMerkleRoot == uint256S("0x60793ec2bde997c3279fbd53e06d7a08d26fd9ce90f9e8fa82e8e35b141687da"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0fc0564d6a9b524590b0f79d34a2453fdb962b438b1f6abe119f0d79c1484036"));
+        assert(genesis.hashMerkleRoot == uint256S("0x88d833e448144f214c09cc64f2a7b7f3f47b080c6f8a2f23d1b375f960a95297"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -385,7 +486,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0x59447f6b31d072aaeb1e08dc0df8772d53f39e5d1afe0494294af566227398de")},
+                {0, uint256S("0x0fc0564d6a9b524590b0f79d34a2453fdb962b438b1f6abe119f0d79c1484036")},
             }
         };
 
