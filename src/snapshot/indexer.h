@@ -183,7 +183,7 @@ class Indexer {
   uint32_t m_fileBytes;                 // written bytes in the current file.
   fs::path m_dirPath;
 
-  explicit Indexer(const Meta &&meta, std::map<uint32_t, IdxMap> dirIdx);
+  explicit Indexer(const Meta &meta, std::map<uint32_t, IdxMap> &&dirIdx);
 
   std::string FileName(uint32_t fileId);
 

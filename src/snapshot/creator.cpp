@@ -20,21 +20,24 @@ namespace snapshot {
 
 uint16_t createSnapshotPerEpoch = 0;
 
-struct Job {
+struct SnapshotJob {
   // create snapshot
   std::unique_ptr<Creator> creator = nullptr;
 
   // finalize snapshots
   const CBlockIndex *blockIndex = nullptr;
 
-  explicit Job(std::unique_ptr<Creator> _creator) : creator(std::move(_creator)) {}
-  explicit Job(const CBlockIndex *_blockIndex) : blockIndex(_blockIndex) {}
+  explicit SnapshotJob(std::unique_ptr<Creator> _creator)
+      : creator(std::move(_creator)) {}
+
+  explicit SnapshotJob(const CBlockIndex *_blockIndex)
+      : blockIndex(_blockIndex) {}
 };
 
 std::thread creatorThread;
 std::mutex mutex;
 std::condition_variable cv;
-std::queue<std::unique_ptr<Job>> jobs;
+std::queue<std::unique_ptr<SnapshotJob>> jobs;
 std::atomic_bool interrupt(false);
 
 void ProcessCreatorQueue() {
@@ -46,14 +49,15 @@ void ProcessCreatorQueue() {
       continue;
     }
 
-    std::unique_ptr<Job> job = std::move(jobs.front());
+    std::unique_ptr<SnapshotJob> job = std::move(jobs.front());
     jobs.pop();
     lock.unlock();
 
     if (job->creator) {
       CreationInfo info = job->creator->Create();
       if (info.m_status != +Status::OK) {
-        LogPrint(BCLog::SNAPSHOT, "%s: can't create snapshot %s\n", __func__, info.m_status);
+        LogPrint(BCLog::SNAPSHOT, "%s: can't create snapshot %s\n",
+                 __func__, info.m_status);
       }
     }
 
@@ -105,14 +109,14 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
   // uses disk data to create the snapshot
   FlushStateToDisk();
 
-  std::unique_ptr<Job> job(new Job(MakeUnique<Creator>(pcoinsdbview.get())));
+  std::unique_ptr<SnapshotJob> job(new SnapshotJob(MakeUnique<Creator>(pcoinsdbview.get())));
   std::lock_guard<std::mutex> lock(mutex);
   jobs.push(std::move(job));
   cv.notify_one();
 }
 
 void Creator::FinalizeSnapshots(const CBlockIndex *blockIndex) {
-  std::unique_ptr<Job> job(new Job(blockIndex));
+  std::unique_ptr<SnapshotJob> job(new SnapshotJob(blockIndex));
   std::lock_guard<std::mutex> lock(mutex);
   jobs.push(std::move(job));
   cv.notify_one();
