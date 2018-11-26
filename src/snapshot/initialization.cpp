@@ -26,7 +26,7 @@ bool Initialize(const Params &params) {
   if (fPruneMode) {
     if (gArgs.GetBoolArg("-isd", false)) {
       EnableISDMode();
-      LogPrintf("Initial Snapshot Download mode is enabled.\n");
+      LogPrint(BCLog::SNAPSHOT, "Initial Snapshot Download mode is enabled.\n");
     }
 
     uint256 snapshotHash;
@@ -37,8 +37,8 @@ bool Initialize(const Params &params) {
         std::unique_ptr<Indexer> idx = Indexer::Open(p.snapshotHash);
         if (idx) {
           StoreCandidateBlockHash(idx->GetMeta().m_blockHash);
-          LogPrintf("Candidate snapshot for the block %s has found.\n",
-                    idx->GetMeta().m_blockHash.GetHex());
+          LogPrint(BCLog::SNAPSHOT, "Candidate snapshot for the block %s has found.\n",
+                   idx->GetMeta().m_blockHash.GetHex());
         }
       }
     }

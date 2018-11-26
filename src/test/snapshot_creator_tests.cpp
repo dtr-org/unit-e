@@ -61,6 +61,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
   {
     // create snapshots
     std::vector<uint256> deletedSnapshots;
+    size_t maxSnapshotsToKeep = 5;
     for (uint32_t idx = 0; idx < 10; ++idx) {
       // update stake modifier to trigger different snapshot hash
       std::string sm = "a" + std::to_string(idx);
@@ -75,7 +76,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
       std::vector<snapshot::Checkpoint> checkpoints =
           snapshot::GetSnapshotCheckpoints();
       BOOST_CHECK(!checkpoints.empty());
-      BOOST_CHECK(checkpoints.size() <= 5);
+      BOOST_CHECK(checkpoints.size() <= maxSnapshotsToKeep);
 
       if (idx == 4) {
         for (const snapshot::Checkpoint &p : checkpoints) {

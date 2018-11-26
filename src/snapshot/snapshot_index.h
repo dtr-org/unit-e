@@ -86,7 +86,7 @@ class SnapshotIndex {
     READWRITE(m_snapshotsForRemoval);
   }
 
-  //! AddSnapshotHash adds snapshot hash to the index
+  //! Adds snapshot hash to the index
   //!
   //! \param snapshotHash that must be added
   //! \param blockIndex that snapshotHash is referenced to
@@ -101,11 +101,11 @@ class SnapshotIndex {
   //! returns all available checkpoints at which snapshot was created
   std::vector<Checkpoint> GetSnapshotCheckpoints();
 
-  //! ConfirmRemoved confirms that the snapshot was removed from disk
+  //! Confirms that the snapshot was removed from disk
   //! and now can be removed from the index
   void ConfirmRemoved(const uint256 &snapshotHash);
 
-  //! FinalizeBlock marks snapshots of the same branch as the block
+  //! Marks snapshots of the same branch as the block
   //! up to the block height finalized
   //!
   //! \param blockIndex is the last one of finalized epoch
@@ -118,7 +118,7 @@ class SnapshotIndex {
   bool GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
                                 uint256 &snapshotHashOut);
 
-  //! DeleteSnapshot deletes snapshot from disk
+  //! Deletes snapshot from disk
   static void DeleteSnapshot(const uint256 &snapshotHash);
 
   // used in tests only
@@ -148,22 +148,22 @@ class SnapshotIndex {
   //! returns snapshots which must be removed
   std::vector<uint256> SnapshotsForRemoval();
 
-  //! RemoveLowest removes the lowest height preserving m_minFinalizedSnapshots
+  //! removes the lowest height preserving m_minFinalizedSnapshots
   void RemoveLowest();
 
-  //! RemoveHighest removes the highest snapshot
+  //! removes the highest snapshot
   void RemoveHighest();
 
-  //! DeleteSnapshotHash removes snapshotHash from index
+  //! removes snapshotHash from index
   void DeleteSnapshotHash(const uint256 &snapshotHash);
 
   void SanityCheck();
 };
 
-//! LoadSnapshotIndex loads index from chainstate DB into memory
+//! loads index from chainstate DB into memory
 void LoadSnapshotIndex();
 
-//! SaveSnapshotIndex saves index into chainstate DB
+//! saves index into chainstate DB
 void SaveSnapshotIndex();
 
 //! proxy to g_snapshotIndex.AddSnapshotHash()

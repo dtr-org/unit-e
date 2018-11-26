@@ -10,7 +10,7 @@
 namespace snapshot {
 
 struct Params {
-  int64_t createSnapshotPerEpoch = 150;
+  uint16_t createSnapshotPerEpoch = 150;
 };
 
 }  // namespace snapshot

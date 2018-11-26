@@ -9,6 +9,8 @@
 #include <util.h>
 #include <validation.h>
 
+#include <algorithm>
+
 namespace snapshot {
 
 // keeps track of current available snapshots
@@ -29,16 +31,17 @@ std::vector<uint256> SnapshotIndex::AddSnapshotHash(const uint256 &snapshotHash,
   auto it = m_indexMap.find(blockIndex->nHeight);
   if (it != m_indexMap.end()) {
     m_snapshotsForRemoval.emplace(it->second.snapshotHash);
-    m_indexMap[blockIndex->nHeight] = checkpoint;
+    it = m_indexMap.erase(it);
+    m_indexMap.emplace_hint(it, blockIndex->nHeight, checkpoint);
     return SnapshotsForRemoval();
   }
 
   it = m_indexMap.upper_bound(blockIndex->nHeight);
-  if (it == m_indexMap.end()) {  // add the highest
-    m_indexMap[blockIndex->nHeight] = checkpoint;
+  bool end = it == m_indexMap.end();
+  m_indexMap.emplace_hint(it, blockIndex->nHeight, checkpoint);
+  if (end) {
     RemoveLowest();
   } else {
-    m_indexMap[blockIndex->nHeight] = checkpoint;
     RemoveHighest();
   }
 

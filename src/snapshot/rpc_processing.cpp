@@ -83,7 +83,7 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
   CBlockIndex *blockIndex = chainActive.Tip();
   if (!request.params.empty()) {
     uint256 blockHash = uint256S(request.params[0].get_str());
-    auto it = mapBlockIndex.find(blockHash);
+    const auto it = mapBlockIndex.find(blockHash);
     if (it == mapBlockIndex.end()) {
       rootNode.push_back(Pair("error", "invalid block hash"));
       return rootNode;

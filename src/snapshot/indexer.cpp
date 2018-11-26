@@ -34,7 +34,7 @@ std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshotHash) {
     file >> dirIdx;
   }
 
-  return std::unique_ptr<Indexer>(new Indexer(meta, dirIdx));
+  return std::unique_ptr<Indexer>(new Indexer(std::move(meta), dirIdx));
 }
 
 bool Indexer::Delete(const uint256 &snapshotHash) {
@@ -66,7 +66,7 @@ Indexer::Indexer(const uint256 &snapshotHash, const uint256 &blockHash,
   TryCreateDirectories(m_dirPath);
 }
 
-Indexer::Indexer(const Meta &meta, std::map<uint32_t, IdxMap> dirIdx)
+Indexer::Indexer(const Meta &&meta, std::map<uint32_t, IdxMap> dirIdx)
     : m_meta(meta),
       m_stream(SER_DISK, PROTOCOL_VERSION),
       m_dirIdx(std::move(dirIdx)),

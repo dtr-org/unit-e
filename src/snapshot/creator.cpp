@@ -18,14 +18,17 @@
 
 namespace snapshot {
 
-int64_t createSnapshotPerEpoch = 0;
+uint16_t createSnapshotPerEpoch = 0;
 
 struct Job {
   // create snapshot
   std::unique_ptr<Creator> creator = nullptr;
 
   // finalize snapshots
-  CBlockIndex *blockIndex = nullptr;
+  const CBlockIndex *blockIndex = nullptr;
+
+  explicit Job(std::unique_ptr<Creator> _creator) : creator(std::move(_creator)) {}
+  explicit Job(const CBlockIndex *_blockIndex) : blockIndex(_blockIndex) {}
 };
 
 std::thread creatorThread;
@@ -102,16 +105,14 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
   // uses disk data to create the snapshot
   FlushStateToDisk();
 
-  std::unique_ptr<Job> job(new Job);
-  job->creator = MakeUnique<Creator>(pcoinsdbview.get());
+  std::unique_ptr<Job> job(new Job(MakeUnique<Creator>(pcoinsdbview.get())));
   std::lock_guard<std::mutex> lock(mutex);
   jobs.push(std::move(job));
   cv.notify_one();
 }
 
 void Creator::FinalizeSnapshots(const CBlockIndex *blockIndex) {
-  std::unique_ptr<Job> job(new Job);
-  job->blockIndex = const_cast<CBlockIndex *>(blockIndex);
+  std::unique_ptr<Job> job(new Job(blockIndex));
   std::lock_guard<std::mutex> lock(mutex);
   jobs.push(std::move(job));
   cv.notify_one();
