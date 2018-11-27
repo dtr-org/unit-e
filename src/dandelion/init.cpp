@@ -19,7 +19,7 @@ const Params Params::Create(ArgsManager &args) {
       args.GetArg("-dandelionavgadd", params.embargoAvgAdd.count());
 
   if (embargoMin < 0) {
-    InitWarning("Negative -dandalionmin. Reverting to default");
+    InitWarning("Negative -dandelionmin. Reverting to default");
   } else {
     params.embargoMin = std::chrono::seconds(embargoMin);
   }
@@ -37,7 +37,7 @@ std::string Params::GetHelpString() {
   Params defaultParams;
 
   return HelpMessageOpt("-dandelion=<enable>", "Whether to use dandelion-lite: privacy enhancement protocol. True by default") +
-         HelpMessageOpt("-dandalionmin=<seconds>", "Minimum dandelion embargo time. Default is " + std::to_string(defaultParams.embargoMin.count())) +
+         HelpMessageOpt("-dandelionmin=<seconds>", "Minimum dandelion embargo time. Default is " + std::to_string(defaultParams.embargoMin.count())) +
          HelpMessageOpt("-dandelionavgadd=<seconds>", "Average additive dandelion embargo time. Default is " + std::to_string(defaultParams.embargoAvgAdd.count()));
 }
 
