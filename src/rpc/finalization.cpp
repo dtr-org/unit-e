@@ -14,7 +14,7 @@
 UniValue getfinalizationstate(const JSONRPCRequest &request) {
   if (request.fHelp || !request.params.empty()) {
     throw std::runtime_error(
-        "getesperanzastate\n"
+        "getfinalizationstate\n"
         "Returns an object containing finalization information."
         "\nResult:\n"
         "{\n"
@@ -44,10 +44,10 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
   return obj;
 }
 
-UniValue getesperanzaconfig(const JSONRPCRequest &request) {
+UniValue getfinalizationconfig(const JSONRPCRequest &request) {
   if (request.fHelp || !request.params.empty()) {
     throw std::runtime_error(
-        "getesperanzaconfig\n"
+        "getfinalizationconfig\n"
         "Returns an object containing the esperanza protocol configuration."
         "\nResult:\n"
         "{\n"
@@ -61,7 +61,7 @@ UniValue getesperanzaconfig(const JSONRPCRequest &request) {
         "  \"basePenaltyFactor\": xxxxxxx        (numeric) base penalty factor\n"
         "}\n"
         "\nExamples:\n" +
-        HelpExampleRpc("getesperanzaconfig", ""));
+        HelpExampleRpc("getfinalizationconfig", ""));
   }
 
   ObserveSafeMode();
@@ -83,14 +83,14 @@ UniValue getesperanzaconfig(const JSONRPCRequest &request) {
 
 // clang-format off
 static const CRPCCommand commands[] =
-        {   //  category    name                    actor (function)            argNames
-            //  --------    -------------------     ----------------            ----------
-            { "esperanza",  "getesperanzastate",    &getfinalizationstate,      {}          },
-            { "esperanza",  "getesperanzaconfig",   &getesperanzaconfig,        {}          },
+        {   //  category        name                      actor (function)            argNames
+            //  --------        -------------------       ----------------            ----------
+            { "finalization",  "getfinalizationstate",   &getfinalizationstate,       {}          },
+            { "finalization",  "getfinalizationconfig",  &getfinalizationconfig,      {}          },
         };
 // clang-format on
 
-void RegisterEsperanzaRPCCommands(CRPCTable &t) {
+void RegisterFinalizationRPCCommands(CRPCTable &t) {
   for (const auto &command : commands) {
     t.appendCommand(command.name, &command);
   }
