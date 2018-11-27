@@ -104,6 +104,7 @@ class SnapshotTest(UnitETestFramework):
         assert_equal(chain['initialsnapshotdownload'], False)
         assert_equal(chain['pruned'], True)
         assert_equal(chain['pruneheight'], 4)
+        assert_equal(full_node.gettxoutsetinfo(), isd_node.gettxoutsetinfo())
 
         # test that isd_node can be restarted
         restart_node(isd_node)
