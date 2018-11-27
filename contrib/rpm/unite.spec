@@ -336,7 +336,7 @@ done
 %{_sbindir}/semanage port -a -t unite_port_t -p tcp 7182
 %{_sbindir}/semanage port -a -t unite_port_t -p tcp 17181
 %{_sbindir}/semanage port -a -t unite_port_t -p tcp 17182
-%{_sbindir}/semanage port -a -t unite_port_t -p tcp 18443
+%{_sbindir}/semanage port -a -t unite_port_t -p tcp 17291
 %{_sbindir}/semanage port -a -t unite_port_t -p tcp 18444
 %{_sbindir}/fixfiles -R unite-server restore &> /dev/null || :
 %{_sbindir}/restorecon -R %{_localstatedir}/lib/unite || :
@@ -357,7 +357,7 @@ if [ $1 -eq 0 ]; then
 	%{_sbindir}/semanage port -d -p tcp 7182
 	%{_sbindir}/semanage port -d -p tcp 17181
 	%{_sbindir}/semanage port -d -p tcp 17182
-	%{_sbindir}/semanage port -d -p tcp 18443
+	%{_sbindir}/semanage port -d -p tcp 17291
 	%{_sbindir}/semanage port -d -p tcp 18444
 	for selinuxvariant in %{selinux_variants}; do
 		%{_sbindir}/semodule -s ${selinuxvariant} -r unite &> /dev/null || :
