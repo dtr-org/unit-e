@@ -34,7 +34,7 @@ bool HasSnapshotHash(const uint256 &hash) {
 std::unique_ptr<CNode> mockNode() {
   uint32_t ip = 0xa0b0c001;
   in_addr s{ip};
-  CService service(CNetAddr(s), 8333);
+  CService service(CNetAddr(s), 7182);
   CAddress addr(service, NODE_NONE);
 
   auto node = MakeUnique<CNode>(0, ServiceFlags(NODE_NETWORK | NODE_WITNESS), 0,
