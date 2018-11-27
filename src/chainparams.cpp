@@ -45,6 +45,7 @@ const std::pair<const char*, CAmount> regTestOutputs[] = {
     std::make_pair("1f34ea7e96d82102b22afed6d53d02715f8f6621", 10000 * UNIT),
     std::make_pair("eb07ad5db790ee4324b5cdd635709f47e41fd867", 10000 * UNIT),
 
+    // Check test/functional/test_framework/regtest_mnemonics.py to see the associated mnemonics
     std::make_pair("123e11b1002245baa28d5ad23b30dfe54f0dfa6d", 10000 * UNIT),
     std::make_pair("2c78252da8fbb60f70e737b57285ff807b463054", 10000 * UNIT),
     std::make_pair("a4bf9c5e1535c65889429dca2c8f8a96e0ad0680", 10000 * UNIT),
