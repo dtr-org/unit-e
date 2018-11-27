@@ -2,17 +2,25 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <chainparams.h>
 #include <esperanza/finalizationstate.h>
+
+#include <chainparams.h>
 #include <esperanza/validation.h>
 #include <esperanza/vote.h>
 #include <script/ismine.h>
-#include <stdio.h>
+#include <snapshot/creator.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
 #include <validation.h>
+
+#include <stdint.h>
+#include <algorithm>
+#include <cassert>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace esperanza {
 
@@ -1028,8 +1036,16 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         break;
       }
 
-      default: { break; }
+      default: {
+        break;
+      }
     }
+  }
+
+  if ((blockIndex.nHeight + 2) % state->m_settings.m_epochLength == 0) {
+    // Generate the snapshot for the block which is one block behind the last one.
+    // The last epoch block will contain the snapshot hash pointing to this snapshot.
+    snapshot::Creator::GenerateOrSkip(state->m_currentEpoch);
   }
 
   // This is the last block for the current epoch and it represent it, so we
@@ -1041,10 +1057,19 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
         __func__, block.GetHash().GetHex());
     state->m_recommendedTargetHash = block.GetHash();
+
+    // mark snapshots finalized up to the last finalized block
+    int64_t height = (state->m_lastFinalizedEpoch + 1) * state->m_settings.m_epochLength - 1;
+    if (height == blockIndex.nHeight) {  // instant confirmation
+      snapshot::Creator::FinalizeSnapshots(&blockIndex);
+    } else {
+      snapshot::Creator::FinalizeSnapshots(chainActive[height]);
+    }
   }
 
   return true;
 }
+
 // Private accessors used to avoid map's operator[] potential side effects.
 ufp64::ufp64_t FinalizationState::GetDepositScaleFactor(uint32_t epoch) const {
   auto it = m_depositScaleFactor.find(epoch);

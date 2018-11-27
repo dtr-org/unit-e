@@ -31,11 +31,8 @@ static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
 
 // use full names to void collision with the Bitcoin naming
-static const std::string DB_SNAPSHOT_ID = "SNAPSHOT";
-static const std::string DB_INIT_SNAPSHOT_ID = "INIT_SNAPSHOT";
-static const std::string DB_CANDIDATE_SNAPSHOT_ID = "CANDIDATE_SNAPSHOT";
-static const std::string DB_ALL_SNAPSHOTS = "ALL_SNAPSHOTS";
 static const std::string DB_SNAPSHOT_HASH_DATA = "SNAPSHOT_HASH_DATA";
+static const std::string DB_SNAPSHOT_INDEX = "SNAPSHOT_INDEX";
 
 namespace {
 
@@ -433,67 +430,6 @@ bool CCoinsViewDB::Upgrade() {
     return !ShutdownRequested();
 }
 
-bool CCoinsViewDB::GetSnapshotId(uint32_t &idOut) {
-    return db.Read(DB_SNAPSHOT_ID, idOut);
-}
-
-bool CCoinsViewDB::SetSnapshotId(uint32_t id) {
-    return db.Write(DB_SNAPSHOT_ID, id, true);
-}
-
-bool CCoinsViewDB::GetCandidateSnapshotId(uint32_t &idOut) {
-    return db.Read(DB_CANDIDATE_SNAPSHOT_ID, idOut);
-}
-
-bool CCoinsViewDB::SetCandidateSnapshotId(uint32_t id) {
-    return db.Write(DB_CANDIDATE_SNAPSHOT_ID, id, true);
-}
-
-bool CCoinsViewDB::GetInitSnapshotId(uint32_t &idOut) {
-    return db.Read(DB_INIT_SNAPSHOT_ID, idOut);
-}
-
-bool CCoinsViewDB::SetInitSnapshotId(uint32_t id) {
-    return db.Write(DB_INIT_SNAPSHOT_ID, id, true);
-}
-
-bool CCoinsViewDB::DeleteInitSnapshotId() {
-    return db.Erase(DB_INIT_SNAPSHOT_ID, true);
-}
-
-std::vector<uint32_t> CCoinsViewDB::GetSnapshotIds()  {
-    std::vector<uint32_t> ids;
-    if (!db.Read(DB_ALL_SNAPSHOTS, ids)) {
-        return std::vector<uint32_t>();
-    }
-
-    return ids;
-}
-
-bool CCoinsViewDB::SetSnapshotIds(std::vector<uint32_t> &ids) {
-    return db.Write(DB_ALL_SNAPSHOTS, ids, true);
-}
-
-bool CCoinsViewDB::ReserveSnapshotId(uint32_t &idOut) {
-    LOCK(cs_reservedSnapshotId);
-
-    std::vector<uint32_t> ids = GetSnapshotIds();
-
-    if (ids.empty()) {
-        idOut = 0;
-    } else {
-        idOut = ids.back() + 1;
-    }
-
-    ids.emplace_back(idOut);
-    if (!db.Write(DB_ALL_SNAPSHOTS, ids, true)) {
-        idOut = 0;
-        return false;
-    }
-
-    return true;
-}
-
 snapshot::SnapshotHash CCoinsViewDB::GetSnapshotHash() const {
     std::vector<uint8_t>data;
     if (db.Read(DB_SNAPSHOT_HASH_DATA, data)) {
@@ -502,8 +438,12 @@ snapshot::SnapshotHash CCoinsViewDB::GetSnapshotHash() const {
     return snapshot::SnapshotHash();
 }
 
-bool CCoinsViewDB::SetSnapshotHash(const snapshot::SnapshotHash &hash) {
-    return db.Write(DB_SNAPSHOT_HASH_DATA, hash.GetData());
+bool CCoinsViewDB::SetSnapshotIndex(const snapshot::SnapshotIndex &snapshotIndex) {
+    return db.Write(DB_SNAPSHOT_INDEX, snapshotIndex);
+}
+
+bool CCoinsViewDB::GetSnapshotIndex(snapshot::SnapshotIndex &snapshotIndexOut) {
+    return db.Read(DB_SNAPSHOT_INDEX, snapshotIndexOut);
 }
 
 void CCoinsViewDB::ClearCoins() {

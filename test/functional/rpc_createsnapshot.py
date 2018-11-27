@@ -10,33 +10,41 @@ from test_framework.util import assert_equal
 class RpcCreateSnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
+        self.extra_args = [
+            ['-createsnapshot=0']
+        ]
+        self.setup_clean_chain = True
 
     def test_full_snapshot_creation(self):
         node = self.nodes[0]
+        node.generatetoaddress(50, node.getnewaddress())
+
         res = node.createsnapshot()
         keys = sorted(res.keys())
         assert_equal(keys, [
-            "all_snapshot_ids",
-            "best_block_hash",
-            "current_snapshot_id",
-            "snapshot_hash",
-            "total_outputs",
-            "total_utxo_subsets",
+            'block_hash',
+            'block_height',
+            'snapshot_hash',
+            'stake_modifier',
+            'total_outputs',
+            'total_utxo_subsets',
+            'valid'
         ])
-        assert_equal(res['current_snapshot_id'], 0)
-        assert_equal(res['total_utxo_subsets'], 201)
-        assert_equal(res['total_outputs'], 205)
-        assert_equal(res['best_block_hash'], node.getbestblockhash())
-        assert_equal(res['snapshot_hash'], node.readsnapshot(res['current_snapshot_id'])['snapshot_hash'])
+        assert_equal(res['valid'], True)
+        assert_equal(res['block_hash'], node.getbestblockhash())
+        assert_equal(res['snapshot_hash'], node.getblocksnapshot(node.getbestblockhash())['snapshot_hash'])
+        assert_equal(res['total_utxo_subsets'], 51)
+        assert_equal(res['total_outputs'], 55)
 
     def test_partial_snapshot_creation(self):
         node = self.nodes[0]
+        node.generatetoaddress(1, node.getnewaddress())
         res = node.createsnapshot(10)
-        assert_equal(res['current_snapshot_id'], 1)
+        assert_equal(res['valid'], True)
+        assert_equal(res['block_hash'], node.getbestblockhash())
+        assert_equal(res['snapshot_hash'], node.getblocksnapshot(node.getbestblockhash())['snapshot_hash'])
         assert_equal(res['total_utxo_subsets'], 10)
         assert_equal(res['total_outputs'], 10)
-        assert_equal(res['best_block_hash'], node.getbestblockhash())
-        assert_equal(res['snapshot_hash'], node.readsnapshot(res['current_snapshot_id'])['snapshot_hash'])
 
     def run_test(self):
         self.test_full_snapshot_creation()

@@ -152,7 +152,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendtypeto", 6, "coincontrol" },
 
     { "createsnapshot", 0, "maxutxosubsets" },
-    { "readsnapshot", 0, "id" },
 };
 
 class CRPCConvertTable

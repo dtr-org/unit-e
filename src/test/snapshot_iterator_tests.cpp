@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
   {
     // generate the snapshot
     uint256 blockHash = uint256S("aa");
-    snapshot::Indexer idx(0, uint256(), blockHash, uint256(), 3, 2);
+    snapshot::Indexer idx(uint256S("bb"), blockHash, uint256(), 3, 2);
     for (uint32_t i = 0; i < msgsToGenerate; ++i) {
       snapshot::UTXOSubset subset;
       subset.m_txId.SetHex(std::to_string(i));
@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
 
   {
     // test snapshot hash calculation
-    std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(0);
+    std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(uint256S("bb"));
     BOOST_CHECK(idx != nullptr);
     snapshot::Iterator iter(std::move(idx));
     BOOST_CHECK_EQUAL(iter.CalculateHash(uint256()).GetHex(),
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
 
   {
     // open the snapshot
-    auto idx = snapshot::Indexer::Open(0);
+    auto idx = snapshot::Indexer::Open(uint256S("bb"));
     BOOST_CHECK(idx != nullptr);
 
     snapshot::Iterator iter(std::move(idx));

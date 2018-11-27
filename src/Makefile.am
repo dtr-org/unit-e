@@ -191,7 +191,9 @@ UNITE_CORE_H = \
   snapshot/iterator.h \
   snapshot/messages.h \
   snapshot/p2p_processing.h \
+  snapshot/params.h \
   snapshot/rpc_processing.h \
+  snapshot/snapshot_index.h \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
   staking/block_validator.h \
@@ -302,6 +304,7 @@ libunite_server_a_SOURCES = \
   snapshot/messages.cpp \
   snapshot/p2p_processing.cpp \
   snapshot/rpc_processing.cpp \
+  snapshot/snapshot_index.cpp \
   snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
   staking/block_validator.cpp \

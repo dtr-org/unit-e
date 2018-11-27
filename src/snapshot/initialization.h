@@ -5,13 +5,12 @@
 #ifndef UNITE_SNAPSHOT_INITIALIZATION_H
 #define UNITE_SNAPSHOT_INITIALIZATION_H
 
-#include <scheduler.h>
-#include <txdb.h>
+#include <snapshot/params.h>
 
 namespace snapshot {
 
 //! Initialize snapshot module
-bool Initialize(CCoinsViewDB *view, CScheduler &scheduler);
+bool Initialize(const Params &params);
 
 //! Deinitialize cleans up initialized objects
 void Deinitialize();

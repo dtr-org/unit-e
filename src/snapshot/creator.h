@@ -5,14 +5,16 @@
 #ifndef UNITE_SNAPSHOT_CREATOR_H
 #define UNITE_SNAPSHOT_CREATOR_H
 
-#include <stdint.h>
-#include <string>
-
 #include <better-enums/enum.h>
 #include <scheduler.h>
+#include <snapshot/chainstate_iterator.h>
 #include <snapshot/indexer.h>
+#include <snapshot/params.h>
 #include <streams.h>
 #include <txdb.h>
+
+#include <stdint.h>
+#include <string>
 
 namespace snapshot {
 
@@ -21,11 +23,8 @@ BETTER_ENUM(
   Status,
   uint8_t,
   OK,
-  WRITE_ERROR,                // filesystem issue
-  RESERVE_SNAPSHOT_ID_ERROR,  // chainparams DB issue
-  SET_SNAPSHOT_ID_ERROR,      // chainparams DB issue
-  SET_ALL_SNAPSHOTS_ERROR,    // chainparams DB issue
-  CALC_SNAPSHOT_HASH_ERROR    // can't calculate the hash
+  WRITE_ERROR,              // filesystem issue
+  CALC_SNAPSHOT_HASH_ERROR  // can't calculate the hash
 )
 // clang-format on
 
@@ -37,6 +36,9 @@ struct CreationInfo {
   CreationInfo() : m_status(Status::OK), m_totalOutputs(0) {}
 };
 
+//! Creator class accepts the CCoinsViewDB and takes the cursor of it
+//! at the point of object construction. Once the Create() function is called,
+//! creator object should be thrown way. It's not designed to be re-used.
 class Creator {
  public:
   //! aggregate messages per index
@@ -53,16 +55,29 @@ class Creator {
   //! \brief Init Initializes the instance of Creator
   //!
   //! Must be invoked before calling any other snapshot::Snapshot* functions
-  static void Init(CCoinsViewDB *view, CScheduler &scheduler);
+  static void Init(const Params &params);
+
+  //! Deallocates resources created by Init()
+  static void Deinit();
 
   explicit Creator(CCoinsViewDB *view);
+
+  //! Creates the snapshot of the current chainstate DB
   CreationInfo Create();
 
- private:
-  CCoinsViewDB *m_view;
+  //! Checks if the snapshot must be created for the current epoch
+  //! according to the ChainParams.createSnapshotPerEpoch. Snapshot creation is
+  //! performed in a separate thread.
+  //!
+  //! \@param currentEpoch is the current epoch number which starts from 0
+  static void GenerateOrSkip(uint32_t currentEpoch);
 
-  //! \brief Generate calls Create() recurrently in the thread
-  void Generate();
+  //! Marks snapshots of the same branch as blockIndex
+  //! and up to its height finalized
+  static void FinalizeSnapshots(const CBlockIndex *blockIndex);
+
+ private:
+  ChainstateIterator m_iter;
 };
 
 }  // namespace snapshot

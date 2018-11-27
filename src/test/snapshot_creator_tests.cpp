@@ -7,6 +7,7 @@
 
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
+#include <snapshot/snapshot_index.h>
 #include <test/test_unite.h>
 #include <util.h>
 #include <validation.h>
@@ -14,17 +15,25 @@
 
 BOOST_FIXTURE_TEST_SUITE(snapshot_creator_tests, BasicTestingSetup)
 
+bool HasSnapshotHash(const uint256 &hash) {
+  for (const snapshot::Checkpoint &p : snapshot::GetSnapshotCheckpoints()) {
+    if (p.snapshotHash == hash) {
+      return true;
+    }
+  }
+  return false;
+}
+
 BOOST_AUTO_TEST_CASE(snapshot_creator) {
   SetDataDir("snapshot_creator");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
+  assert(snapshot::GetSnapshotCheckpoints().empty());
 
   uint256 bestBlock = uint256S("aa");
-  uint256 stakeModifier = uint256S("bb");
   auto bi = new CBlockIndex();
   bi->nTime = 1269211443;
   bi->nBits = 246;
-  bi->bnStakeModifier = stakeModifier;
-  mapBlockIndex[bestBlock] = bi;
+  bi->phashBlock = &mapBlockIndex.emplace(bestBlock, bi).first->first;
 
   auto viewDB = MakeUnique<CCoinsViewDB>(0, false, true);
   auto viewCache = MakeUnique<CCoinsViewCache>(viewDB.get());
@@ -49,41 +58,45 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
     BOOST_CHECK(viewCache->Flush());
   }
 
-  snapshot::Creator creator(viewDB.get());
-  creator.m_step = 3;
-  creator.m_stepsPerFile = 2;
-
   {
     // create snapshots
-    std::vector<uint32_t> ids;
+    std::vector<uint256> deletedSnapshots;
+    size_t maxSnapshotsToKeep = 5;
     for (uint32_t idx = 0; idx < 10; ++idx) {
+      // update stake modifier to trigger different snapshot hash
+      std::string sm = "a" + std::to_string(idx);
+      mapBlockIndex[bestBlock]->bnStakeModifier.SetHex(sm);
+      mapBlockIndex[bestBlock]->nHeight = idx;
+
+      snapshot::Creator creator(viewDB.get());
+      creator.m_step = 3;
+      creator.m_stepsPerFile = 2;
       snapshot::CreationInfo info = creator.Create();
 
-      // validate snapshot ID
-      uint32_t snapshotId{0};
-      BOOST_CHECK(viewDB->GetSnapshotId(snapshotId));
-      BOOST_CHECK_EQUAL(snapshotId, idx);
-      ids.emplace_back(idx);
+      std::vector<snapshot::Checkpoint> checkpoints =
+          snapshot::GetSnapshotCheckpoints();
+      BOOST_CHECK(!checkpoints.empty());
+      BOOST_CHECK(checkpoints.size() <= maxSnapshotsToKeep);
 
-      // keep up to 5 snapshots
-      auto lastN = std::min<uint64_t>(5, ids.size());
-
-      BOOST_CHECK(viewDB->GetSnapshotIds() ==
-                  std::vector<uint32_t>(ids.end() - lastN, ids.end()));
+      if (idx == 4) {
+        for (const snapshot::Checkpoint &p : checkpoints) {
+          deletedSnapshots.push_back(p.snapshotHash);
+        }
+      }
 
       // validate reported state
       BOOST_CHECK_EQUAL(info.m_status, +snapshot::Status::OK);
       BOOST_CHECK(!info.m_indexerMeta.m_snapshotHash.IsNull());
       BOOST_CHECK_EQUAL(info.m_indexerMeta.m_snapshotHash.GetHex(),
-                        viewDB->GetSnapshotHash().GetHash(stakeModifier).GetHex());
-      BOOST_CHECK_EQUAL(HexStr(info.m_indexerMeta.m_bestBlockHash),
+                        checkpoints.rbegin()->snapshotHash.GetHex());
+      BOOST_CHECK_EQUAL(HexStr(info.m_indexerMeta.m_blockHash),
                         HexStr(bestBlock));
       BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSubsets, totalTX);
       BOOST_CHECK_EQUAL(info.m_totalOutputs,
                         static_cast<int>(totalTX * coinsPerTX));
 
       // validate snapshot content
-      auto i = snapshot::Indexer::Open(snapshotId);
+      auto i = snapshot::Indexer::Open(checkpoints.rbegin()->snapshotHash);
       snapshot::Iterator iter(std::move(i));
       uint64_t count = 0;
       while (iter.Valid()) {
@@ -91,6 +104,12 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
         iter.Next();
       }
       BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSubsets, count);
+    }
+
+    BOOST_CHECK_EQUAL(deletedSnapshots.size(), 5);
+    for (const uint256 &hash : deletedSnapshots) {
+      BOOST_CHECK(!HasSnapshotHash(hash));
+      BOOST_CHECK(snapshot::Indexer::Open(hash) == nullptr);
     }
   }
 

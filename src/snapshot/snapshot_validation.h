@@ -21,6 +21,9 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
                               const CBlockIndex *blockIndex,
                               const CCoinsViewCache &view);
 
+bool ReadSnapshotHashFromTx(const CTransaction &tx,
+                            uint256 &snapshotHashOut);
+
 }  // namespace snapshot
 
 #endif  // UNIT_E_SNAPSHOT_VALIDATION_H

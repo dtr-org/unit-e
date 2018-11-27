@@ -44,4 +44,34 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
   return view.GetSnapshotHash().GetHash(sm) == uint256(buf);
 }
 
+bool ReadSnapshotHashFromTx(const CTransaction &tx,
+                            uint256 &snapshotHashOut) {
+  if (!tx.IsCoinBase()) {
+    return false;
+  }
+
+  assert(!tx.vin.empty());
+
+  CScript script = tx.vin[0].scriptSig;
+
+  opcodetype op;
+  std::vector<uint8_t> buf;
+
+  CScript::const_iterator it = script.begin();
+  if (!script.GetOp(it, op, buf)) {  // skip height
+    return false;
+  }
+
+  if (!script.GetOp(it, op, buf)) {  // read snapshot hash
+    return false;
+  }
+
+  if (buf.size() != 32) {
+    return false;
+  }
+
+  snapshotHashOut = uint256(buf);
+  return true;
+}
+
 }  // namespace snapshot
