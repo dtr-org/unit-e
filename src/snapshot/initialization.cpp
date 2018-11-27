@@ -50,6 +50,7 @@ bool Initialize(const Params &params) {
 
   LoadSnapshotIndex();
   Creator::Init(params);
+  InitP2P(params);
 
   return true;
 }

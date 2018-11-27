@@ -5,6 +5,8 @@
 #ifndef UNITE_SNAPSHOT_P2P_PROCESSING_H
 #define UNITE_SNAPSHOT_P2P_PROCESSING_H
 
+#include <snapshot/params.h>
+
 #include <stdint.h>
 #include <memory>
 #include <vector>
@@ -17,6 +19,8 @@
 namespace snapshot {
 
 constexpr uint16_t MAX_UTXO_SET_COUNT = 10000;
+
+void InitP2P(const Params &params);
 
 bool ProcessGetSnapshot(CNode *node, CDataStream &data,
                         const CNetMsgMaker &msgMaker);

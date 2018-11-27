@@ -19,12 +19,13 @@ namespace snapshot {
 //! 4. snapshot applied (leave ISD)
 class State {
  public:
-  State() : m_isdMode(false), m_isdLatch(false), m_headersDownloaded(false){};
+  State() : m_isdMode(false), m_isdLatch(false), m_headersDownloaded(false) {}
 
   void StoreCandidateBlockHash(uint256 hash);
   uint256 LoadCandidateBlockHash();
-  void EnableISDMode() { m_isdMode = true; };
-  bool IsISDEnabled() { return m_isdMode; };
+  void EnableISDMode() { m_isdMode = true; }
+  void DisableISDMode() { m_isdMode = false; }
+  bool IsISDEnabled() { return m_isdMode; }
 
   //! \brief IsInitialSnapshotDownload checks if we are in the ISD mode
   //!
@@ -38,7 +39,7 @@ class State {
 
  private:
   // true if we're running in the Initial Snapshot Download mode.
-  bool m_isdMode;
+  std::atomic<bool> m_isdMode;
 
   // tracks when we leave ISD
   std::atomic<bool> m_isdLatch;
@@ -55,6 +56,7 @@ void StoreCandidateBlockHash(uint256 hash);
 uint256 LoadCandidateBlockHash();
 bool IsInitialSnapshotDownload();
 void EnableISDMode();
+void DisableISDMode();
 bool IsISDEnabled();
 void HeadersDownloaded();
 bool IsHeadersDownloaded();

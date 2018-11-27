@@ -175,6 +175,26 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
   return SnapshotNode(info.m_indexerMeta.m_snapshotHash);
 }
 
+UniValue deletesnapshot(const JSONRPCRequest &request) {
+  if (request.fHelp || request.params.size() > 1) {
+    throw std::runtime_error(
+        "deletesnapshot (<snapshothash>)\n"
+        "\nDeletes snapshot from disk.\n"
+        "\nArguments:\n"
+        "1. snapshothash (hex, required) hash of the snapshot to delete"
+        "\nExamples:\n" +
+        HelpExampleCli("deletesnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03") +
+        HelpExampleRpc("deletesnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"));
+  }
+
+  uint256 snapshotHash = uint256S(request.params[0].get_str());
+  SnapshotIndex::DeleteSnapshot(snapshotHash);
+
+  UniValue root(UniValue::VOBJ);
+  root.push_back(Pair("snapshot_hash", snapshotHash.GetHex()));
+  return root;
+}
+
 UniValue calcsnapshothash(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() < 2) {
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
@@ -267,6 +287,7 @@ static const CRPCCommand commands[] = {
     // category     name                 actor (function)   argNames
     // --------     -----------------   ----------------   --------
     { "blockchain", "createsnapshot",   &createsnapshot,   {"maxutxosubsets"} },
+    { "blockchain", "deletesnapshot",   &deletesnapshot,   {"snapshothash"} },
     { "blockchain", "getblocksnapshot", &getblocksnapshot, {"blockhash"} },
     { "blockchain", "listsnapshots",    &listsnapshots,    {""} },
     { "blockchain", "gettipsnapshot",   &gettipsnapshot,   {}},

@@ -16,6 +16,12 @@
 
 namespace snapshot {
 
+uint16_t g_fast_sync_timeout_sec;
+
+void InitP2P(const Params &params) {
+  g_fast_sync_timeout_sec = params.fast_sync_timeout_sec;
+}
+
 // todo: remove it after merging
 // https://github.com/bitcoin/bitcoin/commit/92fabcd443322dcfdf2b3477515fae79e8647d86
 inline CBlockIndex *LookupBlockIndex(const uint256 &hash) {
@@ -91,13 +97,15 @@ bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
   LogPrint(BCLog::NET, "send getsnapshot: peer=%i index=%i count=%i\n",
            node->GetId(), msg.m_utxoSubsetIndex, msg.m_utxoSubsetCount);
 
+
+  int64_t now = std::chrono::seconds(std::time(nullptr)).count();
+  node->m_snapshot_requested_at = now;
   g_connman->PushMessage(node, msgMaker.Make(NetMsgType::GETSNAPSHOT, msg));
   return true;
 }
 
 // helper function for ProcessSnapshot
-bool SaveSnapshotAndRequestMore(const CBlockIndex *blockIndex,
-                                std::unique_ptr<Indexer> &&indexer,
+bool SaveSnapshotAndRequestMore(std::unique_ptr<Indexer> &&indexer,
                                 Snapshot &snap, CNode *node,
                                 const CNetMsgMaker &msgMaker) {
   // todo allow to accept messages not in a sequential order
@@ -216,8 +224,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
       }
     }
 
-    return SaveSnapshotAndRequestMore(msgBlockIndex,
-                                      std::move(indexer), msg, node, msgMaker);
+    return SaveSnapshotAndRequestMore(std::move(indexer), msg, node, msgMaker);
   }
 
   // always create a new snapshot if previous one can't be opened.
@@ -231,8 +238,7 @@ bool ProcessSnapshot(CNode *node, CDataStream &data,
   indexer.reset(new Indexer(msg.m_snapshotHash, msg.m_bestBlockHash,
                             msg.m_stakeModifier,
                             DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
-  return SaveSnapshotAndRequestMore(msgBlockIndex, std::move(indexer), msg, node,
-                                    msgMaker);
+  return SaveSnapshotAndRequestMore(std::move(indexer), msg, node, msgMaker);
 }
 
 void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
@@ -254,10 +260,34 @@ void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
   }
 
   // discover the latest snapshot from the peers
-  if (node->sentInitGetSnapshot) {
+
+  const int64_t now = std::chrono::seconds(std::time(nullptr)).count();
+
+  if (node->m_snapshot_requested_at > 0) {
+
+    // if there are no peers to fetch snapshot from, fallback to IBD
+    bool available = false;
+    int64_t last_requested = node->m_snapshot_requested_at;
+    g_connman->ForEachNode([&available, &last_requested](CNode *node) {
+      if (node->m_snapshot_requested_at == 0) {
+        available = true;
+        return;
+      }
+
+      if (node->m_snapshot_requested_at > last_requested) {
+        last_requested = node->m_snapshot_requested_at;
+      }
+    });
+
+    bool timed_out = now - last_requested > g_fast_sync_timeout_sec;
+    if (!available && timed_out) {
+      DisableISDMode();
+    }
+
     return;
   }
-  node->sentInitGetSnapshot = true;
+
+  node->m_snapshot_requested_at = now;
 
   // todo: add block hash locators
   GetSnapshot msg;
