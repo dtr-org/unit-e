@@ -158,7 +158,7 @@ UNITE_CORE_H = \
   proposer/multiwallet.h \
   proposer/network.h \
   proposer/proposer.h \
-  proposer/proposer_init.h \
+  proposer/proposer_rpc.h \
   proposer/proposer_settings.h \
   proposer/proposer_state.h \
   proposer/proposer_status.h \
@@ -285,6 +285,9 @@ libunite_server_a_SOURCES = \
   policy/policy.cpp \
   policy/rbf.cpp \
   pow.cpp \
+  proposer/chainstate.cpp \
+  proposer/network.cpp \
+  proposer/transactionpicker.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
   rpc/finalization.cpp \
@@ -338,12 +341,10 @@ libunite_wallet_a_SOURCES = \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/blockproposer.cpp \
-  proposer/chainstate.cpp \
   proposer/multiwallet.cpp \
-  proposer/network.cpp \
   proposer/proposer.cpp \
-  proposer/proposer_init.cpp \
-  proposer/transactionpicker.cpp \
+  proposer/proposer_rpc.cpp \
+  proposer/proposer_settings.cpp \
   proposer/sync.cpp \
   proposer/waiter.cpp \
   rpc/proposer.cpp \

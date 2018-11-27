@@ -24,6 +24,10 @@ class Network {
   //! \brief returns the number of other nodes this node is connected to.
   virtual size_t GetNodeCount() = 0;
 
+  virtual size_t GetInboundNodeCount() = 0;
+
+  virtual size_t GetOutboundNodeCount() = 0;
+
   virtual ~Network() = default;
 
   static std::unique_ptr<Network> New();

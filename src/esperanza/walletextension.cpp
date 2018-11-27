@@ -265,7 +265,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   size_t nStakesCombined = 0;
   it = setCoins.begin();
   while (it != setCoins.end()) {
-    if (nStakesCombined >= m_proposerSettings->m_maxStakeCombine) {
+    if (nStakesCombined >= m_proposerSettings->max_stake_combine) {
       break;
     }
 
@@ -275,7 +275,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
     }
 
     // Stop adding more inputs if value is already pretty significant
-    if (nCredit >= m_proposerSettings->m_stakeCombineThreshold) {
+    if (nCredit >= m_proposerSettings->stake_combine_threshold) {
       break;
     }
 
@@ -293,7 +293,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
       break;
     }
     // Do not add additional significant input
-    if (prevOut.nValue >= m_proposerSettings->m_stakeCombineThreshold) {
+    if (prevOut.nValue >= m_proposerSettings->stake_combine_threshold) {
       continue;
     }
 
@@ -322,7 +322,7 @@ bool WalletExtension::CreateCoinStake(unsigned int nBits, int64_t nTime,
   nCredit += nRewardOut;
 
   // Set output amount, split outputs if > nStakeSplitThreshold
-  if (nCredit >= m_proposerSettings->m_stakeSplitThreshold) {
+  if (nCredit >= m_proposerSettings->stake_split_threshold) {
     CTxOut outSplit(0, scriptPubKeyKernel);
 
     txNew.vout.back().nValue = nCredit / 2;
@@ -389,7 +389,9 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 
 // UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
-  if (m_settings.m_validating && !m_settings.m_proposing) {
+  // UNIT-E: TODO get proposing flag from appropriate place
+  bool proposing = false;
+  if (m_settings.m_validating && proposing) {
     LogPrint(BCLog::FINALIZATION, "%s: -validating is enabled for wallet %s.\n",
              __func__, m_enclosingWallet->GetName());
 

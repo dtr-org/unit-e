@@ -29,10 +29,6 @@ std::array<std::size_t, NUM_BYTE_VALUES> ComputeTable() noexcept {
 
 std::array<std::size_t, NUM_BYTE_VALUES> numberOfBitsSetPerByte = ComputeTable();
 
-std::size_t CountBitsSetInByte(const std::uint8_t byte) {
-  return numberOfBitsSetPerByte[byte];
-}
-
 }  // namespace
 
 template <typename T>
@@ -41,7 +37,7 @@ std::size_t CountBitsSet(T n) {
   static_assert(std::is_unsigned<T>::value, "T must be an unsigned type.");
   std::size_t count = 0;
   while (n != 0) {
-    count += CountBitsSetInByte(static_cast<std::uint8_t>(n & 0xff));
+    count += numberOfBitsSetPerByte[static_cast<std::uint8_t>(n & 0xff)];
     n >>= 8;
   }
   return count;

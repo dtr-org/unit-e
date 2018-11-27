@@ -13,9 +13,6 @@
 namespace esperanza {
 
 struct Settings {
-  //! Whether this node should propose blocks or not.
-  bool m_proposing = true;
-
   //! Whether this node should be a validator.
   bool m_validating = false;
 

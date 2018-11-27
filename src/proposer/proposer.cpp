@@ -20,26 +20,29 @@
 
 namespace proposer {
 
-Proposer::Thread::Thread(const std::string &threadName,
-                         Proposer &parentProposer,
-                         const std::vector<CWallet *> &wallets)
-    : m_threadName(threadName),
+ProposerImpl::Thread::Thread(const std::string &threadName,
+                             ProposerImpl &parentProposer,
+                             const std::vector<CWallet *> &wallets)
+    : m_thread_name(threadName),
       m_proposer(parentProposer),
       m_interrupted(false),
       m_waiter(),
       m_wallets(wallets) {
-  std::thread thread(Proposer::Run, std::ref(*this));
+  std::thread thread(ProposerImpl::Run, std::ref(*this));
   thread.detach();
 }
 
-void Proposer::Thread::Stop() {
+void ProposerImpl::Thread::Stop() {
   m_interrupted = true;
   Wake();
 }
 
-void Proposer::Thread::Wake() { m_waiter.Wake(); }
+void ProposerImpl::Thread::Wake() {
+  LogPrint(BCLog::PROPOSING, "Waking proposer-thread \"%s\"\n", m_thread_name);
+  m_waiter.Wake();
+}
 
-void Proposer::Thread::SetStatus(const Status status, CWallet *const wallet) {
+void ProposerImpl::Thread::SetStatus(const Status status, CWallet *const wallet) {
   if (wallet) {
     wallet->GetWalletExtension().m_proposerState.m_status = status;
   } else {
@@ -49,13 +52,13 @@ void Proposer::Thread::SetStatus(const Status status, CWallet *const wallet) {
   }
 }
 
-std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
+std::vector<std::unique_ptr<ProposerImpl::Thread>> ProposerImpl::CreateProposerThreads(
     Dependency<MultiWallet> multiWallet) {
   const std::vector<CWallet *> &wallets = multiWallet->GetWallets();
   // total number of threads can not exceed number of wallets
   const size_t numThreads =
       std::min(wallets.size(),
-               std::max<size_t>(1, m_settings->m_numberOfProposerThreads));
+               std::max<size_t>(1, m_settings->number_of_proposer_threads));
 
   using WalletIndex = size_t;
   using ThreadIndex = size_t;
@@ -69,7 +72,7 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   }
 
   // create thread objects
-  std::vector<std::unique_ptr<Proposer::Thread>> threads;
+  std::vector<std::unique_ptr<ProposerImpl::Thread>> threads;
   for (ThreadIndex threadIx = 0; threadIx < numThreads; ++threadIx) {
     std::vector<CWallet *> thisThreadsWallets;
     const auto walletRange = indexMap.equal_range(threadIx);
@@ -77,9 +80,9 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
       thisThreadsWallets.push_back(wallets[entry->second]);
     }
     std::string threadName =
-        m_settings->m_proposerThreadName + "-" + std::to_string(threadIx);
-    threads.emplace_back(std::unique_ptr<Proposer::Thread>(
-        new Proposer::Thread(threadName, *this, thisThreadsWallets)));
+        m_settings->proposer_thread_prefix + "-" + std::to_string(threadIx);
+    threads.emplace_back(std::unique_ptr<ProposerImpl::Thread>(
+        new ProposerImpl::Thread(threadName, *this, thisThreadsWallets)));
   }
 
   m_initSemaphore.acquire(numThreads);
@@ -88,42 +91,57 @@ std::vector<std::unique_ptr<Proposer::Thread>> Proposer::CreateProposerThreads(
   return threads;
 }
 
-Proposer::Proposer(Dependency<Settings> settings,
-                   Dependency<MultiWallet> multiWallet,
-                   Dependency<Network> networkInterface,
-                   Dependency<ChainState> chainInterface,
-                   Dependency<BlockProposer> blockProposer)
+ProposerImpl::ProposerImpl(Dependency<Settings> settings,
+                           Dependency<MultiWallet> multiWallet,
+                           Dependency<Network> networkInterface,
+                           Dependency<ChainState> chainInterface,
+                           Dependency<BlockProposer> blockProposer)
     : m_settings(settings),
+      m_multi_wallet(multiWallet),
       m_network(networkInterface),
       m_chain(chainInterface),
       m_blockProposer(blockProposer),
+      m_started(ATOMIC_FLAG_INIT),
       m_initSemaphore(0),
       m_startSemaphore(0),
-      m_stopSemaphore(0),
-      m_threads(CreateProposerThreads(multiWallet)) {}
+      m_stopSemaphore(0) {}
 
-Proposer::~Proposer() { Stop(); }
+ProposerImpl::~ProposerImpl() {
+  if (!m_started.test_and_set()) {
+    LogPrint(BCLog::PROPOSING, "Freeing proposer (was not started)...\n");
+    return;
+  }
+  LogPrint(BCLog::PROPOSING, "Stopping proposer...\n");
 
-void Proposer::Start() { m_startSemaphore.release(m_threads.size()); }
-
-void Proposer::Stop() {
   for (const auto &thread : m_threads) {
-    // sets all threads m_interrupted and wakes them up in case they are
-    // sleeping
+    // sets all threads m_interrupted and wakes them up in case they are sleeping
+    LogPrint(BCLog::PROPOSING, "Stopping thread %s\n", thread->m_thread_name);
     thread->Stop();
   }
   // in case Start() was not called yet, start the threads so they can stop
   // (otherwise they are stuck)
   m_startSemaphore.release(m_threads.size());
+
   // wait for the threads to finish (important for the destructor, otherwise
   // memory might be released which is still accessed by a thread)
+  LogPrint(BCLog::PROPOSING, "Waiting for threads to finish...\n");
   m_stopSemaphore.acquire(m_threads.size());
-  // in case Stop() is going to be invoked twice (important for destructor) make
-  // sure there are enough permits in the stop semaphore for another invocation
-  m_stopSemaphore.release(m_threads.size());
+  LogPrint(BCLog::PROPOSING, "All proposer threads stopped.\n");
 }
 
-void Proposer::Wake(const CWallet *wallet) {
+void ProposerImpl::Start() {
+  if (m_started.test_and_set()) {
+    LogPrint(BCLog::PROPOSING, "WARN: Proposer started twice.\n");
+    return;
+  }
+  LogPrint(BCLog::PROPOSING, "Creating proposer threads...\n");
+  m_threads = std::move(CreateProposerThreads(m_multi_wallet));
+
+  LogPrint(BCLog::PROPOSING, "Starting proposer.\n");
+  m_startSemaphore.release(m_threads.size());
+}
+
+void ProposerImpl::Wake(const CWallet *wallet) {
   if (wallet) {
     // find and wake the thread that is responsible for this wallet
     for (const auto &thread : m_threads) {
@@ -147,15 +165,15 @@ int64_t seconds(const Duration t) {
   return std::chrono::duration_cast<std::chrono::seconds>(t).count();
 }
 
-void Proposer::Run(Proposer::Thread &thread) {
-  RenameThread(thread.m_threadName.c_str());
-  LogPrint(BCLog::PROPOSING, "%s: initialized.\n", thread.m_threadName.c_str());
+void ProposerImpl::Run(ProposerImpl::Thread &thread) {
+  RenameThread(thread.m_thread_name.c_str());
+  LogPrint(BCLog::PROPOSING, "%s: initialized.\n", thread.m_thread_name.c_str());
   for (const auto wallet : thread.m_wallets) {
     LogPrint(BCLog::PROPOSING, "  responsible for: %s\n", wallet->GetName());
   }
   thread.m_proposer.m_initSemaphore.release();
   thread.m_proposer.m_startSemaphore.acquire();
-  LogPrint(BCLog::PROPOSING, "%s: started.\n", thread.m_threadName.c_str());
+  LogPrint(BCLog::PROPOSING, "%s: started.\n", thread.m_thread_name.c_str());
 
   while (!thread.m_interrupted) {
     try {
@@ -189,7 +207,7 @@ void Proposer::Run(Proposer::Thread &thread) {
 
       for (auto *wallet : thread.m_wallets) {
         const int64_t gracePeriod =
-            seconds(thread.m_proposer.m_settings->m_minProposeInterval);
+            seconds(thread.m_proposer.m_settings->min_propose_interval);
         const int64_t lastTimeProposed =
             wallet->GetWalletExtension().m_proposerState.m_lastTimeProposed;
         const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
@@ -223,7 +241,7 @@ void Proposer::Run(Proposer::Thread &thread) {
       // and induce a sleep for a different duration. The thread as a whole
       // only has to sleep as long as the minimum of these durations to check
       // the wallet which is due next in time.
-      auto sleepFor = thread.m_proposer.m_settings->m_proposerSleep;
+      auto sleepFor = thread.m_proposer.m_settings->proposer_sleep;
       const auto setSleepDuration =
           [&sleepFor](const decltype(sleepFor) amount) {
             sleepFor = std::min(sleepFor, amount);
@@ -233,7 +251,7 @@ void Proposer::Run(Proposer::Thread &thread) {
 
         const int64_t waitTill =
             walletExt.m_proposerState.m_lastTimeProposed +
-            seconds(thread.m_proposer.m_settings->m_minProposeInterval);
+            seconds(thread.m_proposer.m_settings->min_propose_interval);
         if (bestTime < waitTill) {
           const decltype(sleepFor) amount =
               std::chrono::seconds(waitTill - bestTime);
@@ -260,7 +278,7 @@ void Proposer::Run(Proposer::Thread &thread) {
 
         if (!blockTemplate) {
           LogPrint(BCLog::PROPOSING, "%s/%s: failed to get block template",
-                   thread.m_threadName, wallet->GetName());
+                   thread.m_thread_name, wallet->GetName());
           continue;
         }
 
@@ -288,15 +306,15 @@ void Proposer::Run(Proposer::Thread &thread) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
       LogPrint(BCLog::PROPOSING, "%s: exception in proposer thread: %s\n",
-               thread.m_threadName, error.what());
+               thread.m_thread_name, error.what());
     } catch (...) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
       LogPrint(BCLog::PROPOSING, "%s: unknown exception in proposer thread.\n",
-               thread.m_threadName);
+               thread.m_thread_name);
     }
   }
-  LogPrint(BCLog::PROPOSING, "%s: stopping...\n", thread.m_threadName);
+  LogPrint(BCLog::PROPOSING, "%s: stopping...\n", thread.m_thread_name);
   thread.m_proposer.m_stopSemaphore.release();
 }
 
@@ -304,8 +322,11 @@ std::unique_ptr<Proposer> Proposer::New(
     Dependency<Settings> settings, Dependency<MultiWallet> multiWallet,
     Dependency<Network> network, Dependency<ChainState> chainState,
     Dependency<BlockProposer> blockProposer) {
-  return MakeUnique<Proposer>(settings, multiWallet, network, chainState,
-                              blockProposer);
+  if (settings->proposing) {
+    return std::unique_ptr<Proposer>(new ProposerImpl(settings, multiWallet, network, chainState, blockProposer));
+  } else {
+    return std::unique_ptr<Proposer>(new ProposerStub());
+  }
 }
 
 }  // namespace proposer

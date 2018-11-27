@@ -22,6 +22,7 @@
 #include <fs.h>
 #include <httpserver.h>
 #include <httprpc.h>
+#include <injector.h>
 #include <key.h>
 #include <validation.h>
 #include <miner.h>
@@ -54,7 +55,6 @@
 #include <wallet/wallet.h>
 #include <esperanza/settings.h>
 #include <esperanza/settings_init.h>
-#include <proposer/proposer_init.h>
 #include <rpc/proposer.h>
 #endif
 #include <warnings.h>
@@ -166,6 +166,7 @@ public:
 
 static std::unique_ptr<CCoinsViewErrorCatcher> pcoinscatcher;
 static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
+static std::unique_ptr<UnitEInjector> injector;
 
 static boost::thread_group threadGroup;
 static CScheduler scheduler;
@@ -202,7 +203,6 @@ void Shutdown()
     StopRPC();
     StopHTTPServer();
 #ifdef ENABLE_WALLET
-    proposer::StopProposer();
     FlushWallets();
 #endif
     MapPort(false);
@@ -260,6 +260,7 @@ void Shutdown()
         if (pcoinsTip != nullptr) {
             FlushStateToDisk();
         }
+        injector.reset();
         pcoinsTip.reset();
         pcoinscatcher.reset();
         pcoinsdbview.reset();
@@ -1289,6 +1290,9 @@ bool AppInitMain()
     }
 #endif
 
+    injector = MakeUnique<UnitEInjector>();
+    injector->Initialize();
+
     const CChainParams& chainparams = Params();
 
     // Set Esperanza parameters
@@ -1717,8 +1721,9 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
-    if (!OpenWallets(*esperanzaSettings))
+    if (!OpenWallets(*esperanzaSettings)) {
         return false;
+    }
 #else
     LogPrintf("No wallet support compiled in!\n");
 #endif
@@ -1869,13 +1874,13 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     StartWallets(scheduler);
+#endif
 
-    // ********************************************************* Step 13: start proposing
+    // ********************************************************* Step 13: start proposer
 
-    if (!proposer::InitProposer(*esperanzaSettings, vpwallets)) {
-        return false;
-    }
-    proposer::StartProposer();
+#ifdef ENABLE_WALLET
+    injector->GetProposer()->Start();
+    SetProposerRPC(injector->GetProposerRPC());
 #endif
 
     LogPrintf("Started up.\n");

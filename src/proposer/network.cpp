@@ -15,6 +15,14 @@ class NetworkAdapter : public Network {
   int64_t GetTime() const override { return GetAdjustedTime(); }
 
   size_t GetNodeCount() override { return g_connman->GetNodeCount(); }
+
+  size_t GetInboundNodeCount() override {
+    return g_connman->GetNodeCount(CConnman::CONNECTIONS_IN);
+  }
+
+  size_t GetOutboundNodeCount() override {
+    return g_connman->GetNodeCount(CConnman::CONNECTIONS_OUT);
+  }
 };
 
 std::unique_ptr<Network> Network::New() {

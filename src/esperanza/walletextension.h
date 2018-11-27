@@ -34,7 +34,7 @@ namespace esperanza {
 //! in bitcoin-core. The alterations done to wallet.h/wallet.cpp are kept to
 //! a minimum. All extended functionality should be put here.
 class WalletExtension : public staking::StakingWallet {
-  friend class proposer::Proposer;
+  friend class proposer::ProposerImpl;
 
  private:
   //! a reference to the esperanza settings

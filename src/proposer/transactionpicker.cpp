@@ -75,7 +75,7 @@ class BlockAssemblerAdapter final : public TransactionPicker {
 };
 
 std::unique_ptr<TransactionPicker>
-TransactionPicker::MakeBlockAssemblerAdapter() {
+TransactionPicker::New() {
 
   return std::unique_ptr<TransactionPicker>(
       new BlockAssemblerAdapter(::Params()));

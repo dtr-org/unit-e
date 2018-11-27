@@ -10,8 +10,7 @@ Settings::Settings(::ArgsManager &args) : Settings(args, Settings::Default()) {}
 
 //! initializes the settings by reading them from an args manager.
 Settings::Settings(::ArgsManager &args, const Settings &defaultConfig)
-    : m_proposing(args.GetBoolArg("-proposing", defaultConfig.m_proposing)),
-      m_validating(args.GetBoolArg("-validating", defaultConfig.m_validating)) {
+    : m_validating(args.GetBoolArg("-validating", defaultConfig.m_validating)) {
 }
 
 }  // namespace esperanza
