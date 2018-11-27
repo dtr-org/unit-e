@@ -69,7 +69,7 @@ class NodesHub:
         """
 
         for i, node in enumerate(self.nodes):
-            proxy_coroutine = self.loop.create_receiver(
+            proxy_coroutine = self.loop.create_server(
                 protocol_factory=lambda: NodeProxy(hub_ref=self),
                 host=self.host,
                 port=self.get_proxy_port(i)
