@@ -108,6 +108,7 @@ class SnapshotTest(UnitETestFramework):
 
         # test that isd_node can be restarted
         restart_node(isd_node)
+        wait_until(lambda: isd_node.getblockcount() == 9, timeout=5)
         chain = isd_node.getblockchaininfo()
         assert_equal(chain['headers'], 9)
         assert_equal(chain['blocks'], 9)
