@@ -18,7 +18,7 @@ class Params {
   //! \brief minimum embargo time
   std::chrono::seconds embargoMin = std::chrono::seconds(5);
 
-  //! \breif average embargo time that is added to embargoMin
+  //! \brief average embargo time that is added to embargoMin
   std::chrono::seconds embargoAvgAdd = std::chrono::seconds(2);
 
   //! \brief minimum numbers of fluffs to switch relay

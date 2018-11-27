@@ -10,13 +10,15 @@ boost::optional<NodeId> DandelionLite::GetNewRelay() {
   LOCK(m_main_cs);
 
   // Get all available outbound connections
-  const auto outbounds = m_sideEffects->GetOutboundNodes();
-  auto outboundsSet = std::unordered_set<NodeId>(outbounds.begin(), outbounds.end());
+  auto outbounds = m_sideEffects->GetOutboundNodes();
 
   // Some of unwanted nodes might have disconnected,
-  // Filter those that do not present in outboundsSet
+  // filter those that are not present in outbounds
   for (auto it = m_unwantedRelays.begin(); it != m_unwantedRelays.end();) {
-    if (outboundsSet.find(*it) == outboundsSet.end()) {
+    if (outbounds.find(*it) == outbounds.end()) {
+      // Erase returns iterator following the last removed element.
+      // ...Other iterators and references are not invalidated.
+      // https://en.cppreference.com/w/cpp/container/unordered_map/erase
       it = m_unwantedRelays.erase(it);
     } else {
       ++it;
@@ -24,43 +26,39 @@ boost::optional<NodeId> DandelionLite::GetNewRelay() {
   }
 
   // Filter unwanted nodes
-  for (const auto &unwanted : m_unwantedRelays) {
-    outboundsSet.erase(unwanted);
+  for (const NodeId &unwanted : m_unwantedRelays) {
+    outbounds.erase(unwanted);
   }
 
-  if (outboundsSet.empty()) {
+  if (outbounds.empty()) {
     return boost::none;
   }
 
-  auto relayIt = outboundsSet.begin();
-  const auto offset = m_sideEffects->RandRange(outboundsSet.size());
+  auto relayIt = outbounds.begin();
+  const auto offset = m_sideEffects->RandRange(outbounds.size());
   std::advance(relayIt, offset);
   return *relayIt;
 }
 
-bool DandelionLite::SendToAndRemember(boost::optional<NodeId> relay,
+bool DandelionLite::SendToAndRemember(NodeId relay,
                                       const uint256 &txHash) {
   LOCK(m_main_cs);
 
-  if (!relay) {
-    return false;
-  }
-
   AssertLockNotHeld(m_embargo_cs);
-  const auto sent = m_sideEffects->SendTxInv(relay.value(), txHash);
+  const auto sent = m_sideEffects->SendTxInv(relay, txHash);
 
   if (sent) {
     m_relay = relay;
     const auto embargo = m_sideEffects->GetNextEmbargoTime();
 
     LOCK(m_embargo_cs);
-    m_txToRelay.emplace(txHash, relay.value());
+    m_txToRelay.emplace(txHash, relay);
     m_embargoToTx.emplace(embargo, txHash);
 
     return true;
   }
 
-  m_unwantedRelays.emplace(relay.value());
+  m_unwantedRelays.emplace(relay);
   m_relay = boost::none;
 
   return false;
@@ -69,16 +67,21 @@ bool DandelionLite::SendToAndRemember(boost::optional<NodeId> relay,
 bool DandelionLite::SendTransaction(const uint256 &txHash) {
   LOCK(m_main_cs);
 
-  bool sent = SendToAndRemember(m_relay, txHash);
+  bool sent = false;
+  if (m_relay) {
+    sent = SendToAndRemember(m_relay.get(), txHash);
+  }
 
   if (!sent) {
     const auto newRelay = GetNewRelay();
-    sent = SendToAndRemember(newRelay, txHash);
+    if (newRelay) {
+      sent = SendToAndRemember(newRelay.get(), txHash);
+    }
   }
 
   if (sent) {
     LogPrintf("Dandelion tx %s is sent to peer=%d.\n", txHash.GetHex(),
-              m_relay.value());
+              m_relay.get());
   } else {
     LogPrintf("Failed to send dandelion tx %s.\n", txHash.GetHex());
   }
@@ -112,14 +115,14 @@ void DandelionLite::FluffPendingEmbargoes() {
         continue;
       }
 
-      const auto usedRelay = it->second;
+      const NodeId usedRelay = it->second;
       if (m_relay == usedRelay) {
         ++m_timeoutsInARow;
         if (m_timeoutsInARow >= m_timeoutsToSwitchRelay) {
           LogPrintf("Dandelion relay failed %d times in a row. Changing.\n",
                     m_timeoutsInARow);
 
-          m_unwantedRelays.emplace(m_relay.value());
+          m_unwantedRelays.emplace(m_relay.get());
           m_relay = boost::none;
         }
       }
@@ -132,7 +135,7 @@ void DandelionLite::FluffPendingEmbargoes() {
   }
 
   AssertLockNotHeld(m_embargo_cs);
-  for (const auto &tx : txsToFluff) {
+  for (const uint256 &tx : txsToFluff) {
     m_sideEffects->SendTxInvToAll(tx);
   }
 }
@@ -144,7 +147,7 @@ bool DandelionLite::IsEmbargoed(const uint256 &txHash) const {
 }
 
 bool DandelionLite::IsEmbargoedFor(const uint256 &txHash,
-                                   dandelion::NodeId node) const {
+                                   NodeId node) const {
   LOCK(m_embargo_cs);
 
   const auto it = m_txToRelay.find(txHash);
@@ -152,7 +155,7 @@ bool DandelionLite::IsEmbargoedFor(const uint256 &txHash,
     return false;
   }
 
-  const auto relay = it->second;
+  const NodeId relay = it->second;
 
   return relay != node;
 }
@@ -173,7 +176,7 @@ void DandelionLite::OnTxInv(const uint256 &txHash, NodeId from) {
       return;
     }
 
-    const auto usedRelay = it->second;
+    const NodeId usedRelay = it->second;
     if (from == usedRelay) {
       // From spec:
       // If v’s timer expires before it receives an INV for the transaction from a

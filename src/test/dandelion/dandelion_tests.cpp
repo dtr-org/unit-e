@@ -4,13 +4,13 @@
 
 #include <map>
 #include <set>
+#include <unordered_set>
 
 #include <dandelion/dandelion.h>
 #include <test/test_unite.h>
 #include <uint256.h>
 #include <util.h>
 #include <boost/test/unit_test.hpp>
-#include <test/fakeit/fakeit.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(dandelion_tests, ReducedTestingSetup)
 
@@ -24,7 +24,7 @@ class SideEffectsMock : public dandelion::SideEffects {
     return time < now;
   }
 
-  std::vector<dandelion::NodeId> GetOutboundNodes() override {
+  std::unordered_set<dandelion::NodeId> GetOutboundNodes() override {
     return outbounds;
   }
 
@@ -45,7 +45,7 @@ class SideEffectsMock : public dandelion::SideEffects {
     txsSentToAll.emplace(txHash);
   }
 
-  std::vector<dandelion::NodeId> outbounds;
+  std::unordered_set<dandelion::NodeId> outbounds;
   EmbargoTime now = 0;
   EmbargoTime nextEmbargoTime = 10;
   std::map<uint256, dandelion::NodeId> txsSentToNode;

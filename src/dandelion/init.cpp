@@ -65,15 +65,15 @@ class SideEffectsImpl : public SideEffects {
     return time < now;
   }
 
-  std::vector<NodeId> GetOutboundNodes() override {
-    std::vector<NodeId> nodes;
+  std::unordered_set<NodeId> GetOutboundNodes() override {
+    std::unordered_set<NodeId> nodes;
     m_connman.ForEachNode([&nodes](CNode *node) {
       if (node->fInbound || node->fOneShot || node->fFeeler) {
         return;
       }
       const auto id = node->GetId();
 
-      nodes.emplace_back(id);
+      nodes.emplace(id);
     });
     return nodes;
   }

@@ -33,7 +33,7 @@ class SideEffects {
   virtual EmbargoTime GetNextEmbargoTime() = 0;
   virtual bool IsEmbargoDue(EmbargoTime time) = 0;
 
-  virtual std::vector<NodeId> GetOutboundNodes() = 0;
+  virtual std::unordered_set<NodeId> GetOutboundNodes() = 0;
   virtual size_t RandRange(size_t maxExcluding) = 0;
   virtual bool SendTxInv(NodeId nodeId, const uint256 &txHash) = 0;
   virtual void SendTxInvToAll(const uint256 &tx) = 0;
@@ -41,7 +41,7 @@ class SideEffects {
   virtual ~SideEffects() = default;
 };
 
-//! \breif "Dandelion lite" - privacy enhancement protocol implementation
+//! \brief "Dandelion lite" - privacy enhancement protocol implementation
 class DandelionLite {
  public:
   explicit DandelionLite(size_t timeoutsToSwitchRelay,
@@ -72,7 +72,7 @@ class DandelionLite {
   std::multimap<SideEffects::EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargo_cs);
   std::map<uint256, NodeId> m_txToRelay GUARDED_BY(m_embargo_cs);
 
-  bool SendToAndRemember(boost::optional<NodeId> relay, const uint256 &txHash);
+  bool SendToAndRemember(NodeId relay, const uint256 &txHash);
  protected:
   boost::optional<NodeId> GetNewRelay();
   std::unordered_set<NodeId> m_unwantedRelays;
