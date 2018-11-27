@@ -34,7 +34,7 @@ class RpcCreateSnapshotTest(UnitETestFramework):
         assert_equal(res['block_hash'], node.getbestblockhash())
         assert_equal(res['snapshot_hash'], node.getblocksnapshot(node.getbestblockhash())['snapshot_hash'])
         assert_equal(res['total_utxo_subsets'], 51)
-        assert_equal(res['total_outputs'], 55)
+        assert_equal(res['total_outputs'], 155)
 
     def test_partial_snapshot_creation(self):
         node = self.nodes[0]

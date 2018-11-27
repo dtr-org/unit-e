@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2018 The unit-e core developers
+# Copyright (c) 2018 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -69,7 +69,7 @@ class NodesHub:
         """
 
         for i, node in enumerate(self.nodes):
-            proxy_coroutine = self.loop.create_receiver(
+            proxy_coroutine = self.loop.create_server(
                 protocol_factory=lambda: NodeProxy(hub_ref=self),
                 host=self.host,
                 port=self.get_proxy_port(i)
