@@ -101,6 +101,8 @@ UNITE_CORE_H = \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
+  dandelion/dandelion.h \
+  dandelion/init.h \
   dependency.h \
   dependency_injector.h \
   esperanza/admincommand.h \
@@ -264,6 +266,8 @@ libunite_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
+  dandelion/dandelion.cpp \
+  dandelion/init.cpp \
   esperanza/admincommand.cpp \
   esperanza/adminstate.cpp \
   esperanza/checkpoint.cpp \

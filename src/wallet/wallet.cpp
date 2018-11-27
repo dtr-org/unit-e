@@ -10,6 +10,7 @@
 #include <chain.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
+#include <dandelion/dandelion.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/checks.h>
 #include <fs.h>
@@ -1844,11 +1845,20 @@ bool CWalletTx::RelayWalletTransaction(CConnman* connman)
         CValidationState state;
         /* GetDepthInMainChain already catches known conflicts. */
         if (InMempool() || AcceptToMemoryPool(maxTxFee, state)) {
-            LogPrintf("Relaying wtx %s\n", GetHash().ToString());
             if (connman) {
+                if (connman->dandelion) {
+                    // This transaction was already sent to dandelion relay and
+                    // now is under embargo. Do not allow it to be rebroadcasted
+                    if (connman->dandelion->IsEmbargoed(GetHash())) {
+                        return false;
+                    }
+                }
+
+                LogPrintf("Relaying wtx %s\n", GetHash().ToString());
                 CInv inv(MSG_TX, GetHash());
-                connman->ForEachNode([&inv](CNode* pnode)
+                connman->ForEachNode([&](CNode* pnode)
                 {
+                    LogPrintf("Relaying wtx %s to %d, %s\n", GetHash().ToString(), pnode->GetId(), pnode->fInbound ? "inbound" : "outbound");
                     pnode->PushInventory(inv);
                 });
                 return true;
@@ -3144,7 +3154,11 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CCon
                 LogPrintf("CommitTransaction(): Transaction cannot be broadcast immediately, %s\n", state.GetRejectReason());
                 // TODO: if we expect the failure to be long term or permanent, instead delete wtx from the wallet and return failure.
             } else {
-                wtx.RelayWalletTransaction(connman);
+                if (wtx.tx->GetType() != +TxType::STANDARD 
+                    || !connman->dandelion 
+                    || !connman->dandelion->SendTransaction(wtx.GetHash())) {
+                  wtx.RelayWalletTransaction(connman);
+                }
             }
         }
     }

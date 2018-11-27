@@ -11,6 +11,7 @@
 #include <amount.h>
 #include <bloom.h>
 #include <compat.h>
+#include <dandelion/dandelion.h>
 #include <hash.h>
 #include <limitedmap.h>
 #include <netaddress.h>
@@ -314,6 +315,8 @@ public:
     unsigned int GetReceiveFloodSize() const;
 
     void WakeMessageHandler();
+
+    std::unique_ptr<dandelion::DandelionLite> dandelion;
 private:
     struct ListenSocket {
         SOCKET socket;

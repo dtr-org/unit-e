@@ -1898,6 +1898,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
             if (inv.type == MSG_TX) {
                 inv.type |= nFetchFlags;
+
+                if (connman->dandelion) {
+                  connman->dandelion->OnTxInv(inv.hash, pfrom->GetId());
+                }
             }
 
             if (inv.type == MSG_BLOCK) {
@@ -3285,6 +3289,9 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
         // transactions become unconfirmed and spams other nodes.
         if (!fReindex && !fImporting && !IsInitialBlockDownload())
         {
+            if (connman->dandelion) {
+                connman->dandelion->FluffPendingEmbargoes();
+            }
             GetMainSignals().Broadcast(nTimeBestReceived, connman);
         }
 
@@ -3536,6 +3543,9 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
                         continue;
                     }
                     if (pto->pfilter && !pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
+                    if (connman->dandelion && connman->dandelion->IsEmbargoedFor(hash, pto->GetId())) {
+                      continue;
+                    }
                     // Send
                     vInv.push_back(CInv(MSG_TX, hash));
                     nRelayedTransactions++;
