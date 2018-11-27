@@ -3154,7 +3154,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CCon
                 LogPrintf("CommitTransaction(): Transaction cannot be broadcast immediately, %s\n", state.GetRejectReason());
                 // TODO: if we expect the failure to be long term or permanent, instead delete wtx from the wallet and return failure.
             } else {
-                if (wtx.tx->GetType() != +TxType::STANDARD 
+                if (wtx.tx->GetType() != +TxType::STANDARD
                     || !connman->dandelion
                     || !connman->dandelion->SendTransaction(wtx.GetHash())) {
                   wtx.RelayWalletTransaction(connman);
