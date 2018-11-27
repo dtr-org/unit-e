@@ -7,10 +7,10 @@
 namespace dandelion {
 
 boost::optional<NodeId> DandelionLite::GetNewRelay() {
-  LOCK(m_main_cs);
+  LOCK(m_relayCs);
 
   // Get all available outbound connections
-  auto outbounds = m_sideEffects->GetOutboundNodes();
+  std::unordered_set<NodeId> outbounds = m_sideEffects->GetOutboundNodes();
 
   // Some of unwanted nodes might have disconnected,
   // filter those that are not present in outbounds
@@ -42,16 +42,16 @@ boost::optional<NodeId> DandelionLite::GetNewRelay() {
 
 bool DandelionLite::SendToAndRemember(NodeId relay,
                                       const uint256 &txHash) {
-  LOCK(m_main_cs);
+  AssertLockHeld(m_relayCs);
 
-  AssertLockNotHeld(m_embargo_cs);
+  AssertLockNotHeld(m_embargoCs);
   const auto sent = m_sideEffects->SendTxInv(relay, txHash);
 
   if (sent) {
     m_relay = relay;
     const auto embargo = m_sideEffects->GetNextEmbargoTime();
 
-    LOCK(m_embargo_cs);
+    LOCK(m_embargoCs);
     m_txToRelay.emplace(txHash, relay);
     m_embargoToTx.emplace(embargo, txHash);
 
@@ -65,7 +65,7 @@ bool DandelionLite::SendToAndRemember(NodeId relay,
 }
 
 bool DandelionLite::SendTransaction(const uint256 &txHash) {
-  LOCK(m_main_cs);
+  LOCK(m_relayCs);
 
   bool sent = false;
   if (m_relay) {
@@ -90,12 +90,12 @@ bool DandelionLite::SendTransaction(const uint256 &txHash) {
 }
 
 void DandelionLite::FluffPendingEmbargoes() {
-  LOCK(m_main_cs);
+  LOCK(m_relayCs);
 
   std::vector<uint256> txsToFluff;
 
   {
-    LOCK(m_embargo_cs);
+    LOCK(m_embargoCs);
 
     while (!m_embargoToTx.empty()) {
       const auto txHash = m_embargoToTx.begin()->second;
@@ -134,21 +134,21 @@ void DandelionLite::FluffPendingEmbargoes() {
     }
   }
 
-  AssertLockNotHeld(m_embargo_cs);
+  AssertLockNotHeld(m_embargoCs);
   for (const uint256 &tx : txsToFluff) {
     m_sideEffects->SendTxInvToAll(tx);
   }
 }
 
 bool DandelionLite::IsEmbargoed(const uint256 &txHash) const {
-  LOCK(m_embargo_cs);
+  LOCK(m_embargoCs);
 
   return m_txToRelay.find(txHash) != m_txToRelay.end();
 }
 
 bool DandelionLite::IsEmbargoedFor(const uint256 &txHash,
                                    NodeId node) const {
-  LOCK(m_embargo_cs);
+  LOCK(m_embargoCs);
 
   const auto it = m_txToRelay.find(txHash);
   if (it == m_txToRelay.end()) {
@@ -169,7 +169,7 @@ DandelionLite::DandelionLite(size_t timeoutsToSwitchRelay,
 
 void DandelionLite::OnTxInv(const uint256 &txHash, NodeId from) {
   {
-    LOCK(m_embargo_cs);
+    LOCK(m_embargoCs);
 
     const auto it = m_txToRelay.find(txHash);
     if (it == m_txToRelay.end()) {
@@ -190,7 +190,7 @@ void DandelionLite::OnTxInv(const uint256 &txHash, NodeId from) {
               txHash.GetHex());
   }
 
-  AssertLockNotHeld(m_embargo_cs);
+  AssertLockNotHeld(m_embargoCs);
   m_sideEffects->SendTxInvToAll(txHash);
 }
 

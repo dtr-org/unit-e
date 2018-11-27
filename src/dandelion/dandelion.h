@@ -63,14 +63,14 @@ class DandelionLite {
   boost::optional<NodeId> m_relay;
   size_t m_timeoutsInARow = 0;
 
-  // Locking policy: lock everything with m_main_cs, except what accesses
-  // m_embargo_cs and m_txToRelay - this might create deadlocks
-  // Never send something to network under m_embargo_cs lock
-  mutable CCriticalSection m_main_cs;
-  mutable CCriticalSection m_embargo_cs;
+  // Locking policy: lock everything with m_relayCs, except what accesses
+  // m_embargoCs and m_txToRelay - this might create deadlocks
+  // Never send something to network under m_embargoCs lock
+  mutable CCriticalSection m_relayCs;
+  mutable CCriticalSection m_embargoCs;
 
-  std::multimap<SideEffects::EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargo_cs);
-  std::map<uint256, NodeId> m_txToRelay GUARDED_BY(m_embargo_cs);
+  std::multimap<SideEffects::EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargoCs);
+  std::map<uint256, NodeId> m_txToRelay GUARDED_BY(m_embargoCs);
 
   bool SendToAndRemember(NodeId relay, const uint256 &txHash);
  protected:

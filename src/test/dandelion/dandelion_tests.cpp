@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(unwanted_relay_filtering) {
   unwanted.emplace(10);
   unwanted.emplace(12);
 
-  BOOST_CHECK_EQUAL(2, spy.GetNewRelay().value());
+  BOOST_CHECK_EQUAL(2, spy.GetNewRelay().get());
 
   // As a side effect, GetNewRelay should trim unwanted set to only available
   // nodes
