@@ -108,6 +108,13 @@ class NodesHub:
 
         self.loop.run_until_complete(gather(*connection_futures))
 
+    def sync_connect_nodes(self, graph_edges: set):
+        """
+        Helper to make easier using NodesHub in non-asyncio aware code.
+        Allows to setup a network given an arbitrary graph (in the form of edges set).
+        """
+        self.loop.run_until_complete(gather(*[self.connect_nodes(i, j) for (i, j) in graph_edges]))
+
     def get_node_port(self, node_idx):
         return p2p_port(node_idx)
 
