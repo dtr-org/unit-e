@@ -42,8 +42,8 @@ EXCLUDE_DIRS = [
 ]
 
 def applies_to_file(filename):
-    for dir in EXCLUDE_DIRS:
-        if filename.startswith(dir):
+    for excluded_dir in EXCLUDE_DIRS:
+        if filename.startswith(excluded_dir):
             return False
     return ((EXCLUDE_COMPILED.match(filename) is None) and
             (INCLUDE_COMPILED.match(filename) is not None))
