@@ -332,7 +332,7 @@ if [ `%{_sbindir}/sestatus |grep -c "disabled"` -eq 0 ]; then
 for selinuxvariant in %{selinux_variants}; do
 	%{_sbindir}/semodule -s ${selinuxvariant} -i %{_datadir}/selinux/${selinuxvariant}/unite.pp &> /dev/null || :
 done
-%{_sbindir}/semanage port -a -t unite_port_t -p tcp 8332
+%{_sbindir}/semanage port -a -t unite_port_t -p tcp 7181
 %{_sbindir}/semanage port -a -t unite_port_t -p tcp 7182
 %{_sbindir}/semanage port -a -t unite_port_t -p tcp 18332
 %{_sbindir}/semanage port -a -t unite_port_t -p tcp 17182
@@ -353,7 +353,7 @@ fi
 # SELinux
 if [ $1 -eq 0 ]; then
 	if [ `%{_sbindir}/sestatus |grep -c "disabled"` -eq 0 ]; then
-	%{_sbindir}/semanage port -d -p tcp 8332
+	%{_sbindir}/semanage port -d -p tcp 7181
 	%{_sbindir}/semanage port -d -p tcp 7182
 	%{_sbindir}/semanage port -d -p tcp 18332
 	%{_sbindir}/semanage port -d -p tcp 17182
