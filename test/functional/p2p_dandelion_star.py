@@ -14,7 +14,7 @@ other nodes have this transaction until fluff
 3) Relay changes after too many transactions were sent to a black hole
 """
 
-from test_framework.util import connect_nodes, assert_equal, disconnect_nodes
+from test_framework.util import connect_nodes, assert_equal
 from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
 import time
 
