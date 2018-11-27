@@ -15,7 +15,6 @@ There are a few additional rules:
 required when doing so would need changes to significant pieces of existing
 code.
   - Variable (including function arguments) and namespace names are all lowercase, and may use _ to separate words (snake_case).
-    separate words (snake_case).
     - Class member variables have a `m_` prefix.
     - Global variables have a `g_` prefix.
   - Constant names are all uppercase, and use `_` to separate words.
