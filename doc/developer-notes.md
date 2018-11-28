@@ -500,6 +500,12 @@ integrity of the git subtrees in the unit-e repository without local changes.
 
 ### Current subtrees
 
+You can list the git subtrees of a repo with the command
+
+    git log | grep git-subtree-dir | awk '{ print $2 }' | sort | uniq
+
+These are the current subtrees and where they are coming from:
+
 - src/leveldb
 
   Upstream at https://github.com/google/leveldb, maintained by Google
