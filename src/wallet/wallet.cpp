@@ -10,7 +10,7 @@
 #include <chain.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
-#include <dandelion/dandelion.h>
+#include <embargoman.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/checks.h>
 #include <fs.h>
@@ -1850,8 +1850,8 @@ bool CWalletTx::RelayWalletTransaction(CConnman* connman)
                 CInv inv(MSG_TX, GetHash());
                 connman->ForEachNode([&](CNode* pnode)
                 {
-                    if (connman->dandelion &&
-                        connman->dandelion->IsEmbargoedFor(GetHash(), pnode->GetId())) {
+                    if (connman->embargoman &&
+                        connman->embargoman->IsEmbargoedFor(GetHash(), pnode->GetId())) {
                         return;
                     }
                     LogPrintf("Relaying wtx %s to %d, %s\n", GetHash().ToString(), pnode->GetId(), pnode->fInbound ? "inbound" : "outbound");
@@ -3150,12 +3150,13 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CCon
                 LogPrintf("CommitTransaction(): Transaction cannot be broadcast immediately, %s\n", state.GetRejectReason());
                 // TODO: if we expect the failure to be long term or permanent, instead delete wtx from the wallet and return failure.
             } else {
-                bool sentByDandelion = false;
-                if (wtx.tx->GetType() == +TxType::STANDARD && connman->dandelion) {
-                    sentByDandelion = connman->dandelion->SendTransaction(wtx.GetHash());
+                bool embargoed = false;
+                if (wtx.tx->GetType() == +TxType::STANDARD && connman->embargoman) {
+                    embargoed =
+                        connman->embargoman->SendTransactionAndEmbargo(wtx.GetHash());
                 }
 
-                if (!sentByDandelion) {
+                if (!embargoed) {
                   wtx.RelayWalletTransaction(connman);
                 }
             }

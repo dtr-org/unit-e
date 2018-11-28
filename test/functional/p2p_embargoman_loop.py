@@ -4,9 +4,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 """
-Tests dandelion-lite on a network that has loops.
-1) Transactions are being routed to the source and they do not fluff.
-Loops allow transactions to return to the source => they should not fluff
+Tests EmbargoMan on a network that has loops.
+1) Transactions are being routed to the source and embargo timer is not expired.
 
 2) Source does not leak information about itself.
 After source transaction returned, source node should behave as usual node
@@ -24,19 +23,19 @@ import re
 LOOPS_N = 5
 
 
-class DandelionLoop(UnitETestFramework):
+class EmbargoManLoop(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2 + LOOPS_N
 
         self.extra_args = [['-proposing=1', '-debug=all',
-                            "-dandelion=1"]] * self.num_nodes
+                            '-embargotxs=1']] * self.num_nodes
         self.setup_clean_chain = True
 
     def setup_network(self):
         super().setup_nodes()
 
         # Creating LOOPS_N loops each looking as
-        # 0 -> dandelion_relay(1) <-> transit_node -> 0
+        # 0 -> relay(1) <-> transit_node -> 0
         for i in range(LOOPS_N):
             transit_node = i + 2
             connect_nodes(self.nodes[0], 1)
@@ -70,10 +69,10 @@ class DandelionLoop(UnitETestFramework):
                 tx = self.nodes[0].sendtoaddress(address, 1)
 
                 if not wait_for_debug_log_pattern(self.nodes[0],
-                                                  "Dandelion embargo is "
-                                                  "lifted for tx: %s" % tx):
+                                                  "Embargo is lifted for tx: %s"
+                                                  % tx):
                     raise AssertionError(
-                        "Dandelion embargo was not lifted")
+                        "Embargo was not lifted")
 
                 # Give time to everything to propagate
                 time.sleep(20)
@@ -124,4 +123,4 @@ def wait_for_debug_log_pattern(node, pattern, timeout_s=30):
 
 
 if __name__ == '__main__':
-    DandelionLoop().main()
+    EmbargoManLoop().main()

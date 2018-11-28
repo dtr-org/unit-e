@@ -68,7 +68,7 @@ BASE_SCRIPTS= [
     # vv Tests less than 2m vv
     'wallet_basic.py',
     'wallet_accounts.py',
-    'p2p_dandelion_star.py',
+    'p2p_embargoman_star.py',
     'esperanza_admin_full_cycle.py',
     'p2p_timeouts.py',
     'wallet_dump.py',
@@ -85,7 +85,7 @@ BASE_SCRIPTS= [
     'rpc_txoutproof.py',
     'wallet_listreceivedby.py',
     'wallet_abandonconflict.py',
-    'p2p_dandelion_loop.py',
+    'p2p_embargoman_loop.py',
     'feature_csv_activation.py',
     'rpc_rawtransaction.py',
     'wallet_address_types.py',

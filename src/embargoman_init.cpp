@@ -2,29 +2,29 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <dandelion/init.h>
+#include <embargoman_init.h>
 
-namespace dandelion {
+namespace p2p {
 
-bool Params::Create(ArgsManager &args,
-                    dandelion::Params &paramsOut,
-                    std::string &errorMessageOut) {
-  Params params;
-  params.enabled = args.GetBoolArg("-dandelion", params.enabled);
+bool EmbargoManParams::Create(ArgsManager &args,
+                              p2p::EmbargoManParams &paramsOut,
+                              std::string &errorMessageOut) {
+  EmbargoManParams params;
+  params.enabled = args.GetBoolArg("-embargotxs", params.enabled);
 
   const auto embargoMin =
-      args.GetArg("-dandelionmin", params.embargoMin.count());
+      args.GetArg("-embargomin", params.embargoMin.count());
 
   const auto embargoAvgAdd =
-      args.GetArg("-dandelionavgadd", params.embargoAvgAdd.count());
+      args.GetArg("-embargoavgadd", params.embargoAvgAdd.count());
 
   if (embargoMin < 0) {
-    errorMessageOut = "Negative -dandelionmin";
+    errorMessageOut = "Negative -embargomin";
     return false;
   }
 
   if (embargoAvgAdd < 0) {
-    errorMessageOut = "Negative -dandelionavgadd";
+    errorMessageOut = "Negative -embargoavgadd";
     return false;
   }
 
@@ -35,15 +35,15 @@ bool Params::Create(ArgsManager &args,
   return true;
 }
 
-std::string Params::GetHelpString() {
-  Params defaultParams;
+std::string EmbargoManParams::GetHelpString() {
+  EmbargoManParams defaultParams;
 
-  return HelpMessageOpt("-dandelion=<enable>", "Whether to use dandelion-lite: privacy enhancement protocol. True by default") +
-         HelpMessageOpt("-dandelionmin=<seconds>", "Minimum dandelion embargo time. Default is " + std::to_string(defaultParams.embargoMin.count())) +
-         HelpMessageOpt("-dandelionavgadd=<seconds>", "Average additive dandelion embargo time. Default is " + std::to_string(defaultParams.embargoAvgAdd.count()));
+  return HelpMessageOpt("-embargotxs=<enable>", "Whether to use embargoing mechanism(aka Dandelion Lite). True by default") +
+         HelpMessageOpt("-embargomin=<seconds>", "Minimum embargo time. Default is " + std::to_string(defaultParams.embargoMin.count())) +
+         HelpMessageOpt("-embargoavgadd=<seconds>", "Average additive embargo time. Default is " + std::to_string(defaultParams.embargoAvgAdd.count()));
 }
 
-class SideEffectsImpl : public SideEffects {
+class SideEffectsImpl : public EmbargoManSideEffects {
  public:
   SideEffectsImpl(std::chrono::seconds embargoMin,
                   std::chrono::seconds embargoAvgAdd,
@@ -112,8 +112,8 @@ class SideEffectsImpl : public SideEffects {
   FastRandomContext m_random;
 };
 
-std::unique_ptr<DandelionLite> CreateDandelion(CConnman &connman,
-                                               const Params &params) {
+std::unique_ptr<EmbargoMan> CreateEmbargoMan(CConnman &connman,
+                                             const EmbargoManParams &params) {
   if (!params.enabled) {
     return nullptr;
   }
@@ -122,8 +122,8 @@ std::unique_ptr<DandelionLite> CreateDandelion(CConnman &connman,
                                                  params.embargoAvgAdd,
                                                  connman);
 
-  return MakeUnique<DandelionLite>(params.timeoutsToSwitchRelay,
-                                   std::move(sideEffects));
+  return MakeUnique<EmbargoMan>(params.timeoutsToSwitchRelay,
+                                std::move(sideEffects));
 }
 
-}  // namespace dandelion
+}  // namespace network

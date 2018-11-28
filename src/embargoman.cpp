@@ -2,11 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <dandelion/dandelion.h>
+#include <embargoman.h>
 
-namespace dandelion {
+namespace p2p {
 
-boost::optional<NodeId> DandelionLite::GetNewRelay() {
+boost::optional<NodeId> EmbargoMan::GetNewRelay() {
   LOCK(m_relayCs);
 
   // Get all available outbound connections
@@ -37,8 +37,8 @@ boost::optional<NodeId> DandelionLite::GetNewRelay() {
   return *relayIt;
 }
 
-bool DandelionLite::SendToAndRemember(NodeId relay,
-                                      const uint256 &txHash) {
+bool EmbargoMan::SendToAndRemember(NodeId relay,
+                                   const uint256 &txHash) {
   AssertLockHeld(m_relayCs);
 
   AssertLockNotHeld(m_embargoCs);
@@ -61,7 +61,7 @@ bool DandelionLite::SendToAndRemember(NodeId relay,
   return false;
 }
 
-bool DandelionLite::SendTransaction(const uint256 &txHash) {
+bool EmbargoMan::SendTransactionAndEmbargo(const uint256 &txHash) {
   LOCK(m_relayCs);
 
   bool sent = false;
@@ -77,16 +77,16 @@ bool DandelionLite::SendTransaction(const uint256 &txHash) {
   }
 
   if (sent) {
-    LogPrintf("Dandelion tx %s is sent to peer=%d.\n", txHash.GetHex(),
-              m_relay.get());
+    LogPrint(BCLog::NET, "Embargoman: tx %s is sent to peer=%d.\n", txHash.GetHex(),
+             m_relay.get());
   } else {
-    LogPrintf("Failed to send dandelion tx %s.\n", txHash.GetHex());
+    LogPrint(BCLog::NET, "Embargoman: failed to send tx %s.\n", txHash.GetHex());
   }
 
   return sent;
 }
 
-void DandelionLite::FluffPendingEmbargoes() {
+void EmbargoMan::FluffPendingEmbargoes() {
   LOCK(m_relayCs);
 
   std::vector<uint256> txsToFluff;
@@ -116,15 +116,15 @@ void DandelionLite::FluffPendingEmbargoes() {
       if (m_relay == usedRelay) {
         ++m_timeoutsInARow;
         if (m_timeoutsInARow >= m_timeoutsToSwitchRelay) {
-          LogPrintf("Dandelion relay failed %d times in a row. Changing.\n",
-                    m_timeoutsInARow);
+          LogPrint(BCLog::NET, "Embargo timer fired %d times in a row. Changing relay.\n",
+                   m_timeoutsInARow);
 
           m_unwantedRelays.emplace(m_relay.get());
           m_relay = boost::none;
         }
       }
 
-      LogPrintf("Dandelion is fluffing embargoed tx: %s.\n", txHash.GetHex());
+      LogPrint(BCLog::NET, "Embargo timer expired. Fluffing: %s.\n", txHash.GetHex());
       m_txToRelay.erase(it);
 
       txsToFluff.emplace_back(txHash);
@@ -137,14 +137,14 @@ void DandelionLite::FluffPendingEmbargoes() {
   }
 }
 
-bool DandelionLite::IsEmbargoed(const uint256 &txHash) const {
+bool EmbargoMan::IsEmbargoed(const uint256 &txHash) const {
   LOCK(m_embargoCs);
 
   return m_txToRelay.find(txHash) != m_txToRelay.end();
 }
 
-bool DandelionLite::IsEmbargoedFor(const uint256 &txHash,
-                                   NodeId node) const {
+bool EmbargoMan::IsEmbargoedFor(const uint256 &txHash,
+                                NodeId node) const {
   LOCK(m_embargoCs);
 
   const auto it = m_txToRelay.find(txHash);
@@ -157,14 +157,14 @@ bool DandelionLite::IsEmbargoedFor(const uint256 &txHash,
   return relay != node;
 }
 
-DandelionLite::DandelionLite(size_t timeoutsToSwitchRelay,
-                             std::unique_ptr<SideEffects> sideEffects)
+EmbargoMan::EmbargoMan(size_t timeoutsToSwitchRelay,
+                       std::unique_ptr<EmbargoManSideEffects> sideEffects)
     : m_timeoutsToSwitchRelay(timeoutsToSwitchRelay),
       m_sideEffects(std::move(sideEffects)) {
-  LogPrintf("Dandelion-lite is created.\n");
+  LogPrint(BCLog::NET, "EmbargoMan is created.\n");
 }
 
-void DandelionLite::OnTxInv(const uint256 &txHash, NodeId from) {
+void EmbargoMan::OnTxInv(const uint256 &txHash, NodeId from) {
   {
     LOCK(m_embargoCs);
 
@@ -183,12 +183,12 @@ void DandelionLite::OnTxInv(const uint256 &txHash, NodeId from) {
 
     m_txToRelay.erase(it);
 
-    LogPrintf("Dandelion embargo is lifted for tx: %s. Fluffing\n",
-              txHash.GetHex());
+    LogPrint(BCLog::NET, "Embargo is lifted for tx: %s. Fluffing\n",
+             txHash.GetHex());
   }
 
   AssertLockNotHeld(m_embargoCs);
   m_sideEffects->SendTxInvToAll(txHash);
 }
 
-}  // namespace dandelion
+}  // namespace network

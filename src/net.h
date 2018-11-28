@@ -11,7 +11,7 @@
 #include <amount.h>
 #include <bloom.h>
 #include <compat.h>
-#include <dandelion/dandelion.h>
+#include <embargoman.h>
 #include <hash.h>
 #include <limitedmap.h>
 #include <netaddress.h>
@@ -316,7 +316,7 @@ public:
 
     void WakeMessageHandler();
 
-    std::unique_ptr<dandelion::DandelionLite> dandelion;
+    std::unique_ptr<p2p::EmbargoMan> embargoman;
 private:
     struct ListenSocket {
         SOCKET socket;

@@ -16,7 +16,7 @@
 #include <checkpoints.h>
 #include <compat/sanity.h>
 #include <consensus/validation.h>
-#include <dandelion/init.h>
+#include <embargoman_init.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/init.h>
@@ -417,10 +417,10 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-bantime=<n>", strprintf(_("Number of seconds to keep misbehaving peers from reconnecting (default: %u)"), DEFAULT_MISBEHAVING_BANTIME));
     strUsage += HelpMessageOpt("-bind=<addr>", _("Bind to given address and always listen on it. Use [host]:port notation for IPv6"));
     strUsage += HelpMessageOpt("-connect=<ip>", _("Connect only to the specified node(s); -connect=0 disables automatic connections (the rules for this peer are the same as for -addnode)"));
-    strUsage += dandelion::Params::GetHelpString();
     strUsage += HelpMessageOpt("-discover", _("Discover own IP addresses (default: 1 when listening and no -externalip or -proxy)"));
     strUsage += HelpMessageOpt("-dns", _("Allow DNS lookups for -addnode, -seednode and -connect") + " " + strprintf(_("(default: %u)"), DEFAULT_NAME_LOOKUP));
     strUsage += HelpMessageOpt("-dnsseed", _("Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)"));
+    strUsage += p2p::EmbargoManParams::GetHelpString();
     strUsage += HelpMessageOpt("-externalip=<ip>", _("Specify your own public address"));
     strUsage += HelpMessageOpt("-forcednsseed", strprintf(_("Always query for peer addresses via DNS lookup (default: %u)"), DEFAULT_FORCEDNSSEED));
     strUsage += HelpMessageOpt("-listen", _("Accept connections from outside (default: 1 if no -proxy or -connect)"));
@@ -1866,12 +1866,12 @@ bool AppInitMain()
         }
     }
 
-    dandelion::Params dandelionParams;
-    std::string dandelionError;
-    if (!dandelion::Params::Create(gArgs, dandelionParams, dandelionError)) {
-        return InitError(dandelionError);
+    p2p::EmbargoManParams embargoManParams;
+    std::string embargoManError;
+    if (!p2p::EmbargoManParams::Create(gArgs, embargoManParams, embargoManError)) {
+        return InitError(embargoManError);
     }
-    connman.dandelion = dandelion::CreateDandelion(connman, dandelionParams);
+    connman.embargoman = p2p::CreateEmbargoMan(connman, embargoManParams);
 
     if (!connman.Start(scheduler, connOptions)) {
         return false;

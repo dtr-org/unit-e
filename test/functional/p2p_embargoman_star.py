@@ -3,13 +3,13 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http: // www.opensource.org/licenses/mit-license.php.
 """
-Tests dandelion-lite on a network that has a shape of a star.
-Star topology ensures that dandelion transactions are embargoed - all nodes
+Tests EmbargoMan on a network that has a shape of a star.
+Star topology ensures that transactions are not propagating - all nodes
 except the star center are conceptually black holes
 
-This test ensures that:
-1) Dandelion transactions are sent to only one peer. They are embargoed and no
-other nodes have this transaction until fluff
+This test ensures that under EmbargoMan:
+1) Transactions are sent to only one peer. They are embargoed and no
+other nodes have this transaction until embargo timeout
 2) After some time all transactions should fluff => all nodes have them
 3) Relay changes after too many transactions were sent to a black hole
 """
@@ -18,22 +18,22 @@ from test_framework.util import connect_nodes, assert_equal
 from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
 import time
 
-# Number of transactions to send.
+# Number of transactions to send in this test
 TRANSACTIONS_N = 5
 
-# Minimum dandelion embargo to set
+# Minimum embargo to use in this test
 EMBARGO_SECONDS = 15
 
 
-class DandelionStar(UnitETestFramework):
+class EmbargoManStar(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
         self.extra_args = [['-proposing=1',
                             '-debug=all',
-                            '-dandelion=1',
-                            '-dandelionmin=%s' % EMBARGO_SECONDS,
-                            '-dandelionavgadd=0']] * self.num_nodes
+                            '-embargotxs=1',
+                            '-embargomin=%s' % EMBARGO_SECONDS,
+                            '-embargoavgadd=0']] * self.num_nodes
         self.setup_clean_chain = True
 
     def setup_network(self):
@@ -67,7 +67,7 @@ class DandelionStar(UnitETestFramework):
             tx = self.nodes[0].sendtoaddress(address, 1)
             txs.append(tx)
 
-        # Minimum dandelion embargo is EMBARGO_SECONDS seconds, we want to
+        # Minimum embargo is EMBARGO_SECONDS seconds, we want to
         # ensure that during this time only relay has txs. We also wait a
         # little less than embargo to account for different synchronization
         # issues
@@ -110,4 +110,4 @@ def has_tx(node, tx):
 
 
 if __name__ == '__main__':
-    DandelionStar().main()
+    EmbargoManStar().main()

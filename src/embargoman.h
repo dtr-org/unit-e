@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_DANDELION_DANDELION_H
-#define UNITE_DANDELION_DANDELION_H
+#ifndef UNITE_EMBARGOMAN_H
+#define UNITE_EMBARGOMAN_H
 
 #include <stdint.h>
 #include <chrono>
@@ -13,20 +13,20 @@
 #include <primitives/transaction.h>
 #include <util.h>
 
-namespace dandelion {
+namespace p2p {
 
 // The same as in net.h, but including net.h will create circular dependency
 using NodeId = int64_t;
 
-//! \brief Extracted side effects of dandelion-lite
-//! Dandelion heavily relies on:
+//! \brief Extracted side effects of Embargo Man (dandelion-lite)
+//! Dandelion-lite heavily relies on:
 //! Random numbers (embargo delays and relay selection)
 //! Time (is embargo due?)
 //! Network side effects(outbound nodes, tx sending)
 //!
-//! In order to be able to unit test dandelion we extract all those side effect
+//! In order to be able to unit test it we extract all those side effect
 //! management to this class
-class SideEffects {
+class EmbargoManSideEffects {
  public:
   using EmbargoTime = int64_t;
 
@@ -38,16 +38,16 @@ class SideEffects {
   virtual bool SendTxInv(NodeId nodeId, const uint256 &txHash) = 0;
   virtual void SendTxInvToAll(const uint256 &tx) = 0;
 
-  virtual ~SideEffects() = default;
+  virtual ~EmbargoManSideEffects() = default;
 };
 
-//! \brief "Dandelion lite" - privacy enhancement protocol implementation
-class DandelionLite {
+//! \brief Embargo manager, implements Dandelion lite privacy enhancement protocol
+class EmbargoMan {
  public:
-  explicit DandelionLite(size_t timeoutsToSwitchRelay,
-                         std::unique_ptr<SideEffects> sideEffects);
+  explicit EmbargoMan(size_t timeoutsToSwitchRelay,
+                      std::unique_ptr<EmbargoManSideEffects> sideEffects);
 
-  bool SendTransaction(const uint256 &txHash);
+  bool SendTransactionAndEmbargo(const uint256 &txHash);
 
   void FluffPendingEmbargoes();
 
@@ -59,7 +59,7 @@ class DandelionLite {
 
  private:
   const size_t m_timeoutsToSwitchRelay;
-  std::unique_ptr<SideEffects> m_sideEffects;
+  std::unique_ptr<EmbargoManSideEffects> m_sideEffects;
   boost::optional<NodeId> m_relay;
   size_t m_timeoutsInARow = 0;
 
@@ -69,15 +69,16 @@ class DandelionLite {
   mutable CCriticalSection m_relayCs;
   mutable CCriticalSection m_embargoCs;
 
-  std::multimap<SideEffects::EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargoCs);
+  std::multimap<EmbargoManSideEffects::EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargoCs);
   std::map<uint256, NodeId> m_txToRelay GUARDED_BY(m_embargoCs);
 
   bool SendToAndRemember(NodeId relay, const uint256 &txHash);
+
  protected:
   boost::optional<NodeId> GetNewRelay();
   std::set<NodeId> m_unwantedRelays;
 };
 
-}  // namespace dandelion
+}  // namespace network
 
-#endif  //UNITE_DANDELION_DANDELION_H
+#endif  //UNITE_EMBARGOMAN_H

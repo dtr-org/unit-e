@@ -5,15 +5,15 @@
 #include <map>
 #include <set>
 
-#include <dandelion/dandelion.h>
+#include <embargoman.h>
 #include <test/test_unite.h>
 #include <uint256.h>
 #include <util.h>
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(dandelion_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(embargoman_tests, ReducedTestingSetup)
 
-class SideEffectsMock : public dandelion::SideEffects {
+class SideEffectsMock : public p2p::EmbargoManSideEffects {
  public:
   EmbargoTime GetNextEmbargoTime() override {
     return nextEmbargoTime;
@@ -23,7 +23,7 @@ class SideEffectsMock : public dandelion::SideEffects {
     return time < now;
   }
 
-  std::set<dandelion::NodeId> GetOutboundNodes() override {
+  std::set<p2p::NodeId> GetOutboundNodes() override {
     return outbounds;
   }
 
@@ -31,7 +31,7 @@ class SideEffectsMock : public dandelion::SideEffects {
     return 0;
   }
 
-  bool SendTxInv(dandelion::NodeId nodeId, const uint256 &txHash) override {
+  bool SendTxInv(p2p::NodeId nodeId, const uint256 &txHash) override {
     const auto it = std::find(outbounds.begin(), outbounds.end(), nodeId);
     if (it != outbounds.end()) {
       txsSentToNode[txHash] = nodeId;
@@ -44,10 +44,10 @@ class SideEffectsMock : public dandelion::SideEffects {
     txsSentToAll.emplace(txHash);
   }
 
-  std::set<dandelion::NodeId> outbounds;
+  std::set<p2p::NodeId> outbounds;
   EmbargoTime now = 0;
   EmbargoTime nextEmbargoTime = 10;
-  std::map<uint256, dandelion::NodeId> txsSentToNode;
+  std::map<uint256, p2p::NodeId> txsSentToNode;
   std::set<uint256> txsSentToAll;
 };
 
@@ -58,11 +58,11 @@ uint256 GetNewTxHash() {
   return uint256(std::vector<uint8_t>(32, counter++));
 }
 
-uint256 CheckSendsTo(dandelion::NodeId expectedRelay,
-                     dandelion::DandelionLite &instance,
+uint256 CheckSendsTo(p2p::NodeId expectedRelay,
+                     p2p::EmbargoMan &instance,
                      const SideEffectsMock *sideEffects) {
   const auto hash = GetNewTxHash();
-  BOOST_CHECK(instance.SendTransaction(hash));
+  BOOST_CHECK(instance.SendTransactionAndEmbargo(hash));
 
   const auto it = sideEffects->txsSentToNode.find(hash);
   BOOST_CHECK(it != sideEffects->txsSentToNode.end());
@@ -75,10 +75,10 @@ uint256 CheckSendsTo(dandelion::NodeId expectedRelay,
   return hash;
 }
 
-dandelion::NodeId GuessRelay(dandelion::DandelionLite &instance,
-                             const SideEffectsMock *sideEffects) {
+p2p::NodeId GuessRelay(p2p::EmbargoMan &instance,
+                       const SideEffectsMock *sideEffects) {
   const auto hash = GetNewTxHash();
-  BOOST_CHECK(instance.SendTransaction(hash));
+  BOOST_CHECK(instance.SendTransactionAndEmbargo(hash));
 
   const auto it = sideEffects->txsSentToNode.find(hash);
   assert(it != sideEffects->txsSentToNode.end());
@@ -87,11 +87,11 @@ dandelion::NodeId GuessRelay(dandelion::DandelionLite &instance,
 
 BOOST_AUTO_TEST_CASE(test_relay_is_not_changing) {
   const auto sideEffects = new SideEffectsMock();
-  auto uPtr = std::unique_ptr<dandelion::SideEffects>(sideEffects);
+  auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
   sideEffects->outbounds = {17, 7};
 
-  dandelion::DandelionLite instance(2, std::move(uPtr));
+  p2p::EmbargoMan instance(2, std::move(uPtr));
   const auto relay = GuessRelay(instance, sideEffects);
 
   for (size_t i = 0; i < 100; ++i) {
@@ -101,11 +101,11 @@ BOOST_AUTO_TEST_CASE(test_relay_is_not_changing) {
 
 BOOST_AUTO_TEST_CASE(test_relay_is_changing_if_disconnected) {
   const auto sideEffects = new SideEffectsMock();
-  auto uPtr = std::unique_ptr<dandelion::SideEffects>(sideEffects);
+  auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
   sideEffects->outbounds = {17};
 
-  dandelion::DandelionLite instance(2, std::move(uPtr));
+  p2p::EmbargoMan instance(2, std::move(uPtr));
 
   const auto relay1 = GuessRelay(instance, sideEffects);
 
@@ -117,14 +117,14 @@ BOOST_AUTO_TEST_CASE(test_relay_is_changing_if_disconnected) {
 
 BOOST_AUTO_TEST_CASE(test_relay_is_changing_if_black_hole) {
   const auto sideEffects = new SideEffectsMock();
-  auto uPtr = std::unique_ptr<dandelion::SideEffects>(sideEffects);
+  auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
   sideEffects->outbounds = {17, 7};
   sideEffects->now = 100;
   sideEffects->nextEmbargoTime = 0;
 
   const auto timeoutsToSwitchRelay = 4;
-  dandelion::DandelionLite instance(timeoutsToSwitchRelay, std::move(uPtr));
+  p2p::EmbargoMan instance(timeoutsToSwitchRelay, std::move(uPtr));
 
   const auto relay1 = GuessRelay(instance, sideEffects);
   for (size_t i = 0; i < timeoutsToSwitchRelay; ++i) {
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(test_relay_is_changing_if_black_hole) {
 
 BOOST_AUTO_TEST_CASE(change_relay_during_embargo) {
   const auto sideEffects = new SideEffectsMock();
-  auto uPtr = std::unique_ptr<dandelion::SideEffects>(sideEffects);
+  auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
   constexpr auto blackhole = 17;
   constexpr uint16_t timeoutsToSwitchRelay = 2;
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE(change_relay_during_embargo) {
 
   sideEffects->outbounds = {blackhole};
 
-  dandelion::DandelionLite instance(timeoutsToSwitchRelay, std::move(uPtr));
+  p2p::EmbargoMan instance(timeoutsToSwitchRelay, std::move(uPtr));
 
   std::vector<uint256> blackholeTxs;
   for (size_t i = 0; i < timeoutsToSwitchRelay; ++i) {
@@ -174,24 +174,24 @@ BOOST_AUTO_TEST_CASE(change_relay_during_embargo) {
 
 BOOST_AUTO_TEST_CASE(test_simple_embargoes) {
   const auto sideEffects = new SideEffectsMock();
-  auto uPtr = std::unique_ptr<dandelion::SideEffects>(sideEffects);
+  auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
   sideEffects->outbounds = {17};
 
-  dandelion::DandelionLite instance(1000, std::move(uPtr));
+  p2p::EmbargoMan instance(1000, std::move(uPtr));
 
   const auto tx1 = GetNewTxHash();
   const auto tx2 = GetNewTxHash();
   const auto tx3 = GetNewTxHash();
 
   sideEffects->nextEmbargoTime = 10;
-  instance.SendTransaction(tx1);
+  instance.SendTransactionAndEmbargo(tx1);
 
   sideEffects->nextEmbargoTime = 20;
-  instance.SendTransaction(tx2);
+  instance.SendTransactionAndEmbargo(tx2);
 
   sideEffects->nextEmbargoTime = 30;
-  instance.SendTransaction(tx3);
+  instance.SendTransactionAndEmbargo(tx3);
 
   BOOST_CHECK(instance.IsEmbargoed(tx1));
   BOOST_CHECK(instance.IsEmbargoed(tx2));
@@ -235,28 +235,28 @@ BOOST_AUTO_TEST_CASE(test_simple_embargoes) {
   BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx3));
 }
 
-class DandelionLiteSpy : public dandelion::DandelionLite {
+class EmargoManSpy : public p2p::EmbargoMan {
  public:
-  DandelionLiteSpy(size_t timeoutsToSwitchRelay,
-                   std::unique_ptr<dandelion::SideEffects> sideEffects)
-      : DandelionLite(timeoutsToSwitchRelay, std::move(sideEffects)) {}
+  EmargoManSpy(size_t timeoutsToSwitchRelay,
+               std::unique_ptr<p2p::EmbargoManSideEffects> sideEffects)
+      : EmbargoMan(timeoutsToSwitchRelay, std::move(sideEffects)) {}
 
-  boost::optional<dandelion::NodeId> GetNewRelay() {
-    return dandelion::DandelionLite::GetNewRelay();
+  boost::optional<p2p::NodeId> GetNewRelay() {
+    return p2p::EmbargoMan::GetNewRelay();
   }
 
-  std::set<dandelion::NodeId> &GetUnwantedRelays() {
-    return dandelion::DandelionLite::m_unwantedRelays;
+  std::set<p2p::NodeId> &GetUnwantedRelays() {
+    return p2p::EmbargoMan::m_unwantedRelays;
   }
 };
 
 BOOST_AUTO_TEST_CASE(unwanted_relay_filtering) {
   const auto sideEffects = new SideEffectsMock();
-  auto uPtr = std::unique_ptr<dandelion::SideEffects>(sideEffects);
+  auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
   sideEffects->outbounds = {1, 2, 3};
 
-  DandelionLiteSpy spy(1000, std::move(uPtr));
+  EmargoManSpy spy(1000, std::move(uPtr));
 
   auto &unwanted = spy.GetUnwantedRelays();
   unwanted.emplace(1);
