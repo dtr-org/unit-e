@@ -10,15 +10,12 @@ boost::optional<NodeId> DandelionLite::GetNewRelay() {
   LOCK(m_relayCs);
 
   // Get all available outbound connections
-  std::unordered_set<NodeId> outbounds = m_sideEffects->GetOutboundNodes();
+  std::set<NodeId> outbounds = m_sideEffects->GetOutboundNodes();
 
   // Some of unwanted nodes might have disconnected,
   // filter those that are not present in outbounds
   for (auto it = m_unwantedRelays.begin(); it != m_unwantedRelays.end();) {
     if (outbounds.find(*it) == outbounds.end()) {
-      // Erase returns iterator following the last removed element.
-      // ...Other iterators and references are not invalidated.
-      // https://en.cppreference.com/w/cpp/container/unordered_map/erase
       it = m_unwantedRelays.erase(it);
     } else {
       ++it;

@@ -4,11 +4,11 @@
 
 #include <dandelion/init.h>
 
-#include <ui_interface.h>
-
 namespace dandelion {
 
-const Params Params::Create(ArgsManager &args) {
+bool Params::Create(ArgsManager &args,
+                    dandelion::Params &paramsOut,
+                    std::string &errorMessageOut) {
   Params params;
   params.enabled = args.GetBoolArg("-dandelion", params.enabled);
 
@@ -19,18 +19,20 @@ const Params Params::Create(ArgsManager &args) {
       args.GetArg("-dandelionavgadd", params.embargoAvgAdd.count());
 
   if (embargoMin < 0) {
-    InitWarning("Negative -dandelionmin. Reverting to default");
-  } else {
-    params.embargoMin = std::chrono::seconds(embargoMin);
+    errorMessageOut = "Negative -dandelionmin";
+    return false;
   }
 
   if (embargoAvgAdd < 0) {
-    InitWarning("Negative -dandelionavgadd. Reverting to default");
-  } else {
-    params.embargoAvgAdd = std::chrono::seconds(embargoAvgAdd);
+    errorMessageOut = "Negative -dandelionavgadd";
+    return false;
   }
 
-  return params;
+  params.embargoMin = std::chrono::seconds(embargoMin);
+  params.embargoAvgAdd = std::chrono::seconds(embargoAvgAdd);
+
+  paramsOut = params;
+  return true;
 }
 
 std::string Params::GetHelpString() {
@@ -61,20 +63,20 @@ class SideEffectsImpl : public SideEffects {
   }
 
   bool IsEmbargoDue(EmbargoTime time) override {
-    const auto now = GetTimeMicros();
+    const EmbargoTime now = GetTimeMicros();
     return time < now;
   }
 
-  std::unordered_set<NodeId> GetOutboundNodes() override {
-    std::unordered_set<NodeId> nodes;
+  std::set<NodeId> GetOutboundNodes() override {
+    std::set<NodeId> nodes;
     m_connman.ForEachNode([&nodes](CNode *node) {
       if (node->fInbound || node->fOneShot || node->fFeeler) {
         return;
       }
-      const auto id = node->GetId();
 
-      nodes.emplace(id);
+      nodes.emplace(node->GetId());
     });
+
     return nodes;
   }
 

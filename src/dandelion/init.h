@@ -5,6 +5,10 @@
 #ifndef UNITE_DANDELION_INIT_H
 #define UNITE_DANDELION_INIT_H
 
+#include <chrono>
+#include <memory>
+#include <set>
+
 #include <dandelion/dandelion.h>
 #include <net.h>
 
@@ -16,7 +20,7 @@ class Params {
   bool enabled = true;
 
   //! \brief minimum embargo time
-  std::chrono::seconds embargoMin = std::chrono::seconds(5);
+  std::chrono::seconds embargoMin = std::chrono::seconds(15);
 
   //! \brief average embargo time that is added to embargoMin
   std::chrono::seconds embargoAvgAdd = std::chrono::seconds(2);
@@ -26,7 +30,9 @@ class Params {
   //! many embargo timeouts
   size_t timeoutsToSwitchRelay = 2;
 
-  static const Params Create(ArgsManager &args);
+  static bool Create(ArgsManager &args,
+                     dandelion::Params &paramsOut,
+                     std::string &errorMessageOut);
   static std::string GetHelpString();
 };
 

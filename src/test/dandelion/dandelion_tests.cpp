@@ -1,10 +1,9 @@
-// Copyright (c) 2012-2017 The Bitcoin Core developers
+// Copyright (c) 2018 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <map>
 #include <set>
-#include <unordered_set>
 
 #include <dandelion/dandelion.h>
 #include <test/test_unite.h>
@@ -24,7 +23,7 @@ class SideEffectsMock : public dandelion::SideEffects {
     return time < now;
   }
 
-  std::unordered_set<dandelion::NodeId> GetOutboundNodes() override {
+  std::set<dandelion::NodeId> GetOutboundNodes() override {
     return outbounds;
   }
 
@@ -45,7 +44,7 @@ class SideEffectsMock : public dandelion::SideEffects {
     txsSentToAll.emplace(txHash);
   }
 
-  std::unordered_set<dandelion::NodeId> outbounds;
+  std::set<dandelion::NodeId> outbounds;
   EmbargoTime now = 0;
   EmbargoTime nextEmbargoTime = 10;
   std::map<uint256, dandelion::NodeId> txsSentToNode;
@@ -246,7 +245,7 @@ class DandelionLiteSpy : public dandelion::DandelionLite {
     return dandelion::DandelionLite::GetNewRelay();
   }
 
-  std::unordered_set<dandelion::NodeId> &GetUnwantedRelays() {
+  std::set<dandelion::NodeId> &GetUnwantedRelays() {
     return dandelion::DandelionLite::m_unwantedRelays;
   }
 };
@@ -262,9 +261,10 @@ BOOST_AUTO_TEST_CASE(unwanted_relay_filtering) {
   auto &unwanted = spy.GetUnwantedRelays();
   unwanted.emplace(1);
   unwanted.emplace(3);
+  unwanted.emplace(4);
   unwanted.emplace(5);
-  unwanted.emplace(10);
   unwanted.emplace(12);
+  unwanted.emplace(10);
 
   BOOST_CHECK_EQUAL(2, spy.GetNewRelay().get());
 

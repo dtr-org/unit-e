@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <chrono>
 #include <memory>
-#include <unordered_set>
+#include <set>
 
 #include <primitives/transaction.h>
 #include <util.h>
@@ -33,7 +33,7 @@ class SideEffects {
   virtual EmbargoTime GetNextEmbargoTime() = 0;
   virtual bool IsEmbargoDue(EmbargoTime time) = 0;
 
-  virtual std::unordered_set<NodeId> GetOutboundNodes() = 0;
+  virtual std::set<NodeId> GetOutboundNodes() = 0;
   virtual size_t RandRange(size_t maxExcluding) = 0;
   virtual bool SendTxInv(NodeId nodeId, const uint256 &txHash) = 0;
   virtual void SendTxInvToAll(const uint256 &tx) = 0;
@@ -75,7 +75,7 @@ class DandelionLite {
   bool SendToAndRemember(NodeId relay, const uint256 &txHash);
  protected:
   boost::optional<NodeId> GetNewRelay();
-  std::unordered_set<NodeId> m_unwantedRelays;
+  std::set<NodeId> m_unwantedRelays;
 };
 
 }  // namespace dandelion

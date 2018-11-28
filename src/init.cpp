@@ -1866,7 +1866,11 @@ bool AppInitMain()
         }
     }
 
-    const auto dandelionParams = dandelion::Params::Create(gArgs);
+    dandelion::Params dandelionParams;
+    std::string dandelionError;
+    if (!dandelion::Params::Create(gArgs, dandelionParams, dandelionError)) {
+        return InitError(dandelionError);
+    }
     connman.dandelion = dandelion::CreateDandelion(connman, dandelionParams);
 
     if (!connman.Start(scheduler, connOptions)) {
