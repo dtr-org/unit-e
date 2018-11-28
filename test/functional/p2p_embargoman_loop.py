@@ -52,8 +52,8 @@ class EmbargoManLoop(UnitETestFramework):
             node.add_p2p_connection(InvRecorder())
         network_thread_start()
 
-        # Waiting for maturity
-        self.nodes[0].generate(COINBASE_MATURITY)
+        # Exit IBD
+        self.nodes[0].generate(1)
         self.sync_all()
 
         for node in self.nodes:

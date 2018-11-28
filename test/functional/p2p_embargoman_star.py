@@ -49,8 +49,8 @@ class EmbargoManStar(UnitETestFramework):
             'thing supreme chimney drastic grab acquire any cube cereal '
             'another jump what drastic ready')
 
-        # Waiting for maturity
-        self.nodes[0].generate(COINBASE_MATURITY)
+        # Exit IBD
+        self.nodes[0].generate(1)
         self.sync_all()
 
         relay1 = self.single_run()
