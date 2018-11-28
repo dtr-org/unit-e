@@ -22,8 +22,17 @@ code.
   - Class names, function names and method names are UpperCamelCase
     (PascalCase). Do not prefix class names with `C`.
 
-- **Includes**. Make sure to always use `<>` notation instead of the "".
-  This is done mostly for consistency with the current codebase.
+- **Includes**.
+    - Make sure to always use `<>` notation instead of the "".
+      This is done mostly for consistency with the current codebase.
+    -  Order of includes should be from the most specific to the least, e.g.:
+       ```cpp
+       #include <header_of_cpp_file.h>
+       // blank line
+       #include <project_headers.h>
+       // blank line
+       #include <system_headers.h>
+       ```
 
 - **If-Statements**. Always use braces around if statements, even blocks
   that contain just one statement.
