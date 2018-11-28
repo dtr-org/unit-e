@@ -4,11 +4,6 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
 Test Initial Snapshot Download
-
-This test covers the following scenarios:
-1. sync using snapshot
-2. after the sync, the node can accept/propose new blocks
-3. the node can switch to the fork which is created right after the snapshot
 """
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
@@ -24,21 +19,31 @@ class SnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
 
-        # 0 - full node
-        # 1 - ISD node uses full node to sync
-        # 2 - rework node that has better chain than full node
-        self.num_nodes = 3
-
+        self.num_nodes = 6
         self.extra_args = [
-            [],
-            ['-prune=1', '-isd=1'],
-            [],
+            # test_fast_sync
+            ['-createsnapshot=0'],   # blank_node (without snapshots)
+            [],                      # full_node (with snapshots)
+            ['-prune=1', '-isd=1'],  # isd_node
+            [],                      # rework_node (has longer chain than full_node)
+
+            # test_fallback_to_ibd
+            [],                      # full_node
+            ['-prune=1', '-isd=1'],  # sync_node
         ]
 
     def setup_network(self):
         self.setup_nodes()
 
-    def run_test(self):
+    def test_fast_sync(self):
+        """
+        This test covers the following scenarios:
+        1. node can discover the peer that has snapshot
+        2. sync using snapshot
+        3. after the sync, the node can accept/propose new blocks
+        4. the node can switch to the fork which is created right after the snapshot
+        """
+
         def restart_node(node):
             self.stop_node(node.index)
             self.start_node(node.index)
@@ -57,15 +62,17 @@ class SnapshotTest(UnitETestFramework):
                 return False
             return True
 
-        full_node = self.nodes[0]
-        isd_node = self.nodes[1]
-        rework_node = self.nodes[2]
+        blank_node = self.nodes[0]
+        full_node = self.nodes[1]
+        isd_node = self.nodes[2]
+        rework_node = self.nodes[3]
 
         # generate 3 blocks to create first snapshot and its parent block
         #               s0
         # G------------(h=3)-(h=4) full_node
         # | isd_node
         # | rework_node
+        # | blank_node
         full_node.generatetoaddress(4, full_node.getnewaddress())
         wait_until(lambda: has_snapshot(full_node, 3), timeout=3)
 
@@ -73,7 +80,7 @@ class SnapshotTest(UnitETestFramework):
         #               s0
         # G------------(h=3)-(h=4) full_node
         # | isd_node          \
-        #                      --------------------------(h=20) rework_node
+        # | blank_node         --------------------------(h=20) rework_node
         connect_nodes(rework_node, full_node.index)
         sync_blocks([rework_node, full_node])
         disconnect_nodes(rework_node, full_node.index)
@@ -82,18 +89,22 @@ class SnapshotTest(UnitETestFramework):
 
         # generate 6 more blocks to make the first snapshot finalized
         #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node
+        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node
         # | isd_node          \
         #                      --------------------------(h=20) rework_node
         full_node.generatetoaddress(5, full_node.getnewaddress())
         wait_until(lambda: has_finalized_snapshot(full_node, height=3), timeout=5)
         assert_equal(len(full_node.listsnapshots()), 2)
+        connect_nodes(blank_node, full_node.index)
+        sync_blocks([blank_node, full_node])
+        assert_equal(len(blank_node.listsnapshots()), 0)
 
-        # sync node=1 with node=0 using ISD
+        # sync isd_node with blank_node and full_node using ISD
         #               s0             s1
         # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, isd_node
         #                     \
         #                      --------------------------(h=20) rework_node
+        connect_nodes(isd_node, blank_node.index)
         connect_nodes(isd_node, full_node.index)
         sync_blocks([full_node, isd_node])
         assert_equal(full_node.listsnapshots(), isd_node.listsnapshots())
@@ -130,6 +141,33 @@ class SnapshotTest(UnitETestFramework):
         #                      --------------------------(h=20) rework_node, isd_node
         connect_nodes(isd_node, rework_node.index)
         sync_blocks([isd_node, rework_node])
+        self.log.info('Test fast sync passed')
+
+    def test_fallback_to_ibd(self):
+        """
+        This test checks that node can fallback to Initial Block Download
+        if its peers can't provide the snapshot
+        """
+        full_node = self.nodes[4]
+        sync_node = self.nodes[5]
+
+        full_node.generatetoaddress(5, full_node.getnewaddress())
+        for res in full_node.listsnapshots():
+            full_node.deletesnapshot(res['snapshot_hash'])
+
+        connect_nodes(sync_node, full_node.index)
+        sync_blocks([sync_node, full_node])
+        assert_equal(sync_node.gettxoutsetinfo(), full_node.gettxoutsetinfo())
+        for height in range(0, 6):
+            block_hash = sync_node.getblockhash(height)
+            block = sync_node.getblock(block_hash)
+            assert_equal(block['hash'], block_hash)
+
+        self.log.info('Test fallback to IBD passed')
+
+    def run_test(self):
+        self.test_fast_sync()
+        self.test_fallback_to_ibd()
 
 
 if __name__ == '__main__':

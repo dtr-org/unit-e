@@ -30,6 +30,12 @@ bool State::IsInitialSnapshotDownload() {
     return false;
   }
 
+  if (chainActive.Height() > 0) {
+    // at least one full block is processed, leave ISD
+    m_isdLatch.store(true, std::memory_order_relaxed);
+    return false;
+  }
+
   return true;
 }
 
@@ -45,6 +51,7 @@ void StoreCandidateBlockHash(uint256 hash) {
 uint256 LoadCandidateBlockHash() { return state.LoadCandidateBlockHash(); }
 bool IsInitialSnapshotDownload() { return state.IsInitialSnapshotDownload(); }
 void EnableISDMode() { state.EnableISDMode(); }
+void DisableISDMode() { state.DisableISDMode(); }
 bool IsISDEnabled() { return state.IsISDEnabled(); }
 void HeadersDownloaded() { state.HeadersDownloaded(); }
 bool IsHeadersDownloaded() { return state.IsHeadersDownloaded(); }

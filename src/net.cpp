@@ -2743,7 +2743,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     fPauseRecv = false;
     fPauseSend = false;
     nProcessQueueSize = 0;
-    sentInitGetSnapshot = false;
+    m_snapshot_requested = false;
     sentGetParentBlockForSnapshot = false;
 
     for (const std::string &msg : getAllNetMessageTypes())

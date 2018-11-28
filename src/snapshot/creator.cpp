@@ -72,7 +72,7 @@ void ProcessCreatorQueue() {
 }
 
 void Creator::Init(const Params &params) {
-  createSnapshotPerEpoch = params.createSnapshotPerEpoch;
+  createSnapshotPerEpoch = params.create_snapshot_per_epoch;
   creatorThread = std::thread(ProcessCreatorQueue);
 }
 
