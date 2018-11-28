@@ -263,27 +263,27 @@ void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
   const int64_t now = std::chrono::seconds(std::time(nullptr)).count();
 
   if (node->m_snapshot_requested_at > 0) {
+    if (now - node->m_snapshot_requested_at > g_fast_sync_timeout_sec) {
+      // check if it was the last node that timed out then switch to IBD
 
-    // if there are no peers to fetch snapshot from, fallback to IBD
-    bool available = false;
-    int64_t last_requested = node->m_snapshot_requested_at;
-    g_connman->ForEachNode([&available, &last_requested](CNode *node) {
-      if (node->m_snapshot_requested_at == 0) {
-        available = true;
-        return;
+      bool available = false;
+      int64_t last_requested = node->m_snapshot_requested_at;
+      g_connman->ForEachNode([&available, &last_requested](CNode *node) {
+        if (node->m_snapshot_requested_at == 0) {
+          available = true;
+          return;
+        }
+
+        last_requested = std::max(node->m_snapshot_requested_at, last_requested);
+      });
+
+      bool timed_out = now - last_requested > g_fast_sync_timeout_sec;
+      if (!available && timed_out) {
+        DisableISDMode();
       }
 
-      if (node->m_snapshot_requested_at > last_requested) {
-        last_requested = node->m_snapshot_requested_at;
-      }
-    });
-
-    bool timed_out = now - last_requested > g_fast_sync_timeout_sec;
-    if (!available && timed_out) {
-      DisableISDMode();
+      return;
     }
-
-    return;
   }
 
   node->m_snapshot_requested_at = now;
