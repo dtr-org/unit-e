@@ -14,12 +14,21 @@
 #include <util.h>
 #include <validation.h>
 
+#include <chrono>
+
 namespace snapshot {
 
-uint16_t g_fast_sync_timeout_sec;
+Params g_params;
+
+// keep track of fast sync requests
+std::chrono::time_point<std::chrono::steady_clock> g_first_request_at;
+std::chrono::time_point<std::chrono::steady_clock> g_last_request_at;
 
 void InitP2P(const Params &params) {
-  g_fast_sync_timeout_sec = params.fast_sync_timeout_sec;
+  g_first_request_at = std::chrono::steady_clock::time_point::min();
+  g_last_request_at = std::chrono::steady_clock::time_point::min();
+
+  g_params = params;
 }
 
 // todo: remove it after merging
@@ -97,14 +106,18 @@ bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
   LogPrint(BCLog::NET, "send getsnapshot: peer=%i index=%i count=%i\n",
            node->GetId(), msg.m_utxoSubsetIndex, msg.m_utxoSubsetCount);
 
-  int64_t now = std::chrono::seconds(std::time(nullptr)).count();
-  node->m_snapshot_requested_at = now;
+  auto now = std::chrono::steady_clock::now();
+  if (g_first_request_at == std::chrono::steady_clock::time_point::min()) {
+    g_first_request_at = now;
+  }
+  g_last_request_at = now;
+  node->m_snapshot_requested = true;
   g_connman->PushMessage(node, msgMaker.Make(NetMsgType::GETSNAPSHOT, msg));
   return true;
 }
 
 // helper function for ProcessSnapshot
-bool SaveSnapshotAndRequestMore(std::unique_ptr<Indexer> &&indexer,
+bool SaveSnapshotAndRequestMore(std::unique_ptr<Indexer> indexer,
                                 Snapshot &snap, CNode *node,
                                 const CNetMsgMaker &msgMaker) {
   // todo allow to accept messages not in a sequential order
@@ -260,42 +273,27 @@ void StartInitialSnapshotDownload(CNode *node, const CNetMsgMaker &msgMaker) {
 
   // discover the latest snapshot from the peers
 
-  const int64_t now = std::chrono::seconds(std::time(nullptr)).count();
+  auto now = std::chrono::steady_clock::now();
 
-  if (node->m_snapshot_requested_at > 0) {
-    if (now - node->m_snapshot_requested_at > g_fast_sync_timeout_sec) {
-      // check if it was the last node that timed out then switch to IBD
-
-      bool available = false;
-      int64_t last_requested = node->m_snapshot_requested_at;
-      g_connman->ForEachNode([&available, &last_requested](CNode *node) {
-        if (node->m_snapshot_requested_at == 0) {
-          available = true;
-          return;
-        }
-
-        last_requested = std::max(node->m_snapshot_requested_at, last_requested);
-      });
-
-      bool timed_out = now - last_requested > g_fast_sync_timeout_sec;
-      if (!available && timed_out) {
-        DisableISDMode();
-      }
-
-      return;
+  if (node->m_snapshot_requested) {
+    auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - g_last_request_at);
+    if (diff.count() > g_params.fast_sync_timeout_sec) {
+      DisableISDMode();
     }
+
+    return;
   }
 
-  node->m_snapshot_requested_at = now;
+  auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - g_first_request_at);
+  if (diff.count() > g_params.discovery_timeout_sec) {
+    return;
+  }
 
   // todo: add block hash locators
   GetSnapshot msg;
   msg.m_utxoSubsetCount = MAX_UTXO_SET_COUNT;
 
-  LogPrint(BCLog::NET, "send getsnapshot: peer=%i index=%i count=%i\n",
-           node->GetId(), msg.m_utxoSubsetIndex, msg.m_utxoSubsetCount);
-
-  g_connman->PushMessage(node, msgMaker.Make(NetMsgType::GETSNAPSHOT, msg));
+  SendGetSnapshot(node, msg, msgMaker);
 }
 
 void ProcessSnapshotParentBlock(CBlock *parentBlock,

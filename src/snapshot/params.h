@@ -10,11 +10,15 @@
 namespace snapshot {
 
 struct Params {
-  uint16_t createSnapshotPerEpoch = 150;
+  //! the interval in epochs between snapshots
+  uint16_t create_snapshot_per_epoch = 150;
 
   //! if node hasn't received the valid snapshot chunk from its peers
   //! during this timeout, node falls back to IBD
-  uint16_t fast_sync_timeout_sec = 30;
+  int64_t fast_sync_timeout_sec = 30;
+
+  //! time during which the node will ask all the peers about the snapshot
+  int64_t discovery_timeout_sec = 120;
 };
 
 }  // namespace snapshot

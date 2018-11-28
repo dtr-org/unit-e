@@ -720,9 +720,8 @@ public:
     CAmount lastSentFeeFilter;
     int64_t nextSendTimeFeeFilter;
 
-    //! timestamp in seconds when snapshot was requested
-    //! 0 means snapshot request wasn't sent
-    int64_t m_snapshot_requested_at;
+    //! keeps track if initial GetSnapshot message was sent
+    bool m_snapshot_requested;
 
     //! keeps track if the request for the parent block of the candidate
     //! snapshot was sent.

@@ -205,6 +205,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
+  snapshot::InitP2P(snapshot::Params());
   snapshot::EnableISDMode();
   snapshot::StoreCandidateBlockHash(uint256());
   snapshot::HeadersDownloaded();
@@ -223,7 +224,7 @@ BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
   BOOST_CHECK(get.m_bestBlockHash.IsNull());
   BOOST_CHECK_EQUAL(get.m_utxoSubsetIndex, 0);
   BOOST_CHECK_EQUAL(get.m_utxoSubsetCount, snapshot::MAX_UTXO_SET_COUNT);
-  BOOST_CHECK(node->m_snapshot_requested_at > 0);
+  BOOST_CHECK(node->m_snapshot_requested);
 
   node->vSendMsg.clear();
   snapshot::StartInitialSnapshotDownload(node.get(), msgMaker);
