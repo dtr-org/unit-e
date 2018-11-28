@@ -389,8 +389,8 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 
 // UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
-  // UNIT-E: TODO get proposing flag from appropriate place
-  bool proposing = false;
+  // UNIT-E: TODO temporary workaround to read from gArgs before properly injecting this
+  bool proposing = gArgs.GetArg("-proposing", true);
   if (m_settings.m_validating && proposing) {
     LogPrint(BCLog::FINALIZATION, "%s: -validating is enabled for wallet %s.\n",
              __func__, m_enclosingWallet->GetName());
