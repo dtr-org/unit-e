@@ -340,7 +340,9 @@ bool ExtractValidatorAddress(const CTransaction &tx,
       validatorAddressOut = CPubKey(vData).GetID();
       return true;
     }
-    default: { return false; }
+    default: {
+      return false;
+    }
   }
 }
 

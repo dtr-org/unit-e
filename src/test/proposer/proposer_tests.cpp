@@ -54,12 +54,12 @@ struct WalletMock : public proposer::MultiWallet {
 
 BOOST_AUTO_TEST_SUITE(proposer_tests)
 
-fakeit::Mock<proposer::Network> networkMock;
-fakeit::Mock<proposer::ChainState> chainMock;
+fakeit::Mock<staking::Network> networkMock;
+fakeit::Mock<staking::ChainState> chainMock;
 fakeit::Mock<proposer::BlockProposer> blockProposerMock;
 
-Dependency<proposer::Network> network = &networkMock.get();
-Dependency<proposer::ChainState> chain = &chainMock.get();
+Dependency<staking::Network> network = &networkMock.get();
+Dependency<staking::ChainState> chain = &chainMock.get();
 Dependency<proposer::BlockProposer> blockProposer = &blockProposerMock.get();
 
 BOOST_AUTO_TEST_CASE(start_stop) {

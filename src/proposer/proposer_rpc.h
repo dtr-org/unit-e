@@ -6,10 +6,10 @@
 #define UNIT_E_PROPOSER_RPC_H
 
 #include <dependency.h>
-#include <proposer/chainstate.h>
 #include <proposer/multiwallet.h>
-#include <proposer/network.h>
 #include <rpc/server.h>
+#include <staking/chainstate.h>
+#include <staking/network.h>
 #include <wallet/wallet.h>
 
 #include <univalue.h>
@@ -34,8 +34,8 @@ class ProposerRPC {
   virtual ~ProposerRPC() = default;
 
   static std::unique_ptr<ProposerRPC> New(
-      Dependency<ChainState>,
-      Dependency<Network>,
+      Dependency<staking::ChainState>,
+      Dependency<staking::Network>,
       Dependency<MultiWallet>,
       Dependency<Proposer>);
 };

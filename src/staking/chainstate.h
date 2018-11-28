@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_CHAININTERFACE_H
-#define UNIT_E_CHAININTERFACE_H
+#ifndef UNIT_E_STAKING_CHAIN_STATE_H
+#define UNIT_E_STAKING_CHAIN_STATE_H
 
 #include <chainparams.h>
 #include <primitives/block.h>
@@ -14,7 +14,7 @@
 #include <memory>
 #include <mutex>
 
-namespace proposer {
+namespace staking {
 
 //! \brief an interface to the current blockchain's state.
 //!
@@ -79,6 +79,6 @@ class ChainState {
   static std::unique_ptr<ChainState> New();
 };
 
-}  // namespace proposer
+}  // namespace staking
 
-#endif  // UNIT_E_CHAININTERFACE_H
+#endif  // UNIT_E_STAKING_CHAIN_STATE_H

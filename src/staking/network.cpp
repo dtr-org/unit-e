@@ -2,12 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <proposer/network.h>
+#include <staking/network.h>
 
 #include <net.h>
 #include <timedata.h>
 
-namespace proposer {
+namespace staking {
 
 class NetworkAdapter : public Network {
 
@@ -29,4 +29,4 @@ std::unique_ptr<Network> Network::New() {
   return std::unique_ptr<Network>(new NetworkAdapter());
 }
 
-}  // namespace proposer
+}  // namespace staking

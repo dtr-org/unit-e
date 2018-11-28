@@ -11,8 +11,8 @@ namespace proposer {
 class ProposerRPCImpl : public ProposerRPC {
 
  private:
-  Dependency<ChainState> m_chain_state;
-  Dependency<Network> m_network;
+  Dependency<staking::ChainState> m_chain_state;
+  Dependency<staking::Network> m_network;
   Dependency<MultiWallet> m_multi_wallet;
   Dependency<Proposer> m_proposer;
 
@@ -37,8 +37,10 @@ class ProposerRPCImpl : public ProposerRPC {
 
  public:
   ProposerRPCImpl(
-      Dependency<ChainState> chainState, Dependency<Network> network,
-      Dependency<MultiWallet> multiWallet, Dependency<Proposer> proposer)
+      Dependency<staking::ChainState> chainState,
+      Dependency<staking::Network> network,
+      Dependency<MultiWallet> multiWallet,
+      Dependency<Proposer> proposer)
       : m_chain_state(chainState),
         m_network(network),
         m_multi_wallet(multiWallet),
@@ -64,8 +66,10 @@ class ProposerRPCImpl : public ProposerRPC {
 };
 
 std::unique_ptr<ProposerRPC> ProposerRPC::New(
-    Dependency<ChainState> chainState, Dependency<Network> network,
-    Dependency<MultiWallet> multiWallet, Dependency<Proposer> proposer) {
+    Dependency<staking::ChainState> chainState,
+    Dependency<staking::Network> network,
+    Dependency<MultiWallet> multiWallet,
+    Dependency<Proposer> proposer) {
   return std::unique_ptr<ProposerRPC>(
       new ProposerRPCImpl(chainState, network, multiWallet, proposer));
 }

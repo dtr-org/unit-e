@@ -11,7 +11,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <proposer/transactionpicker.h>
+#include <staking/transactionpicker.h>
 
 struct RegtestingSetup : public TestingSetup {
   RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
@@ -25,9 +25,9 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
   // that it does not crash and does yield a value. For a proper test
   // transactions will have to be mocked.
 
-  auto blockAssemblerAdapter = proposer::TransactionPicker::New();
+  auto blockAssemblerAdapter = staking::TransactionPicker::New();
 
-  proposer::TransactionPicker::PickTransactionsParameters params;
+  staking::TransactionPicker::PickTransactionsParameters params;
 
   auto result = blockAssemblerAdapter->PickTransactions(params);
 

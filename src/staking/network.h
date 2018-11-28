@@ -2,14 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_PROPOSER_NETWORKINTERFACE_H
-#define UNIT_E_PROPOSER_NETWORKINTERFACE_H
+#ifndef UNIT_E_STAKING_NETWORK_H
+#define UNIT_E_STAKING_NETWORK_H
 
 #include <stdint.h>
 
 #include <memory>
 
-namespace proposer {
+namespace staking {
 
 //! \brief An interface to information available from the P2P network.
 class Network {
@@ -33,6 +33,6 @@ class Network {
   static std::unique_ptr<Network> New();
 };
 
-}  // namespace proposer
+}  // namespace staking
 
-#endif  // UNIT_E_PROPOSER_NETWORKINTERFACE_H
+#endif  // UNIT_E_STAKING_NETWORK_H

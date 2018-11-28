@@ -93,8 +93,8 @@ std::vector<std::unique_ptr<ProposerImpl::Thread>> ProposerImpl::CreateProposerT
 
 ProposerImpl::ProposerImpl(Dependency<Settings> settings,
                            Dependency<MultiWallet> multiWallet,
-                           Dependency<Network> networkInterface,
-                           Dependency<ChainState> chainInterface,
+                           Dependency<staking::Network> networkInterface,
+                           Dependency<staking::ChainState> chainInterface,
                            Dependency<BlockProposer> blockProposer)
     : m_settings(settings),
       m_multi_wallet(multiWallet),
@@ -135,7 +135,7 @@ void ProposerImpl::Start() {
     return;
   }
   LogPrint(BCLog::PROPOSING, "Creating proposer threads...\n");
-  m_threads = std::move(CreateProposerThreads(m_multi_wallet));
+  m_threads = CreateProposerThreads(m_multi_wallet);
 
   LogPrint(BCLog::PROPOSING, "Starting proposer.\n");
   m_startSemaphore.release(m_threads.size());
@@ -319,8 +319,10 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
 }
 
 std::unique_ptr<Proposer> Proposer::New(
-    Dependency<Settings> settings, Dependency<MultiWallet> multiWallet,
-    Dependency<Network> network, Dependency<ChainState> chainState,
+    Dependency<Settings> settings,
+    Dependency<MultiWallet> multiWallet,
+    Dependency<staking::Network> network,
+    Dependency<staking::ChainState> chainState,
     Dependency<BlockProposer> blockProposer) {
   if (settings->proposing) {
     return std::unique_ptr<Proposer>(new ProposerImpl(settings, multiWallet, network, chainState, blockProposer));

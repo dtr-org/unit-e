@@ -792,7 +792,9 @@ void WalletExtension::BlockConnected(
         }
         break;
       }
-      default: { break; }
+      default: {
+        break;
+      }
     }
   }
 }

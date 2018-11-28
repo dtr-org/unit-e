@@ -11,13 +11,13 @@
 #include <key.h>
 #include <primitives/block.h>
 #include <proposer/blockproposer.h>
-#include <proposer/chainstate.h>
 #include <proposer/multiwallet.h>
-#include <proposer/network.h>
 #include <proposer/proposer_settings.h>
 #include <proposer/proposer_status.h>
 #include <proposer/sync.h>
 #include <proposer/waiter.h>
+#include <staking/chainstate.h>
+#include <staking/network.h>
 
 #include <stdint.h>
 #include <map>
@@ -47,8 +47,8 @@ class Proposer {
 
   static std::unique_ptr<Proposer> New(Dependency<Settings>,
                                        Dependency<MultiWallet>,
-                                       Dependency<Network>,
-                                       Dependency<ChainState>,
+                                       Dependency<staking::Network>,
+                                       Dependency<staking::ChainState>,
                                        Dependency<BlockProposer>);
 };
 
@@ -65,8 +65,11 @@ class ProposerImpl : public Proposer {
   friend struct ProposerAccess;
 
  public:
-  ProposerImpl(Dependency<Settings>, Dependency<MultiWallet>, Dependency<Network>,
-               Dependency<ChainState>, Dependency<BlockProposer>);
+  ProposerImpl(Dependency<Settings>,
+               Dependency<MultiWallet>,
+               Dependency<staking::Network>,
+               Dependency<staking::ChainState>,
+               Dependency<BlockProposer>);
 
   ~ProposerImpl() override;
 
@@ -129,8 +132,8 @@ class ProposerImpl : public Proposer {
 
   Dependency<Settings> m_settings;
   Dependency<MultiWallet> m_multi_wallet;
-  Dependency<Network> m_network;
-  Dependency<ChainState> m_chain;
+  Dependency<staking::Network> m_network;
+  Dependency<staking::ChainState> m_chain;
   Dependency<BlockProposer> m_blockProposer;
 
   //! a flag for whether the proposer is started

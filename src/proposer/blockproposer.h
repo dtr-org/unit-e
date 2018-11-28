@@ -5,11 +5,11 @@
 #ifndef UNIT_E_PROPOSER_BLOCKPROPOSER_H
 #define UNIT_E_PROPOSER_BLOCKPROPOSER_H
 
-#include <proposer/chainstate.h>
+#include <staking/chainstate.h>
 
 #include <dependency.h>
-#include <proposer/transactionpicker.h>
 #include <staking/stakingwallet.h>
+#include <staking/transactionpicker.h>
 
 #include <stdint.h>
 #include <memory>
@@ -70,7 +70,8 @@ class BlockProposer {
 
   //! \brief Factory method for creating a BlockProposer
   static std::unique_ptr<BlockProposer> New(
-      Dependency<ChainState>, Dependency<TransactionPicker>);
+      Dependency<staking::ChainState>,
+      Dependency<staking::TransactionPicker>);
 };
 
 }  // namespace proposer

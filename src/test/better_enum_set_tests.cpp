@@ -10,9 +10,75 @@
 
 #include <set>
 
+#include <boost/optional.hpp>
+#include <chrono>
+#include <thread>
+
+namespace space_time {
+
+constexpr std::chrono::seconds operator"" _sec(unsigned long long s) {
+  return std::chrono::seconds(s);
+}
+
+constexpr std::chrono::milliseconds operator"" _ms(unsigned long long s) {
+  return std::chrono::milliseconds(s);
+}
+
+BETTER_ENUM(Status, std::uint8_t, FIRST_TRY, STILL_TRYING, DONE_TRYING)
+
+template <typename Clock = std::chrono::steady_clock>
+class Salvador {
+
+ private:
+  using point_in_time = std::chrono::time_point<Clock>;
+
+  static point_in_time now() {
+    return Clock::now();
+  }
+
+  template <typename Duration = std::chrono::seconds>
+  static Duration diff(point_in_time t0, point_in_time t1) {
+    return std::chrono::duration_cast<Duration>(t1 > t0 ? t1 - t0 : t0 - t1);
+  }
+
+  boost::optional<point_in_time> first_try = boost::none;
+
+ public:
+  Status DoSomething() {
+    if (!first_try) {
+      first_try = now();
+      return Status::FIRST_TRY;
+    } else if (diff(now(), first_try.get()) > 5000_ms) {
+      return Status::DONE_TRYING;
+    } else {
+      return Status::STILL_TRYING;
+    }
+  }
+};
+
+}  // namespace space_time
+
 BETTER_ENUM(SomeTestEnum, std::uint16_t, A, B, C, D, E, F, G, H)
 
 BOOST_AUTO_TEST_SUITE(better_enum_set_tests)
+
+BOOST_AUTO_TEST_CASE(point_in_time) {
+
+  using namespace space_time;
+
+  Salvador<> dali;
+
+  Status result = Status::STILL_TRYING;
+  while (result != +Status::DONE_TRYING) {
+    result = dali.DoSomething();
+    std::cout << result << std::endl;
+    if (result == +Status::DONE_TRYING) {
+      break;
+    }
+    std::this_thread::sleep_for(1_sec);
+  }
+
+}
 
 BOOST_AUTO_TEST_CASE(check_empty) {
   EnumSet<SomeTestEnum> s;

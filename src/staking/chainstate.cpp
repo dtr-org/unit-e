@@ -2,14 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <proposer/chainstate.h>
+#include <staking/chainstate.h>
 
 #include <chainparams.h>
 #include <timedata.h>
 #include <util.h>
 #include <validation.h>
 
-namespace proposer {
+namespace staking {
 
 class ChainStateAdapter final : public ChainState {
 
@@ -47,4 +47,4 @@ std::unique_ptr<ChainState> ChainState::New() {
   return std::unique_ptr<ChainState>(new ChainStateAdapter());
 }
 
-}  // namespace proposer
+}  // namespace staking
