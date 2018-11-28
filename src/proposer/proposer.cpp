@@ -101,7 +101,6 @@ ProposerImpl::ProposerImpl(Dependency<Settings> settings,
       m_network(networkInterface),
       m_chain(chainInterface),
       m_blockProposer(blockProposer),
-      m_started(ATOMIC_FLAG_INIT),
       m_initSemaphore(0),
       m_startSemaphore(0),
       m_stopSemaphore(0) {}

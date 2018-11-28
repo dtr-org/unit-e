@@ -137,7 +137,7 @@ class ProposerImpl : public Proposer {
   Dependency<BlockProposer> m_blockProposer;
 
   //! a flag for whether the proposer is started
-  std::atomic_flag m_started;
+  std::atomic_flag m_started = ATOMIC_FLAG_INIT;
 
   //! a semaphore for synchronizing initialization
   CountingSemaphore m_initSemaphore;
