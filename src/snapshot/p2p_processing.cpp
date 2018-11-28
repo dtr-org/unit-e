@@ -97,7 +97,6 @@ bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
   LogPrint(BCLog::NET, "send getsnapshot: peer=%i index=%i count=%i\n",
            node->GetId(), msg.m_utxoSubsetIndex, msg.m_utxoSubsetCount);
 
-
   int64_t now = std::chrono::seconds(std::time(nullptr)).count();
   node->m_snapshot_requested_at = now;
   g_connman->PushMessage(node, msgMaker.Make(NetMsgType::GETSNAPSHOT, msg));
