@@ -476,33 +476,85 @@ GUI
 Subtrees
 ----------
 
-Several parts of the repository are subtrees of software maintained elsewhere.
+Several parts of the repository are git subtrees of software maintained
+elsewhere. They are managed with
+[git-subtree](https://github.com/git/git/tree/master/contrib/subtree).
 
-Some of these are maintained by active developers of UnitE Core, in which case changes should probably go
-directly upstream without being PRed directly against the project.  They will be merged back in the next
-subtree merge.
+Some of these are maintained by active developers of Bitcoin Core, some are
+external projects without a tight relationship to Bitcoin Core.
 
-Others are external projects without a tight relationship with our project.  Changes to these should also
-be sent upstream but bugfixes may also be prudent to PR against UnitE Core so that they can be integrated
-quickly.  Cosmetic changes should be purely taken upstream.
+Changes on the parts of the code which are pulled in as a git subtree are
+ideally done through contributions to the original upstream and then pulled in
+via subtree updates in bitcoin upstream and then merged to unit-e with a bitcoin
+merge.
 
-There is a tool in contrib/devtools/git-subtree-check.sh to check a subtree directory for consistency with
-its upstream repository.
+Where this is too slow changes might also be done via pull request to the
+Bitcoin Core version of the code. See the [bitcoin developer
+notes](https://github.com/dtr-org/unit-e/blob/master/doc/developer-notes.md#subtrees)
+for their policies on that.
 
-Current subtrees include:
+If something needs to be merged urgently we create a fork of the repo where the
+subtree is coming from, apply the patches there and merge that as subtree from
+our fork. This makes it clear where changes are coming from and it keeps the
+integrity of the git subtrees in the unit-e repository without local changes.
+
+### Current subtrees
+
+You can list the git subtrees of a repo with the command
+
+    git log | grep git-subtree-dir | awk '{ print $2 }' | sort | uniq
+
+These are the current subtrees and where they are coming from:
 
 - src/leveldb
-  - Upstream at https://github.com/google/leveldb ; Maintained by Google, but open important PRs to Core to avoid delay
 
-- src/libsecp256k1 (git-subtree-check.sh disabled, [see commit](https://github.com/dtr-org/unit-e/commit/2ce66bf6785f48829ccf38541030dfafc625075c#diff-70ef4fa9031cf833f5275c97deb9005aR11))
-  - Upstream at https://github.com/bitcoin-core/secp256k1/ ; actively maintaned by Core contributors.
+  Upstream at https://github.com/google/leveldb, maintained by Google
+
+- src/libsecp256k1
+
+  Upstream at https://github.com/bitcoin-core/secp256k1, actively maintained
+  by Bitcoin Core contributors.
+
+  Subtree pulled in from a fork of the upstream repo at
+  https://github.com/dtr-org/secp256k1-fork from the `unit-e` branch, maintained
+  by the Unit-e developers. It contains additional patches to enable the
+  multiset module.
 
 - src/crypto/ctaes
-  - Upstream at https://github.com/unite-core/ctaes ; actively maintained by Core contributors.
+
+  Upstream at https://github.com/unite-core/ctaes, actively maintained by
+  Bitcoin Core contributors.
 
 - src/univalue
-  - Upstream at https://github.com/jgarzik/univalue ; report important PRs to Core to avoid delay.
 
+  Upstream at https://github.com/jgarzik/univalue
+
+### Checking subtrees
+
+There is a tool in
+[contrib/devtools/git-subtree-check.sh](../contrib/devtools/git-subtree-check.sh)
+to check a subtree directory for consistency with its upstream repository. Run
+it for example as:
+
+```console
+$ contrib/devtools/git-subtree-check.sh src/secp256k1
+src/secp256k1 in HEAD currently refers to tree 8ae830321a35bc7499991d5428bec2b231f0f154
+src/secp256k1 in HEAD was last updated in commit 520d78e7c9698245e8da1509661922068ffe67ed (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
+src/secp256k1 in HEAD was last updated to upstream commit f43d43b1a4b9d2eb426d131f9a9b756de6a2cce2 (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
+GOOD    contrib/devtools/git/subtree
+```
+
+### Updating subtrees
+
+Git subtrees are updated from the upstream repos as they are listed
+[above](#current-subtrees) using the `git subtree` command:
+
+    git subtree pull --prefix src/${prefix} ${remote_repo} ${ref} --squash
+
+The `remote_repo` is the URL or path to the upstream repo, `ref` is the branch.
+The commits are squashed so that a subtree update consists of a commit
+containing all changes since the last update and a merge commit pulling in this
+commit into the code base.
 
 Git and GitHub tips
 ---------------------
