@@ -44,7 +44,7 @@ void ProposerImpl::Thread::Wake() {
 
 void ProposerImpl::Thread::SetStatus(const Status status, CWallet *const wallet) {
   if (wallet) {
-    wallet->GetWalletExtension().m_proposerState.m_status = status;
+    wallet->GetWalletExtension().m_proposer_state.m_status = status;
   } else {
     for (CWallet *w : m_wallets) {
       SetStatus(status, w);
@@ -177,7 +177,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
   while (!thread.m_interrupted) {
     try {
       for (auto *wallet : thread.m_wallets) {
-        wallet->GetWalletExtension().m_proposerState.m_numSearchAttempts += 1;
+        wallet->GetWalletExtension().m_proposer_state.m_number_of_search_attempts += 1;
       }
       const auto blockDownloadStatus =
           thread.m_proposer.m_chain->GetInitialBlockDownloadStatus();
@@ -208,7 +208,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
         const int64_t gracePeriod =
             seconds(thread.m_proposer.m_settings->min_propose_interval);
         const int64_t lastTimeProposed =
-            wallet->GetWalletExtension().m_proposerState.m_lastTimeProposed;
+            wallet->GetWalletExtension().m_proposer_state.m_last_time_proposed;
         const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
         const int64_t gracePeriodRemaining =
             gracePeriod - timeSinceLastProposal;
@@ -249,7 +249,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
         auto &walletExt = wallet->GetWalletExtension();
 
         const int64_t waitTill =
-            walletExt.m_proposerState.m_lastTimeProposed +
+            walletExt.m_proposer_state.m_last_time_proposed +
             seconds(thread.m_proposer.m_settings->min_propose_interval);
         if (bestTime < waitTill) {
           const decltype(sleepFor) amount =
@@ -261,14 +261,14 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
           thread.SetStatus(Status::NOT_PROPOSING_WALLET_LOCKED, wallet);
           continue;
         }
-        if (walletExt.GetStakeableBalance() <= walletExt.m_reserveBalance) {
+        if (walletExt.GetStakeableBalance() <= walletExt.m_reserve_balance) {
           thread.SetStatus(Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE, wallet);
           continue;
         }
 
         thread.SetStatus(Status::IS_PROPOSING, wallet);
 
-        walletExt.m_proposerState.m_numSearches += 1;
+        walletExt.m_proposer_state.m_number_of_searches += 1;
 
         CScript coinbaseScript;
         std::unique_ptr<CBlockTemplate> blockTemplate =
@@ -290,7 +290,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
             thread.m_proposer.m_blockProposer->ProposeBlock(blockProposal);
 
         if (block) {
-          walletExt.m_proposerState.m_lastTimeProposed = block->nTime;
+          walletExt.m_proposer_state.m_last_time_proposed = block->nTime;
           // we got lucky and proposed, enough for this round (other wallets
           // need not be checked no more)
           break;

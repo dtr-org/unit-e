@@ -19,17 +19,17 @@ class ProposerRPCImpl : public ProposerRPC {
   UniValue GetWalletInfo(const std::vector<CWalletRef> &wallets) {
     UniValue result(UniValue::VARR);
     for (const auto &wallet : wallets) {
-      const auto &walletExt = wallet->GetWalletExtension();
-      const auto &proposerState = walletExt.GetProposerState();
+      const auto &wallet_extension = wallet->GetWalletExtension();
+      const auto &proposerState = wallet_extension.GetProposerState();
       UniValue info(UniValue::VOBJ);
       info.pushKV("wallet", UniValue(wallet->GetName()));
       info.pushKV("balance", ValueFromAmount(wallet->GetBalance()));
       info.pushKV("stakeable_balance",
-                  ValueFromAmount(walletExt.GetStakeableBalance()));
+                  ValueFromAmount(wallet_extension.GetStakeableBalance()));
       info.pushKV("status", UniValue(proposerState.m_status._to_string()));
-      info.pushKV("searches", UniValue(proposerState.m_numSearches));
+      info.pushKV("searches", UniValue(proposerState.m_number_of_searches));
       info.pushKV("searches_attempted",
-                  UniValue(proposerState.m_numSearchAttempts));
+                  UniValue(proposerState.m_number_of_search_attempts));
       result.push_back(info);
     }
     return result;

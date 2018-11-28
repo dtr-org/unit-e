@@ -7,6 +7,8 @@
 
 #include <proposer/proposer_status.h>
 
+#include <cstdint>
+
 namespace proposer {
 
 //! bookkeeping data per wallet
@@ -14,16 +16,16 @@ struct State {
 
   Status m_status = Status::NOT_PROPOSING;
 
-  int64_t m_lastCoinStakeSearchTime = 0;
+  std::int64_t m_last_coin_stake_search_time = 0;
 
   //! when did this proposer propose most recently
-  int64_t m_lastTimeProposed = 0;
+  std::int64_t m_last_time_proposed = 0;
 
   //! how many search cycles the proposer went through
-  uint64_t m_numSearches = 0;
+  std::uint64_t m_number_of_searches = 0;
 
   //! how many search cycles the proposer attempted
-  uint64_t m_numSearchAttempts = 0;
+  std::uint64_t m_number_of_search_attempts = 0;
 };
 
 }  // namespace proposer

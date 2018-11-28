@@ -40,19 +40,19 @@ class WalletExtension : public staking::StakingWallet {
   //! a reference to the esperanza settings
   const Settings &m_settings;
 
-  Dependency<proposer::Settings> m_proposerSettings;
+  Dependency<proposer::Settings> m_proposer_settings;
 
   //! The wallet this extension is embedded in.
-  CWallet *m_enclosingWallet;
+  CWallet *m_enclosing_wallet;
 
   //! a miminum amount (in satoshis) to keep (will not be used for staking).
-  CAmount m_reserveBalance = 0;
+  CAmount m_reserve_balance = 0;
 
   //! for selecting available coins for proposing
-  int m_deepestTxnDepth = 0;
+  int m_deepest_transaction_depth = 0;
 
   //! the state of proposing blocks from this wallet
-  proposer::State m_proposerState;
+  proposer::State m_proposer_state;
 
   //! whether an encrypted wallet is unlocked only for staking
   bool m_unlocked_for_staking_only = false;
