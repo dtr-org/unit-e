@@ -88,6 +88,17 @@ inline uint256 Hash(const T1 p1begin, const T1 p1end,
     return result;
 }
 
+/** Compute the sha256 hash of an object. */
+template<typename T1>
+inline uint256 Sha256(const T1 pbegin, const T1 pend)
+{
+    static const unsigned char pblank[1] = {};
+    uint256 result;
+    CSHA256().Write(pbegin == pend ? pblank : (const unsigned char*)&pbegin[0], (pend - pbegin) * sizeof(pbegin[0]))
+             .Finalize((unsigned char*)&result);
+    return result;
+}
+
 /** Compute the 160-bit hash an object. */
 template<typename T1>
 inline uint160 Hash160(const T1 pbegin, const T1 pend)

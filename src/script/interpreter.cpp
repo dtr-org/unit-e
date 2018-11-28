@@ -1515,6 +1515,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
     // Additional validation for spend-to-script-hash transactions:
     if ((flags & SCRIPT_VERIFY_P2SH) && scriptPubKey.IsPayToScriptHash())
     {
+        // UNIT-E: TODO: p2sh in remote staking scripts
         // scriptSig must be literals-only or validation fails
         if (!scriptSig.IsPushOnly())
             return set_error(serror, SCRIPT_ERR_SIG_PUSHONLY);

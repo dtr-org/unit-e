@@ -66,6 +66,8 @@ enum txnouttype
     TX_WITNESS_V0_KEYHASH,
     TX_WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
     TX_PAYVOTESLASH,
+    TX_REMOTE_STAKING,
+    TX_PUBKEYSHA256,
 };
 
 class CNoDestination {
@@ -118,9 +120,11 @@ struct WitnessUnknown
  *  * WitnessV0ScriptHash: TX_WITNESS_V0_SCRIPTHASH destination (P2WSH)
  *  * WitnessV0KeyHash: TX_WITNESS_V0_KEYHASH destination (P2WPKH)
  *  * WitnessUnknown: TX_WITNESS_UNKNOWN destination (P2W???)
+ *  * CKeyID256: TX_PUBKEYSHA256 destination (P2PKH256)
  *  A CTxDestination is the internal data type encoded in a unite address
  */
-typedef boost::variant<CNoDestination, CKeyID, CScriptID, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessUnknown> CTxDestination;
+typedef boost::variant<CNoDestination, CKeyID, CScriptID, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessUnknown,
+                       CKeyID256> CTxDestination;
 
 /** Check whether a CTxDestination is a CNoDestination. */
 bool IsValidDestination(const CTxDestination& dest);
@@ -185,5 +189,17 @@ CScript GetScriptForMultisig(int nRequired, const std::vector<CPubKey>& keys);
  * the various witness-specific CTxDestination subtypes.
  */
 CScript GetScriptForWitness(const CScript& redeemscript);
+
+/**
+ * Generate a remote staking redeem script.
+ * Remote staking script has the following form:
+ *  if coin-stake transaction
+ *    staking_script
+ *  else
+ *    spending_script
+ *  end
+ * It allows to use different keys for staking and spending.
+ */
+CScript GetRemoteStakingScript(const CScript &staking_script, const CScript &spending_script);
 
 #endif // UNITE_SCRIPT_STANDARD_H

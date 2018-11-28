@@ -32,9 +32,21 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TX_WITNESS_UNKNOWN: return "witness_unknown";
     case TX_PAYVOTESLASH: return "payvoteslash";
+    case TX_REMOTE_STAKING: return "remote_staking";
+    case TX_PUBKEYSHA256: return "pubkeysha256";
     }
     return nullptr;
 }
+
+static bool MatchPayToPubkeySha256(const CScript& script, valtype& pubkeyhash)
+{
+    if (script.IsPayToPublicKeySha256()) {
+        pubkeyhash = valtype(script.begin () + 3, script.begin() + 35);
+        return true;
+    }
+    return false;
+}
+
 
 bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::vector<unsigned char> >& vSolutionsRet)
 {
@@ -71,6 +83,16 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         return true;
     }
 
+    // Remote staking scripts combine different types of standards scripts,
+    // therefore, there is no straightforward way to return solutions in
+    // vSolutionsRet. Instead, remote staking scripts can be split on the caller
+    // side using CScript::SplitRemoteStakingScript, and Solver can be called
+    // for each of the nested scripts
+    if (scriptPubKey.IsRemoteStakingScript()) {
+        typeRet = TX_REMOTE_STAKING;
+        return true;
+    }
+
     int witnessversion;
     std::vector<unsigned char> witnessprogram;
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
@@ -100,6 +122,13 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
     // script.
     if (scriptPubKey.size() >= 1 && scriptPubKey[0] == OP_RETURN && scriptPubKey.IsPushOnly(scriptPubKey.begin()+1)) {
         typeRet = TX_NULL_DATA;
+        return true;
+    }
+
+    std::vector<unsigned char> data;
+    if (MatchPayToPubkeySha256(scriptPubKey, data)) {
+        vSolutionsRet.push_back(std::move(data));
+        typeRet = TX_PUBKEYSHA256;
         return true;
     }
 
@@ -303,6 +332,12 @@ public:
         return true;
     }
 
+    bool operator()(const CKeyID256 &keyID) const {
+        script->clear();
+        *script << OP_DUP << OP_SHA256 << ToByteVector(keyID) << OP_EQUALVERIFY << OP_CHECKSIG;
+        return true;
+    }
+
     bool operator()(const CScriptID &scriptID) const {
         script->clear();
         *script << OP_HASH160 << ToByteVector(scriptID) << OP_EQUAL;
@@ -372,6 +407,17 @@ CScript GetScriptForWitness(const CScript& redeemscript)
     uint256 hash;
     CSHA256().Write(&redeemscript[0], redeemscript.size()).Finalize(hash.begin());
     return GetScriptForDestination(WitnessV0ScriptHash(hash));
+}
+
+CScript GetRemoteStakingScript(const CScript &staking_script, const CScript &spending_script)
+{
+    CScript result;
+    result << OP_PUSH_TX_TYPE << OP_1 << OP_EQUAL << OP_IF;
+    result += staking_script;
+    result << OP_ELSE;
+    result += spending_script;
+    result << OP_ENDIF;
+    return result;
 }
 
 bool IsValidDestination(const CTxDestination& dest) {

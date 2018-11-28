@@ -210,6 +210,17 @@ bool CScript::IsPayToPublicKeyHash() const
         (*this)[24] == OP_CHECKSIG);
 }
 
+bool CScript::IsPayToPublicKeySha256() const
+{
+    // Extra-fast test for pay-to-script-sha256 CScripts:
+    return (this->size() == 37 &&
+        (*this)[0] == OP_DUP &&
+        (*this)[1] == OP_SHA256 &&
+        (*this)[2] == 0x20 &&
+        (*this)[35] == OP_EQUALVERIFY &&
+        (*this)[36] == OP_CHECKSIG);
+}
+
 CScript CScript::CreatePayVoteSlashScript(const CPubKey &pubkey)
 {
     return CScript() <<
@@ -256,9 +267,10 @@ bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
         (*this)[ofs + 24] == OP_CHECKSIG);
 }
 
-bool CScript::MatchPayToPublicKeySha256(size_t ofs) const {
+bool CScript::MatchPayToPublicKeySha256(size_t ofs) const
+{
     // Extra-fast test for pay-to-script-sha256 CScripts:
-    return (this->size() - ofs >= 37 && // TODO: fix length check
+    return (this->size() - ofs >= 37 &&
         (*this)[ofs + 0] == OP_DUP &&
         (*this)[ofs + 1] == OP_SHA256 &&
         (*this)[ofs + 2] == 0x20 &&
@@ -345,18 +357,11 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
 
 bool CScript::IsRemoteStakingScript() const
 {
-    return (//this->size() == 68 &&
+    return (this->size() >= 52 && // Minimum size when both staking and spending scripts are P2SH
         (*this)[0] == OP_PUSH_TX_TYPE &&
         (*this)[1] == OP_1 &&
         (*this)[2] == OP_EQUAL &&
-        (*this)[3] == OP_IF &&
-//        MatchPayToPublicKeyHash(4) &&
-//        (*this)[29] == OP_ELSE &&
-//        MatchPayToPublicKeySha256(30) &&
-        (*this)[this->size() - 1] == OP_ENDIF);
-    // TODO: fix implementation
-    // stakingScript is one of (P2PKH, P2SH, MULTISIG)
-    // spendingScript is one of (P2PKH256, P2SH, MULTISIG)
+        (*this)[3] == OP_IF);
 }
 
 
@@ -529,9 +534,8 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     return it == script.end();
 }
 
-bool CScript::SplitRemoteStakingScript(const CScript &script, CScript &stakingScript, CScript &spendingScript)
+bool CScript::SplitRemoteStakingScript(const CScript &script, CScript &staking_script, CScript &spending_script)
 {
-    // TODO: why not member function
     opcodetype opcode;
     CScript::const_iterator it = script.begin();
 
@@ -550,7 +554,7 @@ bool CScript::SplitRemoteStakingScript(const CScript &script, CScript &stakingSc
             return false;
         }
     }
-    stakingScript = CScript(begin, it - 1);
+    staking_script = CScript(begin, it - 1);
 
     begin = it;
     while (opcode != OP_ENDIF) {
@@ -558,6 +562,6 @@ bool CScript::SplitRemoteStakingScript(const CScript &script, CScript &stakingSc
             return false;
         }
     }
-    spendingScript = CScript(begin, it - 1);
+    spending_script = CScript(begin, it - 1);
     return true;
 }

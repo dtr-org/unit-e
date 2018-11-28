@@ -8,6 +8,11 @@
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
 
+CKeyID::CKeyID(const uint256 &in)
+{
+    CRIPEMD160().Write(in.begin(), 32).Finalize(this->begin());
+}
+
 namespace
 {
 /* Global secp256k1_context object used for verification. */

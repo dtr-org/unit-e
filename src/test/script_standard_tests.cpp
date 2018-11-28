@@ -112,6 +112,18 @@ BOOST_AUTO_TEST_CASE(script_standard_Solver_success)
     BOOST_CHECK_EQUAL(solutions.size(), 1);
     BOOST_CHECK(solutions[0] == ToByteVector(scriptHash));
 
+    // TX_REMOTE_STAKING
+    s.clear();
+    s << OP_PUSH_TX_TYPE << OP_1 << OP_EQUAL << OP_IF
+        << OP_DUP << OP_HASH160 << ToByteVector(pubkeys[0].GetID()) << OP_EQUALVERIFY << OP_CHECKSIG
+        << OP_ELSE
+        << OP_DUP << OP_SHA256 << ToByteVector(pubkeys[1].GetID256()) << OP_EQUALVERIFY << OP_CHECKSIG
+        << OP_ENDIF;
+    BOOST_CHECK(s.IsRemoteStakingScript());
+    BOOST_CHECK(Solver(s, whichType, solutions));
+    BOOST_CHECK_EQUAL(whichType, TX_REMOTE_STAKING);
+    BOOST_CHECK_EQUAL(solutions.size(), 0);
+
     // TX_NONSTANDARD
     s.clear();
     s << OP_9 << OP_ADD << OP_11 << OP_EQUAL;

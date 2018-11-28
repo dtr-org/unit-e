@@ -60,8 +60,7 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType, const bool w
     if (!Solver(scriptPubKey, whichType, vSolutions))
         return false;
 
-    if (whichType == TX_MULTISIG)
-    {
+    if (whichType == TX_MULTISIG) {
         unsigned char m = vSolutions.front()[0];
         unsigned char n = vSolutions.back()[0];
         // Support up to x-of-3 multisig txns as standard
@@ -70,11 +69,29 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType, const bool w
         if (m < 1 || m > n)
             return false;
     } else if (whichType == TX_NULL_DATA &&
-               (!fAcceptDatacarrier || scriptPubKey.size() > nMaxDatacarrierBytes))
-          return false;
-
-    else if (!witnessEnabled && (whichType == TX_WITNESS_V0_KEYHASH || whichType == TX_WITNESS_V0_SCRIPTHASH))
+               (!fAcceptDatacarrier || scriptPubKey.size() > nMaxDatacarrierBytes)) {
         return false;
+
+    } else if (!witnessEnabled && (whichType == TX_WITNESS_V0_KEYHASH || whichType == TX_WITNESS_V0_SCRIPTHASH)) {
+        return false;
+
+    } else if (whichType == TX_REMOTE_STAKING) {
+        CScript stakingScript, spendingScript;
+        txnouttype stakingScriptType, spendingScriptType;
+        if (!CScript::SplitRemoteStakingScript(scriptPubKey, stakingScript, spendingScript) ||
+            !Solver(stakingScript, stakingScriptType, vSolutions) ||
+            !Solver(spendingScript, spendingScriptType, vSolutions)) {
+            return false;
+        }
+        if (stakingScriptType != TX_PUBKEYHASH && stakingScriptType != TX_MULTISIG &&
+            stakingScriptType != TX_SCRIPTHASH) {
+            return false;
+        }
+        if (spendingScriptType != TX_PUBKEYSHA256 && spendingScriptType != TX_MULTISIG &&
+            spendingScriptType != TX_SCRIPTHASH) {
+            return false;
+        }
+    }
 
     return whichType != TX_NONSTANDARD && whichType != TX_WITNESS_UNKNOWN;
 }
@@ -174,6 +191,8 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         const CScript& prevScript = prev.scriptPubKey;
         if (!Solver(prevScript, whichType, vSolutions))
             return false;
+
+        // UNIT-E: TODO: check for TX_SCRIPTHASH in TX_REMOTESTAKE
 
         if (whichType == TX_SCRIPTHASH)
         {

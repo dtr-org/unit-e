@@ -262,6 +262,9 @@ public:
     }
 
     std::string operator()(const CNoDestination& no) const { return {}; }
+
+    // UNIT-E: TODO: 256-bit address representation
+    std::string operator()(const CKeyID256& id) const { return (*this)(CKeyID(id)); }
 };
 
 CTxDestination DecodeDestination(const std::string& str, const CChainParams& params)

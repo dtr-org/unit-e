@@ -22,6 +22,16 @@ class CKeyID : public uint160
 public:
     CKeyID() : uint160() {}
     explicit CKeyID(const uint160& in) : uint160(in) {}
+
+    explicit CKeyID(const uint256& in);
+};
+
+/** A reference to a CKey: the SHA256 of its serialized public key */
+class CKeyID256 : public uint256
+{
+ public:
+  CKeyID256() : uint256() {}
+  explicit CKeyID256(const uint256& in) : uint256(in) {}
 };
 
 typedef uint256 ChainCode;
@@ -149,6 +159,12 @@ public:
     CKeyID GetID() const
     {
         return CKeyID(Hash160(vch, vch + size()));
+    }
+
+    //! Get the 256-bit KeyID of this public key (SHA256 of its serialization)
+    CKeyID256 GetID256() const
+    {
+        return CKeyID256(Sha256(vch, vch + size()));
     }
 
     //! Get the 256-bit hash of this public key.

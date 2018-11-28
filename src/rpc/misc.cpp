@@ -97,6 +97,18 @@ public:
         return obj;
     }
 
+    UniValue operator()(const CKeyID256 &keyID256) const {
+        UniValue obj(UniValue::VOBJ);
+        CPubKey vchPubKey;
+        obj.push_back(Pair("isscript", false));
+        obj.push_back(Pair("iswitness", false));
+        if (pwallet && pwallet->GetPubKey(CKeyID(keyID256), vchPubKey)) {
+            obj.push_back(Pair("pubkey", HexStr(vchPubKey)));
+            obj.push_back(Pair("iscompressed", vchPubKey.IsCompressed()));
+        }
+        return obj;
+    }
+
     UniValue operator()(const CScriptID &scriptID) const {
         UniValue obj(UniValue::VOBJ);
         CScript subscript;

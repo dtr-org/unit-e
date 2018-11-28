@@ -760,6 +760,75 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     BOOST_CHECK(!IsStandardTx(t, reason));
 }
 
+BOOST_AUTO_TEST_CASE(test_IsStandard_remote_staking)
+{
+    LOCK(cs_main);
+    CBasicKeyStore keystore;
+    CCoinsView coins_dummy;
+    CCoinsViewCache coins(&coins_dummy);
+    std::vector<CMutableTransaction> dummy_transactions = SetupDummyInputs(keystore, coins);
+
+    CMutableTransaction t;
+    t.vin.resize(1);
+    t.vin[0].prevout.hash = dummy_transactions[0].GetHash();
+    t.vin[0].prevout.n = 1;
+    t.vin[0].scriptSig << std::vector<unsigned char>(65, 0);
+    t.vout.resize(1);
+    t.vout[0].nValue = 90 * EEES;
+
+    CKey staking_key;
+    staking_key.MakeNewKey(true);
+    CKey spending_key;
+    spending_key.MakeNewKey(true);
+    std::vector<CPubKey> pub_keys = {staking_key.GetPubKey(), spending_key.GetPubKey()};
+
+    std::string reason;
+
+    t.vout.resize(1);
+
+    // Standard remote staking scripts
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForDestination(staking_key.GetPubKey().GetID()), // P2PKH
+        GetScriptForDestination(spending_key.GetPubKey().GetID256())); // P2PKH256
+    BOOST_CHECK(IsStandardTx(t, reason));
+
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForDestination(CScriptID(CScript())), // P2SH
+        GetScriptForDestination(spending_key.GetPubKey().GetID256())); // P2PKH256
+    BOOST_CHECK(IsStandardTx(t, reason));
+
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForMultisig(1, pub_keys), // Multisig
+        GetScriptForDestination(spending_key.GetPubKey().GetID256())); // P2PKH256
+    BOOST_CHECK(IsStandardTx(t, reason));
+
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForDestination(staking_key.GetPubKey().GetID()), // P2PKH
+        GetScriptForDestination(CScriptID(CScript()))); // P2SH
+    BOOST_CHECK(IsStandardTx(t, reason));
+
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForDestination(staking_key.GetPubKey().GetID()), // P2PKH
+        GetScriptForMultisig(1, pub_keys)); // Multisig
+    BOOST_CHECK(IsStandardTx(t, reason));
+
+    // Non-standard remote staking scripts
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForDestination(staking_key.GetPubKey().GetID()), // P2PKH
+        GetScriptForDestination(spending_key.GetPubKey().GetID())); // P2PKH
+    BOOST_CHECK(!IsStandardTx(t, reason));
+
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForDestination(CScriptID(CScript())), // P2SH
+        GetScriptForDestination(spending_key.GetPubKey().GetID())); // P2PKH
+    BOOST_CHECK(!IsStandardTx(t, reason));
+
+    t.vout[0].scriptPubKey = GetRemoteStakingScript(
+        GetScriptForDestination(CScriptID(CScript())), // P2SH
+        CScript() << OP_RETURN << ParseHex("")); // NULL DATA
+    BOOST_CHECK(!IsStandardTx(t, reason));
+}
+
 BOOST_AUTO_TEST_CASE(mutabletransaction_set_type_mulitple_times)
 {
   CMutableTransaction tx;
