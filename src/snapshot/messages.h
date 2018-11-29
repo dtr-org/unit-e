@@ -20,95 +20,95 @@ namespace snapshot {
 //! snapshot on disk too. It is used instead of UTXO because it has more compact
 //! form, doesn't repeat TX specific fields for each output.
 struct UTXOSubset {
-  uint256 m_txId;
+  uint256 tx_id;
 
   //! at which block height the TX was included
-  uint32_t m_height;
+  uint32_t height;
 
-  bool m_isCoinBase;
+  bool is_coin_base;
 
   //! key is the CTxOut index
-  std::map<uint32_t, CTxOut> m_outputs;
+  std::map<uint32_t, CTxOut> outputs;
 
-  UTXOSubset() : m_txId(), m_height(0), m_isCoinBase(false), m_outputs() {}
+  UTXOSubset() : tx_id(), height(0), is_coin_base(false), outputs() {}
 
-  UTXOSubset(uint256 txId, uint32_t height, bool isCoinBase,
-             std::map<uint32_t, CTxOut> outMap)
-      : m_txId(txId),
-        m_height(height),
-        m_isCoinBase(isCoinBase),
-        m_outputs{std::move(outMap)} {}
+  UTXOSubset(uint256 _tx_id, uint32_t _height, bool _is_coin_base,
+             std::map<uint32_t, CTxOut> out_map)
+      : tx_id(_tx_id),
+        height(_height),
+        is_coin_base(_is_coin_base),
+        outputs{std::move(out_map)} {}
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_txId);
-    READWRITE(m_height);
-    READWRITE(m_isCoinBase);
-    READWRITE(m_outputs);
+    READWRITE(tx_id);
+    READWRITE(height);
+    READWRITE(is_coin_base);
+    READWRITE(outputs);
   }
 };
 
 //! \brief GetSnapshot is a message to request the snapshot chunk.
 //!
 //! During the initial request to peers it has the following values:
-//! bestBlockHash = empty
-//! m_utxoSubsetIndex = 0
-//! m_utxoSubsetCount = >0
+//! best_block_hash = empty
+//! utxo_subset_index = 0
+//! utxo_subset_count = >0
 struct GetSnapshot {
-  uint256 m_bestBlockHash;
-  uint64_t m_utxoSubsetIndex;
-  uint16_t m_utxoSubsetCount;
+  uint256 best_block_hash;
+  uint64_t utxo_subset_index;
+  uint16_t utxo_subset_count;
 
   GetSnapshot()
-      : m_bestBlockHash(), m_utxoSubsetIndex(0), m_utxoSubsetCount(0) {}
+      : best_block_hash(), utxo_subset_index(0), utxo_subset_count(0) {}
 
-  explicit GetSnapshot(const uint256 &bestBlockHash)
-      : m_bestBlockHash(bestBlockHash),
-        m_utxoSubsetIndex(0),
-        m_utxoSubsetCount(0) {}
+  explicit GetSnapshot(const uint256 &_best_block_hash)
+      : best_block_hash(_best_block_hash),
+        utxo_subset_index(0),
+        utxo_subset_count(0) {}
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_bestBlockHash);
-    READWRITE(m_utxoSubsetIndex);
-    READWRITE(m_utxoSubsetCount);
+    READWRITE(best_block_hash);
+    READWRITE(utxo_subset_index);
+    READWRITE(utxo_subset_count);
   }
 };
 
 //! \brief Snapshot message is used to reply to GetSnapshot P2P request.
 //!
-//! When m_totalUTXOSubsets == m_utxoSubsetIndex + m_utxoSubsets.size() this
+//! When total_utxo_subsets == utxo_subset_index + utxo_subsets.size() this
 //! chunk is considered the last chunk of the snapshot.
 struct Snapshot {
-  uint256 m_snapshotHash;
-  uint256 m_bestBlockHash;
-  uint256 m_stakeModifier;
-  uint64_t m_totalUTXOSubsets;
-  uint64_t m_utxoSubsetIndex;
-  std::vector<UTXOSubset> m_utxoSubsets;
+  uint256 snapshot_hash;
+  uint256 best_block_hash;
+  uint256 stake_modifier;
+  uint64_t total_utxo_subsets;
+  uint64_t utxo_subset_index;
+  std::vector<UTXOSubset> utxo_subsets;
 
   Snapshot()
-      : m_snapshotHash(),
-        m_bestBlockHash(),
-        m_stakeModifier(),
-        m_totalUTXOSubsets(0),
-        m_utxoSubsetIndex(0),
-        m_utxoSubsets() {}
+      : snapshot_hash(),
+        best_block_hash(),
+        stake_modifier(),
+        total_utxo_subsets(0),
+        utxo_subset_index(0),
+        utxo_subsets() {}
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_snapshotHash);
-    READWRITE(m_bestBlockHash);
-    READWRITE(m_stakeModifier);
-    READWRITE(m_totalUTXOSubsets);
-    READWRITE(m_utxoSubsetIndex);
-    READWRITE(m_utxoSubsets);
+    READWRITE(snapshot_hash);
+    READWRITE(best_block_hash);
+    READWRITE(stake_modifier);
+    READWRITE(total_utxo_subsets);
+    READWRITE(utxo_subset_index);
+    READWRITE(utxo_subsets);
   }
 };
 
@@ -116,16 +116,16 @@ struct Snapshot {
 //! snapshot hash. Coin class (which has the same schema) is not used as it
 //! doesn't follow the P2P serialization convention.
 struct UTXO {
-  COutPoint m_outPoint;
-  uint32_t m_height;
-  bool m_isCoinBase;
-  CTxOut m_txOut;
+  COutPoint out_point;
+  uint32_t height;
+  bool is_coin_base;
+  CTxOut tx_out;
 
   UTXO()
-      : m_outPoint(),
-        m_height(0),
-        m_isCoinBase(false),
-        m_txOut() {}
+      : out_point(),
+        height(0),
+        is_coin_base(false),
+        tx_out() {}
 
   UTXO(const COutPoint &out, const Coin &coin);
 
@@ -133,10 +133,10 @@ struct UTXO {
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_outPoint);
-    READWRITE(m_height);
-    READWRITE(m_isCoinBase);
-    READWRITE(m_txOut);
+    READWRITE(out_point);
+    READWRITE(height);
+    READWRITE(is_coin_base);
+    READWRITE(tx_out);
   }
 };
 

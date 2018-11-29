@@ -25,9 +25,9 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   BOOST_CHECK_EQUAL(HexStr(s), exp);
   s.clear();
 
-  subset.m_txId.SetHex("aa");
-  subset.m_height = 0xbb;
-  subset.m_isCoinBase = true;
+  subset.tx_id.SetHex("aa");
+  subset.height = 0xbb;
+  subset.is_coin_base = true;
   s << subset;
   exp =
       "aa000000000000000000000000000000"  // tx id
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
                       "expected: " << HexStr(s) << " got: " << exp);
   s.clear();
 
-  subset.m_outputs[2] = CTxOut();
+  subset.outputs[2] = CTxOut();
   s << subset;
   exp =
       "aa000000000000000000000000000000"  // tx id
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   auto out = CTxOut();
   out.nValue = 0xcc;
   out.scriptPubKey << OP_RETURN;
-  subset.m_outputs[2] = out;
+  subset.outputs[2] = out;
   s << subset;
   exp =
       "aa000000000000000000000000000000"  // tx id
@@ -74,9 +74,9 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
 
 BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
   snapshot::GetSnapshot msg;
-  msg.m_bestBlockHash.SetHex("bb");
-  msg.m_utxoSubsetIndex = 55;
-  msg.m_utxoSubsetCount = 17;
+  msg.best_block_hash.SetHex("bb");
+  msg.utxo_subset_index = 55;
+  msg.utxo_subset_count = 17;
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << msg;
@@ -93,9 +93,9 @@ BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
 
   snapshot::GetSnapshot msg2;
   stream >> msg2;
-  BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
-  BOOST_CHECK_EQUAL(msg.m_utxoSubsetIndex, msg2.m_utxoSubsetIndex);
-  BOOST_CHECK_EQUAL(msg.m_utxoSubsetCount, msg2.m_utxoSubsetCount);
+  BOOST_CHECK_EQUAL(msg.best_block_hash, msg2.best_block_hash);
+  BOOST_CHECK_EQUAL(msg.utxo_subset_index, msg2.utxo_subset_index);
+  BOOST_CHECK_EQUAL(msg.utxo_subset_count, msg2.utxo_subset_count);
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
@@ -119,20 +119,20 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
   BOOST_CHECK_EQUAL(got, exp);
 
   // serialize filled
-  msg.m_snapshotHash.SetHex("aa");
-  msg.m_bestBlockHash.SetHex("bb");
-  msg.m_stakeModifier.SetHex("cc");
-  msg.m_totalUTXOSubsets = 25000000;
-  msg.m_utxoSubsetIndex = 128;
+  msg.snapshot_hash.SetHex("aa");
+  msg.best_block_hash.SetHex("bb");
+  msg.stake_modifier.SetHex("cc");
+  msg.total_utxo_subsets = 25000000;
+  msg.utxo_subset_index = 128;
 
   snapshot::UTXOSubset subset;
-  subset.m_height = 53;
-  subset.m_isCoinBase = true;
-  subset.m_txId.SetHex("bb");
+  subset.height = 53;
+  subset.is_coin_base = true;
+  subset.tx_id.SetHex("bb");
   CScript script;
   script << OP_RETURN;
-  subset.m_outputs[5] = CTxOut(5, script);
-  msg.m_utxoSubsets.emplace_back(subset);
+  subset.outputs[5] = CTxOut(5, script);
+  msg.utxo_subsets.emplace_back(subset);
 
   stream.clear();
   stream << msg;
@@ -162,25 +162,25 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
 
   snapshot::Snapshot msg2;
   stream >> msg2;
-  BOOST_CHECK_EQUAL(msg.m_bestBlockHash, msg2.m_bestBlockHash);
-  BOOST_CHECK_EQUAL(msg.m_stakeModifier, msg2.m_stakeModifier);
-  BOOST_CHECK_EQUAL(msg.m_totalUTXOSubsets, msg2.m_totalUTXOSubsets);
-  BOOST_CHECK_EQUAL(msg.m_utxoSubsetIndex, msg2.m_utxoSubsetIndex);
-  BOOST_CHECK_EQUAL(msg.m_utxoSubsets.size(), msg2.m_utxoSubsets.size());
-  BOOST_CHECK_EQUAL(msg.m_utxoSubsets[0].m_txId, msg2.m_utxoSubsets[0].m_txId);
-  BOOST_CHECK_EQUAL(msg.m_utxoSubsets[0].m_outputs.size(),
-                    msg2.m_utxoSubsets[0].m_outputs.size());
+  BOOST_CHECK_EQUAL(msg.best_block_hash, msg2.best_block_hash);
+  BOOST_CHECK_EQUAL(msg.stake_modifier, msg2.stake_modifier);
+  BOOST_CHECK_EQUAL(msg.total_utxo_subsets, msg2.total_utxo_subsets);
+  BOOST_CHECK_EQUAL(msg.utxo_subset_index, msg2.utxo_subset_index);
+  BOOST_CHECK_EQUAL(msg.utxo_subsets.size(), msg2.utxo_subsets.size());
+  BOOST_CHECK_EQUAL(msg.utxo_subsets[0].tx_id, msg2.utxo_subsets[0].tx_id);
+  BOOST_CHECK_EQUAL(msg.utxo_subsets[0].outputs.size(),
+                    msg2.utxo_subsets[0].outputs.size());
 }
 
 BOOST_AUTO_TEST_CASE(utxo_construct) {
   COutPoint out;
   Coin coin;
   snapshot::UTXO utxo1(out, coin);
-  BOOST_CHECK_EQUAL(utxo1.m_outPoint.hash, out.hash);
-  BOOST_CHECK_EQUAL(utxo1.m_outPoint.n, out.n);
-  BOOST_CHECK_EQUAL(utxo1.m_height, coin.nHeight);
-  BOOST_CHECK_EQUAL(utxo1.m_isCoinBase, coin.IsCoinBase());
-  BOOST_CHECK(utxo1.m_txOut == coin.out);
+  BOOST_CHECK_EQUAL(utxo1.out_point.hash, out.hash);
+  BOOST_CHECK_EQUAL(utxo1.out_point.n, out.n);
+  BOOST_CHECK_EQUAL(utxo1.height, coin.nHeight);
+  BOOST_CHECK_EQUAL(utxo1.is_coin_base, coin.IsCoinBase());
+  BOOST_CHECK(utxo1.tx_out == coin.out);
 
   out.hash.SetHex("aa");
   out.n = 10;
@@ -190,11 +190,11 @@ BOOST_AUTO_TEST_CASE(utxo_construct) {
   coin.out.scriptPubKey << OP_RETURN;
 
   snapshot::UTXO utxo2(out, coin);
-  BOOST_CHECK_EQUAL(utxo2.m_outPoint.hash, out.hash);
-  BOOST_CHECK_EQUAL(utxo2.m_outPoint.n, out.n);
-  BOOST_CHECK_EQUAL(utxo2.m_height, coin.nHeight);
-  BOOST_CHECK_EQUAL(utxo2.m_isCoinBase, coin.IsCoinBase());
-  BOOST_CHECK(utxo2.m_txOut == coin.out);
+  BOOST_CHECK_EQUAL(utxo2.out_point.hash, out.hash);
+  BOOST_CHECK_EQUAL(utxo2.out_point.n, out.n);
+  BOOST_CHECK_EQUAL(utxo2.height, coin.nHeight);
+  BOOST_CHECK_EQUAL(utxo2.is_coin_base, coin.IsCoinBase());
+  BOOST_CHECK(utxo2.tx_out == coin.out);
 }
 
 BOOST_AUTO_TEST_CASE(utxo_serialization) {
@@ -250,11 +250,11 @@ BOOST_AUTO_TEST_CASE(snapshot_hash) {
   std::string nullHash = h.GetHash(stakeModifier).GetHex();
 
   snapshot::UTXO a;
-  a.m_outPoint.hash.SetHex("aa");
+  a.out_point.hash.SetHex("aa");
   snapshot::UTXO b;
-  b.m_outPoint.hash.SetHex("bb");
+  b.out_point.hash.SetHex("bb");
   snapshot::UTXO c;
-  c.m_outPoint.hash.SetHex("cc");
+  c.out_point.hash.SetHex("cc");
 
   std::string aHash =
       "cf51b4881eef3133d8869fbff8754fa2"

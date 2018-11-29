@@ -54,13 +54,13 @@ BOOST_AUTO_TEST_CASE(chainstate_iterator) {
   uint64_t count = 0;
   while (iter.Valid()) {
     snapshot::UTXOSubset subset = iter.GetUTXOSubset();
-    BOOST_CHECK_EQUAL(subset.m_height, count);
-    BOOST_CHECK_EQUAL(subset.m_txId.GetUint64(0), count);
-    BOOST_CHECK_EQUAL(subset.m_isCoinBase, count % 2 == 1);
-    BOOST_CHECK_EQUAL(subset.m_outputs.size(), count + 1);
+    BOOST_CHECK_EQUAL(subset.height, count);
+    BOOST_CHECK_EQUAL(subset.tx_id.GetUint64(0), count);
+    BOOST_CHECK_EQUAL(subset.is_coin_base, count % 2 == 1);
+    BOOST_CHECK_EQUAL(subset.outputs.size(), count + 1);
 
     int n = 0;
-    for (const auto &p : subset.m_outputs) {
+    for (const auto &p : subset.outputs) {
       BOOST_CHECK_EQUAL(p.first, n);
       BOOST_CHECK_EQUAL(p.second.nValue, count * 100 + n);
       ++n;

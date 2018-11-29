@@ -245,7 +245,7 @@ void CCoinsViewCache::ClearCoins() {
 
 bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
     LogPrint(BCLog::COINDB, "%s: Apply snapshot hash=%s.\n",
-             __func__, indexer->GetMeta().m_snapshotHash.GetHex());
+             __func__, indexer->GetMeta().snapshot_hash.GetHex());
 
     ClearCoins();
 
@@ -258,9 +258,9 @@ bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer
     constexpr uint64_t batchSize = 100000;
     while (iter.Valid()) {
         snapshot::UTXOSubset &subset = iter.GetUTXOSubset();
-        for (auto const &p : subset.m_outputs) {
-            COutPoint out(subset.m_txId, p.first);
-            Coin coin(p.second, subset.m_height, subset.m_isCoinBase);
+        for (auto const &p : subset.outputs) {
+            COutPoint out(subset.tx_id, p.first);
+            Coin coin(p.second, subset.height, subset.is_coin_base);
             AddCoin(out, std::move(coin), true);
         }
 

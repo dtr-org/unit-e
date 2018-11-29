@@ -20,7 +20,7 @@ Iterator::Iterator(std::unique_ptr<Indexer> indexer)
       m_file(nullptr),
       m_readTotal(0),
       m_subsetLeft(0) {
-  if (m_indexer->GetMeta().m_totalUTXOSubsets > 0) {
+  if (m_indexer->GetMeta().total_utxo_subsets > 0) {
     Next();
   }
 }
@@ -33,15 +33,15 @@ bool Iterator::Valid() {
     return false;
   }
 
-  return (m_readTotal <= m_indexer->GetMeta().m_totalUTXOSubsets);
+  return (m_readTotal <= m_indexer->GetMeta().total_utxo_subsets);
 }
 
 void Iterator::Next() {
-  if (m_readTotal > m_indexer->GetMeta().m_totalUTXOSubsets) {
+  if (m_readTotal > m_indexer->GetMeta().total_utxo_subsets) {
     return;  // whole snapshot is read
   }
 
-  if (m_readTotal == m_indexer->GetMeta().m_totalUTXOSubsets) {
+  if (m_readTotal == m_indexer->GetMeta().total_utxo_subsets) {
     ++m_readTotal;  // mark as end of snapshot
     return;
   }
@@ -66,7 +66,7 @@ void Iterator::Next() {
 }
 
 bool Iterator::MoveCursorTo(uint64_t subsetIndex) {
-  if (m_indexer->GetMeta().m_totalUTXOSubsets <= subsetIndex) {
+  if (m_indexer->GetMeta().total_utxo_subsets <= subsetIndex) {
     return false;
   }
 
@@ -134,9 +134,9 @@ uint256 Iterator::CalculateHash(uint256 stakeModifier) {
   SnapshotHash hash;
   while (Valid()) {
     UTXOSubset subset = GetUTXOSubset();
-    for (const auto &p : subset.m_outputs) {
-      const COutPoint out(subset.m_txId, p.first);
-      const Coin coin(p.second, subset.m_height, subset.m_isCoinBase);
+    for (const auto &p : subset.outputs) {
+      const COutPoint out(subset.tx_id, p.first);
+      const Coin coin(p.second, subset.height, subset.is_coin_base);
       hash.AddUTXO(UTXO(out, coin));
     }
 

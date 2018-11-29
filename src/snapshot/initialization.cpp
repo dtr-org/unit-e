@@ -34,11 +34,11 @@ bool Initialize(const Params &params) {
       LogPrintf("Snapshot was successfully applied.\n");
     } else {
       for (const Checkpoint &p : GetSnapshotCheckpoints()) {
-        std::unique_ptr<Indexer> idx = Indexer::Open(p.snapshotHash);
+        std::unique_ptr<Indexer> idx = Indexer::Open(p.snapshot_hash);
         if (idx) {
-          StoreCandidateBlockHash(idx->GetMeta().m_blockHash);
+          StoreCandidateBlockHash(idx->GetMeta().block_hash);
           LogPrint(BCLog::SNAPSHOT, "Candidate snapshot for the block %s has found.\n",
-                   idx->GetMeta().m_blockHash.GetHex());
+                   idx->GetMeta().block_hash.GetHex());
         }
       }
     }
