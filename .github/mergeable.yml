@@ -2,15 +2,18 @@ mergeable:
   pull_requests:
     label:
       must_include:
-        regex: `.+`
+        regex: ".+"
+        message: "The pull-request is not categorized using any label."
       must_exclude:
-        regex: `^wip$`
+        regex: "^wip$"
+        message: "The pull-request is labelled as work in progress (WIP)."
     title:
       must_exclude:
-        regex: `^WIP`
+        regex: "^WIP"
+        message: "The pull-request is titled as work in progress (WIP:)."
     description:
       must_include:
-        regex: `^.{10,}`
+        regex: "^.{10,}"
         message: 'The description must not be empty (at least 10 characters)!'
     stale:
       days: 10
@@ -18,11 +21,12 @@ mergeable:
   issues:
     label:
       must_include:
-        regex: `.+`
+        regex: ".+"
+        message: "The issue is not categorized using any label."
     stale:
       days: 30
       message: 'There has not been any activity in the past month. Is there anything to follow-up?'
     description:
       must_include:
-        regex: `^.{10,}`
+        regex: "^.{10,}"
         message: 'The description must not be empty (at least 10 characters)!'
