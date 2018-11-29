@@ -17,7 +17,7 @@ BOOST_FIXTURE_TEST_SUITE(snapshot_creator_tests, BasicTestingSetup)
 
 bool HasSnapshotHash(const uint256 &hash) {
   for (const snapshot::Checkpoint &p : snapshot::GetSnapshotCheckpoints()) {
-    if (p.snapshotHash == hash) {
+    if (p.snapshot_hash == hash) {
       return true;
     }
   }
@@ -80,30 +80,30 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
 
       if (idx == 4) {
         for (const snapshot::Checkpoint &p : checkpoints) {
-          deletedSnapshots.push_back(p.snapshotHash);
+          deletedSnapshots.push_back(p.snapshot_hash);
         }
       }
 
       // validate reported state
-      BOOST_CHECK_EQUAL(info.m_status, +snapshot::Status::OK);
-      BOOST_CHECK(!info.m_indexerMeta.m_snapshotHash.IsNull());
-      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_snapshotHash.GetHex(),
-                        checkpoints.rbegin()->snapshotHash.GetHex());
-      BOOST_CHECK_EQUAL(HexStr(info.m_indexerMeta.m_blockHash),
+      BOOST_CHECK_EQUAL(info.status, +snapshot::Status::OK);
+      BOOST_CHECK(!info.indexer_meta.snapshot_hash.IsNull());
+      BOOST_CHECK_EQUAL(info.indexer_meta.snapshot_hash.GetHex(),
+                        checkpoints.rbegin()->snapshot_hash.GetHex());
+      BOOST_CHECK_EQUAL(HexStr(info.indexer_meta.block_hash),
                         HexStr(bestBlock));
-      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSubsets, totalTX);
-      BOOST_CHECK_EQUAL(info.m_totalOutputs,
+      BOOST_CHECK_EQUAL(info.indexer_meta.total_utxo_subsets, totalTX);
+      BOOST_CHECK_EQUAL(info.total_outputs,
                         static_cast<int>(totalTX * coinsPerTX));
 
       // validate snapshot content
-      auto i = snapshot::Indexer::Open(checkpoints.rbegin()->snapshotHash);
+      auto i = snapshot::Indexer::Open(checkpoints.rbegin()->snapshot_hash);
       snapshot::Iterator iter(std::move(i));
       uint64_t count = 0;
       while (iter.Valid()) {
         ++count;
         iter.Next();
       }
-      BOOST_CHECK_EQUAL(info.m_indexerMeta.m_totalUTXOSubsets, count);
+      BOOST_CHECK_EQUAL(info.indexer_meta.total_utxo_subsets, count);
     }
 
     BOOST_CHECK_EQUAL(deletedSnapshots.size(), 5);

@@ -24,11 +24,11 @@ class Iterator {
   explicit Iterator(std::unique_ptr<Indexer> indexer);
   ~Iterator();
 
-  uint256 GetSnapshotHash() { return m_indexer->GetMeta().m_snapshotHash; }
-  uint256 GetBestBlockHash() { return m_indexer->GetMeta().m_blockHash; }
-  uint256 GetStakeModifier() { return m_indexer->GetMeta().m_stakeModifier; }
+  uint256 GetSnapshotHash() { return m_indexer->GetMeta().snapshot_hash; }
+  uint256 GetBestBlockHash() { return m_indexer->GetMeta().block_hash; }
+  uint256 GetStakeModifier() { return m_indexer->GetMeta().stake_modifier; }
   uint64_t GetTotalUTXOSubsets() {
-    return m_indexer->GetMeta().m_totalUTXOSubsets;
+    return m_indexer->GetMeta().total_utxo_subsets;
   }
 
   UTXOSubset &GetUTXOSubset() { return m_utxoSubset; }

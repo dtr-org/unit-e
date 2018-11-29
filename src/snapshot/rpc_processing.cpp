@@ -30,15 +30,15 @@ UniValue SnapshotNode(const uint256 &snapshotHash) {
   }
 
   node.push_back(Pair("valid", true));
-  node.push_back(Pair("block_hash", idx->GetMeta().m_blockHash.GetHex()));
-  node.push_back(Pair("block_height", mapBlockIndex[idx->GetMeta().m_blockHash]->nHeight));
-  node.push_back(Pair("stake_modifier", idx->GetMeta().m_stakeModifier.GetHex()));
-  node.push_back(Pair("total_utxo_subsets", idx->GetMeta().m_totalUTXOSubsets));
+  node.push_back(Pair("block_hash", idx->GetMeta().block_hash.GetHex()));
+  node.push_back(Pair("block_height", mapBlockIndex[idx->GetMeta().block_hash]->nHeight));
+  node.push_back(Pair("stake_modifier", idx->GetMeta().stake_modifier.GetHex()));
+  node.push_back(Pair("total_utxo_subsets", idx->GetMeta().total_utxo_subsets));
 
   uint64_t outputs = 0;
   Iterator iter(std::move(idx));
   while (iter.Valid()) {
-    outputs += iter.GetUTXOSubset().m_outputs.size();
+    outputs += iter.GetUTXOSubset().outputs.size();
     iter.Next();
   }
   node.push_back(Pair("total_outputs", outputs));
@@ -58,7 +58,7 @@ UniValue listsnapshots(const JSONRPCRequest &request) {
 
   UniValue listNode(UniValue::VARR);
   for (const Checkpoint &p : GetSnapshotCheckpoints()) {
-    UniValue node = SnapshotNode(p.snapshotHash);
+    UniValue node = SnapshotNode(p.snapshot_hash);
     node.push_back(Pair("snapshot_finalized", p.finalized));
     listNode.push_back(node);
   }
@@ -127,7 +127,7 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
 
   UniValue node = SnapshotNode(snapshotHash);
   for (const Checkpoint &p : GetSnapshotCheckpoints()) {
-    if (p.snapshotHash == snapshotHash) {
+    if (p.snapshot_hash == snapshotHash) {
       node.push_back(Pair("snapshot_finalized", p.finalized));
       return node;
     }
@@ -157,9 +157,9 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
   }
 
   CreationInfo info = creator.Create();
-  if (info.m_status != +Status::OK) {
+  if (info.status != +Status::OK) {
     UniValue rootNode(UniValue::VOBJ);
-    switch (info.m_status) {
+    switch (info.status) {
       case Status::WRITE_ERROR:
         rootNode.push_back(Pair("error", "can't write to any *.dat files"));
         break;
@@ -172,7 +172,7 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
     return rootNode;
   }
 
-  return SnapshotNode(info.m_indexerMeta.m_snapshotHash);
+  return SnapshotNode(info.indexer_meta.snapshot_hash);
 }
 
 UniValue deletesnapshot(const JSONRPCRequest &request) {

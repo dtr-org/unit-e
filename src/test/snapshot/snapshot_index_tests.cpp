@@ -15,7 +15,7 @@ BOOST_FIXTURE_TEST_SUITE(snapshot_snapshot_index_tests, ReducedTestingSetup)
 
 bool HasSnapshotHash(snapshot::SnapshotIndex &index, const uint256 &hash) {
   for (const snapshot::Checkpoint &p : index.GetSnapshotCheckpoints()) {
-    if (p.snapshotHash == hash) {
+    if (p.snapshot_hash == hash) {
       return true;
     }
   }

@@ -24,14 +24,14 @@
 namespace snapshot {
 //! meta.dat
 //! | size | type    | field              | description
-//! | 32   | uint256 | m_snapshotHash     |
-//! | 32   | uint256 | m_blockHash        | at which block hash the snapshot was
+//! | 32   | uint256 | snapshot_hash      |
+//! | 32   | uint256 | block_hash         | at which block hash the snapshot was
 //! |      |         |                    | created
-//! | 8    | uint64  | m_totalUTXOSubsets | total number of all UTXO
+//! | 8    | uint64  | total_utxo_subsets | total number of all UTXO
 //! |      |         |                    | subsets
-//! | 4    | uint32  | m_step             | number of aggregated UTXO
+//! | 4    | uint32  | step               | number of aggregated UTXO
 //! |      |         |                    | subsets
-//! | 4    | uint32  | m_stepsPerFile     | number of aggregations per
+//! | 4    | uint32  | steps_per_file     | number of aggregations per
 //! file
 //!
 //! index.dat
@@ -47,20 +47,20 @@ namespace snapshot {
 //! | 4    | uint32  | value | bytes to read from the beginning of the file
 //! |      |         |       | until the end of the index
 //!
-//! Example (m_step 10, m_stepsPerFile 3)
+//! Example (step=10, steps_per_file=3)
 //!
 //! To understand in which file the needed required message index is:
-//! fileId = neededIndex / (m_step * m_stepsPerFile)
-//! fileId = 24 / (10 * 3) = 0.8 = utxo0.dat
-//! fileId = 57 / (10 * 3) = 1.9 = utxo1.dat
-//! fileId = 63 / (10 * 3) = 2.1 = utxo2.dat
+//! file_id = needed_index / (step * steps_per_file)
+//! file_id = 24 / (10 * 3) = 0.8 = utxo0.dat
+//! file_id = 57 / (10 * 3) = 1.9 = utxo1.dat
+//! file_id = 63 / (10 * 3) = 2.1 = utxo2.dat
 //!
-//! Once the file is detected, we update the neededIndex according to its
-//! fileId position:
-//! neededIndex = neededIndex - m_step * m_stepsPerFile * fileId
-//! neededIndex = 15 - 10 * 3 * 0 = 15
-//! neededIndex = 57 - 10 * 3 * 1 = 27
-//! neededIndex = 63 - 10 * 3 * 2 = 3
+//! Once the file is detected, we update the needed_index according to its
+//! file_id position:
+//! needed_index = needed_index - step * steps_per_file * fileId
+//! needed_index = 15 - 10 * 3 * 0 = 15
+//! needed_index = 57 - 10 * 3 * 1 = 27
+//! needed_index = 63 - 10 * 3 * 2 = 3
 //!
 //! IdxMap for one file might look like this:
 //! 0: 100 // 100 bytes store first 10 messages
@@ -70,21 +70,21 @@ namespace snapshot {
 //! last file.
 //!
 //! To read the N message from the file, we first find the closest index.
-//! closestIndex = neededIndex / step
-//! closestIndex = 15 / 10 = 1
-//! closestIndex = 27 / 10 = 2
+//! closest_index = needed_index / step
+//! closest_index = 15 / 10 = 1
+//! closest_index = 27 / 10 = 2
 //!
 //! To calculate how many bytes to skip from the file:
-//! IdxMap[min(closestIndex - 1, 0)]
+//! IdxMap[min(closest_index - 1, 0)]
 //!
-//! Every index in IdxMap aggregates m_step messages but the last index of
-//! the last file can have less then m_step messages. To know exactly the number
+//! Every index in IdxMap aggregates step messages but the last index of
+//! the last file can have less then step messages. To know exactly the number
 //! we use the following formula:
-//! lastFullIndex = max((the last index in the last file - 1), 0)
-//! subsetExceptLastFile = m_step * m_stepsPerFile * (number of files - 1)
-//! subsetInLastIndex = m_totalUTXOSubsets-subsetExceptLastFile-lastFullIndex
+//! last_full_index = max((the last index in the last file - 1), 0)
+//! subset_except_last_file = step * steps_per_file * (number of files - 1)
+//! subset_in_last_index = total_utxo_subsets - subset_except_last_file - last_full_index
 //!
-//! utxo???.dat is the file that stores m_step*m_stepsPerFile UTXO subsets
+//! utxo???.dat is the file that stores step * steps_per_file UTXO subsets
 //! UTXOSubset
 //! | size | type    | field      | description
 //! | 32   | uint256 | txId       | TX ID that contains UTXOs
@@ -103,39 +103,39 @@ constexpr uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
 const char *const SNAPSHOT_FOLDER = "snapshots";
 
 struct Meta {
-  uint256 m_snapshotHash;
-  uint256 m_blockHash;
-  uint256 m_stakeModifier;
-  uint64_t m_totalUTXOSubsets;
-  uint32_t m_step;
-  uint32_t m_stepsPerFile;
+  uint256 snapshot_hash;
+  uint256 block_hash;
+  uint256 stake_modifier;
+  uint64_t total_utxo_subsets;
+  uint32_t step;
+  uint32_t steps_per_file;
 
   Meta()
-      : m_snapshotHash(),
-        m_blockHash(),
-        m_stakeModifier(),
-        m_totalUTXOSubsets(0),
-        m_step(0),
-        m_stepsPerFile(0) {}
+      : snapshot_hash(),
+        block_hash(),
+        stake_modifier(),
+        total_utxo_subsets(0),
+        step(0),
+        steps_per_file(0) {}
 
-  Meta(const uint256 &snapshotHash, const uint256 &blockHash, const uint256 &stakeModifier)
-      : m_snapshotHash(snapshotHash),
-        m_blockHash(blockHash),
-        m_stakeModifier(stakeModifier),
-        m_totalUTXOSubsets(0),
-        m_step(0),
-        m_stepsPerFile(0) {}
+  Meta(const uint256 &_snapshot_hash, const uint256 &_block_hash, const uint256 &_stake_modifier)
+      : snapshot_hash(_snapshot_hash),
+        block_hash(_block_hash),
+        stake_modifier(_stake_modifier),
+        total_utxo_subsets(0),
+        step(0),
+        steps_per_file(0) {}
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_snapshotHash);
-    READWRITE(m_blockHash);
-    READWRITE(m_stakeModifier);
-    READWRITE(m_totalUTXOSubsets);
-    READWRITE(m_step);
-    READWRITE(m_stepsPerFile);
+    READWRITE(snapshot_hash);
+    READWRITE(block_hash);
+    READWRITE(stake_modifier);
+    READWRITE(total_utxo_subsets);
+    READWRITE(step);
+    READWRITE(steps_per_file);
   }
 };
 

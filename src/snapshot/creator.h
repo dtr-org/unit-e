@@ -29,11 +29,11 @@ BETTER_ENUM(
 // clang-format on
 
 struct CreationInfo {
-  Status m_status;
-  Meta m_indexerMeta;
-  int m_totalOutputs;
+  Status status;
+  Meta indexer_meta;
+  int total_outputs;
 
-  CreationInfo() : m_status(Status::OK), m_totalOutputs(0) {}
+  CreationInfo() : status(Status::OK), total_outputs(0) {}
 };
 
 //! Creator class accepts the CCoinsViewDB and takes the cursor of it

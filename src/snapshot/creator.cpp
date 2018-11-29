@@ -25,13 +25,13 @@ struct SnapshotJob {
   std::unique_ptr<Creator> creator = nullptr;
 
   // finalize snapshots
-  const CBlockIndex *blockIndex = nullptr;
+  const CBlockIndex *block_index = nullptr;
 
   explicit SnapshotJob(std::unique_ptr<Creator> _creator)
       : creator(std::move(_creator)) {}
 
-  explicit SnapshotJob(const CBlockIndex *_blockIndex)
-      : blockIndex(_blockIndex) {}
+  explicit SnapshotJob(const CBlockIndex *_block_index)
+      : block_index(_block_index) {}
 };
 
 std::thread creatorThread;
@@ -55,14 +55,14 @@ void ProcessCreatorQueue() {
 
     if (job->creator) {
       CreationInfo info = job->creator->Create();
-      if (info.m_status != +Status::OK) {
+      if (info.status != +Status::OK) {
         LogPrint(BCLog::SNAPSHOT, "%s: can't create snapshot %s\n",
-                 __func__, info.m_status);
+                 __func__, info.status);
       }
     }
 
-    if (job->blockIndex) {
-      FinalizeSnapshots(job->blockIndex);
+    if (job->block_index) {
+      FinalizeSnapshots(job->block_index);
     }
 
     SaveSnapshotIndex();
@@ -143,14 +143,14 @@ CreationInfo Creator::Create() {
     boost::this_thread::interruption_point();
 
     UTXOSubset subset = m_iter.GetUTXOSubset();
-    info.m_totalOutputs += subset.m_outputs.size();
+    info.total_outputs += subset.outputs.size();
 
     if (!indexer.WriteUTXOSubset(subset)) {
-      info.m_status = Status::WRITE_ERROR;
+      info.status = Status::WRITE_ERROR;
       return info;
     }
 
-    if (indexer.GetMeta().m_totalUTXOSubsets == m_maxUTXOSubsets) {
+    if (indexer.GetMeta().total_utxo_subsets == m_maxUTXOSubsets) {
       break;
     }
 
@@ -158,15 +158,15 @@ CreationInfo Creator::Create() {
   }
 
   if (!indexer.Flush()) {
-    info.m_status = Status::WRITE_ERROR;
+    info.status = Status::WRITE_ERROR;
     return info;
   }
 
-  if (indexer.GetMeta().m_snapshotHash.IsNull()) {
-    info.m_status = Status::CALC_SNAPSHOT_HASH_ERROR;
+  if (indexer.GetMeta().snapshot_hash.IsNull()) {
+    info.status = Status::CALC_SNAPSHOT_HASH_ERROR;
     return info;
   }
-  info.m_indexerMeta = indexer.GetMeta();
+  info.indexer_meta = indexer.GetMeta();
 
   LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is created\n", snapshotHash.GetHex());
 

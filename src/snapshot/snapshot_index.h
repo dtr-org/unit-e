@@ -22,20 +22,20 @@ namespace snapshot {
 struct Checkpoint {
   int height;
   bool finalized;
-  uint256 snapshotHash;
-  uint256 blockHash;
+  uint256 snapshot_hash;
+  uint256 block_hash;
 
   Checkpoint()
       : height(0),
         finalized(false),
-        snapshotHash(),
-        blockHash() {}
+        snapshot_hash(),
+        block_hash() {}
 
-  Checkpoint(int _height, uint256 _snapshotHash, uint256 _blockHash)
+  Checkpoint(int _height, uint256 _snapshot_hash, uint256 _block_hash)
       : height(_height),
         finalized(false),
-        snapshotHash(_snapshotHash),
-        blockHash(_blockHash) {}
+        snapshot_hash(_snapshot_hash),
+        block_hash(_block_hash) {}
 
   ADD_SERIALIZE_METHODS;
 
@@ -43,8 +43,8 @@ struct Checkpoint {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(height);
     READWRITE(finalized);
-    READWRITE(snapshotHash);
-    READWRITE(blockHash);
+    READWRITE(snapshot_hash);
+    READWRITE(block_hash);
   }
 };
 
