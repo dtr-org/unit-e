@@ -136,7 +136,7 @@ class FilterTransactionsTest(UnitETestFramework):
     def test_category_option(self):
         categories = [
             ("internal_transfer", 2),
-            ("coinbase", 10),
+            ("coinstake", 10),
             ("send", 2),
             ("receive", 0)
         ]

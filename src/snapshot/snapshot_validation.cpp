@@ -16,7 +16,7 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
     return true;
   }
 
-  if (!tx.IsCoinBase()) {
+  if (!tx.IsCoinStake()) {
     return true;
   }
 
@@ -46,7 +46,7 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
 
 bool ReadSnapshotHashFromTx(const CTransaction &tx,
                             uint256 &snapshotHashOut) {
-  if (!tx.IsCoinBase()) {
+  if (!tx.IsCoinStake()) {
     return false;
   }
 

@@ -333,17 +333,17 @@ class CTxOut():
 
 
 class UTXO:
-    def __init__(self, height, isCoinBase, outpoint, txOut):
+    def __init__(self, height, isCoinStake, outpoint, txOut):
         self.outpoint = outpoint
         self.height = height
-        self.isCoinBase = isCoinBase
+        self.isCoinStake = isCoinStake
         self.txOut = txOut
 
     def deserialize(self, f):
         self.outpoint = COutPoint()
         self.outpoint.deserialize(f)
         self.height = struct.unpack("<I", f.read(4))[0]
-        self.isCoinBase = struct.unpack("<B", f.read[1])[0]
+        self.isCoinStake = struct.unpack("<B", f.read[1])[0]
         self.txOut = CTxOut()
         self.txOut.deserialize(f)
 
@@ -351,13 +351,13 @@ class UTXO:
         r = b""
         r += self.outpoint.serialize()
         r += struct.pack("<I", self.height)
-        r += struct.pack("<B", self.isCoinBase)
+        r += struct.pack("<B", self.isCoinStake)
         r += self.txOut.serialize()
         return r
 
     def __repr__(self):
-        return "UTXO(outpoint=%s height=%i isCoinBase=%i txOut=%s)" \
-            % (self.outpoint, self.height, self.isCoinBase, repr(self.txOut))
+        return "UTXO(outpoint=%s height=%i isCoinStake=%i txOut=%s)" \
+            % (self.outpoint, self.height, self.isCoinStake, repr(self.txOut))
 
 
 class CScriptWitness():
@@ -518,7 +518,7 @@ class CTransaction():
                 return False
         return True
 
-    def is_coin_base(self):
+    def is_coin_stake(self):
         return len(self.vin) == 1 and self.vin[0].prevout.is_null()
 
     def __repr__(self):
@@ -635,7 +635,7 @@ class CBlock(CBlockHeader):
 
     def calc_witness_merkle_root(self):
         # For witness root purposes, the hash of the
-        # coinbase, with witness, is defined to be 0...0
+        # coinstake, with witness, is defined to be 0...0
         hashes = [ser_uint256(0)]
 
         for tx in self.vtx[1:]:

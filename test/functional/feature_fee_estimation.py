@@ -199,7 +199,7 @@ class EstimateFeeTest(UnitETestFramework):
         self.start_node(0)
         self.txouts = []
         self.txouts2 = []
-        # Split a coinbase into two transaction puzzle outputs
+        # Split a coinstake into two transaction puzzle outputs
         split_inputs(self.nodes[0], self.nodes[0].listunspent(0), self.txouts, True)
 
         # Mine

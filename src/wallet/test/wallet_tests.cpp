@@ -375,7 +375,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     CBlockIndex* const nullBlock = nullptr;
     CBlockIndex* oldTip = chainActive.Tip();
     GetBlockFileInfo(oldTip->GetBlockPos().nFile)->nSize = MAX_BLOCKFILE_SIZE;
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinstakeKey.GetPubKey()));
     CBlockIndex* newTip = chainActive.Tip();
 
     LOCK(cs_main);
@@ -384,7 +384,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // and new block files.
     {
         CWallet wallet;
-        AddKey(wallet, coinbaseKey);
+        AddKey(wallet, coinstakeKey);
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(nullBlock, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
@@ -399,7 +399,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // file.
     {
         CWallet wallet;
-        AddKey(wallet, coinbaseKey);
+        AddKey(wallet, coinstakeKey);
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(oldTip, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
@@ -416,7 +416,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         keys.setArray();
         UniValue key;
         key.setObject();
-        key.pushKV("scriptPubKey", HexStr(GetScriptForRawPubKey(coinbaseKey.GetPubKey())));
+        key.pushKV("scriptPubKey", HexStr(GetScriptForRawPubKey(coinstakeKey.GetPubKey())));
         key.pushKV("timestamp", 0);
         key.pushKV("internal", UniValue(true));
         keys.push_back(key);
@@ -459,14 +459,14 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     // will pick up both blocks, not just the first.
     const int64_t BLOCK_TIME = chainActive.Tip()->GetBlockTimeMax() + 5;
     SetMockTime(BLOCK_TIME);
-    coinbaseTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
-    coinbaseTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
+    coinstakeTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinstakeKey.GetPubKey())).vtx[0]);
+    coinstakeTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinstakeKey.GetPubKey())).vtx[0]);
 
     // Set key birthday to block time increased by the timestamp window, so
     // rescan will start at the block time.
     const int64_t KEY_TIME = BLOCK_TIME + TIMESTAMP_WINDOW;
     SetMockTime(KEY_TIME);
-    coinbaseTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
+    coinstakeTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinstakeKey.GetPubKey())).vtx[0]);
 
     LOCK(cs_main);
 
@@ -474,8 +474,8 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     {
         CWallet wallet;
         LOCK(wallet.cs_wallet);
-        wallet.mapKeyMetadata[coinbaseKey.GetPubKey().GetID()].nCreateTime = KEY_TIME;
-        wallet.AddKeyPubKey(coinbaseKey, coinbaseKey.GetPubKey());
+        wallet.mapKeyMetadata[coinstakeKey.GetPubKey().GetID()].nCreateTime = KEY_TIME;
+        wallet.AddKeyPubKey(coinstakeKey, coinstakeKey.GetPubKey());
 
         JSONRPCRequest request;
         request.params.setArray();
@@ -497,9 +497,9 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 
         LOCK(wallet.cs_wallet);
         BOOST_CHECK_EQUAL(wallet.mapWallet.size(), 3);
-        BOOST_CHECK_EQUAL(coinbaseTxns.size(), 103);
-        for (size_t i = 0; i < coinbaseTxns.size(); ++i) {
-            bool found = wallet.GetWalletTx(coinbaseTxns[i].GetHash());
+        BOOST_CHECK_EQUAL(coinstakeTxns.size(), 103);
+        for (size_t i = 0; i < coinstakeTxns.size(); ++i) {
+            bool found = wallet.GetWalletTx(coinstakeTxns[i].GetHash());
             bool expected = i >= 100;
             BOOST_CHECK_EQUAL(found, expected);
         }
@@ -518,7 +518,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
 BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
 {
     CWallet wallet;
-    CWalletTx wtx(&wallet, MakeTransactionRef(coinbaseTxns.back()));
+    CWalletTx wtx(&wallet, MakeTransactionRef(coinstakeTxns.back()));
     LOCK2(cs_main, wallet.cs_wallet);
     wtx.hashBlock = chainActive.Tip()->GetBlockHash();
     wtx.nIndex = 0;
@@ -530,7 +530,7 @@ BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
     // Invalidate the cached value, add the key, and make sure a new immature
     // credit amount is calculated.
     wtx.MarkDirty();
-    wallet.AddKeyPubKey(coinbaseKey, coinbaseKey.GetPubKey());
+    wallet.AddKeyPubKey(coinstakeKey, coinstakeKey.GetPubKey());
     BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), 50*UNIT);
 }
 
@@ -608,7 +608,7 @@ class ListCoinsTestingSetup : public TestChain100Setup
 public:
     ListCoinsTestingSetup()
     {
-        CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+        CreateAndProcessBlock({}, GetScriptForRawPubKey(coinstakeKey.GetPubKey()));
         ::bitdb.MakeMock();
         g_address_type = OUTPUT_TYPE_DEFAULT;
         g_change_type = OUTPUT_TYPE_DEFAULT;
@@ -617,7 +617,7 @@ public:
           std::unique_ptr<CWalletDBWrapper>(new CWalletDBWrapper(&bitdb, "wallet_test.dat"))));
         bool firstRun;
         wallet->LoadWallet(firstRun);
-        AddKey(*wallet, coinbaseKey);
+        AddKey(*wallet, coinstakeKey);
         WalletRescanReserver reserver(wallet.get());
         reserver.reserve();
         wallet->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
@@ -646,7 +646,7 @@ public:
             LOCK(wallet->cs_wallet);
             blocktx = CMutableTransaction(*wallet->mapWallet.at(wtx.GetHash()).tx);
         }
-        CreateAndProcessBlock({CMutableTransaction(blocktx)}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+        CreateAndProcessBlock({CMutableTransaction(blocktx)}, GetScriptForRawPubKey(coinstakeKey.GetPubKey()));
         LOCK(wallet->cs_wallet);
         auto it = wallet->mapWallet.find(wtx.GetHash());
         BOOST_CHECK(it != wallet->mapWallet.end());
@@ -659,26 +659,26 @@ public:
 
 BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
 {
-    std::string coinbaseAddress = coinbaseKey.GetPubKey().GetID().ToString();
+    std::string coinstakeAddress = coinstakeKey.GetPubKey().GetID().ToString();
 
-    // Confirm ListCoins initially returns 1 coin grouped under coinbaseKey
+    // Confirm ListCoins initially returns 1 coin grouped under coinstakeKey
     // address.
     auto list = wallet->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
-    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinstakeAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
 
-    // Check initial balance from one mature coinbase transaction.
+    // Check initial balance from one mature coinstake transaction.
     BOOST_CHECK_EQUAL(50 * UNIT, wallet->GetAvailableBalance());
 
     // Add a transaction creating a change address, and confirm ListCoins still
     // returns the coin associated with the change address underneath the
-    // coinbaseKey pubkey, even though the change address has a different
+    // coinstakeKey pubkey, even though the change address has a different
     // pubkey.
     AddTx(CRecipient{GetScriptForRawPubKey({}), 1 * UNIT, false /* subtract fee */});
     list = wallet->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
-    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinstakeAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 
     // Lock both coins. Confirm number of available coins drops to 0.
@@ -698,7 +698,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     // being locked.
     list = wallet->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
-    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinstakeAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 }
 

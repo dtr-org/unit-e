@@ -59,7 +59,7 @@ class RawTransactionsTest(UnitETestFramework):
         self.nodes[0].generate(5)
         self.sync_all()
 
-        # Test getrawtransaction on genesis block coinbase does not return an error
+        # Test getrawtransaction on genesis block coinstake does not return an error
         block = self.nodes[0].getblock(self.nodes[0].getblockhash(0))
         assert(block['hash'])
 

@@ -8,7 +8,7 @@ from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.script import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, get_witness_script, WITNESS_COMMITMENT_HEADER
+from test_framework.blocktools import create_block, create_coinstake, get_tip_snapshot_meta, add_witness_commitment, get_witness_script, WITNESS_COMMITMENT_HEADER
 from test_framework.key import CECKey, CPubKey
 import time
 import random
@@ -134,7 +134,7 @@ class SegWitTest(UnitETestFramework):
         height = self.nodes[0].getblockcount() + 1
         block_time = self.nodes[0].getblockheader(tip)["mediantime"] + 1
         meta = get_tip_snapshot_meta(self.nodes[0])
-        block = create_block(int(tip, 16), create_coinbase(height, meta.hash), block_time)
+        block = create_block(int(tip, 16), create_coinstake(height, meta.hash), block_time)
         block.nVersion = nVersion
         block.rehash()
         return block
@@ -155,7 +155,7 @@ class SegWitTest(UnitETestFramework):
     # See if sending a regular transaction works, and create a utxo
     # to use in later tests.
     def test_non_witness_transaction(self):
-        # Mine a block with an anyone-can-spend coinbase,
+        # Mine a block with an anyone-can-spend coinstake,
         # let it mature, then try to spend it.
         self.log.info("Testing non-witness transaction")
         block = self.build_next_block(nVersion=1)
@@ -166,7 +166,7 @@ class SegWitTest(UnitETestFramework):
 
         self.nodes[0].generate(99) # let the block mature
 
-        # Create a transaction that spends the coinbase
+        # Create a transaction that spends the coinstake
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(txid, 0), b""))
         tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
@@ -405,7 +405,7 @@ class SegWitTest(UnitETestFramework):
         self.log.info("Testing witness block malleability")
 
         # Make sure that a block that has too big a virtual size
-        # because of a too-large coinbase witness is not permanently
+        # because of a too-large coinstake witness is not permanently
         # marked bad.
         block = self.build_next_block()
         add_witness_commitment(block)
@@ -1202,15 +1202,15 @@ class SegWitTest(UnitETestFramework):
         self.utxo.append(UTXO(tx3.sha256, 0, tx3.vout[0].nValue))
 
 
-    def test_premature_coinbase_witness_spend(self):
-        self.log.info("Testing premature coinbase witness spend")
+    def test_premature_coinstake_witness_spend(self):
+        self.log.info("Testing premature coinstake witness spend")
         block = self.build_next_block()
         # Change the output of the block to be a witness output.
         witness_program = CScript([OP_TRUE])
         witness_hash = sha256(witness_program)
         scriptPubKey = CScript([OP_0, witness_hash])
         block.vtx[0].vout[0].scriptPubKey = scriptPubKey
-        # This next line will rehash the coinbase and update the merkle
+        # This next line will rehash the coinstake and update the merkle
         # root, and solve.
         self.update_witness_block_with_transactions(block, [])
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
@@ -1940,7 +1940,7 @@ class SegWitTest(UnitETestFramework):
         self.test_tx_relay_after_segwit_activation()
         self.test_standardness_v0(segwit_activated=True)
         self.test_segwit_versions()
-        self.test_premature_coinbase_witness_spend()
+        self.test_premature_coinstake_witness_spend()
         self.test_uncompressed_pubkey()
         self.test_signature_version_1()
         self.test_non_standard_witness()

@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
   {
-    // all non-coinbase tx are not checked
+    // all non-coinstake tx are not checked
     CMutableTransaction mtx;
     mtx.vin.emplace_back(CTxIn());
     mtx.vin.emplace_back(CTxIn());

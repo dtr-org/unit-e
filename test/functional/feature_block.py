@@ -26,7 +26,7 @@ class PreviousSpendableOutput():
         self.tx = tx
         self.n = n  # the output we're spending
         self.height = height  # at which height the tx was created
-        self.is_coin_base = tx.is_coin_base()
+        self.is_coin_stake = tx.is_coin_stake()
 
 #  Use this class for tests that require behavior other than normal "mininode" behavior.
 #  For now, it is used to serialize a bloated varint (b64).
@@ -65,9 +65,9 @@ class FullBlockTest(ComparisonTestFramework):
         self.setup_clean_chain = True
         self.block_heights = {}
         self.block_snapshot_meta = {}  # key(block_hash) : value(SnapshotMeta)
-        self.coinbase_key = CECKey()
-        self.coinbase_key.set_secretbytes(b"horsebattery")
-        self.coinbase_pubkey = self.coinbase_key.get_pubkey()
+        self.coinstake_key = CECKey()
+        self.coinstake_key.set_secretbytes(b"horsebattery")
+        self.coinstake_pubkey = self.coinstake_key.get_pubkey()
         self.tip = None
         self.blocks = {}
 
@@ -98,7 +98,7 @@ class FullBlockTest(ComparisonTestFramework):
             tx.vin[0].scriptSig = CScript()
             return
         (sighash, err) = SignatureHash(spend_tx.vout[n].scriptPubKey, tx, 0, SIGHASH_ALL)
-        tx.vin[0].scriptSig = CScript([self.coinbase_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))])
+        tx.vin[0].scriptSig = CScript([self.coinstake_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))])
 
     def create_and_sign_transaction(self, spend_tx, n, value, script=CScript([OP_TRUE])):
         tx = self.create_tx(spend_tx, n, value, script)
@@ -123,7 +123,7 @@ class FullBlockTest(ComparisonTestFramework):
         inputs = []
         outputs = []
         for tx_idx, tx in enumerate(block.vtx):
-            if tx_idx != 0:  # coinbase doesn't spend outputs
+            if tx_idx != 0:  # coinstake doesn't spend outputs
                 for vin in tx.vin:
                     if spend is None:
                         spend = self.find_spend(vin.prevout)
@@ -134,7 +134,7 @@ class FullBlockTest(ComparisonTestFramework):
                     out = spend.tx.vout[spend.n]
                     if out.is_unspendable():
                         continue
-                    utxo = UTXO(spend.height, spend.is_coin_base, vin.prevout, out)
+                    utxo = UTXO(spend.height, spend.is_coin_stake, vin.prevout, out)
                     inputs.append(utxo)
                     spend = None
             for idx, out in enumerate(tx.vout):
@@ -148,7 +148,7 @@ class FullBlockTest(ComparisonTestFramework):
         new_meta = calc_snapshot_hash(self.nodes[0], prev_meta.data, 0, inputs, outputs)
         self.block_snapshot_meta[block.sha256] = new_meta
 
-    def next_block(self, number, spend=None, additional_coinbase_value=0, script=CScript([OP_TRUE]), solve=True):
+    def next_block(self, number, spend=None, additional_coinstake_value=0, script=CScript([OP_TRUE]), solve=True):
         if self.tip == None:
             base_block_hash = self.genesis_hash
             block_time = int(time.time())+1
@@ -160,19 +160,19 @@ class FullBlockTest(ComparisonTestFramework):
             meta = get_tip_snapshot_meta(self.nodes[0])
             self.block_snapshot_meta[base_block_hash] = meta
 
-        # First create the coinbase
+        # First create the coinstake
         height = self.block_heights[base_block_hash] + 1
         snapshot_hash = self.block_snapshot_meta[base_block_hash].hash
-        coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
-        coinbase.vout[0].nValue += additional_coinbase_value
+        coinstake = create_coinstake(height, snapshot_hash, self.coinstake_pubkey)
+        coinstake.vout[0].nValue += additional_coinstake_value
 
-        coinbase.rehash()
+        coinstake.rehash()
         if spend == None:
-            block = create_block(base_block_hash, coinbase, block_time)
+            block = create_block(base_block_hash, coinstake, block_time)
         else:
-            coinbase.vout[0].nValue += spend.tx.vout[spend.n].nValue - 1 # all but one satoshi to fees
-            coinbase.rehash()
-            block = create_block(base_block_hash, coinbase, block_time)
+            coinstake.vout[0].nValue += spend.tx.vout[spend.n].nValue - 1 # all but one satoshi to fees
+            coinstake.rehash()
+            block = create_block(base_block_hash, coinstake, block_time)
             tx = create_transaction(spend.tx, spend.n, b"", 1, script)  # spend 1 satoshi
             self.sign_tx(tx, spend.tx, spend.n)
             self.add_transactions_to_block(block, [tx])
@@ -256,7 +256,7 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(0)
 
 
-        # Now we need that block to mature so we can spend the coinbase.
+        # Now we need that block to mature so we can spend the coinstake.
         test = TestInstance(sync_every_block=False)
         for i in range(99):
             block(5000 + i)
@@ -336,7 +336,7 @@ class FullBlockTest(ComparisonTestFramework):
         #                                                    \-> b9 (4)
         #                      \-> b3 (1) -> b4 (2)
         tip(6)
-        block(9, spend=out[4], additional_coinbase_value=1)
+        block(9, spend=out[4], additional_coinstake_value=1)
         yield rejected(RejectResult(16, b'bad-cb-amount'))
         comp_snapshot_hash(6)
 
@@ -349,7 +349,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected()
         comp_snapshot_hash(6)
 
-        block(11, spend=out[4], additional_coinbase_value=1)
+        block(11, spend=out[4], additional_coinstake_value=1)
         yield rejected(RejectResult(16, b'bad-cb-amount'))
         comp_snapshot_hash(6)
 
@@ -371,7 +371,7 @@ class FullBlockTest(ComparisonTestFramework):
         save_spendable_output()
         # b14 is invalid, but the node won't know that until it tries to connect
         # Tip still can't advance because b12 is missing
-        block(14, spend=out[5], additional_coinbase_value=1)
+        block(14, spend=out[5], additional_coinstake_value=1)
         yield rejected()
         comp_snapshot_hash(6)
 
@@ -422,7 +422,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected()
         comp_snapshot_hash(15)
 
-        # Attempt to spend a coinbase at depth too low
+        # Attempt to spend a coinstake at depth too low
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
         #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7)
         #                      \-> b3 (1) -> b4 (2)
@@ -431,18 +431,18 @@ class FullBlockTest(ComparisonTestFramework):
         # UNIT-E: The first 100 blocks are by definition mature such that the system can
         # be bootstrapped. At this point in the test the blocks do not have an adequate height
         # yet as that we could not spend a transaction. Thus we changed from
-        # rejected(RejectResult(16, b'bad-txns-premature-spend-of-coinbase')) to accepted() here.
-        yield accepted(test_name="spend coinbase transaction from the first COINBASE_MATURITY blocks")
+        # rejected(RejectResult(16, b'bad-txns-premature-spend-of-coinstake')) to accepted() here.
+        yield accepted(test_name="spend coinstake transaction from the first COINBASE_MATURITY blocks")
         comp_snapshot_hash(20)
 
-        # Attempt to spend a coinbase at depth too low (on a fork this time)
+        # Attempt to spend a coinstake at depth too low (on a fork this time)
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
         #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7)
         #                                                                \-> b21 (6) -> b22 (5)
         #                      \-> b3 (1) -> b4 (2)
         tip(13)
         block(21, spend=out[6])
-        yield rejected(test_name="spend immature coinbase transaction from a fork")
+        yield rejected(test_name="spend immature coinstake transaction from a fork")
         comp_snapshot_hash(20)
 
         block(22, spend=out[5])
@@ -483,7 +483,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected()
         comp_snapshot_hash(23)
 
-        # Create blocks with a coinbase input script size out of range
+        # Create blocks with a coinstake input script size out of range
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
         #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b23 (6) -> b30 (7)
         #                                                                           \-> ... (6) -> ... (7)
@@ -503,7 +503,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected(False)
         comp_snapshot_hash(23)
 
-        # Now try a too-large-coinbase script
+        # Now try a too-large-coinstake script
         tip(15)
         b28 = block(28, spend=out[6])
         b28.vtx[0].vin[0].scriptSig = b'\x00' * 101
@@ -517,7 +517,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected(False)
         comp_snapshot_hash(23)
 
-        # b30 has a max-sized coinbase scriptSig.
+        # b30 has a max-sized coinstake scriptSig.
         tip(23)
         b30 = block(30)
         b30.vtx[0].vin[0].scriptSig += b'\x00' * (99-len(b30.vtx[0].vin[0].scriptSig))
@@ -544,7 +544,7 @@ class FullBlockTest(ComparisonTestFramework):
         save_spendable_output()
         comp_snapshot_hash(31)
 
-        # this goes over the limit because the coinbase has one sigop
+        # this goes over the limit because the coinstake has one sigop
         too_many_multisigs = CScript([OP_CHECKMULTISIG] * (MAX_BLOCK_SIGOPS // 20))
         b32 = block(32, spend=out[9], script=too_many_multisigs)
         assert_equal(get_legacy_sigopcount_block(b32), MAX_BLOCK_SIGOPS + 1)
@@ -597,7 +597,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
         comp_snapshot_hash(35)
 
-        # attempt to spend b37's first non-coinbase tx, at which point b37 was still considered valid
+        # attempt to spend b37's first non-coinstake tx, at which point b37 was still considered valid
         tip(35)
         block(38, spend=txout_b37)
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
@@ -620,12 +620,12 @@ class FullBlockTest(ComparisonTestFramework):
         b39_sigops_per_output = 6
 
         # Build the redeem script, hash it, use hash to create the p2sh script
-        redeem_script = CScript([self.coinbase_pubkey] + [OP_2DUP, OP_CHECKSIGVERIFY]*5 + [OP_CHECKSIG])
+        redeem_script = CScript([self.coinstake_pubkey] + [OP_2DUP, OP_CHECKSIGVERIFY]*5 + [OP_CHECKSIG])
         redeem_script_hash = hash160(redeem_script)
         p2sh_script = CScript([OP_HASH160, redeem_script_hash, OP_EQUAL])
 
         # Create a transaction that spends one satoshi to the p2sh_script, the rest to OP_TRUE
-        # This must be signed because it is spending a coinbase
+        # This must be signed because it is spending a coinstake
         spend = out[11]
         tx = create_tx(spend.tx, spend.n, 1, p2sh_script)
         tx.vout.append(CTxOut(spend.tx.vout[spend.n].nValue - 1, CScript([OP_TRUE])))
@@ -678,7 +678,7 @@ class FullBlockTest(ComparisonTestFramework):
             tx.vin.append(CTxIn(COutPoint(b39.vtx[i].sha256, 0), b''))
             # Note: must pass the redeem_script (not p2sh_script) to the signature hash function
             (sighash, err) = SignatureHash(redeem_script, tx, 1, SIGHASH_ALL)
-            sig = self.coinbase_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))
+            sig = self.coinstake_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))
             scriptSig = CScript([sig, redeem_script])
 
             tx.vin[1].scriptSig = scriptSig
@@ -732,16 +732,16 @@ class FullBlockTest(ComparisonTestFramework):
         #                                                                                   \-> ??? (15)
 
         # The next few blocks are going to be created "by hand" since they'll do funky things, such as having
-        # the first transaction be non-coinbase, etc.  The purpose of b44 is to make sure this works.
+        # the first transaction be non-coinstake, etc.  The purpose of b44 is to make sure this works.
         height = self.block_heights[self.tip.sha256] + 1
         snapshot_hash = self.block_snapshot_meta[self.tip.sha256].hash
-        coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
+        coinstake = create_coinstake(height, snapshot_hash, self.coinstake_pubkey)
 
         b44 = CBlock()
         b44.nTime = self.tip.nTime + 1
         b44.hashPrevBlock = self.tip.sha256
         b44.nBits = 0x207fffff
-        b44.vtx.append(coinbase)
+        b44.vtx.append(coinstake)
         b44.hashMerkleRoot = b44.calc_merkle_root()
         b44.solve()
         self.tip = b44
@@ -751,13 +751,13 @@ class FullBlockTest(ComparisonTestFramework):
         yield accepted()
         comp_snapshot_hash(44)
 
-        # A block with a non-coinbase as the first tx
-        non_coinbase = create_tx(out[15].tx, out[15].n, 1)
+        # A block with a non-coinstake as the first tx
+        non_coinstake = create_tx(out[15].tx, out[15].n, 1)
         b45 = CBlock()
         b45.nTime = self.tip.nTime + 1
         b45.hashPrevBlock = self.tip.sha256
         b45.nBits = 0x207fffff
-        b45.vtx.append(non_coinbase)
+        b45.vtx.append(non_coinstake)
         b45.hashMerkleRoot = b45.calc_merkle_root()
         b45.calc_sha256()
         b45.solve()
@@ -820,11 +820,11 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected(RejectResult(16, b'bad-diffbits'))
         comp_snapshot_hash(44)
 
-        # A block with two coinbase txns
+        # A block with two coinstake txns
         tip(44)
         snapshot_hash = self.block_snapshot_meta[self.tip.sha256].hash
         b51 = block(51)
-        cb2 = create_coinbase(51, snapshot_hash, self.coinbase_pubkey)
+        cb2 = create_coinstake(51, snapshot_hash, self.coinstake_pubkey)
         b51 = update_block(51, [cb2])
         yield rejected(RejectResult(16, b'bad-cb-multiple'))
         comp_snapshot_hash(44)
@@ -876,7 +876,7 @@ class FullBlockTest(ComparisonTestFramework):
         #                           affecting the merkle root of a block, while still invalidating it.
         #                           See:  src/consensus/merkle.h
         #
-        #  b57 has three txns:  coinbase, tx, tx1.  The merkle root computation will duplicate tx.
+        #  b57 has three txns:  coinstake, tx, tx1.  The merkle root computation will duplicate tx.
         #  Result:  OK
         #
         #  b56 copies b57 but duplicates tx1 and does not recalculate the block hash.  So it has a valid merkle
@@ -884,7 +884,7 @@ class FullBlockTest(ComparisonTestFramework):
         #  Result:  Fails
         #
         #  b57p2 has six transactions in its merkle tree:
-        #       - coinbase, tx, tx1, tx2, tx3, tx4
+        #       - coinstake, tx, tx1, tx2, tx3, tx4
         #  Merkle root calculation will duplicate as necessary.
         #  Result:  OK.
         #
@@ -993,7 +993,7 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(60)
 
 
-        # Test a non-final coinbase is also rejected
+        # Test a non-final coinstake is also rejected
         #
         #   -> b39 (11) -> b42 (12) -> b43 (13) -> b53 (14) -> b55 (15) -> b57 (16) -> b60 (17)
         #                                                                                     \-> b63 (-)
@@ -1101,22 +1101,22 @@ class FullBlockTest(ComparisonTestFramework):
         # -> b43 (13) -> b53 (14) -> b55 (15) -> b57 (16) -> b60 (17) -> b64 (18) -> b65 (19) -> b69 (20)
         #                                                                                    \-> b68 (20)
         #
-        # b68 - coinbase with an extra 10 satoshis,
+        # b68 - coinstake with an extra 10 satoshis,
         #       creates a tx that has 9 satoshis from out[20] go to fees
-        #       this fails because the coinbase is trying to claim 1 satoshi too much in fees
+        #       this fails because the coinstake is trying to claim 1 satoshi too much in fees
         #
-        # b69 - coinbase with extra 10 satoshis, and a tx that gives a 10 satoshi fee
+        # b69 - coinstake with extra 10 satoshis, and a tx that gives a 10 satoshi fee
         #       this succeeds
         #
         tip(65)
-        block(68, additional_coinbase_value=10)
+        block(68, additional_coinstake_value=10)
         tx = create_and_sign_tx(out[20].tx, out[20].n, out[20].tx.vout[0].nValue-9)
         update_block(68, [tx])
         yield rejected(RejectResult(16, b'bad-cb-amount'))
         comp_snapshot_hash(65)
 
         tip(65)
-        b69 = block(69, additional_coinbase_value=10)
+        b69 = block(69, additional_coinstake_value=10)
         tx = create_and_sign_tx(out[20].tx, out[20].n, out[20].tx.vout[0].nValue-10)
         update_block(69, [tx])
         yield accepted()
@@ -1453,9 +1453,9 @@ class FullBlockTest(ComparisonTestFramework):
             # reject block with invalid snapshot hash
             height = self.block_heights[self.tip.sha256] + 1
             snapshot_hash = self.block_snapshot_meta[self.tip.hashPrevBlock].hash
-            coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
+            coinstake = create_coinstake(height, snapshot_hash, self.coinstake_pubkey)
             chain1b3 = block(chain1_tip + 1)
-            chain1b3.vtx[0] = coinbase
+            chain1b3.vtx[0] = coinstake
             update_block(chain1_tip + 1, [])
             yield rejected(RejectResult(16, b'bad-cb-snapshot-hash'))
 

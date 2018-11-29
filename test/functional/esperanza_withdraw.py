@@ -55,7 +55,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         assert_equal(validator.getbalance(), 10000)
 
-        # wait for coinbase maturity
+        # wait for coinstake maturity
         for n in range(0, 119):
             self.generate_block(nodes[1])
 

@@ -10,7 +10,7 @@ soft-forks, and test that warning alerts are generated.
 import os
 import re
 
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, calc_snapshot_hash, UTXO
+from test_framework.blocktools import create_block, create_coinstake, get_tip_snapshot_meta, calc_snapshot_hash, UTXO
 from test_framework.messages import msg_block, COutPoint
 from test_framework.mininode import P2PInterface, network_thread_start, mininode_lock
 from test_framework.test_framework import UnitETestFramework
@@ -48,15 +48,15 @@ class VersionBitsWarningTest(UnitETestFramework):
 
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for _ in range(numblocks):
-            coinbase = create_coinbase(height + 1, snapshot_meta.hash)
-            block = create_block(tip, coinbase, block_time)
+            coinstake = create_coinstake(height + 1, snapshot_meta.hash)
+            block = create_block(tip, coinstake, block_time)
             block.nVersion = version
             block.solve()
             peer.send_message(msg_block(block))
             block_time += 1
             height += 1
             tip = block.sha256
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
 
         peer.sync_with_ping()

@@ -25,7 +25,7 @@ namespace
 bool operator==(const Coin &a, const Coin &b) {
     // Empty Coin objects are always equal.
     if (a.IsSpent() && b.IsSpent()) return true;
-    return a.fCoinBase == b.fCoinBase &&
+    return a.fCoinStake == b.fCoinStake &&
            a.nHeight == b.nHeight &&
            a.out == b.out;
 }
@@ -274,11 +274,11 @@ UtxoData::iterator FindRandomFrom(const std::set<COutPoint> &utxoSet) {
 // This test is similar to the previous test
 // except the emphasis is on testing the functionality of UpdateCoins
 // random txs are created and UpdateCoins is used to update the cache stack
-// In particular it is tested that spending a duplicate coinbase tx
+// In particular it is tested that spending a duplicate coinstake tx
 // has the expected effect (the other duplicate is overwritten at all cache levels)
 BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 {
-    bool spent_a_duplicate_coinbase = false;
+    bool spent_a_duplicate_coinstake = false;
     // A simple map to track what we expect the cache stack to represent.
     std::map<COutPoint, Coin> result;
 
@@ -288,7 +288,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
     stack.push_back(new CCoinsViewCacheTest(&base)); // Start with one cache.
 
     // Track the txids we've used in various sets
-    std::set<COutPoint> coinbase_coins;
+    std::set<COutPoint> coinstake_coins;
     std::set<COutPoint> disconnected_coins;
     std::set<COutPoint> duplicate_coins;
     std::set<COutPoint> utxoset;
@@ -306,12 +306,12 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             unsigned int height = InsecureRand32();
             Coin old_coin;
 
-            // 2/20 times create a new coinbase
-            if (randiter % 20 < 2 || coinbase_coins.size() < 10) {
-                // 1/10 of those times create a duplicate coinbase
-                if (InsecureRandRange(10) == 0 && coinbase_coins.size()) {
-                    auto utxod = FindRandomFrom(coinbase_coins);
-                    // Reuse the exact same coinbase
+            // 2/20 times create a new coinstake
+            if (randiter % 20 < 2 || coinstake_coins.size() < 10) {
+                // 1/10 of those times create a duplicate coinstake
+                if (InsecureRandRange(10) == 0 && coinstake_coins.size()) {
+                    auto utxod = FindRandomFrom(coinstake_coins);
+                    // Reuse the exact same coinstake
                     tx = std::get<0>(utxod->second);
                     // shouldn't be available for reconnection if its been duplicated
                     disconnected_coins.erase(utxod->first);
@@ -319,9 +319,9 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
                     duplicate_coins.insert(utxod->first);
                 }
                 else {
-                    coinbase_coins.insert(COutPoint(tx.GetHash(), 0));
+                    coinstake_coins.insert(COutPoint(tx.GetHash(), 0));
                 }
-                assert(CTransaction(tx).IsCoinBase());
+                assert(CTransaction(tx).IsCoinStake());
             }
 
             // 17/20 times reconnect previous or add a regular tx
@@ -333,14 +333,14 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
                     auto utxod = FindRandomFrom(disconnected_coins);
                     tx = std::get<0>(utxod->second);
                     prevout = tx.vin[0].prevout;
-                    if (!CTransaction(tx).IsCoinBase() && !utxoset.count(prevout)) {
+                    if (!CTransaction(tx).IsCoinStake() && !utxoset.count(prevout)) {
                         disconnected_coins.erase(utxod->first);
                         continue;
                     }
 
-                    // If this tx is already IN the UTXO, then it must be a coinbase, and it must be a duplicate
+                    // If this tx is already IN the UTXO, then it must be a coinstake, and it must be a duplicate
                     if (utxoset.count(utxod->first)) {
-                        assert(CTransaction(tx).IsCoinBase());
+                        assert(CTransaction(tx).IsCoinStake());
                         assert(duplicate_coins.count(utxod->first));
                     }
                     disconnected_coins.erase(utxod->first);
@@ -353,7 +353,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
                     // Construct the tx to spend the coins of prevouthash
                     tx.vin[0].prevout = prevout;
-                    assert(!CTransaction(tx).IsCoinBase());
+                    assert(!CTransaction(tx).IsCoinStake());
                 }
                 // In this simple test coins only have two states, spent or unspent, save the unspent state to restore
                 old_coin = result[prevout];
@@ -362,17 +362,17 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
                 utxoset.erase(prevout);
 
-                // The test is designed to ensure spending a duplicate coinbase will work properly
-                // if that ever happens and not resurrect the previously overwritten coinbase
+                // The test is designed to ensure spending a duplicate coinstake will work properly
+                // if that ever happens and not resurrect the previously overwritten coinstake
                 if (duplicate_coins.count(prevout)) {
-                    spent_a_duplicate_coinbase = true;
+                    spent_a_duplicate_coinstake = true;
                 }
 
             }
             // Update the expected result to know about the new output coins
             assert(tx.vout.size() == 1);
             const COutPoint outpoint(tx.GetHash(), 0);
-            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinBase());
+            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinStake());
 
             // Call UpdateCoins on the top cache
             CTxUndo undo;
@@ -394,8 +394,8 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // Update the expected result
             // Remove new outputs
             result[utxod->first].Clear();
-            // If not coinbase restore prevout
-            if (!tx.IsCoinBase()) {
+            // If not coinstake restore prevout
+            if (!tx.IsCoinStake()) {
                 result[tx.vin[0].prevout] = orig_coin;
             }
 
@@ -404,7 +404,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // remove outputs
             stack.back()->SpendCoin(utxod->first);
             // restore inputs
-            if (!tx.IsCoinBase()) {
+            if (!tx.IsCoinStake()) {
                 const COutPoint &out = tx.vin[0].prevout;
                 Coin coin = undo.vprevout[0];
                 ApplyTxInUndo(std::move(coin), *(stack.back()), out);
@@ -414,7 +414,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
             // Update the utxoset
             utxoset.erase(utxod->first);
-            if (!tx.IsCoinBase())
+            if (!tx.IsCoinStake())
                 utxoset.insert(tx.vin[0].prevout);
         }
 
@@ -470,7 +470,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
     }
 
     // Verify coverage.
-    BOOST_CHECK(spent_a_duplicate_coinbase);
+    BOOST_CHECK(spent_a_duplicate_coinstake);
 }
 
 BOOST_AUTO_TEST_CASE(ccoins_serialization)
@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
     CDataStream ss1(ParseHex("97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35"), SER_DISK, CLIENT_VERSION);
     Coin cc1;
     ss1 >> cc1;
-    BOOST_CHECK_EQUAL(cc1.fCoinBase, false);
+    BOOST_CHECK_EQUAL(cc1.fCoinStake, false);
     BOOST_CHECK_EQUAL(cc1.nHeight, 203998);
     BOOST_CHECK_EQUAL(cc1.out.nValue, 60000000000ULL);
     BOOST_CHECK_EQUAL(HexStr(cc1.out.scriptPubKey), HexStr(GetScriptForDestination(CKeyID(uint160(ParseHex("816115944e077fe7c803cfa57f29b36bf87c1d35"))))));
@@ -488,7 +488,7 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
     CDataStream ss2(ParseHex("8ddf77bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4"), SER_DISK, CLIENT_VERSION);
     Coin cc2;
     ss2 >> cc2;
-    BOOST_CHECK_EQUAL(cc2.fCoinBase, true);
+    BOOST_CHECK_EQUAL(cc2.fCoinStake, true);
     BOOST_CHECK_EQUAL(cc2.nHeight, 120891);
     BOOST_CHECK_EQUAL(cc2.out.nValue, 110397);
     BOOST_CHECK_EQUAL(HexStr(cc2.out.scriptPubKey), HexStr(GetScriptForDestination(CKeyID(uint160(ParseHex("8c988f1a4a4de2161e0f50aac7f17e7f9555caa4"))))));
@@ -497,7 +497,7 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
     CDataStream ss3(ParseHex("000006"), SER_DISK, CLIENT_VERSION);
     Coin cc3;
     ss3 >> cc3;
-    BOOST_CHECK_EQUAL(cc3.fCoinBase, false);
+    BOOST_CHECK_EQUAL(cc3.fCoinStake, false);
     BOOST_CHECK_EQUAL(cc3.nHeight, 0);
     BOOST_CHECK_EQUAL(cc3.out.nValue, 0);
     BOOST_CHECK_EQUAL(cc3.out.scriptPubKey.size(), 0);
@@ -707,7 +707,7 @@ BOOST_AUTO_TEST_CASE(ccoins_spend)
     CheckSpendCoins(VALUE1, VALUE2, ABSENT, DIRTY|FRESH, NO_ENTRY   );
 }
 
-void CheckAddCoinBase(CAmount base_value, CAmount cache_value, CAmount modify_value, CAmount expected_value, char cache_flags, char expected_flags, bool coinbase)
+void CheckAddCoinStake(CAmount base_value, CAmount cache_value, CAmount modify_value, CAmount expected_value, char cache_flags, char expected_flags, bool coinstake)
 {
     SingleEntryCacheTest test(base_value, cache_value, cache_flags);
 
@@ -716,7 +716,7 @@ void CheckAddCoinBase(CAmount base_value, CAmount cache_value, CAmount modify_va
     try {
         CTxOut output;
         output.nValue = modify_value;
-        test.cache.AddCoin(OUTPOINT, Coin(std::move(output), 1, coinbase), coinbase);
+        test.cache.AddCoin(OUTPOINT, Coin(std::move(output), 1, coinstake), coinstake);
         test.cache.SelfTest();
         GetCoinsMapEntry(test.cache.map(), result_value, result_flags);
     } catch (std::logic_error& e) {
@@ -728,7 +728,7 @@ void CheckAddCoinBase(CAmount base_value, CAmount cache_value, CAmount modify_va
     BOOST_CHECK_EQUAL(result_flags, expected_flags);
 }
 
-// Simple wrapper for CheckAddCoinBase function above that loops through
+// Simple wrapper for CheckAddCoinStake function above that loops through
 // different possible base_values, making sure each one gives the same results.
 // This wrapper lets the coins_add test below be shorter and less repetitive,
 // while still verifying that the CoinsViewCache::AddCoin implementation
@@ -737,7 +737,7 @@ template <typename... Args>
 void CheckAddCoin(Args&&... args)
 {
     for (CAmount base_value : {ABSENT, PRUNED, VALUE1})
-        CheckAddCoinBase(base_value, std::forward<Args>(args)...);
+        CheckAddCoinStake(base_value, std::forward<Args>(args)...);
 }
 
 BOOST_AUTO_TEST_CASE(ccoins_add)

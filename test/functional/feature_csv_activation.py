@@ -12,7 +12,7 @@ BIP 113 - MedianTimePast semantics for nLockTime
 regtest lock-in with 108/144 block signalling
 activation after a further 144 blocks
 
-mine 82 blocks whose coinbases will be used to generate inputs for our tests
+mine 82 blocks whose coinstakes will be used to generate inputs for our tests
 mine 61 blocks to transition from DEFINED to STARTED
 mine 144 blocks only 100 of which are signaling readiness in order to fail to change state this period
 mine 144 blocks with 108 signaling and verify STARTED->LOCKED_IN
@@ -46,7 +46,7 @@ bip112tx_special - test negative argument to OP_CSV
 from test_framework.test_framework import ComparisonTestFramework
 from test_framework.util import *
 from test_framework.mininode import ToHex, CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta, calc_snapshot_hash, UTXO, COutPoint
+from test_framework.blocktools import create_coinstake, create_block, get_tip_snapshot_meta, calc_snapshot_hash, UTXO, COutPoint
 from test_framework.comptool import TestInstance, TestManager
 from test_framework.script import *
 from io import BytesIO
@@ -103,9 +103,9 @@ class BIP68_112_113Test(ComparisonTestFramework):
         network_thread_start()
         test.run()
 
-    def send_generic_input_tx(self, node, coinbases):
+    def send_generic_input_tx(self, node, coinstakes):
         amount = Decimal("49.99")
-        return node.sendrawtransaction(ToHex(self.sign_transaction(node, self.create_transaction(node, node.getblock(coinbases.pop())['tx'][0], self.nodeaddress, amount))))
+        return node.sendrawtransaction(ToHex(self.sign_transaction(node, self.create_transaction(node, node.getblock(coinstakes.pop())['tx'][0], self.nodeaddress, amount))))
 
     def create_transaction(self, node, txid, to_address, amount):
         inputs = [{ "txid" : txid, "vout" : 0}]
@@ -134,14 +134,14 @@ class BIP68_112_113Test(ComparisonTestFramework):
         return test_blocks
 
     def create_test_block(self, txs, version = 536870912):
-        coinbase = create_coinbase(self.tipheight + 1, self.tip_snapshot_meta.hash)
-        block = create_block(self.tip, coinbase, self.last_block_time + 600)
+        coinstake = create_coinstake(self.tipheight + 1, self.tip_snapshot_meta.hash)
+        block = create_block(self.tip, coinstake, self.last_block_time + 600)
         block.nVersion = version
         block.vtx.extend(txs)
         block.hashMerkleRoot = block.calc_merkle_root()
         block.rehash()
         block.solve()
-        utxo = UTXO(self.tipheight + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        utxo = UTXO(self.tipheight + 1, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
         self.tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], self.tip_snapshot_meta.data, 0, [], [utxo])
         return block
 
@@ -205,7 +205,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
     def get_tests(self):
         long_past_time = int(time.time()) - 600 * 1000 # enough to build up to 1000 blocks 10 minutes apart without worrying about getting into the future
         self.nodes[0].setmocktime(long_past_time - 100) # enough so that the generated blocks will still all be before long_past_time
-        self.coinbase_blocks = self.nodes[0].generate(1 + 16 + 2*32 + 1) # 82 blocks generated for inputs
+        self.coinstake_blocks = self.nodes[0].generate(1 + 16 + 2*32 + 1) # 82 blocks generated for inputs
         self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         self.nodes[0].setmocktime(0) # set time back to present so yielded blocks aren't in the future as we advance last_block_time
         self.tipheight = 82 # height of the next block to build
@@ -249,25 +249,25 @@ class BIP68_112_113Test(ComparisonTestFramework):
         # 16 normal inputs
         bip68inputs = []
         for i in range(16):
-            bip68inputs.append(self.send_generic_input_tx(self.nodes[0], self.coinbase_blocks))
+            bip68inputs.append(self.send_generic_input_tx(self.nodes[0], self.coinstake_blocks))
         # 2 sets of 16 inputs with 10 OP_CSV OP_DROP (actually will be prepended to spending scriptSig)
         bip112basicinputs = []
         for j in range(2):
             inputs = []
             for i in range(16):
-                inputs.append(self.send_generic_input_tx(self.nodes[0], self.coinbase_blocks))
+                inputs.append(self.send_generic_input_tx(self.nodes[0], self.coinstake_blocks))
             bip112basicinputs.append(inputs)
         # 2 sets of 16 varied inputs with (relative_lock_time) OP_CSV OP_DROP (actually will be prepended to spending scriptSig)
         bip112diverseinputs = []
         for j in range(2):
             inputs = []
             for i in range(16):
-                inputs.append(self.send_generic_input_tx(self.nodes[0], self.coinbase_blocks))
+                inputs.append(self.send_generic_input_tx(self.nodes[0], self.coinstake_blocks))
             bip112diverseinputs.append(inputs)
         # 1 special input with -1 OP_CSV OP_DROP (actually will be prepended to spending scriptSig)
-        bip112specialinput = self.send_generic_input_tx(self.nodes[0], self.coinbase_blocks)
+        bip112specialinput = self.send_generic_input_tx(self.nodes[0], self.coinstake_blocks)
         # 1 normal input
-        bip113input = self.send_generic_input_tx(self.nodes[0], self.coinbase_blocks)
+        bip113input = self.send_generic_input_tx(self.nodes[0], self.coinstake_blocks)
 
         self.nodes[0].setmocktime(self.last_block_time + 600)
         inputblockhash = self.nodes[0].generate(1)[0] # 1 block generated for inputs to be in chain at height 572

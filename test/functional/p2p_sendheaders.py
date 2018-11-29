@@ -87,7 +87,7 @@ e. Announce one more that doesn't connect.
 """
 from test_framework.blocktools import (
     create_block,
-    create_coinbase,
+    create_coinstake,
     get_tip_snapshot_meta,
     calc_snapshot_hash,
     UTXO,
@@ -278,7 +278,7 @@ class SendHeadersTest(UnitETestFramework):
 
         self.log.info("Verify getheaders with null locator and invalid hashstop does not return headers.")
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(int(tip["hash"], 16), create_coinbase(tip["height"] + 1, snapshot_hash), tip["mediantime"] + 1)
+        block = create_block(int(tip["hash"], 16), create_coinstake(tip["height"] + 1, snapshot_hash), tip["mediantime"] + 1)
         block.solve()
         test_node.send_header_for_blocks([block])
         test_node.clear_block_announcements()
@@ -317,7 +317,7 @@ class SendHeadersTest(UnitETestFramework):
                 last_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time']
                 block_time = last_time + 1
                 snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-                new_block = create_block(tip, create_coinbase(height + 1, snapshot_hash), block_time)
+                new_block = create_block(tip, create_coinstake(height + 1, snapshot_hash), block_time)
                 new_block.solve()
                 test_node.send_header_for_blocks([new_block])
                 test_node.wait_for_getdata([new_block.sha256])
@@ -352,11 +352,11 @@ class SendHeadersTest(UnitETestFramework):
             for j in range(2):
                 blocks = []
                 for b in range(i + 1):
-                    coinbase = create_coinbase(height, snapshot_meta.hash)
-                    blocks.append(create_block(tip, coinbase, block_time))
+                    coinstake = create_coinstake(height, snapshot_meta.hash)
+                    blocks.append(create_block(tip, coinstake, block_time))
                     blocks[-1].solve()
                     tip = blocks[-1].sha256
-                    utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+                    utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
                     snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
                     block_time += 1
                     height += 1
@@ -469,11 +469,11 @@ class SendHeadersTest(UnitETestFramework):
         blocks = []
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for b in range(2):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
-            blocks.append(create_block(tip, coinbase, block_time))
+            coinstake = create_coinstake(height, snapshot_meta.hash)
+            blocks.append(create_block(tip, coinstake, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             block_time += 1
             height += 1
@@ -491,11 +491,11 @@ class SendHeadersTest(UnitETestFramework):
         blocks = []
         snapshots = [get_tip_snapshot_meta(self.nodes[0])]
         for b in range(3):
-            coinbase = create_coinbase(height, snapshots[-1].hash)
-            blocks.append(create_block(tip, coinbase, block_time))
+            coinstake = create_coinstake(height, snapshots[-1].hash)
+            blocks.append(create_block(tip, coinstake, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshots.append(calc_snapshot_hash(self.nodes[0], snapshots[-1].data, 0, [], [utxo]))
             block_time += 1
             height += 1
@@ -516,11 +516,11 @@ class SendHeadersTest(UnitETestFramework):
 
         # Create extra blocks for later
         for b in range(20):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
-            blocks.append(create_block(tip, coinbase, block_time))
+            coinstake = create_coinstake(height, snapshot_meta.hash)
+            blocks.append(create_block(tip, coinstake, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             block_time += 1
             height += 1
@@ -567,11 +567,11 @@ class SendHeadersTest(UnitETestFramework):
             blocks = []
             # Create two more blocks.
             for j in range(2):
-                coinbase = create_coinbase(height, snapshot_meta.hash)
-                blocks.append(create_block(tip, coinbase, block_time))
+                coinstake = create_coinstake(height, snapshot_meta.hash)
+                blocks.append(create_block(tip, coinstake, block_time))
                 blocks[-1].solve()
                 tip = blocks[-1].sha256
-                utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+                utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
                 snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
                 block_time += 1
                 height += 1
@@ -592,11 +592,11 @@ class SendHeadersTest(UnitETestFramework):
         MAX_UNCONNECTING_HEADERS = 10
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for j in range(MAX_UNCONNECTING_HEADERS + 1):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
-            blocks.append(create_block(tip, coinbase, block_time))
+            coinstake = create_coinstake(height, snapshot_meta.hash)
+            blocks.append(create_block(tip, coinstake, block_time))
             blocks[-1].solve()
             tip = blocks[-1].sha256
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             block_time += 1
             height += 1

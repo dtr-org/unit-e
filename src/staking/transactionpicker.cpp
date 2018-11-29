@@ -59,7 +59,7 @@ class BlockAssemblerAdapter final : public TransactionPicker {
     ::BlockAssembler blockAssembler(m_chainParams, blockAssemblerOptions);
 
     // The block assembler unfortunately also creates a bitcoin-style
-    // coinbase transaction. We do not want to touch that logic to
+    // coinstake transaction. We do not want to touch that logic to
     // retain compatibility with bitcoin. The construction of the
     // coinstake transaction is left to the component using a
     // TransactionPicker to build a block. Therefore we just pass an

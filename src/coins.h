@@ -26,7 +26,7 @@
  * A UTXO entry.
  *
  * Serialized format:
- * - VARINT((coinbase ? 1 : 0) | (height << 1))
+ * - VARINT((coinstake ? 1 : 0) | (height << 1))
  * - the non-spent CTxOut (via CTxOutCompressor)
  */
 class Coin
@@ -35,32 +35,32 @@ public:
     //! unspent transaction output
     CTxOut out;
 
-    //! whether containing transaction was a coinbase
-    unsigned int fCoinBase : 1;
+    //! whether containing transaction was a coinstake
+    unsigned int fCoinStake : 1;
 
     //! at which height this containing transaction was included in the active block chain
     uint32_t nHeight : 31;
 
-    //! construct a Coin from a CTxOut and height/coinbase information.
-    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn) {}
-    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn) {}
+    //! construct a Coin from a CTxOut and height/coinstake information.
+    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinStakeIn) : out(std::move(outIn)), fCoinStake(fCoinStakeIn), nHeight(nHeightIn) {}
+    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinStakeIn) : out(outIn), fCoinStake(fCoinStakeIn),nHeight(nHeightIn) {}
 
     void Clear() {
         out.SetNull();
-        fCoinBase = false;
+        fCoinStake = false;
         nHeight = 0;
     }
 
     //! empty constructor
-    Coin() : fCoinBase(false), nHeight(0) { }
+    Coin() : fCoinStake(false), nHeight(0) { }
 
-    bool IsCoinBase() const {
-        return fCoinBase;
+    bool IsCoinStake() const {
+        return fCoinStake;
     }
 
-    //! \brief checks if this represents an immature coinbase transaction
+    //! \brief checks if this represents an immature coinstake transaction
     //!
-    //! UNIT-E: coinbase transactions have to mature, i.e. they have to be
+    //! UNIT-E: coinstake transactions have to mature, i.e. they have to be
     //! COINBASE_MATURITY blocks deep in the blockchain (that is: COINBASE_MATURITY
     //! blocks have to be included in the chain afterwards). This is problematic
     //! in a Proof-of-Stake context as it does not allow for anything to be spent
@@ -69,9 +69,9 @@ public:
     //! assumed to be mature.
     //!
     //! \param spendheight The height at which the TxOut is tried to be spent.
-    bool IsImmatureCoinBase(int spendheight) const {
-        if (!IsCoinBase()) {
-            // can't be immature, immaturity is a term that applies to coinbase
+    bool IsImmatureCoinStake(int spendheight) const {
+        if (!IsCoinStake()) {
+            // can't be immature, immaturity is a term that applies to coinstake
             // transactions only.
             return false;
         }
@@ -84,7 +84,7 @@ public:
             return false;
         }
         // otherwise it depends: Are there less then COINBASE_MATURITY blocks
-        // in between the coinbase and the block in which that coinbases'
+        // in between the coinstake and the block in which that coinstakes'
         // txout is tried to be spent? If so, it's immature.
         return spendheight - nHeight < COINBASE_MATURITY;
     }
@@ -92,7 +92,7 @@ public:
     template<typename Stream>
     void Serialize(Stream &s) const {
         assert(!IsSpent());
-        uint32_t code = nHeight * 2 + fCoinBase;
+        uint32_t code = nHeight * 2 + fCoinStake;
         ::Serialize(s, VARINT(code));
         ::Serialize(s, CTxOutCompressor(REF(out)));
     }
@@ -102,7 +102,7 @@ public:
         uint32_t code = 0;
         ::Unserialize(s, VARINT(code));
         nHeight = code >> 1;
-        fCoinBase = code & 1;
+        fCoinStake = code & 1;
         ::Unserialize(s, REF(CTxOutCompressor(out)));
     }
 
@@ -353,7 +353,7 @@ private:
 };
 
 //! Utility function to add all of a transaction's outputs to a cache.
-// When check is false, this assumes that overwrites are only possible for coinbase transactions.
+// When check is false, this assumes that overwrites are only possible for coinstake transactions.
 // When check is true, the underlying view may be queried to determine whether an addition is
 // an overwrite.
 // TODO: pass in a boolean to limit these possible overwrites to known

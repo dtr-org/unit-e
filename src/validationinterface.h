@@ -75,7 +75,7 @@ protected:
      * Notifies listeners of a transaction leaving mempool.
      *
      * This only fires for transactions which leave mempool because of expiry,
-     * size limiting, reorg (changes in lock times/coinbase maturity), or
+     * size limiting, reorg (changes in lock times/coinstake maturity), or
      * replacement. This does not include any transactions which are included
      * in BlockConnectedDisconnected either in block->vtx or in txnConflicted.
      *

@@ -134,13 +134,13 @@ enum BlockStatus: uint32_t {
     BLOCK_VALID_TREE         =    2,
 
     /**
-     * Only first tx is coinbase, 2 <= coinbase input script length <= 100, transactions valid, no duplicate txids,
+     * Only first tx is coinstake, 2 <= coinstake input script length <= 100, transactions valid, no duplicate txids,
      * sigops, size, merkle root. Implies all parents are at least TREE but not necessarily TRANSACTIONS. When all
      * parent blocks also have TRANSACTIONS, CBlockIndex::nChainTx will be set.
      */
     BLOCK_VALID_TRANSACTIONS =    3,
 
-    //! Outputs do not overspend inputs, no double spends, coinbase output ok, no immature coinbase spends.
+    //! Outputs do not overspend inputs, no double spends, coinstake output ok, no immature coinstake spends.
     //! Implies all parents are also at least CHAIN.
     BLOCK_VALID_CHAIN        =    4,
 

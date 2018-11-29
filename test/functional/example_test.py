@@ -16,7 +16,7 @@ from collections import defaultdict
 # Avoid wildcard * imports if possible
 from test_framework.blocktools import (
     create_block,
-    create_coinbase,
+    create_coinstake,
     get_tip_snapshot_meta,
     calc_snapshot_hash,
     UTXO,
@@ -180,8 +180,8 @@ class ExampleTest(UnitETestFramework):
             # Use the mininode and blocktools functionality to manually build a block
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
-            coinbase = create_coinbase(height, snapshot_meta.hash)
-            block = create_block(self.tip, coinbase, self.block_time)
+            coinstake = create_coinstake(height, snapshot_meta.hash)
+            block = create_block(self.tip, coinstake, self.block_time)
             block.solve()
             block_message = msg_block(block)
             # Send message is used to send a P2P message to the node over our P2PInterface
@@ -189,7 +189,7 @@ class ExampleTest(UnitETestFramework):
             self.tip = block.sha256
             blocks.append(self.tip)
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             height += 1
 

@@ -20,7 +20,7 @@ class SpendGenensisTest(UnitETestFramework):
         node.importmasterkey('swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready')
         node.rescanblockchain(0, 0) #UNIT-E this can be removed as soon as importmasterkey correclty perform a rescan
 
-        # Make the coinbase mature
+        # Make the coinstake mature
         node.generate(100)
         assert (node.getbalance() == 10000)
 

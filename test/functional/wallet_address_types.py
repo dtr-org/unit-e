@@ -160,7 +160,7 @@ class AddressTypeTest(UnitETestFramework):
 
     def run_test(self):
         # Mine 101 blocks on node5 to bring nodes out of IBD and make sure that
-        # no coinbases are maturing for the nodes-under-test during the test
+        # no coinstakes are maturing for the nodes-under-test during the test
         self.nodes[5].generate(101)
         sync_blocks(self.nodes)
 

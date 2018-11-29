@@ -99,12 +99,12 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
 }
 
 void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, bool check) {
-    bool fCoinbase = tx.IsCoinBase();
+    bool fCoinbase = tx.IsCoinStake();
     const uint256& txid = tx.GetHash();
     for (size_t i = 0; i < tx.vout.size(); ++i) {
         bool overwrite = check ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
-        // Always set the possible_overwrite flag to AddCoin for coinbase txn, in order to correctly
-        // deal with the pre-BIP30 occurrences of duplicate coinbase transactions.
+        // Always set the possible_overwrite flag to AddCoin for coinstake txn, in order to correctly
+        // deal with the pre-BIP30 occurrences of duplicate coinstake transactions.
         cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase), overwrite);
     }
 }
@@ -260,7 +260,7 @@ bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer
         snapshot::UTXOSubset &subset = iter.GetUTXOSubset();
         for (auto const &p : subset.outputs) {
             COutPoint out(subset.tx_id, p.first);
-            Coin coin(p.second, subset.height, subset.is_coin_base);
+            Coin coin(p.second, subset.height, subset.is_coin_stake);
             AddCoin(out, std::move(coin), true);
         }
 
@@ -302,7 +302,7 @@ unsigned int CCoinsViewCache::GetCacheSize() const {
 
 CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 {
-    if (tx.IsCoinBase())
+    if (tx.IsCoinStake())
         return 0;
 
     CAmount nResult = 0;
@@ -314,7 +314,7 @@ CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 
 bool CCoinsViewCache::HaveInputs(const CTransaction& tx) const
 {
-    if (!tx.IsCoinBase()) {
+    if (!tx.IsCoinStake()) {
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
             if (!HaveCoin(tx.vin[i].prevout)) {
                 return false;

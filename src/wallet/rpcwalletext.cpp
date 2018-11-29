@@ -441,13 +441,13 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
       outputs.push_back(output);
     }
 
-    if (wtx.IsCoinBase()) {
+    if (wtx.IsCoinStake()) {
       if (!wtx.IsInMainChain()) {
         entry.pushKV("category", "orphan");
       } else if (wtx.GetBlocksToMaturity() > 0) {
         entry.pushKV("category", "immature");
       } else {
-        entry.pushKV("category", "coinbase");
+        entry.pushKV("category", "coinstake");
       }
     } else if (!fee) {
       entry.pushKV("category", "receive");
@@ -519,7 +519,7 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
         "        category:          select only one category of transactions to"
         " return\n"
         "                           (string from list)\n"
-        "                           all, send, orphan, immature, coinbase, \n"
+        "                           all, send, orphan, immature, coinstake, \n"
         "                           receive, orphaned_stake, stake,"
         " internal_transfer\n"
         "        sort:              sort transactions by criteria\n"
@@ -609,7 +609,7 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
     if (options.exists("category")) {
       category = options["category"].get_str();
       std::vector<std::string> categories = {
-          "all",     "send",           "orphan", "immature",         "coinbase",
+          "all",     "send",           "orphan", "immature",         "coinstake",
           "receive", "orphaned_stake", "stake",  "internal_transfer"};
       auto it = std::find(categories.begin(), categories.end(), category);
       if (it == categories.end()) {

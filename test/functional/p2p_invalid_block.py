@@ -7,7 +7,7 @@
 In this test we connect to one node over p2p, and test block requests:
 1) Valid blocks should be requested and become chain tip.
 2) Invalid block with duplicated transaction should be re-requested.
-3) Invalid block with bad coinbase value should be rejected and not
+3) Invalid block with bad coinstake value should be rejected and not
 re-requested.
 """
 
@@ -42,33 +42,33 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         self.block_time = int(time.time())+1
 
         '''
-        Create a new block with an anyone-can-spend coinbase
+        Create a new block with an anyone-can-spend coinstake
         '''
         height = 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(self.tip, create_coinbase(height, snapshot_hash), self.block_time)
+        block = create_block(self.tip, create_coinstake(height, snapshot_hash), self.block_time)
         self.block_time += 1
         block.solve()
-        # Save the coinbase for later
+        # Save the coinstake for later
         self.block1 = block
         self.tip = block.sha256
         height += 1
         yield TestInstance([[block, True]])
 
         '''
-        Now we need that block to mature so we can spend the coinbase.
+        Now we need that block to mature so we can spend the coinstake.
         '''
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         test = TestInstance(sync_every_block=False)
         for i in range(100):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
-            block = create_block(self.tip, coinbase, self.block_time)
+            coinstake = create_coinstake(height, snapshot_meta.hash)
+            block = create_block(self.tip, coinstake, self.block_time)
             block.solve()
             self.tip = block.sha256
             self.block_time += 1
             test.blocks_and_transactions.append([block, True])
 
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
 
             height += 1
@@ -77,12 +77,12 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         '''
         Now we use merkle-root malleability to generate an invalid block with
         same blockheader.
-        Manufacture a block with 3 transactions (coinbase, spend of prior
-        coinbase, spend of that spend).  Duplicate the 3rd transaction to
+        Manufacture a block with 3 transactions (coinstake, spend of prior
+        coinstake, spend of that spend).  Duplicate the 3rd transaction to
         leave merkle root and blockheader unchanged but invalidate the block.
         '''
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        block2 = create_block(self.tip, create_coinbase(height, snapshot_meta.hash), self.block_time)
+        block2 = create_block(self.tip, create_coinstake(height, snapshot_meta.hash), self.block_time)
         self.block_time += 1
 
         # b'0x51' is OP_TRUE
@@ -121,7 +121,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         Make sure that a totally screwed up block is not valid.
         '''
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        block3 = create_block(self.tip, create_coinbase(height, snapshot_meta.hash), self.block_time)
+        block3 = create_block(self.tip, create_coinstake(height, snapshot_meta.hash), self.block_time)
         self.block_time += 1
         block3.vtx[0].vout[0].nValue = 100 * UNIT # Too high!
         block3.vtx[0].sha256=None

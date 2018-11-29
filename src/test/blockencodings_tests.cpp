@@ -167,7 +167,7 @@ BOOST_AUTO_TEST_CASE(NonCoinbasePreforwardRTTest)
 
     uint256 txhash;
 
-    // Test with pre-forwarding tx 1, but not coinbase
+    // Test with pre-forwarding tx 1, but not coinstake
     {
         TestHeaderAndShortIDs shortIDs(block);
         shortIDs.prefilledtxn.resize(1);
@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE(SufficientPreforwardRTTest)
 
     uint256 txhash;
 
-    // Test with pre-forwarding coinbase + tx 2 with tx 1 in mempool
+    // Test with pre-forwarding coinstake + tx 2 with tx 1 in mempool
     {
         TestHeaderAndShortIDs shortIDs(block);
         shortIDs.prefilledtxn.resize(2);
@@ -276,15 +276,15 @@ BOOST_AUTO_TEST_CASE(SufficientPreforwardRTTest)
 BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
 {
     CTxMemPool pool;
-    CMutableTransaction coinbase;
-    coinbase.vin.resize(1);
-    coinbase.vin[0].scriptSig.resize(10);
-    coinbase.vout.resize(1);
-    coinbase.vout[0].nValue = 42;
+    CMutableTransaction coinstake;
+    coinstake.vin.resize(1);
+    coinstake.vin[0].scriptSig.resize(10);
+    coinstake.vout.resize(1);
+    coinstake.vout[0].nValue = 42;
 
     CBlock block;
     block.vtx.resize(1);
-    block.vtx[0] = MakeTransactionRef(std::move(coinbase));
+    block.vtx[0] = MakeTransactionRef(std::move(coinstake));
     block.nVersion = 42;
     block.hashPrevBlock = InsecureRand256();
     block.nBits = 0x207fffff;
@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     assert(!mutated);
     while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus())) ++block.nNonce;
 
-    // Test simple header round-trip with only coinbase
+    // Test simple header round-trip with only coinstake
     {
         CBlockHeaderAndShortTxIDs shortIDs(block, false);
 

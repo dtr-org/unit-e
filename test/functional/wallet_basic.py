@@ -385,10 +385,10 @@ class WalletTest(UnitETestFramework):
             assert_equal(balance_nodes, [self.nodes[i].getbalance() for i in range(3)])
 
         # Exercise listsinceblock with the last two blocks
-        coinbase_tx_1 = self.nodes[0].listsinceblock(blocks[0])
-        assert_equal(coinbase_tx_1["lastblock"], blocks[1])
-        assert_equal(len(coinbase_tx_1["transactions"]), 1)
-        assert_equal(coinbase_tx_1["transactions"][0]["blockhash"], blocks[1])
+        coinstake_tx_1 = self.nodes[0].listsinceblock(blocks[0])
+        assert_equal(coinstake_tx_1["lastblock"], blocks[1])
+        assert_equal(len(coinstake_tx_1["transactions"]), 1)
+        assert_equal(coinstake_tx_1["transactions"][0]["blockhash"], blocks[1])
         assert_equal(len(self.nodes[0].listsinceblock(blocks[1])["transactions"]), 0)
 
         # ==Check that wallet prefers to use coins that don't exceed mempool limits =====

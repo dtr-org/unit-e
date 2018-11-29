@@ -5,7 +5,7 @@
 """Test NULLDUMMY softfork.
 
 Connect to a single node.
-Generate 2 blocks (save the coinbases for later).
+Generate 2 blocks (save the coinstakes for later).
 Generate 427 more blocks.
 [Policy/Consensus] Check that NULLDUMMY compliant transactions are accepted in the 430th block.
 [Policy] Check that non-NULLDUMMY transactions are rejected before activation.
@@ -16,7 +16,7 @@ Generate 427 more blocks.
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, create_block, add_witness_commitment, get_tip_snapshot_meta
+from test_framework.blocktools import create_coinstake, create_block, add_witness_commitment, get_tip_snapshot_meta
 from test_framework.script import CScript
 from io import BytesIO
 import time
@@ -51,10 +51,10 @@ class NULLDUMMYTest(UnitETestFramework):
         self.wit_ms_address = self.nodes[0].addmultisigaddress(1, [self.address], '', 'p2sh-segwit')['address']
 
         network_thread_start()
-        self.coinbase_blocks = self.nodes[0].generate(2) # Block 2
-        coinbase_txid = []
-        for i in self.coinbase_blocks:
-            coinbase_txid.append(self.nodes[0].getblock(i)['tx'][0])
+        self.coinstake_blocks = self.nodes[0].generate(2) # Block 2
+        coinstake_txid = []
+        for i in self.coinstake_blocks:
+            coinstake_txid.append(self.nodes[0].getblock(i)['tx'][0])
         self.nodes[0].generate(427) # Block 429
         self.lastblockhash = self.nodes[0].getbestblockhash()
         self.tip = int("0x" + self.lastblockhash, 0)
@@ -62,11 +62,11 @@ class NULLDUMMYTest(UnitETestFramework):
         self.lastblocktime = int(time.time()) + 429
 
         self.log.info("Test 1: NULLDUMMY compliant base transactions should be accepted to mempool and mined before activation [430]")
-        test1txs = [self.create_transaction(self.nodes[0], coinbase_txid[0], self.ms_address, 49)]
+        test1txs = [self.create_transaction(self.nodes[0], coinstake_txid[0], self.ms_address, 49)]
         txid1 = self.nodes[0].sendrawtransaction(bytes_to_hex_str(test1txs[0].serialize_with_witness()), True)
         test1txs.append(self.create_transaction(self.nodes[0], txid1, self.ms_address, 48))
         txid2 = self.nodes[0].sendrawtransaction(bytes_to_hex_str(test1txs[1].serialize_with_witness()), True)
-        test1txs.append(self.create_transaction(self.nodes[0], coinbase_txid[1], self.wit_ms_address, 49))
+        test1txs.append(self.create_transaction(self.nodes[0], coinstake_txid[1], self.wit_ms_address, 49))
         txid3 = self.nodes[0].sendrawtransaction(bytes_to_hex_str(test1txs[2].serialize_with_witness()), True)
         self.block_submit(self.nodes[0], test1txs, False, True)
 
@@ -111,7 +111,7 @@ class NULLDUMMYTest(UnitETestFramework):
 
     def block_submit(self, node, txs, witness = False, accept = False):
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(self.tip, create_coinbase(self.lastblockheight + 1, snapshot_hash), self.lastblocktime + 1)
+        block = create_block(self.tip, create_coinstake(self.lastblockheight + 1, snapshot_hash), self.lastblocktime + 1)
         block.nVersion = 4
         for tx in txs:
             tx.rehash()

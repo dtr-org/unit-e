@@ -12,7 +12,7 @@ import time
 
 from test_framework.blocktools import (
     create_block,
-    create_coinbase,
+    create_coinstake,
     get_tip_snapshot_meta,
     calc_snapshot_hash,
     UTXO,
@@ -42,13 +42,13 @@ class P2PFingerprintTest(UnitETestFramework):
     def build_chain(self, nblocks, prev_hash, prev_height, prev_median_time, snapshot_meta):
         blocks = []
         for _ in range(nblocks):
-            coinbase = create_coinbase(prev_height + 1, snapshot_meta.hash)
+            coinstake = create_coinstake(prev_height + 1, snapshot_meta.hash)
             block_time = prev_median_time + 1
-            block = create_block(int(prev_hash, 16), coinbase, block_time)
+            block = create_block(int(prev_hash, 16), coinstake, block_time)
             block.solve()
             blocks.append(block)
             prev_hash = block.hash
-            utxo = UTXO(prev_height + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(prev_height + 1, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             prev_height += 1
             prev_median_time = block_time

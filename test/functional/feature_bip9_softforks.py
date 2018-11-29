@@ -7,7 +7,7 @@
 Connect to a single node.
 regtest lock-in with 108/144 block signalling
 activation after a further 144 blocks
-mine 2 block and save coinbases for later use
+mine 2 block and save coinstakes for later use
 mine 141 blocks to transition from DEFINED to STARTED
 mine 100 blocks signalling readiness and 44 not in order to fail to change state this period
 mine 108 blocks signalling readiness and 36 blocks not signalling readiness (STARTED->LOCKED_IN)
@@ -23,7 +23,7 @@ import itertools
 from test_framework.test_framework import ComparisonTestFramework
 from test_framework.util import *
 from test_framework.mininode import CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta, calc_snapshot_hash, UNIT, UTXO, COutPoint, CTxOut
+from test_framework.blocktools import create_coinstake, create_block, get_tip_snapshot_meta, calc_snapshot_hash, UNIT, UTXO, COutPoint, CTxOut
 from test_framework.comptool import TestInstance, TestManager
 from test_framework.script import CScript, OP_1NEGATE, OP_CHECKSEQUENCEVERIFY, OP_DROP
 
@@ -39,8 +39,8 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         network_thread_start()
         self.test.run()
 
-    def create_transaction(self, node, coinbase, to_address, amount):
-        from_txid = node.getblock(coinbase)['tx'][0]
+    def create_transaction(self, node, coinstake, to_address, amount):
+        from_txid = node.getblock(coinstake)['tx'][0]
         inputs = [{ "txid" : from_txid, "vout" : 0}]
         outputs = { to_address : amount }
         rawtx = node.createrawtransaction(inputs, outputs)
@@ -59,14 +59,14 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
     def generate_blocks(self, number, version, test_blocks = []):
         for i in range(number):
-            coinbase = create_coinbase(self.height, self.snapshot_meta.hash)
-            block = create_block(self.tip, coinbase, self.last_block_time + 1)
+            coinstake = create_coinstake(self.height, self.snapshot_meta.hash)
+            block = create_block(self.tip, coinstake, self.last_block_time + 1)
             block.nVersion = version
             block.rehash()
             block.solve()
             test_blocks.append([block, True])
             self.last_block_time += 1
-            utxo = UTXO(self.height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(self.height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, 0, [], [utxo])
             self.tip = block.sha256
             self.height += 1
@@ -81,7 +81,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         assert_equal(self.get_bip9_status(bipName)['since'], 0)
 
         # generate some coins for later
-        self.coinbase_blocks = self.nodes[0].generate(2)
+        self.coinstake_blocks = self.nodes[0].generate(2)
         self.height = 3  # height of the next block to build
         self.tip = int("0x" + self.nodes[0].getbestblockhash(), 0)
         self.nodeaddress = self.nodes[0].getnewaddress()
@@ -177,24 +177,24 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 5
         # Check that the new rule is enforced
         spendtx = self.create_transaction(self.nodes[0],
-                self.coinbase_blocks[0], self.nodeaddress, 1.0)
+                self.coinstake_blocks[0], self.nodeaddress, 1.0)
         invalidate(spendtx)
         spendtx = self.sign_transaction(self.nodes[0], spendtx)
         spendtx.rehash()
         invalidatePostSignature(spendtx)
         spendtx.rehash()
-        coinbase = create_coinbase(self.height, self.snapshot_meta.hash)
-        block = create_block(self.tip, coinbase, self.last_block_time + 1)
+        coinstake = create_coinstake(self.height, self.snapshot_meta.hash)
+        block = create_block(self.tip, coinstake, self.last_block_time + 1)
         block.nVersion = activated_version
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
         block.rehash()
         block.solve()
 
-        cb_data = self.nodes[0].gettxout(self.nodes[0].getblock(self.coinbase_blocks[0])['tx'][0], 0)
+        cb_data = self.nodes[0].gettxout(self.nodes[0].getblock(self.coinstake_blocks[0])['tx'][0], 0)
         cb_out = CTxOut(int(cb_data['value']*UNIT), hex_str_to_bytes(cb_data['scriptPubKey']['hex']))
         utxo1 = UTXO(1, True, spendtx.vin[0].prevout, cb_out)
-        utxo2 = UTXO(self.height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        utxo2 = UTXO(self.height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
         utxo3 = UTXO(self.height, False, COutPoint(spendtx.sha256, 0), spendtx.vout[0])
         self.snapshot_meta = calc_snapshot_hash(self.nodes[0], self.snapshot_meta.data, 0, [utxo1], [utxo2, utxo3])
 
@@ -209,14 +209,14 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 6
         # Check that the new sequence lock rules are enforced
         spendtx = self.create_transaction(self.nodes[0],
-                self.coinbase_blocks[1], self.nodeaddress, 1.0)
+                self.coinstake_blocks[1], self.nodeaddress, 1.0)
         invalidate(spendtx)
         spendtx = self.sign_transaction(self.nodes[0], spendtx)
         spendtx.rehash()
         invalidatePostSignature(spendtx)
         spendtx.rehash()
 
-        block = create_block(self.tip, create_coinbase(self.height, self.snapshot_meta.hash), self.last_block_time + 1)
+        block = create_block(self.tip, create_coinstake(self.height, self.snapshot_meta.hash), self.last_block_time + 1)
         block.nVersion = 5
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()

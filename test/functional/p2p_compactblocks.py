@@ -11,7 +11,7 @@ Version 2 compact blocks are post-segwit (wtxids)
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment
+from test_framework.blocktools import create_block, create_coinstake, get_tip_snapshot_meta, add_witness_commitment
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
@@ -105,7 +105,7 @@ class CompactBlocksTest(UnitETestFramework):
         mtp = node.getblockheader(tip)['mediantime']
 
         meta = get_tip_snapshot_meta(node)
-        block = create_block(int(tip, 16), create_coinbase(height + 1, meta.hash), mtp + 1)
+        block = create_block(int(tip, 16), create_coinstake(height + 1, meta.hash), mtp + 1)
         block.nVersion = 4
         if segwit:
             add_witness_commitment(block)
@@ -326,7 +326,7 @@ class CompactBlocksTest(UnitETestFramework):
         header_and_shortids.header.calc_sha256()
         assert_equal(header_and_shortids.header.sha256, block_hash)
 
-        # Make sure the prefilled_txn appears to have included the coinbase
+        # Make sure the prefilled_txn appears to have included the coinstake
         assert(len(header_and_shortids.prefilled_txn) >= 1)
         assert_equal(header_and_shortids.prefilled_txn[0].index, 0)
 
@@ -391,25 +391,25 @@ class CompactBlocksTest(UnitETestFramework):
             assert_equal(test_node.last_message["getdata"].inv[0].type, 4)
             assert_equal(test_node.last_message["getdata"].inv[0].hash, block.sha256)
 
-            # Send back a compactblock message that omits the coinbase
+            # Send back a compactblock message that omits the coinstake
             comp_block = HeaderAndShortIDs()
             comp_block.header = CBlockHeader(block)
             comp_block.nonce = 0
             [k0, k1] = comp_block.get_siphash_keys()
-            coinbase_hash = block.vtx[0].sha256
+            coinstake_hash = block.vtx[0].sha256
             if version == 2:
-                coinbase_hash = block.vtx[0].calc_sha256(True)
+                coinstake_hash = block.vtx[0].calc_sha256(True)
             comp_block.shortids = [
-                    calculate_shortid(k0, k1, coinbase_hash) ]
+                    calculate_shortid(k0, k1, coinstake_hash) ]
             test_node.send_and_ping(msg_cmpctblock(comp_block.to_p2p()))
             assert_equal(int(node.getbestblockhash(), 16), block.hashPrevBlock)
             # Expect a getblocktxn message.
             with mininode_lock:
                 assert("getblocktxn" in test_node.last_message)
                 absolute_indexes = test_node.last_message["getblocktxn"].block_txn_request.to_absolute()
-            assert_equal(absolute_indexes, [0])  # should be a coinbase request
+            assert_equal(absolute_indexes, [0])  # should be a coinstake request
 
-            # Send the coinbase, and verify that the tip advances.
+            # Send the coinstake, and verify that the tip advances.
             if version == 2:
                 msg = msg_witness_blocktxn()
             else:
@@ -712,7 +712,7 @@ class CompactBlocksTest(UnitETestFramework):
         del block.vtx[3]
         block.hashMerkleRoot = block.calc_merkle_root()
         if use_segwit:
-            # If we're testing with segwit, also drop the coinbase witness,
+            # If we're testing with segwit, also drop the coinstake witness,
             # but include the witness commitment.
             add_witness_commitment(block)
             block.vtx[0].wit.vtxinwit = []

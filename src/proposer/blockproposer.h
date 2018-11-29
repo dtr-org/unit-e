@@ -37,9 +37,9 @@ class BlockProposer {
   struct ProposeBlockParameters {
     //! \brief the height to propose the block for.
     //!
-    //! The height of a block is encoded inside the coinbase transaction.
+    //! The height of a block is encoded inside the coinstake transaction.
     //! This is defined in BIP34 (Block v2, Height in Coinbase).
-    //! This also helps ensuring that the coinbase transaction has a
+    //! This also helps ensuring that the coinstake transaction has a
     //! unique hash, hence prevent BIP30 (Duplicate transactions) from
     //! applying.
     //!

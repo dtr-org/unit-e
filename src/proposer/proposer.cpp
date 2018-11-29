@@ -270,10 +270,10 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
 
         walletExt.m_proposer_state.m_number_of_searches += 1;
 
-        CScript coinbaseScript;
+        CScript coinstakeScript;
         std::unique_ptr<CBlockTemplate> blockTemplate =
             BlockAssembler(::Params())
-                .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
+                .CreateNewBlock(coinstakeScript, /* fMineWitnessTx */ true);
 
         if (!blockTemplate) {
           LogPrint(BCLog::PROPOSING, "%s/%s: failed to get block template",

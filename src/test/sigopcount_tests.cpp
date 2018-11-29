@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         scriptPubKey[0] = 0x00;
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
 
-        // The witness of a coinbase transaction is not taken into account.
+        // The witness of a coinstake transaction is not taken into account.
         spendingTx.vin[0].prevout.SetNull();
         assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 0);
     }

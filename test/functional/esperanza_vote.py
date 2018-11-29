@@ -56,7 +56,7 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         assert(all(nodes[i].getbalance() == 10000 for i in range(0, 4)))
 
-        # wait for coinbase maturity
+        # wait for coinstake maturity
         for n in range(0, 119):
             self.generate_block(nodes[0])
 

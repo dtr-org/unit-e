@@ -107,11 +107,11 @@ const BlockData BadBlock(const BlockData& prevData)
 {
     BlockData data = Block(prevData);
 
-    CMutableTransaction coinbase_spend;
-    coinbase_spend.vin.push_back(CTxIn(COutPoint(data.block->vtx[0]->GetHash(), 0), CScript(), 0));
-    coinbase_spend.vout.push_back(data.block->vtx[0]->vout[0]);
+    CMutableTransaction coinstake_spend;
+    coinstake_spend.vin.push_back(CTxIn(COutPoint(data.block->vtx[0]->GetHash(), 0), CScript(), 0));
+    coinstake_spend.vout.push_back(data.block->vtx[0]->vout[0]);
 
-    CTransactionRef tx = MakeTransactionRef(coinbase_spend);
+    CTransactionRef tx = MakeTransactionRef(coinstake_spend);
     data.block->vtx.push_back(tx);
 
     FinalizeBlock(data.block);

@@ -11,7 +11,7 @@ Test that the CHECKLOCKTIMEVERIFY soft-fork activates at (regtest) block height
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import *
-from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta
+from test_framework.blocktools import create_coinstake, create_block, get_tip_snapshot_meta
 from test_framework.script import CScript, OP_1NEGATE, OP_CHECKLOCKTIMEVERIFY, OP_DROP, CScriptNum
 from io import BytesIO
 
@@ -49,8 +49,8 @@ def cltv_validate(node, tx, height):
                                   list(CScript(new_tx.vin[0].scriptSig)))
     return new_tx
 
-def create_transaction(node, coinbase, to_address, amount):
-    from_txid = node.getblock(coinbase)['tx'][0]
+def create_transaction(node, coinstake, to_address, amount):
+    from_txid = node.getblock(coinstake)['tx'][0]
     inputs = [{ "txid" : from_txid, "vout" : 0}]
     outputs = { to_address : amount }
     rawtx = node.createrawtransaction(inputs, outputs)
@@ -74,12 +74,12 @@ class BIP65Test(UnitETestFramework):
         self.nodes[0].p2p.wait_for_verack()
 
         self.log.info("Mining %d blocks", CLTV_HEIGHT - 2)
-        self.coinbase_blocks = self.nodes[0].generate(CLTV_HEIGHT - 2)
+        self.coinstake_blocks = self.nodes[0].generate(CLTV_HEIGHT - 2)
         self.nodeaddress = self.nodes[0].getnewaddress()
 
         self.log.info("Test that an invalid-according-to-CLTV transaction can still appear in a block")
 
-        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[0],
+        spendtx = create_transaction(self.nodes[0], self.coinstake_blocks[0],
                 self.nodeaddress, 1.0)
         cltv_invalidate(spendtx)
         spendtx.rehash()
@@ -87,7 +87,7 @@ class BIP65Test(UnitETestFramework):
         tip = self.nodes[0].getbestblockhash()
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(int(tip, 16), create_coinbase(CLTV_HEIGHT - 1, snapshot_hash), block_time)
+        block = create_block(int(tip, 16), create_coinstake(CLTV_HEIGHT - 1, snapshot_hash), block_time)
         block.nVersion = 3
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
@@ -100,7 +100,7 @@ class BIP65Test(UnitETestFramework):
         tip = block.sha256
         block_time += 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(tip, create_coinbase(CLTV_HEIGHT, snapshot_hash), block_time)
+        block = create_block(tip, create_coinstake(CLTV_HEIGHT, snapshot_hash), block_time)
         block.nVersion = 3
         block.solve()
         self.nodes[0].p2p.send_and_ping(msg_block(block))
@@ -116,7 +116,7 @@ class BIP65Test(UnitETestFramework):
         self.log.info("Test that invalid-according-to-cltv transactions cannot appear in a block")
         block.nVersion = 4
 
-        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[1],
+        spendtx = create_transaction(self.nodes[0], self.coinstake_blocks[1],
                 self.nodeaddress, 1.0)
         cltv_invalidate(spendtx)
         spendtx.rehash()

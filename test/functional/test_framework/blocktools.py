@@ -25,7 +25,7 @@ from .script import (
 from .util import assert_equal
 
 # Create a block (with regtest difficulty)
-def create_block(hashprev, coinbase, nTime=None):
+def create_block(hashprev, coinstake, nTime=None):
     block = CBlock()
     if nTime is None:
         import time
@@ -34,7 +34,7 @@ def create_block(hashprev, coinbase, nTime=None):
         block.nTime = nTime
     block.hashPrevBlock = hashprev
     block.nBits = 0x207fffff # Will break after a difficulty adjustment...
-    block.vtx.append(coinbase)
+    block.vtx.append(coinstake)
     block.hashMerkleRoot = block.calc_merkle_root()
     block.calc_sha256()
     return block
@@ -56,11 +56,11 @@ def add_witness_commitment(block, nonce=0):
     # transactions, with witnesses.
     witness_nonce = nonce
     witness_root = block.calc_witness_merkle_root()
-    # witness_nonce should go to coinbase witness.
+    # witness_nonce should go to coinstake witness.
     block.vtx[0].wit.vtxinwit = [CTxInWitness()]
     block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(witness_nonce)]
 
-    # witness commitment is the last OP_RETURN output in coinbase
+    # witness commitment is the last OP_RETURN output in coinstake
     block.vtx[0].vout.append(CTxOut(0, get_witness_script(witness_root, witness_nonce)))
     block.vtx[0].rehash()
     block.hashMerkleRoot = block.calc_merkle_root()
@@ -83,40 +83,40 @@ def serialize_script_num(value):
     return r
 
 
-def create_coinbase2(height, snapshot_hash, pubkey=None):
-    coinbase = CTransaction()
-    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff),
+def create_coinstake2(height, snapshot_hash, pubkey=None):
+    coinstake = CTransaction()
+    coinstake.vin.append(CTxIn(COutPoint(0, 0xffffffff),
                               CScript([CScriptNum(height), ser_uint256(snapshot_hash), OP_0]), 0xffffffff))
-    coinbaseoutput = CTxOut()
-    coinbaseoutput.nValue = 50 * UNIT
+    coinstakeoutput = CTxOut()
+    coinstakeoutput.nValue = 50 * UNIT
     halvings = int(height/150) # regtest
-    coinbaseoutput.nValue >>= halvings
+    coinstakeoutput.nValue >>= halvings
     if (pubkey != None):
-        coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
+        coinstakeoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
     else:
-        coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
-    coinbase.vout = [ coinbaseoutput ]
-    coinbase.calc_sha256()
-    return coinbase
+        coinstakeoutput.scriptPubKey = CScript([OP_TRUE])
+    coinstake.vout = [ coinstakeoutput ]
+    coinstake.calc_sha256()
+    return coinstake
 
-# Create a coinbase transaction, assuming no miner fees.
-# If pubkey is passed in, the coinbase output will be a P2PK output;
+# Create a coinstake transaction, assuming no miner fees.
+# If pubkey is passed in, the coinstake output will be a P2PK output;
 # otherwise an anyone-can-spend output.
-def create_coinbase(height, snapshot_hash, pubkey = None):
-    coinbase = CTransaction()
+def create_coinstake(height, snapshot_hash, pubkey = None):
+    coinstake = CTransaction()
     script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash), OP_0])
-    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
-    coinbaseoutput = CTxOut()
-    coinbaseoutput.nValue = 50 * UNIT
+    coinstake.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
+    coinstakeoutput = CTxOut()
+    coinstakeoutput.nValue = 50 * UNIT
     halvings = int(height/150) # regtest
-    coinbaseoutput.nValue >>= halvings
+    coinstakeoutput.nValue >>= halvings
     if (pubkey != None):
-        coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
+        coinstakeoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
     else:
-        coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
-    coinbase.vout = [ coinbaseoutput ]
-    coinbase.calc_sha256()
-    return coinbase
+        coinstakeoutput.scriptPubKey = CScript([OP_TRUE])
+    coinstake.vout = [ coinstakeoutput ]
+    coinstake.calc_sha256()
+    return coinstake
 
 # Create a transaction.
 # If the scriptPubKey is not specified, make it anyone-can-spend.

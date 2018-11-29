@@ -161,7 +161,7 @@ void TestGUI()
     // Set up wallet and chain with 105 blocks (5 mature blocks for spending).
     TestChain100Setup test;
     for (int i = 0; i < 5; ++i) {
-        test.CreateAndProcessBlock({}, GetScriptForRawPubKey(test.coinbaseKey.GetPubKey()));
+        test.CreateAndProcessBlock({}, GetScriptForRawPubKey(test.coinstakeKey.GetPubKey()));
     }
     bitdb.MakeMock();
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
@@ -170,8 +170,8 @@ void TestGUI()
     wallet.LoadWallet(firstRun);
     {
         LOCK(wallet.cs_wallet);
-        wallet.SetAddressBook(GetDestinationForKey(test.coinbaseKey.GetPubKey(), g_address_type), "", "receive");
-        wallet.AddKeyPubKey(test.coinbaseKey, test.coinbaseKey.GetPubKey());
+        wallet.SetAddressBook(GetDestinationForKey(test.coinstakeKey.GetPubKey(), g_address_type), "", "receive");
+        wallet.AddKeyPubKey(test.coinstakeKey, test.coinstakeKey.GetPubKey());
     }
     {
         LOCK(cs_main);

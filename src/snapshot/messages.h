@@ -25,18 +25,18 @@ struct UTXOSubset {
   //! at which block height the TX was included
   uint32_t height;
 
-  bool is_coin_base;
+  bool is_coin_stake;
 
   //! key is the CTxOut index
   std::map<uint32_t, CTxOut> outputs;
 
-  UTXOSubset() : tx_id(), height(0), is_coin_base(false), outputs() {}
+  UTXOSubset() : tx_id(), height(0), is_coin_stake(false), outputs() {}
 
-  UTXOSubset(uint256 _tx_id, uint32_t _height, bool _is_coin_base,
+  UTXOSubset(uint256 _tx_id, uint32_t _height, bool _is_coin_stake,
              std::map<uint32_t, CTxOut> out_map)
       : tx_id(_tx_id),
         height(_height),
-        is_coin_base(_is_coin_base),
+        is_coin_stake(_is_coin_stake),
         outputs{std::move(out_map)} {}
 
   ADD_SERIALIZE_METHODS;
@@ -45,7 +45,7 @@ struct UTXOSubset {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(tx_id);
     READWRITE(height);
-    READWRITE(is_coin_base);
+    READWRITE(is_coin_stake);
     READWRITE(outputs);
   }
 };
@@ -118,13 +118,13 @@ struct Snapshot {
 struct UTXO {
   COutPoint out_point;
   uint32_t height;
-  bool is_coin_base;
+  bool is_coin_stake;
   CTxOut tx_out;
 
   UTXO()
       : out_point(),
         height(0),
-        is_coin_base(false),
+        is_coin_stake(false),
         tx_out() {}
 
   UTXO(const COutPoint &out, const Coin &coin);
@@ -135,7 +135,7 @@ struct UTXO {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(out_point);
     READWRITE(height);
-    READWRITE(is_coin_base);
+    READWRITE(is_coin_stake);
     READWRITE(tx_out);
   }
 };

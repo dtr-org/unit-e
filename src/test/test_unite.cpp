@@ -160,18 +160,18 @@ TestChain100Setup::TestChain100Setup() : TestingSetup(CBaseChainParams::REGTEST)
     // TODO: fix the code to support SegWit blocks.
     UpdateVersionBitsParameters(Consensus::DEPLOYMENT_SEGWIT, 0, Consensus::BIP9Deployment::NO_TIMEOUT);
     // Generate a 100-block chain:
-    coinbaseKey.MakeNewKey(true);
-    CScript scriptPubKey = CScript() <<  ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+    coinstakeKey.MakeNewKey(true);
+    CScript scriptPubKey = CScript() <<  ToByteVector(coinstakeKey.GetPubKey()) << OP_CHECKSIG;
     for (int i = 0; i < COINBASE_MATURITY; i++)
     {
         std::vector<CMutableTransaction> noTxns;
         CBlock b = CreateAndProcessBlock(noTxns, scriptPubKey);
-        coinbaseTxns.push_back(*b.vtx[0]);
+        coinstakeTxns.push_back(*b.vtx[0]);
     }
 }
 
 //
-// Create a new block with just given transactions, coinbase paying to
+// Create a new block with just given transactions, coinstake paying to
 // scriptPubKey, and try to add it to the current chain.
 //
 CBlock
@@ -181,11 +181,11 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey);
     CBlock& block = pblocktemplate->block;
 
-    // Replace mempool-selected txns with just coinbase plus passed-in txns:
+    // Replace mempool-selected txns with just coinstake plus passed-in txns:
     block.vtx.resize(1);
     for (const CMutableTransaction& tx : txns)
         block.vtx.push_back(MakeTransactionRef(tx));
-    // IncrementExtraNonce creates a valid coinbase and merkleRoot
+    // IncrementExtraNonce creates a valid coinstake and merkleRoot
     unsigned int extraNonce = 0;
     {
         LOCK(cs_main);

@@ -11,10 +11,10 @@ We build a chain that includes and invalid signature for one of the
 transactions:
 
     0:        genesis block
-    1:        block 1 with coinbase transaction output.
-    2-101:    bury that block with 100 blocks so the coinbase transaction
+    1:        block 1 with coinstake transaction output.
+    2-101:    bury that block with 100 blocks so the coinstake transaction
               output can be spent
-    102:      a block containing a transaction spending the coinbase
+    102:      a block containing a transaction spending the coinstake
               transaction output. The transaction has an invalid signature.
     103-2202: bury the bad block with just over two weeks' worth of blocks
               (2100 blocks)
@@ -31,7 +31,7 @@ Start three nodes:
 """
 import time
 
-from test_framework.blocktools import (create_block, create_coinbase, get_tip_snapshot_meta, calc_snapshot_hash)
+from test_framework.blocktools import (create_block, create_coinstake, get_tip_snapshot_meta, calc_snapshot_hash)
 from test_framework.key import CECKey
 from test_framework.mininode import (CBlockHeader,
                                      COutPoint,
@@ -109,46 +109,46 @@ class AssumeValidTest(UnitETestFramework):
 
         self.blocks = []
 
-        # Get a pubkey for the coinbase TXO
-        coinbase_key = CECKey()
-        coinbase_key.set_secretbytes(b"horsebattery")
-        coinbase_pubkey = coinbase_key.get_pubkey()
+        # Get a pubkey for the coinstake TXO
+        coinstake_key = CECKey()
+        coinstake_key.set_secretbytes(b"horsebattery")
+        coinstake_pubkey = coinstake_key.get_pubkey()
 
-        # Create the first block with a coinbase output to our key
+        # Create the first block with a coinstake output to our key
         height = 1
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        coinbase = create_coinbase(height, snapshot_meta.hash, coinbase_pubkey)
-        block = create_block(self.tip, coinbase, self.block_time)
+        coinstake = create_coinstake(height, snapshot_meta.hash, coinstake_pubkey)
+        block = create_block(self.tip, coinstake, self.block_time)
         self.blocks.append(block)
         self.block_time += 1
         block.solve()
-        # Save the coinbase for later
+        # Save the coinstake for later
         self.block1 = block
         self.tip = block.sha256
-        utxo1 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        utxo1 = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
         snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo1])
         height += 1
 
-        # Bury the block 100 deep so the coinbase output is spendable
+        # Bury the block 100 deep so the coinstake output is spendable
         for i in range(100):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
-            block = create_block(self.tip, coinbase, self.block_time)
+            coinstake = create_coinstake(height, snapshot_meta.hash)
+            block = create_block(self.tip, coinstake, self.block_time)
             block.solve()
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             height += 1
 
-        # Create a transaction spending the coinbase output with an invalid (null) signature
+        # Create a transaction spending the coinstake output with an invalid (null) signature
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.block1.vtx[0].sha256, 0), scriptSig=b""))
         tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE])))
         tx.calc_sha256()
 
-        coinbase = create_coinbase(height, snapshot_meta.hash)
-        block102 = create_block(self.tip, coinbase, self.block_time)
+        coinstake = create_coinstake(height, snapshot_meta.hash)
+        block102 = create_block(self.tip, coinstake, self.block_time)
         self.block_time += 1
         block102.vtx.extend([tx])
         block102.hashMerkleRoot = block102.calc_merkle_root()
@@ -159,20 +159,20 @@ class AssumeValidTest(UnitETestFramework):
         self.block_time += 1
 
         utxo2 = UTXO(height, False, COutPoint(tx.sha256, 0), tx.vout[0])
-        utxo3 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        utxo3 = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
         snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [utxo1], [utxo2, utxo3])
         height += 1
 
         # Bury the assumed valid block 2100 deep
         for i in range(2100):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
-            block = create_block(self.tip, coinbase, self.block_time)
+            coinstake = create_coinstake(height, snapshot_meta.hash)
+            block = create_block(self.tip, coinstake, self.block_time)
             block.nVersion = 4
             block.solve()
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, True, COutPoint(coinstake.sha256, 0), coinstake.vout[0])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
             height += 1
 

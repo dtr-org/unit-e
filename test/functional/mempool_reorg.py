@@ -5,7 +5,7 @@
 """Test mempool re-org scenarios.
 
 Test re-org scenarios with a mempool that contains transactions
-that spend (directly or indirectly) coinbase transactions.
+that spend (directly or indirectly) coinstake transactions.
 """
 
 from test_framework.test_framework import UnitETestFramework
@@ -31,20 +31,20 @@ class MempoolCoinbaseTest(UnitETestFramework):
         node0_address = self.nodes[0].getnewaddress()
         node1_address = self.nodes[1].getnewaddress()
 
-        # Three scenarios for re-orging coinbase spends in the memory pool:
-        # 1. Direct coinbase spend  :  spend_101
-        # 2. Indirect (coinbase spend in chain, child in mempool) : spend_102 and spend_102_1
-        # 3. Indirect (coinbase and child both in chain) : spend_103 and spend_103_1
-        # Use invalidatblock to make all of the above coinbase spends invalid (immature coinbase),
+        # Three scenarios for re-orging coinstake spends in the memory pool:
+        # 1. Direct coinstake spend  :  spend_101
+        # 2. Indirect (coinstake spend in chain, child in mempool) : spend_102 and spend_102_1
+        # 3. Indirect (coinstake and child both in chain) : spend_103 and spend_103_1
+        # Use invalidatblock to make all of the above coinstake spends invalid (immature coinstake),
         # and make sure the mempool code behaves correctly.
         b = [ self.nodes[0].getblockhash(n) for n in range(101, 105) ]
-        coinbase_txids = [ self.nodes[0].getblock(h)['tx'][0] for h in b ]
-        spend_101_raw = create_tx(self.nodes[0], coinbase_txids[1], node1_address, 49.99)
-        spend_102_raw = create_tx(self.nodes[0], coinbase_txids[2], node0_address, 49.99)
-        spend_103_raw = create_tx(self.nodes[0], coinbase_txids[3], node0_address, 49.99)
+        coinstake_txids = [ self.nodes[0].getblock(h)['tx'][0] for h in b ]
+        spend_101_raw = create_tx(self.nodes[0], coinstake_txids[1], node1_address, 49.99)
+        spend_102_raw = create_tx(self.nodes[0], coinstake_txids[2], node0_address, 49.99)
+        spend_103_raw = create_tx(self.nodes[0], coinstake_txids[3], node0_address, 49.99)
 
         # Create a transaction which is time-locked to two blocks in the future
-        timelock_tx = self.nodes[0].createrawtransaction([{"txid": coinbase_txids[0], "vout": 0}], {node0_address: 49.99})
+        timelock_tx = self.nodes[0].createrawtransaction([{"txid": coinstake_txids[0], "vout": 0}], {node0_address: 49.99})
         # Set the time lock
         timelock_tx = timelock_tx.replace("ffffffff", "11111191", 1)
         timelock_tx = timelock_tx[:-8] + hex(self.nodes[0].getblockcount() + 2)[2:] + "000000"
@@ -83,7 +83,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
         # spend_103_1 has been re-orged out of the chain and is back in the mempool
         assert_equal(set(self.nodes[0].getrawmempool()), {spend_101_id, spend_102_1_id, spend_103_1_id})
 
-        # Use invalidateblock to re-org back and make all those coinbase spends
+        # Use invalidateblock to re-org back and make all those coinstake spends
         # immature/invalid:
         for node in self.nodes:
             node.invalidateblock(new_blocks[0])

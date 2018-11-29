@@ -16,21 +16,21 @@
 BOOST_AUTO_TEST_SUITE(txvalidation_tests)
 
 /**
- * Ensure that the mempool won't accept coinbase transactions.
+ * Ensure that the mempool won't accept coinstake transactions.
  */
-BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
+BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinstake, TestChain100Setup)
 {
-    CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
-    CMutableTransaction coinbaseTx;
+    CScript scriptPubKey = CScript() << ToByteVector(coinstakeKey.GetPubKey()) << OP_CHECKSIG;
+    CMutableTransaction coinstakeTx;
 
-    coinbaseTx.nVersion = 1;
-    coinbaseTx.vin.resize(1);
-    coinbaseTx.vout.resize(1);
-    coinbaseTx.vin[0].scriptSig = CScript() << OP_11 << OP_EQUAL;
-    coinbaseTx.vout[0].nValue = 1 * EEES;
-    coinbaseTx.vout[0].scriptPubKey = scriptPubKey;
+    coinstakeTx.nVersion = 1;
+    coinstakeTx.vin.resize(1);
+    coinstakeTx.vout.resize(1);
+    coinstakeTx.vin[0].scriptSig = CScript() << OP_11 << OP_EQUAL;
+    coinstakeTx.vout[0].nValue = 1 * EEES;
+    coinstakeTx.vout[0].scriptPubKey = scriptPubKey;
 
-    assert(CTransaction(coinbaseTx).IsCoinBase());
+    assert(CTransaction(coinstakeTx).IsCoinStake());
 
     CValidationState state;
 
@@ -40,7 +40,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
 
     BOOST_CHECK_EQUAL(
             false,
-            AcceptToMemoryPool(mempool, state, MakeTransactionRef(coinbaseTx),
+            AcceptToMemoryPool(mempool, state, MakeTransactionRef(coinstakeTx),
                 nullptr /* pfMissingInputs */,
                 nullptr /* plTxnReplaced */,
                 true /* bypass_limits */,
@@ -51,7 +51,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_reject_coinbase, TestChain100Setup)
 
     // Check that the validation state reflects the unsuccessful attempt.
     BOOST_CHECK(state.IsInvalid());
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "coinbase");
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "coinstake");
 
     int nDoS;
     BOOST_CHECK_EQUAL(state.IsInvalid(nDoS), true);

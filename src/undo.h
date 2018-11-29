@@ -14,7 +14,7 @@
 /** Undo information for a CTxIn
  *
  *  Contains the prevout's CTxOut being spent, and its metadata as well
- *  (coinbase or not, height). The serialization contains a dummy value of
+ *  (coinstake or not, height). The serialization contains a dummy value of
  *  zero. This is be compatible with older versions which expect to see
  *  the transaction version there.
  */
@@ -25,7 +25,7 @@ class TxInUndoSerializer
 public:
     template<typename Stream>
     void Serialize(Stream &s) const {
-        ::Serialize(s, VARINT(txout->nHeight * 2 + (txout->fCoinBase ? 1 : 0)));
+        ::Serialize(s, VARINT(txout->nHeight * 2 + (txout->fCoinStake ? 1 : 0)));
         if (txout->nHeight > 0) {
             // Required to maintain compatibility with older undo format.
             ::Serialize(s, (unsigned char)0);
@@ -46,7 +46,7 @@ public:
         unsigned int nCode = 0;
         ::Unserialize(s, VARINT(nCode));
         txout->nHeight = nCode / 2;
-        txout->fCoinBase = nCode & 1;
+        txout->fCoinStake = nCode & 1;
         if (txout->nHeight > 0) {
             // Old versions stored the version number for the last spend of
             // a transaction's outputs. Non-final spends were indicated with
@@ -99,7 +99,7 @@ public:
 class CBlockUndo
 {
 public:
-    std::vector<CTxUndo> vtxundo; // for all but the coinbase
+    std::vector<CTxUndo> vtxundo; // for all but the coinstake
 
     ADD_SERIALIZE_METHODS;
 

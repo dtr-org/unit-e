@@ -2567,7 +2567,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 // 2. merkleroot doesn't match the transactions given (already
                 //    caught in FillBlock with READ_STATUS_FAILED, so
                 //    impossible here)
-                // 3. the block is otherwise invalid (eg invalid coinbase,
+                // 3. the block is otherwise invalid (eg invalid coinstake,
                 //    block is too big, too many legacy sigops, etc).
                 // So if CheckBlock failed, #3 is the only possibility.
                 // Under BIP 152, we don't DoS-ban unless proof of work is

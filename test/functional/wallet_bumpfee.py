@@ -287,7 +287,7 @@ def submit_block_with_tx(node, tx):
     height = node.getblockcount() + 1
     block_time = node.getblockheader(tip)["mediantime"] + 1
     snapshot_hash = blocktools.get_tip_snapshot_meta(node).hash
-    block = blocktools.create_block(int(tip, 16), blocktools.create_coinbase(height, snapshot_hash), block_time)
+    block = blocktools.create_block(int(tip, 16), blocktools.create_coinstake(height, snapshot_hash), block_time)
     block.vtx.append(ctx)
     block.rehash()
     block.hashMerkleRoot = block.calc_merkle_root()

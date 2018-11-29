@@ -58,7 +58,7 @@ class PruneTest(UnitETestFramework):
         self.start_nodes()
 
     def create_big_chain(self):
-        # Start by creating some coinbases we can spend later
+        # Start by creating some coinstakes we can spend later
         self.nodes[1].generate(200)
         sync_blocks(self.nodes[0:2])
         self.nodes[0].generate(150)

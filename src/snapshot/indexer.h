@@ -89,7 +89,7 @@ namespace snapshot {
 //! | size | type    | field      | description
 //! | 32   | uint256 | txId       | TX ID that contains UTXOs
 //! | 4    | uint32  | height     | at which bloch height the TX was created
-//! | 1    | bool    | isCoinBase |
+//! | 1    | bool    | isCoinStake |
 //! | N    | varInt  | size       | size of the map
 //! | 4    | uint32  | key        | CTxOut index
 //! | N    | CTxOut  | value      | contains amount and script

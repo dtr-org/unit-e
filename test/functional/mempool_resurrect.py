@@ -15,7 +15,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
 
     def run_test(self):
         node0_address = self.nodes[0].getnewaddress()
-        # Spend block 1/2/3's coinbase transactions
+        # Spend block 1/2/3's coinstake transactions
         # Mine a block.
         # Create three more transactions, spending the spends
         # Mine another block.
@@ -26,8 +26,8 @@ class MempoolCoinbaseTest(UnitETestFramework):
         # ... make sure all the transactions are confirmed again.
 
         b = [ self.nodes[0].getblockhash(n) for n in range(1, 4) ]
-        coinbase_txids = [ self.nodes[0].getblock(h)['tx'][0] for h in b ]
-        spends1_raw = [ create_tx(self.nodes[0], txid, node0_address, 49.99) for txid in coinbase_txids ]
+        coinstake_txids = [ self.nodes[0].getblock(h)['tx'][0] for h in b ]
+        spends1_raw = [ create_tx(self.nodes[0], txid, node0_address, 49.99) for txid in coinstake_txids ]
         spends1_id = [ self.nodes[0].sendrawtransaction(tx) for tx in spends1_raw ]
 
         blocks = []

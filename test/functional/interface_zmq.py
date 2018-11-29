@@ -85,15 +85,15 @@ class ZMQTest (UnitETestFramework):
 
     def _zmq_test(self):
         num_blocks = 5
-        self.log.info("Generate %(n)d blocks (and %(n)d coinbase txes)" % {"n": num_blocks})
+        self.log.info("Generate %(n)d blocks (and %(n)d coinstake txes)" % {"n": num_blocks})
         genhashes = self.nodes[0].generate(num_blocks)
         self.sync_all()
 
         for x in range(num_blocks):
-            # Should receive the coinbase txid.
+            # Should receive the coinstake txid.
             txid = self.hashtx.receive()
 
-            # Should receive the coinbase raw transaction.
+            # Should receive the coinstake raw transaction.
             hex = self.rawtx.receive()
             tx = CTransaction()
             tx.deserialize(BytesIO(hex))
@@ -103,7 +103,7 @@ class ZMQTest (UnitETestFramework):
             # Should receive the generated block hash.
             hash = bytes_to_hex_str(self.hashblock.receive())
             assert_equal(genhashes[x], hash)
-            # The block should only have the coinbase txid.
+            # The block should only have the coinstake txid.
             assert_equal([bytes_to_hex_str(txid)], self.nodes[1].getblock(hash)["tx"])
 
             # Should receive the generated raw block.
