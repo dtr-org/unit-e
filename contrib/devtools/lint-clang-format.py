@@ -5,7 +5,6 @@
 
 import subprocess
 import sys
-import os
 
 import shared.lib
 
@@ -66,17 +65,7 @@ def main(argv):
     "src/snapshot",
     "src/test/esperanza",
     "src/test/proposer",
-  ]
-  files = [
-    "src/test/snapshot_chainstate_iterator_tests.cpp",
-    "src/test/snapshot_creator_tests.cpp",
-    "src/test/snapshot_indexer_tests.cpp",
-    "src/test/snapshot_iterator_tests.cpp",
-    "src/test/snapshot_messages_tests.cpp",
-    "src/test/snapshot_p2p_processing_tests.cpp",
-    "src/test/snapshot_snapshot_index_tests.cpp",
-    "src/test/snapshot_state_tests.cpp",
-    "src/test/snapshot_validation_tests.cpp",
+    "src/test/snapshot",
   ]
   violations = []
   for dir in dirs:
@@ -85,14 +74,6 @@ def main(argv):
       dir = dir,
       action = lambda f : checkandupdate(f, replace=autoformat, addtogit=autogitadd),
       only_changed = iscurrentcommit)
-
-  for file in files:
-    violations += shared.lib.checkfiles(
-      pattern = os.path.basename(file),
-      dir = os.path.dirname(file),
-      action = lambda f : checkandupdate(f, replace=autoformat, addtogit=autogitadd),
-      only_changed = iscurrentcommit)
-
   return 0 if len(violations) == 0 else 1
 
 if __name__ == "__main__":
