@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_PROPOSER_TRANSACTIONPICKER_H
-#define UNIT_E_PROPOSER_TRANSACTIONPICKER_H
+#ifndef UNIT_E_STAKING_TRANSACTION_PICKER_H
+#define UNIT_E_STAKING_TRANSACTION_PICKER_H
 
 #include <vector>
 
@@ -13,7 +13,7 @@
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 
-namespace proposer {
+namespace staking {
 
 //! \brief a component for picking transactions for a new block.
 //!
@@ -68,9 +68,9 @@ class TransactionPicker {
   virtual ~TransactionPicker() = default;
 
   //! \brief Factory method for creating a BlockAssemblerAdapter
-  static std::unique_ptr<TransactionPicker> MakeBlockAssemblerAdapter();
+  static std::unique_ptr<TransactionPicker> New();
 };
 
-}  // namespace proposer
+}  // namespace staking
 
-#endif  // UNIT_E_PROPOSER_TRANSACTIONPICKER_H
+#endif  // UNIT_E_STAKING_TRANSACTION_PICKER_H

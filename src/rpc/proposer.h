@@ -5,7 +5,11 @@
 #ifndef UNIT_E_ESPERANZA_RPCPROPOSER_H
 #define UNIT_E_ESPERANZA_RPCPROPOSER_H
 
+#include <proposer/proposer_rpc.h>
+
 class CRPCTable;
+
+void SetProposerRPC(Dependency<proposer::ProposerRPC>);
 
 void RegisterProposerRPCCommands(CRPCTable &t);
 

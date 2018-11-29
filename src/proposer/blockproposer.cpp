@@ -11,20 +11,20 @@ namespace proposer {
 class BlockProposerImpl : public BlockProposer {
 
  private:
-  Dependency<ChainState> m_chain;
-  Dependency<TransactionPicker> m_transactionPicker;
+  Dependency<staking::ChainState> m_chain;
+  Dependency<staking::TransactionPicker> m_transactionPicker;
 
  public:
-  explicit BlockProposerImpl(Dependency<ChainState> chain,
-                             Dependency<TransactionPicker> transactionPicker)
+  explicit BlockProposerImpl(Dependency<staking::ChainState> chain,
+                             Dependency<staking::TransactionPicker> transactionPicker)
       : m_chain(chain), m_transactionPicker(transactionPicker) {}
 
   std::shared_ptr<const CBlock> ProposeBlock(
       const ProposeBlockParameters &parameters) override {
 
-    TransactionPicker::PickTransactionsParameters pickTransactionsParameters{};
+    staking::TransactionPicker::PickTransactionsParameters pickTransactionsParameters{};
 
-    TransactionPicker::PickTransactionsResult transactionsResult =
+    staking::TransactionPicker::PickTransactionsResult transactionsResult =
         m_transactionPicker->PickTransactions(pickTransactionsParameters);
 
     CBlock block;
@@ -49,8 +49,8 @@ class BlockProposerImpl : public BlockProposer {
 };
 
 std::unique_ptr<BlockProposer> BlockProposer::New(
-    Dependency<ChainState> chain,
-    Dependency<TransactionPicker> transactionPicker) {
+    Dependency<staking::ChainState> chain,
+    Dependency<staking::TransactionPicker> transactionPicker) {
   return std::unique_ptr<BlockProposer>(
       new BlockProposerImpl(chain, transactionPicker));
 }

@@ -21,7 +21,8 @@ WalletTestingSetup::WalletTestingSetup(const bool isValidator, const std::string
 
     esperanza::Settings settings = esperanza::Settings::Default();
     settings.m_validating = isValidator;
-    settings.m_proposing = !isValidator;
+// UNIT-E TODO: use proper settings class for this
+//    settings.m_proposing = !isValidator;
 
     pwalletMain = MakeUnique<CWallet>(settings, std::move(dbw));
     pwalletMain->LoadWallet(fFirstRun);

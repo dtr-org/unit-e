@@ -2,15 +2,15 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <proposer/transactionpicker.h>
+#include <staking/transactionpicker.h>
 
 #include <amount.h>
 #include <miner.h>
 #include <script/script.h>
 
-namespace proposer {
+namespace staking {
 
-//! An adapter to bitcoins CBlockAssembler.
+//! \brief An adapter to bitcoins CBlockAssembler.
 //!
 //! The CBlockAssembler comprises the logic for picking transactions.
 //! In order to maintain compatibility with bitcoin but not rely on
@@ -75,10 +75,10 @@ class BlockAssemblerAdapter final : public TransactionPicker {
 };
 
 std::unique_ptr<TransactionPicker>
-TransactionPicker::MakeBlockAssemblerAdapter() {
+TransactionPicker::New() {
 
   return std::unique_ptr<TransactionPicker>(
       new BlockAssemblerAdapter(::Params()));
 }
 
-}  // namespace proposer
+}  // namespace staking

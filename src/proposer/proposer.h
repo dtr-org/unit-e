@@ -11,13 +11,13 @@
 #include <key.h>
 #include <primitives/block.h>
 #include <proposer/blockproposer.h>
-#include <proposer/chainstate.h>
 #include <proposer/multiwallet.h>
-#include <proposer/network.h>
 #include <proposer/proposer_settings.h>
 #include <proposer/proposer_status.h>
 #include <proposer/sync.h>
 #include <proposer/waiter.h>
+#include <staking/chainstate.h>
+#include <staking/network.h>
 
 #include <stdint.h>
 #include <map>
@@ -30,46 +30,72 @@ class CWallet;
 namespace proposer {
 
 // a stub for testing – specializations of this class have access to the
-// Proposer's guts
+// ProposerImpl's guts
 template <class T>
 struct ProposerAccess;
 
 class Proposer {
+
+ public:
+  virtual void Wake() = 0;
+
+  virtual void Wake(const CWallet *) = 0;
+
+  virtual void Start() = 0;
+
+  virtual ~Proposer() = default;
+
+  static std::unique_ptr<Proposer> New(Dependency<Settings>,
+                                       Dependency<MultiWallet>,
+                                       Dependency<staking::Network>,
+                                       Dependency<staking::ChainState>,
+                                       Dependency<BlockProposer>);
+};
+
+class ProposerStub : public Proposer {
+ public:
+  void Wake() override {}
+  void Wake(const CWallet *) override {}
+  void Start() override {}
+};
+
+class ProposerImpl : public Proposer {
   // accessor for unit testing - not a true friend
   template <class T>
   friend struct ProposerAccess;
 
  public:
-  static std::unique_ptr<Proposer> New(Dependency<Settings>,
-                                       Dependency<MultiWallet>,
-                                       Dependency<Network>,
-                                       Dependency<ChainState>,
-                                       Dependency<BlockProposer>);
+  ProposerImpl(Dependency<Settings>,
+               Dependency<MultiWallet>,
+               Dependency<staking::Network>,
+               Dependency<staking::ChainState>,
+               Dependency<BlockProposer>);
 
-  Proposer(Dependency<Settings>, Dependency<MultiWallet>, Dependency<Network>,
-           Dependency<ChainState>, Dependency<BlockProposer>);
+  ~ProposerImpl() override;
 
-  ~Proposer();
+  //! \brief shorthand for waking all proposers.
+  void Wake() override {
+    Wake(nullptr);
+  }
 
-  //! wakes all proposers or the thread which is proposing for the specified
-  //! wallet.
-  void Wake(const CWallet *wallet = nullptr);
-
-  //! stops the running proposer threads.
-  void Stop();
+  //! \brief wake a specific proposer
+  //!
+  //! If the passed wallet ptr is null then all proposers are woken up,
+  //! otherwise the one which is responsible for managing this wallet.
+  void Wake(const CWallet *wallet) override;
 
   //! unleashes the initially reined proposer threads
-  void Start();
+  void Start() override;
 
  private:
   //! a Proposer::Thread captures all the pesky technical details regarding
   //! synchronization, starting, stopping, ...
   struct Thread {
     //! a name for this thread
-    const std::string m_threadName;
+    const std::string m_thread_name;
 
     //! reference to parent proposer
-    Proposer &m_proposer;
+    ProposerImpl &m_proposer;
 
     //! will be set to true to stop the thread
     std::atomic<bool> m_interrupted;
@@ -85,7 +111,7 @@ class Proposer {
         //! [in] a name for this thread.
         const std::string &,
         //! [in] a reference to the parent proposer
-        Proposer &,
+        ProposerImpl &,
         //! [in] the wallets which this thread is responsible for.
         const std::vector<CWallet *> &);
 
@@ -105,9 +131,13 @@ class Proposer {
   };
 
   Dependency<Settings> m_settings;
-  Dependency<Network> m_network;
-  Dependency<ChainState> m_chain;
+  Dependency<MultiWallet> m_multi_wallet;
+  Dependency<staking::Network> m_network;
+  Dependency<staking::ChainState> m_chain;
   Dependency<BlockProposer> m_blockProposer;
+
+  //! a flag for whether the proposer is started
+  std::atomic_flag m_started = ATOMIC_FLAG_INIT;
 
   //! a semaphore for synchronizing initialization
   CountingSemaphore m_initSemaphore;
@@ -118,9 +148,9 @@ class Proposer {
   //! a semaphore for synchronizing stop events
   CountingSemaphore m_stopSemaphore;
 
-  const std::vector<std::unique_ptr<Thread>> m_threads;
+  std::vector<std::unique_ptr<Thread>> m_threads;
 
-  std::vector<std::unique_ptr<Proposer::Thread>> CreateProposerThreads(
+  std::vector<std::unique_ptr<ProposerImpl::Thread>> CreateProposerThreads(
       Dependency<MultiWallet>);
 
   static void Run(Thread &);

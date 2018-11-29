@@ -249,6 +249,7 @@ BOOST_AUTO_TEST_CASE(empty_iterator) {
   EnumSet<SomeTestEnum> s{};
   std::size_t count = 0;
   for (const auto &e : s) {
+    std::ignore = e;
     BOOST_CHECK(++count <= s.GetSize());
   }
 }
@@ -258,6 +259,7 @@ BOOST_AUTO_TEST_CASE(iterator_with_one_element) {
   std::set<SomeTestEnum> s2;
   std::size_t count = 0;
   for (const auto &e : s) {
+    std::ignore = e;
     BOOST_CHECK(++count <= s.GetSize());
   }
 }
@@ -267,6 +269,7 @@ BOOST_AUTO_TEST_CASE(iterator_checks) {
   std::set<SomeTestEnum> s2;
   std::size_t count = 0;
   for (const auto &e : s) {
+    std::ignore = e;
     BOOST_CHECK(++count <= s.GetSize());
   }
 }
@@ -277,6 +280,7 @@ BOOST_AUTO_TEST_CASE(iterator_on_set_with_all_elements) {
                           SomeTestEnum::G, SomeTestEnum::H};
   std::size_t count = 0;
   for (const auto &e : s) {
+    std::ignore = e;
     BOOST_CHECK(++count <= s.GetSize());
   }
 }

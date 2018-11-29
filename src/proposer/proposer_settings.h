@@ -6,6 +6,7 @@
 #define UNIT_E_PROPOSER_PROPOSER_SETTINGS_H
 
 #include <amount.h>
+#include <dependency.h>
 #include <util.h>
 
 #include <cstddef>
@@ -15,29 +16,27 @@ namespace proposer {
 
 struct Settings {
 
-  //! How many threads to use for proposing. At least 1, at most number of
-  //! wallets.
-  size_t m_numberOfProposerThreads = 1;
+  //! \brief whether to actively propose or not
+  bool proposing = true;
 
-  std::chrono::milliseconds m_proposerSleep = std::chrono::seconds(30);
+  //! \brief number of threads to use for proposing
+  size_t number_of_proposer_threads = 1;
 
-  //! Minimum interval between proposing blocks
-  std::chrono::milliseconds m_minProposeInterval = std::chrono::seconds(4);
+  std::chrono::milliseconds proposer_sleep = std::chrono::seconds(30);
 
-  std::string m_proposerThreadName = "proposer";
+  //! \brief minimum interval between proposing blocks
+  std::chrono::milliseconds min_propose_interval = std::chrono::seconds(4);
 
-  //! for regtest, don't stake above nStakeLimitHeight
-  int m_stakeLimitHeight = 0;
+  std::string proposer_thread_prefix = "proposer";
 
-  CAmount m_stakeCombineThreshold = 1000 * UNIT;
+  CAmount stake_combine_threshold = 1000 * UNIT;
 
-  CAmount m_stakeSplitThreshold = 2000 * UNIT;
+  CAmount stake_split_threshold = 1000 * UNIT;
 
-  size_t m_maxStakeCombine = 3;
+  //! \brief maximum number of coins to combine when staking
+  size_t max_stake_combine = 10;
 
-  static std::unique_ptr<Settings> New() {
-    return MakeUnique<Settings>();
-  }
+  static std::unique_ptr<Settings> New(Dependency<Ptr<ArgsManager>> args);
 };
 
 }  // namespace proposer

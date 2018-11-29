@@ -7,36 +7,57 @@
 
 #include <dependency_injector.h>
 
+#include <staking/block_validator.h>
+#include <staking/chainstate.h>
+#include <staking/network.h>
+#include <staking/transactionpicker.h>
+#include <util.h>
+
+#ifdef ENABLE_WALLET
 #include <proposer/blockproposer.h>
-#include <proposer/chainstate.h>
 #include <proposer/multiwallet.h>
-#include <proposer/network.h>
 #include <proposer/proposer.h>
+#include <proposer/proposer_rpc.h>
 #include <proposer/proposer_settings.h>
-#include <proposer/transactionpicker.h>
+#endif
 
 class UnitEInjector : public Injector<UnitEInjector> {
 
-  COMPONENT(Network, proposer::Network, proposer::Network::New)
+  COMPONENT(ArgsManager, Ptr<ArgsManager>, [] { return MakeUnique<Ptr<ArgsManager>>(&gArgs); })
 
-  COMPONENT(ChainState, proposer::ChainState, proposer::ChainState::New)
+  COMPONENT(Network, staking::Network, staking::Network::New)
 
-  COMPONENT(MultiWallet, proposer::MultiWallet,
-            proposer::MultiWallet::New);
+  COMPONENT(ChainState, staking::ChainState, staking::ChainState::New)
 
-  COMPONENT(TransactionPicker, proposer::TransactionPicker,
-            proposer::TransactionPicker::MakeBlockAssemblerAdapter)
+  COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New)
 
-  COMPONENT(BlockProposer, proposer::BlockProposer,
-            proposer::BlockProposer::New, proposer::ChainState,
-            proposer::TransactionPicker)
+  COMPONENT(TransactionPicker, staking::TransactionPicker, staking::TransactionPicker::New)
 
-  COMPONENT(ProposerSettings, proposer::Settings,
-            proposer::Settings::New)
+#ifdef ENABLE_WALLET
+
+  COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New);
+
+  COMPONENT(BlockProposer, proposer::BlockProposer, proposer::BlockProposer::New,
+            staking::ChainState,
+            staking::TransactionPicker)
+
+  COMPONENT(ProposerSettings, proposer::Settings, proposer::Settings::New,
+            Ptr<ArgsManager>)
+
+  COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
+            staking::ChainState,
+            staking::Network,
+            proposer::MultiWallet,
+            proposer::Proposer)
 
   COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::New,
-            proposer::Settings, proposer::MultiWallet, proposer::Network,
-            proposer::ChainState, proposer::BlockProposer)
+            proposer::Settings,
+            proposer::MultiWallet,
+            staking::Network,
+            staking::ChainState,
+            proposer::BlockProposer)
+
+#endif
 };
 
 #endif  // UNIT_E_INJECTOR_H

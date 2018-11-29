@@ -27,10 +27,10 @@ struct None {};
 template <>
 struct ProposerAccess<None> {
  private:
-  const Proposer &m_proposer;
+  const ProposerImpl &m_proposer;
 
  public:
-  ProposerAccess(const Proposer &proposer) : m_proposer(proposer) {}
+  ProposerAccess(const ProposerImpl &proposer) : m_proposer(proposer) {}
 
   size_t numThreads() const { return m_proposer.m_threads.size(); }
 
@@ -54,61 +54,41 @@ struct WalletMock : public proposer::MultiWallet {
 
 BOOST_AUTO_TEST_SUITE(proposer_tests)
 
-fakeit::Mock<proposer::Network> networkMock;
-fakeit::Mock<proposer::ChainState> chainMock;
+fakeit::Mock<staking::Network> networkMock;
+fakeit::Mock<staking::ChainState> chainMock;
 fakeit::Mock<proposer::BlockProposer> blockProposerMock;
 
-Dependency<proposer::Network> network = &networkMock.get();
-Dependency<proposer::ChainState> chain = &chainMock.get();
+Dependency<staking::Network> network = &networkMock.get();
+Dependency<staking::ChainState> chain = &chainMock.get();
 Dependency<proposer::BlockProposer> blockProposer = &blockProposerMock.get();
 
 BOOST_AUTO_TEST_CASE(start_stop) {
   proposer::Settings config;
 
-  config.m_numberOfProposerThreads = 0;
+  config.number_of_proposer_threads = 0;
 
   WalletMock wallets;
+  {
+    proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
 
-  proposer::Proposer proposer(&config, &wallets, network, chain, blockProposer);
-
-  proposer.Start();
-  proposer.Stop();
-}
-
-BOOST_AUTO_TEST_CASE(stop_twice) {
-  proposer::Settings config;
-  WalletMock wallets;
-
-  proposer::Proposer proposer(&config, &wallets, network, chain, blockProposer);
-
-  proposer.Start();
-  proposer.Stop();
-  proposer.Stop();
+    proposer.Start();
+  }
+  // UNIT-E: For now just checks that no exception has been thrown.
 }
 
 BOOST_AUTO_TEST_CASE(stop_without_start) {
   proposer::Settings config;
   WalletMock wallets;
-
-  proposer::Proposer proposer(&config, &wallets, network, chain, blockProposer);
-
-  proposer.Stop();
-}
-
-BOOST_AUTO_TEST_CASE(stop_twice_without_start) {
-  proposer::Settings config;
-  WalletMock wallets;
-
-  proposer::Proposer proposer(&config, &wallets, network, chain, blockProposer);
-
-  proposer.Stop();
-  proposer.Stop();
+  {
+    proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
+  }
+  // UNIT-E: For now just checks that no exception has been thrown.
 }
 
 BOOST_AUTO_TEST_CASE(wallet_distribution) {
   proposer::Settings config;
 
-  config.m_numberOfProposerThreads = 3;
+  config.number_of_proposer_threads = 3;
 
   WalletMock wallets;
   wallets.m_wallets.clear();
@@ -127,8 +107,10 @@ BOOST_AUTO_TEST_CASE(wallet_distribution) {
   wallets.m_wallets.emplace_back(&w10);
   wallets.m_wallets.emplace_back(&w11);
 
-  proposer::Proposer proposer(&config, &wallets, network, chain, blockProposer);
+  proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
   proposer::ProposerSpy spy(proposer);
+
+  proposer.Start();
 
   BOOST_CHECK(spy.numThreads() == 3);
   BOOST_CHECK(spy.wallets(0).size() == 4);
@@ -151,12 +133,16 @@ BOOST_AUTO_TEST_CASE(wallet_distribution) {
 BOOST_AUTO_TEST_CASE(single_wallet_too_many_threads_specified) {
   proposer::Settings config;
 
-  config.m_numberOfProposerThreads = 17;
+  config.number_of_proposer_threads = 17;
 
   WalletMock wallets;
 
-  proposer::Proposer proposer(&config, &wallets, network, chain, blockProposer);
+  proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
   proposer::ProposerSpy spy(proposer);
+
+  BOOST_CHECK(spy.numThreads() == 0);
+
+  proposer.Start();
 
   BOOST_CHECK(spy.numThreads() == 1);
   BOOST_CHECK(spy.wallets(0).size() == 1);
@@ -166,12 +152,14 @@ BOOST_AUTO_TEST_CASE(single_wallet_too_many_threads_specified) {
 BOOST_AUTO_TEST_CASE(single_wallet_too_few_threads_specified) {
   proposer::Settings config;
 
-  config.m_numberOfProposerThreads = 0;
+  config.number_of_proposer_threads = 0;
 
   WalletMock wallets;
 
-  proposer::Proposer proposer(&config, &wallets, network, chain, blockProposer);
+  proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
   proposer::ProposerSpy spy(proposer);
+
+  proposer.Start();
 
   BOOST_CHECK(spy.numThreads() == 1);
   BOOST_CHECK(spy.wallets(0).size() == 1);

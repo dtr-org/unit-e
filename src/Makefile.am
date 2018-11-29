@@ -154,16 +154,13 @@ UNITE_CORE_H = \
   policy/rbf.h \
   pow.h \
   proposer/blockproposer.h \
-  proposer/chainstate.h \
   proposer/multiwallet.h \
-  proposer/network.h \
   proposer/proposer.h \
-  proposer/proposer_init.h \
+  proposer/proposer_rpc.h \
   proposer/proposer_settings.h \
   proposer/proposer_state.h \
   proposer/proposer_status.h \
   proposer/sync.h \
-  proposer/transactionpicker.h \
   proposer/waiter.h \
   protocol.h \
   random.h \
@@ -197,9 +194,12 @@ UNITE_CORE_H = \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
   staking/block_validator.h \
+  staking/chainstate.h \
   staking/kernel.h \
+  staking/network.h \
   staking/stakingwallet.h \
   staking/stakevalidation.h \
+  staking/transactionpicker.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -308,6 +308,9 @@ libunite_server_a_SOURCES = \
   snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
   staking/block_validator.cpp \
+  staking/chainstate.cpp \
+  staking/network.cpp \
+  staking/transactionpicker.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \
@@ -338,12 +341,10 @@ libunite_wallet_a_SOURCES = \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/blockproposer.cpp \
-  proposer/chainstate.cpp \
   proposer/multiwallet.cpp \
-  proposer/network.cpp \
   proposer/proposer.cpp \
-  proposer/proposer_init.cpp \
-  proposer/transactionpicker.cpp \
+  proposer/proposer_rpc.cpp \
+  proposer/proposer_settings.cpp \
   proposer/sync.cpp \
   proposer/waiter.cpp \
   rpc/proposer.cpp \
