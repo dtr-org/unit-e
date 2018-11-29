@@ -51,6 +51,7 @@ UNITE_TESTS = \
   test/DoS_tests.cpp \
   test/esperanza/admincommand_tests.cpp \
   test/esperanza/adminstate_tests.cpp \
+  test/esperanza/checks_tests.cpp \
   test/esperanza/finalization_utils.h \
   test/esperanza/finalization_utils.cpp \
   test/esperanza/finalizationparams_tests.cpp \
@@ -62,7 +63,6 @@ UNITE_TESTS = \
   test/esperanza/finalizationstate_slash_tests.cpp \
   test/esperanza/finalizationstate_utils.h \
   test/esperanza/finalizationstate_utils.cpp \
-  test/esperanza/validation_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
   test/interpreter_tests.cpp \
