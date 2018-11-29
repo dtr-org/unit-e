@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(finalization) {
   auto b7 = std::unique_ptr<CBlockIndex>(new CBlockIndex);
   auto b8 = std::unique_ptr<CBlockIndex>(new CBlockIndex);
   auto b9 = std::unique_ptr<CBlockIndex>(new CBlockIndex);
-  auto b10 =std::unique_ptr<CBlockIndex>(new CBlockIndex);
+  auto b10 = std::unique_ptr<CBlockIndex>(new CBlockIndex);
   auto b11 = std::unique_ptr<CBlockIndex>(new CBlockIndex);
   auto b12 = std::unique_ptr<CBlockIndex>(new CBlockIndex);
   auto b13 = std::unique_ptr<CBlockIndex>(new CBlockIndex);
