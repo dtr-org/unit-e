@@ -64,7 +64,8 @@ def main(argv):
     "src/proposer",
     "src/snapshot",
     "src/test/esperanza",
-    "src/test/proposer"
+    "src/test/proposer",
+    "src/test/snapshot",
   ]
   violations = []
   for dir in dirs:

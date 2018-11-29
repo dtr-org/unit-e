@@ -13,9 +13,9 @@
 #include <snapshot/indexer.h>
 #include <snapshot/iterator.h>
 #include <snapshot/messages.h>
+#include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
 #include <test/test_unite.h>
-#include <snapshot/snapshot_index.h>
 #include <validation.h>
 #include <version.h>
 #include <boost/test/unit_test.hpp>
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
                         "failed to process snapshot message on m_step="
                             << i << ". probably snapshot hash is incorrect");
 
-    if (i < (totalMessages / 2 - 1)) {  // ask the peer for more messages
+    if (i < (totalMessages / 2 - 1)) {              // ask the peer for more messages
       BOOST_CHECK_EQUAL(node->vSendMsg.size(), 2);  // header + body
       CMessageHeader header(Params().MessageStart());
       CDataStream(node->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
