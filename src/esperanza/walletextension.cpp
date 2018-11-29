@@ -429,7 +429,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
     LOCK2(cs_main, m_enclosing_wallet->cs_wallet);
     CValidationState state;
     if (!m_enclosing_wallet->CommitTransaction(wtxOut, reservekey,
-                                              g_connman.get(), state)) {
+                                               g_connman.get(), state)) {
       LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
                __func__);
       return false;
@@ -522,7 +522,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   {
     LOCK2(cs_main, m_enclosing_wallet->cs_wallet);
     m_enclosing_wallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                         state);
+                                          state);
     if (state.IsInvalid()) {
       LogPrint(BCLog::FINALIZATION,
                "%s: Cannot commit logout transaction: %s.\n", __func__,
@@ -621,7 +621,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosing_wallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                       errState);
+                                        errState);
   if (errState.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION,
              "%s: Cannot commit withdraw transaction: %s.\n", __func__,
@@ -746,7 +746,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   m_enclosing_wallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                       state);
+                                        state);
   if (state.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit vote transaction: %s.\n",
              __func__, state.GetRejectReason());
