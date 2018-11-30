@@ -24,12 +24,30 @@ code.
 - **Includes**. Make sure to always use `<>` notation instead of the "".
   This is done mostly for consistency with the current codebase.
 
-- **If-Statements**. Always use braces around if statements, even blocks
-  that contain just one statement.
+- **If-Statements**.
+    - Always use braces around if statements, even blocks
+      that contain just one statement.
+    - Avoid non-negative conditions.
+      ```c++
+      // bad
+      if (!something) {
+      } else {
+      }
 
-- **Pointer and Reference declarations**. When declaring a pointer/reference
-  variable or argument you must put the * or & adjacent to the variable name.
-  This is also reflected in the `.clang-format` file.
+      // good
+      if (something) {
+      } else {
+      }
+
+      // better
+      if (!something) {
+        return; // terminate false scenario right away
+      }
+      ```
+
+- **namespace**.
+    - The root namespace should have its own folder for better navigation in the codebase.
+      Nested namespaces may or may not follow the directory structure.
 
 - **Uniform initialization**. Rationale:
   [Uniform initialization isn't](https://medium.com/@barryrevzin/uniform-initialization-isnt-82533d3b9c11).
