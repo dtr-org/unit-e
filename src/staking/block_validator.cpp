@@ -74,17 +74,6 @@ class BlockValidatorImpl : public BlockValidator {
       return validationErrors;
     }
 
-    // check proper terminator
-    if (!scriptSig.GetOp(it, op, buf)) {
-      validationErrors += Error::PREMATURE_END_OF_SCRIPTSIG;
-      return validationErrors;
-    }
-    if (op == opcodetype::OP_0) {
-      if (it != scriptSig.end()) {
-        validationErrors += Error::DATA_AFTER_TERMINATOR_IN_SCRIPTSIG;
-      }
-    }
-
     return validationErrors;
   }
 
@@ -100,7 +89,7 @@ class BlockValidatorImpl : public BlockValidator {
       validationErrors += Error::NO_STAKING_INPUT;
       return validationErrors;
     }
-    if (block.vtx[0]->vin[1].scriptWitness.stack.empty()) {
+    if (block.vtx[0]->vin[1].scriptWitness.stack.size() != 2) {
       validationErrors += Error::NO_BLOCK_PUBLIC_KEY;
       return validationErrors;
     }
@@ -108,7 +97,7 @@ class BlockValidatorImpl : public BlockValidator {
     const auto &signature = block.signature;
     const auto &witnessStack = block.vtx[0]->vin[1].scriptWitness.stack;
 
-    const auto &pubKeyData = witnessStack[0];
+    const auto &pubKeyData = witnessStack[1];
     CPubKey key(pubKeyData.begin(), pubKeyData.end());
 
     if (!key.IsValid()) {
