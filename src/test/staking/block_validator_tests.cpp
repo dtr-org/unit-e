@@ -169,10 +169,6 @@ BOOST_AUTO_TEST_CASE(check_scriptsig_with_additional_data) {
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
-  for (const auto e : validationResult) {
-    std::cout << e << std::endl;
-  }
-
   BOOST_CHECK(!validationResult.Contains(Error::NO_BLOCK_HEIGHT));
   BOOST_CHECK(!validationResult.Contains(Error::NO_SNAPSHOT_HASH));
 }
