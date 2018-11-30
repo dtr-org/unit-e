@@ -27,27 +27,24 @@ code.
 - **If-Statements**.
     - Always use braces around if statements, even blocks
       that contain just one statement.
-    - Avoid non-negative conditions.
+    - Avoid `if (!positive) {} else {}` condition.
       ```c++
-      // bad
-      if (!something) {
+      // prefer switching the order
+      if (positive) {
       } else {
       }
 
-      // good
-      if (something) {
-      } else {
-      }
-
-      // better
-      if (!something) {
+      // or even better
+      if (!positive) {
         return; // terminate false scenario right away
       }
+      // continue with positive case
       ```
 
 - **namespace**.
-    - The root namespace should have its own folder for better navigation in the codebase.
-      Nested namespaces may or may not follow the directory structure.
+    - files in `src/` don't have namespace
+    - files in `src/directory` have `directory` namespace
+    - avoid nested directories/namespaces
 
 - **Uniform initialization**. Rationale:
   [Uniform initialization isn't](https://medium.com/@barryrevzin/uniform-initialization-isnt-82533d3b9c11).
