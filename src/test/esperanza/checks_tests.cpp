@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/validation.h>
 #include <keystore.h>
 #include <random.h>
 #include <script/script.h>

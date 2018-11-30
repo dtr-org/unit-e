@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ESPERANZA_VALIDATION_H
-#define UNITE_ESPERANZA_VALIDATION_H
+#ifndef UNITE_ESPERANZA_CHECKS_H
+#define UNITE_ESPERANZA_CHECKS_H
 
 #include <chain.h>
 #include <consensus/validation.h>
@@ -45,4 +45,4 @@ bool ExtractValidatorAddress(const CTransaction &tx,
 
 }  // namespace esperanza
 
-#endif  // UNIT_E_VALIDATION_H
+#endif  // UNITE_ESPERANZA_CHECKS_H
