@@ -5,7 +5,6 @@
 
 #include <proposer/proposer.h>
 
-#include <address/address.h>
 #include <chainparams.h>
 #include <net.h>
 #include <script/script.h>

@@ -75,7 +75,6 @@ endif
 UNITE_CORE_H = \
   addrdb.h \
   addrman.h \
-  address/address.h \
   base58.h \
   bech32.h \
   better-enums/enum.h \
@@ -335,7 +334,6 @@ endif
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
-  address/address.cpp \
   esperanza/init.cpp \
   esperanza/vote.cpp \
   esperanza/walletextension.cpp \
