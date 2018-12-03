@@ -21,12 +21,12 @@ namespace proposer {
 
 ProposerImpl::Thread::Thread(const std::string &threadName,
                              ProposerImpl &parentProposer,
-                             const std::vector<CWallet *> &wallets)
+                             std::vector<CWallet *> &&wallets)
     : m_thread_name(threadName),
       m_proposer(parentProposer),
       m_interrupted(false),
       m_waiter(),
-      m_wallets(wallets) {
+      m_wallets(std::move(wallets)) {
   std::thread thread(ProposerImpl::Run, std::ref(*this));
   thread.detach();
 }
@@ -51,9 +51,8 @@ void ProposerImpl::Thread::SetStatus(const Status status, CWallet *const wallet)
   }
 }
 
-std::vector<std::unique_ptr<ProposerImpl::Thread>> ProposerImpl::CreateProposerThreads(
-    Dependency<MultiWallet> multiWallet) {
-  const std::vector<CWallet *> &wallets = multiWallet->GetWallets();
+void ProposerImpl::CreateProposerThreads() {
+  const std::vector<CWallet *> &wallets = m_multi_wallet->GetWallets();
   // total number of threads can not exceed number of wallets
   const size_t numThreads =
       std::min(wallets.size(),
@@ -70,8 +69,9 @@ std::vector<std::unique_ptr<ProposerImpl::Thread>> ProposerImpl::CreateProposerT
     indexMap.insert({walletIx % numThreads, walletIx});
   }
 
+  m_threads.reserve(numThreads);
+
   // create thread objects
-  std::vector<std::unique_ptr<ProposerImpl::Thread>> threads;
   for (ThreadIndex threadIx = 0; threadIx < numThreads; ++threadIx) {
     std::vector<CWallet *> thisThreadsWallets;
     const auto walletRange = indexMap.equal_range(threadIx);
@@ -80,14 +80,11 @@ std::vector<std::unique_ptr<ProposerImpl::Thread>> ProposerImpl::CreateProposerT
     }
     std::string threadName =
         m_settings->proposer_thread_prefix + "-" + std::to_string(threadIx);
-    threads.emplace_back(std::unique_ptr<ProposerImpl::Thread>(
-        new ProposerImpl::Thread(threadName, *this, thisThreadsWallets)));
+    m_threads.emplace_back(threadName, *this, std::move(thisThreadsWallets));
   }
 
   m_initSemaphore.acquire(numThreads);
   LogPrint(BCLog::PROPOSING, "%d proposer threads initialized.\n", numThreads);
-
-  return threads;
 }
 
 ProposerImpl::ProposerImpl(Dependency<Settings> settings,
@@ -111,10 +108,10 @@ ProposerImpl::~ProposerImpl() {
   }
   LogPrint(BCLog::PROPOSING, "Stopping proposer...\n");
 
-  for (const auto &thread : m_threads) {
+  for (auto &thread : m_threads) {
     // sets all threads m_interrupted and wakes them up in case they are sleeping
-    LogPrint(BCLog::PROPOSING, "Stopping thread %s\n", thread->m_thread_name);
-    thread->Stop();
+    LogPrint(BCLog::PROPOSING, "Stopping thread %s\n", thread.m_thread_name);
+    thread.Stop();
   }
   // in case Start() was not called yet, start the threads so they can stop
   // (otherwise they are stuck)
@@ -133,7 +130,7 @@ void ProposerImpl::Start() {
     return;
   }
   LogPrint(BCLog::PROPOSING, "Creating proposer threads...\n");
-  m_threads = CreateProposerThreads(m_multi_wallet);
+  CreateProposerThreads();
 
   LogPrint(BCLog::PROPOSING, "Starting proposer.\n");
   m_startSemaphore.release(m_threads.size());
@@ -142,18 +139,18 @@ void ProposerImpl::Start() {
 void ProposerImpl::Wake(const CWallet *wallet) {
   if (wallet) {
     // find and wake the thread that is responsible for this wallet
-    for (const auto &thread : m_threads) {
-      for (const auto w : thread->m_wallets) {
+    for (auto &thread : m_threads) {
+      for (const auto w : thread.m_wallets) {
         if (w == wallet) {
-          thread->Wake();
+          thread.Wake();
           return;
         }
       }
     }
     // wake all threads
   } else {
-    for (const auto &thread : m_threads) {
-      thread->Wake();
+    for (auto &thread : m_threads) {
+      thread.Wake();
     }
   }
 }
