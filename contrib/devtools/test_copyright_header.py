@@ -11,7 +11,6 @@ from unittest import mock
 
 import tempfile
 import os
-from pathlib import Path
 from copyright_header import exec_insert_header
 
 
