@@ -26,12 +26,12 @@ CBlock MinimalBlock() {
     tx.SetType(TxType::COINSTAKE);
     // meta input: block height, snapshot hash, terminator
     CScript scriptSig = CScript() << CScriptNum::serialize(4711)
-                                  << ToByteVector(uint256())
-                                  << OP_0;
+                                  << ToByteVector(uint256());
     tx.vin.emplace_back(uint256(), 0, scriptSig);
     // stake
     tx.vin.emplace_back(uint256(), 1);
-    tx.vin[1].scriptWitness.stack.push_back(pubKeyData);
+    tx.vin[1].scriptWitness.stack.emplace_back(); // signature, not checked
+    tx.vin[1].scriptWitness.stack.emplace_back(pubKeyData);
     // can be spent by anyone, simply yields "true"
     CScript scriptPubKey = CScript() << OP_TRUE;
     tx.vout.emplace_back(50, scriptPubKey);
@@ -163,6 +163,7 @@ BOOST_AUTO_TEST_CASE(check_scriptsig_with_additional_data) {
   CBlock block = MinimalBlock();
   auto coinstake = CMutableTransaction(*block.vtx[0]);
   coinstake.vin[0].scriptSig = CScript() << CScriptNum::serialize(4711)
+                                         << ToByteVector(uint256())
                                          << ToByteVector(uint256());
   block.vtx[0] = MakeTransactionRef(coinstake);
 
@@ -170,8 +171,6 @@ BOOST_AUTO_TEST_CASE(check_scriptsig_with_additional_data) {
 
   BOOST_CHECK(!validationResult.Contains(Error::NO_BLOCK_HEIGHT));
   BOOST_CHECK(!validationResult.Contains(Error::NO_SNAPSHOT_HASH));
-  BOOST_CHECK(validationResult.Contains(Error::PREMATURE_END_OF_SCRIPTSIG));
-  BOOST_CHECK(!validationResult);
 }
 
 BOOST_AUTO_TEST_CASE(check_NO_snapshot_hash) {
