@@ -38,19 +38,25 @@ boost::optional<NodeId> EmbargoMan::GetNewRelay() {
 }
 
 bool EmbargoMan::SendToAndRemember(NodeId relay,
-                                   const uint256 &txHash) {
+                                   const CTransaction &tx) {
   AssertLockHeld(m_relayCs);
 
   AssertLockNotHeld(m_embargoCs);
-  const auto sent = m_sideEffects->SendTxInv(relay, txHash);
+
+  const auto txHash = tx.GetHash();
+  const auto sent = m_sideEffects->SendTxInv(relay, tx.GetHash());
 
   if (sent) {
+    if (m_relay != relay) {
+      m_timeoutsInARow = 0;
+    }
+
     m_relay = relay;
-    const auto embargo = m_sideEffects->GetNextEmbargoTime();
+    const EmbargoTime embargoTime = GetEmbargoTime(tx);
 
     LOCK(m_embargoCs);
-    m_txToRelay.emplace(txHash, relay);
-    m_embargoToTx.emplace(embargo, txHash);
+    m_embargoes.emplace(txHash, Embargo(relay, embargoTime));
+    m_embargoToTx.emplace(embargoTime, txHash);
 
     return true;
   }
@@ -61,26 +67,28 @@ bool EmbargoMan::SendToAndRemember(NodeId relay,
   return false;
 }
 
-bool EmbargoMan::SendTransactionAndEmbargo(const uint256 &txHash) {
+bool EmbargoMan::SendTransactionAndEmbargo(const CTransaction &tx) {
   LOCK(m_relayCs);
 
   bool sent = false;
   if (m_relay) {
-    sent = SendToAndRemember(m_relay.get(), txHash);
+    sent = SendToAndRemember(m_relay.get(), tx);
   }
 
   if (!sent) {
     const auto newRelay = GetNewRelay();
     if (newRelay) {
-      sent = SendToAndRemember(newRelay.get(), txHash);
+      sent = SendToAndRemember(newRelay.get(), tx);
     }
   }
 
   if (sent) {
-    LogPrint(BCLog::NET, "Embargoman: tx %s is sent to peer=%d.\n", txHash.GetHex(),
+    LogPrint(BCLog::NET, "Embargoman: tx %s is sent to peer=%d.\n",
+             tx.GetHash().GetHex(),
              m_relay.get());
   } else {
-    LogPrint(BCLog::NET, "Embargoman: failed to send tx %s.\n", txHash.GetHex());
+    LogPrint(BCLog::NET, "Embargoman: failed to send tx %s.\n",
+             tx.GetHash().GetHex());
   }
 
   return sent;
@@ -95,8 +103,8 @@ void EmbargoMan::FluffPendingEmbargoes() {
     LOCK(m_embargoCs);
 
     while (!m_embargoToTx.empty()) {
-      const auto txHash = m_embargoToTx.begin()->second;
-      const auto embargoTime = m_embargoToTx.begin()->first;
+      const uint256 txHash = m_embargoToTx.begin()->second;
+      const EmbargoTime embargoTime = m_embargoToTx.begin()->first;
 
       if (!m_sideEffects->IsEmbargoDue(embargoTime)) {
         break;
@@ -104,15 +112,15 @@ void EmbargoMan::FluffPendingEmbargoes() {
 
       m_embargoToTx.erase(m_embargoToTx.begin());
 
-      const auto it = m_txToRelay.find(txHash);
+      const auto it = m_embargoes.find(txHash);
 
-      if (it == m_txToRelay.end()) {
+      if (it == m_embargoes.end()) {
         // This transaction was earlier Inv'ed from non-relay
         m_timeoutsInARow = 0;
         continue;
       }
 
-      const NodeId usedRelay = it->second;
+      const NodeId usedRelay = it->second.relay;
       if (m_relay == usedRelay) {
         ++m_timeoutsInARow;
         if (m_timeoutsInARow >= m_timeoutsToSwitchRelay) {
@@ -125,7 +133,7 @@ void EmbargoMan::FluffPendingEmbargoes() {
       }
 
       LogPrint(BCLog::NET, "Embargo timer expired. Fluffing: %s.\n", txHash.GetHex());
-      m_txToRelay.erase(it);
+      m_embargoes.erase(it);
 
       txsToFluff.emplace_back(txHash);
     }
@@ -140,19 +148,19 @@ void EmbargoMan::FluffPendingEmbargoes() {
 bool EmbargoMan::IsEmbargoed(const uint256 &txHash) const {
   LOCK(m_embargoCs);
 
-  return m_txToRelay.find(txHash) != m_txToRelay.end();
+  return m_embargoes.find(txHash) != m_embargoes.end();
 }
 
 bool EmbargoMan::IsEmbargoedFor(const uint256 &txHash,
                                 NodeId node) const {
   LOCK(m_embargoCs);
 
-  const auto it = m_txToRelay.find(txHash);
-  if (it == m_txToRelay.end()) {
+  const auto it = m_embargoes.find(txHash);
+  if (it == m_embargoes.end()) {
     return false;
   }
 
-  const NodeId relay = it->second;
+  const NodeId relay = it->second.relay;
 
   return relay != node;
 }
@@ -168,12 +176,12 @@ void EmbargoMan::OnTxInv(const uint256 &txHash, NodeId from) {
   {
     LOCK(m_embargoCs);
 
-    const auto it = m_txToRelay.find(txHash);
-    if (it == m_txToRelay.end()) {
+    const auto it = m_embargoes.find(txHash);
+    if (it == m_embargoes.end()) {
       return;
     }
 
-    const NodeId usedRelay = it->second;
+    const NodeId usedRelay = it->second.relay;
     if (from == usedRelay) {
       // From spec:
       // If v’s timer expires before it receives an INV for the transaction from a
@@ -181,7 +189,7 @@ void EmbargoMan::OnTxInv(const uint256 &txHash, NodeId from) {
       return;
     }
 
-    m_txToRelay.erase(it);
+    m_embargoes.erase(it);
 
     LogPrint(BCLog::NET, "Embargo is lifted for tx: %s. Fluffing\n",
              txHash.GetHex());
@@ -191,4 +199,30 @@ void EmbargoMan::OnTxInv(const uint256 &txHash, NodeId from) {
   m_sideEffects->SendTxInvToAll(txHash);
 }
 
-}  // namespace network
+EmbargoMan::EmbargoTime EmbargoMan::GetEmbargoTime(const CTransaction &tx) {
+  EmbargoTime embargoTime = m_sideEffects->GetNextEmbargoTime();
+
+  LOCK(m_embargoCs);
+
+  for (const CTxIn &input : tx.vin) {
+    const uint256 &parentHash = input.prevout.hash;
+
+    const auto it = m_embargoes.find(parentHash);
+    if (it == m_embargoes.end()) {
+      continue;
+    }
+
+    // If a child transaction fluffs before parent - this will cause us to
+    // relay an orphan. This significantly slows down propagation of our
+    // transaction since our neighbors will fail to receive parent from us - and
+    // they won't try to download it again in next 2 minutes
+    embargoTime = std::max(embargoTime, it->second.embargoTime);
+  }
+
+  return embargoTime;
+}
+
+EmbargoMan::Embargo::Embargo(NodeId relay, EmbargoTime embargoTime)
+    : relay(relay), embargoTime(embargoTime) {}
+
+}  // namespace p2p

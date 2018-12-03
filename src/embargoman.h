@@ -47,7 +47,7 @@ class EmbargoMan {
   explicit EmbargoMan(size_t timeoutsToSwitchRelay,
                       std::unique_ptr<EmbargoManSideEffects> sideEffects);
 
-  bool SendTransactionAndEmbargo(const uint256 &txHash);
+  bool SendTransactionAndEmbargo(const CTransaction &tx);
 
   void FluffPendingEmbargoes();
 
@@ -58,27 +58,37 @@ class EmbargoMan {
   void OnTxInv(const uint256 &txHash, NodeId from);
 
  private:
+  using EmbargoTime = EmbargoManSideEffects::EmbargoTime;
   const size_t m_timeoutsToSwitchRelay;
   std::unique_ptr<EmbargoManSideEffects> m_sideEffects;
   boost::optional<NodeId> m_relay;
   size_t m_timeoutsInARow = 0;
 
   // Locking policy: lock everything with m_relayCs, except what accesses
-  // m_embargoCs and m_txToRelay - this might create deadlocks
+  // m_embargoToTx and m_embargoes - this might create deadlocks
   // Never send something to network under m_embargoCs lock
   mutable CCriticalSection m_relayCs;
   mutable CCriticalSection m_embargoCs;
 
-  std::multimap<EmbargoManSideEffects::EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargoCs);
-  std::map<uint256, NodeId> m_txToRelay GUARDED_BY(m_embargoCs);
+  std::multimap<EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargoCs);
 
-  bool SendToAndRemember(NodeId relay, const uint256 &txHash);
+  struct Embargo {
+    Embargo(NodeId relay, EmbargoTime embargoTime);
+    NodeId relay;
+    EmbargoTime embargoTime;
+  };
+
+  std::map<uint256, Embargo> m_embargoes GUARDED_BY(m_embargoCs);
+
+  bool SendToAndRemember(NodeId relay, const CTransaction &tx);
+
+  EmbargoTime GetEmbargoTime(const CTransaction &tx);
 
  protected:
   boost::optional<NodeId> GetNewRelay();
   std::set<NodeId> m_unwantedRelays;
 };
 
-}  // namespace network
+}  // namespace p2p
 
 #endif  //UNITE_EMBARGOMAN_H

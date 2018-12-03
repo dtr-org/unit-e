@@ -51,18 +51,25 @@ class SideEffectsMock : public p2p::EmbargoManSideEffects {
   std::set<uint256> txsSentToAll;
 };
 
-uint256 GetNewTxHash() {
-  static uint8_t counter = 0;
-  assert(counter < std::numeric_limits<decltype(counter)>::max());
+CTransactionRef CreateNewTx() {
+  CMutableTransaction tx;
+  tx.vin.resize(1);
 
-  return uint256(std::vector<uint8_t>(32, counter++));
+  // We want different tx hashes all the time
+  static uint32_t nonce = 0;
+  tx.vin[0].prevout.n = nonce;
+
+  ++nonce;
+
+  return MakeTransactionRef(tx);
 }
 
 uint256 CheckSendsTo(p2p::NodeId expectedRelay,
                      p2p::EmbargoMan &instance,
                      const SideEffectsMock *sideEffects) {
-  const auto hash = GetNewTxHash();
-  BOOST_CHECK(instance.SendTransactionAndEmbargo(hash));
+  const auto tx = CreateNewTx();
+  const auto hash = tx->GetHash();
+  BOOST_CHECK(instance.SendTransactionAndEmbargo(*tx));
 
   const auto it = sideEffects->txsSentToNode.find(hash);
   BOOST_CHECK(it != sideEffects->txsSentToNode.end());
@@ -75,13 +82,14 @@ uint256 CheckSendsTo(p2p::NodeId expectedRelay,
   return hash;
 }
 
-p2p::NodeId GuessRelay(p2p::EmbargoMan &instance,
-                       const SideEffectsMock *sideEffects) {
-  const auto hash = GetNewTxHash();
-  BOOST_CHECK(instance.SendTransactionAndEmbargo(hash));
+p2p::NodeId DetectRelay(p2p::EmbargoMan &instance,
+                        const SideEffectsMock *sideEffects) {
+  const auto tx = CreateNewTx();
+  const auto hash = tx->GetHash();
+  BOOST_CHECK(instance.SendTransactionAndEmbargo(*tx));
 
   const auto it = sideEffects->txsSentToNode.find(hash);
-  assert(it != sideEffects->txsSentToNode.end());
+  BOOST_CHECK(it != sideEffects->txsSentToNode.end());
   return it->second;
 }
 
@@ -92,7 +100,7 @@ BOOST_AUTO_TEST_CASE(test_relay_is_not_changing) {
   sideEffects->outbounds = {17, 7};
 
   p2p::EmbargoMan instance(2, std::move(uPtr));
-  const auto relay = GuessRelay(instance, sideEffects);
+  const auto relay = DetectRelay(instance, sideEffects);
 
   for (size_t i = 0; i < 100; ++i) {
     CheckSendsTo(relay, instance, sideEffects);
@@ -107,11 +115,11 @@ BOOST_AUTO_TEST_CASE(test_relay_is_changing_if_disconnected) {
 
   p2p::EmbargoMan instance(2, std::move(uPtr));
 
-  const auto relay1 = GuessRelay(instance, sideEffects);
+  const auto relay1 = DetectRelay(instance, sideEffects);
 
   sideEffects->outbounds = {7};
 
-  const auto relay2 = GuessRelay(instance, sideEffects);
+  const auto relay2 = DetectRelay(instance, sideEffects);
   BOOST_CHECK(relay1 != relay2);
 }
 
@@ -119,22 +127,32 @@ BOOST_AUTO_TEST_CASE(test_relay_is_changing_if_black_hole) {
   const auto sideEffects = new SideEffectsMock();
   auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
-  sideEffects->outbounds = {17, 7};
+  sideEffects->outbounds = {1, 2, 3, 4, 5};
   sideEffects->now = 100;
   sideEffects->nextEmbargoTime = 0;
 
   const auto timeoutsToSwitchRelay = 4;
   p2p::EmbargoMan instance(timeoutsToSwitchRelay, std::move(uPtr));
 
-  const auto relay1 = GuessRelay(instance, sideEffects);
-  for (size_t i = 0; i < timeoutsToSwitchRelay; ++i) {
-    CheckSendsTo(relay1, instance, sideEffects);
+  std::set<p2p::NodeId> bannedRelays;
+  for (size_t j = 0; j < sideEffects->outbounds.size() - 1; ++j) {
+    const auto probeTx = CreateNewTx();
+    instance.SendTransactionAndEmbargo(*probeTx);
+    const p2p::NodeId relayBefore = sideEffects->txsSentToNode[probeTx->GetHash()];
+    // To reset "timeouts in a row" counter:
+    instance.OnTxInv(probeTx->GetHash(), relayBefore + 1);
+
+    for (size_t i = 0; i < timeoutsToSwitchRelay; ++i) {
+      CheckSendsTo(relayBefore, instance, sideEffects);
+      instance.FluffPendingEmbargoes();
+    }
+
+    const p2p::NodeId relayAfter = DetectRelay(instance, sideEffects);
+    BOOST_CHECK(relayBefore != relayAfter);
+
+    const bool added = bannedRelays.emplace(relayBefore).second;
+    BOOST_CHECK(added);
   }
-
-  instance.FluffPendingEmbargoes();
-
-  const auto relay2 = GuessRelay(instance, sideEffects);
-  BOOST_CHECK(relay1 != relay2);
 }
 
 BOOST_AUTO_TEST_CASE(change_relay_during_embargo) {
@@ -157,7 +175,7 @@ BOOST_AUTO_TEST_CASE(change_relay_during_embargo) {
 
   // Trigger relay change by disconnecting
   sideEffects->outbounds = {7, 11};
-  const auto relay = GuessRelay(instance, sideEffects);
+  const auto relay = DetectRelay(instance, sideEffects);
 
   // Relay has changed but invs from previous relay should not fluff txs
   for (const auto &blackholeTx : blackholeTxs) {
@@ -169,7 +187,7 @@ BOOST_AUTO_TEST_CASE(change_relay_during_embargo) {
 
   // Checking that new relay is not affected by the fact that lots of
   // transactions sent to prev relay were fluffed
-  BOOST_CHECK_EQUAL(relay, GuessRelay(instance, sideEffects));
+  BOOST_CHECK_EQUAL(relay, DetectRelay(instance, sideEffects));
 }
 
 BOOST_AUTO_TEST_CASE(test_simple_embargoes) {
@@ -180,59 +198,59 @@ BOOST_AUTO_TEST_CASE(test_simple_embargoes) {
 
   p2p::EmbargoMan instance(1000, std::move(uPtr));
 
-  const auto tx1 = GetNewTxHash();
-  const auto tx2 = GetNewTxHash();
-  const auto tx3 = GetNewTxHash();
+  const auto tx1 = CreateNewTx();
+  const auto tx2 = CreateNewTx();
+  const auto tx3 = CreateNewTx();
 
   sideEffects->nextEmbargoTime = 10;
-  instance.SendTransactionAndEmbargo(tx1);
+  instance.SendTransactionAndEmbargo(*tx1);
 
   sideEffects->nextEmbargoTime = 20;
-  instance.SendTransactionAndEmbargo(tx2);
+  instance.SendTransactionAndEmbargo(*tx2);
 
   sideEffects->nextEmbargoTime = 30;
-  instance.SendTransactionAndEmbargo(tx3);
+  instance.SendTransactionAndEmbargo(*tx3);
 
-  BOOST_CHECK(instance.IsEmbargoed(tx1));
-  BOOST_CHECK(instance.IsEmbargoed(tx2));
-  BOOST_CHECK(instance.IsEmbargoed(tx3));
+  BOOST_CHECK(instance.IsEmbargoed(tx1->GetHash()));
+  BOOST_CHECK(instance.IsEmbargoed(tx2->GetHash()));
+  BOOST_CHECK(instance.IsEmbargoed(tx3->GetHash()));
 
   sideEffects->now = 15;
 
   instance.FluffPendingEmbargoes();
 
-  BOOST_CHECK(!instance.IsEmbargoed(tx1));
-  BOOST_CHECK(instance.IsEmbargoed(tx2));
-  BOOST_CHECK(instance.IsEmbargoed(tx3));
+  BOOST_CHECK(!instance.IsEmbargoed(tx1->GetHash()));
+  BOOST_CHECK(instance.IsEmbargoed(tx2->GetHash()));
+  BOOST_CHECK(instance.IsEmbargoed(tx3->GetHash()));
 
-  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx1));
-  BOOST_CHECK_EQUAL(0, sideEffects->txsSentToAll.count(tx2));
-  BOOST_CHECK_EQUAL(0, sideEffects->txsSentToAll.count(tx3));
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx1->GetHash()));
+  BOOST_CHECK_EQUAL(0, sideEffects->txsSentToAll.count(tx2->GetHash()));
+  BOOST_CHECK_EQUAL(0, sideEffects->txsSentToAll.count(tx3->GetHash()));
 
   // Received from relay -> embargo is not lifted
-  instance.OnTxInv(tx2, 17);
+  instance.OnTxInv(tx2->GetHash(), 17);
 
   // Received from other node -> embargo is lifted
-  instance.OnTxInv(tx3, 1);
+  instance.OnTxInv(tx3->GetHash(), 1);
 
-  BOOST_CHECK(!instance.IsEmbargoed(tx1));
-  BOOST_CHECK(instance.IsEmbargoed(tx2));
-  BOOST_CHECK(!instance.IsEmbargoed(tx3));
+  BOOST_CHECK(!instance.IsEmbargoed(tx1->GetHash()));
+  BOOST_CHECK(instance.IsEmbargoed(tx2->GetHash()));
+  BOOST_CHECK(!instance.IsEmbargoed(tx3->GetHash()));
 
-  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx1));
-  BOOST_CHECK_EQUAL(0, sideEffects->txsSentToAll.count(tx2));
-  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx3));
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx1->GetHash()));
+  BOOST_CHECK_EQUAL(0, sideEffects->txsSentToAll.count(tx2->GetHash()));
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx3->GetHash()));
 
   sideEffects->now = 50;
   instance.FluffPendingEmbargoes();
 
-  BOOST_CHECK(!instance.IsEmbargoed(tx1));
-  BOOST_CHECK(!instance.IsEmbargoed(tx2));
-  BOOST_CHECK(!instance.IsEmbargoed(tx3));
+  BOOST_CHECK(!instance.IsEmbargoed(tx1->GetHash()));
+  BOOST_CHECK(!instance.IsEmbargoed(tx2->GetHash()));
+  BOOST_CHECK(!instance.IsEmbargoed(tx3->GetHash()));
 
-  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx1));
-  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx2));
-  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx3));
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx1->GetHash()));
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx2->GetHash()));
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(tx3->GetHash()));
 }
 
 class EmargoManSpy : public p2p::EmbargoMan {
@@ -250,7 +268,7 @@ class EmargoManSpy : public p2p::EmbargoMan {
   }
 };
 
-BOOST_AUTO_TEST_CASE(unwanted_relay_filtering) {
+BOOST_AUTO_TEST_CASE(test_unwanted_relay_filtering) {
   const auto sideEffects = new SideEffectsMock();
   auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
 
@@ -273,6 +291,42 @@ BOOST_AUTO_TEST_CASE(unwanted_relay_filtering) {
   BOOST_CHECK_EQUAL(2, unwanted.size());
   BOOST_CHECK(unwanted.count(1));
   BOOST_CHECK(unwanted.count(3));
+}
+
+BOOST_AUTO_TEST_CASE(test_child_never_fluffs_before_parent) {
+  const auto sideEffects = new SideEffectsMock();
+  auto uPtr = std::unique_ptr<p2p::EmbargoManSideEffects>(sideEffects);
+
+  sideEffects->outbounds = {17};
+
+  p2p::EmbargoMan instance(1000, std::move(uPtr));
+
+  CTransaction parentTx;
+  CMutableTransaction childTx;
+
+  childTx.vin.resize(1);
+  childTx.vin[0].prevout.hash = parentTx.GetHash();
+
+  // Embargo Time for parent
+  sideEffects->nextEmbargoTime = 50;
+  instance.SendTransactionAndEmbargo(parentTx);
+
+  // Embargo Time for child, less than parent
+  sideEffects->nextEmbargoTime = 10;
+  instance.SendTransactionAndEmbargo(CTransaction(childTx));
+
+  // Set 'now' after child embargo:
+  sideEffects->now = 11;
+  instance.FluffPendingEmbargoes();
+
+  BOOST_CHECK_EQUAL(0, sideEffects->txsSentToAll.count(childTx.GetHash()));
+
+  // Set 'now' after parent embargo:
+  sideEffects->now = 51;
+  instance.FluffPendingEmbargoes();
+
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(childTx.GetHash()));
+  BOOST_CHECK_EQUAL(1, sideEffects->txsSentToAll.count(parentTx.GetHash()));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

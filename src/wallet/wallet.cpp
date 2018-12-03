@@ -3153,7 +3153,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CCon
                 bool embargoed = false;
                 if (wtx.tx->GetType() == +TxType::STANDARD && connman->embargoman) {
                     embargoed =
-                        connman->embargoman->SendTransactionAndEmbargo(wtx.GetHash());
+                        connman->embargoman->SendTransactionAndEmbargo(*wtx.tx);
                 }
 
                 if (!embargoed) {
