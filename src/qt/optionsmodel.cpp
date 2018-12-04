@@ -499,13 +499,13 @@ void OptionsModel::checkAndMigrate()
     }
 
     // Overwrite the 'addrProxy' setting in case it has been set to an illegal
-    // default value (see issue #12623; PR #12650).
+    // default value (see issue bitcoin/bitcoin#12623; PR bitcoin/bitcoin#12650).
     if (settings.contains("addrProxy") && settings.value("addrProxy").toString().endsWith("%2")) {
         settings.setValue("addrProxy", GetDefaultProxyAddress());
     }
 
     // Overwrite the 'addrSeparateProxyTor' setting in case it has been set to an illegal
-    // default value (see issue #12623; PR #12650).
+    // default value (see issue bitcoin/bitcoin#12623; PR bitcoin/bitcoin#12650).
     if (settings.contains("addrSeparateProxyTor") && settings.value("addrSeparateProxyTor").toString().endsWith("%2")) {
         settings.setValue("addrSeparateProxyTor", GetDefaultProxyAddress());
     }
