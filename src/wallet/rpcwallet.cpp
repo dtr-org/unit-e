@@ -3280,7 +3280,7 @@ UniValue bumpfee(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
-    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 3) {
         throw std::runtime_error(
             "bumpfee \"txid\" ( options ) \n"
             "\nBumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.\n"
@@ -3315,6 +3315,7 @@ UniValue bumpfee(const JSONRPCRequest& request)
             "         \"ECONOMICAL\"\n"
             "         \"CONSERVATIVE\"\n"
             "   }\n"
+            "3. test_fee              (bool, optional, default=false) Only return the fee it would cost to send, txn is discarded.\n"
             "\nResult:\n"
             "{\n"
             "  \"txid\":    \"value\",   (string)  The id of the new transaction\n"
@@ -3327,7 +3328,7 @@ UniValue bumpfee(const JSONRPCRequest& request)
             HelpExampleCli("bumpfee", "<txid>"));
     }
 
-    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ});
+    RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VOBJ, UniValue::VBOOL}, true);
     uint256 hash;
     hash.SetHex(request.params[0].get_str());
 
@@ -3367,6 +3368,12 @@ UniValue bumpfee(const JSONRPCRequest& request)
         }
     }
 
+    bool test_fee = false;
+    if (!request.params[2].isNull()) {
+        test_fee = request.params[2].get_bool();
+    }
+
+
     // Make sure the results are valid at least up to the most recent block
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
@@ -3400,19 +3407,23 @@ UniValue bumpfee(const JSONRPCRequest& request)
         }
     }
 
-    // sign bumped transaction
-    if (!feebumper::SignTransaction(pwallet, mtx)) {
-        throw JSONRPCError(RPC_WALLET_ERROR, "Can't sign transaction.");
-    }
-    // commit the bumped transaction
-    uint256 txid;
-    if (feebumper::CommitTransaction(pwallet, hash, std::move(mtx), errors, txid) != feebumper::Result::OK) {
-        throw JSONRPCError(RPC_WALLET_ERROR, errors[0]);
-    }
     UniValue result(UniValue::VOBJ);
-    result.push_back(Pair("txid", txid.GetHex()));
     result.push_back(Pair("origfee", ValueFromAmount(old_fee)));
     result.push_back(Pair("fee", ValueFromAmount(new_fee)));
+
+    if (!test_fee) {
+        // sign bumped transaction
+        if (!feebumper::SignTransaction(pwallet, mtx)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Can't sign transaction.");
+        }
+        // commit the bumped transaction
+        uint256 txid;
+        if (feebumper::CommitTransaction(pwallet, hash, std::move(mtx), errors, txid) != feebumper::Result::OK) {
+            throw JSONRPCError(RPC_WALLET_ERROR, errors[0]);
+        }
+        result.push_back(Pair("txid", txid.GetHex()));
+    }
+
     UniValue result_errors(UniValue::VARR);
     for (const std::string& error : errors) {
         result_errors.push_back(error);
