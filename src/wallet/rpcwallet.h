@@ -26,6 +26,6 @@ CWallet *GetWalletForJSONRPCRequest(const JSONRPCRequest& request);
 std::string HelpRequiringPassphrase(CWallet *);
 void EnsureWalletIsUnlocked(CWallet *);
 bool EnsureWalletIsAvailable(CWallet *, bool avoidException);
-void WalletTxToJSON(const CWalletTx &wtx, UniValue &entry, bool filterMode = false);
+void WalletTxToJSON(const CWalletTx &wtx, UniValue &entry);
 
 #endif //UNITE_WALLET_RPCWALLET_H

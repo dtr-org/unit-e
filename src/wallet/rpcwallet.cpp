@@ -91,7 +91,7 @@ void EnsureWalletIsUnlocked(CWallet * const pwallet)
     }
 }
 
-void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool filterMode)
+void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
 {
     int confirms = wtx.GetDepthInMainChain();
     entry.push_back(Pair("confirmations", confirms));
@@ -126,10 +126,8 @@ void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry, bool filterMode)
     }
     entry.push_back(Pair("bip125-replaceable", rbfStatus));
 
-    if (!filterMode) {
-        for (const auto &item : wtx.mapValue) {
-            entry.push_back(Pair(item.first, item.second));
-        }
+    for (const auto &item : wtx.mapValue) {
+        entry.push_back(Pair(item.first, item.second));
     }
 }
 
