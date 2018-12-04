@@ -382,7 +382,7 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
   if (!strSentAccount.empty()) {
     entry.pushKV("account", strSentAccount);
   }
-  WalletTxToJSON(wtx, entry, true);
+  WalletTxToJSON(wtx, entry);
 
   if (!listStaked.empty() || !listSent.empty()) {
     entry.pushKV("abandoned", wtx.isAbandoned());
