@@ -791,6 +791,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   if (!lastSlashableTx) {
     LogPrint(BCLog::FINALIZATION, "%s: Error: previous validator transaction not found: %s.\n",
              __func__, validatorAddress.GetHex());
+    return false;
   }
 
   txNew.vin.push_back(CTxIn(txHash, 0, scriptSig, CTxIn::SEQUENCE_FINAL));

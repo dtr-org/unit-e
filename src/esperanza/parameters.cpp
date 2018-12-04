@@ -10,9 +10,8 @@
 
 namespace esperanza {
 
-Parameters::Parameters(const CChainParams *chainParams)
-    : m_chainParams(chainParams) {
-  assert(chainParams != nullptr);
+Parameters::Parameters(const CChainParams &chainParams)
+    : m_chainParams(&chainParams) {
 }
 
 uint32_t Parameters::GetModifierInterval() const { return m_modifierInterval; }

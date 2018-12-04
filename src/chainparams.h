@@ -90,7 +90,7 @@ protected:
     CChainParams() {}
 
     Consensus::Params consensus;
-    esperanza::Parameters esperanza = esperanza::Parameters(this);
+    esperanza::Parameters esperanza = esperanza::Parameters(*this);
     esperanza::FinalizationParams finalization;
     esperanza::AdminParams adminParams;
     snapshot::Params snapshotParams;

@@ -50,8 +50,6 @@ BOOST_FIXTURE_TEST_CASE(vote_signature2, TestingSetup) {
   const CKeyID *keyID = boost::get<CKeyID>(&dest);
 
   esperanza::Vote vote{*keyID, uint256S("4e7eae1625c033a05e92cff8d1591e4c7511888c264dbc8917ef94c3e66f22ef"), 12, 13};
-  std::cout << HexStr(*keyID) << std::endl;
-  std::cout << vote.GetHash().GetHex() << std::endl;
 
   std::string pkey = "cNJWVLVrfrxZT85cwYfHdbRKGi2FQjkKFBjocwwinNNix5tytG33";
 
@@ -60,12 +58,8 @@ BOOST_FIXTURE_TEST_CASE(vote_signature2, TestingSetup) {
   CKey key = vchSecret.GetKey();
   keystore.AddKey(key);
 
-  std::cout << HexStr(key.GetPrivKey()) << std::endl;
-
   std::vector<unsigned char> voteSig;
   esperanza::Vote::CreateSignature(&keystore, vote, voteSig);
-
-  std::cout << HexStr(voteSig) << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END()

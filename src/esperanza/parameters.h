@@ -37,10 +37,10 @@ class Parameters final {
 
   int64_t m_coinYearReward = 2 * EEES;  // 2% per year
 
-  Parameters();
+  Parameters() = default;
 
  public:
-  Parameters(const CChainParams *chainParams);
+  explicit Parameters(const CChainParams &chainParams);
 
   uint32_t GetModifierInterval() const;
 
