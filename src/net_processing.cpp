@@ -1212,7 +1212,9 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
             bool push = false;
             auto mi = mapRelay.find(inv.hash);
             int nSendFlags = (inv.type == MSG_TX ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
-            if (mi != mapRelay.end()) {
+            if (connman->embargoman && connman->embargoman->IsEmbargoedFor(inv.hash, pfrom->GetId())) {
+              // Tx is embargoed
+            } else if (mi != mapRelay.end()) {
                 connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second));
                 push = true;
             } else if (pfrom->timeLastMempoolReq) {
@@ -3491,6 +3493,11 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
                     if (pto->pfilter) {
                         if (!pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
                     }
+                    if (connman->embargoman &&
+                        connman->embargoman->IsEmbargoedFor(hash, pto->GetId())) {
+                      continue;
+                    }
+
                     pto->filterInventoryKnown.insert(hash);
                     vInv.push_back(inv);
                     if (vInv.size() == MAX_INV_SZ) {

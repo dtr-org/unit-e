@@ -100,6 +100,7 @@ BASE_SCRIPTS= [
     'wallet_txn_clone.py',
     'wallet_txn_clone.py --segwit',
     'rpc_getchaintips.py',
+    'p2p_embargoman_probing.py',
     'interface_rest.py',
     'mempool_spend_coinbase.py',
     'mempool_reorg.py',
