@@ -707,7 +707,6 @@ public:
     bool IsPayVoteSlashScript() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsWitnessProgram() const;
-    bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
     bool ExtractWitnessProgram(WitnessProgram &witnessProgram) const;
     bool MatchPayToPublicKeyHash(size_t ofs) const;
     bool MatchPayVoteSlashScript(size_t ofs) const;
@@ -756,6 +755,7 @@ public:
 
     bool IsPayToScriptHash() const;
     bool IsPayToPubkeyHash() const;
+    bool IsRemoteStaking() const;
 private:
     int m_version;
     std::vector<std::vector<unsigned char>> m_program;

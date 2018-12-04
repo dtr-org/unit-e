@@ -317,31 +317,33 @@ bool CScript::IsPayToWitnessScriptHash() const
 
 // A witness program is any valid CScript that consists of a 1-byte push opcode
 // followed by a data push between 2 and 40 bytes.
-bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program) const
-{
-    if (this->size() < 4 || this->size() > 42) {
-        return false;
-    }
-    if ((*this)[0] != OP_0 && ((*this)[0] < OP_1 || (*this)[0] > OP_16)) {
-        return false;
-    }
-    if ((size_t)((*this)[1] + 2) == this->size()) {
-        version = DecodeOP_N((opcodetype)(*this)[0]);
-        program = std::vector<unsigned char>(this->begin() + 2, this->end());
-        return true;
-    }
-    return false;
-}
-
 bool CScript::IsWitnessProgram() const
 {
     if (this->size() < 4 || this->size() > 42) {
         return false;
     }
-    if ((*this)[0] != OP_0 && ((*this)[0] < OP_1 || (*this)[0] > OP_16)) {
+
+    opcodetype opcode;
+    auto pc = begin();
+    if (!GetOp(pc, opcode)) {
         return false;
     }
-    return (size_t)((*this)[1] + 2) == this->size();
+    if (opcode != OP_0 && (opcode < OP_1 || opcode > OP_16)) {
+        return false;
+    }
+    if (opcode == OP_0) {
+        return (size_t)((*this)[1] + 2) == this->size();
+    }
+
+    do {
+        if (!GetOp(pc, opcode)) {
+            return false;
+        }
+        if (opcode == OP_0 || opcode >= OP_PUSHDATA1) {
+            return false;
+        }
+    } while (pc < end());
+    return true;
 }
 
 bool CScript::ExtractWitnessProgram(WitnessProgram &witness_program) const
@@ -349,8 +351,24 @@ bool CScript::ExtractWitnessProgram(WitnessProgram &witness_program) const
     if (!IsWitnessProgram()) {
         return false;
     }
-    witness_program.m_version = DecodeOP_N((opcodetype)(*this)[0]);
-    witness_program.m_program = {std::vector<unsigned char>(this->begin() + 2, this->end())};
+
+    opcodetype opcode;
+    auto pc = begin();
+    if (!GetOp(pc, opcode)) {
+        return false;
+    }
+    witness_program.m_version = DecodeOP_N(opcode);
+
+    std::vector<unsigned char> data;
+
+    witness_program.m_program.clear();
+    do {
+        if (!GetOp(pc, opcode, data)) {
+            return false;
+        }
+        witness_program.m_program.emplace_back(std::move(data));
+    } while (pc < end());
+
     return true;
 }
 
