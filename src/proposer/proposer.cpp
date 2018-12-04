@@ -23,17 +23,21 @@ ProposerImpl::Thread::Thread(const std::string &threadName,
                              ProposerImpl &parentProposer,
                              std::vector<CWallet *> &&wallets)
     : m_thread_name(threadName),
+      m_thread(ProposerImpl::Run, std::ref(*this)),
       m_proposer(parentProposer),
       m_interrupted(false),
       m_waiter(),
-      m_wallets(std::move(wallets)) {
-  std::thread thread(ProposerImpl::Run, std::ref(*this));
-  thread.detach();
-}
+      m_wallets(std::move(wallets)) {}
 
 void ProposerImpl::Thread::Stop() {
+  LogPrint(BCLog::PROPOSING, "Stopping proposer-thread %s...\n", m_thread_name);
   m_interrupted = true;
   Wake();
+}
+
+void ProposerImpl::Thread::Join() {
+  m_thread.join();
+  LogPrint(BCLog::PROPOSING, "Stopped proposer-thread %s\n", m_thread_name);
 }
 
 void ProposerImpl::Thread::Wake() {
@@ -98,8 +102,7 @@ ProposerImpl::ProposerImpl(Dependency<Settings> settings,
       m_chain(chainInterface),
       m_blockProposer(blockProposer),
       m_initSemaphore(0),
-      m_startSemaphore(0),
-      m_stopSemaphore(0) {}
+      m_startSemaphore(0) {}
 
 ProposerImpl::~ProposerImpl() {
   if (!m_started.test_and_set()) {
@@ -107,21 +110,12 @@ ProposerImpl::~ProposerImpl() {
     return;
   }
   LogPrint(BCLog::PROPOSING, "Stopping proposer...\n");
-
   for (auto &thread : m_threads) {
-    // sets all threads m_interrupted and wakes them up in case they are sleeping
-    LogPrint(BCLog::PROPOSING, "Stopping thread %s\n", thread.m_thread_name);
     thread.Stop();
   }
-  // in case Start() was not called yet, start the threads so they can stop
-  // (otherwise they are stuck)
-  m_startSemaphore.release(m_threads.size());
-
-  // wait for the threads to finish (important for the destructor, otherwise
-  // memory might be released which is still accessed by a thread)
-  LogPrint(BCLog::PROPOSING, "Waiting for threads to finish...\n");
-  m_stopSemaphore.acquire(m_threads.size());
-  LogPrint(BCLog::PROPOSING, "All proposer threads stopped.\n");
+  for (auto &thread : m_threads) {
+    thread.Join();
+  }
 }
 
 void ProposerImpl::Start() {
@@ -309,8 +303,6 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
                thread.m_thread_name);
     }
   }
-  LogPrint(BCLog::PROPOSING, "%s: stopping...\n", thread.m_thread_name);
-  thread.m_proposer.m_stopSemaphore.release();
 }
 
 std::unique_ptr<Proposer> Proposer::New(

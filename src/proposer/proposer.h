@@ -94,6 +94,9 @@ class ProposerImpl : public Proposer {
     //! a name for this thread
     const std::string m_thread_name;
 
+    //! the underlying thread's handle
+    std::thread m_thread;
+
     //! reference to parent proposer
     ProposerImpl &m_proposer;
 
@@ -131,6 +134,9 @@ class ProposerImpl : public Proposer {
     //! stops this thread by setting m_interrupted to true and waking it
     void Stop();
 
+    //! waits for this thread to actually have stopped
+    void Join();
+
     //! wakes this thread from sleeping if it is pacing right now
     void Wake();
 
@@ -157,9 +163,6 @@ class ProposerImpl : public Proposer {
 
   //! a semaphore for synchronizing start events
   CountingSemaphore m_startSemaphore;
-
-  //! a semaphore for synchronizing stop events
-  CountingSemaphore m_stopSemaphore;
 
   std::vector<Thread> m_threads;
 
