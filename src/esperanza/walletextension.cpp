@@ -814,6 +814,13 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
                __func__, validatorAddress.GetHex());
       return false;
     }
+
+    ret = reservekey.GetReservedKey(pubKey, true);
+    if (!ret) {
+      LogPrint(BCLog::FINALIZATION, "%s: Error: Cannot reserve pubkey even after top-up for slashing validator: %s.\n",
+               __func__, validatorAddress.GetHex());
+      return false;
+    }
   }
 
   auto sigCreator = TransactionSignatureCreator(m_enclosing_wallet, &txNewConst, nIn,
