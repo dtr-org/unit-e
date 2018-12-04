@@ -333,6 +333,27 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     return false;
 }
 
+bool CScript::IsWitnessProgram() const
+{
+    if (this->size() < 4 || this->size() > 42) {
+        return false;
+    }
+    if ((*this)[0] != OP_0 && ((*this)[0] < OP_1 || (*this)[0] > OP_16)) {
+        return false;
+    }
+    return (size_t)((*this)[1] + 2) == this->size();
+}
+
+bool CScript::ExtractWitnessProgram(WitnessProgram &witness_program) const
+{
+    if (!IsWitnessProgram()) {
+        return false;
+    }
+    witness_program.m_version = DecodeOP_N((opcodetype)(*this)[0]);
+    witness_program.m_program = {std::vector<unsigned char>(this->begin() + 2, this->end())};
+    return true;
+}
+
 bool CScript::IsPushOnly(const_iterator pc) const
 {
     while (pc < end())
@@ -568,4 +589,20 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     }
 
     return it == script.end();
+}
+
+bool WitnessProgram::IsPayToScriptHash() const
+{
+    return m_version == 0 && m_program.size() == 1 && m_program[0].size() == 32;
+}
+
+bool WitnessProgram::IsPayToPubkeyHash() const
+{
+    return m_version == 0 && m_program.size() == 1 && m_program[0].size() == 20;
+}
+
+const std::vector<unsigned char> &WitnessProgram::GetV0Program() const
+{
+    assert(m_version == 0 && m_program.size() == 1);
+    return m_program[0];
 }

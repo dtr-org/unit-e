@@ -71,23 +71,23 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         return true;
     }
 
-    int witnessversion;
-    std::vector<unsigned char> witnessprogram;
-    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
-        if (witnessversion == 0 && witnessprogram.size() == 20) {
+    WitnessProgram witnessProgram;
+    if (scriptPubKey.ExtractWitnessProgram(witnessProgram)) {
+        if (witnessProgram.IsPayToPubkeyHash()) {
             typeRet = TX_WITNESS_V0_KEYHASH;
-            vSolutionsRet.push_back(witnessprogram);
+            vSolutionsRet.push_back(witnessProgram.GetV0Program());
             return true;
         }
-        if (witnessversion == 0 && witnessprogram.size() == 32) {
+        if (witnessProgram.IsPayToScriptHash()) {
             typeRet = TX_WITNESS_V0_SCRIPTHASH;
-            vSolutionsRet.push_back(witnessprogram);
+            vSolutionsRet.push_back(witnessProgram.GetV0Program());
             return true;
         }
-        if (witnessversion != 0) {
+        if (witnessProgram.GetVersion() != 0) {
             typeRet = TX_WITNESS_UNKNOWN;
-            vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessversion});
-            vSolutionsRet.push_back(std::move(witnessprogram));
+            vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessProgram.GetVersion()});
+            vSolutionsRet.insert(vSolutionsRet.end(), witnessProgram.GetProgram().begin(),
+                                 witnessProgram.GetProgram().end());
             return true;
         }
         return false;

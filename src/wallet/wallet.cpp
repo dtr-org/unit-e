@@ -2674,9 +2674,7 @@ OutputType CWallet::TransactionChangeType(OutputType change_type, const std::vec
     // output.
     for (const auto& recipient : vecSend) {
         // Check if any destination contains a witness program:
-        int witnessversion = 0;
-        std::vector<unsigned char> witnessprogram;
-        if (recipient.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+        if (recipient.scriptPubKey.IsWitnessProgram()) {
             return OUTPUT_TYPE_BECH32;
         }
     }
