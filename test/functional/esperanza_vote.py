@@ -69,9 +69,9 @@ class EsperanzaVoteTest(UnitETestFramework):
         deptx2 = nodes[2].deposit(address2, 2000)
         deptx3 = nodes[3].deposit(address3, 1500)
 
-        self.wait_for_transaction(deptx1)
-        self.wait_for_transaction(deptx2)
-        self.wait_for_transaction(deptx3)
+        self.wait_for_transaction(deptx1, 60)
+        self.wait_for_transaction(deptx2, 60)
+        self.wait_for_transaction(deptx3, 60)
 
         # After we generated the first 120 blocks with no validators the state is
         # - currentEpoch: 12 (we are in the first block of this epoch)

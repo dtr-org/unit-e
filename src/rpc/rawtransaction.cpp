@@ -900,7 +900,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
         SignatureData sigdata;
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
         if (!fHashSingle || (i < mtx.vout.size()))
-            ProduceSignature(MutableTransactionSignatureCreator(&keystore, &mtx, i, amount, nHashType), prevPubKey, sigdata);
+            ProduceSignature(MutableTransactionSignatureCreator(&keystore, &mtx, i, amount, nHashType), prevPubKey, sigdata, &txConst);
         sigdata = CombineSignatures(prevPubKey, TransactionSignatureChecker(&txConst, i, amount), sigdata, DataFromTransaction(mtx, i));
 
         UpdateTransaction(mtx, i, sigdata);

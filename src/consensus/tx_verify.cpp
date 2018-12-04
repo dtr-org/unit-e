@@ -210,6 +210,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &errState, bool f
 
       esperanza::Vote vote;
       std::vector<unsigned char> voteSig;
+
       if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
         return errState.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
       }

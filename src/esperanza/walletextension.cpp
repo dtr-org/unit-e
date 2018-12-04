@@ -13,6 +13,7 @@
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
+#include <scheduler.h>
 #include <script/standard.h>
 #include <staking/kernel.h>
 #include <staking/stakevalidation.h>
@@ -24,6 +25,8 @@
 #include <wallet/wallet.h>
 
 namespace esperanza {
+
+CCriticalSection cs_pendingSlashing;
 
 //! UNIT-E: check necessity of this constant
 static const unsigned int DEFAULT_BLOCK_MAX_SIZE = 1000000;
@@ -487,7 +490,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
 
   CTransactionRef prevTx = validator.m_lastEsperanzaTx;
 
-  const CScript &scriptPubKey = prevTx->vout[0].scriptPubKey;
+  const CScript &prevScriptPubkey = prevTx->vout[0].scriptPubKey;
   CAmount amount = prevTx->vout[0].nValue;
 
   // We need to pay some minimal fees if we wanna make sure that the logout
@@ -497,7 +500,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   txNew.vin.push_back(
       CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
 
-  CTxOut txout(amount, scriptPubKey);
+  CTxOut txout(amount, prevScriptPubkey);
   txNew.vout.push_back(txout);
 
   const auto nBytes = static_cast<unsigned int>(GetVirtualTransactionSize(txNew));
@@ -517,7 +520,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   if (!ProduceSignature(TransactionSignatureCreator(m_enclosing_wallet,
                                                     &txNewConst, nIn, amount,
                                                     SIGHASH_ALL),
-                        scriptPubKey, sigdata, &txNewConst)) {
+                        prevScriptPubkey, sigdata, &txNewConst)) {
     return false;
   }
   UpdateTransaction(txNew, nIn, sigdata);
@@ -566,10 +569,13 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
                  __func__);
   }
 
-  CTransactionRef prevTx = validator.m_lastEsperanzaTx;
-
   const std::vector<unsigned char> pkv = ToByteVector(pubKey.GetID());
   const CScript &scriptPubKey = CScript::CreateP2PKHScript(pkv);
+
+  CTransactionRef prevTx = validator.m_lastEsperanzaTx;
+
+  const CScript &prevScriptPubkey = prevTx->vout[0].scriptPubKey;
+  CAmount amount = prevTx->vout[0].nValue;
 
   txNew.vin.push_back(CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
 
@@ -617,7 +623,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   if (!ProduceSignature(
           TransactionSignatureCreator(m_enclosing_wallet, &txNewConst, nIn,
                                       initialDeposit, SIGHASH_ALL),
-          scriptPubKey, sigdata, &txNewConst)) {
+          prevScriptPubkey, sigdata, &txNewConst)) {
     return false;
   }
   UpdateTransaction(txNew, nIn, sigdata);
@@ -766,7 +772,11 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   CValidationState errState;
 
-  const CScript scriptSig = vote1.GetScript() + vote2.GetScript();
+  CScript scriptSig = CScript();
+  const CScript vote1Script = vote1.GetScript();
+  const CScript vote2Script = vote2.GetScript();
+  scriptSig << std::vector<unsigned char>(vote1Script.begin(), vote1Script.end());
+  scriptSig << std::vector<unsigned char>(vote2Script.begin(), vote2Script.end());
   const CScript burnScript = CScript::CreateUnspendableScript();
 
   FinalizationState *state = FinalizationState::GetState();
@@ -778,6 +788,11 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   GetTransaction(txHash, lastSlashableTx, Params().GetConsensus(), blockHash,
                  true);
 
+  if (!lastSlashableTx) {
+    LogPrint(BCLog::FINALIZATION, "%s: Error: previous validator transaction not found: %s.\n",
+             __func__, validatorAddress.GetHex());
+  }
+
   txNew.vin.push_back(CTxIn(txHash, 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
   const CTxOut burnOut(lastSlashableTx->vout[0].nValue, burnScript);
@@ -787,22 +802,45 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   const uint32_t nIn = 0;
   SignatureData sigdata;
 
-  if (!ProduceSignature(
-          TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
-                                      burnOut.nValue, SIGHASH_ALL),
-          burnScript, sigdata, &txNewConst)) {
-    return false;
+  CReserveKey reservekey(m_enclosingWallet);
+  CPubKey pubKey;
+  bool ret;
+
+  ret = reservekey.GetReservedKey(pubKey, true);
+
+  if (!ret) {
+    if (!m_enclosingWallet->GenerateNewKeys(100)) {
+      LogPrint(BCLog::FINALIZATION, "%s: Error: No keys available for creating the slashing transaction for: %s.\n",
+               __func__, validatorAddress.GetHex());
+      return false;
+    }
   }
+
+  auto sigCreator = TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
+                                                burnOut.nValue, SIGHASH_ALL);
+
+  std::vector<unsigned char> vchSig;
+  sigCreator.CreateSig(vchSig, pubKey.GetID(), burnOut.scriptPubKey, SIGVERSION_BASE);
+  sigdata.scriptSig = CScript() << vchSig;
+  sigdata.scriptSig += scriptSig;
+
   UpdateTransaction(txNew, nIn, sigdata);
 
   slashTx.SetTx(MakeTransactionRef(std::move(txNew)));
 
-  CReserveKey reservekey(m_enclosingWallet);
   m_enclosingWallet->CommitTransaction(slashTx, reservekey, g_connman.get(),
                                        errState);
+
   if (errState.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit slash transaction: %s.\n",
              __func__, errState.GetRejectReason());
+
+    // We want to relay this transaction in any case, even if for some reason we
+    // cannot add it to our mempool
+    {
+      LOCK(cs_main);
+      slashTx.RelayWalletTransaction(g_connman.get());
+    }
     return false;
   }
 
@@ -979,6 +1017,35 @@ bool WalletExtension::Unlock(const SecureString &wallet_passphrase,
                              bool for_staking_only) {
   m_unlocked_for_staking_only = for_staking_only;
   return m_enclosing_wallet->Unlock(wallet_passphrase);
+}
+
+void WalletExtension::SlashingConditionDetected(const finalization::VoteRecord vote1, const finalization::VoteRecord vote2) {
+
+  LOCK(cs_pendingSlashing);
+  pendingSlashings.emplace_back(vote1, vote2);
+}
+
+void WalletExtension::ManagePendingSlashings() {
+
+  if (pendingSlashings.empty()) {
+    return;
+  }
+
+  std::vector<std::pair<finalization::VoteRecord, finalization::VoteRecord>> pendings;
+
+  {
+    LOCK(cs_pendingSlashing);
+    std::swap(pendings, pendingSlashings);
+  }
+
+  for (auto &pair : pendings) {
+    SendSlash(pair.first, pair.second);
+  }
+}
+
+void WalletExtension::PostInitProcess(CScheduler &scheduler) {
+
+  scheduler.scheduleEvery(std::bind(&WalletExtension::ManagePendingSlashings, this), 10000);
 }
 
 }  // namespace esperanza

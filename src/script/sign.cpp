@@ -97,7 +97,11 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
         return true;
     case TX_PAYVOTESLASH:
         keyID = CPubKey(vSolutions[0]).GetID();
-        return Sign1(keyID, creator, scriptPubKey, ret, sigversion);
+        if (Sign1(keyID, creator, scriptPubKey, ret, sigversion)) {
+          ret.push_back(vSolutions[0]);
+          return true;
+        }
+        return false;
     case TX_SCRIPTHASH:
         if (creator.KeyStore().GetCScript(uint160(vSolutions[0]), scriptRet)) {
             ret.push_back(std::vector<unsigned char>(scriptRet.begin(), scriptRet.end()));
@@ -141,7 +145,7 @@ static CScript PushAll(const std::vector<valtype>& values)
     return result;
 }
 
-bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata, CTransaction* tx)
+bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata, const CTransaction* tx)
 {
     CScript script = fromPubKey;
     std::vector<valtype> result;
@@ -181,9 +185,17 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
     }
 
     //UNIT-E: quite ugly workaround to get the vote data back in the signature.
-    if (solved && whichType == TX_PAYVOTESLASH && tx != nullptr && tx->IsVote()) {
-        CScript voteScript = tx->vin[0].scriptSig;
-        result.push_back(std::vector<unsigned char>(voteScript.begin(), voteScript.end()));
+    if (solved && whichType == TX_PAYVOTESLASH) {
+
+        if (tx != nullptr) {
+            if (!tx->IsLogout() && !tx->IsWithdraw()) {
+                result.pop_back(); //Remove the vSolutions[0] of the Solver from the results since we don't need it
+            }
+            if (tx->IsVote()) {
+                CScript voteScript = tx->vin[0].scriptSig;
+                result.push_back(std::vector<unsigned char>(voteScript.begin(), voteScript.end()));
+            }
+        }
     }
 
     if (P2SH) {
@@ -324,6 +336,13 @@ static Stacks CombineSignatures(const CScript& scriptPubKey, const BaseSignature
         if (sigs1.script.size() >= sigs2.script.size())
             return sigs1;
         return sigs2;
+    case TX_PAYVOTESLASH: {
+      Stacks result;
+      std::vector<valtype> &resScript = result.script;
+      resScript.insert(resScript.end(), sigs1.script.begin(), sigs1.script.end());
+      resScript.insert(resScript.end(), sigs2.script.begin(), sigs2.script.end());
+      return result;
+    }
     case TX_PUBKEY:
     case TX_PUBKEYHASH:
         // Signatures are bigger than placeholders or empty scripts:

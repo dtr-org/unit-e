@@ -611,6 +611,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
+    if (!CheckFinalizationTransaction(tx, state, chainparams)) {
+        return false; // state already filled by CheckFinalizationTransaction
+    }
+
     // Check for conflicts with in-memory transactions
     std::set<uint256> setConflicts;
     for (const CTxIn &txin : tx.vin)
@@ -619,6 +623,14 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         if (itConflicting != pool.mapNextTx.end())
         {
             const CTransaction *ptxConflicting = itConflicting->second;
+
+            // We want to remove any transactions conflicting with the slash
+            // since this is the most important
+            if (tx.IsSlash()) {
+              setConflicts.insert(ptxConflicting->GetHash());
+              continue;
+            }
+
             if (!setConflicts.count(ptxConflicting->GetHash()))
             {
                 // Allow opt-out of transaction replacement by setting
@@ -789,16 +801,31 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         size_t nConflictingSize = 0;
         uint64_t nConflictingCount = 0;
         CTxMemPool::setEntries allConflicting;
+        const int maxDescendantsToVisit = 100;
+        const bool fReplacementTransaction = setConflicts.size();
 
+        // We want to handle conflicts for slash transactions separately
+        if (tx.IsSlash()) {
+          if (nConflictingCount <= maxDescendantsToVisit) {
+            // If not too many to replace, then calculate the set of
+            // transactions that would have to be evicted
+            for (const uint256 &hashConflicting : setConflicts) {
+
+              auto mi = pool.mapTx.find(hashConflicting);
+              if (mi == pool.mapTx.end()) {
+                continue;
+              }
+
+              pool.CalculateDescendants(mi, allConflicting);
+            }
+          }
+        }
         // If we don't hold the lock allConflicting might be incomplete; the
         // subsequent RemoveStaged() and addUnchecked() calls don't guarantee
         // mempool consistency for us.
-        const bool fReplacementTransaction = setConflicts.size();
-        if (fReplacementTransaction)
-        {
+        else if (fReplacementTransaction) {
             CFeeRate newFeeRate(nModifiedFees, nSize);
             std::set<uint256> setConflictsParents;
-            const int maxDescendantsToVisit = 100;
             CTxMemPool::setEntries setIterConflicting;
             for (const uint256 &hashConflicting : setConflicts)
             {
@@ -967,15 +994,26 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // Remove conflicting transactions from the mempool
         for (const CTxMemPool::txiter it : allConflicting)
         {
-            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s UTE additional fees, %d delta bytes\n",
-                    it->GetTx().GetHash().ToString(),
-                    hash.ToString(),
-                    FormatMoney(nModifiedFees - nConflictingFees),
-                    (int)nSize - (int)nConflictingSize);
-            if (plTxnReplaced)
+
+            if (tx.IsSlash()) {
+                LogPrint(BCLog::MEMPOOL, "Removing transactions conflicting with the slash: %s.",
+                    tx.GetHash().GetHex());
+            } else {
+                LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s UTE additional fees, %d delta bytes\n",
+                         it->GetTx().GetHash().ToString(),
+                         hash.ToString(),
+                         FormatMoney(nModifiedFees - nConflictingFees),
+                         (int)nSize - (int)nConflictingSize);
+            }
+            if (plTxnReplaced) {
                 plTxnReplaced->push_back(it->GetSharedTx());
+            }
         }
-        pool.RemoveStaged(allConflicting, false, MemPoolRemovalReason::REPLACED);
+        if (tx.IsSlash()) {
+            pool.RemoveStaged(allConflicting, false, MemPoolRemovalReason::SLASH_CONFLICT);
+        } else {
+            pool.RemoveStaged(allConflicting, false, MemPoolRemovalReason::REPLACED);
+        }
 
         // This transaction should only count for fee estimation if:
         // - it isn't a BIP 125 replacement transaction (may not be widely supported)
@@ -983,107 +1021,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // - the node is not behind
         // - the transaction is not dependent on any other transactions in the mempool
         bool validForFeeEstimation = !fReplacementTransaction && !bypass_limits && IsCurrentForFeeEstimation() && pool.HasNoInputsOf(tx);
-
-        switch (tx.GetType()) {
-          case TxType::VOTE: {
-
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Accepting vote to mempool with id %s.\n",
-                     __func__,
-                     tx.GetHash().GetHex());
-
-            if (!esperanza::CheckVoteTransaction(state, tx, chainparams.GetConsensus())) {
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Vote cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckVoteTransaction
-            }
-            break;
-          }
-          case TxType::DEPOSIT: {
-
-            LogPrint(BCLog::FINALIZATION,
-                "%s: Accepting deposit to mempool with id %s.\n", __func__,
-                tx.GetHash().GetHex());
-
-            if (!esperanza::CheckDepositTransaction(state, tx)) {
-              LogPrint(BCLog::FINALIZATION,
-                  "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
-                  __func__,
-                  state.GetRejectReason(),
-                  tx.GetHash().GetHex());
-
-              return false; //state already filled by CheckDepositTransaction
-            }
-            break;
-          }
-          case TxType::LOGOUT: {
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Accepting logout to mempool with id %s.\n", __func__,
-                     tx.GetHash().GetHex());
-
-            if (!esperanza::CheckLogoutTransaction(state, tx, chainparams.GetConsensus())){
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Logout cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckLogoutTransaction
-            }
-            break;
-          }
-          case TxType::WITHDRAW: {
-            LogPrint(BCLog::FINALIZATION,
-                "%s: Accepting withdraw to mempool with id %s.\n", __func__,
-                tx.GetHash().GetHex());
-
-            if (!esperanza::CheckWithdrawTransaction(state, tx, chainparams.GetConsensus())){
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Withdraw cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckWithdrawTransaction
-            }
-            break;
-          }
-          case TxType::SLASH: {
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Accepting slash to mempool with id %s.\n", __func__,
-                     tx.GetHash().GetHex());
-
-            if (!esperanza::CheckSlashTransaction(state, tx, chainparams.GetConsensus())){
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Slash cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckSlashTransaction
-            }
-            break;
-          }
-          case TxType::ADMIN: {
-
-            LogPrint(BCLog::ADMIN,
-                     "%s: Accepting admin transaction to mempool with id %s.\n",
-                     __func__, tx.GetHash().GetHex());
-
-            if (!esperanza::CheckAdminTransaction(state, tx)) {
-              LogPrint(BCLog::ADMIN,
-                       "%s: Admin transaction cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckAdminTransaction
-            }
-            break;
-          }
-          default: {
-            break;
-          }
-        }
 
         // Store transaction in memory
         pool.addUnchecked(hash, entry, setAncestors, validForFeeEstimation);
@@ -4990,3 +4927,108 @@ public:
         mapBlockIndex.clear();
     }
 } instance_of_cmaincleanup;
+
+bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &state, const CChainParams &chainparams) {
+  switch (tx.GetType()) {
+    case TxType::VOTE: {
+
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Accepting vote to mempool with id %s.\n",
+               __func__,
+               tx.GetHash().GetHex());
+
+      if (!esperanza::CheckVoteTransaction(state, tx, chainparams.GetConsensus())) {
+        LogPrint(BCLog::FINALIZATION,
+                 "%s: Vote cannot be included into mempool: %s.\n",
+                 __func__,
+                 state.GetRejectReason());
+
+        return false; //state already filled by CheckVoteTransaction
+      }
+      break;
+    }
+    case TxType::DEPOSIT: {
+
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Accepting deposit to mempool with id %s.\n", __func__,
+               tx.GetHash().GetHex());
+
+      if (!esperanza::CheckDepositTransaction(state, tx)) {
+        LogPrint(BCLog::FINALIZATION,
+                 "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
+                 __func__,
+                 state.GetRejectReason(),
+                 tx.GetHash().GetHex());
+
+        return false; //state already filled by CheckDepositTransaction
+      }
+      break;
+    }
+    case TxType::LOGOUT: {
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Accepting logout to mempool with id %s.\n", __func__,
+               tx.GetHash().GetHex());
+
+      if (!esperanza::CheckLogoutTransaction(state, tx, chainparams.GetConsensus())){
+        LogPrint(BCLog::FINALIZATION,
+                 "%s: Logout cannot be included into mempool: %s.\n",
+                 __func__,
+                 state.GetRejectReason());
+
+        return false; //state already filled by CheckLogoutTransaction
+      }
+      break;
+    }
+    case TxType::WITHDRAW: {
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Accepting withdraw to mempool with id %s.\n", __func__,
+               tx.GetHash().GetHex());
+
+      if (!esperanza::CheckWithdrawTransaction(state, tx, chainparams.GetConsensus())){
+        LogPrint(BCLog::FINALIZATION,
+                 "%s: Withdraw cannot be included into mempool: %s.\n",
+                 __func__,
+                 state.GetRejectReason());
+
+        return false; //state already filled by CheckWithdrawTransaction
+      }
+      break;
+    }
+    case TxType::SLASH: {
+      LogPrint(BCLog::FINALIZATION,
+               "%s: Accepting slash to mempool with id %s.\n", __func__,
+               tx.GetHash().GetHex());
+
+      if (!esperanza::CheckSlashTransaction(state, tx, chainparams.GetConsensus())){
+        LogPrint(BCLog::FINALIZATION,
+                 "%s: Slash cannot be included into mempool: %s.\n",
+                 __func__,
+                 state.GetRejectReason());
+
+        return false; //state already filled by CheckSlashTransaction
+      }
+      break;
+    }
+    case TxType::ADMIN: {
+
+      LogPrint(BCLog::ADMIN,
+               "%s: Accepting admin transaction to mempool with id %s.\n",
+               __func__, tx.GetHash().GetHex());
+
+      if (!esperanza::CheckAdminTransaction(state, tx)) {
+        LogPrint(BCLog::ADMIN,
+                 "%s: Admin transaction cannot be included into mempool: %s.\n",
+                 __func__,
+                 state.GetRejectReason());
+
+        return false; //state already filled by CheckAdminTransaction
+      }
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+
+  return true;
+}

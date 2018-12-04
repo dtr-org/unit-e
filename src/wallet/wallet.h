@@ -1014,6 +1014,7 @@ public:
     bool NewKeyPool();
     size_t KeypoolCountExternalKeys();
     bool TopUpKeyPool(unsigned int kpSize = 0);
+    bool GenerateNewKeys(unsigned int amount);
     void ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool, bool fRequestedInternal);
     void KeepKey(int64_t nIndex);
     void ReturnKey(int64_t nIndex, bool fInternal, const CPubKey& pubkey);

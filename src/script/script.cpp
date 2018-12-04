@@ -218,16 +218,16 @@ CScript CScript::CreatePayVoteSlashScript(const CPubKey &pubkey)
 
                      OP_IF << OP_TRUE << OP_ELSE <<
 
+                     ToByteVector(pubkey) <<
+                     OP_SLASHABLE <<
+
+                     OP_NOTIF <<
+
                      OP_DUP <<
                      OP_HASH160 <<
                      ToByteVector(pubkey.GetID()) <<
                      OP_EQUALVERIFY <<
                      OP_CHECKSIG <<
-
-                     OP_NOTIF <<
-
-                     ToByteVector(pubkey) <<
-                     OP_SLASHABLE <<
 
                      OP_ELSE <<
                      OP_TRUE <<
@@ -267,11 +267,11 @@ bool CScript::MatchPayVoteSlashScript(size_t ofs) const
 
         (*this)[ofs + 37] == OP_ELSE &&
 
-        this->MatchPayToPublicKeyHash(38) &&
+        this->MatchSlashScript(38) &&
 
-        (*this)[ofs + 63] == OP_NOTIF &&
+        (*this)[ofs + 73] == OP_NOTIF &&
 
-        this->MatchSlashScript(64) &&
+        this->MatchPayToPublicKeyHash(74) &&
 
         (*this)[ofs + 99] == OP_ELSE &&
         (*this)[ofs + 100] == OP_TRUE &&

@@ -94,6 +94,7 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
 
 boost::optional<VoteRecord> VoteRecorder::GetVote(const uint160 &validatorAddress, uint32_t epoch) const {
 
+  LOCK(cs_recorder);
   const auto validatorIt = voteRecords.find(validatorAddress);
   if (validatorIt != voteRecords.end()) {
     const auto recordIt = validatorIt->second.find(epoch);

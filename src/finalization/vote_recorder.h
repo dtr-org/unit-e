@@ -15,12 +15,15 @@ struct VoteRecord {
   esperanza::Vote vote;
   std::vector<unsigned char> sig;
 
+  bool operator==(const VoteRecord &b) const {
+    return vote == b.vote && sig == b.sig;
+  }
+
   CScript GetScript() const;
 };
 
 class VoteRecorder : private boost::noncopyable {
  private:
-
   VoteRecorder() = default;
 
   // Contains a map by validatorAddress. Each entry contains a map of the target

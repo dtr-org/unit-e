@@ -26,6 +26,7 @@
 class CWallet;
 class CWalletTx;
 class COutput;
+class CScheduler;
 
 namespace esperanza {
 
@@ -58,8 +59,12 @@ class WalletExtension : public staking::StakingWallet {
   //! whether an encrypted wallet is unlocked only for staking
   bool m_unlocked_for_staking_only = false;
 
+  std::vector<std::pair<finalization::VoteRecord, finalization::VoteRecord>> pendingSlashings;
+
   void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                     const CBlockIndex *pindex);
+
+  void ManagePendingSlashings();
 
  public:
   //! \brief non-intrusive extension of the bitcoin-core wallet.
@@ -139,6 +144,10 @@ class WalletExtension : public staking::StakingWallet {
   EncryptionState GetEncryptionState() const;
 
   bool Unlock(const SecureString &wallet_passphrase, bool for_staking_only);
+
+  void SlashingConditionDetected(const finalization::VoteRecord vote1, const finalization::VoteRecord vote2);
+
+  void PostInitProcess(CScheduler &scheduler);
 };
 
 }  // namespace esperanza

@@ -1249,8 +1249,7 @@ void CWallet::TransactionAddedToMempool(const CTransactionRef& ptx) {
 }
 
 void CWallet::SlashingConditionDetected(const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {
-    LOCK(cs_wallet);
-    m_walletExtension.SendSlash(vote1, vote2);
+      m_walletExtension.SlashingConditionDetected(vote1, vote2);
 }
 
 void CWallet::TransactionRemovedFromMempool(const CTransactionRef &ptx) {
@@ -3273,6 +3272,12 @@ void CWallet::LoadKeyPool(int64_t nIndex, const CKeyPool &keypool)
     }
 }
 
+bool CWallet::GenerateNewKeys(unsigned int amount)
+{
+    auto currentKeys = setExternalKeyPool.size();
+    return TopUpKeyPool(currentKeys + amount);
+}
+
 bool CWallet::TopUpKeyPool(unsigned int kpSize)
 {
     {
@@ -4061,6 +4066,8 @@ void CWallet::postInitProcess(CScheduler& scheduler)
     if (!CWallet::fFlushScheduled.exchange(true)) {
         scheduler.scheduleEvery(MaybeCompactWalletDB, 500);
     }
+
+    m_walletExtension.PostInitProcess(scheduler);
 }
 
 bool CWallet::BackupWallet(const std::string& strDest)

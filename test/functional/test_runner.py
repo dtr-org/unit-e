@@ -93,6 +93,7 @@ BASE_SCRIPTS= [
     'wallet_keypool_topup.py',
     'interface_zmq.py',
     'interface_unite_cli.py',
+    'esperanza_slash.py',
     'mempool_resurrect.py',
     'wallet_txn_doublespend.py --mineblock',
     'wallet_txn_clone.py',
