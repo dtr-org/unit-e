@@ -10,7 +10,6 @@
 #include <chain.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
-#include <embargoman.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/checks.h>
 #include <fs.h>
@@ -18,6 +17,7 @@
 #include <key/mnemonic/mnemonic.h>
 #include <keystore.h>
 #include <net.h>
+#include <p2p/embargoman.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>

@@ -5,7 +5,7 @@
 #include <map>
 #include <set>
 
-#include <embargoman.h>
+#include <p2p/embargoman.h>
 #include <test/test_unite.h>
 #include <uint256.h>
 #include <util.h>

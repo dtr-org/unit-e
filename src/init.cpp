@@ -16,7 +16,6 @@
 #include <checkpoints.h>
 #include <compat/sanity.h>
 #include <consensus/validation.h>
-#include <embargoman_init.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/init.h>
@@ -30,6 +29,7 @@
 #include <netbase.h>
 #include <net.h>
 #include <net_processing.h>
+#include <p2p/embargoman_init.h>
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/policy.h>

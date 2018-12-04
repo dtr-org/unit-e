@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <embargoman_init.h>
+#include <p2p/embargoman_init.h>
 
 namespace p2p {
 

@@ -11,10 +11,10 @@
 #include <amount.h>
 #include <bloom.h>
 #include <compat.h>
-#include <embargoman.h>
 #include <hash.h>
 #include <limitedmap.h>
 #include <netaddress.h>
+#include <p2p/embargoman.h>
 #include <policy/feerate.h>
 #include <protocol.h>
 #include <random.h>

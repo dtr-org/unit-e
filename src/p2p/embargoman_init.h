@@ -2,14 +2,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_EMBARGOMAN_INIT_H
-#define UNITE_EMBARGOMAN_INIT_H
+#ifndef UNITE_P2P_EMBARGOMAN_INIT_H
+#define UNITE_P2P_EMBARGOMAN_INIT_H
 
 #include <chrono>
 #include <memory>
 #include <set>
 
-#include <embargoman.h>
+#include <p2p/embargoman.h>
 #include <net.h>
 
 namespace p2p {
@@ -41,4 +41,4 @@ std::unique_ptr<EmbargoMan> CreateEmbargoMan(CConnman &connman,
 
 }  // namespace network
 
-#endif  //UNITE_EMBARGOMAN_INIT_H
+#endif  //UNITE_P2P_EMBARGOMAN_INIT_H

@@ -103,8 +103,6 @@ UNITE_CORE_H = \
   cuckoocache.h \
   dependency.h \
   dependency_injector.h \
-  embargoman.h \
-  embargoman_init.h \
   esperanza/admincommand.h \
   esperanza/adminparams.h \
   esperanza/adminstate.h \
@@ -149,6 +147,8 @@ UNITE_CORE_H = \
   netbase.h \
   netmessagemaker.h \
   noui.h \
+  p2p/embargoman.h \
+  p2p/embargoman_init.h \
   policy/feerate.h \
   policy/fees.h \
   policy/policy.h \
@@ -266,8 +266,6 @@ libunite_server_a_SOURCES = \
   chain.cpp \
   checkpoints.cpp \
   consensus/tx_verify.cpp \
-  embargoman.cpp \
-  embargoman_init.cpp \
   esperanza/admincommand.cpp \
   esperanza/adminstate.cpp \
   esperanza/checkpoint.cpp \
@@ -284,6 +282,8 @@ libunite_server_a_SOURCES = \
   net.cpp \
   net_processing.cpp \
   noui.cpp \
+  p2p/embargoman.cpp \
+  p2p/embargoman_init.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \

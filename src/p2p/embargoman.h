@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_EMBARGOMAN_H
-#define UNITE_EMBARGOMAN_H
+#ifndef UNITE_P2P_EMBARGOMAN_H
+#define UNITE_P2P_EMBARGOMAN_H
 
 #include <stdint.h>
 #include <chrono>
@@ -91,4 +91,4 @@ class EmbargoMan {
 
 }  // namespace p2p
 
-#endif  //UNITE_EMBARGOMAN_H
+#endif  //UNITE_P2P_EMBARGOMAN_H
