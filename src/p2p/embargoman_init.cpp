@@ -126,4 +126,4 @@ std::unique_ptr<EmbargoMan> CreateEmbargoMan(CConnman &connman,
                                 std::move(sideEffects));
 }
 
-}  // namespace network
+}  // namespace p2p

@@ -9,8 +9,8 @@
 #include <memory>
 #include <set>
 
-#include <p2p/embargoman.h>
 #include <net.h>
+#include <p2p/embargoman.h>
 
 namespace p2p {
 
@@ -39,6 +39,6 @@ class EmbargoManParams {
 std::unique_ptr<EmbargoMan> CreateEmbargoMan(CConnman &connman,
                                              const EmbargoManParams &params);
 
-}  // namespace network
+}  // namespace p2p
 
 #endif  //UNITE_P2P_EMBARGOMAN_INIT_H

@@ -61,6 +61,7 @@ def main(argv):
   dirs = [
     "src/esperanza",
     "src/key",
+    "src/p2p",
     "src/proposer",
     "src/snapshot",
     "src/test/esperanza",
