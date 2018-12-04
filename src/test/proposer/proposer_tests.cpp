@@ -35,7 +35,7 @@ struct ProposerAccess<None> {
   size_t numThreads() const { return m_proposer.m_threads.size(); }
 
   const std::vector<CWallet *> &wallets(const size_t ix) const {
-    return m_proposer.m_threads[ix].m_wallets;
+    return m_proposer.m_threads[ix]->m_wallets;
   }
 };
 
