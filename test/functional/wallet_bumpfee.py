@@ -72,7 +72,7 @@ class BumpFeeTest(UnitETestFramework):
         test_settxfee(rbf_node, dest_address)
         test_rebumping(rbf_node, dest_address)
         test_rebumping_not_replaceable(rbf_node, dest_address)
-        # FIXME: Skipped, pending fix for issue #280
+        # UNIT-E: Skipped, pending fix for issue #280
         # test_unconfirmed_not_spendable(rbf_node, rbf_node_address)
         test_bumpfee_metadata(rbf_node, dest_address)
         test_locked_wallet_fails(rbf_node, dest_address)
