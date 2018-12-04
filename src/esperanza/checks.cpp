@@ -6,7 +6,7 @@
 #include <esperanza/adminparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/params.h>
+#include <esperanza/parameters.h>
 #include <finalization/vote_recorder.h>
 #include <script/interpreter.h>
 #include <script/standard.h>

@@ -8,8 +8,8 @@
 #include <esperanza/walletextension.h>
 
 #include <consensus/validation.h>
+#include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/validation.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
@@ -764,7 +764,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   CWalletTx slashTx;
   slashTx.fTimeReceivedIsTxTime = true;
-  slashTx.BindWallet(m_enclosingWallet);
+  slashTx.BindWallet(m_enclosing_wallet);
   slashTx.fFromMe = true;
 
   CMutableTransaction txNew;
@@ -802,21 +802,21 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   const uint32_t nIn = 0;
   SignatureData sigdata;
 
-  CReserveKey reservekey(m_enclosingWallet);
+  CReserveKey reservekey(m_enclosing_wallet);
   CPubKey pubKey;
   bool ret;
 
   ret = reservekey.GetReservedKey(pubKey, true);
 
   if (!ret) {
-    if (!m_enclosingWallet->GenerateNewKeys(100)) {
+    if (!m_enclosing_wallet->GenerateNewKeys(100)) {
       LogPrint(BCLog::FINALIZATION, "%s: Error: No keys available for creating the slashing transaction for: %s.\n",
                __func__, validatorAddress.GetHex());
       return false;
     }
   }
 
-  auto sigCreator = TransactionSignatureCreator(m_enclosingWallet, &txNewConst, nIn,
+  auto sigCreator = TransactionSignatureCreator(m_enclosing_wallet, &txNewConst, nIn,
                                                 burnOut.nValue, SIGHASH_ALL);
 
   std::vector<unsigned char> vchSig;
@@ -828,8 +828,8 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   slashTx.SetTx(MakeTransactionRef(std::move(txNew)));
 
-  m_enclosingWallet->CommitTransaction(slashTx, reservekey, g_connman.get(),
-                                       errState);
+  m_enclosing_wallet->CommitTransaction(slashTx, reservekey, g_connman.get(),
+                                        errState);
 
   if (errState.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit slash transaction: %s.\n",
@@ -901,7 +901,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
     switch (tx.GetType()) {
 
       case TxType::DEPOSIT: {
-        LOCK(m_enclosingWallet->cs_wallet);
+        LOCK(m_enclosing_wallet->cs_wallet);
         assert(validatorState);
         esperanza::ValidatorState &state = validatorState.get();
 
@@ -939,7 +939,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         break;
       }
       case TxType::LOGOUT: {
-        LOCK(m_enclosingWallet->cs_wallet);
+        LOCK(m_enclosing_wallet->cs_wallet);
         assert(validatorState);
         esperanza::ValidatorState &state = validatorState.get();
 
@@ -966,7 +966,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         break;
       }
       case TxType::VOTE: {
-        LOCK(m_enclosingWallet->cs_wallet);
+        LOCK(m_enclosing_wallet->cs_wallet);
         assert(validatorState);
         esperanza::ValidatorState &state = validatorState.get();
 
@@ -986,7 +986,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         break;
       }
       case TxType::SLASH: {
-        LOCK(m_enclosingWallet->cs_wallet);
+        LOCK(m_enclosing_wallet->cs_wallet);
         validatorState->m_phase = esperanza::ValidatorState::Phase::NOT_VALIDATING;
         LogPrint(BCLog::FINALIZATION, "DOOM: You have been slashed!");
       }

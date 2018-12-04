@@ -12,7 +12,7 @@
 #include <protocol.h>
 #include <esperanza/adminparams.h>
 #include <esperanza/finalizationparams.h>
-#include <esperanza/params.h>
+#include <esperanza/parameters.h>
 #include <snapshot/params.h>
 
 #include <memory>
