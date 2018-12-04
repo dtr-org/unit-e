@@ -905,103 +905,105 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
                                                const CBlockIndex *pIndex) {
 
   const CTransaction &tx = *ptx;
-  if (pIndex != nullptr) {
-    switch (tx.GetType()) {
 
-      case TxType::DEPOSIT: {
-        LOCK(m_enclosing_wallet->cs_wallet);
-        assert(validatorState);
-        esperanza::ValidatorState &state = validatorState.get();
-
-        const auto expectedPhase =
-            +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
-
-        if (state.m_phase == expectedPhase) {
-
-          state.m_phase = esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION;
-          LogPrint(BCLog::FINALIZATION,
-                   "%s: Validator waiting for deposit finalization. "
-                   "Deposit hash %s.\n",
-                   __func__, tx.GetHash().GetHex());
-
-          uint160 validatorAddress = uint160();
-
-          if (!esperanza::ExtractValidatorAddress(tx, validatorAddress)) {
-            LogPrint(BCLog::FINALIZATION,
-                     "ERROR: %s - Cannot extract validator index.\n");
-            return false;
-          }
-
-          state.m_validatorAddress = validatorAddress;
-          state.m_lastEsperanzaTx = ptx;
-          state.m_depositEpoch = esperanza::FinalizationState::GetEpoch(pIndex);
-
-        } else {
-          LogPrint(BCLog::FINALIZATION,
-                   "ERROR: %s - Wrong state for validator state with "
-                   "deposit %s, %s expected but %s found.\n",
-                   __func__, tx.GetHash().GetHex(), expectedPhase._to_string(),
-                   state.m_phase._to_string());
-          return false;
-        }
-        break;
-      }
-      case TxType::LOGOUT: {
-        LOCK(m_enclosing_wallet->cs_wallet);
-        assert(validatorState);
-        esperanza::ValidatorState &state = validatorState.get();
-
-        const auto expectedPhase = +esperanza::ValidatorState::Phase::IS_VALIDATING;
-
-        if (state.m_phase == expectedPhase) {
-
-          auto finalizationState = esperanza::FinalizationState::GetState(pIndex);
-
-          const esperanza::Validator *validator =
-              finalizationState->GetValidator(state.m_validatorAddress);
-
-          state.m_endDynasty = validator->m_endDynasty;
-          state.m_lastEsperanzaTx = ptx;
-
-        } else {
-          LogPrint(BCLog::FINALIZATION,
-                   "ERROR: %s - Wrong state for validator state when "
-                   "logging out. %s expected but %s found.\n",
-                   __func__, expectedPhase._to_string(),
-                   state.m_phase._to_string());
-          return false;
-        }
-        break;
-      }
-      case TxType::VOTE: {
-        LOCK(m_enclosing_wallet->cs_wallet);
-        assert(validatorState);
-        esperanza::ValidatorState &state = validatorState.get();
-
-        const auto expectedPhase =
-            +esperanza::ValidatorState::Phase::IS_VALIDATING;
-
-        if (state.m_phase == expectedPhase) {
-          state.m_lastEsperanzaTx = ptx;
-        } else {
-          LogPrint(BCLog::FINALIZATION,
-                   "ERROR: %s - Wrong state for validator state when "
-                   "voting. %s expected but %s found.\n",
-                   __func__, expectedPhase._to_string(),
-                   state.m_phase._to_string());
-          return false;
-        }
-        break;
-      }
-      case TxType::SLASH: {
-        LOCK(m_enclosing_wallet->cs_wallet);
-        validatorState->m_phase = esperanza::ValidatorState::Phase::NOT_VALIDATING;
-        LogPrint(BCLog::FINALIZATION, "DOOM: You have been slashed!");
-      }
-      default: { return true; }
-    }
+  if (pIndex == nullptr) {
+    return true;
   }
-  return true;
+
+  switch (tx.GetType()) {
+
+    case TxType::DEPOSIT: {
+      LOCK(m_enclosing_wallet->cs_wallet);
+      assert(validatorState);
+      esperanza::ValidatorState &state = validatorState.get();
+
+      const auto expectedPhase =
+          +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
+
+      if (state.m_phase == expectedPhase) {
+
+        state.m_phase = esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION;
+        LogPrint(BCLog::FINALIZATION,
+                 "%s: Validator waiting for deposit finalization. "
+                 "Deposit hash %s.\n",
+                 __func__, tx.GetHash().GetHex());
+
+        uint160 validatorAddress = uint160();
+
+        if (!esperanza::ExtractValidatorAddress(tx, validatorAddress)) {
+          LogPrint(BCLog::FINALIZATION,
+                   "ERROR: %s - Cannot extract validator index.\n");
+          return false;
+        }
+
+        state.m_validatorAddress = validatorAddress;
+        state.m_lastEsperanzaTx = ptx;
+        state.m_depositEpoch = esperanza::FinalizationState::GetEpoch(pIndex);
+
+      } else {
+        LogPrint(BCLog::FINALIZATION,
+                 "ERROR: %s - Wrong state for validator state with "
+                 "deposit %s, %s expected but %s found.\n",
+                 __func__, tx.GetHash().GetHex(), expectedPhase._to_string(),
+                 state.m_phase._to_string());
+        return false;
+      }
+      break;
+    }
+    case TxType::LOGOUT: {
+      LOCK(m_enclosing_wallet->cs_wallet);
+      assert(validatorState);
+      esperanza::ValidatorState &state = validatorState.get();
+
+      const auto expectedPhase = +esperanza::ValidatorState::Phase::IS_VALIDATING;
+
+      if (state.m_phase == expectedPhase) {
+
+        auto finalizationState = esperanza::FinalizationState::GetState(pIndex);
+
+        const esperanza::Validator *validator =
+            finalizationState->GetValidator(state.m_validatorAddress);
+
+        state.m_endDynasty = validator->m_endDynasty;
+        state.m_lastEsperanzaTx = ptx;
+
+      } else {
+        LogPrint(BCLog::FINALIZATION,
+                 "ERROR: %s - Wrong state for validator state when "
+                 "logging out. %s expected but %s found.\n",
+                 __func__, expectedPhase._to_string(),
+                 state.m_phase._to_string());
+        return false;
+      }
+      break;
+    }
+    case TxType::VOTE: {
+      LOCK(m_enclosing_wallet->cs_wallet);
+      assert(validatorState);
+      esperanza::ValidatorState &state = validatorState.get();
+
+      const auto expectedPhase =
+          +esperanza::ValidatorState::Phase::IS_VALIDATING;
+
+      if (state.m_phase == expectedPhase) {
+        state.m_lastEsperanzaTx = ptx;
+      } else {
+        LogPrint(BCLog::FINALIZATION,
+                 "ERROR: %s - Wrong state for validator state when "
+                 "voting. %s expected but %s found.\n",
+                 __func__, expectedPhase._to_string(),
+                 state.m_phase._to_string());
+        return false;
+      }
+      break;
+    }
+    case TxType::SLASH: {
+      LOCK(m_enclosing_wallet->cs_wallet);
+      validatorState->m_phase = esperanza::ValidatorState::Phase::NOT_VALIDATING;
+      LogPrint(BCLog::FINALIZATION, "DOOM: You have been slashed!");
+    }
+    default: { return true; }
+  }
 }
 
 const proposer::State &WalletExtension::GetProposerState() const {
@@ -1046,7 +1048,7 @@ void WalletExtension::ManagePendingSlashings() {
     std::swap(pendings, pendingSlashings);
   }
 
-  for (auto &pair : pendings) {
+  for (auto const &pair : pendings) {
     SendSlash(pair.first, pair.second);
   }
 }

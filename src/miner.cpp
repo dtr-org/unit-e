@@ -149,7 +149,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
 
-    AddVoteAndSlashTxs();
+    AddMandatoryTxs();
 
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
@@ -194,7 +194,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     return std::move(pblocktemplate);
 }
 
-void BlockAssembler::AddVoteAndSlashTxs()
+void BlockAssembler::AddMandatoryTxs()
 {
     auto mi = mempool.mapTx.get<ancestor_score>().begin();
     for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {

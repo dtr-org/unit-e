@@ -337,11 +337,11 @@ static Stacks CombineSignatures(const CScript& scriptPubKey, const BaseSignature
             return sigs1;
         return sigs2;
     case TX_PAYVOTESLASH: {
-      Stacks result;
-      std::vector<valtype> &resScript = result.script;
-      resScript.insert(resScript.end(), sigs1.script.begin(), sigs1.script.end());
-      resScript.insert(resScript.end(), sigs2.script.begin(), sigs2.script.end());
-      return result;
+        Stacks result;
+        std::vector<valtype> &resScript = result.script;
+        resScript.insert(resScript.end(), sigs1.script.begin(), sigs1.script.end());
+        resScript.insert(resScript.end(), sigs2.script.begin(), sigs2.script.end());
+        return result;
     }
     case TX_PUBKEY:
     case TX_PUBKEYHASH:

@@ -175,7 +175,7 @@ private:
      * Add all the votes and the slash transactions present in the mempool to
      * the being built block.
      */
-    void AddVoteAndSlashTxs();
+    void AddMandatoryTxs();
 
     // helper functions for addPackageTxs()
     /** Remove confirmed (inBlock) entries from given set */
