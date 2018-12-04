@@ -118,19 +118,6 @@ class ProposerImpl : public Proposer {
         //! [in] the wallets which this thread is responsible for.
         std::vector<CWallet *> &&);
 
-    Thread(Thread &&t)
-        : m_thread_name(t.m_thread_name),
-          m_proposer(t.m_proposer) {
-      // threads are stored in a vector which requires them to be movable
-      // in case the vector needs resizing. The vector in question is reserve()'d
-      // upfront so will not resize. So it will never actually be moved, but it
-      // would not compile without and the only containers that do not require
-      // MoveConstructible are std::list or std::array otherwise.
-      // This class is private to this implementation, so there should be no
-      // danger of misusing it.
-      throw std::runtime_error("not actually movable");
-    }
-
     //! stops this thread by setting m_interrupted to true and waking it
     void Stop();
 
@@ -164,7 +151,7 @@ class ProposerImpl : public Proposer {
   //! a semaphore for synchronizing start events
   CountingSemaphore m_startSemaphore;
 
-  std::vector<Thread> m_threads;
+  std::vector<std::unique_ptr<Thread>> m_threads;
 
   void CreateProposerThreads();
 

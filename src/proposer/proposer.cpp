@@ -84,7 +84,7 @@ void ProposerImpl::CreateProposerThreads() {
     }
     std::string threadName =
         m_settings->proposer_thread_prefix + "-" + std::to_string(threadIx);
-    m_threads.emplace_back(threadName, *this, std::move(thisThreadsWallets));
+    m_threads.push_back(MakeUnique<Thread>(threadName, *this, std::move(thisThreadsWallets)));
   }
 
   m_initSemaphore.acquire(numThreads);
@@ -111,10 +111,10 @@ ProposerImpl::~ProposerImpl() {
   }
   LogPrint(BCLog::PROPOSING, "Stopping proposer...\n");
   for (auto &thread : m_threads) {
-    thread.Stop();
+    thread->Stop();
   }
   for (auto &thread : m_threads) {
-    thread.Join();
+    thread->Join();
   }
 }
 
@@ -134,9 +134,9 @@ void ProposerImpl::Wake(const CWallet *wallet) {
   if (wallet) {
     // find and wake the thread that is responsible for this wallet
     for (auto &thread : m_threads) {
-      for (const auto w : thread.m_wallets) {
+      for (const auto w : thread->m_wallets) {
         if (w == wallet) {
-          thread.Wake();
+          thread->Wake();
           return;
         }
       }
@@ -144,7 +144,7 @@ void ProposerImpl::Wake(const CWallet *wallet) {
     // wake all threads
   } else {
     for (auto &thread : m_threads) {
-      thread.Wake();
+      thread->Wake();
     }
   }
 }
