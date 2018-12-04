@@ -13,7 +13,7 @@ for example rebroadcast source transaction
 """
 
 from test_framework.util import connect_nodes, connect_nodes_bi
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import P2PInterface, network_thread_start
 import time
 import os.path

@@ -15,7 +15,7 @@ other nodes have this transaction until embargo timeout
 """
 
 from test_framework.util import connect_nodes, assert_equal
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.test_framework import UnitETestFramework
 import time
 
 # Number of transactions to send in this test
