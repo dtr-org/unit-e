@@ -7,59 +7,59 @@
 namespace p2p {
 
 bool EmbargoManParams::Create(ArgsManager &args,
-                              p2p::EmbargoManParams &paramsOut,
-                              std::string &errorMessageOut) {
+                              p2p::EmbargoManParams &params_out,
+                              std::string &error_message_out) {
   EmbargoManParams params;
   params.enabled = args.GetBoolArg("-embargotxs", params.enabled);
 
-  const auto embargoMin =
-      args.GetArg("-embargomin", params.embargoMin.count());
+  const auto embargo_min =
+      args.GetArg("-embargomin", params.embargo_min.count());
 
-  const auto embargoAvgAdd =
-      args.GetArg("-embargoavgadd", params.embargoAvgAdd.count());
+  const auto embargo_avg_add =
+      args.GetArg("-embargoavgadd", params.embargo_avg_add.count());
 
-  if (embargoMin < 0) {
-    errorMessageOut = "Negative -embargomin";
+  if (embargo_min < 0) {
+    error_message_out = "Negative -embargomin";
     return false;
   }
 
-  if (embargoAvgAdd < 0) {
-    errorMessageOut = "Negative -embargoavgadd";
+  if (embargo_avg_add < 0) {
+    error_message_out = "Negative -embargoavgadd";
     return false;
   }
 
-  params.embargoMin = std::chrono::seconds(embargoMin);
-  params.embargoAvgAdd = std::chrono::seconds(embargoAvgAdd);
+  params.embargo_min = std::chrono::seconds(embargo_min);
+  params.embargo_avg_add = std::chrono::seconds(embargo_avg_add);
 
-  paramsOut = params;
+  params_out = params;
   return true;
 }
 
 std::string EmbargoManParams::GetHelpString() {
-  EmbargoManParams defaultParams;
+  EmbargoManParams default_params;
 
   return HelpMessageOpt("-embargotxs=<enable>", "Whether to use embargoing mechanism(aka Dandelion Lite). True by default") +
-         HelpMessageOpt("-embargomin=<seconds>", "Minimum embargo time. Default is " + std::to_string(defaultParams.embargoMin.count())) +
-         HelpMessageOpt("-embargoavgadd=<seconds>", "Average additive embargo time. Default is " + std::to_string(defaultParams.embargoAvgAdd.count()));
+         HelpMessageOpt("-embargomin=<seconds>", "Minimum embargo time. Default is " + std::to_string(default_params.embargo_min.count())) +
+         HelpMessageOpt("-embargoavgadd=<seconds>", "Average additive embargo time. Default is " + std::to_string(default_params.embargo_avg_add.count()));
 }
 
 class SideEffectsImpl : public EmbargoManSideEffects {
  public:
-  SideEffectsImpl(std::chrono::seconds embargoMin,
-                  std::chrono::seconds embargoAvgAdd,
+  SideEffectsImpl(std::chrono::seconds embargo_min,
+                  std::chrono::seconds embargo_avg_add,
                   CConnman &connman)
-      : m_embargoMin(embargoMin),
-        m_embargoAvgAdd(embargoAvgAdd),
+      : m_embargo_min(embargo_min),
+        m_embargo_avg_add(embargo_avg_add),
         m_connman(connman) {
   }
 
   EmbargoTime GetNextEmbargoTime() override {
     std::chrono::microseconds now = std::chrono::microseconds(GetTimeMicros());
-    now += m_embargoMin;
+    now += m_embargo_min;
 
-    const auto averageIntervalSeconds =
-        static_cast<int>(m_embargoAvgAdd.count());
-    return PoissonNextSend(now.count(), averageIntervalSeconds);
+    const auto average_interval_seconds =
+        static_cast<int>(m_embargo_avg_add.count());
+    return PoissonNextSend(now.count(), average_interval_seconds);
   }
 
   bool IsEmbargoDue(EmbargoTime time) override {
@@ -80,34 +80,34 @@ class SideEffectsImpl : public EmbargoManSideEffects {
     return nodes;
   }
 
-  size_t RandRange(size_t maxExcluding) override {
-    return m_random.randrange(maxExcluding);
+  size_t RandRange(size_t max_excluding) override {
+    return m_random.randrange(max_excluding);
   }
 
-  bool SendTxInv(NodeId nodeId, const uint256 &txHash) override {
-    return m_connman.ForNode(nodeId, [&txHash](CNode *node) {
+  bool SendTxInv(NodeId node_id, const uint256 &tx_hash) override {
+    return m_connman.ForNode(node_id, [&tx_hash](CNode *node) {
       // According to sdaftuar and gmaxwell
       // It is better to not send transactions directly
       // https://github.com/bitcoin/bitcoin/pull/13947/files#r210074699
-      CInv inv(MSG_TX, txHash);
+      CInv inv(MSG_TX, tx_hash);
       node->PushInventory(inv);
       return true;
     });
   }
 
-  void SendTxInvToAll(const uint256 &txHash) override {
-    return m_connman.ForEachNode([&txHash](CNode *node) {
+  void SendTxInvToAll(const uint256 &tx_hash) override {
+    return m_connman.ForEachNode([&tx_hash](CNode *node) {
       // According to sdaftuar and gmaxwell
       // It is better to not send transactions directly
       // https://github.com/bitcoin/bitcoin/pull/13947/files#r210074699
-      CInv inv(MSG_TX, txHash);
+      CInv inv(MSG_TX, tx_hash);
       node->PushInventory(inv);
     });
   }
 
  private:
-  const std::chrono::seconds m_embargoMin;
-  const std::chrono::seconds m_embargoAvgAdd;
+  const std::chrono::seconds m_embargo_min;
+  const std::chrono::seconds m_embargo_avg_add;
   CConnman &m_connman;
   FastRandomContext m_random;
 };
@@ -118,12 +118,12 @@ std::unique_ptr<EmbargoMan> CreateEmbargoMan(CConnman &connman,
     return nullptr;
   }
 
-  auto sideEffects = MakeUnique<SideEffectsImpl>(params.embargoMin,
-                                                 params.embargoAvgAdd,
-                                                 connman);
+  auto side_effects = MakeUnique<SideEffectsImpl>(params.embargo_min,
+                                                  params.embargo_avg_add,
+                                                  connman);
 
-  return MakeUnique<EmbargoMan>(params.timeoutsToSwitchRelay,
-                                std::move(sideEffects));
+  return MakeUnique<EmbargoMan>(params.timeouts_to_switch_relay,
+                                std::move(side_effects));
 }
 
 }  // namespace p2p

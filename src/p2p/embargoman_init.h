@@ -20,19 +20,19 @@ class EmbargoManParams {
   bool enabled = true;
 
   //! \brief minimum embargo time
-  std::chrono::seconds embargoMin = std::chrono::seconds(5);
+  std::chrono::seconds embargo_min = std::chrono::seconds(5);
 
   //! \brief average embargo time that is added to embargoMin
-  std::chrono::seconds embargoAvgAdd = std::chrono::seconds(2);
+  std::chrono::seconds embargo_avg_add = std::chrono::seconds(2);
 
   //! \brief minimum numbers of fluffs to switch relay
   //! If our relay turns out to be a black hole - attempt to switch it after so
   //! many embargo timeouts
-  size_t timeoutsToSwitchRelay = 2;
+  size_t timeouts_to_switch_relay = 2;
 
   static bool Create(ArgsManager &args,
-                     p2p::EmbargoManParams &paramsOut,
-                     std::string &errorMessageOut);
+                     p2p::EmbargoManParams &params_out,
+                     std::string &error_message_out);
   static std::string GetHelpString();
 };
 

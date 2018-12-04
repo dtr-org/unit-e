@@ -34,8 +34,8 @@ class EmbargoManSideEffects {
   virtual bool IsEmbargoDue(EmbargoTime time) = 0;
 
   virtual std::set<NodeId> GetOutboundNodes() = 0;
-  virtual size_t RandRange(size_t maxExcluding) = 0;
-  virtual bool SendTxInv(NodeId nodeId, const uint256 &txHash) = 0;
+  virtual size_t RandRange(size_t max_excluding) = 0;
+  virtual bool SendTxInv(NodeId node_id, const uint256 &tx_hash) = 0;
   virtual void SendTxInvToAll(const uint256 &tx) = 0;
 
   virtual ~EmbargoManSideEffects() = default;
@@ -44,41 +44,41 @@ class EmbargoManSideEffects {
 //! \brief Embargo manager, implements Dandelion lite privacy enhancement protocol
 class EmbargoMan {
  public:
-  explicit EmbargoMan(size_t timeoutsToSwitchRelay,
-                      std::unique_ptr<EmbargoManSideEffects> sideEffects);
+  explicit EmbargoMan(size_t timeouts_to_switch_relay,
+                      std::unique_ptr<EmbargoManSideEffects> side_effects);
 
   bool SendTransactionAndEmbargo(const CTransaction &tx);
 
   void FluffPendingEmbargoes();
 
-  bool IsEmbargoed(const uint256 &txHash) const;
+  bool IsEmbargoed(const uint256 &tx_hash) const;
 
-  bool IsEmbargoedFor(const uint256 &txHash, NodeId node) const;
+  bool IsEmbargoedFor(const uint256 &tx_hash, NodeId node) const;
 
-  void OnTxInv(const uint256 &txHash, NodeId from);
+  void OnTxInv(const uint256 &tx_hash, NodeId from);
 
  private:
   using EmbargoTime = EmbargoManSideEffects::EmbargoTime;
-  const size_t m_timeoutsToSwitchRelay;
-  std::unique_ptr<EmbargoManSideEffects> m_sideEffects;
+  const size_t m_timeouts_to_switch_relay;
+  std::unique_ptr<EmbargoManSideEffects> m_side_effects;
   boost::optional<NodeId> m_relay;
-  size_t m_timeoutsInARow = 0;
+  size_t m_timeouts_in_a_row = 0;
 
-  // Locking policy: lock everything with m_relayCs, except what accesses
-  // m_embargoToTx and m_embargoes - this might create deadlocks
-  // Never send something to network under m_embargoCs lock
-  mutable CCriticalSection m_relayCs;
-  mutable CCriticalSection m_embargoCs;
+  // Locking policy: lock everything with m_relay_cs, except what accesses
+  // m_embargo_to_tx and m_embargoes - this might create deadlocks
+  // Never send something to network under m_embargo_cs lock
+  mutable CCriticalSection m_relay_cs;
+  mutable CCriticalSection m_embargo_cs;
 
-  std::multimap<EmbargoTime, uint256> m_embargoToTx GUARDED_BY(m_embargoCs);
+  std::multimap<EmbargoTime, uint256> m_embargo_to_tx GUARDED_BY(m_embargo_cs);
 
   struct Embargo {
-    Embargo(NodeId relay, EmbargoTime embargoTime);
+    Embargo(NodeId relay, EmbargoTime embargo_time);
     NodeId relay;
-    EmbargoTime embargoTime;
+    EmbargoTime embargo_time;
   };
 
-  std::map<uint256, Embargo> m_embargoes GUARDED_BY(m_embargoCs);
+  std::map<uint256, Embargo> m_embargoes GUARDED_BY(m_embargo_cs);
 
   bool SendToAndRemember(NodeId relay, const CTransaction &tx);
 
@@ -86,7 +86,7 @@ class EmbargoMan {
 
  protected:
   boost::optional<NodeId> GetNewRelay();
-  std::set<NodeId> m_unwantedRelays;
+  std::set<NodeId> m_unwanted_relays;
 };
 
 }  // namespace p2p
