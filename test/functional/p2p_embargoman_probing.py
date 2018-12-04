@@ -74,7 +74,7 @@ class EmbargoProbing(UnitETestFramework):
             real_probe.get_mempool()
             imaginary_probe.get_mempool()
 
-            time.sleep(1)
+            time.sleep(0.5)
 
         while True:
             try:
@@ -83,7 +83,7 @@ class EmbargoProbing(UnitETestFramework):
             except AssertionError:
                 if time.perf_counter() - start_time >= EMBARGO_SECONDS:
                     raise
-                time.sleep(1)
+                time.sleep(0.5)
 
         while True:
             try:
@@ -91,9 +91,9 @@ class EmbargoProbing(UnitETestFramework):
                 check_after_embargo(real_probe)
                 break
             except AssertionError:
-                if time.perf_counter() - start_time - EMBARGO_SECONDS > 10:
+                if time.perf_counter() - start_time - EMBARGO_SECONDS > 30:
                     raise
-                time.sleep(1)
+                time.sleep(0.5)
 
 
 class Probe(P2PInterface):
