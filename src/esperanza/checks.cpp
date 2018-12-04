@@ -18,7 +18,7 @@ namespace esperanza {
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const CBlockIndex *pindex) {
 
-  assert(tx.GetType() == +TxType::DEPOSIT);
+  assert(tx.IsDeposit());
 
   if (tx.vin.empty() || tx.vout.empty()) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
@@ -56,7 +56,7 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
 
 bool IsVoteExpired(const CTransaction &tx) {
 
-  assert(tx.GetType() == +TxType::VOTE);
+  assert(tx.IsVote());
 
   Vote vote;
   std::vector<unsigned char> voteSig;
@@ -71,7 +71,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                             const Consensus::Params &consensusParams,
                             const CBlockIndex *pindex) {
 
-  assert(tx.GetType() == +TxType::LOGOUT);
+  assert(tx.IsLogout());
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
@@ -138,7 +138,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                               const Consensus::Params &consensusParams,
                               const CBlockIndex *pindex) {
 
-  assert(tx.GetType() == +TxType::WITHDRAW);
+  assert(tx.IsWithdraw());
 
   if (tx.vin.size() != 1 || tx.vout.size() > 3) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
@@ -203,7 +203,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const Consensus::Params &consensusParams,
                           const CBlockIndex *pindex) {
 
-  assert(tx.GetType() == +TxType::VOTE);
+  assert(tx.IsVote());
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
@@ -267,7 +267,7 @@ bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
                            const Consensus::Params &consensusParams,
                            const CBlockIndex *pindex) {
 
-  assert(tx.GetType() == +TxType::SLASH);
+  assert(tx.IsSlash());
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(100, false, REJECT_INVALID, "bad-slash-malformed");
