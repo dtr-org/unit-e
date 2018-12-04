@@ -94,6 +94,9 @@ class ProposerImpl : public Proposer {
     //! a name for this thread
     const std::string m_thread_name;
 
+    //! the underlying thread's handle
+    std::thread m_thread;
+
     //! reference to parent proposer
     ProposerImpl &m_proposer;
 
@@ -113,10 +116,13 @@ class ProposerImpl : public Proposer {
         //! [in] a reference to the parent proposer
         ProposerImpl &,
         //! [in] the wallets which this thread is responsible for.
-        const std::vector<CWallet *> &);
+        std::vector<CWallet *> &&);
 
     //! stops this thread by setting m_interrupted to true and waking it
     void Stop();
+
+    //! waits for this thread to actually have stopped
+    void Join();
 
     //! wakes this thread from sleeping if it is pacing right now
     void Wake();
@@ -145,13 +151,9 @@ class ProposerImpl : public Proposer {
   //! a semaphore for synchronizing start events
   CountingSemaphore m_startSemaphore;
 
-  //! a semaphore for synchronizing stop events
-  CountingSemaphore m_stopSemaphore;
-
   std::vector<std::unique_ptr<Thread>> m_threads;
 
-  std::vector<std::unique_ptr<ProposerImpl::Thread>> CreateProposerThreads(
-      Dependency<MultiWallet>);
+  void CreateProposerThreads();
 
   static void Run(Thread &);
 };
