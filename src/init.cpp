@@ -202,6 +202,10 @@ void Shutdown()
     StopREST();
     StopRPC();
     StopHTTPServer();
+
+    // stop all injected components, including proposer and validator
+    injector.reset();
+
 #ifdef ENABLE_WALLET
     FlushWallets();
 #endif
@@ -260,7 +264,6 @@ void Shutdown()
         if (pcoinsTip != nullptr) {
             FlushStateToDisk();
         }
-        injector.reset();
         pcoinsTip.reset();
         pcoinscatcher.reset();
         pcoinsdbview.reset();
