@@ -40,7 +40,6 @@ boost::optional<NodeId> EmbargoMan::GetNewRelay() {
 bool EmbargoMan::SendToAndRemember(NodeId relay,
                                    const CTransaction &tx) {
   AssertLockHeld(m_relay_cs);
-
   AssertLockNotHeld(m_embargo_cs);
 
   const auto tx_hash = tx.GetHash();
@@ -96,6 +95,7 @@ bool EmbargoMan::SendTransactionAndEmbargo(const CTransaction &tx) {
 
 void EmbargoMan::FluffPendingEmbargoes() {
   LOCK(m_relay_cs);
+  AssertLockNotHeld(m_embargo_cs);
 
   std::vector<uint256> txs_to_fluff;
 
@@ -139,7 +139,6 @@ void EmbargoMan::FluffPendingEmbargoes() {
     }
   }
 
-  AssertLockNotHeld(m_embargo_cs);
   for (const uint256 &tx : txs_to_fluff) {
     m_side_effects->SendTxInvToAll(tx);
   }
@@ -173,6 +172,8 @@ EmbargoMan::EmbargoMan(size_t timeouts_to_switch_relay,
 }
 
 void EmbargoMan::OnTxInv(const uint256 &tx_hash, NodeId from) {
+  AssertLockNotHeld(m_embargo_cs);
+
   {
     LOCK(m_embargo_cs);
 
@@ -195,7 +196,6 @@ void EmbargoMan::OnTxInv(const uint256 &tx_hash, NodeId from) {
              tx_hash.GetHex());
   }
 
-  AssertLockNotHeld(m_embargo_cs);
   m_side_effects->SendTxInvToAll(tx_hash);
 }
 
