@@ -8,7 +8,6 @@
 #include <esperanza/params.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
-#include <staking/kernel.h>
 #include <staking/stakevalidation.h>
 #include <util.h>
 #include <utilmoneystr.h>
@@ -20,16 +19,6 @@ static const size_t MAX_STAKE_SEEN_SIZE = 1000;
 
 static std::map<COutPoint, uint256> mapStakeSeen;
 static std::list<COutPoint> listStakeSeen;
-
-bool HasIsCoinstakeOp(const CScript &scriptIn) {
-  // UNIT-E: TODO: remove this function
-  return false;
-}
-
-bool GetCoinstakeScriptPath(const CScript &scriptIn, CScript &scriptOut) {
-  // UNIT-E: TODO: remove this function
-  return false;
-}
 
 bool AddToMapStakeSeen(const COutPoint &kernel, const uint256 &blockHash) {
   // Overwrites existing values
@@ -84,51 +73,6 @@ bool ExtractStakingKeyID(const CScript &scriptPubKey, CKeyID &keyID) {
     return true;
   }
   return false;
-}
-
-bool CheckBlock(const CBlock &pblock) {
-  uint256 proofHash, hashTarget;
-  uint256 hashBlock = pblock.GetHash();
-
-  if (!staking::CheckStakeUnique(pblock, false)) {  // Check in SignBlock also
-    return error("%s: %s CheckStakeUnique failed.", __func__,
-                 hashBlock.GetHex());
-  }
-
-  BlockMap::const_iterator mi = mapBlockIndex.find(pblock.hashPrevBlock);
-  if (mi == mapBlockIndex.end()) {
-    return error("%s: %s prev block not found: %s.", __func__,
-                 hashBlock.GetHex(), pblock.hashPrevBlock.GetHex());
-  }
-  if (!chainActive.Contains(mi->second)) {
-    return error("%s: %s prev block in active chain: %s.", __func__,
-                 hashBlock.GetHex(), pblock.hashPrevBlock.GetHex());
-  }
-  // verify hash target and signature of coinstake tx
-  if (!staking::CheckProofOfStake(mi->second, *pblock.vtx[0], pblock.nTime,
-                                  pblock.nBits, proofHash, hashTarget)) {
-    return error("%s: proof-of-stake checking failed.", __func__);
-  }
-
-  // debug print
-  LogPrintf(
-      "CheckStake(): New proof-of-stake block found  \n  hash: %s "
-      "\nproofhash: "
-      "%s  \ntarget: %s\n",
-      hashBlock.GetHex(), proofHash.GetHex(), hashTarget.GetHex());
-  if (LogAcceptCategory(BCLog::VALIDATION)) {
-    LogPrintf("block %s\n", pblock.ToString());
-    LogPrintf("out %s\n", FormatMoney(pblock.vtx[0]->GetValueOut()));
-  }
-
-  {
-    LOCK(cs_main);
-    if (pblock.hashPrevBlock !=
-        chainActive.Tip()->GetBlockHash())  // hashbestchain
-      return error("%s: Generated block is stale.", __func__);
-  }
-
-  return true;
 }
 
 }  // namespace staking

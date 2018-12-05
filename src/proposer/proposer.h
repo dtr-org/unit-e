@@ -140,16 +140,16 @@ class ProposerImpl : public Proposer {
   Dependency<MultiWallet> m_multi_wallet;
   Dependency<staking::Network> m_network;
   Dependency<staking::ChainState> m_chain;
-  Dependency<BlockProposer> m_blockProposer;
+  Dependency<BlockProposer> m_block_proposer;
 
   //! a flag for whether the proposer is started
   std::atomic_flag m_started = ATOMIC_FLAG_INIT;
 
   //! a semaphore for synchronizing initialization
-  CountingSemaphore m_initSemaphore;
+  CountingSemaphore m_init_semaphore;
 
   //! a semaphore for synchronizing start events
-  CountingSemaphore m_startSemaphore;
+  CountingSemaphore m_stop_semaphore;
 
   std::vector<std::unique_ptr<Thread>> m_threads;
 

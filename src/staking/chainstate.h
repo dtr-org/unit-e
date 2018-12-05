@@ -30,6 +30,11 @@ class ChainState {
 
  public:
   //! \brief access to the mutex that protects chain functions
+  //!
+  //! Usage: LOCK(chain->GetLock())
+  //!
+  //! This way the existing DEBUG_LOCKORDER and other debugging features can
+  //! work as expected.
   virtual CCriticalSection &GetLock() const = 0;
 
   //! \brief returns the height of the currently active chain.
