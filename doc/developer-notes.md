@@ -1,6 +1,9 @@
 Developer Notes
 ===============
 
+Style guide C++
+---------------
+
 Various coding styles have been used during the history of the codebase,
 and the result is not very consistent. However, we're now trying to converge to
 a single style. We are sticking to the
@@ -40,6 +43,21 @@ code.
   - `++i` is preferred over `i++`.
   - `nullptr` is preferred over `NULL` or `(void*)0`.
   - `static_assert` is preferred over `assert` where possible. Generally; compile-time checking is preferred over run-time checking.
+
+You can check the code for style violations by running
+[`contrib/devtools/lint-clang-format.py`](../contrib/devtools/lint-clang-format.py).
+Use the `--help` option to get more info how to use it.
+
+Copy the [`contrib/githooks/pre-commit`](../contrib/githooks/pre-commit) file to
+your `.git/hooks` directory and make it executable to automatically apply the
+defined style on your commits. If you don't want automatic changes, adapt the
+options of the call in the `pre-commit` file.
+
+Style guide Python
+------------------
+
+You can check the code for style violations by running
+[`contrib/devtools/lint-python.sh`](../contrib/devtools/lint-python.sh).
 
 UNIT-E tag
 ------------

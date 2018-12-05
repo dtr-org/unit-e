@@ -48,4 +48,4 @@ def checkfiles(action, pattern = None, glob = "*", dir = ".", invert = False, on
         violations.append(filename)
     return violations
   finally:
-    os.chdir(workingdirectory) # restory working directory
+    os.chdir(workingdirectory) # restore working directory

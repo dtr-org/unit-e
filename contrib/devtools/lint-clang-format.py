@@ -44,12 +44,12 @@ def checkandupdate(filename, replace = False, addtogit = False):
 def help(argv):
   print("Using: {0} [--check-commit] [--replace [--git-add]]".format(argv[0]))
   print()
-  print("Checking unit-e sources follow style guide.")
+  print("Check that unit-e sources follow the style guide.")
   print("With no options, just check all the project files.")
   print()
-  print("--check-commit   consider only Unit-E files from the current commit")
+  print("--check-commit   consider only unit-e files from the current commit")
   print("--replace        adjust unformatted files")
-  print("--git-add        add formated files back into your commit")
+  print("--git-add        add formatted files back into your commit")
   return 1
 
 def main(argv):
