@@ -76,7 +76,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         network_thread_start()
 
         # wait_for_verack ensures that the P2P connection is fully up.
-        self.proposer.p2p.wait_for_verack()
+        proposer.p2p.wait_for_verack()
 
         proposer.importmasterkey(
             'swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready')
@@ -88,8 +88,8 @@ class EsperanzaSlashTest(UnitETestFramework):
         self.validator_address = validator.getnewaddress("", "legacy")
         self.validator_privkey = validator.dumpprivkey(self.validator_address)
 
-        # wait for coinbase maturity
-        for n in range(0, 119):
+        # generate the first epoch
+        for n in range(0, 9):
             self.generate_block(proposer)
 
         sync_blocks(self.nodes)
@@ -106,30 +106,28 @@ class EsperanzaSlashTest(UnitETestFramework):
             sync_blocks(self.nodes)
             time.sleep(block_time)
 
-        self.wait_for_transaction(self.deposit_id, 60)
+        self.wait_for_transaction(self.deposit_id, 30)
 
         # cast double vote
-        target_hash = self.validator.getblockhash(14 * 10 - 1)
+        target_hash = self.validator.getblockhash(2 * 10 - 1)
         deposit_tx = self.validator.getrawtransaction(self.deposit_id, 1)
-        self.send_vote(deposit_tx, 13, 14, target_hash)
+        self.send_vote(deposit_tx, 1, 2, target_hash)
 
         others_fork_hash = '1230456000000000000000000000000000000000000000000000000000000321'
-        self.send_vote(deposit_tx, 13, 14, others_fork_hash)
+        self.send_vote(deposit_tx, 1, 2, others_fork_hash)
 
         # wait for slash transaction in mempool
-        time.sleep(15)
+        wait_until(self.wait_for_slash, timeout=15)
 
         # the mempool should have size 1 since the vote already sent should have been removed cause is a conflict
-        assert_equal(len(self.proposer.getrawmempool()), 1)
-        slash_tx = self.proposer.decoderawtransaction(self.proposer.getrawtransaction(self.proposer.getrawmempool()[0]))
+        assert_equal(len(proposer.getrawmempool()), 1)
+        slash_tx_id = proposer.getrawmempool()[0]
 
         # mine one more block
         block_hash = self.generate_block(proposer)
 
         # check that the slash transaction has been mined
-        assert(slash_tx['txid'] in self.proposer.getblock(block_hash[0])['tx'])
-
-        return
+        assert (slash_tx_id in proposer.getblock(block_hash[0])['tx'])
 
     def send_vote(self, prev_tx, source, target, target_hash):
 
@@ -140,8 +138,7 @@ class EsperanzaSlashTest(UnitETestFramework):
 
         tx = CTransaction()
         tx.nVersion = 0x00030001  # TxType::VOTE
-        script_sig = CScript([vote_data.serialize(vote_sig)])
-        tx.vin.append(CTxIn(COutPoint(int(prev_tx['txid'], 16), 0), script_sig))
+        tx.vin.append(CTxIn(COutPoint(int(prev_tx['txid'], 16), 0), vote_data.serialize(vote_sig)))
         tx.vout.append(CTxOut(int(prev_tx['vout'][0]['value'] * UNIT),
                               hex_str_to_bytes(prev_tx['vout'][0]['scriptPubKey']['hex'])))
 
@@ -163,26 +160,18 @@ class EsperanzaSlashTest(UnitETestFramework):
                 print("error generating block:", exp.error)
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
 
+    def wait_for_slash(self):
+        for tx_id in self.proposer.getrawmempool():
+            try:
+                raw_tx = self.proposer.getrawtransaction(tx_id)
+            except JSONRPCException:  # in case the transaction we are looking for is already gone from the mempool
+                continue
+
+            if raw_tx:
+                tx = self.proposer.decoderawtransaction(raw_tx)
+                if tx['txtype'] == 5:
+                    return True
+
 
 if __name__ == '__main__':
     EsperanzaSlashTest().main()
-    addr = 'muUx4dQ4bwssNQYpUqAJHSJCUonAZ4Ro2s'
-    pkey = 'cNJWVLVrfrxZT85cwYfHdbRKGi2FQjkKFBjocwwinNNix5tytG33'
-    source = 12
-    target = 13
-    target_hash = '4e7eae1625c033a05e92cff8d1591e4c7511888c264dbc8917ef94c3e66f22ef'
-
-    decoded_addr = "9930bc5ed6f2342300091545eb54a4479bd500b2"
-    print(decoded_addr + " : " + base58check_to_bytes(addr).hex())
-
-    vote_hash = "7091ddf76382959df742734d6e29081dd251c674465794c30be6dc47670d4ae7"
-    vote_data = Vote(addr, target_hash, int(source), int(target))
-    print(vote_hash + " : " + hexlify(vote_data.get_hash()[::-1]).decode("ascii"))
-
-    priv_key = "3081d302010104201581e5cab6229c8a0b5f1261769eec18ba671b465952eff1aa1ba4bd9bd6fec9a08185308182020101302c06072a8648ce3d0101022100fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f300604010004010704210279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798022100fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141020101a12403220003e0525b038e4d0b2d019a9dff9443c4c4dbef9d731044ec2e1401867d0afef142"
-    print(priv_key + " : " + hexlify(base58_to_bytes(pkey)[:-4]).decode("ascii"))
-
-    key = CECKey()
-    key.set_secretbytes(base58_to_bytes(pkey)[:-4])
-    vote_sig = "3045022100c36ef3ed3b2c774d0acc9356c711e89cac1dae47503429486b40c5c9b3ff532c022045a34e6a99df92f76d4778f497deddaec388f92d3e65e2cdd1b76736af3a7c4d "
-    print(vote_sig + " : " + hexlify(key.sign(vote_data.get_hash())).decode("ascii"))

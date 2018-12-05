@@ -997,13 +997,9 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       }
       break;
     }
-    case TxType::SLASH: {
-      LOCK(m_enclosing_wallet->cs_wallet);
-      validatorState->m_phase = esperanza::ValidatorState::Phase::NOT_VALIDATING;
-      LogPrint(BCLog::FINALIZATION, "DOOM: You have been slashed!");
-    }
     default: { return true; }
   }
+  return true;
 }
 
 const proposer::State &WalletExtension::GetProposerState() const {
