@@ -50,7 +50,7 @@ Use the `--help` option to get more info how to use it.
 
 Copy the [`contrib/githooks/pre-commit`](../contrib/githooks/pre-commit) file to
 your `.git/hooks` directory and make it executable to automatically apply the
-defined style on your commits. If you don't want automatic changes adapt the
+defined style on your commits. If you don't want automatic changes, adapt the
 options of the call in the `pre-commit` file.
 
 Style guide Python
