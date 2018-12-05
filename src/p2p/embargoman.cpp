@@ -144,12 +144,6 @@ void EmbargoMan::FluffPendingEmbargoes() {
   }
 }
 
-bool EmbargoMan::IsEmbargoed(const uint256 &tx_hash) const {
-  LOCK(m_embargo_cs);
-
-  return m_embargoes.find(tx_hash) != m_embargoes.end();
-}
-
 bool EmbargoMan::IsEmbargoedFor(const uint256 &tx_hash,
                                 NodeId node) const {
   LOCK(m_embargo_cs);

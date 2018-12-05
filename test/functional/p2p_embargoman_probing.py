@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-# Copyright(c) 2018 The unit - e core developers
+# Copyright(c) 2018 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http: // www.opensource.org/licenses/mit-license.php.
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
 Performs probing attack embargoed transactions.
 

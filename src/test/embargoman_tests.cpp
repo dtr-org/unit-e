@@ -181,7 +181,10 @@ BOOST_AUTO_TEST_CASE(change_relay_during_embargo) {
   // Relay has changed but invs from previous relay should not fluff txs
   for (const auto &blackhole_tx : blackhole_txs) {
     instance.OnTxInv(blackhole_tx, blackhole);
-    BOOST_CHECK(instance.IsEmbargoed(blackhole_tx));
+
+    // Blackholed transaction should not become 'visible' to the new relay
+    BOOST_CHECK(instance.IsEmbargoedFor(blackhole_tx, relay));
+    BOOST_CHECK(!instance.IsEmbargoedFor(blackhole_tx, blackhole));
   }
 
   instance.FluffPendingEmbargoes();
@@ -195,7 +198,9 @@ BOOST_AUTO_TEST_CASE(test_simple_embargoes) {
   const auto side_effects = new SideEffectsMock();
   auto u_ptr = std::unique_ptr<p2p::EmbargoManSideEffects>(side_effects);
 
-  side_effects->outbounds = {17};
+  const p2p::NodeId relay = 17;
+  const p2p::NodeId non_relay = 18;
+  side_effects->outbounds = {relay};
 
   p2p::EmbargoMan instance(1000, std::move(u_ptr));
 
@@ -212,31 +217,31 @@ BOOST_AUTO_TEST_CASE(test_simple_embargoes) {
   side_effects->next_embargo_time = 30;
   instance.SendTransactionAndEmbargo(*tx3);
 
-  BOOST_CHECK(instance.IsEmbargoed(tx1->GetHash()));
-  BOOST_CHECK(instance.IsEmbargoed(tx2->GetHash()));
-  BOOST_CHECK(instance.IsEmbargoed(tx3->GetHash()));
+  BOOST_CHECK(instance.IsEmbargoedFor(tx1->GetHash(), non_relay));
+  BOOST_CHECK(instance.IsEmbargoedFor(tx2->GetHash(), non_relay));
+  BOOST_CHECK(instance.IsEmbargoedFor(tx3->GetHash(), non_relay));
 
   side_effects->now = 15;
 
   instance.FluffPendingEmbargoes();
 
-  BOOST_CHECK(!instance.IsEmbargoed(tx1->GetHash()));
-  BOOST_CHECK(instance.IsEmbargoed(tx2->GetHash()));
-  BOOST_CHECK(instance.IsEmbargoed(tx3->GetHash()));
+  BOOST_CHECK(!instance.IsEmbargoedFor(tx1->GetHash(), non_relay));
+  BOOST_CHECK(instance.IsEmbargoedFor(tx2->GetHash(), non_relay));
+  BOOST_CHECK(instance.IsEmbargoedFor(tx3->GetHash(), non_relay));
 
   BOOST_CHECK_EQUAL(1, side_effects->txs_sent_to_all.count(tx1->GetHash()));
   BOOST_CHECK_EQUAL(0, side_effects->txs_sent_to_all.count(tx2->GetHash()));
   BOOST_CHECK_EQUAL(0, side_effects->txs_sent_to_all.count(tx3->GetHash()));
 
   // Received from relay -> embargo is not lifted
-  instance.OnTxInv(tx2->GetHash(), 17);
+  instance.OnTxInv(tx2->GetHash(), relay);
 
   // Received from other node -> embargo is lifted
   instance.OnTxInv(tx3->GetHash(), 1);
 
-  BOOST_CHECK(!instance.IsEmbargoed(tx1->GetHash()));
-  BOOST_CHECK(instance.IsEmbargoed(tx2->GetHash()));
-  BOOST_CHECK(!instance.IsEmbargoed(tx3->GetHash()));
+  BOOST_CHECK(!instance.IsEmbargoedFor(tx1->GetHash(), non_relay));
+  BOOST_CHECK(instance.IsEmbargoedFor(tx2->GetHash(), non_relay));
+  BOOST_CHECK(!instance.IsEmbargoedFor(tx3->GetHash(), non_relay));
 
   BOOST_CHECK_EQUAL(1, side_effects->txs_sent_to_all.count(tx1->GetHash()));
   BOOST_CHECK_EQUAL(0, side_effects->txs_sent_to_all.count(tx2->GetHash()));
@@ -245,9 +250,9 @@ BOOST_AUTO_TEST_CASE(test_simple_embargoes) {
   side_effects->now = 50;
   instance.FluffPendingEmbargoes();
 
-  BOOST_CHECK(!instance.IsEmbargoed(tx1->GetHash()));
-  BOOST_CHECK(!instance.IsEmbargoed(tx2->GetHash()));
-  BOOST_CHECK(!instance.IsEmbargoed(tx3->GetHash()));
+  BOOST_CHECK(!instance.IsEmbargoedFor(tx1->GetHash(), non_relay));
+  BOOST_CHECK(!instance.IsEmbargoedFor(tx2->GetHash(), non_relay));
+  BOOST_CHECK(!instance.IsEmbargoedFor(tx3->GetHash(), non_relay));
 
   BOOST_CHECK_EQUAL(1, side_effects->txs_sent_to_all.count(tx1->GetHash()));
   BOOST_CHECK_EQUAL(1, side_effects->txs_sent_to_all.count(tx2->GetHash()));
