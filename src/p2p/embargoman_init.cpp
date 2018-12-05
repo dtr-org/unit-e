@@ -6,7 +6,7 @@
 
 namespace p2p {
 
-bool EmbargoManParams::Create(ArgsManager &args,
+bool EmbargoManParams::Create(const ArgsManager &args,
                               p2p::EmbargoManParams &params_out,
                               std::string &error_message_out) {
   EmbargoManParams params;

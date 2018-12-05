@@ -12,7 +12,7 @@ boost::optional<NodeId> EmbargoMan::GetNewRelay() {
   // Get all available outbound connections
   std::set<NodeId> outbounds = m_side_effects->GetOutboundNodes();
 
-  // Some of unwanted nodes might have disconnected,
+  // Some of unwanted nodes might have been disconnected,
   // filter those that are not present in outbounds
   for (auto it = m_unwanted_relays.begin(); it != m_unwanted_relays.end();) {
     if (outbounds.find(*it) == outbounds.end()) {

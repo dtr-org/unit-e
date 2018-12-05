@@ -30,7 +30,7 @@ class EmbargoManParams {
   //! many embargo timeouts
   size_t timeouts_to_switch_relay = 2;
 
-  static bool Create(ArgsManager &args,
+  static bool Create(const ArgsManager &args,
                      p2p::EmbargoManParams &params_out,
                      std::string &error_message_out);
   static std::string GetHelpString();

@@ -1866,12 +1866,12 @@ bool AppInitMain()
         }
     }
 
-    p2p::EmbargoManParams embargoManParams;
-    std::string embargoManError;
-    if (!p2p::EmbargoManParams::Create(gArgs, embargoManParams, embargoManError)) {
-        return InitError(embargoManError);
+    p2p::EmbargoManParams embargo_man_params;
+    std::string embargo_man_error;
+    if (!p2p::EmbargoManParams::Create(gArgs, embargo_man_params, embargo_man_error)) {
+        return InitError(embargo_man_error);
     }
-    connman.embargoman = p2p::CreateEmbargoMan(connman, embargoManParams);
+    connman.embargoman = p2p::CreateEmbargoMan(connman, embargo_man_params);
 
     if (!connman.Start(scheduler, connOptions)) {
         return false;

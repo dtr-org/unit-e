@@ -71,8 +71,7 @@ class EmbargoManLoop(UnitETestFramework):
                 if not wait_for_debug_log_pattern(self.nodes[0],
                                                   "Embargo is lifted for tx: %s"
                                                   % tx):
-                    raise AssertionError(
-                        "Embargo was not lifted")
+                    raise AssertionError("Embargo was not lifted")
 
                 # Give time to everything to propagate
                 time.sleep(20)
