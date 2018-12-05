@@ -27,21 +27,6 @@ code.
 - **If-Statements**.
     - Always use braces around if statements, even blocks
       that contain just one statement.
-    - Avoid double negation.
-      ```c++
-      // bad
-      if (!smth) {
-        // do A
-      } else {
-        // do B
-      }
-
-      // good
-      if (smth) {
-        // do B
-      } else {
-        // do A
-      }
     - Prefer early return as a guard clause
       ```c++
       if (!smth) {
