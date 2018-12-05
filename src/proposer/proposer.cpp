@@ -87,7 +87,7 @@ void ProposerImpl::CreateProposerThreads() {
     m_threads.push_back(MakeUnique<Thread>(threadName, *this, std::move(thisThreadsWallets)));
   }
 
-  m_initSemaphore.acquire(numThreads);
+  m_init_semaphore.acquire(numThreads);
   LogPrint(BCLog::PROPOSING, "%d proposer threads initialized.\n", numThreads);
 }
 
@@ -100,9 +100,9 @@ ProposerImpl::ProposerImpl(Dependency<Settings> settings,
       m_multi_wallet(multiWallet),
       m_network(networkInterface),
       m_chain(chainInterface),
-      m_blockProposer(blockProposer),
-      m_initSemaphore(0),
-      m_startSemaphore(0) {}
+      m_block_proposer(blockProposer),
+      m_init_semaphore(0),
+      m_stop_semaphore(0) {}
 
 ProposerImpl::~ProposerImpl() {
   if (!m_started.test_and_set()) {
@@ -127,7 +127,7 @@ void ProposerImpl::Start() {
   CreateProposerThreads();
 
   LogPrint(BCLog::PROPOSING, "Starting proposer.\n");
-  m_startSemaphore.release(m_threads.size());
+  m_stop_semaphore.release(m_threads.size());
 }
 
 void ProposerImpl::Wake(const CWallet *wallet) {
@@ -160,8 +160,8 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
   for (const auto wallet : thread.m_wallets) {
     LogPrint(BCLog::PROPOSING, "  responsible for: %s\n", wallet->GetName());
   }
-  thread.m_proposer.m_initSemaphore.release();
-  thread.m_proposer.m_startSemaphore.acquire();
+  thread.m_proposer.m_init_semaphore.release();
+  thread.m_proposer.m_stop_semaphore.acquire();
   LogPrint(BCLog::PROPOSING, "%s: started.\n", thread.m_thread_name.c_str());
 
   while (!thread.m_interrupted) {
@@ -176,7 +176,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
         thread.Sleep(std::chrono::seconds(30));
         continue;
       }
-      if (g_connman->GetNodeCount() == 0) {
+      if (thread.m_proposer.m_network->GetNodeCount() == 0) {
         thread.SetStatus(Status::NOT_PROPOSING_NO_PEERS);
         thread.Sleep(std::chrono::seconds(30));
         continue;
@@ -277,7 +277,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
         blockProposal.blockTime = bestTime;
 
         std::shared_ptr<const CBlock> block =
-            thread.m_proposer.m_blockProposer->ProposeBlock(blockProposal);
+            thread.m_proposer.m_block_proposer->ProposeBlock(blockProposal);
 
         if (block) {
           walletExt.m_proposer_state.m_last_time_proposed = block->nTime;

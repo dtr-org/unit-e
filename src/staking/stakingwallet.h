@@ -25,11 +25,6 @@ class StakingWallet {
 
   virtual void AvailableCoinsForStaking(std::vector<::COutput> &vCoins) = 0;
 
-  virtual bool CreateCoinStake(unsigned int nBits, int64_t nTime,
-                               int nBlockHeight, int64_t nFees,
-                               ::CMutableTransaction &txNew,
-                               ::CKey &keyOut) = 0;
-
   virtual ~StakingWallet() = default;
 };
 

@@ -194,7 +194,6 @@ UNITE_CORE_H = \
   snapshot/state.h \
   staking/block_validator.h \
   staking/chainstate.h \
-  staking/kernel.h \
   staking/network.h \
   staking/stakingwallet.h \
   staking/stakevalidation.h \
@@ -346,7 +345,6 @@ libunite_wallet_a_SOURCES = \
   proposer/sync.cpp \
   proposer/waiter.cpp \
   rpc/proposer.cpp \
-  staking/kernel.cpp \
   staking/stakevalidation.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \
