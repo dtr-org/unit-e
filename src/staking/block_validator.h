@@ -40,7 +40,6 @@ BETTER_ENUM(
 class BlockValidationResult : public EnumSet<BlockValidationError> {
  public:
   BlockValidationResult() : EnumSet() {}
-  BlockValidationResult(std::initializer_list<BlockValidationError> errors) : EnumSet(errors) {}
 
   //! \brief Validation succeeded if there are no validation errors
   explicit operator bool() const {
