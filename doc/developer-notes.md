@@ -27,18 +27,28 @@ code.
 - **If-Statements**.
     - Always use braces around if statements, even blocks
       that contain just one statement.
-    - Avoid `if (!positive) {} else {}` condition.
+    - Avoid double negation.
       ```c++
-      // prefer switching the order
-      if (positive) {
+      // bad
+      if (!smth) {
+        // do A
       } else {
+        // do B
       }
 
-      // or even better
-      if (!positive) {
-        return; // terminate false scenario right away
+      // good
+      if (smth) {
+        // do B
+      } else {
+        // do A
       }
-      // continue with positive case
+    - Prefer early return as a guard clause
+      ```c++
+      if (!smth) {
+        return;
+      }
+
+      // continue with the valid case
       ```
 
 - **namespace**.
