@@ -74,7 +74,7 @@ class EmbargoMan {
 
   //! \brief Registers 'INV' for received transaction
   //!
-  //! If `from` is relay - then embargo is lifted and tx is fluffed
+  //! If `from` is not relay - then embargo is lifted and tx is fluffed
   //! No actions are taken otherwise
   void OnTxInv(const uint256 &tx_hash, NodeId from);
 
