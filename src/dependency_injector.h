@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
