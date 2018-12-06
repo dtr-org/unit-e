@@ -254,7 +254,6 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   CTransactionRef prevTx = validator.m_lastEsperanzaTx;
 
   const CScript &prevScriptPubkey = prevTx->vout[0].scriptPubKey;
-  CAmount amount = prevTx->vout[0].nValue;
 
   txNew.vin.push_back(CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
 
