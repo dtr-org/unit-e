@@ -28,6 +28,16 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
 
         nodes = self.nodes
 
+        def has_synced_blockchain(i):
+            def predicate():
+                status = nodes[i].proposerstatus()
+                return status['wallets'][0]['status'] != 'NOT_PROPOSING_SYNCING_BLOCKCHAIN'
+            return predicate
+
+        # wait for nodes to exit NOT_PROPOSING_SYNCING_BLOCKCHAIN status
+        for i in range(0, self.num_nodes):
+            wait_until(has_synced_blockchain(i))
+
         # at first none of the nodes will propose as it has no peers
         for i in range(0, self.num_nodes):
             status = nodes[i].proposerstatus()
