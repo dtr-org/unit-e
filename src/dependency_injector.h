@@ -11,6 +11,7 @@
 #include <boost/optional.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <functional>
 #include <map>
 #include <memory>
@@ -137,6 +138,23 @@ struct Invoker<> {
  public:                                                                    \
   Dependency<TYPE> Get##NAME() { return m_component_##NAME; }
 
+#define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                        \
+ private:                                                               \
+  static void Init##NAME(InjectorType *injector) {                      \
+    std::type_index typeIndex(typeid(TYPE));                            \
+    Component &component = injector->m_components[typeIndex];           \
+    injector->m_component_##NAME = POINTER;                             \
+    component.m_deleter = nullptr;                                      \
+    component.m_instance = injector->m_component_##NAME;                \
+  }                                                                     \
+  static Dependency<TYPE> Register##NAME(InjectorType *injector) {      \
+    return Registrator<TYPE>::Register<>(injector, #NAME, &Init##NAME); \
+  }                                                                     \
+  Dependency<TYPE> m_component_##NAME = Register##NAME(this);           \
+                                                                        \
+ public:                                                                \
+  Dependency<TYPE> Get##NAME() { return m_component_##NAME; }
+
 class InjectionError {
  public:
   virtual std::string ErrorMessage() const = 0;
@@ -166,8 +184,17 @@ class CircularDependenciesError : public InjectionError {
   }
 };
 
+class AlreadyInitializedError : public InjectionError {
+  std::string ErrorMessage() const override {
+    return "injector is already initialized (an attempt was made to re-initialize it)";
+  }
+};
+
 template <typename I>
 class Injector {
+
+ private:
+  std::atomic_flag m_initialized = ATOMIC_FLAG_INIT;
 
  protected:
   // `I` is not available in derived classes, a using declaration makes it
@@ -230,8 +257,14 @@ class Injector {
   };
 
   virtual ~Injector() {
+    if (!m_initialized.test_and_set()) {
+      // nothing to be done, was never initialized.
+      return;
+    }
     for (const std::type_index &componentType : m_destructionOrder) {
-      m_components[componentType].m_deleter(static_cast<I *>(this));
+      if (m_components[componentType].m_deleter) {
+        m_components[componentType].m_deleter(static_cast<I *>(this));
+      }
     }
   };
 
@@ -292,6 +325,9 @@ class Injector {
   }
 
   void Initialize() {
+    if (m_initialized.test_and_set()) {
+      throw AlreadyInitializedError();
+    }
     std::vector<std::type_index> initializationOrder =
         DetermineInitializationOrder();
     for (const std::type_index &componentType : initializationOrder) {

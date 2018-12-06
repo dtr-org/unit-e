@@ -63,6 +63,8 @@ std::string Z(const int *a, const double *b) {
 }
 }  // namespace TestNS
 
+namespace {
+
 class TestInjector : public Injector<TestInjector> {
   COMPONENT(A, TestNS::A, TestNS::A::Make)
   COMPONENT(X, TestNS::X, TestNS::X::Make)
@@ -86,6 +88,16 @@ class IncompleteInjector : public Injector<IncompleteInjector> {
   }
   COMPONENT(A, TestNS::A, MakeA, TestNS::C)
 };
+
+struct ComplexThing {
+  std::uint64_t a;
+  std::uint64_t b;
+  ComplexThing(std::uint64_t a, std::uint64_t b) : a(a), b(b) {}
+};
+
+std::unique_ptr<ComplexThing> global_ptr = MakeUnique<ComplexThing>(17, 13);
+
+}  // namespace
 
 namespace InjTestNS {
 
@@ -128,8 +140,17 @@ struct D {
     return MakeUnique<D>(a, c);
   }
 };
+struct Q {
+  Dependency<ComplexThing> complex_thing;
+  Q(Dependency<ComplexThing> complex_thing) : complex_thing(complex_thing) {}
+  static std::unique_ptr<Q> Make(Dependency<ComplexThing> complex_thing) {
+    return MakeUnique<Q>(complex_thing);
+  }
+};
 
 }  // namespace InjTestNS
+
+namespace {
 
 class Inj : public Injector<Inj> {
   COMPONENT(B, InjTestNS::W, InjTestNS::W::Make, InjTestNS::A)
@@ -137,6 +158,13 @@ class Inj : public Injector<Inj> {
   COMPONENT(A, InjTestNS::A, InjTestNS::A::Make)
   COMPONENT(C, InjTestNS::M, InjTestNS::M::Make, InjTestNS::A, InjTestNS::W)
 };
+
+class UnmanagedInj : public Injector<UnmanagedInj> {
+  UNMANAGED_COMPONENT(One, ComplexThing, global_ptr.get())
+  COMPONENT(Two, InjTestNS::Q, InjTestNS::Q::Make, ComplexThing)
+};
+
+}  // namespace
 
 template <typename T>
 struct LessPtr {
@@ -170,8 +198,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_cycle) {
 }
 
 BOOST_AUTO_TEST_CASE(topological_sort_complex_1) {
-  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1},
-                                            {4, 1}, {4, 0}, {5, 0}};
+  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1}, {4, 1}, {4, 0}, {5, 0}};
   const auto sorted = InjectorUtil::TopologicalSort<int>(edges);
   BOOST_CHECK(sorted);
   const std::vector<int> result = sorted.get();
@@ -180,8 +207,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_complex_1) {
 }
 
 BOOST_AUTO_TEST_CASE(topological_sort_complex_2) {
-  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1},
-                                            {4, 1}, {0, 4}, {0, 5}};
+  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1}, {4, 1}, {0, 4}, {0, 5}};
   const auto sorted = InjectorUtil::TopologicalSort<int>(edges);
   BOOST_CHECK(sorted);
   const std::vector<int> result = sorted.get();
@@ -190,8 +216,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_complex_2) {
 }
 
 BOOST_AUTO_TEST_CASE(topological_sort_complex_disconnected_graph) {
-  std::vector<std::pair<int, int>> edges = {{0, 1}, {0, 2}, {3, 4},
-                                            {3, 5}, {1, 2}, {4, 5}};
+  std::vector<std::pair<int, int>> edges = {{0, 1}, {0, 2}, {3, 4}, {3, 5}, {1, 2}, {4, 5}};
   const auto sorted = InjectorUtil::TopologicalSort<int>(edges);
   BOOST_CHECK(sorted);
   const std::vector<int> result = sorted.get();
@@ -202,8 +227,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_complex_disconnected_graph) {
 BOOST_AUTO_TEST_CASE(topological_sort_complex_strings) {
   std::string str[6] = {"0", "1", "2", "3", "4", "5"};
   std::vector<std::pair<std::string *, std::string *>> edges = {
-      {&str[5], &str[2]}, {&str[2], &str[3]}, {&str[3], &str[1]},
-      {&str[4], &str[1]}, {&str[0], &str[4]}, {&str[0], &str[5]}};
+      {&str[5], &str[2]}, {&str[2], &str[3]}, {&str[3], &str[1]}, {&str[4], &str[1]}, {&str[0], &str[4]}, {&str[0], &str[5]}};
   const boost::optional<std::vector<std::string *>> sorted =
       InjectorUtil::TopologicalSort<std::string *, LessPtr<std::string>>(edges);
   BOOST_CHECK(sorted);
@@ -271,6 +295,21 @@ BOOST_AUTO_TEST_CASE(initialize_all_dependencies) {
   BOOST_CHECK_EQUAL(d->c, c);
 }
 
+BOOST_AUTO_TEST_CASE(do_not_tear_down_unmanaged_dependencies) {
+  {
+    UnmanagedInj inj;
+    inj.Initialize();
+    auto one = inj.GetOne();
+    auto two = inj.GetTwo();
+    BOOST_CHECK(one != nullptr);
+    BOOST_CHECK(two != nullptr);
+    BOOST_CHECK_EQUAL(two->complex_thing, one);
+  }
+  // injector will be destroyed here, should not try to free global_ptr object
+  BOOST_CHECK_EQUAL(global_ptr->a, 17);
+  BOOST_CHECK_EQUAL(global_ptr->b, 13);
+}
+
 BOOST_AUTO_TEST_CASE(initialization_and_destruction_order) {
   std::shared_ptr<std::vector<std::string>> log;
   {
@@ -291,6 +330,13 @@ BOOST_AUTO_TEST_CASE(circular_dependencies) {
   CircularInjector inj;
   BOOST_CHECK_THROW(inj.DetermineInitializationOrder(),
                     CircularDependenciesError);
+}
+
+BOOST_AUTO_TEST_CASE(initialize_twice_id) {
+  Inj inj;
+  BOOST_CHECK_NO_THROW(inj.Initialize());
+  BOOST_CHECK_THROW(inj.Initialize(),
+                    AlreadyInitializedError);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -36,7 +36,7 @@ struct Settings {
   //! \brief maximum number of coins to combine when staking
   size_t max_stake_combine = 10;
 
-  static std::unique_ptr<Settings> New(Dependency<Ptr<ArgsManager>> args);
+  static std::unique_ptr<Settings> New(Dependency<ArgsManager> args);
 };
 
 }  // namespace proposer

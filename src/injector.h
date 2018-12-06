@@ -12,6 +12,7 @@
 #include <staking/network.h>
 #include <staking/transactionpicker.h>
 #include <util.h>
+#include <validation.h>
 
 #ifdef ENABLE_WALLET
 #include <proposer/blockproposer.h>
@@ -23,7 +24,7 @@
 
 class UnitEInjector : public Injector<UnitEInjector> {
 
-  COMPONENT(ArgsManager, Ptr<ArgsManager>, [] { return MakeUnique<Ptr<ArgsManager>>(&gArgs); })
+  UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
 
   COMPONENT(Network, staking::Network, staking::Network::New)
 
@@ -42,7 +43,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::TransactionPicker)
 
   COMPONENT(ProposerSettings, proposer::Settings, proposer::Settings::New,
-            Ptr<ArgsManager>)
+            ArgsManager)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
             staking::ChainState,

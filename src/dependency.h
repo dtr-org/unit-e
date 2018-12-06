@@ -9,12 +9,4 @@
 template<typename T>
 using Dependency = T*;
 
-//! \brief a module which is provided by but has a lifecycle independent from the injector.
-template <typename T>
-struct Ptr {
-  T *obj;
-
-  Ptr(T *obj) : obj(obj) {}
-};
-
 #endif //UNIT_E_DEPENDENCY_H

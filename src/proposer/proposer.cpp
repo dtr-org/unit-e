@@ -23,11 +23,11 @@ ProposerImpl::Thread::Thread(const std::string &threadName,
                              ProposerImpl &parentProposer,
                              std::vector<CWallet *> &&wallets)
     : m_thread_name(threadName),
-      m_thread(ProposerImpl::Run, std::ref(*this)),
       m_proposer(parentProposer),
       m_interrupted(false),
       m_waiter(),
-      m_wallets(std::move(wallets)) {}
+      m_wallets(std::move(wallets)),
+      m_thread(ProposerImpl::Run, std::ref(*this)) {}
 
 void ProposerImpl::Thread::Stop() {
   LogPrint(BCLog::PROPOSING, "Stopping proposer-thread %s...\n", m_thread_name);
@@ -157,9 +157,6 @@ int64_t seconds(const Duration t) {
 void ProposerImpl::Run(ProposerImpl::Thread &thread) {
   RenameThread(thread.m_thread_name.c_str());
   LogPrint(BCLog::PROPOSING, "%s: initialized.\n", thread.m_thread_name.c_str());
-  for (const auto wallet : thread.m_wallets) {
-    LogPrint(BCLog::PROPOSING, "  responsible for: %s\n", wallet->GetName());
-  }
   thread.m_proposer.m_init_semaphore.release();
   thread.m_proposer.m_stop_semaphore.acquire();
   LogPrint(BCLog::PROPOSING, "%s: started.\n", thread.m_thread_name.c_str());
