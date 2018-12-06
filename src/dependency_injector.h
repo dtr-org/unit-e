@@ -256,6 +256,10 @@ class Injector {
   };
 
   virtual ~Injector() {
+    if (!m_initialized.test_and_set()) {
+      // nothing to be done, was never initialized.
+      return;
+    }
     for (const std::type_index &componentType : m_destructionOrder) {
       if (m_components[componentType].m_deleter) {
         m_components[componentType].m_deleter(static_cast<I *>(this));
