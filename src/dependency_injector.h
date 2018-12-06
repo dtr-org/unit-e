@@ -120,14 +120,8 @@ struct Invoker<> {
 #define COMPONENT(NAME, TYPE, FACTORY, ...)                                 \
  private:                                                                   \
   static void Init##NAME(InjectorType *injector) {                          \
-    std::type_index typeIndex(typeid(TYPE));                                \
-    Component &component = injector->m_components[typeIndex];               \
-    const auto dependencies = GatherDependencies(injector, component);      \
-    std::unique_ptr<TYPE> *returnTypeDeductionHint = nullptr;               \
-    std::unique_ptr<TYPE> ptr = InjectorUtil::Invoker<__VA_ARGS__>::Invoke( \
-        returnTypeDeductionHint, FACTORY, dependencies, 0);                 \
-    injector->m_component_##NAME = ptr.release();                           \
-    component.m_instance = injector->m_component_##NAME;                    \
+    injector->m_component_##NAME = ComponentInitializer<TYPE>::             \
+      Managed<__VA_ARGS__>::Init(injector, FACTORY);                        \
   }                                                                         \
   static Dependency<TYPE> Register##NAME(InjectorType *injector) {          \
     return Registrator<TYPE>::Register<__VA_ARGS__>(injector, #NAME,        \
@@ -141,11 +135,8 @@ struct Invoker<> {
 #define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                        \
  private:                                                               \
   static void Init##NAME(InjectorType *injector) {                      \
-    std::type_index typeIndex(typeid(TYPE));                            \
-    Component &component = injector->m_components[typeIndex];           \
-    injector->m_component_##NAME = POINTER;                             \
-    component.m_deleter = nullptr;                                      \
-    component.m_instance = injector->m_component_##NAME;                \
+    injector->m_component_##NAME = ComponentInitializer<TYPE>::         \
+      Unmanaged::Init(injector, POINTER);                               \
   }                                                                     \
   static Dependency<TYPE> Register##NAME(InjectorType *injector) {      \
     return Registrator<TYPE>::Register<>(injector, #NAME, &Init##NAME); \
@@ -254,6 +245,35 @@ class Injector {
       injector->m_components[typeIndex] = std::move(component);
       return nullptr;
     }
+  };
+
+  template <typename ComponentType>
+  struct ComponentInitializer {
+    static Component &GetComponent(I *injector) {
+      return injector->m_components[typeid(ComponentType)];
+    }
+    template <typename... Args>
+    struct Managed {
+      template <typename F>
+      static ComponentType *Init(I *injector, F f) {
+        auto &component = GetComponent(injector);
+        const auto dependencies = GatherDependencies(injector, component);
+        std::unique_ptr<ComponentType> *returnTypeDeductionHint = nullptr;
+        auto ptr = InjectorUtil::Invoker<Args...>::
+          Invoke(returnTypeDeductionHint, f, dependencies, 0).release();
+        component.m_instance = ptr;
+        return ptr;
+      }
+    };
+    struct Unmanaged {
+      template <typename T>
+      static ComponentType *Init(I *injector, T *ptr) {
+        auto &component = GetComponent(injector);
+        component.m_instance = ptr;
+        component.m_deleter = nullptr;
+        return ptr;
+      }
+    };
   };
 
   virtual ~Injector() {
