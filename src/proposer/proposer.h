@@ -94,9 +94,6 @@ class ProposerImpl : public Proposer {
     //! a name for this thread
     const std::string m_thread_name;
 
-    //! the underlying thread's handle
-    std::thread m_thread;
-
     //! reference to parent proposer
     ProposerImpl &m_proposer;
 
@@ -109,6 +106,9 @@ class ProposerImpl : public Proposer {
 
     //! the wallets which this thread is responsible for to propose from.
     std::vector<CWallet *> m_wallets;
+
+    //! the underlying thread's handle
+    std::thread m_thread;
 
     Thread(
         //! [in] a name for this thread.
