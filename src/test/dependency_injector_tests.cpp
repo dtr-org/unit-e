@@ -170,8 +170,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_cycle) {
 }
 
 BOOST_AUTO_TEST_CASE(topological_sort_complex_1) {
-  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1},
-                                            {4, 1}, {4, 0}, {5, 0}};
+  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1}, {4, 1}, {4, 0}, {5, 0}};
   const auto sorted = InjectorUtil::TopologicalSort<int>(edges);
   BOOST_CHECK(sorted);
   const std::vector<int> result = sorted.get();
@@ -180,8 +179,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_complex_1) {
 }
 
 BOOST_AUTO_TEST_CASE(topological_sort_complex_2) {
-  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1},
-                                            {4, 1}, {0, 4}, {0, 5}};
+  std::vector<std::pair<int, int>> edges = {{5, 2}, {2, 3}, {3, 1}, {4, 1}, {0, 4}, {0, 5}};
   const auto sorted = InjectorUtil::TopologicalSort<int>(edges);
   BOOST_CHECK(sorted);
   const std::vector<int> result = sorted.get();
@@ -190,8 +188,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_complex_2) {
 }
 
 BOOST_AUTO_TEST_CASE(topological_sort_complex_disconnected_graph) {
-  std::vector<std::pair<int, int>> edges = {{0, 1}, {0, 2}, {3, 4},
-                                            {3, 5}, {1, 2}, {4, 5}};
+  std::vector<std::pair<int, int>> edges = {{0, 1}, {0, 2}, {3, 4}, {3, 5}, {1, 2}, {4, 5}};
   const auto sorted = InjectorUtil::TopologicalSort<int>(edges);
   BOOST_CHECK(sorted);
   const std::vector<int> result = sorted.get();
@@ -202,8 +199,7 @@ BOOST_AUTO_TEST_CASE(topological_sort_complex_disconnected_graph) {
 BOOST_AUTO_TEST_CASE(topological_sort_complex_strings) {
   std::string str[6] = {"0", "1", "2", "3", "4", "5"};
   std::vector<std::pair<std::string *, std::string *>> edges = {
-      {&str[5], &str[2]}, {&str[2], &str[3]}, {&str[3], &str[1]},
-      {&str[4], &str[1]}, {&str[0], &str[4]}, {&str[0], &str[5]}};
+      {&str[5], &str[2]}, {&str[2], &str[3]}, {&str[3], &str[1]}, {&str[4], &str[1]}, {&str[0], &str[4]}, {&str[0], &str[5]}};
   const boost::optional<std::vector<std::string *>> sorted =
       InjectorUtil::TopologicalSort<std::string *, LessPtr<std::string>>(edges);
   BOOST_CHECK(sorted);
@@ -291,6 +287,13 @@ BOOST_AUTO_TEST_CASE(circular_dependencies) {
   CircularInjector inj;
   BOOST_CHECK_THROW(inj.DetermineInitializationOrder(),
                     CircularDependenciesError);
+}
+
+BOOST_AUTO_TEST_CASE(initialize_twice_id) {
+  Inj inj;
+  BOOST_CHECK_NO_THROW(inj.Initialize());
+  BOOST_CHECK_THROW(inj.Initialize(),
+                    AlreadyInitializedError);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
