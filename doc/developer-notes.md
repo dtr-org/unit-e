@@ -27,12 +27,22 @@ code.
 - **Includes**. Make sure to always use `<>` notation instead of the "".
   This is done mostly for consistency with the current codebase.
 
-- **If-Statements**. Always use braces around if statements, even blocks
-  that contain just one statement.
+- **If-Statements**.
+    - Always use braces around if statements, even blocks
+      that contain just one statement.
+    - Prefer early return as a guard clause
+      ```c++
+      if (!smth) {
+        return;
+      }
 
-- **Pointer and Reference declarations**. When declaring a pointer/reference
-  variable or argument you must put the * or & adjacent to the variable name.
-  This is also reflected in the `.clang-format` file.
+      // continue with the valid case
+      ```
+
+- **namespace**.
+    - files in `src/` don't have namespace
+    - files in `src/directory` have `directory` namespace
+    - avoid nested directories/namespaces
 
 - **Uniform initialization**. Rationale:
   [Uniform initialization isn't](https://medium.com/@barryrevzin/uniform-initialization-isnt-82533d3b9c11).
