@@ -34,7 +34,8 @@ class EmbargoManParams {
                      p2p::EmbargoManParams &params_out,
                      std::string &error_message_out);
 
-  EmbargoManParams() = default;
+  // Required by some old compilers
+  EmbargoManParams() {}
 };
 
 std::unique_ptr<EmbargoMan> CreateEmbargoMan(CConnman &connman,
