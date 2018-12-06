@@ -61,7 +61,7 @@ class AdminValidation(UnitETestFramework):
 
     def send_via_mininode(self, cmds, address):
         funds_tx = self.admin.sendtoaddress(address, Decimal("1"))
-        self.wait_for_transaction(funds_tx, timeout=10)
+        self.wait_for_transaction(funds_tx, timeout=60)
         _, n = Admin.find_output_for_address(self.admin, funds_tx, address)
 
         raw_tx = create_tx(cmds, self.admin, funds_tx, n, address,

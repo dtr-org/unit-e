@@ -57,7 +57,7 @@ class AdminFullCycle(UnitETestFramework):
             for i in range(n_utxos_needed - 1):
                 max_utxo -= (MIN_DEPOSIT_SIZE + 1)
                 exchange_tx = node.sendtoaddress(self.address, max_utxo)
-                framework.wait_for_transaction(exchange_tx, timeout=10)
+                framework.wait_for_transaction(exchange_tx, timeout=60)
 
         def deposit_reject(self):
             assert_raises_rpc_error(None, "Cannot create deposit",
@@ -66,15 +66,15 @@ class AdminFullCycle(UnitETestFramework):
 
         def deposit_ok(self):
             tx = self.node.deposit(self.address, MIN_DEPOSIT_SIZE)
-            self.framework.wait_for_transaction(tx, timeout=10)
+            self.framework.wait_for_transaction(tx, timeout=60)
 
         def logout_ok(self):
             tx = self.node.logout()
-            self.framework.wait_for_transaction(tx, timeout=10)
+            self.framework.wait_for_transaction(tx, timeout=60)
 
         def withdraw_ok(self):
             tx = self.node.withdraw(self.address)
-            self.framework.wait_for_transaction(tx, timeout=10)
+            self.framework.wait_for_transaction(tx, timeout=60)
 
     def set_test_params(self):
         self.num_nodes = 4
