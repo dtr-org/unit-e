@@ -33,6 +33,8 @@ class EmbargoManParams {
   static bool Create(const ArgsManager &args,
                      p2p::EmbargoManParams &params_out,
                      std::string &error_message_out);
+
+  EmbargoManParams() = default;
 };
 
 std::unique_ptr<EmbargoMan> CreateEmbargoMan(CConnman &connman,
