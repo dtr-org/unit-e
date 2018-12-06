@@ -157,9 +157,6 @@ int64_t seconds(const Duration t) {
 void ProposerImpl::Run(ProposerImpl::Thread &thread) {
   RenameThread(thread.m_thread_name.c_str());
   LogPrint(BCLog::PROPOSING, "%s: initialized.\n", thread.m_thread_name.c_str());
-  for (const auto wallet : thread.m_wallets) {
-    LogPrint(BCLog::PROPOSING, "  responsible for: %s\n", wallet->GetName());
-  }
   thread.m_proposer.m_init_semaphore.release();
   thread.m_proposer.m_stop_semaphore.acquire();
   LogPrint(BCLog::PROPOSING, "%s: started.\n", thread.m_thread_name.c_str());
