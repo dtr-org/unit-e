@@ -4,11 +4,11 @@
 
 #include <test/test_unite.h>
 
-#include <chainparams.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <crypto/sha256.h>
 #include <esperanza/finalizationstate.h>
+#include <finalization/vote_recorder.h>
 #include <validation.h>
 #include <miner.h>
 #include <net_processing.h>
@@ -117,6 +117,8 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
 
         esperanza::FinalizationState::Reset(chainparams.GetFinalization(),
                                             chainparams.GetAdminParams());
+
+        finalization::VoteRecorder::Reset();
 
         mempool.setSanityCheck(1.0);
         pblocktree.reset(new CBlockTreeDB(1 << 20, true));

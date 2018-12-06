@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_ESPERANZA_PARAMS_H
-#define UNITE_ESPERANZA_PARAMS_H
+#ifndef UNITE_ESPERANZA_PARAMETERS_H
+#define UNITE_ESPERANZA_PARAMETERS_H
 
 #include <chain.h>
 #include <stdint.h>
@@ -15,7 +15,7 @@ namespace esperanza {
 /*!
  * \brief Esperanza Proof-of-Stake specific blockchain parameters.
  */
-class Params final {
+class Parameters final {
 
  private:
   //! chain params these params are embedded in
@@ -37,8 +37,10 @@ class Params final {
 
   int64_t m_coinYearReward = 2 * EEES;  // 2% per year
 
+  Parameters() = default;
+
  public:
-  Params(const CChainParams *chainParams);
+  explicit Parameters(const CChainParams &chainParams);
 
   uint32_t GetModifierInterval() const;
 
@@ -58,4 +60,4 @@ class Params final {
 
 }  // namespace esperanza
 
-#endif  // UNITE_ESPERANZA_PARAMS_H
+#endif  // UNITE_ESPERANZA_PARAMETERS_H

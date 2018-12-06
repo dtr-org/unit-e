@@ -1077,103 +1077,8 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 }
             }
 
-            if (pIndex != nullptr) {
-              switch (tx.GetType()) {
-
-                case TxType::DEPOSIT: {
-                  LOCK(cs_wallet);
-                  esperanza::ValidatorState& state =
-                      m_stakingExtension.validatorState;
-
-                  const auto expectedPhase = +esperanza::ValidatorState::Phase::
-                      WAITING_DEPOSIT_CONFIRMATION;
-
-                  if (state.m_phase == expectedPhase) {
-
-                    state.m_phase = esperanza::ValidatorState::Phase::
-                        WAITING_DEPOSIT_FINALIZATION;
-                    LogPrint(BCLog::FINALIZATION,
-                             "%s: Validator waiting for deposit finalization. "
-                             "Deposit hash %s.\n",
-                             __func__, tx.GetHash().GetHex());
-
-                    uint160 validatorAddress = uint160();
-
-                    if(!esperanza::ExtractValidatorAddress(tx, validatorAddress)) {
-                      LogPrint(BCLog::FINALIZATION,
-                               "ERROR: %s - Cannot extract validator index.\n");
-                      return false;
-                    }
-
-                    state.m_validatorAddress = validatorAddress;
-                    state.m_lastEsperanzaTx = ptx;
-                    state.m_depositEpoch =
-                        esperanza::FinalizationState::GetEpoch(pIndex);
-
-                  } else {
-                    LogPrint(BCLog::FINALIZATION,
-                             "ERROR: %s - Wrong state for validator state with "
-                             "deposit %s, %s expected but %s found.\n",
-                             __func__, tx.GetHash().GetHex(),
-                             expectedPhase._to_string(),
-                             state.m_phase._to_string());
-                    return false;
-                  }
-                  break;
-                }
-                case TxType::LOGOUT: {
-                  LOCK(cs_wallet);
-                  esperanza::ValidatorState& state =
-                      m_stakingExtension.validatorState;
-
-                  const auto expectedPhase =
-                      +esperanza::ValidatorState::Phase::IS_VALIDATING;
-
-                  if (state.m_phase == expectedPhase) {
-
-                    auto finalizationState =
-                        esperanza::FinalizationState::GetState(pIndex);
-
-                    const esperanza::Validator* validator =
-                        finalizationState->GetValidator(state.m_validatorAddress);
-
-                    state.m_endDynasty = validator->m_endDynasty;
-                    state.m_lastEsperanzaTx = ptx;
-
-                  } else {
-                    LogPrint(BCLog::FINALIZATION,
-                             "ERROR: %s - Wrong state for validator state when "
-                             "logging out. %s expected but %s found.\n",
-                             __func__,
-                             expectedPhase._to_string(),
-                             state.m_phase._to_string());
-                    return false;
-                  }
-                  break;
-                }
-                case TxType::VOTE: {
-                  LOCK(cs_wallet);
-                  esperanza::ValidatorState& state =
-                      m_stakingExtension.validatorState;
-
-                  const auto expectedPhase =
-                      +esperanza::ValidatorState::Phase::IS_VALIDATING;
-
-                  if (state.m_phase == expectedPhase) {
-                      state.m_lastEsperanzaTx = ptx;
-                  } else {
-                    LogPrint(BCLog::FINALIZATION,
-                             "ERROR: %s - Wrong state for validator state when "
-                             "voting. %s expected but %s found.\n",
-                             __func__,
-                             expectedPhase._to_string(),
-                             state.m_phase._to_string());
-                    return false;
-                  }
-                  break;
-                }
-                default: { break; }
-              }
+            if (!m_walletExtension.AddToWalletIfInvolvingMe(ptx, pIndex)) {
+              return false;
             }
 
             CWalletTx wtx(this, ptx);
@@ -1343,6 +1248,10 @@ void CWallet::TransactionAddedToMempool(const CTransactionRef& ptx) {
     }
 }
 
+void CWallet::SlashingConditionDetected(const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {
+      m_walletExtension.SlashingConditionDetected(vote1, vote2);
+}
+
 void CWallet::TransactionRemovedFromMempool(const CTransactionRef &ptx) {
     LOCK(cs_wallet);
     auto it = mapWallet.find(ptx->GetHash());
@@ -1372,7 +1281,7 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
 
     m_last_block_processed = pindex;
 
-    m_stakingExtension.BlockConnected(pblock, pindex);
+    m_walletExtension.BlockConnected(pblock, pindex);
 }
 
 void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
@@ -3363,6 +3272,12 @@ void CWallet::LoadKeyPool(int64_t nIndex, const CKeyPool &keypool)
     }
 }
 
+bool CWallet::GenerateNewKeys(unsigned int amount)
+{
+    auto currentKeys = setExternalKeyPool.size();
+    return TopUpKeyPool(currentKeys + amount);
+}
+
 bool CWallet::TopUpKeyPool(unsigned int kpSize)
 {
     {
@@ -4049,7 +3964,7 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::Settings& esperanzaSetti
         }
     }
 
-  walletInstance->m_stakingExtension.ReadValidatorStateFromFile();
+    walletInstance->m_walletExtension.ReadValidatorStateFromFile();
 
     LogPrintf(" wallet      %15dms\n", GetTimeMillis() - nStart);
 
@@ -4151,6 +4066,8 @@ void CWallet::postInitProcess(CScheduler& scheduler)
     if (!CWallet::fFlushScheduled.exchange(true)) {
         scheduler.scheduleEvery(MaybeCompactWalletDB, 500);
     }
+
+    m_walletExtension.PostInitProcess(scheduler);
 }
 
 bool CWallet::BackupWallet(const std::string& strDest)
@@ -4347,5 +4264,5 @@ CTxDestination CWallet::AddAndGetDestinationForScript(const CScript& script, Out
 }
 
 esperanza::WalletExtension& CWallet::GetWalletExtension() {
-    return this->m_stakingExtension;
+    return this->m_walletExtension;
 }

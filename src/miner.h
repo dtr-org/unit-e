@@ -172,9 +172,10 @@ private:
     void addPackageTxs(int &nPackagesSelected, int &nDescendantsUpdated);
 
     /**
-     * Add all the votes present in the mempool to the being built block.
+     * Add all the votes and the slash transactions present in the mempool to
+     * the being built block.
      */
-    void AddVoteTxs();
+    void AddMandatoryTxs();
 
     // helper functions for addPackageTxs()
     /** Remove confirmed (inBlock) entries from given set */

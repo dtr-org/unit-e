@@ -6,6 +6,7 @@
 #ifndef UNITE_VALIDATIONINTERFACE_H
 #define UNITE_VALIDATIONINTERFACE_H
 
+#include <finalization/vote_recorder.h>
 #include <primitives/transaction.h> // CTransaction(Ref)
 
 #include <functional>
@@ -114,6 +115,12 @@ protected:
      * Notifies listeners that a block which builds directly on our current tip
      * has been received and connected to the headers tree, though not validated yet */
     virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block) {};
+
+    /**
+     * Notifies listeners that a slashable event has be detected
+     */
+    virtual void SlashingConditionDetected(const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {};
+
     friend void ::RegisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterAllValidationInterfaces();
@@ -154,6 +161,7 @@ public:
     void Broadcast(int64_t nBestBlockTime, CConnman* connman);
     void BlockChecked(const CBlock&, const CValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
+    void SlashingConditionDetected(const finalization::VoteRecord &, const finalization::VoteRecord &);
 };
 
 CMainSignals& GetMainSignals();

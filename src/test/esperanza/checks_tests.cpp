@@ -16,12 +16,9 @@
 
 using namespace esperanza;
 
-const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
-const int64_t EPOCH_LENGTH = 50;
-
 BOOST_FIXTURE_TEST_SUITE(finalization_validation_tests, TestingSetup)
 
-BOOST_AUTO_TEST_CASE(isvoteexpired) {
+BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
   FinalizationState *esperanza = FinalizationState::GetState();
 
@@ -59,7 +56,26 @@ BOOST_AUTO_TEST_CASE(isvoteexpired) {
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(currentOtherFork, k)), false);
 }
 
-BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
+BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
+
+  CKey key;
+  key.MakeNewKey(true);
+  Vote vote = Vote{key.GetPubKey().GetID(), GetRandHash(), 0, 2};
+  CTransaction tx = CreateVoteTx(vote, key);
+  CMutableTransaction mutedTx(tx);
+
+  // Replace the vote with something meaningless
+  mutedTx.vin[0].scriptSig = CScript() << 1337;
+
+  CTransaction invalidVote(mutedTx);
+  Consensus::Params params = Params().GetConsensus();
+  CValidationState errState;
+  BOOST_CHECK(CheckVoteTransaction(errState, invalidVote, params) == false);
+
+  BOOST_CHECK_EQUAL("bad-vote-data-format", errState.GetRejectReason());
+}
+
+BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_deposit) {
 
   CKey k;
   InsecureNewKey(k, true);
@@ -77,7 +93,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_deposit) {
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
-BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
+BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_logout) {
 
   CKey k;
   InsecureNewKey(k, true);
@@ -95,7 +111,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_logout) {
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
-BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
+BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_withdraw) {
 
   CKey k;
   InsecureNewKey(k, true);
@@ -113,7 +129,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_withdraw) {
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
 }
 
-BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
+BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_p2pkh_fails) {
 
   CKey k;
   InsecureNewKey(k, true);
@@ -129,7 +145,7 @@ BOOST_AUTO_TEST_CASE(extractvalidatorindex_p2pkh_fails) {
   BOOST_CHECK(ExtractValidatorAddress(p2pkh, validatorAddress) == false);
 }
 
-BOOST_AUTO_TEST_CASE(extractvalidatorindex_vote_fails) {
+BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_vote_fails) {
 
   Vote vote{};
 

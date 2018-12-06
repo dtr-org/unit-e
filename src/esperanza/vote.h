@@ -5,6 +5,7 @@
 #ifndef UNITE_ESPERANZA_VOTE_H
 #define UNITE_ESPERANZA_VOTE_H
 
+#include <pubkey.h>
 #include <stdint.h>
 #include <uint256.h>
 
@@ -34,7 +35,11 @@ class Vote {
   static bool CreateSignature(CKeyStore *keystore, const Vote &vote,
                               std::vector<unsigned char> &voteSigOut);
 
+  static bool CheckSignature(const CPubKey &pubkey, const Vote &vote,
+                             std::vector<unsigned char> &voteSig);
+
   uint256 GetHash() const;
+  std::string ToString() const;
 };
 
 }  // namespace esperanza

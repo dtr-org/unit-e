@@ -42,7 +42,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
     def run_test(self):
         nodes = self.nodes
-        block_time = 1
+        block_time = 0.1
 
         validator = nodes[0]
 
@@ -67,7 +67,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         deposit_tx = validator.deposit(validator_address, 10000)
 
         # wait for transaction to propagate
-        self.wait_for_transaction(deposit_tx)
+        self.wait_for_transaction(deposit_tx, 30)
 
         # mine 20 blocks (2 dynasties if we keep finalizing) to allow the deposit to get included in a block
         # and dynastyLogoutDelay to expire
@@ -83,13 +83,13 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
         logout_tx = validator.logout()
-        self.wait_for_transaction(logout_tx)
+        self.wait_for_transaction(logout_tx, 30)
 
         # wait for 2 dynasties since logout so we are not required to vote anymore
         for n in range(0, 20):
             self.generate_block(nodes[(n % 3) + 1])
             time.sleep(block_time)
-            sync_blocks(self.nodes)
+            self.sync_all()
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
@@ -100,10 +100,14 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         for n in range(0, 140):
             self.generate_block(nodes[(n % 3) + 1])
             time.sleep(block_time)
-            sync_blocks(self.nodes)
+            self.sync_all()
+
+        # check that there is no leftover vote in the mempool,
+        # this might happen if votes are outdated but not pruned yet
+        assert_equal(len(validator.getrawmempool()), 0)
 
         withdraw_id = validator.withdraw(validator_address)
-        self.wait_for_transaction(withdraw_id)
+        self.wait_for_transaction(withdraw_id, 30)
 
         # let's mine the withdraw
         self.generate_block(nodes[1])

@@ -430,15 +430,21 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 //UNIT-E: implement OP logic
                 case OP_CHECKVOTESIG:
                 {
-                    if (stack.size() < 3) {
-                        CScriptNum bn(OP_FALSE);
-                        stack.push_back(bn.getvch());
+                    popstack(stack);
+                    if (stack.size() == 2) {
+                      valtype vch1 = stacktop(-1);
+                      if (vch1.size() < 129) {
+                          CScriptNum bn(OP_FALSE);
+                          stack.push_back(bn.getvch());
+                          break;
+                      }
+                      popstack(stack);
+                      popstack(stack);
+                      CScriptNum bn(OP_TRUE);
+                      stack.push_back(bn.getvch());
                     } else {
-                        popstack(stack);
-                        popstack(stack);
-                        popstack(stack);
-                        CScriptNum bn(OP_TRUE);
-                        stack.push_back(bn.getvch());
+                      CScriptNum bn(OP_FALSE);
+                      stack.push_back(bn.getvch());
                     }
                 }
                 break;
@@ -446,13 +452,18 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 //UNIT-E: implement OP logic
                 case OP_SLASHABLE:
                 {
-                    popstack(stack);
-                    popstack(stack);
-                    popstack(stack);
-                    popstack(stack);
-                    popstack(stack);
-                    CScriptNum bn(OP_TRUE);
-                    stack.push_back(bn.getvch());
+                    if (stack.size() == 4) {
+                        popstack(stack);
+                        popstack(stack);
+                        popstack(stack);
+                        popstack(stack);
+                        CScriptNum bn(OP_TRUE);
+                        stack.push_back(bn.getvch());
+                    } else {
+                        popstack(stack);
+                        CScriptNum bn(OP_FALSE);
+                        stack.push_back(bn.getvch());
+                    }
                 }
                 break;
 

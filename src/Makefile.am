@@ -111,7 +111,7 @@ UNITE_CORE_H = \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
-  esperanza/params.h \
+  esperanza/parameters.h \
   esperanza/settings.h \
   esperanza/settings_init.h \
   esperanza/validator.h \
@@ -119,6 +119,7 @@ UNITE_CORE_H = \
   esperanza/vote.h \
   esperanza/walletextension.h \
   esperanza/walletstate.h \
+  finalization/vote_recorder.h \
   fs.h \
   httprpc.h \
   httpserver.h \
@@ -270,6 +271,7 @@ libunite_server_a_SOURCES = \
   esperanza/finalizationstate.cpp \
   esperanza/finalizationparams.cpp \
   esperanza/validator.cpp \
+  finalization/vote_recorder.cpp \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
@@ -334,7 +336,6 @@ libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
-  esperanza/vote.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/blockproposer.cpp \
@@ -440,9 +441,10 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  esperanza/params.cpp \
+  esperanza/parameters.cpp \
   esperanza/settings.cpp \
   esperanza/settings_init.cpp \
+  esperanza/vote.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \
@@ -504,10 +506,10 @@ endif
 
 united_LDADD = \
   $(LIBUNITE_SERVER) \
-  $(LIBUNITE_COMMON) \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_WALLET) \
+  $(LIBUNITE_COMMON) \
   $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \

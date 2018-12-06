@@ -12,7 +12,7 @@
 #include <protocol.h>
 #include <esperanza/adminparams.h>
 #include <esperanza/finalizationparams.h>
-#include <esperanza/params.h>
+#include <esperanza/parameters.h>
 #include <snapshot/params.h>
 
 #include <memory>
@@ -60,7 +60,7 @@ public:
     const Consensus::Params& GetConsensus() const { return consensus; }
 
     const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
-    const esperanza::Params& GetEsperanza() const { return esperanza; }
+    const esperanza::Parameters& GetEsperanza() const { return esperanza; }
     const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
     const snapshot::Params& GetSnapshotParams() const { return snapshotParams; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
@@ -90,7 +90,7 @@ protected:
     CChainParams() {}
 
     Consensus::Params consensus;
-    esperanza::Params esperanza = esperanza::Params(this);
+    esperanza::Parameters esperanza = esperanza::Parameters(*this);
     esperanza::FinalizationParams finalization;
     esperanza::AdminParams adminParams;
     snapshot::Params snapshotParams;

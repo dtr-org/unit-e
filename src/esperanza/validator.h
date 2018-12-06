@@ -24,6 +24,7 @@ class Validator {
   uint32_t m_endDynasty;
   bool m_isSlashed;
   uint64_t m_depositsAtLogout;
+  uint256 m_lastTransactionHash;
 };
 
 }  // namespace esperanza

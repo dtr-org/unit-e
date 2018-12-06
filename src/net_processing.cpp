@@ -3532,7 +3532,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
                     if (!txinfo.tx) {
                         continue;
                     }
-                    if (!txinfo.tx->IsVote() && filterrate && txinfo.feeRate.GetFeePerK() < filterrate) {
+                    if (!(txinfo.tx->IsVote() || txinfo.tx->IsSlash()) && filterrate && txinfo.feeRate.GetFeePerK() < filterrate) {
                         continue;
                     }
                     if (pto->pfilter && !pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;

@@ -167,7 +167,6 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   // This is a double vote
   Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
   Vote v2 = {validatorAddress, uint256S("6"), 3, 5};
-  CAmount bounty = 0;
 
   // Just to be sure we are after the lock period
   int endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 10;
@@ -186,7 +185,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
     // Slash after a while
     if (i == 200) {
       BOOST_CHECK_EQUAL(spy.IsSlashable(v1, v2), +Result::SUCCESS);
-      spy.ProcessSlash(v1, v2, bounty);
+      spy.ProcessSlash(v1, v2);
     }
   }
 

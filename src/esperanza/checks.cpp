@@ -6,7 +6,8 @@
 #include <esperanza/adminparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
-#include <esperanza/params.h>
+#include <esperanza/parameters.h>
+#include <finalization/vote_recorder.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>
@@ -16,6 +17,9 @@ namespace esperanza {
 
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const CBlockIndex *pindex) {
+
+  assert(tx.IsDeposit());
+
   if (tx.vin.empty() || tx.vout.empty()) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
   }
@@ -50,16 +54,14 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
   return true;
 }
 
-//! \brief Check if the vote is referring to an epoch before the last known
-//! finalization. This should be safe since finalization should prevent reorgs.
-//! It assumes that the vote is well formed and in general parsable. It does not
-//! make anycheck over the validity of the vote transaction.
-//! \param tx transaction containing the vote.
-//! \returns true if the vote is expired, false otherwise.
 bool IsVoteExpired(const CTransaction &tx) {
 
+  assert(tx.IsVote());
+
+  Vote vote;
   std::vector<unsigned char> voteSig;
-  Vote vote = CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig, voteSig);
+  assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote,
+                                               voteSig));
   const FinalizationState *state = FinalizationState::GetState();
 
   return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
@@ -68,6 +70,8 @@ bool IsVoteExpired(const CTransaction &tx) {
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                             const Consensus::Params &consensusParams,
                             const CBlockIndex *pindex) {
+
+  assert(tx.IsLogout());
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
@@ -134,6 +138,8 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                               const Consensus::Params &consensusParams,
                               const CBlockIndex *pindex) {
 
+  assert(tx.IsWithdraw());
+
   if (tx.vin.size() != 1 || tx.vout.size() > 3) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
   }
@@ -197,6 +203,8 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const Consensus::Params &consensusParams,
                           const CBlockIndex *pindex) {
 
+  assert(tx.IsVote());
+
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
   }
@@ -208,13 +216,25 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
 
   const FinalizationState *state = FinalizationState::GetState(pindex);
 
+  Vote vote;
   std::vector<unsigned char> voteSig;
-  const Result res = state->ValidateVote(
-      CScript::ExtractVoteFromSignature(tx.vin[0].scriptSig, voteSig));
+  if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote,
+                                             voteSig)) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
+  }
 
-  if (res != +Result::SUCCESS) {
+  CPubKey pubkey;
+  if (!ExtractValidatorPubkey(tx, pubkey)) {
     return errState.DoS(10, false, REJECT_INVALID,
-                        "bad-vote-invalid-esperanza");
+                        "bad-scriptpubkey-pubkey-format");
+  }
+
+  if (!esperanza::Vote::CheckSignature(pubkey, vote, voteSig)) {
+    return errState.DoS(100, false, REJECT_INVALID, "bad-vote-signature");
+  }
+
+  if (state->ValidateVote(vote) != +Result::SUCCESS) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -238,6 +258,35 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
   if (prevTx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-vote-not-same-payvoteslash-script");
+  }
+
+  return true;
+}
+
+bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
+                           const Consensus::Params &consensusParams,
+                           const CBlockIndex *pindex) {
+
+  assert(tx.IsSlash());
+
+  if (tx.vin.size() != 1 || tx.vout.size() != 1) {
+    return errState.DoS(100, false, REJECT_INVALID, "bad-slash-malformed");
+  }
+
+  Vote vote1;
+  Vote vote2;
+  std::vector<unsigned char> vote1Sig;
+  std::vector<unsigned char> vote2Sig;
+  if (!CScript::ExtractVotesFromSlashSignature(tx.vin[0].scriptSig, vote1,
+                                               vote2, vote1Sig, vote2Sig)) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-slash-data-format");
+  }
+
+  const FinalizationState *state = FinalizationState::GetState(pindex);
+  const esperanza::Result res = state->IsSlashable(vote1, vote2);
+
+  if (res != +esperanza::Result::SUCCESS) {
+    return errState.DoS(10, false, REJECT_INVALID, "bad-slash-not-slashable");
   }
 
   return true;
@@ -310,6 +359,20 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
   return true;
 }
 
+bool ExtractValidatorPubkey(const CTransaction &tx, CPubKey &pubkeyOut) {
+  if (tx.IsVote()) {
+
+    std::vector<std::vector<unsigned char>> vSolutions;
+    txnouttype typeRet;
+
+    if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+      pubkeyOut = CPubKey(vSolutions[0]);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool ExtractValidatorAddress(const CTransaction &tx,
                              uint160 &validatorAddressOut) {
 
@@ -320,6 +383,7 @@ bool ExtractValidatorAddress(const CTransaction &tx,
       txnouttype typeRet;
 
       if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
+        assert(typeRet == TX_PAYVOTESLASH);
         validatorAddressOut = CPubKey(vSolutions[0]).GetID();
         return true;
       }

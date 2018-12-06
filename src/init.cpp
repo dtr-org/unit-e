@@ -55,6 +55,7 @@
 #include <wallet/wallet.h>
 #include <esperanza/settings.h>
 #include <esperanza/settings_init.h>
+#include <finalization/vote_recorder.h>
 #include <rpc/proposer.h>
 #endif
 #include <warnings.h>
@@ -1312,6 +1313,7 @@ bool AppInitMain()
 
     esperanza::FinalizationState::Init(chainparams.GetFinalization(),
                                        chainparams.GetAdminParams());
+    finalization::VoteRecorder::Init();
 
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32

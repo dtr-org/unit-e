@@ -11,6 +11,8 @@
 #include <string.h>
 #include <test/test_unite.h>
 #include <util.h>
+#include <boost/test/unit_test.hpp>
+#include <boost/test/unit_test_log.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(sign_tests, ReducedTestingSetup)
 
@@ -59,9 +61,9 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
 
   BOOST_CHECK_EQUAL(SCRIPT_ERR_OK, serror);
 
+  esperanza::Vote signedVote;
   std::vector<unsigned char> extractedVoteSig;
-  esperanza::Vote signedVote =
-      CScript::ExtractVoteFromSignature(sigdata.scriptSig, extractedVoteSig);
+  BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(sigdata.scriptSig, signedVote, extractedVoteSig));
 
   BOOST_CHECK_EQUAL(vote.m_validatorAddress.GetHex(), signedVote.m_validatorAddress.GetHex());
   BOOST_CHECK_EQUAL(vote.m_targetHash, signedVote.m_targetHash);
@@ -83,11 +85,12 @@ BOOST_AUTO_TEST_CASE(producesignature_logout) {
   CMutableTransaction txn;
   txn.SetType(TxType::LOGOUT);
 
-  txn.vin.push_back(CTxIn(GetRandHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
+  CScript scriptSig = CScript() << ToByteVector(pk);
+  txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
-  const CScript& scriptPubKey = CScript::CreatePayVoteSlashScript(pk);
+  const CScript& prevScriptPubKey = CScript::CreatePayVoteSlashScript(pk);
   const CAmount amount = 10000000;
-  CTxOut txout(amount, scriptPubKey);
+  CTxOut txout(amount, prevScriptPubKey);
 
   txn.vout.push_back(txout);
 
@@ -100,11 +103,13 @@ BOOST_AUTO_TEST_CASE(producesignature_logout) {
   BOOST_CHECK(ProduceSignature(
       TransactionSignatureCreator(&keystore, &txToConst, nIn,
                                   amount, SIGHASH_ALL),
-      scriptPubKey, sigdata, &txToConst));
+      prevScriptPubKey, sigdata, &txToConst));
+
+  txn.vin[0].scriptSig = sigdata.scriptSig + scriptSig;
 
   ScriptError serror;
   BOOST_CHECK(VerifyScript(
-      sigdata.scriptSig, scriptPubKey, &sigdata.scriptWitness,
+      txn.vin[0].scriptSig, prevScriptPubKey, &sigdata.scriptWitness,
       STANDARD_SCRIPT_VERIFY_FLAGS,
       TransactionSignatureChecker(&txToConst, 0, amount), &serror));
 
@@ -125,8 +130,10 @@ BOOST_AUTO_TEST_CASE(producesignature_withdraw) {
   CMutableTransaction txn;
   txn.SetType(TxType::WITHDRAW);
 
-  txn.vin.push_back(CTxIn(GetRandHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
+  CScript scriptSig = CScript() << ToByteVector(pk);
+  txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
+  const CScript& prevScriptPubKey = CScript::CreatePayVoteSlashScript(pk);
   const CScript& scriptPubKey = CScript::CreateP2PKHScript(ToByteVector(pk.GetID()));
   const CAmount amount = 10000000;
   CTxOut txout(amount, scriptPubKey);
@@ -142,11 +149,13 @@ BOOST_AUTO_TEST_CASE(producesignature_withdraw) {
   BOOST_CHECK(ProduceSignature(
       TransactionSignatureCreator(&keystore, &txToConst, nIn,
                                   amount, SIGHASH_ALL),
-      scriptPubKey, sigdata, &txToConst));
+      prevScriptPubKey, sigdata, &txToConst));
+
+  txn.vin[0].scriptSig = sigdata.scriptSig + scriptSig;
 
   ScriptError serror;
   BOOST_CHECK(VerifyScript(
-      sigdata.scriptSig, scriptPubKey, &sigdata.scriptWitness,
+      txn.vin[0].scriptSig, prevScriptPubKey, &sigdata.scriptWitness,
       STANDARD_SCRIPT_VERIFY_FLAGS,
       TransactionSignatureChecker(&txToConst, 0, amount), &serror));
 

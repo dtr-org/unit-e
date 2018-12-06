@@ -68,7 +68,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         txid = validator.deposit(payto, 10000)
 
         # wait for transaction to propagate
-        self.wait_for_transaction(txid)
+        self.wait_for_transaction(txid, 60)
 
         # mine some blocks to allow the deposit to get included in a block
         for n in range(0, 20):

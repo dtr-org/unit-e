@@ -3,13 +3,14 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <keystore.h>
+#include <test/esperanza/finalization_utils.h>
 #include <test/esperanza/finalizationstate_utils.h>
 #include <ufp64.h>
 #include <util.h>
 
 using namespace esperanza;
 
-BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizationstate_tests, TestingSetup)
 
 // Constructor tests
 
@@ -108,6 +109,73 @@ BOOST_AUTO_TEST_CASE(getrecommendedvote) {
   BOOST_CHECK_EQUAL(res.m_sourceEpoch, 3);
   BOOST_CHECK_EQUAL(res.m_targetEpoch, 7);
   BOOST_CHECK_EQUAL(res.m_targetHash, targetHash);
+}
+
+BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
+
+  auto state = FinalizationState::GetState();
+
+  CKey k;
+  InsecureNewKey(k, true);
+
+  uint160 validatorAddress = k.GetPubKey().GetID();
+
+  CBlockIndex blockIndex;
+  blockIndex.nHeight = 1;
+  CBlock block;
+
+  CMutableTransaction tx;
+  tx.vin.resize(1);
+  tx.vout.resize(1);
+  CTransaction prevTx(tx);
+
+  // Test deposit
+  CTransactionRef depositTx = MakeTransactionRef(CreateDepositTx(tx, k, 10000));
+  block.vtx = std::vector<CTransactionRef>{depositTx};
+
+  uint256 depositHash = depositTx->GetHash();
+  FinalizationState::ProcessNewTip(blockIndex, block);
+
+  BOOST_CHECK_EQUAL(depositHash.GetHex(),
+                    state->GetLastTxHash(validatorAddress).GetHex());
+
+  // Test vote
+  CBlock block_49;
+  block_49.nNonce = 1;
+
+  CBlock block_99;
+  block_99.nNonce = 2;
+
+  blockIndex.nHeight = 49;
+  FinalizationState::ProcessNewTip(blockIndex, block_49);
+
+  blockIndex.nHeight = 50;
+  FinalizationState::ProcessNewTip(blockIndex, CBlock());
+
+  blockIndex.nHeight = 99;
+  FinalizationState::ProcessNewTip(blockIndex, block_99);
+
+  blockIndex.nHeight = 100;
+  FinalizationState::ProcessNewTip(blockIndex, CBlock());
+
+  Vote vote{validatorAddress, block_99.GetHash(), 1, 2};
+  CTransactionRef voteTx = MakeTransactionRef(CreateVoteTx(vote, k));
+  block.vtx = std::vector<CTransactionRef>{voteTx};
+  uint256 voteHash = voteTx->GetHash();
+  blockIndex.nHeight = 101;
+  FinalizationState::ProcessNewTip(blockIndex, block);
+  BOOST_CHECK_EQUAL(voteHash.GetHex(),
+                    state->GetLastTxHash(validatorAddress).GetHex());
+
+  // Test logout
+  CTransactionRef logoutTx =
+      MakeTransactionRef(CreateLogoutTx(*voteTx, k, depositTx->vout[0].nValue));
+
+  block.vtx = std::vector<CTransactionRef>{logoutTx};
+  uint256 logoutHash = logoutTx->GetHash();
+  FinalizationState::ProcessNewTip(blockIndex, block);
+  BOOST_CHECK_EQUAL(logoutHash.GetHex(),
+                    state->GetLastTxHash(validatorAddress).GetHex());
 }
 
 // Other tests

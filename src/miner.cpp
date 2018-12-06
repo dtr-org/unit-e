@@ -149,7 +149,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // transaction (which in most cases can be a no-op).
     fIncludeWitness = IsWitnessEnabled(pindexPrev, chainparams.GetConsensus()) && fMineWitnessTx;
 
-    AddVoteTxs();
+    AddMandatoryTxs();
 
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
@@ -194,22 +194,33 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     return std::move(pblocktemplate);
 }
 
-void BlockAssembler::AddVoteTxs()
+void BlockAssembler::AddMandatoryTxs()
 {
-    CTxMemPool::indexed_transaction_set::index<ancestor_score>::type::iterator mi = mempool.mapTx.get<ancestor_score>().begin();
+    auto mi = mempool.mapTx.get<ancestor_score>().begin();
+    for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {
 
-    while (mi != mempool.mapTx.get<ancestor_score>().end()) {
-
-        if(mi->GetTx().IsVote()) {
+        if (mi->GetTx().IsVote()) {
             CValidationState state;
-            if (esperanza::CheckVoteTransaction(state, mi->GetTx(), chainparams.GetConsensus())) {
-              AddToBlock(mempool.mapTx.project<0>(mi));
-              LogPrint(BCLog::FINALIZATION, "%s: Add vote with id %s to a new block.\n",
-                       __func__,
-                       mi->GetTx().GetHash().GetHex());
+            //Check again in case the vote became invalid in the meanwhile (different target now)
+            if (esperanza::CheckVoteTransaction(state,
+                                                mi->GetTx(),
+                                                chainparams.GetConsensus())) {
+                AddToBlock(mempool.mapTx.project<0>(mi));
+                LogPrint(BCLog::FINALIZATION,
+                         "%s: Add vote with id %s to a new block.\n",
+                         __func__,
+                         mi->GetTx().GetHash().GetHex());
             }
+            continue;
         }
-        ++mi;
+        if (mi->GetTx().IsSlash()) {
+
+            AddToBlock(mempool.mapTx.project<0>(mi));
+            LogPrint(BCLog::FINALIZATION, "%s: Add slash with id %s to a new block.\n",
+                     __func__,
+                     mi->GetTx().GetHash().GetHex());
+            continue;
+        }
     }
 }
 

@@ -9,6 +9,7 @@
 #include <dependency.h>
 #include <esperanza/validatorstate.h>
 #include <esperanza/walletstate.h>
+#include <finalization/vote_recorder.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
@@ -25,6 +26,7 @@
 class CWallet;
 class CWalletTx;
 class COutput;
+class CScheduler;
 
 namespace esperanza {
 
@@ -57,8 +59,12 @@ class WalletExtension : public staking::StakingWallet {
   //! whether an encrypted wallet is unlocked only for staking
   bool m_unlocked_for_staking_only = false;
 
+  std::vector<std::pair<finalization::VoteRecord, finalization::VoteRecord>> pendingSlashings;
+
   void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                     const CBlockIndex *pindex);
+
+  void ManagePendingSlashings();
 
  public:
   //! \brief non-intrusive extension of the bitcoin-core wallet.
@@ -86,6 +92,15 @@ class WalletExtension : public staking::StakingWallet {
   //! \returns true if the operation was successful, false otherwise.
   bool SendDeposit(const CKeyID &keyID, CAmount amount, CWalletTx &wtxOut);
 
+  //! \brief Creates a vote transaction starting from a Vote object and a
+  //! previous transaction (vote or deposit  reference. It fills inputs,
+  //! outputs. It does not support an address change between source and
+  //! destination.
+  //!
+  //! \param[in] prevTxRef a reference to the initial DEPOSIT or previous VOTE
+  //! transaction, depending which one is the most recent
+  //! \param[in] vote the vote data
+  //! \param[out] wtxNew the vote transaction committed
   bool SendVote(const CTransactionRef &depositRef, const Vote &vote,
                 CWalletTx &wtxNewOut);
 
@@ -101,6 +116,17 @@ class WalletExtension : public staking::StakingWallet {
   //! \returns true if the operation was successful, false otherwise.
   bool SendWithdraw(const CTxDestination &address, CWalletTx &wtxNewOut);
 
+  //! \brief Creates and send a slash transaction.
+  //!
+  //! \param vote1 the first vote extracted from the transaction.
+  //! \param vote2 the second vote retrieved from the historic data.
+  //! \returns true if the operation is succesful, false otehrwise.
+  bool SendSlash(const finalization::VoteRecord &vote1,
+                 const finalization::VoteRecord &vote2);
+
+  bool AddToWalletIfInvolvingMe(const CTransactionRef &tx,
+                                const CBlockIndex *pIndex);
+
   void ReadValidatorStateFromFile();
 
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
@@ -108,12 +134,16 @@ class WalletExtension : public staking::StakingWallet {
 
   const proposer::State &GetProposerState() const;
 
-  ValidatorState validatorState;
+  boost::optional<ValidatorState> validatorState = boost::none;
   bool nIsValidatorEnabled = false;
 
   EncryptionState GetEncryptionState() const;
 
   bool Unlock(const SecureString &wallet_passphrase, bool for_staking_only);
+
+  void SlashingConditionDetected(const finalization::VoteRecord vote1, const finalization::VoteRecord vote2);
+
+  void PostInitProcess(CScheduler &scheduler);
 };
 
 }  // namespace esperanza

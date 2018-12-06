@@ -15,6 +15,7 @@ import random
 import re
 from subprocess import CalledProcessError
 import time
+import math
 
 from . import coverage
 from .authproxy import AuthServiceProxy, JSONRPCException
@@ -574,3 +575,30 @@ def mine_large_block(node, utxos=None):
     fee = 100 * node.getnetworkinfo()["relayfee"]
     create_lots_of_big_transactions(node, txouts, utxos, num, fee=fee)
     node.generate(1)
+
+def base58_to_bytes(string):
+    char_map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    decimal = 0
+    for char in string:
+        decimal = 58 * decimal + char_map.index(char)
+
+    return decimal.to_bytes(math.ceil(math.log2(decimal)/8), byteorder='big')
+
+
+def base58check_to_bytes(string):
+    return base58_to_bytes(string)[1:-4]
+
+
+def bytes_to_base58(bytes):
+    char_map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+    i = int.from_bytes(bytes, byteorder='big')
+    if i == 0:
+        return char_map[0]
+
+    string = ""
+    while i > 0:
+        i, idx = divmod(i, 58)
+        string = char_map[idx] + string
+
+    return string

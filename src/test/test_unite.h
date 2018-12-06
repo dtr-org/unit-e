@@ -5,6 +5,7 @@
 #ifndef UNITE_TEST_TEST_UNITE_H
 #define UNITE_TEST_TEST_UNITE_H
 
+#include <chainparams.h>
 #include <chainparamsbase.h>
 #include <fs.h>
 #include <key.h>

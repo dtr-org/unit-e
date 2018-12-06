@@ -7,6 +7,7 @@
 #define UNITE_WALLET_WALLET_H
 
 #include <esperanza/walletextension.h>
+#include <finalization/vote_recorder.h>
 #include <amount.h>
 #include <policy/feerate.h>
 #include <streams.h>
@@ -679,7 +680,7 @@ private:
     friend class esperanza::WalletExtension;
 
     const esperanza::Settings& m_esperanzaSettings;
-    esperanza::WalletExtension m_stakingExtension;
+    esperanza::WalletExtension m_walletExtension;
 
     /**
      * Select a set of coins such that nValueRet >= nTargetValue and at least
@@ -800,7 +801,7 @@ public:
     // Create wallet with dummy database handle
     CWallet()
       : m_esperanzaSettings(esperanza::Settings::Default()),
-        m_stakingExtension(m_esperanzaSettings, this),
+        m_walletExtension(m_esperanzaSettings, this),
         dbw(new CWalletDBWrapper())
     {
         SetNull();
@@ -810,7 +811,7 @@ public:
     explicit CWallet(const esperanza::Settings& esperanzaSettings,
                      std::unique_ptr<CWalletDBWrapper> dbw_in)
       : m_esperanzaSettings(esperanzaSettings),
-        m_stakingExtension(esperanzaSettings, this),
+        m_walletExtension(esperanzaSettings, this),
         dbw(std::move(dbw_in))
     {
         SetNull();
@@ -962,6 +963,7 @@ public:
     bool AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose=true);
     bool LoadToWallet(const CWalletTx& wtxIn);
     void TransactionAddedToMempool(const CTransactionRef& tx) override;
+    void SlashingConditionDetected(const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) override;
     void BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex *pindex, const std::vector<CTransactionRef>& vtxConflicted) override;
     void BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) override;
     bool AddToWalletIfInvolvingMe(const CTransactionRef& tx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
@@ -1012,6 +1014,7 @@ public:
     bool NewKeyPool();
     size_t KeypoolCountExternalKeys();
     bool TopUpKeyPool(unsigned int kpSize = 0);
+    bool GenerateNewKeys(unsigned int amount);
     void ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool, bool fRequestedInternal);
     void KeepKey(int64_t nIndex);
     void ReturnKey(int64_t nIndex, bool fInternal, const CPubKey& pubkey);

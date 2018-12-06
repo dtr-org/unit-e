@@ -373,6 +373,10 @@ public:
       return GetType() == +TxType::WITHDRAW;
     }
 
+    bool IsSlash() const {
+      return GetType() == +TxType::SLASH;
+    }
+
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return a.hash == b.hash;

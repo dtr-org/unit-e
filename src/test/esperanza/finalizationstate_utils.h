@@ -15,6 +15,9 @@ using namespace esperanza;
 
 const FinalizationParams params{};
 
+const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
+const int64_t EPOCH_LENGTH = 50;
+
 class FinalizationStateSpy : public FinalizationState {
  public:
   FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
@@ -29,7 +32,7 @@ class FinalizationStateSpy : public FinalizationState {
   }
   uint256 *RecommendedTargetHash() { return &m_recommendedTargetHash; }
 
-  int64_t EpochLength() const { return m_settings.m_epochLength; }
+  uint32_t EpochLength() const { return m_settings.m_epochLength; }
   CAmount MinDepositSize() const { return m_settings.m_minDepositSize; }
   int64_t DynastyLogoutDelay() const { return m_settings.m_dynastyLogoutDelay; }
   int64_t WithdrawalEpochDelay() const {

@@ -10,7 +10,7 @@
 #include <boost/test/unit_test.hpp>
 
 struct ValidatorWalletSetup : WalletTestingSetup {
-  ValidatorWalletSetup() : WalletTestingSetup(true){};
+  ValidatorWalletSetup() : WalletTestingSetup(true) {};
 };
 
 BOOST_AUTO_TEST_SUITE(rpcvalidator_tests)
@@ -59,7 +59,7 @@ BOOST_FIXTURE_TEST_CASE(deposit_not_a_validator, WalletTestingSetup) {
   CTxDestination p2pkh = GetDestination(*pwalletMain.get(), OUTPUT_TYPE_LEGACY);
 
   std::string command = "deposit " + EncodeDestination(p2pkh) + " 0";
-  AssertRPCError(command, RPC_INVALID_PARAMETER, "Validating is disabled.");
+  AssertRPCError(command, RPC_INVALID_REQUEST, "The node must be a validator.");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

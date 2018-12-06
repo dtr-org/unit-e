@@ -22,6 +22,7 @@ Validator::Validator(uint64_t deposit, uint32_t startDynasty,
       m_startDynasty(startDynasty),
       m_endDynasty(DEFAULT_END_DYNASTY),
       m_isSlashed(false),
-      m_depositsAtLogout(0) {}
+      m_depositsAtLogout(0),
+      m_lastTransactionHash(uint256()) {}
 
 }  // namespace esperanza

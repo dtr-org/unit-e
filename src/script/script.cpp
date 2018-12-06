@@ -218,16 +218,16 @@ CScript CScript::CreatePayVoteSlashScript(const CPubKey &pubkey)
 
                      OP_IF << OP_TRUE << OP_ELSE <<
 
+                     ToByteVector(pubkey) <<
+                     OP_SLASHABLE <<
+
+                     OP_NOTIF <<
+
                      OP_DUP <<
                      OP_HASH160 <<
                      ToByteVector(pubkey.GetID()) <<
                      OP_EQUALVERIFY <<
                      OP_CHECKSIG <<
-
-                     OP_NOTIF <<
-
-                     ToByteVector(pubkey) <<
-                     OP_SLASHABLE <<
 
                      OP_ELSE <<
                      OP_TRUE <<
@@ -267,11 +267,11 @@ bool CScript::MatchPayVoteSlashScript(size_t ofs) const
 
         (*this)[ofs + 37] == OP_ELSE &&
 
-        this->MatchPayToPublicKeyHash(38) &&
+        this->MatchSlashScript(38) &&
 
-        (*this)[ofs + 63] == OP_NOTIF &&
+        (*this)[ofs + 73] == OP_NOTIF &&
 
-        this->MatchSlashScript(64) &&
+        this->MatchPayToPublicKeyHash(74) &&
 
         (*this)[ofs + 99] == OP_ELSE &&
         (*this)[ofs + 100] == OP_TRUE &&
@@ -382,41 +382,52 @@ bool CScript::HasValidOps() const
 
 
 //UNIT-E: this can be probably optimized for faster access
-esperanza::Vote CScript::DecodeVote(const CScript &script, std::vector<unsigned char> &voteSig)
+bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::vector<unsigned char> &voteSig)
 {
-    esperanza::Vote vote;
     CScript::const_iterator it = script.begin();
     opcodetype opcode;
 
     //Recover the voteSig
-    script.GetOp(it, opcode, voteSig);
+    if (!script.GetOp(it, opcode, voteSig)) {
+      return false;
+    }
 
     std::vector<unsigned char> validator;
-    script.GetOp(it, opcode, validator);
+    if (!script.GetOp(it, opcode, validator)) {
+      return false;
+    }
     uint160 validatorAddress(validator);
 
     std::vector<unsigned char> target;
-    script.GetOp(it, opcode, target);
+    if (!script.GetOp(it, opcode, target)) {
+      return false;
+    }
     uint256 targetHash(target);
 
     std::vector<unsigned char> sourceEpochVec;
-    script.GetOp(it, opcode, sourceEpochVec);
+    if (!script.GetOp(it, opcode, sourceEpochVec)) {
+      return false;
+    }
     uint32_t sourceEpoch = 0;
     for (size_t i = 0; i < sourceEpochVec.size(); i++) {
         sourceEpoch |= sourceEpochVec[i] << 8*i;
     }
+
     std::vector<unsigned char> targetEpochVec;
-    script.GetOp(it, opcode, targetEpochVec);
+    if (!script.GetOp(it, opcode, targetEpochVec)) {
+      return false;
+    }
     uint32_t targetEpoch = 0;
     for (size_t i = 0; i < targetEpochVec.size(); i++) {
         targetEpoch |= targetEpochVec[i] << 8*i;
     }
-    vote.m_validatorAddress = validatorAddress;
-    vote.m_targetHash = targetHash;
-    vote.m_sourceEpoch = sourceEpoch;
-    vote.m_targetEpoch = targetEpoch;
 
-    return vote;
+    voteOut.m_validatorAddress = validatorAddress;
+    voteOut.m_targetHash = targetHash;
+    voteOut.m_sourceEpoch = sourceEpoch;
+    voteOut.m_targetEpoch = targetEpoch;
+
+    return true;
 }
 
 CScript CScript::EncodeVote(const esperanza::Vote &data,
@@ -431,8 +442,9 @@ CScript CScript::EncodeVote(const esperanza::Vote &data,
                      << CScriptNum::serialize(data.m_targetEpoch);
 }
 
-esperanza::Vote CScript::ExtractVoteFromWitness(const CScriptWitness &witness,
-                                                std::vector<unsigned char> &voteSig)
+bool CScript::ExtractVoteFromWitness(const CScriptWitness &witness,
+    esperanza::Vote &voteOut,
+    std::vector<unsigned char> &voteSig)
 {
     CScriptWitness wt{witness};
 
@@ -441,23 +453,68 @@ esperanza::Vote CScript::ExtractVoteFromWitness(const CScriptWitness &witness,
 
     CScript voteScript(it->begin(), it->end());
 
-    return DecodeVote(voteScript, voteSig);
+    return DecodeVote(voteScript, voteOut, voteSig);
 }
 
-esperanza::Vote CScript::ExtractVoteFromSignature(const CScript &scriptSig,
-                                                  std::vector<unsigned char> &voteSig)
+bool CScript::ExtractVoteFromVoteSignature(const CScript &scriptSig,
+                                                  esperanza::Vote &voteOut,
+                                                  std::vector<unsigned char> &voteSigOut)
 {
     const_iterator pc = scriptSig.begin();
     std::vector<unsigned char> vData;
     opcodetype opcode;
 
     //Skip the first value (txSig)
-    scriptSig.GetOp(pc, opcode);
+    if (!scriptSig.GetOp(pc, opcode)) {
+        return false;
+    }
 
     //Unpack the vote
-    scriptSig.GetOp(pc, opcode, vData);
+    if (!scriptSig.GetOp(pc, opcode, vData)) {
+        return false;
+    }
     CScript voteScript(vData.begin(), vData.end());
-    return DecodeVote(voteScript, voteSig);
+    if (!DecodeVote(voteScript, voteOut, voteSigOut)) {
+      return false;
+    }
+
+    return true;
+}
+
+bool CScript::ExtractVotesFromSlashSignature(const CScript &scriptSig,
+                                              esperanza::Vote &vote1,
+                                              esperanza::Vote &vote2,
+                                              std::vector<unsigned char> &vote1Sig,
+                                              std::vector<unsigned char> &vote2Sig)
+{
+  const_iterator pc = scriptSig.begin();
+  std::vector<unsigned char> vData;
+  opcodetype opcode;
+
+  //Skip the first value (txSig)
+  if(!scriptSig.GetOp(pc, opcode)) {
+      return false;
+  }
+
+  //Unpack the first vote
+  if (!scriptSig.GetOp(pc, opcode, vData)) {
+    return false;
+  }
+  CScript voteScript = CScript(vData.begin(), vData.end());
+  if (!DecodeVote(voteScript, vote1, vote1Sig)) {
+    return false;
+  }
+
+  //Unpack the second vote
+  if (!scriptSig.GetOp(pc, opcode, vData)) {
+    return false;
+  }
+  voteScript = CScript(vData.begin(), vData.end());
+  if (!DecodeVote(voteScript, vote2, vote2Sig)) {
+    return false;
+  }
+
+  return true;
 }
 
 bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,

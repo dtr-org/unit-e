@@ -66,7 +66,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         deposit_tx = validator.deposit(payto, 10000)
 
         # wait for transaction to propagate
-        self.wait_for_transaction(deposit_tx)
+        self.wait_for_transaction(deposit_tx, 60)
 
         # mine 20 blocks (2 dynasties if we keep finalizing) to allow the deposit to get included in a block
         # and dynastyLogoutDelay to expire
@@ -82,7 +82,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
         logout_tx = validator.logout()
-        self.wait_for_transaction(logout_tx)
+        self.wait_for_transaction(logout_tx, 60)
 
         # wait for 2 dynasties since logout so we are not required to vote anymore
         for n in range(0, 20):
