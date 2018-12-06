@@ -359,8 +359,9 @@ std::string HelpMessage(HelpMessageMode mode)
     const auto defaultChainParams = CreateChainParams(CBaseChainParams::MAIN);
     const auto testnetChainParams = CreateChainParams(CBaseChainParams::TESTNET);
     const bool showDebug = gArgs.GetBoolArg("-help-debug", false);
+    const p2p::EmbargoManParams defaultEmbargoManParams;
 
-    // When adding new options to the categories, please keep and ensure alphabetical ordering.
+  // When adding new options to the categories, please keep and ensure alphabetical ordering.
     // Do not translate _(...) -help-debug options, Many technical terms, and only a very small audience, so is unnecessary stress to translators.
     std::string strUsage = HelpMessageGroup(_("Options:"));
     strUsage += HelpMessageOpt("-?", _("Print this help message and exit"));
@@ -420,7 +421,9 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-discover", _("Discover own IP addresses (default: 1 when listening and no -externalip or -proxy)"));
     strUsage += HelpMessageOpt("-dns", _("Allow DNS lookups for -addnode, -seednode and -connect") + " " + strprintf(_("(default: %u)"), DEFAULT_NAME_LOOKUP));
     strUsage += HelpMessageOpt("-dnsseed", _("Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)"));
-    strUsage += p2p::EmbargoManParams::GetHelpString();
+    strUsage += HelpMessageOpt("-embargoavgadd=<seconds>", strprintf("Average additive embargo time (default: %u)", defaultEmbargoManParams.embargo_avg_add.count()));
+    strUsage += HelpMessageOpt("-embargomin=<seconds>", strprintf("Minimum embargo time (default: %u)", defaultEmbargoManParams.embargo_min.count()));
+    strUsage += HelpMessageOpt("-embargotxs=<enable>", strprintf("Whether to use embargoing mechanism(aka Dandelion-Lite) (default: %s)", defaultEmbargoManParams.enabled));
     strUsage += HelpMessageOpt("-externalip=<ip>", _("Specify your own public address"));
     strUsage += HelpMessageOpt("-forcednsseed", strprintf(_("Always query for peer addresses via DNS lookup (default: %u)"), DEFAULT_FORCEDNSSEED));
     strUsage += HelpMessageOpt("-listen", _("Accept connections from outside (default: 1 if no -proxy or -connect)"));

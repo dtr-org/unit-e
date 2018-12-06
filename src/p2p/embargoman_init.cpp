@@ -35,14 +35,6 @@ bool EmbargoManParams::Create(const ArgsManager &args,
   return true;
 }
 
-std::string EmbargoManParams::GetHelpString() {
-  EmbargoManParams default_params;
-
-  return HelpMessageOpt("-embargotxs=<enable>", "Whether to use embargoing mechanism(aka Dandelion Lite). True by default") +
-         HelpMessageOpt("-embargomin=<seconds>", "Minimum embargo time. Default is " + std::to_string(default_params.embargo_min.count())) +
-         HelpMessageOpt("-embargoavgadd=<seconds>", "Average additive embargo time. Default is " + std::to_string(default_params.embargo_avg_add.count()));
-}
-
 class SideEffectsImpl : public EmbargoManSideEffects {
  public:
   SideEffectsImpl(std::chrono::seconds embargo_min,
