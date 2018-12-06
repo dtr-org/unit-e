@@ -15,15 +15,13 @@ struct CMutableTransaction;
 
 namespace staking {
 
-//! \brief wallet functionality to support staking
+//! \brief Wallet functionality to support staking
 //!
 //! This class is an interface.
 class StakingWallet {
 
  public:
   virtual CAmount GetStakeableBalance() const = 0;
-
-  virtual void AvailableCoinsForStaking(std::vector<::COutput> &vCoins) = 0;
 
   virtual ~StakingWallet() = default;
 };

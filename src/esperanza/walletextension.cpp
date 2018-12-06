@@ -15,7 +15,6 @@
 #include <primitives/txtype.h>
 #include <scheduler.h>
 #include <script/standard.h>
-#include <staking/stakevalidation.h>
 #include <util.h>
 #include <utilfun.h>
 #include <validation.h>
@@ -26,9 +25,6 @@
 namespace esperanza {
 
 CCriticalSection cs_pendingSlashing;
-
-//! UNIT-E: check necessity of this constant
-static const unsigned int DEFAULT_BLOCK_MAX_SIZE = 1000000;
 
 WalletExtension::WalletExtension(const Settings &settings,
                                  ::CWallet *enclosing_wallet)
@@ -54,63 +50,6 @@ CAmount WalletExtension::GetStakeableBalance() const {
     }
   }
   return balance;
-}
-
-void WalletExtension::AvailableCoinsForStaking(std::vector<::COutput> &vCoins) {
-  vCoins.clear();
-
-  // side effect: sets deepestTxnDepth - this is why this function is not
-  // declared const (happens twice)
-  m_deepest_transaction_depth = 0;
-
-  {
-    LOCK2(cs_main, m_enclosing_wallet->cs_wallet);
-
-    int height = chainActive.Tip()->nHeight;
-    int requiredDepth = std::min<int>(
-        ::Params().GetEsperanza().GetStakeMinConfirmations() - 1, height / 2);
-
-    for (const auto &it : m_enclosing_wallet->mapWallet) {
-      const CWalletTx &coin = it.second;
-      CTransactionRef tx = coin.tx;
-
-      int depth = coin.GetDepthInMainChain();  // requires cs_main lock
-
-      if (depth > m_deepest_transaction_depth) {
-        // side effect: sets deepestTxnDepth - this is why this function is not
-        // declared const (happens twice)
-        m_deepest_transaction_depth = depth;
-      }
-      if (depth < requiredDepth) {
-        continue;
-      }
-      const uint256 &wtxid = it.first;
-      const auto numOutputs = static_cast<const unsigned int>(tx->vout.size());
-      for (unsigned int i = 0; i < numOutputs; ++i) {
-        const auto &txout = tx->vout[i];
-
-        COutPoint kernel(wtxid, i);
-        if (!staking::CheckStakeUnused(kernel) ||
-            m_enclosing_wallet->IsSpent(wtxid, i) ||
-            m_enclosing_wallet->IsLockedCoin(wtxid, i)) {
-          continue;
-        }
-
-        const CScript &pscriptPubKey = txout.scriptPubKey;
-        CKeyID keyID;
-        if (!staking::ExtractStakingKeyID(pscriptPubKey, keyID)) {
-          continue;
-        }
-        if (m_enclosing_wallet->HaveKey(keyID)) {
-          vCoins.emplace_back(&coin, i, depth,
-                              /* fSpendable */ true, /* fSolvable */ true,
-                              /* fSaveIn */ true);
-        }
-      }
-    }
-  }
-
-  shuffle(vCoins.begin(), vCoins.end(), std::mt19937(std::random_device()()));
 }
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
