@@ -63,6 +63,8 @@ std::string Z(const int *a, const double *b) {
 }
 }  // namespace TestNS
 
+namespace {
+
 class TestInjector : public Injector<TestInjector> {
   COMPONENT(A, TestNS::A, TestNS::A::Make)
   COMPONENT(X, TestNS::X, TestNS::X::Make)
@@ -86,6 +88,16 @@ class IncompleteInjector : public Injector<IncompleteInjector> {
   }
   COMPONENT(A, TestNS::A, MakeA, TestNS::C)
 };
+
+struct ComplexThing {
+  std::uint64_t a;
+  std::uint64_t b;
+  ComplexThing(std::uint64_t a, std::uint64_t b) : a(a), b(b) {}
+};
+
+std::unique_ptr<ComplexThing> global_ptr = MakeUnique<ComplexThing>(17, 13);
+
+}  // namespace
 
 namespace InjTestNS {
 
@@ -128,8 +140,17 @@ struct D {
     return MakeUnique<D>(a, c);
   }
 };
+struct Q {
+  Dependency<ComplexThing> complex_thing;
+  Q(Dependency<ComplexThing> complex_thing) : complex_thing(complex_thing) {}
+  static std::unique_ptr<Q> Make(Dependency<ComplexThing> complex_thing) {
+    return MakeUnique<Q>(complex_thing);
+  }
+};
 
 }  // namespace InjTestNS
+
+namespace {
 
 class Inj : public Injector<Inj> {
   COMPONENT(B, InjTestNS::W, InjTestNS::W::Make, InjTestNS::A)
@@ -137,6 +158,13 @@ class Inj : public Injector<Inj> {
   COMPONENT(A, InjTestNS::A, InjTestNS::A::Make)
   COMPONENT(C, InjTestNS::M, InjTestNS::M::Make, InjTestNS::A, InjTestNS::W)
 };
+
+class UnmanagedInj : public Injector<UnmanagedInj> {
+  UNMANAGED_COMPONENT(One, ComplexThing, global_ptr.get())
+  COMPONENT(Two, InjTestNS::Q, InjTestNS::Q::Make, ComplexThing)
+};
+
+}  // namespace
 
 template <typename T>
 struct LessPtr {
@@ -265,6 +293,21 @@ BOOST_AUTO_TEST_CASE(initialize_all_dependencies) {
   BOOST_CHECK_EQUAL(c->b, b);
   BOOST_CHECK_EQUAL(d->a, a);
   BOOST_CHECK_EQUAL(d->c, c);
+}
+
+BOOST_AUTO_TEST_CASE(do_not_tear_down_unmanaged_dependencies) {
+  {
+    UnmanagedInj inj;
+    inj.Initialize();
+    auto one = inj.GetOne();
+    auto two = inj.GetTwo();
+    BOOST_CHECK(one != nullptr);
+    BOOST_CHECK(two != nullptr);
+    BOOST_CHECK_EQUAL(two->complex_thing, one);
+  }
+  // injector will be destroyed here, should not try to free global_ptr object
+  BOOST_CHECK_EQUAL(global_ptr->a, 17);
+  BOOST_CHECK_EQUAL(global_ptr->b, 13);
 }
 
 BOOST_AUTO_TEST_CASE(initialization_and_destruction_order) {
