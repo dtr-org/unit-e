@@ -183,8 +183,17 @@ class CircularDependenciesError : public InjectionError {
   }
 };
 
+class AlreadyInitializedError : public InjectionError {
+  std::string ErrorMessage() const override {
+    return "injector is already initialized (an attempt was made to re-initialize it)";
+  }
+};
+
 template <typename I>
 class Injector {
+
+ private:
+  std::atomic_flag m_initialized = ATOMIC_FLAG_INIT;
 
  protected:
   // `I` is not available in derived classes, a using declaration makes it
@@ -311,6 +320,9 @@ class Injector {
   }
 
   void Initialize() {
+    if (m_initialized.test_and_set()) {
+      throw AlreadyInitializedError();
+    }
     std::vector<std::type_index> initializationOrder =
         DetermineInitializationOrder();
     for (const std::type_index &componentType : initializationOrder) {
