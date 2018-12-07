@@ -5,13 +5,17 @@ Unit E uses the GNU autotools to build the project. Some IDEs like IntelliJ/CLio
 the autotools, but CMake. This directory contains scripts to assist with creating a CMakeLists.txt
 suitable for these IDEs.
 
-Currently the script has only been tested on macOS 10.13 using cmake 3.11 in CLion 2018.2. It
-assumes that dependencies like Qt have been installed using homebrew.
+Currently there are scripts for two platforms:
+* `gen-cmakelists-mac.sh` for macOS. It has been tested on macOS 10.13 using cmake 3.11 in CLion
+2018.2. It assumes that dependencies like Qt have been installed using homebrew.
+* `gen-cmakelists-ubuntu.sh` for Ubuntu. It has been tested on Ubuntu 18.04 in CLion 2018.2 and
+2018.3 with bundled CMake.
 
 usage
 -----
 
-1. execute `gen-cmakelists.sh` (this will create `CMakeLists.txt` in the git repositories root).
+1. execute `gen-cmakelists-<os>.sh` (this will create `CMakeLists.txt` in the git repositories
+root).
 2. import into CLion (also works when already imported, refresh the project definition then)
 
 caveats
