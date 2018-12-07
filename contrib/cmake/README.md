@@ -12,8 +12,7 @@ Qt have been installed using homebrew.
 usage
 -----
 
-1. execute `gen-cmakelists.sh` (this will create `CMakeLists.txt` in the git repositories
-root).
+1. execute `gen-cmakelists.sh` (this will create `CMakeLists.txt` in the git repositories root).
 2. import into CLion (also works when already imported, refresh the project definition then)
 
 caveats
