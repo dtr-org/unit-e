@@ -61,6 +61,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
   SetDataDir("snapshot_process_p2p");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
   snapshot::StoreCandidateBlockHash(uint256());
+  snapshot::P2PState p2p_state;
 
   CNetMsgMaker msgMaker(1);
   std::unique_ptr<CNode> node(mockNode());
@@ -95,7 +96,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
 
     CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
     body << snap;
-    BOOST_CHECK_MESSAGE(snapshot::ProcessSnapshot(node.get(), body, msgMaker),
+    BOOST_CHECK_MESSAGE(p2p_state.ProcessSnapshot(node.get(), body, msgMaker),
                         "failed to process snapshot message on m_step="
                             << i << ". probably snapshot hash is incorrect");
 
@@ -138,6 +139,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   SetDataDir("snapshot_process_p2p");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
   snapshot::StoreCandidateBlockHash(uint256());
+  snapshot::P2PState p2p_state;
 
   // chain of 1 -> 2 -> 3 blocks
   auto *bi1 = new CBlockIndex;
@@ -169,7 +171,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   body << snap;
 
   // process first chunk and ask for the next one
-  BOOST_CHECK(snapshot::ProcessSnapshot(node.get(), body, msgMaker));
+  BOOST_CHECK(p2p_state.ProcessSnapshot(node.get(), body, msgMaker));
   BOOST_CHECK(HasSnapshotHash(uint256S("aa")));
   snapshot::GetSnapshot get;
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
@@ -182,7 +184,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   snap.snapshot_hash = uint256S("bb");
   body << snap;
 
-  BOOST_CHECK(snapshot::ProcessSnapshot(node.get(), body, msgMaker));
+  BOOST_CHECK(p2p_state.ProcessSnapshot(node.get(), body, msgMaker));
   BOOST_CHECK(!HasSnapshotHash(uint256S("aa")));
   BOOST_CHECK(HasSnapshotHash(uint256S("bb")));
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
@@ -195,7 +197,7 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
   snap.best_block_hash = bi2->GetBlockHash();
   snap.snapshot_hash = uint256S("cc");
   body << snap;
-  BOOST_CHECK(snapshot::ProcessSnapshot(node.get(), body, msgMaker));
+  BOOST_CHECK(p2p_state.ProcessSnapshot(node.get(), body, msgMaker));
   BOOST_CHECK(!HasSnapshotHash(uint256S("cc")));
   BOOST_CHECK(HasSnapshotHash(uint256S("bb")));
   CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
@@ -205,14 +207,14 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
-  snapshot::InitP2P(snapshot::Params());
   snapshot::EnableISDMode();
   snapshot::StoreCandidateBlockHash(uint256());
   snapshot::HeadersDownloaded();
+  snapshot::P2PState p2p_state;
 
   CNetMsgMaker msgMaker(1);
   std::unique_ptr<CNode> node(mockNode());
-  snapshot::StartInitialSnapshotDownload(node.get(), msgMaker);
+  p2p_state.StartInitialSnapshotDownload(node.get(), msgMaker);
   BOOST_CHECK_EQUAL(node->vSendMsg.size(), 2);
 
   CMessageHeader header(Params().MessageStart());
@@ -227,12 +229,13 @@ BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
   BOOST_CHECK(node->m_snapshot_requested);
 
   node->vSendMsg.clear();
-  snapshot::StartInitialSnapshotDownload(node.get(), msgMaker);
+  p2p_state.StartInitialSnapshotDownload(node.get(), msgMaker);
   BOOST_CHECK(node->vSendMsg.empty());
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   snapshot::EnableISDMode();
+  snapshot::P2PState p2p_state;
 
   // return 0 blocks as we have not received the parent header of the snapshot
   const auto candidate = std::make_pair(uint256S("aa"), new CBlockIndex);
@@ -241,7 +244,7 @@ BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   snapshot::StoreCandidateBlockHash(candidate.first);
 
   std::vector<const CBlockIndex *> blocks;
-  BOOST_CHECK(snapshot::FindNextBlocksToDownload(0, blocks));
+  BOOST_CHECK(p2p_state.FindNextBlocksToDownload(0, blocks));
   BOOST_CHECK(blocks.empty());
 
   // return the parent blockIndex of the snapshot to download
@@ -250,7 +253,7 @@ BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   record2->second->phashBlock = &record2->first;
   record2->second->pprev = record1->second;
 
-  BOOST_CHECK(snapshot::FindNextBlocksToDownload(0, blocks));
+  BOOST_CHECK(p2p_state.FindNextBlocksToDownload(0, blocks));
   BOOST_CHECK_EQUAL(blocks.size(), 1);
   BOOST_CHECK_EQUAL(blocks[0]->GetBlockHash().GetHex(), parent.first.GetHex());
 }
