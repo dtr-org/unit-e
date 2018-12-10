@@ -1024,7 +1024,7 @@ bool FinalizationState::IsJustifiedCheckpoint(int blockHeight) const {
   if (!IsCheckpoint(blockHeight)) {
     return false;
   }
-  auto it = m_checkpoints.find(GetEpoch(blockHeight));
+  auto const it = m_checkpoints.find(GetEpoch(blockHeight));
   return it != m_checkpoints.end() && it->second.m_isJustified;
 }
 
@@ -1032,7 +1032,7 @@ bool FinalizationState::IsFinalizedCheckpoint(int blockHeight) const {
   if (!IsCheckpoint(blockHeight)) {
     return false;
   }
-  auto it = m_checkpoints.find(GetEpoch(blockHeight));
+  auto const it = m_checkpoints.find(GetEpoch(blockHeight));
   return it != m_checkpoints.end() && it->second.m_isFinalized;
 }
 
