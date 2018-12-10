@@ -2881,7 +2881,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         finalization::p2p::Locator locator;
         vRecv >> locator;
         LogPrint(BCLog::NET, "received: %s\n", util::to_string(locator));
-        return finalization::p2p::ProcessGetCommits(locator);
+        return finalization::p2p::ProcessGetCommits(pfrom, locator, msgMaker, chainparams);
     }
 
     else {

@@ -1460,10 +1460,44 @@ class msg_getcommits:
     def __init__(self, locator):
         self.locator = locator
 
-    def deserialize(self):
+    def deserialize(self, f):
         self.locator.deserialize(f)
 
     def serialize(self):
         r = b""
         r += self.locator.serialize()
         return r
+
+class HeaderAndCommits:
+    def __init__(self):
+        self.header = CBlockHeader()
+        self.commits = []
+
+    def deserialize(self, f):
+        self.header.deserialize(f)
+        self.header.calc_sha256()
+        self.commits = deser_vector(f, CTransaction)
+
+    def serialize(self):
+        r = b""
+        r += self.header.serialize()
+        r += ser_vector(self.commits, "serialize_without_witness")
+
+class msg_commits:
+    command = b"commits"
+
+    def __init__(self):
+        self.status = 0
+        self.data = []
+
+    def __repr__(self):
+        return "msg_commits(status={0}, length={1}, first={2})".format(
+            self.status, len(self.data), self.data[0].header.hash if len(self.data) > 0 else "Nil")
+
+    def deserialize(self, f):
+        self.status = struct.unpack("<B", f.read(1))[0]
+        self.data = deser_vector(f, HeaderAndCommits)
+
+    def serialize(self):
+        r = b""
+        r += struct.pack("<B", self.status)

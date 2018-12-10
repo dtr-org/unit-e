@@ -7,6 +7,9 @@
 
 #include <serialize.h>
 
+class CNode;
+class CNetMsgMaker;
+
 namespace finalization {
 namespace p2p {
 
@@ -15,7 +18,6 @@ struct Locator {
   uint256 stop;
 
   ADD_SERIALIZE_METHODS
-
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(start);
@@ -25,7 +27,40 @@ struct Locator {
   std::string ToString() const;
 };
 
-bool ProcessGetCommits(Locator const &locator);
+struct HeaderAndCommits {
+  CBlockHeader header;
+  std::vector<CTransactionRef> commits;
+
+  HeaderAndCommits() = default;
+  HeaderAndCommits(CBlockHeader const &header) : header(header) {}
+
+  ADD_SERIALIZE_METHODS
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(header);
+    READWRITE(commits);
+  }
+};
+
+struct CommitsResponse {
+  enum class Status : uint8_t {
+    StopOrFinReached = 0,
+    TipReached = 1,
+    LengthExceeded = 2,
+  };
+  Status status = Status::StopOrFinReached;
+  std::vector<HeaderAndCommits> data;
+
+  ADD_SERIALIZE_METHODS
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(static_cast<uint8_t>(status));
+    READWRITE(data);
+  }
+};
+
+bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
+                       CChainParams const &params);
 
 } // p2p
 } // finalization
@@ -33,7 +68,7 @@ bool ProcessGetCommits(Locator const &locator);
 
 namespace util {
   // UNIT-E move to uint256 definition
-  std::string to_string(uint256 v) {
+  inline std::string to_string(uint256 v) {
     return v.GetHex();
   }
 
@@ -70,7 +105,7 @@ namespace util {
     return util::to_string(range(v.begin(), v.end()));
   }
 
-  std::string to_string(finalization::p2p::Locator const &locator) {
+  inline std::string to_string(finalization::p2p::Locator const &locator) {
     return locator.ToString();
   }
 

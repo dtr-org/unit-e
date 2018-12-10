@@ -6,11 +6,23 @@
 from test_framework.messages import msg_getcommits, CCommitsLocator
 from test_framework.mininode import network_thread_start, P2PInterface
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal
+from test_framework.util import (
+    assert_equal,
+    wait_until,
+)
+import time
 
 class P2P(P2PInterface):
     def __init__(self):
         super().__init__()
+        self.messages = []
+
+    def reset_messages(self):
+        self.messages = []
+
+    def on_commits(self, msg):
+        self.messages.append(msg)
+
 
 class CommitsTest(UnitETestFramework):
     def __init__(self):
@@ -30,11 +42,22 @@ class CommitsTest(UnitETestFramework):
             self.blocks += [int(self.nodes[0].generate(1)[0], 16)]
 
     def getcommits(self, start, stop=0):
+        self.nodes[0].p2p.reset_messages()
         self.nodes[0].p2p.send_message(msg_getcommits(CCommitsLocator(start, stop)))
+
+    def check_commits(self, status, hashes):
+        p2p = self.nodes[0].p2p
+        wait_until(lambda: len(p2p.messages) > 0, timeout=5)
+        m = p2p.messages[0]
+        assert_equal(m.status, status)
+        assert_equal(len(m.data), len(hashes))
+        for i in range(0, len(hashes)):
+            assert_equal(m.data[i].header.sha256, hashes[i])
 
     def run_test(self):
         p = self.nodes[0]
-        p.add_p2p_connection(P2P())
+        p2p = P2P()
+        p.add_p2p_connection(p2p)
         network_thread_start()
 
         self.generate(14);
@@ -44,16 +67,33 @@ class CommitsTest(UnitETestFramework):
         # 10 is not (15th block will justify and finalize it)
 
         self.getcommits([self.blocks[5]])  # expect [6..14]
+        self.check_commits(1, self.blocks[6:])
+
         self.getcommits([self.blocks[10]]) # expect error
+        time.sleep(2)
+        assert_equal(len(p2p.messages), 0)
+
         self.getcommits([self.blocks[5], self.blocks[10]]) #expect [11..14]
+        self.check_commits(1, self.blocks[11:])
+
         self.getcommits([self.blocks[5], self.blocks[13]]) #expect [14]
+        self.check_commits(1, self.blocks[14:])
+
         self.getcommits([self.blocks[5], self.blocks[10], self.blocks[12]]) #expect [13..14]
+        self.check_commits(1, self.blocks[13:])
 
         # ascend ordering is broken, 12 is considered biggest
         self.getcommits([self.blocks[5], self.blocks[12], self.blocks[10]]) #expect [13..14]
+        self.check_commits(1, self.blocks[13:])
 
         # ascend ordering is broken, 12 is considered biggest, 13 is shadowed
         self.getcommits([self.blocks[5], self.blocks[12], self.blocks[10], self.blocks[13]]) #expect [13..14]
+        self.check_commits(1, self.blocks[13:])
+
+        self.generate(1); # 15th block, 10 becomes finalized
+        self.getcommits([self.blocks[5]])  # expect [6..10]
+        self.check_commits(0, self.blocks[6:11])
+
 
 if __name__ == '__main__':
      CommitsTest().main()

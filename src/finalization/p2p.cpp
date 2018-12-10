@@ -5,6 +5,8 @@
 #include <validation.h>
 #include <finalization/p2p.h>
 #include <esperanza/finalizationstate.h>
+#include <net.h>
+#include <netmessagemaker.h>
 
 namespace finalization {
 namespace p2p {
@@ -52,21 +54,46 @@ static CBlockIndex *FindStop(Locator const &locator) {
   return it->second;
 }
 
-bool ProcessGetCommits(Locator const &locator) {
+static HeaderAndCommits FindHeaderAndCommits(CBlockIndex *pindex, Consensus::Params const &params) {
+  if (!(pindex->nStatus & BLOCK_HAVE_DATA)) {
+    LogPrintf("%s has no data. It's on the main chain, so this shouldn't happen. Stopping.\n",
+              pindex->GetBlockHash().GetHex());
+    assert(not("No data on the main chain"));
+  }
+  HeaderAndCommits hc(pindex->GetBlockHeader());
+  std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
+  if (!ReadBlockFromDisk(*pblock, pindex, params)) {
+    assert(not("Cannot load block from the disk"));
+  }
+  for (auto const &tx : pblock->vtx) {
+    if (tx->IsCommit()) {
+      hc.commits.push_back(tx);
+    }
+  }
+  return hc;
+}
+
+bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
+                       CChainParams const &params) {
   CBlockIndex *pindex = FindMostRecentStart(chainActive, locator);
   if (pindex == nullptr) {
     return error("%s: cannot find start point in locator: %s", __func__, locator.ToString());
   }
   CBlockIndex *stop = FindStop(locator);
   auto const *state = esperanza::FinalizationState::GetState();
+  CommitsResponse r;
   do {
     pindex = chainActive.Next(pindex);
     if (pindex == nullptr) {
+      r.status = CommitsResponse::Status::TipReached;
       break;
     }
     // UNIT-E detect message overflow
-    LogPrintf("Add %s (%d) to commits\n", pindex->GetBlockHash().GetHex(), pindex->nHeight);
+    r.data.emplace_back(FindHeaderAndCommits(pindex, params.GetConsensus()));
   } while (pindex != stop && !state->IsFinalizedCheckpoint(pindex->nHeight));
+  LogPrint(BCLog::NET, "Send %d headers+commits, status = %d\n",
+           r.data.size(), static_cast<uint8_t>(r.status));
+  g_connman->PushMessage(node, msgMaker.Make(NetMsgType::COMMITS, r));
   return true;
 }
 
