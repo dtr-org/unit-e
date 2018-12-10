@@ -65,56 +65,10 @@ bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &
 } // p2p
 } // finalization
 
-
 namespace util {
-  // UNIT-E move to uint256 definition
-  inline std::string to_string(uint256 v) {
-    return v.GetHex();
-  }
-
-  // UNIT-E move to some common place
-  template <typename Tbegin, typename Tend>
-  struct Range {
-    Tbegin begin;
-    Tend end;
-  };
-
-  // UNIT-E move to some common place
-  template<typename Tbegin, typename Tend>
-  Range<Tbegin, Tend> range(Tbegin const &begin, Tend const &end) {
-    return { begin, end };
-  }
-
-  // UNIT-E move to some common place
-  template<typename Tbegin, typename Tend>
-  std::string to_string(Range<Tbegin, Tend> const &r) {
-    std::string res = "[";
-    for (auto it = r.begin; it != r.end; ++it) {
-      if (it != r.begin) {
-        res += ", ";
-      }
-      res += util::to_string(*it);
-    }
-    res += "]";
-    return res;
-  }
-
-  // UNIT-E move to some common place
-  template<typename T>
-  std::string to_string(std::vector<T> const &v) {
-    return util::to_string(range(v.begin(), v.end()));
-  }
-
-  inline std::string to_string(finalization::p2p::Locator const &locator) {
-    return locator.ToString();
-  }
-
-  // UNIT-E move to some common place
-  // Last chance, try to rely on std::to_string
-  template <typename T>
-  std::string to_string(T const &v) {
-    return std::to_string(v);
-  }
+inline std::string to_string(finalization::p2p::Locator const &locator) {
+  return locator.ToString();
+}
 } // util
 
 #endif

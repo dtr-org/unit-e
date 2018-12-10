@@ -16,6 +16,7 @@
 
 #include <compat.h>
 #include <fs.h>
+#include <uint256.h>
 #include <sync.h>
 #include <tinyformat.h>
 #include <utiltime.h>
@@ -373,5 +374,48 @@ std::unique_ptr<T> MakeUnique(Args&&... args)
 }
 
 int64_t StrToEpoch(const std::string &input, bool fillMax = false);
+
+namespace util {
+
+inline std::string to_string(uint256 v) {
+    return v.GetHex();
+}
+
+template <typename Tbegin, typename Tend>
+struct Range {
+    Tbegin begin;
+    Tend end;
+};
+
+template<typename Tbegin, typename Tend>
+Range<Tbegin, Tend> range(Tbegin const &begin, Tend const &end) {
+    return { begin, end };
+}
+
+template<typename Tbegin, typename Tend>
+std::string to_string(Range<Tbegin, Tend> const &r) {
+    std::string res = "[";
+    for (auto it = r.begin; it != r.end; ++it) {
+        if (it != r.begin) {
+            res += ", ";
+        }
+        res += util::to_string(*it);
+    }
+    res += "]";
+    return res;
+}
+
+template<typename T>
+std::string to_string(std::vector<T> const &v) {
+    return util::to_string(range(v.begin(), v.end()));
+}
+
+// Last chance, try to rely on std::to_string
+template <typename T>
+std::string to_string(T const &v) {
+    return std::to_string(v);
+}
+} // util
+
 
 #endif // UNITE_UTIL_H
