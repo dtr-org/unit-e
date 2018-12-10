@@ -63,8 +63,6 @@ class EsperanzaSlashTest(UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
-        block_time = 0.2
-
         nodes = self.nodes
         self.proposer = nodes[0]
         self.validator = nodes[1]
@@ -92,8 +90,6 @@ class EsperanzaSlashTest(UnitETestFramework):
         for n in range(0, 9):
             self.generate_block(proposer)
 
-        sync_blocks(self.nodes)
-
         # generates 1 more block
         Admin.authorize_and_disable(self, proposer)
 
@@ -103,8 +99,6 @@ class EsperanzaSlashTest(UnitETestFramework):
         # generate 2 more epochs
         for n in range(0, 20):
             self.generate_block(proposer)
-            sync_blocks(self.nodes)
-            time.sleep(block_time)
 
         self.wait_for_transaction(self.deposit_id, 30)
 
@@ -154,7 +148,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         # invalid at submission. This is to account for those cases.
         while i < 5:
             try:
-                return node.generate(1)
+                return self.generate_sync(node)
             except JSONRPCException as exp:
                 i += 1
                 print("error generating block:", exp.error)

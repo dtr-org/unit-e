@@ -119,9 +119,8 @@ class AdminValidation(UnitETestFramework):
 
         assert_equal(10000, self.admin.getbalance())
 
-        # Waiting for maturity
-        self.admin.generate(COINBASE_MATURITY)
-        self.sync_all()
+        # Exit IBD
+        self.generate_sync(self.admin)
 
         self.admin.p2p.wait_for_verack()
 
@@ -184,7 +183,7 @@ class AdminValidation(UnitETestFramework):
                      "b'admin-invalid-command'")
 
         # This is to ensure end_permissioning was not applied
-        self.admin.generate(1)
+        self.generate_sync(self.admin)
 
         # Going to reset admin keys. Generate new keys first
         new_addresses = list(self.admin.getnewaddress() for _ in range(3))
@@ -198,7 +197,7 @@ class AdminValidation(UnitETestFramework):
         self.accepts([reset_admin_cmd], admin_address)
 
         # Admin commands have no power until included into block
-        self.admin.generate(1)
+        self.generate_sync(self.admin)
 
         # Previous command has changed admin keys. Old address is invalid
         self.rejects([end_permissioning_cmd],
@@ -209,7 +208,7 @@ class AdminValidation(UnitETestFramework):
                                                       "p2sh-segwit")["address"]
 
         self.accepts([end_permissioning_cmd], admin_address)
-        self.admin.generate(1)  # to actually execute above command
+        self.generate_sync(self.admin) # to actually execute above command
 
         self.rejects([end_permissioning_cmd],
                      admin_address,

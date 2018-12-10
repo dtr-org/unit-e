@@ -42,7 +42,6 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
     def run_test(self):
         nodes = self.nodes
-        block_time = 0.1
 
         validator = nodes[0]
 
@@ -59,8 +58,6 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         for n in range(0, 119):
             self.generate_block(nodes[1])
 
-        sync_blocks(self.nodes)
-
         # generates 1 more block
         Admin.authorize_and_disable(self, nodes[1])
 
@@ -74,7 +71,6 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # +1 block to include a vote that was casted in 20th block
         for n in range(0, 21):
             self.generate_block(nodes[(n % 3) + 1])
-            self.sync_all()
 
         assert_equal(validator.getblockchaininfo()['blocks'], 141)
 
@@ -88,8 +84,6 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # wait for 2 dynasties since logout so we are not required to vote anymore
         for n in range(0, 20):
             self.generate_block(nodes[(n % 3) + 1])
-            time.sleep(block_time)
-            self.sync_all()
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
@@ -99,8 +93,6 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # fact that the endEpoch is startEpoch(endDynasty + 1) )
         for n in range(0, 140):
             self.generate_block(nodes[(n % 3) + 1])
-            time.sleep(block_time)
-            self.sync_all()
 
         # check that there is no leftover vote in the mempool,
         # this might happen if votes are outdated but not pruned yet
@@ -111,7 +103,6 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         # let's mine the withdraw
         self.generate_block(nodes[1])
-        sync_blocks(self.nodes)
 
         # This is the initial deposit - fees for deposit, logout and withdraw
         assert_equal(math.ceil(validator.getbalance()), 10000)
@@ -122,7 +113,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # invalid at submission. This is to account for those cases.
         while i < 5:
             try:
-                node.generate(1)
+                self.generate_sync(node)
                 return
             except JSONRPCException as exp:
                 i += 1
