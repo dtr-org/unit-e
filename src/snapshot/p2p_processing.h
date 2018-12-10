@@ -75,8 +75,8 @@ class P2PState {
   Params m_params;
 
   // keep track of fast sync requests
-  std::chrono::time_point<std::chrono::steady_clock> m_first_request_at;
-  std::chrono::time_point<std::chrono::steady_clock> m_last_request_at;
+  std::chrono::steady_clock::time_point m_first_request_at;
+  std::chrono::steady_clock::time_point m_last_request_at;
 
   bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
                        const CNetMsgMaker &msg_maker);
