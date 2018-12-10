@@ -8,6 +8,8 @@
 #include <blockchain/blockchain_genesis.h>
 
 #include <amount.h>
+#include <blockchain/blockchain_interfaces.h>
+#include <blockchain/blockchain_types.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <protocol.h>
@@ -18,19 +20,6 @@
 #include <type_traits>
 
 namespace blockchain {
-
-using BlockHeight = std::uint32_t;
-using MoneySupply = CAmount;
-
-// clang-format off
-BETTER_ENUM(
-    Network,
-    uint8_t,
-    main = 0,
-    test = 1,
-    regtest = 2
-)
-// clang-format on
 
 struct Parameters {
 
@@ -62,13 +51,50 @@ struct Parameters {
   //! };
   using RewardFunction = CAmount (*)(const Parameters &, MoneySupply, BlockHeight);
 
+  //! \brief a function to calculate the difficulty for a given block.
+  //!
+  //! The difficulty function is a pure function that takes as inputs the
+  //! parameters that are currently active and the height to propose at.
+  //! Also it receives a DepthIterator which points at the current tip of the
+  //! chain. It can be used to look at the recent history of blocks and adjust
+  //! difficulty accordingly (using whatever metric is provided by the block
+  //! index).
+  //!
+  //! For example the bitcoin difficulty function would be:
+  //!
+  //! difficultyFunction = [](const Parameters &p, BlockHeight h, ChainAccess &ix) -> Difficulty {
+  //!   constexpr int TARGET_TIMESPAN = 14 * 24 * 60 * 60;
+  //!   if (h % 2016 != 0) {
+  //!     // it it's not difficulty adjust time, just return current difficulty
+  //!     return ix->nBits;
+  //!   }
+  //!   // block at depth 2015 (ix points at the block before the one we're proposing)
+  //!   BlockTime nFirstBlockTime = ix[2015].nTime;
+  //!   // Limit adjustment step
+  //!   int64_t nActualTimespan = ix->GetBlockTime() - nFirstBlockTime;
+  //!   if (nActualTimespan < TARGET_TIMESPAN / 4)
+  //!     nActualTimespan = TARGET_TIMESPAN / 4;
+  //!   if (nActualTimespan > TARGET_TIMESPAN * 4)
+  //!     nActualTimespan = TARGET_TIMESPAN * 4;
+  //!
+  //!   // Retarget
+  //!   const arith_uint256 bnPowLimit = UintToArith256(p.pow_limit);
+  //!   arith_uint256 bnNew;
+  //!   bnNew.SetCompact(ix->nBits);
+  //!   bnNew *= nActualTimespan;
+  //!   bnNew /= TARGET_TIMESPAN;
+  //!
+  //!   if (bnNew > bnPowLimit)
+  //!     bnNew = bnPowLimit;
+  //!
+  //!   return bnNew.GetCompact();
+  //! };
+  using DifficultyFunction = Difficulty (*)(const Parameters &, BlockHeight, ChainAccess &);
+
   //! \brief a unique identifier for this network.
   //!
   //! The usual predefined identifiers are "main", "test", and "regtest".
   const char *networkName;
-
-  //! \brief The genesis hash of the genesis block of this chain.
-  const char *genesisBlockHash;
 
   //! \brief The genesis block of this chain.
   GenesisBlock const *genesisBlock;
@@ -134,6 +160,12 @@ struct Parameters {
   //! See description of "RewardFunction". The reward function can (and should)
   //! be given as a pure lambda function.
   RewardFunction rewardFunction;
+
+  //! \brief The function calculating the difficulty for a block to be newly proposed.
+  //!
+  //! See description of "DifficultyFunction". The difficulty function can
+  //! (and should) be given as a pure lambda function.
+  DifficultyFunction difficultyFunction;
 
   //! \brief Whether to allow the "generatetoaddress" and "generate" RPC calls.
   bool mineBlocksOnDemand;
