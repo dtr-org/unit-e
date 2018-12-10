@@ -49,6 +49,7 @@ UNITE_TESTS = \
   test/cuckoocache_tests.cpp \
   test/dependency_injector_tests.cpp \
   test/DoS_tests.cpp \
+  test/embargoman_tests.cpp \
   test/esperanza/admincommand_tests.cpp \
   test/esperanza/adminstate_tests.cpp \
   test/esperanza/checks_tests.cpp \

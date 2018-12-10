@@ -148,6 +148,8 @@ UNITE_CORE_H = \
   netbase.h \
   netmessagemaker.h \
   noui.h \
+  p2p/embargoman.h \
+  p2p/embargoman_init.h \
   policy/feerate.h \
   policy/fees.h \
   policy/policy.h \
@@ -280,6 +282,8 @@ libunite_server_a_SOURCES = \
   net.cpp \
   net_processing.cpp \
   noui.cpp \
+  p2p/embargoman.cpp \
+  p2p/embargoman_init.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \

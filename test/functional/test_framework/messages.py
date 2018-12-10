@@ -1416,3 +1416,19 @@ class msg_snapshot:
         return r
 
     def deserialize(self, f): pass
+
+
+class msg_notfound():
+    command = b"notfound"
+
+    def __init__(self, inv=None):
+        self.inv = inv if inv != None else []
+
+    def deserialize(self, f):
+        self.inv = deser_vector(f, CInv)
+
+    def serialize(self):
+        return ser_vector(self.inv)
+
+    def __repr__(self):
+        return "msg_notfound(inv=%s)" % (repr(self.inv))

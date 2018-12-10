@@ -49,6 +49,7 @@ MESSAGEMAP = {
     b"version": msg_version,
     b"getsnapshot": msg_getsnapshot,
     b"snapshot": msg_snapshot,
+    b"notfound": msg_notfound,
 }
 
 MAGIC_BYTES = {
@@ -320,6 +321,7 @@ class P2PInterface(P2PConnection):
     def on_getheaders(self, message): pass
     def on_headers(self, message): pass
     def on_mempool(self, message): pass
+    def on_notfound(self, message): pass
     def on_pong(self, message): pass
     def on_reject(self, message): pass
     def on_sendcmpct(self, message): pass

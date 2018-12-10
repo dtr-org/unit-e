@@ -1212,7 +1212,9 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
             bool push = false;
             auto mi = mapRelay.find(inv.hash);
             int nSendFlags = (inv.type == MSG_TX ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
-            if (mi != mapRelay.end()) {
+            if (connman->embargoman && connman->embargoman->IsEmbargoedFor(inv.hash, pfrom->GetId())) {
+              // Tx is embargoed
+            } else if (mi != mapRelay.end()) {
                 connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second));
                 push = true;
             } else if (pfrom->timeLastMempoolReq) {
@@ -1898,6 +1900,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
             if (inv.type == MSG_TX) {
                 inv.type |= nFetchFlags;
+
+                if (connman->embargoman) {
+                  connman->embargoman->OnTxInv(inv.hash, pfrom->GetId());
+                }
             }
 
             if (inv.type == MSG_BLOCK) {
@@ -3285,6 +3291,9 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
         // transactions become unconfirmed and spams other nodes.
         if (!fReindex && !fImporting && !IsInitialBlockDownload())
         {
+            if (connman->embargoman) {
+                connman->embargoman->FluffPendingEmbargoes();
+            }
             GetMainSignals().Broadcast(nTimeBestReceived, connman);
         }
 
@@ -3484,6 +3493,11 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
                     if (pto->pfilter) {
                         if (!pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
                     }
+                    if (connman->embargoman &&
+                        connman->embargoman->IsEmbargoedFor(hash, pto->GetId())) {
+                      continue;
+                    }
+
                     pto->filterInventoryKnown.insert(hash);
                     vInv.push_back(inv);
                     if (vInv.size() == MAX_INV_SZ) {
@@ -3536,6 +3550,9 @@ bool PeerLogicValidation::SendMessages(CNode* pto, std::atomic<bool>& interruptM
                         continue;
                     }
                     if (pto->pfilter && !pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
+                    if (connman->embargoman && connman->embargoman->IsEmbargoedFor(hash, pto->GetId())) {
+                      continue;
+                    }
                     // Send
                     vInv.push_back(CInv(MSG_TX, hash));
                     nRelayedTransactions++;
