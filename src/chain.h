@@ -400,6 +400,11 @@ public:
         READWRITE(VARINT(nHeight));
         READWRITE(VARINT(nStatus));
         READWRITE(VARINT(nTx));
+
+        READWRITE(bnStakeModifier);
+        READWRITE(prevoutStake);
+        READWRITE(VARINT(nMoneySupply));
+
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
             READWRITE(VARINT(nFile));
         if (nStatus & BLOCK_HAVE_DATA)
