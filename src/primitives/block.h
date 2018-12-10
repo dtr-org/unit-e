@@ -6,6 +6,7 @@
 #ifndef UNITE_PRIMITIVES_BLOCK_H
 #define UNITE_PRIMITIVES_BLOCK_H
 
+#include <blockchain/blockchain_types.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -24,8 +25,8 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
-    uint32_t nTime;
-    uint32_t nBits;
+    blockchain::BlockTime nTime;
+    blockchain::Difficulty nBits;
     uint32_t nNonce;
 
     CBlockHeader()
