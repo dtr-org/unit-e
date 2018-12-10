@@ -228,6 +228,7 @@ class FinalizationState : public FinalizationStateData {
   static FinalizationState *GetState(const CBlockIndex *block = nullptr);
 
   static uint32_t GetEpoch(const CBlockIndex *blockIndex);
+  static uint32_t GetEpoch(int blockHeight);
 
   static bool ValidateDepositAmount(CAmount amount);
 
@@ -242,6 +243,12 @@ class FinalizationState : public FinalizationStateData {
 
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
+
+  bool IsCheckpoint(int blockHeight) const;
+
+  bool IsJustifiedCheckpoint(int blockHeight) const;
+
+  bool IsFinalizedCheckpoint(int blockHeight) const;
 
  private:
   //!In case there is nobody available to finalize we finalize automatically.

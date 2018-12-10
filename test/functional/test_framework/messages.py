@@ -1432,3 +1432,38 @@ class msg_notfound():
 
     def __repr__(self):
         return "msg_notfound(inv=%s)" % (repr(self.inv))
+
+
+class CCommitsLocator():
+    def __init__(self, start=[], stop=0):
+        self.start = start
+        self.stop = stop
+
+    def deserialize(self, f):
+        self.start = deser_uint256_vector(f)
+        self.stop = deser_uint256(f)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256_vector(self.start)
+        r += ser_uint256(self.stop)
+        return r
+
+    def __repr__(self):
+        return "CCommitsLocator(start=% stop=%064x)" \
+            % (repr(self.start), self.stop)
+
+
+class msg_getcommits:
+    command = b"getcommits"
+
+    def __init__(self, locator):
+        self.locator = locator
+
+    def deserialize(self):
+        self.locator.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.locator.serialize()
+        return r

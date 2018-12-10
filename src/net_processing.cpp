@@ -31,6 +31,7 @@
 #include <utilstrencodings.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
+#include <finalization/p2p.h>
 
 #include <memory>
 
@@ -2874,6 +2875,13 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     else if (strCommand == NetMsgType::NOTFOUND) {
         // We do not care about the NOTFOUND message, but logging an Unknown Command
         // message would be undesirable as we transmit it ourselves.
+    }
+
+    else if (strCommand == NetMsgType::GETCOMMITS) {
+        finalization::p2p::Locator locator;
+        vRecv >> locator;
+        LogPrint(BCLog::NET, "received: %s\n", util::to_string(locator));
+        return finalization::p2p::ProcessGetCommits(locator);
     }
 
     else {

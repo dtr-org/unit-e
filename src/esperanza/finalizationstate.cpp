@@ -813,10 +813,11 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
 }
 
 uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
-  FinalizationState *state = GetState(blockIndex);
+  return GetEpoch(blockIndex->nHeight);
+}
 
-  return static_cast<uint32_t>(blockIndex->nHeight) /
-         state->m_settings.m_epochLength;
+uint32_t FinalizationState::GetEpoch(int blockHeight) {
+  return static_cast<uint32_t>(blockHeight) / GetState()->m_settings.m_epochLength;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -1013,6 +1014,26 @@ void FinalizationState::RegisterValidatorTx(uint160 &validatorAddress,
 uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
   const Validator &validator = m_validators.at(validatorAddress);
   return validator.m_lastTransactionHash;
+}
+
+bool FinalizationState::IsCheckpoint(int blockHeight) const {
+  return blockHeight % m_settings.m_epochLength == 0;
+}
+
+bool FinalizationState::IsJustifiedCheckpoint(int blockHeight) const {
+  if (!IsCheckpoint(blockHeight)) {
+    return false;
+  }
+  auto it = m_checkpoints.find(GetEpoch(blockHeight));
+  return it != m_checkpoints.end() && it->second.m_isJustified;
+}
+
+bool FinalizationState::IsFinalizedCheckpoint(int blockHeight) const {
+  if (!IsCheckpoint(blockHeight)) {
+    return false;
+  }
+  auto it = m_checkpoints.find(GetEpoch(blockHeight));
+  return it != m_checkpoints.end() && it->second.m_isFinalized;
 }
 
 }  // namespace esperanza

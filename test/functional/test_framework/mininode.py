@@ -50,6 +50,8 @@ MESSAGEMAP = {
     b"getsnapshot": msg_getsnapshot,
     b"snapshot": msg_snapshot,
     b"notfound": msg_notfound,
+    b"getcommits": msg_getcommits,
+    b"commits":msg_commits,
 }
 
 MAGIC_BYTES = {
