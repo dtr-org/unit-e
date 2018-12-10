@@ -15,9 +15,9 @@ std::string Locator::ToString() const {
   return strprintf("Locator(start=%s, stop=%s)", util::to_string(start), stop.GetHex());
 }
 
-static CBlockIndex *FindMostRecentStart(CChain const &chain, Locator const &locator) {
-  auto const *state = esperanza::FinalizationState::GetState();
-  CBlockIndex *last = nullptr;
+static CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const &locator) {
+  auto const *const state = esperanza::FinalizationState::GetState();
+  CBlockIndex const *last = nullptr;
   for (auto const &h : locator.start) {
     auto const it = mapBlockIndex.find(h);
     if (it == mapBlockIndex.end()) {
@@ -42,7 +42,7 @@ static CBlockIndex *FindMostRecentStart(CChain const &chain, Locator const &loca
   return last;
 }
 
-static CBlockIndex *FindStop(Locator const &locator) {
+static CBlockIndex const *FindStop(Locator const &locator) {
   if (locator.stop.IsNull()) {
     return nullptr;
   }
@@ -54,7 +54,7 @@ static CBlockIndex *FindStop(Locator const &locator) {
   return it->second;
 }
 
-static HeaderAndCommits FindHeaderAndCommits(CBlockIndex *pindex, Consensus::Params const &params) {
+static HeaderAndCommits FindHeaderAndCommits(CBlockIndex const *pindex, Consensus::Params const &params) {
   if (!(pindex->nStatus & BLOCK_HAVE_DATA)) {
     LogPrintf("%s has no data. It's on the main chain, so this shouldn't happen. Stopping.\n",
               pindex->GetBlockHash().GetHex());
@@ -75,11 +75,11 @@ static HeaderAndCommits FindHeaderAndCommits(CBlockIndex *pindex, Consensus::Par
 
 bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
                        CChainParams const &params) {
-  CBlockIndex *pindex = FindMostRecentStart(chainActive, locator);
+  CBlockIndex const *pindex = FindMostRecentStart(chainActive, locator);
   if (pindex == nullptr) {
     return error("%s: cannot find start point in locator: %s", __func__, locator.ToString());
   }
-  CBlockIndex *const stop = FindStop(locator);
+  CBlockIndex const *const stop = FindStop(locator);
   auto const *const state = esperanza::FinalizationState::GetState();
   CommitsResponse r;
   do {
@@ -96,6 +96,7 @@ bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &
   g_connman->PushMessage(node, msgMaker.Make(NetMsgType::COMMITS, r));
   return true;
 }
+
 
 } // p2p
 } // finalization
