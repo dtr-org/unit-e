@@ -1998,9 +1998,10 @@ void CConnman::ThreadMessageHandler()
     while (!flagInterruptMsgProc)
     {
         std::vector<CNode*> vNodesCopy;
+        vNodesCopy.reserve(vNodes.size());
         {
             LOCK(cs_vNodes);
-            for (CNode* pnode : vNodesCopy) {
+            for (CNode* pnode : vNodes) {
                 if (pnode->fDisconnect) {
                     continue;
                 }
@@ -2012,7 +2013,7 @@ void CConnman::ThreadMessageHandler()
 
         bool fMoreWork = false;
 
-        for (int i = 0; i < vNodesCopy.size(); ++i)
+        for (size_t i = 0; i < vNodesCopy.size(); ++i)
         {
             CNode *pnode = vNodesCopy[i];
             // Receive messages
