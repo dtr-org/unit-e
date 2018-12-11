@@ -13,28 +13,28 @@ namespace {
 
 Parameters BuildMainNetParameters() {
   Parameters p{};  // designated initializers would be so nice here
-  p.networkName = "main";
-  p.blockStakeTimestampIntervalSeconds = 16;
-  p.blockTimeSeconds = 16;
-  p.relayNonStandardTransactions = false;
-  p.mineBlocksOnDemand = false;
-  p.maximumBlockSize = 1000000;
-  p.maximumBlockWeight = 4000000;
-  p.maximumBlockSerializedSize = 4000000;
-  p.maximumBlockSigopsCost = 80000;
-  p.coinstakeMaturity = 100;
-  p.rewardFunction = [](const Parameters &p, MoneySupply s, BlockHeight h) -> CAmount {
+  p.network_name = "main";
+  p.block_stake_timestamp_interval_seconds = 16;
+  p.block_time_seconds = 16;
+  p.relay_non_standard_transactions = false;
+  p.mine_blocks_on_demand = false;
+  p.maximum_block_size = 1000000;
+  p.maximum_block_weight = 4000000;
+  p.maximum_block_serialized_size = 4000000;
+  p.maximum_block_sigops_cost = 80000;
+  p.coinbase_maturity = 100;
+  p.reward_function = [](const Parameters &p, MoneySupply s, Height h) -> CAmount {
     // UNIT-E: This reward function is not here to stay, it is just some simple reward function as in particl
     constexpr uint64_t secondsInAYear = 365 * 24 * 60 * 60;
     // 2 percent inflation (2% of current money supply distributed over all blocks in a year)
-    return (s * 2 / 100) / (secondsInAYear / p.blockStakeTimestampIntervalSeconds);
+    return (s * 2 / 100) / (secondsInAYear / p.block_stake_timestamp_interval_seconds);
   };
-  p.messageStartChars[0] = 0xee;
-  p.messageStartChars[1] = 0xee;
-  p.messageStartChars[2] = 0xae;
-  p.messageStartChars[3] = 0xc1;
-  p.deploymentConfirmationPeriod = 2016;
-  p.ruleChangeActivationThreshold = 1916;
+  p.message_start_characters[0] = 0xee;
+  p.message_start_characters[1] = 0xee;
+  p.message_start_characters[2] = 0xae;
+  p.message_start_characters[3] = 0xc1;
+  p.deployment_confirmation_period = 2016;
+  p.rule_change_activation_threshold = 1916;
 
   static GenesisBlock genesisBlock{
       P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
@@ -42,19 +42,19 @@ Parameters BuildMainNetParameters() {
       P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
       P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
       P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")};
-  p.genesisBlock = &genesisBlock;
+  p.genesis_block = &genesisBlock;
 
   return p;
 }
 
 Parameters BuildTestNetParameters() {
   Parameters p = Parameters::MainNet();
-  p.networkName = "test";
-  p.relayNonStandardTransactions = true;
-  p.messageStartChars[0] = 0xfd;
-  p.messageStartChars[1] = 0xfc;
-  p.messageStartChars[2] = 0xfb;
-  p.messageStartChars[3] = 0xfa;
+  p.network_name = "test";
+  p.relay_non_standard_transactions = true;
+  p.message_start_characters[0] = 0xfd;
+  p.message_start_characters[1] = 0xfc;
+  p.message_start_characters[2] = 0xfb;
+  p.message_start_characters[3] = 0xfa;
 
   static GenesisBlock genesisBlock{
       P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
@@ -62,20 +62,20 @@ Parameters BuildTestNetParameters() {
       P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
       P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
       P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")};
-  p.genesisBlock = &genesisBlock;
+  p.genesis_block = &genesisBlock;
 
   return p;
 }
 
 Parameters BuildRegTestParameters() {
   Parameters p = Parameters::MainNet();
-  p.networkName = "regtest";
-  p.mineBlocksOnDemand = true;
-  p.coinstakeMaturity = 2;
-  p.messageStartChars[0] = 0xfa;
-  p.messageStartChars[1] = 0xbf;
-  p.messageStartChars[2] = 0xb5;
-  p.messageStartChars[3] = 0xda;
+  p.network_name = "regtest";
+  p.mine_blocks_on_demand = true;
+  p.coinbase_maturity = 2;
+  p.message_start_characters[0] = 0xfa;
+  p.message_start_characters[1] = 0xbf;
+  p.message_start_characters[2] = 0xb5;
+  p.message_start_characters[3] = 0xda;
 
   static GenesisBlock genesisBlock{
       P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
@@ -83,7 +83,7 @@ Parameters BuildRegTestParameters() {
       P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
       P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
       P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")};
-  p.genesisBlock = &genesisBlock;
+  p.genesis_block = &genesisBlock;
 
   return p;
 }

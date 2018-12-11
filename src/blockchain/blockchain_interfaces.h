@@ -18,26 +18,18 @@
 
 namespace blockchain {
 
-//! \brief Traverses the currently active best chain by depth.
-//!
-//! A DepthIterator always starts at a given block and traverses into the
-//! direction of the genesis block. That is: incrementing it (++) moves into
-//! the direction of genesis, decrementing it (--) moves into the direction of
-//! the tip.
-//!
-//! A DepthIterator can be checked for whether it is still valid by converting
-//! it to a (bool) – an explicit conversion, usable in if-statements, is defined.
+//! \brief Access to the active chain by height and depth.
 class ChainAccess {
  public:
-  //! \brief Access CBlockIndexes in the active chain
-  //!
-  //! Negative values are treated as blocks at the given depth, i.e. -1 would
-  //! look for the block at depth 1 which is exactly the chain's tip. Positive
-  //! values and zero refer to blocks by height. The block at height 0 is the
-  //! genesis block, the block at height 1 the one after that, etc.
+  //! \brief Access CBlockIndexes in the active chain at the given depth.
   //!
   //! \return nullptr if no Block at the given height/depth exists.
-  virtual const CBlockIndex *operator[](std::int64_t) = 0;
+  virtual const CBlockIndex *AtDepth(blockchain::Depth depth) = 0;
+
+  //! \brief Access CBlockIndexes in the active chain at the given height.
+  //!
+  //! \return nullptr if no Block at the given height/depth exists.
+  virtual const CBlockIndex *AtHeight(blockchain::Height height) = 0;
 
   virtual ~ChainAccess() = default;
 };

@@ -33,18 +33,18 @@ class Behavior {
   //! \brief Get the timestamp usable for proposing according to Kernel protocol.
   //!
   //! \return A value less than or equal to the given timestamp.
-  std::uint32_t CalculateProposingTimestamp(std::uint64_t) const;
+  std::uint32_t CalculateProposingTimestamp(std::uint64_t timestamp_sec) const;
 
   //! \brief Get the NEXT timestamp for proposing.
   //!
   //! \return A value strictly greater than the given timestamp.
-  std::uint32_t CalculateProposingTimestampAfter(std::uint64_t) const;
+  std::uint32_t CalculateProposingTimestampAfter(std::uint64_t timestamp_sec) const;
 
   //! \brief Calculates the block reward given current money supply and block height.
-  CAmount CalculateReward(MoneySupply, BlockHeight) const;
+  CAmount CalculateReward(MoneySupply, Height) const;
 
   //! \brief Calculates the difficulty for BlockHeight
-  Difficulty CalculateDifficulty(BlockHeight, ChainAccess&) const;
+  Difficulty CalculateDifficulty(Height, ChainAccess&) const;
 
   //! \brief Get a reference to the genesis block.
   //!

@@ -73,7 +73,7 @@ void ProposerImpl::CreateProposerThreads() {
     indexMap.insert({walletIx % numThreads, walletIx});
   }
 
-  m_threads.resize(numThreads);
+  m_threads.reinitialize(numThreads);
 
   // create thread objects
   for (ThreadIndex threadIx = 0; threadIx < numThreads; ++threadIx) {

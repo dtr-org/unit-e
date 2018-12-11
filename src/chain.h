@@ -210,7 +210,7 @@ public:
     //! block header
     int32_t nVersion;
     uint256 hashMerkleRoot;
-    blockchain::BlockTime nTime;
+    blockchain::Time nTime;
     blockchain::Difficulty nBits;
     uint32_t nNonce;
 

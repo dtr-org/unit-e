@@ -52,6 +52,16 @@ class ActiveChain : public virtual blockchain::ChainAccess {
 
   virtual const CBlockIndex *operator[](std::int64_t) = 0;
 
+  // defined in blockchain::ChainAccess
+  const CBlockIndex *AtDepth(blockchain::Depth depth) override {
+    return (*this)[-depth];
+  }
+
+  // defined in blockchain::ChainAccess
+  const CBlockIndex *AtHeight(blockchain::Height height) override {
+    return (*this)[height];
+  }
+
   //! \brief add a new block at the current active chains tip.
   virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) = 0;
 

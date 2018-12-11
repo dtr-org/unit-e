@@ -17,8 +17,9 @@ namespace blockchain {
 
 //! \brief difficulty, expressed in compact form ("nBits")
 using Difficulty = std::uint32_t;
-using BlockHeight = std::uint32_t;
-using BlockTime = std::uint32_t;
+using Height = std::uint32_t;
+using Depth = Height;
+using Time = std::uint32_t;
 using MoneySupply = CAmount;
 
 // clang-format off

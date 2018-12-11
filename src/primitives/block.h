@@ -25,7 +25,7 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
-    blockchain::BlockTime nTime;
+    blockchain::Time nTime;
     blockchain::Difficulty nBits;
     uint32_t nNonce;
 

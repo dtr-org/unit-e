@@ -19,13 +19,18 @@
 //! CopyInsertable or MoveInsertable and insertion will never invalidate
 //! references.
 //!
+//! As opposed to an std::array the size does not have to be known at
+//! compile time.
+//!
+//! This container guarantees that elements are contiguously laid out in memory.
+//!
 //! \tparam T Element type must be EmplaceConstructible and Erasable.
 template <typename T, typename Allocator = std::allocator<T>>
 class FixedVector {
 
  private:
   using pointer = T *;
-  using allocator_type = std::allocator<T>;
+  using allocator_type = Allocator;
   using allocator_traits = std::allocator_traits<allocator_type>;
 
   std::size_t m_capacity;
@@ -37,6 +42,16 @@ class FixedVector {
   allocator_type &alloc() { return m_data_alloc.second(); }
   void allocate() { data() = allocator_traits::allocate(alloc(), m_capacity); }
   void deallocate() { allocator_traits::deallocate(alloc(), data(), m_capacity); }
+  inline void checkindex(std::size_t index) const {
+    if (index >= m_size) {
+      throw std::runtime_error("index out of bounds");
+    }
+  }
+  inline void checkcapacity() const {
+    if (m_size >= m_capacity) {
+      throw std::runtime_error("over capacity");
+    }
+  }
 
  public:
   using reference = T &;
@@ -57,34 +72,31 @@ class FixedVector {
   explicit FixedVector(const allocator_type &allocator) noexcept
       : m_capacity(0), m_size(0), m_data_alloc(nullptr, allocator) {}
 
-  T &operator[](std::size_t index) const {
-    if (index >= m_size) {
-      throw std::runtime_error("index out of bounds");
-    }
+  const T &operator[](std::size_t index) const {
+    checkindex(index);
+    return data()[index];
+  }
+
+  T &operator[](std::size_t index) {
+    checkindex(index);
     return data()[index];
   }
 
   reference push_back(const T &thing) {
-    if (m_size >= m_capacity) {
-      throw std::runtime_error("over capacity");
-    }
+    checkcapacity();
     allocator_traits::construct(alloc(), end(), thing);
     return (*this)[m_size++];
   }
 
   reference push_back(T &&thing) {
-    if (m_size >= m_capacity) {
-      throw std::runtime_error("over capacity");
-    }
+    checkcapacity();
     allocator_traits::construct(alloc(), end(), std::move(thing));
     return (*this)[m_size++];
   }
 
   template <typename... Args>
   reference emplace_back(Args &&... args) {
-    if (m_size >= m_capacity) {
-      throw std::runtime_error("over capacity");
-    }
+    checkcapacity();
     allocator_traits::construct(alloc(), end(), std::forward<Args>(args)...);
     return (*this)[m_size++];
   }
@@ -98,14 +110,25 @@ class FixedVector {
     return false;
   }
 
+  //! \brief Removes all elements from this fixed vector.
+  //!
+  //! Afterwards the vector will have a size of zero. All references to
+  //! elements in this container are invalidated.
   void clear() {
     while (pop()) {
       // drain
     }
   }
 
-  //! \brief clears contents and invalidates all references
-  void resize(const std::size_t capacity) {
+  //! \brief Re-Initializes the fixed vector with a different capacity.
+  //!
+  //! The vector will be cleared and re-initialized with a different capacity.
+  //! After that operation all references to elements in this container will
+  //! be invalidated. The size of the container will be 0 and the capacity the
+  //! specified capacity.
+  //!
+  //! \param capacity The new capacity to reinitialize the fixed vector with.
+  void reinitialize(const std::size_t capacity) {
     clear();
     deallocate();
     m_capacity = capacity;
