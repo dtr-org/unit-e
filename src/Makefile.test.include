@@ -65,6 +65,7 @@ UNITE_TESTS = \
   test/esperanza/finalizationstate_utils.h \
   test/esperanza/finalizationstate_utils.cpp \
   test/finalization/vote_recorder_tests.cpp \
+  test/fixed_vector_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
   test/interpreter_tests.cpp \
