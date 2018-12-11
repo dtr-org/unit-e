@@ -28,7 +28,7 @@ EXCLUDE = [
 ]
 EXCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in EXCLUDE]))
 
-INCLUDE = ['*.h', '*.cpp', '*.cc', '*.c', '*.py', '*.js', '*.ts']
+INCLUDE = ['*.h', '*.cpp', '*.cc', '*.c', '*.py', '*.js', '*.ts', '*.rst']
 INCLUDE_COMPILED = re.compile('|'.join([fnmatch.translate(m) for m in INCLUDE]))
 
 EXCLUDE_DIRS = [
@@ -520,6 +520,16 @@ JAVASCRIPT_HEADER = '''
 def get_javascript_header_lines_to_insert(start_year, end_year):
     return reversed(get_header_lines(JAVASCRIPT_HEADER, start_year, end_year))
 
+RST_HEADER = '''
+.. Copyright (c) %s The Unit-e developers
+   Distributed under the MIT software license, see the accompanying
+   file LICENSE or https://opensource.org/licenses/MIT.
+
+'''
+
+def get_rst_header_lines_to_insert(start_year, end_year):
+    return reversed(get_header_lines(RST_HEADER, start_year, end_year))
+
 ################################################################################
 # query git for year of last change
 ################################################################################
@@ -569,6 +579,12 @@ def insert_cpp_header(filename, file_lines, start_year, end_year):
         file_lines.insert(0, line)
     write_file_lines(filename, file_lines)
 
+def insert_rst_header(filename, file_lines, start_year, end_year):
+    header_lines = get_rst_header_lines_to_insert(start_year, end_year)
+    for line in header_lines:
+        file_lines.insert(0, line)
+    write_file_lines(filename, file_lines)
+
 def exec_insert_header(filename, style):
     file_lines = read_file_lines(filename)
     if file_already_has_core_copyright(file_lines):
@@ -579,6 +595,8 @@ def exec_insert_header(filename, style):
         insert_python_header(filename, file_lines, start_year, end_year)
     elif style == 'javascript':
         insert_javascript_header(filename, file_lines, start_year, end_year)
+    elif style == 'rst':
+        insert_rst_header(filename, file_lines, start_year, end_year)
     else:
         insert_cpp_header(filename, file_lines, start_year, end_year)
 
@@ -619,13 +637,16 @@ def insert_cmd(argv):
     if not os.path.isfile(filename):
         sys.exit("*** bad filename: %s" % filename)
     _, extension = os.path.splitext(filename)
-    if extension not in ['.h', '.cpp', '.cc', '.c', '.py', '.js', '.ts']:
+    if extension not in ['.h', '.cpp', '.cc', '.c', '.py', '.js', '.ts',
+                         '.rst']:
         sys.exit("*** cannot insert for file extension %s" % extension)
 
     if extension == '.py':
         style = 'python'
     elif extension == '.js' or extension == '.ts':
         style = 'javascript'
+    elif extension == '.rst':
+        style = 'rst'
     else:
         style = 'cpp'
     exec_insert_header(filename, style)
