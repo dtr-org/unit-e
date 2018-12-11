@@ -2,7 +2,7 @@ branches:
   only:
     - master
 sudo: required
-dist: trusty
+dist: xenial
 os: linux
 language: minimal
 cache:
