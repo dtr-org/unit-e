@@ -56,11 +56,9 @@ BOOST_AUTO_TEST_SUITE(proposer_tests)
 
 fakeit::Mock<staking::Network> networkMock;
 fakeit::Mock<staking::ActiveChain> chainMock;
-fakeit::Mock<proposer::BlockProposer> blockProposerMock;
 
 Dependency<staking::Network> network = &networkMock.get();
 Dependency<staking::ActiveChain> chain = &chainMock.get();
-Dependency<proposer::BlockProposer> blockProposer = &blockProposerMock.get();
 
 BOOST_AUTO_TEST_CASE(start_stop) {
   proposer::Settings config;
@@ -69,7 +67,7 @@ BOOST_AUTO_TEST_CASE(start_stop) {
 
   WalletMock wallets;
   {
-    proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
+    proposer::ProposerImpl proposer(&config, &wallets, network, chain);
 
     proposer.Start();
   }
@@ -80,7 +78,7 @@ BOOST_AUTO_TEST_CASE(stop_without_start) {
   proposer::Settings config;
   WalletMock wallets;
   {
-    proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
+    proposer::ProposerImpl proposer(&config, &wallets, network, chain);
   }
   // UNIT-E: For now just checks that no exception has been thrown.
 }
@@ -107,7 +105,7 @@ BOOST_AUTO_TEST_CASE(wallet_distribution) {
   wallets.m_wallets.emplace_back(&w10);
   wallets.m_wallets.emplace_back(&w11);
 
-  proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
+  proposer::ProposerImpl proposer(&config, &wallets, network, chain);
   proposer::ProposerSpy spy(proposer);
 
   proposer.Start();
@@ -137,7 +135,7 @@ BOOST_AUTO_TEST_CASE(single_wallet_too_many_threads_specified) {
 
   WalletMock wallets;
 
-  proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
+  proposer::ProposerImpl proposer(&config, &wallets, network, chain);
   proposer::ProposerSpy spy(proposer);
 
   BOOST_CHECK(spy.numThreads() == 0);
@@ -156,7 +154,7 @@ BOOST_AUTO_TEST_CASE(single_wallet_too_few_threads_specified) {
 
   WalletMock wallets;
 
-  proposer::ProposerImpl proposer(&config, &wallets, network, chain, blockProposer);
+  proposer::ProposerImpl proposer(&config, &wallets, network, chain);
   proposer::ProposerSpy spy(proposer);
 
   proposer.Start();

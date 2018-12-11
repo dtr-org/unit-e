@@ -11,7 +11,6 @@
 #include <fixed_vector.h>
 #include <key.h>
 #include <primitives/block.h>
-#include <proposer/blockproposer.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer_settings.h>
 #include <proposer/proposer_status.h>
@@ -49,8 +48,7 @@ class Proposer {
   static std::unique_ptr<Proposer> New(Dependency<Settings>,
                                        Dependency<MultiWallet>,
                                        Dependency<staking::Network>,
-                                       Dependency<staking::ActiveChain>,
-                                       Dependency<BlockProposer>);
+                                       Dependency<staking::ActiveChain>);
 };
 
 class ProposerStub : public Proposer {
@@ -69,8 +67,7 @@ class ProposerImpl : public Proposer {
   ProposerImpl(Dependency<Settings>,
                Dependency<MultiWallet>,
                Dependency<staking::Network>,
-               Dependency<staking::ActiveChain>,
-               Dependency<BlockProposer>);
+               Dependency<staking::ActiveChain>);
 
   ~ProposerImpl() override;
 
@@ -141,7 +138,6 @@ class ProposerImpl : public Proposer {
   Dependency<MultiWallet> m_multi_wallet;
   Dependency<staking::Network> m_network;
   Dependency<staking::ActiveChain> m_chain;
-  Dependency<BlockProposer> m_block_proposer;
 
   //! a flag for whether the proposer is started
   std::atomic_flag m_started = ATOMIC_FLAG_INIT;

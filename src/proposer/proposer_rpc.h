@@ -34,9 +34,9 @@ class ProposerRPC {
   virtual ~ProposerRPC() = default;
 
   static std::unique_ptr<ProposerRPC> New(
-      Dependency<staking::ActiveChain>,
-      Dependency<staking::Network>,
       Dependency<MultiWallet>,
+      Dependency<staking::Network>,
+      Dependency<staking::ActiveChain>,
       Dependency<Proposer>);
 };
 

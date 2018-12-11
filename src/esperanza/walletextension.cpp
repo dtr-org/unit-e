@@ -7,6 +7,7 @@
 
 #include <esperanza/walletextension.h>
 
+#include <blockchain/blockchain_types.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
@@ -21,6 +22,8 @@
 #include <wallet/coincontrol.h>
 #include <wallet/fees.h>
 #include <wallet/wallet.h>
+
+#include <cstdint>
 
 namespace esperanza {
 
@@ -37,19 +40,59 @@ WalletExtension::WalletExtension(const Settings &settings,
   }
 }
 
-CAmount WalletExtension::GetStakeableBalance() const {
-  LOCK2(cs_main, m_enclosing_wallet->cs_wallet);
-
-  CAmount balance = 0;
+template <typename Callable>
+void WalletExtension::ForEachStakeableCoin(Callable f) const {
+  AssertLockHeld(cs_main);
+  AssertLockHeld(m_enclosing_wallet->cs_wallet);  // access to mapWallet
 
   for (const auto &it : m_enclosing_wallet->mapWallet) {
-    const CWalletTx &coin = it.second;
-    if (coin.IsTrusted()) {
-      balance += coin.GetAvailableCredit();
-      balance += coin.GetAvailableWatchOnlyCredit();
+    const CWalletTx *tx = &it.second;
+    const uint256 &txId = tx->GetHash();
+    const std::vector<::CTxOut> &coins = tx->tx->vout;
+    const blockchain::Depth depth = tx->GetDepthInMainChain();  // requires cs_main
+    if (depth < 1) {
+      // requires at least one confirmation
+      continue;
+    }
+    for (std::size_t outIx = 0; outIx < coins.size(); ++outIx) {
+      if (m_enclosing_wallet->IsSpent(txId, outIx)) {
+        continue;
+      }
+      const CTxOut &coin = coins[outIx];
+      if (m_enclosing_wallet->GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
+        continue;
+      }
+      f(tx, outIx, depth);
     }
   }
-  return balance;
+}
+
+CCriticalSection &WalletExtension::GetLock() const {
+  return m_enclosing_wallet->cs_wallet;
+}
+
+CAmount WalletExtension::GetReserveBalance() const {
+  return m_reserve_balance;
+}
+
+CAmount WalletExtension::GetStakeableBalance() const {
+  CAmount total_amount = 0;
+  ForEachStakeableCoin([&](const CWalletTx *tx, std::size_t outIx, blockchain::Depth depth) {
+    total_amount += tx->tx->vout[outIx].nValue;
+  });
+  return total_amount;
+}
+
+std::vector<::COutput> WalletExtension::GetStakeableCoins() const {
+  std::vector<::COutput> coins;
+  ForEachStakeableCoin([&](const CWalletTx *tx, std::size_t outIx, blockchain::Depth depth) {
+    coins.emplace_back(tx, static_cast<int>(outIx), static_cast<int>(depth), true, true, true);
+  });
+  return coins;
+}
+
+proposer::State &WalletExtension::GetProposerState() {
+  return m_proposer_state;
 }
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,

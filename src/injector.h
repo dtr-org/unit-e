@@ -17,7 +17,6 @@
 #include <validation.h>
 
 #ifdef ENABLE_WALLET
-#include <proposer/blockproposer.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_rpc.h>
@@ -44,25 +43,20 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New);
 
-  COMPONENT(BlockProposer, proposer::BlockProposer, proposer::BlockProposer::New,
-            staking::ActiveChain,
-            staking::TransactionPicker)
-
   COMPONENT(ProposerSettings, proposer::Settings, proposer::Settings::New,
             ArgsManager)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
-            staking::ActiveChain,
-            staking::Network,
             proposer::MultiWallet,
+            staking::Network,
+            staking::ActiveChain,
             proposer::Proposer)
 
   COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::New,
             proposer::Settings,
             proposer::MultiWallet,
             staking::Network,
-            staking::ActiveChain,
-            proposer::BlockProposer)
+            staking::ActiveChain)
 
 #endif
 };

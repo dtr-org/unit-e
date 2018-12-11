@@ -31,7 +31,7 @@ namespace staking {
 class ActiveChain : public virtual blockchain::ChainAccess {
 
  public:
-  //! \brief access to the mutex that protects chain functions
+  //! \brief access to the mutex that protects the active chain
   //!
   //! Usage: LOCK(chain->GetLock())
   //!

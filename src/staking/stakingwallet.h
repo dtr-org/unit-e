@@ -6,6 +6,8 @@
 #define UNIT_E_STAKING_STAKINGWALLET_H
 
 #include <amount.h>
+#include <proposer/proposer_state.h>
+#include <sync.h>
 
 #include <vector>
 
@@ -21,7 +23,28 @@ namespace staking {
 class StakingWallet {
 
  public:
+  //! \brief access to the mutex that protects the active chain.
+  //!
+  //! Usage: LOCK(chain->GetLock())
+  //!
+  //! This way the existing DEBUG_LOCKORDER and other debugging features can
+  //! work as expected.
+  virtual CCriticalSection &GetLock() const = 0;
+
+  //! \brief returns the reserve balance currently set.
+  //!
+  //! The proposer will always make sure that it does not use more than this
+  //! amount for staking.
+  virtual CAmount GetReserveBalance() const = 0;
+
+  //! \brief returns the amount that can currently be used for staking.
   virtual CAmount GetStakeableBalance() const = 0;
+
+  //! \brief returns the coins that can currently be used for staking.
+  virtual std::vector<::COutput> GetStakeableCoins() const = 0;
+
+  //! \brief returns the mutable proposer state for this wallet.
+  virtual proposer::State &GetProposerState() = 0;
 
   virtual ~StakingWallet() = default;
 };

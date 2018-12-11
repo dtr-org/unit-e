@@ -35,23 +35,17 @@ namespace esperanza {
 //! The rationale behind this design decision is to keep up with developments
 //! in bitcoin-core. The alterations done to wallet.h/wallet.cpp are kept to
 //! a minimum. All extended functionality should be put here.
-class WalletExtension : public staking::StakingWallet {
-  friend class proposer::ProposerImpl;
+class WalletExtension : public virtual staking::StakingWallet {
 
  private:
   //! a reference to the esperanza settings
   const Settings &m_settings;
-
-  Dependency<proposer::Settings> m_proposer_settings;
 
   //! The wallet this extension is embedded in.
   CWallet *m_enclosing_wallet;
 
   //! a miminum amount (in satoshis) to keep (will not be used for staking).
   CAmount m_reserve_balance = 0;
-
-  //! for selecting available coins for proposing
-  int m_deepest_transaction_depth = 0;
 
   //! the state of proposing blocks from this wallet
   proposer::State m_proposer_state;
@@ -66,6 +60,10 @@ class WalletExtension : public staking::StakingWallet {
 
   void ManagePendingSlashings();
 
+ private:
+  template <typename Callable>
+  void ForEachStakeableCoin(Callable) const;
+
  public:
   //! \brief non-intrusive extension of the bitcoin-core wallet.
   //!
@@ -77,7 +75,20 @@ class WalletExtension : public staking::StakingWallet {
   //! not be nullptr).
   WalletExtension(const Settings &settings, ::CWallet *enclosingWallet);
 
+  // defined in staking::StakingWallet
+  CCriticalSection &GetLock() const override;
+
+  // defined in staking::StakingWallet
+  CAmount GetReserveBalance() const override;
+
+  // defined in staking::StakingWallet
   CAmount GetStakeableBalance() const override;
+
+  // defined in staking::StakingWallet
+  std::vector<::COutput> GetStakeableCoins() const override;
+
+  // defined in staking::StakingWallet
+  proposer::State &GetProposerState() override;
 
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             std::string &error);
