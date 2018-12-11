@@ -44,6 +44,32 @@ BOOST_AUTO_TEST_CASE(check_emplace_back) {
   BOOST_CHECK_EQUAL(z.two, 4);
 }
 
+BOOST_AUTO_TEST_CASE(check_push_back_copy) {
+  FixedVector<X> v(2);
+  X x(2, 7);
+  auto x2 = v.push_back(x);
+  BOOST_CHECK(!v.empty());
+  BOOST_CHECK_EQUAL(v.size(), 1);
+  BOOST_CHECK_EQUAL(v.capacity(), 2);
+  BOOST_CHECK_EQUAL(v.remaining(), 1);
+  BOOST_CHECK_EQUAL(x2.one, 2);
+  BOOST_CHECK_EQUAL(x2.two, 7);
+  BOOST_CHECK(&x != &x2);
+}
+
+BOOST_AUTO_TEST_CASE(check_push_back_move) {
+  FixedVector<X> v(2);
+  X x(2, 7);
+  auto x2 = v.push_back(std::move(x));
+  BOOST_CHECK(!v.empty());
+  BOOST_CHECK_EQUAL(v.size(), 1);
+  BOOST_CHECK_EQUAL(v.capacity(), 2);
+  BOOST_CHECK_EQUAL(v.remaining(), 1);
+  BOOST_CHECK_EQUAL(x2.one, 2);
+  BOOST_CHECK_EQUAL(x2.two, 7);
+  BOOST_CHECK(&x != &x2);
+}
+
 BOOST_AUTO_TEST_CASE(check_pop) {
   FixedVector<X> v(2);
   v.emplace_back(2, 7);

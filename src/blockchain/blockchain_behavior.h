@@ -16,12 +16,13 @@
 
 namespace blockchain {
 
-//! \brief Simpler access to Parameters
+//! \brief Parameters as an injectable Component
 //!
-//! The parameters class is designed to purely hold data, to easily be read,
-//! understood, and edited. It is a bit less comfortable when it actually using
-//! it. That is encapsulated to this "Behavior" class (for the lack of a better
-//! name).
+//! The blockchain::Parameters are supposed to be a data-only POD that is
+//! not associated with any functionality. Higher layer functions like a
+//! simpler way to invoke the difficulty and reward functions are placed here.
+//!
+//! Also this class is a proper component that fits the Injector.
 class Behavior {
 
  private:
