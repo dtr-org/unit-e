@@ -2000,19 +2000,21 @@ void CConnman::ThreadMessageHandler()
         std::vector<CNode*> vNodesCopy;
         {
             LOCK(cs_vNodes);
-            vNodesCopy = vNodes;
             for (CNode* pnode : vNodesCopy) {
+                if (pnode->fDisconnect) {
+                    continue;
+                }
+
                 pnode->AddRef();
+                vNodesCopy.emplace_back(pnode);
             }
         }
 
         bool fMoreWork = false;
 
-        for (CNode* pnode : vNodesCopy)
+        for (int i = 0; i < vNodesCopy.size(); ++i)
         {
-            if (pnode->fDisconnect)
-                continue;
-
+            CNode *pnode = vNodesCopy[i];
             // Receive messages
             bool fMoreNodeWork = m_msgproc->ProcessMessages(pnode, flagInterruptMsgProc);
             fMoreWork |= (fMoreNodeWork && !pnode->fPauseSend);
@@ -2021,7 +2023,7 @@ void CConnman::ThreadMessageHandler()
             // Send messages
             {
                 LOCK(pnode->cs_sendProcessing);
-                m_msgproc->SendMessages(pnode, flagInterruptMsgProc);
+                m_msgproc->SendMessages(pnode, i, vNodesCopy.size(), flagInterruptMsgProc);
             }
 
             if (flagInterruptMsgProc)
