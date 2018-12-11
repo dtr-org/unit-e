@@ -2746,7 +2746,10 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     fPauseRecv = false;
     fPauseSend = false;
     nProcessQueueSize = 0;
-    m_snapshot_requested = false;
+
+    snapshot_discovery_sent = false;
+    best_snapshot = snapshot::BestSnapshot();
+    requested_snapshot_at = std::chrono::steady_clock::time_point::min();
     sentGetParentBlockForSnapshot = false;
 
     for (const std::string &msg : getAllNetMessageTypes())

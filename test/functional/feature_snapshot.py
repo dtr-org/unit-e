@@ -101,7 +101,7 @@ class SnapshotTest(UnitETestFramework):
 
         # sync isd_node with blank_node and full_node using ISD
         #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, isd_node
+        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node, isd_node
         #                     \
         #                      --------------------------(h=20) rework_node
         connect_nodes(isd_node, blank_node.index)
@@ -128,7 +128,7 @@ class SnapshotTest(UnitETestFramework):
 
         # test that isd_node can create blocks
         #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node
+        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node
         #                     \              \
         #                      \              --(h=10) isd_node
         #                       ------------------------(h=20) rework_node
@@ -136,7 +136,7 @@ class SnapshotTest(UnitETestFramework):
 
         # test that rework after the snapshot is possible
         #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node
+        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node
         #                     \
         #                      --------------------------(h=20) rework_node, isd_node
         connect_nodes(isd_node, rework_node.index)

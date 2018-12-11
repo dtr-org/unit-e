@@ -1781,6 +1781,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return false;
     }
 
+    else if (strCommand == NetMsgType::DISCSNAPSHOT) {
+        return snapshot::ProcessDiscSnapshot(pfrom, vRecv, msgMaker);
+    }
+
+    else if (strCommand == NetMsgType::BESTSNAPSHOT) {
+        return snapshot::ProcessBestSnapshot(pfrom, vRecv);
+    }
+
     else if (strCommand == NetMsgType::GETSNAPSHOT) {
         return snapshot::ProcessGetSnapshot(pfrom, vRecv, msgMaker);
     }
@@ -3259,7 +3267,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                 pto->vAddrToSend.shrink_to_fit();
         }
 
-        snapshot::StartInitialSnapshotDownload(pto, msgMaker);
+        snapshot::StartInitialSnapshotDownload(pto, node_index, total_nodes, msgMaker);
 
         // Start block sync
         if (pindexBestHeader == nullptr)

@@ -5,7 +5,7 @@
 #ifndef UNIT_E_SNAPSHOT_PARAMS_H
 #define UNIT_E_SNAPSHOT_PARAMS_H
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace snapshot {
 
@@ -13,11 +13,12 @@ struct Params {
   //! the interval in epochs between snapshots
   uint16_t create_snapshot_per_epoch = 150;
 
-  //! if node hasn't received the valid snapshot chunk from its peers
-  //! during this timeout, node falls back to IBD
-  int64_t fast_sync_timeout_sec = 30;
+  //! if the peer is not able to provide a valid chunk withing this timeout
+  //! this peer is marked as it doesn't have a snapshot
+  int64_t snapshot_chunk_timeout_sec = 30;
 
-  //! time during which the node will ask all the peers about the snapshot
+  //! time during which the node will discover available snapshots from peers.
+  //! peers joined after this timeout won't be asked for the snapshot
   int64_t discovery_timeout_sec = 120;
 };
 

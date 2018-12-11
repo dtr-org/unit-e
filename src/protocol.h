@@ -237,11 +237,25 @@ extern const char *GETBLOCKTXN;
  * @since protocol version 70014 as described by BIP 152
  */
 extern const char *BLOCKTXN;
+
+/**
+ * Contains the snapshot::DiscoverSnapshot message.
+ * Peer should respond with the "bestsnapshot" message.
+ */
+extern const char *DISCSNAPSHOT;
+
+/**
+* Contains the snapshot::BestSnapshot message.
+* Sent in response to a "discsnapshot" message.
+*/
+extern const char *BESTSNAPSHOT;
+
 /**
  * Contains the snapshot::GetSnapshot message.
  * Peer should respond with the "snapshot" message.
  */
 extern const char *GETSNAPSHOT;
+
 /**
  * Contains the snapshot::Snapshot object
  * Sent in response to a "getsnapshot" message.

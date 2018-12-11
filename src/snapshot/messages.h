@@ -50,22 +50,59 @@ struct UTXOSubset {
   }
 };
 
-//! \brief GetSnapshot is a message to request the snapshot chunk.
-//!
-//! During the initial request to peers it has the following values:
-//! best_block_hash = empty
-//! utxo_subset_index = 0
-//! utxo_subset_count = >0
+//! \brief message to discover the best snapshot
+struct BestSnapshot {
+  uint256 snapshot_hash;
+  uint256 block_hash;
+  uint256 stake_modifier;
+  uint64_t total_utxo_subsets;
+
+  BestSnapshot()
+      : snapshot_hash(),
+        block_hash(),
+        stake_modifier(),
+        total_utxo_subsets(0) {}
+
+  bool operator==(const BestSnapshot &other) const {
+    return snapshot_hash == other.snapshot_hash;
+  }
+
+  bool operator!=(const BestSnapshot &other) const {
+    return !(*this == other);
+  }
+
+  bool IsNull() const {
+    return snapshot_hash.IsNull();
+  }
+
+  void SetNull() {
+    snapshot_hash.SetNull();
+    block_hash.SetNull();
+    stake_modifier.SetNull();
+    total_utxo_subsets = 0;
+  }
+
+  ADD_SERIALIZE_METHODS;
+  template <typename Stream, typename Operation>
+  inline void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(snapshot_hash);
+    READWRITE(block_hash);
+    READWRITE(stake_modifier);
+    READWRITE(total_utxo_subsets);
+  }
+};
+
+//! \brief message to request the snapshot chunk
 struct GetSnapshot {
-  uint256 best_block_hash;
+  uint256 snapshot_hash;
   uint64_t utxo_subset_index;
   uint16_t utxo_subset_count;
 
   GetSnapshot()
-      : best_block_hash(), utxo_subset_index(0), utxo_subset_count(0) {}
+      : snapshot_hash(), utxo_subset_index(0), utxo_subset_count(0) {}
 
-  explicit GetSnapshot(const uint256 &_best_block_hash)
-      : best_block_hash(_best_block_hash),
+  explicit GetSnapshot(const uint256 &_snapshot_hash)
+      : snapshot_hash(_snapshot_hash),
         utxo_subset_index(0),
         utxo_subset_count(0) {}
 
@@ -73,29 +110,23 @@ struct GetSnapshot {
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(best_block_hash);
+    READWRITE(snapshot_hash);
     READWRITE(utxo_subset_index);
     READWRITE(utxo_subset_count);
   }
 };
 
-//! \brief Snapshot message is used to reply to GetSnapshot P2P request.
+//! \brief message is used to reply to GetSnapshot P2P request
 //!
 //! When total_utxo_subsets == utxo_subset_index + utxo_subsets.size() this
 //! chunk is considered the last chunk of the snapshot.
 struct Snapshot {
   uint256 snapshot_hash;
-  uint256 best_block_hash;
-  uint256 stake_modifier;
-  uint64_t total_utxo_subsets;
   uint64_t utxo_subset_index;
   std::vector<UTXOSubset> utxo_subsets;
 
   Snapshot()
       : snapshot_hash(),
-        best_block_hash(),
-        stake_modifier(),
-        total_utxo_subsets(0),
         utxo_subset_index(0),
         utxo_subsets() {}
 
@@ -104,9 +135,6 @@ struct Snapshot {
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(snapshot_hash);
-    READWRITE(best_block_hash);
-    READWRITE(stake_modifier);
-    READWRITE(total_utxo_subsets);
     READWRITE(utxo_subset_index);
     READWRITE(utxo_subsets);
   }
