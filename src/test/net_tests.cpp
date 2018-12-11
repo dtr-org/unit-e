@@ -196,7 +196,7 @@ public:
     }
 };
 
-class MockNetEventsInterface : public NetEventsInterface {
+class MockNetEvents : public NetEventsInterface {
     bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) override {
         if (pnode->nRecvBytes == 0) {
             ++pnode->nRecvBytes;
@@ -234,7 +234,7 @@ std::unique_ptr<CNode> MockNode() {
 }
 
 BOOST_AUTO_TEST_CASE(thread_message_handler) {
-    MockNetEventsInterface net_proc;
+    MockNetEvents net_proc;
 
     CConnman::Options options;
     options.m_msgproc = &net_proc;
