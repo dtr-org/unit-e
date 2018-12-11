@@ -103,7 +103,7 @@ void AddRandomOutboundPeer(std::vector<CNode *> &vNodes, PeerLogicValidation &pe
     node.nVersion = 1;
     node.fSuccessfullyConnected = true;
 
-    CConnmanTest::AddNode(node);
+    CConnmanTest::AddNode(node, g_connman.get());
 }
 
 BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
         peerLogic->FinalizeNode(node->GetId(), dummy);
     }
 
-    CConnmanTest::ClearNodes();
+    CConnmanTest::ClearNodes(g_connman.get());
 }
 
 BOOST_AUTO_TEST_CASE(DoS_banning)

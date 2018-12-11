@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
 
     in_addr ipv4Addr;
     ipv4Addr.s_addr = 0xa0b0c001;
-    
+
     CAddress addr = CAddress(CService(ipv4Addr, 7777), NODE_NETWORK);
     std::string pszDest = "";
     bool fInboundIn = false;
@@ -185,6 +185,100 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
     std::unique_ptr<CNode> pnode2(new CNode(id++, NODE_NETWORK, height, hSocket, addr, 1, 1, CAddress(), pszDest, fInboundIn));
     BOOST_CHECK(pnode2->fInbound == true);
     BOOST_CHECK(pnode2->fFeeler == false);
+}
+
+class MockConnman : public CConnman {
+public:
+    MockConnman() : CConnman(0, 0) {}
+
+    void StartThreadMessageHandler() {
+        ThreadMessageHandler();
+    }
+};
+
+class MockNetEventsInterface : public NetEventsInterface {
+    bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) override {
+        if (pnode->nRecvBytes == 0) {
+            ++pnode->nRecvBytes;
+        } else {
+            interrupt = true;
+        }
+        return true;
+    }
+
+    bool SendMessages(CNode* pnode, int node_index, int total_nodes, std::atomic<bool>& interrupt) override {
+        ++pnode->nSendBytes;
+        return true;
+    }
+
+    void InitializeNode(CNode* pnode) override {
+    }
+
+    void FinalizeNode(NodeId id, bool& update_connection_time) override {
+    }
+};
+
+std::unique_ptr<CNode> MockNode() {
+    uint32_t ip = 0xa0b0c001;
+    in_addr s{ip};
+    CService service(CNetAddr(s), 7182);
+    CAddress addr(service, NODE_NONE);
+
+    auto node = MakeUnique<CNode>(0, ServiceFlags(NODE_NETWORK | NODE_WITNESS), 0,
+                                  INVALID_SOCKET, addr, 0, 0, CAddress(),
+                                  "", /*fInboundIn=*/
+                                  false);
+    node->nVersion = 1;
+    node->fSuccessfullyConnected = true;
+    return node;
+}
+
+BOOST_AUTO_TEST_CASE(thread_message_handler) {
+    MockNetEventsInterface net_proc;
+
+    CConnman::Options options;
+    options.m_msgproc = &net_proc;
+
+    MockConnman connman;
+    connman.Init(options);
+
+    std::unique_ptr<CNode> node1 = MockNode();
+    std::unique_ptr<CNode> node2 = MockNode();
+    std::unique_ptr<CNode> node3 = MockNode();
+    std::unique_ptr<CNode> node4 = MockNode();
+    std::unique_ptr<CNode> node5 = MockNode();
+    node2->fDisconnect = true;
+    node4->fDisconnect = true;
+    std::vector<CNode *> nodes{
+        node1.get(),
+        node2.get(),
+        node3.get(),
+        node4.get(),
+        node5.get(),
+    };
+
+    CConnmanTest::AddNode(*nodes[0], &connman);
+    CConnmanTest::AddNode(*nodes[1], &connman);
+    CConnmanTest::AddNode(*nodes[2], &connman);
+    CConnmanTest::AddNode(*nodes[3], &connman);
+    CConnmanTest::AddNode(*nodes[4], &connman);
+
+    connman.WakeMessageHandler(); // ensure that function doesn't wait
+    connman.StartThreadMessageHandler();
+
+    BOOST_CHECK_EQUAL(nodes[0]->nSendBytes, 1);
+    BOOST_CHECK_EQUAL(nodes[1]->nSendBytes, 0); // disconnected
+    BOOST_CHECK_EQUAL(nodes[2]->nSendBytes, 1);
+    BOOST_CHECK_EQUAL(nodes[3]->nSendBytes, 0); // disconnected
+    BOOST_CHECK_EQUAL(nodes[4]->nSendBytes, 1);
+
+    BOOST_CHECK_EQUAL(nodes[0]->nRecvBytes, 1);
+    BOOST_CHECK_EQUAL(nodes[1]->nRecvBytes, 0); // disconnected
+    BOOST_CHECK_EQUAL(nodes[2]->nRecvBytes, 1);
+    BOOST_CHECK_EQUAL(nodes[3]->nRecvBytes, 0); // disconnected
+    BOOST_CHECK_EQUAL(nodes[4]->nRecvBytes, 1);
+
+    CConnmanTest::ClearNodes(&connman);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
