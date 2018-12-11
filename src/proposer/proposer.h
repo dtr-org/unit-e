@@ -8,6 +8,7 @@
 #include <better-enums/enum.h>
 #include <dependency.h>
 #include <esperanza/settings.h>
+#include <fixed_vector.h>
 #include <key.h>
 #include <primitives/block.h>
 #include <proposer/blockproposer.h>
@@ -16,7 +17,7 @@
 #include <proposer/proposer_status.h>
 #include <proposer/sync.h>
 #include <proposer/waiter.h>
-#include <staking/chainstate.h>
+#include <staking/active_chain.h>
 #include <staking/network.h>
 
 #include <stdint.h>
@@ -48,7 +49,7 @@ class Proposer {
   static std::unique_ptr<Proposer> New(Dependency<Settings>,
                                        Dependency<MultiWallet>,
                                        Dependency<staking::Network>,
-                                       Dependency<staking::ChainState>,
+                                       Dependency<staking::ActiveChain>,
                                        Dependency<BlockProposer>);
 };
 
@@ -68,7 +69,7 @@ class ProposerImpl : public Proposer {
   ProposerImpl(Dependency<Settings>,
                Dependency<MultiWallet>,
                Dependency<staking::Network>,
-               Dependency<staking::ChainState>,
+               Dependency<staking::ActiveChain>,
                Dependency<BlockProposer>);
 
   ~ProposerImpl() override;
@@ -139,7 +140,7 @@ class ProposerImpl : public Proposer {
   Dependency<Settings> m_settings;
   Dependency<MultiWallet> m_multi_wallet;
   Dependency<staking::Network> m_network;
-  Dependency<staking::ChainState> m_chain;
+  Dependency<staking::ActiveChain> m_chain;
   Dependency<BlockProposer> m_block_proposer;
 
   //! a flag for whether the proposer is started
@@ -151,7 +152,7 @@ class ProposerImpl : public Proposer {
   //! a semaphore for synchronizing start events
   CountingSemaphore m_stop_semaphore;
 
-  std::vector<std::unique_ptr<Thread>> m_threads;
+  FixedVector<Thread> m_threads;
 
   void CreateProposerThreads();
 

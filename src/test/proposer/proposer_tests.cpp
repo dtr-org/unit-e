@@ -35,7 +35,7 @@ struct ProposerAccess<None> {
   size_t numThreads() const { return m_proposer.m_threads.size(); }
 
   const std::vector<CWallet *> &wallets(const size_t ix) const {
-    return m_proposer.m_threads[ix]->m_wallets;
+    return m_proposer.m_threads[ix].m_wallets;
   }
 };
 
@@ -55,11 +55,11 @@ struct WalletMock : public proposer::MultiWallet {
 BOOST_AUTO_TEST_SUITE(proposer_tests)
 
 fakeit::Mock<staking::Network> networkMock;
-fakeit::Mock<staking::ChainState> chainMock;
+fakeit::Mock<staking::ActiveChain> chainMock;
 fakeit::Mock<proposer::BlockProposer> blockProposerMock;
 
 Dependency<staking::Network> network = &networkMock.get();
-Dependency<staking::ChainState> chain = &chainMock.get();
+Dependency<staking::ActiveChain> chain = &chainMock.get();
 Dependency<proposer::BlockProposer> blockProposer = &blockProposerMock.get();
 
 BOOST_AUTO_TEST_CASE(start_stop) {

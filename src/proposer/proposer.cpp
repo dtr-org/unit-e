@@ -73,7 +73,7 @@ void ProposerImpl::CreateProposerThreads() {
     indexMap.insert({walletIx % numThreads, walletIx});
   }
 
-  m_threads.reserve(numThreads);
+  m_threads.resize(numThreads);
 
   // create thread objects
   for (ThreadIndex threadIx = 0; threadIx < numThreads; ++threadIx) {
@@ -84,7 +84,7 @@ void ProposerImpl::CreateProposerThreads() {
     }
     std::string threadName =
         m_settings->proposer_thread_prefix + "-" + std::to_string(threadIx);
-    m_threads.push_back(MakeUnique<Thread>(threadName, *this, std::move(thisThreadsWallets)));
+    m_threads.emplace_back(threadName, *this, std::move(thisThreadsWallets));
   }
 
   m_init_semaphore.acquire(numThreads);
@@ -94,7 +94,7 @@ void ProposerImpl::CreateProposerThreads() {
 ProposerImpl::ProposerImpl(Dependency<Settings> settings,
                            Dependency<MultiWallet> multiWallet,
                            Dependency<staking::Network> networkInterface,
-                           Dependency<staking::ChainState> chainInterface,
+                           Dependency<staking::ActiveChain> chainInterface,
                            Dependency<BlockProposer> blockProposer)
     : m_settings(settings),
       m_multi_wallet(multiWallet),
@@ -102,7 +102,8 @@ ProposerImpl::ProposerImpl(Dependency<Settings> settings,
       m_chain(chainInterface),
       m_block_proposer(blockProposer),
       m_init_semaphore(0),
-      m_stop_semaphore(0) {}
+      m_stop_semaphore(0),
+      m_threads() {}
 
 ProposerImpl::~ProposerImpl() {
   if (!m_started.test_and_set()) {
@@ -111,10 +112,10 @@ ProposerImpl::~ProposerImpl() {
   }
   LogPrint(BCLog::PROPOSING, "Stopping proposer...\n");
   for (auto &thread : m_threads) {
-    thread->Stop();
+    thread.Stop();
   }
   for (auto &thread : m_threads) {
-    thread->Join();
+    thread.Join();
   }
 }
 
@@ -134,9 +135,9 @@ void ProposerImpl::Wake(const CWallet *wallet) {
   if (wallet) {
     // find and wake the thread that is responsible for this wallet
     for (auto &thread : m_threads) {
-      for (const auto w : thread->m_wallets) {
+      for (const auto w : thread.m_wallets) {
         if (w == wallet) {
-          thread->Wake();
+          thread.Wake();
           return;
         }
       }
@@ -144,7 +145,7 @@ void ProposerImpl::Wake(const CWallet *wallet) {
     // wake all threads
   } else {
     for (auto &thread : m_threads) {
-      thread->Wake();
+      thread.Wake();
     }
   }
 }
@@ -306,7 +307,7 @@ std::unique_ptr<Proposer> Proposer::New(
     Dependency<Settings> settings,
     Dependency<MultiWallet> multiWallet,
     Dependency<staking::Network> network,
-    Dependency<staking::ChainState> chainState,
+    Dependency<staking::ActiveChain> chainState,
     Dependency<BlockProposer> blockProposer) {
   if (settings->proposing) {
     return std::unique_ptr<Proposer>(new ProposerImpl(settings, multiWallet, network, chainState, blockProposer));

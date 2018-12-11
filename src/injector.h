@@ -7,8 +7,10 @@
 
 #include <dependency_injector.h>
 
+#include <blockchain/blockchain_behavior.h>
+#include <blockchain/blockchain_parameters.h>
+#include <staking/active_chain.h>
 #include <staking/block_validator.h>
-#include <staking/chainstate.h>
 #include <staking/network.h>
 #include <staking/transactionpicker.h>
 #include <util.h>
@@ -26,9 +28,13 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
 
+  COMPONENT(BlockchainBehavior, blockchain::Behavior, blockchain::Behavior::New,
+            ::ArgsManager)
+
   COMPONENT(Network, staking::Network, staking::Network::New)
 
-  COMPONENT(ChainState, staking::ChainState, staking::ChainState::New)
+  COMPONENT(ChainState, staking::ActiveChain, staking::ActiveChain::New,
+            blockchain::Behavior)
 
   COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New)
 
@@ -39,14 +45,14 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New);
 
   COMPONENT(BlockProposer, proposer::BlockProposer, proposer::BlockProposer::New,
-            staking::ChainState,
+            staking::ActiveChain,
             staking::TransactionPicker)
 
   COMPONENT(ProposerSettings, proposer::Settings, proposer::Settings::New,
             ArgsManager)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
-            staking::ChainState,
+            staking::ActiveChain,
             staking::Network,
             proposer::MultiWallet,
             proposer::Proposer)
@@ -55,7 +61,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             proposer::Settings,
             proposer::MultiWallet,
             staking::Network,
-            staking::ChainState,
+            staking::ActiveChain,
             proposer::BlockProposer)
 
 #endif

@@ -8,7 +8,7 @@
 #include <dependency.h>
 #include <proposer/multiwallet.h>
 #include <rpc/server.h>
-#include <staking/chainstate.h>
+#include <staking/active_chain.h>
 #include <staking/network.h>
 #include <wallet/wallet.h>
 
@@ -34,7 +34,7 @@ class ProposerRPC {
   virtual ~ProposerRPC() = default;
 
   static std::unique_ptr<ProposerRPC> New(
-      Dependency<staking::ChainState>,
+      Dependency<staking::ActiveChain>,
       Dependency<staking::Network>,
       Dependency<MultiWallet>,
       Dependency<Proposer>);
