@@ -7,6 +7,7 @@
 #define UNITE_CHAIN_H
 
 #include <arith_uint256.h>
+#include <blockchain/blockchain_types.h>
 #include <primitives/block.h>
 #include <pow.h>
 #include <tinyformat.h>
@@ -209,8 +210,8 @@ public:
     //! block header
     int32_t nVersion;
     uint256 hashMerkleRoot;
-    uint32_t nTime;
-    uint32_t nBits;
+    blockchain::BlockTime nTime;
+    blockchain::Difficulty nBits;
     uint32_t nNonce;
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
