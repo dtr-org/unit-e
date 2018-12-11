@@ -57,7 +57,7 @@
 #include <esperanza/settings.h>
 #include <esperanza/settings_init.h>
 #include <finalization/vote_recorder.h>
-#include <rpc/proposer.h>
+#include <rpc/proposing.h>
 #endif
 #include <warnings.h>
 #include <stdint.h>
@@ -988,7 +988,10 @@ bool AppInitParameterInteraction()
             return InitError(_("Prune mode is incompatible with -txindex."));
         }
     }
-
+    // disallow regtest and testnet parameters at the same time
+    if (gArgs.GetBoolArg("-regtest", false) && gArgs.GetBoolArg("-testnet", false)) {
+        return InitError(_("Invalid combination of -regtest and -testnet."));
+    }
     // -bind and -whitebind can't be set when not listening
     size_t nUserBind = gArgs.GetArgs("-bind").size() + gArgs.GetArgs("-whitebind").size();
     if (nUserBind != 0 && !gArgs.GetBoolArg("-listen", DEFAULT_LISTEN)) {

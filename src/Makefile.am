@@ -79,8 +79,11 @@ UNITE_CORE_H = \
   bech32.h \
   better-enums/enum.h \
   better-enums/enum_set.h \
+  blockchain/blockchain_behavior.h \
   blockchain/blockchain_genesis.h \
+  blockchain/blockchain_interfaces.h \
   blockchain/blockchain_parameters.h \
+  blockchain/blockchain_types.h \
   bloom.h \
   blockencodings.h \
   chain.h \
@@ -120,6 +123,7 @@ UNITE_CORE_H = \
   esperanza/walletextension.h \
   esperanza/walletstate.h \
   finalization/vote_recorder.h \
+  fixed_vector.h \
   fs.h \
   httprpc.h \
   httpserver.h \
@@ -172,7 +176,7 @@ UNITE_CORE_H = \
   rpc/parameter_conversion.h \
   rpc/finalization.h \
   rpc/mining.h \
-  rpc/proposer.h \
+  rpc/proposing.h \
   rpc/protocol.h \
   rpc/safemode.h \
   rpc/server.h \
@@ -195,8 +199,8 @@ UNITE_CORE_H = \
   snapshot/snapshot_index.h \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
+  staking/active_chain.h \
   staking/block_validator.h \
-  staking/chainstate.h \
   staking/network.h \
   staking/stakingwallet.h \
   staking/transactionpicker.h \
@@ -310,8 +314,8 @@ libunite_server_a_SOURCES = \
   snapshot/snapshot_index.cpp \
   snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
+  staking/active_chain.cpp \
   staking/block_validator.cpp \
-  staking/chainstate.cpp \
   staking/network.cpp \
   staking/transactionpicker.cpp \
   timedata.cpp \
@@ -348,7 +352,7 @@ libunite_wallet_a_SOURCES = \
   proposer/proposer_settings.cpp \
   proposer/sync.cpp \
   proposer/waiter.cpp \
-  rpc/proposer.cpp \
+  rpc/proposing.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \
   wallet/crypter.cpp \
@@ -436,6 +440,7 @@ libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
   base58.cpp \
   bech32.cpp \
+  blockchain/blockchain_behavior.cpp \
   blockchain/blockchain_genesis.cpp \
   blockchain/blockchain_parameters.cpp \
   chainparams.cpp \

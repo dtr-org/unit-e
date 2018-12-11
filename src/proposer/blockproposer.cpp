@@ -11,11 +11,11 @@ namespace proposer {
 class BlockProposerImpl : public BlockProposer {
 
  private:
-  Dependency<staking::ChainState> m_chain;
+  Dependency<staking::ActiveChain> m_chain;
   Dependency<staking::TransactionPicker> m_transactionPicker;
 
  public:
-  explicit BlockProposerImpl(Dependency<staking::ChainState> chain,
+  explicit BlockProposerImpl(Dependency<staking::ActiveChain> chain,
                              Dependency<staking::TransactionPicker> transactionPicker)
       : m_chain(chain), m_transactionPicker(transactionPicker) {}
 
@@ -49,7 +49,7 @@ class BlockProposerImpl : public BlockProposer {
 };
 
 std::unique_ptr<BlockProposer> BlockProposer::New(
-    Dependency<staking::ChainState> chain,
+    Dependency<staking::ActiveChain> chain,
     Dependency<staking::TransactionPicker> transactionPicker) {
   return std::unique_ptr<BlockProposer>(
       new BlockProposerImpl(chain, transactionPicker));

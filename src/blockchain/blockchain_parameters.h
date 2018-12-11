@@ -8,6 +8,8 @@
 #include <blockchain/blockchain_genesis.h>
 
 #include <amount.h>
+#include <blockchain/blockchain_interfaces.h>
+#include <blockchain/blockchain_types.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <protocol.h>
@@ -18,19 +20,6 @@
 #include <type_traits>
 
 namespace blockchain {
-
-using BlockHeight = std::uint32_t;
-using MoneySupply = CAmount;
-
-// clang-format off
-BETTER_ENUM(
-    Network,
-    uint8_t,
-    main = 0,
-    test = 1,
-    regtest = 2
-)
-// clang-format on
 
 struct Parameters {
 
@@ -60,18 +49,55 @@ struct Parameters {
   //!   // 2 percent inflation (2% of current money supply distributed over all blocks in a year)
   //!   return (s * 2 / 100) / (secondsInAYear / p.blockStakeTimestampIntervalSeconds);
   //! };
-  using RewardFunction = CAmount (*)(const Parameters &, MoneySupply, BlockHeight);
+  using RewardFunction = CAmount (*)(const Parameters &, MoneySupply, Height);
+
+  //! \brief a function to calculate the difficulty for a given block.
+  //!
+  //! The difficulty function is a pure function that takes as inputs the
+  //! parameters that are currently active and the height to propose at.
+  //! Also it receives a ChainAccess which which allows querying the block
+  //! index. It can be used to look at the recent history of blocks and adjust
+  //! difficulty accordingly (using whatever metric is provided by the block
+  //! index).
+  //!
+  //! For example the bitcoin difficulty function would be:
+  //!
+  //! difficultyFunction = [](const Parameters &p, BlockHeight h, ChainAccess &ix) -> Difficulty {
+  //!   constexpr int TARGET_TIMESPAN = 14 * 24 * 60 * 60;
+  //!   if (h % 2016 != 0) {
+  //!     // it it's not difficulty adjust time, just return current difficulty
+  //!     return ix.AtDepth(1)->nBits;
+  //!   }
+  //!   // block at depth 2015 (ix points at the block before the one we're proposing)
+  //!   BlockTime nFirstBlockTime = ix.AdDepth(2015)->nTime;
+  //!   // Limit adjustment step
+  //!   int64_t nActualTimespan = ix.AtDepth(1)->GetBlockTime() - nFirstBlockTime;
+  //!   if (nActualTimespan < TARGET_TIMESPAN / 4)
+  //!     nActualTimespan = TARGET_TIMESPAN / 4;
+  //!   if (nActualTimespan > TARGET_TIMESPAN * 4)
+  //!     nActualTimespan = TARGET_TIMESPAN * 4;
+  //!
+  //!   // Retarget
+  //!   const arith_uint256 bnPowLimit = UintToArith256(p.pow_limit);
+  //!   arith_uint256 bnNew;
+  //!   bnNew.SetCompact(AtDepth(1)->nBits);
+  //!   bnNew *= nActualTimespan;
+  //!   bnNew /= TARGET_TIMESPAN;
+  //!
+  //!   if (bnNew > bnPowLimit)
+  //!     bnNew = bnPowLimit;
+  //!
+  //!   return bnNew.GetCompact();
+  //! };
+  using DifficultyFunction = Difficulty (*)(const Parameters &, Height, ChainAccess &);
 
   //! \brief a unique identifier for this network.
   //!
   //! The usual predefined identifiers are "main", "test", and "regtest".
-  const char *networkName;
-
-  //! \brief The genesis hash of the genesis block of this chain.
-  const char *genesisBlockHash;
+  const char *network_name;
 
   //! \brief The genesis block of this chain.
-  GenesisBlock const *genesisBlock;
+  GenesisBlock const *genesis_block;
 
   //! \brief The usable staking timestamps
   //!
@@ -79,12 +105,12 @@ struct Parameters {
   //! can use the same stake only every blockStakeTimestampIntervalSeconds. That is:
   //! The blocktime used to compute the kernel hash is always:
   //!
-  //! kernel_hash_ingredient = current_time - (current_time % blockStakeTimestampIntervalSeconds)
+  //! kernel_hash_ingredient = current_time - (current_time % block_stake_timestamp_interval_seconds)
   //!
-  std::uint32_t blockStakeTimestampIntervalSeconds;
+  std::uint32_t block_stake_timestamp_interval_seconds;
 
   //! \brief frequency of blocks (a block time of 37 secs is one block every 37 secs)
-  std::uint32_t blockTimeSeconds;
+  std::uint32_t block_time_seconds;
 
   //! \brief Whether nodes in this network should relay non-standard transactions by default or not.
   //!
@@ -93,10 +119,10 @@ struct Parameters {
   //! transactions that feature fancy script are only relayed if this parameter
   //! is set to true. This parameter can be overriden by a client, it is a
   //! network policy.
-  bool relayNonStandardTransactions;
+  bool relay_non_standard_transactions;
 
   //! \brief The maximum allowed block size (MAX_BLOCK_SIZE).
-  std::uint32_t maximumBlockSize;
+  std::uint32_t maximum_block_size;
 
   //! \brief The maximum allowed weight for a block.
   //!
@@ -109,14 +135,14 @@ struct Parameters {
   //! blocks 4MB – if theirs a vast asymettry between number of inputs and
   //! number of outputs (i.e. a lot more outputs than inputs) then the effective
   //! block size might not be much bigger than MAX_BLOCK_SIZE.
-  std::uint32_t maximumBlockWeight;
+  std::uint32_t maximum_block_weight;
 
   //! \brief The maximum allowed size for a serialized block, in bytes.
   //!
   //! This parameter is the size of the complete block, used in networking code.
   //! The "complete block" is the block including magic bytes, block length,
   //! and the block signature (which does not count towards MAX_BLOCK_SIZE).
-  std::uint32_t maximumBlockSerializedSize;
+  std::uint32_t maximum_block_serialized_size;
 
   //! \brief The maximum allowed number of signature check operations in a block.
   //!
@@ -124,25 +150,31 @@ struct Parameters {
   //! in here. Each opcode is associated with a cost and validity is checked
   //! according to the total cost that it effects (which basically is computing
   //! power required for validation).
-  std::uint32_t maximumBlockSigopsCost;
+  std::uint32_t maximum_block_sigops_cost;
 
-  //! \brief Coinstake transaction outputs can only be used for staking at this depth.
-  BlockHeight coinstakeMaturity;
+  //! \brief Coinbase transaction outputs can only be used for staking at this depth.
+  Height coinbase_maturity;
 
   //! \brief The function calculating the reward for a newly proposed block.
   //!
   //! See description of "RewardFunction". The reward function can (and should)
   //! be given as a pure lambda function.
-  RewardFunction rewardFunction;
+  RewardFunction reward_function;
+
+  //! \brief The function calculating the difficulty for a block to be newly proposed.
+  //!
+  //! See description of "DifficultyFunction". The difficulty function can
+  //! (and should) be given as a pure lambda function.
+  DifficultyFunction difficulty_function;
 
   //! \brief Whether to allow the "generatetoaddress" and "generate" RPC calls.
-  bool mineBlocksOnDemand;
+  bool mine_blocks_on_demand;
 
   //! \brief The four magic bytes at the start of P2P messages.
   //!
   //! These are different for different networks and prevent messages form one
   //! network to interfere with messages from the other.
-  CMessageHeader::MessageStartChars messageStartChars;
+  CMessageHeader::MessageStartChars message_start_characters;
 
   //! \brief BIP9 deployments information.
   //!
@@ -154,7 +186,7 @@ struct Parameters {
   //!
   //! UNIT-E: Use a better-enum for deployments to not resort to the MAX_VERSION_BITS_DEPLOYMENTS hack
   //! (the hack here is to utilize one extra enum for the number of enum values)
-  Consensus::BIP9Deployment vDeployments[Consensus::MAX_VERSION_BITS_DEPLOYMENTS];
+  Consensus::BIP9Deployment bip9_deployments[Consensus::MAX_VERSION_BITS_DEPLOYMENTS];
 
   //! \brief Number of blocks to look at for the signaling of the activation of a soft fork.
   //!
@@ -163,10 +195,10 @@ struct Parameters {
   //! for the soft fork. The confirmation period is a rolling window actually,
   //! that is a soft fork can activate any time the "ruleChangeActivationThreshold"
   //! is met in the last "deploymentConfirmationPeriod" number of blocks.
-  std::uint32_t deploymentConfirmationPeriod;
+  std::uint32_t deployment_confirmation_period;
 
   //! \brief Number of blocks which have to have a softfork activated in a confirmation period.
-  std::uint32_t ruleChangeActivationThreshold;
+  std::uint32_t rule_change_activation_threshold;
 
   static const Parameters &MainNet();
   static const Parameters &TestNet();

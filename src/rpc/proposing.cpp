@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <rpc/proposer.h>
+#include <rpc/proposing.h>
 
 #include <proposer/proposer.h>
 #include <rpc/server.h>
@@ -12,7 +12,7 @@
 namespace {
 Dependency<proposer::ProposerRPC> proposerRPC;
 UniValue NotAvailable() {
-  return "proposer is not available yet";
+  return "proposing is not available yet";
 }
 }  // namespace
 
@@ -23,7 +23,7 @@ void SetProposerRPC(Dependency<proposer::ProposerRPC> rpc) {
 #define PROPOSER_RPC_COMMAND(NAME, ARG_NAMES...)                            \
   {                                                                         \
     static CRPCCommand NAME = {                                             \
-        "proposer", #NAME, [](const JSONRPCRequest &request) -> UniValue {  \
+        "proposing", #NAME, [](const JSONRPCRequest &request) -> UniValue { \
           return proposerRPC ? proposerRPC->NAME(request) : NotAvailable(); \
         },                                                                  \
         {ARG_NAMES}};                                                       \

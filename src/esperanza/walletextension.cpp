@@ -675,7 +675,9 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       }
       break;
     }
-    default: { return true; }
+    default: {
+      return true;
+    }
   }
   return true;
 }

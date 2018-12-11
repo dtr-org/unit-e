@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_ESPERANZA_RPCPROPOSER_H
-#define UNIT_E_ESPERANZA_RPCPROPOSER_H
+#ifndef UNIT_E_RPC_PROPOSING_H
+#define UNIT_E_RPC_PROPOSING_H
 
 #include <proposer/proposer_rpc.h>
 
@@ -13,4 +13,4 @@ void SetProposerRPC(Dependency<proposer::ProposerRPC>);
 
 void RegisterProposerRPCCommands(CRPCTable &t);
 
-#endif  // UNIT_E_ESPERANZA_RPCPROPOSER_H
+#endif  // UNIT_E_RPC_PROPOSING_H
