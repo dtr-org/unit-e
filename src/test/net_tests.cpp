@@ -197,6 +197,9 @@ public:
 };
 
 class MockNetEvents : public NetEventsInterface {
+public:
+    int expect_total_nodes = 0;
+
     bool ProcessMessages(CNode* pnode, std::atomic<bool>& interrupt) override {
         if (pnode->nRecvBytes == 0) {
             ++pnode->nRecvBytes;
@@ -207,6 +210,9 @@ class MockNetEvents : public NetEventsInterface {
     }
 
     bool SendMessages(CNode* pnode, int node_index, int total_nodes, std::atomic<bool>& interrupt) override {
+        BOOST_CHECK_EQUAL(pnode->nVersion, node_index);
+        BOOST_CHECK_EQUAL(total_nodes, expect_total_nodes);
+
         ++pnode->nSendBytes;
         return true;
     }
@@ -228,13 +234,13 @@ std::unique_ptr<CNode> MockNode() {
                                   INVALID_SOCKET, addr, 0, 0, CAddress(),
                                   "", /*fInboundIn=*/
                                   false);
-    node->nVersion = 1;
     node->fSuccessfullyConnected = true;
     return node;
 }
 
 BOOST_AUTO_TEST_CASE(thread_message_handler) {
     MockNetEvents net_proc;
+    net_proc.expect_total_nodes = 3;
 
     CConnman::Options options;
     options.m_msgproc = &net_proc;
@@ -247,6 +253,10 @@ BOOST_AUTO_TEST_CASE(thread_message_handler) {
     std::unique_ptr<CNode> node3 = MockNode();
     std::unique_ptr<CNode> node4 = MockNode();
     std::unique_ptr<CNode> node5 = MockNode();
+    node1->nVersion = 0;
+    node3->nVersion = 1;
+    node5->nVersion = 2;
+
     node2->fDisconnect = true;
     node4->fDisconnect = true;
     std::vector<CNode *> nodes{
