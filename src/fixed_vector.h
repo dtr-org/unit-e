@@ -82,16 +82,28 @@ class FixedVector {
     return data()[index];
   }
 
-  reference push_back(const T &thing) {
-    checkcapacity();
-    allocator_traits::construct(alloc(), end(), thing);
-    return (*this)[m_size++];
+  bool operator==(const FixedVector<T> &that) const {
+    if (m_size != that.m_size) {
+      return false;
+    }
+    for (std::size_t i = 0; i < m_size; ++i) {
+      if ((*this)[i] != that[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
-  reference push_back(T &&thing) {
-    checkcapacity();
-    allocator_traits::construct(alloc(), end(), std::move(thing));
-    return (*this)[m_size++];
+  bool operator!=(const FixedVector<T> &that) const {
+    if (m_size != that.m_size) {
+      return true;
+    }
+    for (std::size_t i = 0; i < m_size; ++i) {
+      if ((*this)[i] != that[i]) {
+        return true;
+      }
+    }
+    return false;
   }
 
   template <typename... Args>
@@ -113,7 +125,8 @@ class FixedVector {
   //! \brief Removes all elements from this fixed vector.
   //!
   //! Afterwards the vector will have a size of zero. All references to
-  //! elements in this container are invalidated.
+  //! elements in this container are invalidated. The capacity remains unchanged,
+  //! i.e no new memory will be allocated.
   void clear() {
     while (pop()) {
       // drain
