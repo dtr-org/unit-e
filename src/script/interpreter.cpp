@@ -433,7 +433,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     popstack(stack);
                     if (stack.size() == 2) {
                       valtype vch1 = stacktop(-1);
-                      if (vch1.size() < 129) {
+                      if (vch1.size() < 73) {
                           CScriptNum bn(OP_FALSE);
                           stack.push_back(bn.getvch());
                           break;

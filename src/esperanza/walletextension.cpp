@@ -420,6 +420,9 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                                     &txNewConst, nIn, amount,
                                                     SIGHASH_ALL),
                         scriptPubKey, sigdata, &txNewConst)) {
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Cannot produce signature for vote transaction.\n",
+             __func__);
     return false;
   }
   UpdateTransaction(txNew, nIn, sigdata);
