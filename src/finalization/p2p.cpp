@@ -20,10 +20,10 @@ namespace {
 static CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const &locator) {
   auto const *const state = esperanza::FinalizationState::GetState();
   CBlockIndex const *last = nullptr;
-  for (auto const &h : locator.start) {
+  for (uint256 const &h : locator.start) {
     auto const it = mapBlockIndex.find(h);
     if (it == mapBlockIndex.end()) {
-      LogPrint(BCLog::FINALIZATION, "Hash not found: %s", h.GetHex());
+      LogPrint(BCLog::FINALIZATION, "Block not found: %s", h.GetHex());
       return nullptr;
     }
     CBlockIndex *const pindex = it->second;
