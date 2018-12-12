@@ -157,7 +157,7 @@ class ExpiredVoteTest(UnitETestFramework):
 
         # wait for the vote to be propagated to p1
         sync_blocks([p1, v])
-        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=3)
+        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=60)
 
         # Mine another epoch while disconnected p0.
         for n in range(0, 10):
@@ -172,7 +172,7 @@ class ExpiredVoteTest(UnitETestFramework):
         sync_blocks([p0, p1])
 
         # Check nothing else made it to the mempool in the meanwhile
-        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=3)
+        wait_until(lambda: p1.getmempoolinfo()['size'] == 1, timeout=60)
 
         # now p1 should propose but the vote he has in the mempool is
         # not valid anymore. Make sure that we can still generate a block
