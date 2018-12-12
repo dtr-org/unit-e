@@ -231,7 +231,7 @@ public:
     CAmount nMoneySupply;
 
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
-    boost::optional<std::vector<CTransactionRef>> vCommits;
+    boost::optional<std::vector<CTransactionRef>> commits;
 
     void SetNull()
     {
@@ -375,11 +375,11 @@ public:
     const CBlockIndex* GetAncestor(int height) const;
 
     void ResetCommits() {
-        vCommits.reset();
+        commits.reset();
     }
 
-    void ResetCommits(const std::vector<CTransactionRef> &commits) {
-        vCommits = commits;
+    void ResetCommits(const std::vector<CTransactionRef> &_commits) {
+        commits = _commits;
     }
 };
 
@@ -440,14 +440,14 @@ public:
           bool has_commits = false;
           READWRITE(has_commits);
           if (has_commits) {
-            vCommits.reset(std::vector<CTransactionRef>());
-            READWRITE(vCommits.get());
+            commits.reset(std::vector<CTransactionRef>());
+            READWRITE(commits.get());
           }
         } else { // write
-          bool has_commits = vCommits.get_ptr() != nullptr;
+          bool has_commits = commits.get_ptr() != nullptr;
           READWRITE(has_commits);
           if (has_commits) {
-            READWRITE(vCommits.get());
+            READWRITE(commits.get());
           }
         }
     }
