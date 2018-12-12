@@ -167,14 +167,17 @@ class P2PConnection(asyncore.dispatcher):
                 self.recvbuf = self.recvbuf[4+12+4+4+msglen:]
                 if command not in MESSAGEMAP:
                     raise ValueError("Received unknown command from %s:%d: '%s' %s" % (self.dstaddr, self.dstport, command, repr(msg)))
-                f = BytesIO(msg)
-                t = MESSAGEMAP[command]()
-                t.deserialize(f)
-                self._log_message("receive", t)
-                self.on_message(t)
+                self.on_data(command, msg)
         except Exception as e:
             logger.exception('Error reading message:', repr(e))
             raise
+
+    def on_data(self, command, data):
+        f = BytesIO(data)
+        t = MESSAGEMAP[command]()
+        t.deserialize(f)
+        self._log_message("receive", t)
+        self.on_message(t)
 
     def on_message(self, message):
         """Callback for processing a P2P payload. Must be overridden by derived class."""
@@ -207,16 +210,9 @@ class P2PConnection(asyncore.dispatcher):
                 return
             self.sendbuf = self.sendbuf[sent:]
 
-    def send_message(self, message, pushbuf=False):
-        """Send a P2P message over the socket.
-
-        This method takes a P2P payload, builds the P2P header and adds
-        the message to the send buffer to be sent over the socket."""
+    def send_data(self, command, data, pushbuf=False):
         if self.state != "connected" and not pushbuf:
             raise IOError('Not connected, no pushbuf')
-        self._log_message("send", message)
-        command = message.command
-        data = message.serialize()
         tmsg = MAGIC_BYTES[self.network]
         tmsg += command
         tmsg += b"\x00" * (12 - len(command))
@@ -234,6 +230,15 @@ class P2PConnection(asyncore.dispatcher):
                     self.sendbuf = tmsg
             else:
                 self.sendbuf += tmsg
+
+    def send_message(self, message, pushbuf=False):
+        """Send a P2P message over the socket.
+
+        This method takes a P2P payload, builds the P2P header and adds
+        the message to the send buffer to be sent over the socket."""
+        self._log_message("send", message)
+        data = message.serialize()
+        self.send_data(message.command, data, pushbuf)
 
     # Class utility methods
 
