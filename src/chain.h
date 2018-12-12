@@ -441,13 +441,13 @@ public:
           READWRITE(has_commits);
           if (has_commits) {
             vCommits.reset(std::vector<CTransactionRef>());
-            READWRITE(vCommits.value());
+            READWRITE(vCommits.get());
           }
         } else { // write
           bool has_commits = vCommits.get_ptr() != nullptr;
           READWRITE(has_commits);
           if (has_commits) {
-            READWRITE(vCommits.value());
+            READWRITE(vCommits.get());
           }
         }
     }

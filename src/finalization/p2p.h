@@ -96,10 +96,4 @@ bool ProcessNewCommits(CommitsResponse const &commits, CChainParams const &chain
 } // p2p
 } // finalization
 
-namespace util {
-inline std::string to_string(finalization::p2p::Locator const &locator) {
-  return locator.ToString();
-}
-} // util
-
 #endif
