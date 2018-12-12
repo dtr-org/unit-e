@@ -6,6 +6,7 @@
 
 #include <arith_uint256.h>
 #include <blockchain/blockchain_behavior.h>
+#include <blockchain/blockchain_types.h>
 #include <consensus/merkle.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
@@ -77,12 +78,12 @@ GenesisBlockBuilder &GenesisBlockBuilder::SetVersion(const uint32_t version) {
   return *this;
 }
 
-GenesisBlockBuilder &GenesisBlockBuilder::SetTime(const uint32_t time) {
+GenesisBlockBuilder &GenesisBlockBuilder::SetTime(const blockchain::Time time) {
   m_time = time;
   return *this;
 }
 
-GenesisBlockBuilder &GenesisBlockBuilder::SetBits(const uint32_t bits) {
+GenesisBlockBuilder &GenesisBlockBuilder::SetBits(const blockchain::Difficulty bits) {
   m_bits = bits;
   return *this;
 }

@@ -40,10 +40,10 @@ class GenesisBlockBuilder {
   GenesisBlockBuilder &SetVersion(uint32_t);
 
   //! \brief Set the 32-bit unix timestamp of the block.
-  GenesisBlockBuilder &SetTime(uint32_t);
+  GenesisBlockBuilder &SetTime(blockchain::Time);
 
   //! \brief Set the "bits" part of the block.
-  GenesisBlockBuilder &SetBits(uint32_t);
+  GenesisBlockBuilder &SetBits(blockchain::Difficulty);
 
   //! \brief Set the "bits" part of the block, given as difficulty.
   GenesisBlockBuilder &SetDifficulty(uint256);
@@ -62,8 +62,8 @@ class GenesisBlockBuilder {
 
  private:
   uint32_t m_version = 4;
-  uint32_t m_time = 0;
-  uint32_t m_bits = 0x1d00ffff;
+  blockchain::Time m_time = 0;
+  blockchain::Difficulty m_bits = 0x1d00ffff;
   std::vector<std::pair<CAmount, CTxDestination>> m_initial_funds;
 
   const CTransactionRef BuildCoinstakeTransaction() const;

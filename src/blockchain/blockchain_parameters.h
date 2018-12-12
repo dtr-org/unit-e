@@ -73,7 +73,7 @@ struct Parameters {
   //!     // it it's not difficulty adjust time, just return current difficulty
   //!     return ix.AtDepth(1)->nBits;
   //!   }
-  //!   // block at depth 2015 (ix points at the block before the one we're proposing)
+  //!   // block at depth 2015 (bitcoin has an off-by-one error here)
   //!   BlockTime nFirstBlockTime = ix.AdDepth(2015)->nTime;
   //!   // Limit adjustment step
   //!   int64_t nActualTimespan = ix.AtDepth(1)->GetBlockTime() - nFirstBlockTime;
