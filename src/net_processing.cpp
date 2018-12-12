@@ -3175,7 +3175,7 @@ public:
     }
 };
 
-bool PeerLogicValidation::SendMessages(CNode* pto, int node_index, int total_nodes, std::atomic<bool>& interruptMsgProc)
+bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t total_nodes, std::atomic<bool>& interruptMsgProc)
 {
     const Consensus::Params& consensusParams = Params().GetConsensus();
     {

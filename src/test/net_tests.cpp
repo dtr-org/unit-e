@@ -200,7 +200,7 @@ public:
         return true;
     }
 
-    bool SendMessages(CNode* pnode, int node_index, int total_nodes, std::atomic<bool>& interrupt) override {
+    bool SendMessages(CNode* pnode, size_t node_index, size_t total_nodes, std::atomic<bool>& interrupt) override {
         BOOST_CHECK_EQUAL(pnode->nVersion, node_index);
         BOOST_CHECK_EQUAL(total_nodes, expect_total_nodes);
 
