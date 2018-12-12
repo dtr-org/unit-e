@@ -11,21 +11,25 @@ namespace proposer {
 class ProposerRPCImpl : public ProposerRPC {
 
  private:
-  Dependency<staking::ActiveChain> m_chain_state;
-  Dependency<staking::Network> m_network;
   Dependency<MultiWallet> m_multi_wallet;
+  Dependency<staking::Network> m_network;
+  Dependency<staking::ActiveChain> m_chain;
   Dependency<Proposer> m_proposer;
 
   UniValue GetWalletInfo(const std::vector<CWalletRef> &wallets) {
+    LOCK(m_chain->GetLock());
     UniValue result(UniValue::VARR);
     for (const auto &wallet : wallets) {
       const auto &wallet_extension = wallet->GetWalletExtension();
       const auto &proposerState = wallet_extension.GetProposerState();
       UniValue info(UniValue::VOBJ);
       info.pushKV("wallet", UniValue(wallet->GetName()));
-      info.pushKV("balance", ValueFromAmount(wallet->GetBalance()));
-      info.pushKV("stakeable_balance",
-                  ValueFromAmount(wallet_extension.GetStakeableBalance()));
+      {
+        LOCK(wallet_extension.GetLock());
+        info.pushKV("balance", ValueFromAmount(wallet->GetBalance()));
+        info.pushKV("stakeable_balance",
+                    ValueFromAmount(wallet_extension.GetStakeableBalance()));
+      }
       info.pushKV("status", UniValue(proposerState.m_status._to_string()));
       info.pushKV("searches", UniValue(proposerState.m_number_of_searches));
       info.pushKV("searches_attempted",
@@ -37,20 +41,20 @@ class ProposerRPCImpl : public ProposerRPC {
 
  public:
   ProposerRPCImpl(
-      Dependency<staking::ActiveChain> chainState,
+      Dependency<MultiWallet> multi_wallet,
       Dependency<staking::Network> network,
-      Dependency<MultiWallet> multiWallet,
+      Dependency<staking::ActiveChain> chain,
       Dependency<Proposer> proposer)
-      : m_chain_state(chainState),
+      : m_multi_wallet(multi_wallet),
         m_network(network),
-        m_multi_wallet(multiWallet),
+        m_chain(chain),
         m_proposer(proposer) {}
 
   UniValue proposerstatus(const JSONRPCRequest &request) override {
     UniValue result(UniValue::VOBJ);
     result.pushKV("wallets", GetWalletInfo(m_multi_wallet->GetWallets()));
-    const auto syncStatus = m_chain_state->GetInitialBlockDownloadStatus();
-    result.pushKV("sync_status", UniValue(syncStatus._to_string()));
+    const auto sync_status = m_chain->GetInitialBlockDownloadStatus();
+    result.pushKV("sync_status", UniValue(sync_status._to_string()));
     result.pushKV("time", DateTimeToString(GetTime()));
     const uint64_t cin = m_network->GetInboundNodeCount();
     const uint64_t cout = m_network->GetOutboundNodeCount();
@@ -66,12 +70,12 @@ class ProposerRPCImpl : public ProposerRPC {
 };
 
 std::unique_ptr<ProposerRPC> ProposerRPC::New(
-    Dependency<staking::ActiveChain> chainState,
+    Dependency<MultiWallet> multi_wallet,
     Dependency<staking::Network> network,
-    Dependency<MultiWallet> multiWallet,
+    Dependency<staking::ActiveChain> chain,
     Dependency<Proposer> proposer) {
   return std::unique_ptr<ProposerRPC>(
-      new ProposerRPCImpl(chainState, network, multiWallet, proposer));
+      new ProposerRPCImpl(multi_wallet, network, chain, proposer));
 }
 
 }  // namespace proposer

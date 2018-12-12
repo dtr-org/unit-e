@@ -47,7 +47,7 @@ void ProposerImpl::Thread::Wake() {
 
 void ProposerImpl::Thread::SetStatus(const Status status, CWallet *const wallet) {
   if (wallet) {
-    wallet->GetWalletExtension().m_proposer_state.m_status = status;
+    wallet->GetWalletExtension().GetProposerState().m_status = status;
   } else {
     for (CWallet *w : m_wallets) {
       SetStatus(status, w);
@@ -94,13 +94,11 @@ void ProposerImpl::CreateProposerThreads() {
 ProposerImpl::ProposerImpl(Dependency<Settings> settings,
                            Dependency<MultiWallet> multiWallet,
                            Dependency<staking::Network> networkInterface,
-                           Dependency<staking::ActiveChain> chainInterface,
-                           Dependency<BlockProposer> blockProposer)
+                           Dependency<staking::ActiveChain> chainInterface)
     : m_settings(settings),
       m_multi_wallet(multiWallet),
       m_network(networkInterface),
       m_chain(chainInterface),
-      m_block_proposer(blockProposer),
       m_init_semaphore(0),
       m_stop_semaphore(0),
       m_threads() {}
@@ -165,7 +163,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
   while (!thread.m_interrupted) {
     try {
       for (auto *wallet : thread.m_wallets) {
-        wallet->GetWalletExtension().m_proposer_state.m_number_of_search_attempts += 1;
+        wallet->GetWalletExtension().GetProposerState().m_number_of_search_attempts += 1;
       }
       const auto blockDownloadStatus =
           thread.m_proposer.m_chain->GetInitialBlockDownloadStatus();
@@ -196,7 +194,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
         const int64_t gracePeriod =
             seconds(thread.m_proposer.m_settings->min_propose_interval);
         const int64_t lastTimeProposed =
-            wallet->GetWalletExtension().m_proposer_state.m_last_time_proposed;
+            wallet->GetWalletExtension().GetProposerState().m_last_time_proposed;
         const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
         const int64_t gracePeriodRemaining =
             gracePeriod - timeSinceLastProposal;
@@ -234,10 +232,10 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
             sleepFor = std::min(sleepFor, amount);
           };
       for (CWallet *wallet : thread.m_wallets) {
-        auto &walletExt = wallet->GetWalletExtension();
+        auto &wallet_ext = wallet->GetWalletExtension();
 
         const int64_t waitTill =
-            walletExt.m_proposer_state.m_last_time_proposed +
+            wallet_ext.GetProposerState().m_last_time_proposed +
             seconds(thread.m_proposer.m_settings->min_propose_interval);
         if (bestTime < waitTill) {
           const decltype(sleepFor) amount =
@@ -249,43 +247,42 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
           thread.SetStatus(Status::NOT_PROPOSING_WALLET_LOCKED, wallet);
           continue;
         }
-        if (walletExt.GetStakeableBalance() <= walletExt.m_reserve_balance) {
-          thread.SetStatus(Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE, wallet);
-          continue;
-        }
 
-        thread.SetStatus(Status::IS_PROPOSING, wallet);
+        {
+          LOCK2(thread.m_proposer.m_chain->GetLock(), wallet_ext.GetLock());
 
-        walletExt.m_proposer_state.m_number_of_searches += 1;
+          if (wallet_ext.GetStakeableBalance() <= wallet_ext.GetReserveBalance()) {
+            thread.SetStatus(Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE, wallet);
+            continue;
+          }
 
-        CScript coinbaseScript;
-        std::unique_ptr<CBlockTemplate> blockTemplate =
-            BlockAssembler(::Params())
-                .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
+          thread.SetStatus(Status::IS_PROPOSING, wallet);
 
-        if (!blockTemplate) {
-          LogPrint(BCLog::PROPOSING, "%s/%s: failed to get block template",
-                   thread.m_thread_name, wallet->GetName());
-          continue;
-        }
+          wallet_ext.GetProposerState().m_number_of_searches += 1;
 
-        BlockProposer::ProposeBlockParameters blockProposal{};
-        blockProposal.wallet = &walletExt;
-        blockProposal.blockHeight = bestHeight;
-        blockProposal.blockTime = bestTime;
+          CScript coinbaseScript;
+          std::unique_ptr<CBlockTemplate> blockTemplate =
+              BlockAssembler(::Params())
+                  .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
 
-        std::shared_ptr<const CBlock> block =
-            thread.m_proposer.m_block_proposer->ProposeBlock(blockProposal);
+          if (!blockTemplate) {
+            LogPrint(BCLog::PROPOSING, "%s/%s: failed to get block template",
+                     thread.m_thread_name, wallet->GetName());
+            continue;
+          }
 
-        if (block) {
-          walletExt.m_proposer_state.m_last_time_proposed = block->nTime;
-          // we got lucky and proposed, enough for this round (other wallets
-          // need not be checked no more)
-          break;
-        } else {
-          // failed to propose block
-          LogPrint(BCLog::PROPOSING, "failed to propose block.\n");
-          continue;
+          std::shared_ptr<const CBlock> block;
+
+          if (block) {
+            wallet_ext.GetProposerState().m_last_time_proposed = block->nTime;
+            // we got lucky and proposed, enough for this round (other wallets
+            // need not be checked no more)
+            break;
+          } else {
+            // failed to propose block
+            LogPrint(BCLog::PROPOSING, "failed to propose block.\n");
+            continue;
+          }
         }
       }
       thread.Sleep(sleepFor);
@@ -305,12 +302,11 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
 
 std::unique_ptr<Proposer> Proposer::New(
     Dependency<Settings> settings,
-    Dependency<MultiWallet> multiWallet,
+    Dependency<MultiWallet> multi_wallet,
     Dependency<staking::Network> network,
-    Dependency<staking::ActiveChain> chainState,
-    Dependency<BlockProposer> blockProposer) {
+    Dependency<staking::ActiveChain> active_chain) {
   if (settings->proposing) {
-    return std::unique_ptr<Proposer>(new ProposerImpl(settings, multiWallet, network, chainState, blockProposer));
+    return std::unique_ptr<Proposer>(new ProposerImpl(settings, multi_wallet, network, active_chain));
   } else {
     return std::unique_ptr<Proposer>(new ProposerStub());
   }

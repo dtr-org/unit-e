@@ -159,7 +159,6 @@ UNITE_CORE_H = \
   policy/policy.h \
   policy/rbf.h \
   pow.h \
-  proposer/blockproposer.h \
   proposer/multiwallet.h \
   proposer/proposer.h \
   proposer/proposer_rpc.h \
@@ -345,7 +344,6 @@ libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
   esperanza/walletextension.cpp \
   key/mnemonic/mnemonic.cpp \
-  proposer/blockproposer.cpp \
   proposer/multiwallet.cpp \
   proposer/proposer.cpp \
   proposer/proposer_rpc.cpp \
