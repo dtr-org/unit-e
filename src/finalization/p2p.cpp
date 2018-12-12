@@ -7,6 +7,7 @@
 #include <esperanza/finalizationstate.h>
 #include <net.h>
 #include <netmessagemaker.h>
+#include <consensus/validation.h>
 
 namespace finalization {
 namespace p2p {
@@ -74,7 +75,7 @@ static HeaderAndCommits FindHeaderAndCommits(CBlockIndex const *pindex, Consensu
 }
 
 bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
-                       CChainParams const &params) {
+                       CChainParams const &chainparams) {
   CBlockIndex const *pindex = FindMostRecentStart(chainActive, locator);
   if (pindex == nullptr) {
     return error("%s: cannot find start point in locator: %s", __func__, locator.ToString());
@@ -89,11 +90,48 @@ bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &
       break;
     }
     // UNIT-E detect message overflow
-    r.data.emplace_back(FindHeaderAndCommits(pindex, params.GetConsensus()));
+    r.data.emplace_back(FindHeaderAndCommits(pindex, chainparams.GetConsensus()));
   } while (pindex != stop && !state->IsFinalizedCheckpoint(pindex->nHeight));
   LogPrint(BCLog::NET, "Send %d headers+commits, status = %d\n",
            r.data.size(), static_cast<uint8_t>(r.status));
   g_connman->PushMessage(node, msgMaker.Make(NetMsgType::COMMITS, r));
+  return true;
+}
+
+bool ProcessNewCommits(CommitsResponse const &msg, CChainParams const &chainparams) {
+  CValidationState state;
+  for (auto const &d : msg.data) {
+    // UNIT-E: Check commits merkle root after it is added
+    for (auto const &c : d.commits) {
+      if (!c->IsCommit()) {
+        return error("Found non-commit transaction, stop process commits");
+      }
+    }
+  }
+  for (auto const &d : msg.data) {
+    CBlockIndex *pindex = nullptr;
+    if (!AcceptBlockHeader(d.header, state, chainparams, &pindex)) {
+      return false;
+    }
+    assert(pindex != nullptr);
+    if (!pindex->IsValid(BLOCK_VALID_TREE)) {
+      return error("%s is invalid, stop process commits", pindex->GetBlockHash().GetHex());
+    }
+    pindex->ResetCommits(d.commits);
+    // UNIT-E: Validate commits transactions and reconstruct finalization state
+  }
+  // UNIT-E: Implement in two further steps: full-sync and PUSH
+  switch (msg.status) {
+  case CommitsResponse::StopOrFinReached:
+    // UNIT-E: Request next bulk
+    break;
+  case CommitsResponse::TipReached:
+    // UNIT-E: Trigger fork choice if reconstructed finalization state is better than current one
+    break;
+  case CommitsResponse::LengthExceeded:
+    // UNIT-E: Wait the next message
+    break;
+  }
   return true;
 }
 

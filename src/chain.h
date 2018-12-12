@@ -6,6 +6,7 @@
 #ifndef UNITE_CHAIN_H
 #define UNITE_CHAIN_H
 
+#include <boost/optional.hpp>
 #include <arith_uint256.h>
 #include <blockchain/blockchain_types.h>
 #include <primitives/block.h>
@@ -229,6 +230,9 @@ public:
     //! Proof-of-Stake: total money supply in the chain up to this point (used to calculate PoS-Reward)
     CAmount nMoneySupply;
 
+    //! Vector of commits. If it's not set, node hasn't received commits for this block header
+    boost::optional<std::vector<CTransactionRef>> vCommits;
+
     void SetNull()
     {
         phashBlock = nullptr;
@@ -250,6 +254,8 @@ public:
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
+
+        ResetCommits();
     }
 
     CBlockIndex()
@@ -367,6 +373,14 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
+
+    void ResetCommits() {
+        vCommits.reset();
+    }
+
+    void ResetCommits(const std::vector<CTransactionRef> &commits) {
+        vCommits = commits;
+    }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);

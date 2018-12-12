@@ -3,14 +3,21 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.messages import msg_getcommits, CCommitsLocator
+from test_framework.messages import (
+    msg_getcommits,
+    msg_commits,
+    CCommitsLocator,
+    HeaderAndCommits,
+)
 from test_framework.mininode import network_thread_start, P2PInterface
 from test_framework.test_framework import UnitETestFramework
+from test_framework.key import CECKey
 from test_framework.util import (
     assert_equal,
     wait_until,
 )
 import time
+from test_framework.blocktools import *
 
 class P2P(P2PInterface):
     def __init__(self):
@@ -24,7 +31,7 @@ class P2P(P2PInterface):
         self.messages.append(msg)
 
 
-class CommitsTest(UnitETestFramework):
+class GetCommitsTest(UnitETestFramework):
     def __init__(self):
         super().__init__()
         self.blocks = [0]
@@ -95,5 +102,111 @@ class CommitsTest(UnitETestFramework):
         self.check_commits(0, self.blocks[6:11])
 
 
+class CommitsTest(UnitETestFramework):
+    def __init__(self):
+        super().__init__()
+        self.blocks = {}
+
+    def set_test_params(self):
+        self.num_nodes = 1
+        self.extra_args = [[ '-printtoconsole', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 5}' ]];
+        self.setup_clean_chain = True
+
+    def setup_network(self):
+        self.setup_nodes()
+
+    def getbestblockhash(self):
+        return int(self.nodes[0].getbestblockhash(), 16)
+
+    def create_block(self, prev=None, secret=None):
+        if secret is None:
+            secret = "default"
+        coinbase_key = CECKey()
+        coinbase_key.set_secretbytes(bytes(secret, "utf-8"))
+        coinbase_pubkey = coinbase_key.get_pubkey()
+        if prev is None:
+            block_base_hash = self.getbestblockhash()
+            block_time = int(time.time()) + 1
+        else:
+            block_base_hash = prev.sha256
+            block_time = prev.nTime + 1
+        height = prev.height + 1 if prev else 1
+        snapshot_hash = 0
+        coinbase = create_coinbase(height, snapshot_hash, coinbase_pubkey)
+        coinbase.rehash()
+        b = create_block(block_base_hash, coinbase, block_time)
+        b.solve()
+        b.height = height
+        return b
+
+    def make_commits_msg(self, blocks):
+        msg = msg_commits(0);
+        for b in blocks:
+            hc = HeaderAndCommits()
+            hc.header = CBlockHeader(b)
+            msg.data += [hc]
+        return msg
+
+    def send_commits(self, blocks):
+        self.nodes[0].p2p.send_message(self.make_commits_msg(blocks))
+
+    def check_headers(self, number):
+        info = self.nodes[0].getblockchaininfo()
+        assert_equal(info['headers'], number)
+
+    def run_test(self):
+        p = self.nodes[0]
+        p2p = P2P()
+        p.add_p2p_connection(p2p)
+        network_thread_start()
+
+        chain = []
+        tip = lambda c: c[-1] if len(c) > 0 else None
+
+        self.check_headers(0) # initial state of the node
+
+        # generate 10 blocks and send commits
+        for i in range(0, 10):
+            chain.append(self.create_block(tip(chain)))
+
+        self.send_commits(chain)
+        self.check_headers(10) # node accepted 10 headers
+
+        # send same commits again
+        self.send_commits(chain)
+        self.check_headers(10)
+
+        # send last 5 commits
+        self.send_commits(chain[-5:])
+        self.check_headers(10)
+
+        # generate next 10 blocks, try to send commits starting from 2nd block
+        for i in range(0, 10):
+            chain.append(self.create_block(tip(chain)))
+
+        self.send_commits(chain[11:])
+        self.check_headers(10) # node rejected orphan headers
+
+        # send correct commits
+        self.send_commits(chain[10:])
+        self.check_headers(20) # node accepted headers
+
+        # generate next 10 blocks, send whole chain
+        for i in range(0, 10):
+            chain.append(self.create_block(tip(chain)))
+
+        self.send_commits(chain)
+        self.check_headers(30) # node accepted headers
+
+        # generate next 10 blocks, fool commit in one of them, send them
+        for i in range(0, 10):
+            chain.append(self.create_block(tip(chain)))
+        msg = self.make_commits_msg(chain[-10:])
+        msg.data[-1].commits = chain[-1].vtx # fool commits with coinbase tx
+        self.nodes[0].p2p.send_message(msg)
+        self.check_headers(30) # node rejected commits because of non-commit transaction
+
+
 if __name__ == '__main__':
-     CommitsTest().main()
+    GetCommitsTest().main()
+    CommitsTest().main()

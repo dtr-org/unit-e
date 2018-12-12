@@ -2884,6 +2884,13 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return finalization::p2p::ProcessGetCommits(pfrom, locator, msgMaker, chainparams);
     }
 
+    else if (strCommand == NetMsgType::COMMITS) {
+        finalization::p2p::CommitsResponse commits;
+        vRecv >> commits;
+        LogPrint(BCLog::NET, "received: %d headers+commits, satus=%d\n", commits.data.size(), commits.status);
+        return finalization::p2p::ProcessNewCommits(commits, chainparams);
+    }
+
     else {
         // Ignore unknown commands for extensibility
         LogPrint(BCLog::NET, "Unknown command \"%s\" from peer=%d\n", SanitizeString(strCommand), pfrom->GetId());

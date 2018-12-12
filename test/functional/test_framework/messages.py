@@ -1482,12 +1482,13 @@ class HeaderAndCommits:
         r = b""
         r += self.header.serialize()
         r += ser_vector(self.commits, "serialize_without_witness")
+        return r
 
 class msg_commits:
     command = b"commits"
 
-    def __init__(self):
-        self.status = 0
+    def __init__(self, status=0):
+        self.status = status
         self.data = []
 
     def __repr__(self):
@@ -1501,3 +1502,5 @@ class msg_commits:
     def serialize(self):
         r = b""
         r += struct.pack("<B", self.status)
+        r += ser_vector(self.data)
+        return r

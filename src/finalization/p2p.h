@@ -43,24 +43,26 @@ struct HeaderAndCommits {
 };
 
 struct CommitsResponse {
-  enum class Status : uint8_t {
+  enum Status {
     StopOrFinReached = 0,
     TipReached = 1,
     LengthExceeded = 2,
   };
-  Status status = Status::StopOrFinReached;
+  uint8_t status = Status::StopOrFinReached;
   std::vector<HeaderAndCommits> data;
 
   ADD_SERIALIZE_METHODS
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(static_cast<uint8_t>(status));
+    READWRITE(status);
     READWRITE(data);
   }
 };
 
 bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
                        CChainParams const &params);
+
+bool ProcessNewCommits(CommitsResponse const &commits, CChainParams const &chainparams);
 
 } // p2p
 } // finalization
