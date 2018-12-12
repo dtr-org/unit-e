@@ -17,7 +17,7 @@ std::string Locator::ToString() const {
 }
 
 namespace {
-static CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const &locator) {
+CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const &locator) {
   auto const *const state = esperanza::FinalizationState::GetState();
   CBlockIndex const *last = nullptr;
   for (uint256 const &h : locator.start) {
@@ -44,7 +44,7 @@ static CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const
   return last;
 }
 
-static CBlockIndex const *FindStop(Locator const &locator) {
+CBlockIndex const *FindStop(Locator const &locator) {
   if (locator.stop.IsNull()) {
     return nullptr;
   }
@@ -56,7 +56,7 @@ static CBlockIndex const *FindStop(Locator const &locator) {
   return it->second;
 }
 
-static HeaderAndCommits FindHeaderAndCommits(CBlockIndex const *pindex, Consensus::Params const &params) {
+HeaderAndCommits FindHeaderAndCommits(CBlockIndex const *pindex, Consensus::Params const &params) {
   if (!(pindex->nStatus & BLOCK_HAVE_DATA)) {
     LogPrintf("%s has no data. It's on the main chain, so this shouldn't happen. Stopping.\n",
               pindex->GetBlockHash().GetHex());
