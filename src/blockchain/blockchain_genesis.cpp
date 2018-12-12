@@ -4,8 +4,8 @@
 
 #include <blockchain/blockchain_genesis.h>
 
-#include <blockchain/blockchain_behavior.h>
 #include <arith_uint256.h>
+#include <blockchain/blockchain_behavior.h>
 #include <consensus/merkle.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
@@ -32,7 +32,7 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinstakeTransaction() const {
 
   for (const auto &target : m_initial_funds) {
     const CAmount amount = target.first;
-    const CTxDestination destination = target.second;
+    const CTxDestination &destination = target.second;
     const CScript scriptPubKey = GetScriptForDestination(destination);
     tx.vout.emplace_back(amount, scriptPubKey);
   }
@@ -42,7 +42,7 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinstakeTransaction() const {
 
 const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
 
-  auto behavior = Behavior::FromParameters(parameters);
+  auto behavior = Behavior::NewFromParameters(parameters);
 
   CBlock genesis_block;
 

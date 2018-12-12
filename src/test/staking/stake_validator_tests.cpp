@@ -14,7 +14,8 @@
 namespace {
 
 blockchain::Parameters p = blockchain::Parameters::MainNet();
-std::unique_ptr<blockchain::Behavior> b = blockchain::Behavior::FromParameters(p);
+std::unique_ptr<blockchain::Behavior> b =
+    blockchain::Behavior::NewFromParameters(p);
 
 }  // namespace
 

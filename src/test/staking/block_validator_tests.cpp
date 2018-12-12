@@ -13,7 +13,7 @@
 namespace {
 
 std::unique_ptr<blockchain::Behavior> b =
-    blockchain::Behavior::FromParameters(blockchain::Parameters::MainNet());
+    blockchain::Behavior::NewFromParameters(blockchain::Parameters::MainNet());
 
 //! \brief creates a minimal block that passes validation without looking at the chain
 CBlock MinimalBlock() {

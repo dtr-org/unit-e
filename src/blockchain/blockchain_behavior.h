@@ -62,7 +62,7 @@ class Behavior {
 
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
 
-  static std::unique_ptr<Behavior> FromParameters(const Parameters&);
+  static std::unique_ptr<Behavior> NewFromParameters(const Parameters &);
 };
 
 }  // namespace blockchain
