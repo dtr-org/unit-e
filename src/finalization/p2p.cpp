@@ -16,6 +16,7 @@ std::string Locator::ToString() const {
   return strprintf("Locator(start=%s, stop=%s)", util::to_string(start), stop.GetHex());
 }
 
+namespace {
 static CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const &locator) {
   auto const *const state = esperanza::FinalizationState::GetState();
   CBlockIndex const *last = nullptr;
@@ -73,6 +74,7 @@ static HeaderAndCommits FindHeaderAndCommits(CBlockIndex const *pindex, Consensu
   }
   return hc;
 }
+} // namespace
 
 bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
                        CChainParams const &chainparams) {
