@@ -11,18 +11,13 @@
 #include <type_traits>
 
 namespace {
-struct X {
-  int one;
-  int two;
-  X(int one, int two) : one(one), two(two) {}
-};
 
 struct MovableOnly {
   int one;
   int two;
   MovableOnly(int one, int two) : one(one), two(two) {}
-  MovableOnly(const MovableOnly&) = delete;
-  MovableOnly(MovableOnly&&) = default;
+  MovableOnly(const MovableOnly &) = delete;
+  MovableOnly(MovableOnly &&) = default;
 };
 
 static_assert(!std::is_copy_constructible<MovableOnly>::value, "MovableOnly must not be CopyConstructible");
@@ -32,8 +27,8 @@ struct CopyableOnly {
   int one;
   int two;
   CopyableOnly(int one, int two) : one(one), two(two) {}
-  CopyableOnly(const CopyableOnly&) = default;
-  CopyableOnly(CopyableOnly&&) = delete;
+  CopyableOnly(const CopyableOnly &) = default;
+  CopyableOnly(CopyableOnly &&) = delete;
 };
 
 static_assert(std::is_copy_constructible<CopyableOnly>::value, "CopyableOnly must be CopyConstructible");
@@ -43,8 +38,8 @@ struct NeitherMovableNorCopyable {
   int one;
   int two;
   NeitherMovableNorCopyable(int one, int two) : one(one), two(two) {}
-  NeitherMovableNorCopyable(const NeitherMovableNorCopyable&) = delete;
-  NeitherMovableNorCopyable(NeitherMovableNorCopyable&&) = delete;
+  NeitherMovableNorCopyable(const NeitherMovableNorCopyable &) = delete;
+  NeitherMovableNorCopyable(NeitherMovableNorCopyable &&) = delete;
 };
 
 static_assert(!std::is_copy_constructible<NeitherMovableNorCopyable>::value, "NeitherMovableNorCopyable must not be CopyConstructible");
