@@ -48,4 +48,8 @@ std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
   }
 }
 
+std::unique_ptr<Behavior> Behavior::FromParameters(const Parameters& parameters) {
+  return MakeUnique<blockchain::Behavior>(parameters);
+}
+
 }  // namespace blockchain

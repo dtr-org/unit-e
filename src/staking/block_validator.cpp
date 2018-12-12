@@ -15,6 +15,8 @@ namespace staking {
 class BlockValidatorImpl : public BlockValidator {
 
  private:
+  Dependency<blockchain::Behavior> m_blockchain_behavior;
+
   using Error = BlockValidationError;
 
   //! \brief checks that the coinstake transaction has the right structure, but nothing else
@@ -26,7 +28,7 @@ class BlockValidatorImpl : public BlockValidator {
   BlockValidationResult CheckCoinstakeTransaction(CTransactionRef tx) const {
     BlockValidationResult validationErrors;
 
-    if (tx->vin.size() < 1) {
+    if (tx->vin.empty()) {
       validationErrors += Error::NO_META_INPUT;
     } else {
       validationErrors += CheckCoinstakeMetaInput(tx->vin[0]);
@@ -114,8 +116,15 @@ class BlockValidatorImpl : public BlockValidator {
   }
 
  public:
+  BlockValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
+      : m_blockchain_behavior(blockchain_behavior) {}
+
   BlockValidationResult CheckBlock(const CBlock &block) const override {
     BlockValidationResult validationErrors;
+
+    if (m_blockchain_behavior->CalculateProposingTimestamp(block.nTime) != block.nTime) {
+      validationErrors += Error::INVALID_BLOCK_TIME;
+    }
 
     // check that there are transactions
     if (block.vtx.empty()) {
@@ -169,8 +178,9 @@ class BlockValidatorImpl : public BlockValidator {
   }
 };
 
-std::unique_ptr<BlockValidator> BlockValidator::New() {
-  return std::unique_ptr<BlockValidator>(new BlockValidatorImpl());
-};
+std::unique_ptr<BlockValidator> BlockValidator::New(
+    Dependency<blockchain::Behavior> blockchain_behavior) {
+  return std::unique_ptr<BlockValidator>(new BlockValidatorImpl(blockchain_behavior));
+}
 
 }  // namespace staking

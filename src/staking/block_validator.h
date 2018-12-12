@@ -7,6 +7,8 @@
 
 #include <better-enums/enum.h>
 #include <better-enums/enum_set.h>
+#include <blockchain/blockchain_behavior.h>
+#include <dependency.h>
 #include <primitives/block.h>
 #include <uint256.h>
 
@@ -24,8 +26,9 @@ BETTER_ENUM(
     DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE,
     DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE,
     FIRST_TRANSACTION_NOT_A_COINSTAKE_TRANSACTION,
-    INVALID_BLOCK_PUBLIC_KEY,
     INVALID_BLOCK_HEIGHT,
+    INVALID_BLOCK_TIME,
+    INVALID_BLOCK_PUBLIC_KEY,
     MERKLE_ROOT_MISMATCH,
     NO_BLOCK_HEIGHT,
     NO_BLOCK_PUBLIC_KEY,
@@ -63,7 +66,7 @@ class BlockValidator {
 
   virtual ~BlockValidator() = default;
 
-  static std::unique_ptr<BlockValidator> New();
+  static std::unique_ptr<BlockValidator> New(Dependency<blockchain::Behavior>);
 };
 
 }  // namespace staking

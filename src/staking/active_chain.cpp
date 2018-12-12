@@ -11,9 +11,7 @@
 
 namespace staking {
 
-class ActiveChainAdapter final
-    : public virtual ActiveChain,
-      public virtual blockchain::ChainAccess {
+class ActiveChainAdapter final : public ActiveChain {
 
  private:
   Dependency<blockchain::Behavior> m_blockchain_behavior;

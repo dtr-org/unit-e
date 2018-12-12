@@ -61,6 +61,8 @@ class Behavior {
   std::string GetNetworkName() const;
 
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
+
+  static std::unique_ptr<Behavior> FromParameters(const Parameters&);
 };
 
 }  // namespace blockchain

@@ -28,7 +28,7 @@ namespace staking {
 //! interface in bitcoin to separate Wallet and Node from each other.
 //! See: https://github.com/bitcoin/bitcoin/pull/14437 - in particular
 //! https://github.com/ryanofsky/bitcoin/blob/45b23efaada081a7be9e255df59670f4704c45d1/src/interfaces/chain.h
-class ActiveChain : public virtual blockchain::ChainAccess {
+class ActiveChain : public blockchain::ChainAccess {
 
  public:
   //! \brief access to the mutex that protects the active chain

@@ -4,6 +4,7 @@
 
 #include <blockchain/blockchain_genesis.h>
 
+#include <blockchain/blockchain_behavior.h>
 #include <arith_uint256.h>
 #include <consensus/merkle.h>
 #include <primitives/transaction.h>
@@ -17,99 +18,101 @@
 
 namespace blockchain {
 
-class GenesisBlockBuilderImpl : public GenesisBlockBuilder {
+const CTransactionRef GenesisBlockBuilder::BuildCoinstakeTransaction() const {
+  CMutableTransaction tx;
 
- private:
-  uint32_t m_version = 4;
-  uint32_t m_time = 0;
-  uint32_t m_bits = 0x1d00ffff;
-  std::vector<std::pair<CAmount, CTxDestination>> m_initial_funds;
+  tx.SetVersion(2);
+  tx.SetType(TxType::COINSTAKE);
 
-  const CTransactionRef BuildCoinstakeTransaction() const {
-    CMutableTransaction tx;
+  const CScript scriptSig = CScript() << CScriptNum::serialize(0)  // height
+                                      << ToByteVector(uint256())   // utxo set hash
+                                      << OP_0;
 
-    tx.SetVersion(2);
-    tx.SetType(TxType::COINSTAKE);
+  tx.vin.emplace_back(uint256(), 0, scriptSig);
 
-    const CScript scriptSig = CScript() << CScriptNum::serialize(0)  // height
-                                        << ToByteVector(uint256())   // utxo set hash
-                                        << OP_0;
-
-    tx.vin.emplace_back(uint256(), 0, scriptSig);
-
-    for (const auto &target : m_initial_funds) {
-      const CAmount amount = target.first;
-      const CTxDestination destination = target.second;
-      const CScript scriptPubKey = GetScriptForDestination(destination);
-      tx.vout.emplace_back(amount, scriptPubKey);
-    }
-
-    return MakeTransactionRef(tx);
+  for (const auto &target : m_initial_funds) {
+    const CAmount amount = target.first;
+    const CTxDestination destination = target.second;
+    const CScript scriptPubKey = GetScriptForDestination(destination);
+    tx.vout.emplace_back(amount, scriptPubKey);
   }
 
- public:
-  const CBlock Build() const override {
-    CBlock genesis_block;
+  return MakeTransactionRef(tx);
+}
 
-    genesis_block.nVersion = m_version;
-    genesis_block.nTime = m_time;
-    genesis_block.nBits = m_bits;
+const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
 
-    CTransactionRef coinstake_transaction = BuildCoinstakeTransaction();
-    genesis_block.vtx.push_back(coinstake_transaction);
+  auto behavior = Behavior::FromParameters(parameters);
 
-    genesis_block.hashPrevBlock = uint256();
-    genesis_block.hashMerkleRoot = BlockMerkleRoot(genesis_block);
+  CBlock genesis_block;
 
-    // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
-    // genesis_block.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis_block);
+  genesis_block.nVersion = m_version;
+  genesis_block.nTime = behavior->CalculateProposingTimestamp(m_time);
+  genesis_block.nBits = m_bits;
 
-    assert(genesis_block.vtx.size() == 1);
-    assert(genesis_block.vtx[0]->vin.size() == 1);
-    assert(genesis_block.vtx[0]->vin[0].prevout.hash == uint256());
-    assert(genesis_block.vtx[0]->vin[0].prevout.n == 0);
-    assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
-    assert(genesis_block.hashMerkleRoot == genesis_block.vtx[0]->GetHash());
+  CTransactionRef coinstake_transaction = BuildCoinstakeTransaction();
+  genesis_block.vtx.push_back(coinstake_transaction);
 
-    // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
-    // assert(genesis_block.hashWitnessMerkleRoot == genesis_block.hashMerkleRoot);
+  genesis_block.hashPrevBlock = uint256();
+  genesis_block.hashMerkleRoot = BlockMerkleRoot(genesis_block);
 
-    return genesis_block;
+  // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
+  // genesis_block.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis_block);
+
+  assert(genesis_block.vtx.size() == 1);
+  assert(genesis_block.vtx[0]->vin.size() == 1);
+  assert(genesis_block.vtx[0]->vin[0].prevout.hash == uint256());
+  assert(genesis_block.vtx[0]->vin[0].prevout.n == 0);
+  assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
+  assert(genesis_block.hashMerkleRoot == genesis_block.vtx[0]->GetHash());
+
+  // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
+  // assert(genesis_block.hashWitnessMerkleRoot == genesis_block.hashMerkleRoot);
+
+  return genesis_block;
+}
+
+GenesisBlockBuilder &GenesisBlockBuilder::SetVersion(const uint32_t version) {
+  m_version = version;
+  return *this;
+}
+
+GenesisBlockBuilder &GenesisBlockBuilder::SetTime(const uint32_t time) {
+  m_time = time;
+  return *this;
+}
+
+GenesisBlockBuilder &GenesisBlockBuilder::SetBits(const uint32_t bits) {
+  m_bits = bits;
+  return *this;
+}
+
+GenesisBlockBuilder &GenesisBlockBuilder::SetDifficulty(const uint256 difficulty) {
+  m_bits = UintToArith256(difficulty).GetCompact();
+  return *this;
+}
+
+GenesisBlockBuilder &GenesisBlockBuilder::AddFundsForPayToPubKeyHash(const CAmount amount,
+                                                                     const std::string &hexKey) {
+  const std::vector<std::uint8_t> data = ParseHex(hexKey);
+  const uint160 pubKeyHash(data);
+  m_initial_funds.emplace_back(amount, WitnessV0KeyHash(pubKeyHash));
+  return *this;
+}
+
+GenesisBlockBuilder &GenesisBlockBuilder::AddFundsForPayToScriptHash(const CAmount amount,
+                                                                     const std::string &hexScriptHash) {
+  const std::vector<std::uint8_t> data = ParseHex(hexScriptHash);
+  const uint256 scriptHash(data);
+  m_initial_funds.emplace_back(amount, WitnessV0ScriptHash(scriptHash));
+  return *this;
+}
+
+GenesisBlockBuilder &GenesisBlockBuilder::Add(const Funds &&funds) {
+  for (const auto &output : funds.destinations) {
+    AddFundsForPayToPubKeyHash(output.amount, output.pubKeyHash);
   }
-
-  void SetVersion(const uint32_t version) override {
-    m_version = version;
-  }
-
-  void SetTime(const uint32_t time) override {
-    m_time = time;
-  }
-
-  void SetBits(const uint32_t bits) override {
-    m_bits = bits;
-  }
-
-  void SetDifficulty(const uint256 difficulty) override {
-    m_bits = UintToArith256(difficulty).GetCompact();
-  }
-
-  void AddFundsForPayToPubKeyHash(const CAmount amount,
-                                  const std::string &hexKey) override {
-    const std::vector<std::uint8_t> data = ParseHex(hexKey);
-    const uint160 pubKeyHash(data);
-    m_initial_funds.emplace_back(amount, WitnessV0KeyHash(pubKeyHash));
-  }
-
-  void AddFundsForPayToScriptHash(const CAmount amount,
-                                  const std::string &hexScriptHash) override {
-    const std::vector<std::uint8_t> data = ParseHex(hexScriptHash);
-    const uint256 scriptHash(data);
-    m_initial_funds.emplace_back(amount, WitnessV0ScriptHash(scriptHash));
-  }
-};
-
-std::unique_ptr<GenesisBlockBuilder> GenesisBlockBuilder::New() {
-  return MakeUnique<GenesisBlockBuilderImpl>();
+  return *this;
 }
 
 P2WPKH::P2WPKH(const CAmount amount, const std::string &&pubKeyHash)
@@ -124,24 +127,7 @@ P2WSH::P2WSH(const CAmount amount, const std::string &&scriptHash)
   assert(scriptHash.size() == 64);
 }
 
-GenesisBlock::GenesisBlock(const CBlock &block)
-    : block(block), hash(block.GetHash()) {}
-
-namespace {
-
-const CBlock Build(std::initializer_list<P2WPKH> outputs) {
-  std::unique_ptr<GenesisBlockBuilder> b = GenesisBlockBuilder::New();
-
-  for (const auto &output : outputs) {
-    b->AddFundsForPayToPubKeyHash(output.amount, output.pubKeyHash);
-  }
-
-  return b->Build();
-}
-
-}  // namespace
-
-GenesisBlock::GenesisBlock(std::initializer_list<P2WPKH> outputs)
-    : GenesisBlock(Build(outputs)) {}
+Funds::Funds(std::initializer_list<P2WPKH> ds)
+    : destinations(ds) {}
 
 }  // namespace blockchain

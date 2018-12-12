@@ -35,7 +35,7 @@ namespace esperanza {
 //! The rationale behind this design decision is to keep up with developments
 //! in bitcoin-core. The alterations done to wallet.h/wallet.cpp are kept to
 //! a minimum. All extended functionality should be put here.
-class WalletExtension : public virtual staking::StakingWallet {
+class WalletExtension : public staking::StakingWallet {
 
  private:
   //! a reference to the esperanza settings
