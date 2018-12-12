@@ -108,13 +108,6 @@ class AdminFullCycle(UnitETestFramework):
             for j in range(i + 1, self.num_nodes):
                 connect_nodes_bi(self.nodes, i, j)
 
-    def sync_generate(self, node, n_blocks):
-        # When it comes to checking votes - it is important to always sync
-        # all - this guarantees that votes are not outdated/stuck anywhere
-        for _ in range(n_blocks):
-            node.generate(1)
-            self.sync_all()
-
     def run_test(self):
         self.nodes[0].importmasterkey(
             'swap fog boost power mountain pair gallery crush price fiscal '
@@ -166,7 +159,7 @@ class AdminFullCycle(UnitETestFramework):
 
         # Generate some blocks and check that validators are voting
         n_blocks = 2 * EPOCH_LENGTH
-        self.sync_generate(proposer, n_blocks)
+        self.generate_sync(proposer, n_blocks)
 
         assert (prev_n_blocks_have_txs_from(proposer, validator1.address,
                                             n_blocks))
@@ -177,7 +170,7 @@ class AdminFullCycle(UnitETestFramework):
 
         # Blacklist v1
         admin.blacklist([validator1.pubkey])
-        self.sync_generate(proposer, n_blocks)
+        self.generate_sync(proposer, n_blocks)
 
         assert (not prev_n_blocks_have_txs_from(proposer, validator1.address,
                                                 n_blocks))
@@ -189,9 +182,9 @@ class AdminFullCycle(UnitETestFramework):
         # v1 should be able to logout even if blacklisted
         validator1.logout_ok()
 
-        self.sync_generate(proposer, DYNASTY_LOGOUT_DELAY * EPOCH_LENGTH)
-        self.sync_generate(proposer, WITHDRAWAL_EPOCH_DELAY * EPOCH_LENGTH)
-        self.sync_generate(proposer, EPOCH_LENGTH)
+        self.generate_sync(proposer, DYNASTY_LOGOUT_DELAY * EPOCH_LENGTH)
+        self.generate_sync(proposer, WITHDRAWAL_EPOCH_DELAY * EPOCH_LENGTH)
+        self.generate_sync(proposer, EPOCH_LENGTH)
 
         validator1.withdraw_ok()
 
@@ -200,7 +193,7 @@ class AdminFullCycle(UnitETestFramework):
         admin.end_permissioning()
 
         validator1.deposit_ok()
-        self.sync_generate(proposer, n_blocks)
+        self.generate_sync(proposer, n_blocks)
 
         assert (
             prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks))

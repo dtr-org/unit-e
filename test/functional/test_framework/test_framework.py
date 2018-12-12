@@ -338,6 +338,26 @@ class UnitETestFramework():
             sync_blocks(group)
             sync_mempools(group)
 
+    def generate_sync(self, generator_node, nblocks=1):
+        """
+        Generates nblocks on a given node. Performing full sync after each block
+        """
+        generated_blocks = []
+        for _ in range(nblocks):
+            block = generator_node.generate(1)[0]
+            generated_blocks.append(block)
+            sync_blocks(self.nodes)
+
+            # VoteIfNeeded is called on a background thread.
+            # By syncing we ensure that all votes will be in the mempools at the
+            # end of this iteration
+            for node in self.nodes:
+                node.syncwithvalidationinterfacequeue()
+
+            sync_mempools(self.nodes)
+
+        return generated_blocks
+
     def enable_mocktime(self):
         """Enable mocktime for the script.
 

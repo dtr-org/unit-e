@@ -81,8 +81,7 @@ class Admin:
         self.framework.wait_for_transaction(txid)
         self.prevout = Admin.find_output_for_address(self.admin_node, txid,
                                                      self.address)
-        self.donor_node.generate(1)
-        self.framework.sync_all()
+        self.framework.generate_sync(self.donor_node)
         return txid
 
     @staticmethod

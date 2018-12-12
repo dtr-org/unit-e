@@ -60,8 +60,6 @@ class EsperanzaDepositTest(UnitETestFramework):
         for n in range(0, 119):
             self.generate_block(nodes[1])
 
-        sync_blocks(self.nodes)
-
         # generates 1 more block
         Admin.authorize_and_disable(self, nodes[1])
 
@@ -74,8 +72,6 @@ class EsperanzaDepositTest(UnitETestFramework):
         for n in range(0, 20):
             self.generate_block(nodes[(n % 3) + 1])
 
-        sync_blocks(self.nodes)
-
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "IS_VALIDATING")
@@ -86,7 +82,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         # invalid at submission. This is to account for those cases.
         while i < 5:
             try:
-                node.generate(1)
+                self.generate_sync(node)
                 return
             except JSONRPCException as exp:
                 i += 1

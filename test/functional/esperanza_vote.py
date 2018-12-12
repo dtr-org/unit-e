@@ -40,9 +40,6 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
-
-        block_time = 1
-
         nodes = self.nodes
 
         nodes[0].importmasterkey('swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready')
@@ -59,8 +56,6 @@ class EsperanzaVoteTest(UnitETestFramework):
         # wait for coinbase maturity
         for n in range(0, 119):
             self.generate_block(nodes[0])
-
-        sync_blocks(self.nodes)
 
         # generates 1 more block
         Admin.authorize_and_disable(self, nodes[0])
@@ -82,8 +77,6 @@ class EsperanzaVoteTest(UnitETestFramework):
         # Then we generate other 10 epochs
         for n in range(0, 50):
             self.generate_block(nodes[0])
-            sync_blocks(self.nodes)
-            time.sleep(block_time)
 
         resp = nodes[0].getfinalizationstate()
         assert_equal(resp["currentEpoch"], 17)
@@ -99,7 +92,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         # invalid at submission. This is to account for those cases.
         while i < 5:
             try:
-                node.generate(1)
+                self.generate_sync(node)
                 return
             except JSONRPCException as exp:
                 i += 1
