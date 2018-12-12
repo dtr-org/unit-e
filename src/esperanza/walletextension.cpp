@@ -46,7 +46,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
   AssertLockHeld(m_enclosing_wallet->cs_wallet);  // access to mapWallet
 
   for (const auto &it : m_enclosing_wallet->mapWallet) {
-    const CWalletTx *tx = &it.second;
+    const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
     const blockchain::Depth depth = tx->GetDepthInMainChain();  // requires cs_main
