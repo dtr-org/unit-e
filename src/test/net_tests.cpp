@@ -187,15 +187,6 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
     BOOST_CHECK(pnode2->fFeeler == false);
 }
 
-class MockConnman : public CConnman {
-public:
-    MockConnman() : CConnman(0, 0) {}
-
-    void StartThreadMessageHandler() {
-        ThreadMessageHandler();
-    }
-};
-
 class MockNetEvents : public NetEventsInterface {
 public:
     int expect_total_nodes = 0;
@@ -245,7 +236,7 @@ BOOST_AUTO_TEST_CASE(thread_message_handler) {
     CConnman::Options options;
     options.m_msgproc = &net_proc;
 
-    MockConnman connman;
+    CConnman connman(0, 0);
     connman.Init(options);
 
     std::unique_ptr<CNode> node1 = MockNode();
@@ -274,7 +265,7 @@ BOOST_AUTO_TEST_CASE(thread_message_handler) {
     CConnmanTest::AddNode(*nodes[4], &connman);
 
     connman.WakeMessageHandler(); // ensure that function doesn't wait
-    connman.StartThreadMessageHandler();
+    CConnmanTest::StartThreadMessageHandler(&connman);
 
     BOOST_CHECK_EQUAL(nodes[0]->nSendBytes, 1);
     BOOST_CHECK_EQUAL(nodes[1]->nSendBytes, 0); // disconnected

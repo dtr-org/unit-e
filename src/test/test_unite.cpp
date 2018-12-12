@@ -33,6 +33,10 @@ void CConnmanTest::ClearNodes(CConnman* connman)
     connman->vNodes.clear();
 }
 
+void CConnmanTest::StartThreadMessageHandler(CConnman* connman) {
+  connman->ThreadMessageHandler();
+}
+
 uint256 insecure_rand_seed = GetRandHash();
 FastRandomContext insecure_rand_ctx(insecure_rand_seed);
 

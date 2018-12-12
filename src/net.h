@@ -317,10 +317,6 @@ public:
     void WakeMessageHandler();
 
     std::unique_ptr<p2p::EmbargoMan> embargoman;
-
-protected:
-    void ThreadMessageHandler();
-
 private:
     struct ListenSocket {
         SOCKET socket;
@@ -336,6 +332,7 @@ private:
     void AddOneShot(const std::string& strDest);
     void ProcessOneShot();
     void ThreadOpenConnections(std::vector<std::string> connect);
+    void ThreadMessageHandler();
     void AcceptConnection(const ListenSocket& hListenSocket);
     void ThreadSocketHandler();
     void ThreadDNSAddressSeed();

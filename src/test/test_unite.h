@@ -79,6 +79,7 @@ class CNode;
 struct CConnmanTest {
     static void AddNode(CNode& node, CConnman *connman);
     static void ClearNodes(CConnman *connman);
+    static void StartThreadMessageHandler(CConnman *connman);
 };
 
 class PeerLogicValidation;
