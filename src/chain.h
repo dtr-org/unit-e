@@ -434,6 +434,22 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
+
+        // commits
+        if (ser_action.ForRead()) {
+          bool has_commits = false;
+          READWRITE(has_commits);
+          if (has_commits) {
+            vCommits.reset(std::vector<CTransactionRef>());
+            READWRITE(vCommits.value());
+          }
+        } else { // write
+          bool has_commits = vCommits.get_ptr() != nullptr;
+          READWRITE(has_commits);
+          if (has_commits) {
+            READWRITE(vCommits.value());
+          }
+        }
     }
 
     uint256 GetBlockHash() const
