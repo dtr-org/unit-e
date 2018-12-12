@@ -1017,7 +1017,7 @@ uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
 }
 
 bool FinalizationState::IsCheckpoint(int blockHeight) const {
-  return blockHeight % m_settings.m_epochLength == 0;
+  return static_cast<uint32_t>(blockHeight + 1) % m_settings.m_epochLength == 0;
 }
 
 bool FinalizationState::IsJustifiedCheckpoint(int blockHeight) const {

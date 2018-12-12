@@ -67,39 +67,57 @@ class GetCommitsTest(UnitETestFramework):
         p.add_p2p_connection(p2p)
         network_thread_start()
 
-        self.generate(14);
+        self.generate(13);
         # When no validators present, node automatically justifies and finalize every
         # previous epoch. So that:
-        # 5 is justified and finalized
-        # 10 is not (15th block will justify and finalize it)
+        # 4 is justified and finalized
+        # 9 is justified and finalized
+        # Last epoch is 10..13, not finalized
 
-        self.getcommits([self.blocks[5]])  # expect [6..14]
-        self.check_commits(1, self.blocks[6:])
-
-        self.getcommits([self.blocks[10]]) # expect error
+        self.getcommits([self.blocks[5]]) # expect error: not a checkpoint
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
 
-        self.getcommits([self.blocks[5], self.blocks[10]]) #expect [11..14]
-        self.check_commits(1, self.blocks[11:])
+        self.getcommits([self.blocks[4]])  # expect [5..10]
+        self.check_commits(0, self.blocks[5:10])
 
-        self.getcommits([self.blocks[5], self.blocks[13]]) #expect [14]
-        self.check_commits(1, self.blocks[14:])
+        self.getcommits([self.blocks[4], self.blocks[9]]) #expect [10..13]
+        self.check_commits(1, self.blocks[10:])
 
-        self.getcommits([self.blocks[5], self.blocks[10], self.blocks[12]]) #expect [13..14]
+        self.getcommits([self.blocks[4], self.blocks[12]]) #expect [13]
         self.check_commits(1, self.blocks[13:])
 
-        # ascend ordering is broken, 12 is considered biggest
-        self.getcommits([self.blocks[5], self.blocks[12], self.blocks[10]]) #expect [13..14]
-        self.check_commits(1, self.blocks[13:])
+        self.getcommits([self.blocks[4], self.blocks[9], self.blocks[11]]) #expect [12..13]
+        self.check_commits(1, self.blocks[12:])
 
-        # ascend ordering is broken, 12 is considered biggest, 13 is shadowed
-        self.getcommits([self.blocks[5], self.blocks[12], self.blocks[10], self.blocks[13]]) #expect [13..14]
-        self.check_commits(1, self.blocks[13:])
+        # ascend ordering is broken, 11 is considered biggest
+        self.getcommits([self.blocks[4], self.blocks[11], self.blocks[9]]) #expect [12..13]
+        self.check_commits(1, self.blocks[12:])
 
-        self.generate(1); # 15th block, 10 becomes finalized
-        self.getcommits([self.blocks[5]])  # expect [6..10]
-        self.check_commits(0, self.blocks[6:11])
+        # ascend ordering is broken, 11 is considered biggest, 12 is shadowed
+        self.getcommits([self.blocks[4], self.blocks[11], self.blocks[9], self.blocks[12]]) #expect [12..13]
+        self.check_commits(1, self.blocks[12:])
+
+        self.generate(1); # 14th block, unfinalized checkpoint
+        self.getcommits([self.blocks[14]])  # expect error
+        time.sleep(2)
+        assert_equal(len(p2p.messages), 0)
+
+        # last epoch is full but still not finalized, expect status=1
+        self.getcommits([self.blocks[9]]) #expect [10..14]
+        self.check_commits(1, self.blocks[10:])
+
+        self.getcommits([self.blocks[14]]) # expect error: not finalized checkpoint
+        time.sleep(2)
+        assert_equal(len(p2p.messages), 0)
+
+        self.generate(1); # 15th block
+        # Epoch 10..14 is now finalized, expect status=0
+        self.getcommits([self.blocks[9]]) #expect [10..14]
+        self.check_commits(0, self.blocks[10:15])
+
+        self.getcommits([self.blocks[14]]) #expect [15]
+        self.check_commits(1, self.blocks[15:])
 
 
 class CommitsTest(UnitETestFramework):
