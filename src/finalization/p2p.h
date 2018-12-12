@@ -68,18 +68,18 @@ struct HeaderAndCommits {
 //! 1 - tip of the main chain reached
 //! 2 - message length exceeded
 struct CommitsResponse {
-  enum Status {
+  enum class Status : uint8_t {
     StopOrFinReached = 0,
     TipReached = 1,
     LengthExceeded = 2,
   };
-  uint8_t status = Status::StopOrFinReached;
+  Status status = Status::StopOrFinReached;
   std::vector<HeaderAndCommits> data;
 
   ADD_SERIALIZE_METHODS
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(status);
+    READWRITE(*(uint8_t*)&status);
     READWRITE(data);
   }
 };

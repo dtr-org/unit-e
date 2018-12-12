@@ -124,13 +124,13 @@ bool ProcessNewCommits(CommitsResponse const &msg, CChainParams const &chainpara
   }
   // UNIT-E: Implement in two further steps: full-sync and PUSH
   switch (msg.status) {
-  case CommitsResponse::StopOrFinReached:
+  case CommitsResponse::Status::StopOrFinReached:
     // UNIT-E: Request next bulk
     break;
-  case CommitsResponse::TipReached:
+  case CommitsResponse::Status::TipReached:
     // UNIT-E: Trigger fork choice if reconstructed finalization state is better than current one
     break;
-  case CommitsResponse::LengthExceeded:
+  case CommitsResponse::Status::LengthExceeded:
     // UNIT-E: Wait the next message
     break;
   }

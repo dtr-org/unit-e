@@ -2887,7 +2887,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     else if (strCommand == NetMsgType::COMMITS) {
         finalization::p2p::CommitsResponse commits;
         vRecv >> commits;
-        LogPrint(BCLog::NET, "received: %d headers+commits, satus=%d\n", commits.data.size(), commits.status);
+        LogPrint(BCLog::NET, "received: %d headers+commits, satus=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
         return finalization::p2p::ProcessNewCommits(commits, chainparams);
     }
 
