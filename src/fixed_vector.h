@@ -95,15 +95,7 @@ class FixedVector {
   }
 
   bool operator!=(const FixedVector<T> &that) const {
-    if (m_size != that.m_size) {
-      return true;
-    }
-    for (std::size_t i = 0; i < m_size; ++i) {
-      if ((*this)[i] != that[i]) {
-        return true;
-      }
-    }
-    return false;
+    return !operator==(that);
   }
 
   template <typename... Args>
