@@ -21,6 +21,8 @@ class TestCopyrightHeader(unittest.TestCase):
                 suffix = ".py"
             elif header_type == "javascript":
                 suffix = ".js"
+            elif header_type == "rst":
+                suffix = ".rst"
             else:
                 suffix = ".cpp"
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as file:
@@ -133,6 +135,28 @@ do_nothing();
         # Should not insert the header twice
         with self.assertRaises(SystemExit):
             self.run_and_test_insertion(expected_result, expected_result, 'javascript')
+
+
+    def test_restructuredtext(self):
+        original = '''Title
+=====
+
+Some text.
+'''
+        expected_result = '''.. Copyright (c) 2017-2018 The Unit-e developers
+   Distributed under the MIT software license, see the accompanying
+   file LICENSE or https://opensource.org/licenses/MIT.
+
+Title
+=====
+
+Some text.
+'''
+        self.run_and_test_insertion(original, expected_result, 'rst')
+
+        # Should not insert the header twice
+        with self.assertRaises(SystemExit):
+            self.run_and_test_insertion(expected_result, expected_result, 'rst')
 
 
 if __name__ == '__main__':
