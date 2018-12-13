@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
 
     CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
     body << snap;
-    BOOST_CHECK_MESSAGE(p2p_state.ProcessSnapshot(node.get(), body, msg_maker),
+    BOOST_CHECK_MESSAGE(p2p_state.ProcessSnapshot(*node, body, msg_maker),
                         "failed to process snapshot message on m_step="
                             << i << ". probably snapshot hash is incorrect");
 
@@ -185,20 +185,20 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   CNetMsgMaker msg_maker(1);
   CMessageHeader header(Params().MessageStart());
   for (size_t i = 0; i < nodes.size(); ++i) {
-    CNode *node = nodes[i];
+    CNode &node = *nodes[i];
     p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
-    BOOST_CHECK(node->snapshot_discovery_sent);
-    BOOST_CHECK_EQUAL(node->vSendMsg.size(), 1);
-    CDataStream(node->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
+    BOOST_CHECK(node.snapshot_discovery_sent);
+    BOOST_CHECK_EQUAL(node.vSendMsg.size(), 1);
+    CDataStream(node.vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
     BOOST_CHECK(header.GetCommand() == "getbestsnaps");
-    node->vSendMsg.clear();
+    node.vSendMsg.clear();
   }
 
   // test that discovery message is sent once
   for (size_t i = 0; i < nodes.size(); ++i) {
-    CNode *node = nodes[i];
+    CNode &node = *nodes[i];
     p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
-    BOOST_CHECK(node->vSendMsg.empty());
+    BOOST_CHECK(node.vSendMsg.empty());
   }
 
   // mock headers that node can start detecting best snapshots
@@ -209,9 +209,9 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   node3->best_snapshot = best;
   node4->best_snapshot = best;
   for (size_t i = 0; i < nodes.size(); ++i) {
-    CNode *node = nodes[i];
+    CNode &node = *nodes[i];
     p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
-    BOOST_CHECK(node->vSendMsg.empty());
+    BOOST_CHECK(node.vSendMsg.empty());
   }
 
   // test that node makes a request to peers with the best snapshot
@@ -219,7 +219,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
     auto now = std::chrono::steady_clock::now();
 
     for (size_t i = 0; i < nodes.size(); ++i) {
-      CNode *node = nodes[i];
+      CNode &node = *nodes[i];
       p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
     }
     BOOST_CHECK(nodes[0]->vSendMsg.empty());
@@ -249,15 +249,15 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
       int64_t timeout = Params().GetSnapshotParams().snapshot_chunk_timeout_sec;
       n->requested_snapshot_at -= std::chrono::seconds(timeout + 1);
       for (size_t i = 0; i < nodes.size(); ++i) {
-        CNode *node = nodes[i];
+        CNode &node = *nodes[i];
         p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
-        BOOST_CHECK(node->vSendMsg.empty());
+        BOOST_CHECK(node.vSendMsg.empty());
       }
     }
 
     // second best is requested
     for (size_t i = 0; i < nodes.size(); ++i) {
-      CNode *node = nodes[i];
+      CNode &node = *nodes[i];
       p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
     }
 
@@ -290,15 +290,15 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
     for (size_t j = 1; j <= 2; ++j) {
       size_t total = nodes.size() - j;
       for (size_t i = 0; i < total; ++i) {  // disconnect one by one
-        CNode *node = nodes[i];
+        CNode &node = *nodes[i];
         p2p_state.StartInitialSnapshotDownload(node, i, total, msg_maker);
-        BOOST_CHECK(node->vSendMsg.empty());
+        BOOST_CHECK(node.vSendMsg.empty());
       }
     }
 
     // second best is requested
     for (size_t i = 0; i < nodes.size(); ++i) {
-      CNode *node = nodes[i];
+      CNode &node = *nodes[i];
       p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
     }
 
@@ -326,7 +326,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   }
 
   // test that node does't disable ISD until timeout elapsed
-  p2p_state.StartInitialSnapshotDownload(node1.get(), 0, 1, msg_maker);
+  p2p_state.StartInitialSnapshotDownload(*node1, 0, 1, msg_maker);
   BOOST_CHECK(snapshot::IsISDEnabled());
 
   // test that node disables ISD when there are no peers with the snapshot
@@ -335,7 +335,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   int64_t discovery_timeout_sec = Params().GetSnapshotParams().discovery_timeout_sec;
   first_request_at -= std::chrono::seconds(discovery_timeout_sec + 1);
   p2p_state.MockFirstDiscoveryRequestAt(first_request_at);
-  p2p_state.StartInitialSnapshotDownload(node1.get(), 0, 1, msg_maker);
+  p2p_state.StartInitialSnapshotDownload(*node1, 0, 1, msg_maker);
   BOOST_CHECK(!snapshot::IsISDEnabled());
 }
 

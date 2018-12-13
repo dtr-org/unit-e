@@ -32,25 +32,25 @@ class P2PState {
   explicit P2PState(const Params &params = Params());
 
   //! sends to the node the header of the best snapshot
-  bool ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+  bool ProcessGetBestSnapshot(CNode &node, CDataStream &data,
                               const CNetMsgMaker &msg_maker);
 
   //! saves node's best snapshot
-  bool ProcessBestSnapshot(CNode *node, CDataStream &data);
+  bool ProcessBestSnapshot(CNode &node, CDataStream &data);
 
   //! sends to node the requested chunk
-  bool ProcessGetSnapshot(CNode *node, CDataStream &data,
+  bool ProcessGetSnapshot(CNode &node, CDataStream &data,
                           const CNetMsgMaker &msg_maker);
 
   //! saves the received snapshot chunk.
   //! if it wasn't the last chunk, request the following one
   //! if it was the last chunk, finishes snapshot downloading processed
-  bool ProcessSnapshot(CNode *node, CDataStream &data,
+  bool ProcessSnapshot(CNode &node, CDataStream &data,
                        const CNetMsgMaker &msg_maker);
 
   //! requests the snapshot from the node if it has the best one
   //! can request the second best snapshot if previous one was detected broken
-  void StartInitialSnapshotDownload(CNode *node, int node_index, int total_nodes,
+  void StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
                                     const CNetMsgMaker &msg_maker);
 
   //! Invokes inside original FindNextBlocksToDownload and returns the block
@@ -77,12 +77,12 @@ class P2PState {
   // keeps track of the best snapshot across all peers
   BestSnapshot m_best_snapshot;
 
-  bool SendGetSnapshot(CNode *node, GetSnapshot &msg,
+  bool SendGetSnapshot(CNode &node, GetSnapshot &msg,
                        const CNetMsgMaker &msg_maker);
 
   //! returns node's best_snapshot if it points to finalized epoch
   //! and downloading process hasn't timed out
-  BestSnapshot NodeBestSnapshot(CNode *node);
+  BestSnapshot NodeBestSnapshot(CNode &node);
 
   //! update m_best_snapshot if provided one is a better one
   void SetIfBestSnapshot(const BestSnapshot &best_snapshot);
@@ -91,21 +91,21 @@ class P2PState {
 void InitP2P(const Params &params);
 
 // proxy to g_p2p_state.ProcessGetBestSnapshot
-bool ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+bool ProcessGetBestSnapshot(CNode &node, CDataStream &data,
                             const CNetMsgMaker &msg_maker);
 // proxy to g_p2p_state.ProcessBestSnapshot
-bool ProcessBestSnapshot(CNode *node, CDataStream &data);
+bool ProcessBestSnapshot(CNode &node, CDataStream &data);
 
 // proxy to g_p2p_state.ProcessGetSnapshot
-bool ProcessGetSnapshot(CNode *node, CDataStream &data,
+bool ProcessGetSnapshot(CNode &node, CDataStream &data,
                         const CNetMsgMaker &msg_maker);
 
 // proxy to g_p2p_state.ProcessSnapshot
-bool ProcessSnapshot(CNode *node, CDataStream &data,
+bool ProcessSnapshot(CNode &node, CDataStream &data,
                      const CNetMsgMaker &msg_maker);
 
 // proxy to g_p2p_state.StartInitialSnapshotDownload
-void StartInitialSnapshotDownload(CNode *node, int node_index, int total_nodes,
+void StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
                                   const CNetMsgMaker &msg_maker);
 
 // proxy to g_p2p_state.FindNextBlocksToDownload

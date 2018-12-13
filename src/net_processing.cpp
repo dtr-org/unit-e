@@ -1782,19 +1782,19 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     }
 
     else if (strCommand == NetMsgType::GETBESTSNAPSHOT) {
-        return snapshot::ProcessGetBestSnapshot(pfrom, vRecv, msgMaker);
+        return snapshot::ProcessGetBestSnapshot(*pfrom, vRecv, msgMaker);
     }
 
     else if (strCommand == NetMsgType::BESTSNAPSHOT) {
-        return snapshot::ProcessBestSnapshot(pfrom, vRecv);
+        return snapshot::ProcessBestSnapshot(*pfrom, vRecv);
     }
 
     else if (strCommand == NetMsgType::GETSNAPSHOT) {
-        return snapshot::ProcessGetSnapshot(pfrom, vRecv, msgMaker);
+        return snapshot::ProcessGetSnapshot(*pfrom, vRecv, msgMaker);
     }
 
     else if (strCommand == NetMsgType::SNAPSHOT) {
-        return snapshot::ProcessSnapshot(pfrom, vRecv, msgMaker);
+        return snapshot::ProcessSnapshot(*pfrom, vRecv, msgMaker);
     }
 
     else if (strCommand == NetMsgType::ADDR)
@@ -3267,7 +3267,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                 pto->vAddrToSend.shrink_to_fit();
         }
 
-        snapshot::StartInitialSnapshotDownload(pto, node_index, total_nodes, msgMaker);
+        snapshot::StartInitialSnapshotDownload(*pto, node_index, total_nodes, msgMaker);
 
         // Start block sync
         if (pindexBestHeader == nullptr)

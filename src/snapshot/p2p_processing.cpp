@@ -36,7 +36,7 @@ inline CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
 P2PState::P2PState(const Params &params) : m_params(params) {
 }
 
-bool P2PState::ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+bool P2PState::ProcessGetBestSnapshot(CNode &node, CDataStream &data,
                                       const CNetMsgMaker &msg_maker) {
   uint256 snapshot_hash;
   if (!GetLatestFinalizedSnapshotHash(snapshot_hash)) {
@@ -63,19 +63,19 @@ bool P2PState::ProcessGetBestSnapshot(CNode *node, CDataStream &data,
            NetMsgType::GETBESTSNAPSHOT,
            best_snapshot.snapshot_hash.GetHex(),
            best_snapshot.block_hash.GetHex(),
-           node->GetId());
+           node.GetId());
 
-  g_connman->PushMessage(node,
+  g_connman->PushMessage(&node,
                          msg_maker.Make(NetMsgType::BESTSNAPSHOT, best_snapshot));
   return true;
 }
 
-bool P2PState::ProcessBestSnapshot(CNode *node, CDataStream &data) {
-  data >> node->best_snapshot;
+bool P2PState::ProcessBestSnapshot(CNode &node, CDataStream &data) {
+  data >> node.best_snapshot;
   return true;
 }
 
-bool P2PState::ProcessGetSnapshot(CNode *node, CDataStream &data,
+bool P2PState::ProcessGetSnapshot(CNode &node, CDataStream &data,
                                   const CNetMsgMaker &msg_maker) {
   GetSnapshot get;
   data >> get;
@@ -114,24 +114,24 @@ bool P2PState::ProcessGetSnapshot(CNode *node, CDataStream &data,
            NetMsgType::GETSNAPSHOT,
            snapshot.utxo_subset_index,
            snapshot.utxo_subsets.size(),
-           node->GetId());
+           node.GetId());
 
-  g_connman->PushMessage(node, msg_maker.Make(NetMsgType::SNAPSHOT, snapshot));
+  g_connman->PushMessage(&node, msg_maker.Make(NetMsgType::SNAPSHOT, snapshot));
   return true;
 }
 
-bool P2PState::SendGetSnapshot(CNode *node, GetSnapshot &msg,
+bool P2PState::SendGetSnapshot(CNode &node, GetSnapshot &msg,
                                const CNetMsgMaker &msg_maker) {
   LogPrint(BCLog::SNAPSHOT, "send %s: peer=%i index=%i count=%i\n",
            NetMsgType::GETSNAPSHOT,
-           node->GetId(), msg.utxo_subset_index, msg.utxo_subset_count);
+           node.GetId(), msg.utxo_subset_index, msg.utxo_subset_count);
 
-  node->requested_snapshot_at = steady_clock::now();
-  g_connman->PushMessage(node, msg_maker.Make(NetMsgType::GETSNAPSHOT, msg));
+  node.requested_snapshot_at = steady_clock::now();
+  g_connman->PushMessage(&node, msg_maker.Make(NetMsgType::GETSNAPSHOT, msg));
   return true;
 }
 
-bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
+bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
                                const CNetMsgMaker &msg_maker) {
   if (!IsISDEnabled()) {
     LogPrint(BCLog::SNAPSHOT, "%s: ignore the message. ISD is disabled\n",
@@ -152,24 +152,24 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
     return false;
   }
 
-  if (node->best_snapshot != m_downloading_snapshot) {
+  if (node.best_snapshot != m_downloading_snapshot) {
     LogPrint(BCLog::SNAPSHOT, "%s: expected=%s received=%s\n",
              NetMsgType::SNAPSHOT,
              m_downloading_snapshot.snapshot_hash.GetHex(),
-             node->best_snapshot.snapshot_hash.GetHex());
+             node.best_snapshot.snapshot_hash.GetHex());
     return false;
   }
 
   Snapshot msg;
   data >> msg;
-  if (node->best_snapshot.IsNull() ||
-      msg.snapshot_hash != node->best_snapshot.snapshot_hash) {
-    g_connman->Ban(node->addr, BanReasonNodeMisbehaving);
+  if (node.best_snapshot.IsNull() ||
+      msg.snapshot_hash != node.best_snapshot.snapshot_hash) {
+    g_connman->Ban(node.addr, BanReasonNodeMisbehaving);
     return false;
   }
 
   if (msg.utxo_subset_index + msg.utxo_subsets.size() >
-      node->best_snapshot.total_utxo_subsets) {
+      node.best_snapshot.total_utxo_subsets) {
     LogPrint(BCLog::SNAPSHOT, "%s: invalid message index\n", NetMsgType::SNAPSHOT);
     return false;
   }
@@ -177,8 +177,8 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
   std::unique_ptr<Indexer> indexer = Indexer::Open(msg.snapshot_hash);
   if (!indexer) {
     indexer.reset(new Indexer(msg.snapshot_hash,
-                              node->best_snapshot.block_hash,
-                              node->best_snapshot.stake_modifier,
+                              node.best_snapshot.block_hash,
+                              node.best_snapshot.stake_modifier,
                               DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
   }
 
@@ -204,9 +204,9 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
     return false;
   }
 
-  if (indexer->GetMeta().total_utxo_subsets == node->best_snapshot.total_utxo_subsets) {
+  if (indexer->GetMeta().total_utxo_subsets == node.best_snapshot.total_utxo_subsets) {
     Iterator iterator(std::move(indexer));
-    uint256 hash = iterator.CalculateHash(node->best_snapshot.stake_modifier);
+    uint256 hash = iterator.CalculateHash(node.best_snapshot.stake_modifier);
     if (hash != msg.snapshot_hash) {
       LogPrint(BCLog::SNAPSHOT, "%s: invalid hash. has=%s got=%s\n",
                NetMsgType::SNAPSHOT,
@@ -215,14 +215,14 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
       // restart the initial download from the beginning
       Indexer::Delete(msg.snapshot_hash);
       m_downloading_snapshot.SetNull();
-      node->best_snapshot.SetNull();
+      node.best_snapshot.SetNull();
 
       return false;
     }
 
     LOCK(cs_main);
     StoreCandidateBlockHash(iterator.GetBestBlockHash());
-    CBlockIndex *bi = LookupBlockIndex(node->best_snapshot.block_hash);
+    CBlockIndex *bi = LookupBlockIndex(node.best_snapshot.block_hash);
     assert(bi);
     AddSnapshotHash(m_downloading_snapshot.snapshot_hash, bi);
 
@@ -237,7 +237,7 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
   return SendGetSnapshot(node, get, msg_maker);
 }
 
-void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int total_nodes,
+void P2PState::StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
                                             const CNetMsgMaker &msg_maker) {
   if (!IsISDEnabled()) {
     return;
@@ -263,14 +263,14 @@ void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int tot
   }
 
   // discover the best snapshot from the peers
-  if (!node->snapshot_discovery_sent) {
-    node->snapshot_discovery_sent = true;
+  if (!node.snapshot_discovery_sent) {
+    node.snapshot_discovery_sent = true;
 
     const auto now = steady_clock::now();
     const auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - m_first_discovery_request_at);
     if (diff.count() <= m_params.discovery_timeout_sec) {
-      LogPrint(BCLog::SNAPSHOT, "%s: peer=%i\n", NetMsgType::GETBESTSNAPSHOT, node->GetId());
-      g_connman->PushMessage(node, msg_maker.Make(NetMsgType::GETBESTSNAPSHOT));
+      LogPrint(BCLog::SNAPSHOT, "%s: peer=%i\n", NetMsgType::GETBESTSNAPSHOT, node.GetId());
+      g_connman->PushMessage(&node, msg_maker.Make(NetMsgType::GETBESTSNAPSHOT));
     }
   }
 
@@ -287,13 +287,13 @@ void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int tot
     // if the peer has the snapshot that node decided to download
     // ask for the relevant chunk from it
     if (node_best_snapshot == m_downloading_snapshot &&
-        node->requested_snapshot_at == time_point::min()) {
+        node.requested_snapshot_at == time_point::min()) {
       GetSnapshot msg;
       msg.snapshot_hash = m_downloading_snapshot.snapshot_hash;
       msg.utxo_subset_index = 0;
       msg.utxo_subset_count = MAX_UTXO_SET_COUNT;
 
-      std::unique_ptr<const Indexer> indexer = Indexer::Open(node->best_snapshot.snapshot_hash);
+      std::unique_ptr<const Indexer> indexer = Indexer::Open(node.best_snapshot.snapshot_hash);
       if (indexer) {
         msg.utxo_subset_index = indexer->GetMeta().total_utxo_subsets;
       }
@@ -481,31 +481,31 @@ bool P2PState::FindNextBlocksToDownload(NodeId node_id,
   return true;
 }
 
-BestSnapshot P2PState::NodeBestSnapshot(CNode *node) {
-  if (node->best_snapshot.IsNull()) {
+BestSnapshot P2PState::NodeBestSnapshot(CNode &node) {
+  if (node.best_snapshot.IsNull()) {
     return {};
   }
 
   LOCK(cs_main);
-  const CBlockIndex *const bi = LookupFinalizedBlockIndex(node->best_snapshot.block_hash);
+  const CBlockIndex *const bi = LookupFinalizedBlockIndex(node.best_snapshot.block_hash);
   if (!bi) {
     return {};
   }
 
-  if (node->requested_snapshot_at == time_point::min()) {
-    return node->best_snapshot;
+  if (node.requested_snapshot_at == time_point::min()) {
+    return node.best_snapshot;
   }
 
   // check timeout
   const auto now = steady_clock::now();
-  const auto diff = now - node->requested_snapshot_at;
+  const auto diff = now - node.requested_snapshot_at;
   const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
   if (diff_sec.count() > m_params.snapshot_chunk_timeout_sec) {
-    node->best_snapshot.SetNull();
+    node.best_snapshot.SetNull();
     return {};
   }
 
-  return node->best_snapshot;
+  return node.best_snapshot;
 }
 
 void P2PState::SetIfBestSnapshot(const BestSnapshot &best_snapshot) {
@@ -549,27 +549,27 @@ void InitP2P(const Params &params) {
 }
 
 // proxy to g_p2p_state.ProcessGetBestSnapshot
-bool ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+bool ProcessGetBestSnapshot(CNode &node, CDataStream &data,
                             const CNetMsgMaker &msg_maker) {
   return g_p2p_state.ProcessGetBestSnapshot(node, data, msg_maker);
 }
 
 // proxy to g_p2p_state.ProcessBestSnapshot
-bool ProcessBestSnapshot(CNode *node, CDataStream &data) {
+bool ProcessBestSnapshot(CNode &node, CDataStream &data) {
   return g_p2p_state.ProcessBestSnapshot(node, data);
 }
 
-bool ProcessGetSnapshot(CNode *node, CDataStream &data,
+bool ProcessGetSnapshot(CNode &node, CDataStream &data,
                         const CNetMsgMaker &msg_maker) {
   return g_p2p_state.ProcessGetSnapshot(node, data, msg_maker);
 }
 
-bool ProcessSnapshot(CNode *node, CDataStream &data,
+bool ProcessSnapshot(CNode &node, CDataStream &data,
                      const CNetMsgMaker &msg_maker) {
   return g_p2p_state.ProcessSnapshot(node, data, msg_maker);
 }
 
-void StartInitialSnapshotDownload(CNode *node, int node_index, int total_nodes,
+void StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
                                   const CNetMsgMaker &msg_maker) {
   g_p2p_state.StartInitialSnapshotDownload(node, node_index, total_nodes, msg_maker);
 }
