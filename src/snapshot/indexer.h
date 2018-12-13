@@ -153,7 +153,7 @@ class Indexer {
                    const uint256 &stakeModifier,
                    uint32_t step, uint32_t stepsPerFile);
 
-  const Meta &GetMeta() { return m_meta; }
+  const Meta &GetMeta() const { return m_meta; }
   bool WriteUTXOSubsets(const std::vector<UTXOSubset> &list);
   bool WriteUTXOSubset(const UTXOSubset &utxoSubset);
 

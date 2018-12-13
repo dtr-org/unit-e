@@ -725,7 +725,7 @@ public:
     CAmount lastSentFeeFilter;
     int64_t nextSendTimeFeeFilter;
 
-    //! keeps track if discovery request was sent
+    //! keeps track whether discovery request was sent
     bool snapshot_discovery_sent;
 
     //! peers best snapshot
@@ -734,7 +734,7 @@ public:
     //! is used to track timeouts
     std::chrono::steady_clock::time_point requested_snapshot_at;
 
-    //! keeps track if the request for the parent block of the candidate
+    //! keeps track whether the request for the parent block of the candidate
     //! snapshot was sent.
     bool sentGetParentBlockForSnapshot;
 

@@ -65,7 +65,7 @@ class P2PState {
  protected:
   // used to detect the timeout after which node gives up
   // and switching to IBD
-  time_point m_first_discovery_request_at;
+  time_point m_first_discovery_request_at = time_point::min();
 
   // snapshot that node decided to download
   // and was the best one at a time the decision was made

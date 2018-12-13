@@ -55,13 +55,9 @@ struct BestSnapshot {
   uint256 snapshot_hash;
   uint256 block_hash;
   uint256 stake_modifier;
-  uint64_t total_utxo_subsets;
+  uint64_t total_utxo_subsets = 0;
 
-  BestSnapshot()
-      : snapshot_hash(),
-        block_hash(),
-        stake_modifier(),
-        total_utxo_subsets(0) {}
+  BestSnapshot() = default;
 
   bool operator==(const BestSnapshot &other) const {
     return snapshot_hash == other.snapshot_hash;
@@ -95,11 +91,10 @@ struct BestSnapshot {
 //! \brief message to request the snapshot chunk
 struct GetSnapshot {
   uint256 snapshot_hash;
-  uint64_t utxo_subset_index;
-  uint16_t utxo_subset_count;
+  uint64_t utxo_subset_index = 0;
+  uint16_t utxo_subset_count = 0;
 
-  GetSnapshot()
-      : snapshot_hash(), utxo_subset_index(0), utxo_subset_count(0) {}
+  GetSnapshot() = default;
 
   explicit GetSnapshot(const uint256 &_snapshot_hash)
       : snapshot_hash(_snapshot_hash),

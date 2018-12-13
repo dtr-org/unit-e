@@ -33,11 +33,7 @@ inline CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
   return bi;
 }
 
-P2PState::P2PState(const Params &params)
-    : m_first_discovery_request_at(time_point::min()),
-      m_downloading_snapshot(),
-      m_params(params),
-      m_best_snapshot() {
+P2PState::P2PState(const Params &params) : m_params(params) {
 }
 
 bool P2PState::ProcessDiscSnapshot(CNode *node, CDataStream &data,
@@ -75,9 +71,7 @@ bool P2PState::ProcessDiscSnapshot(CNode *node, CDataStream &data,
 }
 
 bool P2PState::ProcessBestSnapshot(CNode *node, CDataStream &data) {
-  BestSnapshot best_snapshot;
-  data >> best_snapshot;
-  node->best_snapshot = best_snapshot;
+  data >> node->best_snapshot;
   return true;
 }
 
@@ -272,8 +266,8 @@ void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int tot
   if (!node->snapshot_discovery_sent) {
     node->snapshot_discovery_sent = true;
 
-    auto now = steady_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - m_first_discovery_request_at);
+    const auto now = steady_clock::now();
+    const auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - m_first_discovery_request_at);
     if (diff.count() <= m_params.discovery_timeout_sec) {
       LogPrint(BCLog::NET, "%s: peer=%i\n", NetMsgType::DISCSNAPSHOT, node->GetId());
       g_connman->PushMessage(node, msg_maker.Make(NetMsgType::DISCSNAPSHOT));
@@ -323,9 +317,9 @@ void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int tot
 
     // if there are no peers that can provide the snapshot switch to IBD
     if (m_downloading_snapshot.IsNull()) {
-      auto now = steady_clock::now();
-      auto diff = now - m_first_discovery_request_at;
-      auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
+      const auto now = steady_clock::now();
+      const auto diff = now - m_first_discovery_request_at;
+      const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
       if (diff_sec.count() > m_params.discovery_timeout_sec) {
         DisableISDMode();
       }
@@ -493,7 +487,7 @@ BestSnapshot P2PState::NodeBestSnapshot(CNode *node) {
   }
 
   LOCK(cs_main);
-  CBlockIndex *bi = LookupFinalizedBlockIndex(node->best_snapshot.block_hash);
+  const CBlockIndex *const bi = LookupFinalizedBlockIndex(node->best_snapshot.block_hash);
   if (!bi) {
     return {};
   }
@@ -503,9 +497,9 @@ BestSnapshot P2PState::NodeBestSnapshot(CNode *node) {
   }
 
   // check timeout
-  auto now = steady_clock::now();
-  auto diff = now - node->requested_snapshot_at;
-  auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
+  const auto now = steady_clock::now();
+  const auto diff = now - node->requested_snapshot_at;
+  const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
   if (diff_sec.count() > m_params.snapshot_chunk_timeout_sec) {
     node->best_snapshot.SetNull();
     return {};
@@ -538,10 +532,10 @@ void P2PState::SetIfBestSnapshot(const BestSnapshot &best_snapshot) {
 
   // compare heights to find the best snapshot
   LOCK(cs_main);
-  CBlockIndex *cur_bi = LookupBlockIndex(m_best_snapshot.block_hash);
+  const CBlockIndex *const cur_bi = LookupBlockIndex(m_best_snapshot.block_hash);
   assert(cur_bi);
 
-  CBlockIndex *new_bi = LookupFinalizedBlockIndex(best_snapshot.block_hash);
+  const CBlockIndex *const new_bi = LookupFinalizedBlockIndex(best_snapshot.block_hash);
   if (new_bi && new_bi->nHeight > cur_bi->nHeight) {
     m_best_snapshot = best_snapshot;
     return;

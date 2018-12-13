@@ -341,6 +341,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
 
 BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   snapshot::EnableISDMode();
+  snapshot::P2PState p2p_state;
 
   // return 0 blocks as we have not received the parent header of the snapshot
   const auto candidate = std::make_pair(uint256S("aa"), new CBlockIndex);
@@ -349,7 +350,7 @@ BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   snapshot::StoreCandidateBlockHash(candidate.first);
 
   std::vector<const CBlockIndex *> blocks;
-  BOOST_CHECK(snapshot::FindNextBlocksToDownload(0, blocks));
+  BOOST_CHECK(p2p_state.FindNextBlocksToDownload(0, blocks));
   BOOST_CHECK(blocks.empty());
 
   // return the parent blockIndex of the snapshot to download
@@ -358,7 +359,7 @@ BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {
   record2->second->phashBlock = &record2->first;
   record2->second->pprev = record1->second;
 
-  BOOST_CHECK(snapshot::FindNextBlocksToDownload(0, blocks));
+  BOOST_CHECK(p2p_state.FindNextBlocksToDownload(0, blocks));
   BOOST_CHECK_EQUAL(blocks.size(), 1);
   BOOST_CHECK_EQUAL(blocks[0]->GetBlockHash().GetHex(), parent.first.GetHex());
 }
