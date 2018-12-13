@@ -31,6 +31,20 @@ bool HasSnapshotHash(const uint256 &hash) {
   return false;
 }
 
+class MockP2PState : public snapshot::P2PState {
+ public:
+  explicit MockP2PState(const snapshot::Params &params = snapshot::Params())
+      : P2PState(params) {}
+
+  void MockBestSnapshot(const snapshot::SnapshotHeader best_snapshot) {
+    m_downloading_snapshot = best_snapshot;
+  }
+
+  void MockFirstDiscoveryRequestAt(const std::chrono::steady_clock::time_point &time) {
+    m_first_discovery_request_at = time;
+  }
+};
+
 std::unique_ptr<CNode> mockNode() {
   uint32_t ip = 0xa0b0c001;
   in_addr s{ip};
@@ -57,27 +71,31 @@ uint256 uint256FromUint64(uint64_t n) {
   return nn;
 }
 
-BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
+BOOST_AUTO_TEST_CASE(process_snapshot) {
   SetDataDir("snapshot_process_p2p");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
   snapshot::StoreCandidateBlockHash(uint256());
-  snapshot::P2PState p2p_state;
+  snapshot::EnableISDMode();
+  MockP2PState p2p_state;
 
-  CNetMsgMaker msgMaker(1);
+  CNetMsgMaker msg_maker(1);
   std::unique_ptr<CNode> node(mockNode());
 
-  uint256 bestBlockHash = uint256S("aa");
-  uint256 stakeModifier = uint256S("bb");
-  uint256 snapshotHash = uint256S(
-      "8674e0471df333b5235e923396cfa06d5a4c6779bb6607f09f00d6d92610c926");
-  const uint64_t totalMessages = 6;
+  snapshot::SnapshotHeader best_snapshot;
+  best_snapshot.snapshot_hash = uint256S("8674e0471df333b5235e923396cfa06d5a4c6779bb6607f09f00d6d92610c926");
+  best_snapshot.block_hash = uint256S("aa");
+  best_snapshot.stake_modifier = uint256S("bb");
+  best_snapshot.total_utxo_subsets = 6;
 
-  // simulate that header was already received
+  node->m_best_snapshot = best_snapshot;
+  p2p_state.MockBestSnapshot(best_snapshot);
+
+  // simulate that headers were already received
   auto bi = new CBlockIndex;
-  bi->bnStakeModifier = stakeModifier;
-  bi->phashBlock = &mapBlockIndex.emplace(bestBlockHash, bi).first->first;
+  bi->bnStakeModifier = best_snapshot.stake_modifier;
+  bi->phashBlock = &mapBlockIndex.emplace(best_snapshot.block_hash, bi).first->first;
 
-  for (uint64_t i = 0; i < totalMessages / 2; ++i) {
+  for (uint64_t i = 0; i < best_snapshot.total_utxo_subsets / 2; ++i) {
     // simulate receiving the snapshot response
     snapshot::Snapshot snap;
     snapshot::UTXOSubset subset1;
@@ -88,28 +106,24 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
     subset2.outputs[0] = CTxOut();
     snap.utxo_subsets.emplace_back(subset1);
     snap.utxo_subsets.emplace_back(subset2);
-    snap.snapshot_hash = snapshotHash;
-    snap.best_block_hash = bestBlockHash;
-    snap.stake_modifier = stakeModifier;
+    snap.snapshot_hash = best_snapshot.snapshot_hash;
     snap.utxo_subset_index = i * 2;
-    snap.total_utxo_subsets = totalMessages;
 
     CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
     body << snap;
-    BOOST_CHECK_MESSAGE(p2p_state.ProcessSnapshot(node.get(), body, msgMaker),
+    BOOST_CHECK_MESSAGE(p2p_state.ProcessSnapshot(*node, body, msg_maker),
                         "failed to process snapshot message on m_step="
                             << i << ". probably snapshot hash is incorrect");
 
-    if (i < (totalMessages / 2 - 1)) {              // ask the peer for more messages
-      BOOST_CHECK_EQUAL(node->vSendMsg.size(), 2);  // header + body
+    if (i < (best_snapshot.total_utxo_subsets / 2 - 1)) {  // ask the peer for more messages
+      BOOST_CHECK_EQUAL(node->vSendMsg.size(), 2);         // header + body
       CMessageHeader header(Params().MessageStart());
       CDataStream(node->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
       BOOST_CHECK_EQUAL(header.GetCommand(), "getsnapshot");
 
       snapshot::GetSnapshot get;
       CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
-      BOOST_CHECK_EQUAL(get.best_block_hash.GetHex(),
-                        snap.best_block_hash.GetHex());
+      BOOST_CHECK_EQUAL(get.snapshot_hash.GetHex(), best_snapshot.snapshot_hash.GetHex());
 
       uint64_t expSize = snap.utxo_subsets.size() + (i * 2);
       BOOST_CHECK_EQUAL(get.utxo_subset_index, expSize);
@@ -120,117 +134,210 @@ BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_sequentially) {
     }
   }
 
-  BOOST_CHECK(HasSnapshotHash(snapshotHash));
-  std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(snapshotHash));
-  BOOST_CHECK(idx->GetMeta().block_hash == bestBlockHash);
-  BOOST_CHECK(idx->GetMeta().total_utxo_subsets == totalMessages);
+  // test that snapshot was created
+  BOOST_CHECK(HasSnapshotHash(best_snapshot.snapshot_hash));
+  std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(best_snapshot.snapshot_hash));
+  const snapshot::Meta &idxMeta = idx->GetMeta();
+  BOOST_CHECK_EQUAL(idxMeta.snapshot_hash.GetHex(), best_snapshot.snapshot_hash.GetHex());
+  BOOST_CHECK_EQUAL(idxMeta.block_hash.GetHex(), best_snapshot.block_hash.GetHex());
+  BOOST_CHECK_EQUAL(idxMeta.stake_modifier.GetHex(), best_snapshot.stake_modifier.GetHex());
+  BOOST_CHECK_EQUAL(idxMeta.total_utxo_subsets, best_snapshot.total_utxo_subsets);
 
-  uint64_t i = 0;
+  // test that snapshot has correct content
+  uint64_t total = 0;
   snapshot::Iterator iter(std::move(idx));
   while (iter.Valid()) {
-    BOOST_CHECK(iter.GetUTXOSubset().tx_id.GetUint64(0) == i);
-    ++i;
+    BOOST_CHECK(iter.GetUTXOSubset().tx_id.GetUint64(0) == total);
+    ++total;
     iter.Next();
   }
-  BOOST_CHECK(totalMessages == i);
+  BOOST_CHECK_EQUAL(best_snapshot.total_utxo_subsets, total);
 }
 
-BOOST_AUTO_TEST_CASE(snapshot_process_p2p_snapshot_switch_height) {
-  SetDataDir("snapshot_process_p2p");
-  fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
-  snapshot::StoreCandidateBlockHash(uint256());
-  snapshot::P2PState p2p_state;
-
-  // chain of 1 -> 2 -> 3 blocks
-  auto *bi1 = new CBlockIndex;
-  bi1->nHeight = 1;
-  auto *bi2 = new CBlockIndex;
-  bi2->nHeight = 2;
-  bi2->pprev = bi1;
-  auto *bi3 = new CBlockIndex;
-  bi3->nHeight = 3;
-  bi3->pprev = bi2;
-
-  auto pair = mapBlockIndex.emplace(uint256S("aa"), bi1).first;
-  bi1->phashBlock = &pair->first;
-  pair = mapBlockIndex.emplace(uint256S("bb"), bi2).first;
-  bi2->phashBlock = &pair->first;
-  pair = mapBlockIndex.emplace(uint256S("cc"), bi3).first;
-  bi3->phashBlock = &pair->first;
-
-  CNetMsgMaker msgMaker(1);
-  std::unique_ptr<CNode> node(mockNode());
-
-  snapshot::Snapshot snap;
-  snap.utxo_subsets.emplace_back(snapshot::UTXOSubset());
-  snap.best_block_hash = bi1->GetBlockHash();
-  snap.snapshot_hash = uint256S("aa");
-  snap.utxo_subset_index = 0;
-  snap.total_utxo_subsets = 5;
-  CDataStream body(SER_NETWORK, PROTOCOL_VERSION);
-  body << snap;
-
-  // process first chunk and ask for the next one
-  BOOST_CHECK(p2p_state.ProcessSnapshot(node.get(), body, msgMaker));
-  BOOST_CHECK(HasSnapshotHash(uint256S("aa")));
-  snapshot::GetSnapshot get;
-  CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
-  BOOST_CHECK_EQUAL(get.best_block_hash, bi1->GetBlockHash());
-  BOOST_CHECK_EQUAL(get.utxo_subset_index, 1);
-  node->vSendMsg.clear();
-
-  // switch to higher block height and ask for the next chunk
-  snap.best_block_hash = bi3->GetBlockHash();
-  snap.snapshot_hash = uint256S("bb");
-  body << snap;
-
-  BOOST_CHECK(p2p_state.ProcessSnapshot(node.get(), body, msgMaker));
-  BOOST_CHECK(!HasSnapshotHash(uint256S("aa")));
-  BOOST_CHECK(HasSnapshotHash(uint256S("bb")));
-  CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
-  BOOST_CHECK_EQUAL(get.best_block_hash, bi3->GetBlockHash());
-  BOOST_CHECK_EQUAL(get.utxo_subset_index, 1);
-  node->vSendMsg.clear();
-
-  // don't switch to lower block height but ask the peer if it has the next
-  // chunk of our snapshot
-  snap.best_block_hash = bi2->GetBlockHash();
-  snap.snapshot_hash = uint256S("cc");
-  body << snap;
-  BOOST_CHECK(p2p_state.ProcessSnapshot(node.get(), body, msgMaker));
-  BOOST_CHECK(!HasSnapshotHash(uint256S("cc")));
-  BOOST_CHECK(HasSnapshotHash(uint256S("bb")));
-  CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
-  BOOST_CHECK_EQUAL(get.best_block_hash, bi3->GetBlockHash());
-  BOOST_CHECK_EQUAL(get.utxo_subset_index, 1);
-  node->vSendMsg.clear();
-}
-
-BOOST_AUTO_TEST_CASE(snapshot_start_initial_snapshot_download) {
+BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
+  snapshot::InitP2P(Params().GetSnapshotParams());
   snapshot::EnableISDMode();
   snapshot::StoreCandidateBlockHash(uint256());
-  snapshot::HeadersDownloaded();
-  snapshot::P2PState p2p_state;
+  MockP2PState p2p_state(Params().GetSnapshotParams());
 
-  CNetMsgMaker msgMaker(1);
-  std::unique_ptr<CNode> node(mockNode());
-  p2p_state.StartInitialSnapshotDownload(node.get(), msgMaker);
-  BOOST_CHECK_EQUAL(node->vSendMsg.size(), 2);
+  auto *b1 = new CBlockIndex;
+  auto *b2 = new CBlockIndex;
+  b1->phashBlock = &mapBlockIndex.emplace(uint256S("aa"), b1).first->first;
+  b2->phashBlock = &mapBlockIndex.emplace(uint256S("bb"), b2).first->first;
+  b2->pprev = b1;
+  b1->nHeight = 1;
+  b2->nHeight = 2;
 
+  snapshot::SnapshotHeader best;
+  best.snapshot_hash = uint256S("a2");
+  best.block_hash = b2->GetBlockHash();
+
+  snapshot::SnapshotHeader second_best;
+  second_best.snapshot_hash = uint256S("a1");
+  second_best.block_hash = b1->GetBlockHash();
+
+  std::unique_ptr<CNode> node1(mockNode());  // no snapshot
+  std::unique_ptr<CNode> node2(mockNode());  // second best
+  std::unique_ptr<CNode> node3(mockNode());  // best
+  std::unique_ptr<CNode> node4(mockNode());  // best
+  std::vector<CNode *> nodes{node1.get(), node2.get(), node3.get(), node4.get()};
+
+  // test that discovery message was sent
+  CNetMsgMaker msg_maker(1);
   CMessageHeader header(Params().MessageStart());
-  CDataStream(node->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
-  BOOST_CHECK(header.GetCommand() == "getsnapshot");
+  for (size_t i = 0; i < nodes.size(); ++i) {
+    CNode &node = *nodes[i];
+    p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
+    BOOST_CHECK(node.m_snapshot_discovery_sent);
+    BOOST_CHECK_EQUAL(node.vSendMsg.size(), 1);
+    CDataStream(node.vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
+    BOOST_CHECK(header.GetCommand() == "getsnaphead");
+    node.vSendMsg.clear();
+  }
 
-  snapshot::GetSnapshot get;
-  CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
-  BOOST_CHECK(get.best_block_hash.IsNull());
-  BOOST_CHECK_EQUAL(get.utxo_subset_index, 0);
-  BOOST_CHECK_EQUAL(get.utxo_subset_count, snapshot::MAX_UTXO_SET_COUNT);
-  BOOST_CHECK(node->m_snapshot_requested);
+  // test that discovery message is sent once
+  for (size_t i = 0; i < nodes.size(); ++i) {
+    CNode &node = *nodes[i];
+    p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
+    BOOST_CHECK(node.vSendMsg.empty());
+  }
 
-  node->vSendMsg.clear();
-  p2p_state.StartInitialSnapshotDownload(node.get(), msgMaker);
-  BOOST_CHECK(node->vSendMsg.empty());
+  // mock headers that node can start detecting best snapshots
+  snapshot::HeadersDownloaded();
+
+  // node must detect the best snapshot during first loop
+  node2->m_best_snapshot = second_best;
+  node3->m_best_snapshot = best;
+  node4->m_best_snapshot = best;
+  for (size_t i = 0; i < nodes.size(); ++i) {
+    CNode &node = *nodes[i];
+    p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
+    BOOST_CHECK(node.vSendMsg.empty());
+  }
+
+  // test that node makes a request to peers with the best snapshot
+  {
+    auto now = std::chrono::steady_clock::now();
+
+    for (size_t i = 0; i < nodes.size(); ++i) {
+      CNode &node = *nodes[i];
+      p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
+    }
+    BOOST_CHECK(nodes[0]->vSendMsg.empty());
+    BOOST_CHECK(nodes[1]->vSendMsg.empty());
+
+    std::vector<CNode *> best_nodes{nodes[2], nodes[3]};
+    for (CNode *node : best_nodes) {
+      BOOST_CHECK(node->m_requested_snapshot_at >= now);
+      BOOST_CHECK_EQUAL(node->vSendMsg.size(), 2);
+      CDataStream(node->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
+      BOOST_CHECK(header.GetCommand() == "getsnapshot");
+      snapshot::GetSnapshot get;
+      CDataStream(node->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
+      BOOST_CHECK_EQUAL(get.snapshot_hash.GetHex(), best.snapshot_hash.GetHex());
+      BOOST_CHECK_EQUAL(get.utxo_subset_index, 0);
+      BOOST_CHECK_EQUAL(get.utxo_subset_count, 10000);
+
+      node->vSendMsg.clear();
+    }
+  }
+
+  // test that node fallbacks to second best snapshot
+  // when peers with the best snapshot timed out
+  {
+    std::vector<CNode *> best_nodes{nodes[2], nodes[3]};
+    for (CNode *n : best_nodes) {  // timeout one by one
+      int64_t timeout = Params().GetSnapshotParams().snapshot_chunk_timeout_sec;
+      n->m_requested_snapshot_at -= std::chrono::seconds(timeout + 1);
+      for (size_t i = 0; i < nodes.size(); ++i) {
+        CNode &node = *nodes[i];
+        p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
+        BOOST_CHECK(node.vSendMsg.empty());
+      }
+    }
+
+    // second best is requested
+    for (size_t i = 0; i < nodes.size(); ++i) {
+      CNode &node = *nodes[i];
+      p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
+    }
+
+    BOOST_CHECK(nodes[0]->vSendMsg.empty());
+    BOOST_CHECK(nodes[2]->vSendMsg.empty());
+    BOOST_CHECK(nodes[3]->vSendMsg.empty());
+
+    BOOST_CHECK_EQUAL(nodes[1]->vSendMsg.size(), 2);
+    CDataStream(nodes[1]->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
+    BOOST_CHECK(header.GetCommand() == "getsnapshot");
+    snapshot::GetSnapshot get;
+    CDataStream(nodes[1]->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
+    BOOST_CHECK_EQUAL(get.snapshot_hash.GetHex(), second_best.snapshot_hash.GetHex());
+    BOOST_CHECK_EQUAL(get.utxo_subset_index, 0);
+    BOOST_CHECK_EQUAL(get.utxo_subset_count, 10000);
+
+    // restore state
+    nodes[1]->vSendMsg.clear();
+    nodes[1]->m_requested_snapshot_at = std::chrono::steady_clock::time_point::min();
+    nodes[2]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[3]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[2]->m_best_snapshot = best;
+    nodes[3]->m_best_snapshot = best;
+    p2p_state.MockBestSnapshot(best);
+  }
+
+  // test that node fallbacks to second best snapshot
+  // when peers with the best snapshot disconnected
+  {
+    for (size_t j = 1; j <= 2; ++j) {
+      size_t total = nodes.size() - j;
+      for (size_t i = 0; i < total; ++i) {  // disconnect one by one
+        CNode &node = *nodes[i];
+        p2p_state.StartInitialSnapshotDownload(node, i, total, msg_maker);
+        BOOST_CHECK(node.vSendMsg.empty());
+      }
+    }
+
+    // second best is requested
+    for (size_t i = 0; i < nodes.size(); ++i) {
+      CNode &node = *nodes[i];
+      p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
+    }
+
+    BOOST_CHECK(nodes[0]->vSendMsg.empty());
+    BOOST_CHECK(nodes[2]->vSendMsg.empty());
+    BOOST_CHECK(nodes[3]->vSendMsg.empty());
+
+    BOOST_CHECK_EQUAL(nodes[1]->vSendMsg.size(), 2);
+    CDataStream(nodes[1]->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
+    BOOST_CHECK(header.GetCommand() == "getsnapshot");
+    snapshot::GetSnapshot get;
+    CDataStream(nodes[1]->vSendMsg[1], SER_NETWORK, PROTOCOL_VERSION) >> get;
+    BOOST_CHECK_EQUAL(get.snapshot_hash.GetHex(), second_best.snapshot_hash.GetHex());
+    BOOST_CHECK_EQUAL(get.utxo_subset_index, 0);
+    BOOST_CHECK_EQUAL(get.utxo_subset_count, 10000);
+
+    // restore state
+    nodes[1]->vSendMsg.clear();
+    nodes[1]->m_requested_snapshot_at = std::chrono::steady_clock::time_point::min();
+    nodes[2]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[3]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[2]->m_best_snapshot = best;
+    nodes[3]->m_best_snapshot = best;
+    p2p_state.MockBestSnapshot(best);
+  }
+
+  // test that node does't disable ISD until timeout elapsed
+  p2p_state.StartInitialSnapshotDownload(*node1, 0, 1, msg_maker);
+  BOOST_CHECK(snapshot::IsISDEnabled());
+
+  // test that node disables ISD when there are no peers with the snapshot
+  // and discovery timeout elapsed
+  auto first_request_at = std::chrono::steady_clock::now();
+  int64_t discovery_timeout_sec = Params().GetSnapshotParams().discovery_timeout_sec;
+  first_request_at -= std::chrono::seconds(discovery_timeout_sec + 1);
+  p2p_state.MockFirstDiscoveryRequestAt(first_request_at);
+  p2p_state.StartInitialSnapshotDownload(*node1, 0, 1, msg_maker);
+  BOOST_CHECK(!snapshot::IsISDEnabled());
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_find_next_blocks_to_download) {

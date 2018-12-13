@@ -10,7 +10,7 @@
 
 BOOST_FIXTURE_TEST_SUITE(snapshot_messages_tests, ReducedTestingSetup)
 
-BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
+BOOST_AUTO_TEST_CASE(utxo_subset_serializer) {
   CDataStream s(SER_NETWORK, INIT_PROTO_VERSION);
   auto subset = snapshot::UTXOSubset();
   s << subset;
@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
       "00000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "00000000"                          // height
-      "00"                                // isCoinBase
+      "00"                                // is_coin_base
       "00";                               // outputs
   BOOST_CHECK_EQUAL(HexStr(s), exp);
   s.clear();
@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
-      "01"                                // isCoinBase
+      "01"                                // is_coin_base
       "00";                               // outputs
   BOOST_CHECK_MESSAGE(HexStr(s) == exp,
                       "expected: " << HexStr(s) << " got: " << exp);
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
-      "01"                                // isCoinBase
+      "01"                                // is_coin_base
       "01"                                // outputs count
       "02000000"                          // outpoint index
       "ffffffffffffffff"                  // nValue (-1 by default)
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
-      "01"                                // isCoinBase
+      "01"                                // is_coin_base
       "01"                                // outputs count
       "02000000"                          // outpoint index
       "cc00000000000000"                  // nValue (-1 by default)
@@ -72,9 +72,49 @@ BOOST_AUTO_TEST_CASE(snapshot_utxo_set_serializer) {
   s.clear();
 }
 
-BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
+BOOST_AUTO_TEST_CASE(snapshot_header_serialization) {
+  snapshot::SnapshotHeader msg;
+  msg.snapshot_hash.SetHex("aa");
+  msg.block_hash.SetHex("bb");
+  msg.stake_modifier.SetHex("cc");
+  msg.total_utxo_subsets = 10;
+
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  stream << msg;
+  BOOST_CHECK_EQUAL(stream.size(), 104);
+
+  snapshot::SnapshotHeader msg2;
+  stream >> msg2;
+  BOOST_CHECK_EQUAL(msg.snapshot_hash, msg2.snapshot_hash);
+  BOOST_CHECK_EQUAL(msg.block_hash, msg2.block_hash);
+  BOOST_CHECK_EQUAL(msg.stake_modifier, msg2.stake_modifier);
+  BOOST_CHECK_EQUAL(msg.total_utxo_subsets, msg2.total_utxo_subsets);
+}
+
+BOOST_AUTO_TEST_CASE(snapshot_header_comparison) {
+  snapshot::SnapshotHeader a;
+  snapshot::SnapshotHeader b;
+  BOOST_CHECK(a.IsNull());
+  BOOST_CHECK(b.IsNull());
+  BOOST_CHECK(a == b);
+
+  a.snapshot_hash.SetHex("aa");
+  b.snapshot_hash.SetHex("aa");
+  BOOST_CHECK(!a.IsNull());
+  BOOST_CHECK(!b.IsNull());
+  BOOST_CHECK(a == b);
+
+  b.snapshot_hash.SetHex("bb");
+  BOOST_CHECK(a != b);
+
+  a.SetNull();
+  BOOST_CHECK(a.IsNull());
+  BOOST_CHECK(a != b);
+}
+
+BOOST_AUTO_TEST_CASE(get_snapshot_serialization) {
   snapshot::GetSnapshot msg;
-  msg.best_block_hash.SetHex("bb");
+  msg.snapshot_hash.SetHex("bb");
   msg.utxo_subset_index = 55;
   msg.utxo_subset_count = 17;
 
@@ -85,7 +125,7 @@ BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
 
   std::string got = HexStr(stream);
   std::string exp =
-      "bb000000000000000000000000000000"  // block hash
+      "bb000000000000000000000000000000"  // snapshot_hash
       "00000000000000000000000000000000"  //
       "3700000000000000"                  // index
       "1100";                             // length
@@ -93,36 +133,28 @@ BOOST_AUTO_TEST_CASE(snapshot_get_snapshot_serialization) {
 
   snapshot::GetSnapshot msg2;
   stream >> msg2;
-  BOOST_CHECK_EQUAL(msg.best_block_hash, msg2.best_block_hash);
+  BOOST_CHECK_EQUAL(msg.snapshot_hash, msg2.snapshot_hash);
   BOOST_CHECK_EQUAL(msg.utxo_subset_index, msg2.utxo_subset_index);
   BOOST_CHECK_EQUAL(msg.utxo_subset_count, msg2.utxo_subset_count);
 }
 
-BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
+BOOST_AUTO_TEST_CASE(snapshot_serialization) {
   // serialize empty message
   snapshot::Snapshot msg;
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << msg;
-  BOOST_CHECK_EQUAL(stream.size(), 113);
+  BOOST_CHECK_EQUAL(stream.size(), 41);
 
   std::string got = HexStr(stream);
   std::string exp =
       "00000000000000000000000000000000"  // snapshot hash
       "00000000000000000000000000000000"  //
-      "00000000000000000000000000000000"  // block hash
-      "00000000000000000000000000000000"  //
-      "00000000000000000000000000000000"  // stake modifier
-      "00000000000000000000000000000000"  //
-      "0000000000000000"                  // total utxo sets
       "0000000000000000"                  // utxo set index
       "00";                               // utxo set count
   BOOST_CHECK_EQUAL(got, exp);
 
   // serialize filled
   msg.snapshot_hash.SetHex("aa");
-  msg.best_block_hash.SetHex("bb");
-  msg.stake_modifier.SetHex("cc");
-  msg.total_utxo_subsets = 25000000;
   msg.utxo_subset_index = 128;
 
   snapshot::UTXOSubset subset;
@@ -136,23 +168,18 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
 
   stream.clear();
   stream << msg;
-  BOOST_CHECK_EQUAL(stream.size(), 165);
+  BOOST_CHECK_EQUAL(stream.size(), 93);
 
   got = HexStr(stream);
   exp =
       "aa000000000000000000000000000000"  // snapshot hash
       "00000000000000000000000000000000"  //
-      "bb000000000000000000000000000000"  // block hash
-      "00000000000000000000000000000000"  //
-      "cc000000000000000000000000000000"  // stake modifier
-      "00000000000000000000000000000000"  //
-      "40787d0100000000"                  // total utxo sets
       "8000000000000000"                  // index
       "01"                                // utxo set count
       "bb000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "35000000"                          // tx height
-      "01"                                // isCoinBase
+      "01"                                // is_coin_base
       "01"                                // output size
       "05000000"                          // output index
       "0500000000000000"                  // amount
@@ -162,9 +189,6 @@ BOOST_AUTO_TEST_CASE(snapshot_snapshot_serialization) {
 
   snapshot::Snapshot msg2;
   stream >> msg2;
-  BOOST_CHECK_EQUAL(msg.best_block_hash, msg2.best_block_hash);
-  BOOST_CHECK_EQUAL(msg.stake_modifier, msg2.stake_modifier);
-  BOOST_CHECK_EQUAL(msg.total_utxo_subsets, msg2.total_utxo_subsets);
   BOOST_CHECK_EQUAL(msg.utxo_subset_index, msg2.utxo_subset_index);
   BOOST_CHECK_EQUAL(msg.utxo_subsets.size(), msg2.utxo_subsets.size());
   BOOST_CHECK_EQUAL(msg.utxo_subsets[0].tx_id, msg2.utxo_subsets[0].tx_id);

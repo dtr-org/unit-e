@@ -22,6 +22,7 @@
 #include <sync.h>
 #include <uint256.h>
 #include <threadinterrupt.h>
+#include <snapshot/messages.h>
 
 #include <atomic>
 #include <deque>
@@ -29,6 +30,7 @@
 #include <thread>
 #include <memory>
 #include <condition_variable>
+#include <chrono>
 
 #ifndef WIN32
 #include <arpa/inet.h>
@@ -723,10 +725,16 @@ public:
     CAmount lastSentFeeFilter;
     int64_t nextSendTimeFeeFilter;
 
-    //! keeps track if initial GetSnapshot message was sent
-    bool m_snapshot_requested;
+    //! keeps track whether discovery request was sent
+    bool m_snapshot_discovery_sent;
 
-    //! keeps track if the request for the parent block of the candidate
+    //! node's best snapshot
+    snapshot::SnapshotHeader m_best_snapshot;
+
+    //! is used to track timeouts
+    std::chrono::steady_clock::time_point m_requested_snapshot_at;
+
+    //! keeps track whether the request for the parent block of the candidate
     //! snapshot was sent.
     bool sentGetParentBlockForSnapshot;
 
