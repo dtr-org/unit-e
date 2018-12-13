@@ -726,13 +726,13 @@ public:
     int64_t nextSendTimeFeeFilter;
 
     //! keeps track whether discovery request was sent
-    bool snapshot_discovery_sent;
+    bool m_snapshot_discovery_sent;
 
-    //! peers best snapshot
-    snapshot::BestSnapshot best_snapshot;
+    //! node's best snapshot
+    snapshot::BestSnapshot m_best_snapshot;
 
     //! is used to track timeouts
-    std::chrono::steady_clock::time_point requested_snapshot_at;
+    std::chrono::steady_clock::time_point m_requested_snapshot_at;
 
     //! keeps track whether the request for the parent block of the candidate
     //! snapshot was sent.

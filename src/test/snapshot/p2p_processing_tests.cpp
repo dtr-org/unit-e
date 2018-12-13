@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   best_snapshot.stake_modifier = uint256S("bb");
   best_snapshot.total_utxo_subsets = 6;
 
-  node->best_snapshot = best_snapshot;
+  node->m_best_snapshot = best_snapshot;
   p2p_state.MockBestSnapshot(best_snapshot);
 
   // simulate that headers were already received
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   for (size_t i = 0; i < nodes.size(); ++i) {
     CNode &node = *nodes[i];
     p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
-    BOOST_CHECK(node.snapshot_discovery_sent);
+    BOOST_CHECK(node.m_snapshot_discovery_sent);
     BOOST_CHECK_EQUAL(node.vSendMsg.size(), 1);
     CDataStream(node.vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
     BOOST_CHECK(header.GetCommand() == "getbestsnaps");
@@ -205,9 +205,9 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   snapshot::HeadersDownloaded();
 
   // node must detect the best snapshot during first loop
-  node2->best_snapshot = second_best;
-  node3->best_snapshot = best;
-  node4->best_snapshot = best;
+  node2->m_best_snapshot = second_best;
+  node3->m_best_snapshot = best;
+  node4->m_best_snapshot = best;
   for (size_t i = 0; i < nodes.size(); ++i) {
     CNode &node = *nodes[i];
     p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
 
     std::vector<CNode *> best_nodes{nodes[2], nodes[3]};
     for (CNode *node : best_nodes) {
-      BOOST_CHECK(node->requested_snapshot_at >= now);
+      BOOST_CHECK(node->m_requested_snapshot_at >= now);
       BOOST_CHECK_EQUAL(node->vSendMsg.size(), 2);
       CDataStream(node->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
       BOOST_CHECK(header.GetCommand() == "getsnapshot");
@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
     std::vector<CNode *> best_nodes{nodes[2], nodes[3]};
     for (CNode *n : best_nodes) {  // timeout one by one
       int64_t timeout = Params().GetSnapshotParams().snapshot_chunk_timeout_sec;
-      n->requested_snapshot_at -= std::chrono::seconds(timeout + 1);
+      n->m_requested_snapshot_at -= std::chrono::seconds(timeout + 1);
       for (size_t i = 0; i < nodes.size(); ++i) {
         CNode &node = *nodes[i];
         p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
@@ -276,11 +276,11 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
 
     // restore state
     nodes[1]->vSendMsg.clear();
-    nodes[1]->requested_snapshot_at = std::chrono::steady_clock::time_point::min();
-    nodes[2]->requested_snapshot_at = std::chrono::steady_clock::now();
-    nodes[3]->requested_snapshot_at = std::chrono::steady_clock::now();
-    nodes[2]->best_snapshot = best;
-    nodes[3]->best_snapshot = best;
+    nodes[1]->m_requested_snapshot_at = std::chrono::steady_clock::time_point::min();
+    nodes[2]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[3]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[2]->m_best_snapshot = best;
+    nodes[3]->m_best_snapshot = best;
     p2p_state.MockBestSnapshot(best);
   }
 
@@ -317,11 +317,11 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
 
     // restore state
     nodes[1]->vSendMsg.clear();
-    nodes[1]->requested_snapshot_at = std::chrono::steady_clock::time_point::min();
-    nodes[2]->requested_snapshot_at = std::chrono::steady_clock::now();
-    nodes[3]->requested_snapshot_at = std::chrono::steady_clock::now();
-    nodes[2]->best_snapshot = best;
-    nodes[3]->best_snapshot = best;
+    nodes[1]->m_requested_snapshot_at = std::chrono::steady_clock::time_point::min();
+    nodes[2]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[3]->m_requested_snapshot_at = std::chrono::steady_clock::now();
+    nodes[2]->m_best_snapshot = best;
+    nodes[3]->m_best_snapshot = best;
     p2p_state.MockBestSnapshot(best);
   }
 
