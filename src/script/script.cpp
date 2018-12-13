@@ -609,6 +609,12 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     return it == script.end();
 }
 
+const std::vector<unsigned char> &WitnessProgram::GetV0Program() const
+{
+    assert(m_version == 0 && m_program.size() == 1);
+    return m_program[0];
+}
+
 bool WitnessProgram::IsPayToScriptHash() const
 {
     return m_version == 0 && m_program.size() == 1 && m_program[0].size() == 32;
@@ -619,8 +625,8 @@ bool WitnessProgram::IsPayToPubkeyHash() const
     return m_version == 0 && m_program.size() == 1 && m_program[0].size() == 20;
 }
 
-const std::vector<unsigned char> &WitnessProgram::GetV0Program() const
+bool WitnessProgram::IsRemoteStaking() const
 {
-    assert(m_version == 0 && m_program.size() == 1);
-    return m_program[0];
+    return m_version == 1 && m_program.size() == 2 && m_program[0].size() == 20
+        && m_program[1].size() == 32;
 }

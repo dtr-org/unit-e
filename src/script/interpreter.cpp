@@ -1452,6 +1452,21 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
         } else {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
+    } else if (witnessProgram.GetVersion() == 1) {
+        if (witnessProgram.IsRemoteStaking()) {
+            // Both branches of remote staking script require two items in witness
+            if (witness.stack.size() != 2) {
+                return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+            }
+            scriptPubKey << OP_PUSH_TX_TYPE << OP_1 << OP_EQUAL << OP_IF
+                         << OP_DUP << OP_HASH160 << witnessProgram.GetProgram()[0] << OP_EQUALVERIFY << OP_CHECKSIG
+                         << OP_ELSE
+                         << OP_DUP << OP_SHA256 << witnessProgram.GetProgram()[1] << OP_EQUALVERIFY << OP_CHECKSIG
+                         << OP_ENDIF;
+            stack = witness.stack;
+        } else {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
+        }
     } else if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM) {
         return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
     } else {
@@ -1597,7 +1612,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
 
 size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitness& witness, int flags)
 {
-    if (witprogram.IsPayToPubkeyHash()) {
+    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStaking()) {
         return 1;
     }
 
