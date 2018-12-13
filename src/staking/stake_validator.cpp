@@ -49,7 +49,7 @@ class StakeValidatorImpl : public StakeValidator {
 
   uint256 ComputeKernelHash(const CBlockIndex *previous_block,
                             const ::COutPoint &stake,
-                            const blockchain::Time blockTime) const override {
+                            const blockchain::Time time) const override {
 
     if (!previous_block) {
       // The genesis block does not have a preceding block. It also does not
@@ -64,7 +64,7 @@ class StakeValidatorImpl : public StakeValidator {
     s << previous_block->nTime;
     s << stake.hash;
     s << stake.n;
-    s << blockTime;
+    s << time;
 
     return Hash(s.begin(), s.end());
   }
