@@ -3,7 +3,7 @@
 if [[ "$OSTYPE" == "darwin"* ]]; then
   FIND_CMD='find -E'
   QT_PATH=$(brew info qt 2>/dev/null | head -n4 | tail -n1 | cut -f1 -d' ')
-  QT_CMAKE_PATH=$QT_PATH/lib/cmake
+  QT_CMAKE_PATH="${QT_PATH}/lib/cmake"
   OPENSSL_INCLUDE=/usr/local/opt/openssl/include
   OPENSSL_LIB=/usr/local/opt/openssl/lib
 else
@@ -13,7 +13,7 @@ else
   OPENSSL_LIB=/usr/lib/x86_64-linux-gnu
 fi
 
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )/../.."
+cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 (
 echo "cmake_minimum_required(VERSION 3.12)"
