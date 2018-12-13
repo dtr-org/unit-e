@@ -21,16 +21,20 @@
 
 #include <memory>
 
-void CConnmanTest::AddNode(CNode& node)
+void CConnmanTest::AddNode(CNode& node, CConnman* connman)
 {
-    LOCK(g_connman->cs_vNodes);
-    g_connman->vNodes.push_back(&node);
+    LOCK(connman->cs_vNodes);
+    connman->vNodes.push_back(&node);
 }
 
-void CConnmanTest::ClearNodes()
+void CConnmanTest::ClearNodes(CConnman* connman)
 {
-    LOCK(g_connman->cs_vNodes);
-    g_connman->vNodes.clear();
+    LOCK(connman->cs_vNodes);
+    connman->vNodes.clear();
+}
+
+void CConnmanTest::StartThreadMessageHandler(CConnman* connman) {
+  connman->ThreadMessageHandler();
 }
 
 uint256 insecure_rand_seed = GetRandHash();

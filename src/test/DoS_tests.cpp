@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
 
     // Test starts here
     LOCK(dummyNode1.cs_sendProcessing);
-    peerLogic->SendMessages(&dummyNode1, interruptDummy); // should result in getheaders
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy); // should result in getheaders
     LOCK(dummyNode1.cs_vSend);
     BOOST_CHECK(dummyNode1.vSendMsg.size() > 0);
     dummyNode1.vSendMsg.clear();
@@ -80,11 +80,11 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
     int64_t nStartTime = GetTime();
     // Wait 21 minutes
     SetMockTime(nStartTime+21*60);
-    peerLogic->SendMessages(&dummyNode1, interruptDummy); // should result in getheaders
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy); // should result in getheaders
     BOOST_CHECK(dummyNode1.vSendMsg.size() > 0);
     // Wait 3 more minutes
     SetMockTime(nStartTime+24*60);
-    peerLogic->SendMessages(&dummyNode1, interruptDummy); // should result in disconnect
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy); // should result in disconnect
     BOOST_CHECK(dummyNode1.fDisconnect == true);
     SetMockTime(0);
 
@@ -103,7 +103,7 @@ void AddRandomOutboundPeer(std::vector<CNode *> &vNodes, PeerLogicValidation &pe
     node.nVersion = 1;
     node.fSuccessfullyConnected = true;
 
-    CConnmanTest::AddNode(node);
+    CConnmanTest::AddNode(node, g_connman.get());
 }
 
 BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
         peerLogic->FinalizeNode(node->GetId(), dummy);
     }
 
-    CConnmanTest::ClearNodes();
+    CConnmanTest::ClearNodes(g_connman.get());
 }
 
 BOOST_AUTO_TEST_CASE(DoS_banning)
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(DoS_banning)
         Misbehaving(dummyNode1.GetId(), 100); // Should get banned
     }
     LOCK(dummyNode1.cs_sendProcessing);
-    peerLogic->SendMessages(&dummyNode1, interruptDummy);
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy);
     BOOST_CHECK(connman->IsBanned(addr1));
     BOOST_CHECK(!connman->IsBanned(ip(0xa0b0c001|0x0000ff00))); // Different IP, not banned
 
@@ -206,14 +206,14 @@ BOOST_AUTO_TEST_CASE(DoS_banning)
         Misbehaving(dummyNode2.GetId(), 50);
     }
     LOCK(dummyNode2.cs_sendProcessing);
-    peerLogic->SendMessages(&dummyNode2, interruptDummy);
+    peerLogic->SendMessages(&dummyNode2, 0, 1, interruptDummy);
     BOOST_CHECK(!connman->IsBanned(addr2)); // 2 not banned yet...
     BOOST_CHECK(connman->IsBanned(addr1));  // ... but 1 still should be
     {
         LOCK(cs_main);
         Misbehaving(dummyNode2.GetId(), 50);
     }
-    peerLogic->SendMessages(&dummyNode2, interruptDummy);
+    peerLogic->SendMessages(&dummyNode2, 0, 1, interruptDummy);
     BOOST_CHECK(connman->IsBanned(addr2));
 
     bool dummy;
@@ -238,19 +238,19 @@ BOOST_AUTO_TEST_CASE(DoS_banscore)
         Misbehaving(dummyNode1.GetId(), 100);
     }
     LOCK(dummyNode1.cs_sendProcessing);
-    peerLogic->SendMessages(&dummyNode1, interruptDummy);
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy);
     BOOST_CHECK(!connman->IsBanned(addr1));
     {
         LOCK(cs_main);
         Misbehaving(dummyNode1.GetId(), 10);
     }
-    peerLogic->SendMessages(&dummyNode1, interruptDummy);
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy);
     BOOST_CHECK(!connman->IsBanned(addr1));
     {
         LOCK(cs_main);
         Misbehaving(dummyNode1.GetId(), 1);
     }
-    peerLogic->SendMessages(&dummyNode1, interruptDummy);
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy);
     BOOST_CHECK(connman->IsBanned(addr1));
     gArgs.ForceSetArg("-banscore", std::to_string(DEFAULT_BANSCORE_THRESHOLD));
 
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE(DoS_bantime)
         Misbehaving(dummyNode.GetId(), 100);
     }
     LOCK(dummyNode.cs_sendProcessing);
-    peerLogic->SendMessages(&dummyNode, interruptDummy);
+    peerLogic->SendMessages(&dummyNode, 0, 1, interruptDummy);
     BOOST_CHECK(connman->IsBanned(addr));
 
     SetMockTime(nStartTime+60*60);

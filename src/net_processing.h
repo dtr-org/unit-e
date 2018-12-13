@@ -56,10 +56,12 @@ public:
     * Send queued protocol messages to be sent to a give node.
     *
     * @param[in]   pto             The node which we are sending messages to.
+    * @param[in]   node_index      The node index starting from 0 that is being called
+    * @param[in]   total_nodes     The number of all nodes that will be called
     * @param[in]   interrupt       Interrupt condition for processing threads
     * @return                      True if there is more work to be done
     */
-    bool SendMessages(CNode* pto, std::atomic<bool>& interrupt) override;
+    bool SendMessages(CNode* pto, size_t node_index, size_t total_nodes, std::atomic<bool>& interrupt) override;
 
     void ConsiderEviction(CNode *pto, int64_t time_in_seconds);
     void CheckForStaleTipAndEvictPeers(const Consensus::Params &consensusParams);
