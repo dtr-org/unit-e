@@ -17,11 +17,11 @@ std::string Locator::ToString() const {
 }
 
 namespace {
-CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const &locator) {
-  auto const *const state = esperanza::FinalizationState::GetState();
-  CBlockIndex const *last = nullptr;
-  for (uint256 const &h : locator.start) {
-    auto const it = mapBlockIndex.find(h);
+const CBlockIndex *FindMostRecentStart(const CChain &chain, const Locator &locator) {
+  const auto *const state = esperanza::FinalizationState::GetState();
+  const CBlockIndex *last = nullptr;
+  for (const uint256 &h : locator.start) {
+    const auto it = mapBlockIndex.find(h);
     if (it == mapBlockIndex.end()) {
       LogPrint(BCLog::FINALIZATION, "Block not found: %s", h.GetHex());
       return nullptr;
@@ -44,11 +44,11 @@ CBlockIndex const *FindMostRecentStart(CChain const &chain, Locator const &locat
   return last;
 }
 
-CBlockIndex const *FindStop(Locator const &locator) {
+const CBlockIndex *FindStop(const Locator &locator) {
   if (locator.stop.IsNull()) {
     return nullptr;
   }
-  auto const it = mapBlockIndex.find(locator.stop);
+  const auto it = mapBlockIndex.find(locator.stop);
   if (it == mapBlockIndex.end()) {
     LogPrint(BCLog::FINALIZATION, "Hash %s not found, fallback to stop=0x0\n", locator.stop.GetHex());
     return nullptr;
@@ -56,18 +56,18 @@ CBlockIndex const *FindStop(Locator const &locator) {
   return it->second;
 }
 
-HeaderAndCommits FindHeaderAndCommits(CBlockIndex const *pindex, Consensus::Params const &params) {
+HeaderAndCommits FindHeaderAndCommits(const CBlockIndex *pindex, const Consensus::Params &params) {
   if (!(pindex->nStatus & BLOCK_HAVE_DATA)) {
     LogPrintf("%s has no data. It's on the main chain, so this shouldn't happen. Stopping.\n",
               pindex->GetBlockHash().GetHex());
     assert(not("No data on the main chain"));
   }
   HeaderAndCommits hc(pindex->GetBlockHeader());
-  std::shared_ptr<CBlock> const pblock = std::make_shared<CBlock>();
+  const std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
   if (!ReadBlockFromDisk(*pblock, pindex, params)) {
     assert(not("Cannot load block from the disk"));
   }
-  for (auto const &tx : pblock->vtx) {
+  for (const auto &tx : pblock->vtx) {
     if (tx->IsCommit()) {
       hc.commits.push_back(tx);
     }
@@ -76,14 +76,14 @@ HeaderAndCommits FindHeaderAndCommits(CBlockIndex const *pindex, Consensus::Para
 }
 } // namespace
 
-bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
-                       CChainParams const &chainparams) {
-  CBlockIndex const *pindex = FindMostRecentStart(chainActive, locator);
+bool ProcessGetCommits(CNode *node, const Locator &locator, const CNetMsgMaker &msgMaker,
+                       const CChainParams &chainparams) {
+  const CBlockIndex *pindex = FindMostRecentStart(chainActive, locator);
   if (pindex == nullptr) {
     return error("%s: cannot find start point in locator: %s", __func__, locator.ToString());
   }
-  CBlockIndex const *const stop = FindStop(locator);
-  auto const *const state = esperanza::FinalizationState::GetState();
+  const CBlockIndex *const stop = FindStop(locator);
+  const auto *const state = esperanza::FinalizationState::GetState();
   CommitsResponse r;
   do {
     pindex = chainActive.Next(pindex);
@@ -100,17 +100,17 @@ bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &
   return true;
 }
 
-bool ProcessNewCommits(CommitsResponse const &msg, CChainParams const &chainparams) {
+bool ProcessNewCommits(const CommitsResponse &msg, const CChainParams &chainparams) {
   CValidationState state;
-  for (auto const &d : msg.data) {
+  for (const auto &d : msg.data) {
     // UNIT-E: Check commits merkle root after it is added
-    for (auto const &c : d.commits) {
+    for (const auto &c : d.commits) {
       if (!c->IsCommit()) {
         return error("Found non-commit transaction, stop process commits");
       }
     }
   }
-  for (auto const &d : msg.data) {
+  for (const auto &d : msg.data) {
     CBlockIndex *pindex = nullptr;
     if (!AcceptBlockHeader(d.header, state, chainparams, &pindex)) {
       return false;

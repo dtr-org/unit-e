@@ -49,7 +49,7 @@ struct HeaderAndCommits {
   std::vector<CTransactionRef> commits;
 
   HeaderAndCommits() = default;
-  HeaderAndCommits(CBlockHeader const &header) : header(header) {}
+  HeaderAndCommits(const CBlockHeader &header) : header(header) {}
 
   ADD_SERIALIZE_METHODS
   template <typename Stream, typename Operation>
@@ -87,11 +87,11 @@ struct CommitsResponse {
 //! \brief Process the "getcommits" message
 //!
 //! Collect commits in between the most recent common block hash and stop condition.
-bool ProcessGetCommits(CNode *node, Locator const &locator, CNetMsgMaker const &msgMaker,
-                       CChainParams const &params);
+bool ProcessGetCommits(CNode *node, const Locator &locator, const CNetMsgMaker &msgMaker,
+                       const CChainParams &params);
 
 //! \brief Process the "commits" message
-bool ProcessNewCommits(CommitsResponse const &commits, CChainParams const &chainparams);
+bool ProcessNewCommits(const CommitsResponse &commits, const CChainParams &chainparams);
 
 } // p2p
 } // finalization
