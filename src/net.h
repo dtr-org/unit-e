@@ -729,7 +729,7 @@ public:
     bool m_snapshot_discovery_sent;
 
     //! node's best snapshot
-    snapshot::BestSnapshot m_best_snapshot;
+    snapshot::SnapshotHeader m_best_snapshot;
 
     //! is used to track timeouts
     std::chrono::steady_clock::time_point m_requested_snapshot_at;

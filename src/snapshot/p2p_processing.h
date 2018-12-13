@@ -32,11 +32,11 @@ class P2PState {
   explicit P2PState(const Params &params = Params());
 
   //! sends to the node the header of the best snapshot
-  bool ProcessGetBestSnapshot(CNode &node, CDataStream &data,
-                              const CNetMsgMaker &msg_maker);
+  bool ProcessGetSnapshotHeader(CNode &node, CDataStream &data,
+                                const CNetMsgMaker &msg_maker);
 
   //! saves node's best snapshot
-  bool ProcessBestSnapshot(CNode &node, CDataStream &data);
+  bool ProcessSnapshotHeader(CNode &node, CDataStream &data);
 
   //! sends to node the requested chunk
   bool ProcessGetSnapshot(CNode &node, CDataStream &data,
@@ -69,31 +69,31 @@ class P2PState {
 
   // snapshot that node decided to download
   // and was the best one at a time the decision was made
-  BestSnapshot m_downloading_snapshot;
+  SnapshotHeader m_downloading_snapshot;
 
  private:
   Params m_params;
 
   // keeps track of the best snapshot across all peers
-  BestSnapshot m_best_snapshot;
+  SnapshotHeader m_best_snapshot;
 
   bool SendGetSnapshot(CNode &node, GetSnapshot &msg,
                        const CNetMsgMaker &msg_maker);
 
   //! returns node's best_snapshot if it points to finalized epoch
   //! and downloading process hasn't timed out
-  BestSnapshot NodeBestSnapshot(CNode &node);
+  SnapshotHeader NodeBestSnapshot(CNode &node);
 
   //! update m_best_snapshot if provided one is a better one
-  void SetIfBestSnapshot(const BestSnapshot &best_snapshot);
+  void SetIfBestSnapshot(const SnapshotHeader &best_snapshot);
 };
 
 void InitP2P(const Params &params);
 
-// proxy to g_p2p_state.ProcessGetBestSnapshot
+// proxy to g_p2p_state.ProcessGetSnapshotHeader
 bool ProcessGetBestSnapshot(CNode &node, CDataStream &data,
                             const CNetMsgMaker &msg_maker);
-// proxy to g_p2p_state.ProcessBestSnapshot
+// proxy to g_p2p_state.ProcessSnapshotHeader
 bool ProcessBestSnapshot(CNode &node, CDataStream &data);
 
 // proxy to g_p2p_state.ProcessGetSnapshot

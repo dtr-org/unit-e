@@ -2748,7 +2748,7 @@ CNode::CNode(NodeId idIn, ServiceFlags nLocalServicesIn, int nMyStartingHeightIn
     nProcessQueueSize = 0;
 
     m_snapshot_discovery_sent = false;
-    m_best_snapshot = snapshot::BestSnapshot();
+    m_best_snapshot = snapshot::SnapshotHeader();
     m_requested_snapshot_at = std::chrono::steady_clock::time_point::min();
     sentGetParentBlockForSnapshot = false;
 

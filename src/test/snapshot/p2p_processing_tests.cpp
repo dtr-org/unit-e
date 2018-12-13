@@ -33,9 +33,10 @@ bool HasSnapshotHash(const uint256 &hash) {
 
 class MockP2PState : public snapshot::P2PState {
  public:
-  MockP2PState(const snapshot::Params &params = snapshot::Params()) : P2PState(params) {}
+  explicit MockP2PState(const snapshot::Params &params = snapshot::Params())
+      : P2PState(params) {}
 
-  void MockBestSnapshot(const snapshot::BestSnapshot best_snapshot) {
+  void MockBestSnapshot(const snapshot::SnapshotHeader best_snapshot) {
     m_downloading_snapshot = best_snapshot;
   }
 
@@ -80,7 +81,7 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   CNetMsgMaker msg_maker(1);
   std::unique_ptr<CNode> node(mockNode());
 
-  snapshot::BestSnapshot best_snapshot;
+  snapshot::SnapshotHeader best_snapshot;
   best_snapshot.snapshot_hash = uint256S("8674e0471df333b5235e923396cfa06d5a4c6779bb6607f09f00d6d92610c926");
   best_snapshot.block_hash = uint256S("aa");
   best_snapshot.stake_modifier = uint256S("bb");
@@ -167,11 +168,11 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   b1->nHeight = 1;
   b2->nHeight = 2;
 
-  snapshot::BestSnapshot best;
+  snapshot::SnapshotHeader best;
   best.snapshot_hash = uint256S("a2");
   best.block_hash = b2->GetBlockHash();
 
-  snapshot::BestSnapshot second_best;
+  snapshot::SnapshotHeader second_best;
   second_best.snapshot_hash = uint256S("a1");
   second_best.block_hash = b1->GetBlockHash();
 
@@ -190,7 +191,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
     BOOST_CHECK(node.m_snapshot_discovery_sent);
     BOOST_CHECK_EQUAL(node.vSendMsg.size(), 1);
     CDataStream(node.vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
-    BOOST_CHECK(header.GetCommand() == "getbestsnaps");
+    BOOST_CHECK(header.GetCommand() == "getsnaphead");
     node.vSendMsg.clear();
   }
 

@@ -72,8 +72,8 @@ BOOST_AUTO_TEST_CASE(utxo_subset_serializer) {
   s.clear();
 }
 
-BOOST_AUTO_TEST_CASE(best_snapshot_serialization) {
-  snapshot::BestSnapshot msg;
+BOOST_AUTO_TEST_CASE(snapshot_header_serialization) {
+  snapshot::SnapshotHeader msg;
   msg.snapshot_hash.SetHex("aa");
   msg.block_hash.SetHex("bb");
   msg.stake_modifier.SetHex("cc");
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(best_snapshot_serialization) {
   stream << msg;
   BOOST_CHECK_EQUAL(stream.size(), 104);
 
-  snapshot::BestSnapshot msg2;
+  snapshot::SnapshotHeader msg2;
   stream >> msg2;
   BOOST_CHECK_EQUAL(msg.snapshot_hash, msg2.snapshot_hash);
   BOOST_CHECK_EQUAL(msg.block_hash, msg2.block_hash);
@@ -91,9 +91,9 @@ BOOST_AUTO_TEST_CASE(best_snapshot_serialization) {
   BOOST_CHECK_EQUAL(msg.total_utxo_subsets, msg2.total_utxo_subsets);
 }
 
-BOOST_AUTO_TEST_CASE(best_snapshot_comparison) {
-  snapshot::BestSnapshot a;
-  snapshot::BestSnapshot b;
+BOOST_AUTO_TEST_CASE(snapshot_header_comparison) {
+  snapshot::SnapshotHeader a;
+  snapshot::SnapshotHeader b;
   BOOST_CHECK(a.IsNull());
   BOOST_CHECK(b.IsNull());
   BOOST_CHECK(a == b);

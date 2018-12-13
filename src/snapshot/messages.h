@@ -50,20 +50,20 @@ struct UTXOSubset {
   }
 };
 
-//! \brief message to discover the best snapshot
-struct BestSnapshot {
+//! \brief header of the best snapshot
+struct SnapshotHeader {
   uint256 snapshot_hash;
   uint256 block_hash;
   uint256 stake_modifier;
   uint64_t total_utxo_subsets = 0;
 
-  BestSnapshot() = default;
+  SnapshotHeader() = default;
 
-  bool operator==(const BestSnapshot &other) const {
+  bool operator==(const SnapshotHeader &other) const {
     return snapshot_hash == other.snapshot_hash;
   }
 
-  bool operator!=(const BestSnapshot &other) const {
+  bool operator!=(const SnapshotHeader &other) const {
     return !(*this == other);
   }
 

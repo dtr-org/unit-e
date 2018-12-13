@@ -1781,11 +1781,11 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return false;
     }
 
-    else if (strCommand == NetMsgType::GETBESTSNAPSHOT) {
+    else if (strCommand == NetMsgType::GETSNAPSHOTHEADER) {
         return snapshot::ProcessGetBestSnapshot(*pfrom, vRecv, msgMaker);
     }
 
-    else if (strCommand == NetMsgType::BESTSNAPSHOT) {
+    else if (strCommand == NetMsgType::SNAPSHOTHEADER) {
         return snapshot::ProcessBestSnapshot(*pfrom, vRecv);
     }
 
