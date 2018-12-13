@@ -293,7 +293,7 @@ void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int tot
       msg.utxo_subset_index = 0;
       msg.utxo_subset_count = MAX_UTXO_SET_COUNT;
 
-      std::unique_ptr<Indexer> indexer = Indexer::Open(node->best_snapshot.snapshot_hash);
+      std::unique_ptr<const Indexer> indexer = Indexer::Open(node->best_snapshot.snapshot_hash);
       if (indexer) {
         msg.utxo_subset_index = indexer->GetMeta().total_utxo_subsets;
       }
