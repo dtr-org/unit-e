@@ -239,14 +239,14 @@ extern const char *GETBLOCKTXN;
 extern const char *BLOCKTXN;
 
 /**
- * Contains the snapshot::DiscoverSnapshot message.
+ * Contains the snapshot::GetBestSnapshot message.
  * Peer should respond with the "bestsnapshot" message.
  */
-extern const char *DISCSNAPSHOT;
+extern const char *GETBESTSNAPSHOT;
 
 /**
 * Contains the snapshot::BestSnapshot message.
-* Sent in response to a "discsnapshot" message.
+* Sent in response to a "getbestsnaps" message.
 */
 extern const char *BESTSNAPSHOT;
 

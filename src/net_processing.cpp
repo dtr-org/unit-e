@@ -1781,8 +1781,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return false;
     }
 
-    else if (strCommand == NetMsgType::DISCSNAPSHOT) {
-        return snapshot::ProcessDiscSnapshot(pfrom, vRecv, msgMaker);
+    else if (strCommand == NetMsgType::GETBESTSNAPSHOT) {
+        return snapshot::ProcessGetBestSnapshot(pfrom, vRecv, msgMaker);
     }
 
     else if (strCommand == NetMsgType::BESTSNAPSHOT) {

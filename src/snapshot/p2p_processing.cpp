@@ -36,19 +36,19 @@ inline CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
 P2PState::P2PState(const Params &params) : m_params(params) {
 }
 
-bool P2PState::ProcessDiscSnapshot(CNode *node, CDataStream &data,
-                                   const CNetMsgMaker &msg_maker) {
+bool P2PState::ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+                                      const CNetMsgMaker &msg_maker) {
   uint256 snapshot_hash;
   if (!GetLatestFinalizedSnapshotHash(snapshot_hash)) {
     LogPrint(BCLog::SNAPSHOT, "%s: no finalized snapshots to return\n",
-             NetMsgType::DISCSNAPSHOT);
+             NetMsgType::GETBESTSNAPSHOT);
     return false;
   }
 
   std::unique_ptr<const Indexer> indexer = Indexer::Open(snapshot_hash);
   if (!indexer) {
     LogPrint(BCLog::SNAPSHOT, "%s: can't read snapshot %s\n",
-             NetMsgType::DISCSNAPSHOT,
+             NetMsgType::GETBESTSNAPSHOT,
              snapshot_hash.GetHex());
     return false;
   }
@@ -60,7 +60,7 @@ bool P2PState::ProcessDiscSnapshot(CNode *node, CDataStream &data,
   best_snapshot.total_utxo_subsets = indexer->GetMeta().total_utxo_subsets;
 
   LogPrint(BCLog::SNAPSHOT, "%s: return snapshot_hash=%s block_hash=%s to peer=%i\n",
-           NetMsgType::DISCSNAPSHOT,
+           NetMsgType::GETBESTSNAPSHOT,
            best_snapshot.snapshot_hash.GetHex(),
            best_snapshot.block_hash.GetHex(),
            node->GetId());
@@ -269,8 +269,8 @@ void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int tot
     const auto now = steady_clock::now();
     const auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - m_first_discovery_request_at);
     if (diff.count() <= m_params.discovery_timeout_sec) {
-      LogPrint(BCLog::SNAPSHOT, "%s: peer=%i\n", NetMsgType::DISCSNAPSHOT, node->GetId());
-      g_connman->PushMessage(node, msg_maker.Make(NetMsgType::DISCSNAPSHOT));
+      LogPrint(BCLog::SNAPSHOT, "%s: peer=%i\n", NetMsgType::GETBESTSNAPSHOT, node->GetId());
+      g_connman->PushMessage(node, msg_maker.Make(NetMsgType::GETBESTSNAPSHOT));
     }
   }
 
@@ -548,10 +548,10 @@ void InitP2P(const Params &params) {
   g_p2p_state = P2PState(params);
 }
 
-// proxy to g_p2p_state.ProcessDiscSnapshot
-bool ProcessDiscSnapshot(CNode *node, CDataStream &data,
-                         const CNetMsgMaker &msg_maker) {
-  return g_p2p_state.ProcessDiscSnapshot(node, data, msg_maker);
+// proxy to g_p2p_state.ProcessGetBestSnapshot
+bool ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+                            const CNetMsgMaker &msg_maker) {
+  return g_p2p_state.ProcessGetBestSnapshot(node, data, msg_maker);
 }
 
 // proxy to g_p2p_state.ProcessBestSnapshot

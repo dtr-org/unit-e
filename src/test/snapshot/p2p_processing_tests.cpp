@@ -190,7 +190,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
     BOOST_CHECK(node->snapshot_discovery_sent);
     BOOST_CHECK_EQUAL(node->vSendMsg.size(), 1);
     CDataStream(node->vSendMsg[0], SER_NETWORK, PROTOCOL_VERSION) >> header;
-    BOOST_CHECK(header.GetCommand() == "discsnapshot");
+    BOOST_CHECK(header.GetCommand() == "getbestsnaps");
     node->vSendMsg.clear();
   }
 

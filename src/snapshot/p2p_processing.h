@@ -32,8 +32,8 @@ class P2PState {
   explicit P2PState(const Params &params = Params());
 
   //! sends to the node the header of the best snapshot
-  bool ProcessDiscSnapshot(CNode *node, CDataStream &data,
-                           const CNetMsgMaker &msg_maker);
+  bool ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+                              const CNetMsgMaker &msg_maker);
 
   //! saves node's best snapshot
   bool ProcessBestSnapshot(CNode *node, CDataStream &data);
@@ -90,9 +90,9 @@ class P2PState {
 
 void InitP2P(const Params &params);
 
-// proxy to g_p2p_state.ProcessDiscSnapshot
-bool ProcessDiscSnapshot(CNode *node, CDataStream &data,
-                         const CNetMsgMaker &msg_maker);
+// proxy to g_p2p_state.ProcessGetBestSnapshot
+bool ProcessGetBestSnapshot(CNode *node, CDataStream &data,
+                            const CNetMsgMaker &msg_maker);
 // proxy to g_p2p_state.ProcessBestSnapshot
 bool ProcessBestSnapshot(CNode *node, CDataStream &data);
 

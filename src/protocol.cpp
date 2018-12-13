@@ -39,7 +39,7 @@ const char *SENDCMPCT="sendcmpct";
 const char *CMPCTBLOCK="cmpctblock";
 const char *GETBLOCKTXN="getblocktxn";
 const char *BLOCKTXN="blocktxn";
-const char *DISCSNAPSHOT="discsnapshot";
+const char *GETBESTSNAPSHOT="getbestsnaps";
 const char *BESTSNAPSHOT="bestsnapshot";
 const char *GETSNAPSHOT="getsnapshot";
 const char *SNAPSHOT="snapshot";
@@ -75,7 +75,7 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::CMPCTBLOCK,
     NetMsgType::GETBLOCKTXN,
     NetMsgType::BLOCKTXN,
-    NetMsgType::DISCSNAPSHOT,
+    NetMsgType::GETBESTSNAPSHOT,
     NetMsgType::BESTSNAPSHOT,
     NetMsgType::GETSNAPSHOT,
     NetMsgType::SNAPSHOT,
