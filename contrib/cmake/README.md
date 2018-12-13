@@ -5,8 +5,9 @@ Unit E uses the GNU autotools to build the project. Some IDEs like IntelliJ/CLio
 the autotools, but CMake. This directory contains scripts to assist with creating a CMakeLists.txt
 suitable for these IDEs.
 
-Currently the script has only been tested on macOS 10.13 using cmake 3.11 in CLion 2018.2. It
-assumes that dependencies like Qt have been installed using homebrew.
+Currently, the script has been tested on macOS 10.13 using cmake 3.11 in CLion 2018.2 and on Ubuntu
+18.04 in CLion 2018.2 and 2018.3 with bundled CMake.  On macOS, it assumes that dependencies like
+Qt have been installed using homebrew.
 
 usage
 -----
