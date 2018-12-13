@@ -40,14 +40,14 @@ bool P2PState::ProcessDiscSnapshot(CNode *node, CDataStream &data,
                                    const CNetMsgMaker &msg_maker) {
   uint256 snapshot_hash;
   if (!GetLatestFinalizedSnapshotHash(snapshot_hash)) {
-    LogPrint(BCLog::NET, "%s: no finalized snapshots to return\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: no finalized snapshots to return\n",
              NetMsgType::DISCSNAPSHOT);
     return false;
   }
 
-  std::unique_ptr<Indexer> indexer = Indexer::Open(snapshot_hash);
+  std::unique_ptr<const Indexer> indexer = Indexer::Open(snapshot_hash);
   if (!indexer) {
-    LogPrint(BCLog::NET, "%s: can't read snapshot %s\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: can't read snapshot %s\n",
              NetMsgType::DISCSNAPSHOT,
              snapshot_hash.GetHex());
     return false;
@@ -59,7 +59,7 @@ bool P2PState::ProcessDiscSnapshot(CNode *node, CDataStream &data,
   best_snapshot.stake_modifier = indexer->GetMeta().stake_modifier;
   best_snapshot.total_utxo_subsets = indexer->GetMeta().total_utxo_subsets;
 
-  LogPrint(BCLog::NET, "%s: return snapshot_hash=%s block_hash=%s to peer=%i\n",
+  LogPrint(BCLog::SNAPSHOT, "%s: return snapshot_hash=%s block_hash=%s to peer=%i\n",
            NetMsgType::DISCSNAPSHOT,
            best_snapshot.snapshot_hash.GetHex(),
            best_snapshot.block_hash.GetHex(),
@@ -91,7 +91,7 @@ bool P2PState::ProcessGetSnapshot(CNode *node, CDataStream &data,
   if (!indexer) {
     // todo: send notfound that node can act immediately
     // instead of waiting for timeout
-    LogPrint(BCLog::NET, "%s: can't find snapshot %s\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: can't find snapshot %s\n",
              NetMsgType::GETSNAPSHOT,
              get.snapshot_hash.GetHex());
     return false;
@@ -104,13 +104,13 @@ bool P2PState::ProcessGetSnapshot(CNode *node, CDataStream &data,
 
   if (!iter.GetUTXOSubsets(snapshot.utxo_subset_index, get.utxo_subset_count,
                            snapshot.utxo_subsets)) {
-    LogPrint(BCLog::NET, "%s: requested chunk is invalid index=%i count=%i\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: requested chunk is invalid index=%i count=%i\n",
              NetMsgType::GETSNAPSHOT,
              snapshot.utxo_subset_index, get.utxo_subset_count);
     return false;
   }
 
-  LogPrint(BCLog::NET, "%s: return chunk index=%i count=%i to peer=%i\n",
+  LogPrint(BCLog::SNAPSHOT, "%s: return chunk index=%i count=%i to peer=%i\n",
            NetMsgType::GETSNAPSHOT,
            snapshot.utxo_subset_index,
            snapshot.utxo_subsets.size(),
@@ -122,7 +122,7 @@ bool P2PState::ProcessGetSnapshot(CNode *node, CDataStream &data,
 
 bool P2PState::SendGetSnapshot(CNode *node, GetSnapshot &msg,
                                const CNetMsgMaker &msg_maker) {
-  LogPrint(BCLog::NET, "send %s: peer=%i index=%i count=%i\n",
+  LogPrint(BCLog::SNAPSHOT, "send %s: peer=%i index=%i count=%i\n",
            NetMsgType::GETSNAPSHOT,
            node->GetId(), msg.utxo_subset_index, msg.utxo_subset_count);
 
@@ -134,26 +134,26 @@ bool P2PState::SendGetSnapshot(CNode *node, GetSnapshot &msg,
 bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
                                const CNetMsgMaker &msg_maker) {
   if (!IsISDEnabled()) {
-    LogPrint(BCLog::NET, "%s: ignore the message. ISD is disabled\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: ignore the message. ISD is disabled\n",
              NetMsgType::SNAPSHOT);
     return true;
   }
 
   if (!LoadCandidateBlockHash().IsNull()) {
-    LogPrint(BCLog::NET, "%s: ignore the message. Candidate is set\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: ignore the message. Candidate is set\n",
              NetMsgType::SNAPSHOT);
     return true;
   }
 
   // can happen if we receive the chunk but after the timeout
   if (m_downloading_snapshot.IsNull()) {
-    LogPrint(BCLog::NET, "%: snapshot to download is not set\n",
+    LogPrint(BCLog::SNAPSHOT, "%: snapshot to download is not set\n",
              NetMsgType::SNAPSHOT);
     return false;
   }
 
   if (node->best_snapshot != m_downloading_snapshot) {
-    LogPrint(BCLog::NET, "%s: expected=%s received=%s\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: expected=%s received=%s\n",
              NetMsgType::SNAPSHOT,
              m_downloading_snapshot.snapshot_hash.GetHex(),
              node->best_snapshot.snapshot_hash.GetHex());
@@ -170,7 +170,7 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
 
   if (msg.utxo_subset_index + msg.utxo_subsets.size() >
       node->best_snapshot.total_utxo_subsets) {
-    LogPrint(BCLog::NET, "%s: invalid message index\n", NetMsgType::SNAPSHOT);
+    LogPrint(BCLog::SNAPSHOT, "%s: invalid message index\n", NetMsgType::SNAPSHOT);
     return false;
   }
 
@@ -190,17 +190,17 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
     return SendGetSnapshot(node, get, msg_maker);
   }
 
-  LogPrint(BCLog::NET, "%s: received index=%i len=%i\n",
+  LogPrint(BCLog::SNAPSHOT, "%s: received index=%i len=%i\n",
            NetMsgType::SNAPSHOT,
            msg.utxo_subset_index, msg.utxo_subsets.size());
 
   if (!indexer->WriteUTXOSubsets(msg.utxo_subsets)) {
-    LogPrint(BCLog::NET, "%s: can't write message\n", NetMsgType::SNAPSHOT);
+    LogPrint(BCLog::SNAPSHOT, "%s: can't write message\n", NetMsgType::SNAPSHOT);
     return false;
   }
 
   if (!indexer->Flush()) {
-    LogPrint(BCLog::NET, "%s: can't update indexer\n", NetMsgType::SNAPSHOT);
+    LogPrint(BCLog::SNAPSHOT, "%s: can't update indexer\n", NetMsgType::SNAPSHOT);
     return false;
   }
 
@@ -208,7 +208,7 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
     Iterator iterator(std::move(indexer));
     uint256 hash = iterator.CalculateHash(node->best_snapshot.stake_modifier);
     if (hash != msg.snapshot_hash) {
-      LogPrint(BCLog::NET, "%s: invalid hash. has=%s got=%s\n",
+      LogPrint(BCLog::SNAPSHOT, "%s: invalid hash. has=%s got=%s\n",
                NetMsgType::SNAPSHOT,
                HexStr(hash), HexStr(msg.snapshot_hash));
 
@@ -226,7 +226,7 @@ bool P2PState::ProcessSnapshot(CNode *node, CDataStream &data,
     assert(bi);
     AddSnapshotHash(m_downloading_snapshot.snapshot_hash, bi);
 
-    LogPrint(BCLog::NET, "%s: finished downloading the snapshot\n",
+    LogPrint(BCLog::SNAPSHOT, "%s: finished downloading the snapshot\n",
              NetMsgType::SNAPSHOT);
     return true;
   }
@@ -269,7 +269,7 @@ void P2PState::StartInitialSnapshotDownload(CNode *node, int node_index, int tot
     const auto now = steady_clock::now();
     const auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - m_first_discovery_request_at);
     if (diff.count() <= m_params.discovery_timeout_sec) {
-      LogPrint(BCLog::NET, "%s: peer=%i\n", NetMsgType::DISCSNAPSHOT, node->GetId());
+      LogPrint(BCLog::SNAPSHOT, "%s: peer=%i\n", NetMsgType::DISCSNAPSHOT, node->GetId());
       g_connman->PushMessage(node, msg_maker.Make(NetMsgType::DISCSNAPSHOT));
     }
   }
