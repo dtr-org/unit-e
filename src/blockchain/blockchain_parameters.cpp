@@ -23,6 +23,7 @@ Parameters BuildMainNetParameters() {
   p.maximum_block_serialized_size = 4000000;
   p.maximum_block_sigops_cost = 80000;
   p.coinbase_maturity = 100;
+  p.maximum_supply = 2718281828 * UNIT; // e billion UTE
   p.reward_function = [](const Parameters &p, MoneySupply s, Height h) -> CAmount {
     // UNIT-E: This reward function is not here to stay, it is just some simple reward function as in particl
     constexpr uint64_t secondsInAYear = 365 * 24 * 60 * 60;

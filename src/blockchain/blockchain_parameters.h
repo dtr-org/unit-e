@@ -155,6 +155,9 @@ struct Parameters {
   //! \brief Coinbase transaction outputs can only be used for staking at this depth.
   Height coinbase_maturity;
 
+  //! \brief The maximum amount of money that can be in the system.
+  CAmount maximum_supply;
+
   //! \brief The function calculating the reward for a newly proposed block.
   //!
   //! See description of "RewardFunction". The reward function can (and should)
