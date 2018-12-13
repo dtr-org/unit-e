@@ -24,7 +24,7 @@ const CBlockIndex *FindMostRecentStart(const CChain &chain, const Locator &locat
     const auto it = mapBlockIndex.find(h);
     if (it == mapBlockIndex.end()) {
       LogPrint(BCLog::FINALIZATION, "Block not found: %s", h.GetHex());
-      return nullptr;
+      return last;
     }
     CBlockIndex *const pindex = it->second;
     if (last == nullptr) { // first hash in `start` must be finalized
