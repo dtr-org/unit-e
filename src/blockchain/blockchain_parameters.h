@@ -5,8 +5,6 @@
 #ifndef UNIT_E_BLOCKCHAIN_PARAMETERS_H
 #define UNIT_E_BLOCKCHAIN_PARAMETERS_H
 
-#include <blockchain/blockchain_genesis.h>
-
 #include <amount.h>
 #include <blockchain/blockchain_interfaces.h>
 #include <blockchain/blockchain_types.h>
@@ -20,6 +18,13 @@
 #include <type_traits>
 
 namespace blockchain {
+
+struct GenesisBlock {
+  const CBlock block;
+  const uint256 hash;
+
+  explicit GenesisBlock(const CBlock &);
+};
 
 struct Parameters {
 
@@ -68,7 +73,7 @@ struct Parameters {
   //!     // it it's not difficulty adjust time, just return current difficulty
   //!     return ix.AtDepth(1)->nBits;
   //!   }
-  //!   // block at depth 2015 (ix points at the block before the one we're proposing)
+  //!   // block at depth 2015 (bitcoin has an off-by-one error here)
   //!   BlockTime nFirstBlockTime = ix.AdDepth(2015)->nTime;
   //!   // Limit adjustment step
   //!   int64_t nActualTimespan = ix.AtDepth(1)->GetBlockTime() - nFirstBlockTime;
@@ -203,9 +208,9 @@ struct Parameters {
   //! \brief Number of blocks which have to have a softfork activated in a confirmation period.
   std::uint32_t rule_change_activation_threshold;
 
-  static const Parameters &MainNet();
-  static const Parameters &TestNet();
-  static const Parameters &RegTest();
+  static const Parameters &MainNet() noexcept;
+  static const Parameters &TestNet() noexcept;
+  static const Parameters &RegTest() noexcept;
 };
 
 static_assert(std::is_trivial<Parameters>::value,

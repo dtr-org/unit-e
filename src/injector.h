@@ -12,6 +12,7 @@
 #include <staking/active_chain.h>
 #include <staking/block_validator.h>
 #include <staking/network.h>
+#include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
 #include <util.h>
 #include <validation.h>
@@ -32,10 +33,14 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(Network, staking::Network, staking::Network::New)
 
-  COMPONENT(ChainState, staking::ActiveChain, staking::ActiveChain::New,
+  COMPONENT(ActiveChain, staking::ActiveChain, staking::ActiveChain::New,
             blockchain::Behavior)
 
-  COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New)
+  COMPONENT(StakeValidator, staking::StakeValidator, staking::StakeValidator::New,
+            blockchain::Behavior)
+
+  COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New,
+            blockchain::Behavior)
 
   COMPONENT(TransactionPicker, staking::TransactionPicker, staking::TransactionPicker::New)
 

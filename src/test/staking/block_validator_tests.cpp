@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <blockchain/blockchain_parameters.h>
 #include <consensus/merkle.h>
 #include <key/mnemonic/mnemonic.h>
 #include <staking/block_validator.h>
@@ -10,6 +11,9 @@
 #include <boost/test/unit_test.hpp>
 
 namespace {
+
+std::unique_ptr<blockchain::Behavior> b =
+    blockchain::Behavior::NewFromParameters(blockchain::Parameters::MainNet());
 
 //! \brief creates a minimal block that passes validation without looking at the chain
 CBlock MinimalBlock() {
@@ -21,6 +25,7 @@ CBlock MinimalBlock() {
   const auto pubKeyData = std::vector<unsigned char>(pubKey.begin(), pubKey.end());
 
   CBlock block;
+  block.nTime = b->CalculateProposingTimestamp(std::time(nullptr));
   {
     CMutableTransaction tx;
     tx.SetType(TxType::COINSTAKE);
@@ -30,7 +35,7 @@ CBlock MinimalBlock() {
     tx.vin.emplace_back(uint256(), 0, scriptSig);
     // stake
     tx.vin.emplace_back(uint256(), 1);
-    tx.vin[1].scriptWitness.stack.emplace_back(); // signature, not checked
+    tx.vin[1].scriptWitness.stack.emplace_back();  // signature, not checked
     tx.vin[1].scriptWitness.stack.emplace_back(pubKeyData);
     // can be spent by anyone, simply yields "true"
     CScript scriptPubKey = CScript() << OP_TRUE;
@@ -59,7 +64,7 @@ BOOST_FIXTURE_TEST_SUITE(block_validator_tests, BasicTestingSetup)
 using Error = staking::BlockValidationError;
 
 BOOST_AUTO_TEST_CASE(check_empty_block) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
 
   CBlock block;
 
@@ -70,7 +75,7 @@ BOOST_AUTO_TEST_CASE(check_empty_block) {
 }
 
 BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinstake_transaction) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
 
   CMutableTransaction tx;
   tx.SetType(TxType::STANDARD);
@@ -86,7 +91,7 @@ BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinstake_transaction) {
 }
 
 BOOST_AUTO_TEST_CASE(check_coinstake_other_than_first) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
 
   CBlock block;
   {
@@ -108,7 +113,7 @@ BOOST_AUTO_TEST_CASE(check_coinstake_other_than_first) {
 }
 
 BOOST_AUTO_TEST_CASE(check_two_coinstake_transactions) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
 
   CBlock block;
   {
@@ -130,7 +135,7 @@ BOOST_AUTO_TEST_CASE(check_two_coinstake_transactions) {
 }
 
 BOOST_AUTO_TEST_CASE(check_NO_block_height) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   auto coinstake = CMutableTransaction(*block.vtx[0]);
   coinstake.vin[0].scriptSig = CScript() << OP_0;
@@ -144,7 +149,7 @@ BOOST_AUTO_TEST_CASE(check_NO_block_height) {
 }
 
 BOOST_AUTO_TEST_CASE(check_premature_end_of_scriptsig) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   auto coinstake = CMutableTransaction(*block.vtx[0]);
   coinstake.vin[0].scriptSig = CScript() << CScriptNum::serialize(4711)
@@ -159,7 +164,7 @@ BOOST_AUTO_TEST_CASE(check_premature_end_of_scriptsig) {
 }
 
 BOOST_AUTO_TEST_CASE(check_scriptsig_with_additional_data) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   auto coinstake = CMutableTransaction(*block.vtx[0]);
   coinstake.vin[0].scriptSig = CScript() << CScriptNum::serialize(4711)
@@ -174,7 +179,7 @@ BOOST_AUTO_TEST_CASE(check_scriptsig_with_additional_data) {
 }
 
 BOOST_AUTO_TEST_CASE(check_NO_snapshot_hash) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   auto coinstake = CMutableTransaction(*block.vtx[0]);
   coinstake.vin[0].scriptSig = CScript() << CScriptNum::serialize(7) << OP_0;
@@ -188,7 +193,7 @@ BOOST_AUTO_TEST_CASE(check_NO_snapshot_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(check_empty_coinstake_transaction) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   // empty coinstake transaction
   auto coinstake = CMutableTransaction();
@@ -204,7 +209,7 @@ BOOST_AUTO_TEST_CASE(check_empty_coinstake_transaction) {
 }
 
 BOOST_AUTO_TEST_CASE(check_coinstake_transaction_without_stake) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   auto coinstake = CMutableTransaction(*block.vtx[0]);
   // remove coin stake input
@@ -218,7 +223,7 @@ BOOST_AUTO_TEST_CASE(check_coinstake_transaction_without_stake) {
 }
 
 BOOST_AUTO_TEST_CASE(no_public_key) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   auto coinstake = CMutableTransaction(*block.vtx[0]);
   // remove public key from staking input's witness stack
@@ -231,7 +236,7 @@ BOOST_AUTO_TEST_CASE(no_public_key) {
 }
 
 BOOST_AUTO_TEST_CASE(invalid_block_signature) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
   // corrupt signature by flipping some byte
   block.signature[7] = ~block.signature[7];
@@ -241,8 +246,19 @@ BOOST_AUTO_TEST_CASE(invalid_block_signature) {
   BOOST_CHECK(validationResult.Contains(Error::BLOCK_SIGNATURE_VERIFICATION_FAILED));
 }
 
+BOOST_AUTO_TEST_CASE(invalid_block_time) {
+  const auto blockValidator = staking::BlockValidator::New(b.get());
+  CBlock block = MinimalBlock();
+  // corrupt block time by offsetting it by 1
+  block.nTime = block.nTime + 1;
+  const auto validationResult = blockValidator->CheckBlock(block);
+
+  BOOST_CHECK(!validationResult);
+  BOOST_CHECK(validationResult.Contains(Error::INVALID_BLOCK_TIME));
+}
+
 BOOST_AUTO_TEST_CASE(valid_block) {
-  const auto blockValidator = staking::BlockValidator::New();
+  const auto blockValidator = staking::BlockValidator::New(b.get());
   const auto validationResult = blockValidator->CheckBlock(MinimalBlock());
 
   BOOST_CHECK((bool)validationResult);

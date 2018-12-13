@@ -37,12 +37,16 @@ Parameters BuildMainNetParameters() {
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
 
-  static GenesisBlock genesisBlock{
-      P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
-      P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
-      P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
-      P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
-      P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")};
+  static GenesisBlock genesisBlock {
+    GenesisBlockBuilder()
+        .Add(Funds{
+            P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
+            P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
+            P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
+            P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
+            P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
+        .Build(p)
+  };
   p.genesis_block = &genesisBlock;
 
   return p;
@@ -57,12 +61,16 @@ Parameters BuildTestNetParameters() {
   p.message_start_characters[2] = 0xfb;
   p.message_start_characters[3] = 0xfa;
 
-  static GenesisBlock genesisBlock{
-      P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
-      P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
-      P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
-      P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
-      P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")};
+  static GenesisBlock genesisBlock {
+    GenesisBlockBuilder()
+        .Add(Funds{
+            P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
+            P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
+            P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
+            P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
+            P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
+        .Build(p)
+  };
   p.genesis_block = &genesisBlock;
 
   return p;
@@ -78,12 +86,16 @@ Parameters BuildRegTestParameters() {
   p.message_start_characters[2] = 0xb5;
   p.message_start_characters[3] = 0xda;
 
-  static GenesisBlock genesisBlock{
-      P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
-      P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
-      P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
-      P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
-      P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")};
+  static GenesisBlock genesisBlock {
+    GenesisBlockBuilder()
+        .Add(Funds{
+            P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
+            P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
+            P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
+            P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
+            P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
+        .Build(p)
+  };
   p.genesis_block = &genesisBlock;
 
   return p;
@@ -91,19 +103,22 @@ Parameters BuildRegTestParameters() {
 
 }  // namespace
 
-const Parameters &Parameters::MainNet() {
+const Parameters &Parameters::MainNet() noexcept {
   static Parameters parameters = BuildMainNetParameters();
   return parameters;
 }
 
-const Parameters &Parameters::TestNet() {
+const Parameters &Parameters::TestNet() noexcept {
   static Parameters parameters = BuildTestNetParameters();
   return parameters;
 }
 
-const Parameters &Parameters::RegTest() {
+const Parameters &Parameters::RegTest() noexcept {
   static Parameters parameters = BuildRegTestParameters();
   return parameters;
 }
+
+GenesisBlock::GenesisBlock(const CBlock &block)
+    : block(block), hash(block.GetHash()) {}
 
 }  // namespace blockchain

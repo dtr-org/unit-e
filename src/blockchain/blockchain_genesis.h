@@ -6,7 +6,9 @@
 #define UNIT_E_BLOCKCHAIN_GENESIS_H
 
 #include <amount.h>
+#include <blockchain/blockchain_parameters.h>
 #include <primitives/block.h>
+#include <script/standard.h>
 #include <uint256.h>
 
 namespace blockchain {
@@ -25,12 +27,9 @@ struct P2WSH {
   P2WSH(CAmount, const std::string &&);
 };
 
-struct GenesisBlock {
-  const CBlock block;
-  const uint256 hash;
-
-  explicit GenesisBlock(const CBlock&);
-  GenesisBlock(std::initializer_list<P2WPKH>);
+struct Funds {
+  Funds(std::initializer_list<P2WPKH>);
+  std::vector<P2WPKH> destinations;
 };
 
 //! \brief Helper for building a genesis block.
@@ -38,29 +37,36 @@ class GenesisBlockBuilder {
 
  public:
   //! \brief Set the version number of the block.
-  virtual void SetVersion(uint32_t) = 0;
+  GenesisBlockBuilder &SetVersion(uint32_t);
 
   //! \brief Set the 32-bit unix timestamp of the block.
-  virtual void SetTime(uint32_t) = 0;
+  GenesisBlockBuilder &SetTime(blockchain::Time);
 
   //! \brief Set the "bits" part of the block.
-  virtual void SetBits(uint32_t) = 0;
+  GenesisBlockBuilder &SetBits(blockchain::Difficulty);
 
   //! \brief Set the "bits" part of the block, given as difficulty.
-  virtual void SetDifficulty(uint256) = 0;
+  GenesisBlockBuilder &SetDifficulty(uint256);
 
   //! \brief Adds a genesis output for the public key's 160-bit hash given as hex string.
-  virtual void AddFundsForPayToPubKeyHash(CAmount, const std::string &) = 0;
+  GenesisBlockBuilder &AddFundsForPayToPubKeyHash(CAmount, const std::string &);
 
   //! \brief Adds a genesis output for the a P2WSH 256-bit hash given as hex string.
-  virtual void AddFundsForPayToScriptHash(CAmount, const std::string &) = 0;
+  GenesisBlockBuilder &AddFundsForPayToScriptHash(CAmount, const std::string &);
+
+  //! \brief Adds a collection of funds to this block.
+  GenesisBlockBuilder &Add(const Funds &&);
 
   //! \brief Builds the genesis block using the given parameters.
-  virtual const CBlock Build() const = 0;
+  const CBlock Build(const Parameters &) const;
 
-  virtual ~GenesisBlockBuilder() = default;
+ private:
+  uint32_t m_version = 4;
+  blockchain::Time m_time = 0;
+  blockchain::Difficulty m_bits = 0x1d00ffff;
+  std::vector<std::pair<CAmount, CTxDestination>> m_initial_funds;
 
-  static std::unique_ptr<GenesisBlockBuilder> New();
+  const CTransactionRef BuildCoinstakeTransaction() const;
 };
 
 }  // namespace blockchain
