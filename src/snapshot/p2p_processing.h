@@ -50,7 +50,7 @@ class P2PState {
 
   //! requests the snapshot from the node if it has the best one
   //! can request the second best snapshot if previous one was detected broken
-  void StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
+  void StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
                                     const CNetMsgMaker &msg_maker);
 
   //! Invokes inside original FindNextBlocksToDownload and returns the block
@@ -105,7 +105,7 @@ bool ProcessSnapshot(CNode &node, CDataStream &data,
                      const CNetMsgMaker &msg_maker);
 
 // proxy to g_p2p_state.StartInitialSnapshotDownload
-void StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
+void StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
                                   const CNetMsgMaker &msg_maker);
 
 // proxy to g_p2p_state.FindNextBlocksToDownload

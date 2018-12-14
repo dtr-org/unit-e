@@ -6,6 +6,7 @@
 #define UNITE_SNAPSHOT_CREATOR_H
 
 #include <better-enums/enum.h>
+#include <protocol.h>
 #include <scheduler.h>
 #include <snapshot/chainstate_iterator.h>
 #include <snapshot/indexer.h>
@@ -55,7 +56,7 @@ class Creator {
   //! \brief Init Initializes the instance of Creator
   //!
   //! Must be invoked before calling any other snapshot::Snapshot* functions
-  static void Init(const Params &params);
+  static void Init(const Params &params, ServiceFlags &service_flags);
 
   //! Deallocates resources created by Init()
   static void Deinit();

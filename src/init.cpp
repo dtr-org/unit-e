@@ -1618,7 +1618,7 @@ bool AppInitMain()
                 pcoinsdbview.reset(new CCoinsViewDB(nCoinDBCache, false, fReset || fReindexChainState));
                 pcoinscatcher.reset(new CCoinsViewErrorCatcher(pcoinsdbview.get()));
 
-                if (!snapshot::Initialize(chainparams.GetSnapshotParams())) {
+                if (!snapshot::Initialize(chainparams.GetSnapshotParams(), nLocalServices)) {
                     LogPrintf("Error initializing snapshot component. Check other snapshot logs for details. Exiting\n");
                     return false;
                 }

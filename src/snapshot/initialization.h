@@ -6,11 +6,12 @@
 #define UNITE_SNAPSHOT_INITIALIZATION_H
 
 #include <snapshot/params.h>
+#include <protocol.h>
 
 namespace snapshot {
 
 //! Initialize snapshot module
-bool Initialize(const Params &params);
+bool Initialize(const Params &params, ServiceFlags &service_flags);
 
 //! Deinitialize cleans up initialized objects
 void Deinitialize();

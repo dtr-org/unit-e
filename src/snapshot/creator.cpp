@@ -18,7 +18,7 @@
 
 namespace snapshot {
 
-uint16_t createSnapshotPerEpoch = 0;
+uint16_t g_create_snapshot_per_epoch = 0;
 
 struct SnapshotJob {
   // create snapshot
@@ -34,7 +34,7 @@ struct SnapshotJob {
       : block_index(_block_index) {}
 };
 
-std::thread creatorThread;
+std::thread g_creator_thread;
 std::mutex mutex;
 std::condition_variable cv;
 std::queue<std::unique_ptr<SnapshotJob>> jobs;
@@ -71,16 +71,19 @@ void ProcessCreatorQueue() {
   LogPrint(BCLog::SNAPSHOT, "%s: interrupted\n", __func__);
 }
 
-void Creator::Init(const Params &params) {
-  createSnapshotPerEpoch = params.create_snapshot_per_epoch;
-  creatorThread = std::thread(ProcessCreatorQueue);
+void Creator::Init(const Params &params, ServiceFlags &service_flags) {
+  g_create_snapshot_per_epoch = params.create_snapshot_per_epoch;
+  if (g_create_snapshot_per_epoch > 0) {
+    service_flags = ServiceFlags(service_flags | NODE_SNAPSHOT);
+  }
+  g_creator_thread = std::thread(ProcessCreatorQueue);
 }
 
 void Creator::Deinit() {
   LogPrint(BCLog::SNAPSHOT, "stopping snapshot creation thread...\n");
   interrupt = true;
   cv.notify_one();
-  creatorThread.join();
+  g_creator_thread.join();
 
   // clean unprocessed jobs
   while (!jobs.empty()) {
@@ -91,7 +94,7 @@ void Creator::Deinit() {
 Creator::Creator(CCoinsViewDB *view) : m_iter(view) {}
 
 void Creator::GenerateOrSkip(uint32_t currentEpoch) {
-  if (createSnapshotPerEpoch <= 0) {
+  if (g_create_snapshot_per_epoch <= 0) {
     return;
   }
 
@@ -101,7 +104,7 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
     return;
   }
 
-  if (currentEpoch > 0 && (currentEpoch + 1) % createSnapshotPerEpoch != 0) {
+  if (currentEpoch > 0 && (currentEpoch + 1) % g_create_snapshot_per_epoch != 0) {
     return;
   }
 
