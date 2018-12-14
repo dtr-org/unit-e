@@ -157,8 +157,11 @@ struct Parameters {
   //! power required for validation).
   std::uint32_t maximum_block_sigops_cost;
 
-  //! \brief Coinbase transaction outputs can only be used for staking at this depth.
+  //! \brief Rewards from proposing blocks can only be spent after the maturity period.
   Height coinbase_maturity;
+
+  //! \brief Stake can only be re-used after the maturity period.
+  Height restake_maturity;
 
   //! \brief The maximum amount of money that can be in the system.
   CAmount maximum_supply;

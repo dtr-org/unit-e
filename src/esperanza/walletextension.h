@@ -8,15 +8,17 @@
 #include <amount.h>
 #include <dependency.h>
 #include <esperanza/validatorstate.h>
+#include <esperanza/walletextension_deps.h>
 #include <esperanza/walletstate.h>
 #include <finalization/vote_recorder.h>
+#include <injector.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>
 #include <primitives/transaction.h>
 #include <proposer/proposer.h>
-#include <proposer/proposer_settings.h>
 #include <proposer/proposer_state.h>
+#include <settings.h>
 #include <staking/stakingwallet.h>
 
 #include <cstddef>
@@ -38,11 +40,8 @@ namespace esperanza {
 class WalletExtension : public staking::StakingWallet {
 
  private:
-  //! a reference to the esperanza settings
-  const Settings &m_settings;
-
   //! The wallet this extension is embedded in.
-  CWallet *m_enclosing_wallet;
+  CWallet &m_enclosing_wallet;
 
   //! a miminum amount (in satoshis) to keep (will not be used for staking).
   CAmount m_reserve_balance = 0;
@@ -65,6 +64,8 @@ class WalletExtension : public staking::StakingWallet {
   void ForEachStakeableCoin(Callable) const;
 
  public:
+  esperanza::WalletExtensionDeps m_dependencies;
+
   //! \brief non-intrusive extension of the bitcoin-core wallet.
   //!
   //! A WalletExtension requires an enclosing wallet which it extends.
@@ -73,7 +74,7 @@ class WalletExtension : public staking::StakingWallet {
   //!
   //! @param enclosingWallet The CWallet that this WalletExtension extends (must
   //! not be nullptr).
-  WalletExtension(const Settings &settings, ::CWallet *enclosingWallet);
+  WalletExtension(const esperanza::WalletExtensionDeps &, ::CWallet &enclosingWallet);
 
   // defined in staking::StakingWallet
   CCriticalSection &GetLock() const override;
@@ -150,7 +151,7 @@ class WalletExtension : public staking::StakingWallet {
 
   bool Unlock(const SecureString &wallet_passphrase, bool for_staking_only);
 
-  void SlashingConditionDetected(const finalization::VoteRecord vote1, const finalization::VoteRecord vote2);
+  void SlashingConditionDetected(finalization::VoteRecord vote1, finalization::VoteRecord vote2);
 
   void PostInitProcess(CScheduler &scheduler);
 };

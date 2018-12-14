@@ -130,7 +130,7 @@ struct Invoker<> {
   Dependency<TYPE> m_component_##NAME = Register##NAME(this);               \
                                                                             \
  public:                                                                    \
-  Dependency<TYPE> Get##NAME() { return m_component_##NAME; }
+  Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
 
 #define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                        \
  private:                                                               \
@@ -144,7 +144,7 @@ struct Invoker<> {
   Dependency<TYPE> m_component_##NAME = Register##NAME(this);           \
                                                                         \
  public:                                                                \
-  Dependency<TYPE> Get##NAME() { return m_component_##NAME; }
+  Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
 
 class InjectionError {
  public:

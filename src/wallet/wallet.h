@@ -679,8 +679,7 @@ private:
     friend class WalletRescanReserver;
     friend class esperanza::WalletExtension;
 
-    const esperanza::Settings& m_esperanzaSettings;
-    esperanza::WalletExtension m_walletExtension;
+    esperanza::WalletExtension m_wallet_extension;
 
     /**
      * Select a set of coins such that nValueRet >= nTargetValue and at least
@@ -800,18 +799,16 @@ public:
 
     // Create wallet with dummy database handle
     CWallet()
-      : m_esperanzaSettings(esperanza::Settings::Default()),
-        m_walletExtension(m_esperanzaSettings, this),
+      : m_wallet_extension(esperanza::WalletExtensionDeps(), *this),
         dbw(new CWalletDBWrapper())
     {
         SetNull();
     }
 
     // Create wallet with passed-in database handle
-    explicit CWallet(const esperanza::Settings& esperanzaSettings,
+    explicit CWallet(const esperanza::WalletExtensionDeps& dependencies,
                      std::unique_ptr<CWalletDBWrapper> dbw_in)
-      : m_esperanzaSettings(esperanzaSettings),
-        m_walletExtension(esperanzaSettings, this),
+      : m_wallet_extension(dependencies, *this),
         dbw(std::move(dbw_in))
     {
         SetNull();
@@ -1124,7 +1121,7 @@ public:
     bool MarkReplaced(const uint256& originalHash, const uint256& newHash);
 
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
-    static CWallet* CreateWalletFromFile(const esperanza::Settings& esperanzaSettings,
+    static CWallet* CreateWalletFromFile(const esperanza::WalletExtensionDeps&,
                                          const std::string walletFile);
 
     /**

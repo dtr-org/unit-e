@@ -613,7 +613,7 @@ public:
         g_address_type = OUTPUT_TYPE_DEFAULT;
         g_change_type = OUTPUT_TYPE_DEFAULT;
         wallet.reset(new CWallet(
-          esperanza::Settings::Default(),
+          esperanza::WalletExtensionDeps(),
           std::unique_ptr<CWalletDBWrapper>(new CWalletDBWrapper(&bitdb, "wallet_test.dat"))));
         bool firstRun;
         wallet->LoadWallet(firstRun);

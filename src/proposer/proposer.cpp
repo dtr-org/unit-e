@@ -8,6 +8,7 @@
 #include <chainparams.h>
 #include <net.h>
 #include <script/script.h>
+#include <settings.h>
 #include <sync.h>
 #include <util.h>
 #include <utilmoneystr.h>
@@ -58,9 +59,7 @@ void ProposerImpl::Thread::SetStatus(const Status status, CWallet *const wallet)
 void ProposerImpl::CreateProposerThreads() {
   const std::vector<CWallet *> &wallets = m_multi_wallet->GetWallets();
   // total number of threads can not exceed number of wallets
-  const size_t numThreads =
-      std::min(wallets.size(),
-               std::max<size_t>(1, m_settings->number_of_proposer_threads));
+  const size_t numThreads = 1;
 
   using WalletIndex = size_t;
   using ThreadIndex = size_t;
@@ -82,8 +81,7 @@ void ProposerImpl::CreateProposerThreads() {
     for (auto entry = walletRange.first; entry != walletRange.second; ++entry) {
       thisThreadsWallets.push_back(wallets[entry->second]);
     }
-    std::string threadName =
-        m_settings->proposer_thread_prefix + "-" + std::to_string(threadIx);
+    std::string threadName = "proposer-" + std::to_string(threadIx);
     m_threads.emplace_back(threadName, *this, std::move(thisThreadsWallets));
   }
 
@@ -186,63 +184,9 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
         bestTime = thread.m_proposer.m_chain->GetTip()->nTime;
       }
 
-      const int64_t currentTime = thread.m_proposer.m_network->GetTime();
-      const int64_t mask = ::Params().GetEsperanza().GetStakeTimestampMask();
-      const int64_t searchTime = currentTime & ~mask;
-
-      for (auto *wallet : thread.m_wallets) {
-        const int64_t gracePeriod =
-            seconds(thread.m_proposer.m_settings->min_propose_interval);
-        const int64_t lastTimeProposed =
-            wallet->GetWalletExtension().GetProposerState().m_last_time_proposed;
-        const int64_t timeSinceLastProposal = currentTime - lastTimeProposed;
-        const int64_t gracePeriodRemaining =
-            gracePeriod - timeSinceLastProposal;
-        if (gracePeriodRemaining > 0) {
-          thread.SetStatus(Status::JUST_PROPOSED_GRACE_PERIOD);
-          thread.Sleep(std::chrono::seconds(gracePeriodRemaining));
-          continue;
-        }
-      }
-
-      if (searchTime < bestTime) {
-        if (currentTime < bestTime) {
-          // lagging behind - can't propose before most recent block
-          std::chrono::seconds lag =
-              std::chrono::seconds(bestTime - currentTime);
-          thread.Sleep(lag);
-        } else {
-          // due to timestamp mask time was truncated to a point before best
-          // block time
-          const int64_t nextSearch = searchTime + mask;
-          std::chrono::seconds timeTillNextSearch =
-              std::chrono::seconds(nextSearch - currentTime);
-          thread.Sleep(timeTillNextSearch);
-        }
-        continue;
-      }
-
-      // each wallet may be blocked from proposing for a different reason
-      // and induce a sleep for a different duration. The thread as a whole
-      // only has to sleep as long as the minimum of these durations to check
-      // the wallet which is due next in time.
-      auto sleepFor = thread.m_proposer.m_settings->proposer_sleep;
-      const auto setSleepDuration =
-          [&sleepFor](const decltype(sleepFor) amount) {
-            sleepFor = std::min(sleepFor, amount);
-          };
       for (CWallet *wallet : thread.m_wallets) {
         auto &wallet_ext = wallet->GetWalletExtension();
 
-        const int64_t waitTill =
-            wallet_ext.GetProposerState().m_last_time_proposed +
-            seconds(thread.m_proposer.m_settings->min_propose_interval);
-        if (bestTime < waitTill) {
-          const decltype(sleepFor) amount =
-              std::chrono::seconds(waitTill - bestTime);
-          setSleepDuration(amount);
-          continue;
-        }
         if (wallet->IsLocked()) {
           thread.SetStatus(Status::NOT_PROPOSING_WALLET_LOCKED, wallet);
           continue;
@@ -285,7 +229,7 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
           }
         }
       }
-      thread.Sleep(sleepFor);
+      thread.Sleep(std::chrono::seconds(15));
     } catch (const std::runtime_error &error) {
       // this log statement does not mention a category as it captches
       // exceptions that are not supposed to happen
@@ -305,7 +249,7 @@ std::unique_ptr<Proposer> Proposer::New(
     Dependency<MultiWallet> multi_wallet,
     Dependency<staking::Network> network,
     Dependency<staking::ActiveChain> active_chain) {
-  if (settings->proposing) {
+  if (settings->node_is_proposer) {
     return std::unique_ptr<Proposer>(new ProposerImpl(settings, multi_wallet, network, active_chain));
   } else {
     return std::unique_ptr<Proposer>(new ProposerStub());

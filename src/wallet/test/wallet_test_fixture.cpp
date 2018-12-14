@@ -4,7 +4,6 @@
 
 #include <wallet/test/wallet_test_fixture.h>
 
-#include <esperanza/settings.h>
 #include <rpc/server.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
@@ -19,12 +18,14 @@ WalletTestingSetup::WalletTestingSetup(const bool isValidator, const std::string
     g_change_type = OUTPUT_TYPE_DEFAULT;
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
 
-    esperanza::Settings settings = esperanza::Settings::Default();
-    settings.m_validating = isValidator;
-// UNIT-E TODO: use proper settings class for this
-//    settings.m_proposing = !isValidator;
+    static Settings settings;
+    settings.node_is_validator = isValidator;
+    settings.node_is_proposer = !isValidator;
 
-    pwalletMain = MakeUnique<CWallet>(settings, std::move(dbw));
+    esperanza::WalletExtensionDeps deps;
+    deps.settings = &settings;
+
+    pwalletMain = MakeUnique<CWallet>(deps, std::move(dbw));
     pwalletMain->LoadWallet(fFirstRun);
     vpwallets.insert(vpwallets.begin(), &*pwalletMain);
     RegisterValidationInterface(pwalletMain.get());

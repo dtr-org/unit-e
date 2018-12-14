@@ -5,6 +5,7 @@
 #include <proposer/proposer_rpc.h>
 
 #include <core_io.h>
+#include <wallet/wallet.h>
 
 namespace proposer {
 

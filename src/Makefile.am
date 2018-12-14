@@ -114,13 +114,12 @@ UNITE_CORE_H = \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
-  esperanza/parameters.h \
-  esperanza/settings.h \
   esperanza/settings_init.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
   esperanza/vote.h \
   esperanza/walletextension.h \
+  esperanza/walletextension_deps.h \
   esperanza/walletstate.h \
   finalization/p2p.h \
   finalization/vote_recorder.h \
@@ -163,12 +162,12 @@ UNITE_CORE_H = \
   proposer/multiwallet.h \
   proposer/proposer.h \
   proposer/proposer_rpc.h \
-  proposer/proposer_settings.h \
   proposer/proposer_state.h \
   proposer/proposer_status.h \
   proposer/sync.h \
   proposer/waiter.h \
   protocol.h \
+  settings.h \
   random.h \
   reverse_iterator.h \
   reverselock.h \
@@ -347,11 +346,11 @@ libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
   esperanza/walletextension.cpp \
+  esperanza/walletextension_deps.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/multiwallet.cpp \
   proposer/proposer.cpp \
   proposer/proposer_rpc.cpp \
-  proposer/proposer_settings.cpp \
   proposer/sync.cpp \
   proposer/waiter.cpp \
   rpc/proposing.cpp \
@@ -450,9 +449,6 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  esperanza/parameters.cpp \
-  esperanza/settings.cpp \
-  esperanza/settings_init.cpp \
   esperanza/vote.cpp \
   key.cpp \
   keystore.cpp \
@@ -487,6 +483,7 @@ libunite_util_a_SOURCES = \
   rpc/parameter_conversion.cpp \
   rpc/protocol.cpp \
   rpc/util.cpp \
+  settings.cpp \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \

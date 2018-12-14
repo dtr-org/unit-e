@@ -1078,7 +1078,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 }
             }
 
-            if (!m_walletExtension.AddToWalletIfInvolvingMe(ptx, pIndex)) {
+            if (!m_wallet_extension.AddToWalletIfInvolvingMe(ptx, pIndex)) {
               return false;
             }
 
@@ -1250,7 +1250,7 @@ void CWallet::TransactionAddedToMempool(const CTransactionRef& ptx) {
 }
 
 void CWallet::SlashingConditionDetected(const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {
-      m_walletExtension.SlashingConditionDetected(vote1, vote2);
+      m_wallet_extension.SlashingConditionDetected(vote1, vote2);
 }
 
 void CWallet::TransactionRemovedFromMempool(const CTransactionRef &ptx) {
@@ -1282,7 +1282,7 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
 
     m_last_block_processed = pindex;
 
-    m_walletExtension.BlockConnected(pblock, pindex);
+    m_wallet_extension.BlockConnected(pblock, pindex);
 }
 
 void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
@@ -3886,7 +3886,8 @@ std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
     return values;
 }
 
-CWallet* CWallet::CreateWalletFromFile(const esperanza::Settings& esperanzaSettings, const std::string walletFile)
+CWallet* CWallet::CreateWalletFromFile(const esperanza::WalletExtensionDeps& dependencies,
+                                       const std::string walletFile)
 {
     // needed to restore wallet transaction meta data after -zapwallettxes
     std::vector<CWalletTx> vWtx;
@@ -3895,7 +3896,7 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::Settings& esperanzaSetti
         uiInterface.InitMessage(_("Zapping all transactions from wallet..."));
 
         std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, walletFile));
-        std::unique_ptr<CWallet> tempWallet = MakeUnique<CWallet>(esperanzaSettings, std::move(dbw));
+        std::unique_ptr<CWallet> tempWallet = MakeUnique<CWallet>(dependencies, std::move(dbw));
         DBErrors nZapWalletRet = tempWallet->ZapWalletTx(vWtx);
         if (nZapWalletRet != DB_LOAD_OK) {
             InitError(strprintf(_("Error loading %s: Wallet corrupted"), walletFile));
@@ -3908,7 +3909,7 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::Settings& esperanzaSetti
     int64_t nStart = GetTimeMillis();
     bool fFirstRun = true;
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, walletFile));
-    CWallet *walletInstance = new CWallet(esperanzaSettings, std::move(dbw));
+    CWallet *walletInstance = new CWallet(dependencies, std::move(dbw));
     DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
     if (nLoadWalletRet != DB_LOAD_OK)
     {
@@ -3978,7 +3979,7 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::Settings& esperanzaSetti
         }
     }
 
-    walletInstance->m_walletExtension.ReadValidatorStateFromFile();
+    walletInstance->m_wallet_extension.ReadValidatorStateFromFile();
 
     LogPrintf(" wallet      %15dms\n", GetTimeMillis() - nStart);
 
@@ -4081,7 +4082,7 @@ void CWallet::postInitProcess(CScheduler& scheduler)
         scheduler.scheduleEvery(MaybeCompactWalletDB, 500);
     }
 
-    m_walletExtension.PostInitProcess(scheduler);
+    m_wallet_extension.PostInitProcess(scheduler);
 }
 
 bool CWallet::BackupWallet(const std::string& strDest)
@@ -4278,5 +4279,5 @@ CTxDestination CWallet::AddAndGetDestinationForScript(const CScript& script, Out
 }
 
 esperanza::WalletExtension& CWallet::GetWalletExtension() {
-    return this->m_walletExtension;
+    return this->m_wallet_extension;
 }

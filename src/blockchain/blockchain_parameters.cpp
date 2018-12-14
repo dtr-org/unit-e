@@ -23,6 +23,7 @@ Parameters BuildMainNetParameters() {
   p.maximum_block_serialized_size = 4000000;
   p.maximum_block_sigops_cost = 80000;
   p.coinbase_maturity = 100;
+  p.restake_maturity = 200;
   p.maximum_supply = 2718281828 * UNIT; // e billion UTE
   p.reward_function = [](const Parameters &p, MoneySupply s, Height h) -> CAmount {
     // UNIT-E: This reward function is not here to stay, it is just some simple reward function as in particl
@@ -56,6 +57,8 @@ Parameters BuildTestNetParameters() {
   Parameters p = Parameters::MainNet();
   p.network_name = "test";
   p.relay_non_standard_transactions = true;
+  p.coinbase_maturity = 10;
+  p.restake_maturity = 20;
   p.message_start_characters[0] = 0xfd;
   p.message_start_characters[1] = 0xfc;
   p.message_start_characters[2] = 0xfb;
@@ -80,7 +83,8 @@ Parameters BuildRegTestParameters() {
   Parameters p = Parameters::MainNet();
   p.network_name = "regtest";
   p.mine_blocks_on_demand = true;
-  p.coinbase_maturity = 2;
+  p.coinbase_maturity = 1;
+  p.restake_maturity = 2;
   p.message_start_characters[0] = 0xfa;
   p.message_start_characters[1] = 0xbf;
   p.message_start_characters[2] = 0xb5;

@@ -7,15 +7,14 @@
 
 #include <better-enums/enum.h>
 #include <dependency.h>
-#include <esperanza/settings.h>
 #include <fixed_vector.h>
 #include <key.h>
 #include <primitives/block.h>
 #include <proposer/multiwallet.h>
-#include <proposer/proposer_settings.h>
 #include <proposer/proposer_status.h>
 #include <proposer/sync.h>
 #include <proposer/waiter.h>
+#include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/network.h>
 

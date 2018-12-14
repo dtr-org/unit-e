@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
-#include <esperanza/parameters.h>
 #include <esperanza/finalizationstate.h>
 #include <rpc/safemode.h>
 #include <rpc/server.h>
