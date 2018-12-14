@@ -174,7 +174,7 @@ class SnapshotHash {
   //! GetHash returns the hash that represents the snapshot
   //!
   //! \param stakeModifier which points to the same height as the snapshot hash
-  //! \return the hash which is stored inside the coinstake TX
+  //! \return the hash which is stored inside the coinbase TX
   uint256 GetHash(uint256 stakeModifier) const;
 
   //! GetHashVector is a proxy to GetHash

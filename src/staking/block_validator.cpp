@@ -19,34 +19,34 @@ class BlockValidatorImpl : public BlockValidator {
 
   using Error = BlockValidationError;
 
-  //! \brief checks that the coinstake transaction has the right structure, but nothing else
+  //! \brief checks that the coinbase transaction has the right structure, but nothing else
   //!
-  //! A well-formed coinstake transaction:
+  //! A well-formed coinbase transaction:
   //! - has at least two inputs
   //! - the first input contains only meta information
   //! - the first input's scriptSig contains the block height and snapshot hash
-  BlockValidationResult CheckCoinstakeTransaction(CTransactionRef tx) const {
+  BlockValidationResult CheckCoinbaseTransaction(CTransactionRef tx) const {
     BlockValidationResult validationErrors;
 
     if (tx->vin.empty()) {
       validationErrors += Error::NO_META_INPUT;
     } else {
-      validationErrors += CheckCoinstakeMetaInput(tx->vin[0]);
+      validationErrors += CheckCoinbaseMetaInput(tx->vin[0]);
     }
     if (tx->vin.size() < 2) {
       validationErrors += Error::NO_STAKING_INPUT;
     }
     if (tx->vout.empty()) {
-      validationErrors += Error::COINSTAKE_TRANSACTION_WITHOUT_OUTPUT;
+      validationErrors += Error::COINBASE_TRANSACTION_WITHOUT_OUTPUT;
     }
     return validationErrors;
   }
 
-  //! \brief checks that the first input of a coinstake transaction is well-formed
+  //! \brief checks that the first input of a coinbase transaction is well-formed
   //!
   //! A well-formed meta input encodes the block height, followed by the snapshot hash.
   //! It is then either terminated by OP_0 or some data follows (forwards-compatible).
-  BlockValidationResult CheckCoinstakeMetaInput(const CTxIn &in) const {
+  BlockValidationResult CheckCoinbaseMetaInput(const CTxIn &in) const {
     BlockValidationResult validationErrors;
 
     const CScript &scriptSig = in.scriptSig;
@@ -132,17 +132,17 @@ class BlockValidatorImpl : public BlockValidator {
       return validationErrors;
     }
 
-    // check that coinstake transaction is first transaction
-    if (block.vtx[0]->GetType() == +TxType::COINSTAKE) {
-      validationErrors += CheckCoinstakeTransaction(block.vtx[0]);
+    // check that coinbase transaction is first transaction
+    if (block.vtx[0]->GetType() == +TxType::COINBASE) {
+      validationErrors += CheckCoinbaseTransaction(block.vtx[0]);
     } else {
-      validationErrors += Error::FIRST_TRANSACTION_NOT_A_COINSTAKE_TRANSACTION;
+      validationErrors += Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION;
     }
 
-    // check that all other transactions are no coinstake transactions
+    // check that all other transactions are no coinbase transactions
     for (auto tx = block.vtx.cbegin() + 1; tx != block.vtx.cend(); ++tx) {
-      if ((*tx)->GetType() == +TxType::COINSTAKE) {
-        validationErrors += Error::COINSTAKE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST;
+      if ((*tx)->GetType() == +TxType::COINBASE) {
+        validationErrors += Error::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST;
       }
     }
 

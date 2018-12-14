@@ -66,7 +66,7 @@ class GenesisBlockBuilder {
   blockchain::Difficulty m_bits = 0x1d00ffff;
   std::vector<std::pair<CAmount, CTxDestination>> m_initial_funds;
 
-  const CTransactionRef BuildCoinstakeTransaction() const;
+  const CTransactionRef BuildCoinbaseTransaction() const;
 };
 
 }  // namespace blockchain

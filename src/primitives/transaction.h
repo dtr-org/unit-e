@@ -351,12 +351,6 @@ public:
         return (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
-    bool IsCoinStake() const
-    {
-        //UNIT-E: TODO: Check whether we need this distinction or we can deduce like Bitcoin's IsCoinBase() above
-        return GetType() == +TxType::COINSTAKE;
-    }
-
     bool IsVote() const {
         return GetType() == +TxType::VOTE;
     }

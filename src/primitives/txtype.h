@@ -19,7 +19,7 @@ BETTER_ENUM(
   TxType,
   uint16_t,
   STANDARD = 0,
-  COINSTAKE = 1,
+  COINBASE = 1,
   DEPOSIT = 2,
   VOTE = 3,
   LOGOUT = 4,
