@@ -30,6 +30,7 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NULL_DATA: return "nulldata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
+    case TX_WITNESS_V1_REMOTE_STAKING: return "witness_v0_remote_staking";
     case TX_WITNESS_UNKNOWN: return "witness_unknown";
     case TX_PAYVOTESLASH: return "payvoteslash";
     }
@@ -82,6 +83,11 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
             typeRet = TX_WITNESS_V0_SCRIPTHASH;
             vSolutionsRet.push_back(witnessProgram.GetV0Program());
             return true;
+        }
+        if (witnessProgram.IsRemoteStaking()) {
+            typeRet = TX_WITNESS_V1_REMOTE_STAKING;
+            vSolutionsRet.push_back(witnessProgram.GetProgram()[0]);  // staking pubkey hash
+            vSolutionsRet.push_back(witnessProgram.GetProgram()[1]);  // spending pubkey hash
         }
         if (witnessProgram.GetVersion() != 0) {
             typeRet = TX_WITNESS_UNKNOWN;
@@ -223,6 +229,11 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         std::copy(vSolutions[0].begin(), vSolutions[0].end(), hash.begin());
         addressRet = hash;
         return true;
+    } else if (whichType == TX_WITNESS_V1_REMOTE_STAKING) {
+        WitnessV0KeyHash hash;
+        CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(hash.begin());
+        addressRet = hash;
+        return true;
     } else if (whichType == TX_WITNESS_UNKNOWN) {
         WitnessUnknown unk;
         unk.version = vSolutions[0][0];
@@ -255,8 +266,7 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::
         return false;
     }
 
-    if (typeRet == TX_MULTISIG)
-    {
+    if (typeRet == TX_MULTISIG) {
         nRequiredRet = vSolutions.front()[0];
         for (unsigned int i = 1; i < vSolutions.size()-1; i++)
         {
@@ -270,9 +280,14 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::
 
         if (addressRet.empty())
             return false;
-    }
-    else
-    {
+    } else if (typeRet == TX_WITNESS_V1_REMOTE_STAKING) {
+        WitnessV0KeyHash stakingHash;
+        std::copy(vSolutions[0].begin(), vSolutions[0].end(), stakingHash.begin());
+        WitnessV0KeyHash spendingHash;
+        CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(spendingHash.begin());
+        addressRet.push_back(stakingHash);
+        addressRet.push_back(spendingHash);
+    } else {
         nRequiredRet = 1;
         CTxDestination address;
         if (!ExtractDestination(scriptPubKey, address))
