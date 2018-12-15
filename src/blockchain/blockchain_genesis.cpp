@@ -19,11 +19,11 @@
 
 namespace blockchain {
 
-const CTransactionRef GenesisBlockBuilder::BuildCoinstakeTransaction() const {
+const CTransactionRef GenesisBlockBuilder::BuildCoinbaseTransaction() const {
   CMutableTransaction tx;
 
   tx.SetVersion(2);
-  tx.SetType(TxType::COINSTAKE);
+  tx.SetType(TxType::COINBASE);
 
   const CScript scriptSig = CScript() << CScriptNum::serialize(0)  // height
                                       << ToByteVector(uint256())   // utxo set hash
@@ -51,8 +51,8 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   genesis_block.nTime = behavior->CalculateProposingTimestamp(m_time);
   genesis_block.nBits = m_bits;
 
-  CTransactionRef coinstake_transaction = BuildCoinstakeTransaction();
-  genesis_block.vtx.push_back(coinstake_transaction);
+  CTransactionRef coinbase_transaction = BuildCoinbaseTransaction();
+  genesis_block.vtx.push_back(coinbase_transaction);
 
   genesis_block.hashPrevBlock = uint256();
   genesis_block.hashMerkleRoot = BlockMerkleRoot(genesis_block);

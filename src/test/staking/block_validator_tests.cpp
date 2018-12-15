@@ -28,7 +28,7 @@ CBlock MinimalBlock() {
   block.nTime = b->CalculateProposingTimestamp(std::time(nullptr));
   {
     CMutableTransaction tx;
-    tx.SetType(TxType::COINSTAKE);
+    tx.SetType(TxType::COINBASE);
     // meta input: block height, snapshot hash, terminator
     CScript scriptSig = CScript() << CScriptNum::serialize(4711)
                                   << ToByteVector(uint256());
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(check_empty_block) {
   BOOST_CHECK(validationResult.Contains(Error::NO_TRANSACTIONS));
 }
 
-BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinstake_transaction) {
+BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinbase_transaction) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
 
   CMutableTransaction tx;
@@ -86,11 +86,11 @@ BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinstake_transaction) {
   const auto validationResult = blockValidator->CheckBlock(block);
 
   BOOST_CHECK(!validationResult);
-  BOOST_CHECK(validationResult.Contains(Error::FIRST_TRANSACTION_NOT_A_COINSTAKE_TRANSACTION));
-  BOOST_CHECK(!validationResult.Contains(Error::COINSTAKE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST));
+  BOOST_CHECK(validationResult.Contains(Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION));
+  BOOST_CHECK(!validationResult.Contains(Error::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST));
 }
 
-BOOST_AUTO_TEST_CASE(check_coinstake_other_than_first) {
+BOOST_AUTO_TEST_CASE(check_coinbase_other_than_first) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
 
   CBlock block;
@@ -101,45 +101,45 @@ BOOST_AUTO_TEST_CASE(check_coinstake_other_than_first) {
   }
   {
     CMutableTransaction tx;
-    tx.SetType(TxType::COINSTAKE);
+    tx.SetType(TxType::COINBASE);
     block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
   }
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
   BOOST_CHECK(!validationResult);
-  BOOST_CHECK(validationResult.Contains(Error::COINSTAKE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST));
-  BOOST_CHECK(validationResult.Contains(Error::FIRST_TRANSACTION_NOT_A_COINSTAKE_TRANSACTION));
+  BOOST_CHECK(validationResult.Contains(Error::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST));
+  BOOST_CHECK(validationResult.Contains(Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION));
 }
 
-BOOST_AUTO_TEST_CASE(check_two_coinstake_transactions) {
+BOOST_AUTO_TEST_CASE(check_two_coinbase_transactions) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
 
   CBlock block;
   {
     CMutableTransaction tx;
-    tx.SetType(TxType::COINSTAKE);
+    tx.SetType(TxType::COINBASE);
     block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
   }
   {
     CMutableTransaction tx;
-    tx.SetType(TxType::COINSTAKE);
+    tx.SetType(TxType::COINBASE);
     block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
   }
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
-  BOOST_CHECK(validationResult.Contains(Error::COINSTAKE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST));
-  BOOST_CHECK(!validationResult.Contains(Error::FIRST_TRANSACTION_NOT_A_COINSTAKE_TRANSACTION));
+  BOOST_CHECK(validationResult.Contains(Error::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST));
+  BOOST_CHECK(!validationResult.Contains(Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION));
   BOOST_CHECK(!validationResult);
 }
 
 BOOST_AUTO_TEST_CASE(check_NO_block_height) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
-  auto coinstake = CMutableTransaction(*block.vtx[0]);
-  coinstake.vin[0].scriptSig = CScript() << OP_0;
-  block.vtx[0] = MakeTransactionRef(coinstake);
+  auto coinbase = CMutableTransaction(*block.vtx[0]);
+  coinbase.vin[0].scriptSig = CScript() << OP_0;
+  block.vtx[0] = MakeTransactionRef(coinbase);
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
@@ -151,10 +151,10 @@ BOOST_AUTO_TEST_CASE(check_NO_block_height) {
 BOOST_AUTO_TEST_CASE(check_premature_end_of_scriptsig) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
-  auto coinstake = CMutableTransaction(*block.vtx[0]);
-  coinstake.vin[0].scriptSig = CScript() << CScriptNum::serialize(4711)
-                                         << OP_0;
-  block.vtx[0] = MakeTransactionRef(coinstake);
+  auto coinbase = CMutableTransaction(*block.vtx[0]);
+  coinbase.vin[0].scriptSig = CScript() << CScriptNum::serialize(4711)
+                                        << OP_0;
+  block.vtx[0] = MakeTransactionRef(coinbase);
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
@@ -166,11 +166,11 @@ BOOST_AUTO_TEST_CASE(check_premature_end_of_scriptsig) {
 BOOST_AUTO_TEST_CASE(check_scriptsig_with_additional_data) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
-  auto coinstake = CMutableTransaction(*block.vtx[0]);
-  coinstake.vin[0].scriptSig = CScript() << CScriptNum::serialize(4711)
-                                         << ToByteVector(uint256())
-                                         << ToByteVector(uint256());
-  block.vtx[0] = MakeTransactionRef(coinstake);
+  auto coinbase = CMutableTransaction(*block.vtx[0]);
+  coinbase.vin[0].scriptSig = CScript() << CScriptNum::serialize(4711)
+                                        << ToByteVector(uint256())
+                                        << ToByteVector(uint256());
+  block.vtx[0] = MakeTransactionRef(coinbase);
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
@@ -181,9 +181,9 @@ BOOST_AUTO_TEST_CASE(check_scriptsig_with_additional_data) {
 BOOST_AUTO_TEST_CASE(check_NO_snapshot_hash) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
-  auto coinstake = CMutableTransaction(*block.vtx[0]);
-  coinstake.vin[0].scriptSig = CScript() << CScriptNum::serialize(7) << OP_0;
-  block.vtx[0] = MakeTransactionRef(coinstake);
+  auto coinbase = CMutableTransaction(*block.vtx[0]);
+  coinbase.vin[0].scriptSig = CScript() << CScriptNum::serialize(7) << OP_0;
+  block.vtx[0] = MakeTransactionRef(coinbase);
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
@@ -192,29 +192,29 @@ BOOST_AUTO_TEST_CASE(check_NO_snapshot_hash) {
   BOOST_CHECK(!validationResult);
 }
 
-BOOST_AUTO_TEST_CASE(check_empty_coinstake_transaction) {
+BOOST_AUTO_TEST_CASE(check_empty_coinbase_transaction) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
-  // empty coinstake transaction
-  auto coinstake = CMutableTransaction();
-  coinstake.SetType(TxType::COINSTAKE);
-  block.vtx[0] = MakeTransactionRef(coinstake);
+  // empty coinbase transaction
+  auto coinbase = CMutableTransaction();
+  coinbase.SetType(TxType::COINBASE);
+  block.vtx[0] = MakeTransactionRef(coinbase);
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
   BOOST_CHECK(validationResult.Contains(Error::NO_META_INPUT));
-  BOOST_CHECK(validationResult.Contains(Error::COINSTAKE_TRANSACTION_WITHOUT_OUTPUT));
+  BOOST_CHECK(validationResult.Contains(Error::COINBASE_TRANSACTION_WITHOUT_OUTPUT));
   BOOST_CHECK(validationResult.Contains(Error::NO_STAKING_INPUT));
   BOOST_CHECK(!validationResult);
 }
 
-BOOST_AUTO_TEST_CASE(check_coinstake_transaction_without_stake) {
+BOOST_AUTO_TEST_CASE(check_coinbase_transaction_without_stake) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
-  auto coinstake = CMutableTransaction(*block.vtx[0]);
+  auto coinbase = CMutableTransaction(*block.vtx[0]);
   // remove coin stake input
-  coinstake.vin.erase(coinstake.vin.begin() + 1);
-  block.vtx[0] = MakeTransactionRef(coinstake);
+  coinbase.vin.erase(coinbase.vin.begin() + 1);
+  block.vtx[0] = MakeTransactionRef(coinbase);
 
   const auto validationResult = blockValidator->CheckBlock(block);
 
@@ -225,10 +225,10 @@ BOOST_AUTO_TEST_CASE(check_coinstake_transaction_without_stake) {
 BOOST_AUTO_TEST_CASE(no_public_key) {
   const auto blockValidator = staking::BlockValidator::New(b.get());
   CBlock block = MinimalBlock();
-  auto coinstake = CMutableTransaction(*block.vtx[0]);
+  auto coinbase = CMutableTransaction(*block.vtx[0]);
   // remove public key from staking input's witness stack
-  coinstake.vin[1].scriptWitness.stack.clear();
-  block.vtx[0] = MakeTransactionRef(coinstake);
+  coinbase.vin[1].scriptWitness.stack.clear();
+  block.vtx[0] = MakeTransactionRef(coinbase);
   const auto validationResult = blockValidator->CheckBlock(block);
 
   BOOST_CHECK(validationResult.Contains(Error::NO_BLOCK_PUBLIC_KEY));

@@ -21,11 +21,11 @@ BETTER_ENUM(
     BlockValidationError,
     std::uint8_t,
     BLOCK_SIGNATURE_VERIFICATION_FAILED,
-    COINSTAKE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST,
-    COINSTAKE_TRANSACTION_WITHOUT_OUTPUT,
+    COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST,
+    COINBASE_TRANSACTION_WITHOUT_OUTPUT,
     DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE,
     DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE,
-    FIRST_TRANSACTION_NOT_A_COINSTAKE_TRANSACTION,
+    FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION,
     INVALID_BLOCK_HEIGHT,
     INVALID_BLOCK_TIME,
     INVALID_BLOCK_PUBLIC_KEY,
@@ -59,9 +59,9 @@ class BlockValidator {
   //! \brief checks that the block has the right structure, but nothing else
   //!
   //! A well-formed block is supposed to follow the following structure:
-  //! - at least one transaction (the coinstake transaction)
-  //! - the coinstake transaction must be the first transaction
-  //! - no other transaction maybe marked as coinstake transaction
+  //! - at least one transaction (the coinbase transaction)
+  //! - the coinbase transaction must be the first transaction
+  //! - no other transaction maybe marked as coinbase transaction
   virtual BlockValidationResult CheckBlock(const CBlock &) const = 0;
 
   virtual ~BlockValidator() = default;
