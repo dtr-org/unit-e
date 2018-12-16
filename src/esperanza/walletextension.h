@@ -40,6 +40,9 @@ namespace esperanza {
 class WalletExtension : public staking::StakingWallet {
 
  private:
+  //! The dependencies of the wallet extension.
+  esperanza::WalletExtensionDeps m_dependencies;
+
   //! The wallet this extension is embedded in.
   CWallet &m_enclosing_wallet;
 
@@ -59,13 +62,10 @@ class WalletExtension : public staking::StakingWallet {
 
   void ManagePendingSlashings();
 
- private:
   template <typename Callable>
   void ForEachStakeableCoin(Callable) const;
 
  public:
-  esperanza::WalletExtensionDeps m_dependencies;
-
   //! \brief non-intrusive extension of the bitcoin-core wallet.
   //!
   //! A WalletExtension requires an enclosing wallet which it extends.

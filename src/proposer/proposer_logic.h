@@ -22,9 +22,14 @@ namespace proposer {
 
 class Logic {
  public:
-  //! \brief
+  //! \brief Given a list of stakeable coins, checks which can be used for proposing (if any).
   //!
+  //! Being eligible for proposing requires to "win the lottery", which is finding
+  //! a stakeable coin which meets the proof-of-stake requirements. This function
+  //! finds such a coin from a list of stakeable coins, if there is any.
   //!
+  //! The actual proposer component can then proceed and assemble a block and
+  //! broadcast it into the network.
   virtual boost::optional<COutput> TryPropose(const std::vector<COutput> &) = 0;
 
   virtual ~Logic() = default;

@@ -165,7 +165,7 @@ void TestGUI()
     }
     bitdb.MakeMock();
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
-    CWallet wallet(esperanza::Settings::Default(), std::move(dbw));
+    CWallet wallet(esperanza::WalletExtensionDeps(), std::move(dbw));
     bool firstRun;
     wallet.LoadWallet(firstRun);
     {

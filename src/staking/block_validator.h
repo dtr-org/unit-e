@@ -12,6 +12,8 @@
 #include <primitives/block.h>
 #include <uint256.h>
 
+#include <boost/optional.hpp>
+
 #include <cstdint>
 
 namespace staking {
@@ -31,7 +33,6 @@ BETTER_ENUM(
     INVALID_BLOCK_PUBLIC_KEY,
     MERKLE_ROOT_MISMATCH,
     NO_BLOCK_HEIGHT,
-    NO_BLOCK_PUBLIC_KEY,
     NO_META_INPUT,
     NO_SNAPSHOT_HASH,
     NO_STAKING_INPUT,
@@ -40,14 +41,16 @@ BETTER_ENUM(
 )
 // clang-format on
 
-class BlockValidationResult : public EnumSet<BlockValidationError> {
+class BlockValidationResult {
  public:
-  BlockValidationResult() : EnumSet() {}
+  EnumSet<BlockValidationError> errors;
+  boost::optional<blockchain::Height> height = boost::none;
+  boost::optional<uint256> snapshot_hash = boost::none;
+
+  void operator+=(const BlockValidationResult& other);
 
   //! \brief Validation succeeded if there are no validation errors
-  explicit operator bool() const {
-    return IsEmpty();
-  }
+  explicit operator bool() const;
 };
 
 //! \brief A component for validating blocks.

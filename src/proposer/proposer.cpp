@@ -218,7 +218,6 @@ void ProposerImpl::Run(ProposerImpl::Thread &thread) {
           std::shared_ptr<const CBlock> block;
 
           if (block) {
-            wallet_ext.GetProposerState().m_last_time_proposed = block->nTime;
             // we got lucky and proposed, enough for this round (other wallets
             // need not be checked no more)
             break;

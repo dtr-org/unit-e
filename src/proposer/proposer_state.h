@@ -16,11 +16,6 @@ struct State {
 
   Status m_status = Status::NOT_PROPOSING;
 
-  std::int64_t m_last_coin_stake_search_time = 0;
-
-  //! when did this proposer propose most recently
-  std::int64_t m_last_time_proposed = 0;
-
   //! how many search cycles the proposer went through
   std::uint64_t m_number_of_searches = 0;
 

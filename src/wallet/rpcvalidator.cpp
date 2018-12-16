@@ -36,7 +36,7 @@ UniValue deposit(const JSONRPCRequest &request)
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
-  if (!extWallet.nIsValidatorEnabled || !extWallet.validatorState){
+  if (!extWallet.nIsValidatorEnabled || !extWallet.validatorState) {
     throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
   }
 

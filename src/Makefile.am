@@ -114,7 +114,6 @@ UNITE_CORE_H = \
   esperanza/finalizationparams.h \
   esperanza/finalizationstate.h \
   esperanza/init.h \
-  esperanza/settings_init.h \
   esperanza/validator.h \
   esperanza/validatorstate.h \
   esperanza/vote.h \
