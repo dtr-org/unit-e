@@ -57,6 +57,9 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   genesis_block.hashPrevBlock = uint256();
   genesis_block.hashMerkleRoot = BlockMerkleRoot(genesis_block);
 
+  // explicitly set signature to null (there's no stake and no public key which could sign)
+  genesis_block.signature.clear();
+
   // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
   // genesis_block.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis_block);
 

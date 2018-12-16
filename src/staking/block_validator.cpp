@@ -25,7 +25,7 @@ class BlockValidatorImpl : public BlockValidator {
   //! - has at least two inputs
   //! - the first input contains only meta information
   //! - the first input's scriptSig contains the block height and snapshot hash
-  BlockValidationResult CheckCoinbaseTransaction(CTransactionRef tx) const {
+  BlockValidationResult CheckCoinbaseTransaction(const CTransactionRef tx) const {
     BlockValidationResult validationErrors;
 
     if (tx->vin.empty()) {
@@ -83,40 +83,30 @@ class BlockValidatorImpl : public BlockValidator {
   BlockValidationResult CheckBlockSignature(const CBlock &block) const {
     BlockValidationResult validationErrors;
 
-    if (block.vtx.empty()) {
-      validationErrors += Error::NO_TRANSACTIONS;
-      return validationErrors;
-    }
-    if (block.vtx[0]->vin.size() < 2) {
-      validationErrors += Error::NO_STAKING_INPUT;
-      return validationErrors;
-    }
-    if (block.vtx[0]->vin[1].scriptWitness.stack.size() != 2) {
-      validationErrors += Error::NO_BLOCK_PUBLIC_KEY;
-      return validationErrors;
-    }
-
-    const auto &signature = block.signature;
-    const auto &witnessStack = block.vtx[0]->vin[1].scriptWitness.stack;
-
-    const auto &pubKeyData = witnessStack[1];
-    CPubKey key(pubKeyData.begin(), pubKeyData.end());
-
-    if (!key.IsValid()) {
-      validationErrors += Error::INVALID_BLOCK_PUBLIC_KEY;
-      return validationErrors;
-    }
-
     const uint256 blockHash = block.GetHash();
 
-    if (!key.Verify(blockHash, signature)) {
-      validationErrors += Error::BLOCK_SIGNATURE_VERIFICATION_FAILED;
+    if (m_blockchain_behavior->IsGenesisBlockHash(blockHash)) {
+      if (!block.signature.empty()) {
+        // genesis block does not have any stake (as there are no previous blocks),
+        // so there's no public key to sign the block and the signature must
+        // be empty.
+        validationErrors += Error::BLOCK_SIGNATURE_VERIFICATION_FAILED;
+      }
+    } else {
+      const auto key = m_blockchain_behavior->ExtractBlockSigningKey(block);
+      if (!key) {
+        validationErrors += Error::INVALID_BLOCK_PUBLIC_KEY;
+        return validationErrors;
+      }
+      if (!key.get().Verify(blockHash, block.signature)) {
+        validationErrors += Error::BLOCK_SIGNATURE_VERIFICATION_FAILED;
+      }
     }
     return validationErrors;
   }
 
  public:
-  BlockValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
+  explicit BlockValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
       : m_blockchain_behavior(blockchain_behavior) {}
 
   BlockValidationResult CheckBlock(const CBlock &block) const override {

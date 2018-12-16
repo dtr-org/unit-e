@@ -161,6 +161,7 @@ UNITE_CORE_H = \
   pow.h \
   proposer/multiwallet.h \
   proposer/proposer.h \
+  proposer/proposer_logic.h \
   proposer/proposer_rpc.h \
   proposer/proposer_state.h \
   proposer/proposer_status.h \
@@ -350,6 +351,7 @@ libunite_wallet_a_SOURCES = \
   key/mnemonic/mnemonic.cpp \
   proposer/multiwallet.cpp \
   proposer/proposer.cpp \
+  proposer/proposer_logic.cpp \
   proposer/proposer_rpc.cpp \
   proposer/sync.cpp \
   proposer/waiter.cpp \

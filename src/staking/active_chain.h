@@ -46,7 +46,7 @@ class ActiveChain : public blockchain::ChainAccess {
   //! tip has height N - 1 (as the genesis block has height 0 by definition).
   virtual std::uint32_t GetSize() const = 0;
 
-  std::uint32_t GetHeight() const { return GetSize() - 1; }
+  blockchain::Height GetHeight() const { return GetSize() - 1; }
 
   const CBlockIndex *GetTip() { return (*this)[-1]; }
 
