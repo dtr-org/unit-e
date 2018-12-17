@@ -78,25 +78,25 @@ class GetCommitsTest(UnitETestFramework):
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
 
-        self.getcommits([self.blocks[4]])  # expect [5..10]
+        self.getcommits([self.blocks[4]])
         self.check_commits(0, self.blocks[5:10])
 
-        self.getcommits([self.blocks[4], self.blocks[9]]) #expect [10..13]
-        self.check_commits(1, self.blocks[10:])
+        self.getcommits([self.blocks[4], self.blocks[9]])
+        self.check_commits(1, self.blocks[10:14])
 
-        self.getcommits([self.blocks[4], self.blocks[12]]) #expect [13]
-        self.check_commits(1, self.blocks[13:])
+        self.getcommits([self.blocks[4], self.blocks[12]])
+        self.check_commits(1, self.blocks[13:14])
 
-        self.getcommits([self.blocks[4], self.blocks[9], self.blocks[11]]) #expect [12..13]
-        self.check_commits(1, self.blocks[12:])
+        self.getcommits([self.blocks[4], self.blocks[9], self.blocks[11]])
+        self.check_commits(1, self.blocks[12:14])
 
         # ascend ordering is broken, 11 is considered biggest
-        self.getcommits([self.blocks[4], self.blocks[11], self.blocks[9]]) #expect [12..13]
-        self.check_commits(1, self.blocks[12:])
+        self.getcommits([self.blocks[4], self.blocks[11], self.blocks[9]])
+        self.check_commits(1, self.blocks[12:14])
 
         # ascend ordering is broken, 11 is considered biggest, 12 is shadowed
         self.getcommits([self.blocks[4], self.blocks[11], self.blocks[9], self.blocks[12]]) #expect [12..13]
-        self.check_commits(1, self.blocks[12:])
+        self.check_commits(1, self.blocks[12:14])
 
         self.generate(1); # 14th block, unfinalized checkpoint
         self.getcommits([self.blocks[14]])  # expect error
@@ -104,8 +104,8 @@ class GetCommitsTest(UnitETestFramework):
         assert_equal(len(p2p.messages), 0)
 
         # last epoch is full but still not finalized, expect status=1
-        self.getcommits([self.blocks[9]]) #expect [10..14]
-        self.check_commits(1, self.blocks[10:])
+        self.getcommits([self.blocks[9]])
+        self.check_commits(1, self.blocks[10:15])
 
         self.getcommits([self.blocks[14]]) # expect error: not finalized checkpoint
         time.sleep(2)
@@ -113,14 +113,14 @@ class GetCommitsTest(UnitETestFramework):
 
         self.generate(1); # 15th block
         # Epoch 10..14 is now finalized, expect status=0
-        self.getcommits([self.blocks[9]]) #expect [10..14]
+        self.getcommits([self.blocks[9]])
         self.check_commits(0, self.blocks[10:15])
 
-        self.getcommits([self.blocks[14]]) #expect [15]
+        self.getcommits([self.blocks[14]])
         self.check_commits(1, [self.blocks[15]])
 
         # Ask for unknown block hash, check most recent block is 14.
-        self.getcommits([self.blocks[9], self.blocks[14], 0x4242424242]) # expect [15]
+        self.getcommits([self.blocks[9], self.blocks[14], 0x4242424242])
         self.check_commits(1, [self.blocks[15]])
 
 class CommitsTest(UnitETestFramework):
