@@ -377,6 +377,10 @@ int64_t StrToEpoch(const std::string &input, bool fillMax = false);
 
 namespace util {
 
+std::string const &to_string(std::string const &str) {
+    return str;
+}
+
 inline std::string to_string(uint256 v) {
     return v.GetHex();
 }
@@ -387,12 +391,12 @@ struct Range {
     Tend end;
 };
 
-template<typename Tbegin, typename Tend>
+template <typename Tbegin, typename Tend>
 Range<Tbegin, Tend> range(Tbegin const &begin, Tend const &end) {
     return { begin, end };
 }
 
-template<typename Tbegin, typename Tend>
+template <typename Tbegin, typename Tend>
 std::string to_string(Range<Tbegin, Tend> const &r) {
     std::string res = "[";
     for (auto it = r.begin; it != r.end; ++it) {
@@ -405,7 +409,7 @@ std::string to_string(Range<Tbegin, Tend> const &r) {
     return res;
 }
 
-template<typename T>
+template <typename T>
 std::string to_string(std::vector<T> const &v) {
     return util::to_string(range(v.begin(), v.end()));
 }

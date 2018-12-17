@@ -819,7 +819,7 @@ void Unserialize(Stream& is, std::shared_ptr<const T>& p)
  */
 template<typename Stream, typename T>
 void Serialize(Stream &os, const boost::optional<T> &v) {
-    bool has_value = v.get_ptr() != nullptr;
+    bool has_value = static_cast<bool>(v);
     Serialize(os, has_value);
     if (has_value) {
         Serialize(os, v.get());

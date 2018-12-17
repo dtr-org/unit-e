@@ -10,6 +10,19 @@
 #include <stdint.h>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/optional/optional_io.hpp>
+
+// To extend boost logging with custom types, we have to extend <<(std::ostream, T).
+// Extention must be defined in the same namespace as T.
+// To extend << for std::vector, we have to put operator<< in namespace std.
+// https://www.boost.org/doc/libs/1_69_0/libs/test/doc/html/boost_test/test_output/test_tools_support_for_logging/testing_tool_output_disable.html
+namespace std {
+template <typename T>
+::std::ostream &operator<<(::std::ostream &os, const ::std::vector<T> &v) {
+    os << ::util::to_string(v);
+    return os;
+}
+}
 
 BOOST_FIXTURE_TEST_SUITE(serialize_tests, ReducedTestingSetup)
 
@@ -367,10 +380,10 @@ BOOST_AUTO_TEST_CASE(class_methods)
 
 BOOST_AUTO_TEST_CASE(boost_optional)
 {
-    boost::optional<int> i1 = 1, i2;
-    boost::optional<std::string> s1 = std::string("string"), s2;
+    boost::optional<int> i1 = 1, i2 = boost::none;
+    boost::optional<std::string> s1 = std::string("string"), s2 = boost::none;
     boost::optional<std::vector<std::string>> v1 = std::vector<std::string>{},
-        v2 = std::vector<std::string>{ "abc", "qwer" }, v3;
+        v2 = std::vector<std::string>{ "abc", "qwer" }, v3 = boost::none;
     CDataStream ss(SER_DISK, PROTOCOL_VERSION);
     ss << i1 << i2;
     ss << s1 << s2;
@@ -378,24 +391,24 @@ BOOST_AUTO_TEST_CASE(boost_optional)
 
     boost::optional<int> i;
     ss >> i;
-    BOOST_CHECK(i == i1);
+    BOOST_CHECK_EQUAL(i, i1);
     ss >> i;
-    BOOST_CHECK(i == i2);
+    BOOST_CHECK_EQUAL(i, i2);
 
     boost::optional<std::string> s;
     ss >> s;
-    BOOST_CHECK(s == s1);
+    BOOST_CHECK_EQUAL(s, s1);
     ss >> s;
-    BOOST_CHECK(s == s2);
+    BOOST_CHECK_EQUAL(s, s2);
 
     boost::optional<std::vector<std::string>> v;
     ss >> v;
-    BOOST_CHECK(v == v1); // empty vector
+    BOOST_CHECK_EQUAL(v, v1); // empty vector
     BOOST_CHECK(v != v3); // no value
     ss >> v;
-    BOOST_CHECK(v == v2);
+    BOOST_CHECK_EQUAL(v, v2);
     ss >> v;
-    BOOST_CHECK(v == v3);
+    BOOST_CHECK_EQUAL(v, v3);
 
     BOOST_CHECK(ss.empty());
 }
