@@ -13,17 +13,18 @@
 
 //! Testing setup and teardown for wallet.
 struct WalletTestingSetup : public TestingSetup {
-  explicit WalletTestingSetup(
-      const std::string &chainName = CBaseChainParams::MAIN);
-
-  explicit WalletTestingSetup(
-      Settings &settings,
-      const std::string &chainName = CBaseChainParams::MAIN);
-
-  ~WalletTestingSetup();
 
   Settings settings;
   std::unique_ptr<CWallet> pwalletMain;
+
+  explicit WalletTestingSetup(
+      const std::string &chainName = CBaseChainParams::MAIN);
+
+  explicit WalletTestingSetup(
+      std::function<void(Settings&)> f,
+      const std::string &chainName = CBaseChainParams::MAIN);
+
+  ~WalletTestingSetup();
 };
 
 #endif

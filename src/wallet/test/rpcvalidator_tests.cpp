@@ -10,12 +10,11 @@
 #include <boost/test/unit_test.hpp>
 
 struct ValidatorWalletSetup : WalletTestingSetup {
-  Settings settings;
-
-  ValidatorWalletSetup() : WalletTestingSetup(settings) {
-    settings.node_is_proposer = false;
-    settings.node_is_validator = true;
-  };
+  ValidatorWalletSetup()
+      : WalletTestingSetup([](Settings &settings) {
+          settings.node_is_proposer = false;
+          settings.node_is_validator = true;
+        }) {}
 };
 
 BOOST_AUTO_TEST_SUITE(rpcvalidator_tests)

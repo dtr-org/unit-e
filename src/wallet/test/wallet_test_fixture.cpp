@@ -9,10 +9,10 @@
 #include <wallet/rpcvalidator.h>
 
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
-    : WalletTestingSetup(settings, chainName) {}
+    : WalletTestingSetup([](Settings& s){}, chainName) {}
 
-WalletTestingSetup::WalletTestingSetup(Settings& settings, const std::string& chainName):
-    TestingSetup(chainName)
+WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const std::string& chainName)
+    : TestingSetup(chainName)
 {
     bitdb.MakeMock();
 
@@ -21,6 +21,7 @@ WalletTestingSetup::WalletTestingSetup(Settings& settings, const std::string& ch
     g_change_type = OUTPUT_TYPE_DEFAULT;
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
 
+    f(settings);
     esperanza::WalletExtensionDeps deps;
     deps.settings = &settings;
 
