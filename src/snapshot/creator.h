@@ -6,7 +6,6 @@
 #define UNITE_SNAPSHOT_CREATOR_H
 
 #include <better-enums/enum.h>
-#include <protocol.h>
 #include <scheduler.h>
 #include <snapshot/chainstate_iterator.h>
 #include <snapshot/indexer.h>
@@ -37,6 +36,9 @@ struct CreationInfo {
   CreationInfo() : status(Status::OK), total_outputs(0) {}
 };
 
+//! keeps track how often the snapshot must be created
+extern uint16_t g_create_snapshot_per_epoch;
+
 //! Creator class accepts the CCoinsViewDB and takes the cursor of it
 //! at the point of object construction. Once the Create() function is called,
 //! creator object should be thrown way. It's not designed to be re-used.
@@ -56,7 +58,7 @@ class Creator {
   //! \brief Init Initializes the instance of Creator
   //!
   //! Must be invoked before calling any other snapshot::Snapshot* functions
-  static void Init(const Params &params, ServiceFlags &service_flags);
+  static void Init(const Params &params);
 
   //! Deallocates resources created by Init()
   static void Deinit();

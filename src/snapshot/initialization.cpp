@@ -18,7 +18,7 @@
 
 namespace snapshot {
 
-bool Initialize(const Params &params, ServiceFlags &service_flags) {
+bool Initialize(const Params &params) {
   if (!InitSecp256k1Context()) {
     return error("Can't initialize secp256k1_context for the snapshot hash.");
   }
@@ -49,7 +49,7 @@ bool Initialize(const Params &params, ServiceFlags &service_flags) {
   }
 
   LoadSnapshotIndex();
-  Creator::Init(params, service_flags);
+  Creator::Init(params);
   InitP2P(params);
 
   return true;

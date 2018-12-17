@@ -51,6 +51,7 @@
 #include <validationinterface.h>
 #include <snapshot/initialization.h>
 #include <snapshot/rpc_processing.h>
+#include <snapshot/creator.h>
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
@@ -1618,9 +1619,12 @@ bool AppInitMain()
                 pcoinsdbview.reset(new CCoinsViewDB(nCoinDBCache, false, fReset || fReindexChainState));
                 pcoinscatcher.reset(new CCoinsViewErrorCatcher(pcoinsdbview.get()));
 
-                if (!snapshot::Initialize(chainparams.GetSnapshotParams(), nLocalServices)) {
+                if (!snapshot::Initialize(chainparams.GetSnapshotParams())) {
                     LogPrintf("Error initializing snapshot component. Check other snapshot logs for details. Exiting\n");
                     return false;
+                }
+                if (snapshot::g_create_snapshot_per_epoch > 0) {
+                    nLocalServices = ServiceFlags(nLocalServices | NODE_SNAPSHOT);
                 }
 
                 // If necessary, upgrade from older database format.

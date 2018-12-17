@@ -18,8 +18,6 @@
 
 namespace snapshot {
 
-uint16_t g_create_snapshot_per_epoch = 0;
-
 struct SnapshotJob {
   // create snapshot
   std::unique_ptr<Creator> creator = nullptr;
@@ -34,6 +32,7 @@ struct SnapshotJob {
       : block_index(_block_index) {}
 };
 
+uint16_t g_create_snapshot_per_epoch = 0;
 std::thread g_creator_thread;
 std::mutex mutex;
 std::condition_variable cv;
@@ -71,11 +70,8 @@ void ProcessCreatorQueue() {
   LogPrint(BCLog::SNAPSHOT, "%s: interrupted\n", __func__);
 }
 
-void Creator::Init(const Params &params, ServiceFlags &service_flags) {
+void Creator::Init(const Params &params) {
   g_create_snapshot_per_epoch = params.create_snapshot_per_epoch;
-  if (g_create_snapshot_per_epoch > 0) {
-    service_flags = ServiceFlags(service_flags | NODE_SNAPSHOT);
-  }
   g_creator_thread = std::thread(ProcessCreatorQueue);
 }
 

@@ -42,8 +42,8 @@ NODE_BLOOM = (1 << 2)
 NODE_WITNESS = (1 << 3)
 NODE_UNSUPPORTED_SERVICE_BIT_5 = (1 << 5)
 NODE_UNSUPPORTED_SERVICE_BIT_7 = (1 << 7)
-NODE_SNAPSHOT = (1 << 15)
 NODE_NETWORK_LIMITED = (1 << 10)
+NODE_SNAPSHOT = (1 << 15)
 
 # Serialization/deserialization tools
 def sha256(s):
