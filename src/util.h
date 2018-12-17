@@ -377,7 +377,7 @@ int64_t StrToEpoch(const std::string &input, bool fillMax = false);
 
 namespace util {
 
-const std::string &to_string(const std::string &str) {
+inline const std::string &to_string(const std::string &str) {
     return str;
 }
 
