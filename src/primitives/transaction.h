@@ -381,7 +381,7 @@ public:
         case +TxType::ADMIN:
             return true;
         case +TxType::STANDARD:
-        case +TxType::COINSTAKE:
+        case +TxType::COINBASE:
             return false;
         }
     }
