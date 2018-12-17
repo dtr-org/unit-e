@@ -63,8 +63,8 @@ HeaderAndCommits FindHeaderAndCommits(const CBlockIndex *pindex, const Consensus
     assert(not("No data on the main chain"));
   }
   HeaderAndCommits hc(pindex->GetBlockHeader());
-  if (pindex->commits.has_value()) {
-    hc.commits = pindex->commits.value();
+  if (pindex->commits.get_ptr() != nullptr) {
+    hc.commits = pindex->commits.get();
     return hc;
   }
   const std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();

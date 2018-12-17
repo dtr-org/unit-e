@@ -1434,7 +1434,7 @@ class msg_notfound():
         return "msg_notfound(inv=%s)" % (repr(self.inv))
 
 
-class CCommitsLocator():
+class CommitsLocator():
     def __init__(self, start=[], stop=0):
         self.start = start
         self.stop = stop
@@ -1450,7 +1450,7 @@ class CCommitsLocator():
         return r
 
     def __repr__(self):
-        return "CCommitsLocator(start=% stop=%064x)" \
+        return "CommitsLocator(start=% stop=%064x)" \
             % (repr(self.start), self.stop)
 
 

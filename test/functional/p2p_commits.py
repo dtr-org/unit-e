@@ -6,7 +6,7 @@
 from test_framework.messages import (
     msg_getcommits,
     msg_commits,
-    CCommitsLocator,
+    CommitsLocator,
     HeaderAndCommits,
 )
 from test_framework.mininode import network_thread_start, P2PInterface
@@ -50,7 +50,7 @@ class GetCommitsTest(UnitETestFramework):
 
     def getcommits(self, start, stop=0):
         self.nodes[0].p2p.reset_messages()
-        self.nodes[0].p2p.send_message(msg_getcommits(CCommitsLocator(start, stop)))
+        self.nodes[0].p2p.send_message(msg_getcommits(CommitsLocator(start, stop)))
 
     def check_commits(self, status, hashes):
         p2p = self.nodes[0].p2p
