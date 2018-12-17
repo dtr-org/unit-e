@@ -5,8 +5,8 @@
 #ifndef UNITE_SNAPSHOT_INITIALIZATION_H
 #define UNITE_SNAPSHOT_INITIALIZATION_H
 
-#include <snapshot/params.h>
 #include <protocol.h>
+#include <snapshot/params.h>
 
 namespace snapshot {
 

@@ -1608,10 +1608,11 @@ void CConnman::ThreadDNSAddressSeed()
 
     // Discover nodes that have from the most specific service flags to the least.
     // E.g.: find nodes that support full chain + snapshot, then full chain only.
-    std::vector<ServiceFlags> extra_flags{NODE_NONE};
+    std::vector<ServiceFlags> extra_flags;
     if (snapshot::IsISDEnabled() && snapshot::IsInitialSnapshotDownload()) {
-        extra_flags.insert(extra_flags.begin(), NODE_SNAPSHOT);
+        extra_flags.emplace_back(NODE_SNAPSHOT);
     }
+    extra_flags.emplace_back(NODE_NONE);
 
     for (const ServiceFlags extra_flag : extra_flags) {
         std::vector<std::string> retry_seeds;
