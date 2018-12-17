@@ -23,10 +23,14 @@ class ChainAccess {
  public:
   //! \brief Access CBlockIndexes in the active chain at the given depth.
   //!
+  //! The given depth must be greater than or equal to 1.
+  //!
   //! \return nullptr if no Block at the given height/depth exists.
   virtual const CBlockIndex *AtDepth(blockchain::Depth depth) = 0;
 
   //! \brief Access CBlockIndexes in the active chain at the given height.
+  //!
+  //! The given height must be greater than or equal to 0.
   //!
   //! \return nullptr if no Block at the given height/depth exists.
   virtual const CBlockIndex *AtHeight(blockchain::Height height) = 0;
