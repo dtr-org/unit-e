@@ -225,9 +225,9 @@ class FinalizationState : public FinalizationStateData {
                     const esperanza::AdminParams &adminParams);
 
   //! \brief Returns the finalization state for the given block.
-  static FinalizationState *GetState(const CBlockIndex *block = nullptr);
+  static FinalizationState *GetState(const CBlockIndex *pindex = nullptr);
 
-  static uint32_t GetEpoch(const CBlockIndex *blockIndex);
+  static uint32_t GetEpoch(const CBlockIndex &blockIndex);
   static uint32_t GetEpoch(int blockHeight);
 
   static bool ValidateDepositAmount(CAmount amount);

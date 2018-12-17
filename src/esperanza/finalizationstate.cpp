@@ -812,9 +812,8 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
   return esperanzaState.get();
 }
 
-uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
-  assert(blockIndex != nullptr);  // UNIT-E: use reference?
-  return GetEpoch(blockIndex->nHeight);
+uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) {
+  return GetEpoch(blockIndex.nHeight);
 }
 
 uint32_t FinalizationState::GetEpoch(int blockHeight) {

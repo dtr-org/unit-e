@@ -11,6 +11,7 @@
 #include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 #include <util.h>
+#include <validation.h>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_log.hpp>
 
@@ -69,10 +70,11 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
 
   CTransaction invalidVote(mutedTx);
   Consensus::Params params = Params().GetConsensus();
-  CValidationState errState;
-  BOOST_CHECK(CheckVoteTransaction(errState, invalidVote, params) == false);
+  CValidationState err_state;
+  const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
+  BOOST_CHECK(CheckVoteTransaction(err_state, invalidVote, params, fin_state) == false);
 
-  BOOST_CHECK_EQUAL("bad-vote-data-format", errState.GetRejectReason());
+  BOOST_CHECK_EQUAL("bad-vote-data-format", err_state.GetRejectReason());
 }
 
 BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_deposit) {
