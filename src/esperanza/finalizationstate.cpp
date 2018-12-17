@@ -813,6 +813,7 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
 }
 
 uint32_t FinalizationState::GetEpoch(const CBlockIndex *blockIndex) {
+  assert(blockIndex != nullptr);  // UNIT-E: use reference?
   return GetEpoch(blockIndex->nHeight);
 }
 

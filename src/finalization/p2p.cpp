@@ -63,6 +63,10 @@ HeaderAndCommits FindHeaderAndCommits(const CBlockIndex *pindex, const Consensus
     assert(not("No data on the main chain"));
   }
   HeaderAndCommits hc(pindex->GetBlockHeader());
+  if (pindex->commits.has_value()) {
+    hc.commits = pindex->commits.value();
+    return hc;
+  }
   const std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
   if (!ReadBlockFromDisk(*pblock, pindex, params)) {
     assert(not("Cannot load block from the disk"));
