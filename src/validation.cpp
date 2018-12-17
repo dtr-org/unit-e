@@ -3385,6 +3385,8 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
     }
 
+    CTransactionRef prevTx = nullptr;
+
     // Check that all transactions are finalized
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
@@ -3392,6 +3394,15 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
         if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
             return false;
+        }
+        if (prevTx && (tx->GetId() < prevTx->GetId())){
+            return state.DoS(100, false, REJECT_INVALID, "tx-ordering", false, strprintf(
+                "Transaction order is invalid (%s < %s)",
+                tx->GetId().ToString(), prevTx->GetId().ToString()
+            ));
+        }
+        if (prevTx || !tx->IsCoinBase()) {
+            prevTx = tx;
         }
     }
 

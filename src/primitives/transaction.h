@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <amount.h>
+#include <primitives/txid.h>
 #include <primitives/txtype.h>
 #include <script/script.h>
 #include <serialize.h>
@@ -319,6 +320,10 @@ public:
 
     bool IsNull() const {
         return vin.empty() && vout.empty();
+    }
+
+    const TxId GetId() const {
+        return TxId(hash);
     }
 
     const uint256& GetHash() const {
