@@ -1,5 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018 The Bitcoin ABC developers
+// Copyright (c) 2018 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -155,6 +157,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
+
+    std::sort(
+        std::begin(pblock->vtx) + 1, std::end(pblock->vtx),
+        [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
+            return a->GetId() < b->GetId();
+        }
+    );
 
     int64_t nTime1 = GetTimeMicros();
 
