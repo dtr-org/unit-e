@@ -37,12 +37,12 @@ class Behavior {
   //! \brief Get the timestamp usable for proposing according to Kernel protocol.
   //!
   //! \return A value less than or equal to the given timestamp.
-  std::uint32_t CalculateProposingTimestamp(std::int64_t timestamp_sec) const;
+  Time CalculateProposingTimestamp(std::int64_t timestamp_sec) const;
 
   //! \brief Get the NEXT timestamp for proposing.
   //!
   //! \return A value strictly greater than the given timestamp.
-  std::uint32_t CalculateProposingTimestampAfter(std::int64_t timestamp_sec) const;
+  Time CalculateProposingTimestampAfter(std::int64_t timestamp_sec) const;
 
   //! \brief Calculates the block reward given current money supply and block height.
   CAmount CalculateReward(MoneySupply, Height) const;

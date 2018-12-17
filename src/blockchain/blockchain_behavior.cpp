@@ -13,13 +13,13 @@ Difficulty Behavior::CalculateDifficulty(Height height, ChainAccess &chain) cons
   return m_parameters.difficulty_function(m_parameters, height, chain);
 };
 
-std::uint32_t Behavior::CalculateProposingTimestamp(std::int64_t timestamp_sec) const {
+Time Behavior::CalculateProposingTimestamp(std::int64_t timestamp_sec) const {
   auto blocktime = static_cast<std::uint32_t>(timestamp_sec);
   blocktime = blocktime - (blocktime % m_parameters.block_stake_timestamp_interval_seconds);
   return blocktime;
 }
 
-std::uint32_t Behavior::CalculateProposingTimestampAfter(std::int64_t time) const {
+Time Behavior::CalculateProposingTimestampAfter(std::int64_t time) const {
   return CalculateProposingTimestamp(time) + m_parameters.block_stake_timestamp_interval_seconds;
 }
 
@@ -63,10 +63,9 @@ boost::optional<CPubKey> Behavior::ExtractBlockSigningKey(const CBlock &block) c
   // a P2WPKH transaction looks like this:
   //
   //    witness:      <signature> <pubkey>
-  //    scriptSig:    <0 <20-byte-key-hash>>
-  //                  (0x160014{20-byte-key-hash})
-  //    scriptPubKey: HASH160 <20-byte-script-hash> EQUAL
-  //                  (0xA914{20-byte-script-hash}87)
+  //    scriptSig:    (empty)
+  //    scriptPubKey: 0 <20-byte-key-hash>
+  //                  (0x0014{20-byte-key-hash})
   //
   // That is: The pubkey we're interested in is in stack[1]
   // (stack[0] is the signature).

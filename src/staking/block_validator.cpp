@@ -85,7 +85,7 @@ class BlockValidatorImpl : public BlockValidator {
     }
     try {
       CScriptNum height(buf, true);
-      if (height.getint() < 0 || height.getint() > std::numeric_limits<blockchain::Height>::max()) {
+      if (height < 0 || height > std::numeric_limits<blockchain::Height>::max()) {
         result.errors += Error::INVALID_BLOCK_HEIGHT;
       } else {
         result.height = static_cast<blockchain::Height>(height.getint());

@@ -19,10 +19,20 @@ struct Settings {
   //! Whether to participate in proposing new blocks or not.
   bool node_is_proposer = true;
 
-  //! Number of pieces stake should be split into when proposing.
-  CAmount stake_split_threshold = 1;
+  //! \brief Maximum amount that a single coinbase output should have.
+  //!
+  //! When proposing the proposer will combine eligible coins with respect
+  //! to stake_combine_maximum and form a coinbase transaction with a single
+  //! output. If stake_split_threshold is greater than zero it will split the
+  //! coinbase outputs into pieces that are no larger than that.
+  CAmount stake_split_threshold = 0;
 
-  //! Maximum numbers of coin to combine when proposing.
+  //! \brief Maximum amount of money to combine when proposing.
+  //!
+  //! When proposing the proposer will combine the eligible coins with respect
+  //! to the total amount. The only guarantee is that it the combined stake
+  //! will not exceed this value in total, not that it's optimal (that would
+  //! require solving the Knapsack problem otherwise).
   CAmount stake_combine_maximum = 0;
 
   static std::unique_ptr<Settings> New(Dependency<::ArgsManager>);
