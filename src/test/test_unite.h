@@ -148,4 +148,16 @@ CBlock getBlock13b8a();
 // define an implicit conversion here so that uint256 may be used directly in BOOST_CHECK_*
 std::ostream& operator<<(std::ostream& os, const uint256& num);
 
+// To extend boost logging with custom types, we have to extend <<(std::ostream, T).
+// Extention must be defined in the same namespace as T.
+// To extend << for std::vector, we have to put operator<< in namespace std.
+// https://www.boost.org/doc/libs/1_69_0/libs/test/doc/html/boost_test/test_output/test_tools_support_for_logging/testing_tool_output_disable.html
+namespace std {
+template <typename T>
+::std::ostream &operator<<(::std::ostream &os, const ::std::vector<T> &v) {
+    os << ::util::to_string(v);
+    return os;
+}
+}
+
 #endif
