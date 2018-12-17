@@ -81,6 +81,10 @@ std::string Behavior::GetNetworkName() const {
   return std::string(m_parameters.network_name);
 }
 
+std::chrono::seconds Behavior::GetBlockStakeTimestampInterval() const {
+  return std::chrono::seconds(m_parameters.block_stake_timestamp_interval_seconds);
+}
+
 std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
   if (args->GetBoolArg("-regtest", false)) {
     return MakeUnique<blockchain::Behavior>(Parameters::RegTest());

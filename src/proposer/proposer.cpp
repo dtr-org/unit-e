@@ -47,10 +47,8 @@ class ProposerImpl : public Proposer {
   }
 
   bool Wait() {
-    const auto &current_time = m_network->GetTime();
-    const auto &target_time = m_blockchain_behavior->CalculateProposingTimestampAfter(current_time);
-    const auto diff = std::chrono::seconds(target_time - current_time);
-    m_waiter.WaitUpTo(diff - std::chrono::seconds(1));
+    // UNIT-E simply wait. the proposer could be woken up when a new block arrives.
+    m_waiter.WaitUpTo(m_blockchain_behavior->GetBlockStakeTimestampInterval());
     return !m_interrupted;
   }
 
