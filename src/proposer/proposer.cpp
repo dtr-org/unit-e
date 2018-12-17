@@ -58,10 +58,12 @@ class ProposerImpl : public Proposer {
     LogPrint(BCLog::PROPOSING, "Proposer thread started.\n");
     do {
       if (m_network->GetNodeCount() == 0) {
+        LogPrint(BCLog::PROPOSING, "Not proposing, no peers\n");
         SetStatusOfAllWallets(Status::NOT_PROPOSING_NO_PEERS);
         continue;
       }
       if (m_active_chain->GetInitialBlockDownloadStatus() != +::SyncStatus::SYNCED) {
+        LogPrint(BCLog::PROPOSING, "Not proposing, syncing blockchain\n");
         SetStatusOfAllWallets(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
         continue;
       }
@@ -69,6 +71,7 @@ class ProposerImpl : public Proposer {
         auto &wallet_ext = wallet->GetWalletExtension();
         const auto wallet_name = wallet->GetName();
         if (wallet->IsLocked()) {
+          LogPrint(BCLog::PROPOSING, "Not proposing, wallet locked (wallet=%s)\n", wallet_name);
           wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_WALLET_LOCKED;
           continue;
         }
@@ -78,13 +81,14 @@ class ProposerImpl : public Proposer {
         LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
         const auto &coins = wallet_ext.GetStakeableCoins();
         if (coins.empty()) {
+          LogPrint(BCLog::PROPOSING, "Not proposing, not enough balance (wallet=%s)\n", wallet_name);
           wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE;
           continue;
         }
         wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
         const auto &winning_ticket = m_proposer_logic->TryPropose(coins);
         if (!winning_ticket) {
-          LogPrint(BCLog::PROPOSING, "Not proposing this time (%s)\n", wallet_name);
+          LogPrint(BCLog::PROPOSING, "Not proposing this time (wallet=%s)\n", wallet_name);
           continue;
         }
         const COutput coin = winning_ticket.get();

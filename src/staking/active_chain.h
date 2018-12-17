@@ -54,12 +54,14 @@ class ActiveChain : public blockchain::ChainAccess {
 
   // defined in blockchain::ChainAccess
   const CBlockIndex *AtDepth(blockchain::Depth depth) override {
-    return (*this)[-depth];
+    assert(depth > 0);
+    return (*this)[-static_cast<std::int64_t>(depth)];
   }
 
   // defined in blockchain::ChainAccess
   const CBlockIndex *AtHeight(blockchain::Height height) override {
-    return (*this)[height];
+    assert(height >= 0);
+    return (*this)[static_cast<std::int64_t>(height)];
   }
 
   //! \brief add a new block at the current active chains tip.

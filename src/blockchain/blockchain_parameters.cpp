@@ -31,6 +31,11 @@ Parameters BuildMainNetParameters() {
     // 2 percent inflation (2% of current money supply distributed over all blocks in a year)
     return (s * 2 / 100) / (secondsInAYear / p.block_stake_timestamp_interval_seconds);
   };
+  p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
+    // UNIT-E: Does not adjust difficulty for now
+    const auto tip = chain.AtDepth(1);
+    return tip->nBits;
+  };
   p.message_start_characters[0] = 0xee;
   p.message_start_characters[1] = 0xee;
   p.message_start_characters[2] = 0xae;
