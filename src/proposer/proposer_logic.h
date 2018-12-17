@@ -36,8 +36,8 @@ class Logic {
 
   static std::unique_ptr<Logic> New(
       Dependency<blockchain::Behavior>,
-      Dependency<staking::ActiveChain>,
       Dependency<staking::Network>,
+      Dependency<staking::ActiveChain>,
       Dependency<staking::StakeValidator>);
 };
 

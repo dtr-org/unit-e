@@ -8,7 +8,6 @@
 #include <chainparams.h>
 #include <net.h>
 #include <script/script.h>
-#include <settings.h>
 #include <sync.h>
 #include <util.h>
 #include <utilmoneystr.h>
@@ -20,236 +19,148 @@
 
 namespace proposer {
 
-ProposerImpl::Thread::Thread(const std::string &threadName,
-                             ProposerImpl &parentProposer,
-                             std::vector<CWallet *> &&wallets)
-    : m_thread_name(threadName),
-      m_proposer(parentProposer),
-      m_interrupted(false),
-      m_waiter(),
-      m_wallets(std::move(wallets)),
-      m_thread(ProposerImpl::Run, std::ref(*this)) {}
+class ProposerStub : public Proposer {
+ public:
+  void Wake() override {}
+  void Wake(const CWallet *) override {}
+  void Start() override {}
+};
 
-void ProposerImpl::Thread::Stop() {
-  LogPrint(BCLog::PROPOSING, "Stopping proposer-thread %s...\n", m_thread_name);
-  m_interrupted = true;
-  Wake();
-}
+class ProposerImpl : public Proposer {
+ private:
+  Dependency<Settings> m_settings;
+  Dependency<blockchain::Behavior> m_blockchain_behavior;
+  Dependency<MultiWallet> m_multi_wallet;
+  Dependency<staking::Network> m_network;
+  Dependency<staking::ActiveChain> m_active_chain;
+  Dependency<proposer::Logic> m_proposer_logic;
 
-void ProposerImpl::Thread::Join() {
-  m_thread.join();
-  LogPrint(BCLog::PROPOSING, "Stopped proposer-thread %s\n", m_thread_name);
-}
+  std::thread m_thread;
+  std::atomic_flag m_started = ATOMIC_FLAG_INIT;
+  std::atomic_bool m_interrupted;
+  Waiter m_waiter;
 
-void ProposerImpl::Thread::Wake() {
-  LogPrint(BCLog::PROPOSING, "Waking proposer-thread \"%s\"\n", m_thread_name);
-  m_waiter.Wake();
-}
-
-void ProposerImpl::Thread::SetStatus(const Status status, CWallet *const wallet) {
-  if (wallet) {
-    wallet->GetWalletExtension().GetProposerState().m_status = status;
-  } else {
-    for (CWallet *w : m_wallets) {
-      SetStatus(status, w);
+  void SetStatusOfAllWallets(const Status &status) {
+    for (const auto &wallet : m_multi_wallet->GetWallets()) {
+      wallet->GetWalletExtension().GetProposerState().m_status = status;
     }
   }
-}
 
-void ProposerImpl::CreateProposerThreads() {
-  const std::vector<CWallet *> &wallets = m_multi_wallet->GetWallets();
-  // total number of threads can not exceed number of wallets
-  const size_t numThreads = 1;
-
-  using WalletIndex = size_t;
-  using ThreadIndex = size_t;
-
-  // mapping of which thread is responsible for which wallet
-  std::multimap<ThreadIndex, WalletIndex> indexMap;
-
-  // distribute wallets across threads
-  for (WalletIndex walletIx = 0; walletIx < wallets.size(); ++walletIx) {
-    indexMap.insert({walletIx % numThreads, walletIx});
+  bool Wait() {
+    const auto &current_time = m_network->GetTime();
+    const auto &target_time = m_blockchain_behavior->CalculateProposingTimestampAfter(current_time);
+    const auto diff = std::chrono::seconds(target_time - current_time);
+    m_waiter.WaitUpTo(diff - std::chrono::seconds(1));
+    return !m_interrupted;
   }
 
-  m_threads.reinitialize(numThreads);
-
-  // create thread objects
-  for (ThreadIndex threadIx = 0; threadIx < numThreads; ++threadIx) {
-    std::vector<CWallet *> thisThreadsWallets;
-    const auto walletRange = indexMap.equal_range(threadIx);
-    for (auto entry = walletRange.first; entry != walletRange.second; ++entry) {
-      thisThreadsWallets.push_back(wallets[entry->second]);
-    }
-    std::string threadName = "proposer-" + std::to_string(threadIx);
-    m_threads.emplace_back(threadName, *this, std::move(thisThreadsWallets));
-  }
-
-  m_init_semaphore.acquire(numThreads);
-  LogPrint(BCLog::PROPOSING, "%d proposer threads initialized.\n", numThreads);
-}
-
-ProposerImpl::ProposerImpl(Dependency<Settings> settings,
-                           Dependency<MultiWallet> multiWallet,
-                           Dependency<staking::Network> networkInterface,
-                           Dependency<staking::ActiveChain> chainInterface)
-    : m_settings(settings),
-      m_multi_wallet(multiWallet),
-      m_network(networkInterface),
-      m_chain(chainInterface),
-      m_init_semaphore(0),
-      m_stop_semaphore(0),
-      m_threads() {}
-
-ProposerImpl::~ProposerImpl() {
-  if (!m_started.test_and_set()) {
-    LogPrint(BCLog::PROPOSING, "Freeing proposer (was not started)...\n");
-    return;
-  }
-  LogPrint(BCLog::PROPOSING, "Stopping proposer...\n");
-  for (auto &thread : m_threads) {
-    thread.Stop();
-  }
-  for (auto &thread : m_threads) {
-    thread.Join();
-  }
-}
-
-void ProposerImpl::Start() {
-  if (m_started.test_and_set()) {
-    LogPrint(BCLog::PROPOSING, "WARN: Proposer started twice.\n");
-    return;
-  }
-  LogPrint(BCLog::PROPOSING, "Creating proposer threads...\n");
-  CreateProposerThreads();
-
-  LogPrint(BCLog::PROPOSING, "Starting proposer.\n");
-  m_stop_semaphore.release(m_threads.size());
-}
-
-void ProposerImpl::Wake(const CWallet *wallet) {
-  if (wallet) {
-    // find and wake the thread that is responsible for this wallet
-    for (auto &thread : m_threads) {
-      for (const auto w : thread.m_wallets) {
-        if (w == wallet) {
-          thread.Wake();
-          return;
-        }
-      }
-    }
-    // wake all threads
-  } else {
-    for (auto &thread : m_threads) {
-      thread.Wake();
-    }
-  }
-}
-
-template <typename Duration>
-int64_t seconds(const Duration t) {
-  return std::chrono::duration_cast<std::chrono::seconds>(t).count();
-}
-
-void ProposerImpl::Run(ProposerImpl::Thread &thread) {
-  RenameThread(thread.m_thread_name.c_str());
-  LogPrint(BCLog::PROPOSING, "%s: initialized.\n", thread.m_thread_name.c_str());
-  thread.m_proposer.m_init_semaphore.release();
-  thread.m_proposer.m_stop_semaphore.acquire();
-  LogPrint(BCLog::PROPOSING, "%s: started.\n", thread.m_thread_name.c_str());
-
-  while (!thread.m_interrupted) {
-    try {
-      for (auto *wallet : thread.m_wallets) {
-        wallet->GetWalletExtension().GetProposerState().m_number_of_search_attempts += 1;
-      }
-      const auto blockDownloadStatus =
-          thread.m_proposer.m_chain->GetInitialBlockDownloadStatus();
-      if (blockDownloadStatus != +SyncStatus::SYNCED) {
-        thread.SetStatus(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
-        thread.Sleep(std::chrono::seconds(30));
+  void Run() {
+    LogPrint(BCLog::PROPOSING, "Proposer thread started.\n");
+    do {
+      if (m_network->GetNodeCount() == 0) {
+        SetStatusOfAllWallets(Status::NOT_PROPOSING_NO_PEERS);
         continue;
       }
-      if (thread.m_proposer.m_network->GetNodeCount() == 0) {
-        thread.SetStatus(Status::NOT_PROPOSING_NO_PEERS);
-        thread.Sleep(std::chrono::seconds(30));
+      if (m_active_chain->GetInitialBlockDownloadStatus() != +::SyncStatus::SYNCED) {
+        SetStatusOfAllWallets(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
         continue;
       }
-
-      uint32_t bestHeight;
-      int64_t bestTime;
-      {
-        LOCK(thread.m_proposer.m_chain->GetLock());
-        bestHeight = thread.m_proposer.m_chain->GetHeight();
-        bestTime = thread.m_proposer.m_chain->GetTip()->nTime;
-      }
-
-      for (CWallet *wallet : thread.m_wallets) {
+      for (const auto &wallet : m_multi_wallet->GetWallets()) {
         auto &wallet_ext = wallet->GetWalletExtension();
-
+        const auto wallet_name = wallet->GetName();
         if (wallet->IsLocked()) {
-          thread.SetStatus(Status::NOT_PROPOSING_WALLET_LOCKED, wallet);
+          wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_WALLET_LOCKED;
           continue;
         }
-
-        {
-          LOCK2(thread.m_proposer.m_chain->GetLock(), wallet_ext.GetLock());
-
-          if (wallet_ext.GetStakeableBalance() <= wallet_ext.GetReserveBalance()) {
-            thread.SetStatus(Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE, wallet);
-            continue;
-          }
-
-          thread.SetStatus(Status::IS_PROPOSING, wallet);
-
-          wallet_ext.GetProposerState().m_number_of_searches += 1;
-
-          CScript coinbaseScript;
-          std::unique_ptr<CBlockTemplate> blockTemplate =
-              BlockAssembler(::Params())
-                  .CreateNewBlock(coinbaseScript, /* fMineWitnessTx */ true);
-
-          if (!blockTemplate) {
-            LogPrint(BCLog::PROPOSING, "%s/%s: failed to get block template",
-                     thread.m_thread_name, wallet->GetName());
-            continue;
-          }
-
-          std::shared_ptr<const CBlock> block;
-
-          if (block) {
-            // we got lucky and proposed, enough for this round (other wallets
-            // need not be checked no more)
-            break;
-          } else {
-            // failed to propose block
-            LogPrint(BCLog::PROPOSING, "failed to propose block.\n");
-            continue;
-          }
+        if (m_interrupted) {
+          break;
         }
+        LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
+        const auto &coins = wallet_ext.GetStakeableCoins();
+        if (coins.empty()) {
+          wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE;
+          continue;
+        }
+        wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
+        const auto &winning_ticket = m_proposer_logic->TryPropose(coins);
+        if (!winning_ticket) {
+          LogPrint(BCLog::PROPOSING, "Not proposing this time (%s)\n", wallet_name);
+          continue;
+        }
+        const COutput coin = winning_ticket.get();
+        LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, tx=%s, ix=%s)\n",
+                 wallet_name, coin.tx->GetHash().GetHex(), std::to_string(coin.i));
+        std::shared_ptr<const CBlock> block;
+        if (!block) {
+          LogPrint(BCLog::PROPOSING, "Failed to assemble block.\n");
+          continue;
+        }
+        const auto &hash = block->GetHash().GetHex();
+        if (!m_active_chain->ProcessNewBlock(block)) {
+          LogPrint(BCLog::PROPOSING, "Failed to propose block (hash=%s).\n", hash);
+          continue;
+        }
+        LogPrint(BCLog::PROPOSING, "Proposed new block (hash=%s).\n", hash);
+        // propose block
       }
-      thread.Sleep(std::chrono::seconds(15));
-    } catch (const std::runtime_error &error) {
-      // this log statement does not mention a category as it captches
-      // exceptions that are not supposed to happen
-      LogPrint(BCLog::PROPOSING, "%s: exception in proposer thread: %s\n",
-               thread.m_thread_name, error.what());
-    } catch (...) {
-      // this log statement does not mention a category as it captches
-      // exceptions that are not supposed to happen
-      LogPrint(BCLog::PROPOSING, "%s: unknown exception in proposer thread.\n",
-               thread.m_thread_name);
-    }
+    } while (Wait());
+    LogPrint(BCLog::PROPOSING, "Proposer thread stopping...\n");
   }
-}
+
+ public:
+  ProposerImpl(Dependency<Settings> settings,
+               Dependency<blockchain::Behavior> blockchain_behavior,
+               Dependency<MultiWallet> multi_wallet,
+               Dependency<staking::Network> network,
+               Dependency<staking::ActiveChain> active_chain,
+               Dependency<proposer::Logic> proposer_logic)
+      : m_settings(settings),
+        m_blockchain_behavior(blockchain_behavior),
+        m_multi_wallet(multi_wallet),
+        m_network(network),
+        m_active_chain(active_chain),
+        m_proposer_logic(proposer_logic),
+        m_interrupted(false) {
+  }
+
+  void Wake() override {
+    m_waiter.Wake();
+  }
+
+  void Wake(const CWallet *) override {
+    Wake();
+  }
+
+  void Start() override {
+    if (m_started.test_and_set()) {
+      LogPrint(BCLog::PROPOSING, "Proposer already started, not starting again.\n");
+      return;
+    }
+    m_thread = std::thread(&ProposerImpl::Run, this);
+  }
+
+  ~ProposerImpl() override {
+    if (!m_started.test_and_set()) {
+      LogPrint(BCLog::PROPOSING, "Proposer not started, nothing to stop.\n");
+      return;
+    }
+    LogPrint(BCLog::PROPOSING, "Stopping proposer thread...\n");
+    m_interrupted = true;
+    Wake();
+    m_thread.join();
+    LogPrint(BCLog::PROPOSING, "Proposer stopped.\n");
+  };
+};
 
 std::unique_ptr<Proposer> Proposer::New(
     Dependency<Settings> settings,
+    Dependency<blockchain::Behavior> behavior,
     Dependency<MultiWallet> multi_wallet,
     Dependency<staking::Network> network,
-    Dependency<staking::ActiveChain> active_chain) {
+    Dependency<staking::ActiveChain> active_chain,
+    Dependency<proposer::Logic> proposer_logic) {
   if (settings->node_is_proposer) {
-    return std::unique_ptr<Proposer>(new ProposerImpl(settings, multi_wallet, network, active_chain));
+    return std::unique_ptr<Proposer>(new ProposerImpl(settings, behavior, multi_wallet, network, active_chain, proposer_logic));
   } else {
     return std::unique_ptr<Proposer>(new ProposerStub());
   }

@@ -11,19 +11,19 @@ class LogicImpl final : public Logic {
 
  private:
   Dependency<blockchain::Behavior> m_blockchain_behavior;
-  Dependency<staking::ActiveChain> m_active_chain;
   Dependency<staking::Network> m_network;
+  Dependency<staking::ActiveChain> m_active_chain;
   Dependency<staking::StakeValidator> m_stake_validator;
 
  public:
   LogicImpl(
       Dependency<blockchain::Behavior> blockchain_behavior,
-      Dependency<staking::ActiveChain> active_chain,
       Dependency<staking::Network> network,
+      Dependency<staking::ActiveChain> active_chain,
       Dependency<staking::StakeValidator> stake_validator)
       : m_blockchain_behavior(blockchain_behavior),
-        m_active_chain(active_chain),
         m_network(network),
+        m_active_chain(active_chain),
         m_stake_validator(stake_validator) {}
 
   // An implementation of the Proof-of-Stake proposing/mining algorithm.
@@ -74,10 +74,10 @@ class LogicImpl final : public Logic {
 
 std::unique_ptr<Logic> Logic::New(
     Dependency<blockchain::Behavior> blockchain_behavior,
-    Dependency<staking::ActiveChain> active_chain,
     Dependency<staking::Network> network,
+    Dependency<staking::ActiveChain> active_chain,
     Dependency<staking::StakeValidator> stake_validator) {
-  return std::unique_ptr<Logic>(new LogicImpl(blockchain_behavior, active_chain, network, stake_validator));
+  return std::unique_ptr<Logic>(new LogicImpl(blockchain_behavior, network, active_chain, stake_validator));
 }
 
 }  // namespace proposer

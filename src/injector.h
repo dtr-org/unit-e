@@ -57,11 +57,19 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::ActiveChain,
             proposer::Proposer)
 
+  COMPONENT(ProposerLogic, proposer::Logic, proposer::Logic::New,
+            blockchain::Behavior,
+            staking::Network,
+            staking::ActiveChain,
+            staking::StakeValidator)
+
   COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::New,
             Settings,
+            blockchain::Behavior,
             proposer::MultiWallet,
             staking::Network,
-            staking::ActiveChain)
+            staking::ActiveChain,
+            proposer::Logic)
 
 #endif
 };

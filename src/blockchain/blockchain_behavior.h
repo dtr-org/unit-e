@@ -69,6 +69,8 @@ class Behavior {
   //! \brief The name of this network as a standard string.
   std::string GetNetworkName() const;
 
+  const Parameters& GetParameters() const;
+
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
 
   static std::unique_ptr<Behavior> NewFromParameters(const Parameters &);
