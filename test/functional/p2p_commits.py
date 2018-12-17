@@ -67,7 +67,7 @@ class GetCommitsTest(UnitETestFramework):
         p.add_p2p_connection(p2p)
         network_thread_start()
 
-        self.generate(13);
+        self.generate(13)
         # When no validators present, node automatically justifies and finalize every
         # previous epoch. So that:
         # 4 is justified and finalized
@@ -98,7 +98,7 @@ class GetCommitsTest(UnitETestFramework):
         self.getcommits([self.blocks[4], self.blocks[11], self.blocks[9], self.blocks[12]]) #expect [12..13]
         self.check_commits(1, self.blocks[12:14])
 
-        self.generate(1); # 14th block, unfinalized checkpoint
+        self.generate(1) # 14th block, unfinalized checkpoint
         self.getcommits([self.blocks[14]])  # expect error
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
@@ -111,7 +111,7 @@ class GetCommitsTest(UnitETestFramework):
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
 
-        self.generate(1); # 15th block
+        self.generate(1) # 15th block
         # Epoch 10..14 is now finalized, expect status=0
         self.getcommits([self.blocks[9]])
         self.check_commits(0, self.blocks[10:15])
@@ -130,7 +130,7 @@ class CommitsTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [[ '-printtoconsole', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 5}' ]];
+        self.extra_args = [[ '-printtoconsole', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 5}' ]]
         self.setup_clean_chain = True
 
     def setup_network(self):
@@ -161,7 +161,7 @@ class CommitsTest(UnitETestFramework):
         return b
 
     def make_commits_msg(self, blocks):
-        msg = msg_commits(0);
+        msg = msg_commits(0)
         for b in blocks:
             hc = HeaderAndCommits()
             hc.header = CBlockHeader(b)
