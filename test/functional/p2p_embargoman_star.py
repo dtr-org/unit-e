@@ -22,7 +22,7 @@ import time
 TRANSACTIONS_N = 5
 
 # Minimum embargo to use in this test
-EMBARGO_SECONDS = 15
+EMBARGO_SECONDS = 20
 
 
 class EmbargoManStar(UnitETestFramework):
@@ -31,6 +31,7 @@ class EmbargoManStar(UnitETestFramework):
 
         self.extra_args = [['-proposing=1',
                             '-debug=all',
+                            '-whitelist=127.0.0.1',
                             '-embargotxs=1',
                             '-embargomin=%s' % EMBARGO_SECONDS,
                             '-embargoavgadd=0']] * self.num_nodes
@@ -50,8 +51,7 @@ class EmbargoManStar(UnitETestFramework):
             'another jump what drastic ready')
 
         # Exit IBD
-        self.nodes[0].generate(1)
-        self.sync_all()
+        self.generate_sync(self.nodes[0])
 
         relay1 = self.single_run()
         relay2 = self.single_run()
@@ -62,7 +62,7 @@ class EmbargoManStar(UnitETestFramework):
     def single_run(self):
         run_start_time = time.perf_counter()
         txs = []
-        for i in range(TRANSACTIONS_N):
+        for _ in range(TRANSACTIONS_N):
             address = self.nodes[0].getnewaddress("", "legacy")
             tx = self.nodes[0].sendtoaddress(address, 1)
             txs.append(tx)
@@ -82,7 +82,7 @@ class EmbargoManStar(UnitETestFramework):
         assert_equal(1, len(nodes_with_txs_before_fluff))
 
         # Now we want to ensure that fluff happened and all nodes receive
-        # transactions. Do not want to exceed a minute for the whole test
+        # transactions. Do not want to exceed a minute for the whole run
         supposed_end_time = run_start_time + 60
 
         for tx in txs:
