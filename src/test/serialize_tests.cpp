@@ -12,18 +12,6 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/optional/optional_io.hpp>
 
-// To extend boost logging with custom types, we have to extend <<(std::ostream, T).
-// Extention must be defined in the same namespace as T.
-// To extend << for std::vector, we have to put operator<< in namespace std.
-// https://www.boost.org/doc/libs/1_69_0/libs/test/doc/html/boost_test/test_output/test_tools_support_for_logging/testing_tool_output_disable.html
-namespace std {
-template <typename T>
-::std::ostream &operator<<(::std::ostream &os, const ::std::vector<T> &v) {
-    os << ::util::to_string(v);
-    return os;
-}
-}
-
 BOOST_FIXTURE_TEST_SUITE(serialize_tests, ReducedTestingSetup)
 
 class CSerializeMethodsTestSingle

@@ -377,7 +377,7 @@ int64_t StrToEpoch(const std::string &input, bool fillMax = false);
 
 namespace util {
 
-std::string const &to_string(std::string const &str) {
+const std::string &to_string(const std::string &str) {
     return str;
 }
 
@@ -392,12 +392,12 @@ struct Range {
 };
 
 template <typename Tbegin, typename Tend>
-Range<Tbegin, Tend> range(Tbegin const &begin, Tend const &end) {
+Range<Tbegin, Tend> range(const Tbegin &begin, const Tend &end) {
     return { begin, end };
 }
 
 template <typename Tbegin, typename Tend>
-std::string to_string(Range<Tbegin, Tend> const &r) {
+std::string to_string(const Range<Tbegin, Tend> &r) {
     std::string res = "[";
     for (auto it = r.begin; it != r.end; ++it) {
         if (it != r.begin) {
@@ -410,13 +410,13 @@ std::string to_string(Range<Tbegin, Tend> const &r) {
 }
 
 template <typename T>
-std::string to_string(std::vector<T> const &v) {
+std::string to_string(const std::vector<T> &v) {
     return util::to_string(range(v.begin(), v.end()));
 }
 
 // Last chance, try to rely on std::to_string
 template <typename T>
-std::string to_string(T const &v) {
+std::string to_string(const T &v) {
     return std::to_string(v);
 }
 } // util
