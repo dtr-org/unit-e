@@ -2878,7 +2878,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     }
 
     else if (strCommand == NetMsgType::GETCOMMITS) {
-        finalization::p2p::Locator locator;
+        finalization::p2p::CommitsLocator locator;
         vRecv >> locator;
         LogPrint(BCLog::NET, "received: %s\n", locator.ToString());
         return finalization::p2p::ProcessGetCommits(pfrom, locator, msgMaker, chainparams);

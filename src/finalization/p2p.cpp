@@ -12,12 +12,12 @@
 namespace finalization {
 namespace p2p {
 
-std::string Locator::ToString() const {
+std::string CommitsLocator::ToString() const {
   return strprintf("Locator(start=%s, stop=%s)", util::to_string(start), stop.GetHex());
 }
 
 namespace {
-const CBlockIndex *FindMostRecentStart(const CChain &chain, const Locator &locator) {
+const CBlockIndex *FindMostRecentStart(const CChain &chain, const CommitsLocator &locator) {
   const auto *const state = esperanza::FinalizationState::GetState();
   const CBlockIndex *last = nullptr;
   for (const uint256 &h : locator.start) {
@@ -44,7 +44,7 @@ const CBlockIndex *FindMostRecentStart(const CChain &chain, const Locator &locat
   return last;
 }
 
-const CBlockIndex *FindStop(const Locator &locator) {
+const CBlockIndex *FindStop(const CommitsLocator &locator) {
   if (locator.stop.IsNull()) {
     return nullptr;
   }
@@ -76,7 +76,7 @@ HeaderAndCommits FindHeaderAndCommits(const CBlockIndex *pindex, const Consensus
 }
 } // namespace
 
-bool ProcessGetCommits(CNode *node, const Locator &locator, const CNetMsgMaker &msgMaker,
+bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsgMaker &msgMaker,
                        const CChainParams &chainparams) {
   const CBlockIndex *pindex = FindMostRecentStart(chainActive, locator);
   if (pindex == nullptr) {

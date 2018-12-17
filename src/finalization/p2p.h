@@ -19,14 +19,14 @@ namespace p2p {
 
 //! \brief Represents ancors in blockchain used by node to request commits.
 //!
-//! Locator is used by get_commits message which requests commits in between the
-//! most common block until "stop" block.
+//! CommitsLocator is used by get_commits message which requests commits in between
+//! the most common block until "stop" block.
 //!
 //! "start" is a vector of block hashes. The first element must be last finalized
 //! checkpoint. Other elements of vector is used to find most recent common hash.
 //! "stop" is a hash of the stop block. 0x0 means to ignore it and process blocks
 //! until next finalized checkpoint or tip reached.
-struct Locator {
+struct CommitsLocator {
   std::vector<uint256> start;
   uint256 stop;
 
@@ -87,7 +87,7 @@ struct CommitsResponse {
 //! \brief Process the "getcommits" message
 //!
 //! Collect commits in between the most recent common block hash and stop condition.
-bool ProcessGetCommits(CNode *node, const Locator &locator, const CNetMsgMaker &msgMaker,
+bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsgMaker &msgMaker,
                        const CChainParams &params);
 
 //! \brief Process the "commits" message
