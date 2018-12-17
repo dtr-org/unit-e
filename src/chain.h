@@ -436,20 +436,7 @@ public:
         READWRITE(nNonce);
 
         // commits
-        if (ser_action.ForRead()) {
-          bool has_commits = false;
-          READWRITE(has_commits);
-          if (has_commits) {
-            commits.reset(std::vector<CTransactionRef>());
-            READWRITE(commits.get());
-          }
-        } else { // write
-          bool has_commits = commits.get_ptr() != nullptr;
-          READWRITE(has_commits);
-          if (has_commits) {
-            READWRITE(commits.get());
-          }
-        }
+        READWRITE(commits);
     }
 
     uint256 GetBlockHash() const

@@ -248,8 +248,8 @@ static bool isCanonicalException(const std::ios_base::failure& ex)
 
     // The string returned by what() can be different for different platforms.
     // Instead of directly comparing the ex.what() with an expected string,
-    // create an instance of exception to see if ex.what() matches 
-    // the expected explanatory string returned by the exception instance. 
+    // create an instance of exception to see if ex.what() matches
+    // the expected explanatory string returned by the exception instance.
     return strcmp(expectedException.what(), ex.what()) == 0;
 }
 
@@ -363,6 +363,41 @@ BOOST_AUTO_TEST_CASE(class_methods)
     CDataStream ss2(SER_DISK, PROTOCOL_VERSION, intval, boolval, stringval, FLATDATA(charstrval), txval);
     ss2 >> methodtest3;
     BOOST_CHECK(methodtest3 == methodtest4);
+}
+
+BOOST_AUTO_TEST_CASE(boost_optional)
+{
+    boost::optional<int> i1 = 1, i2;
+    boost::optional<std::string> s1 = std::string("string"), s2;
+    boost::optional<std::vector<std::string>> v1 = std::vector<std::string>{},
+        v2 = std::vector<std::string>{ "abc", "qwer" }, v3;
+    CDataStream ss(SER_DISK, PROTOCOL_VERSION);
+    ss << i1 << i2;
+    ss << s1 << s2;
+    ss << v1 << v2 << v3;
+
+    boost::optional<int> i;
+    ss >> i;
+    BOOST_CHECK(i == i1);
+    ss >> i;
+    BOOST_CHECK(i == i2);
+
+    boost::optional<std::string> s;
+    ss >> s;
+    BOOST_CHECK(s == s1);
+    ss >> s;
+    BOOST_CHECK(s == s2);
+
+    boost::optional<std::vector<std::string>> v;
+    ss >> v;
+    BOOST_CHECK(v == v1); // empty vector
+    BOOST_CHECK(v != v3); // no value
+    ss >> v;
+    BOOST_CHECK(v == v2);
+    ss >> v;
+    BOOST_CHECK(v == v3);
+
+    BOOST_CHECK(ss.empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
