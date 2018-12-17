@@ -38,7 +38,7 @@ class GetCommitsTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [[ '-printtoconsole', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 5}' ]]
+        self.extra_args = [[ '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 5}' ]]
         self.setup_clean_chain = True
 
     def setup_network(self):
@@ -130,7 +130,7 @@ class CommitsTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [[ '-printtoconsole', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 5}' ]]
+        self.extra_args = [[ '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 5}' ]]
         self.setup_clean_chain = True
 
     def setup_network(self):
