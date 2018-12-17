@@ -151,6 +151,7 @@ BASE_SCRIPTS= [
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
     'esperanza_admin_validation.py',
+    'p2p_commits.py',
     'proposer_multiwallet.py',
     'proposer_stakeable_balance.py',
     'proposer_settings.py',
@@ -513,7 +514,7 @@ def check_script_prefixes():
     # convention don't immediately cause the tests to fail.
     LEEWAY = 10
 
-    good_prefixes_re = re.compile("(example|esperanza|feature|interface|mempool|mining|p2p|proposer|rpc|wallet)_")
+    good_prefixes_re = re.compile("(example|esperanza|finalization|feature|interface|mempool|mining|p2p|proposer|rpc|wallet)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if len(bad_script_names) > 0:

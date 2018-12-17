@@ -1432,3 +1432,75 @@ class msg_notfound():
 
     def __repr__(self):
         return "msg_notfound(inv=%s)" % (repr(self.inv))
+
+
+class CommitsLocator():
+    def __init__(self, start=[], stop=0):
+        self.start = start
+        self.stop = stop
+
+    def deserialize(self, f):
+        self.start = deser_uint256_vector(f)
+        self.stop = deser_uint256(f)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256_vector(self.start)
+        r += ser_uint256(self.stop)
+        return r
+
+    def __repr__(self):
+        return "CommitsLocator(start=% stop=%064x)" \
+            % (repr(self.start), self.stop)
+
+
+class msg_getcommits:
+    command = b"getcommits"
+
+    def __init__(self, locator):
+        self.locator = locator
+
+    def deserialize(self, f):
+        self.locator.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.locator.serialize()
+        return r
+
+class HeaderAndCommits:
+    def __init__(self):
+        self.header = CBlockHeader()
+        self.commits = []
+
+    def deserialize(self, f):
+        self.header.deserialize(f)
+        self.header.calc_sha256()
+        self.commits = deser_vector(f, CTransaction)
+
+    def serialize(self):
+        r = b""
+        r += self.header.serialize()
+        r += ser_vector(self.commits, "serialize_without_witness")
+        return r
+
+class msg_commits:
+    command = b"commits"
+
+    def __init__(self, status=0):
+        self.status = status
+        self.data = []
+
+    def __repr__(self):
+        return "msg_commits(status={0}, length={1}, first={2})".format(
+            self.status, len(self.data), self.data[0].header.hash if len(self.data) > 0 else "Nil")
+
+    def deserialize(self, f):
+        self.status = struct.unpack("<B", f.read(1))[0]
+        self.data = deser_vector(f, HeaderAndCommits)
+
+    def serialize(self):
+        r = b""
+        r += struct.pack("<B", self.status)
+        r += ser_vector(self.data)
+        return r

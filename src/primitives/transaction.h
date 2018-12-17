@@ -356,7 +356,7 @@ public:
     }
 
     bool IsLogout() const {
-      return GetType() == +TxType::LOGOUT;
+        return GetType() == +TxType::LOGOUT;
     }
 
     bool IsDeposit() const {
@@ -364,11 +364,26 @@ public:
     }
 
     bool IsWithdraw() const {
-      return GetType() == +TxType::WITHDRAW;
+        return GetType() == +TxType::WITHDRAW;
     }
 
     bool IsSlash() const {
-      return GetType() == +TxType::SLASH;
+        return GetType() == +TxType::SLASH;
+    }
+
+    bool IsCommit() const {
+        switch (GetType()) {
+        case +TxType::DEPOSIT:
+        case +TxType::VOTE:
+        case +TxType::LOGOUT:
+        case +TxType::SLASH:
+        case +TxType::WITHDRAW:
+        case +TxType::ADMIN:
+            return true;
+        case +TxType::STANDARD:
+        case +TxType::COINBASE:
+            return false;
+        }
     }
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
