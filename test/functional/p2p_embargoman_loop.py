@@ -15,8 +15,6 @@ from test_framework.util import connect_nodes, connect_nodes_bi
 from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import P2PInterface, network_thread_start
 import time
-import os.path
-import re
 
 # Number of loops in the network
 LOOPS_N = 5
@@ -31,7 +29,7 @@ class EmbargoManLoop(UnitETestFramework):
 
         self.extra_args = [['-proposing=1', '-debug=all',
                             '-embargotxs=1', '-embargomin=9999',
-                            '-whitelist=127.0.0.1',]] * self.num_nodes
+                            '-whitelist=127.0.0.1']] * self.num_nodes
         self.setup_clean_chain = True
 
     def setup_network(self):
@@ -92,6 +90,7 @@ class InvRecorder(P2PInterface):
     def on_inv(self, message):
         for inv in message.inv:
             self.invs.add("%064x" % inv.hash)
+
 
 if __name__ == '__main__':
     EmbargoManLoop().main()

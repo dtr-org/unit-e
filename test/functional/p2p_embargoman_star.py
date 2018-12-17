@@ -54,6 +54,10 @@ class EmbargoManStar(UnitETestFramework):
         self.generate_sync(self.nodes[0])
 
         relay1 = self.single_run()
+
+        # Resets mempool - we want to check only txs relevant to the current run
+        self.generate_sync(self.nodes[0])
+
         relay2 = self.single_run()
 
         # Relay should change because txs were fluffed too often
@@ -91,22 +95,18 @@ class EmbargoManStar(UnitETestFramework):
 
         return next(iter(nodes_with_txs_before_fluff))
 
-    def collect_tx_presence(self, txs):
-        leafs = range(1, self.num_nodes)
+    def collect_tx_presence(self, txs_to_look):
+        txs_to_look = set(txs_to_look)
         presence = set()
-        for tx in txs:
-            for leaf in leafs:
-                if has_tx(self.nodes[leaf], tx):
+
+        for leaf in range(1, self.num_nodes):
+            mempool = self.nodes[leaf].getrawmempool()
+            for mempool_tx in mempool:
+                if mempool_tx in txs_to_look:
                     presence.add(leaf)
+                    break
+
         return presence
-
-
-def has_tx(node, tx):
-    try:
-        node.getrawtransaction(tx)
-        return True
-    except:
-        return False
 
 
 if __name__ == '__main__':
