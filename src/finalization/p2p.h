@@ -17,7 +17,7 @@ class CNetMsgMaker;
 namespace finalization {
 namespace p2p {
 
-//! \brief Represents ancors in blockchain used by node to request commits.
+//! \brief Represents anchors in blockchain used by node to request commits.
 //!
 //! CommitsLocator is used by get_commits message which requests commits in between
 //! the most common block until "stop" block.
