@@ -1458,11 +1458,14 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             if (witness.stack.size() != 2) {
                 return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
             }
-            scriptPubKey << OP_PUSH_TX_TYPE << OP_1 << OP_EQUAL << OP_IF
-                         << OP_DUP << OP_HASH160 << witnessProgram.GetProgram()[0] << OP_EQUALVERIFY << OP_CHECKSIG
-                         << OP_ELSE
-                         << OP_DUP << OP_SHA256 << witnessProgram.GetProgram()[1] << OP_EQUALVERIFY << OP_CHECKSIG
-                         << OP_ENDIF;
+            if (checker.GetTxType() == +TxType::COINBASE) {
+                scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.GetProgram()[0] << OP_EQUALVERIFY << OP_CHECKSIG;
+            } else {
+                uint160 keyHash;
+                CRIPEMD160().Write(witnessProgram.GetProgram()[1].data(), witnessProgram.GetProgram()[1].size())
+                            .Finalize(keyHash.begin());
+                scriptPubKey << OP_DUP << OP_HASH160 << ToByteVector(keyHash) << OP_EQUALVERIFY << OP_CHECKSIG;
+            }
             stack = witness.stack;
         } else {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);

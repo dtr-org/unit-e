@@ -319,7 +319,7 @@ bool CScript::IsPayToWitnessScriptHash() const
 // followed by a data push between 2 and 40 bytes.
 bool CScript::IsWitnessProgram() const
 {
-    if (this->size() < 4 || this->size() > 42) {
+    if (this->size() < 4 || this->size() > 83) {
         return false;
     }
 

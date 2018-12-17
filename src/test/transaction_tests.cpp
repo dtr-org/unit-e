@@ -669,6 +669,30 @@ BOOST_AUTO_TEST_CASE(test_witness)
     CheckWithFlag(output1, input1, STANDARD_SCRIPT_VERIFY_FLAGS, true);
 }
 
+BOOST_AUTO_TEST_CASE(test_remote_staking)
+{
+    CBasicKeyStore keystore, keystore2;
+    CKey key1, key2, key3;
+    CPubKey pubkey1, pubkey2, pubkey3;
+    key1.MakeNewKey(true);
+    key2.MakeNewKey(true);
+    key3.MakeNewKey(true);
+    pubkey1 = key1.GetPubKey();
+    pubkey2 = key2.GetPubKey();
+    pubkey3 = key3.GetPubKey();
+    keystore.AddKeyPubKey(key1, pubkey1);
+    keystore.AddKeyPubKey(key2, pubkey2);
+    CScript remote_staking_script;
+    remote_staking_script << OP_1 << ToByteVector(pubkey1.GetID()) << ToByteVector(pubkey2.GetSha256());
+
+    CTransactionRef output1, output2;
+    CMutableTransaction input1, input2;
+    SignatureData sigdata;
+    CreateCreditAndSpend(keystore, remote_staking_script, output1, input1);
+
+    CheckWithFlag(output1, input1, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+}
+
 BOOST_AUTO_TEST_CASE(test_IsStandard)
 {
     LOCK(cs_main);

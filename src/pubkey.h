@@ -157,6 +157,12 @@ public:
         return Hash(vch, vch + size());
     }
 
+    //! Get the SHA256 hash of this public key.
+    uint256 GetSha256() const
+    {
+        return Sha256(vch, vch + size());
+    }
+
     /*
      * Check syntactic correctness.
      *

@@ -1689,6 +1689,40 @@ BOOST_AUTO_TEST_CASE(push_tx_type)
     }
 }
 
+BOOST_AUTO_TEST_CASE(witness_program)
+{
+    auto hash_160 = ParseHex("8dd36db6ed8e9d56aa10aad9db1321208be82bce");
+    auto hash_256 = ParseHex("f6c5081e8ee9d76a0abe8ad271bca9bf51d0da8fe56ec835addf1518ba4c853b");
+    CScript script;
+    WitnessProgram program;
+
+    script << OP_0;
+    BOOST_CHECK(!script.ExtractWitnessProgram(program));
+
+    script.clear();
+    script << OP_0 << hash_160;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsPayToPubkeyHash());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetV0Program().begin(), program.GetV0Program().end(),
+                                  hash_160.begin(), hash_160.end());
+
+    script.clear();
+    script << OP_0 << hash_256;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsPayToScriptHash());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetV0Program().begin(), program.GetV0Program().end(),
+                                  hash_256.begin(), hash_256.end());
+
+    script.clear();
+    script << OP_1 << hash_160 << hash_256;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsRemoteStaking());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetProgram()[0].begin(), program.GetProgram()[0].end(),
+                                  hash_160.begin(), hash_160.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetProgram()[1].begin(), program.GetProgram()[1].end(),
+                                  hash_256.begin(), hash_256.end());
+}
+
 #if defined(HAVE_CONSENSUS_LIB)
 
 /* Test simple (successful) usage of uniteconsensus_verify_script */
