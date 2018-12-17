@@ -57,15 +57,15 @@ const CBlockIndex *FindStop(const CommitsLocator &locator) {
 }
 
 HeaderAndCommits FindHeaderAndCommits(const CBlockIndex *pindex, const Consensus::Params &params) {
-  if (!(pindex->nStatus & BLOCK_HAVE_DATA)) {
-    LogPrintf("%s has no data. It's on the main chain, so this shouldn't happen. Stopping.\n",
-              pindex->GetBlockHash().GetHex());
-    assert(not("No data on the main chain"));
-  }
   HeaderAndCommits hc(pindex->GetBlockHeader());
   if (pindex->commits.get_ptr() != nullptr) {
     hc.commits = pindex->commits.get();
     return hc;
+  }
+  if (!(pindex->nStatus & BLOCK_HAVE_DATA)) {
+    LogPrintf("%s has no data. It's on the main chain, so this shouldn't happen. Stopping.\n",
+              pindex->GetBlockHash().GetHex());
+    assert(not("No data on the main chain"));
   }
   const std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
   if (!ReadBlockFromDisk(*pblock, pindex, params)) {
