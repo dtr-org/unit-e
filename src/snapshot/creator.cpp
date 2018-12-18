@@ -129,7 +129,7 @@ CreationInfo Creator::Create() {
 
   CBlockIndex *blockIndex = mapBlockIndex.at(m_iter.GetBestBlock());
   uint256 snapshotHash = m_iter.GetSnapshotHash().GetHash(
-      blockIndex->bnStakeModifier);
+      blockIndex->stake_modifier);
   std::vector<uint256> toRemove = AddSnapshotHash(snapshotHash, blockIndex);
 
   LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
@@ -137,7 +137,7 @@ CreationInfo Creator::Create() {
 
   CreationInfo info;
   Indexer indexer(snapshotHash, blockIndex->GetBlockHash(),
-                  blockIndex->bnStakeModifier, m_step, m_stepsPerFile);
+                  blockIndex->stake_modifier, m_step, m_stepsPerFile);
 
   while (m_iter.Valid()) {
     boost::this_thread::interruption_point();

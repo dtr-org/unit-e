@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
     for (uint32_t idx = 0; idx < 10; ++idx) {
       // update stake modifier to trigger different snapshot hash
       std::string sm = "a" + std::to_string(idx);
-      mapBlockIndex[bestBlock]->bnStakeModifier.SetHex(sm);
+      mapBlockIndex[bestBlock]->stake_modifier.SetHex(sm);
       mapBlockIndex[bestBlock]->nHeight = idx;
 
       snapshot::Creator creator(viewDB.get());

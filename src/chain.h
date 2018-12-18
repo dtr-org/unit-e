@@ -222,13 +222,13 @@ public:
     unsigned int nTimeMax;
 
     //! Proof-of-Stake: the stake modifier is a hash of some entropy bits to make pre-computing blocks more difficult
-    uint256 bnStakeModifier;
+    uint256 stake_modifier;
 
     //! Proof-of-Stake: the previous stake (used for kernel hash and stake modifier)
-    COutPoint prevoutStake;
+    COutPoint prevout_stake;
 
     //! Proof-of-Stake: total money supply in the chain up to this point (used to calculate PoS-Reward)
-    CAmount nMoneySupply;
+    CAmount money_supply;
 
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
     boost::optional<std::vector<CTransactionRef>> commits;
@@ -416,9 +416,9 @@ public:
         READWRITE(VARINT(nStatus));
         READWRITE(VARINT(nTx));
 
-        READWRITE(bnStakeModifier);
-        READWRITE(prevoutStake);
-        READWRITE(VARINT(nMoneySupply));
+        READWRITE(stake_modifier);
+        READWRITE(prevout_stake);
+        READWRITE(VARINT(money_supply));
 
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
             READWRITE(VARINT(nFile));
