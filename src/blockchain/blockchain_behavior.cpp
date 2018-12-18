@@ -55,8 +55,8 @@ boost::optional<CPubKey> Behavior::ExtractBlockSigningKey(const CBlock &block) c
   if (coinbase_inputs.size() < 2) {
     return boost::none;
   }
-  const auto &witnessStack = coinbase_inputs[1].scriptWitness.stack;
-  if (witnessStack.size() < 2) {
+  const auto &witness_stack = coinbase_inputs[1].scriptWitness.stack;
+  if (witness_stack.size() < 2) {
     return boost::none;
   }
   // As per https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh,
@@ -69,12 +69,12 @@ boost::optional<CPubKey> Behavior::ExtractBlockSigningKey(const CBlock &block) c
   //
   // That is: The pubkey we're interested in is in stack[1]
   // (stack[0] is the signature).
-  const auto &pubKeyData = witnessStack[1];
-  CPubKey pubKey(pubKeyData.begin(), pubKeyData.end());
-  if (!pubKey.IsValid()) {
+  const auto &public_key_data = witness_stack[1];
+  CPubKey public_key(public_key_data.begin(), public_key_data.end());
+  if (!public_key.IsValid()) {
     return boost::none;
   }
-  return pubKey;
+  return public_key;
 }
 
 std::string Behavior::GetNetworkName() const {

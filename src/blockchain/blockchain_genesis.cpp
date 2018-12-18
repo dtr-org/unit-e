@@ -113,19 +113,19 @@ GenesisBlockBuilder &GenesisBlockBuilder::AddFundsForPayToScriptHash(const CAmou
 
 GenesisBlockBuilder &GenesisBlockBuilder::Add(const Funds &&funds) {
   for (const auto &output : funds.destinations) {
-    AddFundsForPayToPubKeyHash(output.amount, output.pubKeyHash);
+    AddFundsForPayToPubKeyHash(output.amount, output.pub_key_hash);
   }
   return *this;
 }
 
 P2WPKH::P2WPKH(const CAmount amount, const std::string &&pubKeyHash)
-    : amount(amount), pubKeyHash(pubKeyHash) {
+    : amount(amount), pub_key_hash(pubKeyHash) {
   assert(amount > 0);
   assert(pubKeyHash.size() == 40);
 }
 
 P2WSH::P2WSH(const CAmount amount, const std::string &&scriptHash)
-    : amount(amount), scriptHash(scriptHash) {
+    : amount(amount), script_hash(scriptHash) {
   assert(amount > 0);
   assert(scriptHash.size() == 64);
 }
