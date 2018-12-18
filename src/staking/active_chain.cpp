@@ -31,12 +31,9 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   const CBlockIndex *operator[](std::int64_t height) override {
-    LogPrint(BCLog::PROPOSING, "Chain is %d\n", GetSize());
-    LogPrint(BCLog::PROPOSING, "Looking for %d\n", height);
     if (height < 0) {
       height = GetSize() + height;
     }
-    LogPrint(BCLog::PROPOSING, "Now Looking for %d\n", height);
     return chainActive[height];
   }
 

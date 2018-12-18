@@ -11,7 +11,7 @@ Behavior::Behavior(const Parameters &parameters) noexcept
 
 Difficulty Behavior::CalculateDifficulty(Height height, ChainAccess &chain) const {
   return m_parameters.difficulty_function(m_parameters, height, chain);
-};
+}
 
 Time Behavior::CalculateProposingTimestamp(std::int64_t timestamp_sec) const {
   auto blocktime = static_cast<std::uint32_t>(timestamp_sec);
