@@ -7,10 +7,10 @@
 
 #include <dependency.h>
 #include <proposer/multiwallet.h>
+#include <proposer/proposer.h>
 #include <rpc/server.h>
 #include <staking/active_chain.h>
 #include <staking/network.h>
-#include <wallet/wallet.h>
 
 #include <univalue.h>
 

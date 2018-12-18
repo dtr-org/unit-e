@@ -273,7 +273,7 @@ public:
     bool IsCoinBase() const { return tx->IsCoinBase(); }
 };
 
-/** 
+/**
  * A transaction with a bunch of additional info that only the owner cares about.
  * It includes any unrecorded transactions needed to link it back to the block chain.
  */
@@ -664,7 +664,7 @@ private:
 
 
 class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
-/** 
+/**
  * A CWallet is an extension of a keystore, which also maintains a set of transactions and balances,
  * and provides the ability to create new transactions.
  */
@@ -679,8 +679,7 @@ private:
     friend class WalletRescanReserver;
     friend class esperanza::WalletExtension;
 
-    const esperanza::Settings& m_esperanzaSettings;
-    esperanza::WalletExtension m_walletExtension;
+    esperanza::WalletExtension m_wallet_extension;
 
     /**
      * Select a set of coins such that nValueRet >= nTargetValue and at least
@@ -799,19 +798,17 @@ public:
     unsigned int nMasterKeyMaxID;
 
     // Create wallet with dummy database handle
-    CWallet()
-      : m_esperanzaSettings(esperanza::Settings::Default()),
-        m_walletExtension(m_esperanzaSettings, this),
+    CWallet(const esperanza::WalletExtensionDeps &dependencies = esperanza::WalletExtensionDeps())
+      : m_wallet_extension(dependencies, *this),
         dbw(new CWalletDBWrapper())
     {
         SetNull();
     }
 
     // Create wallet with passed-in database handle
-    explicit CWallet(const esperanza::Settings& esperanzaSettings,
+    explicit CWallet(const esperanza::WalletExtensionDeps& dependencies,
                      std::unique_ptr<CWalletDBWrapper> dbw_in)
-      : m_esperanzaSettings(esperanzaSettings),
-        m_walletExtension(esperanzaSettings, this),
+      : m_wallet_extension(dependencies, *this),
         dbw(std::move(dbw_in))
     {
         SetNull();
@@ -950,7 +947,7 @@ public:
     void GetKeyBirthTimes(std::map<CTxDestination, int64_t> &mapKeyBirth) const;
     unsigned int ComputeTimeSmart(const CWalletTx& wtx) const;
 
-    /** 
+    /**
      * Increment the next transaction order id
      * @return next transaction order id
      */
@@ -1062,7 +1059,7 @@ public:
     const std::string& GetAccountName(const CScript& scriptPubKey) const;
 
     void GetScriptForMining(std::shared_ptr<CReserveScript> &script);
-    
+
     unsigned int GetKeyPoolSize()
     {
         AssertLockHeld(cs_wallet); // set{Ex,In}ternalKeyPool
@@ -1087,7 +1084,7 @@ public:
     //! Flush wallet (bitdb flush)
     void Flush(bool shutdown=false);
 
-    /** 
+    /**
      * Address book entry changed.
      * @note called with lock cs_wallet held.
      */
@@ -1096,7 +1093,7 @@ public:
             const std::string &purpose,
             ChangeType status)> NotifyAddressBookChanged;
 
-    /** 
+    /**
      * Wallet transaction added, removed or updated.
      * @note called with lock cs_wallet held.
      */
@@ -1124,7 +1121,7 @@ public:
     bool MarkReplaced(const uint256& originalHash, const uint256& newHash);
 
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
-    static CWallet* CreateWalletFromFile(const esperanza::Settings& esperanzaSettings,
+    static CWallet* CreateWalletFromFile(const esperanza::WalletExtensionDeps&,
                                          const std::string walletFile);
 
     /**
@@ -1144,7 +1141,7 @@ public:
 
     /* Generates a new HD master key (will not be activated) */
     CPubKey GenerateNewHDMasterKey(const key::mnemonic::Seed *fromSeed = nullptr);
-    
+
     /* Set the current HD master key (will reset the chain child index counters)
        Sets the master key's version based on the current wallet version (so the
        caller must ensure the current wallet version is correct before calling
@@ -1212,7 +1209,7 @@ public:
 };
 
 
-/** 
+/**
  * Account information.
  * Stored in wallet with key "acc"+string account name.
  */

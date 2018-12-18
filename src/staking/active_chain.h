@@ -44,9 +44,13 @@ class ActiveChain : public blockchain::ChainAccess {
   //! If the chain contains only the genesis block then this method
   //! returns 1. Note that there are N blocks in a chain of size N and the
   //! tip has height N - 1 (as the genesis block has height 0 by definition).
-  virtual std::uint32_t GetSize() const = 0;
+  virtual blockchain::Height GetSize() const = 0;
 
-  std::uint32_t GetHeight() const { return GetSize() - 1; }
+  //! \brief returns the height of the tip of the currently active chain.
+  //!
+  //! The height of the genesis block is zero. An active chain always has a
+  //! genesis block.
+  virtual blockchain::Height GetHeight() const = 0;
 
   const CBlockIndex *GetTip() { return (*this)[-1]; }
 
@@ -54,12 +58,13 @@ class ActiveChain : public blockchain::ChainAccess {
 
   // defined in blockchain::ChainAccess
   const CBlockIndex *AtDepth(blockchain::Depth depth) override {
-    return (*this)[-depth];
+    assert(depth > 0);
+    return (*this)[-static_cast<std::int64_t>(depth)];
   }
 
   // defined in blockchain::ChainAccess
   const CBlockIndex *AtHeight(blockchain::Height height) override {
-    return (*this)[height];
+    return (*this)[static_cast<std::int64_t>(height)];
   }
 
   //! \brief add a new block at the current active chains tip.

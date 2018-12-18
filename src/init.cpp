@@ -54,8 +54,6 @@
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
-#include <esperanza/settings.h>
-#include <esperanza/settings_init.h>
 #include <finalization/vote_recorder.h>
 #include <rpc/proposing.h>
 #endif
@@ -1294,14 +1292,6 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain()
 {
-#ifdef ENABLE_WALLET
-    const esperanza::Settings* esperanzaSettings = esperanza::InitSettings(gArgs);
-    if (!esperanzaSettings) {
-        LogPrintf("Failed to read settings from command line arguments.\n");
-        return false;
-    }
-#endif
-
     injector = MakeUnique<UnitEInjector>();
     injector->Initialize();
 
@@ -1309,7 +1299,6 @@ bool AppInitMain()
 
     // Set Esperanza parameters
     if (gArgs.IsArgSet("-esperanzaconfig")) {
-
         esperanza::FinalizationParams params;
         if (esperanza::ParseFinalizationParams(gArgs.GetArg("-esperanzaconfig", ""), params)) {
             UpdateFinalizationParams(params);
@@ -1734,7 +1723,8 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
-    if (!OpenWallets(*esperanzaSettings)) {
+    esperanza::WalletExtensionDeps deps(*injector);
+    if (!OpenWallets(deps)) {
         return false;
     }
 #else

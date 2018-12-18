@@ -26,8 +26,7 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinbaseTransaction() const {
   tx.SetType(TxType::COINBASE);
 
   const CScript scriptSig = CScript() << CScriptNum::serialize(0)  // height
-                                      << ToByteVector(uint256())   // utxo set hash
-                                      << OP_0;
+                                      << ToByteVector(uint256());  // utxo set hash
 
   tx.vin.emplace_back(uint256(), 0, scriptSig);
 
@@ -56,6 +55,9 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
 
   genesis_block.hashPrevBlock = uint256();
   genesis_block.hashMerkleRoot = BlockMerkleRoot(genesis_block);
+
+  // explicitly set signature to null (there's no stake and no public key which could sign)
+  genesis_block.signature.clear();
 
   // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
   // genesis_block.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis_block);

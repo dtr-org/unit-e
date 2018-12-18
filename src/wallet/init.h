@@ -6,7 +6,8 @@
 #ifndef UNITE_WALLET_INIT_H
 #define UNITE_WALLET_INIT_H
 
-#include <esperanza/settings.h>
+#include <settings.h>
+#include <esperanza/walletextension_deps.h>
 
 #include <string>
 
@@ -28,7 +29,7 @@ void RegisterWalletRPC(CRPCTable &tableRPC);
 bool VerifyWallets();
 
 //! Load wallet databases.
-bool OpenWallets(const esperanza::Settings& esperanzaSettings);
+bool OpenWallets(const esperanza::WalletExtensionDeps&);
 
 //! Complete startup of wallets.
 void StartWallets(CScheduler& scheduler);

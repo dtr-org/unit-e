@@ -10,7 +10,10 @@
 #include <amount.h>
 #include <blockchain/blockchain_interfaces.h>
 #include <dependency.h>
+#include <pubkey.h>
 #include <util.h>
+
+#include <boost/optional.hpp>
 
 #include <cstdint>
 
@@ -29,23 +32,23 @@ class Behavior {
   const Parameters &m_parameters;
 
  public:
-  Behavior(const Parameters &);
+  explicit Behavior(const Parameters &) noexcept;
 
   //! \brief Get the timestamp usable for proposing according to Kernel protocol.
   //!
   //! \return A value less than or equal to the given timestamp.
-  std::uint32_t CalculateProposingTimestamp(std::uint64_t timestamp_sec) const;
+  Time CalculateProposingTimestamp(std::int64_t timestamp_sec) const;
 
   //! \brief Get the NEXT timestamp for proposing.
   //!
   //! \return A value strictly greater than the given timestamp.
-  std::uint32_t CalculateProposingTimestampAfter(std::uint64_t timestamp_sec) const;
+  Time CalculateProposingTimestampAfter(std::int64_t timestamp_sec) const;
 
   //! \brief Calculates the block reward given current money supply and block height.
   CAmount CalculateReward(MoneySupply, Height) const;
 
   //! \brief Calculates the difficulty for BlockHeight
-  Difficulty CalculateDifficulty(Height, ChainAccess&) const;
+  Difficulty CalculateDifficulty(Height, ChainAccess &) const;
 
   //! \brief Get a reference to the genesis block.
   //!
@@ -57,8 +60,18 @@ class Behavior {
   //! \brief Get the hash of the genesis block, cached.
   uint256 GetGenesisBlockHash() const;
 
+  bool IsGenesisBlock(const CBlock &) const;
+
+  bool IsGenesisBlockHash(const uint256 &) const;
+
+  boost::optional<CPubKey> ExtractBlockSigningKey(const CBlock &) const;
+
   //! \brief The name of this network as a standard string.
   std::string GetNetworkName() const;
+
+  std::chrono::seconds GetBlockStakeTimestampInterval() const;
+
+  const Parameters& GetParameters() const;
 
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
 

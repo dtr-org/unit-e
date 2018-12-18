@@ -29,12 +29,10 @@ namespace esperanza {
 
 CCriticalSection cs_pendingSlashing;
 
-WalletExtension::WalletExtension(const Settings &settings,
-                                 ::CWallet *enclosing_wallet)
-    : m_settings(settings), m_enclosing_wallet(enclosing_wallet) {
-  assert(enclosing_wallet != nullptr);
-
-  if (settings.m_validating) {
+WalletExtension::WalletExtension(const WalletExtensionDeps &dependencies,
+                                 ::CWallet &enclosing_wallet)
+    : m_dependencies(dependencies), m_enclosing_wallet(enclosing_wallet) {
+  if (dependencies.settings->node_is_validator) {
     nIsValidatorEnabled = true;
     validatorState = ValidatorState();
   }
@@ -43,9 +41,9 @@ WalletExtension::WalletExtension(const Settings &settings,
 template <typename Callable>
 void WalletExtension::ForEachStakeableCoin(Callable f) const {
   AssertLockHeld(cs_main);
-  AssertLockHeld(m_enclosing_wallet->cs_wallet);  // access to mapWallet
+  AssertLockHeld(m_enclosing_wallet.cs_wallet);  // access to mapWallet
 
-  for (const auto &it : m_enclosing_wallet->mapWallet) {
+  for (const auto &it : m_enclosing_wallet.mapWallet) {
     const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
@@ -55,11 +53,11 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       continue;
     }
     for (std::size_t outIx = 0; outIx < coins.size(); ++outIx) {
-      if (m_enclosing_wallet->IsSpent(txId, outIx)) {
+      if (m_enclosing_wallet.IsSpent(txId, outIx)) {
         continue;
       }
       const CTxOut &coin = coins[outIx];
-      if (m_enclosing_wallet->GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
+      if (m_enclosing_wallet.GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
         continue;
       }
       f(tx, outIx, depth);
@@ -68,7 +66,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
 }
 
 CCriticalSection &WalletExtension::GetLock() const {
-  return m_enclosing_wallet->cs_wallet;
+  return m_enclosing_wallet.cs_wallet;
 }
 
 CAmount WalletExtension::GetReserveBalance() const {
@@ -97,17 +95,17 @@ proposer::State &WalletExtension::GetProposerState() {
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                                            std::string &error) {
-  const std::string walletFileName = m_enclosing_wallet->GetName();
+  const std::string walletFileName = m_enclosing_wallet.GetName();
   const std::time_t currentTime = std::time(nullptr);
   std::string backupWalletFileName =
       walletFileName + "~" + std::to_string(currentTime);
-  m_enclosing_wallet->BackupWallet(backupWalletFileName);
-  const CPubKey hdMasterKey = m_enclosing_wallet->GenerateNewHDMasterKey(&seed);
-  if (!m_enclosing_wallet->SetHDMasterKey(hdMasterKey)) {
+  m_enclosing_wallet.BackupWallet(backupWalletFileName);
+  const CPubKey hdMasterKey = m_enclosing_wallet.GenerateNewHDMasterKey(&seed);
+  if (!m_enclosing_wallet.SetHDMasterKey(hdMasterKey)) {
     error = "setting master key failed";
     return false;
   }
-  if (!m_enclosing_wallet->NewKeyPool()) {
+  if (!m_enclosing_wallet.NewKeyPool()) {
     error = "could not generate new keypool";
     return false;
   }
@@ -116,11 +114,9 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 
 // UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
-  // UNIT-E: TODO temporary workaround to read from gArgs before properly injecting this
-  bool proposing = gArgs.GetArg("-proposing", true);
-  if (m_settings.m_validating && proposing) {
+  if (m_dependencies.settings->node_is_validator && !m_dependencies.settings->node_is_proposer) {
     LogPrint(BCLog::FINALIZATION, "%s: -validating is enabled for wallet %s.\n",
-             __func__, m_enclosing_wallet->GetName());
+             __func__, m_enclosing_wallet.GetName());
 
     validatorState = ValidatorState();
     nIsValidatorEnabled = true;
@@ -139,14 +135,14 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   int nChangePosInOut = 1;
   std::vector<CRecipient> vecSend;
 
-  CReserveKey reservekey(m_enclosing_wallet);
+  CReserveKey reservekey(&m_enclosing_wallet);
   CPubKey pubKey;
-  m_enclosing_wallet->GetPubKey(keyID, pubKey);
+  m_enclosing_wallet.GetPubKey(keyID, pubKey);
 
   CRecipient r{CScript::CreatePayVoteSlashScript(pubKey), amount, true};
   vecSend.push_back(r);
 
-  if (!m_enclosing_wallet->CreateTransaction(
+  if (!m_enclosing_wallet.CreateTransaction(
           vecSend, wtxOut, reservekey, nFeeRet, nChangePosInOut, sError,
           coinControl, true, TxType::DEPOSIT)) {
 
@@ -156,10 +152,10 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   }
 
   {
-    LOCK2(cs_main, m_enclosing_wallet->cs_wallet);
+    LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
     CValidationState state;
-    if (!m_enclosing_wallet->CommitTransaction(wtxOut, reservekey,
-                                               g_connman.get(), state)) {
+    if (!m_enclosing_wallet.CommitTransaction(wtxOut, reservekey,
+                                              g_connman.get(), state)) {
       LogPrint(BCLog::FINALIZATION, "%s: Cannot commit deposit transaction.\n",
                __func__);
       return false;
@@ -197,10 +193,10 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   const ValidatorState &validator = validatorState.get();
 
   wtxNewOut.fTimeReceivedIsTxTime = true;
-  wtxNewOut.BindWallet(m_enclosing_wallet);
+  wtxNewOut.BindWallet(&m_enclosing_wallet);
   wtxNewOut.fFromMe = true;
 
-  CReserveKey reservekey(m_enclosing_wallet);
+  CReserveKey reservekey(&m_enclosing_wallet);
   CValidationState state;
 
   CMutableTransaction txNew;
@@ -239,7 +235,7 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   SignatureData sigdata;
   std::string strFailReason;
 
-  if (!ProduceSignature(TransactionSignatureCreator(m_enclosing_wallet,
+  if (!ProduceSignature(TransactionSignatureCreator(&m_enclosing_wallet,
                                                     &txNewConst, nIn, amount,
                                                     SIGHASH_ALL),
                         prevScriptPubkey, sigdata, &txNewConst)) {
@@ -250,9 +246,9 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
   {
-    LOCK2(cs_main, m_enclosing_wallet->cs_wallet);
-    m_enclosing_wallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                          state);
+    LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
+    m_enclosing_wallet.CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+                                         state);
     if (state.IsInvalid()) {
       LogPrint(BCLog::FINALIZATION,
                "%s: Cannot commit logout transaction: %s.\n", __func__,
@@ -274,14 +270,14 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   coinControl.m_fee_mode = FeeEstimateMode::CONSERVATIVE;
 
   wtxNewOut.fTimeReceivedIsTxTime = true;
-  wtxNewOut.BindWallet(m_enclosing_wallet);
+  wtxNewOut.BindWallet(&m_enclosing_wallet);
   wtxNewOut.fFromMe = true;
 
-  CReserveKey reservekey(m_enclosing_wallet);
+  CReserveKey reservekey(&m_enclosing_wallet);
   CValidationState errState;
   CKeyID keyID = boost::get<CKeyID>(address);
   CPubKey pubKey;
-  m_enclosing_wallet->GetPubKey(keyID, pubKey);
+  m_enclosing_wallet.GetPubKey(keyID, pubKey);
 
   CMutableTransaction txNew;
   txNew.SetType(TxType::WITHDRAW);
@@ -342,7 +338,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   SignatureData sigdata;
 
   if (!ProduceSignature(
-          TransactionSignatureCreator(m_enclosing_wallet, &txNewConst, nIn,
+          TransactionSignatureCreator(&m_enclosing_wallet, &txNewConst, nIn,
                                       initialDeposit, SIGHASH_ALL),
           prevScriptPubkey, sigdata, &txNewConst)) {
     return false;
@@ -351,8 +347,8 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
-  m_enclosing_wallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                        errState);
+  m_enclosing_wallet.CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+                                       errState);
   if (errState.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION,
              "%s: Cannot commit withdraw transaction: %s.\n", __func__,
@@ -428,9 +424,9 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   assert(validatorState);
 
   wtxNewOut.fTimeReceivedIsTxTime = true;
-  wtxNewOut.BindWallet(m_enclosing_wallet);
+  wtxNewOut.BindWallet(&m_enclosing_wallet);
   wtxNewOut.fFromMe = true;
-  CReserveKey reservekey(m_enclosing_wallet);
+  CReserveKey reservekey(&m_enclosing_wallet);
   CValidationState state;
 
   CMutableTransaction txNew;
@@ -444,7 +440,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   const CAmount amount = prevTxRef->vout[0].nValue;
 
   std::vector<unsigned char> voteSig;
-  if (!esperanza::Vote::CreateSignature(m_enclosing_wallet, vote, voteSig)) {
+  if (!esperanza::Vote::CreateSignature(&m_enclosing_wallet, vote, voteSig)) {
     return error("%s: Cannot sign vote.", __func__);
   }
   CScript scriptSig = CScript::EncodeVote(vote, voteSig);
@@ -459,7 +455,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   uint32_t nIn = 0;
   SignatureData sigdata;
 
-  if (!ProduceSignature(TransactionSignatureCreator(m_enclosing_wallet,
+  if (!ProduceSignature(TransactionSignatureCreator(&m_enclosing_wallet,
                                                     &txNewConst, nIn, amount,
                                                     SIGHASH_ALL),
                         scriptPubKey, sigdata, &txNewConst)) {
@@ -469,8 +465,8 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
-  m_enclosing_wallet->CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                        state);
+  m_enclosing_wallet.CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
+                                       state);
   if (state.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit vote transaction: %s.\n",
              __func__, state.GetRejectReason());
@@ -485,7 +481,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   CWalletTx slashTx;
   slashTx.fTimeReceivedIsTxTime = true;
-  slashTx.BindWallet(m_enclosing_wallet);
+  slashTx.BindWallet(&m_enclosing_wallet);
   slashTx.fFromMe = true;
 
   CMutableTransaction txNew;
@@ -524,14 +520,14 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   const uint32_t nIn = 0;
   SignatureData sigdata;
 
-  CReserveKey reservekey(m_enclosing_wallet);
+  CReserveKey reservekey(&m_enclosing_wallet);
   CPubKey pubKey;
   bool ret;
 
   ret = reservekey.GetReservedKey(pubKey, true);
 
   if (!ret) {
-    if (!m_enclosing_wallet->GenerateNewKeys(100)) {
+    if (!m_enclosing_wallet.GenerateNewKeys(100)) {
       LogPrint(BCLog::FINALIZATION, "%s: Error: No keys available for creating the slashing transaction for: %s.\n",
                __func__, validatorAddress.GetHex());
       return false;
@@ -545,7 +541,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
     }
   }
 
-  auto sigCreator = TransactionSignatureCreator(m_enclosing_wallet, &txNewConst, nIn,
+  auto sigCreator = TransactionSignatureCreator(&m_enclosing_wallet, &txNewConst, nIn,
                                                 burnOut.nValue, SIGHASH_ALL);
 
   std::vector<unsigned char> vchSig;
@@ -557,8 +553,8 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   slashTx.SetTx(MakeTransactionRef(std::move(txNew)));
 
-  m_enclosing_wallet->CommitTransaction(slashTx, reservekey, g_connman.get(),
-                                        errState);
+  m_enclosing_wallet.CommitTransaction(slashTx, reservekey, g_connman.get(),
+                                       errState);
 
   if (errState.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit slash transaction: %s.\n",
@@ -579,7 +575,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
 
-  LOCK2(cs_main, m_enclosing_wallet->cs_wallet);
+  LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
 
     assert(validatorState);
@@ -634,7 +630,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
   switch (tx.GetType()) {
 
     case TxType::DEPOSIT: {
-      LOCK(m_enclosing_wallet->cs_wallet);
+      LOCK(m_enclosing_wallet.cs_wallet);
       assert(validatorState);
       esperanza::ValidatorState &state = validatorState.get();
 
@@ -672,7 +668,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       break;
     }
     case TxType::LOGOUT: {
-      LOCK(m_enclosing_wallet->cs_wallet);
+      LOCK(m_enclosing_wallet.cs_wallet);
       assert(validatorState);
       esperanza::ValidatorState &state = validatorState.get();
 
@@ -699,7 +695,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       break;
     }
     case TxType::VOTE: {
-      LOCK(m_enclosing_wallet->cs_wallet);
+      LOCK(m_enclosing_wallet.cs_wallet);
       assert(validatorState);
       esperanza::ValidatorState &state = validatorState.get();
 
@@ -730,10 +726,10 @@ const proposer::State &WalletExtension::GetProposerState() const {
 }
 
 EncryptionState WalletExtension::GetEncryptionState() const {
-  if (!m_enclosing_wallet->IsCrypted()) {
+  if (!m_enclosing_wallet.IsCrypted()) {
     return EncryptionState::UNENCRYPTED;
   }
-  if (m_enclosing_wallet->IsLocked()) {
+  if (m_enclosing_wallet.IsLocked()) {
     return EncryptionState::LOCKED;
   }
   if (m_unlocked_for_staking_only) {
@@ -745,7 +741,7 @@ EncryptionState WalletExtension::GetEncryptionState() const {
 bool WalletExtension::Unlock(const SecureString &wallet_passphrase,
                              bool for_staking_only) {
   m_unlocked_for_staking_only = for_staking_only;
-  return m_enclosing_wallet->Unlock(wallet_passphrase);
+  return m_enclosing_wallet.Unlock(wallet_passphrase);
 }
 
 void WalletExtension::SlashingConditionDetected(const finalization::VoteRecord vote1, const finalization::VoteRecord vote2) {

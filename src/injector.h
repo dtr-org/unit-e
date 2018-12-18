@@ -9,6 +9,7 @@
 
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_parameters.h>
+#include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/block_validator.h>
 #include <staking/network.h>
@@ -21,7 +22,6 @@
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_rpc.h>
-#include <proposer/proposer_settings.h>
 #endif
 
 class UnitEInjector : public Injector<UnitEInjector> {
@@ -29,6 +29,9 @@ class UnitEInjector : public Injector<UnitEInjector> {
   UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
 
   COMPONENT(BlockchainBehavior, blockchain::Behavior, blockchain::Behavior::New,
+            ::ArgsManager)
+
+  COMPONENT(Settings, Settings, Settings::New,
             ::ArgsManager)
 
   COMPONENT(Network, staking::Network, staking::Network::New)
@@ -48,20 +51,25 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New);
 
-  COMPONENT(ProposerSettings, proposer::Settings, proposer::Settings::New,
-            ArgsManager)
-
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
             proposer::MultiWallet,
             staking::Network,
             staking::ActiveChain,
             proposer::Proposer)
 
+  COMPONENT(ProposerLogic, proposer::Logic, proposer::Logic::New,
+            blockchain::Behavior,
+            staking::Network,
+            staking::ActiveChain,
+            staking::StakeValidator)
+
   COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::New,
-            proposer::Settings,
+            Settings,
+            blockchain::Behavior,
             proposer::MultiWallet,
             staking::Network,
-            staking::ActiveChain)
+            staking::ActiveChain,
+            proposer::Logic)
 
 #endif
 };

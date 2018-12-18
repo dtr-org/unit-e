@@ -22,16 +22,17 @@ class ActiveChainAdapter final : public ActiveChain {
 
   CCriticalSection &GetLock() const override { return cs_main; }
 
-  std::uint32_t GetSize() const override {
-    return static_cast<std::uint32_t>(chainActive.Height() + 1);
+  blockchain::Height GetSize() const override {
+    return static_cast<blockchain::Height>(chainActive.Height() + 1);
+  }
+
+  blockchain::Height GetHeight() const override {
+    return static_cast<blockchain::Height>(chainActive.Height());
   }
 
   const CBlockIndex *operator[](std::int64_t height) override {
     if (height < 0) {
       height = GetSize() + height;
-    }
-    if (height < 0 || height >= GetSize()) {
-      return nullptr;
     }
     return chainActive[height];
   }

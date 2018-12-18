@@ -4,13 +4,15 @@
 
 #include <wallet/test/wallet_test_fixture.h>
 
-#include <esperanza/settings.h>
 #include <rpc/server.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
 
-WalletTestingSetup::WalletTestingSetup(const bool isValidator, const std::string& chainName):
-    TestingSetup(chainName)
+WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
+    : WalletTestingSetup([](Settings& s){}, chainName) {}
+
+WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const std::string& chainName)
+    : TestingSetup(chainName)
 {
     bitdb.MakeMock();
 
@@ -19,12 +21,11 @@ WalletTestingSetup::WalletTestingSetup(const bool isValidator, const std::string
     g_change_type = OUTPUT_TYPE_DEFAULT;
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
 
-    esperanza::Settings settings = esperanza::Settings::Default();
-    settings.m_validating = isValidator;
-// UNIT-E TODO: use proper settings class for this
-//    settings.m_proposing = !isValidator;
+    f(settings);
+    esperanza::WalletExtensionDeps deps;
+    deps.settings = &settings;
 
-    pwalletMain = MakeUnique<CWallet>(settings, std::move(dbw));
+    pwalletMain = MakeUnique<CWallet>(deps, std::move(dbw));
     pwalletMain->LoadWallet(fFirstRun);
     vpwallets.insert(vpwallets.begin(), &*pwalletMain);
     RegisterValidationInterface(pwalletMain.get());
