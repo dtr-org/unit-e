@@ -13,6 +13,13 @@ from test_framework.util import (
     sync_blocks,
     wait_until,
 )
+from test_framework.messages import (
+    NODE_NETWORK,
+    NODE_BLOOM,
+    NODE_WITNESS,
+    NODE_NETWORK_LIMITED,
+    NODE_SNAPSHOT,
+)
 
 
 class SnapshotTest(UnitETestFramework):
@@ -34,6 +41,21 @@ class SnapshotTest(UnitETestFramework):
 
     def setup_network(self):
         self.setup_nodes()
+
+    def test_service_flags(self):
+        blank_node = int(self.nodes[0].getnetworkinfo()['localservices'], 16)
+        assert_equal(blank_node, NODE_NETWORK | NODE_BLOOM | NODE_WITNESS | NODE_NETWORK_LIMITED)
+
+        full_node = int(self.nodes[1].getnetworkinfo()['localservices'], 16)
+        assert_equal(full_node, NODE_NETWORK | NODE_BLOOM | NODE_WITNESS | NODE_NETWORK_LIMITED | NODE_SNAPSHOT)
+
+        isd_node = int(self.nodes[2].getnetworkinfo()['localservices'], 16)
+        assert_equal(isd_node, NODE_BLOOM | NODE_WITNESS | NODE_NETWORK_LIMITED | NODE_SNAPSHOT)
+
+        rework_node = int(self.nodes[3].getnetworkinfo()['localservices'], 16)
+        assert_equal(rework_node, NODE_NETWORK | NODE_BLOOM | NODE_WITNESS | NODE_NETWORK_LIMITED | NODE_SNAPSHOT)
+
+        self.log.info('Test service flags passed')
 
     def test_fast_sync(self):
         """
@@ -166,6 +188,7 @@ class SnapshotTest(UnitETestFramework):
         self.log.info('Test fallback to IBD passed')
 
     def run_test(self):
+        self.test_service_flags()
         self.test_fast_sync()
         self.test_fallback_to_ibd()
 

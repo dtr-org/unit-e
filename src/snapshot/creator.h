@@ -80,6 +80,8 @@ class Creator {
   ChainstateIterator m_iter;
 };
 
+bool IsRecurrentCreation();
+
 }  // namespace snapshot
 
 #endif  // UNITE_SNAPSHOT_CREATOR_H

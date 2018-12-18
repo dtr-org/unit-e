@@ -41,6 +41,9 @@
 #include <script/standard.h>
 #include <script/sigcache.h>
 #include <scheduler.h>
+#include <snapshot/initialization.h>
+#include <snapshot/rpc_processing.h>
+#include <snapshot/creator.h>
 #include <timedata.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -49,8 +52,6 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validationinterface.h>
-#include <snapshot/initialization.h>
-#include <snapshot/rpc_processing.h>
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
@@ -1610,6 +1611,9 @@ bool AppInitMain()
                 if (!snapshot::Initialize(chainparams.GetSnapshotParams())) {
                     LogPrintf("Error initializing snapshot component. Check other snapshot logs for details. Exiting\n");
                     return false;
+                }
+                if (snapshot::IsRecurrentCreation()) {
+                    nLocalServices = ServiceFlags(nLocalServices | NODE_SNAPSHOT);
                 }
 
                 // If necessary, upgrade from older database format.

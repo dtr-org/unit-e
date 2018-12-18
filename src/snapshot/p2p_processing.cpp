@@ -237,7 +237,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
   return SendGetSnapshot(node, get, msg_maker);
 }
 
-void P2PState::StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
+void P2PState::StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
                                             const CNetMsgMaker &msg_maker) {
   if (!IsISDEnabled()) {
     return;
@@ -569,7 +569,7 @@ bool ProcessSnapshot(CNode &node, CDataStream &data,
   return g_p2p_state.ProcessSnapshot(node, data, msg_maker);
 }
 
-void StartInitialSnapshotDownload(CNode &node, int node_index, int total_nodes,
+void StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
                                   const CNetMsgMaker &msg_maker) {
   g_p2p_state.StartInitialSnapshotDownload(node, node_index, total_nodes, msg_maker);
 }

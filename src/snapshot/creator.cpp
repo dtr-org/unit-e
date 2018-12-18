@@ -18,8 +18,6 @@
 
 namespace snapshot {
 
-uint16_t createSnapshotPerEpoch = 0;
-
 struct SnapshotJob {
   // create snapshot
   std::unique_ptr<Creator> creator = nullptr;
@@ -34,7 +32,8 @@ struct SnapshotJob {
       : block_index(_block_index) {}
 };
 
-std::thread creatorThread;
+uint16_t g_create_snapshot_per_epoch = 0;
+std::thread g_creator_thread;
 std::mutex mutex;
 std::condition_variable cv;
 std::queue<std::unique_ptr<SnapshotJob>> jobs;
@@ -72,15 +71,15 @@ void ProcessCreatorQueue() {
 }
 
 void Creator::Init(const Params &params) {
-  createSnapshotPerEpoch = params.create_snapshot_per_epoch;
-  creatorThread = std::thread(ProcessCreatorQueue);
+  g_create_snapshot_per_epoch = params.create_snapshot_per_epoch;
+  g_creator_thread = std::thread(ProcessCreatorQueue);
 }
 
 void Creator::Deinit() {
   LogPrint(BCLog::SNAPSHOT, "stopping snapshot creation thread...\n");
   interrupt = true;
   cv.notify_one();
-  creatorThread.join();
+  g_creator_thread.join();
 
   // clean unprocessed jobs
   while (!jobs.empty()) {
@@ -91,7 +90,7 @@ void Creator::Deinit() {
 Creator::Creator(CCoinsViewDB *view) : m_iter(view) {}
 
 void Creator::GenerateOrSkip(uint32_t currentEpoch) {
-  if (createSnapshotPerEpoch <= 0) {
+  if (g_create_snapshot_per_epoch <= 0) {
     return;
   }
 
@@ -101,7 +100,7 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
     return;
   }
 
-  if (currentEpoch > 0 && (currentEpoch + 1) % createSnapshotPerEpoch != 0) {
+  if (currentEpoch > 0 && (currentEpoch + 1) % g_create_snapshot_per_epoch != 0) {
     return;
   }
 
@@ -178,6 +177,10 @@ CreationInfo Creator::Create() {
   }
 
   return info;
+}
+
+bool IsRecurrentCreation() {
+  return g_create_snapshot_per_epoch > 0;
 }
 
 }  // namespace snapshot

@@ -27,7 +27,7 @@ class NodeNetworkLimitedTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
-        self.extra_args = [['-prune=550']]
+        self.extra_args = [['-prune=550', '-createsnapshot=0']]
 
     def run_test(self):
         node = self.nodes[0].add_p2p_connection(P2PIgnoreInv())
