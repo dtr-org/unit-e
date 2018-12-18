@@ -13,13 +13,13 @@ Difficulty Behavior::CalculateDifficulty(Height height, ChainAccess &chain) cons
   return m_parameters.difficulty_function(m_parameters, height, chain);
 }
 
-Time Behavior::CalculateProposingTimestamp(std::int64_t timestamp_sec) const {
+Time Behavior::CalculateProposingTimestamp(const std::int64_t timestamp_sec) const {
   auto blocktime = static_cast<std::uint32_t>(timestamp_sec);
   blocktime = blocktime - (blocktime % m_parameters.block_stake_timestamp_interval_seconds);
   return blocktime;
 }
 
-Time Behavior::CalculateProposingTimestampAfter(std::int64_t time) const {
+Time Behavior::CalculateProposingTimestampAfter(const std::int64_t time) const {
   return CalculateProposingTimestamp(time) + m_parameters.block_stake_timestamp_interval_seconds;
 }
 
