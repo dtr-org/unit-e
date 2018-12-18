@@ -22,7 +22,6 @@ namespace proposer {
 class ProposerStub : public Proposer {
  public:
   void Wake() override {}
-  void Wake(const CWallet *) override {}
   void Start() override {}
 };
 
@@ -127,10 +126,6 @@ class ProposerImpl : public Proposer {
 
   void Wake() override {
     m_waiter.Wake();
-  }
-
-  void Wake(const CWallet *) override {
-    Wake();
   }
 
   void Start() override {

@@ -28,8 +28,6 @@ class Proposer {
  public:
   virtual void Wake() = 0;
 
-  virtual void Wake(const CWallet *) = 0;
-
   virtual void Start() = 0;
 
   virtual ~Proposer() = default;
