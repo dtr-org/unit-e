@@ -47,6 +47,8 @@ MESSAGEMAP = {
     b"tx": msg_tx,
     b"verack": msg_verack,
     b"version": msg_version,
+    b"getsnaphead": msg_getsnaphead,
+    b"snaphead": msg_snaphead,
     b"getsnapshot": msg_getsnapshot,
     b"snapshot": msg_snapshot,
     b"notfound": msg_notfound,
@@ -329,6 +331,10 @@ class P2PInterface(P2PConnection):
     def on_sendcmpct(self, message): pass
     def on_sendheaders(self, message): pass
     def on_tx(self, message): pass
+    def on_getsnaphead(self, message): pass
+    def on_snaphead(self, message): pass
+    def on_getsnapshot(self, message): pass
+    def on_snapshot(self, message): pass
 
     def on_inv(self, message):
         want = msg_getdata()

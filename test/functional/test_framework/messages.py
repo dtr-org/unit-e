@@ -137,6 +137,25 @@ def ser_vector(l, ser_function_name=None):
     return r
 
 
+def deser_uint32_map(f, klass):
+    m = dict()
+    size = deser_compact_size(f)
+    for _ in range(size):
+        k = struct.unpack('<I', f.read(4))[0]
+        o = klass()
+        o.deserialize(f)
+        m[k] = o
+    return m
+
+
+def ser_uint32_map(d):
+    r = ser_compact_size(len(d))
+    for i in d:
+        r += struct.pack('<I', i)
+        r += d[i].serialize()
+    return r
+
+
 def deser_uint256_vector(f):
     nit = deser_compact_size(f)
     r = []
@@ -334,11 +353,11 @@ class CTxOut():
 
 
 class UTXO:
-    def __init__(self, height, isCoinBase, outpoint, txOut):
+    def __init__(self, height, is_coin_base, outpoint, tx_out):
         self.outpoint = outpoint
         self.height = height
-        self.isCoinBase = isCoinBase
-        self.txOut = txOut
+        self.isCoinBase = is_coin_base
+        self.txOut = tx_out
 
     def deserialize(self, f):
         self.outpoint = COutPoint()
@@ -1398,25 +1417,163 @@ class msg_witness_blocktxn(msg_blocktxn):
         r += self.block_transactions.serialize(with_witness=True)
         return r
 
-
-class msg_getsnapshot:
-    command = b"getsnapshot"
+class msg_getsnaphead:
+    command = b"getsnaphead"
 
     def serialize(self):
         r = b""
         return r
 
     def deserialize(self, f): pass
+
+    def __repr__(self):
+        return "msg_getsnaphead"
+
+
+class msg_snaphead:
+    command = b"snaphead"
+
+    def __init__(self, snapshot_header=None):
+        self.snapshot_header = SnapshotHeader() if snapshot_header is None else snapshot_header
+
+    def serialize(self):
+        return self.snapshot_header.serialize()
+
+    def deserialize(self, f):
+        self.snapshot_header.deserialize(f)
+
+    def __repr__(self):
+        return "msg_snaphead(%s)" % (repr(self.snapshot_header))
+
+
+class SnapshotHeader:
+    def __init__(self, snapshot_hash=0, block_hash=0, stake_modifier=0, total_utxo_subsets=0):
+        self.snapshot_hash = snapshot_hash
+        self.block_hash = block_hash
+        self.stake_modifier = stake_modifier
+        self.total_utxo_subsets = total_utxo_subsets
+
+    def deserialize(self, f):
+        self.snapshot_hash = deser_uint256(f)
+        self.block_hash = deser_uint256(f)
+        self.stake_modifier = deser_uint256(f)
+        self.total_utxo_subsets = struct.unpack('<Q', f.read(8))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.snapshot_hash)
+        r += ser_uint256(self.block_hash)
+        r += ser_uint256(self.stake_modifier)
+        r += struct.pack('<Q', self.total_utxo_subsets)
+        return r
+
+    def __repr__(self):
+        return "SnapshotHeader(snapshot_hash=%064x block_hash=%064x stake_modifier=%064x total_utxo_subsets=%i)" \
+                % (self.snapshot_hash, self.block_hash, self.stake_modifier, self.total_utxo_subsets)
+
+
+class msg_getsnapshot:
+    command = b"getsnapshot"
+
+    def __init__(self, getsnapshot=None):
+        self.getsnapshot = GetSnapshot() if getsnapshot is None else getsnapshot
+
+    def serialize(self):
+        return self.getsnapshot.serialize()
+
+    def deserialize(self, f):
+        self.getsnapshot.deserialize(f)
+
+    def __repr__(self):
+        return "msg_getsnapshot(%s)" % (repr(self.getsnapshot))
+
+
+class GetSnapshot:
+    def __init__(self, snapshot_hash=0, index=0, count=0):
+        self.snapshot_hash = snapshot_hash
+        self.utxo_subset_index = index
+        self.utxo_subset_count = count
+
+    def deserialize(self, f):
+        self.snapshot_hash = deser_uint256(f)
+        self.utxo_subset_index = struct.unpack('<Q', f.read(8))[0]
+        self.utxo_subset_count = struct.unpack('<H', f.read(2))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.snapshot_hash)
+        r += struct.pack('<Q', self.utxo_subset_index)
+        r += struct.pack('<H', self.utxo_subset_count)
+        return r
+
+    def __repr__(self):
+        return "GetSnapshot(snapshot_hash=%064x utxo_subset_index=%i utxo_subset_count=%i)" \
+                % (self.snapshot_hash, self.utxo_subset_index, self.utxo_subset_count)
 
 
 class msg_snapshot:
     command = b"snapshot"
 
+    def __init__(self, snapshot=None):
+        self.snapshot = Snapshot() if snapshot is None else snapshot
+
+    def serialize(self):
+        return self.snapshot.serialize()
+
+    def deserialize(self, f):
+        self.snapshot.deserialize(f)
+
+    def __repr__(self):
+        return "msg_snapshot(%s)" % (repr(self.snapshot))
+
+
+class Snapshot:
+    def __init__(self, snapshot_hash=0, utxo_subset_index=0, utxo_subsets=[]):
+        self.snapshot_hash = snapshot_hash
+        self.utxo_subset_index = utxo_subset_index
+        self.utxo_subsets = utxo_subsets
+
+    def deserialize(self, f):
+        self.snapshot_hash = deser_uint256(f)
+        self.utxo_subset_index = struct.unpack('<Q', f.read(8))[0]
+        self.utxo_subsets = deser_vector(f, UTXOSubset)
+
     def serialize(self):
         r = b""
+        r += ser_uint256(self.snapshot_hash)
+        r += struct.pack('<Q', self.utxo_subset_index)
+        r += ser_vector(self.utxo_subsets)
         return r
 
-    def deserialize(self, f): pass
+    def __repr__(self):
+        return "Snapshot(snapshot_hash=%064x utxo_subset_index=%i, utxo_subsets=%s)" \
+                % (self.snapshot_hash, self.utxo_subset_index, repr(self.utxo_subsets))
+
+
+class UTXOSubset:
+    def __init__(self):
+        self.tx_id = 0
+        self.height = 0
+        self.is_coin_base = False
+        self.outputs = dict()
+
+    def deserialize(self, f):
+        self.tx_id = deser_uint256(f)
+        self.height = struct.unpack('<I', f.read(4))[0]
+        self.is_coin_base = struct.unpack('<B', f.read(1))[0] == 1
+        self.outputs = deser_uint32_map(f, CTxOut)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.tx_id)
+        r += struct.pack('<I', self.height)
+        r += struct.pack('<B', self.is_coin_base)
+        r += ser_uint32_map(self.outputs)
+        return r
+
+    def __repr__(self):
+        return "UTXOSubset(tx_id=%064x height=%i, is_coin_base=%i outputs=%s)" \
+                % (self.tx_id, self.height, self.is_coin_base, repr(self.outputs))
 
 
 class msg_notfound():

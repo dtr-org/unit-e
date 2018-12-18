@@ -89,7 +89,7 @@ class SnapshotTest(UnitETestFramework):
         isd_node = self.nodes[2]
         rework_node = self.nodes[3]
 
-        # generate 3 blocks to create first snapshot and its parent block
+        # generate 4 blocks to create first snapshot and its parent block
         #               s0
         # G------------(h=3)-(h=4) full_node
         # | isd_node

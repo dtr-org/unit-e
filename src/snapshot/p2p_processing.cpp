@@ -321,6 +321,7 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, size_t node_index, size
       const auto diff = now - m_first_discovery_request_at;
       const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
       if (diff_sec.count() > m_params.discovery_timeout_sec) {
+        LogPrint(BCLog::SNAPSHOT, "Disabling ISD and switching to IBD\n");
         DisableISDMode();
       }
       return;
