@@ -65,7 +65,7 @@ class EmbargoManLoop(UnitETestFramework):
         tx = self.nodes[0].sendtoaddress(address, 1)
 
         while True:
-            problem_nodes = GetNodesThatDidntSentInv(self.nodes, tx)
+            problem_nodes = GetNodesThatDidntSendInv(self.nodes, tx)
             if len(problem_nodes) == 0:
                 return
 
@@ -73,7 +73,7 @@ class EmbargoManLoop(UnitETestFramework):
                 raise AssertionError("Nodes didn't send inv: %", problem_nodes)
 
 
-def GetNodesThatDidntSentInv(all_nodes, tx):
+def GetNodesThatDidntSendInv(all_nodes, tx):
     result = []
     for node in all_nodes:
         if tx not in node.p2p.invs:
