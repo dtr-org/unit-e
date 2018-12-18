@@ -47,6 +47,9 @@ class ProposerImpl : public Proposer {
 
   bool Wait() {
     // UNIT-E simply wait. the proposer could be woken up when a new block arrives.
+    if (m_interrupted) {
+      return false;
+    }
     m_waiter.WaitUpTo(m_blockchain_behavior->GetBlockStakeTimestampInterval());
     return !m_interrupted;
   }
