@@ -42,7 +42,7 @@ class StakeValidatorImpl : public StakeValidator {
     ::CDataStream s(SER_GETHASH, 0);
 
     s << kernel_hash;
-    s << previous_block->bnStakeModifier;
+    s << previous_block->stake_modifier;
 
     return Hash(s.begin(), s.end());
   }
@@ -60,7 +60,7 @@ class StakeValidatorImpl : public StakeValidator {
 
     ::CDataStream s(SER_GETHASH, 0);
 
-    s << previous_block->bnStakeModifier;
+    s << previous_block->stake_modifier;
     s << previous_block->nTime;
     s << stake.hash;
     s << stake.n;

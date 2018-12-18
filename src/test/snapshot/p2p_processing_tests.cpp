@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
 
   // simulate that headers were already received
   auto bi = new CBlockIndex;
-  bi->bnStakeModifier = best_snapshot.stake_modifier;
+  bi->stake_modifier = best_snapshot.stake_modifier;
   bi->phashBlock = &mapBlockIndex.emplace(best_snapshot.block_hash, bi).first->first;
 
   for (uint64_t i = 0; i < best_snapshot.total_utxo_subsets / 2; ++i) {

@@ -22,7 +22,6 @@ namespace proposer {
 class ProposerStub : public Proposer {
  public:
   void Wake() override {}
-  void Wake(const CWallet *) override {}
   void Start() override {}
 };
 
@@ -48,6 +47,9 @@ class ProposerImpl : public Proposer {
 
   bool Wait() {
     // UNIT-E simply wait. the proposer could be woken up when a new block arrives.
+    if (m_interrupted) {
+      return false;
+    }
     m_waiter.WaitUpTo(m_blockchain_behavior->GetBlockStakeTimestampInterval());
     return !m_interrupted;
   }
@@ -127,10 +129,6 @@ class ProposerImpl : public Proposer {
 
   void Wake() override {
     m_waiter.Wake();
-  }
-
-  void Wake(const CWallet *) override {
-    Wake();
   }
 
   void Start() override {

@@ -15,14 +15,14 @@ namespace blockchain {
 
 struct P2WPKH {
   CAmount amount;
-  std::string pubKeyHash;
+  std::string pub_key_hash;
 
   P2WPKH(CAmount, const std::string &&);
 };
 
 struct P2WSH {
   CAmount amount;
-  std::string scriptHash;
+  std::string script_hash;
 
   P2WSH(CAmount, const std::string &&);
 };
