@@ -151,7 +151,9 @@ class WalletExtension : public staking::StakingWallet {
 
   bool Unlock(const SecureString &wallet_passphrase, bool for_staking_only);
 
-  void SlashingConditionDetected(finalization::VoteRecord vote1, finalization::VoteRecord vote2);
+  void SlashingConditionDetected(
+      const finalization::VoteRecord &vote1,
+      const finalization::VoteRecord &vote2);
 
   void PostInitProcess(CScheduler &scheduler);
 };

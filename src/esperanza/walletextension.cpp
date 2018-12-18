@@ -744,7 +744,9 @@ bool WalletExtension::Unlock(const SecureString &wallet_passphrase,
   return m_enclosing_wallet.Unlock(wallet_passphrase);
 }
 
-void WalletExtension::SlashingConditionDetected(const finalization::VoteRecord vote1, const finalization::VoteRecord vote2) {
+void WalletExtension::SlashingConditionDetected(
+    const finalization::VoteRecord &vote1,
+    const finalization::VoteRecord &vote2) {
 
   LOCK(cs_pendingSlashing);
   pendingSlashings.emplace_back(vote1, vote2);
