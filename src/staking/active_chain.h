@@ -54,6 +54,12 @@ class ActiveChain : public blockchain::ChainAccess {
 
   const CBlockIndex *GetTip() { return (*this)[-1]; }
 
+  //! \brief convenience access to the chain.
+  //!
+  //! negative values -x look up a block at depth x,
+  //! positive values (including 0) look up a block at that height.
+  //!
+  //! \return nullptr if there is no such block at that depth/height.
   virtual const CBlockIndex *operator[](std::int64_t) = 0;
 
   // defined in blockchain::ChainAccess
