@@ -36,9 +36,6 @@ struct CreationInfo {
   CreationInfo() : status(Status::OK), total_outputs(0) {}
 };
 
-//! keeps track how often the snapshot must be created
-extern uint16_t g_create_snapshot_per_epoch;
-
 //! Creator class accepts the CCoinsViewDB and takes the cursor of it
 //! at the point of object construction. Once the Create() function is called,
 //! creator object should be thrown way. It's not designed to be re-used.
@@ -82,6 +79,8 @@ class Creator {
  private:
   ChainstateIterator m_iter;
 };
+
+bool IsRecurrentCreation();
 
 }  // namespace snapshot
 

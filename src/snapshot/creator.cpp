@@ -179,4 +179,8 @@ CreationInfo Creator::Create() {
   return info;
 }
 
+bool IsRecurrentCreation() {
+  return g_create_snapshot_per_epoch > 0;
+}
+
 }  // namespace snapshot
