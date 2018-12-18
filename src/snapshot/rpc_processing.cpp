@@ -284,14 +284,14 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
 
 // clang-format off
 static const CRPCCommand commands[] = {
-    // category     name                 actor (function)   argNames
-    // --------     -----------------   ----------------   --------
-    { "blockchain", "createsnapshot",   &createsnapshot,   {"maxutxosubsets"} },
-    { "blockchain", "deletesnapshot",   &deletesnapshot,   {"snapshothash"} },
-    { "blockchain", "getblocksnapshot", &getblocksnapshot, {"blockhash"} },
-    { "blockchain", "listsnapshots",    &listsnapshots,    {""} },
-    { "blockchain", "gettipsnapshot",   &gettipsnapshot,   {}},
-    { "blockchain", "calcsnapshothash", &calcsnapshothash, {}},
+    // category   name                actor (function)   argNames
+    // --------   ------------------  -----------------  --------
+    { "snapshot", "createsnapshot",   &createsnapshot,   {"maxutxosubsets"} },
+    { "snapshot", "deletesnapshot",   &deletesnapshot,   {"snapshothash"} },
+    { "snapshot", "getblocksnapshot", &getblocksnapshot, {"blockhash"} },
+    { "snapshot", "listsnapshots",    &listsnapshots,    {""} },
+    { "snapshot", "gettipsnapshot",   &gettipsnapshot,   {}},
+    { "snapshot", "calcsnapshothash", &calcsnapshothash, {}},
 };
 // clang-format on
 
