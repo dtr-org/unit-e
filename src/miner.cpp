@@ -196,6 +196,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
 void BlockAssembler::AddMandatoryTxs()
 {
+    const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
     auto mi = mempool.mapTx.get<ancestor_score>().begin();
     for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {
 
@@ -204,7 +205,8 @@ void BlockAssembler::AddMandatoryTxs()
             //Check again in case the vote became invalid in the meanwhile (different target now)
             if (esperanza::CheckVoteTransaction(state,
                                                 mi->GetTx(),
-                                                chainparams.GetConsensus())) {
+                                                chainparams.GetConsensus(),
+                                                fin_state)) {
                 AddToBlock(mempool.mapTx.project<0>(mi));
                 LogPrint(BCLog::FINALIZATION,
                          "%s: Add vote with id %s to a new block.\n",

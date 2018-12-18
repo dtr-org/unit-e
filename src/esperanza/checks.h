@@ -13,6 +13,8 @@
 
 namespace esperanza {
 
+class FinalizationState;
+
 //! \brief Check if the vote is referring to an epoch before the last known
 //! finalization.
 //!
@@ -23,27 +25,27 @@ namespace esperanza {
 bool IsVoteExpired(const CTransaction &tx);
 
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
-                             const CBlockIndex *pindex = nullptr);
+                             const FinalizationState &state);
 
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const Consensus::Params &consensusParams,
-                          const CBlockIndex *pindex = nullptr);
+                          const FinalizationState &state);
 
 bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
                            const Consensus::Params &consensusParams,
-                           const CBlockIndex *pindex = nullptr);
+                           const FinalizationState &state);
 
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                             const Consensus::Params &consensusParams,
-                            const CBlockIndex *pindex = nullptr);
+                            const FinalizationState &state);
 
 bool CheckWithdrawTransaction(CValidationState &errState,
                               const CTransaction &tx,
                               const Consensus::Params &consensusParams,
-                              const CBlockIndex *pindex = nullptr);
+                              const FinalizationState &state);
 
 bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
-                           const CBlockIndex *pindex = nullptr);
+                           const FinalizationState &finalizationState);
 
 //! \brief Extracts the validator address from the transaction if applicable.
 //!

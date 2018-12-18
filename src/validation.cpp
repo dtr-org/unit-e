@@ -3292,6 +3292,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
     }
     // Check that all transactions are finalized
+    const auto &fin_state = *esperanza::FinalizationState::GetState(pindexPrev);
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
@@ -3306,7 +3307,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckVoteTransaction(state, *tx, consensusParams, pindexPrev)) {
+            if (!esperanza::CheckVoteTransaction(state, *tx, consensusParams, fin_state)) {
 
               LogPrint(BCLog::FINALIZATION,
                        "%s: Vote cannot be included into mempool: %s.\n",
@@ -3324,7 +3325,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 __func__,
                 tx->GetHash().GetHex());
 
-            if (!esperanza::CheckDepositTransaction(state, *tx, pindexPrev)) {
+            if (!esperanza::CheckDepositTransaction(state, *tx, fin_state)) {
               LogPrint(BCLog::FINALIZATION,
                        "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
                        __func__,
@@ -3342,7 +3343,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckLogoutTransaction(state, *tx, consensusParams, pindexPrev)) {
+            if (!esperanza::CheckLogoutTransaction(state, *tx, consensusParams, fin_state)) {
               LogPrint(BCLog::FINALIZATION,
                        "%s: Logout cannot be included into mempool: %s.\n",
                        __func__,
@@ -3357,7 +3358,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      "%s: Accepting withdraw to mempool with id %s.\n", __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckWithdrawTransaction(state, *tx, consensusParams, pindexPrev)){
+            if (!esperanza::CheckWithdrawTransaction(state, *tx, consensusParams, fin_state)){
               LogPrint(BCLog::FINALIZATION,
                        "%s: Withdraw cannot be included into mempool: %s.\n",
                        __func__,
@@ -3372,7 +3373,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      "%s: Accepting slash to mempool with id %s.\n", __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckSlashTransaction(state, *tx, consensusParams, pindexPrev)){
+            if (!esperanza::CheckSlashTransaction(state, *tx, consensusParams, fin_state)){
               LogPrint(BCLog::FINALIZATION,
                        "%s: Slash cannot be included into mempool: %s.\n",
                        __func__,
@@ -3388,7 +3389,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 "%s: Accepting admin transaction to mempool with id %s.\n",
                 __func__, tx->GetHash().GetHex());
 
-            if (!esperanza::CheckAdminTransaction(state, *tx, pindexPrev)) {
+            if (!esperanza::CheckAdminTransaction(state, *tx, fin_state)) {
               LogPrint(BCLog::ADMIN,
                   "%s: Admin transaction cannot be included into mempool: %s.\n",
                    __func__,
@@ -4933,6 +4934,7 @@ public:
 } instance_of_cmaincleanup;
 
 bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &state, const CChainParams &chainparams) {
+  const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
   switch (tx.GetType()) {
     case TxType::VOTE: {
 
@@ -4941,7 +4943,7 @@ bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &stat
                __func__,
                tx.GetHash().GetHex());
 
-      if (!esperanza::CheckVoteTransaction(state, tx, chainparams.GetConsensus())) {
+      if (!esperanza::CheckVoteTransaction(state, tx, chainparams.GetConsensus(), fin_state)) {
         LogPrint(BCLog::FINALIZATION,
                  "%s: Vote cannot be included into mempool: %s.\n",
                  __func__,
@@ -4957,7 +4959,7 @@ bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &stat
                "%s: Accepting deposit to mempool with id %s.\n", __func__,
                tx.GetHash().GetHex());
 
-      if (!esperanza::CheckDepositTransaction(state, tx)) {
+      if (!esperanza::CheckDepositTransaction(state, tx, fin_state)) {
         LogPrint(BCLog::FINALIZATION,
                  "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
                  __func__,
@@ -4973,7 +4975,7 @@ bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &stat
                "%s: Accepting logout to mempool with id %s.\n", __func__,
                tx.GetHash().GetHex());
 
-      if (!esperanza::CheckLogoutTransaction(state, tx, chainparams.GetConsensus())){
+      if (!esperanza::CheckLogoutTransaction(state, tx, chainparams.GetConsensus(), fin_state)){
         LogPrint(BCLog::FINALIZATION,
                  "%s: Logout cannot be included into mempool: %s.\n",
                  __func__,
@@ -4988,7 +4990,7 @@ bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &stat
                "%s: Accepting withdraw to mempool with id %s.\n", __func__,
                tx.GetHash().GetHex());
 
-      if (!esperanza::CheckWithdrawTransaction(state, tx, chainparams.GetConsensus())){
+      if (!esperanza::CheckWithdrawTransaction(state, tx, chainparams.GetConsensus(), fin_state)){
         LogPrint(BCLog::FINALIZATION,
                  "%s: Withdraw cannot be included into mempool: %s.\n",
                  __func__,
@@ -5003,7 +5005,7 @@ bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &stat
                "%s: Accepting slash to mempool with id %s.\n", __func__,
                tx.GetHash().GetHex());
 
-      if (!esperanza::CheckSlashTransaction(state, tx, chainparams.GetConsensus())){
+      if (!esperanza::CheckSlashTransaction(state, tx, chainparams.GetConsensus(), fin_state)){
         LogPrint(BCLog::FINALIZATION,
                  "%s: Slash cannot be included into mempool: %s.\n",
                  __func__,
@@ -5019,7 +5021,7 @@ bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &stat
                "%s: Accepting admin transaction to mempool with id %s.\n",
                __func__, tx.GetHash().GetHex());
 
-      if (!esperanza::CheckAdminTransaction(state, tx)) {
+      if (!esperanza::CheckAdminTransaction(state, tx, fin_state)) {
         LogPrint(BCLog::ADMIN,
                  "%s: Admin transaction cannot be included into mempool: %s.\n",
                  __func__,

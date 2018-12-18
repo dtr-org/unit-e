@@ -360,9 +360,9 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 }
 
 void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
-                                   const CBlockIndex *blockIndex) {
+                                   const CBlockIndex &blockIndex) {
 
-  FinalizationState *state = FinalizationState::GetState(blockIndex);
+  FinalizationState *state = FinalizationState::GetState(&blockIndex);
 
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
@@ -573,7 +573,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 }
 
 void WalletExtension::BlockConnected(
-    const std::shared_ptr<const CBlock> &pblock, const CBlockIndex *pindex) {
+    const std::shared_ptr<const CBlock> &pblock, const CBlockIndex &index) {
 
   LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
@@ -582,10 +582,10 @@ void WalletExtension::BlockConnected(
 
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
-        VoteIfNeeded(pblock, pindex);
+        VoteIfNeeded(pblock, index);
 
         // In case we are logged out, stop validating.
-        FinalizationState *state = FinalizationState::GetState(pindex);
+        FinalizationState *state = FinalizationState::GetState(&index);
         uint32_t currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.get().m_endDynasty) {
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
@@ -593,7 +593,7 @@ void WalletExtension::BlockConnected(
         break;
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
-        FinalizationState *state = FinalizationState::GetState(pindex);
+        FinalizationState *state = FinalizationState::GetState(&index);
 
         if (state->GetLastFinalizedEpoch() >= validatorState.get().m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
@@ -655,7 +655,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
         state.m_validatorAddress = validatorAddress;
         state.m_lastEsperanzaTx = ptx;
-        state.m_depositEpoch = esperanza::FinalizationState::GetEpoch(pIndex);
+        state.m_depositEpoch = esperanza::FinalizationState::GetEpoch(*pIndex);
 
       } else {
         LogPrint(BCLog::FINALIZATION,

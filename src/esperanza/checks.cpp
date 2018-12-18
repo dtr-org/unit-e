@@ -15,7 +15,7 @@
 namespace esperanza {
 
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
-                             const CBlockIndex *pindex) {
+                             const FinalizationState &state) {
 
   assert(tx.IsDeposit());
 
@@ -42,9 +42,7 @@ bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-deposit-cannot-extract-validator-address");
   }
 
-  const FinalizationState *state = FinalizationState::GetState(pindex);
-
-  const Result res = state->ValidateDeposit(validatorAddress, tx.GetValueOut());
+  const Result res = state.ValidateDeposit(validatorAddress, tx.GetValueOut());
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-deposit-invalid-state");
@@ -68,7 +66,7 @@ bool IsVoteExpired(const CTransaction &tx) {
 
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                             const Consensus::Params &consensusParams,
-                            const CBlockIndex *pindex) {
+                            const FinalizationState &state) {
 
   assert(tx.IsLogout());
 
@@ -95,9 +93,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
                         "bad-logout-cannot-extract-validator-address");
   }
 
-  const FinalizationState *state = FinalizationState::GetState(pindex);
-
-  const Result res = state->ValidateLogout(validatorAddress);
+  const Result res = state.ValidateLogout(validatorAddress);
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-logout-invalid-state");
@@ -135,7 +131,7 @@ bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
 bool CheckWithdrawTransaction(CValidationState &errState,
                               const CTransaction &tx,
                               const Consensus::Params &consensusParams,
-                              const CBlockIndex *pindex) {
+                              const FinalizationState &state) {
 
   assert(tx.IsWithdraw());
 
@@ -181,9 +177,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
                         "bad-logout-cannot-extract-validator-address");
   }
 
-  const FinalizationState *state = FinalizationState::GetState(pindex);
-
-  const Result res = state->ValidateWithdraw(validatorAddress, tx.vout[0].nValue);
+  const Result res = state.ValidateWithdraw(validatorAddress, tx.vout[0].nValue);
 
   if (res != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID,
@@ -200,7 +194,7 @@ bool CheckWithdrawTransaction(CValidationState &errState,
 
 bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
                           const Consensus::Params &consensusParams,
-                          const CBlockIndex *pindex) {
+                          const FinalizationState &state) {
 
   assert(tx.IsVote());
 
@@ -212,8 +206,6 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
     return errState.DoS(10, false, REJECT_INVALID,
                         "bad-vote-vout-script-invalid-payvoteslash");
   }
-
-  const FinalizationState *state = FinalizationState::GetState(pindex);
 
   Vote vote;
   std::vector<unsigned char> voteSig;
@@ -232,7 +224,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
     return errState.DoS(100, false, REJECT_INVALID, "bad-vote-signature");
   }
 
-  if (state->ValidateVote(vote) != +Result::SUCCESS) {
+  if (state.ValidateVote(vote) != +Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
   }
 
@@ -264,7 +256,7 @@ bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
 
 bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
                            const Consensus::Params &consensusParams,
-                           const CBlockIndex *pindex) {
+                           const FinalizationState &state) {
 
   assert(tx.IsSlash());
 
@@ -281,8 +273,7 @@ bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
     return errState.DoS(10, false, REJECT_INVALID, "bad-slash-data-format");
   }
 
-  const FinalizationState *state = FinalizationState::GetState(pindex);
-  const esperanza::Result res = state->IsSlashable(vote1, vote2);
+  const esperanza::Result res = state.IsSlashable(vote1, vote2);
 
   if (res != +esperanza::Result::SUCCESS) {
     return errState.DoS(10, false, REJECT_INVALID, "bad-slash-not-slashable");
@@ -292,11 +283,9 @@ bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
 }
 
 bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
-                           const CBlockIndex *pindex) {
-  const esperanza::FinalizationState *const finalizationState =
-      esperanza::FinalizationState::GetState(pindex);
+                           const FinalizationState &finalizationState) {
 
-  if (!finalizationState->IsPermissioningActive()) {
+  if (!finalizationState.IsPermissioningActive()) {
     return state.DoS(10, false, REJECT_INVALID, "admin-disabled");
   }
 
@@ -349,7 +338,7 @@ bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
 
   AdminKeySet set;
   std::copy_n(keys.begin(), ADMIN_MULTISIG_KEYS, set.begin());
-  const auto result = finalizationState->ValidateAdminKeys(set);
+  const auto result = finalizationState.ValidateAdminKeys(set);
 
   if (result != +Result::SUCCESS) {
     return state.DoS(10, false, REJECT_INVALID, "admin-not-authorized");

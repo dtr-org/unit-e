@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_insta_finalize) {
 
   FinalizationStateSpy spy;
 
-  for (int i = 0; i < spy.EpochLength() * 3; i++) {
+  for (uint32_t i = 0; i < spy.EpochLength() * 3; i++) {
     if (i < spy.EpochLength()) {
       BOOST_CHECK_EQUAL(spy.InitializeEpoch(i), +Result::INIT_WRONG_EPOCH);
     } else {
