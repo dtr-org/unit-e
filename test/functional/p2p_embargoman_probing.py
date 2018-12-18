@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-Performs probing attack embargoed transactions.
+Performs probing attack on embargoed transactions.
 
 Embargo some transaction and connect two mininodes to the source.
 The first mininode will be probing for the above transaction.
@@ -14,17 +14,16 @@ responses we received and they should be the same
 from test_framework.util import connect_nodes, assert_equal
 from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import P2PInterface, network_thread_start, \
-    msg_getdata, msg_mempool
+    msg_getdata, msg_mempool, msg_inv
 from test_framework.messages import CInv
 import time
 import threading
 
-# Minimum embargo.
-EMBARGO_SECONDS = 60
+# Timeout for entire test duration
+TEST_TIMEOUT = 60
 
-# Perform probing from the moment tx was sent and until PROBE_UNTIL_SECONDS
-# have passed
-PROBE_UNTIL_SECONDS = 40
+# Perform probing for so many seconds
+PROBING_DURATION_SECONDS = 20
 
 
 class EmbargoProbing(UnitETestFramework):
@@ -33,8 +32,9 @@ class EmbargoProbing(UnitETestFramework):
 
         self.extra_args = [['-proposing=1',
                             '-debug=all',
+                            '-whitelist=127.0.0.1',
                             '-embargotxs=1',
-                            '-embargomin=%s' % EMBARGO_SECONDS]] * self.num_nodes
+                            '-embargomin=9999']] * self.num_nodes
         self.setup_clean_chain = True
 
     def setup_network(self):
@@ -58,21 +58,24 @@ class EmbargoProbing(UnitETestFramework):
 
         real_probe = Probe(real_tx)
         imaginary_probe = Probe(imaginary_tx)
+        inv_sender = P2PInterface()
 
         source.add_p2p_connection(real_probe)
         source.add_p2p_connection(imaginary_probe)
+        source.add_p2p_connection(inv_sender)
         network_thread_start()
 
         real_probe.wait_for_verack()
         imaginary_probe.wait_for_verack()
+        inv_sender.wait_for_verack()
 
         # Finally start probing for some time
-        while time.perf_counter() < start_time + PROBE_UNTIL_SECONDS:
-            real_probe.get_data()
-            imaginary_probe.get_data()
+        while time.perf_counter() < start_time + PROBING_DURATION_SECONDS:
+            real_probe.send_get_data()
+            imaginary_probe.send_get_data()
 
-            real_probe.get_mempool()
-            imaginary_probe.get_mempool()
+            real_probe.send_get_mempool()
+            imaginary_probe.send_get_mempool()
 
             time.sleep(0.5)
 
@@ -81,17 +84,20 @@ class EmbargoProbing(UnitETestFramework):
                 check_during_embargo(real_probe, imaginary_probe)
                 break
             except AssertionError:
-                if time.perf_counter() - start_time >= EMBARGO_SECONDS:
+                if time.perf_counter() - start_time >= TEST_TIMEOUT:
                     raise
                 time.sleep(0.5)
 
+        # Force embargo to end
+        inv_sender.send_message(msg_inv([CInv(1, int(real_tx, 16))]))
+
         while True:
             try:
-                real_probe.get_data()
+                real_probe.send_get_data()
                 check_after_embargo(real_probe)
                 break
             except AssertionError:
-                if time.perf_counter() - start_time - EMBARGO_SECONDS > 30:
+                if time.perf_counter() - start_time >= TEST_TIMEOUT:
                     raise
                 time.sleep(0.5)
 
@@ -107,12 +113,12 @@ class Probe(P2PInterface):
         self.target_received = False
         self.target_inved = False
 
-    def get_data(self):
+    def send_get_data(self):
         want = msg_getdata()
         want.inv.append(CInv(1, self.target_hash))
         self.send_message(want)
 
-    def get_mempool(self):
+    def send_get_mempool(self):
         self.send_message(msg_mempool())
 
     def on_tx(self, message):
