@@ -1739,24 +1739,29 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
 {
     bool fClean = true;
 
-    if (view.HaveCoin(out)) fClean = false; // overwriting transaction output
+    if (view.HaveCoin(out)) {
+        fClean = false; // Overwriting transaction output
+    }
 
     if (undo.nHeight == 0) {
-        // Missing undo metadata (height and coinbase). Older versions included this
-        // information only in undo records for the last spend of a transactions'
-        // outputs. This implies that it must be present for some other output of the same tx.
+        // Missing undo metadata (height and coinbase). Older versions included
+        // this information only in undo records for the last spend of a
+        // transactions' outputs. This implies that it must be present for some
+        // other output of the same tx.
         const Coin& alternate = AccessByTxid(view, out.hash);
         if (!alternate.IsSpent()) {
             undo.nHeight = alternate.nHeight;
             undo.fCoinBase = alternate.fCoinBase;
         } else {
-            return DISCONNECT_FAILED; // adding output for transaction without known metadata
+            // Adding output for transaction without known metadata
+            return DISCONNECT_FAILED;
         }
     }
-    // The potential_overwrite parameter to AddCoin is only allowed to be false if we know for
-    // sure that the coin did not already exist in the cache. As we have queried for that above
-    // using HaveCoin, we don't need to guess. When fClean is false, a coin already existed and
-    // it is an overwrite.
+
+    // The potential_overwrite parameter to AddCoin is only allowed to be false
+    // if we know for sure that the coin did not already exist in the cache. As
+    // we have queried for that above using HaveCoin, we don't need to guess.
+    // When fClean is false, a coin already existed and it is an overwrite.
     view.AddCoin(out, std::move(undo), !fClean);
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
@@ -1779,39 +1784,47 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    // undo transactions in reverse order
-    for (int i = block.vtx.size() - 1; i >= 0; i--) {
+    // First, restore inputs
+    for (size_t i = 1; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
-        uint256 hash = tx.GetHash();
-        bool is_coinbase = tx.IsCoinBase();
+        CTxUndo &txundo = blockUndo.vtxundo[i - 1];
 
-        // Check that all outputs are available and match the outputs in the block itself
-        // exactly.
-        for (size_t o = 0; o < tx.vout.size(); o++) {
-            if (!tx.vout[o].scriptPubKey.IsUnspendable()) {
-                COutPoint out(hash, o);
-                Coin coin;
-                bool is_spent = view.SpendCoin(out, &coin);
-                if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
-                    fClean = false; // transaction output mismatch
-                }
-            }
+        if (txundo.vprevout.size() != tx.vin.size()) {
+            error("DisconnectBlock(): transaction and undo data inconsistent");
+            return DISCONNECT_FAILED;
         }
 
-        // restore inputs
-        if (i > 0) { // not coinbases
-            CTxUndo &txundo = blockUndo.vtxundo[i-1];
-            if (txundo.vprevout.size() != tx.vin.size()) {
-                error("DisconnectBlock(): transaction and undo data inconsistent");
+        for (size_t j = 0; j < tx.vin.size(); j++) {
+            const COutPoint &out = tx.vin[j].prevout;
+            DisconnectResult res = (DisconnectResult)ApplyTxInUndo(
+                std::move(txundo.vprevout[j]), view, out
+            );
+            if (res == DISCONNECT_FAILED) {
                 return DISCONNECT_FAILED;
             }
-            for (unsigned int j = tx.vin.size(); j-- > 0;) {
-                const COutPoint &out = tx.vin[j].prevout;
-                int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
-                if (res == DISCONNECT_FAILED) return DISCONNECT_FAILED;
-                fClean = fClean && res != DISCONNECT_UNCLEAN;
+            fClean = fClean && res != DISCONNECT_UNCLEAN;
+        }
+    }
+
+    // Second, revert created outputs
+    for (const auto &ptx : block.vtx) {
+        const CTransaction &tx = *ptx;
+        TxId txid = tx.GetId();
+
+        // Check that all outputs are available and match the outputs in the
+        // block itself exactly.
+        for (size_t o = 0; o < tx.vout.size(); o++) {
+            if (tx.vout[o].scriptPubKey.IsUnspendable()) {
+                continue;
             }
-            // At this point, all of txundo.vprevout should have been moved out.
+
+            COutPoint out(txid, o);
+            Coin coin;
+            bool is_spent = view.SpendCoin(out, &coin);
+
+            if (!is_spent || tx.vout[0] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
+                fClean = false; // Transaction output mismatch
+            }
         }
     }
 
@@ -2087,6 +2100,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
+
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2150,6 +2164,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
     }
+
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
