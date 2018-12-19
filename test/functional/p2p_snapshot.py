@@ -36,7 +36,7 @@ from test_framework.mininode import (
     NODE_SNAPSHOT,
 )
 from test_framework.blocktools import (
-    msg_headers,
+    msg_commits,
     msg_witness_block,
     msg_getsnaphead,
     msg_snaphead,
@@ -47,6 +47,7 @@ from test_framework.blocktools import (
     Snapshot,
     UTXO,
     CBlockHeader,
+    HeaderAndCommits,
     CBlock,
     COutPoint,
     ser_vector,
@@ -80,13 +81,14 @@ class BaseNode(P2PInterface):
         self.headers = []
         self.parent_block = CBlock()
 
-    def on_getheaders(self, message):
+    def on_getcommits(self, message):
         if len(self.headers) == 0:
             return
 
-        msg = msg_headers()
+        msg = msg_commits()
+        msg.status = 1
         for h in self.headers:
-            msg.headers.append(h)
+            msg.data.append(HeaderAndCommits(h))
         self.send_message(msg)
 
     def on_getsnaphead(self, message):

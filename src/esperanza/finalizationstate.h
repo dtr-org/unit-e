@@ -238,9 +238,12 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
   uint32_t GetEpoch(blockchain::Height blockHeight) const;
 
+  //! \brief Returns the height of the first block of the epoch.
+  blockchain::Height GetEpochStartHeight(uint32_t epoch) const;
+
   static bool ValidateDepositAmount(CAmount amount);
 
-  //! \brief Processes the next chain tip passed.
+  //! \brief Processes the next chain (active or alternative) tip passed.
   //!
   //! This method encapsulates all the logic necessary to make the finalization
   //! state progress by one block.
@@ -314,6 +317,10 @@ class FinalizationState : public FinalizationStateData {
 inline uint32_t GetEpochLength() { return FinalizationState::GetState()->GetEpochLength(); }
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
 inline uint32_t GetEpoch(blockchain::Height blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
+inline blockchain::Height GetEpochStartHeight(uint32_t epoch) { return FinalizationState::GetState()->GetEpochStartHeight(epoch); }
+inline uint32_t GetLastFinalizedEpoch() { return FinalizationState::GetState()->GetLastFinalizedEpoch(); }
+inline uint32_t GetCurrentEpoch() { return FinalizationState::GetState()->GetCurrentEpoch(); }
+inline bool IsCheckpoint(blockchain::Height block_height) { return FinalizationState::GetState()->IsCheckpoint(block_height); };
 
 }  // namespace esperanza
 

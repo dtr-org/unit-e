@@ -53,6 +53,7 @@
 #include <boost/thread.hpp>
 
 #include <esperanza/finalizationstate.h>
+#include <finalization/cache.h>
 #include <tinyformat.h>
 #include <snapshot/snapshot_validation.h>
 
@@ -121,6 +122,11 @@ private:
      */
     std::set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexCandidates;
 
+    // The set of all the tips (including active chain).
+    // We use this set to track all concurrent tips we have in the current
+    // dynasty. Once one of chains becomes longest justified, we switch main chain
+    // there.
+    std::set<CBlockIndex*> chain_tips;
     /**
      * Every received block is assigned a unique and increasing identifier, so we
      * know which one to give priority in case of a fork.
@@ -203,9 +209,10 @@ private:
     void CheckBlockIndex(const Consensus::Params& consensusParams);
 
     void InvalidBlockFound(CBlockIndex *pindex, const CValidationState &state);
+    CBlockIndex *FindLongestJustifiedChain();
     CBlockIndex* FindMostWorkChain();
     bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams);
-
+    bool ProcessFinalizationState(const Consensus::Params &params, CBlockIndex *block_index, const CBlock *block);
 
     bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params);
 } g_chainstate;
@@ -577,14 +584,10 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
 
 static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
                                           const Consensus::Params &params,
-                                          const esperanza::FinalizationState *fin_state = nullptr) {
-    if (fin_state == nullptr) {
-        fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
-    }
-    assert(fin_state != nullptr);
+                                          const esperanza::FinalizationState &fin_state) {
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::ContextualCheckFinalizationTx(tx, err_state, params, *fin_state)) {
+    if (!esperanza::ContextualCheckFinalizationTx(tx, err_state, params, fin_state)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
@@ -593,17 +596,11 @@ static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationSta
 }
 
 static bool ContextualCheckBlockFinalizationTxes(const CBlock &block, CValidationState &err_state,
-                                                 const CBlockIndex *prev_index,
-                                                 const Consensus::Params &params) {
-    esperanza::FinalizationState *fin_state = nullptr;
+                                                 const Consensus::Params &params,
+                                                 const esperanza::FinalizationState &fin_state) {
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizationTransaction()) {
-            if (fin_state == nullptr) {
-                assert(prev_index != nullptr);
-                fin_state = esperanza::FinalizationState::GetState(prev_index);
-                assert(fin_state != nullptr);
-            }
-            if (!ContextualCheckFinalizationTx(*tx, err_state, params, fin_state)) {
+            if (!::ContextualCheckFinalizationTx(*tx, err_state, params, fin_state)) {
                 return false;
             }
         }
@@ -668,7 +665,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
-    if (tx.IsFinalizationTransaction() && !ContextualCheckFinalizationTx(tx, state, chainparams.GetConsensus())) {
+    const auto *fin_state = esperanza::FinalizationState::GetState();
+    assert(fin_state != nullptr);
+    if (tx.IsFinalizationTransaction() &&
+        !::ContextualCheckFinalizationTx(tx, state, chainparams.GetConsensus(), *fin_state)) {
         return false; // state already filled by ContextualCheckFinalizationTx
     }
 
@@ -2001,6 +2001,19 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     LogPrint(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
 
     CBlockUndo blockundo;
+    bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
+
+    // UNIT-E: Workaround #421
+    bool has_finalization_tx = false;
+    for (const auto &tx : block.vtx) {
+        if (tx->IsFinalizationTransaction()) {
+            has_finalization_tx = true;
+            break;
+        }
+    }
+
+    const auto *fin_state = esperanza::FinalizationState::GetState(pindex->pprev);
+    assert(fin_state != nullptr || isGenesisBlock || !has_finalization_tx);
 
     // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
     // deadlock between threads.
@@ -2012,7 +2025,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // unite-proposer or unite-http (when creating new block)
     // - lock mempool.cs in BlockAssembler::CreateNewBlock()
     // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
-    if (!ContextualCheckBlockFinalizationTxes(block, state, pindex->pprev, chainparams.GetConsensus())) {
+    if (!isGenesisBlock &&
+        has_finalization_tx &&
+        !ContextualCheckBlockFinalizationTxes(block, state, chainparams.GetConsensus(), *fin_state)) {
         return false;
     }
 
@@ -2102,7 +2117,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
     if (!isGenesisBlock) {
         CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
         if (block.vtx[0]->GetValueOut() > blockReward)
@@ -2499,7 +2513,9 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
-    GetComponent(FinalizationStateProcessor)->ProcessNewTip(*pindexNew, blockConnecting);
+    if (!GetComponent(FinalizationStateProcessor)->ProcessNewTip(*pindexNew, blockConnecting)) {
+      return state.DoS(100, error("esperanza::ProcessNewTip failed"), REJECT_INVALID, "bad-finalization");
+    }
 
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
@@ -2522,16 +2538,81 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     return true;
 }
 
+bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlockIndex *block_index, const CBlock *block) {
+    // `ReceivedBlockTransactions()` is responsible to call this function for blocks in a correct order.
+    if (block_index == nullptr || block_index->pprev == nullptr) {
+        return true;
+    }
+    assert(block_index->nChainTx != 0);
+    if (!block_index->IsValid()) {
+        return error("Block %s is invalid", block_index->GetBlockHash().GetHex());
+    }
+    chain_tips.erase(block_index->pprev);
+    if (!block_index->pprev->IsValid()) {
+        return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
+    }
+    bool ok = false;
+    if (block != nullptr) {
+      ok = finalization::cache::ProcessNewTipCandidate(*block_index, *block);
+    } else {
+        LogPrintf("Read %s from the disk\n", block_index->GetBlockHash().GetHex());
+        CBlock block;
+        if (!ReadBlockFromDisk(block, block_index, params)) {
+            return error("Cannot read from the disk");
+        }
+        ok = finalization::cache::ProcessNewTipCandidate(*block_index, block);
+    }
+    if (ok) {
+        chain_tips.emplace(block_index);
+    } else {
+        return error("finalization::cache::ProcessNewTip failed");
+    }
+    return true;
+}
+
+CBlockIndex *CChainState::FindLongestJustifiedChain() {
+    if (chainActive.Tip() == nullptr) {
+        return nullptr;
+    }
+    const esperanza::FinalizationState *const tip_state = finalization::cache::GetState(*chainActive.Tip());
+    assert(tip_state != nullptr);
+    uint32_t tip_longest_justified = tip_state->GetLastJustifiedEpoch();
+
+    CBlockIndex *block_index = nullptr;
+    for (auto it = chain_tips.begin(); it != chain_tips.end(); ) {
+        CBlockIndex *const tip = *it;
+        const esperanza::FinalizationState *const state = finalization::cache::GetState(*tip);
+        if (state != nullptr) {
+            const auto longest_justified = state->GetLastJustifiedEpoch();
+            if (longest_justified > tip_longest_justified) {
+                block_index = tip;
+                tip_longest_justified = longest_justified;
+            }
+            ++it;
+        } else {
+            // FinalizationState for this tip has been erased from the cache, get rid of the tip.
+            it = chain_tips.erase(it);
+        }
+    }
+    return block_index;
+}
+
 /**
  * Return the tip of the chain with the most work in it, that isn't
  * known to be invalid (it's however far from certain to be valid).
  */
 CBlockIndex* CChainState::FindMostWorkChain() {
     do {
-        CBlockIndex *pindexNew = nullptr;
+        CBlockIndex *pindexNew = FindLongestJustifiedChain();
 
         // Find the best candidate header.
-        {
+        if (pindexNew != nullptr) {
+            LogPrintf("Found candidate with greatest justified epoch: %s\n", pindexNew->GetBlockHash().GetHex());
+            // Clear setBlockIndexCandidates to protect from switching to the chain started
+            // from previous dynasty.
+            setBlockIndexCandidates.clear();
+            setBlockIndexCandidates.emplace(pindexNew);
+        } else {
             std::set<CBlockIndex*, CBlockIndexWorkComparator>::reverse_iterator it = setBlockIndexCandidates.rbegin();
             if (it == setBlockIndexCandidates.rend())
                 return nullptr;
@@ -2567,8 +2648,10 @@ CBlockIndex* CChainState::FindMostWorkChain() {
                         mapBlocksUnlinked.insert(std::make_pair(pindexFailed->pprev, pindexFailed));
                     }
                     setBlockIndexCandidates.erase(pindexFailed);
+                    chain_tips.erase(pindexFailed);
                     pindexFailed = pindexFailed->pprev;
                 }
+                chain_tips.erase(pindexTest);
                 setBlockIndexCandidates.erase(pindexTest);
                 fInvalidAncestor = true;
                 break;
@@ -3006,6 +3089,7 @@ bool CChainState::ReceivedBlockTransactions(const CBlock &block, CValidationStat
             if (chainActive.Tip() == nullptr || !setBlockIndexCandidates.value_comp()(pindex, chainActive.Tip())) {
                 setBlockIndexCandidates.insert(pindex);
             }
+            ProcessFinalizationState(consensusParams, pindex, pindex == pindexNew ? &block : nullptr);
             std::pair<std::multimap<CBlockIndex*, CBlockIndex*>::iterator, std::multimap<CBlockIndex*, CBlockIndex*>::iterator> range = mapBlocksUnlinked.equal_range(pindex);
             while (range.first != range.second) {
                 std::multimap<CBlockIndex*, CBlockIndex*>::iterator it = range.first;
@@ -3425,7 +3509,13 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
                 }
             }
         }
+        const auto fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
+        assert(fin_state != nullptr);
+        if (fin_state->GetEpoch(pindexPrev->nHeight + 1) < fin_state->GetLastFinalizedEpoch()) {
+            return state.DoS(10, error("%s: %s came from previous dynasty", __func__, hash.ToString()), 0, "bad-block-dynasty");
+        }
     }
+
     if (pindex == nullptr)
         pindex = AddToBlockIndex(block);
 
@@ -3438,8 +3528,8 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
 }
 
 bool AcceptBlockHeader(const CBlockHeader &header, CValidationState &state, const CChainParams &chainparams, CBlockIndex **ppindex) {
-  LOCK(cs_main);
-  return g_chainstate.AcceptBlockHeader(header, state, chainparams, ppindex);
+    LOCK(cs_main);
+    return g_chainstate.AcceptBlockHeader(header, state, chainparams, ppindex);
 }
 
 // Exposed wrapper for AcceptBlockHeader
@@ -3566,7 +3656,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
 bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock)
 {
-
     AssertLockNotHeld(cs_main);
 
     {
@@ -4299,6 +4388,7 @@ void CChainState::UnloadBlockIndex() {
     nBlockSequenceId = 1;
     g_failed_blocks.clear();
     setBlockIndexCandidates.clear();
+    chain_tips.clear();
 }
 
 // May NOT be used after any connections are up as much
@@ -4588,6 +4678,10 @@ void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)
             // Checks for not-invalid blocks.
             assert((pindex->nStatus & BLOCK_FAILED_MASK) == 0); // The failed mask cannot be set for blocks without invalid parents.
         }
+        // UNIT-E TODO: after switching to longest justified but with less work chain,
+        // this assert triggers. Need to either remove such indexes from mapBlockIndex
+        // or to mark specially them.
+        /*
         if (!CBlockIndexWorkComparator()(pindex, chainActive.Tip()) && pindexFirstNeverProcessed == nullptr) {
             if (pindexFirstInvalid == nullptr) {
                 // If this block sorts at least as good as the current tip and
@@ -4604,6 +4698,7 @@ void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)
         } else { // If this block sorts worse than the current tip or some ancestor's block has never been seen, it cannot be in setBlockIndexCandidates.
             assert(setBlockIndexCandidates.count(pindex) == 0);
         }
+        */
         // Check whether this block is in mapBlocksUnlinked.
         std::pair<std::multimap<CBlockIndex*,CBlockIndex*>::iterator,std::multimap<CBlockIndex*,CBlockIndex*>::iterator> rangeUnlinked = mapBlocksUnlinked.equal_range(pindex->pprev);
         bool foundInUnlinked = false;

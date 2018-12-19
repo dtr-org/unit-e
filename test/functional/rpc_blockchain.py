@@ -173,6 +173,7 @@ class BlockchainTest(UnitETestFramework):
 
     def _test_getblockheader(self):
         node = self.nodes[0]
+        self.log.info("Test getblockheader")
 
         assert_raises_rpc_error(-5, "Block not found",
                               node.getblockheader, "nonsense")
@@ -199,12 +200,14 @@ class BlockchainTest(UnitETestFramework):
         assert isinstance(header['difficulty'], (int, Decimal))
 
     def _test_getdifficulty(self):
+        self.log.info("Test getdifficulty")
         difficulty = self.nodes[0].getdifficulty()
         # 1 hash in 2 should be valid, so difficulty should be 1/2**31
         # binary => decimal => binary math is why we do this check
         assert abs(difficulty * 2**31 - 1) < 0.0001
 
     def _test_stopatheight(self):
+        self.log.info("Test stopatheight")
         assert_equal(self.nodes[0].getblockcount(), 200)
         self.nodes[0].generate(6)
         assert_equal(self.nodes[0].getblockcount(), 206)

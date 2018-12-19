@@ -1642,15 +1642,18 @@ class CommitsLocator():
         return r
 
     def __repr__(self):
-        return "CommitsLocator(start=% stop=%064x)" \
+        return "CommitsLocator(start=%s stop=%064x)" \
             % (repr(self.start), self.stop)
 
 
 class msg_getcommits:
     command = b"getcommits"
 
-    def __init__(self, locator):
-        self.locator = locator
+    def __init__(self, locator=None):
+        if locator is None:
+            self.locator = CommitsLocator()
+        else:
+            self.locator = locator
 
     def deserialize(self, f):
         self.locator.deserialize(f)
@@ -1660,9 +1663,12 @@ class msg_getcommits:
         r += self.locator.serialize()
         return r
 
+    def __repr__(self):
+        return "getcommits(%s)" % (repr(self.locator))
+
 class HeaderAndCommits:
-    def __init__(self):
-        self.header = CBlockHeader()
+    def __init__(self, header=None):
+        self.header = header if header is not None else CBlockHeader()
         self.commits = []
 
     def deserialize(self, f):

@@ -7,6 +7,7 @@
 
 #include <util.h>
 #include <validationinterface.h>
+#include <consensus/validation.h>
 
 namespace finalization {
 
@@ -129,5 +130,28 @@ std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
 }
 
 CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
+
+bool RecordVote(const CTransaction &tx,
+                CValidationState &err_state) {
+  assert(tx.IsVote());
+
+  const auto *const fin_state = esperanza::FinalizationState::GetState();
+  assert(fin_state != nullptr);
+
+  esperanza::Vote vote;
+  std::vector<unsigned char> voteSig;
+
+  if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
+    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
+  }
+  const esperanza::Result res = fin_state->ValidateVote(vote);
+
+  if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
+      res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
+    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig);
+  }
+
+  return true;
+}
 
 }  // namespace finalization

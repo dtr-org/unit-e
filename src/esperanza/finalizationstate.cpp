@@ -9,7 +9,6 @@
 #include <esperanza/vote.h>
 #include <injector.h>
 #include <script/ismine.h>
-#include <snapshot/creator.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
@@ -855,6 +854,7 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
+// UNIT-E TODO: get rid of this function
 FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
   if (block_index == nullptr) {
     return GetComponent(FinalizationStateRepository)->GetTipState();
@@ -872,6 +872,10 @@ uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
 
 uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
   return blockHeight / GetEpochLength();
+}
+
+blockchain::Height FinalizationState::GetEpochStartHeight(uint32_t epoch) const {
+  return epoch * m_settings.epoch_length;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {

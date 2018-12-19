@@ -157,8 +157,8 @@ CreationInfo Creator::Create() {
   snapshot_header.chain_work = ArithToUint256(block_index->nChainWork);
   snapshot_header.snapshot_hash = m_iter.GetSnapshotHash().GetHash(*block_index);
 
-  LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
-           snapshot_header.block_hash.GetHex(), snapshot_header.snapshot_hash.GetHex());
+  LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s height=%d snapshot_hash=%s\n",
+           snapshot_header.block_hash.GetHex(), block_index->nHeight, snapshot_header.snapshot_hash.GetHex());
 
   // can happen when the re-org happens back and forth
   for (Checkpoint p : GetSnapshotCheckpoints()) {

@@ -128,6 +128,7 @@ UNITE_CORE_H = \
   esperanza/walletextension_deps.h \
   esperanza/walletstate.h \
   extkey.h \
+  finalization/cache.h \
   finalization/p2p.h \
   finalization/state_processor.h \
   finalization/state_repository.h \
@@ -295,6 +296,7 @@ libunite_server_a_SOURCES = \
   esperanza/checks.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/validator.cpp \
+  finalization/cache.cpp \
   finalization/p2p.cpp \
   finalization/state_processor.cpp \
   finalization/state_repository.cpp \

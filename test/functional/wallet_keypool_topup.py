@@ -29,6 +29,8 @@ class KeypoolRestoreTest(UnitETestFramework):
         self.tmpdir = self.options.tmpdir
         self.nodes[0].generate(101)
 
+        sync_blocks(self.nodes)
+
         self.log.info("Make backup of wallet")
 
         self.stop_node(1)

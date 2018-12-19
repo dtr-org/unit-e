@@ -96,6 +96,7 @@ BASE_SCRIPTS= [
     'rpc_rawtransaction.py',
     'wallet_address_types.py',
     'feature_reindex.py',
+    'feature_commits_forkchoice.py',
     # vv Tests less than 30s vv
     'feature_ltor.py',
     'feature_assumevalid.py',

@@ -102,11 +102,12 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
   InsecureNewKey(k, true);
 
   uint160 validatorAddress = k.GetPubKey().GetID();
+  uint256 blockhash;
 
   uint256 block_hash;
   CBlockIndex blockIndex;
+  blockIndex.phashBlock = &blockhash;
   blockIndex.nHeight = 1;
-  blockIndex.phashBlock = &block_hash;
   CBlock block;
 
   CMutableTransaction tx;
