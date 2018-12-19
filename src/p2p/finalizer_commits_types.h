@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_P2P_FINALIZER_COMMITS_TYPES
-#define UNITE_P2P_FINALIZER_COMMITS_TYPES
+#ifndef UNITE_P2P_FINALIZER_COMMITS_TYPES_H
+#define UNITE_P2P_FINALIZER_COMMITS_TYPES_H
 
 #include <primitives/block.h>
 #include <serialize.h>

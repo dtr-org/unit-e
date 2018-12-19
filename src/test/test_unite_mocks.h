@@ -57,6 +57,7 @@ class ActiveChainMock : public staking::ActiveChain {
   mutable std::atomic<std::uint32_t> invocations_GetGenesis{0};
   mutable std::atomic<std::uint32_t> invocations_Contains{0};
   mutable std::atomic<std::uint32_t> invocations_FindForkOrigin{0};
+  mutable std::atomic<std::uint32_t> invocations_GetNext{0};
   mutable std::atomic<std::uint32_t> invocations_AtDepth{0};
   mutable std::atomic<std::uint32_t> invocations_AtHeight{0};
   mutable std::atomic<std::uint32_t> invocations_GetDepth{0};
@@ -133,6 +134,13 @@ class ActiveChainMock : public staking::ActiveChain {
   const CBlockIndex *FindForkOrigin(const CBlockIndex &block_index) const override {
     ++invocations_FindForkOrigin;
     return find_fork_origin(&block_index);
+  }
+  const CBlockIndex *GetNext(const CBlockIndex &block_index) const override {
+    ++invocations_GetNext;
+    if (block_at_height(block_index.nHeight) == &block_index) {
+      return block_at_height(block_index.nHeight + 1);
+    }
+    return nullptr;
   }
   const CBlockIndex *AtDepth(blockchain::Depth depth) const override {
     ++invocations_AtDepth;

@@ -233,7 +233,7 @@ public:
     uint256 stake_modifier;
 
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
-    boost::optional<std::vector<CTransactionRef>> commits;
+    mutable boost::optional<std::vector<CTransactionRef>> commits;
 
     //! last justified epoch counting from this block index
     boost::optional<uint32_t> last_justified_epoch;
@@ -393,8 +393,13 @@ public:
         commits.reset();
     }
 
-    void ResetCommits(const std::vector<CTransactionRef> &_commits) {
-        commits = _commits;
+    bool HasCommits() const {
+        return static_cast<bool>(commits);
+    }
+
+    const std::vector<CTransactionRef> &GetCommits() const {
+        assert(HasCommits());
+        return *commits;
     }
 };
 

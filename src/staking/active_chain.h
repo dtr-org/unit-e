@@ -69,6 +69,9 @@ class ActiveChain : public blockchain::ChainAccess {
   //! It's what activeChain.FindFork does.
   virtual const CBlockIndex *FindForkOrigin(const CBlockIndex &fork) const = 0;
 
+  //! \brief returns the successor of the index.
+  virtual const CBlockIndex *GetNext(const CBlockIndex &block_index) const = 0;
+
   // defined in blockchain::ChainAccess
   const CBlockIndex *AtDepth(blockchain::Depth) const override = 0;
 

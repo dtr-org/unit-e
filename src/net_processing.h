@@ -84,6 +84,8 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
 /** Increase a node's misbehavior score. */
 void Misbehaving(NodeId nodeid, int howmuch);
 
+void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash);
+
 template <typename... Args>
 void PushMessage(CNode &to, const std::string &command, Args&&... args) {
   const CNetMsgMaker msg_maker(to.GetSendVersion());

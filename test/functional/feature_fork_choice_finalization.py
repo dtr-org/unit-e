@@ -16,6 +16,7 @@ from test_framework.util import (
     disconnect_nodes,
     assert_equal,
     sync_blocks,
+    sync_chain,
     wait_until,
     JSONRPCException,
 )
@@ -94,7 +95,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         assert_equal(len(node0.getpeerinfo()), 0)
 
         # 0 ... 4 ... 9 ... 14 ... 19 ... 24 ... 29 - 30
-        #       F     F     F      J                  tip
+        #       F     F     F      F      J          tip
         node0.generatetoaddress(29, node0.getnewaddress('', 'bech32'))
         assert_equal(node0.getblockcount(), 30)
         check_finalization(node0, {'currentDynasty': 4,
@@ -130,6 +131,11 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         sync_blocks([node1, validator])
         disconnect_nodes(node1, validator.index)
         connect_sync_disconnect(node0, node1, b32)
+        check_finalization(node0, {'currentDynasty': 4,
+                                   'currentEpoch': 6,
+                                   'lastJustifiedEpoch': 5,
+                                   'lastFinalizedEpoch': 4,
+                                   'validators': 1})
         self.log.info('node successfully switched to longest justified fork')
 
         # generate longer but not justified fork. node0 shouldn't switch
@@ -141,12 +147,20 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         b34 = node2.generatetoaddress(3, node2.getnewaddress('', 'bech32'))[-1]
         assert_equal(node2.getblockcount(), 34)
         assert_equal(node0.getblockcount(), 32)
+
         connect_nodes(node0, node2.index)
-        wait_until(lambda: seen_block(node0, b34), timeout=10)
+        sync_chain([node0, node2])
+        sync_blocks([node0, node2])
+
         assert_equal(node0.getblockcount(), 32)
         assert_equal(node0.getblockhash(32), b32)
         assert_equal(node0.getfinalizationstate()['lastJustifiedEpoch'], 5)
         self.log.info('node did not switch to heaviest but less justified fork')
+
+        assert_equal(node2.getblockcount(), 32)
+        assert_equal(node2.getblockhash(32), b32)
+        assert_equal(node2.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        self.log.info('node switched to logest justified fork with less work')
 
         self.stop_node(node0.index)
         self.stop_node(node1.index)

@@ -29,11 +29,11 @@ using FinalizationState = finalization::FinalizationState;
 class FinalizerCommitsHandlerSpy : public p2p::FinalizerCommitsHandlerImpl {
 public:
   template<typename... Args>
-  FinalizerCommitsHandlerSpy(Args&&... args)
-    : p2p::FinalizerCommitsHandlerImpl(std::forward<Args>(args)...) {}
+  FinalizerCommitsHandlerSpy(Args&&... args) : p2p::FinalizerCommitsHandlerImpl(std::forward<Args>(args)...) {}
 
-  using FinalizerCommitsHandlerImpl::FindMostRecentStart;
-  using FinalizerCommitsHandlerImpl::FindStop;
+  using p2p::FinalizerCommitsHandlerImpl::FindMostRecentStart;
+  using p2p::FinalizerCommitsHandlerImpl::FindStop;
+  using p2p::FinalizerCommitsHandlerImpl::IsSameFork;
 };
 
 class RepoMock : public finalization::StateRepository {
@@ -135,7 +135,245 @@ class Fixture {
 
 }
 
-BOOST_FIXTURE_TEST_SUITE(finalizer_commits_handler_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizer_commits_tests, BasicTestingSetup)
+
+BOOST_AUTO_TEST_CASE(get_commits_locator) {
+  Fixture fixture;
+
+  staking::ActiveChain &chain = fixture.active_chain;
+  FinalizationStateSpy &state = fixture.repo.state;
+  p2p::FinalizerCommitsHandler &commits = fixture.commits;
+
+  BOOST_REQUIRE(state.GetEpochLength() == 5);
+
+  // Fill chain right before 0th checkpoint.
+  fixture.AddBlocks(4);
+  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 0);
+
+  // Check `start` has Genesis as first finalized checkpoint.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(1), chain.GetTip());
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(1)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, chain.GetTip()->GetBlockHash());
+  }
+
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(2), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(2)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Check that locator doesn't include index that isn't present on the active chain
+  // and has no common block with it.
+  {
+    uint256 hash;
+    CBlockIndex index;
+    index.phashBlock = &hash;
+    index.nHeight = 1;
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(index, nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(3)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Check that locator includes index that isn't present on the active chain
+  // and has common block with it.
+  {
+    uint256 hash = uint256S("42");
+    CBlockIndex index;
+    index.phashBlock = &hash;
+    index.nHeight = 1;
+    index.pprev = const_cast<CBlockIndex*>(chain.AtHeight(0));
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(index, nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      hash,
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Complete 0th epoch.
+  fixture.AddBlocks(1);
+
+  // Check 0th checkpoint is included in locator.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(4), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(4)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Check locator.start is limited by 3rd block.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(3), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(3)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Start 1st epoch.
+  fixture.AddBlocks(1);
+
+  // Check that 0th checkpoint is included in the locator.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(5), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(4)->GetBlockHash(),
+      chain.AtHeight(5)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Check that start == checkpoint isn't included in locator twice.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(4), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(4)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Check locator.start is limited by 3rd block.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(3), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(0)->GetBlockHash(),
+      chain.AtHeight(3)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Generate blocks to complete 3 epochs and start 4th.
+  // 0th epoch already completed.
+  fixture.AddBlocks(4 + 5 + 2); // 1st epoch + 2nd epoch + two blocks of 3rd.
+
+  // Make 1st epoch finalized
+  state.SetLastFinalizedEpoch(1);
+  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 1);
+
+  // Check locator starts with last finalized checkpoint
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(12), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(9)->GetBlockHash(),
+      chain.AtHeight(12)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Check locator includes checkpoint.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(15), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(9)->GetBlockHash(),
+      chain.AtHeight(14)->GetBlockHash(),
+      chain.AtHeight(15)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // When start == last_finalized_checkpoint, check locator includes only it.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(9), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(9)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Check locator fallback to the active chain tip when start < last_finalized_checkpoint.
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(8), nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(9)->GetBlockHash(),
+      chain.AtHeight(14)->GetBlockHash(),
+      chain.AtHeight(16)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Build a fork after finalization
+  std::map<blockchain::Height, uint256> fork_hashes;
+  std::map<blockchain::Height, CBlockIndex> fork;
+
+  CBlockIndex *prev = const_cast<CBlockIndex*>(chain.AtHeight(11));
+  for (blockchain::Height h = 12; h < 17; ++h) {
+    fork_hashes[h] = uint256S(std::to_string(1000 + h));
+    fork[h].phashBlock = &fork_hashes[h];
+    fork[h].nHeight = h;
+    fork[h].pprev = prev;
+    prev = &fork[h];
+  }
+
+  // Check locator works on the fork
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(fork[15], nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(9)->GetBlockHash(),
+      fork[14].GetBlockHash(),
+      fork[15].GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+
+  // Move finalization to checkpoint 14
+  state.SetLastFinalizedEpoch(2);
+  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 2);
+
+  // Check locator doesn't consider fork started before last_finalized_checkpoint
+  {
+    const p2p::FinalizerCommitsLocator locator =
+      commits.GetFinalizerCommitsLocator(fork[15], nullptr);
+    const std::vector<uint256> expected_start = {
+      chain.AtHeight(14)->GetBlockHash(),
+      chain.AtHeight(16)->GetBlockHash(),
+    };
+    BOOST_CHECK_EQUAL(locator.start, expected_start);
+    BOOST_CHECK_EQUAL(locator.stop, uint256());
+  }
+}
 
 BOOST_AUTO_TEST_CASE(find_most_recent_start) {
   Fixture fixture;
@@ -348,6 +586,58 @@ BOOST_AUTO_TEST_CASE(find_stop) {
     const CBlockIndex *result = commits.FindStop(Locator{
         {}, chain.AtHeight(h)->GetBlockHash()});
     BOOST_CHECK_EQUAL(result, chain.AtHeight(h));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(is_same_fork_test) {
+  auto build_chain = [](const size_t size, CBlockIndex *prev = nullptr) {
+    std::map<blockchain::Height, CBlockIndex> indexes;
+    blockchain::Height h = prev != nullptr ? prev->nHeight + 1 : 0;
+    for (size_t i = 0; i < size; ++i) {
+      indexes[h + i].pprev = prev;
+      indexes[h + i].nHeight = h + i;
+      prev = &indexes[h + i];
+    }
+    return indexes;
+  };
+
+  auto is_same_fork = FinalizerCommitsHandlerSpy::IsSameFork;
+
+  // Check in random order
+  {
+    auto chain = build_chain(10);
+    const CBlockIndex *prev = nullptr;
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[9], prev), true);
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[2], prev), true);
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[5], prev), true);
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[1], prev), true);
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[2], &chain[3], prev), false);
+  }
+
+  // Check when heights sorted, prev optimization should work.
+  {
+    auto chain = build_chain(10);
+    const CBlockIndex *prev = nullptr;
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[0], prev), true);
+    BOOST_CHECK_EQUAL(prev, &chain[0]);
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[1], prev), true);
+    BOOST_CHECK_EQUAL(prev, &chain[1]);
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[2], prev), true);
+    BOOST_CHECK_EQUAL(prev, &chain[2]);
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[9], &chain[3], prev), true);
+    BOOST_CHECK_EQUAL(prev, &chain[3]);
+  }
+
+  {
+    auto chain = build_chain(10);
+    auto fork = build_chain(10, &chain[3]);
+    BOOST_REQUIRE(fork[4].pprev == &chain[3]);
+    const CBlockIndex *prev = nullptr;
+    BOOST_CHECK_EQUAL(is_same_fork(&chain[4], &fork[4], prev), false);
+    BOOST_CHECK_EQUAL(is_same_fork(&fork[4], &chain[3], prev), true);
+    BOOST_CHECK_EQUAL(is_same_fork(&fork[4], &chain[3], prev), true);
+    BOOST_CHECK_EQUAL(is_same_fork(&fork[10], &fork[4], prev), true);
+    BOOST_CHECK_EQUAL(is_same_fork(&fork[9], &chain[9], prev), false);
   }
 }
 

@@ -37,8 +37,8 @@ class FinalizationStateSpy : public FinalizationState {
     m_expected_source_epoch = epoch;
   }
   void SetLastFinalizedEpoch(uint32_t epoch) {
-    m_checkpoints[epoch].m_isFinalized = true;
-    m_lastFinalizedEpoch = epoch;
+    m_checkpoints[epoch].m_is_finalized = true;
+    m_last_finalized_epoch = epoch;
   }
 
   uint32_t EpochLength() const { return m_settings.epoch_length; }
