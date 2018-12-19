@@ -227,8 +227,9 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Returns the finalization state for the given block.
   static FinalizationState *GetState(const CBlockIndex *block = nullptr);
 
-  static uint32_t GetEpoch(const CBlockIndex &blockIndex);
-  static uint32_t GetEpoch(int blockHeight);
+  uint32_t GetEpochLength() const;
+  uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
+  uint32_t GetEpoch(int blockHeight) const;
 
   static bool ValidateDepositAmount(CAmount amount);
 
@@ -244,10 +245,13 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
 
+  //! \brief Returns whether block on height blockHeight is checkpoint
   bool IsCheckpoint(int blockHeight) const;
 
+  //! \brief Returns whether block on height blockHeight is justified checkpoint
   bool IsJustifiedCheckpoint(int blockHeight) const;
 
+  //! \brief Returns whether block on height blockHeight is finalized checkpoint
   bool IsFinalizedCheckpoint(int blockHeight) const;
 
  private:
@@ -260,10 +264,10 @@ class FinalizationState : public FinalizationStateData {
   ufp64::ufp64_t GetCollectiveRewardFactor();
 
   //! Checks if ther is any deposit from validators in the curDyn and prevDyn.
-  bool DepositExists();
+  bool DepositExists() const;
 
-  ufp64::ufp64_t GetSqrtOfTotalDeposits();
-  uint32_t GetEpochsSinceFinalization();
+  ufp64::ufp64_t GetSqrtOfTotalDeposits() const;
+  uint32_t GetEpochsSinceFinalization() const;
 
   //! Checks if the validator can create a valid vote with the given parameters.
   Result IsVotable(const Validator &validator, const uint256 &targetHash,
@@ -275,8 +279,8 @@ class FinalizationState : public FinalizationStateData {
   //! Removes a validator from the validator map.
   void DeleteValidator(const uint160 &validatorAddress);
 
-  uint64_t GetTotalCurDynDeposits();
-  uint64_t GetTotalPrevDynDeposits();
+  uint64_t GetTotalCurDynDeposits() const;
+  uint64_t GetTotalPrevDynDeposits() const;
   uint32_t GetEndDynasty() const;
   uint64_t CalculateVoteReward(const Validator &validator) const;
   ufp64::ufp64_t GetDepositScaleFactor(uint32_t epoch) const;
@@ -293,6 +297,10 @@ class FinalizationState : public FinalizationStateData {
  private:
   void OnBlock(int blockHeight);
 };
+
+inline uint32_t GetEpochLength() { return FinalizationState::GetState()->GetEpochLength(); }
+inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
+inline uint32_t GetEpoch(int blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
 
 }  // namespace esperanza
 

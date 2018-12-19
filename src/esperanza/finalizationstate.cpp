@@ -180,18 +180,18 @@ ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
   return ufp64::div_by_uint(ufp64::mul(voteFraction, m_rewardFactor), 2);
 }
 
-bool FinalizationState::DepositExists() {
+bool FinalizationState::DepositExists() const {
   return m_curDynDeposits > 0 && m_prevDynDeposits > 0;
 }
 
-ufp64::ufp64_t FinalizationState::GetSqrtOfTotalDeposits() {
+ufp64::ufp64_t FinalizationState::GetSqrtOfTotalDeposits() const {
   uint64_t totalDeposits = 1 + ufp64::mul_to_uint(GetDepositScaleFactor(m_currentEpoch - 1),
                                                   std::max(m_prevDynDeposits, m_curDynDeposits));
 
   return ufp64::sqrt_uint(totalDeposits);
 }
 
-uint32_t FinalizationState::GetEpochsSinceFinalization() {
+uint32_t FinalizationState::GetEpochsSinceFinalization() const {
   return m_currentEpoch - m_lastFinalizedEpoch;
 }
 
@@ -243,13 +243,13 @@ bool FinalizationState::IsInDynasty(const Validator &validator, uint32_t dynasty
   return (startDynasty <= dynasty) && (dynasty < endDynasty);
 }
 
-uint64_t FinalizationState::GetTotalCurDynDeposits() {
+uint64_t FinalizationState::GetTotalCurDynDeposits() const {
 
   return ufp64::mul_to_uint(GetDepositScaleFactor(m_currentEpoch),
                             m_curDynDeposits);
 }
 
-uint64_t FinalizationState::GetTotalPrevDynDeposits() {
+uint64_t FinalizationState::GetTotalPrevDynDeposits() const {
 
   if (m_currentEpoch == 0) {
     return 0;
@@ -812,12 +812,16 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
   return esperanzaState.get();
 }
 
-uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) {
+uint32_t FinalizationState::GetEpochLength() const {
+  return m_settings.m_epochLength;
+}
+
+uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
   return GetEpoch(blockIndex.nHeight);
 }
 
-uint32_t FinalizationState::GetEpoch(int blockHeight) {
-  return static_cast<uint32_t>(blockHeight) / GetState()->m_settings.m_epochLength;
+uint32_t FinalizationState::GetEpoch(int blockHeight) const {
+  return static_cast<uint32_t>(blockHeight) / GetEpochLength();
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -982,24 +986,24 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
 // Private accessors used to avoid map's operator[] potential side effects.
 ufp64::ufp64_t FinalizationState::GetDepositScaleFactor(uint32_t epoch) const {
-  auto it = m_depositScaleFactor.find(epoch);
+  const auto it = m_depositScaleFactor.find(epoch);
   assert(it != m_depositScaleFactor.end());
   return it->second;
 }
 
 uint64_t FinalizationState::GetTotalSlashed(uint32_t epoch) const {
-  auto it = m_totalSlashed.find(epoch);
+  const auto it = m_totalSlashed.find(epoch);
   assert(it != m_totalSlashed.end());
   return it->second;
 }
 
 uint64_t FinalizationState::GetDynastyDelta(uint32_t dynasty) {
-  auto pair = m_dynastyDeltas.emplace(dynasty, 0);
+  const auto pair = m_dynastyDeltas.emplace(dynasty, 0);
   return pair.first->second;
 }
 
 Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
-  auto it = m_checkpoints.find(epoch);
+  const auto it = m_checkpoints.find(epoch);
   assert(it != m_checkpoints.end());
   return it->second;
 }
