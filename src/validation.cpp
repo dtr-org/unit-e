@@ -3410,11 +3410,23 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
             return false;
         }
-        if (prevTx && (tx->GetId() < prevTx->GetId())){
-            return state.DoS(100, false, REJECT_INVALID, "tx-ordering", false, strprintf(
-                "Transaction order is invalid (%s < %s)",
-                tx->GetId().ToString(), prevTx->GetId().ToString()
-            ));
+        if (prevTx && (tx->GetId() <= prevTx->GetId())){
+            if (tx->GetId() == prevTx->GetId()) {
+                return state.DoS(
+                    100, false, REJECT_INVALID, "tx-duplicate", false,
+                    strprintf(
+                        "Duplicated transaction %s", tx->GetId().ToString()
+                    )
+                );
+            }
+
+            return state.DoS(
+                100, false, REJECT_INVALID, "tx-ordering", false,
+                strprintf(
+                    "Transaction order is invalid (%s < %s)",
+                    tx->GetId().ToString(), prevTx->GetId().ToString()
+                )
+            );
         }
         if (prevTx || !tx->IsCoinBase()) {
             prevTx = tx;
