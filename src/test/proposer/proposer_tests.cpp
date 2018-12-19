@@ -59,32 +59,59 @@ struct Fixture {
   class NetworkMock : public staking::Network {
    public:
     size_t nodecount = 0;
-    int64_t GetTime() const { return 0; }
-    size_t GetNodeCount() { return nodecount; }
-    size_t GetInboundNodeCount() { return nodecount; }
-    size_t GetOutboundNodeCount() { return 0; }
+    mutable size_t GetNodeCount_invocations = 0;
+    int64_t GetTime() const override { return 0; }
+    size_t GetNodeCount() const override {
+      ++GetNodeCount_invocations;
+      return nodecount;
+    }
+    size_t GetInboundNodeCount() const override { return nodecount; }
+    size_t GetOutboundNodeCount() const override { return 0; }
   };
 
   class ActiveChainMock : public staking::ActiveChain {
    public:
+    ::SyncStatus syncstatus = ::SyncStatus::IMPORTING;
+    mutable size_t GetInitialBlockDownloadStatus_invocations = 0;
     mutable CCriticalSection m_lock;
     CCriticalSection &GetLock() const override { return m_lock; }
     blockchain::Height GetSize() const override { return 1; }
     blockchain::Height GetHeight() const override { return 0; }
-    const CBlockIndex *operator[](std::int64_t) override { return nullptr; }
+    const CBlockIndex *GetTip() const override { return nullptr; }
     const CBlockIndex *AtDepth(blockchain::Depth depth) override { return nullptr; }
     const CBlockIndex *AtHeight(blockchain::Height height) override { return nullptr; }
-    virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
-    virtual ::SyncStatus GetInitialBlockDownloadStatus() const override { return ::SyncStatus::IMPORTING; }
+    const uint256 ComputeSnapshotHash() const override { return uint256(); }
+    bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
+    ::SyncStatus GetInitialBlockDownloadStatus() const override {
+      ++GetInitialBlockDownloadStatus_invocations;
+      return syncstatus;
+    }
+  };
+
+  class TransactionPickerMock : public staking::TransactionPicker {
+    PickTransactionsResult PickTransactions(const PickTransactionsParameters &) override {
+      return PickTransactionsResult();
+    }
+  };
+
+  class BlockBuilderMock : public proposer::BlockBuilder {
+    std::shared_ptr<const CBlock> BuildBlock(
+        const CBlockIndex &,
+        const uint256 &,
+        const proposer::EligibleCoin &,
+        const std::vector<COutput> &,
+        const std::vector<CTransactionRef> &) const override { return nullptr; }
   };
 
   class ProposerLogicMock : public proposer::Logic {
    public:
-    boost::optional<COutput> TryPropose(const std::vector<COutput> &) override { return boost::none; }
+    boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<COutput> &) override { return boost::none; }
   };
 
   NetworkMock network_mock;
   ActiveChainMock chain_mock;
+  TransactionPickerMock transaction_picker_mock;
+  BlockBuilderMock block_builder_mock;
   ProposerLogicMock logic_mock;
 
   std::unique_ptr<Proposer> GetProposer() {
@@ -94,6 +121,8 @@ struct Fixture {
         &multi_wallet_mock,
         &network_mock,
         &chain_mock,
+        &transaction_picker_mock,
+        &block_builder_mock,
         &logic_mock);
   }
 };
@@ -124,13 +153,27 @@ BOOST_AUTO_TEST_CASE(not_proposing_stub_vs_actual_impl) {
   BOOST_CHECK(typeid(r2) != typeid(r4));
 }
 
-BOOST_AUTO_TEST_CASE(start_stop) {
+BOOST_AUTO_TEST_CASE(start_stop_and_status) {
+  Fixture f{"-proposing=1"};
+  f.network_mock.nodecount = 0;
+  BOOST_CHECK_NO_THROW({
+    auto p = f.GetProposer();
+    p->Start();
+  });
+  // destroying the proposer stops it
+  BOOST_CHECK(f.network_mock.GetNodeCount_invocations > 0);
+  BOOST_CHECK_EQUAL(f.wallet.GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_NO_PEERS);
+}
+
+BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
   Fixture f{"-proposing=1"};
   f.network_mock.nodecount = 1;
   BOOST_CHECK_NO_THROW({
     auto p = f.GetProposer();
     p->Start();
   });
+  BOOST_CHECK(f.chain_mock.GetInitialBlockDownloadStatus_invocations > 0);
+  BOOST_CHECK_EQUAL(f.wallet.GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

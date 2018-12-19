@@ -14,13 +14,13 @@ class NetworkAdapter : public Network {
  public:
   int64_t GetTime() const override { return GetAdjustedTime(); }
 
-  size_t GetNodeCount() override { return g_connman->GetNodeCount(); }
+  size_t GetNodeCount() const override { return g_connman->GetNodeCount(); }
 
-  size_t GetInboundNodeCount() override {
+  size_t GetInboundNodeCount() const override {
     return g_connman->GetNodeCount(CConnman::CONNECTIONS_IN);
   }
 
-  size_t GetOutboundNodeCount() override {
+  size_t GetOutboundNodeCount() const override {
     return g_connman->GetNodeCount(CConnman::CONNECTIONS_OUT);
   }
 };

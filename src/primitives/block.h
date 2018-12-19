@@ -25,6 +25,7 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
+    uint256 hash_witness_merkle_root;
     blockchain::Time nTime;
     blockchain::Difficulty nBits;
     uint32_t nNonce;
@@ -115,12 +116,13 @@ public:
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion       = nVersion;
-        block.hashPrevBlock  = hashPrevBlock;
+        block.nVersion = nVersion;
+        block.hashPrevBlock = hashPrevBlock;
         block.hashMerkleRoot = hashMerkleRoot;
-        block.nTime          = nTime;
-        block.nBits          = nBits;
-        block.nNonce         = nNonce;
+        block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.nTime = nTime;
+        block.nBits = nBits;
+        block.nNonce = nNonce;
         return block;
     }
 

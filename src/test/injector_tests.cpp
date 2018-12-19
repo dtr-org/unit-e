@@ -14,4 +14,9 @@ BOOST_AUTO_TEST_CASE(check_order) {
   BOOST_CHECK_NO_THROW(injector.DetermineInitializationOrder());
 }
 
+BOOST_AUTO_TEST_CASE(try_initialize) {
+  UnitEInjector injector;
+  BOOST_CHECK_NO_THROW(injector.Initialize());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

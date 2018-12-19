@@ -7,6 +7,7 @@
 
 #include <dependency.h>
 #include <primitives/block.h>
+#include <proposer/block_builder.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer_logic.h>
 #include <proposer/proposer_status.h>
@@ -15,6 +16,7 @@
 #include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/network.h>
+#include <staking/transactionpicker.h>
 
 #include <map>
 #include <memory>
@@ -37,6 +39,8 @@ class Proposer {
                                        Dependency<MultiWallet>,
                                        Dependency<staking::Network>,
                                        Dependency<staking::ActiveChain>,
+                                       Dependency<staking::TransactionPicker>,
+                                       Dependency<proposer::BlockBuilder>,
                                        Dependency<proposer::Logic>);
 };
 

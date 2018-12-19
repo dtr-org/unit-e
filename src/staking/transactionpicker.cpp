@@ -40,13 +40,7 @@ namespace staking {
 //! components which use a TransactionPicker.
 class BlockAssemblerAdapter final : public TransactionPicker {
 
- private:
-  const CChainParams &m_chainParams;
-
  public:
-  explicit BlockAssemblerAdapter(const CChainParams &chainParams)
-      : m_chainParams(chainParams) {}
-
   ~BlockAssemblerAdapter() override = default;
 
   PickTransactionsResult PickTransactions(
@@ -56,7 +50,7 @@ class BlockAssemblerAdapter final : public TransactionPicker {
     blockAssemblerOptions.blockMinFeeRate = parameters.m_minFees;
     blockAssemblerOptions.nBlockMaxWeight = parameters.m_maxWeight;
 
-    ::BlockAssembler blockAssembler(m_chainParams, blockAssemblerOptions);
+    ::BlockAssembler blockAssembler(::Params(), blockAssemblerOptions);
 
     // The block assembler unfortunately also creates a bitcoin-style
     // coinbase transaction. We do not want to touch that logic to
@@ -76,9 +70,7 @@ class BlockAssemblerAdapter final : public TransactionPicker {
 
 std::unique_ptr<TransactionPicker>
 TransactionPicker::New() {
-
-  return std::unique_ptr<TransactionPicker>(
-      new BlockAssemblerAdapter(::Params()));
+  return std::unique_ptr<TransactionPicker>(new BlockAssemblerAdapter());
 }
 
 }  // namespace staking

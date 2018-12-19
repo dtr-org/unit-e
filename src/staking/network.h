@@ -22,11 +22,11 @@ class Network {
   virtual int64_t GetTime() const = 0;
 
   //! \brief returns the number of other nodes this node is connected to.
-  virtual size_t GetNodeCount() = 0;
+  virtual size_t GetNodeCount() const = 0;
 
-  virtual size_t GetInboundNodeCount() = 0;
+  virtual size_t GetInboundNodeCount() const = 0;
 
-  virtual size_t GetOutboundNodeCount() = 0;
+  virtual size_t GetOutboundNodeCount() const = 0;
 
   virtual ~Network() = default;
 

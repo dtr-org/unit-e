@@ -52,26 +52,25 @@ class ActiveChain : public blockchain::ChainAccess {
   //! genesis block.
   virtual blockchain::Height GetHeight() const = 0;
 
-  const CBlockIndex *GetTip() { return (*this)[-1]; }
-
-  //! \brief convenience access to the chain.
-  //!
-  //! negative values -x look up a block at depth x,
-  //! positive values (including 0) look up a block at that height.
-  //!
-  //! \return nullptr if there is no such block at that depth/height.
-  virtual const CBlockIndex *operator[](std::int64_t) = 0;
+  virtual const CBlockIndex *GetTip() const = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtDepth(blockchain::Depth depth) override {
-    assert(depth > 0);
-    return (*this)[-static_cast<std::int64_t>(depth)];
-  }
+  const CBlockIndex *AtDepth(blockchain::Depth depth) override = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtHeight(blockchain::Height height) override {
-    return (*this)[static_cast<std::int64_t>(height)];
-  }
+  const CBlockIndex *AtHeight(blockchain::Height height) override = 0;
+
+  //! \brief computes the snapshot hash for the current utxo set
+  //!
+  //! Note that a block contains the snapshot hash of the utxo set at the
+  //! time of proposing the new block, i.e. not the snapshot hash of the utxo
+  //! set after the transaction in that new block would have been processed.
+  //!
+  //! This function is thus useful for proposing and validating and can only
+  //! be used as long as the block to validate has not been processed into the
+  //! coins db yet (the snapshot hash in meta input of the the active chain's
+  //! tip block is not the same as the result of this function).
+  virtual const uint256 ComputeSnapshotHash() const = 0;
 
   //! \brief add a new block at the current active chains tip.
   virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) = 0;
@@ -79,7 +78,7 @@ class ActiveChain : public blockchain::ChainAccess {
   //! \brief Check the current status of the initial block download.
   virtual ::SyncStatus GetInitialBlockDownloadStatus() const = 0;
 
-  virtual ~ActiveChain() = default;
+  ~ActiveChain() override = default;
 
   //! \brief Factory method for creating a Chain.
   static std::unique_ptr<ActiveChain> New(Dependency<blockchain::Behavior>);
