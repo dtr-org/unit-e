@@ -10,14 +10,6 @@
 
 #include <thread>
 
-#include <test/fakeit/fakeit.hpp>
-
-#if defined(__GNUG__) and not defined(__clang__)
-// Fakeit does not work with GCC's devirtualization
-// which is enabled with -O2 (the default) or higher.
-#pragma GCC optimize("no-devirtualize")
-#endif
-
 namespace {
 
 struct Fixture {
@@ -64,18 +56,45 @@ struct Fixture {
           return mock;
         }()) {}
 
-  fakeit::Mock<staking::Network> network_mock;
-  fakeit::Mock<staking::ActiveChain> chain_mock;
-  fakeit::Mock<proposer::Logic> logic_mock;
+  class NetworkMock : public staking::Network {
+   public:
+    size_t nodecount = 0;
+    int64_t GetTime() const { return 0; };
+    size_t GetNodeCount() { return nodecount; };
+    size_t GetInboundNodeCount() { return nodecount; };
+    size_t GetOutboundNodeCount() { return 0; };
+  };
+
+  class ActiveChainMock : public staking::ActiveChain {
+   public:
+    CCriticalSection m_lock;
+    CCriticalSection &GetLock() override { return m_lock; }
+    blockchain::Height GetSize() const override { return 1; }
+    blockchain::Height GetHeight() const override { return 0; }
+    const CBlockIndex *operator[](std::int64_t) override { return nullptr; };
+    const CBlockIndex *AtDepth(blockchain::Depth depth) override { return nullptr; }
+    const CBlockIndex *AtHeight(blockchain::Height height) override { return nullptr; }
+    virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; };
+    virtual ::SyncStatus GetInitialBlockDownloadStatus() const override { return ::SyncStatus::IMPORTING; };
+  };
+
+  class ProposerLogicMock : public proposer::Logic {
+   public:
+    boost::optional<COutput> TryPropose(const std::vector<COutput> &) override { return boost::none; };
+  };
+
+  NetworkMock network_mock;
+  ActiveChainMock chain_mock;
+  ProposerLogicMock logic_mock;
 
   std::unique_ptr<Proposer> GetProposer() {
     return Proposer::New(
         settings.get(),
         behavior.get(),
         &multi_wallet_mock,
-        &network_mock.get(),
-        &chain_mock.get(),
-        &logic_mock.get());
+        &network_mock,
+        &chain_mock,
+        &logic_mock);
   }
 };
 
@@ -107,7 +126,7 @@ BOOST_AUTO_TEST_CASE(not_proposing_stub_vs_actual_impl) {
 
 BOOST_AUTO_TEST_CASE(start_stop) {
   Fixture f{"-proposing=1"};
-  fakeit::When(Method(f.network_mock, GetNodeCount)).Return(0);
+  f.network_mock.nodecount = 1;
   BOOST_CHECK_NO_THROW({
     auto p = f.GetProposer();
     p->Start();

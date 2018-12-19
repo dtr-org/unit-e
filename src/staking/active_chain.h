@@ -37,7 +37,7 @@ class ActiveChain : public blockchain::ChainAccess {
   //!
   //! This way the existing DEBUG_LOCKORDER and other debugging features can
   //! work as expected.
-  virtual CCriticalSection &GetLock() const = 0;
+  virtual CCriticalSection &GetLock() = 0;
 
   //! \brief returns the size of the currently active chain.
   //!
