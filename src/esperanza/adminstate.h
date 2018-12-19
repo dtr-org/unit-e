@@ -31,7 +31,7 @@ class AdminState {
  public:
   explicit AdminState(const AdminParams &adminParams);
 
-  void OnBlock(int blockHeight);
+  void OnBlock(blockchain::Height blockHeight);
   bool IsAdminAuthorized(const AdminKeySet &keys) const;
   bool IsValidatorAuthorized(const uint160 &validatorAddress) const;
   void ResetAdmin(const AdminKeySet &newKeys);

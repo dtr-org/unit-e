@@ -65,9 +65,9 @@ FinalizationState::FinalizationState(
 FinalizationState::FinalizationState(const FinalizationState &parent)
     : FinalizationStateData(parent), m_settings(parent.m_settings) {}
 
-Result FinalizationState::InitializeEpoch(int blockHeight) {
+Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
-  auto newEpoch = static_cast<uint32_t>(blockHeight) / m_settings.m_epochLength;
+  const auto newEpoch = GetEpoch(blockHeight);
 
   if (newEpoch != m_currentEpoch + 1) {
     return fail(Result::INIT_WRONG_EPOCH,
@@ -640,7 +640,7 @@ bool FinalizationState::IsPermissioningActive() const {
   return m_adminState.IsPermissioningActive();
 }
 
-void FinalizationState::OnBlock(int blockHeight) {
+void FinalizationState::OnBlock(blockchain::Height blockHeight) {
   m_adminState.OnBlock(blockHeight);
 }
 
@@ -820,8 +820,8 @@ uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
   return GetEpoch(blockIndex.nHeight);
 }
 
-uint32_t FinalizationState::GetEpoch(int blockHeight) const {
-  return static_cast<uint32_t>(blockHeight) / GetEpochLength();
+uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
+  return blockHeight / GetEpochLength();
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -1020,11 +1020,11 @@ uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
   return validator.m_lastTransactionHash;
 }
 
-bool FinalizationState::IsCheckpoint(int blockHeight) const {
-  return static_cast<uint32_t>(blockHeight + 1) % m_settings.m_epochLength == 0;
+bool FinalizationState::IsCheckpoint(blockchain::Height blockHeight) const {
+  return (blockHeight + 1) % m_settings.m_epochLength == 0;
 }
 
-bool FinalizationState::IsJustifiedCheckpoint(int blockHeight) const {
+bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) const {
   if (!IsCheckpoint(blockHeight)) {
     return false;
   }
@@ -1032,7 +1032,7 @@ bool FinalizationState::IsJustifiedCheckpoint(int blockHeight) const {
   return it != m_checkpoints.end() && it->second.m_isJustified;
 }
 
-bool FinalizationState::IsFinalizedCheckpoint(int blockHeight) const {
+bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) const {
   if (!IsCheckpoint(blockHeight)) {
     return false;
   }

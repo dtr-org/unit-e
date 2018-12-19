@@ -154,7 +154,7 @@ class FinalizationState : public FinalizationStateData {
   //! \brief If the block height passed is the first of a new epoch, then we prepare the
   //! new epoch.
   //! @param blockHeight the block height.
-  Result InitializeEpoch(int blockHeight);
+  Result InitializeEpoch(blockchain::Height blockHeight);
 
   //! \brief Validates the consistency of the deposit against the current state.
   //!
@@ -229,7 +229,7 @@ class FinalizationState : public FinalizationStateData {
 
   uint32_t GetEpochLength() const;
   uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
-  uint32_t GetEpoch(int blockHeight) const;
+  uint32_t GetEpoch(blockchain::Height blockHeight) const;
 
   static bool ValidateDepositAmount(CAmount amount);
 
@@ -246,13 +246,13 @@ class FinalizationState : public FinalizationStateData {
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
 
   //! \brief Returns whether block on height blockHeight is checkpoint
-  bool IsCheckpoint(int blockHeight) const;
+  bool IsCheckpoint(blockchain::Height blockHeight) const;
 
   //! \brief Returns whether block on height blockHeight is justified checkpoint
-  bool IsJustifiedCheckpoint(int blockHeight) const;
+  bool IsJustifiedCheckpoint(blockchain::Height blockHeight) const;
 
   //! \brief Returns whether block on height blockHeight is finalized checkpoint
-  bool IsFinalizedCheckpoint(int blockHeight) const;
+  bool IsFinalizedCheckpoint(blockchain::Height blockHeight) const;
 
  private:
   //!In case there is nobody available to finalize we finalize automatically.
@@ -295,12 +295,12 @@ class FinalizationState : public FinalizationStateData {
   const FinalizationParams &m_settings;
 
  private:
-  void OnBlock(int blockHeight);
+  void OnBlock(blockchain::Height blockHeight);
 };
 
 inline uint32_t GetEpochLength() { return FinalizationState::GetState()->GetEpochLength(); }
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
-inline uint32_t GetEpoch(int blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
+inline uint32_t GetEpoch(blockchain::Height blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
 
 }  // namespace esperanza
 
