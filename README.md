@@ -1,7 +1,7 @@
 UnitE Core integration/staging tree
 =====================================
 
-[![Build Status](https://travis-ci.org/unite/unite.svg?branch=master)](https://travis-ci.org/unite/unite)
+[![Build Status](https://travis-ci.com/dtr-org/unit-e.svg?token=bm5dxUvwqj2MkNmT6JSA&branch=master)](https://travis-ci.com/dtr-org/unit-e)
 
 https://bitcoincore.org
 
