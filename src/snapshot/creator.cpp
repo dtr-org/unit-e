@@ -32,12 +32,14 @@ struct SnapshotJob {
       : block_index(_block_index) {}
 };
 
+namespace {
 uint16_t g_create_snapshot_per_epoch = 0;
 std::thread g_creator_thread;
 std::mutex mutex;
 std::condition_variable cv;
 std::queue<std::unique_ptr<SnapshotJob>> jobs;
 std::atomic_bool interrupt(false);
+}  // namespace
 
 void ProcessCreatorQueue() {
   while (!interrupt) {
