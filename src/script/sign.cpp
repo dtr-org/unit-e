@@ -130,7 +130,7 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
             ret.push_back(vSolutions[0]);
         } else {
             CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(h160.begin());
-            ret.push_back(ToByteVector(h160)); // UNIT-E: TODO: maybe get rid of ToByteVector
+            ret.push_back(ToByteVector(h160));
         }
         return true;
     default:
