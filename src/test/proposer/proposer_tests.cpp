@@ -25,7 +25,7 @@ struct Fixture {
     std::vector<CWallet *> wallets;
     const std::vector<CWallet *> &GetWallets() const override {
       return wallets;
-    };
+    }
   };
 
   CWallet wallet;
@@ -59,10 +59,10 @@ struct Fixture {
   class NetworkMock : public staking::Network {
    public:
     size_t nodecount = 0;
-    int64_t GetTime() const { return 0; };
-    size_t GetNodeCount() { return nodecount; };
-    size_t GetInboundNodeCount() { return nodecount; };
-    size_t GetOutboundNodeCount() { return 0; };
+    int64_t GetTime() const { return 0; }
+    size_t GetNodeCount() { return nodecount; }
+    size_t GetInboundNodeCount() { return nodecount; }
+    size_t GetOutboundNodeCount() { return 0; }
   };
 
   class ActiveChainMock : public staking::ActiveChain {
@@ -71,16 +71,16 @@ struct Fixture {
     CCriticalSection &GetLock() const override { return m_lock; }
     blockchain::Height GetSize() const override { return 1; }
     blockchain::Height GetHeight() const override { return 0; }
-    const CBlockIndex *operator[](std::int64_t) override { return nullptr; };
+    const CBlockIndex *operator[](std::int64_t) override { return nullptr; }
     const CBlockIndex *AtDepth(blockchain::Depth depth) override { return nullptr; }
     const CBlockIndex *AtHeight(blockchain::Height height) override { return nullptr; }
-    virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; };
-    virtual ::SyncStatus GetInitialBlockDownloadStatus() const override { return ::SyncStatus::IMPORTING; };
+    virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
+    virtual ::SyncStatus GetInitialBlockDownloadStatus() const override { return ::SyncStatus::IMPORTING; }
   };
 
   class ProposerLogicMock : public proposer::Logic {
    public:
-    boost::optional<COutput> TryPropose(const std::vector<COutput> &) override { return boost::none; };
+    boost::optional<COutput> TryPropose(const std::vector<COutput> &) override { return boost::none; }
   };
 
   NetworkMock network_mock;
