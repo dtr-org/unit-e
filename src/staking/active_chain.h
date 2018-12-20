@@ -64,7 +64,7 @@ class ActiveChain : public blockchain::ChainAccess {
   //!
   //! Note that a block contains the snapshot hash of the utxo set at the
   //! time of proposing the new block, i.e. not the snapshot hash of the utxo
-  //! set after the transaction in that new block would have been processed.
+  //! set after the transactions in that new block would have been processed.
   //!
   //! This function is thus useful for proposing and validating and can only
   //! be used as long as the block to validate has not been processed into the

@@ -27,7 +27,8 @@ struct EligibleCoin {
 
   //! The depth of the piece of stake that is used as Proof-of-Stake in the
   //! newly proposed block. This depth is relative to the currently active
-  //! chain's height.
+  //! chain's height. The depth of the tip of the chain is one by definition.
+  //! Depth zero does not exist.
   //! This has the nice property that the actual height of the stake is
   //!   target_height - depth
   //! To illustrate:
@@ -38,10 +39,13 @@ struct EligibleCoin {
   //!   D is the current tip
   //!   E is the block to be proposed
   //! The stake in B is at depth 3 with respect to D, a transaction in D
-  //! is at depth 1 (by definition the tip is depth=1). The heights are
+  //! is at depth 1 (by definition the tip is depth=1). The heights are:
   //!   h(A)=0, h(B)=1, h(C)=2, h(D)=3, h(E)=4
-  //! So the height of the current chain is 3, the target_height is 4, and the
-  //! height of B (having the staking output) is 1, which is 4 minus 3.
+  //! The depths with respect to the current tip D are:
+  //!   d(A)=4, d(B)=3, d(C)=2, d(D)=1
+  //! E does not have a depth yet as it is not part of a chain. So the height
+  //! of the current chain is 3 (it's size is 4), the target_height is 4, and
+  //! the height of B (having the staking output) is 1, which is 4 minus 3.
   //! The depth of genesis is always the size (not the height) of the chain.
   blockchain::Depth depth;
 
