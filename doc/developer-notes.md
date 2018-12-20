@@ -293,6 +293,19 @@ General UnitE Core
   - *Explanation*: If the test suite is to be updated for a change, this has to
     be done first
 
+- If you are certain that a change does not need a CI run (e.g. when changing
+  the README.md), include a line `[skip ci]` in the commit message. This will
+  cause Travis to [skip a
+  build](https://docs.travis-ci.com/user/customizing-the-build/#skipping-a-build)
+  on this commit, if it's submitted as a pull request or merged to master.
+
+  Reviewers should double-check that skipping CI on commits which use the `[skip
+  ci]` keyword is safe.
+
+  - *Rationale*: Running tests consumes non-neglectable resources as the test
+    matrix is quite large. Skipping builds where it's safe to not run them saves
+    resources and removes unnecessary delays in CI.
+
 Wallet
 -------
 
