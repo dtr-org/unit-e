@@ -47,8 +47,9 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override {
-    bool newBlock;
-    return ::ProcessNewBlock(::Params(), pblock, true, &newBlock);
+    return false;
+//    bool newBlock;
+//    return ::ProcessNewBlock(::Params(), pblock, true, &newBlock);
   }
 
   ::SyncStatus GetInitialBlockDownloadStatus() const override {
