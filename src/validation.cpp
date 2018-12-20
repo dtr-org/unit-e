@@ -1489,7 +1489,7 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
 /**
  * Marks coins as spent. Its result must be asserted to be true.
  */
-bool markCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
+bool MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
     if (!tx.IsCoinBase()) {
         txundo.vprevout.reserve(tx.vin.size());
         for (const CTxIn &txin : tx.vin) {
@@ -1505,7 +1505,7 @@ bool markCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &t
 
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
 {
-    assert(markCoinAsSpent(tx, inputs, txundo));  // Mark inputs spent
+    assert(MarkCoinAsSpent(tx, inputs, txundo));  // Mark inputs spent
     AddCoins(inputs, tx, nHeight);  // Add outputs
 }
 
@@ -2166,7 +2166,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
         if (!snapshot::ValidateCandidateBlockTx(tx, pindex, &view)) {
             return state.DoS(100, error("%s: tx doesn't pass snapshot validation", __func__),
-                           REJECT_INVALID, "bad-cb-snapshot-hash");
+                             REJECT_INVALID, "bad-cb-snapshot-hash");
         }
 
         // GetTransactionSigOpCost counts 3 types of sigops:
@@ -2174,13 +2174,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
         nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST)
+        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
+        }
 
         txdata.emplace_back(tx);
-        if (!tx.IsCoinBase())
-        {
+        if (!tx.IsCoinBase()) {
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
             if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : nullptr))
@@ -2200,33 +2200,41 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
     bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
-    if(!isGenesisBlock) {
+    if (!isGenesisBlock) {
         CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
-        if (block.vtx[0]->GetValueOut() > blockReward)
-          return state.DoS(100,
-                         error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0]->GetValueOut(), blockReward),
-                         REJECT_INVALID, "bad-cb-amount");
+        if (block.vtx[0]->GetValueOut() > blockReward) {
+            return state.DoS(
+                100, error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
+                block.vtx[0]->GetValueOut(), blockReward), REJECT_INVALID, "bad-cb-amount"
+            );
+        }
     }
 
-    if (!control.Wait())
-        return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
+    if (!control.Wait()) {
+        return state.DoS(
+            100, error("%s: CheckQueue failed", __func__), REJECT_INVALID,
+            "block-validation-failed"
+        );
+    }
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);
 
-    if (fJustCheck)
+    if (fJustCheck) {
         return true;
+    }
 
-    if (!isGenesisBlock && !WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
+    if (!isGenesisBlock && !WriteUndoDataForBlock(blockundo, state, pindex, chainparams)) {
         return false;
+    }
 
     if (!pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
         pindex->RaiseValidity(BLOCK_VALID_SCRIPTS);
         setDirtyBlockIndex.insert(pindex);
     }
 
-    if (!WriteTxIndexDataForBlock(block, state, pindex))
+    if (!WriteTxIndexDataForBlock(block, state, pindex)) {
         return false;
+    }
 
     assert(pindex->phashBlock);
     // add this block to the view's block chain
