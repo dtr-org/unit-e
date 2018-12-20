@@ -67,8 +67,8 @@ struct Fixture {
 
   class ActiveChainMock : public staking::ActiveChain {
    public:
-    CCriticalSection m_lock;
-    CCriticalSection &GetLock() override { return m_lock; }
+    mutable CCriticalSection m_lock;
+    CCriticalSection &GetLock() const override { return m_lock; }
     blockchain::Height GetSize() const override { return 1; }
     blockchain::Height GetHeight() const override { return 0; }
     const CBlockIndex *operator[](std::int64_t) override { return nullptr; };

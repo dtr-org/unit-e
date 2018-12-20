@@ -20,7 +20,7 @@ class ActiveChainAdapter final : public ActiveChain {
   explicit ActiveChainAdapter(Dependency<blockchain::Behavior> blockchain_behavior)
       : m_blockchain_behavior(blockchain_behavior) {}
 
-  CCriticalSection &GetLock() override { return cs_main; }
+  CCriticalSection &GetLock() const override { return cs_main; }
 
   blockchain::Height GetSize() const override {
     return static_cast<blockchain::Height>(chainActive.Height() + 1);
