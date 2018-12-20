@@ -1486,19 +1486,27 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
     }
 }
 
-void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
-{
-    // mark inputs spent
+/**
+ * Marks coins as spent. Its result must be asserted to be true.
+ */
+bool markCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
     if (!tx.IsCoinBase()) {
         txundo.vprevout.reserve(tx.vin.size());
         for (const CTxIn &txin : tx.vin) {
             txundo.vprevout.emplace_back();
             bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
-            assert(is_spent);
+            if (!is_spent) {
+                return false;
+            }
         }
     }
-    // add outputs
-    AddCoins(inputs, tx, nHeight);
+    return true;
+}
+
+void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
+{
+    assert(markCoinAsSpent(tx, inputs, txundo));  // Mark inputs spent
+    AddCoins(inputs, tx, nHeight);  // Add outputs
 }
 
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
@@ -2021,45 +2029,64 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
     // GetAdjustedTime() to go backward).
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck))
-        return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck)) {
+        return error(
+            "%s: Consensus::CheckBlock: %s", __func__,
+            FormatStateMessage(state)
+        );
+    }
 
     // verify that the view's current state corresponds to the previous block
-    uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
+    uint256 hashPrevBlock =
+        pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
     assert(hashPrevBlock == view.GetBestBlock());
 
-    // Here we do not skip in case of genesis because we want to be able to spend its coinbase
+    // Here we do not skip in case of genesis because we want to be able to
+    // spend its coinbase
 
     nBlocksTotal++;
 
     bool fScriptChecks = true;
     if (!hashAssumeValid.IsNull()) {
-        // We've been configured with the hash of a block which has been externally verified to have a valid history.
-        // A suitable default value is included with the software and updated from time to time.  Because validity
-        //  relative to a piece of software is an objective fact these defaults can be easily reviewed.
-        // This setting doesn't force the selection of any particular chain but makes validating some faster by
-        //  effectively caching the result of part of the verification.
+        // We've been configured with the hash of a block which has been
+        // externally verified to have a valid history. A suitable default value
+        // is included with the software and updated from time to time.  Because
+        // validity relative to a piece of software is an objective fact these
+        // defaults can be easily reviewed. This setting doesn't force the
+        // selection of any particular chain but makes validating some faster by
+        // effectively caching the result of part of the verification.
         BlockMap::const_iterator  it = mapBlockIndex.find(hashAssumeValid);
         if (it != mapBlockIndex.end()) {
             if (it->second->GetAncestor(pindex->nHeight) == pindex &&
                 pindexBestHeader->GetAncestor(pindex->nHeight) == pindex &&
                 pindexBestHeader->nChainWork >= nMinimumChainWork) {
-                // This block is a member of the assumed verified chain and an ancestor of the best header.
-                // The equivalent time check discourages hash power from extorting the network via DOS attack
-                //  into accepting an invalid block through telling users they must manually set assumevalid.
-                //  Requiring a software change or burying the invalid block, regardless of the setting, makes
-                //  it hard to hide the implication of the demand.  This also avoids having release candidates
-                //  that are hardly doing any signature verification at all in testing without having to
-                //  artificially set the default assumed verified block further back.
-                // The test against nMinimumChainWork prevents the skipping when denied access to any chain at
-                //  least as good as the expected chain.
-                fScriptChecks = (GetBlockProofEquivalentTime(*pindexBestHeader, *pindex, *pindexBestHeader, chainparams.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
+                // This block is a member of the assumed verified chain and an
+                // ancestor of the best header. The equivalent time check
+                // discourages hash power from extorting the network via DOS
+                // attack into accepting an invalid block through telling users
+                // they must manually set assumevalid. Requiring a software
+                // change or burying the invalid block, regardless of the
+                // setting, makes it hard to hide the implication of the demand.
+                // This also avoids having release candidates that are hardly
+                // doing any signature verification at all in testing without
+                // having to artificially set the default assumed verified block
+                // further back. The test against nMinimumChainWork prevents the
+                // skipping when denied access to any chain at least as good as
+                // the expected chain.
+                fScriptChecks = (GetBlockProofEquivalentTime(
+                    *pindexBestHeader, *pindex, *pindexBestHeader,
+                    chainparams.GetConsensus()
+                ) <= 60 * 60 * 24 * 7 * 2);
             }
         }
     }
 
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
-    LogPrint(BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO, nTimeCheck * MILLI / nBlocksTotal);
+    LogPrint(
+        BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n",
+        MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO,
+        nTimeCheck * MILLI / nBlocksTotal
+    );
 
     // Here there was a check for BIP30 before BIP34 but we consider those already active
 
@@ -2073,7 +2100,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     unsigned int flags = GetBlockScriptFlags(pindex, chainparams.GetConsensus());
 
     int64_t nTime2 = GetTimeMicros(); nTimeForks += nTime2 - nTime1;
-    LogPrint(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
+    LogPrint(
+        BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n",
+        MILLI * (nTime2 - nTime1), nTimeForks * MICRO,
+        nTimeForks * MILLI / nBlocksTotal
+    );
 
     CBlockUndo blockundo;
 
@@ -2160,7 +2191,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
         CTxUndo undoDummy;
         if (i > 0) {
-            blockundo.vtxundo.push_back(CTxUndo());
+            blockundo.vtxundo.emplace_back(CTxUndo());
         }
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
     }
