@@ -10,7 +10,7 @@ AdminState::AdminState(const AdminParams &adminParams)
     : m_adminParams(adminParams),
       m_permissioningIsActive(!adminParams.m_blockToAdminKeys.empty()) {}
 
-void AdminState::OnBlock(int blockHeight) {
+void AdminState::OnBlock(blockchain::Height blockHeight) {
   if (!m_permissioningIsActive) {
     return;
   }

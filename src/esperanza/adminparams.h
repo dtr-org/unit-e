@@ -5,6 +5,7 @@
 #ifndef UNITE_ESPERANZA_ADMINPARAMS_H
 #define UNITE_ESPERANZA_ADMINPARAMS_H
 
+#include <blockchain/blockchain_types.h>
 #include <pubkey.h>
 #include <uint256.h>
 #include <array>
@@ -19,8 +20,8 @@ using AdminKeySet = std::array<CPubKey, ADMIN_MULTISIG_KEYS>;
 
 //! \brief Esperanza Permissioning-specific blockchain parameters
 struct AdminParams {
-  std::map<int, AdminKeySet> m_blockToAdminKeys;
-  std::map<int, std::vector<uint160>> m_blockToWhiteList;
+  std::map<blockchain::Height, AdminKeySet> m_blockToAdminKeys;
+  std::map<blockchain::Height, std::vector<uint160>> m_blockToWhiteList;
 };
 
 }  // namespace esperanza
