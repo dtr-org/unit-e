@@ -16,9 +16,18 @@
 #include <util.h>
 #include <validation.h>
 
+#include <atomic>
+
 namespace snapshot {
 
+namespace {
+std::atomic_flag initialized = ATOMIC_FLAG_INIT;
+};
+
 bool Initialize(const Params &params) {
+  if (initialized.test_and_set()) {
+    return error("Already initialized");
+  }
   if (!InitSecp256k1Context()) {
     return error("Can't initialize secp256k1_context for the snapshot hash.");
   }
@@ -57,6 +66,10 @@ bool Initialize(const Params &params) {
 
 void Deinitialize() {
   LogPrint(BCLog::SNAPSHOT, "%s invoked\n", __func__);
+  if (!initialized.test_and_set()) {
+    LogPrint(BCLog::SNAPSHOT, "%s: nothing to do, not initialized.\n", __func__);
+    return;
+  }
   DestroySecp256k1Context();
   Creator::Deinit();
   SaveSnapshotIndex();
