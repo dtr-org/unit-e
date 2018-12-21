@@ -69,15 +69,15 @@ class BlockValidatorImpl : public BlockValidator {
   BlockValidationResult CheckCoinbaseMetaInput(const CTxIn &in) const {
     BlockValidationResult result;
 
-    const CScript &scriptSig = in.scriptSig;
+    const CScript &script_sig = in.scriptSig;
 
     bool check;
     opcodetype op;
     std::vector<uint8_t> buf;
-    CScript::const_iterator it = scriptSig.begin();
+    CScript::const_iterator it = script_sig.begin();
 
     // read + check height
-    check = scriptSig.GetOp(it, op, buf);
+    check = script_sig.GetOp(it, op, buf);
     if (!check || (buf.empty() && op != OP_0)) {
       result.errors += Error::NO_BLOCK_HEIGHT;
       result.errors += Error::NO_SNAPSHOT_HASH;
@@ -95,7 +95,7 @@ class BlockValidatorImpl : public BlockValidator {
     }
 
     // read + check snapshot hash
-    check = scriptSig.GetOp(it, op, buf);
+    check = script_sig.GetOp(it, op, buf);
     if (!check || op != 0x20 || buf.size() != 32) {
       result.errors += Error::NO_SNAPSHOT_HASH;
       return result;

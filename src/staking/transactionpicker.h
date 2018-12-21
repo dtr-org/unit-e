@@ -54,8 +54,13 @@ class TransactionPicker {
 
   //! \brief transactions and fees chosen.
   struct PickTransactionsResult {
+    std::string m_error;
     std::vector<CTransactionRef> m_transactions;
     std::vector<CAmount> m_fees;
+
+    explicit operator bool() const {
+      return m_error.empty();
+    }
   };
 
   //! \brief picks transactions for inclusion in a block

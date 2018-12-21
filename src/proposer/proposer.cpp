@@ -103,6 +103,9 @@ class ProposerImpl : public Proposer {
           staking::TransactionPicker::PickTransactionsParameters p{};
           staking::TransactionPicker::PickTransactionsResult r = m_transaction_picker->PickTransactions(p);
 
+          if (!r) {
+            LogPrint(BCLog::PROPOSING, "Failed to pick transactions: %s – proposing empty block.\n");
+          }
           const CAmount fees = std::accumulate(r.m_fees.begin(), r.m_fees.end(), CAmount(0));
           const uint256 snapshot_hash = m_active_chain->ComputeSnapshotHash();
 
