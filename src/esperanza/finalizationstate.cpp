@@ -900,7 +900,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         uint160 validatorAddress = uint160();
 
         assert(ExtractValidatorAddress(*tx, validatorAddress));
-        state->ProcessDeposit(validatorAddress, tx->GetValueOut());
+        state->ProcessDeposit(validatorAddress, tx->vout[0].nValue);
         state->RegisterValidatorTx(validatorAddress, tx);
         break;
       }
