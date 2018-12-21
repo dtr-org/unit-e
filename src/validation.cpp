@@ -14,6 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <core_io.h>
 #include <esperanza/checks.h>
 #include <cuckoocache.h>
 #include <hash.h>
@@ -28,7 +29,6 @@
 #include <reverse_iterator.h>
 #include <script/script.h>
 #include <script/script_error.h>
-#include <script/script_util.h>
 #include <script/sigcache.h>
 #include <script/standard.h>
 #include <timedata.h>
@@ -1466,8 +1466,8 @@ std::string CScriptCheck::ToString() const {
     ptxTo->GetHash().GetHex(),
     nIn,
     nFlags,
-    script::Prettify(ptxTo->vin[nIn].scriptSig),
-    script::Prettify(m_tx_out.scriptPubKey),
+    FormatScript(ptxTo->vin[nIn].scriptSig),
+    FormatScript(m_tx_out.scriptPubKey),
     ptxTo->vin[nIn].scriptWitness.ToString()
   );
 }

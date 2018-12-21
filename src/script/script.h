@@ -46,12 +46,9 @@ std::vector<unsigned char> ToByteVector(const T& in)
     return std::vector<unsigned char>(in.begin(), in.end());
 }
 
-#define OPCODES(...) \
-  constexpr const char * OP_CODE_INFO = #__VA_ARGS__; \
-  enum opcodetype { __VA_ARGS__ };
-
 /** Script opcodes */
-OPCODES(
+enum opcodetype
+{
     // push value
     OP_0 = 0x00,
     OP_FALSE = OP_0,
@@ -205,8 +202,7 @@ OPCODES(
     OP_PUBKEY = 0xfe,
 
     OP_INVALIDOPCODE = 0xff,
-)
-#undef OPCODES
+};
 
 // Maximum value that an opcode can be
 static const unsigned int MAX_OPCODE = OP_NOP10;
