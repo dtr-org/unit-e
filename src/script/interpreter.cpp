@@ -1461,10 +1461,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             if (checker.GetTxType() == +TxType::COINBASE) {
                 scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.GetProgram()[0] << OP_EQUALVERIFY << OP_CHECKSIG;
             } else {
-                uint160 keyHash;
-                CRIPEMD160().Write(witnessProgram.GetProgram()[1].data(), witnessProgram.GetProgram()[1].size())
-                            .Finalize(keyHash.begin());
-                scriptPubKey << OP_DUP << OP_HASH160 << ToByteVector(keyHash) << OP_EQUALVERIFY << OP_CHECKSIG;
+                scriptPubKey << OP_DUP << OP_SHA256 << witnessProgram.GetProgram()[1] << OP_EQUALVERIFY << OP_CHECKSIG;
             }
             stack = witness.stack;
         } else {

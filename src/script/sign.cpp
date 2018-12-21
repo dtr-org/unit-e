@@ -57,6 +57,19 @@ static bool SignN(const std::vector<valtype>& multisigdata, const BaseSignatureC
     return nSigned==nRequired;
 }
 
+static bool SignWithPubKeyHash(const BaseSignatureCreator &creator, const CScript &script_pub_key,
+                               const uint160 &pub_key_hash, std::vector<valtype> &ret, SigVersion sigversion)
+{
+    CKeyID key_id = CKeyID(pub_key_hash);
+    if (Sign1(key_id, creator, script_pub_key, ret, sigversion)) {
+        CPubKey key;
+        creator.KeyStore().GetPubKey(key_id, key);
+        ret.push_back(ToByteVector(key));
+        return true;
+    }
+    return false;
+}
+
 /**
  * Sign scriptPubKey using signature made with creator.
  * Signatures are returned in scriptSigRet (or returns false if scriptPubKey can't be signed),
@@ -75,6 +88,7 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
         return false;
 
     CKeyID keyID;
+    CScript witnessscript;
     switch (whichTypeRet)
     {
     case TX_NONSTANDARD:
@@ -85,16 +99,7 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
         keyID = CPubKey(vSolutions[0]).GetID();
         return Sign1(keyID, creator, scriptPubKey, ret, sigversion);
     case TX_PUBKEYHASH:
-        keyID = CKeyID(uint160(vSolutions[0]));
-        if (!Sign1(keyID, creator, scriptPubKey, ret, sigversion))
-            return false;
-        else
-        {
-            CPubKey vch;
-            creator.KeyStore().GetPubKey(keyID, vch);
-            ret.push_back(ToByteVector(vch));
-        }
-        return true;
+        return SignWithPubKeyHash(creator, scriptPubKey, uint160(vSolutions[0]), ret, sigversion);
     case TX_PAYVOTESLASH:
         keyID = CPubKey(vSolutions[0]).GetID();
         if (Sign1(keyID, creator, scriptPubKey, ret, sigversion)) {
@@ -127,12 +132,14 @@ static bool SignStep(const BaseSignatureCreator& creator, const CScript& scriptP
 
     case TX_WITNESS_V1_REMOTE_STAKING:
         if (creator.Checker().GetTxType() == +TxType::COINBASE) {
-            ret.push_back(vSolutions[0]);
+            witnessscript << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
+            h160 = uint160(vSolutions[0]);
         } else {
             CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(h160.begin());
-            ret.push_back(ToByteVector(h160));
+            witnessscript << OP_DUP << OP_SHA256 << vSolutions[1] << OP_EQUALVERIFY << OP_CHECKSIG;
         }
-        return true;
+        return SignWithPubKeyHash(creator, witnessscript, h160, ret, SIGVERSION_WITNESS_V0);
+
     default:
         return false;
     }
@@ -187,10 +194,6 @@ bool ProduceSignature(const BaseSignatureCreator& creator, const CScript& fromPu
         sigdata.scriptWitness.stack = result;
         result.clear();
     } else if (solved && whichType == TX_WITNESS_V1_REMOTE_STAKING) {
-        CScript witnessscript;
-        witnessscript << OP_DUP << OP_HASH160 << ToByteVector(result[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
-        txnouttype subType;
-        solved = SignStep(creator, witnessscript, result, subType, SIGVERSION_WITNESS_V0);
         sigdata.scriptWitness.stack = result;
         result.clear();
     }
