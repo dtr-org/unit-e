@@ -2,11 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <staking/block_validator.h>
+
 #include <blockchain/blockchain_genesis.h>
 #include <blockchain/blockchain_parameters.h>
 #include <consensus/merkle.h>
 #include <key/mnemonic/mnemonic.h>
-#include <staking/block_validator.h>
 #include <test/test_unite.h>
 #include <timedata.h>
 
