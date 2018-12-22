@@ -70,7 +70,7 @@ class ProposerImpl : public Proposer {
         SetStatusOfAllWallets(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
         continue;
       }
-      for (const auto &wallet : m_multi_wallet->GetWallets()) {
+      for (CWalletRef wallet : m_multi_wallet->GetWallets()) {
         auto &wallet_ext = wallet->GetWalletExtension();
         const auto wallet_name = wallet->GetName();
         if (wallet->IsLocked()) {
@@ -110,7 +110,7 @@ class ProposerImpl : public Proposer {
           const uint256 snapshot_hash = m_active_chain->ComputeSnapshotHash();
 
           block = m_block_builder->BuildBlock(
-              tip, snapshot_hash, coin, coins, r.m_transactions, fees, wallet);
+              tip, snapshot_hash, coin, coins, r.m_transactions, fees, *wallet);
         }
         if (m_interrupted) {
           break;

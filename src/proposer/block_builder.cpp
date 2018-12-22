@@ -17,30 +17,12 @@ class BlockBuilderImpl : public BlockBuilder {
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<Settings> m_settings;
 
-  std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
-    auto number_of_pieces = amount / threshold;
-    if (amount % threshold > 0) {
-      // it spend can not be spread evenly we need one more to fit the rest
-      ++number_of_pieces;
-    }
-    // in order to not create a piece of dust of size (spend % threshold), try
-    // to spread evenly by forming pieces of size (spend / number_of_pieces) each
-    std::vector<CAmount> pieces(static_cast<std::size_t>(number_of_pieces),
-                                amount / number_of_pieces);
-    auto number_of_full_pieces = amount % number_of_pieces;
-    // distribute the remaining units not spread yet
-    for (std::size_t i = 0; i < number_of_full_pieces; ++i) {
-      ++pieces[i];
-    }
-    return pieces;
-  }
-
   const boost::optional<CTransaction> BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
       const EligibleCoin &coin,
       const std::vector<COutput> &coins,
       const CAmount fees,
-      CWallet *const wallet) const {
+      CWallet &wallet) const {
     CMutableTransaction tx;
 
     tx.SetVersion(1);
@@ -102,7 +84,8 @@ class BlockBuilderImpl : public BlockBuilder {
       tx.vout.emplace_back(spend, script_pub_key);
     }
 
-    if (!wallet->SignTransaction(tx)) {
+    // sign inputs
+    if (!wallet.SignTransaction(tx)) {
       Log("Failed to sign coinbase transaction.");
       return boost::none;
     }
@@ -110,7 +93,25 @@ class BlockBuilderImpl : public BlockBuilder {
     return CTransaction(tx);
   }
 
-  bool SignBlock(CBlock &block, CWallet *wallet) const {
+  std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
+    auto number_of_pieces = amount / threshold;
+    if (amount % threshold > 0) {
+      // it spend can not be spread evenly we need one more to fit the rest
+      ++number_of_pieces;
+    }
+    // in order to not create a piece of dust of size (spend % threshold), try
+    // to spread evenly by forming pieces of size (spend / number_of_pieces) each
+    std::vector<CAmount> pieces(static_cast<std::size_t>(number_of_pieces),
+                                amount / number_of_pieces);
+    auto number_of_full_pieces = amount % number_of_pieces;
+    // distribute the remaining units not spread yet
+    for (auto i = 0; i < number_of_full_pieces; ++i) {
+      ++pieces[i];
+    }
+    return pieces;
+  }
+
+  bool SignBlock(CBlock &block, const CKeyStore &key_store) const {
     const boost::optional<CPubKey> key = m_blockchain_behavior->ExtractBlockSigningKey(block);
     if (!key) {
       Log("Could not extract staking key from block.");
@@ -118,7 +119,7 @@ class BlockBuilderImpl : public BlockBuilder {
     }
     const CKeyID key_id = key->GetID();
     CKey private_key;
-    if (!wallet->GetKey(key_id, private_key)) {
+    if (!key_store.GetKey(key_id, private_key)) {
       Log("No private key for public key.");
       return false;
     }
@@ -144,7 +145,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const std::vector<COutput> &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
-      CWallet *wallet) const override {
+      CWallet &wallet) const override {
 
     CBlock new_block;
 

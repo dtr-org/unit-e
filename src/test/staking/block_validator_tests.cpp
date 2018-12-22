@@ -21,10 +21,10 @@ std::unique_ptr<blockchain::Behavior> b =
 CBlock MinimalBlock() {
   // a block is signed by the proposer, thus we need some key setup here
   const key::mnemonic::Seed seed("cook note face vicious suggest company unit smart lobster tongue dune diamond faculty solid thought");
-  const CExtKey &extKey = seed.GetExtKey();
+  const CExtKey &ext_key = seed.GetExtKey();
   // public key for signing block
-  const CPubKey pubKey = extKey.Neuter().pubkey;
-  const auto pubKeyData = std::vector<unsigned char>(pubKey.begin(), pubKey.end());
+  const CPubKey pub_key = ext_key.Neuter().pubkey;
+  const auto pub_key_data = std::vector<unsigned char>(pub_key.begin(), pub_key.end());
 
   CBlock block;
   block.nTime = b->CalculateProposingTimestamp(std::time(nullptr));
@@ -32,16 +32,16 @@ CBlock MinimalBlock() {
     CMutableTransaction tx;
     tx.SetType(TxType::COINBASE);
     // meta input: block height, snapshot hash, terminator
-    CScript scriptSig = CScript() << CScriptNum::serialize(4711)
+    CScript script_sig = CScript() << CScriptNum::serialize(4711)
                                   << ToByteVector(uint256S("689dae90b6913ff34a64750dd537177afa58b3d012803a10793d74f1ebb88da9"));
-    tx.vin.emplace_back(uint256(), 0, scriptSig);
+    tx.vin.emplace_back(uint256(), 0, script_sig);
     // stake
     tx.vin.emplace_back(uint256(), 1);
     tx.vin[1].scriptWitness.stack.emplace_back();  // signature, not checked
-    tx.vin[1].scriptWitness.stack.emplace_back(pubKeyData);
+    tx.vin[1].scriptWitness.stack.emplace_back(pub_key_data);
     // can be spent by anyone, simply yields "true"
-    CScript scriptPubKey = CScript() << OP_TRUE;
-    tx.vout.emplace_back(50, scriptPubKey);
+    CScript script_pub_key = CScript() << OP_TRUE;
+    tx.vout.emplace_back(50, script_pub_key);
     block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
   }
   {
@@ -50,11 +50,12 @@ CBlock MinimalBlock() {
     block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
   }
 
-  bool duplicateTransactions;
-  block.hashMerkleRoot = BlockMerkleRoot(block, &duplicateTransactions);
+  bool duplicate_transactions;
+  block.hashMerkleRoot = BlockMerkleRoot(block, &duplicate_transactions);
+  block.hash_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
   const uint256 blockHash = block.GetHash();
 
-  extKey.key.Sign(blockHash, block.signature);
+  ext_key.key.Sign(blockHash, block.signature);
 
   return block;
 }

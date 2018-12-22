@@ -31,7 +31,7 @@ class BlockBuilder {
       const std::vector<COutput> &,          //!< Other coins to combine with the stake
       const std::vector<CTransactionRef> &,  //!< Transactions to include in the block
       CAmount,                               //!< The fees on the transactions
-      CWallet *                              //!< A wallet used to sign blocks and stake
+      CWallet &                              //!< A wallet used to sign blocks and stake
       ) const = 0;
 
   virtual ~BlockBuilder() = default;
