@@ -16,6 +16,7 @@
 #include <memory>
 
 class COutput;
+class CWallet;
 
 namespace proposer {
 
@@ -24,11 +25,13 @@ class BlockBuilder {
  public:
   //! \brief Builds a brand new block.
   virtual std::shared_ptr<const CBlock> BuildBlock(
-      const CBlockIndex &,                  //!< The previous block / current tip
-      const uint256 &,                      //!< The snapshot hash to be included in the new block
-      const EligibleCoin &,                 //!< The coin to use as stake
-      const std::vector<COutput> &,         //!< Other coins to combine with the stake
-      const std::vector<CTransactionRef> &  //!< Transactions to include in the block
+      const CBlockIndex &,                   //!< The previous block / current tip
+      const uint256 &,                       //!< The snapshot hash to be included in the new block
+      const EligibleCoin &,                  //!< The coin to use as stake
+      const std::vector<COutput> &,          //!< Other coins to combine with the stake
+      const std::vector<CTransactionRef> &,  //!< Transactions to include in the block
+      CAmount,                               //!< The fees on the transactions
+      CWallet *                              //!< A wallet used to sign blocks and stake
       ) const = 0;
 
   virtual ~BlockBuilder() = default;

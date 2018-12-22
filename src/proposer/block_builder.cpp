@@ -5,7 +5,10 @@
 #include <proposer/block_builder.h>
 
 #include <consensus/merkle.h>
+#include <fixed_vector.h>
 #include <wallet/wallet.h>
+
+#define Log(MSG) LogPrint(BCLog::PROPOSING, "%s: " MSG "\n", __func__)
 
 namespace proposer {
 
@@ -14,10 +17,30 @@ class BlockBuilderImpl : public BlockBuilder {
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<Settings> m_settings;
 
-  const CTransaction BuildCoinbaseTransaction(
+  std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
+    auto number_of_pieces = amount / threshold;
+    if (amount % threshold > 0) {
+      // it spend can not be spread evenly we need one more to fit the rest
+      ++number_of_pieces;
+    }
+    // in order to not create a piece of dust of size (spend % threshold), try
+    // to spread evenly by forming pieces of size (spend / number_of_pieces) each
+    std::vector<CAmount> pieces(static_cast<std::size_t>(number_of_pieces),
+                                amount / number_of_pieces);
+    auto number_of_full_pieces = amount % number_of_pieces;
+    // distribute the remaining units not spread yet
+    for (std::size_t i = 0; i < number_of_full_pieces; ++i) {
+      ++pieces[i];
+    }
+    return pieces;
+  }
+
+  const boost::optional<CTransaction> BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
       const EligibleCoin &coin,
-      const std::vector<COutput> &coins) const {
+      const std::vector<COutput> &coins,
+      const CAmount fees,
+      CWallet *const wallet) const {
     CMutableTransaction tx;
 
     tx.SetVersion(1);
@@ -33,30 +56,78 @@ class BlockBuilderImpl : public BlockBuilder {
     // add stake
     tx.vin.emplace_back(coin.stake);
 
-    // add combined stake
-    CAmount combined_total = 0;
+    // add combined stake - we already include the eligible coin and its amount.
+    CAmount combined_total = coin.amount;
     for (const auto &c : coins) {
       const uint256 txid = c.tx->tx->GetHash();
       const auto index = static_cast<std::uint32_t>(c.tx->nIndex);
       if (txid == coin.stake.hash && index == coin.stake.n) {
+        // if it's the staking coin we already included it in tx.vin so we
+        // can skip here. It is already included in combined_total.
         continue;
       }
+      const CTxOut &prev_out = c.tx->tx->vout[index];
+      const CAmount amount = prev_out.nValue;
+      combined_total += amount;
       if (m_settings->stake_combine_maximum > 0) {
-        combined_total += c.tx->tx->vout[index].nValue;
         if (combined_total > m_settings->stake_combine_maximum) {
-          break;
+          // if the combined_total exceeds the stake combination maximum then
+          // the coin should not be included. Since it's already counted towards
+          // combined_total it's being subtracted away again.
+          combined_total -= amount;
+          // stake combination does not break here, but it continues here. This
+          // way the order ot the coins does not matter. If there is another coin
+          // later on which actually fits stake_combine_maximum it might still
+          // beincluded.
+          continue;
         }
       }
       tx.vin.emplace_back(txid, index);
     }
 
-    // add outputs
-    if (m_settings->stake_split_threshold > 0) {
+    // destination to send stake + reward to
+    const CPubKey pub_key;
+    const CTxDestination destination = WitnessV0KeyHash(pub_key.GetID());
+    const CScript script_pub_key = GetScriptForDestination(destination);
 
+    // add outputs
+    const CAmount spend = combined_total + coin.reward + fees;
+    const CAmount threshold = m_settings->stake_split_threshold;
+    if (threshold > 0 && spend > threshold) {
+      const std::vector<CAmount> pieces = SplitAmount(spend, threshold);
+      for (const CAmount amount : pieces) {
+        tx.vout.emplace_back(amount, script_pub_key);
+      }
     } else {
+      tx.vout.emplace_back(spend, script_pub_key);
+    }
+
+    if (!wallet->SignTransaction(tx)) {
+      Log("Failed to sign coinbase transaction.");
+      return boost::none;
     }
 
     return CTransaction(tx);
+  }
+
+  bool SignBlock(CBlock &block, CWallet *wallet) const {
+    const boost::optional<CPubKey> key = m_blockchain_behavior->ExtractBlockSigningKey(block);
+    if (!key) {
+      Log("Could not extract staking key from block.");
+      return false;
+    }
+    const CKeyID key_id = key->GetID();
+    CKey private_key;
+    if (!wallet->GetKey(key_id, private_key)) {
+      Log("No private key for public key.");
+      return false;
+    }
+    const uint256 block_hash = block.GetHash();
+    if (!private_key.Sign(block_hash, block.signature)) {
+      Log("Could not create block signature.");
+      return false;
+    }
+    return true;
   }
 
  public:
@@ -71,7 +142,9 @@ class BlockBuilderImpl : public BlockBuilder {
       const uint256 &snapshot_hash,
       const EligibleCoin &coin,
       const std::vector<COutput> &coins,
-      const std::vector<CTransactionRef> &txs) const override {
+      const std::vector<CTransactionRef> &txs,
+      const CAmount fees,
+      CWallet *wallet) const override {
 
     CBlock new_block;
 
@@ -82,7 +155,13 @@ class BlockBuilderImpl : public BlockBuilder {
     // nonce will be removed and is not relevant in PoS, not setting it here
 
     // add coinbase transaction first
-    new_block.vtx.emplace_back(MakeTransactionRef(BuildCoinbaseTransaction(snapshot_hash, coin, coins)));
+    const boost::optional<CTransaction> coinbase_transaction =
+        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, wallet);
+    if (!coinbase_transaction) {
+      Log("Failed to create coinbase transaction.");
+      return nullptr;
+    }
+    new_block.vtx.emplace_back(MakeTransactionRef(*coinbase_transaction));
 
     // add remaining transactions
     for (const auto &tx : txs) {
@@ -93,16 +172,26 @@ class BlockBuilderImpl : public BlockBuilder {
     {
       bool duplicate_transactions = false;
       new_block.hashMerkleRoot = BlockMerkleRoot(new_block, &duplicate_transactions);
-      assert(!duplicate_transactions);
+      if (duplicate_transactions) {
+        Log("Duplicate transactions detected while contructing merkle tree.");
+        return nullptr;
+      }
     }
 
     // create witness merkle root
     {
       bool duplicate_transactions = false;
       new_block.hash_witness_merkle_root = BlockWitnessMerkleRoot(new_block, &duplicate_transactions);
-      assert(!duplicate_transactions);
+      if (duplicate_transactions) {
+        Log("Duplicate transactions detected while constructing witness merkle tree.");
+        return nullptr;
+      }
     }
 
+    if (!SignBlock(new_block, wallet)) {
+      Log("Failed to sign block.");
+      return nullptr;
+    }
     return std::make_shared<const CBlock>(new_block);
   }
 };

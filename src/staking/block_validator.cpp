@@ -116,7 +116,7 @@ class BlockValidatorImpl : public BlockValidator {
       result.errors += Error::INVALID_BLOCK_PUBLIC_KEY;
       return result;
     }
-    if (!key.get().Verify(blockHash, block.signature)) {
+    if (!key->Verify(blockHash, block.signature)) {
       result.errors += Error::BLOCK_SIGNATURE_VERIFICATION_FAILED;
     }
     return result;

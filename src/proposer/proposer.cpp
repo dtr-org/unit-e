@@ -109,7 +109,8 @@ class ProposerImpl : public Proposer {
           const CAmount fees = std::accumulate(r.m_fees.begin(), r.m_fees.end(), CAmount(0));
           const uint256 snapshot_hash = m_active_chain->ComputeSnapshotHash();
 
-          block = m_block_builder->BuildBlock(tip, snapshot_hash, coin, coins, r.m_transactions);
+          block = m_block_builder->BuildBlock(
+              tip, snapshot_hash, coin, coins, r.m_transactions, fees, wallet);
         }
         if (m_interrupted) {
           break;

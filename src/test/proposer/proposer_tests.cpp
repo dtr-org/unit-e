@@ -100,7 +100,9 @@ struct Fixture {
         const uint256 &,
         const proposer::EligibleCoin &,
         const std::vector<COutput> &,
-        const std::vector<CTransactionRef> &) const override { return nullptr; }
+        const std::vector<CTransactionRef> &,
+        const CAmount,
+        CWallet *) const override { return nullptr; }
   };
 
   class ProposerLogicMock : public proposer::Logic {

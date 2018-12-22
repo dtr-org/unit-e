@@ -25,6 +25,9 @@ struct EligibleCoin {
   //! The kernel hash that was computed for the block using this coin.
   uint256 kernel_hash;
 
+  //! The reward associated with this coin, not including fees.
+  CAmount reward;
+
   //! The depth of the piece of stake that is used as Proof-of-Stake in the
   //! newly proposed block. This depth is relative to the currently active
   //! chain's height. The depth of the tip of the chain is one by definition.
