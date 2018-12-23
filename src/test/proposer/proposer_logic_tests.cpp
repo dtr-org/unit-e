@@ -7,6 +7,16 @@
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
+namespace {
+
+struct Fixture {
+};
+
+}  // namespace
+
 BOOST_AUTO_TEST_SUITE(proposer_logic_tests)
+
+BOOST_AUTO_TEST_CASE(propose) {
+}
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -99,7 +99,7 @@ class ProposerImpl : public Proposer {
           }
           const EligibleCoin &coin = winning_ticket.get();
           LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, tx=%s, ix=%s)\n",
-                   wallet_name, coin.stake.hash.GetHex(), std::to_string(coin.stake.n));
+                   wallet_name, coin.utxo.txid.GetHex(), std::to_string(coin.utxo.index));
           staking::TransactionPicker::PickTransactionsParameters p{};
           staking::TransactionPicker::PickTransactionsResult r = m_transaction_picker->PickTransactions(p);
 

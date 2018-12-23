@@ -11,6 +11,7 @@
 #include <primitives/transaction.h>
 #include <proposer/eligible_coin.h>
 #include <settings.h>
+#include <staking/coin.h>
 #include <staking/transactionpicker.h>
 
 #include <memory>
@@ -28,7 +29,7 @@ class BlockBuilder {
       const CBlockIndex &,                   //!< The previous block / current tip
       const uint256 &,                       //!< The snapshot hash to be included in the new block
       const EligibleCoin &,                  //!< The coin to use as stake
-      const std::vector<COutput> &,          //!< Other coins to combine with the stake
+      const std::vector<staking::Coin> &,    //!< Other coins to combine with the stake
       const std::vector<CTransactionRef> &,  //!< Transactions to include in the block
       CAmount,                               //!< The fees on the transactions
       CWallet &                              //!< A wallet used to sign blocks and stake

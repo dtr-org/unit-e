@@ -19,8 +19,8 @@ class BlockBuilderImpl : public BlockBuilder {
 
   const boost::optional<CTransaction> BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
-      const EligibleCoin &coin,
-      const std::vector<COutput> &coins,
+      const EligibleCoin &eligible_coin,
+      const std::vector<staking::Coin> &coins,
       const CAmount fees,
       CWallet &wallet) const {
     CMutableTransaction tx;
@@ -30,33 +30,29 @@ class BlockBuilderImpl : public BlockBuilder {
 
     // build meta input
     {
-      CScript script_sig = CScript() << CScriptNum::serialize(coin.target_height)
+      CScript script_sig = CScript() << CScriptNum::serialize(eligible_coin.target_height)
                                      << ToByteVector(snapshot_hash);
       tx.vin.emplace_back(uint256(), 0, script_sig);
     }
 
     // add stake
-    tx.vin.emplace_back(coin.stake);
+    tx.vin.emplace_back(eligible_coin.utxo.txid, eligible_coin.utxo.index);
 
     // add combined stake - we already include the eligible coin and its amount.
-    CAmount combined_total = coin.amount;
-    for (const auto &c : coins) {
-      const uint256 txid = c.tx->tx->GetHash();
-      const auto index = static_cast<std::uint32_t>(c.tx->nIndex);
-      if (txid == coin.stake.hash && index == coin.stake.n) {
+    CAmount combined_total = eligible_coin.utxo.amount;
+    for (const auto &coin : coins) {
+      if (coin.txid == eligible_coin.utxo.txid && coin.index == eligible_coin.utxo.index) {
         // if it's the staking coin we already included it in tx.vin so we
         // can skip here. It is already included in combined_total.
         continue;
       }
-      const CTxOut &prev_out = c.tx->tx->vout[index];
-      const CAmount amount = prev_out.nValue;
-      combined_total += amount;
+      combined_total += coin.amount;
       if (m_settings->stake_combine_maximum > 0) {
         if (combined_total > m_settings->stake_combine_maximum) {
           // if the combined_total exceeds the stake combination maximum then
           // the coin should not be included. Since it's already counted towards
           // combined_total it's being subtracted away again.
-          combined_total -= amount;
+          combined_total -= coin.amount;
           // stake combination does not break here, but it continues here. This
           // way the order ot the coins does not matter. If there is another coin
           // later on which actually fits stake_combine_maximum it might still
@@ -64,7 +60,7 @@ class BlockBuilderImpl : public BlockBuilder {
           continue;
         }
       }
-      tx.vin.emplace_back(txid, index);
+      tx.vin.emplace_back(coin.txid, coin.index);
     }
 
     // destination to send stake + reward to
@@ -73,7 +69,7 @@ class BlockBuilderImpl : public BlockBuilder {
     const CScript script_pub_key = GetScriptForDestination(destination);
 
     // add outputs
-    const CAmount spend = combined_total + coin.reward + fees;
+    const CAmount spend = combined_total + eligible_coin.reward + fees;
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && spend > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(spend, threshold);
@@ -85,9 +81,12 @@ class BlockBuilderImpl : public BlockBuilder {
     }
 
     // sign inputs
-    if (!wallet.SignTransaction(tx)) {
-      Log("Failed to sign coinbase transaction.");
-      return boost::none;
+    {
+      LOCK(wallet.GetWalletExtension().GetLock());
+      if (!wallet.SignTransaction(tx)) {
+        Log("Failed to sign coinbase transaction.");
+        return boost::none;
+      }
     }
 
     return CTransaction(tx);
@@ -142,7 +141,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const CBlockIndex &prev_block,
       const uint256 &snapshot_hash,
       const EligibleCoin &coin,
-      const std::vector<COutput> &coins,
+      const std::vector<staking::Coin> &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
       CWallet &wallet) const override {

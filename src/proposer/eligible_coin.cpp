@@ -12,9 +12,9 @@ std::string EligibleCoin::ToString() const {
   return tfm::format(
       "tx=%s, index=%d, amount=%d, kernel=%d, depth=%d, "
       "target_height=%d, target_time=%d, target_difficulty=%d",
-      stake.hash.GetHex(),
-      stake.n,
-      amount,
+      utxo.txid.GetHex(),
+      utxo.index,
+      utxo.amount,
       kernel_hash.GetHex(),
       depth,
       target_height,

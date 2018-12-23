@@ -10,6 +10,7 @@
 #include <dependency.h>
 #include <proposer/eligible_coin.h>
 #include <staking/active_chain.h>
+#include <staking/coin.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 
@@ -31,7 +32,7 @@ class Logic {
   //!
   //! The actual proposer component can then proceed and assemble a block and
   //! broadcast it into the network.
-  virtual boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<COutput> &) = 0;
+  virtual boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<staking::Coin> &) = 0;
 
   virtual ~Logic() = default;
 

@@ -7,6 +7,7 @@
 
 #include <amount.h>
 #include <proposer/proposer_state.h>
+#include <staking/coin.h>
 #include <sync.h>
 
 #include <vector>
@@ -41,7 +42,7 @@ class StakingWallet {
   virtual CAmount GetStakeableBalance() const = 0;
 
   //! \brief returns the coins that can currently be used for staking.
-  virtual std::vector<::COutput> GetStakeableCoins() const = 0;
+  virtual std::vector<staking::Coin> GetStakeableCoins() const = 0;
 
   //! \brief returns the mutable proposer state for this wallet.
   virtual proposer::State &GetProposerState() = 0;

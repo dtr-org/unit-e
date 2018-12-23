@@ -60,7 +60,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       if (m_enclosing_wallet.GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
         continue;
       }
-      f(tx, outIx, depth);
+      f(tx, std::uint32_t(outIx), depth);
     }
   }
 }
@@ -75,16 +75,16 @@ CAmount WalletExtension::GetReserveBalance() const {
 
 CAmount WalletExtension::GetStakeableBalance() const {
   CAmount total_amount = 0;
-  ForEachStakeableCoin([&](const CWalletTx *tx, std::size_t outIx, blockchain::Depth depth) {
+  ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
     total_amount += tx->tx->vout[outIx].nValue;
   });
   return total_amount;
 }
 
-std::vector<::COutput> WalletExtension::GetStakeableCoins() const {
-  std::vector<::COutput> coins;
-  ForEachStakeableCoin([&](const CWalletTx *tx, std::size_t outIx, blockchain::Depth depth) {
-    coins.emplace_back(tx, static_cast<int>(outIx), static_cast<int>(depth), true, true, true);
+std::vector<staking::Coin> WalletExtension::GetStakeableCoins() const {
+  std::vector<staking::Coin> coins;
+  ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
+    coins.emplace_back(staking::Coin{tx->tx->GetHash(), outIx, tx->tx->vout[outIx].nValue, depth});
   });
   return coins;
 }

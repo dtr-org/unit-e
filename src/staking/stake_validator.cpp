@@ -48,7 +48,7 @@ class StakeValidatorImpl : public StakeValidator {
   }
 
   uint256 ComputeKernelHash(const CBlockIndex *previous_block,
-                            const ::COutPoint &stake,
+                            const staking::Coin &coin,
                             const blockchain::Time time) const override {
 
     if (!previous_block) {
@@ -62,8 +62,8 @@ class StakeValidatorImpl : public StakeValidator {
 
     s << previous_block->stake_modifier;
     s << previous_block->nTime;
-    s << stake.hash;
-    s << stake.n;
+    s << coin.txid;
+    s << coin.index;
     s << time;
 
     return Hash(s.begin(), s.end());

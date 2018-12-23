@@ -47,7 +47,7 @@ class BlockValidationResult {
   boost::optional<blockchain::Height> height = boost::none;
   boost::optional<uint256> snapshot_hash = boost::none;
 
-  void operator+=(const BlockValidationResult& other);
+  void operator+=(const BlockValidationResult &other);
 
   //! \brief Validation succeeded if there are no validation errors
   explicit operator bool() const;

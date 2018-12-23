@@ -2,10 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
+
+#include <proposer/multiwallet.h>
 #include <test/test_unite.h>
 #include <wallet/wallet.h>
+
 #include <boost/test/unit_test.hpp>
 
 #include <thread>
@@ -99,7 +101,7 @@ struct Fixture {
         const CBlockIndex &,
         const uint256 &,
         const proposer::EligibleCoin &,
-        const std::vector<COutput> &,
+        const std::vector<staking::Coin> &,
         const std::vector<CTransactionRef> &,
         const CAmount,
         CWallet &) const override { return nullptr; }
@@ -107,7 +109,7 @@ struct Fixture {
 
   class ProposerLogicMock : public proposer::Logic {
    public:
-    boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<COutput> &) override { return boost::none; }
+    boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<staking::Coin> &) override { return boost::none; }
   };
 
   NetworkMock network_mock;
@@ -116,7 +118,7 @@ struct Fixture {
   BlockBuilderMock block_builder_mock;
   ProposerLogicMock logic_mock;
 
-  std::unique_ptr<Proposer> GetProposer() {
+  std::unique_ptr<Proposer> MakeProposer() {
     return Proposer::New(
         settings.get(),
         behavior.get(),
@@ -139,10 +141,10 @@ BOOST_AUTO_TEST_CASE(not_proposing_stub_vs_actual_impl) {
   Fixture f3{"-proposing=1"};
   Fixture f4{"-proposing=1"};
 
-  std::unique_ptr<proposer::Proposer> p1 = f1.GetProposer();
-  std::unique_ptr<proposer::Proposer> p2 = f2.GetProposer();
-  std::unique_ptr<proposer::Proposer> p3 = f3.GetProposer();
-  std::unique_ptr<proposer::Proposer> p4 = f4.GetProposer();
+  std::unique_ptr<proposer::Proposer> p1 = f1.MakeProposer();
+  std::unique_ptr<proposer::Proposer> p2 = f2.MakeProposer();
+  std::unique_ptr<proposer::Proposer> p3 = f3.MakeProposer();
+  std::unique_ptr<proposer::Proposer> p4 = f4.MakeProposer();
 
   proposer::Proposer &r1 = *p1;
   proposer::Proposer &r2 = *p2;
@@ -159,7 +161,7 @@ BOOST_AUTO_TEST_CASE(start_stop_and_status) {
   Fixture f{"-proposing=1"};
   f.network_mock.nodecount = 0;
   BOOST_CHECK_NO_THROW({
-    auto p = f.GetProposer();
+    auto p = f.MakeProposer();
     p->Start();
   });
   // destroying the proposer stops it
@@ -171,7 +173,7 @@ BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
   Fixture f{"-proposing=1"};
   f.network_mock.nodecount = 1;
   BOOST_CHECK_NO_THROW({
-    auto p = f.GetProposer();
+    auto p = f.MakeProposer();
     p->Start();
   });
   BOOST_CHECK(f.chain_mock.GetInitialBlockDownloadStatus_invocations > 0);

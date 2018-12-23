@@ -9,6 +9,7 @@
 #include <blockchain/blockchain_behavior.h>
 #include <chain.h>
 #include <dependency.h>
+#include <staking/coin.h>
 #include <sync.h>
 #include <uint256.h>
 
@@ -39,9 +40,9 @@ class StakeValidator {
   //! In PoS v3 it is just the preceding block, but it could be any previous
   //! block, for example the last finalized checkpoint.
   virtual uint256 ComputeKernelHash(
-      const CBlockIndex *,  //!< [in] The previous block to draw entropy from
-      const ::COutPoint &,  //!< [in] The stake to be used in this block
-      blockchain::Time      //!< [in] The time of this block
+      const CBlockIndex *,    //!< [in] The previous block to draw entropy from
+      const staking::Coin &,  //!< [in] The stake to be used in this block
+      blockchain::Time        //!< [in] The time of this block
       ) const = 0;
 
   //! \brief Computes the stake modifier for a block.
