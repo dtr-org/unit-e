@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   eligible_coin.kernel_hash = uint256();
   eligible_coin.reward = 50;
   eligible_coin.target_height = 18;
-  eligible_coin.target_time = 4711;
+  eligible_coin.target_time = f.behavior->CalculateProposingTimestampAfter(4711);
 
   staking::Coin coin1;
   coin1.txid = uint256();
