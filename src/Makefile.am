@@ -202,6 +202,7 @@ UNITE_CORE_H = \
   snapshot/state.h \
   staking/active_chain.h \
   staking/block_validator.h \
+  staking/coin.h \
   staking/network.h \
   staking/stake_validator.h \
   staking/stakingwallet.h \
