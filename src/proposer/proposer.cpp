@@ -110,7 +110,7 @@ class ProposerImpl : public Proposer {
           const uint256 snapshot_hash = m_active_chain->ComputeSnapshotHash();
 
           block = m_block_builder->BuildBlock(
-              tip, snapshot_hash, coin, coins, r.m_transactions, fees, *wallet);
+              tip, snapshot_hash, coin, coins, r.m_transactions, fees, wallet_ext);
         }
         if (m_interrupted) {
           break;

@@ -47,20 +47,23 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
     const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
-    const blockchain::Depth depth = tx->GetDepthInMainChain();  // requires cs_main
+    const auto depth = static_cast<blockchain::Depth>(tx->GetDepthInMainChain());  // requires cs_main
     if (depth < 1) {
       // requires at least one confirmation
       continue;
     }
-    for (std::size_t outIx = 0; outIx < coins.size(); ++outIx) {
-      if (m_enclosing_wallet.IsSpent(txId, outIx)) {
+    for (std::size_t outix = 0; outix < coins.size(); ++outix) {
+      if (m_enclosing_wallet.IsSpent(txId, outix)) {
         continue;
       }
-      const CTxOut &coin = coins[outIx];
+      const CTxOut &coin = coins[outix];
       if (m_enclosing_wallet.GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
         continue;
       }
-      f(tx, std::uint32_t(outIx), depth);
+      if (!coin.scriptPubKey.IsPayToWitnessScriptHash()) {
+        continue;
+      }
+      f(tx, std::uint32_t(outix), depth);
     }
   }
 }
@@ -91,6 +94,41 @@ std::vector<staking::Coin> WalletExtension::GetStakeableCoins() const {
 
 proposer::State &WalletExtension::GetProposerState() {
   return m_proposer_state;
+}
+
+boost::optional<CKey> WalletExtension::GetKey(const CPubKey &pubkey) const {
+  const CKeyID keyid = pubkey.GetID();
+  CKey key;
+  if (!m_enclosing_wallet.GetKey(keyid, key)) {
+    return boost::none;
+  }
+  return key;
+}
+
+bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
+  AssertLockHeld(GetLock());
+
+  const CTransaction tx_const(tx);
+  int ix = 0;
+  const auto &wallet = m_enclosing_wallet.mapWallet;
+  for (std::size_t i = 1; i < tx.vin.size(); ++i) {  // skips the first input, which is the meta input
+    const auto &input = tx.vin[i];
+    const auto index = input.prevout.n;
+    std::map<uint256, CWalletTx>::const_iterator mi = wallet.find(input.prevout.hash);
+    const auto &vout = mi->second.tx->vout;
+    if (mi == wallet.end() || index >= vout.size()) {
+      return false;
+    }
+    const CTxOut &out = vout[index];
+    SignatureData sigdata;
+    const TransactionSignatureCreator sigcreator(&m_enclosing_wallet, &tx_const, ix, out.nValue, SIGHASH_ALL);
+    if (!ProduceSignature(sigcreator, out.scriptPubKey, sigdata)) {
+      return false;
+    }
+    UpdateTransaction(tx, ix, sigdata);
+    ++ix;
+  }
+  return true;
 }
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,

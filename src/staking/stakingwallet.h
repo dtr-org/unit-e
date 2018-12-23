@@ -6,9 +6,13 @@
 #define UNIT_E_STAKING_STAKINGWALLET_H
 
 #include <amount.h>
+#include <key.h>
 #include <proposer/proposer_state.h>
+#include <pubkey.h>
 #include <staking/coin.h>
 #include <sync.h>
+
+#include <boost/optional.hpp>
 
 #include <vector>
 
@@ -46,6 +50,12 @@ class StakingWallet {
 
   //! \brief returns the mutable proposer state for this wallet.
   virtual proposer::State &GetProposerState() = 0;
+
+  //! \brief retrieve the private key corresponding to the given public key.
+  virtual boost::optional<CKey> GetKey(const CPubKey &) const = 0;
+
+  //! \brief signs the staking input in a coinbase transaction
+  virtual bool SignCoinbaseTransaction(CMutableTransaction &) = 0;
 
   virtual ~StakingWallet() = default;
 };

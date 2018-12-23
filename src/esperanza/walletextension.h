@@ -89,6 +89,12 @@ class WalletExtension : public staking::StakingWallet {
   std::vector<staking::Coin> GetStakeableCoins() const override;
 
   // defined in staking::StakingWallet
+  boost::optional<CKey> GetKey(const CPubKey &) const override;
+
+  // defined in staking::StakingWallet
+  bool SignCoinbaseTransaction(CMutableTransaction &) override;
+
+  // defined in staking::StakingWallet
   proposer::State &GetProposerState() override;
 
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,

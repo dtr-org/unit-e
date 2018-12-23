@@ -12,6 +12,8 @@
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
+#include <functional>
+
 namespace {
 
 struct Fixture {
@@ -21,7 +23,24 @@ struct Fixture {
   blockchain::Parameters parameters = blockchain::Parameters::MainNet();
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::New(args_manager.get());
 
-  CWallet wallet;
+  class Wallet : public staking::StakingWallet {
+    mutable CCriticalSection lock;
+    proposer::State state;
+
+   public:
+    CKey key;
+    std::function<bool(CMutableTransaction &)> signfunc = [](CMutableTransaction &) { return false; };
+
+    CCriticalSection &GetLock() const override { return lock; }
+    CAmount GetReserveBalance() const override { return 0; }
+    CAmount GetStakeableBalance() const override { return 1000; }
+    std::vector<staking::Coin> GetStakeableCoins() const override { return std::vector<staking::Coin>(); }
+    proposer::State &GetProposerState() override { return state; }
+    boost::optional<CKey> GetKey(const CPubKey &) const override { return key; }
+    bool SignCoinbaseTransaction(CMutableTransaction &tx) override { return signfunc(tx); }
+  };
+
+  Wallet wallet;
 
   Fixture(std::initializer_list<std::string> args)
       : args_manager([&] {
@@ -36,12 +55,7 @@ struct Fixture {
           delete[] argv;
           return argsman;
         }()),
-        settings(Settings::New(args_manager.get())),
-        wallet([&] {
-          esperanza::WalletExtensionDeps deps;
-          deps.settings = settings.get();
-          return deps;
-        }()) {}
+        settings(Settings::New(args_manager.get())) {}
 
   std::unique_ptr<staking::BlockValidator> MakeBlockValidator() {
     return staking::BlockValidator::New(
@@ -101,6 +115,8 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   std::vector<staking::Coin> coins{coin1, coin2};
   std::vector<CTransactionRef> transactions;
   CAmount fees(0);
+
+  f.wallet.signfunc = [](CMutableTransaction &) { return true; };
 
   auto block = builder->BuildBlock(
       current_tip, snapshot_hash, eligible_coin, coins, transactions, fees, f.wallet);

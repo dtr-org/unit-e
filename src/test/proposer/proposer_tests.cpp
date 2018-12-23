@@ -104,7 +104,7 @@ struct Fixture {
         const std::vector<staking::Coin> &,
         const std::vector<CTransactionRef> &,
         const CAmount,
-        CWallet &) const override { return nullptr; }
+        staking::StakingWallet &) const override { return nullptr; }
   };
 
   class ProposerLogicMock : public proposer::Logic {

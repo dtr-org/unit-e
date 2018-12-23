@@ -6,7 +6,8 @@
 
 #include <consensus/merkle.h>
 #include <fixed_vector.h>
-#include <wallet/wallet.h>
+#include <key.h>
+#include <pubkey.h>
 
 #define Log(MSG) LogPrint(BCLog::PROPOSING, "%s: " MSG "\n", __func__)
 
@@ -22,7 +23,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const EligibleCoin &eligible_coin,
       const std::vector<staking::Coin> &coins,
       const CAmount fees,
-      CWallet &wallet) const {
+      staking::StakingWallet &wallet) const {
     CMutableTransaction tx;
 
     tx.SetVersion(1);
@@ -82,8 +83,8 @@ class BlockBuilderImpl : public BlockBuilder {
 
     // sign inputs
     {
-      LOCK(wallet.GetWalletExtension().GetLock());
-      if (!wallet.SignTransaction(tx)) {
+      LOCK(wallet.GetLock());
+      if (!wallet.SignCoinbaseTransaction(tx)) {
         Log("Failed to sign coinbase transaction.");
         return boost::none;
       }
@@ -110,20 +111,19 @@ class BlockBuilderImpl : public BlockBuilder {
     return pieces;
   }
 
-  bool SignBlock(CBlock &block, const CKeyStore &key_store) const {
-    const boost::optional<CPubKey> key = m_blockchain_behavior->ExtractBlockSigningKey(block);
-    if (!key) {
+  bool SignBlock(CBlock &block, const staking::StakingWallet &wallet) const {
+    const boost::optional<CPubKey> pubkey = m_blockchain_behavior->ExtractBlockSigningKey(block);
+    if (!pubkey) {
       Log("Could not extract staking key from block.");
       return false;
     }
-    const CKeyID key_id = key->GetID();
-    CKey private_key;
-    if (!key_store.GetKey(key_id, private_key)) {
+    const auto key = wallet.GetKey(*pubkey);
+    if (!key) {
       Log("No private key for public key.");
       return false;
     }
     const uint256 block_hash = block.GetHash();
-    if (!private_key.Sign(block_hash, block.signature)) {
+    if (!key->Sign(block_hash, block.signature)) {
       Log("Could not create block signature.");
       return false;
     }
@@ -144,7 +144,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const std::vector<staking::Coin> &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
-      CWallet &wallet) const override {
+      staking::StakingWallet &wallet) const override {
 
     CBlock new_block;
 

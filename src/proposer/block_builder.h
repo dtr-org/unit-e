@@ -12,6 +12,7 @@
 #include <proposer/eligible_coin.h>
 #include <settings.h>
 #include <staking/coin.h>
+#include <staking/stakingwallet.h>
 #include <staking/transactionpicker.h>
 
 #include <memory>
@@ -32,7 +33,7 @@ class BlockBuilder {
       const std::vector<staking::Coin> &,    //!< Other coins to combine with the stake
       const std::vector<CTransactionRef> &,  //!< Transactions to include in the block
       CAmount,                               //!< The fees on the transactions
-      CWallet &                              //!< A wallet used to sign blocks and stake
+      staking::StakingWallet &               //!< A wallet used to sign blocks and stake
       ) const = 0;
 
   virtual ~BlockBuilder() = default;
