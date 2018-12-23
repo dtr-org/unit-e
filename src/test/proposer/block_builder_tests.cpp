@@ -42,6 +42,10 @@ struct Fixture {
 
   Wallet wallet;
 
+  CKey key;
+  CPubKey pubkey;
+  std::vector<unsigned char> pubkeydata;
+
   Fixture(std::initializer_list<std::string> args)
       : args_manager([&] {
           std::unique_ptr<::ArgsManager> argsman = MakeUnique<::ArgsManager>();
@@ -55,7 +59,15 @@ struct Fixture {
           delete[] argv;
           return argsman;
         }()),
-        settings(Settings::New(args_manager.get())) {}
+        settings(Settings::New(args_manager.get())) {
+
+    const key::mnemonic::Seed seed("scout wheat rhythm inmate make insect chimney interest fire oxygen gap party slush grid post");
+    const CExtKey &ext_key = seed.GetExtKey();
+    // public key for signing block
+    key = ext_key.key;
+    pubkey = key.GetPubKey();
+    pubkeydata = std::vector<unsigned char>(pubkey.begin(), pubkey.end());
+  }
 
   std::unique_ptr<staking::BlockValidator> MakeBlockValidator() {
     return staking::BlockValidator::New(
@@ -71,7 +83,7 @@ struct Fixture {
 
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(block_builder_tests)
+BOOST_FIXTURE_TEST_SUITE(block_builder_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   Fixture f{};
@@ -116,7 +128,13 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   std::vector<CTransactionRef> transactions;
   CAmount fees(0);
 
-  f.wallet.signfunc = [](CMutableTransaction &) { return true; };
+  f.wallet.key = f.key;
+  f.wallet.signfunc = [&](CMutableTransaction &tx) {
+    auto &witness_stack = tx.vin[1].scriptWitness.stack;
+    witness_stack.emplace_back();              // empty signature
+    witness_stack.emplace_back(f.pubkeydata);  // pubkey
+    return true;
+  };
 
   auto block = builder->BuildBlock(
       current_tip, snapshot_hash, eligible_coin, coins, transactions, fees, f.wallet);

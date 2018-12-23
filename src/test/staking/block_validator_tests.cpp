@@ -24,7 +24,7 @@ CBlock MinimalBlock() {
   const key::mnemonic::Seed seed("cook note face vicious suggest company unit smart lobster tongue dune diamond faculty solid thought");
   const CExtKey &ext_key = seed.GetExtKey();
   // public key for signing block
-  const CPubKey pub_key = ext_key.Neuter().pubkey;
+  const CPubKey pub_key = ext_key.key.GetPubKey();
   const auto pub_key_data = std::vector<unsigned char>(pub_key.begin(), pub_key.end());
 
   CBlock block;
@@ -34,7 +34,7 @@ CBlock MinimalBlock() {
     tx.SetType(TxType::COINBASE);
     // meta input: block height, snapshot hash, terminator
     CScript script_sig = CScript() << CScriptNum::serialize(4711)
-                                  << ToByteVector(uint256S("689dae90b6913ff34a64750dd537177afa58b3d012803a10793d74f1ebb88da9"));
+                                   << ToByteVector(uint256S("689dae90b6913ff34a64750dd537177afa58b3d012803a10793d74f1ebb88da9"));
     tx.vin.emplace_back(uint256(), 0, script_sig);
     // stake
     tx.vin.emplace_back(uint256(), 1);
