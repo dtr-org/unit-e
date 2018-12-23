@@ -5,7 +5,6 @@
 #include <proposer/block_builder.h>
 
 #include <consensus/merkle.h>
-#include <fixed_vector.h>
 #include <key.h>
 #include <pubkey.h>
 
@@ -26,6 +25,7 @@ class BlockBuilderImpl : public BlockBuilder {
       staking::StakingWallet &wallet) const {
     CMutableTransaction tx;
 
+    // UNIT-E TODO: Restore BIP-9 versioning here
     tx.SetVersion(1);
     tx.SetType(TxType::COINBASE);
 
@@ -173,7 +173,7 @@ class BlockBuilderImpl : public BlockBuilder {
       bool duplicate_transactions = false;
       new_block.hashMerkleRoot = BlockMerkleRoot(new_block, &duplicate_transactions);
       if (duplicate_transactions) {
-        Log("Duplicate transactions detected while contructing merkle tree.");
+        Log("Duplicate transactions detected while constructing merkle tree.");
         return nullptr;
       }
     }

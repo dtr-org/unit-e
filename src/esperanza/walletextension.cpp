@@ -110,12 +110,12 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
   AssertLockHeld(GetLock());
 
   const CTransaction tx_const(tx);
-  int ix = 0;
+  unsigned int ix = 0;
   const auto &wallet = m_enclosing_wallet.mapWallet;
   for (std::size_t i = 1; i < tx.vin.size(); ++i) {  // skips the first input, which is the meta input
     const auto &input = tx.vin[i];
     const auto index = input.prevout.n;
-    std::map<uint256, CWalletTx>::const_iterator mi = wallet.find(input.prevout.hash);
+    const auto mi = wallet.find(input.prevout.hash);
     const auto &vout = mi->second.tx->vout;
     if (mi == wallet.end() || index >= vout.size()) {
       return false;
