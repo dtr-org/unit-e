@@ -60,7 +60,8 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       if (m_enclosing_wallet.GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
         continue;
       }
-      if (!coin.scriptPubKey.IsPayToWitnessScriptHash()) {
+      // UNIT-E TODO: Restrict to P2WPKH only once #212 is merged (fixes #48)
+      if (!coin.scriptPubKey.IsPayToWitnessScriptHash() && !coin.scriptPubKey.IsPayToPublicKeyHash()) {
         continue;
       }
       f(tx, std::uint32_t(outix), depth);
