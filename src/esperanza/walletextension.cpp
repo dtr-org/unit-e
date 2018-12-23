@@ -116,8 +116,11 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
     const auto &input = tx.vin[i];
     const auto index = input.prevout.n;
     const auto mi = wallet.find(input.prevout.hash);
+    if (mi == wallet.end()) {
+      return false;
+    }
     const auto &vout = mi->second.tx->vout;
-    if (mi == wallet.end() || index >= vout.size()) {
+    if (index >= vout.size()) {
       return false;
     }
     const CTxOut &out = vout[index];
