@@ -47,13 +47,14 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
     const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
-    const auto depth = static_cast<blockchain::Depth>(tx->GetDepthInMainChain());  // requires cs_main
-    if (depth < 1) {
+    const int depth_in_mainchain = tx->GetDepthInMainChain();  // requires cs_main
+    if (depth_in_mainchain < 1) {
       // requires at least one confirmation
       continue;
     }
+    const auto depth = static_cast<blockchain::Depth>(depth_in_mainchain);
     for (std::size_t outix = 0; outix < coins.size(); ++outix) {
-      if (m_enclosing_wallet.IsSpent(txId, outix)) {
+      if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(outix))) {
         continue;
       }
       const CTxOut &coin = coins[outix];
