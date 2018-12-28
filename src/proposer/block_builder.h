@@ -17,9 +17,6 @@
 
 #include <memory>
 
-class COutput;
-class CWallet;
-
 namespace proposer {
 
 class BlockBuilder {
