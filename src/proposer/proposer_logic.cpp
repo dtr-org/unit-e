@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <proposer/proposer_logic.h>
-#include <wallet/wallet.h>
 
 namespace proposer {
 

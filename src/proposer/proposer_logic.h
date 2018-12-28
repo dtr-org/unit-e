@@ -18,8 +18,6 @@
 
 #include <memory>
 
-class COutput;
-
 namespace proposer {
 
 class Logic {
