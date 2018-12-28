@@ -192,7 +192,7 @@ class BlockBuilderImpl : public BlockBuilder {
       Log("Failed to sign block.");
       return nullptr;
     }
-    return std::make_shared<const CBlock>(new_block);
+    return std::make_shared<const CBlock>(std::move(new_block));
   }
 };
 
