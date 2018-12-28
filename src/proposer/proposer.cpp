@@ -100,17 +100,18 @@ class ProposerImpl : public Proposer {
           const EligibleCoin &coin = winning_ticket.get();
           LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, tx=%s, ix=%s)\n",
                    wallet_name, coin.utxo.txid.GetHex(), std::to_string(coin.utxo.index));
-          staking::TransactionPicker::PickTransactionsParameters p{};
-          staking::TransactionPicker::PickTransactionsResult r = m_transaction_picker->PickTransactions(p);
+          staking::TransactionPicker::PickTransactionsParameters parameters{};
+          staking::TransactionPicker::PickTransactionsResult result =
+              m_transaction_picker->PickTransactions(parameters);
 
-          if (!r) {
+          if (!result) {
             LogPrint(BCLog::PROPOSING, "Failed to pick transactions: %s – proposing empty block.\n");
           }
-          const CAmount fees = std::accumulate(r.m_fees.begin(), r.m_fees.end(), CAmount(0));
+          const CAmount fees = std::accumulate(result.m_fees.begin(), result.m_fees.end(), CAmount(0));
           const uint256 snapshot_hash = m_active_chain->ComputeSnapshotHash();
 
           block = m_block_builder->BuildBlock(
-              tip, snapshot_hash, coin, coins, r.m_transactions, fees, wallet_ext);
+              tip, snapshot_hash, coin, coins, result.m_transactions, fees, wallet_ext);
         }
         if (m_interrupted) {
           break;

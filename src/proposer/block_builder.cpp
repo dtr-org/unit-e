@@ -55,9 +55,9 @@ class BlockBuilderImpl : public BlockBuilder {
           // combined_total it's being subtracted away again.
           combined_total -= coin.amount;
           // stake combination does not break here, but it continues here. This
-          // way the order ot the coins does not matter. If there is another coin
+          // way the order of the coins does not matter. If there is another coin
           // later on which actually fits stake_combine_maximum it might still
-          // beincluded.
+          // be included.
           continue;
         }
       }

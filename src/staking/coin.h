@@ -11,7 +11,7 @@
 
 namespace staking {
 
-//! \brief A brief that is potentially stakeable.
+//! \brief A coin that is potentially stakeable.
 struct Coin {
   //! The id of the transaction this coin is referring to.
   uint256 txid;
