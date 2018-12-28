@@ -96,7 +96,7 @@ class BlockBuilderImpl : public BlockBuilder {
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
     auto number_of_pieces = amount / threshold;
     if (amount % threshold > 0) {
-      // it spend can not be spread evenly we need one more to fit the rest
+      // if spend can not be spread evenly we need one more to fit the rest
       ++number_of_pieces;
     }
     // in order to not create a piece of dust of size (spend % threshold), try
