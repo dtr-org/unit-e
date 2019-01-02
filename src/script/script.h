@@ -352,7 +352,7 @@ public:
     }
 
     template<typename T>
-    static bool deserialize(const std::vector<unsigned char>& vch, T &value_out)
+    static bool deserialize(const std::vector<unsigned char>& vch, T& value_out)
     {
         using LargestType = int64_t;
 
