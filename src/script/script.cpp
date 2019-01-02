@@ -357,16 +357,16 @@ bool CScript::ExtractWitnessProgram(WitnessProgram &witness_program) const
     if (!GetOp(pc, opcode)) {
         return false;
     }
-    witness_program.m_version = DecodeOP_N(opcode);
+    witness_program.version = DecodeOP_N(opcode);
 
     std::vector<unsigned char> data;
 
-    witness_program.m_program.clear();
+    witness_program.program.clear();
     do {
         if (!GetOp(pc, opcode, data)) {
             return false;
         }
-        witness_program.m_program.emplace_back(std::move(data));
+        witness_program.program.emplace_back(std::move(data));
     } while (pc < end());
 
     return true;
@@ -609,24 +609,18 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     return it == script.end();
 }
 
-const std::vector<unsigned char> &WitnessProgram::GetV0Program() const
-{
-    assert(m_version == 0 && m_program.size() == 1);
-    return m_program[0];
-}
-
 bool WitnessProgram::IsPayToScriptHash() const
 {
-    return m_version == 0 && m_program.size() == 1 && m_program[0].size() == 32;
+    return version == 0 && program.size() == 1 && program[0].size() == 32;
 }
 
 bool WitnessProgram::IsPayToPubkeyHash() const
 {
-    return m_version == 0 && m_program.size() == 1 && m_program[0].size() == 20;
+    return version == 0 && program.size() == 1 && program[0].size() == 20;
 }
 
 bool WitnessProgram::IsRemoteStaking() const
 {
-    return m_version == 1 && m_program.size() == 2 && m_program[0].size() == 20
-        && m_program[1].size() == 32;
+    return version == 1 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
 }

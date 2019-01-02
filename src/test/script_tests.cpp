@@ -1703,23 +1703,23 @@ BOOST_AUTO_TEST_CASE(witness_program)
     script << OP_0 << hash_160;
     BOOST_CHECK(script.ExtractWitnessProgram(program));
     BOOST_CHECK(program.IsPayToPubkeyHash());
-    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetV0Program().begin(), program.GetV0Program().end(),
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
                                   hash_160.begin(), hash_160.end());
 
     script.clear();
     script << OP_0 << hash_256;
     BOOST_CHECK(script.ExtractWitnessProgram(program));
     BOOST_CHECK(program.IsPayToScriptHash());
-    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetV0Program().begin(), program.GetV0Program().end(),
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
                                   hash_256.begin(), hash_256.end());
 
     script.clear();
     script << OP_1 << hash_160 << hash_256;
     BOOST_CHECK(script.ExtractWitnessProgram(program));
     BOOST_CHECK(program.IsRemoteStaking());
-    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetProgram()[0].begin(), program.GetProgram()[0].end(),
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
                                   hash_160.begin(), hash_160.end());
-    BOOST_CHECK_EQUAL_COLLECTIONS(program.GetProgram()[1].begin(), program.GetProgram()[1].end(),
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),
                                   hash_256.begin(), hash_256.end());
 }
 

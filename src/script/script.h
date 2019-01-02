@@ -745,22 +745,14 @@ public:
     }
 };
 
-class WitnessProgram
+struct WitnessProgram
 {
-public:
-    int GetVersion() const { return m_version; }
-
-    const std::vector<std::vector<unsigned char>> &GetProgram() const { return m_program; }
-    const std::vector<unsigned char> &GetV0Program() const;
+    int version;
+    std::vector<std::vector<unsigned char>> program;
 
     bool IsPayToScriptHash() const;
     bool IsPayToPubkeyHash() const;
     bool IsRemoteStaking() const;
-private:
-    int m_version;
-    std::vector<std::vector<unsigned char>> m_program;
-
-    friend CScript;
 };
 
 class CReserveScript

@@ -76,25 +76,25 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
     if (scriptPubKey.ExtractWitnessProgram(witnessProgram)) {
         if (witnessProgram.IsPayToPubkeyHash()) {
             typeRet = TX_WITNESS_V0_KEYHASH;
-            vSolutionsRet.push_back(witnessProgram.GetV0Program());
+            vSolutionsRet.push_back(witnessProgram.program[0]);
             return true;
         }
         if (witnessProgram.IsPayToScriptHash()) {
             typeRet = TX_WITNESS_V0_SCRIPTHASH;
-            vSolutionsRet.push_back(witnessProgram.GetV0Program());
+            vSolutionsRet.push_back(witnessProgram.program[0]);
             return true;
         }
         if (witnessProgram.IsRemoteStaking()) {
             typeRet = TX_WITNESS_V1_REMOTE_STAKING;
-            vSolutionsRet.push_back(witnessProgram.GetProgram()[0]);  // staking pubkey hash
-            vSolutionsRet.push_back(witnessProgram.GetProgram()[1]);  // spending pubkey hash
+            vSolutionsRet.push_back(witnessProgram.program[0]);  // staking pubkey hash
+            vSolutionsRet.push_back(witnessProgram.program[1]);  // spending pubkey hash
             return true;
         }
-        if (witnessProgram.GetVersion() != 0 && witnessProgram.GetVersion() != 1) {
+        if (witnessProgram.version != 0 && witnessProgram.version != 1) {
             typeRet = TX_WITNESS_UNKNOWN;
-            vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessProgram.GetVersion()});
-            vSolutionsRet.insert(vSolutionsRet.end(), witnessProgram.GetProgram().begin(),
-                                 witnessProgram.GetProgram().end());
+            vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessProgram.version});
+            vSolutionsRet.insert(vSolutionsRet.end(), witnessProgram.program.begin(),
+                                 witnessProgram.program.end());
             return true;
         }
         return false;

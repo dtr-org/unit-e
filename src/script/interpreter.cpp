@@ -1429,7 +1429,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
     std::vector<std::vector<unsigned char> > stack;
     CScript scriptPubKey;
 
-    if (witnessProgram.GetVersion() == 0) {
+    if (witnessProgram.version == 0) {
         if (witnessProgram.IsPayToScriptHash()) {
             // Version 0 segregated witness program: SHA256(CScript) inside the program, CScript + inputs in witness
             if (witness.stack.size() == 0) {
@@ -1439,7 +1439,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             stack = std::vector<std::vector<unsigned char> >(witness.stack.begin(), witness.stack.end() - 1);
             uint256 hashScriptPubKey;
             CSHA256().Write(&scriptPubKey[0], scriptPubKey.size()).Finalize(hashScriptPubKey.begin());
-            if (memcmp(hashScriptPubKey.begin(), witnessProgram.GetV0Program().data(), 32)) {
+            if (memcmp(hashScriptPubKey.begin(), witnessProgram.program[0].data(), 32) != 0) {
                 return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
             }
         } else if (witnessProgram.IsPayToPubkeyHash()) {
@@ -1447,21 +1447,21 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             if (witness.stack.size() != 2) {
                 return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH); // 2 items in witness
             }
-            scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.GetV0Program() << OP_EQUALVERIFY << OP_CHECKSIG;
+            scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.program[0] << OP_EQUALVERIFY << OP_CHECKSIG;
             stack = witness.stack;
         } else {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
-    } else if (witnessProgram.GetVersion() == 1) {
+    } else if (witnessProgram.version == 1) {
         if (witnessProgram.IsRemoteStaking()) {
             // Both branches of remote staking script require two items in witness
             if (witness.stack.size() != 2) {
                 return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
             }
             if (checker.GetTxType() == +TxType::COINBASE) {
-                scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.GetProgram()[0] << OP_EQUALVERIFY << OP_CHECKSIG;
+                scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.program[0] << OP_EQUALVERIFY << OP_CHECKSIG;
             } else {
-                scriptPubKey << OP_DUP << OP_SHA256 << witnessProgram.GetProgram()[1] << OP_EQUALVERIFY << OP_CHECKSIG;
+                scriptPubKey << OP_DUP << OP_SHA256 << witnessProgram.program[1] << OP_EQUALVERIFY << OP_CHECKSIG;
             }
             stack = witness.stack;
         } else {
