@@ -120,6 +120,12 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
            "%s: Epoch with height %d initialized. The current dynasty is %s.\n",
            __func__, newEpoch, m_currentDynasty);
 
+  if (m_lastJustifiedEpoch < m_currentEpoch - 1) {
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Epoch %d was not justified. Last justified epoch is %d, last finalized epoch is %d.\n",
+             __func__, m_currentEpoch - 1, m_lastJustifiedEpoch, m_lastFinalizedEpoch);
+  }
+
   return success();
 }
 
