@@ -418,13 +418,9 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
       return false;
     }
 
-    if (sizeof(esperanza::Vote::m_sourceEpoch) < sourceEpochVec.size()) {
-      return false;
-    }
-
     uint32_t sourceEpoch = 0;
-    for (size_t i = 0; i < sourceEpochVec.size(); i++) {
-        sourceEpoch |= sourceEpochVec[i] << 8*i;
+    if (!CScriptNum::deserialize(sourceEpochVec, sourceEpoch)) {
+      return false;
     }
 
     std::vector<unsigned char> targetEpochVec;
@@ -432,13 +428,9 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
       return false;
     }
 
-    if (sizeof(esperanza::Vote::m_targetEpoch) < targetEpochVec.size()) {
-      return false;
-    }
-
     uint32_t targetEpoch = 0;
-    for (size_t i = 0; i < targetEpochVec.size(); i++) {
-        targetEpoch |= targetEpochVec[i] << 8*i;
+    if (!CScriptNum::deserialize(targetEpochVec, targetEpoch)) {
+      return false;
     }
 
     voteOut.m_validatorAddress = validatorAddress;

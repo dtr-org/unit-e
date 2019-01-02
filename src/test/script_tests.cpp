@@ -1514,12 +1514,18 @@ BOOST_AUTO_TEST_CASE(decode_invalid_vote) {
     const uint256 bytes32;
     const uint160 bytes20;
     std::vector<uint8_t> bytes11(11, 0);
+    // Expected vote fields sizes:
+    //   Vote signature (not checked)
+    //   Validator address (20 bytes)
+    //   Target hash (32 bytes)
+    //   Source epoch: uint32_t (0-4 bytes)
+    //   Target epoch: uint32_t (0-4 bytes)
 
     const CScript invalid_address = CScript() << bytes11
                                               << ToByteVector(bytes11)
                                               << ToByteVector(bytes32)
-                                              << CScriptNum::serialize(1)
-                                              << CScriptNum::serialize(2);
+                                              << CScriptNum(1)
+                                              << CScriptNum(2);
 
     esperanza::Vote decoded_vote;
     std::vector<unsigned char> extracted_vote_sig;
@@ -1529,41 +1535,41 @@ BOOST_AUTO_TEST_CASE(decode_invalid_vote) {
     const CScript invalid_target_hash = CScript() << bytes11
                                                   << ToByteVector(bytes20)
                                                   << ToByteVector(bytes11)
-                                                  << CScriptNum::serialize(1)
-                                                  << CScriptNum::serialize(2);
+                                                  << CScriptNum(1)
+                                                  << CScriptNum(2);
 
     BOOST_CHECK(!CScript::DecodeVote(invalid_target_hash, decoded_vote, extracted_vote_sig));
 
     const CScript invalid_source = CScript() << bytes11
                                              << ToByteVector(bytes20)
                                              << ToByteVector(bytes32)
-                                             << CScriptNum::serialize(224972947847293123LL)
-                                             << CScriptNum::serialize(2);
+                                             << CScriptNum(std::numeric_limits<int64_t>::max())
+                                             << CScriptNum(2);
 
     BOOST_CHECK(!CScript::DecodeVote(invalid_source, decoded_vote, extracted_vote_sig));
 
     const CScript invalid_target = CScript() << bytes11
                                              << ToByteVector(bytes20)
                                              << ToByteVector(bytes32)
-                                             << CScriptNum::serialize(1)
-                                             << CScriptNum::serialize(224972947847293123LL);
+                                             << CScriptNum(1)
+                                             << CScriptNum(std::numeric_limits<int64_t>::min());
 
     BOOST_CHECK(!CScript::DecodeVote(invalid_target, decoded_vote, extracted_vote_sig));
 
     const CScript too_long = CScript() << bytes11
                                        << ToByteVector(bytes20)
                                        << ToByteVector(bytes32)
-                                       << CScriptNum::serialize(1)
-                                       << CScriptNum::serialize(2)
-                                       << CScriptNum::serialize(2);
+                                       << CScriptNum(1)
+                                       << CScriptNum(2)
+                                       << CScriptNum(2);
 
     BOOST_CHECK(!CScript::DecodeVote(too_long, decoded_vote, extracted_vote_sig));
 
     const CScript valid = CScript() << bytes11
                                     << ToByteVector(bytes20)
                                     << ToByteVector(bytes32)
-                                    << CScriptNum::serialize(1)
-                                    << CScriptNum::serialize(2);
+                                    << std::vector<uint8_t>() // Empty vector denotes zero
+                                    << CScriptNum(0);
 
     BOOST_CHECK(CScript::DecodeVote(valid, decoded_vote, extracted_vote_sig));
 }
