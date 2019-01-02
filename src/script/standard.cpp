@@ -30,7 +30,7 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NULL_DATA: return "nulldata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
-    case TX_WITNESS_V1_REMOTE_STAKING: return "witness_v0_remote_staking";
+    case TX_WITNESS_V1_REMOTE_STAKING: return "witness_v1_remote_staking";
     case TX_WITNESS_UNKNOWN: return "witness_unknown";
     case TX_PAYVOTESLASH: return "payvoteslash";
     }

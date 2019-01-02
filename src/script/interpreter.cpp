@@ -1423,8 +1423,8 @@ TxType TransactionSignatureChecker::GetTxType() const {
     return txTo->GetType();
 }
 
-static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessProgram &witnessProgram, unsigned int flags,
-                                 const BaseSignatureChecker &checker, ScriptError *serror)
+static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessProgram &witnessProgram,
+                                 unsigned int flags, const BaseSignatureChecker &checker, ScriptError *serror)
 {
     std::vector<std::vector<unsigned char> > stack;
     CScript scriptPubKey;

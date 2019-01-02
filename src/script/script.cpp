@@ -359,10 +359,9 @@ bool CScript::ExtractWitnessProgram(WitnessProgram &witness_program) const
     }
     witness_program.version = DecodeOP_N(opcode);
 
-    std::vector<unsigned char> data;
-
     witness_program.program.clear();
     do {
+        std::vector<unsigned char> data;
         if (!GetOp(pc, opcode, data)) {
             return false;
         }
