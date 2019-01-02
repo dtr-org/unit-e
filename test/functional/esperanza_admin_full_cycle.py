@@ -64,8 +64,8 @@ class AdminFullCycle(UnitETestFramework):
                                     self.node.deposit, self.address,
                                     MIN_DEPOSIT_SIZE)
 
-        def deposit_ok(self):
-            tx = self.node.deposit(self.address, MIN_DEPOSIT_SIZE)
+        def deposit_ok(self, deposit_amount=MIN_DEPOSIT_SIZE):
+            tx = self.node.deposit(self.address, deposit_amount)
             self.framework.wait_for_transaction(tx, timeout=60)
 
         def logout_ok(self):
@@ -88,8 +88,10 @@ class AdminFullCycle(UnitETestFramework):
         json_params = json.dumps(params_data)
 
         proposer_settings = ['-proposing=1', '-debug=all',
+                             '-whitelist=127.0.0.1',
                              '-esperanzaconfig=' + json_params]
         validator_settings = ['-proposing=0', '-validating=1', '-debug=all',
+                              '-whitelist=127.0.0.1',
                               '-esperanzaconfig=' + json_params]
 
         self.extra_args = [
@@ -155,7 +157,7 @@ class AdminFullCycle(UnitETestFramework):
 
         # Whitelist v3
         admin.whitelist([validator3.pubkey])
-        validator3.deposit_ok()
+        validator3.deposit_ok(MIN_DEPOSIT_SIZE*2)
 
         # Generate some blocks and check that validators are voting
         n_blocks = 2 * EPOCH_LENGTH
@@ -201,8 +203,6 @@ class AdminFullCycle(UnitETestFramework):
             prev_n_blocks_have_txs_from(proposer, validator2.address, n_blocks))
         assert (
             prev_n_blocks_have_txs_from(proposer, validator3.address, n_blocks))
-
-        print("Test succeeded.")
 
 
 if __name__ == '__main__':

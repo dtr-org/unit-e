@@ -178,6 +178,32 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
                     state->GetLastTxHash(validatorAddress).GetHex());
 }
 
+BOOST_AUTO_TEST_CASE(deposit_amount) {
+
+  CKey k;
+  InsecureNewKey(k, true);
+
+  uint160 validatorAddress = k.GetPubKey().GetID();
+
+  CBlockIndex blockIndex;
+  blockIndex.nHeight = 1;
+  CBlock block;
+
+  CMutableTransaction base_tx;
+  base_tx.vin.resize(1);
+  base_tx.vout.resize(1);
+
+  CMutableTransaction deposit_tx = CreateDepositTx(base_tx, k, 10000);
+  deposit_tx.vout.emplace_back(15000, CScript::CreateP2PKHScript(ToByteVector(validatorAddress)));
+
+  block.vtx = std::vector<CTransactionRef>{MakeTransactionRef(deposit_tx)};
+
+  FinalizationState::ProcessNewTip(blockIndex, block);
+
+  const FinalizationState *state = FinalizationState::GetState();
+  BOOST_CHECK_EQUAL(10000, state->GetDepositSize(validatorAddress));
+}
+
 // Other tests
 
 BOOST_AUTO_TEST_CASE(map_empty_initializer) {
