@@ -567,6 +567,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     AssertLockHeld(cs_main);
     LOCK(pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
 
+    // If there is an expired vote in the mempool and a new vote (or other
+    // esperanza transaction) is coming - it might create a mempool conflict
+    pool.ExpireVotes();
+
     if (tx.IsVote() || tx.IsSlash()){
         bypass_limits = true;
     }

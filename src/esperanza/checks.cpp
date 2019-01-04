@@ -61,7 +61,7 @@ bool IsVoteExpired(const CTransaction &tx) {
                                                voteSig));
   const FinalizationState *state = FinalizationState::GetState();
 
-  return vote.m_targetEpoch <= state->GetLastFinalizedEpoch();
+  return vote.m_targetEpoch < state->GetCurrentEpoch();
 }
 
 bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,

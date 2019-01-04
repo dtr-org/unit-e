@@ -82,6 +82,7 @@ BASE_SCRIPTS= [
     'p2p_feefilter.py',
     'p2p_sendheaders.py',
     'wallet_zapwallettxes.py',
+    'esperanza_expired_vote_conflict.py',
     'wallet_importmulti.py',
     'mempool_limit.py',
     'rpc_txoutproof.py',
