@@ -14,7 +14,7 @@ This test checks validator behavior in case of huge vote propagation
 delays. We model this by blocking vote propagation completely.
 Blocks will be propagated as usual.
 We expect that despite the blockage validator's internal state will remain
-consistent and he will be able to finalize again as soon as the opportunity
+consistent and it will be able to finalize again as soon as the opportunity
 arises
 """
 
@@ -80,6 +80,9 @@ class ExpiredVoteConflict(UnitETestFramework):
 
         # Later in this test we will be operating in 'epochs', not blocks
         # So it is convenient to always start and end at checkpoint
+        # -1 for IBD
+        # -1 for admin
+        # -1 to be at checkpoint
         self.generate_sync(proposer, EPOCH_LENGTH - 3)
 
         # Enable tx censorship
@@ -112,7 +115,7 @@ class ExpiredVoteConflict(UnitETestFramework):
         self.generate_epochs_without_mempool_sync(10)
         assert_equal(17, self.last_finalized_epoch)
 
-        assert_log_does_not_contain(validator, "error|txn-mempool-conflict")
+        assert_log_does_not_contain(validator, "error")
 
     @property
     def last_finalized_epoch(self):
