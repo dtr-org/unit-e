@@ -301,19 +301,30 @@ class UnitETestFramework():
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
 
-    def wait_for_transaction(self, txid, timeout=None):
-        if timeout is not None:
-            timeout += time.time()
-        while True:
-            try:
-                for node in self.nodes:
+    def wait_for_transaction(self, txid, timeout=60):
+        timeout += time.perf_counter()
+
+        presence = dict()
+
+        while time.perf_counter() < timeout:
+            all_have = True
+            for node in self.nodes:
+                try:
+                    if presence[node.index] is True:
+                        continue
                     node.getrawtransaction(txid)
-                break
-            except JSONRPCException:
-                if timeout is not None and time.time() > timeout:
-                    raise RuntimeError('Failed to wait for transaction')
-                time.sleep(0.1)
-                continue
+                    presence[node.index] = True
+                except JSONRPCException:
+                    presence[node.index] = False
+                    all_have = False
+
+            if all_have:
+                return
+
+            time.sleep(0.1)
+
+        raise RuntimeError('Failed to wait for transaction %s. Presense: %s'
+                           % (txid, presence))
 
     def split_network(self):
         """
