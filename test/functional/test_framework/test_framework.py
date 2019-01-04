@@ -304,7 +304,7 @@ class UnitETestFramework():
     def wait_for_transaction(self, txid, timeout=60):
         timeout += time.perf_counter()
 
-        presence = dict()
+        presence = dict.fromkeys(range(0, len(self.nodes)))
 
         while time.perf_counter() < timeout:
             all_have = True
