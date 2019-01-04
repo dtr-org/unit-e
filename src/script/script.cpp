@@ -396,7 +396,7 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
       return false;
     }
 
-    if (validator.size() != sizeof(esperanza::Vote::m_validatorAddress)) {
+    if (validator.size() != CHash160::OUTPUT_SIZE) {
       return false;
     }
 
@@ -407,7 +407,7 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
       return false;
     }
 
-    if (target.size() != sizeof(esperanza::Vote::m_targetHash)) {
+    if (target.size() != CHash256::OUTPUT_SIZE) {
       return false;
     }
 
