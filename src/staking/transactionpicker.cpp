@@ -39,8 +39,8 @@ class BlockAssemblerAdapter final : public TransactionPicker {
       const PickTransactionsParameters &parameters) override {
 
     ::BlockAssembler::Options blockAssemblerOptions;
-    blockAssemblerOptions.blockMinFeeRate = parameters.m_minFees;
-    blockAssemblerOptions.nBlockMaxWeight = parameters.m_maxWeight;
+    blockAssemblerOptions.blockMinFeeRate = parameters.min_fees;
+    blockAssemblerOptions.nBlockMaxWeight = parameters.max_weight;
 
     ::BlockAssembler blockAssembler(::Params(), blockAssemblerOptions);
 
@@ -57,10 +57,10 @@ class BlockAssemblerAdapter final : public TransactionPicker {
     try {
       std::unique_ptr<CBlockTemplate> block_template =
           blockAssembler.CreateNewBlock(script, /* fMineWitnessTx */ true);
-      result.m_transactions.swap(block_template->block.vtx);
-      result.m_fees.swap(block_template->vTxFees);
+      result.transactions.swap(block_template->block.vtx);
+      result.fees.swap(block_template->vTxFees);
     } catch (const std::runtime_error &err) {
-      result.m_error = err.what();
+      result.error = err.what();
     }
     return result;
   };
