@@ -159,9 +159,7 @@ class BlockBuilderImpl : public BlockBuilder {
     new_block.vtx.emplace_back(MakeTransactionRef(*coinbase_transaction));
 
     // add remaining transactions
-    for (const auto &tx : txs) {
-      new_block.vtx.emplace_back(tx);
-    }
+    new_block.vtx.insert(new_block.vtx.end(), txs.begin(), txs.end());
 
     // create tx merkle root
     {
