@@ -3,8 +3,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.util import json, connect_nodes_bi, assert_equal, \
-    assert_raises_rpc_error
+from test_framework.util import (json, connect_nodes_bi, assert_equal,
+                                 assert_raises_rpc_error)
 from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
 from test_framework.admin import Admin
 
@@ -57,7 +57,7 @@ class AdminFullCycle(UnitETestFramework):
             for i in range(n_utxos_needed - 1):
                 max_utxo -= (MIN_DEPOSIT_SIZE + 1)
                 exchange_tx = node.sendtoaddress(self.address, max_utxo)
-                framework.wait_for_transaction(exchange_tx, timeout=60)
+                framework.wait_for_transaction(exchange_tx, timeout=20)
 
         def deposit_reject(self):
             assert_raises_rpc_error(None, "Cannot create deposit",
@@ -66,15 +66,15 @@ class AdminFullCycle(UnitETestFramework):
 
         def deposit_ok(self, deposit_amount=MIN_DEPOSIT_SIZE):
             tx = self.node.deposit(self.address, deposit_amount)
-            self.framework.wait_for_transaction(tx, timeout=60)
+            self.framework.wait_for_transaction(tx, timeout=20)
 
         def logout_ok(self):
             tx = self.node.logout()
-            self.framework.wait_for_transaction(tx, timeout=60)
+            self.framework.wait_for_transaction(tx, timeout=20)
 
         def withdraw_ok(self):
             tx = self.node.withdraw(self.address)
-            self.framework.wait_for_transaction(tx, timeout=60)
+            self.framework.wait_for_transaction(tx, timeout=20)
 
     def set_test_params(self):
         self.num_nodes = 4
@@ -157,7 +157,7 @@ class AdminFullCycle(UnitETestFramework):
 
         # Whitelist v3
         admin.whitelist([validator3.pubkey])
-        validator3.deposit_ok(MIN_DEPOSIT_SIZE*2)
+        validator3.deposit_ok(MIN_DEPOSIT_SIZE * 2)
 
         # Generate some blocks and check that validators are voting
         n_blocks = 2 * EPOCH_LENGTH

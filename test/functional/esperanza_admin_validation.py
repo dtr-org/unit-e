@@ -3,10 +3,13 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.util import *
-from test_framework.test_framework import *
-from test_framework.admin import *
-from test_framework.mininode import *
+from test_framework.util import (assert_equal, Decimal, hex_str_to_bytes,
+                                 bytes_to_hex_str)
+from test_framework.messages import CTransaction, msg_witness_tx
+from test_framework.test_framework import UnitETestFramework
+from test_framework.admin import Admin, AdminCommandType, ADMIN_TX_TYPE
+from test_framework.mininode import P2PInterface, network_thread_start
+from io import BytesIO
 
 
 class TestNode(P2PInterface):
@@ -61,7 +64,7 @@ class AdminValidation(UnitETestFramework):
 
     def send_via_mininode(self, cmds, address):
         funds_tx = self.admin.sendtoaddress(address, Decimal("1"))
-        self.wait_for_transaction(funds_tx, timeout=60)
+        self.wait_for_transaction(funds_tx, timeout=10)
         _, n = Admin.find_output_for_address(self.admin, funds_tx, address)
 
         raw_tx = create_tx(cmds, self.admin, funds_tx, n, address,
@@ -208,13 +211,11 @@ class AdminValidation(UnitETestFramework):
                                                       "p2sh-segwit")["address"]
 
         self.accepts([end_permissioning_cmd], admin_address)
-        self.generate_sync(self.admin) # to actually execute above command
+        self.generate_sync(self.admin)  # to actually execute above command
 
         self.rejects([end_permissioning_cmd],
                      admin_address,
                      "b'admin-disabled'")
-
-        print("Test succeeded.")
 
 
 if __name__ == '__main__':

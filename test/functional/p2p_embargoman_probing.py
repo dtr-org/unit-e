@@ -13,8 +13,8 @@ responses we received and they should be the same
 
 from test_framework.util import connect_nodes, assert_equal
 from test_framework.test_framework import UnitETestFramework
-from test_framework.mininode import P2PInterface, network_thread_start, \
-    msg_getdata, msg_mempool, msg_inv
+from test_framework.mininode import (P2PInterface, network_thread_start,
+                                     msg_getdata, msg_mempool, msg_inv)
 from test_framework.messages import CInv
 import time
 import threading
