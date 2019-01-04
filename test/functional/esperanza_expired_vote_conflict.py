@@ -43,6 +43,7 @@ class ExpiredVoteConflict(UnitETestFramework):
 
     def setup_network(self):
         super().setup_nodes()
+        # We do not connect nodes here. MiniRelay will be used instead
 
     def run_test(self):
         self.proposer = self.nodes[0]
