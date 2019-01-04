@@ -17,7 +17,7 @@ class BlockBuilderImpl : public BlockBuilder {
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<Settings> m_settings;
 
-  const boost::optional<CTransaction> BuildCoinbaseTransaction(
+  const CTransactionRef BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
       const EligibleCoin &eligible_coin,
       const std::vector<staking::Coin> &coins,
@@ -81,11 +81,11 @@ class BlockBuilderImpl : public BlockBuilder {
       LOCK(wallet.GetLock());
       if (!wallet.SignCoinbaseTransaction(tx)) {
         Log("Failed to sign coinbase transaction.");
-        return boost::none;
+        return nullptr;
       }
     }
 
-    return CTransaction(tx);
+    return std::make_shared<CTransaction>(tx);
   }
 
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
@@ -150,13 +150,13 @@ class BlockBuilderImpl : public BlockBuilder {
     // nonce will be removed and is not relevant in PoS, not setting it here
 
     // add coinbase transaction first
-    const boost::optional<CTransaction> coinbase_transaction =
+    const CTransactionRef coinbase_transaction =
         BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, wallet);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;
     }
-    new_block->vtx.emplace_back(MakeTransactionRef(*coinbase_transaction));
+    new_block->vtx.emplace_back(coinbase_transaction);
 
     // add remaining transactions
     new_block->vtx.insert(new_block->vtx.end(), txs.begin(), txs.end());
