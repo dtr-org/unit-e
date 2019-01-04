@@ -143,4 +143,7 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   BOOST_CHECK(is_valid);
 }
 
+BOOST_AUTO_TEST_CASE(split_amount) {
+}
+
 BOOST_AUTO_TEST_SUITE_END()
