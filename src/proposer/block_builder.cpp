@@ -141,12 +141,12 @@ class BlockBuilderImpl : public BlockBuilder {
       const CAmount fees,
       staking::StakingWallet &wallet) const override {
 
-    CBlock new_block;
+    const std::shared_ptr<CBlock> new_block = std::make_shared<CBlock>();
 
-    new_block.nVersion = 1;
-    new_block.nTime = coin.target_time;
-    new_block.nBits = coin.target_difficulty;
-    new_block.hashPrevBlock = prev_block.GetBlockHash();
+    new_block->nVersion = 1;
+    new_block->nTime = coin.target_time;
+    new_block->nBits = coin.target_difficulty;
+    new_block->hashPrevBlock = prev_block.GetBlockHash();
     // nonce will be removed and is not relevant in PoS, not setting it here
 
     // add coinbase transaction first
@@ -156,15 +156,15 @@ class BlockBuilderImpl : public BlockBuilder {
       Log("Failed to create coinbase transaction.");
       return nullptr;
     }
-    new_block.vtx.emplace_back(MakeTransactionRef(*coinbase_transaction));
+    new_block->vtx.emplace_back(MakeTransactionRef(*coinbase_transaction));
 
     // add remaining transactions
-    new_block.vtx.insert(new_block.vtx.end(), txs.begin(), txs.end());
+    new_block->vtx.insert(new_block.vtx.end(), txs.begin(), txs.end());
 
     // create tx merkle root
     {
       bool duplicate_transactions = false;
-      new_block.hashMerkleRoot = BlockMerkleRoot(new_block, &duplicate_transactions);
+      new_block->hashMerkleRoot = BlockMerkleRoot(*new_block, &duplicate_transactions);
       if (duplicate_transactions) {
         Log("Duplicate transactions detected while constructing merkle tree.");
         return nullptr;
@@ -174,18 +174,18 @@ class BlockBuilderImpl : public BlockBuilder {
     // create witness merkle root
     {
       bool duplicate_transactions = false;
-      new_block.hash_witness_merkle_root = BlockWitnessMerkleRoot(new_block, &duplicate_transactions);
+      new_block->hash_witness_merkle_root = BlockWitnessMerkleRoot(*new_block, &duplicate_transactions);
       if (duplicate_transactions) {
         Log("Duplicate transactions detected while constructing witness merkle tree.");
         return nullptr;
       }
     }
 
-    if (!SignBlock(new_block, wallet)) {
+    if (!SignBlock(*new_block, wallet)) {
       Log("Failed to sign block.");
       return nullptr;
     }
-    return std::make_shared<const CBlock>(std::move(new_block));
+    return new_block;
   }
 };
 
