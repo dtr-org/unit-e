@@ -47,20 +47,15 @@ class BlockBuilderImpl : public BlockBuilder {
         // can skip here. It is already included in combined_total.
         continue;
       }
-      combined_total += coin.amount;
-      if (m_settings->stake_combine_maximum > 0) {
-        if (combined_total > m_settings->stake_combine_maximum) {
-          // if the combined_total exceeds the stake combination maximum then
-          // the coin should not be included. Since it's already counted towards
-          // combined_total it's being subtracted away again.
-          combined_total -= coin.amount;
-          // stake combination does not break here, but it continues here. This
-          // way the order of the coins does not matter. If there is another coin
-          // later on which actually fits stake_combine_maximum it might still
-          // be included.
-          continue;
-        }
+      const CAmount new_total = combined_total + coin.amount;
+      if (m_settings->stake_combine_maximum > 0 && new_total > m_settings->stake_combine_maximum) {
+        // stake combination does not break here, but it continues here. This
+        // way the order of the coins does not matter. If there is another coin
+        // later on which actually fits stake_combine_maximum it might still
+        // be included.
+        continue;
       }
+      combined_total = new_total;
       tx.vin.emplace_back(coin.txid, coin.index);
     }
 
