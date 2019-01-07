@@ -14,14 +14,6 @@
 
 namespace snapshot {
 
-// todo: remove it after merging
-// https://github.com/bitcoin/bitcoin/commit/92fabcd443322dcfdf2b3477515fae79e8647d86
-inline CBlockIndex *LookupBlockIndex(const uint256 &hash) {
-  AssertLockHeld(cs_main);
-  BlockMap::const_iterator it = mapBlockIndex.find(hash);
-  return it == mapBlockIndex.end() ? nullptr : it->second;
-}
-
 inline CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
   CBlockIndex *bi = LookupBlockIndex(hash);
   if (!bi) {
