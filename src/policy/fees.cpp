@@ -8,12 +8,10 @@
 
 #include <clientversion.h>
 #include <primitives/transaction.h>
+#include <statsd_client.h>
 #include <streams.h>
 #include <txmempool.h>
 #include <util.h>
-
-#include <boost/lexical_cast.hpp>
-#include <statsd_client.h>
 
 statsd::StatsdClient statsClient;
 

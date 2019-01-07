@@ -7,6 +7,7 @@
 #include <consensus/consensus.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
+#include <statsd_client.h>
 #include <consensus/validation.h>
 #include <esperanza/vote.h>
 #include <esperanza/finalizationstate.h>
@@ -16,9 +17,6 @@
 #include <chain.h>
 #include <coins.h>
 #include <utilmoneystr.h>
-
-#include <statsd_client.h>
-#include <boost/thread.hpp>
 
 statsd::StatsdClient txstatsClient;
 
@@ -167,7 +165,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 
 bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool fCheckDuplicateInputs)
 {
-    boost::posix_time::ptime start = boost::posix_time::microsec_clock::local_time();
+    auto start = std::chrono::steady_clock::now();
 
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
@@ -234,9 +232,8 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
       }
     }
 
-    boost::posix_time::ptime finish = boost::posix_time::microsec_clock::local_time();
-    boost::posix_time::time_duration diff = finish - start;
-    txstatsClient.timing("CheckTransaction_us", diff.total_microseconds(), 1.0f);
+    auto diff = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+    txstatsClient.timing("CheckTransaction_us", diff.count(), 1.0f);
 
     return true;
 }
