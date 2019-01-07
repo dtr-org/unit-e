@@ -12,7 +12,8 @@
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
-#include <functional>
+#include <algorithm>
+#include <cstdlib>
 
 namespace {
 
@@ -22,6 +23,21 @@ struct Fixture {
   std::unique_ptr<::Settings> settings;
   blockchain::Parameters parameters = blockchain::Parameters::MainNet();
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::New(args_manager.get());
+
+  uint256 snapshot_hash = uint256();
+
+  proposer::EligibleCoin eligible_coin = [&] {
+    proposer::EligibleCoin coin;
+    coin.utxo.txid = uint256();
+    coin.utxo.index = 0;
+    coin.utxo.amount = 100;
+    coin.utxo.depth = 3;
+    coin.kernel_hash = uint256();
+    coin.reward = 50;
+    coin.target_height = 18;
+    coin.target_time = behavior->CalculateProposingTimestampAfter(4711);
+    return coin;
+  }();
 
   class Wallet : public staking::StakingWallet {
     mutable CCriticalSection lock;
@@ -100,18 +116,6 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
     return ix;
   }();
 
-  uint256 snapshot_hash;
-  proposer::EligibleCoin eligible_coin;
-
-  eligible_coin.utxo.txid = uint256();
-  eligible_coin.utxo.index = 0;
-  eligible_coin.utxo.amount = 100;
-  eligible_coin.utxo.depth = 3;
-  eligible_coin.kernel_hash = uint256();
-  eligible_coin.reward = 50;
-  eligible_coin.target_height = 18;
-  eligible_coin.target_time = f.behavior->CalculateProposingTimestampAfter(4711);
-
   staking::Coin coin1;
   coin1.txid = uint256();
   coin1.index = 0;
@@ -137,13 +141,69 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   };
 
   auto block = builder->BuildBlock(
-      current_tip, snapshot_hash, eligible_coin, coins, transactions, fees, f.wallet);
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   auto is_valid = validator->CheckBlock(*block);
   BOOST_CHECK(is_valid);
 }
 
 BOOST_AUTO_TEST_CASE(split_amount) {
+  auto split_amount_test = [&](int split_threshold, int expected_outputs) -> void {
+    Fixture f{tfm::format("-stakesplitthreshold=%d", split_threshold)};
+    auto validator = f.MakeBlockValidator();
+    auto builder = f.MakeBlockBuilder();
+
+    uint256 block_hash = uint256();
+    CBlockIndex current_tip = [&] {
+      CBlockIndex ix;
+      ix.phashBlock = &block_hash;
+      ix.pprev = nullptr;
+      ix.pskip = nullptr;
+      ix.nHeight = 17;
+      return ix;
+    }();
+
+    uint256 snapshot_hash;
+    proposer::EligibleCoin eligible_coin;
+
+    std::vector<staking::Coin> coins;  // no other coins
+    std::vector<CTransactionRef> transactions;
+    CAmount fees(0);
+
+    f.wallet.key = f.key;
+    f.wallet.signfunc = [&](CMutableTransaction &tx) {
+      auto &witness_stack = tx.vin[1].scriptWitness.stack;
+      witness_stack.emplace_back();              // empty signature
+      witness_stack.emplace_back(f.pubkeydata);  // pubkey
+      return true;
+    };
+
+    auto block = builder->BuildBlock(
+        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+    BOOST_REQUIRE(static_cast<bool>(block));
+    auto is_valid = validator->CheckBlock(*block);
+    // must have a coinbase transaction
+    BOOST_REQUIRE(!block->vtx.empty());
+    auto coinbase = block->vtx[0];
+    auto &outputs = coinbase->vout;
+    BOOST_CHECK_EQUAL(outputs.size(), expected_outputs);
+
+    auto minmax = std::minmax_element(outputs.begin(), outputs.end(), [](const CTxOut &left, const CTxOut &right) {
+      return left.nValue < right.nValue;
+    });
+    // check that outputs differ no more than one in size (this avoids dust)
+    BOOST_CHECK(abs(minmax.first->nValue - minmax.second->nValue) <= 1);
+    BOOST_CHECK(is_valid);
+  };
+
+  // eligible_coin.amount=100, reward=50, outsum=150 -> 10x15
+  split_amount_test(10, 15);
+
+  // no piece bigger than 70
+  split_amount_test(70, 3);
+
+  // check that dust is avoided
+  split_amount_test(149, 2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
