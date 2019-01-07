@@ -400,6 +400,8 @@ public:
     }
 
     ScriptError GetScriptError() const { return error; }
+
+    std::string ToString() const;
 };
 
 /** Initializes the script-execution cache */

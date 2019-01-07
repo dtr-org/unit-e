@@ -47,20 +47,25 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
     const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
-    const blockchain::Depth depth = tx->GetDepthInMainChain();  // requires cs_main
-    if (depth < 1) {
+    const int depth_in_mainchain = tx->GetDepthInMainChain();  // requires cs_main
+    if (depth_in_mainchain < 1) {
       // requires at least one confirmation
       continue;
     }
-    for (std::size_t outIx = 0; outIx < coins.size(); ++outIx) {
-      if (m_enclosing_wallet.IsSpent(txId, outIx)) {
+    const auto depth = static_cast<blockchain::Depth>(depth_in_mainchain);
+    for (std::size_t outix = 0; outix < coins.size(); ++outix) {
+      if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(outix))) {
         continue;
       }
-      const CTxOut &coin = coins[outIx];
+      const CTxOut &coin = coins[outix];
       if (m_enclosing_wallet.GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
         continue;
       }
-      f(tx, outIx, depth);
+      // UNIT-E TODO: Restrict to P2WPKH only once #212 is merged (fixes #48)
+      if (!coin.scriptPubKey.IsPayToWitnessScriptHash() && !coin.scriptPubKey.IsPayToPublicKeyHash()) {
+        continue;
+      }
+      f(tx, std::uint32_t(outix), depth);
     }
   }
 }
@@ -75,22 +80,60 @@ CAmount WalletExtension::GetReserveBalance() const {
 
 CAmount WalletExtension::GetStakeableBalance() const {
   CAmount total_amount = 0;
-  ForEachStakeableCoin([&](const CWalletTx *tx, std::size_t outIx, blockchain::Depth depth) {
+  ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
     total_amount += tx->tx->vout[outIx].nValue;
   });
   return total_amount;
 }
 
-std::vector<::COutput> WalletExtension::GetStakeableCoins() const {
-  std::vector<::COutput> coins;
-  ForEachStakeableCoin([&](const CWalletTx *tx, std::size_t outIx, blockchain::Depth depth) {
-    coins.emplace_back(tx, static_cast<int>(outIx), static_cast<int>(depth), true, true, true);
+std::vector<staking::Coin> WalletExtension::GetStakeableCoins() const {
+  std::vector<staking::Coin> coins;
+  ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
+    coins.emplace_back(staking::Coin{tx->tx->GetHash(), outIx, tx->tx->vout[outIx].nValue, depth});
   });
   return coins;
 }
 
 proposer::State &WalletExtension::GetProposerState() {
   return m_proposer_state;
+}
+
+boost::optional<CKey> WalletExtension::GetKey(const CPubKey &pubkey) const {
+  const CKeyID keyid = pubkey.GetID();
+  CKey key;
+  if (!m_enclosing_wallet.GetKey(keyid, key)) {
+    return boost::none;
+  }
+  return key;
+}
+
+bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
+  AssertLockHeld(GetLock());
+
+  const CTransaction tx_const(tx);
+  unsigned int ix = 0;
+  const auto &wallet = m_enclosing_wallet.mapWallet;
+  for (std::size_t i = 1; i < tx.vin.size(); ++i) {  // skips the first input, which is the meta input
+    const auto &input = tx.vin[i];
+    const auto index = input.prevout.n;
+    const auto mi = wallet.find(input.prevout.hash);
+    if (mi == wallet.end()) {
+      return false;
+    }
+    const auto &vout = mi->second.tx->vout;
+    if (index >= vout.size()) {
+      return false;
+    }
+    const CTxOut &out = vout[index];
+    SignatureData sigdata;
+    const TransactionSignatureCreator sigcreator(&m_enclosing_wallet, &tx_const, ix, out.nValue, SIGHASH_ALL);
+    if (!ProduceSignature(sigcreator, out.scriptPubKey, sigdata)) {
+      return false;
+    }
+    UpdateTransaction(tx, ix, sigdata);
+    ++ix;
+  }
+  return true;
 }
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,

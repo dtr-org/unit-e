@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <proposer/proposer_logic.h>
-#include <wallet/wallet.h>
 
 namespace proposer {
 
@@ -42,7 +41,7 @@ class LogicImpl final : public Logic {
   //
   // The part of actually proposing (`propose(block)`) is left up to the caller
   // of this function (the `Proposer`, see proposer.cpp).
-  boost::optional<COutput> TryPropose(const std::vector<COutput> &eligible_utxos) override {
+  boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<staking::Coin> &eligible_utxos) override {
     AssertLockHeld(m_active_chain->GetLock());
 
     const CBlockIndex *current_tip =
@@ -52,20 +51,23 @@ class LogicImpl final : public Logic {
     }
     const blockchain::Height current_height =
         m_active_chain->GetHeight();
-    const blockchain::Time current_time =
+    const blockchain::Height target_height =
+        current_height + 1;
+    const blockchain::Time target_time =
         m_blockchain_behavior->CalculateProposingTimestampAfter(m_network->GetTime());
-    const blockchain::Difficulty current_difficulty =
-        m_blockchain_behavior->CalculateDifficulty(current_height + 1, *m_active_chain);
+    const blockchain::Difficulty target_difficulty =
+        m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
 
-    for (const auto &utxo : eligible_utxos) {
-      const COutPoint coin(utxo.tx->GetHash(), static_cast<blockchain::Height>(utxo.i));
-      const CAmount amount =
-          utxo.tx->tx->vout[utxo.i].nValue;
-      const uint256 kernel_hash =
-          m_stake_validator->ComputeKernelHash(current_tip, coin, current_time);
-
-      if (m_stake_validator->CheckKernel(amount, kernel_hash, current_difficulty)) {
-        return utxo;
+    for (const auto &coin : eligible_utxos) {
+      const uint256 kernel_hash = m_stake_validator->ComputeKernelHash(current_tip, coin, target_time);
+      if (m_stake_validator->CheckKernel(coin.amount, kernel_hash, target_difficulty)) {
+        const CAmount reward = m_blockchain_behavior->CalculateReward(current_tip->money_supply, target_height);
+        return {{coin,
+                 kernel_hash,
+                 reward,
+                 target_height,
+                 target_time,
+                 target_difficulty}};
       }
     }
     return boost::none;

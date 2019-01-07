@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
   auto result = blockAssemblerAdapter->PickTransactions(params);
 
   CAmount fees = 0;
-  for (const auto fee : result.m_fees) {
+  for (const auto fee : result.fees) {
     fees += fee;
   }
 

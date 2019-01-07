@@ -86,7 +86,13 @@ class WalletExtension : public staking::StakingWallet {
   CAmount GetStakeableBalance() const override;
 
   // defined in staking::StakingWallet
-  std::vector<::COutput> GetStakeableCoins() const override;
+  std::vector<staking::Coin> GetStakeableCoins() const override;
+
+  // defined in staking::StakingWallet
+  boost::optional<CKey> GetKey(const CPubKey &) const override;
+
+  // defined in staking::StakingWallet
+  bool SignCoinbaseTransaction(CMutableTransaction &) override;
 
   // defined in staking::StakingWallet
   proposer::State &GetProposerState() override;

@@ -30,33 +30,19 @@ namespace staking {
 //! templates. The proposer can assemble a block itself, which in turn
 //! greatly reduces complexity of the process to create new blocks and
 //! the amount of code needed to do so.
-//!
-//! The implementation, in fact the existence, of this very class is
-//! hidden from other compilation units since declaration and definition
-//! are here in the *.cpp-file. This is on purpose and inspired by the
-//! pImpl idiom. It should decrease compile times and helps
-//! encapsulation. Since TransactionPicker is an interface which
-//! can be mocked easily this design should greatly help unit testing
-//! components which use a TransactionPicker.
 class BlockAssemblerAdapter final : public TransactionPicker {
 
- private:
-  const CChainParams &m_chainParams;
-
  public:
-  explicit BlockAssemblerAdapter(const CChainParams &chainParams)
-      : m_chainParams(chainParams) {}
-
   ~BlockAssemblerAdapter() override = default;
 
   PickTransactionsResult PickTransactions(
       const PickTransactionsParameters &parameters) override {
 
     ::BlockAssembler::Options blockAssemblerOptions;
-    blockAssemblerOptions.blockMinFeeRate = parameters.m_minFees;
-    blockAssemblerOptions.nBlockMaxWeight = parameters.m_maxWeight;
+    blockAssemblerOptions.blockMinFeeRate = parameters.min_fees;
+    blockAssemblerOptions.nBlockMaxWeight = parameters.max_weight;
 
-    ::BlockAssembler blockAssembler(m_chainParams, blockAssemblerOptions);
+    ::BlockAssembler blockAssembler(::Params(), blockAssemblerOptions);
 
     // The block assembler unfortunately also creates a bitcoin-style
     // coinbase transaction. We do not want to touch that logic to
@@ -66,19 +52,23 @@ class BlockAssemblerAdapter final : public TransactionPicker {
     // empty script to the blockAssembler.
     CScript script(1);
     script.push_back(OP_RETURN);
-    std::unique_ptr<CBlockTemplate> blockTemplate =
-        blockAssembler.CreateNewBlock(script, /* fMineWitnessTx */ true);
 
-    return PickTransactionsResult{std::move(blockTemplate->block.vtx),
-                                  std::move(blockTemplate->vTxFees)};
+    PickTransactionsResult result;
+    try {
+      std::unique_ptr<CBlockTemplate> block_template =
+          blockAssembler.CreateNewBlock(script, /* fMineWitnessTx */ true);
+      result.transactions.swap(block_template->block.vtx);
+      result.fees.swap(block_template->vTxFees);
+    } catch (const std::runtime_error &err) {
+      result.error = err.what();
+    }
+    return result;
   };
 };
 
 std::unique_ptr<TransactionPicker>
 TransactionPicker::New() {
-
-  return std::unique_ptr<TransactionPicker>(
-      new BlockAssemblerAdapter(::Params()));
+  return std::unique_ptr<TransactionPicker>(new BlockAssemblerAdapter());
 }
 
 }  // namespace staking

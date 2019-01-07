@@ -158,6 +158,8 @@ UNITE_CORE_H = \
   policy/policy.h \
   policy/rbf.h \
   pow.h \
+  proposer/block_builder.h \
+  proposer/eligible_coin.h \
   proposer/multiwallet.h \
   proposer/proposer.h \
   proposer/proposer_logic.h \
@@ -200,6 +202,7 @@ UNITE_CORE_H = \
   snapshot/state.h \
   staking/active_chain.h \
   staking/block_validator.h \
+  staking/coin.h \
   staking/network.h \
   staking/stake_validator.h \
   staking/stakingwallet.h \
@@ -348,6 +351,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
   key/mnemonic/mnemonic.cpp \
+  proposer/block_builder.cpp \
   proposer/multiwallet.cpp \
   proposer/proposer.cpp \
   proposer/proposer_logic.cpp \

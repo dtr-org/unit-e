@@ -69,15 +69,15 @@ class BlockValidatorImpl : public BlockValidator {
   BlockValidationResult CheckCoinbaseMetaInput(const CTxIn &in) const {
     BlockValidationResult result;
 
-    const CScript &scriptSig = in.scriptSig;
+    const CScript &script_sig = in.scriptSig;
 
     bool check;
     opcodetype op;
     std::vector<uint8_t> buf;
-    CScript::const_iterator it = scriptSig.begin();
+    CScript::const_iterator it = script_sig.begin();
 
     // read + check height
-    check = scriptSig.GetOp(it, op, buf);
+    check = script_sig.GetOp(it, op, buf);
     if (!check || (buf.empty() && op != OP_0)) {
       result.errors += Error::NO_BLOCK_HEIGHT;
       result.errors += Error::NO_SNAPSHOT_HASH;
@@ -95,7 +95,7 @@ class BlockValidatorImpl : public BlockValidator {
     }
 
     // read + check snapshot hash
-    check = scriptSig.GetOp(it, op, buf);
+    check = script_sig.GetOp(it, op, buf);
     if (!check || op != 0x20 || buf.size() != 32) {
       result.errors += Error::NO_SNAPSHOT_HASH;
       return result;
@@ -109,14 +109,14 @@ class BlockValidatorImpl : public BlockValidator {
   BlockValidationResult CheckBlockSignature(const CBlock &block) const {
     BlockValidationResult result;
 
-    const uint256 blockHash = block.GetHash();
+    const uint256 block_hash = block.GetHash();
 
     const auto key = m_blockchain_behavior->ExtractBlockSigningKey(block);
     if (!key) {
       result.errors += Error::INVALID_BLOCK_PUBLIC_KEY;
       return result;
     }
-    if (!key.get().Verify(blockHash, block.signature)) {
+    if (!key->Verify(block_hash, block.signature)) {
       result.errors += Error::BLOCK_SIGNATURE_VERIFICATION_FAILED;
     }
     return result;
@@ -156,8 +156,8 @@ class BlockValidatorImpl : public BlockValidator {
     bool duplicate_transactions;
 
     // check merkle root
-    const uint256 expectedMerkleRoot = BlockMerkleRoot(block, &duplicate_transactions);
-    if (block.hashMerkleRoot != expectedMerkleRoot) {
+    const uint256 expected_merkle_root = BlockMerkleRoot(block, &duplicate_transactions);
+    if (block.hashMerkleRoot != expected_merkle_root) {
       result.errors += Error::MERKLE_ROOT_MISMATCH;
     }
     if (duplicate_transactions) {
@@ -169,11 +169,10 @@ class BlockValidatorImpl : public BlockValidator {
     }
 
     // check witness merkle root
-    const uint256 expectedWitnessMerkleRoot = BlockWitnessMerkleRoot(block, &duplicate_transactions);
-    // UNIT-E TODO: in #212 the witness merkle root will be part of the block header
-    //if (block.hashWitnessMerkleRoot != expectedWitnessMerkleRoot) {
-    //  validationErrors += Error::WITNESS_MERKLE_ROOT_MISMATCH;
-    //}
+    const uint256 expected_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
+    if (block.hash_witness_merkle_root != expected_witness_merkle_root) {
+      result.errors += Error::WITNESS_MERKLE_ROOT_MISMATCH;
+    }
     if (duplicate_transactions) {
       result.errors += Error::DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE;
     }

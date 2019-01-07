@@ -16,6 +16,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <numeric>
 
 namespace proposer {
 
@@ -32,6 +33,8 @@ class ProposerImpl : public Proposer {
   Dependency<MultiWallet> m_multi_wallet;
   Dependency<staking::Network> m_network;
   Dependency<staking::ActiveChain> m_active_chain;
+  Dependency<staking::TransactionPicker> m_transaction_picker;
+  Dependency<proposer::BlockBuilder> m_block_builder;
   Dependency<proposer::Logic> m_proposer_logic;
 
   std::thread m_thread;
@@ -67,7 +70,7 @@ class ProposerImpl : public Proposer {
         SetStatusOfAllWallets(Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
         continue;
       }
-      for (const auto &wallet : m_multi_wallet->GetWallets()) {
+      for (CWalletRef wallet : m_multi_wallet->GetWallets()) {
         auto &wallet_ext = wallet->GetWalletExtension();
         const auto wallet_name = wallet->GetName();
         if (wallet->IsLocked()) {
@@ -78,23 +81,41 @@ class ProposerImpl : public Proposer {
         if (m_interrupted) {
           break;
         }
-        LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
-        const auto &coins = wallet_ext.GetStakeableCoins();
-        if (coins.empty()) {
-          LogPrint(BCLog::PROPOSING, "Not proposing, not enough balance (wallet=%s)\n", wallet_name);
-          wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE;
-          continue;
-        }
-        wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
-        const auto &winning_ticket = m_proposer_logic->TryPropose(coins);
-        if (!winning_ticket) {
-          LogPrint(BCLog::PROPOSING, "Not proposing this time (wallet=%s)\n", wallet_name);
-          continue;
-        }
-        const COutput coin = winning_ticket.get();
-        LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, tx=%s, ix=%s)\n",
-                 wallet_name, coin.tx->GetHash().GetHex(), std::to_string(coin.i));
         std::shared_ptr<const CBlock> block;
+        {
+          LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
+          const auto &tip = *m_active_chain->GetTip();
+          const auto &coins = wallet_ext.GetStakeableCoins();
+          if (coins.empty()) {
+            LogPrint(BCLog::PROPOSING, "Not proposing, not enough balance (wallet=%s)\n", wallet_name);
+            wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE;
+            continue;
+          }
+          wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
+          const auto &winning_ticket = m_proposer_logic->TryPropose(coins);
+          if (!winning_ticket) {
+            LogPrint(BCLog::PROPOSING, "Not proposing this time (wallet=%s)\n", wallet_name);
+            continue;
+          }
+          const EligibleCoin &coin = winning_ticket.get();
+          LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, tx=%s, ix=%s)\n",
+                   wallet_name, coin.utxo.txid.GetHex(), std::to_string(coin.utxo.index));
+          staking::TransactionPicker::PickTransactionsParameters parameters{};
+          staking::TransactionPicker::PickTransactionsResult result =
+              m_transaction_picker->PickTransactions(parameters);
+
+          if (!result) {
+            LogPrint(BCLog::PROPOSING, "Failed to pick transactions: %s – proposing empty block.\n");
+          }
+          const CAmount fees = std::accumulate(result.fees.begin(), result.fees.end(), CAmount(0));
+          const uint256 snapshot_hash = m_active_chain->ComputeSnapshotHash();
+
+          block = m_block_builder->BuildBlock(
+              tip, snapshot_hash, coin, coins, result.transactions, fees, wallet_ext);
+        }
+        if (m_interrupted) {
+          break;
+        }
         if (!block) {
           LogPrint(BCLog::PROPOSING, "Failed to assemble block.\n");
           continue;
@@ -105,7 +126,6 @@ class ProposerImpl : public Proposer {
           continue;
         }
         LogPrint(BCLog::PROPOSING, "Proposed new block (hash=%s).\n", hash);
-        // propose block
       }
     } while (Wait());
     LogPrint(BCLog::PROPOSING, "Proposer thread stopping...\n");
@@ -117,12 +137,16 @@ class ProposerImpl : public Proposer {
                Dependency<MultiWallet> multi_wallet,
                Dependency<staking::Network> network,
                Dependency<staking::ActiveChain> active_chain,
+               Dependency<staking::TransactionPicker> transaction_picker,
+               Dependency<proposer::BlockBuilder> block_builder,
                Dependency<proposer::Logic> proposer_logic)
       : m_settings(settings),
         m_blockchain_behavior(blockchain_behavior),
         m_multi_wallet(multi_wallet),
         m_network(network),
         m_active_chain(active_chain),
+        m_transaction_picker(transaction_picker),
+        m_block_builder(block_builder),
         m_proposer_logic(proposer_logic),
         m_interrupted(false) {
   }
@@ -158,9 +182,11 @@ std::unique_ptr<Proposer> Proposer::New(
     Dependency<MultiWallet> multi_wallet,
     Dependency<staking::Network> network,
     Dependency<staking::ActiveChain> active_chain,
+    Dependency<staking::TransactionPicker> transaction_picker,
+    Dependency<proposer::BlockBuilder> block_builder,
     Dependency<proposer::Logic> proposer_logic) {
   if (settings->node_is_proposer) {
-    return std::unique_ptr<Proposer>(new ProposerImpl(settings, behavior, multi_wallet, network, active_chain, proposer_logic));
+    return std::unique_ptr<Proposer>(new ProposerImpl(settings, behavior, multi_wallet, network, active_chain, transaction_picker, block_builder, proposer_logic));
   } else {
     return std::unique_ptr<Proposer>(new ProposerStub());
   }

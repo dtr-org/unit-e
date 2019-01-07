@@ -41,7 +41,7 @@ class TransactionPicker {
     //! size which is the block weight. The block weight is defined
     //! as base-size * 3 + total_size. According to BIP141 the block
     //! weight must be less-than-or-equal-to 4M.
-    unsigned int m_maxWeight = DEFAULT_BLOCK_MAX_WEIGHT;
+    unsigned int max_weight = DEFAULT_BLOCK_MAX_WEIGHT;
 
     //! \brief The minimum sum of transaction fees
     //!
@@ -49,13 +49,18 @@ class TransactionPicker {
     //! harvest the transaction fees. Fees are set when a transaction
     //! is created. The fees are the difference of the inputs being
     //! spent and the outputs created.
-    unsigned int m_minFees = DEFAULT_BLOCK_MIN_TX_FEE;
+    unsigned int min_fees = DEFAULT_BLOCK_MIN_TX_FEE;
   };
 
   //! \brief transactions and fees chosen.
   struct PickTransactionsResult {
-    std::vector<CTransactionRef> m_transactions;
-    std::vector<CAmount> m_fees;
+    std::string error;
+    std::vector<CTransactionRef> transactions;
+    std::vector<CAmount> fees;
+
+    explicit operator bool() const {
+      return error.empty();
+    }
   };
 
   //! \brief picks transactions for inclusion in a block

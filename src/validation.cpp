@@ -14,6 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <core_io.h>
 #include <esperanza/checks.h>
 #include <cuckoocache.h>
 #include <hash.h>
@@ -27,6 +28,7 @@
 #include <random.h>
 #include <reverse_iterator.h>
 #include <script/script.h>
+#include <script/script_error.h>
 #include <script/sigcache.h>
 #include <script/standard.h>
 #include <timedata.h>
@@ -1453,7 +1455,25 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
 bool CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
-    return VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *txdata), &error);
+    bool result = VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *txdata), &error);
+    if (!result && LogAcceptCategory(BCLog::VALIDATION)) {
+        LogPrint(
+            BCLog::VALIDATION,
+            "script verification FAILED: %s with message \"%s\"\n",
+            ToString(), ScriptErrorString(GetScriptError()));
+    }
+    return result;
+}
+
+std::string CScriptCheck::ToString() const {
+  return tfm::format("CScriptCheck(tx=%s, index=%d, flags=%d, scriptSig=%s, scriptPubKey=%s, witness=%s)",
+    ptxTo->GetHash().GetHex(),
+    nIn,
+    nFlags,
+    FormatScript(ptxTo->vin[nIn].scriptSig),
+    FormatScript(m_tx_out.scriptPubKey),
+    ptxTo->vin[nIn].scriptWitness.ToString()
+  );
 }
 
 int GetSpendHeight(const CCoinsViewCache& inputs)
