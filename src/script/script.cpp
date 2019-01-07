@@ -391,35 +391,46 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
     if (!script.GetOp(it, opcode, voteSig)) {
       return false;
     }
-
     std::vector<unsigned char> validator;
     if (!script.GetOp(it, opcode, validator)) {
       return false;
     }
+
+    if (validator.size() != CHash160::OUTPUT_SIZE) {
+      return false;
+    }
+
     uint160 validatorAddress(validator);
 
     std::vector<unsigned char> target;
     if (!script.GetOp(it, opcode, target)) {
       return false;
     }
+
+    if (target.size() != CHash256::OUTPUT_SIZE) {
+      return false;
+    }
+
     uint256 targetHash(target);
 
     std::vector<unsigned char> sourceEpochVec;
     if (!script.GetOp(it, opcode, sourceEpochVec)) {
       return false;
     }
+
     uint32_t sourceEpoch = 0;
-    for (size_t i = 0; i < sourceEpochVec.size(); i++) {
-        sourceEpoch |= sourceEpochVec[i] << 8*i;
+    if (!CScriptNum::deserialize(sourceEpochVec, sourceEpoch)) {
+      return false;
     }
 
     std::vector<unsigned char> targetEpochVec;
     if (!script.GetOp(it, opcode, targetEpochVec)) {
       return false;
     }
+
     uint32_t targetEpoch = 0;
-    for (size_t i = 0; i < targetEpochVec.size(); i++) {
-        targetEpoch |= targetEpochVec[i] << 8*i;
+    if (!CScriptNum::deserialize(targetEpochVec, targetEpoch)) {
+      return false;
     }
 
     voteOut.m_validatorAddress = validatorAddress;
@@ -427,7 +438,7 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
     voteOut.m_sourceEpoch = sourceEpoch;
     voteOut.m_targetEpoch = targetEpoch;
 
-    return true;
+    return it == script.end();
 }
 
 CScript CScript::EncodeVote(const esperanza::Vote &data,

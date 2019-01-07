@@ -351,6 +351,34 @@ public:
         return serialize(m_value);
     }
 
+    template<typename T>
+    static bool deserialize(const std::vector<unsigned char>& vch, T& value_out)
+    {
+        using LargestType = int64_t;
+
+        static_assert(std::is_integral<T>::value, "Only integral types are supported");
+        static_assert(!std::is_same<uint64_t, T>::value, "Type is not supported");
+        static_assert(sizeof(T) <= sizeof(LargestType), "Type is too big");
+
+        if (vch.size() > sizeof(LargestType)) {
+          // Special case for negative values, see set_vch
+          if (!(vch.back() & 0x80) || vch.size() != sizeof(LargestType) + 1) {
+            return false;
+          }
+        }
+
+        const LargestType num = CScriptNum::set_vch(vch);
+        if (num > static_cast<LargestType >(std::numeric_limits<T>::max())) {
+            return false;
+        }
+        if (num < static_cast<LargestType>(std::numeric_limits<T>::min())) {
+            return false;
+        }
+
+        value_out = static_cast<T>(num);
+        return true;
+    }
+
     static std::vector<unsigned char> serialize(const int64_t& value)
     {
         if(value == 0)
