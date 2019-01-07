@@ -12,6 +12,11 @@
 #include <txmempool.h>
 #include <util.h>
 
+#include <boost/lexical_cast.hpp>
+#include <statsd_client.h>
+
+statsd::StatsdClient statsClient;
+
 static constexpr double INF_FEERATE = 1e99;
 
 std::string StringForFeeEstimateHorizon(FeeEstimateHorizon horizon) {
@@ -651,7 +656,6 @@ void CBlockPolicyEstimator::processBlock(unsigned int nBlockHeight,
         firstRecordedHeight = nBestSeenHeight;
         LogPrint(BCLog::ESTIMATEFEE, "Blockpolicy first recorded height %u\n", firstRecordedHeight);
     }
-
 
     LogPrint(BCLog::ESTIMATEFEE, "Blockpolicy estimates updated by %u of %u block txs, since last block %u of %u tracked, mempool map size %u, max target %u from %s\n",
              countedTxs, entries.size(), trackedTxs, trackedTxs + untrackedTxs, mapMemPoolTxs.size(),

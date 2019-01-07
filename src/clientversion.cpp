@@ -12,7 +12,7 @@
  * for both united and unite-qt, to make it harder for attackers to
  * target servers or GUI users specifically.
  */
-const std::string CLIENT_NAME("Feuerland");
+const std::string CLIENT_NAME("Feuerstat");
 
 /**
  * Client version number

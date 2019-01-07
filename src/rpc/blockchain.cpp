@@ -980,6 +980,11 @@ UniValue gettxoutsetinfo(const JSONRPCRequest& request)
         ret.push_back(Pair("hash_serialized_2", stats.hashSerialized.GetHex()));
         ret.push_back(Pair("disk_size", stats.nDiskSize));
         ret.push_back(Pair("total_amount", ValueFromAmount(stats.nTotalAmount)));
+        statsClient.gauge("utxoset.tx", stats.nTransactions, 1.0f);
+        statsClient.gauge("utxoset.txOutputs", stats.nTransactionOutputs, 1.0f);
+        statsClient.gauge("utxoset.dbSizeBytes", stats.nDiskSize, 1.0f);
+        statsClient.gauge("utxoset.blockHeight", stats.nHeight, 1.0f);
+        statsClient.gauge("utxoset.totalUTEAmount", (double)stats.nTotalAmount / (double)UNIT, 1.0f);
     } else {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Unable to read UTXO set");
     }
@@ -1610,7 +1615,9 @@ UniValue getchaintxstats(const JSONRPCRequest& request)
         ret.push_back(Pair("window_interval", nTimeDiff));
         if (nTimeDiff > 0) {
             ret.push_back(Pair("txrate", ((double)nTxDiff) / nTimeDiff));
+            statsClient.gaugeDouble("transactions.txRate", ((double)nTxDiff) / nTimeDiff);
         }
+        statsClient.gauge("transactions.totalCount", (int64_t)pindex->nChainTx);
     }
 
     return ret;

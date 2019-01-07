@@ -32,6 +32,9 @@
 
 #include <atomic>
 
+#include "statsd_client.h"
+extern statsd::StatsdClient statsClient;
+
 class CBlockIndex;
 class CBlockTreeDB;
 class CChainParams;

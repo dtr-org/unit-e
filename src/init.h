@@ -6,7 +6,10 @@
 #ifndef UNITE_INIT_H
 #define UNITE_INIT_H
 
+#include "statsd_client.h"
 #include <string>
+
+extern statsd::StatsdClient statsClient;
 
 class CScheduler;
 class CWallet;

@@ -200,6 +200,7 @@ UNITE_CORE_H = \
   snapshot/snapshot_index.h \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
+  statsd_client.h \
   staking/active_chain.h \
   staking/block_validator.h \
   staking/coin.h \
@@ -318,6 +319,7 @@ libunite_server_a_SOURCES = \
   snapshot/snapshot_index.cpp \
   snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
+  statsd_client.cpp \
   staking/active_chain.cpp \
   staking/block_validator.cpp \
   staking/network.cpp \
