@@ -310,7 +310,7 @@ class UnitETestFramework():
             all_have = True
             for node in self.nodes:
                 try:
-                    if presence[node.index] is True:
+                    if presence[node.index]:
                         continue
                     node.getrawtransaction(txid)
                     presence[node.index] = True
@@ -323,7 +323,7 @@ class UnitETestFramework():
 
             time.sleep(0.1)
 
-        raise RuntimeError('Failed to wait for transaction %s. Presense: %s'
+        raise RuntimeError('Failed to wait for transaction %s. Presence: %s'
                            % (txid, presence))
 
     def split_network(self):
