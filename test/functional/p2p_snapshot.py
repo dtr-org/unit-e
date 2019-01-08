@@ -50,7 +50,7 @@ class BaseNode(P2PInterface):
         self.snapshot_requested = False
         self.snapshot_header = SnapshotHeader()
         self.snapshot_data = []
-        self.headers = dict()
+        self.headers = []
         self.parent_block = CBlock()
 
     def on_getheaders(self, message):
@@ -59,7 +59,7 @@ class BaseNode(P2PInterface):
 
         msg = msg_headers()
         for h in self.headers:
-            msg.headers.append(self.headers[h])
+            msg.headers.append(h)
         self.send_message(msg)
 
     def on_getsnaphead(self, message):
@@ -150,7 +150,7 @@ class P2PSnapshotTest(UnitETestFramework):
             header = CBlockHeader()
             FromHex(header, serving_node.getblockheader(blockhash, False))
             header.calc_sha256()
-            serving_p2p.headers[header.sha256] = header
+            serving_p2p.headers.append(header)
 
             # keep only the parent block
             if serving_p2p.snapshot_header.block_hash == header.hashPrevBlock:
