@@ -169,6 +169,7 @@ BASE_SCRIPTS= [
     'rpc_createsnapshot.py',
     'rpc_getblocksnapshot.py',
     'feature_snapshot.py',
+    'p2p_snapshot.py',
     'feature_snapshot_creation.py',
     'example_test.py',
     # Don't append tests at the end to avoid merge conflicts
