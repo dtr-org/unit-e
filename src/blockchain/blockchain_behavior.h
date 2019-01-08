@@ -76,6 +76,12 @@ class Behavior {
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
 
   static std::unique_ptr<Behavior> NewFromParameters(const Parameters &);
+
+  //! \brief stopgap to replace global Params() accessor function
+  static void MakeGlobal(Dependency<::ArgsManager>);
+
+  //! \brief stopgap to replace global Params() accessor function
+  static Behavior& GetGlobal();
 };
 
 }  // namespace blockchain

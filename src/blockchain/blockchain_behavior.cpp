@@ -43,7 +43,7 @@ bool Behavior::IsGenesisBlock(const CBlock &block) const {
   return IsGenesisBlockHash(block.GetHash());
 }
 
-const Parameters& Behavior::GetParameters() const {
+const Parameters &Behavior::GetParameters() const {
   return m_parameters;
 }
 
@@ -97,6 +97,22 @@ std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
 
 std::unique_ptr<Behavior> Behavior::NewFromParameters(const Parameters &parameters) {
   return MakeUnique<blockchain::Behavior>(parameters);
+}
+
+namespace {
+//! A global blockchain_behavior instance which is managed outside of the
+//! injector as there are parts of united which require access to the currently
+//! selected blockchain parameters before and after the injector
+std::unique_ptr<Behavior> g_blockchain_behavior;
+}
+
+void Behavior::MakeGlobal(Dependency<::ArgsManager> args) {
+  std::unique_ptr<Behavior> b = New(args);
+  g_blockchain_behavior.swap(b);
+}
+
+Behavior &Behavior::GetGlobal() {
+  return *g_blockchain_behavior;
 }
 
 }  // namespace blockchain
