@@ -8,6 +8,7 @@
 
 #include <key.h>
 #include <pubkey.h>
+#include <script/ismine.h>
 #include <script/script.h>
 #include <script/sign.h>
 #include <script/standard.h>
@@ -29,6 +30,8 @@ public:
     //! Check whether a key corresponding to a given address is present in the store.
     virtual bool HaveKey(const CKeyID &address) const =0;
     virtual std::set<CKeyID> GetKeys() const =0;
+    virtual bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const =0;
+    virtual isminetype IsMine(const CKeyID &address) const = 0;
 
     //! Support for BIP 0013 : see https://github.com/unite/bips/blob/master/bip-0013.mediawiki
     virtual bool AddCScript(const CScript& redeemScript) =0;
@@ -62,6 +65,7 @@ public:
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override;
     bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const override;
     bool HaveKey(const CKeyID &address) const override;
+    isminetype IsMine(const CKeyID &address) const override;
     std::set<CKeyID> GetKeys() const override;
     bool GetKey(const CKeyID &address, CKey &keyOut) const override;
     bool AddCScript(const CScript& redeemScript) override;

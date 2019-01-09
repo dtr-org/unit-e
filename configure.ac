@@ -198,6 +198,14 @@ AC_ARG_WITH([system-univalue],
   [system_univalue=$withval],
   [system_univalue=no]
 )
+
+AC_ARG_ENABLE([usbdevice],
+  [AS_HELP_STRING([--disable-usbdevice],
+  [disable hardware wallet support (default is enabled)])],
+  [enable_usbdevice=$enableval],
+  [enable_usbdevice=yes]
+)
+
 AC_ARG_ENABLE([zmq],
   [AS_HELP_STRING([--disable-zmq],
   [disable ZMQ notifications])],
@@ -1179,6 +1187,15 @@ if test x$unite_enable_qt != xno; then
   fi
 fi
 
+dnl enable USB devices
+AC_MSG_CHECKING([if USB devices should be supported])
+if test x$enable_usbdevice != xno; then
+  AC_MSG_RESULT(yes)
+  AC_DEFINE_UNQUOTED([ENABLE_USBDEVICE],[1],[Define to enable hardware wallet support])
+else
+  AC_MSG_RESULT(no)
+fi
+
 AM_CONDITIONAL([ENABLE_ZMQ], [test "x$use_zmq" = "xyes"])
 
 AC_MSG_CHECKING([whether to build test_unite])
@@ -1204,6 +1221,7 @@ fi
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
 AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
+AM_CONDITIONAL([ENABLE_USBDEVICE],[test x$enable_usbdevice = xyes])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$unite_enable_qt = xyes])
@@ -1324,6 +1342,7 @@ esac
 echo
 echo "Options used to compile and link:"
 echo "  with wallet   = $enable_wallet"
+echo "  with USB      = $enable_usbdevice"
 echo "  with gui / qt = $unite_enable_qt"
 if test x$unite_enable_qt != xno; then
     echo "    qt version  = $unite_qt_got_major_vers"

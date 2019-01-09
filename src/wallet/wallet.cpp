@@ -29,6 +29,7 @@
 #include <timedata.h>
 #include <txmempool.h>
 #include <util.h>
+#include <usbdevice/usbdevice.h>
 #include <utilmoneystr.h>
 #include <validation.h>
 #include <wallet/coincontrol.h>
@@ -185,6 +186,72 @@ CPubKey CWallet::GenerateNewKey(CWalletDB &walletdb, bool internal)
     return pubkey;
 }
 
+CPubKey CWallet::DeriveNewPubKey(CWalletDB &walletdb, bool internal)
+{
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    assert(!hdChain.account_pubkeys.empty());
+
+    // Create new metadata
+    int64_t nCreationTime = GetTime();
+    CKeyMetadata metadata(nCreationTime);
+    metadata.hd_seed_id = hdChain.seed_id;
+    metadata.master_key_id = hdChain.master_key_id;
+
+    CExtPubKey &accountPubKey = hdChain.account_pubkeys[0];
+    CKeyMetadata accKeyMetadata = mapKeyMetadata[accountPubKey.pubkey.GetID()];
+    const std::string &accountPath = accKeyMetadata.hdKeypath;
+
+    // derive m/<account_path>/0 (external chain) OR m/<account_path>/1 (internal chain)
+    internal = CanSupportFeature(FEATURE_HD_SPLIT) ? internal : false;
+
+    // key at m/<account_path>/0 (external) or /1 (internal)
+    CExtPubKey chainChildPubKey;
+    accountPubKey.Derive(chainChildPubKey, (internal ? 1 : 0));
+
+    // key at m/<account_path>/<internal>/<n>
+    CExtPubKey childPubKey;
+
+    // derive child key at next index, skip keys already known to the wallet
+    do {
+        if (internal) {
+            chainChildPubKey.Derive(childPubKey, hdChain.nInternalChainCounter);
+            metadata.hdKeypath = accountPath + "/1/" + std::to_string(hdChain.nInternalChainCounter);
+            hdChain.nInternalChainCounter++;
+        } else {
+            chainChildPubKey.Derive(childPubKey, hdChain.nExternalChainCounter);
+            metadata.hdKeypath = accountPath + "/0/" + std::to_string(hdChain.nExternalChainCounter);
+            hdChain.nExternalChainCounter++;
+        }
+    } while (HaveKey(childPubKey.pubkey.GetID()));
+
+    // update the chain model in the database
+    if (!walletdb.WriteHDChain(hdChain))
+        throw std::runtime_error(std::string(__func__) + ": Writing HD chain model failed");
+
+    CPubKey pubkey = childPubKey.pubkey;
+    mapKeyMetadata[pubkey.GetID()] = metadata;
+    UpdateTimeFirstKey(nCreationTime);
+
+    mapWatchKeys[pubkey.GetID()] = pubkey;
+
+    // check if we need to remove from watch-only
+    CScript script;
+    script = GetScriptForDestination(pubkey.GetID());
+    if (HaveWatchOnly(script)) {
+        RemoveWatchOnly(script);
+    }
+    script = GetScriptForRawPubKey(pubkey);
+    if (HaveWatchOnly(script)) {
+        RemoveWatchOnly(script);
+    }
+
+    if (!walletdb.WriteKeyMetadata(pubkey, metadata)) {
+        throw std::runtime_error(std::string(__func__) + ": Writing key metadata failed");
+    }
+
+    return pubkey;
+}
+
 void CWallet::DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKey& secret, bool internal)
 {
     // for now we use a fixed keypath scheme of m/0'/0'/k
@@ -288,6 +355,49 @@ bool CWallet::AddCryptedKey(const CPubKey &vchPubKey,
                                                             mapKeyMetadata[vchPubKey.GetID()]);
         }
     }
+}
+
+bool CWallet::HaveKey(const CKeyID &address) const
+{
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    if (CCryptoKeyStore::HaveKey(address)) {
+        return true;
+    }
+
+    CKeyMetadata keyMeta;
+    auto it = mapKeyMetadata.find(address);
+    if (it == mapKeyMetadata.end()) {
+        return false;
+    }
+
+    if (!it->second.master_key_id.IsNull()) {
+        return true;
+    }
+
+    return false;
+}
+
+isminetype CWallet::IsMine(const CKeyID &address) const
+{
+    LOCK(cs_wallet);
+
+    CKeyMetadata keyMeta;
+    auto it = mapKeyMetadata.find(address);
+    if (it != mapKeyMetadata.end() && !it->second.master_key_id.IsNull()) {
+        return ISMINE_HW_DEVICE;
+    }
+
+    return CCryptoKeyStore::IsMine(address);
+}
+
+bool CWallet::LoadKeyMetadata(const CPubKey& pubkey, const CKeyMetadata &meta)
+{
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
+    CKeyID keyID = pubkey.GetID();
+    if (!meta.master_key_id.IsNull()) {
+        mapWatchKeys[pubkey.GetID()] = pubkey;
+    }
+    return LoadKeyMetadata(keyID, meta);
 }
 
 bool CWallet::LoadKeyMetadata(const CKeyID& keyID, const CKeyMetadata &meta)
@@ -1516,6 +1626,36 @@ bool CWallet::SetHDSeed(const CPubKey& pubkey)
     return SetHDChain(newHdChain, false);
 }
 
+bool CWallet::SetHDMasterKey(
+    const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
+    const std::vector<CKeyMetadata> &acctKeyMetadata, bool isHardwareDevice
+)
+{
+    assert(!isHardwareDevice || !acctKeys.empty());
+    assert(acctKeys.size() == acctKeyMetadata.size());
+
+    LOCK(cs_wallet);
+    // store the keyid (hash160) together with
+    // the child index counter in the database
+    // as a hdchain object
+    CHDChain newHdChain;
+    newHdChain.nVersion = CanSupportFeature(FEATURE_HD_SPLIT) ? CHDChain::VERSION_HD_CHAIN_SPLIT : CHDChain::VERSION_HD_BASE;
+    newHdChain.master_key_id = masterKey.GetID();
+    newHdChain.account_pubkeys.insert(newHdChain.account_pubkeys.end(), acctKeys.begin(), acctKeys.end());
+    newHdChain.is_hardware_device = isHardwareDevice;
+
+    // Associated metadata (HD key paths) must be persisted to the DB
+    CWalletDB walletdb(*dbw);
+    for (size_t i = 0; i < acctKeyMetadata.size(); i++) {
+        mapKeyMetadata[acctKeys[i].pubkey.GetID()] = acctKeyMetadata[i];
+        if (!walletdb.WriteKeyMetadata(acctKeys[i].pubkey, acctKeyMetadata[i])) {
+            return false;
+        }
+    }
+
+    return SetHDChain(newHdChain, false);
+}
+
 bool CWallet::SetHDChain(const CHDChain& chain, bool memonly)
 {
     LOCK(cs_wallet);
@@ -1528,7 +1668,7 @@ bool CWallet::SetHDChain(const CHDChain& chain, bool memonly)
 
 bool CWallet::IsHDEnabled() const
 {
-    return !hdChain.seed_id.IsNull();
+    return !hdChain.seed_id.IsNull() || !hdChain.master_key_id.IsNull();
 }
 
 int64_t CWalletTx::GetTxTime() const
@@ -1970,7 +2110,7 @@ bool CWalletTx::IsTrusted() const
             return false;
         }
         const CTxOut& parentOut = parent->tx->vout[txin.prevout.n];
-        if (pwallet->IsMine(parentOut) != ISMINE_SPENDABLE) {
+        if (!(pwallet->IsMine(parentOut) & ISMINE_SPENDABLE)) {
             return false;
         }
     }
@@ -2340,7 +2480,7 @@ std::map<CTxDestination, std::vector<COutput>> CWallet::ListCoins() const
         if (it != mapWallet.end()) {
             int depth = it->second.GetDepthInMainChain();
             if (depth >= 0 && output.n < it->second.tx->vout.size() &&
-                IsMine(it->second.tx->vout[output.n]) == ISMINE_SPENDABLE) {
+                IsMine(it->second.tx->vout[output.n]) & ISMINE_SPENDABLE) {
                 CTxDestination address;
                 if (ExtractDestination(FindNonChangeParentOutput(*it->second.tx, output.n).scriptPubKey, address)) {
                     result[address].emplace_back(
@@ -2969,11 +3109,36 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
         if (sign) {
             CTransaction txNewConst(txNew);
             int nIn = 0;
+
+#ifdef ENABLE_USBDEVICE
+            std::shared_ptr<usbdevice::USBDevice> pdevice;
+            if (hdChain.is_hardware_device) {
+                std::string error;
+                pdevice = usbdevice::SelectDevice(error);
+                if (!pdevice) {
+                    strFailReason = _(error.c_str());
+                    return false;
+                }
+            }
+#endif
+
             for (const auto& coin : setCoins) {
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
 
-                if (!ProduceSignature(*this, TransactionSignatureCreator(&txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL), scriptPubKey, sigdata)) {
+                std::unique_ptr<BaseSignatureCreator> txCreator(new TransactionSignatureCreator(
+                    &txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL
+                ));
+
+#ifdef ENABLE_USBDEVICE
+                if (::IsMine(*this, scriptPubKey) == ISMINE_HW_DEVICE) {
+                    txCreator.reset(new usbdevice::DeviceSignatureCreator(
+                        pdevice, txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL
+                    ));
+                }
+#endif
+
+                if (!ProduceSignature(*this, *txCreator.get(), scriptPubKey, sigdata)) {
                     strFailReason = _("Signing transaction failed");
                     return false;
                 }
@@ -3321,7 +3486,15 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize)
             assert(m_max_keypool_index < std::numeric_limits<int64_t>::max()); // How in the hell did you use so many keys?
             int64_t index = ++m_max_keypool_index;
 
-            CPubKey pubkey(GenerateNewKey(walletdb, internal));
+            CPubKey pubkey;
+            if (IsHDEnabled() && hdChain.is_hardware_device) {
+                if (hdChain.account_pubkeys.empty()) {
+                    return false;
+                }
+                pubkey = DeriveNewPubKey(walletdb, internal);
+            } else {
+                pubkey = GenerateNewKey(walletdb, internal);
+            }
             if (!walletdb.WritePool(index, CKeyPool(pubkey, internal))) {
                 throw std::runtime_error(std::string(__func__) + ": writing generated key failed");
             }
@@ -3367,7 +3540,10 @@ void CWallet::ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool, bool fRe
             throw std::runtime_error(std::string(__func__) + ": read failed");
         }
         if (!HaveKey(keypool.vchPubKey.GetID())) {
-            throw std::runtime_error(std::string(__func__) + ": unknown key in key pool");
+            CKeyMetadata keyMeta = mapKeyMetadata[keypool.vchPubKey.GetID()];
+            if (keyMeta.master_key_id.IsNull()) {
+                throw std::runtime_error(std::string(__func__) + ": unknown key in key pool");
+            }
         }
         if (keypool.fInternal != fReturningInternal) {
             throw std::runtime_error(std::string(__func__) + ": keypool entry misclassified");
@@ -4201,9 +4377,11 @@ void CWallet::LearnRelatedScripts(const CPubKey& key, OutputType type)
     if (key.IsCompressed() && (type == OUTPUT_TYPE_P2SH_SEGWIT || type == OUTPUT_TYPE_BECH32)) {
         CTxDestination witdest = WitnessV0KeyHash(key.GetID());
         CScript witprog = GetScriptForDestination(witdest);
+        LogPrintf("Learning related scripts for %s\n", EncodeDestination(CScriptID(witprog)).c_str());
         // Make sure the resulting program is solvable.
         assert(IsSolvable(*this, witprog));
         AddCScript(witprog);
+        LogPrintf("Learned\n");
     }
 }
 

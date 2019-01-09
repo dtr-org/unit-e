@@ -435,7 +435,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             CKeyMetadata keyMeta;
             ssValue >> keyMeta;
             wss.nKeyMeta++;
-            pwallet->LoadKeyMetadata(vchPubKey.GetID(), keyMeta);
+            pwallet->LoadKeyMetadata(vchPubKey, keyMeta);
         }
         else if (strType == "watchmeta")
         {
@@ -510,8 +510,9 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 return false;
             }
         }
-    } catch (...)
+    } catch (std::exception &e)
     {
+        LogPrintf("Exception! %s\n", e.what());
         return false;
     }
     return true;

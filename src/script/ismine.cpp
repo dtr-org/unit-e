@@ -38,7 +38,8 @@ enum class IsMineResult
     NO = 0,          //! Not ours
     WATCH_ONLY = 1,  //! Included in watch-only balance
     SPENDABLE = 2,   //! Included in all balances
-    INVALID = 3,     //! Not spendable by anyone (uncompressed pubkey in segwit, P2SH inside P2SH or witness, witness inside witness)
+    HW_DEVICE = 6,   //! Stored in a hardware wallet
+    INVALID = 7,     //! Not spendable by anyone (uncompressed pubkey in segwit, P2SH inside P2SH or witness, witness inside witness)
 };
 
 bool PermitsUncompressed(IsMineSigVersion sigversion)
@@ -76,7 +77,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             return IsMineResult::INVALID;
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, IsMineResult::SPENDABLE);
+            ret = std::max(ret, (IsMineResult)keystore.IsMine(keyID));
         }
         break;
     case TX_WITNESS_V0_KEYHASH:
@@ -103,7 +104,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             }
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, IsMineResult::SPENDABLE);
+            ret = std::max(ret, (IsMineResult)keystore.IsMine(keyID));
         }
         break;
     case TX_SCRIPTHASH:
@@ -159,7 +160,8 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             }
         }
         if (HaveKeys(keys, keystore)) {
-            ret = std::max(ret, IsMineResult::SPENDABLE);
+            CKeyID keyID = CPubKey(keys[0]).GetID();
+            ret = std::max(ret, (IsMineResult)keystore.IsMine(keyID));
         }
         break;
     }
@@ -173,7 +175,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 return IsMineResult::INVALID;
             }
             if (keystore.HaveKey(keyID)) {
-                return IsMineResult::SPENDABLE;
+                return (IsMineResult)keystore.IsMine(keyID);
             }
         }
         break;
@@ -198,6 +200,8 @@ isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
         return ISMINE_WATCH_ONLY;
     case IsMineResult::SPENDABLE:
         return ISMINE_SPENDABLE;
+    case IsMineResult::HW_DEVICE:
+        return ISMINE_HW_DEVICE;
     }
     assert(false);
 }

@@ -35,6 +35,7 @@ bench_bench_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CLFAGS) $(
 bench_bench_unite_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bench_bench_unite_LDADD = \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \

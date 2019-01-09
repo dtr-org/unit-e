@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <base58.h>
+#include <extkey.h>
 #include <key/mnemonic/mnemonic.h>
 #include <random.h>
 #include <rpc/server.h>
@@ -216,14 +217,22 @@ UniValue listreservekeys(const JSONRPCRequest &request) {
   for (auto &it : allReserveKeys) {
     const CKeyID keyID = it.first;
     CKey key;
-    wallet->GetKey(keyID, key);
+    CPubKey pubKey;
     UniValue keyPair(UniValue::VOBJ);
-    CPrivKey privKey = key.GetPrivKey();
-    CPubKey pubKey = key.GetPubKey();
-    keyPair.pushKV("public_key", UniValue(pubKey.GetHash().GetHex()));
-    keyPair.pushKV("private_key",
-                   UniValue(EncodeBase58(privKey.data(),
-                                         privKey.data() + privKey.size())));
+
+    if (wallet->GetKey(keyID, key)) {
+        CPrivKey privKey = key.GetPrivKey();
+        pubKey = key.GetPubKey();
+        keyPair.pushKV("public_key", UniValue(pubKey.GetHash().GetHex()));
+        keyPair.pushKV("private_key",
+                       UniValue(EncodeBase58(privKey.data(),
+                                             privKey.data() + privKey.size())));
+    } else if (wallet->GetPubKey(keyID, pubKey)) {
+        keyPair.pushKV("public_key", UniValue(pubKey.GetHash().GetHex()));
+    } else {
+        continue;
+    }
+
     reserveKeys.push_back(keyPair);
   }
   return reserveKeys;

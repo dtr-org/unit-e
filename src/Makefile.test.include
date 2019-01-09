@@ -64,6 +64,7 @@ UNITE_TESTS = \
   test/esperanza/finalizationstate_slash_tests.cpp \
   test/esperanza/finalizationstate_utils.h \
   test/esperanza/finalizationstate_utils.cpp \
+  test/extkey_tests.cpp \
   test/finalization/vote_recorder_tests.cpp \
   test/fixed_vector_tests.cpp \
   test/getarg_tests.cpp \
@@ -129,7 +130,6 @@ if ENABLE_WALLET
 UNITE_TESTS += \
   test/counting_semaphore_tests.cpp \
   test/esperanza/walletextension_tests.cpp \
-  test/extkey_tests.cpp \
   test/injector_tests.cpp \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
@@ -152,6 +152,9 @@ test_test_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(TESTDEFS) $(EVENT_
 test_test_unite_LDADD =
 if ENABLE_WALLET
 test_test_unite_LDADD += $(LIBUNITE_WALLET)
+endif
+if ENABLE_USBDEVICE
+test_test_unite_LDADD += $(LIBUNITE_USBDEVICE)
 endif
 test_test_unite_LDADD += $(LIBUNITE_SERVER) $(LIBUNITE_CLI) $(LIBUNITE_COMMON) $(LIBUNITE_UTIL) $(LIBUNITE_CONSENSUS) $(LIBUNITE_CRYPTO) $(LIBUNIVALUE) \
   $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) $(BOOST_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)

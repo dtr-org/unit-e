@@ -258,6 +258,19 @@ bool CCryptoKeyStore::HaveKey(const CKeyID &address) const
     return mapCryptedKeys.count(address) > 0;
 }
 
+isminetype CCryptoKeyStore::IsMine(const CKeyID &address) const
+{
+    LOCK(cs_KeyStore);
+    if (!IsCrypted()) {
+        return CBasicKeyStore::IsMine(address);
+    }
+    if (mapCryptedKeys.count(address) > 0)
+        return ISMINE_SPENDABLE;
+    if (mapWatchKeys.count(address) > 0)
+        return ISMINE_WATCH_ONLY;
+    return ISMINE_NO;
+}
+
 bool CCryptoKeyStore::GetKey(const CKeyID &address, CKey& keyOut) const
 {
     LOCK(cs_KeyStore);
