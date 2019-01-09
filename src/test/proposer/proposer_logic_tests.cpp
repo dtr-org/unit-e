@@ -18,10 +18,10 @@ struct Fixture {
 
   class NetworkMock : public staking::Network {
    public:
-    int64_t GetTime() const override {}
-    size_t GetNodeCount() const override {}
-    size_t GetInboundNodeCount() const override {}
-    size_t GetOutboundNodeCount() const override {}
+    int64_t GetTime() const override { return 0; }
+    size_t GetNodeCount() const override { return 0; }
+    size_t GetInboundNodeCount() const override { return 0; }
+    size_t GetOutboundNodeCount() const override { return 0; }
   };
 
   class ActiveChainMock : public staking::ActiveChain {
@@ -110,6 +110,7 @@ BOOST_AUTO_TEST_CASE(propose) {
     if (coin.txid == t3) {
       return k3;
     }
+    return coin.txid;
   };
   const auto coin = [&] {
     LOCK(f.active_chain_mock.GetLock());
