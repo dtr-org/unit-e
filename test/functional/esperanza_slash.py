@@ -6,10 +6,10 @@
 from test_framework.blocktools import *
 from test_framework.util import *
 from test_framework.test_framework import UnitETestFramework
-from test_framework.mininode import CTransaction, CBlock
+from test_framework.mininode import CTransaction
 from test_framework.admin import Admin
 from test_framework.address import *
-from test_framework.key import CECKey, CPubKey
+from test_framework.key import CECKey
 
 
 class Vote:

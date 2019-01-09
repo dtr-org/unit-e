@@ -5,8 +5,6 @@
 
 from test_framework.util import json
 from test_framework.util import assert_equal
-from test_framework.util import sync_blocks
-from test_framework.util import time
 from test_framework.util import JSONRPCException
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
