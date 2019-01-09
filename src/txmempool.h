@@ -765,7 +765,13 @@ struct DisconnectedBlockTransactions {
     // Estimate the overhead of queuedTx to be 6 pointers + an allocation, as
     // no exact formula for boost::multi_index_contained is implemented.
     size_t DynamicMemoryUsage() const {
-        return memusage::MallocUsage(sizeof(CTransactionRef) + 6 * sizeof(void*)) * queuedTx.size() + cachedInnerUsage;
+        return memusage::MallocUsage(
+            sizeof(CTransactionRef) + 6 * sizeof(void*)
+        ) * queuedTx.size() + cachedInnerUsage;
+    }
+
+    const indexed_disconnected_transactions &GetQueuedTx() const {
+        return queuedTx;
     }
 
     void addTransaction(const CTransactionRef& tx)
@@ -773,6 +779,10 @@ struct DisconnectedBlockTransactions {
         queuedTx.insert(tx);
         cachedInnerUsage += RecursiveDynamicUsage(tx);
     }
+
+    // Add entries for a block while reconstructing the topological ordering so
+    // they can be added back to the mempool simply.
+    void addForBlock(const std::vector<CTransactionRef>& vtx);
 
     // Remove entries based on txid_index, and update memory usage.
     void removeForBlock(const std::vector<CTransactionRef>& vtx)

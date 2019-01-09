@@ -5,6 +5,7 @@
 
 #include <txmempool.h>
 
+#include <boost/range/adaptor/reversed.hpp>
 #include <consensus/consensus.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
@@ -253,16 +254,16 @@ void CTxMemPool::UpdateChildrenForRemoval(txiter it)
 
 void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, bool updateDescendants)
 {
-    // For each entry, walk back all ancestors and decrement size associated with this
-    // transaction
+    // For each entry, walk back all ancestors and decrement size associated
+    // with this transaction
     const uint64_t nNoLimit = std::numeric_limits<uint64_t>::max();
     if (updateDescendants) {
         // updateDescendants should be true whenever we're not recursively
         // removing a tx and all its descendants, eg when a transaction is
         // confirmed in a block.
-        // Here we only update statistics and not data in mapLinks (which
-        // we need to preserve until we're finished with all operations that
-        // need to traverse the mempool).
+        // Here we only update statistics and not data in mapLinks (which we
+        // need to preserve until we're finished with all operations that need
+        // to traverse the mempool).
         for (txiter removeIt : entriesToRemove) {
             setEntries setDescendants;
             CalculateDescendants(removeIt, setDescendants);
@@ -564,18 +565,34 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
 {
     LOCK(cs);
     std::vector<const CTxMemPoolEntry*> entries;
-    for (const auto& tx : vtx)
-    {
+
+    DisconnectedBlockTransactions disconnectpool;
+    disconnectpool.addForBlock(vtx);
+
+    //for (const auto& tx : vtx)
+    for (const CTransactionRef &tx : boost::adaptors::reverse(
+            disconnectpool.GetQueuedTx().get<insertion_order>()
+        )
+    ) {
         uint256 hash = tx->GetHash();
 
         indexed_transaction_set::iterator i = mapTx.find(hash);
-        if (i != mapTx.end())
+        if (i != mapTx.end()) {
             entries.push_back(&*i);
+        }
     }
-    // Before the txs in the new block have been removed from the mempool, update policy estimates
-    if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
-    for (const auto& tx : vtx)
-    {
+
+    // Before the txs in the new block have been removed from the mempool,
+    // update policy estimates
+    if (minerPolicyEstimator) {
+        minerPolicyEstimator->processBlock(nBlockHeight, entries);
+    }
+
+    //for (const auto& tx : vtx)
+    for (const CTransactionRef &tx : boost::adaptors::reverse(
+            disconnectpool.GetQueuedTx().get<insertion_order>()
+        )
+    ) {
         txiter it = mapTx.find(tx->GetHash());
         if (it != mapTx.end()) {
             setEntries stage;
@@ -585,6 +602,9 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         removeConflicts(*tx);
         ClearPrioritisation(tx->GetHash());
     }
+
+    disconnectpool.clear();
+
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = true;
 }
@@ -1089,3 +1109,60 @@ bool CTxMemPool::TransactionWithinChainLimit(const uint256& txid, size_t chainLi
 }
 
 SaltedTxidHasher::SaltedTxidHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
+
+void DisconnectedBlockTransactions::addForBlock(
+    const std::vector<CTransactionRef>& vtx
+) {
+    // Save transactions to re-add to mempool at end of reorg
+    for (const auto &tx : vtx) {
+        auto it = queuedTx.find(tx->GetId());
+        if (it != queuedTx.end()) {
+            continue;
+        }
+
+        addTransaction(tx); // Insert the transaction into the mempool
+
+        // Fill in the set of parents.
+        std::unordered_set<uint256, SaltedTxidHasher> parents;
+        for (const CTxIn &in : tx->vin) {
+            parents.insert(in.prevout.hash);
+        }
+
+        // In order to make sure we keep things in topological order, we check
+        // if we already know of the parent of the current transaction. If so,
+        // we remove them from the set and then add them back.
+        while (parents.size() > 0) {
+            std::unordered_set<uint256, SaltedTxidHasher> worklist(
+                std::move(parents)
+            );
+
+            for (const uint256 &txid : worklist) {
+                // If we do not have that txid in the set, nothing needs to be
+                // done.
+                auto pit = queuedTx.find(txid);
+                if (pit == queuedTx.end()) {
+                    continue;
+                }
+
+                // We have parent in our set, we reinsert them at the right
+                // position
+                const CTransactionRef ptx = *pit;
+                queuedTx.erase(pit);
+                queuedTx.insert(ptx);
+
+                // And we make sure ancestors are covered.
+                for (const CTxIn &in : ptx->vin) {
+                    parents.insert(in.prevout.hash);
+                }
+            }
+        }
+
+    }
+
+    while (DynamicMemoryUsage() > MAX_DISCONNECTED_TX_POOL_SIZE * 1000) {
+        // Drop the earliest entry, and remove its children from the mempool.
+        auto it = queuedTx.get<insertion_order>().begin();
+        mempool.removeRecursive(**it, MemPoolRemovalReason::REORG);
+        removeEntry(it);
+    }
+}

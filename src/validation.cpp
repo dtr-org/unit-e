@@ -489,12 +489,13 @@ void UpdateMempoolForReorg(DisconnectedBlockTransactions &disconnectpool, bool f
 {
     AssertLockHeld(cs_main);
     std::vector<uint256> vHashUpdate;
-    // disconnectpool's insertion_order index sorts the entries from
-    // oldest to newest, but the oldest entry will be the last tx from the
-    // latest mined block that was disconnected.
-    // Iterate disconnectpool in reverse, so that we add transactions
-    // back to the mempool starting with the earliest transaction that had
-    // been previously seen in a block.
+
+    // disconnectpool's insertion_order index sorts the entries from oldest to
+    // newest, but the oldest entry will be the last tx from the latest mined
+    // block that was disconnected.
+    // Iterate disconnectpool in reverse, so that we add transactions back to
+    // the mempool starting with the earliest transaction that had been
+    // previously seen in a block.
     auto it = disconnectpool.queuedTx.get<insertion_order>().rbegin();
     while (it != disconnectpool.queuedTx.get<insertion_order>().rend()) {
         // ignore validation errors in resurrected transactions
@@ -510,7 +511,9 @@ void UpdateMempoolForReorg(DisconnectedBlockTransactions &disconnectpool, bool f
         }
         ++it;
     }
+
     disconnectpool.queuedTx.clear();
+
     // AcceptToMemoryPool/addUnchecked all assume that new mempool entries have
     // no in-mempool children, which is generally not true when adding
     // previously-confirmed transactions back to the mempool.
@@ -695,24 +698,22 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             if (!setConflicts.count(ptxConflicting->GetHash()))
             {
                 // Allow opt-out of transaction replacement by setting
-                // nSequence > MAX_BIP125_RBF_SEQUENCE (SEQUENCE_FINAL-2) on all inputs.
+                // nSequence > MAX_BIP125_RBF_SEQUENCE (SEQUENCE_FINAL-2) on all
+                // inputs.
                 //
                 // SEQUENCE_FINAL-1 is picked to still allow use of nLockTime by
                 // non-replaceable transactions. All inputs rather than just one
-                // is for the sake of multi-party protocols, where we don't
-                // want a single party to be able to disable replacement.
+                // is for the sake of multi-party protocols, where we don't want
+                // a single party to be able to disable replacement.
                 //
                 // The opt-out ignores descendants as anyone relying on
                 // first-seen mempool behavior should be checking all
                 // unconfirmed ancestors anyway; doing otherwise is hopelessly
                 // insecure.
                 bool fReplacementOptOut = true;
-                if (fEnableReplacement)
-                {
-                    for (const CTxIn &_txin : ptxConflicting->vin)
-                    {
-                        if (_txin.nSequence <= MAX_BIP125_RBF_SEQUENCE)
-                        {
+                if (fEnableReplacement) {
+                    for (const CTxIn &_txin : ptxConflicting->vin) {
+                        if (_txin.nSequence <= MAX_BIP125_RBF_SEQUENCE) {
                             fReplacementOptOut = false;
                             break;
                         }
@@ -1486,26 +1487,22 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
     }
 }
 
-/**
- * Marks coins as spent. Its result must be asserted to be true.
- */
-bool MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
-    if (!tx.IsCoinBase()) {
-        txundo.vprevout.reserve(tx.vin.size());
-        for (const CTxIn &txin : tx.vin) {
-            txundo.vprevout.emplace_back();
-            bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
-            if (!is_spent) {
-                return false;
-            }
-        }
+void MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
+    if (tx.IsCoinBase()) {
+        return;
     }
-    return true;
+
+    txundo.vprevout.reserve(tx.vin.size());
+    for (const CTxIn &txin : tx.vin) {
+        txundo.vprevout.emplace_back();
+        bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
+        assert(is_spent);
+    }
 }
 
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
 {
-    assert(MarkCoinAsSpent(tx, inputs, txundo));  // Mark inputs spent
+    MarkCoinAsSpent(tx, inputs, txundo);  // Mark inputs spent
     AddCoins(inputs, tx, nHeight);  // Add outputs
 }
 
@@ -1575,82 +1572,84 @@ void InitScriptExecutionCache() {
  */
 bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks)
 {
-    if (!tx.IsCoinBase())
-    {
-        if (pvChecks)
-            pvChecks->reserve(tx.vin.size());
+    if (tx.IsCoinBase()) {
+        return true;
+    }
 
-        // The first loop above does all the inexpensive checks.
-        // Only if ALL inputs pass do we perform expensive ECDSA signature checks.
-        // Helps prevent CPU exhaustion attacks.
+    if (pvChecks) {
+        pvChecks->reserve(tx.vin.size());
+    }
 
-        // Skip script verification when connecting blocks under the
-        // assumevalid block. Assuming the assumevalid block is valid this
-        // is safe because block merkle hashes are still computed and checked,
-        // Of course, if an assumed valid block is invalid due to false scriptSigs
-        // this optimization would allow an invalid chain to be accepted.
-        if (fScriptChecks) {
-            // First check if script executions have been cached with the same
-            // flags. Note that this assumes that the inputs provided are
-            // correct (ie that the transaction hash which is in tx's prevouts
-            // properly commits to the scriptPubKey in the inputs view of that
-            // transaction).
-            uint256 hashCacheEntry;
-            // We only use the first 19 bytes of nonce to avoid a second SHA
-            // round - giving us 19 + 32 + 4 = 55 bytes (+ 8 + 1 = 64)
-            static_assert(55 - sizeof(flags) - 32 >= 128/8, "Want at least 128 bits of nonce for script execution cache");
-            CSHA256().Write(scriptExecutionCacheNonce.begin(), 55 - sizeof(flags) - 32).Write(tx.GetWitnessHash().begin(), 32).Write((unsigned char*)&flags, sizeof(flags)).Finalize(hashCacheEntry.begin());
-            AssertLockHeld(cs_main); //TODO: Remove this requirement by making CuckooCache not require external locks
-            if (scriptExecutionCache.contains(hashCacheEntry, !cacheFullScriptStore)) {
-                return true;
-            }
+    // Skip script verification when connecting blocks under the assumevalid
+    // block. Assuming the assumevalid block is valid this is safe because block
+    // merkle hashes are still computed and checked, Of course, if an assumed
+    // valid block is invalid due to false scriptSigs this optimization would
+    // allow an invalid chain to be accepted.
+    if (!fScriptChecks) {
+        return true;
+    }
 
-            for (unsigned int i = 0; i < tx.vin.size(); i++) {
-                const COutPoint &prevout = tx.vin[i].prevout;
-                const Coin& coin = inputs.AccessCoin(prevout);
-                assert(!coin.IsSpent());
+    // First check if script executions have been cached with the same flags.
+    // Note that this assumes that the inputs provided are correct (ie that the
+    // transaction hash which is in tx's prevouts properly commits to the
+    // scriptPubKey in the inputs view of that transaction).
+    uint256 hashCacheEntry;
+    // We only use the first 19 bytes of nonce to avoid a second SHA round -
+    // giving us 19 + 32 + 4 = 55 bytes (+ 8 + 1 = 64)
+    static_assert(55 - sizeof(flags) - 32 >= 128/8, "Want at least 128 bits of nonce for script execution cache");
+    CSHA256()
+        .Write(scriptExecutionCacheNonce.begin(), 55 - sizeof(flags) - 32)
+        .Write(tx.GetWitnessHash().begin(), 32)
+        .Write((unsigned char*)&flags, sizeof(flags))
+        .Finalize(hashCacheEntry.begin());
+    AssertLockHeld(cs_main); //TODO: Remove this requirement by making CuckooCache not require external locks
+    if (scriptExecutionCache.contains(hashCacheEntry, !cacheFullScriptStore)) {
+        return true;
+    }
 
-                // We very carefully only pass in things to CScriptCheck which
-                // are clearly committed to by tx' witness hash. This provides
-                // a sanity check that our caching is not introducing consensus
-                // failures through additional data in, eg, the coins being
-                // spent being checked as a part of CScriptCheck.
+    for (unsigned int i = 0; i < tx.vin.size(); i++) {
+        const COutPoint &prevout = tx.vin[i].prevout;
+        const Coin& coin = inputs.AccessCoin(prevout);
+        assert(!coin.IsSpent());
 
-                // Verify signature
-                CScriptCheck check(coin.out, tx, i, flags, cacheSigStore, &txdata);
-                if (pvChecks) {
-                    pvChecks->push_back(CScriptCheck());
-                    check.swap(pvChecks->back());
-                } else if (!check()) {
-                    if (flags & STANDARD_NOT_MANDATORY_VERIFY_FLAGS) {
-                        // Check whether the failure was caused by a
-                        // non-mandatory script verification check, such as
-                        // non-standard DER encodings or non-null dummy
-                        // arguments; if so, don't trigger DoS protection to
-                        // avoid splitting the network between upgraded and
-                        // non-upgraded nodes.
-                        CScriptCheck check2(coin.out, tx, i,
-                                flags & ~STANDARD_NOT_MANDATORY_VERIFY_FLAGS, cacheSigStore, &txdata);
-                        if (check2())
-                            return state.Invalid(false, REJECT_NONSTANDARD, strprintf("non-mandatory-script-verify-flag (%s)", ScriptErrorString(check.GetScriptError())));
-                    }
-                    // Failures of other flags indicate a transaction that is
-                    // invalid in new blocks, e.g. an invalid P2SH. We DoS ban
-                    // such nodes as they are not following the protocol. That
-                    // said during an upgrade careful thought should be taken
-                    // as to the correct behavior - we may want to continue
-                    // peering with non-upgraded nodes even after soft-fork
-                    // super-majority signaling has occurred.
-                    return state.DoS(100,false, REJECT_INVALID, strprintf("mandatory-script-verify-flag-failed (%s)", ScriptErrorString(check.GetScriptError())));
+        // We very carefully only pass in things to CScriptCheck which
+        // are clearly committed to by tx' witness hash. This provides
+        // a sanity check that our caching is not introducing consensus
+        // failures through additional data in, eg, the coins being
+        // spent being checked as a part of CScriptCheck.
+
+        // Verify signature
+        CScriptCheck check(coin.out, tx, i, flags, cacheSigStore, &txdata);
+        if (pvChecks) {
+            pvChecks->push_back(CScriptCheck());
+            check.swap(pvChecks->back());
+        } else if (!check()) {
+            if (flags & STANDARD_NOT_MANDATORY_VERIFY_FLAGS) {
+                // Check whether the failure was caused by a non-mandatory
+                // script verification check, such as non-standard DER encodings
+                // or non-null dummy arguments; if so, don't trigger DoS
+                // protection to avoid splitting the network between upgraded
+                // and non-upgraded nodes.
+                CScriptCheck check2(coin.out, tx, i,
+                        flags & ~STANDARD_NOT_MANDATORY_VERIFY_FLAGS, cacheSigStore, &txdata);
+                if (check2()) {
+                    return state.Invalid(false, REJECT_NONSTANDARD, strprintf("non-mandatory-script-verify-flag (%s)", ScriptErrorString(check.GetScriptError())));
                 }
             }
-
-            if (cacheFullScriptStore && !pvChecks) {
-                // We executed all of the provided scripts, and were told to
-                // cache the result. Do so now.
-                scriptExecutionCache.insert(hashCacheEntry);
-            }
+            // Failures of other flags indicate a transaction that is invalid in
+            // new blocks, e.g. an invalid P2SH. We DoS ban such nodes as they
+            // are not following the protocol. That said during an upgrade
+            // careful thought should be taken as to the correct behavior - we
+            // may want to continue peering with non-upgraded nodes even after
+            // soft-fork super-majority signaling has occurred.
+            return state.DoS(100,false, REJECT_INVALID, strprintf("mandatory-script-verify-flag-failed (%s)", ScriptErrorString(check.GetScriptError())));
         }
+    }
+
+    if (cacheFullScriptStore && !pvChecks) {
+        // We executed all of the provided scripts, and were told to
+        // cache the result. Do so now.
+        scriptExecutionCache.insert(hashCacheEntry);
     }
 
     return true;
@@ -2132,41 +2131,47 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
 
-    for (unsigned int i = 0; i < block.vtx.size(); i++)
-    {
+    auto &tx = *(block.vtx[0]);
+    if (!snapshot::ValidateCandidateBlockTx(tx, pindex, &view)) {
+        return state.DoS(100, error("%s: tx doesn't pass snapshot validation", __func__),
+                         REJECT_INVALID, "bad-cb-snapshot-hash");
+    }
+
+    for (unsigned int i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
 
-        if (!tx.IsCoinBase())
-        {
-            CAmount txfee = 0;
-            if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
-                return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
-            }
-            nFees += txfee;
-            if (!MoneyRange(nFees)) {
-                return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
-                                 REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
-            }
-
-            // Check that transaction is BIP68 final
-            // BIP68 lock checks (as opposed to nLockTime checks) must
-            // be in ConnectBlock because they require the UTXO set
-            prevheights.resize(tx.vin.size());
-            for (size_t j = 0; j < tx.vin.size(); j++) {
-                prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
-            }
-
-            if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
-                return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
-                                 REJECT_INVALID, "bad-txns-nonfinal");
-            }
+        txdata.emplace_back(tx);
+        if (tx.IsCoinBase()) {
+            nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
         }
 
-        if (!snapshot::ValidateCandidateBlockTx(tx, pindex, &view)) {
-            return state.DoS(100, error("%s: tx doesn't pass snapshot validation", __func__),
-                             REJECT_INVALID, "bad-cb-snapshot-hash");
+        AddCoins(view, tx, pindex->nHeight);
+    }
+
+    for (unsigned int i = 0; i < block.vtx.size(); i++) {
+        const CTransaction &tx = *(block.vtx[i]);
+        if (tx.IsCoinBase()) {
+            continue;
+        }
+
+        CAmount txfee = 0;
+        if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
+            return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
+        }
+
+        // Check that transaction is BIP68 final
+        // BIP68 lock checks (as opposed to nLockTime checks) must
+        // be in ConnectBlock because they require the UTXO set
+        prevheights.resize(tx.vin.size());
+        for (size_t j = 0; j < tx.vin.size(); j++) {
+            prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
+        }
+
+        if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
+            return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
+                             REJECT_INVALID, "bad-txns-nonfinal");
         }
 
         // GetTransactionSigOpCost counts 3 types of sigops:
@@ -2179,21 +2184,25 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                              REJECT_INVALID, "bad-blk-sigops");
         }
 
-        txdata.emplace_back(tx);
-        if (!tx.IsCoinBase()) {
-            std::vector<CScriptCheck> vChecks;
-            bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
-            if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : nullptr))
-                return error("ConnectBlock(): CheckInputs on %s failed with %s",
-                    tx.GetHash().ToString(), FormatStateMessage(state));
-            control.Add(vChecks);
+        nFees += txfee;
+        if (!MoneyRange(nFees)) {
+            return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
+                             REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
         }
 
-        CTxUndo undoDummy;
-        if (i > 0) {
-            blockundo.vtxundo.emplace_back(CTxUndo());
+        // Don't cache results if we're actually connecting blocks (still
+        // consult the cache, though)
+        bool fCacheResults = fJustCheck;
+
+        std::vector<CScriptCheck> vChecks;
+        if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : nullptr)) {
+            return error("ConnectBlock(): CheckInputs on %s failed with %s",
+                         tx.GetHash().ToString(), FormatStateMessage(state));
         }
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
+        control.Add(vChecks);
+
+        blockundo.vtxundo.emplace_back(CTxUndo());
+        MarkCoinAsSpent(tx, view, blockundo.vtxundo.back());
     }
 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
@@ -2418,12 +2427,14 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
         for (int i = 0; i < 100 && pindex != nullptr; i++)
         {
             int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus());
-            if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion) != 0)
+            if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion) != 0) {
                 ++nUpgraded;
+            }
             pindex = pindex->pprev;
         }
-        if (nUpgraded > 0)
+        if (nUpgraded > 0) {
             warningMessages.push_back(strprintf(_("%d of last 100 blocks have unexpected version"), nUpgraded));
+        }
         if (nUpgraded > 100/2)
         {
             std::string strWarning = _("Warning: Unknown block versions being mined! It's possible unknown rules are in effect");
@@ -2436,8 +2447,9 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
       log(pindexNew->nChainWork.getdouble())/log(2.0), (unsigned long)pindexNew->nChainTx,
       DateTimeStrFormat("%Y-%m-%d %H:%M:%S", pindexNew->GetBlockTime()),
       GuessVerificationProgress(chainParams.TxData(), pindexNew), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
-    if (!warningMessages.empty())
+    if (!warningMessages.empty()) {
         LogPrintf(" warning='%s'", boost::algorithm::join(warningMessages, ", "));
+    }
     LogPrintf("\n");
 
 }
@@ -2456,37 +2468,37 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
 {
     CBlockIndex *pindexDelete = chainActive.Tip();
     assert(pindexDelete);
+
     // Read block from disk.
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
     CBlock& block = *pblock;
-    if (!ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()))
+
+    if (!ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus())) {
         return AbortNode(state, "Failed to read block");
+    }
+
     // Apply the block atomically to the chain state.
     int64_t nStart = GetTimeMicros();
     {
         CCoinsViewCache view(pcoinsTip.get());
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
-        if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
+
+        if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK) {
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
+        }
+
         bool flushed = view.Flush();
         assert(flushed);
     }
+
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
+    }
 
     if (disconnectpool) {
-        // Save transactions to re-add to mempool at end of reorg
-        for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it) {
-            disconnectpool->addTransaction(*it);
-        }
-        while (disconnectpool->DynamicMemoryUsage() > MAX_DISCONNECTED_TX_POOL_SIZE * 1000) {
-            // Drop the earliest entry, and remove its children from the mempool.
-            auto it = disconnectpool->queuedTx.get<insertion_order>().begin();
-            mempool.removeRecursive(**it, MemPoolRemovalReason::REORG);
-            disconnectpool->removeEntry(it);
-        }
+        disconnectpool->addForBlock(block.vtx);
     }
 
     chainActive.SetTip(pindexDelete->pprev);
@@ -3736,8 +3748,9 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
     NotifyHeaderTip();
 
     CValidationState state; // Only used to report errors, not invalidity - ignore it
-    if (!g_chainstate.ActivateBestChain(state, chainparams, pblock))
+    if (!g_chainstate.ActivateBestChain(state, chainparams, pblock)) {
         return error("%s: ActivateBestChain failed", __func__);
+    }
 
     return true;
 }
@@ -4137,12 +4150,15 @@ CVerifyDB::~CVerifyDB()
 bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview, int nCheckLevel, int nCheckDepth)
 {
     LOCK(cs_main);
-    if (chainActive.Tip() == nullptr || chainActive.Tip()->pprev == nullptr)
+    if (chainActive.Tip() == nullptr || chainActive.Tip()->pprev == nullptr) {
         return true;
+    }
 
     // Verify blocks in the best chain
-    if (nCheckDepth <= 0 || nCheckDepth > chainActive.Height())
+    if (nCheckDepth <= 0 || nCheckDepth > chainActive.Height()) {
         nCheckDepth = chainActive.Height();
+    }
+
     nCheckLevel = std::max(0, std::min(4, nCheckLevel));
     LogPrintf("Verifying last %i blocks at level %i\n", nCheckDepth, nCheckLevel);
     CCoinsViewCache coins(coinsview);
@@ -4152,6 +4168,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     CValidationState state;
     int reportDone = 0;
     LogPrintf("[0%%]...");
+
     for (CBlockIndex* pindex = chainActive.Tip(); pindex && pindex->pprev; pindex = pindex->pprev)
     {
         boost::this_thread::interruption_point();
@@ -4162,8 +4179,9 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
             reportDone = percentageDone/10;
         }
         uiInterface.ShowProgress(_("Verifying blocks..."), percentageDone, false);
-        if (pindex->nHeight < chainActive.Height()-nCheckDepth)
+        if (pindex->nHeight < chainActive.Height() - nCheckDepth) {
             break;
+        }
         if (fPruneMode && !(pindex->nStatus & BLOCK_HAVE_DATA)) {
             // If pruning, only go back as far as we have data.
             LogPrintf("VerifyDB(): block verification stopping at height %d (pruning, no data)\n", pindex->nHeight);
@@ -4171,12 +4189,16 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
         }
         CBlock block;
         // check level 0: read from disk
-        if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
+        if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
             return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+        }
+
         // check level 1: verify block validity
-        if (nCheckLevel >= 1 && !CheckBlock(block, state, chainparams.GetConsensus()))
+        if (nCheckLevel >= 1 && !CheckBlock(block, state, chainparams.GetConsensus())) {
             return error("%s: *** found bad block at %d, hash=%s (%s)\n", __func__,
                          pindex->nHeight, pindex->GetBlockHash().ToString(), FormatStateMessage(state));
+        }
+
         // check level 2: verify undo validity
         if (nCheckLevel >= 2 && pindex) {
             CBlockUndo undo;
@@ -4201,11 +4223,14 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
                 nGoodTransactions += block.vtx.size();
             }
         }
-        if (ShutdownRequested())
+
+        if (ShutdownRequested()) {
             return true;
+        }
     }
-    if (pindexFailure)
+    if (pindexFailure) {
         return error("VerifyDB(): *** coin database inconsistencies found (last %i blocks, %i good transactions before that)\n", chainActive.Height() - pindexFailure->nHeight + 1, nGoodTransactions);
+    }
 
     // check level 4: try reconnecting blocks
     if (nCheckLevel >= 4) {
@@ -4215,10 +4240,12 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
             uiInterface.ShowProgress(_("Verifying blocks..."), std::max(1, std::min(99, 100 - (int)(((double)(chainActive.Height() - pindex->nHeight)) / (double)nCheckDepth * 50))), false);
             pindex = chainActive.Next(pindex);
             CBlock block;
-            if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
+            if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus())) {
                 return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
-            if (!g_chainstate.ConnectBlock(block, state, pindex, coins, chainparams))
+            }
+            if (!g_chainstate.ConnectBlock(block, state, pindex, coins, chainparams)) {
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+            }
         }
     }
 
