@@ -24,17 +24,45 @@
 
 namespace esperanza {
 
-/**
- * UNIT-E: It is now simplistic to imply only one State; to be able to
- * handle intra-dynasty forks and continue with a consistent state it's gonna be
- * necessary to store a snapshot of the state for each block from at least the
- * last justified one.
- */
-static std::shared_ptr<FinalizationState> esperanzaState;
+namespace {
+//! \brief Storage of finalization states
+//!
+//! This cache keeps track of finalization states corresponding to block indexes.
+class Storage {
+ public:
+  //! \brief Return finalization state for index, if any
+  FinalizationState *Find(const CBlockIndex *index);
 
-static CCriticalSection cs_init_lock;
+  //! \brief Try to find, then try to create new state for index.
+  FinalizationState *FindOrCreate(const CBlockIndex *index);
 
+  //! \brief Return state for genesis block
+  FinalizationState *Genesis() const;
+
+  //! \brief Destroy states for indexes with heights less than `height`
+  void ClearUntilHeight(blockchain::Height height);
+
+  //! \brief Reset the storage
+  void Reset(const esperanza::FinalizationParams &params,
+             const esperanza::AdminParams &admin_arams);
+
+  //! \brief Reset the storage and initialize with fresh state for index (for prune mode)
+  void ResetToTip(const esperanza::FinalizationParams &params,
+                  const esperanza::AdminParams &admin_arams,
+                  CBlockIndex *index);
+
+ private:
+  FinalizationState *Create(const CBlockIndex *index);
+
+  mutable CCriticalSection cs;
+  std::map<uint256, FinalizationState> m_states;
+  std::unique_ptr<FinalizationState> m_genesis_state;
+};
+
+Storage g_storage;
+CCriticalSection cs_init_lock;
 const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
+}  // namespace
 
 template <typename... Args>
 inline Result fail(Result error, const char *fmt, const Args &... args) {
@@ -43,7 +71,7 @@ inline Result fail(Result error, const char *fmt, const Args &... args) {
   return error;
 }
 
-Result success() { return Result::SUCCESS; }
+inline Result success() { return Result::SUCCESS; }
 
 FinalizationStateData::FinalizationStateData(const AdminParams &adminParams)
     : m_adminState(adminParams) {}
@@ -138,6 +166,8 @@ void FinalizationState::InstaFinalize() {
   cp.m_isFinalized = true;
   m_lastJustifiedEpoch = epoch - 1;
   m_lastFinalizedEpoch = epoch - 1;
+
+  GCCache();
 
   LogPrint(BCLog::FINALIZATION, "%s: Finalized block for epoch %d.\n", __func__,
            epoch);
@@ -492,6 +522,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     if (targetEpoch == sourceEpoch + 1) {
       GetCheckpoint(sourceEpoch).m_isFinalized = true;
       m_lastFinalizedEpoch = sourceEpoch;
+      GCCache();
       LogPrint(BCLog::FINALIZATION, "%s: Epoch %d finalized.\n", __func__,
                sourceEpoch);
     }
@@ -812,10 +843,11 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
-FinalizationState *FinalizationState::GetState(const CBlockIndex *blockIndex) {
-  // UNIT-E: Replace the single instance with a map<block,state> to allow for
-  // reorganizations.
-  return esperanzaState.get();
+FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
+  if (block_index == nullptr) {
+    block_index = chainActive.Tip();
+  }
+  return g_storage.Find(block_index);
 }
 
 uint32_t FinalizationState::GetEpochLength() const {
@@ -854,139 +886,149 @@ bool FinalizationState::ValidateDepositAmount(CAmount amount) {
 }
 
 void FinalizationState::Init(const esperanza::FinalizationParams &params,
-                             const esperanza::AdminParams &adminParams) {
+                             const esperanza::AdminParams &admin_params) {
   LOCK(cs_init_lock);
-
-  if (!esperanzaState) {
-    esperanzaState = std::make_shared<FinalizationState>(params, adminParams);
-  }
+  g_storage.Reset(params, admin_params);
 }
 
 void FinalizationState::Reset(const esperanza::FinalizationParams &params,
-                              const esperanza::AdminParams &adminParams) {
+                              const esperanza::AdminParams &admin_params) {
+  LogPrint(BCLog::FINALIZATION, "Completely reset finalization state\n");
   LOCK(cs_init_lock);
-  esperanzaState = std::make_shared<FinalizationState>(params, adminParams);
+  g_storage.Reset(params, admin_params);
+}
+
+void FinalizationState::ResetToTip(CBlockIndex *index) {
+  LogPrint(BCLog::FINALIZATION, "Restore finalization state to tip: %s\n",
+           index->GetBlockHash().GetHex());
+  LOCK(cs_init_lock);
+  const auto state = g_storage.Genesis();
+  assert(state != nullptr);
+  g_storage.ResetToTip(state->m_settings, state->m_adminState.GetParams(), index);
+}
+
+void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
+  switch (tx->GetType()) {
+    case TxType::VOTE: {
+      Vote vote;
+      std::vector<unsigned char> voteSig;
+      assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig));
+      ProcessVote(vote);
+      RegisterLastTx(vote.m_validatorAddress, tx);
+      break;
+    }
+
+    case TxType::DEPOSIT: {
+      uint160 validatorAddress = uint160();
+
+      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      ProcessDeposit(validatorAddress, tx->vout[0].nValue);
+      RegisterLastTx(validatorAddress, tx);
+      break;
+    }
+
+    case TxType::LOGOUT: {
+      uint160 validatorAddress = uint160();
+
+      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      ProcessLogout(validatorAddress);
+      RegisterLastTx(validatorAddress, tx);
+      break;
+    }
+
+    case TxType::WITHDRAW: {
+      uint160 validatorAddress = uint160();
+
+      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      ProcessWithdraw(validatorAddress);
+      break;
+    }
+
+    case TxType::SLASH: {
+
+      esperanza::Vote vote1;
+      esperanza::Vote vote2;
+      std::vector<unsigned char> voteSig1;
+      std::vector<unsigned char> voteSig2;
+      CScript::ExtractVotesFromSlashSignature(tx->vin[0].scriptSig, vote1,
+                                              vote2, voteSig1, voteSig2);
+
+      ProcessSlash(vote1, vote2);
+      break;
+    }
+
+    case TxType::ADMIN: {
+      std::vector<AdminCommand> commands;
+      for (const auto &output : tx->vout) {
+        AdminCommand command;
+        if (!MatchAdminCommand(output.scriptPubKey)) {
+          continue;
+        }
+        assert(DecodeAdminCommand(output.scriptPubKey, command));
+        commands.emplace_back(std::move(command));
+      }
+
+      ProcessAdminCommands(commands);
+      break;
+    }
+
+    case TxType::COINBASE:
+    case TxType::STANDARD:
+      break;
+  }
 }
 
 bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
                                       const CBlock &block) {
+  return ProcessNewCommits(blockIndex, block.vtx);
+}
 
-  FinalizationState *state = GetState(&blockIndex);
-
-  LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
-           __func__, blockIndex.nHeight, block.GetHash().GetHex());
+bool FinalizationState::ProcessNewCommits(const CBlockIndex &blockIndex,
+                                          const std::vector<CTransactionRef> &txes) {
+  uint256 block_hash = blockIndex.GetBlockHash();
 
   // Used to apply hardcoded parameters for a given block
-  state->OnBlock(blockIndex.nHeight);
+  OnBlock(blockIndex.nHeight);
 
-  // We can skip everything for the genesis block since it isn't supposed to
+  // We can skip everything for the genesis block since it isn't suppose to
   // contain esperanza's transactions.
   if (blockIndex.nHeight == 0) {
     return true;
   }
 
   // This is the first block of a new epoch.
-  if (blockIndex.nHeight % state->m_settings.m_epochLength == 0) {
-    state->InitializeEpoch(blockIndex.nHeight);
+  if (blockIndex.nHeight % m_settings.m_epochLength == 0) {
+    InitializeEpoch(blockIndex.nHeight);
   }
 
-  for (const auto &tx : block.vtx) {
-    switch (tx->GetType()) {
-
-      case TxType::VOTE: {
-        Vote vote;
-        std::vector<unsigned char> voteSig;
-        assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig));
-        state->ProcessVote(vote);
-        state->RegisterLastTx(vote.m_validatorAddress, tx);
-        break;
-      }
-
-      case TxType::DEPOSIT: {
-        uint160 validatorAddress = uint160();
-
-        assert(ExtractValidatorAddress(*tx, validatorAddress));
-        state->ProcessDeposit(validatorAddress, tx->vout[0].nValue);
-        state->RegisterLastTx(validatorAddress, tx);
-        break;
-      }
-
-      case TxType::LOGOUT: {
-        uint160 validatorAddress = uint160();
-
-        assert(ExtractValidatorAddress(*tx, validatorAddress));
-        state->ProcessLogout(validatorAddress);
-        state->RegisterLastTx(validatorAddress, tx);
-        break;
-      }
-
-      case TxType::WITHDRAW: {
-        uint160 validatorAddress = uint160();
-
-        assert(ExtractValidatorAddress(*tx, validatorAddress));
-        state->ProcessWithdraw(validatorAddress);
-        break;
-      }
-
-      case TxType::SLASH: {
-
-        esperanza::Vote vote1;
-        esperanza::Vote vote2;
-        std::vector<unsigned char> voteSig1;
-        std::vector<unsigned char> voteSig2;
-        CScript::ExtractVotesFromSlashSignature(tx->vin[0].scriptSig, vote1,
-                                                vote2, voteSig1, voteSig2);
-
-        state->ProcessSlash(vote1, vote2);
-        break;
-      }
-
-      case TxType::ADMIN: {
-        std::vector<AdminCommand> commands;
-        for (const auto &output : tx->vout) {
-          AdminCommand command;
-          if (!MatchAdminCommand(output.scriptPubKey)) {
-            continue;
-          }
-          assert(DecodeAdminCommand(output.scriptPubKey, command));
-          commands.emplace_back(std::move(command));
-        }
-
-        state->ProcessAdminCommands(commands);
-        break;
-      }
-
-      default: {
-        break;
-      }
-    }
+  for (const auto &tx : txes) {
+    ProcessNewCommit(tx);
   }
 
-  if ((blockIndex.nHeight + 2) % state->m_settings.m_epochLength == 0) {
+  if ((blockIndex.nHeight + 2) % m_settings.m_epochLength == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
     // The last epoch block will contain the snapshot hash pointing to this snapshot.
-    snapshot::Creator::GenerateOrSkip(state->m_currentEpoch);
+    snapshot::Creator::GenerateOrSkip(m_currentEpoch);
   }
 
   // This is the last block for the current epoch and it represent it, so we
   // update the targetHash.
-  if (blockIndex.nHeight % state->m_settings.m_epochLength == state->m_settings.m_epochLength - 1) {
+  if (blockIndex.nHeight % m_settings.m_epochLength == m_settings.m_epochLength - 1) {
     LogPrint(
         BCLog::FINALIZATION,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
-        __func__, block.GetHash().GetHex());
+        __func__, block_hash.GetHex());
 
-    state->m_recommendedTargetHash = block.GetHash();
+    m_recommendedTargetHash = block_hash;
 
     // mark snapshots finalized up to the last finalized block
-    int64_t height = (state->m_lastFinalizedEpoch + 1) * state->m_settings.m_epochLength - 1;
-    if (height == blockIndex.nHeight) {  // instant confirmation
+    blockchain::Height height = (m_lastFinalizedEpoch + 1) * m_settings.m_epochLength - 1;
+    if (height == static_cast<blockchain::Height>(blockIndex.nHeight)) {  // instant confirmation
       snapshot::Creator::FinalizeSnapshots(&blockIndex);
     } else {
       snapshot::Creator::FinalizeSnapshots(chainActive[height]);
     }
   }
-
   return true;
 }
 
@@ -1044,6 +1086,128 @@ bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) co
   }
   auto const it = m_checkpoints.find(GetEpoch(blockHeight));
   return it != m_checkpoints.end() && it->second.m_isFinalized;
+}
+
+void FinalizationState::GCCache() {
+  // last finalized checkpoint
+  const auto height = (GetLastFinalizedEpoch() + 1) * GetEpochLength() - 1;
+  LogPrint(BCLog::FINALIZATION, "Removing finalization states for height < %d\n", height);
+  g_storage.ClearUntilHeight(height);
+}
+
+// Storage implementation section
+
+FinalizationState *Storage::Find(const CBlockIndex *index) {
+  LOCK(cs);
+  if (index == nullptr) {
+    return nullptr;
+  }
+  if (index->nHeight == 0) {
+    return Genesis();
+  }
+  const auto it = m_states.find(index->GetBlockHash());
+  if (it == m_states.end()) {
+    return nullptr;
+  } else {
+    return &it->second;
+  }
+}
+
+FinalizationState *Storage::Create(const CBlockIndex *index) {
+  AssertLockHeld(cs);
+  if (index->pprev == nullptr) {
+    return nullptr;
+  }
+  const auto parent = Find(index->pprev);
+  if (parent == nullptr) {
+    return nullptr;
+  }
+  const auto res = m_states.emplace(index->GetBlockHash(), FinalizationState(*parent));
+  return &res.first->second;
+}
+
+FinalizationState *Storage::FindOrCreate(const CBlockIndex *index) {
+  LOCK(cs);
+  if (const auto state = Find(index)) {
+    return state;
+  }
+  return Create(index);
+}
+
+void Storage::Reset(const esperanza::FinalizationParams &params,
+                    const esperanza::AdminParams &admin_params) {
+  LOCK(cs);
+  m_states.clear();
+  m_genesis_state.reset(new FinalizationState(params, admin_params));
+}
+
+void Storage::ResetToTip(const esperanza::FinalizationParams &params,
+                         const esperanza::AdminParams &admin_params,
+                         CBlockIndex *index) {
+  LOCK(cs);
+  Reset(params, admin_params);
+  m_states.emplace(index->GetBlockHash(), FinalizationState(*Genesis()));
+}
+
+void Storage::ClearUntilHeight(blockchain::Height height) {
+  LOCK(cs);
+  for (auto it = m_states.begin(); it != m_states.end();) {
+    const auto index = LookupBlockIndex(it->first);
+    assert(index != nullptr);  // block hash shouldn't disappear
+    if (static_cast<blockchain::Height>(index->nHeight) < height) {
+      it = m_states.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+FinalizationState *Storage::Genesis() const {
+  LOCK(cs);
+  return m_genesis_state.get();
+}
+
+// Global functions section
+
+bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) {
+  LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
+           __func__, block_index.nHeight, block_index.GetBlockHash().GetHex());
+  const auto state = g_storage.FindOrCreate(&block_index);
+  // if (state == nullptr) {
+  //   return false;
+  // }
+  assert(state != nullptr);  // trigger snapshot tests failures
+  return state->ProcessNewTip(block_index, block);
+}
+
+// In this version we read all the blocks from the disk.
+// This function might be significantly optimized by using finalization
+// state serialization.
+void RestoreFinalizationState(const CChainParams &chainparams) {
+  LogPrint(BCLog::FINALIZATION, "%s\n", __func__);
+  if (fPruneMode) {
+    if (chainActive.Tip() != nullptr) {
+      FinalizationState::ResetToTip(chainActive.Tip());
+    } else {
+      FinalizationState::Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
+    }
+    return;
+  }
+  LogPrint(BCLog::FINALIZATION, "Restore finalization state from disk\n");
+  g_storage.Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
+  for (int i = 1; i <= chainActive.Height(); ++i) {
+    const CBlockIndex *const index = chainActive[i];
+    CBlock block;
+    if (!ReadBlockFromDisk(block, index, chainparams.GetConsensus())) {
+      assert(not("Failed to read block"));
+    }
+    esperanza::ProcessNewTip(*index, block);
+  }
+}
+
+void ClearFinalizedCache() {
+  const auto state = g_storage.Genesis();
+  g_storage.ClearUntilHeight(state->GetLastFinalizedEpoch() * state->GetEpochLength());
 }
 
 }  // namespace esperanza

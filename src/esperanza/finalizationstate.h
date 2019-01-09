@@ -18,6 +18,8 @@
 #include <uint256.h>
 #include <utility>
 
+class CChainParams;
+
 namespace esperanza {
 
 // clang-format off
@@ -224,6 +226,11 @@ class FinalizationState : public FinalizationStateData {
   static void Reset(const esperanza::FinalizationParams &params,
                     const esperanza::AdminParams &adminParams);
 
+  //! \brief Initialize empty finalization state for current tip.
+  //! It's a workaround for prune mode. We will get rid of it by restoring finalization
+  //! state from commits.
+  static void ResetToTip(CBlockIndex *index);
+
   //! \brief Returns the finalization state for the given block.
   static FinalizationState *GetState(const CBlockIndex *block = nullptr);
 
@@ -240,7 +247,8 @@ class FinalizationState : public FinalizationStateData {
   //! \param blockIndex
   //! \param block
   //! \return
-  static bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
+  bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
+  bool ProcessNewCommits(const CBlockIndex &blockIndex, const std::vector<CTransactionRef> &txes);
 
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
@@ -288,6 +296,7 @@ class FinalizationState : public FinalizationStateData {
   Checkpoint &GetCheckpoint(uint32_t epoch);
   uint64_t GetDynastyDelta(uint32_t dynasty);
   void RegisterLastTx(uint160 &validatorAddress, CTransactionRef tx);
+  void ProcessNewCommit(const CTransactionRef &tx);
 
   mutable CCriticalSection cs_esperanza;
 
@@ -296,7 +305,15 @@ class FinalizationState : public FinalizationStateData {
 
  private:
   void OnBlock(blockchain::Height blockHeight);
+  void GCCache();
 };
+
+//! Global version of FinalizationState::ProcessNewTip. Unlike that, this function creates
+//! new instance of the state basing on the state of the previous block.
+bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block);
+
+//! Restore finalization state for actual active chain
+void RestoreFinalizationState(const CChainParams &chainparams);
 
 inline uint32_t GetEpochLength() { return FinalizationState::GetState()->GetEpochLength(); }
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }

@@ -7,6 +7,7 @@
 #include <test/esperanza/finalizationstate_utils.h>
 #include <ufp64.h>
 #include <util.h>
+#include <validation.h>
 
 using namespace esperanza;
 
@@ -120,8 +121,10 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
 
   uint160 validatorAddress = k.GetPubKey().GetID();
 
+  uint256 block_hash;
   CBlockIndex blockIndex;
   blockIndex.nHeight = 1;
+  blockIndex.phashBlock = &block_hash;
   CBlock block;
 
   CMutableTransaction tx;
@@ -134,7 +137,7 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
   block.vtx = std::vector<CTransactionRef>{depositTx};
 
   uint256 depositHash = depositTx->GetHash();
-  FinalizationState::ProcessNewTip(blockIndex, block);
+  state->ProcessNewTip(blockIndex, block);
 
   BOOST_CHECK_EQUAL(depositHash.GetHex(),
                     state->GetLastTxHash(validatorAddress).GetHex());
@@ -147,23 +150,23 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
   block_99.nNonce = 2;
 
   blockIndex.nHeight = 49;
-  FinalizationState::ProcessNewTip(blockIndex, block_49);
+  state->ProcessNewTip(blockIndex, block_49);
 
   blockIndex.nHeight = 50;
-  FinalizationState::ProcessNewTip(blockIndex, CBlock());
+  state->ProcessNewTip(blockIndex, CBlock());
 
   blockIndex.nHeight = 99;
-  FinalizationState::ProcessNewTip(blockIndex, block_99);
+  state->ProcessNewTip(blockIndex, block_99);
 
   blockIndex.nHeight = 100;
-  FinalizationState::ProcessNewTip(blockIndex, CBlock());
+  state->ProcessNewTip(blockIndex, CBlock());
 
   Vote vote{validatorAddress, block_99.GetHash(), 1, 2};
   CTransactionRef voteTx = MakeTransactionRef(CreateVoteTx(vote, k));
   block.vtx = std::vector<CTransactionRef>{voteTx};
   uint256 voteHash = voteTx->GetHash();
   blockIndex.nHeight = 101;
-  FinalizationState::ProcessNewTip(blockIndex, block);
+  state->ProcessNewTip(blockIndex, block);
   BOOST_CHECK_EQUAL(voteHash.GetHex(),
                     state->GetLastTxHash(validatorAddress).GetHex());
 
@@ -173,7 +176,7 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
 
   block.vtx = std::vector<CTransactionRef>{logoutTx};
   uint256 logoutHash = logoutTx->GetHash();
-  FinalizationState::ProcessNewTip(blockIndex, block);
+  state->ProcessNewTip(blockIndex, block);
   BOOST_CHECK_EQUAL(logoutHash.GetHex(),
                     state->GetLastTxHash(validatorAddress).GetHex());
 }
@@ -185,8 +188,10 @@ BOOST_AUTO_TEST_CASE(deposit_amount) {
 
   uint160 validatorAddress = k.GetPubKey().GetID();
 
+  uint256 block_hash;
   CBlockIndex blockIndex;
   blockIndex.nHeight = 1;
+  blockIndex.phashBlock = &block_hash;
   CBlock block;
 
   CMutableTransaction base_tx;
@@ -198,20 +203,70 @@ BOOST_AUTO_TEST_CASE(deposit_amount) {
 
   block.vtx = std::vector<CTransactionRef>{MakeTransactionRef(deposit_tx)};
 
-  FinalizationState::ProcessNewTip(blockIndex, block);
+  FinalizationState *state = FinalizationState::GetState();
+  state->ProcessNewTip(blockIndex, block);
 
-  const FinalizationState *state = FinalizationState::GetState();
   BOOST_CHECK_EQUAL(10000, state->GetDepositSize(validatorAddress));
 }
 
-// Other tests
+namespace {
+CBlockIndex *AddBlock(CBlockIndex *prev, int i) {
+  auto res = mapBlockIndex.emplace(uint256S(std::to_string(1000 + i)), new CBlockIndex);
+  CBlockIndex &index = *res.first->second;
+  index.nHeight = i;
+  index.phashBlock = &res.first->first;
+  index.pprev = prev;
+  chainActive.SetTip(&index);
+  esperanza::ProcessNewTip(index, CBlock());
+  return &index;
+}
+}  // namespace
 
-BOOST_AUTO_TEST_CASE(map_empty_initializer) {
-  std::map<uint32_t, uint32_t> map;
-
-  for (int i = 0; i < 100; i++) {
-    BOOST_CHECK_EQUAL(0, map[i]);
+BOOST_AUTO_TEST_CASE(storage) {
+  const auto epoch_length = static_cast<int>(esperanza::GetEpochLength());
+  CBlockIndex *prev = chainActive.Genesis();
+  int i = 1;
+  // Generate first epoch block
+  for (; i <= epoch_length - 1; ++i) {
+    prev = AddBlock(prev, i);
   }
+  // Check, all states presented in the cache
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[0]) != nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[1]) != nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length / 2]) != nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length - 1]) != nullptr);
+
+  // Check, states are different
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[0]) != esperanza::FinalizationState::GetState(chainActive[1]));
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[1]) != esperanza::FinalizationState::GetState(chainActive[epoch_length - 1]));
+
+  // generate one more block, trigger finalization of previous epoch
+  prev = AddBlock(prev, epoch_length);
+  ++i;
+
+  // Now epoch 1 is finalized, check old states disappear from the cache
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[0]) != nullptr);  // genesis
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[1]) == nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length / 2]) == nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length - 1]) != nullptr);  // finalized checkpoint
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length]) != nullptr);      // first block of new epoch
+
+  // Generate next epoch
+  for (; i <= epoch_length * 2 - 1; ++i) {
+    prev = AddBlock(prev, i);
+  }
+
+  // Check, new states are in the cache
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length]) != nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length * 2 - 1]) != nullptr);
+
+  // generate one more block, trigger finalization of previous epoch
+  prev = AddBlock(prev, epoch_length * 2);
+  ++i;
+
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length]) == nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length * 2 - 2]) == nullptr);
+  BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length * 2 - 1]) != nullptr);  // finalized checkpoint
 }
 
 BOOST_AUTO_TEST_SUITE_END()

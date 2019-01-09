@@ -64,4 +64,8 @@ bool AdminState::IsPermissioningActive() const {
   return m_permissioningIsActive;
 }
 
+const AdminParams &AdminState::GetParams() const {
+  return m_adminParams;
+}
+
 }  // namespace esperanza
