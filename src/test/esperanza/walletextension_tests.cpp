@@ -4,6 +4,7 @@
 
 #include <amount.h>
 #include <base58.h>
+#include <blockchain/blockchain_behavior.h>
 #include <consensus/validation.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/vote.h>
@@ -46,7 +47,9 @@ BOOST_FIXTURE_TEST_CASE(vote_signature2, TestingSetup) {
 
   CBasicKeyStore keystore;
 
-  CTxDestination dest = DecodeDestination("muUx4dQ4bwssNQYpUqAJHSJCUonAZ4Ro2s", CTestNetParams());
+  auto params = blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
+
+  CTxDestination dest = DecodeDestination("muUx4dQ4bwssNQYpUqAJHSJCUonAZ4Ro2s", *params);
   const CKeyID *keyID = boost::get<CKeyID>(&dest);
 
   esperanza::Vote vote{*keyID, uint256S("4e7eae1625c033a05e92cff8d1591e4c7511888c264dbc8917ef94c3e66f22ef"), 12, 13};

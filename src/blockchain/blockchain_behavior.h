@@ -71,6 +71,10 @@ class Behavior {
 
   std::chrono::seconds GetBlockStakeTimestampInterval() const;
 
+  const std::vector<unsigned char>& GetBase58Prefix(Base58Type) const;
+
+  const std::string& GetBech32Prefix() const;
+
   const Parameters& GetParameters() const;
 
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);

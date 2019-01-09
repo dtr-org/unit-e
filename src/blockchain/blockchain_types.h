@@ -25,10 +25,22 @@ using MoneySupply = CAmount;
 // clang-format off
 BETTER_ENUM(
     Network,
-    uint8_t,
+    std::uint8_t,
     main = 0,
     testnet = 1,
     regtest = 2
+)
+// clang-format on
+
+// clang-format off
+BETTER_ENUM(
+    Base58Type,
+    std::uint8_t,
+    PUBKEY_ADDRESS,
+    SCRIPT_ADDRESS,
+    SECRET_KEY,
+    EXT_PUBLIC_KEY,
+    EXT_SECRET_KEY
 )
 // clang-format on
 

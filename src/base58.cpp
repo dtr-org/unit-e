@@ -4,6 +4,8 @@
 
 #include <base58.h>
 
+#include <blockchain/blockchain_types.h>
+#include <blockchain/blockchain_behavior.h>
 #include <bech32.h>
 #include <hash.h>
 #include <script/script.h>
@@ -16,7 +18,6 @@
 #include <algorithm>
 #include <assert.h>
 #include <string.h>
-
 
 /** All alphanumeric characters except for "0", "I", "O", and "l" */
 static const char* pszBase58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -218,21 +219,21 @@ namespace
 class DestinationEncoder : public boost::static_visitor<std::string>
 {
 private:
-    const CChainParams& m_params;
+    const blockchain::Behavior& m_params;
 
 public:
-    DestinationEncoder(const CChainParams& params) : m_params(params) {}
+    DestinationEncoder(const blockchain::Behavior& params) : m_params(params) {}
 
     std::string operator()(const CKeyID& id) const
     {
-        std::vector<unsigned char> data = m_params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
+        std::vector<unsigned char> data = m_params.GetBase58Prefix(blockchain::Base58Type::PUBKEY_ADDRESS);
         data.insert(data.end(), id.begin(), id.end());
         return EncodeBase58Check(data);
     }
 
     std::string operator()(const CScriptID& id) const
     {
-        std::vector<unsigned char> data = m_params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
+        std::vector<unsigned char> data = m_params.GetBase58Prefix(blockchain::Base58Type::SCRIPT_ADDRESS);
         data.insert(data.end(), id.begin(), id.end());
         return EncodeBase58Check(data);
     }
@@ -241,14 +242,14 @@ public:
     {
         std::vector<unsigned char> data = {0};
         ConvertBits<8, 5, true>(data, id.begin(), id.end());
-        return bech32::Encode(m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.GetBech32Prefix(), data);
     }
 
     std::string operator()(const WitnessV0ScriptHash& id) const
     {
         std::vector<unsigned char> data = {0};
         ConvertBits<8, 5, true>(data, id.begin(), id.end());
-        return bech32::Encode(m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.GetBech32Prefix(), data);
     }
 
     std::string operator()(const WitnessUnknown& id) const
@@ -258,13 +259,13 @@ public:
         }
         std::vector<unsigned char> data = {(unsigned char)id.version};
         ConvertBits<8, 5, true>(data, id.program, id.program + id.length);
-        return bech32::Encode(m_params.Bech32HRP(), data);
+        return bech32::Encode(m_params.GetBech32Prefix(), data);
     }
 
     std::string operator()(const CNoDestination& no) const { return {}; }
 };
 
-CTxDestination DecodeDestination(const std::string& str, const CChainParams& params)
+CTxDestination DecodeDestination(const std::string& str, const blockchain::Behavior& params)
 {
     std::vector<unsigned char> data;
     uint160 hash;
@@ -272,14 +273,14 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
         // base58-encoded UnitE addresses.
         // Public-key-hash-addresses have version 0 (or 111 testnet).
         // The data vector contains RIPEMD160(SHA256(pubkey)), where pubkey is the serialized public key.
-        const std::vector<unsigned char>& pubkey_prefix = params.Base58Prefix(CChainParams::PUBKEY_ADDRESS);
+        const std::vector<unsigned char>& pubkey_prefix = params.GetBase58Prefix(blockchain::Base58Type::PUBKEY_ADDRESS);
         if (data.size() == hash.size() + pubkey_prefix.size() && std::equal(pubkey_prefix.begin(), pubkey_prefix.end(), data.begin())) {
             std::copy(data.begin() + pubkey_prefix.size(), data.end(), hash.begin());
             return CKeyID(hash);
         }
         // Script-hash-addresses have version 5 (or 196 testnet).
         // The data vector contains RIPEMD160(SHA256(cscript)), where cscript is the serialized redemption script.
-        const std::vector<unsigned char>& script_prefix = params.Base58Prefix(CChainParams::SCRIPT_ADDRESS);
+        const std::vector<unsigned char>& script_prefix = params.GetBase58Prefix(blockchain::Base58Type::SCRIPT_ADDRESS);
         if (data.size() == hash.size() + script_prefix.size() && std::equal(script_prefix.begin(), script_prefix.end(), data.begin())) {
             std::copy(data.begin() + script_prefix.size(), data.end(), hash.begin());
             return CScriptID(hash);
@@ -287,7 +288,7 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
     }
     data.clear();
     auto bech = bech32::Decode(str);
-    if (bech.second.size() > 0 && bech.first == params.Bech32HRP()) {
+    if (bech.second.size() > 0 && bech.first == params.GetBech32Prefix()) {
         // Bech32 decoding
         int version = bech.second[0]; // The first 5 bit symbol is the witness version (0-16)
         // The rest of the symbols are converted witness program bytes.
@@ -326,7 +327,7 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
 void CUnitESecret::SetKey(const CKey& vchSecret)
 {
     assert(vchSecret.IsValid());
-    SetData(Params().Base58Prefix(CChainParams::SECRET_KEY), vchSecret.begin(), vchSecret.size());
+    SetData(blockchain::Behavior::GetGlobal().GetBase58Prefix(blockchain::Base58Type::SECRET_KEY), vchSecret.begin(), vchSecret.size());
     if (vchSecret.IsCompressed())
         vchData.push_back(1);
 }
@@ -342,7 +343,7 @@ CKey CUnitESecret::GetKey()
 bool CUnitESecret::IsValid() const
 {
     bool fExpectedFormat = vchData.size() == 32 || (vchData.size() == 33 && vchData[32] == 1);
-    bool fCorrectVersion = vchVersion == Params().Base58Prefix(CChainParams::SECRET_KEY);
+    bool fCorrectVersion = vchVersion == blockchain::Behavior::GetGlobal().GetBase58Prefix(blockchain::Base58Type::SECRET_KEY);
     return fExpectedFormat && fCorrectVersion;
 }
 
@@ -358,20 +359,20 @@ bool CUnitESecret::SetString(const std::string& strSecret)
 
 std::string EncodeDestination(const CTxDestination& dest)
 {
-    return boost::apply_visitor(DestinationEncoder(Params()), dest);
+    return boost::apply_visitor(DestinationEncoder(blockchain::Behavior::GetGlobal()), dest);
 }
 
 CTxDestination DecodeDestination(const std::string& str)
 {
-    return DecodeDestination(str, Params());
+    return DecodeDestination(str, blockchain::Behavior::GetGlobal());
 }
 
-bool IsValidDestinationString(const std::string& str, const CChainParams& params)
+bool IsValidDestinationString(const std::string& str, const blockchain::Behavior& params)
 {
     return IsValidDestination(DecodeDestination(str, params));
 }
 
 bool IsValidDestinationString(const std::string& str)
 {
-    return IsValidDestinationString(str, Params());
+    return IsValidDestinationString(str, blockchain::Behavior::GetGlobal());
 }

@@ -7,6 +7,7 @@
 #endif
 
 #include <base58.h>
+#include <chainparams.h>
 #include <clientversion.h>
 #include <coins.h>
 #include <consensus/consensus.h>

@@ -183,13 +183,19 @@ struct Parameters {
 
   //! \brief The four magic bytes at the start of P2P messages.
   //!
-  //! These are different for different networks and prevent messages form one
+  //! These are different for different networks and prevent messages from one
   //! network to interfere with messages from the other.
   CMessageHeader::MessageStartChars message_start_characters;
 
+  //! \brief The prefixes for base58 encoded secrets.
+  std::vector<unsigned char> base58_prefixes[Base58Type::_size_constant];
+
+  //! \brief A prefix for bech32 encoded strings.
+  std::string bech32_human_readable_prefix;
+
   //! \brief BIP9 deployments information.
   //!
-  //! BIP 9 used the block version bits to carry information about the state
+  //! BIP 9 uses the block version bits to carry information about the state
   //! of softforks. The known deployments for this chain are defined in this
   //! parameter.
   //!
@@ -199,7 +205,7 @@ struct Parameters {
   //! (the hack here is to utilize one extra enum for the number of enum values)
   Consensus::BIP9Deployment bip9_deployments[Consensus::MAX_VERSION_BITS_DEPLOYMENTS];
 
-  //! \brief Number of blocks to look at for the signaling of the activation of a soft fork.
+  //! \brief Number of blocks to look at for the signalling of the activation of a soft fork.
   //!
   //! A soft fork is activated if there is a period of length "deploymentConfirmationPeriod"
   //! of which "ruleChangeActivationThreshold" number of blocks signal support
@@ -215,11 +221,6 @@ struct Parameters {
   static const Parameters &TestNet() noexcept;
   static const Parameters &RegTest() noexcept;
 };
-
-static_assert(std::is_trivial<Parameters>::value,
-              "blockchain::Parameters is expected to be a plain old data type.");
-static_assert(std::is_standard_layout<Parameters>::value,
-              "blockchain::Parameters is expected to be a plain old data type.");
 
 }  // namespace blockchain
 
