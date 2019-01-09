@@ -49,13 +49,12 @@ constexpr int DEFAULT_STATSD_PORT = 8125;
 inline bool fequal(float a, float b)
 {
     const float epsilon = 0.0001;
-    return ( fabs(a - b) < epsilon );
+    return (fabs(a - b) < epsilon);
 }
 
 inline bool should_send(float sample_rate)
 {
-    if ( fequal(sample_rate, 1.0) )
-    {
+    if (fequal(sample_rate, 1.0)) {
         return true;
     }
 
@@ -88,7 +87,7 @@ void StatsdClient::config(const std::string& host, int port, const std::string& 
     d.host = host;
     d.port = port;
     d.init = false;
-    if ( d.sock >= 0 ) {
+    if (d.sock >= 0) {
         close(d.sock);
     }
     d.sock = -1;
@@ -96,10 +95,12 @@ void StatsdClient::config(const std::string& host, int port, const std::string& 
 
 int StatsdClient::init()
 {
-    if ( d.init ) return 0;
+    if (d.init) {
+        return 0;
+    }
 
     d.sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if ( d.sock == -1 ) {
+    if (d.sock == -1) {
         snprintf(d.errmsg, sizeof(d.errmsg), "could not create socket, err=%m");
         return -1;
     }
@@ -117,8 +118,7 @@ int StatsdClient::init()
     d.server.sin_port = htons(d.port);
 
     int ret = inet_aton(d.host.c_str(), &d.server.sin_addr);
-    if ( ret == 0 )
-    {
+    if (ret == 0) {
         // host must be a domain, get it from internet
         struct addrinfo hints, *result = NULL;
         memset(&hints, 0, sizeof(hints));
@@ -126,9 +126,9 @@ int StatsdClient::init()
         hints.ai_socktype = SOCK_DGRAM;
 
         ret = getaddrinfo(d.host.c_str(), NULL, &hints, &result);
-        if ( ret ) {
+        if (ret) {
             snprintf(d.errmsg, sizeof(d.errmsg),
-                    "getaddrinfo fail, error=%d, msg=%s", ret, gai_strerror(ret) );
+                    "getaddrinfo fail, error=%d, msg=%s", ret, gai_strerror(ret));
             return -2;
         }
         struct sockaddr_in* host_addr = (struct sockaddr_in*)result->ai_addr;
@@ -148,7 +148,7 @@ int StatsdClient::init()
 void StatsdClient::cleanup(std::string& key)
 {
     size_t pos = key.find_first_of(":|@");
-    while ( pos != std::string::npos )
+    while (pos != std::string::npos)
     {
         key[pos] = '_';
         pos = key.find_first_of(":|@");
@@ -192,19 +192,17 @@ int StatsdClient::send(std::string key, size_t value, const std::string &type, f
     }
 
     // partition stats by node name if set
-    if (!d.nodename.empty())
+    if (!d.nodename.empty()) {
         key = key + "." + d.nodename;
+    }
 
     cleanup(key);
 
     char buf[256];
-    if ( fequal( sample_rate, 1.0 ) )
-    {
+    if (fequal(sample_rate, 1.0)) {
         snprintf(buf, sizeof(buf), "%s%s:%zd|%s",
                 d.ns.c_str(), key.c_str(), value, type.c_str());
-    }
-    else
-    {
+    } else {
         snprintf(buf, sizeof(buf), "%s%s:%zd|%s|@%.2f",
                 d.ns.c_str(), key.c_str(), value, type.c_str(), sample_rate);
     }
@@ -219,19 +217,17 @@ int StatsdClient::sendDouble(std::string key, double value, const std::string &t
     }
 
     // partition stats by node name if set
-    if (!d.nodename.empty())
+    if (!d.nodename.empty()) {
         key = key + "." + d.nodename;
+    }
 
     cleanup(key);
 
     char buf[256];
-    if ( fequal( sample_rate, 1.0 ) )
-    {
+    if (fequal(sample_rate, 1.0)) {
         snprintf(buf, sizeof(buf), "%s%s:%f|%s",
                 d.ns.c_str(), key.c_str(), value, type.c_str());
-    }
-    else
-    {
+    } else {
         snprintf(buf, sizeof(buf), "%s%s:%f|%s|@%.2f",
                 d.ns.c_str(), key.c_str(), value, type.c_str(), sample_rate);
     }
@@ -242,12 +238,11 @@ int StatsdClient::sendDouble(std::string key, double value, const std::string &t
 int StatsdClient::send(const std::string &message)
 {
     int ret = init();
-    if ( ret )
-    {
+    if (ret) {
         return ret;
     }
     ret = sendto(d.sock, message.data(), message.size(), 0, (struct sockaddr *) &d.server, sizeof(d.server));
-    if ( ret == -1) {
+    if (ret == -1) {
         snprintf(d.errmsg, sizeof(d.errmsg),
                 "sendto server fail, host=%s:%d, err=%m", d.host.c_str(), d.port);
         return -1;

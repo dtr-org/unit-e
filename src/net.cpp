@@ -1238,31 +1238,37 @@ void CConnman::ThreadSocketHandler()
             }
             mapRecvBytesMsgStats[NET_MESSAGE_COMMAND_OTHER] = 0;
             mapSentBytesMsgStats[NET_MESSAGE_COMMAND_OTHER] = 0;
-            for (CNode* pnode : vNodes)
-            {
-                for (const mapMsgCmdSize::value_type &i : pnode->mapRecvBytesPerMsgCmd)
+            for (CNode* pnode : vNodes) {
+                for (const mapMsgCmdSize::value_type &i : pnode->mapRecvBytesPerMsgCmd) {
                     mapRecvBytesMsgStats[i.first] += i.second;
-                for (const mapMsgCmdSize::value_type &i : pnode->mapSendBytesPerMsgCmd)
+                }
+                for (const mapMsgCmdSize::value_type &i : pnode->mapSendBytesPerMsgCmd) {
                     mapSentBytesMsgStats[i.first] += i.second;
-                if(pnode->fClient)
+                }
+                if(pnode->fClient) {
                     spvNodes++;
-                else
+                } else {
                     fullNodes++;
-                if(pnode->fInbound)
+                }
+                if(pnode->fInbound) {
                     inboundNodes++;
-                else
+                } else {
                     outboundNodes++;
-                if(pnode->addr.IsIPv4())
+                }
+                if(pnode->addr.IsIPv4()) {
                     ipv4Nodes++;
-                if(pnode->addr.IsIPv6())
+                }
+                if(pnode->addr.IsIPv6()) {
                     ipv6Nodes++;
-                if(pnode->addr.IsTor())
+                }
+                if(pnode->addr.IsTor()) {
                     torNodes++;
-                if(pnode->nPingUsecTime > 0)
+                }
+                if(pnode->nPingUsecTime > 0) {
                     statsClient.timing("peers.ping_us", pnode->nPingUsecTime, 1.0f);
+                }
             }
-            for (const std::string &msg : getAllNetMessageTypes())
-            {
+            for (const std::string &msg : getAllNetMessageTypes()) {
                 statsClient.gauge("bandwidth.message." + msg + ".totalBytesReceived", mapRecvBytesMsgStats[msg], 1.0f);
                 statsClient.gauge("bandwidth.message." + msg + ".totalBytesSent", mapSentBytesMsgStats[msg], 1.0f);
             }
