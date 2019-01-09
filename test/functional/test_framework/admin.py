@@ -121,7 +121,7 @@ class Admin:
         self.last_exception = None
 
         txid = donor_node.sendtoaddress(address, amount)
-        framework.wait_for_transaction(txid, timeout=30)
+        framework.wait_for_transaction(txid)
 
         self.prevout = Admin.find_output_for_address(self.admin_node, txid,
                                                      self.address)

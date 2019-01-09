@@ -3,9 +3,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.util import json, connect_nodes_bi, assert_equal, \
-    assert_raises_rpc_error
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.util import (json, connect_nodes_bi, assert_equal,
+                                 assert_raises_rpc_error)
+from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
 
 MIN_DEPOSIT_SIZE = 1000
@@ -43,7 +43,7 @@ def prev_n_blocks_have_txs_from(node, validator_address, n):
 # after END_PERMISSIONING
 class AdminFullCycle(UnitETestFramework):
     class ValidatorWrapper:
-        def __init__(self, framework, node, n_utxos_needed):
+        def __init__(self, framework, node, required_amounts):
             super().__init__()
             self.node = node
             self.address = node.getnewaddress("", "legacy")
@@ -53,11 +53,15 @@ class AdminFullCycle(UnitETestFramework):
             # Workaround for a bug: When validator tx is rejected - funds it
             # used are locked for some time. Split the only 10k UTXO into
             # several by sending to self
-            max_utxo = node.getbalance()
-            for i in range(n_utxos_needed - 1):
-                max_utxo -= (MIN_DEPOSIT_SIZE + 1)
-                exchange_tx = node.sendtoaddress(self.address, max_utxo)
-                framework.wait_for_transaction(exchange_tx, timeout=60)
+            if len(required_amounts) == 0:
+                return
+
+            outputs = dict()
+            for amount in required_amounts:
+                outputs[node.getnewaddress()] = amount
+
+            tx = node.sendmany("", outputs)
+            framework.wait_for_transaction(tx, timeout=20)
 
         def deposit_reject(self):
             assert_raises_rpc_error(None, "Cannot create deposit",
@@ -66,15 +70,15 @@ class AdminFullCycle(UnitETestFramework):
 
         def deposit_ok(self, deposit_amount=MIN_DEPOSIT_SIZE):
             tx = self.node.deposit(self.address, deposit_amount)
-            self.framework.wait_for_transaction(tx, timeout=60)
+            self.framework.wait_for_transaction(tx, timeout=20)
 
         def logout_ok(self):
             tx = self.node.logout()
-            self.framework.wait_for_transaction(tx, timeout=60)
+            self.framework.wait_for_transaction(tx, timeout=20)
 
         def withdraw_ok(self):
             tx = self.node.withdraw(self.address)
-            self.framework.wait_for_transaction(tx, timeout=60)
+            self.framework.wait_for_transaction(tx, timeout=20)
 
     def set_test_params(self):
         self.num_nodes = 4
@@ -131,16 +135,17 @@ class AdminFullCycle(UnitETestFramework):
         for node in self.nodes:
             assert_equal(10000, node.getbalance())
 
-        # Waiting for maturity
-        self.nodes[0].generate(COINBASE_MATURITY)
-        self.sync_all()
+        # Exit IBD
+        self.generate_sync(self.nodes[0])
 
         # introduce actors
         proposer = self.nodes[0]
         admin = Admin.authorize(self, proposer)
-        validator1 = AdminFullCycle.ValidatorWrapper(self, self.nodes[1], 3)
-        validator2 = AdminFullCycle.ValidatorWrapper(self, self.nodes[2], 3)
-        validator3 = AdminFullCycle.ValidatorWrapper(self, self.nodes[3], 1)
+        validator1 = AdminFullCycle.ValidatorWrapper(self, self.nodes[1],
+                                                     [MIN_DEPOSIT_SIZE + 1] * 3)
+        validator2 = AdminFullCycle.ValidatorWrapper(self, self.nodes[2],
+                                                     [MIN_DEPOSIT_SIZE + 1] * 3)
+        validator3 = AdminFullCycle.ValidatorWrapper(self, self.nodes[3], [])
 
         # No validators are whitelisted any deposits should fail
         validator1.deposit_reject()
@@ -157,7 +162,10 @@ class AdminFullCycle(UnitETestFramework):
 
         # Whitelist v3
         admin.whitelist([validator3.pubkey])
-        validator3.deposit_ok(MIN_DEPOSIT_SIZE*2)
+        validator3.deposit_ok(MIN_DEPOSIT_SIZE * 2)
+
+        # Finalize deposits
+        self.generate_sync(proposer, EPOCH_LENGTH * 2)
 
         # Generate some blocks and check that validators are voting
         n_blocks = 2 * EPOCH_LENGTH

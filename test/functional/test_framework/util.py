@@ -401,20 +401,31 @@ def sync_mempools(rpc_connections, *, wait=1, timeout=60, flush_scheduler=True):
     Wait until everybody has the same transactions in their memory
     pools
     """
-    while timeout > 0:
-        pool = set(rpc_connections[0].getrawmempool())
-        num_match = 1
-        for i in range(1, len(rpc_connections)):
-            if set(rpc_connections[i].getrawmempool()) == pool:
-                num_match = num_match + 1
-        if num_match == len(rpc_connections):
+    timeout += time.perf_counter()
+    mempools = dict()
+
+    while time.perf_counter() < timeout:
+        sample_pool = set(rpc_connections[0].getrawmempool())
+        mempools[rpc_connections[0].index] = sample_pool
+        all_synced = True
+
+        for rpc_connection in rpc_connections[1:]:
+            pool = set(rpc_connection.getrawmempool())
+            mempools[rpc_connection.index] = pool
+
+            if pool != sample_pool:
+                all_synced = False
+
+        if all_synced:
             if flush_scheduler:
                 for r in rpc_connections:
                     r.syncwithvalidationinterfacequeue()
             return
+
         time.sleep(wait)
-        timeout -= wait
-    raise AssertionError("Mempool sync failed")
+
+    raise AssertionError("Mempool sync failed:%s" % "".join(
+        ["\nNode %d: %s" % entry for entry in mempools.items()]))
 
 # Transaction/Block functions
 #############################
