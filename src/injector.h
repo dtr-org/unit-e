@@ -32,7 +32,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(BlockchainBehavior, blockchain::Behavior, blockchain::Behavior::New,
             ::ArgsManager)
 
-  COMPONENT(Settings, Settings, Settings::New,
+  COMPONENT(Settings, ::Settings, Settings::New,
             ::ArgsManager)
 
   COMPONENT(Network, staking::Network, staking::Network::New)
@@ -50,11 +50,11 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
 #ifdef ENABLE_WALLET
 
-  COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New);
+  COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New)
 
   COMPONENT(BlockBuilder, proposer::BlockBuilder, proposer::BlockBuilder::New,
             blockchain::Behavior,
-            Settings);
+            Settings)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
             proposer::MultiWallet,
