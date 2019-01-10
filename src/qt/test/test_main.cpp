@@ -52,6 +52,7 @@ int main(int argc, char *argv[])
     SetupEnvironment();
     SetupNetworking();
     SelectParams(CBaseChainParams::MAIN);
+    blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::main));
     noui_connect();
     ClearDatadirCache();
     fs::path pathTemp = fs::temp_directory_path() / strprintf("test_unite-qt_%lu_%i", (unsigned long)GetTime(), (int)GetRand(100000));
