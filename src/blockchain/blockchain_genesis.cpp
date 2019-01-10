@@ -68,7 +68,7 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   assert(genesis_block.vtx[0]->vin[0].prevout.n == 0);
   assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
 
-  // UNIT-E: TODO: This will be enabled once we will have defined the inital funds allocation
+  // UNIT-E: TODO: This will be enabled once we will have defined the initial funds allocation
   //  CAmount initial_funds_amount = 0;
   //  for(const auto& out : m_initial_funds) {
   //    initial_funds_amount += out.first;
