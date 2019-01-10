@@ -38,6 +38,12 @@ void CConnmanTest::StartThreadMessageHandler(CConnman* connman) {
   connman->ThreadMessageHandler();
 }
 
+void SelectNetwork(const std::string& network_name) {
+  auto name = network_name.c_str();
+  auto network = blockchain::Network::_from_string(name);
+  blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(network));
+}
+
 uint256 insecure_rand_seed = GetRandHash();
 FastRandomContext insecure_rand_ctx(insecure_rand_seed);
 

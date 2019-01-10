@@ -22,12 +22,6 @@
 
 extern UniValue read_json(const std::string& jsondata);
 
-namespace {
-void SelectNetwork(const std::string& network) {
-    blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(network.c_str())));
-}
-}
-
 BOOST_FIXTURE_TEST_SUITE(base58_tests, BasicTestingSetup)
 
 // Goal: test low-level base58 encoding functionality
@@ -85,7 +79,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_valid_parse)
     UniValue tests = read_json(std::string(json_tests::base58_keys_valid, json_tests::base58_keys_valid + sizeof(json_tests::base58_keys_valid)));
     CUnitESecret secret;
     CTxDestination destination;
-    SelectParams(CBaseChainParams::MAIN);
+    SelectNetwork(CBaseChainParams::MAIN);
 
     for (unsigned int idx = 0; idx < tests.size(); idx++) {
         UniValue test = tests[idx];
@@ -98,7 +92,7 @@ BOOST_AUTO_TEST_CASE(base58_keys_valid_parse)
         std::vector<unsigned char> exp_payload = ParseHex(test[1].get_str());
         const UniValue &metadata = test[2].get_obj();
         bool isPrivkey = find_value(metadata, "isPrivkey").get_bool();
-        SelectParams(find_value(metadata, "chain").get_str());
+        SelectNetwork(find_value(metadata, "chain").get_str());
         bool try_case_flip = find_value(metadata, "tryCaseFlip").isNull() ? false : find_value(metadata, "tryCaseFlip").get_bool();
         if (isPrivkey) {
             bool isCompressed = find_value(metadata, "isCompressed").get_bool();

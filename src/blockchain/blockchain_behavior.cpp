@@ -97,7 +97,7 @@ std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
   if (args->GetBoolArg("-regtest", false)) {
     return NewForNetwork(Network::regtest);
   } else if (args->GetBoolArg("-testnet", false)) {
-    return NewForNetwork(Network::testnet);
+    return NewForNetwork(Network::test);
   } else {
     return NewForNetwork(Network::main);
   }
@@ -107,7 +107,7 @@ std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {
   switch (network) {
     case Network::main:
       return NewFromParameters(Parameters::MainNet());
-    case Network::testnet:
+    case Network::test:
       return NewFromParameters(Parameters::TestNet());
     case Network::regtest:
       return NewFromParameters(Parameters::RegTest());
@@ -129,7 +129,7 @@ void Behavior::MakeGlobal(Dependency<::ArgsManager> args) {
   SetGlobal(New(args));
 }
 
-void Behavior::SetGlobal(std::unique_ptr<Behavior> behavior) {
+void Behavior::SetGlobal(std::unique_ptr<Behavior> &&behavior) {
   g_blockchain_behavior.swap(behavior);
 }
 

@@ -90,8 +90,7 @@ class Behavior {
   static Behavior &GetGlobal();
 
   //! \brief stopgap to set the global object from unit tests
-  static void SetGlobal(std::unique_ptr<Behavior>);
-
+  static void SetGlobal(std::unique_ptr<Behavior> &&);
 };
 
 }  // namespace blockchain

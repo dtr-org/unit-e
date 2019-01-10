@@ -27,7 +27,7 @@ BETTER_ENUM(
     Network,
     std::uint8_t,
     main = 0,
-    testnet = 1,
+    test = 1,
     regtest = 2
 )
 // clang-format on

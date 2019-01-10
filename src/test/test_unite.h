@@ -5,6 +5,7 @@
 #ifndef UNITE_TEST_TEST_UNITE_H
 #define UNITE_TEST_TEST_UNITE_H
 
+#include <blockchain/blockchain_behavior.h>
 #include <chainparams.h>
 #include <chainparamsbase.h>
 #include <fs.h>
@@ -144,6 +145,9 @@ struct TestMemPoolEntryHelper
 };
 
 CBlock getBlock13b8a();
+
+//! utility function to set the global network parameters
+void SelectNetwork(const std::string& network_name);
 
 // define an implicit conversion here so that uint256 may be used directly in BOOST_CHECK_*
 std::ostream& operator<<(std::ostream& os, const uint256& num);
