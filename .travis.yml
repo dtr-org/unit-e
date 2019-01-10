@@ -69,7 +69,7 @@ jobs:
         DEP_OPTS="NO_QT=1"
         CHECK_DOC=1
         GOAL="install"
-        UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports"
+        UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports --with-gui=no"
 
     - stage: test
       name: "Win32 (unit tests)"
@@ -80,7 +80,7 @@ jobs:
         PACKAGES="python3 nsis g++-mingw-w64-i686 wine1.6"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-reduce-exports"
+        UNITE_CONFIG="--enable-reduce-exports --with-gui=no"
 
     - stage: test
       name: "System libs (unit and functional tests)"
@@ -91,7 +91,7 @@ jobs:
         NEED_XVFB=1
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --with-incompatible-bdb --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER"
+        UNITE_CONFIG="--enable-zmq --with-incompatible-bdb --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no"
 
     - stage: test
       name: "32-bit + dash (unit and functional tests)"
@@ -101,7 +101,7 @@ jobs:
         DEP_OPTS="NO_QT=1"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++"
+        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++ --with-gui=no"
         USE_SHELL="/bin/dash"
 
     - stage: test
@@ -113,7 +113,7 @@ jobs:
         PACKAGES="python3 nsis g++-mingw-w64-x86-64 wine1.6"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-reduce-exports"
+        UNITE_CONFIG="--enable-reduce-exports --with-gui=no"
 
     - stage: test
       name: "x86_64 Linux (unit and functional tests)"
@@ -123,7 +123,7 @@ jobs:
         DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER"
+        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no"
 
     - stage: test
       name: "x86_64 Linux, No wallet (unit tests)"
@@ -133,7 +133,7 @@ jobs:
         DEP_OPTS="NO_WALLET=1 NO_QT=1"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports"
+        UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports --with-gui=no"
 
     - stage: test
       name: "Cross-Mac"
@@ -141,6 +141,6 @@ jobs:
         HOST=x86_64-apple-darwin11
         PACKAGES="cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev"
         DEP_OPTS="NO_QT=1"
-        UNITE_CONFIG="--enable-reduce-exports --enable-werror"
+        UNITE_CONFIG="--enable-reduce-exports --enable-werror --with-gui=no"
         OSX_SDK=10.11
         GOAL="deploy"
