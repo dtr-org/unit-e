@@ -184,6 +184,10 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
 
   pwallet->BlockUntilSyncedToCurrentChain();
 
+  if (!extWallet.nIsValidatorEnabled || !extWallet.validatorState) {
+    throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
+  }
+
   esperanza::ValidatorState &validator = extWallet.validatorState.get();
   UniValue obj(UniValue::VOBJ);
 
