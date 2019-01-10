@@ -548,7 +548,7 @@ Seed::Seed(const std::string &mnemonic, const std::string &passphrase) {
   }
   m_hexSeed = EncodeBase16(m_seed);
   m_hexEntropy = EncodeBase16(m_entropy);
-  m_extKey.SetMaster(m_seed.data(), static_cast<unsigned int>(m_seed.size()));
+  m_extKey.SetSeed(m_seed.data(), static_cast<unsigned int>(m_seed.size()));
   m_extKey58.SetKey(m_extKey);
 }
 

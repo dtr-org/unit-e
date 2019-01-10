@@ -52,7 +52,7 @@ UniValue mnemonicnew(const JSONRPCRequest &request) {
                          strprintf("failed to calculate seed from mnemonic %s",
                                    error.c_str()));
     }
-    masterKey.SetMaster(&seed[0], static_cast<unsigned int>(seed.size()));
+    masterKey.SetSeed(&seed[0], static_cast<unsigned int>(seed.size()));
     if (masterKey.key.IsValid()) {
       break;
     }

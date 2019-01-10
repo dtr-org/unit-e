@@ -1140,13 +1140,13 @@ public:
     bool IsHDEnabled() const;
 
     /* Generates a new HD master key (will not be activated) */
-    CPubKey GenerateNewHDMasterKey(const key::mnemonic::Seed *fromSeed = nullptr);
+    CPubKey GenerateNewHDSeed(const key::mnemonic::Seed *fromSeed = nullptr);
 
     /* Set the current HD master key (will reset the chain child index counters)
        Sets the master key's version based on the current wallet version (so the
        caller must ensure the current wallet version is correct before calling
        this function). */
-    bool SetHDMasterKey(const CPubKey& key);
+    bool SetHDSeed(const CPubKey& key);
 
     /**
      * Blocks until the wallet state is up-to-date to /at least/ the current
