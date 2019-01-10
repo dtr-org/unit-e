@@ -83,15 +83,15 @@ jobs:
         UNITE_CONFIG="--enable-reduce-exports"
 
     - stage: test
-      name: "Qt4 & system libs (unit and functional tests)"
+      name: "System libs (unit and functional tests)"
       env: >-
         HOST=x86_64-unknown-linux-gnu
-        PACKAGES="python3-zmq qt4-dev-tools libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev xvfb"
+        PACKAGES="python3-zmq libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev xvfb"
         NO_DEPENDS=1
         NEED_XVFB=1
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --with-incompatible-bdb --enable-glibc-back-compat --enable-reduce-exports --with-gui=qt4 CPPFLAGS=-DDEBUG_LOCKORDER"
+        UNITE_CONFIG="--enable-zmq --with-incompatible-bdb --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER"
 
     - stage: test
       name: "32-bit + dash (unit and functional tests)"
@@ -116,22 +116,21 @@ jobs:
         UNITE_CONFIG="--enable-reduce-exports"
 
     - stage: test
-      # uses qt5 dev package instead of depends Qt to speed up build and avoid timeout)
       name: "x86_64 Linux (unit and functional tests)"
       env: >-
         HOST=x86_64-unknown-linux-gnu
-        PACKAGES="python3-zmq qtbase5-dev qttools5-dev-tools protobuf-compiler libdbus-1-dev libharfbuzz-dev"
+        PACKAGES="python3-zmq protobuf-compiler libdbus-1-dev libharfbuzz-dev"
         DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --with-gui=qt5 --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER"
+        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER"
 
     - stage: test
       name: "x86_64 Linux, No wallet (unit tests)"
       env: >-
         HOST=x86_64-unknown-linux-gnu
         PACKAGES="python3"
-        DEP_OPTS="NO_WALLET=1"
+        DEP_OPTS="NO_WALLET=1 NO_QT=1"
         RUN_TESTS=true
         GOAL="install"
         UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports"
@@ -141,6 +140,7 @@ jobs:
       env: >-
         HOST=x86_64-apple-darwin11
         PACKAGES="cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev"
-        UNITE_CONFIG="--enable-gui --enable-reduce-exports --enable-werror"
+        DEP_OPTS="NO_QT=1"
+        UNITE_CONFIG="--enable-reduce-exports --enable-werror"
         OSX_SDK=10.11
         GOAL="deploy"
