@@ -4,6 +4,7 @@
 
 #include <test/test_unite.h>
 
+#include <blockchain/blockchain_behavior.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <crypto/sha256.h>
@@ -35,6 +36,12 @@ void CConnmanTest::ClearNodes(CConnman* connman)
 
 void CConnmanTest::StartThreadMessageHandler(CConnman* connman) {
   connman->ThreadMessageHandler();
+}
+
+void SelectNetwork(const std::string& network_name) {
+  auto name = network_name.c_str();
+  auto network = blockchain::Network::_from_string(name);
+  blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(network));
 }
 
 uint256 insecure_rand_seed = GetRandHash();
@@ -84,6 +91,7 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
         InitScriptExecutionCache();
         fPrintToDebugLog = false; // don't want to write to debug.log file
         fCheckBlockIndex = true;
+        blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(chainName.c_str())));
         SelectParams(chainName);
         noui_connect();
 }

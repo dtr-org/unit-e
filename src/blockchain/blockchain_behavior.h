@@ -71,11 +71,26 @@ class Behavior {
 
   std::chrono::seconds GetBlockStakeTimestampInterval() const;
 
-  const Parameters& GetParameters() const;
+  const std::vector<unsigned char> &GetBase58Prefix(Base58Type) const;
+
+  const std::string &GetBech32Prefix() const;
+
+  const Parameters &GetParameters() const;
 
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
 
+  static std::unique_ptr<Behavior> NewForNetwork(Network);
+
   static std::unique_ptr<Behavior> NewFromParameters(const Parameters &);
+
+  //! \brief stopgap to replace global Params() accessor function
+  static void MakeGlobal(Dependency<::ArgsManager>);
+
+  //! \brief stopgap to replace global Params() accessor function
+  static Behavior &GetGlobal();
+
+  //! \brief stopgap to set the global object from unit tests
+  static void SetGlobal(std::unique_ptr<Behavior> &&);
 };
 
 }  // namespace blockchain

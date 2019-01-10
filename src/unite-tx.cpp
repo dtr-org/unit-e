@@ -7,6 +7,8 @@
 #endif
 
 #include <base58.h>
+#include <blockchain/blockchain_behavior.h>
+#include <chainparams.h>
 #include <clientversion.h>
 #include <coins.h>
 #include <consensus/consensus.h>
@@ -44,6 +46,7 @@ static int AppInitRawTx(int argc, char* argv[])
 
     // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
     try {
+        blockchain::Behavior::MakeGlobal(&gArgs);
         SelectParams(ChainNameFromCommandLine());
     } catch (const std::exception& e) {
         fprintf(stderr, "Error: %s\n", e.what());

@@ -14,7 +14,7 @@
 #ifndef UNITE_BASE58_H
 #define UNITE_BASE58_H
 
-#include <chainparams.h>
+#include <blockchain/blockchain_behavior.h>
 #include <key.h>
 #include <pubkey.h>
 #include <script/standard.h>
@@ -110,13 +110,13 @@ public:
     CUnitESecret() {}
 };
 
-template<typename K, int Size, CChainParams::Base58Type Type> class CUnitEExtKeyBase : public CBase58Data
+template<typename K, int Size, blockchain::Base58Type::_enumerated Type> class CUnitEExtKeyBase : public CBase58Data
 {
 public:
     void SetKey(const K &key) {
         unsigned char vch[Size];
         key.Encode(vch);
-        SetData(Params().Base58Prefix(Type), vch, vch+Size);
+        SetData(blockchain::Behavior::GetGlobal().GetBase58Prefix(Type), vch, vch+Size);
     }
 
     K GetKey() {
@@ -133,18 +133,19 @@ public:
     }
 
     CUnitEExtKeyBase(const std::string& strBase58c) {
-        SetString(strBase58c.c_str(), Params().Base58Prefix(Type).size());
+        SetString(strBase58c.c_str(),
+                  static_cast<unsigned int>(blockchain::Behavior::GetGlobal().GetBase58Prefix(Type).size()));
     }
 
     CUnitEExtKeyBase() {}
 };
 
-typedef CUnitEExtKeyBase<CExtKey, BIP32_EXTKEY_SIZE, CChainParams::EXT_SECRET_KEY> CUnitEExtKey;
-typedef CUnitEExtKeyBase<CExtPubKey, BIP32_EXTKEY_SIZE, CChainParams::EXT_PUBLIC_KEY> CUnitEExtPubKey;
+typedef CUnitEExtKeyBase<CExtKey, BIP32_EXTKEY_SIZE, blockchain::Base58Type::EXT_SECRET_KEY> CUnitEExtKey;
+typedef CUnitEExtKeyBase<CExtPubKey, BIP32_EXTKEY_SIZE, blockchain::Base58Type::EXT_PUBLIC_KEY> CUnitEExtPubKey;
 
 std::string EncodeDestination(const CTxDestination& dest);
 CTxDestination DecodeDestination(const std::string& str);
 bool IsValidDestinationString(const std::string& str);
-bool IsValidDestinationString(const std::string& str, const CChainParams& params);
+bool IsValidDestinationString(const std::string& str, const blockchain::Behavior&);
 
 #endif // UNITE_BASE58_H

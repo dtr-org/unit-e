@@ -46,18 +46,7 @@ struct ChainTxData {
 class CChainParams
 {
 public:
-    enum Base58Type {
-        PUBKEY_ADDRESS,
-        SCRIPT_ADDRESS,
-        SECRET_KEY,
-        EXT_PUBLIC_KEY,
-        EXT_SECRET_KEY,
-
-        MAX_BASE58_TYPES
-    };
-
     const Consensus::Params& GetConsensus() const { return consensus; }
-
     const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
     const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
     const snapshot::Params& GetSnapshotParams() const { return snapshotParams; }
@@ -76,8 +65,6 @@ public:
     std::string NetworkIDString() const { return strNetworkID; }
     /** Return the list of hostnames to look up for DNS seeds */
     const std::vector<std::string>& DNSSeeds() const { return vSeeds; }
-    const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
-    const std::string& Bech32HRP() const { return bech32_hrp; }
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
@@ -95,8 +82,6 @@ protected:
     int nDefaultPort;
     uint64_t nPruneAfterHeight;
     std::vector<std::string> vSeeds;
-    std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
-    std::string bech32_hrp;
     std::string strNetworkID;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;

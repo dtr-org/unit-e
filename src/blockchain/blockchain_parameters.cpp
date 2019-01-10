@@ -24,7 +24,7 @@ Parameters BuildMainNetParameters() {
   p.maximum_block_sigops_cost = 80000;
   p.coinbase_maturity = 100;
   p.restake_maturity = 200;
-  p.maximum_supply = 2718281828 * UNIT; // e billion UTE
+  p.maximum_supply = 2718281828 * UNIT;  // e billion UTE
   p.reward_function = [](const Parameters &p, MoneySupply s, Height h) -> CAmount {
     // UNIT-E: This reward function is not here to stay, it is just some simple reward function as in particl
     constexpr uint64_t secondsInAYear = 365 * 24 * 60 * 60;
@@ -36,23 +36,32 @@ Parameters BuildMainNetParameters() {
     const auto tip = chain.AtDepth(1);
     return tip->nBits;
   };
+
   p.message_start_characters[0] = 0xee;
   p.message_start_characters[1] = 0xee;
   p.message_start_characters[2] = 0xae;
   p.message_start_characters[3] = 0xc1;
+
+  p.base58_prefixes[Base58Type::PUBKEY_ADDRESS] = {0x00};
+  p.base58_prefixes[Base58Type::SCRIPT_ADDRESS] = {0x05};
+  p.base58_prefixes[Base58Type::SECRET_KEY] = {0x80};
+  p.base58_prefixes[Base58Type::EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
+  p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
+
+  p.bech32_human_readable_prefix = "bc";
+
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
 
-  static GenesisBlock genesisBlock {
-    GenesisBlockBuilder()
-        .Add(Funds{
-            P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
-            P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
-            P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
-            P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
-            P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
-        .Build(p)
-  };
+  static GenesisBlock genesisBlock{
+      GenesisBlockBuilder()
+          .Add(Funds{
+              P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
+              P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
+              P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
+              P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
+              P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
+          .Build(p)};
   p.genesis_block = &genesisBlock;
 
   return p;
@@ -64,21 +73,29 @@ Parameters BuildTestNetParameters() {
   p.relay_non_standard_transactions = true;
   p.coinbase_maturity = 10;
   p.restake_maturity = 20;
+
   p.message_start_characters[0] = 0xfd;
   p.message_start_characters[1] = 0xfc;
   p.message_start_characters[2] = 0xfb;
   p.message_start_characters[3] = 0xfa;
 
-  static GenesisBlock genesisBlock {
-    GenesisBlockBuilder()
-        .Add(Funds{
-            P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
-            P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
-            P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
-            P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
-            P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
-        .Build(p)
-  };
+  p.base58_prefixes[Base58Type::PUBKEY_ADDRESS] = {0x6F};
+  p.base58_prefixes[Base58Type::SCRIPT_ADDRESS] = {0xC4};
+  p.base58_prefixes[Base58Type::SECRET_KEY] = {0xEF};
+  p.base58_prefixes[Base58Type::EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
+  p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
+
+  p.bech32_human_readable_prefix = "tb";
+
+  static GenesisBlock genesisBlock{
+      GenesisBlockBuilder()
+          .Add(Funds{
+              P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
+              P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
+              P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
+              P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
+              P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
+          .Build(p)};
   p.genesis_block = &genesisBlock;
 
   return p;
@@ -90,21 +107,29 @@ Parameters BuildRegTestParameters() {
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
   p.restake_maturity = 2;
+
   p.message_start_characters[0] = 0xfa;
   p.message_start_characters[1] = 0xbf;
   p.message_start_characters[2] = 0xb5;
   p.message_start_characters[3] = 0xda;
 
-  static GenesisBlock genesisBlock {
-    GenesisBlockBuilder()
-        .Add(Funds{
-            P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
-            P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
-            P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
-            P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
-            P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
-        .Build(p)
-  };
+  p.base58_prefixes[Base58Type::PUBKEY_ADDRESS] = {0x6F};
+  p.base58_prefixes[Base58Type::SCRIPT_ADDRESS] = {0xC4};
+  p.base58_prefixes[Base58Type::SECRET_KEY] = {0xEF};
+  p.base58_prefixes[Base58Type::EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
+  p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
+
+  p.bech32_human_readable_prefix = "bcrt";
+
+  static GenesisBlock genesisBlock{
+      GenesisBlockBuilder()
+          .Add(Funds{
+              P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
+              P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
+              P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
+              P2WPKH(10000 * UNIT, "1f34ea7e96d82102b22afed6d53d02715f8f6621"),
+              P2WPKH(10000 * UNIT, "eb07ad5db790ee4324b5cdd635709f47e41fd867")})
+          .Build(p)};
   p.genesis_block = &genesisBlock;
 
   return p;

@@ -29,8 +29,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
 
-  COMPONENT(BlockchainBehavior, blockchain::Behavior, blockchain::Behavior::New,
-            ::ArgsManager)
+  UNMANAGED_COMPONENT(BlockchainBehavior, blockchain::Behavior, &blockchain::Behavior::GetGlobal())
 
   COMPONENT(Settings, ::Settings, Settings::New,
             ::ArgsManager)
