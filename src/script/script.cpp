@@ -316,10 +316,11 @@ bool CScript::IsPayToWitnessScriptHash() const
 }
 
 // A witness program is any valid CScript that consists of a 1-byte push opcode
-// followed by a data push between 2 and 40 bytes.
+// followed by several data pushes between 2 and 40 bytes each.
 bool CScript::IsWitnessProgram() const
 {
     if (this->size() < 4 || this->size() > 83) {
+        // 83 is the size of a witness scriptPubKey with two 40-byte data pushes
         return false;
     }
 
@@ -336,10 +337,7 @@ bool CScript::IsWitnessProgram() const
     }
 
     do {
-        if (!GetOp(pc, opcode)) {
-            return false;
-        }
-        if (opcode == OP_0 || opcode >= OP_PUSHDATA1) {
+        if (!GetOp(pc, opcode) || opcode == OP_0 || opcode > 40) {
             return false;
         }
     } while (pc < end());
