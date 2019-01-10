@@ -9,7 +9,7 @@
 
 namespace snapshot {
 
-void State::StoreCandidateBlockHash(uint256 hash) {
+void State::StoreCandidateBlockHash(const uint256 &hash) {
   LOCK(cs_candidateBlockHash);
   m_candidateHash = hash;
 }
@@ -45,7 +45,7 @@ bool State::IsHeadersDownloaded() { return m_headersDownloaded.load(); }
 
 State state;
 
-void StoreCandidateBlockHash(uint256 hash) {
+void StoreCandidateBlockHash(const uint256 &hash) {
   state.StoreCandidateBlockHash(hash);
 }
 uint256 LoadCandidateBlockHash() { return state.LoadCandidateBlockHash(); }
