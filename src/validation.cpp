@@ -1756,12 +1756,12 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
         // transactions' outputs. This implies that it must be present for some
         // other output of the same tx.
         const Coin& alternate = AccessByTxid(view, out.hash);
-        if (!alternate.IsSpent()) {
-            undo.nHeight = alternate.nHeight;
-            undo.fCoinBase = alternate.fCoinBase;
-        } else {
+        if (alternate.IsSpent()) {
             // Adding output for transaction without known metadata
             return DISCONNECT_FAILED;
+        } else {
+            undo.nHeight = alternate.nHeight;
+            undo.fCoinBase = alternate.fCoinBase;
         }
     }
 
@@ -1820,7 +1820,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
         // Check that all outputs are available and match the outputs in the
         // block itself exactly.
-        for (size_t o = 0; o < tx.vout.size(); o++) {
+        for (size_t o = 0; o < tx.vout.size(); ++o) {
             if (tx.vout[o].scriptPubKey.IsUnspendable()) {
                 continue;
             }
@@ -1829,7 +1829,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             Coin coin;
             bool is_spent = view.SpendCoin(out, &coin);
 
-            if (!is_spent || tx.vout[0] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
+            if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
                 fClean = false; // Transaction output mismatch
             }
         }
