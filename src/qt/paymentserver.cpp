@@ -219,13 +219,13 @@ void PaymentServer::ipcParseCommandLine(int argc, char* argv[])
             SendCoinsRecipient r;
             if (GUIUtil::parseUnitEURI(arg, &r) && !r.address.isEmpty())
             {
-                auto tempChainParams = CreateChainParams(CBaseChainParams::MAIN);
+                auto tempChainParams = blockchain::Behavior::NewForNetwork(blockchain::Network::main);
 
                 if (IsValidDestinationString(r.address.toStdString(), *tempChainParams)) {
                     SelectParams(CBaseChainParams::MAIN);
                 } else {
-                    tempChainParams = CreateChainParams(CBaseChainParams::TESTNET);
-                    if (IsValidDestinationString(r.address.toStdString(), *tempChainParams)) {
+                    auto tempChainParams2 = blockchain::Behavior::NewForNetwork(blockchain::Network::test);
+                    if (IsValidDestinationString(r.address.toStdString(), *tempChainParams2)) {
                         SelectParams(CBaseChainParams::TESTNET);
                     }
                 }
