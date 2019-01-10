@@ -44,8 +44,8 @@ class Behavior {
   //! \return A value strictly greater than the given timestamp.
   Time CalculateProposingTimestampAfter(std::int64_t timestamp_sec) const;
 
-  //! \brief Calculates the block reward given current money supply and block height.
-  CAmount CalculateReward(MoneySupply, Height) const;
+  //! \brief Calculates the block reward given the block height.
+  CAmount CalculateBlockReward(const Height height) const;
 
   //! \brief Calculates the difficulty for BlockHeight
   Difficulty CalculateDifficulty(Height, ChainAccess &) const;

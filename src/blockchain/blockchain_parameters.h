@@ -31,30 +31,9 @@ struct Parameters {
   //! \brief a function to calculate the block reward.
   //!
   //! The reward function is a pure function that takes as inputs the parameters
-  //! that are currently active, the total amount of money in the system at the
-  //! height to propose a block for, and the height to propose at. This allows
-  //! for modelling all kinds of reward functions with or without inflation,
-  //! fixed block reward, etc.
-  //!
-  //! The bitcoin reward function for instance would be:
-  //!
-  //! rewardFunction = [](const Parameters &p, MoneySupply s, BlockHeight h) -> CAmount {
-  //!   constexpr CAmount initial_reward = 50 * UNIT;
-  //!   int halvings = h / 210000;
-  //!   if (halvings >= 64) {
-  //!     return 0;
-  //!   }
-  //!   return initial_reward >> halvings;
-  //! };
-  //!
-  //! A reward function that yields approximately two percent inflation would be:
-  //!
-  //! rewardFunction = [](const Parameters &p, MoneySupply s, BlockHeight h) -> CAmount {
-  //!   constexpr uint64_t secondsInAYear = 365 * 24 * 60 * 60;
-  //!   // 2 percent inflation (2% of current money supply distributed over all blocks in a year)
-  //!   return (s * 2 / 100) / (secondsInAYear / p.blockStakeTimestampIntervalSeconds);
-  //! };
-  using RewardFunction = CAmount (*)(const Parameters &, MoneySupply, Height);
+  //! that are currently active and the height to propose at.
+
+  using RewardFunction = CAmount (*)(const Parameters &, Height);
 
   //! \brief a function to calculate the difficulty for a given block.
   //!
@@ -163,8 +142,17 @@ struct Parameters {
   //! \brief Stake can only be re-used after the maturity period.
   Height restake_maturity;
 
+  //! \brief The initial amount of premined coins.
+  CAmount initial_supply;
+
   //! \brief The maximum amount of money that can be in the system.
   CAmount maximum_supply;
+
+  //! \brief The base block reward for each period.
+  std::vector<CAmount> reward_schedule;
+
+  //! \brief The period size in blocks.
+  std::uint32_t period_blocks;
 
   //! \brief The function calculating the reward for a newly proposed block.
   //!
