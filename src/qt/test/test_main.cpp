@@ -6,6 +6,7 @@
 #include <config/unite-config.h>
 #endif
 
+#include <blockchain/blockchain_behavior.h>
 #include <chainparams.h>
 #include <qt/test/rpcnestedtests.h>
 #include <util.h>
