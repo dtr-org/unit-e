@@ -85,21 +85,32 @@ std::chrono::seconds Behavior::GetBlockStakeTimestampInterval() const {
   return std::chrono::seconds(m_parameters.block_stake_timestamp_interval_seconds);
 }
 
-const std::vector<unsigned char>& Behavior::GetBase58Prefix(Base58Type type) const {
+const std::vector<unsigned char> &Behavior::GetBase58Prefix(Base58Type type) const {
   return m_parameters.base58_prefixes[type._to_index()];
 }
 
-const std::string& Behavior::GetBech32Prefix() const {
+const std::string &Behavior::GetBech32Prefix() const {
   return m_parameters.bech32_human_readable_prefix;
 }
 
 std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
   if (args->GetBoolArg("-regtest", false)) {
-    return MakeUnique<blockchain::Behavior>(Parameters::RegTest());
+    return NewForNetwork(Network::regtest);
   } else if (args->GetBoolArg("-testnet", false)) {
-    return MakeUnique<blockchain::Behavior>(Parameters::TestNet());
+    return NewForNetwork(Network::testnet);
   } else {
-    return MakeUnique<blockchain::Behavior>(Parameters::MainNet());
+    return NewForNetwork(Network::main);
+  }
+}
+
+std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {
+  switch (network) {
+    case Network::main:
+      return NewFromParameters(Parameters::MainNet());
+    case Network::testnet:
+      return NewFromParameters(Parameters::TestNet());
+    case Network::regtest:
+      return NewFromParameters(Parameters::RegTest());
   }
 }
 
@@ -112,14 +123,18 @@ namespace {
 //! injector as there are parts of united which require access to the currently
 //! selected blockchain parameters before and after the injector
 std::unique_ptr<Behavior> g_blockchain_behavior;
-}
+}  // namespace
 
 void Behavior::MakeGlobal(Dependency<::ArgsManager> args) {
-  std::unique_ptr<Behavior> b = New(args);
-  g_blockchain_behavior.swap(b);
+  SetGlobal(New(args));
+}
+
+void Behavior::SetGlobal(std::unique_ptr<Behavior> behavior) {
+  g_blockchain_behavior.swap(behavior);
 }
 
 Behavior &Behavior::GetGlobal() {
+  assert(g_blockchain_behavior && "global blockchain::Behavior is not initialized");
   return *g_blockchain_behavior;
 }
 
