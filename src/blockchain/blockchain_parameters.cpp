@@ -28,7 +28,8 @@ Parameters BuildMainNetParameters() {
   p.initial_supply = 150000000000000000;
   p.reward_schedule = {3750000000, 1700000000, 550000000, 150000000, 31000000};
   p.period_blocks = 19710000;
-  p.maximum_supply = p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks;  // e billion UTE
+  p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
+  assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
     const int period = h / p.period_blocks;
     if (period > p.reward_schedule.size()) {

@@ -18,9 +18,9 @@ BOOST_AUTO_TEST_CASE(total_supply_test) {
   constexpr CAmount max_supply = initial_supply + (3750000000 + 1700000000 + 550000000 + 150000000 + 31000000) * 1971000 * 10;
   BOOST_CHECK_EQUAL(max_supply, params.maximum_supply);
 
-  constexpr CAmount theoric_supply = 2718281828 * UNIT; // e billion tokens
+  constexpr CAmount theoretic_supply = 2718281828 * UNIT; // e billion tokens
   constexpr CAmount expected_delta = 6728 * UNIT;
-  BOOST_CHECK_EQUAL(params.maximum_supply, theoric_supply - expected_delta);
+  BOOST_CHECK_EQUAL(params.maximum_supply, theoretic_supply - expected_delta);
 }
 
 BOOST_AUTO_TEST_CASE(reward_function_test) {
