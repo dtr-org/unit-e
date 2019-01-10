@@ -698,7 +698,9 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
 
         // if we are using HD, replace the HD master key (seed) with a new one
         if (IsHDEnabled()) {
-            if (!SetHDSeed(GenerateNewHDSeed())) {
+            CKey key;
+            key.MakeNewKey(true);
+            if (!SetHDSeed(InitHDSeed(key))) {
                 return false;
             }
         }
@@ -1473,15 +1475,8 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
     return nChange;
 }
 
-CPubKey CWallet::GenerateNewHDSeed(const key::mnemonic::Seed *fromSeed)
+CPubKey CWallet::InitHDSeed(const CKey &key)
 {
-    CKey key;
-    if (fromSeed) {
-      key = fromSeed->GetExtKey().key;
-    } else {
-      key.MakeNewKey(true);
-    }
-
     int64_t nCreationTime = GetTime();
     CKeyMetadata metadata(nCreationTime);
 
@@ -1489,8 +1484,8 @@ CPubKey CWallet::GenerateNewHDSeed(const key::mnemonic::Seed *fromSeed)
     CPubKey pubkey = key.GetPubKey();
     assert(key.VerifyPubKey(pubkey));
 
-    // set the hd keypath to "m" -> Master, refers the masterkeyid to itself
-    metadata.hdKeypath     = "m";
+    // set the hd keypath to "s", the seed that generates the master key
+    metadata.hdKeypath     = "s";
     metadata.hd_seed_id  = pubkey.GetID();
 
     {
@@ -3957,8 +3952,10 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::WalletExtensionDeps& dep
         }
         walletInstance->SetMinVersion(FEATURE_NO_DEFAULT_KEY);
 
-        // generate a new master key
-        CPubKey seed = walletInstance->GenerateNewHDSeed();
+        // generate a new master seed
+        CKey key;
+        key.MakeNewKey(true);
+        CPubKey seed = walletInstance->InitHDSeed(key);
         if (!walletInstance->SetHDSeed(seed)) {
             throw std::runtime_error(std::string(__func__) + ": Storing master key failed");
         }

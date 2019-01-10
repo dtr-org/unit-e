@@ -1139,8 +1139,8 @@ public:
     /* Returns true if HD is enabled */
     bool IsHDEnabled() const;
 
-    /* Generates a new HD master seed (will not be activated) */
-    CPubKey GenerateNewHDSeed(const key::mnemonic::Seed *fromSeed = nullptr);
+    /* Initializes and stores a new HD master seed (will not be activated) */
+    CPubKey InitHDSeed(const CKey &seed);
 
     /* Set the current HD master seed (will reset the chain child index counters)
        Sets the HD chain version based on the current wallet version (so the
