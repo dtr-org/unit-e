@@ -32,7 +32,7 @@ Parameters BuildMainNetParameters() {
   assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
     const int period = h / p.period_blocks;
-    if (period > p.reward_schedule.size()) {
+    if (period >= p.reward_schedule.size()) {
       return 0;
     }
     return p.reward_schedule[period];
