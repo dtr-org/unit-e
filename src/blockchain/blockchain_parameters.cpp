@@ -6,6 +6,7 @@
 
 #include <blockchain/blockchain_genesis.h>
 #include <utilstrencodings.h>
+#include <numeric>
 
 namespace blockchain {
 
@@ -24,12 +25,17 @@ Parameters BuildMainNetParameters() {
   p.maximum_block_sigops_cost = 80000;
   p.coinbase_maturity = 100;
   p.restake_maturity = 200;
-  p.maximum_supply = 2718281828 * UNIT;  // e billion UTE
-  p.reward_function = [](const Parameters &p, MoneySupply s, Height h) -> CAmount {
-    // UNIT-E: This reward function is not here to stay, it is just some simple reward function as in particl
-    constexpr uint64_t secondsInAYear = 365 * 24 * 60 * 60;
-    // 2 percent inflation (2% of current money supply distributed over all blocks in a year)
-    return (s * 2 / 100) / (secondsInAYear / p.block_stake_timestamp_interval_seconds);
+  p.initial_supply = 150000000000000000;
+  p.reward_schedule = {3750000000, 1700000000, 550000000, 150000000, 31000000};
+  p.period_blocks = 19710000;
+  p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
+  assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
+  p.reward_function = [](const Parameters &p, Height h) -> CAmount {
+    const int period = h / p.period_blocks;
+    if (period >= p.reward_schedule.size()) {
+      return 0;
+    }
+    return p.reward_schedule[period];
   };
   p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
     // UNIT-E: Does not adjust difficulty for now

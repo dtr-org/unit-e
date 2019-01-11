@@ -61,7 +61,8 @@ class LogicImpl final : public Logic {
     for (const auto &coin : eligible_utxos) {
       const uint256 kernel_hash = m_stake_validator->ComputeKernelHash(current_tip, coin, target_time);
       if (m_stake_validator->CheckKernel(coin.amount, kernel_hash, target_difficulty)) {
-        const CAmount reward = m_blockchain_behavior->CalculateReward(current_tip->money_supply, target_height);
+        const CAmount reward = m_blockchain_behavior->CalculateBlockReward(
+            target_height);
         return {{coin,
                  kernel_hash,
                  reward,

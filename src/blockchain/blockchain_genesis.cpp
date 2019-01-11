@@ -67,6 +67,14 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   assert(genesis_block.vtx[0]->vin[0].prevout.hash == uint256());
   assert(genesis_block.vtx[0]->vin[0].prevout.n == 0);
   assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
+
+  // UNIT-E: TODO: This will be enabled once we will have defined the initial funds allocation
+  //  CAmount initial_funds_amount = 0;
+  //  for(const auto& out : m_initial_funds) {
+  //    initial_funds_amount += out.first;
+  //  }
+  //  assert(initial_funds_amount == parameters.initial_supply);
+
   assert(genesis_block.hashMerkleRoot == genesis_block.vtx[0]->GetHash());
 
   // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
