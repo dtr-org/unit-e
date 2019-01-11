@@ -172,8 +172,7 @@ class CommitsTest(UnitETestFramework):
         self.nodes[0].p2p.send_message(self.make_commits_msg(blocks))
 
     def check_headers(self, number):
-        info = self.nodes[0].getblockchaininfo()
-        assert_equal(info['headers'], number)
+        wait_until(lambda: self.nodes[0].getblockchaininfo()['headers'] == number, timeout=20)
 
     def run_test(self):
         p = self.nodes[0]
