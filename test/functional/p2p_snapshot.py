@@ -189,24 +189,17 @@ class P2PSnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 4
+
+        serving_node_args = []
+        syncing_node_args = ['-prune=1', '-isd=1', '-snapshotchunktimeout=60', '-snapshotdiscoverytimeout=60']
         self.extra_args = [
             # test_p2p_schema
-            # serving node
-            [],
-            # syncing node
-            ['-prune=1',
-             '-isd=1',
-             '-snapshotchunktimeout=60',
-             '-snapshotdiscoverytimeout=60'],
+            serving_node_args,
+            syncing_node_args,
 
             # test_sync_with_restarts
-            # serving node
-            [],
-            # syncing node
-            ['-prune=1',
-             '-isd=1',
-             '-snapshotchunktimeout=60',
-             '-snapshotdiscoverytimeout=60'],
+            serving_node_args,
+            syncing_node_args,
         ]
 
     def setup_network(self):
