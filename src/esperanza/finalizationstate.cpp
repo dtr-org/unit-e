@@ -1152,7 +1152,11 @@ void Storage::ResetToTip(const esperanza::FinalizationParams &params,
 void Storage::ClearUntilHeight(blockchain::Height height) {
   LOCK(cs);
   for (auto it = m_states.begin(); it != m_states.end();) {
-    const auto index = LookupBlockIndex(it->first);
+    const CBlockIndex *index = nullptr;
+    {
+      LOCK(cs_main);
+      index = LookupBlockIndex(it->first);
+    }
     assert(index != nullptr);  // block hash shouldn't disappear
     if (static_cast<blockchain::Height>(index->nHeight) < height) {
       it = m_states.erase(it);
@@ -1203,11 +1207,6 @@ void RestoreFinalizationState(const CChainParams &chainparams) {
     }
     esperanza::ProcessNewTip(*index, block);
   }
-}
-
-void ClearFinalizedCache() {
-  const auto state = g_storage.Genesis();
-  g_storage.ClearUntilHeight(state->GetLastFinalizedEpoch() * state->GetEpochLength());
 }
 
 }  // namespace esperanza
