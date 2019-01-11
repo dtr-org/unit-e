@@ -169,7 +169,7 @@ def uint256_from_rev_hex(v):
     return uint256_from_hex(v)
 
 
-def has_snapshot(node, height):
+def has_valid_snapshot(node, height):
     res = node.getblocksnapshot(node.getblockhash(height))
     if 'valid' not in res:
         return False
@@ -221,7 +221,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # generate 4 blocks to create the first snapshot
         serving_node.generatetoaddress(4, serving_node.getnewaddress())
-        wait_until(lambda: has_snapshot(serving_node, 3), timeout=10)
+        wait_until(lambda: has_valid_snapshot(serving_node, 3), timeout=10)
 
         syncing_p2p = serving_node.add_p2p_connection(BaseNode())
         serving_p2p = syncing_node.add_p2p_connection(BaseNode())
@@ -300,7 +300,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # generate 4 blocks to create the first snapshot
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
-        wait_until(lambda: has_snapshot(snap_node, 3), timeout=10)
+        wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
 
         # configure p2p to have snapshot header and parent block
         p2p = node.add_p2p_connection(WaitNode())
