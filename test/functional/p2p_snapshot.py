@@ -228,7 +228,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # generate 4 blocks to create the first snapshot
         serving_node.generatetoaddress(4, serving_node.getnewaddress())
-        wait_until(lambda: has_snapshot(serving_node, 3))
+        wait_until(lambda: has_snapshot(serving_node, 3), timeout=10)
 
         syncing_p2p = serving_node.add_p2p_connection(BaseNode())
         serving_p2p = syncing_node.add_p2p_connection(BaseNode())
@@ -242,14 +242,14 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # test snapshot downloading in chunks
         syncing_p2p.send_message(msg_getsnaphead())
-        wait_until(lambda: syncing_p2p.snapshot_header.total_utxo_subsets > 0)
+        wait_until(lambda: syncing_p2p.snapshot_header.total_utxo_subsets > 0, timeout=10)
         chunks = math.ceil(syncing_p2p.snapshot_header.total_utxo_subsets / 2)
         for i in range(1, chunks+1):
             getsnapshot = GetSnapshot(syncing_p2p.snapshot_header.snapshot_hash, len(syncing_p2p.snapshot_data), 2)
             syncing_p2p.send_message(msg_getsnapshot(getsnapshot))
 
             snapshot_size = min(i * 2, syncing_p2p.snapshot_header.total_utxo_subsets)
-            wait_until(lambda: len(syncing_p2p.snapshot_data) == snapshot_size)
+            wait_until(lambda: len(syncing_p2p.snapshot_data) == snapshot_size, timeout=10)
         assert_equal(len(syncing_p2p.snapshot_data), syncing_p2p.snapshot_header.total_utxo_subsets)
 
         self.log.info('Snapshot was downloaded successfully')
@@ -271,14 +271,14 @@ class P2PSnapshotTest(UnitETestFramework):
         self.log.info('Snapshot was validated successfully')
 
         # test snapshot serving
-        wait_until(lambda: serving_p2p.snapshot_requested)
+        wait_until(lambda: serving_p2p.snapshot_requested, timeout=10)
         snapshot = Snapshot(
             snapshot_hash=serving_p2p.snapshot_header.snapshot_hash,
             utxo_subset_index=0,
             utxo_subsets=syncing_p2p.snapshot_data,
         )
         serving_p2p.send_message(msg_snapshot(snapshot))
-        wait_until(lambda: syncing_node.getblockcount() == 4)
+        wait_until(lambda: syncing_node.getblockcount() == 4, timeout=10)
         assert_equal(serving_node.gettxoutsetinfo(), syncing_node.gettxoutsetinfo())
 
         self.log.info('Snapshot was sent successfully')
@@ -307,7 +307,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # generate 4 blocks to create the first snapshot
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
-        wait_until(lambda: has_snapshot(snap_node, 3))
+        wait_until(lambda: has_snapshot(snap_node, 3), timeout=10)
 
         # configure p2p to have snapshot header and parent block
         p2p = node.add_p2p_connection(WaitNode())
@@ -323,15 +323,15 @@ class P2PSnapshotTest(UnitETestFramework):
         # fetch snapshot content for p2p
         snap_p2p.wait_for_verack()
         snap_p2p.send_message(msg_getsnaphead())
-        wait_until(lambda: snap_p2p.snapshot_header.total_utxo_subsets > 0)
+        wait_until(lambda: snap_p2p.snapshot_header.total_utxo_subsets > 0, timeout=10)
         getsnapshot = GetSnapshot(snap_p2p.snapshot_header.snapshot_hash, 0, snap_p2p.snapshot_header.total_utxo_subsets)
         snap_p2p.send_message(msg_getsnapshot(getsnapshot))
-        wait_until(lambda: len(snap_p2p.snapshot_data) > 0)
+        wait_until(lambda: len(snap_p2p.snapshot_data) > 0, timeout=10)
         p2p.snapshot_data = snap_p2p.snapshot_data
         snap_node.disconnect_p2ps()
 
         # test 1. the node can be restarted after it discovered the snapshot
-        wait_until(lambda: p2p.snapshot_chunk1_requested)
+        wait_until(lambda: p2p.snapshot_chunk1_requested, timeout=10)
         node.disconnect_p2ps()
         network_thread_join()
         self.restart_node(node.index)
@@ -341,7 +341,7 @@ class P2PSnapshotTest(UnitETestFramework):
         p2p.return_snapshot_chunk1 = True
         node.add_p2p_connection(p2p)
         network_thread_start()
-        wait_until(lambda: p2p.snapshot_chunk2_requested)
+        wait_until(lambda: p2p.snapshot_chunk2_requested, timeout=10)
         node.disconnect_p2ps()
         network_thread_join()
         self.restart_node(node.index)
@@ -352,7 +352,7 @@ class P2PSnapshotTest(UnitETestFramework):
         p2p.return_snapshot_chunk2 = True
         node.add_p2p_connection(p2p)
         network_thread_start()
-        wait_until(lambda: p2p.parent_block_requested)
+        wait_until(lambda: p2p.parent_block_requested, timeout=10)
         node.disconnect_p2ps()
         network_thread_join()
         self.restart_node(node.index)
@@ -362,7 +362,7 @@ class P2PSnapshotTest(UnitETestFramework):
         p2p.return_parent_block = True
         node.add_p2p_connection(p2p)
         network_thread_start()
-        wait_until(lambda: node.getblockcount() == snap_node.getblockcount())
+        wait_until(lambda: node.getblockcount() == snap_node.getblockcount(), timeout=10)
         assert_chainstate_equal(node, snap_node)
         node.disconnect_p2ps()
         network_thread_join()
