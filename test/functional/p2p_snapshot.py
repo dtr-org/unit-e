@@ -49,6 +49,7 @@ from test_framework.util import (
 )
 
 import math
+import os
 
 
 class BaseNode(P2PInterface):
@@ -120,23 +121,34 @@ class WaitNode(BaseNode):
     def __init__(self):
         super().__init__()
 
-        self.snapshot_requested = False
-        self.return_snapshot = False
+        self.snapshot_chunk1_requested = False
+        self.return_snapshot_chunk1 = False
+
+        self.snapshot_chunk2_requested = False
+        self.return_snapshot_chunk2 = False
 
         self.parent_block_requested = False
         self.return_parent_block = False
 
     def on_getsnapshot(self, message):
-        self.snapshot_requested = True
-        if not self.return_snapshot:
-            return
-
+        start = message.getsnapshot.utxo_subset_index
+        stop = start + len(self.snapshot_data) / 2
         snapshot = Snapshot(
             snapshot_hash=self.snapshot_header.snapshot_hash,
-            utxo_subset_index=0,
-            utxo_subsets=self.snapshot_data,
+            utxo_subset_index=message.getsnapshot.utxo_subset_index,
+            utxo_subsets=self.snapshot_data[int(start):int(stop)],
         )
-        self.send_message(msg_snapshot(snapshot))
+
+        if start == 0:
+            self.snapshot_chunk1_requested = True
+            if self.return_snapshot_chunk1:
+                self.send_message(msg_snapshot(snapshot))
+            return
+
+        self.snapshot_chunk2_requested = True
+        if self.return_snapshot_chunk2:
+            self.send_message(msg_snapshot(snapshot))
+        return
 
     def on_getdata(self, message):
         for i in message.inv:
@@ -162,6 +174,15 @@ def has_snapshot(node, height):
     if 'valid' not in res:
         return False
     return True
+
+
+def assert_chainstate_equal(node1, node2):
+    info1 = node1.gettxoutsetinfo()
+    info2 = node2.gettxoutsetinfo()
+    for k in info1:
+        if k == 'disk_size':  # disk size is estimated and may not match
+            continue
+        assert_equal(info1[k], info2[k])
 
 
 class P2PSnapshotTest(UnitETestFramework):
@@ -309,41 +330,46 @@ class P2PSnapshotTest(UnitETestFramework):
         p2p.snapshot_data = snap_p2p.snapshot_data
         snap_node.disconnect_p2ps()
 
-        # test that node can be restarted after it discovered the snapshot
-        wait_until(lambda: p2p.snapshot_requested)
+        # test 1. the node can be restarted after it discovered the snapshot
+        wait_until(lambda: p2p.snapshot_chunk1_requested)
         node.disconnect_p2ps()
         network_thread_join()
         self.restart_node(node.index)
         self.log.info('Node restarted successfully after it discovered the snapshot')
 
-        # test that node can be restarted after it downloaded the snapshot
-        p2p.return_snapshot = True
+        # test 2. that node can be restarted after it downloaded half of the snapshot
+        p2p.return_snapshot_chunk1 = True
+        node.add_p2p_connection(p2p)
+        network_thread_start()
+        wait_until(lambda: p2p.snapshot_chunk2_requested)
+        node.disconnect_p2ps()
+        network_thread_join()
+        self.restart_node(node.index)
+        assert_equal(len(os.listdir(os.path.join(node.datadir, "regtest", "snapshots"))), 0)
+        self.log.info('Node restarted successfully after it downloaded half of the snapshot')
+
+        # test 3. that node can be restarted after it downloaded the full snapshot
+        p2p.return_snapshot_chunk2 = True
         node.add_p2p_connection(p2p)
         network_thread_start()
         wait_until(lambda: p2p.parent_block_requested)
         node.disconnect_p2ps()
         network_thread_join()
         self.restart_node(node.index)
-        self.log.info('Node restarted successfully after it downloaded the snapshot')
+        self.log.info('Node restarted successfully after it downloaded the full snapshot')
 
-        # test that node can be restarted after it downloaded the parent block
+        # test 4. the node can be restarted after it downloaded the parent block
         p2p.return_parent_block = True
         node.add_p2p_connection(p2p)
         network_thread_start()
         wait_until(lambda: node.getblockcount() == snap_node.getblockcount())
-        assert_equal(node.gettxoutsetinfo(), snap_node.gettxoutsetinfo())
+        assert_chainstate_equal(node, snap_node)
         node.disconnect_p2ps()
         network_thread_join()
         self.restart_node(node.index)
         self.restart_node(snap_node.index)
-
-        info1 = node.gettxoutsetinfo()
-        info2 = snap_node.gettxoutsetinfo()
-        for k in info1:
-            if k == 'disk_size':
-                continue
-            assert_equal(info1[k], info2[k])
-
+        assert_chainstate_equal(node, snap_node)
+        assert_equal(node.listsnapshots(), snap_node.listsnapshots())
         self.log.info('Node restarted successfully after it downloaded the parent block')
 
         # clean up test

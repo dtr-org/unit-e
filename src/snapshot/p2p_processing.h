@@ -62,6 +62,11 @@ class P2PState {
   void ProcessSnapshotParentBlock(CBlock *parent_block,
                                   std::function<void()> regular_processing);
 
+  //! Deletes the snapshot the node is currently downloading
+  //! if this snapshot is not fully downloaded and linked yet.
+  //! Is called when the node is stopped
+  void DeleteUnlinkedSnapshot();
+
  protected:
   // used to detect the timeout after which node gives up
   // and switching to IBD
@@ -89,6 +94,7 @@ class P2PState {
 };
 
 void InitP2P(const Params &params);
+void DeinitP2P();
 
 // proxy to g_p2p_state.ProcessGetSnapshotHeader
 bool ProcessGetBestSnapshot(CNode &node, CDataStream &data,

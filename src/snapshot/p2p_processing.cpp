@@ -535,10 +535,29 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
   }
 }
 
+void P2PState::DeleteUnlinkedSnapshot() {
+  if (m_downloading_snapshot.IsNull()) {
+    return;
+  }
+
+  // don't keep partially downloaded snapshot on disk when the node stops
+  // as it will be unlinked and be never deleted
+  uint256 finalized_hash;
+  GetLatestFinalizedSnapshotHash(finalized_hash);
+  if (m_downloading_snapshot.snapshot_hash != LoadCandidateBlockHash() &&
+      m_downloading_snapshot.snapshot_hash != finalized_hash) {
+    Indexer::Delete(m_downloading_snapshot.snapshot_hash);
+  }
+}
+
 P2PState g_p2p_state;
 
 void InitP2P(const Params &params) {
   g_p2p_state = P2PState(params);
+}
+
+void DeinitP2P() {
+  g_p2p_state.DeleteUnlinkedSnapshot();
 }
 
 // proxy to g_p2p_state.ProcessGetSnapshotHeader
