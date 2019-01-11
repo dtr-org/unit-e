@@ -173,7 +173,7 @@ def has_snapshot(node, height):
     res = node.getblocksnapshot(node.getblockhash(height))
     if 'valid' not in res:
         return False
-    return True
+    return res['valid']
 
 
 def assert_chainstate_equal(node1, node2):
