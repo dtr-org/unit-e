@@ -210,10 +210,11 @@ BOOST_AUTO_TEST_CASE(deposit_amount) {
 }
 
 namespace {
-CBlockIndex *AddBlock(CBlockIndex *prev, int i) {
-  auto res = mapBlockIndex.emplace(uint256S(std::to_string(1000 + i)), new CBlockIndex);
+CBlockIndex *AddBlock(CBlockIndex *prev) {
+  const auto height = prev->nHeight + 1;
+  auto res = mapBlockIndex.emplace(uint256S(std::to_string(height)), new CBlockIndex);
   CBlockIndex &index = *res.first->second;
-  index.nHeight = i;
+  index.nHeight = height;
   index.phashBlock = &res.first->first;
   index.pprev = prev;
   chainActive.SetTip(&index);
@@ -225,10 +226,9 @@ CBlockIndex *AddBlock(CBlockIndex *prev, int i) {
 BOOST_AUTO_TEST_CASE(storage) {
   const auto epoch_length = static_cast<int>(esperanza::GetEpochLength());
   CBlockIndex *prev = chainActive.Genesis();
-  int i = 1;
   // Generate first epoch block
-  for (; i <= epoch_length - 1; ++i) {
-    prev = AddBlock(prev, i);
+  for (; prev->nHeight < epoch_length - 1;) {
+    prev = AddBlock(prev);
   }
   // Check, all states presented in the cache
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[0]) != nullptr);
@@ -241,8 +241,7 @@ BOOST_AUTO_TEST_CASE(storage) {
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[1]) != esperanza::FinalizationState::GetState(chainActive[epoch_length - 1]));
 
   // generate one more block, trigger finalization of previous epoch
-  prev = AddBlock(prev, epoch_length);
-  ++i;
+  prev = AddBlock(prev);
 
   // Now epoch 1 is finalized, check old states disappear from the cache
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[0]) != nullptr);  // genesis
@@ -252,8 +251,8 @@ BOOST_AUTO_TEST_CASE(storage) {
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length]) != nullptr);      // first block of new epoch
 
   // Generate next epoch
-  for (; i <= epoch_length * 2 - 1; ++i) {
-    prev = AddBlock(prev, i);
+  for (; prev->nHeight < epoch_length * 2 - 1;) {
+    prev = AddBlock(prev);
   }
 
   // Check, new states are in the cache
@@ -261,8 +260,7 @@ BOOST_AUTO_TEST_CASE(storage) {
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length * 2 - 1]) != nullptr);
 
   // generate one more block, trigger finalization of previous epoch
-  prev = AddBlock(prev, epoch_length * 2);
-  ++i;
+  prev = AddBlock(prev);
 
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length]) == nullptr);
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length * 2 - 2]) == nullptr);

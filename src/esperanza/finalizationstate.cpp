@@ -55,7 +55,7 @@ class Storage {
   FinalizationState *Create(const CBlockIndex *index);
 
   mutable CCriticalSection cs;
-  std::map<uint256, FinalizationState> m_states;
+  std::map<const CBlockIndex *, FinalizationState> m_states;
   std::unique_ptr<FinalizationState> m_genesis_state;
 };
 
@@ -1105,7 +1105,7 @@ FinalizationState *Storage::Find(const CBlockIndex *index) {
   if (index->nHeight == 0) {
     return Genesis();
   }
-  const auto it = m_states.find(index->GetBlockHash());
+  const auto it = m_states.find(index);
   if (it == m_states.end()) {
     return nullptr;
   } else {
@@ -1122,7 +1122,7 @@ FinalizationState *Storage::Create(const CBlockIndex *index) {
   if (parent == nullptr) {
     return nullptr;
   }
-  const auto res = m_states.emplace(index->GetBlockHash(), FinalizationState(*parent));
+  const auto res = m_states.emplace(index, FinalizationState(*parent));
   return &res.first->second;
 }
 
@@ -1146,18 +1146,13 @@ void Storage::ResetToTip(const esperanza::FinalizationParams &params,
                          CBlockIndex *index) {
   LOCK(cs);
   Reset(params, admin_params);
-  m_states.emplace(index->GetBlockHash(), FinalizationState(*Genesis()));
+  m_states.emplace(index, FinalizationState(*Genesis()));
 }
 
 void Storage::ClearUntilHeight(blockchain::Height height) {
   LOCK(cs);
   for (auto it = m_states.begin(); it != m_states.end();) {
-    const CBlockIndex *index = nullptr;
-    {
-      LOCK(cs_main);
-      index = LookupBlockIndex(it->first);
-    }
-    assert(index != nullptr);  // block hash shouldn't disappear
+    const auto index = it->first;
     if (static_cast<blockchain::Height>(index->nHeight) < height) {
       it = m_states.erase(it);
     } else {
