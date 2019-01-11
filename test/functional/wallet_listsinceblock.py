@@ -10,6 +10,7 @@ from test_framework.util import assert_equal, assert_array_result, assert_raises
 class ListSinceBlockTest (UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
+        self.extra_args = [['-esperanzaconfig={"epochLength": 99999}']] * 4
         self.setup_clean_chain = True
 
     def run_test(self):
