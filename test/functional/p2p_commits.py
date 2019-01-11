@@ -2,6 +2,13 @@
 # Copyright (c) 2018 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+"""Test p2p commits messages.
+
+This test checks:
+1. GetCommitsTest: generate blocks on the node and test getcommits behavior
+2. CommitsTest: send commits to the node and check its state
+
+"""
 
 from test_framework.messages import (
     msg_getcommits,
