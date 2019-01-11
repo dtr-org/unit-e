@@ -168,7 +168,6 @@ class UnitETestFramework():
             self.log.error("Hint: Call {} '{}' to consolidate all logs".format(os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + "/../combine_logs.py"), self.options.tmpdir))
             exit_code = TEST_EXIT_FAILED
         logging.shutdown()
-        sys.exit(exit_code)
 
     # Methods to override in subclass test scripts.
     def set_test_params(self):
@@ -388,7 +387,7 @@ class UnitETestFramework():
 
     def _start_logging(self):
         # Add logger and logging handlers
-        self.log = logging.getLogger('TestFramework')
+        self.log = logging.getLogger('TestFramework.' + type(self).__name__)
         self.log.setLevel(logging.DEBUG)
         # Create file handler to log all messages
         fh = logging.FileHandler(self.options.tmpdir + '/test_framework.log')
