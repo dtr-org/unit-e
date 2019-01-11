@@ -4,7 +4,7 @@
 
 #include <test/esperanza/finalizationstate_utils.h>
 
-BOOST_FIXTURE_TEST_SUITE(finalizationstate_slash_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizationstate_slash_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(is_slashable_not_a_validator) {
 
