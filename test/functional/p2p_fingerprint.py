@@ -37,6 +37,7 @@ class P2PFingerprintTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
+        self.extra_args = [['-esperanzaconfig={"epochLength": 99999}']]
 
     # Build a chain of blocks on top of given one
     def build_chain(self, nblocks, prev_hash, prev_height, prev_median_time, snapshot_meta):
