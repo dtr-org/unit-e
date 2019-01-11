@@ -643,7 +643,7 @@ are defined in a [YAML file](../.github/labels/dtr-org-unit-e-labels.yaml) and
 applied to GitHub via the API. Here is an overview of all labels used in the
 `unit-e` repository.
 
-![GitHub labels](../github/labels/dtr-org-unit-e-labels.svg)
+![GitHub labels](../.github/labels/dtr-org-unit-e-labels.svg)
 
 Scripted diffs
 --------------
