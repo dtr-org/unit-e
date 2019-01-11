@@ -179,6 +179,7 @@ class CommitsTest(UnitETestFramework):
         p2p = P2P()
         p.add_p2p_connection(p2p)
         network_thread_start()
+        p.p2p.wait_for_verack()
 
         chain = []
         tip = lambda c: c[-1] if len(c) > 0 else None
