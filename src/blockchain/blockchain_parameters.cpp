@@ -17,6 +17,7 @@ Parameters BuildMainNetParameters() {
   p.network_name = "main";
   p.block_stake_timestamp_interval_seconds = 16;
   p.block_time_seconds = 16;
+  p.max_future_block_time_seconds = 2 * 60 * 60;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
   p.maximum_block_size = 1000000;
@@ -31,7 +32,7 @@ Parameters BuildMainNetParameters() {
   p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
   assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
-    const uint64_t period = h / p.period_blocks;
+    const std::uint32_t period = h / p.period_blocks;
     if (period >= p.reward_schedule.size()) {
       return 0;
     }

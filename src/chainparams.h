@@ -26,10 +26,6 @@ struct SeedSpec6 {
 
 typedef std::map<int, uint256> MapCheckpoints;
 
-struct CCheckpointData {
-    MapCheckpoints mapCheckpoints;
-};
-
 struct ChainTxData {
     int64_t nTime;
     int64_t nTxCount;

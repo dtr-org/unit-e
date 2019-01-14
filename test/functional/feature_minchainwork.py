@@ -20,16 +20,14 @@ import time
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import connect_nodes, assert_equal
 
-# 2 hashes required per regtest block (with no difficulty adjustment)
-REGTEST_WORK_PER_BLOCK = 2
-
+# UNIT-E: Adapt test for minimum stake setting
 class MinimumChainWorkTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
 
-        self.extra_args = [[], ["-minimumchainwork=0x65"], ["-minimumchainwork=0x65"]]
-        self.node_min_work = [0, 101, 101]
+        self.extra_args = [[], ["-minimumchainwork=0x08"], ["-minimumchainwork=0x08"]]
+        self.node_min_work = [0, 8, 8]
 
     def setup_network(self):
         # This test relies on the chain setup being:
@@ -44,12 +42,12 @@ class MinimumChainWorkTest(UnitETestFramework):
     def run_test(self):
         # Start building a chain on node0.  node2 shouldn't be able to sync until node1's
         # minchainwork is exceeded
-        starting_chain_work = REGTEST_WORK_PER_BLOCK # Genesis block's work
+        starting_chain_work = 1 # Genesis block's work
         self.log.info("Testing relay across node %d (minChainWork = %d)", 1, self.node_min_work[1])
 
         starting_blockcount = self.nodes[2].getblockcount()
 
-        num_blocks_to_generate = int((self.node_min_work[1] - starting_chain_work) / REGTEST_WORK_PER_BLOCK)
+        num_blocks_to_generate = int((self.node_min_work[1] - starting_chain_work - 1))
         self.log.info("Generating %d blocks on node0", num_blocks_to_generate)
         hashes = self.nodes[0].generate(num_blocks_to_generate)
 

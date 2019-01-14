@@ -8,7 +8,6 @@
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <miner.h>
-#include <pow.h>
 #include <random.h>
 #include <test/test_unite.h>
 #include <validation.h>
@@ -90,10 +89,6 @@ BlockData Block(const BlockData &prevData)
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
 {
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
-
-    while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
-        ++(pblock->nNonce);
-    }
 
     return pblock;
 }

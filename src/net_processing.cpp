@@ -2525,7 +2525,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // we have a chain with at least nMinimumChainWork), and we ignore
             // compact blocks with less work than our tip, it is safe to treat
             // reconstructed compact blocks as having been requested.
-            ProcessNewBlock(chainparams, pblock, /*fForceProcessing=*/true, &fNewBlock);
+            const bool processed = ProcessNewBlock(chainparams, pblock, /*fForceProcessing=*/true, &fNewBlock);
+            if (LogAcceptCategory(BCLog::NET)) {
+                if (processed) {
+                    LogPrint(BCLog::NET, "%s: Successfully processed block %s.\n", __func__, pblock->GetHash().ToString());
+                } else {
+                    LogPrint(BCLog::NET, "%s: Failed to process block %s.\n", __func__, pblock->GetHash().ToString());
+                }
+            }
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2609,7 +2616,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // disk-space attacks), but this should be safe due to the
             // protections in the compact block handler -- see related comment
             // in compact block optimistic reconstruction handling.
-            ProcessNewBlock(chainparams, pblock, /*fForceProcessing=*/true, &fNewBlock);
+            const bool processed = ProcessNewBlock(chainparams, pblock, /*fForceProcessing=*/true, &fNewBlock);
+            if (LogAcceptCategory(BCLog::NET)) {
+                if (processed) {
+                    LogPrint(BCLog::NET, "%s: Successfully processed block %s.\n", __func__, pblock->GetHash().ToString());
+                } else {
+                    LogPrint(BCLog::NET, "%s: Failed to process block %s.\n", __func__, pblock->GetHash().ToString());
+                }
+            }
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {
@@ -2666,7 +2680,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         // regular ProcessNewBlock implementation
         snapshot::ProcessSnapshotParentBlock(*pblock, [&](){
             bool fNewBlock = false;
-            ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
+            const bool processed = ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
+            if (LogAcceptCategory(BCLog::NET)) {
+                if (processed) {
+                    LogPrint(BCLog::NET, "%s: Successfully processed block %s.\n", __func__, pblock->GetHash().ToString());
+                } else {
+                    LogPrint(BCLog::NET, "%s: Failed to process block %s.\n", __func__, pblock->GetHash().ToString());
+                }
+            }
             if (fNewBlock) {
                 pfrom->nLastBlockTime = GetTime();
             } else {

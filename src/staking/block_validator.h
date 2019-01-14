@@ -23,6 +23,8 @@ BETTER_ENUM(
     BlockValidationError,
     std::uint8_t,
     BLOCK_SIGNATURE_VERIFICATION_FAILED,
+    BLOCKTIME_TOO_EARLY,
+    BLOCKTIME_TOO_FAR_INTO_FUTURE,
     COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST,
     COINBASE_TRANSACTION_WITHOUT_OUTPUT,
     DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE,
@@ -37,6 +39,7 @@ BETTER_ENUM(
     NO_SNAPSHOT_HASH,
     NO_STAKING_INPUT,
     NO_TRANSACTIONS,
+    PREVIOUS_BLOCK_DOESNT_MATCH,
     WITNESS_MERKLE_ROOT_MISMATCH
 )
 // clang-format on
@@ -51,6 +54,8 @@ class BlockValidationResult {
 
   //! \brief Validation succeeded if there are no validation errors
   explicit operator bool() const;
+
+  std::string ToString() const;
 };
 
 //! \brief A component for validating blocks.
@@ -59,6 +64,31 @@ class BlockValidationResult {
 class BlockValidator {
 
  public:
+  //! \brief checks a block header in the context of the previous block it is supposed to be connected to.
+  //!
+  //! This function can not be used on the genesis block as it does not have
+  //! a previous block.
+  virtual BlockValidationResult ContextualCheckBlockHeader(
+      const CBlockHeader &,  //!<,
+      const CBlockIndex &,   //!< The previous block.
+      blockchain::Time       //!<
+      ) const = 0;
+
+  //! \brief checks that the block header has the right structure.
+  //!
+  //! A well-formed block header is supposed to:
+  //! - have a valid timestamp (one that fits with the staking timestamp frequency)
+  virtual BlockValidationResult CheckBlockHeader(const CBlockHeader &) const = 0;
+
+  //! \brief checks a block in the context of a chain it is supposed to be connected to.
+  //!
+  //! This function can not be used on the genesis block as it does not have
+  //! a previous block.
+  virtual BlockValidationResult ContextualCheckBlock(
+      const CBlock &,      //!<
+      const CBlockIndex &  //!< The previous block
+      ) const = 0;
+
   //! \brief checks that the block has the right structure, but nothing else
   //!
   //! A well-formed block is supposed to follow the following structure:
@@ -66,6 +96,9 @@ class BlockValidator {
   //! - the coinbase transaction must be the first transaction
   //! - no other transaction maybe marked as coinbase transaction
   virtual BlockValidationResult CheckBlock(const CBlock &) const = 0;
+
+  //! \brief checks a CBlockIndex as stored on disk.
+  virtual BlockValidationResult CheckBlockIndex(const CBlockIndex &) const = 0;
 
   virtual ~BlockValidator() = default;
 

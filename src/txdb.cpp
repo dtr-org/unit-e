@@ -7,8 +7,8 @@
 
 #include <chainparams.h>
 #include <hash.h>
+#include <injector.h>
 #include <random.h>
-#include <pow.h>
 #include <uint256.h>
 #include <util.h>
 #include <ui_interface.h>
@@ -283,12 +283,12 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nHeight        = diskindex.nHeight;
                 pindexNew->nFile          = diskindex.nFile;
                 pindexNew->stake_modifier = diskindex.stake_modifier;
-                pindexNew->prevout_stake  = diskindex.prevout_stake;
-                pindexNew->money_supply   = diskindex.money_supply;
+                pindexNew->stake_amount   = diskindex.stake_amount;
                 pindexNew->nDataPos       = diskindex.nDataPos;
                 pindexNew->nUndoPos       = diskindex.nUndoPos;
                 pindexNew->nVersion       = diskindex.nVersion;
                 pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
+                pindexNew->hash_witness_merkle_root = diskindex.hash_witness_merkle_root;
                 pindexNew->nTime          = diskindex.nTime;
                 pindexNew->nBits          = diskindex.nBits;
                 pindexNew->nNonce         = diskindex.nNonce;
@@ -296,9 +296,12 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nTx            = diskindex.nTx;
                 pindexNew->commits        = std::move(diskindex.commits);
 
-                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams))
-                    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
-
+                const staking::BlockValidationResult result =
+                    GetComponent(BlockValidator)->CheckBlockIndex(*pindexNew);
+                if (!result) {
+                    return error("%s: %s failed block validation: %s",
+                                 __func__, diskindex.ToString(), result.ToString());
+                }
                 pcursor->Next();
             } else {
                 return error("%s: failed to read value", __func__);

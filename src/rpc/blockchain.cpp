@@ -77,6 +77,12 @@ double GetDifficulty(const CChain& chain, const CBlockIndex* blockindex)
         nShift--;
     }
 
+    if (dDiff > std::numeric_limits<decltype(dDiff)>::max()) {
+        return std::numeric_limits<decltype(dDiff)>::max();
+    }
+    if (dDiff < std::numeric_limits<decltype(dDiff)>::min()) {
+        return std::numeric_limits<decltype(dDiff)>::min();
+    }
     return dDiff;
 }
 

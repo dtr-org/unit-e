@@ -26,10 +26,11 @@ void BlockValidationResult::operator+=(const BlockValidationResult &other) {
 
 //! \brief Validation succeeded if there are no validation errors
 BlockValidationResult::operator bool() const {
-  const bool is_valid = errors.IsEmpty();
-  assert(!is_valid || height);
-  assert(!is_valid || snapshot_hash);
-  return is_valid;
+  return errors.IsEmpty();
+}
+
+std::string BlockValidationResult::ToString() const {
+  return errors.ToString();
 }
 
 class BlockValidatorImpl : public BlockValidator {
@@ -126,12 +127,51 @@ class BlockValidatorImpl : public BlockValidator {
   explicit BlockValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
       : m_blockchain_behavior(blockchain_behavior) {}
 
+  BlockValidationResult ContextualCheckBlockHeader(
+      const CBlockHeader &block_header,
+      const CBlockIndex &previous_block,
+      const blockchain::Time adjusted_time) const override {
+
+    BlockValidationResult result;
+
+    if (block_header.hashPrevBlock != *previous_block.phashBlock) {
+      result.errors += Error::PREVIOUS_BLOCK_DOESNT_MATCH;
+    }
+    if (block_header.GetBlockTime() <= previous_block.GetMedianTimePast()) {
+      result.errors += Error::BLOCKTIME_TOO_EARLY;
+    }
+    if (block_header.GetBlockTime() > adjusted_time + m_blockchain_behavior->GetParameters().max_future_block_time_seconds) {
+      result.errors += Error::BLOCKTIME_TOO_FAR_INTO_FUTURE;
+    }
+
+    return result;
+  }
+
+  BlockValidationResult CheckBlockHeader(const CBlockHeader &block_header) const override {
+    BlockValidationResult result;
+
+    if (m_blockchain_behavior->CalculateProposingTimestamp(block_header.nTime) != block_header.nTime) {
+      result.errors += Error::INVALID_BLOCK_TIME;
+    }
+
+    return result;
+  }
+
+  BlockValidationResult ContextualCheckBlock(
+      const CBlock &block,
+      const CBlockIndex &previous_block) const override {
+    BlockValidationResult result;
+
+    // UNIT-E: This is a stub for now.
+
+    return result;
+  }
+
   BlockValidationResult CheckBlock(const CBlock &block) const override {
     BlockValidationResult result;
 
-    if (m_blockchain_behavior->CalculateProposingTimestamp(block.nTime) != block.nTime) {
-      result.errors += Error::INVALID_BLOCK_TIME;
-    }
+    // check the block header fields
+    result += CheckBlockHeader(block);
 
     // check that there are transactions
     if (block.vtx.empty()) {
@@ -187,6 +227,12 @@ class BlockValidatorImpl : public BlockValidator {
       result.errors -= Error::INVALID_BLOCK_PUBLIC_KEY;
     }
 
+    return result;
+  }
+
+  BlockValidationResult CheckBlockIndex(const CBlockIndex &) const override {
+    BlockValidationResult result;
+    // UNIT-E: This is an empty stub for now.
     return result;
   }
 };

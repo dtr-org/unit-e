@@ -162,7 +162,6 @@ UNITE_CORE_H = \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pow.h \
   proposer/block_builder.h \
   proposer/eligible_coin.h \
   proposer/multiwallet.h \
@@ -300,7 +299,6 @@ libunite_server_a_SOURCES = \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
-  pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
   rpc/finalization.cpp \

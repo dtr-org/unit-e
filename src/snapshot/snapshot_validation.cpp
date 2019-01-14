@@ -40,7 +40,10 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
     return false;
   }
 
-  return view.GetSnapshotHash().GetHash(*blockIndex->pprev) == uint256(buf);
+  const uint256 snapshot_hash_expected = view.GetSnapshotHash().GetHash(*blockIndex->pprev);
+  const uint256 snapshot_hash_coinbase = uint256(buf);
+
+  return snapshot_hash_expected == snapshot_hash_coinbase;
 }
 
 bool ReadSnapshotHashFromTx(const CTransaction &tx,

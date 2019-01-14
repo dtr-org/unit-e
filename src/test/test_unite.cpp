@@ -75,6 +75,7 @@ ReducedTestingSetup::ReducedTestingSetup(const std::string& chainName)
 
 ReducedTestingSetup::~ReducedTestingSetup()
 {
+  UnitEInjector::Destroy();
   ECC_Stop();
   snapshot::DestroySecp256k1Context();
 }
@@ -194,8 +195,6 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
         LOCK(cs_main);
         IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
     }
-
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
     const bool was_processed = ProcessNewBlock(chainparams, shared_pblock, true, nullptr);
