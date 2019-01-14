@@ -32,14 +32,16 @@ bool Initialize(const Params &params) {
     return error("Can't initialize secp256k1_context for the snapshot hash.");
   }
 
+  LoadSnapshotIndex();
+
   if (fPruneMode) {
     if (gArgs.GetBoolArg("-isd", false)) {
       EnableISDMode();
       LogPrint(BCLog::SNAPSHOT, "Initial Snapshot Download mode is enabled.\n");
     }
 
-    uint256 snapshotHash;
-    if (GetLatestFinalizedSnapshotHash(snapshotHash)) {
+    uint256 snapshot_hash;
+    if (GetLatestFinalizedSnapshotHash(snapshot_hash)) {
       LogPrintf("Snapshot was successfully applied.\n");
     } else {
       for (const Checkpoint &p : GetSnapshotCheckpoints()) {
@@ -57,7 +59,6 @@ bool Initialize(const Params &params) {
     }
   }
 
-  LoadSnapshotIndex();
   Creator::Init(params);
   InitP2P(params);
 
@@ -73,6 +74,7 @@ void Deinitialize() {
   DestroySecp256k1Context();
   Creator::Deinit();
   SaveSnapshotIndex();
+  DeinitP2P();
 }
 
 }  // namespace snapshot

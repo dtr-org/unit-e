@@ -183,7 +183,7 @@ void ConfirmRemoved(const uint256 &snapshotHash);
 //! proxy to g_snapshotIndex.GetLatestFinalizedSnapshotHash()
 bool GetLatestFinalizedSnapshotHash(uint256 &snapshotHashOut);
 
-//! proxy to g_snapshotIndex.GetFinalizedSnapshotHashByBlockHash()
+//! proxy to g_snapshotIndex.GetFinalizedSnapshotHash()
 bool GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
                               uint256 &snapshotHashOut);
 
