@@ -51,12 +51,24 @@ class Storage {
                   const esperanza::AdminParams &admin_arams,
                   CBlockIndex *index);
 
+  //! \brief Restoring tells whether node is reconstructing finalization state
+  bool Restoring() const {
+    return m_restoring;
+  }
+
+  struct RestoringRAII {
+    Storage &s;
+    RestoringRAII(Storage &s) : s(s) { s.m_restoring = true; }
+    ~RestoringRAII() { s.m_restoring = false; }
+  };
+
  private:
   FinalizationState *Create(const CBlockIndex *index);
 
   mutable CCriticalSection cs;
   std::map<const CBlockIndex *, FinalizationState> m_states;
   std::unique_ptr<FinalizationState> m_genesis_state;
+  bool m_restoring;
 };
 
 Storage g_storage;
@@ -1005,7 +1017,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &blockIndex,
     ProcessNewCommit(tx);
   }
 
-  if ((blockIndex.nHeight + 2) % m_settings.m_epochLength == 0) {
+  if (!g_storage.Restoring() && (blockIndex.nHeight + 2) % m_settings.m_epochLength == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
     // The last epoch block will contain the snapshot hash pointing to this snapshot.
     snapshot::Creator::GenerateOrSkip(m_currentEpoch);
@@ -1183,7 +1195,7 @@ bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) {
 // This function might be significantly optimized by using finalization
 // state serialization.
 void RestoreFinalizationState(const CChainParams &chainparams) {
-  LogPrint(BCLog::FINALIZATION, "%s\n", __func__);
+  Storage::RestoringRAII restoring(g_storage);
   if (fPruneMode) {
     if (chainActive.Tip() != nullptr) {
       FinalizationState::ResetToTip(chainActive.Tip());
