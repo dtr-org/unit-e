@@ -5,34 +5,40 @@
 """
 Test Snapshot Creation
 
-This test starts three nodes:
-node0 is used to create snapshots and to verify that they point to the right block height
-node1 syncs with node0 using fast sync to verify the content of the snapshot
-node2 creates larger fork and node0 must create a snapshot for this fork too
+This test checks the following scenarios:
+1. node generates snapshots with the expected interval
+2. node keeps up to 5 snapshots
+3. node keeps at least 3 finalized snapshots
 """
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     wait_until,
     sync_blocks,
-    connect_nodes,
-    disconnect_nodes,
+    json,
 )
-import time
+from test_framework.admin import Admin
 
 
 class SnapshotCreationTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 3
-        self.extra_args = [
-            [],
-            ['-prune=1', '-isd=1'],
-            [],
-        ]
 
-    def setup_network(self):
-        self.setup_nodes()
+        params_data = {
+            'epochLength': 5,
+        }
+        json_params = json.dumps(params_data)
+
+        self.extra_args = [
+            [
+                '-validating=1',
+                '-esperanzaconfig=' + json_params,
+            ],
+            [
+                '-esperanzaconfig=' + json_params,
+            ],
+        ]
+        self.num_nodes = len(self.extra_args)
 
     def run_test(self):
         def verify_snapshot_result(res):
@@ -42,120 +48,84 @@ class SnapshotCreationTest(UnitETestFramework):
                 return False
             return res['valid'] is True
 
-        def verify_snapshot_for(node, block_hash):
-            res = node.getblocksnapshot(block_hash)
+        def has_valid_snapshot_for_height(node, height):
+            res = node.getblocksnapshot(node.getblockhash(height))
             return verify_snapshot_result(res)
 
-        def assert_valid_snapshots(node, num):
-            res = node.listsnapshots()
-            assert_equal(len(res), num)
-            for v in res:
-                assert(verify_snapshot_result(v))
+        validator = self.nodes[0]
+        node = self.nodes[1]
 
-        node0 = self.nodes[0]
-        node2 = self.nodes[2]
+        validator.importmasterkey('swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready')
+        node.importmasterkey('chef gas expect never jump rebel huge rabbit venue nature dwarf pact below surprise foam magnet science sister shrimp blanket example okay office ugly')
 
-        # no snapshot
-        # +---- epoch 0 ------+
-        # |                   |
-        # b0 - b1 - b2
-        node0.generatetoaddress(2, node0.getnewaddress())
-        time.sleep(1)
-        assert_valid_snapshots(node0, 0)
+        node.generatetoaddress(1, node.getnewaddress())  # IBD
+        Admin.authorize_and_disable(self, node)
 
-        # trigger snapshot creation
-        # +---- epoch 0 ------+
-        # |                   |
-        # b0 - b1 - b2 - b3
-        #                s0
-        node0.generatetoaddress(1, node0.getnewaddress())
-        wait_until(lambda: verify_snapshot_for(node0, node0.getbestblockhash()), timeout=5)
+        # test 1. node generates snapshots with the expected interval
+        node.generatetoaddress(22, node.getnewaddress())
+        wait_until(lambda: len(node.listsnapshots()) == 5)
+        assert(has_valid_snapshot_for_height(node, 3))
+        assert(has_valid_snapshot_for_height(node, 8))
+        assert(has_valid_snapshot_for_height(node, 13))
+        assert(has_valid_snapshot_for_height(node, 18))
+        assert(has_valid_snapshot_for_height(node, 23))
 
-        # no new snapshots in the middle of the new epoch
-        # +---- epoch 0 ------+    +------ epoch 1 -----+
-        # |                   |    |                    |
-        # b0 - b1 - b2 - b3 - b4 - b5 - b6 - b7
-        #                s0
-        node0.generatetoaddress(4, node0.getnewaddress())
-        time.sleep(1)
-        assert_valid_snapshots(node0, 1)
+        # test 2. node keeps up to 5 snapshots
+        node.generatetoaddress(4, node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot_for_height(node, 28), timeout=10)
+        assert_equal(len(node.listsnapshots()), 5)
+        assert(has_valid_snapshot_for_height(node, 3) is False)
+        assert(has_valid_snapshot_for_height(node, 8))
+        assert(has_valid_snapshot_for_height(node, 13))
+        assert(has_valid_snapshot_for_height(node, 18))
+        assert(has_valid_snapshot_for_height(node, 23))
 
-        # create alternative fork that will be used later
-        # b0 - b1 - b2 - b3 - b4 - b5 - b6 - b7 (node0)
-        #                                     \
-        #                                      +- ... - a29 (node2)
-        connect_nodes(node2, node0.index)
-        sync_blocks([node0, node2])
-        disconnect_nodes(node2, node0.index)
-        node2.generatetoaddress(24, node2.getnewaddress())
+        # disable instant finalization
+        payto = validator.getnewaddress("", "legacy")
+        txid = validator.deposit(payto, 10000)
+        self.wait_for_transaction(txid, 10)
 
-        # generate second snapshot
-        # +---- epoch 0 ------+    +------ epoch 1 -----+
-        # |                   |    |                    |
-        # b0 - b1 - b2 - b3 - b4 - b5 - b6 - b7 - b8
-        #                s0                       s1
-        node0.generatetoaddress(1, node0.getnewaddress())
-        wait_until(lambda: verify_snapshot_for(node0, node0.getbestblockhash()), timeout=5)
+        node.generatetoaddress(10, node.getnewaddress())
+        sync_blocks([node, validator])
+        wait_until(lambda: has_valid_snapshot_for_height(node, 38), timeout=10)
+        assert_equal(len(node.listsnapshots()), 5)
+        assert(has_valid_snapshot_for_height(node, 8) is False)
+        assert(has_valid_snapshot_for_height(node, 13) is False)
+        assert(node.getblocksnapshot(node.getblockhash(18))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(23))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(33))['snapshot_finalized'] is False)  # will be finalized
+        assert(node.getblocksnapshot(node.getblockhash(38))['snapshot_finalized'] is False)  # will be finalized
 
-        # generate 3 more snapshots
-        # +- epoch 0 -+    +- epoch 1 -+     +-- epoch 2 -+     +-- epoch 3 --+     +-- epoch 4 --+
-        # |           |    |           |     |            |     |             |     |             |
-        # b0 ... b3 - b4 - b5 ... b8 - b9 - b10 ... b13 - b14 - b15 ... b18 - b19 - b20 ... b23
-        #        s0               s1                s3                  s4                  s4
-        node0.generatetoaddress(15, node0.getnewaddress())
-        wait_until(lambda: verify_snapshot_for(node0, node0.getbestblockhash()), timeout=5)
-        assert_valid_snapshots(node0, 5)
+        # test 3. node keeps at least 3 finalized snapshots
+        node.generatetoaddress(10, node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot_for_height(node, 48), timeout=10)
+        assert_equal(len(node.listsnapshots()), 5)
+        assert(has_valid_snapshot_for_height(node, 18) is False)
+        assert(has_valid_snapshot_for_height(node, 23) is False)
+        assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(33))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(38))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(43))['snapshot_finalized'] is False)
+        assert(node.getblocksnapshot(node.getblockhash(48))['snapshot_finalized'] is False)
 
-        # keeps only 5 snapshots (preserving all finalized)
-        #   +- epoch 1 -+     +-- epoch 2 -+     +-- epoch 3 --+     +-- epoch 4 --+     +-- epoch 4 --+
-        #   |           |     |            |     |             |     |             |     |             |
-        # - b5 ... b8 - b9 - b10 ... b13 - b14 - b15 ... b18 - b19 - b20 ... b23 - b24 - b25 ... b28
-        #          s1                s3                  s4                  s4                  s5
-        node0.generatetoaddress(5, node0.getnewaddress())
-        wait_until(lambda: verify_snapshot_for(node0, node0.getbestblockhash()), timeout=5)
-        assert_valid_snapshots(node0, 5)
-        assert(verify_snapshot_for(node0, node0.getblockhash(3)) is False)
-        assert(verify_snapshot_for(node0, node0.getblockhash(8)))
-        assert(verify_snapshot_for(node0, node0.getblockhash(13)))
-        assert(verify_snapshot_for(node0, node0.getblockhash(18)))
-        assert(verify_snapshot_for(node0, node0.getblockhash(23)))
-        assert(verify_snapshot_for(node0, node0.getblockhash(28)))
+        node.generatetoaddress(5, node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot_for_height(node, 53), timeout=10)
+        assert_equal(len(node.listsnapshots()), 5)
+        assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(33))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(38))['snapshot_finalized'])
+        assert(has_valid_snapshot_for_height(node, 43) is False)
+        assert(node.getblocksnapshot(node.getblockhash(48))['snapshot_finalized'] is False)
 
-        # verify the content of the latest finalized snapshot (s4)
-        node0.generatetoaddress(1, node0.getnewaddress())
-        wait_until(lambda: node0.getblocksnapshot(node0.getblockhash(23))['snapshot_finalized'] is True, timeout=5)
-        node1 = self.nodes[1]
-        connect_nodes(node1, node0.index)
-        sync_blocks([node0, node1])
-        node0_snapshots = node0.listsnapshots()
-        node1_snapshots = node1.listsnapshots()
-        assert_equal(len(node1_snapshots), 2)
-        assert_equal(node0_snapshots[-2], node1_snapshots[0])
-        assert_equal(node0_snapshots[-1], node1_snapshots[1])
-        assert_equal(node0.gettxoutsetinfo(), node1.gettxoutsetinfo())
-        disconnect_nodes(node1, node0.index)
-
-        # test that after switching to the alternative fork node0 creates snapshots for it and keeps original ones
-        # +---- epoch 1 ------+     +-- epoch 2 -+     +-- epoch 3 --+     +-- epoch 4 --+     +-- epoch 4 --+
-        # |                   |     |            |     |             |     |             |     |             |
-        # b5 - b6 - b7 - b8 - b9 - b10 ... b13 - b14 - b15 ... b18 - b19 - b20 ... b23 - b24 - b25 ... b28 - b29
-        #           |    s1                s3                  s4                  s4                  s5
-        #           |
-        #           +- - a8 - a9 - a10 ... a13 - a14 - a15 ... a18 - a19 - a20 ... a23 - a24 - a25 ... a28 - a29 - a30
-        #                s6                s7                  s8                  s9                  s10
-        connect_nodes(node0, node2.index)
-        sync_blocks([node0, node2])
-        for s in node0_snapshots:
-            assert(node0.getblocksnapshot(s['block_hash'])['snapshot_deleted'])
-        new_node0_snapshots = node0.listsnapshots()
-        assert_equal(len(new_node0_snapshots), 5)
-        for s in new_node0_snapshots:
-            assert(verify_snapshot_result(s))
-        assert_equal(new_node0_snapshots[0]['block_hash'], node0.getblockhash(8))
-        assert_equal(new_node0_snapshots[1]['block_hash'], node0.getblockhash(13))
-        assert_equal(new_node0_snapshots[2]['block_hash'], node0.getblockhash(18))
-        assert_equal(new_node0_snapshots[3]['block_hash'], node0.getblockhash(23))
-        assert_equal(new_node0_snapshots[4]['block_hash'], node0.getblockhash(28))
+        node.generatetoaddress(5, node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot_for_height(node, 58), timeout=10)
+        assert_equal(len(node.listsnapshots()), 5)
+        assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(33))['snapshot_finalized'])
+        assert(node.getblocksnapshot(node.getblockhash(38))['snapshot_finalized'])
+        assert(has_valid_snapshot_for_height(node, 48) is False)
+        assert(node.getblocksnapshot(node.getblockhash(53))['snapshot_finalized'] is False)
 
 
 if __name__ == '__main__':
