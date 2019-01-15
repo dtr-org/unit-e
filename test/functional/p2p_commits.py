@@ -5,10 +5,8 @@
 
 """
 Test p2p commits messaging.
-
 	1. CommitsTest.getcommits_test: generate blocks on the node and test getcommits behavior
 	2. CommitsTest.commits_test: send commits to the node and check its state
-
 """
 
 from test_framework.messages import (
