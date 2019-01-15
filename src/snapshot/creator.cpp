@@ -4,6 +4,7 @@
 
 #include <snapshot/creator.h>
 
+#include <arith_uint256.h>
 #include <snapshot/indexer.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/snapshot_index.h>
@@ -123,22 +124,26 @@ void Creator::FinalizeSnapshots(const CBlockIndex *blockIndex) {
   cv.notify_one();
 }
 
-CCriticalSection cs_snapshotCreation;
+CCriticalSection cs_snapshot_creation;
 
 CreationInfo Creator::Create() {
-  LOCK(cs_snapshotCreation);
+  LOCK(cs_snapshot_creation);
 
-  CBlockIndex *blockIndex = mapBlockIndex.at(m_iter.GetBestBlock());
-  uint256 snapshotHash = m_iter.GetSnapshotHash().GetHash(
-      blockIndex->stake_modifier);
-  std::vector<uint256> toRemove = AddSnapshotHash(snapshotHash, blockIndex);
+  CBlockIndex *block_index = mapBlockIndex.at(m_iter.GetBestBlock());
+  uint256 chain_work = ArithToUint256(block_index->nChainWork);
+  uint256 snapshot_hash = m_iter.GetSnapshotHash().GetHash(
+      block_index->stake_modifier, chain_work);
+  std::vector<uint256> to_remove = AddSnapshotHash(snapshot_hash, block_index);
 
   LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
-           m_iter.GetBestBlock().GetHex(), snapshotHash.GetHex());
+           m_iter.GetBestBlock().GetHex(), snapshot_hash.GetHex());
 
   CreationInfo info;
-  Indexer indexer(snapshotHash, blockIndex->GetBlockHash(),
-                  blockIndex->stake_modifier, m_step, m_stepsPerFile);
+  Indexer indexer(snapshot_hash,
+                  block_index->GetBlockHash(),
+                  block_index->stake_modifier,
+                  chain_work,
+                  m_step, m_stepsPerFile);
 
   while (m_iter.Valid()) {
     boost::this_thread::interruption_point();
@@ -169,9 +174,9 @@ CreationInfo Creator::Create() {
   }
   info.indexer_meta = indexer.GetMeta();
 
-  LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is created\n", snapshotHash.GetHex());
+  LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is created\n", snapshot_hash.GetHex());
 
-  for (const auto &hash : toRemove) {
+  for (const auto &hash : to_remove) {
     if (Indexer::Delete(hash)) {
       ConfirmRemoved(hash);
       LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is deleted\n", hash.GetHex());

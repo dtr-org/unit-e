@@ -34,7 +34,8 @@ class RpcCalcSnapshotHashTest(UnitETestFramework):
 
         def calcsnapshothash(inputs, outputs, *prev_hash):
             sm = bytes_to_hex_str(ser_uint256(0))
-            return self.nodes[0].calcsnapshothash(ser_utxos(inputs), ser_utxos(outputs), sm, *prev_hash)
+            cw = bytes_to_hex_str(ser_uint256(2))
+            return self.nodes[0].calcsnapshothash(ser_utxos(inputs), ser_utxos(outputs), sm, cw, *prev_hash)
 
         def def_utxo(height):
             hex_id = hex_str_to_bytes('0' * 64)

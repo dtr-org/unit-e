@@ -27,6 +27,7 @@ class Iterator {
   uint256 GetSnapshotHash() { return m_indexer->GetMeta().snapshot_hash; }
   uint256 GetBestBlockHash() { return m_indexer->GetMeta().block_hash; }
   uint256 GetStakeModifier() { return m_indexer->GetMeta().stake_modifier; }
+  uint256 GetChainWork() { return m_indexer->GetMeta().chain_work; }
   uint64_t GetTotalUTXOSubsets() {
     return m_indexer->GetMeta().total_utxo_subsets;
   }
@@ -43,7 +44,8 @@ class Iterator {
   //! After calling this function the cursor will be invalid. To re-use the
   //! iterator again, it must be explicitly unwind to the beginning.
   //! iter->MoveCursorTo(0)
-  uint256 CalculateHash(uint256 stakeModifier);
+  uint256 CalculateHash(const uint256 &stake_modifier,
+                        const uint256 &chain_work);
 
  private:
   std::unique_ptr<Indexer> m_indexer;

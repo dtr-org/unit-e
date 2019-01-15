@@ -125,7 +125,8 @@ bool Iterator::GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
   return true;
 }
 
-uint256 Iterator::CalculateHash(uint256 stakeModifier) {
+uint256 Iterator::CalculateHash(const uint256 &stake_modifier,
+                                const uint256 &chain_work) {
   // unwind to the beginning if needed
   if (m_readTotal > 1) {
     MoveCursorTo(0);
@@ -143,7 +144,7 @@ uint256 Iterator::CalculateHash(uint256 stakeModifier) {
     Next();
   }
 
-  return hash.GetHash(stakeModifier);
+  return hash.GetHash(stake_modifier, chain_work);
 }
 
 void Iterator::closeFile() {

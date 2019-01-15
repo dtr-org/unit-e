@@ -50,6 +50,7 @@ struct TestSubscriber : public CValidationInterface {
 struct BlockData {
   std::shared_ptr<CBlock> block;
   uint256 stakeModifier;
+  arith_uint256 chainWork;
   snapshot::SnapshotHash hash;
   uint32_t height;
 };
@@ -69,7 +70,8 @@ BlockData Block(const BlockData &prevData)
 
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vout.resize(1);
-    std::vector<uint8_t> snapshotHash = prevData.hash.GetHashVector(prevData.stakeModifier);
+    std::vector<uint8_t> snapshotHash = prevData.hash.GetHashVector(prevData.stakeModifier,
+                                                                    ArithToUint256(prevData.chainWork));
     txCoinbase.vin[0].scriptSig = CScript() << (prevData.height + 1) << snapshotHash << OP_0;
     txCoinbase.vin[0].scriptWitness.SetNull();
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
@@ -80,7 +82,10 @@ BlockData Block(const BlockData &prevData)
     newHash.AddUTXO(snapshot::UTXO(out, coin));
 
     uint256 newSM = prevData.stakeModifier;
-    return BlockData{pblock, newSM, newHash, prevData.height + 1};
+    CBlockIndex bi;
+    bi.nBits = pblock->nBits;
+    arith_uint256 newCW = prevData.chainWork + GetBlockProof(bi);
+    return BlockData{pblock, newSM, newCW, newHash, prevData.height + 1};
 }
 
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
@@ -147,6 +152,10 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     {
         genesisData.block = std::make_shared<CBlock>(Params().GenesisBlock());
         genesisData.height = 0;
+
+        CBlockIndex bi;
+        bi.nBits = genesisData.block->nBits;
+        genesisData.chainWork = GetBlockProof(bi);
 
         for (size_t txIdx = 0; txIdx < genesisData.block->vtx.size(); ++txIdx) {
             auto &tx = genesisData.block->vtx[txIdx];

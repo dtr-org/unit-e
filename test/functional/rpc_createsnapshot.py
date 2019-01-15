@@ -24,6 +24,7 @@ class RpcCreateSnapshotTest(UnitETestFramework):
         assert_equal(keys, [
             'block_hash',
             'block_height',
+            'chain_work',
             'snapshot_hash',
             'stake_modifier',
             'total_outputs',
