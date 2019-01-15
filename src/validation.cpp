@@ -3539,6 +3539,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
 }
 
 bool AcceptBlockHeader(const CBlockHeader &header, CValidationState &state, const CChainParams &chainparams, CBlockIndex **ppindex) {
+  LOCK(cs_main);
   return g_chainstate.AcceptBlockHeader(header, state, chainparams, ppindex);
 }
 
