@@ -2888,7 +2888,21 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         finalization::p2p::CommitsResponse commits;
         vRecv >> commits;
         LogPrint(BCLog::NET, "received: %d headers+commits, satus=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
-        return finalization::p2p::ProcessNewCommits(commits, chainparams);
+        CValidationState validation_state;
+        uint256 failed_block;
+        bool ok = finalization::p2p::ProcessNewCommits(commits, chainparams, validation_state, &failed_block);
+        if (ok) {
+            return true;
+        }
+        int dos;
+        if (validation_state.IsInvalid(dos)) {
+            Misbehaving(pfrom->GetId(), dos);
+            CBlockReject reject = {(unsigned char)validation_state.GetRejectCode(),
+                                   validation_state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH),
+                                   failed_block};
+            State(pfrom->GetId())->rejects.emplace_back(reject);
+        }
+        return false;
     }
 
     else {

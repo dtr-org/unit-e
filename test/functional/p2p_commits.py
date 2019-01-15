@@ -29,12 +29,23 @@ class P2P(P2PInterface):
     def __init__(self):
         super().__init__()
         self.messages = []
+        self.rejects = []
 
     def reset_messages(self):
         self.messages = []
+        self.rejects = []
 
     def on_commits(self, msg):
         self.messages.append(msg)
+
+    def on_reject(self, msg):
+        self.rejects.append(msg)
+
+    def has_reject(self, err, block):
+        for r in self.rejects:
+            if r.reason == err and r.data == block:
+                return True
+        return False
 
 
 class CommitsTest(UnitETestFramework):
@@ -52,7 +63,7 @@ class CommitsTest(UnitETestFramework):
         network_thread_start()
         for n in self.nodes:
             n.p2p.wait_for_verack()
-        self.getcommits_test(self.nodes[0])
+        # self.getcommits_test(self.nodes[0])
         self.commits_test(self.nodes[1])
 
     def getcommits_test(self, node):
@@ -137,6 +148,9 @@ class CommitsTest(UnitETestFramework):
         def check_headers(number):
             wait_until(lambda: node.getblockchaininfo()['headers'] == number, timeout=5)
 
+        def check_reject(err, block):
+            wait_until(lambda: node.p2p.has_reject(err, block), timeout=5)
+
         def getbestblockhash():
             return int(node.getbestblockhash(), 16)
 
@@ -170,6 +184,7 @@ class CommitsTest(UnitETestFramework):
             return msg
 
         def send_commits(blocks):
+            node.p2p.reset_messages()
             node.p2p.send_message(make_commits_msg(blocks))
 
         chain = []
@@ -197,7 +212,8 @@ class CommitsTest(UnitETestFramework):
         # generate next 10 blocks, try to send commits starting from 2nd block
         generate(10)
         send_commits(chain[11:])
-        check_headers(10) # node rejected orphan headers
+        check_reject(b'prev-blk-not-found', 0)  # node rejected orphan headers
+        check_headers(10) # must keep old amount of headers
 
         # send correct commits
         send_commits(chain[10:])
@@ -213,8 +229,8 @@ class CommitsTest(UnitETestFramework):
         msg = make_commits_msg(chain[-10:])
         msg.data[-1].commits = chain[-1].vtx # fool commits with coinbase tx
         node.p2p.send_message(msg)
-        time.sleep(5)
-        check_headers(30) # node rejected commits because of non-commit transaction
+        check_reject(b'bad-non-commit', chain[-1].sha256) # node rejected commits because of non-commit transaction
+        check_headers(30) # must keep old amount of headers
 
 
 if __name__ == '__main__':
