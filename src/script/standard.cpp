@@ -30,6 +30,7 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NULL_DATA: return "nulldata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
+    case TX_WITNESS_V1_REMOTE_STAKING: return "witness_v1_remote_staking";
     case TX_WITNESS_UNKNOWN: return "witness_unknown";
     case TX_PAYVOTESLASH: return "payvoteslash";
     }
@@ -71,23 +72,29 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         return true;
     }
 
-    int witnessversion;
-    std::vector<unsigned char> witnessprogram;
-    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
-        if (witnessversion == 0 && witnessprogram.size() == 20) {
+    WitnessProgram witnessProgram;
+    if (scriptPubKey.ExtractWitnessProgram(witnessProgram)) {
+        if (witnessProgram.IsPayToPubkeyHash()) {
             typeRet = TX_WITNESS_V0_KEYHASH;
-            vSolutionsRet.push_back(witnessprogram);
+            vSolutionsRet.push_back(witnessProgram.program[0]);
             return true;
         }
-        if (witnessversion == 0 && witnessprogram.size() == 32) {
+        if (witnessProgram.IsPayToScriptHash()) {
             typeRet = TX_WITNESS_V0_SCRIPTHASH;
-            vSolutionsRet.push_back(witnessprogram);
+            vSolutionsRet.push_back(witnessProgram.program[0]);
             return true;
         }
-        if (witnessversion != 0) {
+        if (witnessProgram.IsRemoteStaking()) {
+            typeRet = TX_WITNESS_V1_REMOTE_STAKING;
+            vSolutionsRet.push_back(witnessProgram.program[0]);  // staking pubkey hash
+            vSolutionsRet.push_back(witnessProgram.program[1]);  // spending pubkey hash
+            return true;
+        }
+        if (witnessProgram.version != 0 && witnessProgram.version != 1) {
             typeRet = TX_WITNESS_UNKNOWN;
-            vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessversion});
-            vSolutionsRet.push_back(std::move(witnessprogram));
+            vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessProgram.version});
+            vSolutionsRet.insert(vSolutionsRet.end(), witnessProgram.program.begin(),
+                                 witnessProgram.program.end());
             return true;
         }
         return false;
@@ -223,6 +230,12 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         std::copy(vSolutions[0].begin(), vSolutions[0].end(), hash.begin());
         addressRet = hash;
         return true;
+    } else if (whichType == TX_WITNESS_V1_REMOTE_STAKING) {
+        // Here we only return spending destination converted to Witness V0 format
+        WitnessV0KeyHash hash;
+        CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(hash.begin());
+        addressRet = hash;
+        return true;
     } else if (whichType == TX_WITNESS_UNKNOWN) {
         WitnessUnknown unk;
         unk.version = vSolutions[0][0];
@@ -255,8 +268,7 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::
         return false;
     }
 
-    if (typeRet == TX_MULTISIG)
-    {
+    if (typeRet == TX_MULTISIG) {
         nRequiredRet = vSolutions.front()[0];
         for (unsigned int i = 1; i < vSolutions.size()-1; i++)
         {
@@ -270,9 +282,14 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::
 
         if (addressRet.empty())
             return false;
-    }
-    else
-    {
+    } else if (typeRet == TX_WITNESS_V1_REMOTE_STAKING) {
+        WitnessV0KeyHash stakingHash;
+        std::copy(vSolutions[0].begin(), vSolutions[0].end(), stakingHash.begin());
+        WitnessV0KeyHash spendingHash;
+        CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(spendingHash.begin());
+        addressRet.push_back(stakingHash);
+        addressRet.push_back(spendingHash);
+    } else {
         nRequiredRet = 1;
         CTxDestination address;
         if (!ExtractDestination(scriptPubKey, address))

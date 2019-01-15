@@ -344,7 +344,8 @@ BOOST_AUTO_TEST_CASE(test_Get)
     BOOST_CHECK_EQUAL(coins.GetValueIn(t1), (50+21+22)*EEES);
 }
 
-void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outscript, CTransactionRef& output, CMutableTransaction& input, bool success = true)
+void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outscript, CTransactionRef& output,
+                          CMutableTransaction& input, bool success = true, TxType inputType = TxType::STANDARD)
 {
     CMutableTransaction outputm;
     outputm.nVersion = 1;
@@ -364,6 +365,7 @@ void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outscript, C
 
     CMutableTransaction inputm;
     inputm.nVersion = 1;
+    inputm.SetType(inputType);
     inputm.vin.resize(1);
     inputm.vin[0].prevout.hash = output->GetHash();
     inputm.vin[0].prevout.n = 0;
@@ -375,6 +377,7 @@ void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outscript, C
     CDataStream ssin(SER_NETWORK, PROTOCOL_VERSION);
     ssin << inputm;
     ssin >> input;
+    assert(input.GetType() == inputType);
     assert(input.vin.size() == 1);
     assert(input.vin[0] == inputm.vin[0]);
     assert(input.vout.size() == 1);
@@ -667,6 +670,34 @@ BOOST_AUTO_TEST_CASE(test_witness)
     UpdateTransaction(input1, 0, CombineSignatures(output1->vout[0].scriptPubKey, MutableTransactionSignatureChecker(&input1, 0, output1->vout[0].nValue), DataFromTransaction(input1, 0), DataFromTransaction(input2, 0)));
     CheckWithFlag(output1, input1, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS, true);
     CheckWithFlag(output1, input1, STANDARD_SCRIPT_VERIFY_FLAGS, true);
+}
+
+BOOST_AUTO_TEST_CASE(test_remote_staking)
+{
+    CBasicKeyStore keystore1, keystore2;
+    CKey spending_key, staking_key;
+    CPubKey spending_pubkey, staking_pubkey;
+    spending_key.MakeNewKey(true);
+    staking_key.MakeNewKey(true);
+    spending_pubkey = spending_key.GetPubKey();
+    staking_pubkey = staking_key.GetPubKey();
+    keystore1.AddKeyPubKey(spending_key, spending_pubkey);
+    keystore2.AddKeyPubKey(staking_key, staking_pubkey);
+    CScript remote_staking_script;
+    remote_staking_script << OP_1 << ToByteVector(staking_pubkey.GetID()) << ToByteVector(spending_pubkey.GetSha256());
+
+    CTransactionRef output1, output2;
+    CMutableTransaction input1, input2;
+
+    // A standard transaction has to be signed by the spending_key from keystore1
+    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::STANDARD);
+    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::STANDARD);
+    CheckWithFlag(output1, input1, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+
+    // A coinbase transaction has to be signed by the staking_key from keystore2
+    CreateCreditAndSpend(keystore1, remote_staking_script, output2, input2, false, TxType::COINBASE);
+    CreateCreditAndSpend(keystore2, remote_staking_script, output2, input2, true, TxType::COINBASE);
+    CheckWithFlag(output2, input2, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
 }
 
 BOOST_AUTO_TEST_CASE(test_IsStandard)

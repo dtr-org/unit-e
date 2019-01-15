@@ -65,7 +65,7 @@ public:
     }
 };
 
-/** Compute the 256-bit hash of an object. */
+//! Compute the 256-bit hash (double SHA-256) of an object.
 template<typename T1>
 inline uint256 Hash(const T1 pbegin, const T1 pend)
 {
@@ -76,7 +76,7 @@ inline uint256 Hash(const T1 pbegin, const T1 pend)
     return result;
 }
 
-/** Compute the 256-bit hash of the concatenation of two objects. */
+//! Compute the 256-bit hash (double SHA-256) of the concatenation of two objects.
 template<typename T1, typename T2>
 inline uint256 Hash(const T1 p1begin, const T1 p1end,
                     const T2 p2begin, const T2 p2end) {
@@ -85,6 +85,17 @@ inline uint256 Hash(const T1 p1begin, const T1 p1end,
     CHash256().Write(p1begin == p1end ? pblank : (const unsigned char*)&p1begin[0], (p1end - p1begin) * sizeof(p1begin[0]))
               .Write(p2begin == p2end ? pblank : (const unsigned char*)&p2begin[0], (p2end - p2begin) * sizeof(p2begin[0]))
               .Finalize((unsigned char*)&result);
+    return result;
+}
+
+//! Compute the SHA-256 hash of an object.
+template<typename T1>
+inline uint256 Sha256(const T1 pbegin, const T1 pend)
+{
+    static const unsigned char pblank[1] = {0};
+    uint256 result;
+    CSHA256().Write(pbegin == pend ? pblank : (const unsigned char*)&pbegin[0], (pend - pbegin) * sizeof(pbegin[0]))
+             .Finalize((unsigned char*)&result);
     return result;
 }
 

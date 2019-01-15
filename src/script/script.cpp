@@ -316,21 +316,57 @@ bool CScript::IsPayToWitnessScriptHash() const
 }
 
 // A witness program is any valid CScript that consists of a 1-byte push opcode
-// followed by a data push between 2 and 40 bytes.
-bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program) const
+// followed by several data pushes between 2 and 40 bytes each.
+bool CScript::IsWitnessProgram() const
 {
-    if (this->size() < 4 || this->size() > 42) {
+    if (this->size() < 4 || this->size() > 83) {
+        // 83 is the size of a witness scriptPubKey with two 40-byte data pushes
         return false;
     }
-    if ((*this)[0] != OP_0 && ((*this)[0] < OP_1 || (*this)[0] > OP_16)) {
+
+    opcodetype opcode;
+    auto pc = begin();
+    if (!GetOp(pc, opcode)) {
         return false;
     }
-    if ((size_t)((*this)[1] + 2) == this->size()) {
-        version = DecodeOP_N((opcodetype)(*this)[0]);
-        program = std::vector<unsigned char>(this->begin() + 2, this->end());
-        return true;
+    if (opcode != OP_0 && (opcode < OP_1 || opcode > OP_16)) {
+        return false;
     }
-    return false;
+    if (opcode == OP_0) {
+        return (size_t)((*this)[1] + 2) == this->size();
+    }
+
+    do {
+        if (!GetOp(pc, opcode) || opcode == OP_0 || opcode > 40) {
+            return false;
+        }
+    } while (pc < end());
+    return true;
+}
+
+bool CScript::ExtractWitnessProgram(WitnessProgram &witness_program) const
+{
+    if (!IsWitnessProgram()) {
+        return false;
+    }
+
+    opcodetype opcode;
+    auto pc = begin();
+    if (!GetOp(pc, opcode)) {
+        return false;
+    }
+    witness_program.version = DecodeOP_N(opcode);
+
+    witness_program.program.clear();
+    do {
+        std::vector<unsigned char> data;
+        if (!GetOp(pc, opcode, data)) {
+            return false;
+        }
+        witness_program.program.emplace_back(std::move(data));
+    } while (pc < end());
+
+    return true;
 }
 
 bool CScript::IsPushOnly(const_iterator pc) const
@@ -568,4 +604,20 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     }
 
     return it == script.end();
+}
+
+bool WitnessProgram::IsPayToScriptHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 32;
+}
+
+bool WitnessProgram::IsPayToPubkeyHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 20;
+}
+
+bool WitnessProgram::IsRemoteStaking() const
+{
+    return version == 1 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
 }

@@ -112,6 +112,15 @@ BOOST_AUTO_TEST_CASE(script_standard_Solver_success)
     BOOST_CHECK_EQUAL(solutions.size(), 1);
     BOOST_CHECK(solutions[0] == ToByteVector(scriptHash));
 
+    // TX_WITNESS_V1_REMOTE_STAKING
+    s.clear();
+    s << OP_1 << ToByteVector(pubkeys[0].GetID()) << ToByteVector(pubkeys[1].GetSha256());
+    BOOST_CHECK(Solver(s, whichType, solutions));
+    BOOST_CHECK_EQUAL(whichType, TX_WITNESS_V1_REMOTE_STAKING);
+    BOOST_CHECK_EQUAL(solutions.size(), 2);
+    BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
+    BOOST_CHECK(solutions[1] == ToByteVector(pubkeys[1].GetSha256()));
+
     // TX_NONSTANDARD
     s.clear();
     s << OP_9 << OP_ADD << OP_11 << OP_EQUAL;
@@ -234,13 +243,21 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
     BOOST_CHECK(ExtractDestination(s, address));
     BOOST_CHECK(boost::get<WitnessV0ScriptHash>(&address) && *boost::get<WitnessV0ScriptHash>(&address) == scripthash);
 
+    // TX_WITNESS_V1_REMOTE_STAKING
+    s.clear();
+    CKey key2;
+    key2.MakeNewKey(true);
+    s << OP_1 << ToByteVector(key2.GetPubKey().GetID()) << ToByteVector(pubkey.GetSha256());
+    BOOST_CHECK(ExtractDestination(s, address));
+    BOOST_CHECK(boost::get<WitnessV0KeyHash>(&address) && *boost::get<WitnessV0KeyHash>(&address) == keyhash);
+
     // TX_WITNESS with unknown version
     s.clear();
-    s << OP_1 << ToByteVector(pubkey);
+    s << OP_2 << ToByteVector(pubkey);
     BOOST_CHECK(ExtractDestination(s, address));
     WitnessUnknown unk;
     unk.length = 33;
-    unk.version = 1;
+    unk.version = 2;
     std::copy(pubkey.begin(), pubkey.end(), unk.program);
     BOOST_CHECK(boost::get<WitnessUnknown>(&address) && *boost::get<WitnessUnknown>(&address) == unk);
 }

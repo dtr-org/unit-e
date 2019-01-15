@@ -433,6 +433,8 @@ private:
     int64_t m_value;
 };
 
+class WitnessProgram;
+
 /**
  * We use a prevector for the script to reduce the considerable memory overhead
  *  of vectors in cases where they normally contain a small number of small elements.
@@ -704,7 +706,8 @@ public:
     bool IsPayToScriptHash() const;
     bool IsPayVoteSlashScript() const;
     bool IsPayToWitnessScriptHash() const;
-    bool IsWitnessProgram(int& version, std::vector<unsigned char>& program) const;
+    bool IsWitnessProgram() const;
+    bool ExtractWitnessProgram(WitnessProgram &witnessProgram) const;
     bool MatchPayToPublicKeyHash(size_t ofs) const;
     bool MatchPayVoteSlashScript(size_t ofs) const;
     bool MatchVoteScript(size_t ofs) const;
@@ -740,6 +743,16 @@ public:
         CScriptBase::clear();
         shrink_to_fit();
     }
+};
+
+struct WitnessProgram
+{
+    int version;
+    std::vector<std::vector<unsigned char>> program;
+
+    bool IsPayToScriptHash() const;
+    bool IsPayToPubkeyHash() const;
+    bool IsRemoteStaking() const;
 };
 
 class CReserveScript
