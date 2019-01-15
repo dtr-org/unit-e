@@ -221,10 +221,10 @@ class FinalizationState : public FinalizationStateData {
   const Validator *GetValidator(const uint160 &validatorAddress) const;
 
   static void Init(const esperanza::FinalizationParams &params,
-                   const esperanza::AdminParams &adminParams);
+                   const esperanza::AdminParams &admin_params);
 
   static void Reset(const esperanza::FinalizationParams &params,
-                    const esperanza::AdminParams &adminParams);
+                    const esperanza::AdminParams &admin_params);
 
   //! \brief Initialize empty finalization state for current tip.
   //! It's a workaround for prune mode. We will get rid of it by restoring finalization
