@@ -135,8 +135,7 @@ class CommitsTest(UnitETestFramework):
 
     def commits_test(self, node):
         def check_headers(number):
-            info = node.getblockchaininfo()
-            assert_equal(info['headers'], number)
+            wait_until(lambda: node.getblockchaininfo()['headers'] == number, timeout=5)
 
         def getbestblockhash():
             return int(node.getbestblockhash(), 16)
@@ -214,6 +213,7 @@ class CommitsTest(UnitETestFramework):
         msg = make_commits_msg(chain[-10:])
         msg.data[-1].commits = chain[-1].vtx # fool commits with coinbase tx
         node.p2p.send_message(msg)
+        time.sleep(5)
         check_headers(30) # node rejected commits because of non-commit transaction
 
 
