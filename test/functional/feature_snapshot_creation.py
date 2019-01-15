@@ -15,7 +15,6 @@ from test_framework.util import (
     assert_equal,
     wait_until,
     sync_blocks,
-    json,
 )
 from test_framework.admin import Admin
 
@@ -24,18 +23,13 @@ class SnapshotCreationTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
 
-        params_data = {
-            'epochLength': 5,
-        }
-        json_params = json.dumps(params_data)
-
         self.extra_args = [
             [
                 '-validating=1',
-                '-esperanzaconfig=' + json_params,
+                '-esperanzaconfig={"epochLength":5}',
             ],
             [
-                '-esperanzaconfig=' + json_params,
+                '-esperanzaconfig={"epochLength":5}',
             ],
         ]
         self.num_nodes = len(self.extra_args)
