@@ -287,7 +287,7 @@ class FinalizationState : public FinalizationStateData {
   uint64_t GetTotalSlashed(uint32_t epoch) const;
   Checkpoint &GetCheckpoint(uint32_t epoch);
   uint64_t GetDynastyDelta(uint32_t dynasty);
-  void RegisterValidatorTx(uint160 &validatorAddress, CTransactionRef tx);
+  void RegisterLastTx(uint160 &validatorAddress, CTransactionRef tx);
 
   mutable CCriticalSection cs_esperanza;
 

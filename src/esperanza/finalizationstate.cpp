@@ -879,7 +879,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
   // Used to apply hardcoded parameters for a given block
   state->OnBlock(blockIndex.nHeight);
 
-  // We can skip everything for the genesis block since it isn't suppose to
+  // We can skip everything for the genesis block since it isn't supposed to
   // contain esperanza's transactions.
   if (blockIndex.nHeight == 0) {
     return true;
@@ -898,7 +898,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
         std::vector<unsigned char> voteSig;
         assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig));
         state->ProcessVote(vote);
-        state->RegisterValidatorTx(vote.m_validatorAddress, tx);
+        state->RegisterLastTx(vote.m_validatorAddress, tx);
         break;
       }
 
@@ -907,7 +907,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
         assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessDeposit(validatorAddress, tx->vout[0].nValue);
-        state->RegisterValidatorTx(validatorAddress, tx);
+        state->RegisterLastTx(validatorAddress, tx);
         break;
       }
 
@@ -916,7 +916,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
 
         assert(ExtractValidatorAddress(*tx, validatorAddress));
         state->ProcessLogout(validatorAddress);
-        state->RegisterValidatorTx(validatorAddress, tx);
+        state->RegisterLastTx(validatorAddress, tx);
         break;
       }
 
@@ -948,7 +948,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
           if (!MatchAdminCommand(output.scriptPubKey)) {
             continue;
           }
-          DecodeAdminCommand(output.scriptPubKey, command);
+          assert(DecodeAdminCommand(output.scriptPubKey, command));
           commands.emplace_back(std::move(command));
         }
 
@@ -1014,8 +1014,8 @@ Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
   return it->second;
 }
 
-void FinalizationState::RegisterValidatorTx(uint160 &validatorAddress,
-                                            CTransactionRef tx) {
+void FinalizationState::RegisterLastTx(uint160 &validatorAddress,
+                                       CTransactionRef tx) {
 
   Validator &validator = m_validators.at(validatorAddress);
   validator.m_lastTransactionHash = tx->GetHash();
