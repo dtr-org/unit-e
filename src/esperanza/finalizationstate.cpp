@@ -49,7 +49,7 @@ class Storage {
   //! \brief Reset the storage and initialize with fresh state for index (for prune mode)
   void ResetToTip(const esperanza::FinalizationParams &params,
                   const esperanza::AdminParams &admin_arams,
-                  CBlockIndex *index);
+                  const CBlockIndex *index);
 
   //! \brief Restoring tells whether node is reconstructing finalization state
   bool Restoring() const {
@@ -68,7 +68,7 @@ class Storage {
   mutable CCriticalSection cs;
   std::map<const CBlockIndex *, FinalizationState> m_states;
   std::unique_ptr<FinalizationState> m_genesis_state;
-  bool m_restoring;
+  std::atomic<bool> m_restoring;
 };
 
 Storage g_storage;
@@ -179,7 +179,7 @@ void FinalizationState::InstaFinalize() {
   m_lastJustifiedEpoch = epoch - 1;
   m_lastFinalizedEpoch = epoch - 1;
 
-  GCCache();
+  TrimCache();
 
   LogPrint(BCLog::FINALIZATION, "%s: Finalized block for epoch %d.\n", __func__,
            epoch);
@@ -534,7 +534,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     if (targetEpoch == sourceEpoch + 1) {
       GetCheckpoint(sourceEpoch).m_isFinalized = true;
       m_lastFinalizedEpoch = sourceEpoch;
-      GCCache();
+      TrimCache();
       LogPrint(BCLog::FINALIZATION, "%s: Epoch %d finalized.\n", __func__,
                sourceEpoch);
     }
@@ -910,13 +910,13 @@ void FinalizationState::Reset(const esperanza::FinalizationParams &params,
   g_storage.Reset(params, admin_params);
 }
 
-void FinalizationState::ResetToTip(CBlockIndex *index) {
+void FinalizationState::ResetToTip(const CBlockIndex &index) {
   LogPrint(BCLog::FINALIZATION, "Restore finalization state to tip: %s\n",
-           index->GetBlockHash().GetHex());
+           index.GetBlockHash().GetHex());
   LOCK(cs_init_lock);
   const auto state = g_storage.Genesis();
   assert(state != nullptr);
-  g_storage.ResetToTip(state->m_settings, state->m_adminState.GetParams(), index);
+  g_storage.ResetToTip(state->m_settings, state->m_adminState.GetParams(), &index);
 }
 
 void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
@@ -990,34 +990,34 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
   }
 }
 
-bool FinalizationState::ProcessNewTip(const CBlockIndex &blockIndex,
+bool FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
                                       const CBlock &block) {
-  return ProcessNewCommits(blockIndex, block.vtx);
+  return ProcessNewCommits(block_index, block.vtx);
 }
 
-bool FinalizationState::ProcessNewCommits(const CBlockIndex &blockIndex,
+bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
                                           const std::vector<CTransactionRef> &txes) {
-  uint256 block_hash = blockIndex.GetBlockHash();
+  uint256 block_hash = block_index.GetBlockHash();
 
   // Used to apply hardcoded parameters for a given block
-  OnBlock(blockIndex.nHeight);
+  OnBlock(block_index.nHeight);
 
   // We can skip everything for the genesis block since it isn't suppose to
   // contain esperanza's transactions.
-  if (blockIndex.nHeight == 0) {
+  if (block_index.nHeight == 0) {
     return true;
   }
 
   // This is the first block of a new epoch.
-  if (blockIndex.nHeight % m_settings.m_epochLength == 0) {
-    InitializeEpoch(blockIndex.nHeight);
+  if (block_index.nHeight % m_settings.m_epochLength == 0) {
+    InitializeEpoch(block_index.nHeight);
   }
 
   for (const auto &tx : txes) {
     ProcessNewCommit(tx);
   }
 
-  if (!g_storage.Restoring() && (blockIndex.nHeight + 2) % m_settings.m_epochLength == 0) {
+  if (!g_storage.Restoring() && (block_index.nHeight + 2) % m_settings.m_epochLength == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
     // The last epoch block will contain the snapshot hash pointing to this snapshot.
     snapshot::Creator::GenerateOrSkip(m_currentEpoch);
@@ -1025,7 +1025,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &blockIndex,
 
   // This is the last block for the current epoch and it represent it, so we
   // update the targetHash.
-  if (blockIndex.nHeight % m_settings.m_epochLength == m_settings.m_epochLength - 1) {
+  if (block_index.nHeight % m_settings.m_epochLength == m_settings.m_epochLength - 1) {
     LogPrint(
         BCLog::FINALIZATION,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
@@ -1035,8 +1035,8 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &blockIndex,
 
     // mark snapshots finalized up to the last finalized block
     blockchain::Height height = (m_lastFinalizedEpoch + 1) * m_settings.m_epochLength - 1;
-    if (height == static_cast<blockchain::Height>(blockIndex.nHeight)) {  // instant confirmation
-      snapshot::Creator::FinalizeSnapshots(&blockIndex);
+    if (height == static_cast<blockchain::Height>(block_index.nHeight)) {  // instant confirmation
+      snapshot::Creator::FinalizeSnapshots(&block_index);
     } else {
       snapshot::Creator::FinalizeSnapshots(chainActive[height]);
     }
@@ -1100,7 +1100,7 @@ bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) co
   return it != m_checkpoints.end() && it->second.m_isFinalized;
 }
 
-void FinalizationState::GCCache() {
+void FinalizationState::TrimCache() {
   // last finalized checkpoint
   const auto height = (GetLastFinalizedEpoch() + 1) * GetEpochLength() - 1;
   LogPrint(BCLog::FINALIZATION, "Removing finalization states for height < %d\n", height);
@@ -1155,7 +1155,7 @@ void Storage::Reset(const esperanza::FinalizationParams &params,
 
 void Storage::ResetToTip(const esperanza::FinalizationParams &params,
                          const esperanza::AdminParams &admin_params,
-                         CBlockIndex *index) {
+                         const CBlockIndex *index) {
   LOCK(cs);
   Reset(params, admin_params);
   m_states.emplace(index, FinalizationState(*Genesis()));
@@ -1184,10 +1184,9 @@ bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) {
   LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
            __func__, block_index.nHeight, block_index.GetBlockHash().GetHex());
   const auto state = g_storage.FindOrCreate(&block_index);
-  // if (state == nullptr) {
-  //   return false;
-  // }
-  assert(state != nullptr);  // trigger snapshot tests failures
+  if (state == nullptr) {
+    return false;
+  }
   return state->ProcessNewTip(block_index, block);
 }
 
@@ -1198,7 +1197,7 @@ void RestoreFinalizationState(const CChainParams &chainparams) {
   Storage::RestoringRAII restoring(g_storage);
   if (fPruneMode) {
     if (chainActive.Tip() != nullptr) {
-      FinalizationState::ResetToTip(chainActive.Tip());
+      FinalizationState::ResetToTip(*chainActive.Tip());
     } else {
       FinalizationState::Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
     }

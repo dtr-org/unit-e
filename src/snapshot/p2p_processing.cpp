@@ -362,7 +362,7 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
     }
 
     chainActive.SetTip(blockIndex->pprev);
-    esperanza::FinalizationState::ResetToTip(chainActive.Tip());
+    esperanza::FinalizationState::ResetToTip(*chainActive.Tip());
 
     snapshotBlockIndex = blockIndex->pprev;
     assert(GetSnapshotHash(snapshotBlockIndex, snapshotHash));

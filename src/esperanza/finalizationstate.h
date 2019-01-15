@@ -229,7 +229,7 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Initialize empty finalization state for current tip.
   //! It's a workaround for prune mode. We will get rid of it by restoring finalization
   //! state from commits.
-  static void ResetToTip(CBlockIndex *index);
+  static void ResetToTip(const CBlockIndex &block_index);
 
   //! \brief Returns the finalization state for the given block.
   static FinalizationState *GetState(const CBlockIndex *block = nullptr);
@@ -244,11 +244,11 @@ class FinalizationState : public FinalizationStateData {
   //!
   //! This method encapsulates all the logic necessary to make the finalization
   //! state progress by one block.
-  //! \param blockIndex
+  //! \param block_ndex
   //! \param block
   //! \return
-  bool ProcessNewTip(const CBlockIndex &blockIndex, const CBlock &block);
-  bool ProcessNewCommits(const CBlockIndex &blockIndex, const std::vector<CTransactionRef> &txes);
+  bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block);
+  bool ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes);
 
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
@@ -305,7 +305,7 @@ class FinalizationState : public FinalizationStateData {
 
  private:
   void OnBlock(blockchain::Height blockHeight);
-  void GCCache();
+  void TrimCache();
 };
 
 //! Global version of FinalizationState::ProcessNewTip. Unlike that, this function creates
