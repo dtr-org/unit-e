@@ -63,7 +63,7 @@ class CommitsTest(UnitETestFramework):
         network_thread_start()
         for n in self.nodes:
             n.p2p.wait_for_verack()
-        # self.getcommits_test(self.nodes[0])
+        self.getcommits_test(self.nodes[0])
         self.commits_test(self.nodes[1])
 
     def getcommits_test(self, node):
