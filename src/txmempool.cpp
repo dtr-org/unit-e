@@ -569,7 +569,6 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     DisconnectedBlockTransactions disconnectpool;
     disconnectpool.addForBlock(vtx);
 
-    //for (const auto& tx : vtx)
     for (const CTransactionRef &tx : boost::adaptors::reverse(
             disconnectpool.GetQueuedTx().get<insertion_order>()
         )
@@ -588,7 +587,6 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         minerPolicyEstimator->processBlock(nBlockHeight, entries);
     }
 
-    //for (const auto& tx : vtx)
     for (const CTransactionRef &tx : boost::adaptors::reverse(
             disconnectpool.GetQueuedTx().get<insertion_order>()
         )
