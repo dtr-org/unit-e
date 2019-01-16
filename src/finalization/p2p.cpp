@@ -106,10 +106,10 @@ bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsg
 }
 
 bool ProcessNewCommits(const CommitsResponse &msg, const CChainParams &chainparams,
-                       CValidationState &validation_state, uint256 *failed_block) {
+                       CValidationState &validation_state, uint256 *failed_block_out) {
   const auto err = [&] (int code, const std::string &str, const uint256 &block) {
-    if (failed_block != nullptr) {
-      *failed_block = block;
+    if (failed_block_out != nullptr) {
+      *failed_block_out = block;
     }
     return validation_state.DoS(code, false, REJECT_INVALID, str);
   };

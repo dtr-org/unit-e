@@ -2900,7 +2900,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             CBlockReject reject = {(unsigned char)validation_state.GetRejectCode(),
                                    validation_state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH),
                                    failed_block};
-            State(pfrom->GetId())->rejects.emplace_back(reject);
+            State(pfrom->GetId())->rejects.emplace_back(std::move(reject));
         }
         return false;
     }
