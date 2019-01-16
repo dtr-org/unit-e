@@ -84,6 +84,7 @@ BASE_SCRIPTS= [
     'wallet_zapwallettxes.py',
     'esperanza_expired_vote_conflict.py',
     'wallet_importmulti.py',
+    'feature_reindex_commits.py',
     'mempool_limit.py',
     'rpc_txoutproof.py',
     'wallet_listreceivedby.py',
