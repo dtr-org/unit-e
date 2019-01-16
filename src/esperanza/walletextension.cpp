@@ -143,8 +143,9 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
   std::string backupWalletFileName =
       walletFileName + "~" + std::to_string(currentTime);
   m_enclosing_wallet.BackupWallet(backupWalletFileName);
-  const CPubKey hdMasterKey = m_enclosing_wallet.GenerateNewHDMasterKey(&seed);
-  if (!m_enclosing_wallet.SetHDMasterKey(hdMasterKey)) {
+  CKey key = seed.GetExtKey().key;
+  const CPubKey hdSeed = m_enclosing_wallet.InitHDSeed(key);
+  if (!m_enclosing_wallet.SetHDSeed(hdSeed)) {
     error = "setting master key failed";
     return false;
   }
