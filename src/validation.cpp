@@ -2137,7 +2137,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                          REJECT_INVALID, "bad-cb-snapshot-hash");
     }
 
-    for (unsigned int i = 0; i < block.vtx.size(); i++) {
+    for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
@@ -2150,7 +2150,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         AddCoins(view, tx, pindex->nHeight);
     }
 
-    for (unsigned int i = 0; i < block.vtx.size(); i++) {
+    for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
         if (tx.IsCoinBase()) {
             continue;
@@ -3464,7 +3464,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         if (prevTx && (tx->GetId() <= prevTx->GetId())){
             if (tx->GetId() == prevTx->GetId()) {
                 return state.DoS(
-                    100, false, REJECT_INVALID, "tx-duplicate", false,
+                    100, false, REJECT_INVALID, "bad-txns-duplicate", false,
                     strprintf(
                         "Duplicated transaction %s", tx->GetId().ToString()
                     )
