@@ -91,7 +91,8 @@ bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsg
                        const CChainParams &params);
 
 //! \brief Process the "commits" message
-bool ProcessNewCommits(const CommitsResponse &commits, const CChainParams &chainparams);
+bool ProcessNewCommits(const CommitsResponse &commits, const CChainParams &chainparams,
+                       CValidationState &validation_state, uint256 *failed_block_out);
 
 } // p2p
 } // finalization

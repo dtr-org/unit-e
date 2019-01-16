@@ -105,24 +105,30 @@ bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsg
   return true;
 }
 
-bool ProcessNewCommits(const CommitsResponse &msg, const CChainParams &chainparams) {
-  CValidationState state;
+bool ProcessNewCommits(const CommitsResponse &msg, const CChainParams &chainparams,
+                       CValidationState &validation_state, uint256 *failed_block_out) {
+  const auto err = [&] (int code, const std::string &str, const uint256 &block) {
+    if (failed_block_out != nullptr) {
+      *failed_block_out = block;
+    }
+    return validation_state.DoS(code, false, REJECT_INVALID, str);
+  };
   for (const auto &d : msg.data) {
     // UNIT-E: Check commits merkle root after it is added
     for (const auto &c : d.commits) {
       if (!c->IsCommit()) {
-        return error("Found non-commit transaction, stop process commits");
+        return err(100, "bad-non-commit", d.header.GetHash());
       }
     }
   }
   for (const auto &d : msg.data) {
     CBlockIndex *pindex = nullptr;
-    if (!AcceptBlockHeader(d.header, state, chainparams, &pindex)) {
+    if (!AcceptBlockHeader(d.header, validation_state, chainparams, &pindex)) {
       return false;
     }
     assert(pindex != nullptr);
     if (!pindex->IsValid(BLOCK_VALID_TREE)) {
-      return error("%s is invalid, stop process commits", pindex->GetBlockHash().GetHex());
+      return err(100, "bad-block-index", d.header.GetHash());
     }
     pindex->ResetCommits(d.commits);
     // UNIT-E: Validate commits transactions and reconstruct finalization state
