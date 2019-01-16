@@ -5,7 +5,6 @@
 
 #include <txmempool.h>
 
-#include <boost/range/adaptor/reversed.hpp>
 #include <consensus/consensus.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
@@ -569,11 +568,11 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     DisconnectedBlockTransactions disconnectpool;
     disconnectpool.addForBlock(vtx);
 
-    for (const CTransactionRef &tx : boost::adaptors::reverse(
-            disconnectpool.GetQueuedTx().get<insertion_order>()
-        )
-    ) {
-        uint256 hash = tx->GetHash();
+    auto begin_it = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
+    auto end_it = disconnectpool.GetQueuedTx().get<insertion_order>().rend();
+
+    for (auto ptx = begin_it; ptx != end_it; ptx++) {
+        uint256 hash = (*ptx)->GetHash();
 
         indexed_transaction_set::iterator i = mapTx.find(hash);
         if (i != mapTx.end()) {
@@ -587,10 +586,8 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         minerPolicyEstimator->processBlock(nBlockHeight, entries);
     }
 
-    for (const CTransactionRef &tx : boost::adaptors::reverse(
-            disconnectpool.GetQueuedTx().get<insertion_order>()
-        )
-    ) {
+    for (auto ptx = begin_it; ptx != end_it; ptx++) {
+        auto tx = *ptx;
         txiter it = mapTx.find(tx->GetHash());
         if (it != mapTx.end()) {
             setEntries stage;
