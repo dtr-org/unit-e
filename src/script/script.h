@@ -433,7 +433,7 @@ private:
     int64_t m_value;
 };
 
-class WitnessProgram;
+struct WitnessProgram;
 
 /**
  * We use a prevector for the script to reduce the considerable memory overhead
