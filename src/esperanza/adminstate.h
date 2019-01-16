@@ -39,6 +39,7 @@ class AdminState {
   void RemoveValidator(const uint160 &validatorAddress);
   void EndPermissioning();
   bool IsPermissioningActive() const;
+  const AdminParams &GetParams() const;
 };
 
 }  // namespace esperanza

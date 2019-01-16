@@ -4,7 +4,7 @@
 
 #include <test/esperanza/finalizationstate_utils.h>
 
-BOOST_FIXTURE_TEST_SUITE(finalizationstate_logout_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizationstate_logout_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(validate_logout_not_a_validator) {
 

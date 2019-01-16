@@ -102,37 +102,38 @@ class SnapshotTest(UnitETestFramework):
         #               s0
         # G------------(h=3)-(h=4) full_node
         # | isd_node          \
-        # | blank_node         --------------------------(h=20) rework_node
+        # | blank_node         --------------------------(h=10) rework_node
         connect_nodes(rework_node, full_node.index)
         sync_blocks([rework_node, full_node])
         disconnect_nodes(rework_node, full_node.index)
-        rework_node.generatetoaddress(16, rework_node.getnewaddress())
-        assert_equal(rework_node.getblockchaininfo()['blocks'], 20)
+        rework_node.generatetoaddress(6, rework_node.getnewaddress())
+        assert_equal(rework_node.getblockchaininfo()['blocks'], 10)
 
-        # generate 6 more blocks to make the first snapshot finalized
-        #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node
+        # generate 1 more block creates new epoch and instantly finalizes the previous one
+        # to make the first snapshot be part of finalized epoch
+        #               s0
+        # G------------(h=3)-(h=4)-(h=5) full_node, blank_node
         # | isd_node          \
-        #                      --------------------------(h=20) rework_node
-        full_node.generatetoaddress(5, full_node.getnewaddress())
+        #                      --------------------------(h=10) rework_node
+        full_node.generatetoaddress(1, full_node.getnewaddress())
         wait_until(lambda: has_finalized_snapshot(full_node, height=3), timeout=5)
-        assert_equal(len(full_node.listsnapshots()), 2)
+        assert_equal(len(full_node.listsnapshots()), 1)
         connect_nodes(blank_node, full_node.index)
         sync_blocks([blank_node, full_node])
         assert_equal(len(blank_node.listsnapshots()), 0)
 
         # sync isd_node with blank_node and full_node using ISD
-        #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node, isd_node
+        #               s0
+        # G------------(h=3)-(h=4)-(h=5) full_node, blank_node, isd_node
         #                     \
-        #                      --------------------------(h=20) rework_node
+        #                      --------------------------(h=10) rework_node
         connect_nodes(isd_node, blank_node.index)
         connect_nodes(isd_node, full_node.index)
         sync_blocks([full_node, isd_node])
         assert_equal(full_node.listsnapshots(), isd_node.listsnapshots())
         chain = isd_node.getblockchaininfo()
-        assert_equal(chain['headers'], 9)
-        assert_equal(chain['blocks'], 9)
+        assert_equal(chain['headers'], 5)
+        assert_equal(chain['blocks'], 5)
         assert_equal(chain['initialblockdownload'], False)
         assert_equal(chain['initialsnapshotdownload'], False)
         assert_equal(chain['pruned'], True)
@@ -141,26 +142,27 @@ class SnapshotTest(UnitETestFramework):
 
         # test that isd_node can be restarted
         restart_node(isd_node)
-        wait_until(lambda: isd_node.getblockcount() == 9, timeout=5)
+        wait_until(lambda: isd_node.getblockcount() == 5, timeout=5)
         chain = isd_node.getblockchaininfo()
-        assert_equal(chain['headers'], 9)
-        assert_equal(chain['blocks'], 9)
+        assert_equal(chain['headers'], 5)
+        assert_equal(chain['blocks'], 5)
         assert_equal(chain['initialblockdownload'], False)
         assert_equal(chain['initialsnapshotdownload'], False)
 
         # test that isd_node can create blocks
-        #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node
-        #                     \              \
-        #                      \              --(h=10) isd_node
-        #                       ------------------------(h=20) rework_node
+        #               s0
+        # G------------(h=3)-(h=4)-(h=5) full_node, blank_node
+        #                     \     \
+        #                      \     --(h=6) isd_node
+        #                       ------------------------(h=10) rework_node
         isd_node.generatetoaddress(1, isd_node.getnewaddress())
+        assert_equal(isd_node.getblockcount(), 6)
 
         # test that rework after the snapshot is possible
-        #               s0             s1
-        # G------------(h=3)-(h=4)----(h=8)-(h=9) full_node, blank_node
+        #               s0
+        # G------------(h=3)-(h=4)-(h=5) full_node, blank_node
         #                     \
-        #                      --------------------------(h=20) rework_node, isd_node
+        #                      --------------------------(h=10) rework_node, isd_node
         connect_nodes(isd_node, rework_node.index)
         sync_blocks([isd_node, rework_node])
         self.log.info('Test fast sync passed')

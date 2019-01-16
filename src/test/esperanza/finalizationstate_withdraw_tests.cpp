@@ -17,7 +17,7 @@
  * block that belongs to the 4th epoch and the 2nd dynasty.
  */
 
-BOOST_FIXTURE_TEST_SUITE(finalizationstate_withdraw_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalizationstate_withdraw_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(validate_withdraw_not_a_validator) {
 

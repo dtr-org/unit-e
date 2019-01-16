@@ -143,6 +143,11 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     // build a large-ish chain that's likely to have some forks
     std::vector<std::shared_ptr<const CBlock>> blocks;
 
+    CChainParams params = Params();
+    esperanza::FinalizationParams fin_params = params.GetFinalization();
+    fin_params.m_epochLength = 999999;
+    esperanza::FinalizationState::Reset(fin_params, params.GetAdminParams());
+
     BlockData genesisData;
     {
         genesisData.block = std::make_shared<CBlock>(Params().GenesisBlock());
