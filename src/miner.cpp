@@ -159,9 +159,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
 
-    // Notice that we don't sort blocktemplate->vTxFees nor
-    // blocktemplate->vTxSigOpsCost because they are not used at all. These two
-    // vectors are just a "residue" from Bitcoin's PoW mining pools code.
+    // LTOR/CTOR: We ensure that all transactions (except the 0th, coinbase) are
+    // sorted in lexicographical order. Notice that we don't sort
+    // blocktemplate->vTxFees nor blocktemplate->vTxSigOpsCost because they are
+    // not used at all. These two vectors are just a "residue" from Bitcoin's
+    // PoW mining pools code.
     std::sort(
         std::begin(pblock->vtx) + 1, std::end(pblock->vtx),
         [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
