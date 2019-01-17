@@ -3322,7 +3322,12 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         if (tx->IsCommit() && fin_state == nullptr) {
             fin_state = esperanza::FinalizationState::GetState(pindexPrev);
             if (fin_state == nullptr) {
-                LogPrint(BCLog::FINALIZATION, "Cannot validate commit transaction: no finalization state for %s (%d)\n", pindexPrev->GetBlockHash().GetHex(), pindexPrev->nHeight);
+                if (pindexPrev != nullptr) {
+                    LogPrint(BCLog::FINALIZATION, "Cannot validate commit transaction: no finalization state for %s (%d)\n",
+                             pindexPrev->GetBlockHash().GetHex(), pindexPrev->nHeight);
+                } else {
+                    LogPrint(BCLog::FINALIZATION, "Cannot validate commit transaction: no finalization state, pindexPrev=nullptr\n");
+                }
                 return false;
             }
         }
