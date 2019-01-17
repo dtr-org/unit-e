@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 
-namespace extkey {
 
 const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;
 
@@ -20,14 +19,12 @@ const int BIP44_ACCOUNT_KEY_DEPTH = 3;
 std::string GetDefaultAccountPathString();
 
 //! \brief Transform a BIP32 path string into a vector of child offsets
-bool ParsePath(const std::string &path_string, std::vector<uint32_t> &path, std::string &error);
+bool ParseExtKeyPath(const std::string &path_string, std::vector<uint32_t> &path, std::string &error);
 
 //! \brief Transform a a vector of BIP32 child offsets into a path string
-std::string FormatPath(const std::vector<uint32_t> &path);
+std::string FormatExtKeyPath(const std::vector<uint32_t> &path);
 
 //! \brief Display an extended pubkey as a hex string
-std::string ToString(const CExtPubKey &epk);
-
-}  // namespace extkey
+std::string ExtKeyToString(const CExtPubKey &epk);
 
 #endif  // UNITE_EXTKEY_H_INCLUDED

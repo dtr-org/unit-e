@@ -1,11 +1,19 @@
 #include <base58.h>
+#include <extkey.h>
 #include <key.h>
-#include <key/extkey.h>
 
 #include <cstdio>
 #include <sstream>
 
-namespace extkey {
+
+namespace {
+
+constexpr char ERR_PATH_STR_EMPTY[] = "Path string empty";
+constexpr char ERR_INT_INVALID_CHAR[] = "Integer conversion invalid character";
+constexpr char ERR_MALFORMED_PATH[] = "Malformed path";
+constexpr char ERR_OFFSET_HARDENED[] = "Offset is hardened already";
+
+}
 
 std::string GetDefaultAccountPathString() {
   char buffer[32];
@@ -14,12 +22,7 @@ std::string GetDefaultAccountPathString() {
   return std::string(buffer, buffer + size);
 }
 
-static const char *ERR_PATH_STR_EMPTY = "Path string empty";
-static const char *ERR_INT_INVALID_CHAR = "Integer conversion invalid character";
-static const char *ERR_MALFORMED_PATH = "Malformed path";
-static const char *ERR_OFFSET_HARDENED = "Offset is hardened already";
-
-bool ParsePath(const std::string &s, std::vector<uint32_t> &path, std::string &error) {
+bool ParseExtKeyPath(const std::string &s, std::vector<uint32_t> &path, std::string &error) {
   path.clear();
 
   if (s.length() < 1) {
@@ -81,7 +84,7 @@ bool ParsePath(const std::string &s, std::vector<uint32_t> &path, std::string &e
   return true;
 }
 
-std::string FormatPath(const std::vector<uint32_t> &path) {
+std::string FormatExtKeyPath(const std::vector<uint32_t> &path) {
   std::ostringstream s;
   s << "m";
   for (auto i : path) {
@@ -93,10 +96,8 @@ std::string FormatPath(const std::vector<uint32_t> &path) {
   return s.str();
 }
 
-std::string ToString(const CExtPubKey &epk) {
+std::string ExtKeyToString(const CExtPubKey &epk) {
   unsigned char code[BIP32_EXTKEY_SIZE];
   epk.Encode(code);
   return HexStr(code, code + sizeof(code));
 }
-
-}  // namespace extkey
