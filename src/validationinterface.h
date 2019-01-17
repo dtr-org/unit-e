@@ -6,7 +6,6 @@
 #ifndef UNITE_VALIDATIONINTERFACE_H
 #define UNITE_VALIDATIONINTERFACE_H
 
-#include <finalization/vote_recorder.h>
 #include <primitives/transaction.h> // CTransaction(Ref)
 
 #include <functional>
@@ -24,6 +23,10 @@ class uint256;
 class CScheduler;
 class CTxMemPool;
 enum class MemPoolRemovalReason;
+
+namespace finalization {
+struct VoteRecord;
+}
 
 // These functions dispatch to one or all registered wallets
 

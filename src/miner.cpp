@@ -14,6 +14,7 @@
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
+#include <esperanza/finalizationstate.h>
 #include <hash.h>
 #include <validation.h>
 #include <net.h>
@@ -23,6 +24,7 @@
 #include <primitives/transaction.h>
 #include <script/standard.h>
 #include <timedata.h>
+#include <txdb.h>
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validationinterface.h>
@@ -31,7 +33,6 @@
 #include <memory>
 #include <queue>
 #include <utility>
-#include <txdb.h>
 
 //////////////////////////////////////////////////////////////////////////////
 //

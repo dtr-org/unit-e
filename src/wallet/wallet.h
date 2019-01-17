@@ -7,7 +7,6 @@
 #define UNITE_WALLET_WALLET_H
 
 #include <esperanza/walletextension.h>
-#include <finalization/vote_recorder.h>
 #include <amount.h>
 #include <policy/feerate.h>
 #include <streams.h>
@@ -32,6 +31,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+namespace finalization {
+struct VoteRecord;
+}
 
 typedef CWallet* CWalletRef;
 extern std::vector<CWalletRef> vpwallets;

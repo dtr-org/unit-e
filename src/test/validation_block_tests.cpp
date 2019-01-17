@@ -14,6 +14,7 @@
 #include <validation.h>
 #include <validationinterface.h>
 #include <snapshot/messages.h>
+#include <esperanza/finalizationstate.h>
 
 struct RegtestingSetup : public TestingSetup {
     RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}

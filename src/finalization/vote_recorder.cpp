@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <finalization/vote_recorder.h>
+#include <esperanza/finalizationstate.h>
 
 #include <util.h>
 #include <validationinterface.h>
