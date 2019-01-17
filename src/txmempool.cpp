@@ -568,10 +568,11 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     DisconnectedBlockTransactions disconnectpool;
     disconnectpool.addForBlock(vtx);
 
-    auto begin_it = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
-    auto end_it = disconnectpool.GetQueuedTx().get<insertion_order>().rend();
-
-    for (auto ptx = begin_it; ptx != end_it; ptx++) {
+    for (
+        auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
+        ptx != disconnectpool.GetQueuedTx().get<insertion_order>().rend();
+        ptx++
+    ) {
         uint256 hash = (*ptx)->GetHash();
 
         indexed_transaction_set::iterator i = mapTx.find(hash);
@@ -586,7 +587,11 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         minerPolicyEstimator->processBlock(nBlockHeight, entries);
     }
 
-    for (auto ptx = begin_it; ptx != end_it; ptx++) {
+    for (
+        auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
+        ptx != disconnectpool.GetQueuedTx().get<insertion_order>().rend();
+        ptx++
+    ) {
         auto tx = *ptx;
         txiter it = mapTx.find(tx->GetHash());
         if (it != mapTx.end()) {

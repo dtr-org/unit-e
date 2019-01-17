@@ -1794,7 +1794,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     }
 
     // First, restore inputs
-    for (size_t i = 1; i < block.vtx.size(); i++) {
+    for (size_t i = 1; i < block.vtx.size(); ++i) {
         const CTransaction &tx = *(block.vtx[i]);
         CTxUndo &txundo = blockUndo.vtxundo[i - 1];
 
@@ -1803,7 +1803,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             return DISCONNECT_FAILED;
         }
 
-        for (size_t j = 0; j < tx.vin.size(); j++) {
+        for (size_t j = 0; j < tx.vin.size(); ++j) {
             const COutPoint &out = tx.vin[j].prevout;
             DisconnectResult res = (DisconnectResult)ApplyTxInUndo(
                 std::move(txundo.vprevout[j]), view, out
