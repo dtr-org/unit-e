@@ -253,16 +253,16 @@ void CTxMemPool::UpdateChildrenForRemoval(txiter it)
 
 void CTxMemPool::UpdateForRemoveFromMempool(const setEntries &entriesToRemove, bool updateDescendants)
 {
-    // For each entry, walk back all ancestors and decrement size associated
-    // with this transaction
+    // For each entry, walk back all ancestors and decrement size associated with this
+    // transaction
     const uint64_t nNoLimit = std::numeric_limits<uint64_t>::max();
     if (updateDescendants) {
         // updateDescendants should be true whenever we're not recursively
         // removing a tx and all its descendants, eg when a transaction is
         // confirmed in a block.
-        // Here we only update statistics and not data in mapLinks (which we
-        // need to preserve until we're finished with all operations that need
-        // to traverse the mempool).
+        // Here we only update statistics and not data in mapLinks (which
+        // we need to preserve until we're finished with all operations that
+        // need to traverse the mempool).
         for (txiter removeIt : entriesToRemove) {
             setEntries setDescendants;
             CalculateDescendants(removeIt, setDescendants);
@@ -576,16 +576,12 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         uint256 hash = (*ptx)->GetHash();
 
         indexed_transaction_set::iterator i = mapTx.find(hash);
-        if (i != mapTx.end()) {
+        if (i != mapTx.end())
             entries.push_back(&*i);
-        }
     }
 
-    // Before the txs in the new block have been removed from the mempool,
-    // update policy estimates
-    if (minerPolicyEstimator) {
-        minerPolicyEstimator->processBlock(nBlockHeight, entries);
-    }
+    // Before the txs in the new block have been removed from the mempool, update policy estimates
+    if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
 
     for (
         auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();

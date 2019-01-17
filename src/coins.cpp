@@ -111,14 +111,9 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, bool 
 
 bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);
-
-    if (it == cacheCoins.end()) {
-        return false;
-    }
-
+    if (it == cacheCoins.end()) return false;
     cachedCoinsUsage -= it->second.coin.DynamicMemoryUsage();
     snapshotHash.SubtractUTXO(snapshot::UTXO(outpoint, it->second.coin));
-
     if (moveout) {
         *moveout = std::move(it->second.coin);
     }

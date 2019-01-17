@@ -99,7 +99,7 @@ class FullBlockTest(ComparisonTestFramework):
         if (scriptPubKey[0] == OP_TRUE):  # an anyone-can-spend
             tx.vin[0].scriptSig = CScript()
             return
-        sighash, err = SignatureHash(spend_tx.vout[n].scriptPubKey, tx, 0, SIGHASH_ALL)
+        (sighash, err) = SignatureHash(spend_tx.vout[n].scriptPubKey, tx, 0, SIGHASH_ALL)
         tx.vin[0].scriptSig = CScript([self.coinbase_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))])
 
     def create_and_sign_transaction(self, spend_tx, n, value, script=CScript([OP_TRUE])):
@@ -121,7 +121,7 @@ class FullBlockTest(ComparisonTestFramework):
 
 
     def set_block_snapshot_meta(self, block, spend=None):
-        block_height = self.block_heights[block.sha256]  # TODO UNIT-E Here is where the thing crashes...
+        block_height = self.block_heights[block.sha256]
         inputs = []
         outputs = []
         for tx_idx, tx in enumerate(block.vtx):
@@ -206,11 +206,11 @@ class FullBlockTest(ComparisonTestFramework):
             return PreviousSpendableOutput(tx, 0, self.block_heights[block.sha256])
 
         # returns a test case that asserts that the current tip was accepted
-        def accepted(test_name=""):
+        def accepted(test_name = ""):
             return TestInstance([[self.tip, True]], test_name=test_name)
 
         # returns a test case that asserts that the current tip was rejected
-        def rejected(reject=None, test_name=""):
+        def rejected(reject = None, test_name = ""):
             if reject is None:
                 return TestInstance([[self.tip, False]], test_name=test_name)
             else:
@@ -379,7 +379,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected()
         comp_snapshot_hash(6)
 
-        yield TestInstance([[b12, True, b13.sha256]])  # New tip should be b13.
+        yield TestInstance([[b12, True, b13.sha256]]) # New tip should be b13.
         comp_snapshot_hash(13)
 
         # Add a block with MAX_BLOCK_SIGOPS and one with one more sigop
@@ -397,7 +397,7 @@ class FullBlockTest(ComparisonTestFramework):
 
 
         # Test that a block with too many checksigs is rejected
-        too_many_checksigs = CScript([OP_CHECKSIG] * MAX_BLOCK_SIGOPS)
+        too_many_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS))
         block(16, spend=out[6], script=too_many_checksigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(15)
@@ -578,7 +578,7 @@ class FullBlockTest(ComparisonTestFramework):
         save_spendable_output()
         comp_snapshot_hash(35)
 
-        too_many_checksigs = CScript([OP_CHECKSIGVERIFY] * MAX_BLOCK_SIGOPS)
+        too_many_checksigs = CScript([OP_CHECKSIGVERIFY] * (MAX_BLOCK_SIGOPS))
         block(36, spend=out[11], script=too_many_checksigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(35)
@@ -641,15 +641,15 @@ class FullBlockTest(ComparisonTestFramework):
         # Until block is full, add tx's with 1 satoshi to p2sh_script, the rest to OP_TRUE
         tx_new = None
         tx_last = tx
-        total_size = len(b39.serialize())
-        while total_size < MAX_BLOCK_BASE_SIZE:
+        total_size=len(b39.serialize())
+        while(total_size < MAX_BLOCK_BASE_SIZE):
             tx_new = create_tx(tx_last, 1, 1, p2sh_script)
             tx_new.vout.append(CTxOut(tx_last.vout[1].nValue - 1, CScript([OP_TRUE])))
             tx_new.rehash()
             total_size += len(tx_new.serialize())
             if total_size >= MAX_BLOCK_BASE_SIZE:
                 break
-            b39.vtx.append(tx_new)  # add tx to block
+            b39.vtx.append(tx_new) # add tx to block
             tx_last = tx_new
             b39_outputs += 1
 
@@ -852,7 +852,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(43)
         block(53, spend=out[14])
-        yield rejected()  # rejected since b44 is at same height
+        yield rejected() # rejected since b44 is at same height
         save_spendable_output()
         comp_snapshot_hash(44)
 
@@ -911,7 +911,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(55)
         b56 = copy.deepcopy(b57)
         self.blocks[56] = b56
-        assert_equal(len(b56.vtx), 3)
+        assert_equal(len(b56.vtx),3)
         assert_equal(b56.hash, b57.hash)
         b56 = update_block(56, [tx1], del_refs=False)
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
@@ -933,7 +933,7 @@ class FullBlockTest(ComparisonTestFramework):
         b56p2 = copy.deepcopy(b57p2)
         self.blocks["b56p2"] = b56p2
         assert_equal(b56p2.hash, b57p2.hash)
-        assert_equal(len(b56p2.vtx), 6)
+        assert_equal(len(b56p2.vtx),6)
         b56p2 = update_block("b56p2", [tx3, tx4], del_refs=False)
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
         comp_snapshot_hash(55)

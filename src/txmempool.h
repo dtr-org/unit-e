@@ -765,9 +765,7 @@ struct DisconnectedBlockTransactions {
     // Estimate the overhead of queuedTx to be 6 pointers + an allocation, as
     // no exact formula for boost::multi_index_contained is implemented.
     size_t DynamicMemoryUsage() const {
-        return memusage::MallocUsage(
-            sizeof(CTransactionRef) + 6 * sizeof(void*)
-        ) * queuedTx.size() + cachedInnerUsage;
+        return memusage::MallocUsage(sizeof(CTransactionRef) + 6 * sizeof(void*)) * queuedTx.size() + cachedInnerUsage;
     }
 
     const indexed_disconnected_transactions &GetQueuedTx() const {
