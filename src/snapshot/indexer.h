@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include <arith_uint256.h>
 #include <clientversion.h>
 #include <fs.h>
 #include <serialize.h>
@@ -86,13 +87,13 @@ namespace snapshot {
 //!
 //! utxo???.dat is the file that stores step * steps_per_file UTXO subsets
 //! UTXOSubset
-//! | size | type    | field      | description
-//! | 32   | uint256 | txId       | TX ID that contains UTXOs
-//! | 4    | uint32  | height     | at which bloch height the TX was created
-//! | 1    | bool    | isCoinBase |
-//! | N    | varInt  | size       | size of the map
-//! | 4    | uint32  | key        | CTxOut index
-//! | N    | CTxOut  | value      | contains amount and script
+//! | size | type    | field        | description
+//! | 32   | uint256 | tx_id        | TX ID that contains UTXOs
+//! | 4    | uint32  | height       | at which bloch height the TX was created
+//! | 1    | bool    | is_coin_base |
+//! | N    | varInt  | size         | size of the map
+//! | 4    | uint32  | key          | CTxOut index
+//! | N    | CTxOut  | value        | contains amount and script
 //!
 //! utxo???.dat file has an incremental suffix starting from 0.
 //! File doesn't contain the length of messages/bytes that needs to be read.
@@ -106,25 +107,19 @@ struct Meta {
   uint256 snapshot_hash;
   uint256 block_hash;
   uint256 stake_modifier;
-  uint64_t total_utxo_subsets;
-  uint32_t step;
-  uint32_t steps_per_file;
+  uint256 chain_work;
+  uint64_t total_utxo_subsets = 0;
+  uint32_t step = 0;
+  uint32_t steps_per_file = 0;
 
-  Meta()
-      : snapshot_hash(),
-        block_hash(),
-        stake_modifier(),
-        total_utxo_subsets(0),
-        step(0),
-        steps_per_file(0) {}
+  Meta() = default;
 
-  Meta(const uint256 &_snapshot_hash, const uint256 &_block_hash, const uint256 &_stake_modifier)
+  Meta(const uint256 &_snapshot_hash, const uint256 &_block_hash,
+       const uint256 &_stake_modifier, const uint256 &_chain_work)
       : snapshot_hash(_snapshot_hash),
         block_hash(_block_hash),
         stake_modifier(_stake_modifier),
-        total_utxo_subsets(0),
-        step(0),
-        steps_per_file(0) {}
+        chain_work(_chain_work) {}
 
   ADD_SERIALIZE_METHODS;
 
@@ -133,6 +128,7 @@ struct Meta {
     READWRITE(snapshot_hash);
     READWRITE(block_hash);
     READWRITE(stake_modifier);
+    READWRITE(chain_work);
     READWRITE(total_utxo_subsets);
     READWRITE(step);
     READWRITE(steps_per_file);
@@ -146,12 +142,12 @@ class Indexer {
   //! until the end of this index.
   using IdxMap = std::map<uint32_t, uint32_t>;
 
-  static std::unique_ptr<Indexer> Open(const uint256 &snapshotHash);
-  static bool Delete(const uint256 &snapshotHash);
+  static std::unique_ptr<Indexer> Open(const uint256 &snapshot_hash);
+  static bool Delete(const uint256 &snapshot_hash);
 
-  explicit Indexer(const uint256 &snapshotHash, const uint256 &blockHash,
-                   const uint256 &stakeModifier,
-                   uint32_t step, uint32_t stepsPerFile);
+  explicit Indexer(const uint256 &snapshot_hash, const uint256 &block_hash,
+                   const uint256 &stake_modifier, const uint256 &chain_work,
+                   uint32_t step, uint32_t steps_per_file);
 
   const Meta &GetMeta() const { return m_meta; }
   bool WriteUTXOSubsets(const std::vector<UTXOSubset> &list);
@@ -189,9 +185,6 @@ class Indexer {
 
   bool FlushFile();
   bool FlushIndex();
-
-  // calculates and updates m_snapshotHash
-  // if provided one is null
   bool FlushMeta();
 };
 }  // namespace snapshot

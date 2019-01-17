@@ -190,7 +190,7 @@ class ExampleTest(UnitETestFramework):
             blocks.append(self.tip)
             self.block_time += 1
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
             height += 1
 
         self.log.info("Wait for node1 to reach current tip (height 11) using RPC")

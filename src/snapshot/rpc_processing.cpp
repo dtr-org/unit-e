@@ -33,6 +33,7 @@ UniValue SnapshotNode(const uint256 &snapshotHash) {
   node.push_back(Pair("block_hash", idx->GetMeta().block_hash.GetHex()));
   node.push_back(Pair("block_height", mapBlockIndex[idx->GetMeta().block_hash]->nHeight));
   node.push_back(Pair("stake_modifier", idx->GetMeta().stake_modifier.GetHex()));
+  node.push_back(Pair("chain_work", idx->GetMeta().chain_work.GetHex()));
   node.push_back(Pair("total_utxo_subsets", idx->GetMeta().total_utxo_subsets));
 
   uint64_t outputs = 0;
@@ -93,7 +94,8 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
 
   uint256 snapshotHash;
   if (blockIndex == chainActive.Tip()) {
-    snapshotHash = pcoinsTip->GetSnapshotHash().GetHash(blockIndex->stake_modifier);
+    snapshotHash = pcoinsTip->GetSnapshotHash().GetHash(blockIndex->stake_modifier,
+                                                        ArithToUint256(blockIndex->nChainWork));
   } else {
     CBlockIndex *parent = chainActive[blockIndex->nHeight + 1];
     if (parent->pprev != blockIndex) {
@@ -208,23 +210,28 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
     stream.clear();
 
     stream << uint256S("aa");
-    std::string stakeModifier = HexStr(stream);
+    std::string stake_modifier = HexStr(stream);
+    stream.clear();
+
+    stream << uint256S("bb");
+    std::string chain_work = HexStr(stream);
     stream.clear();
 
     SnapshotHash hash;
     stream << hash.GetData();
-    std::string snapshotData = HexStr(stream);
+    std::string snapshot_data = HexStr(stream);
     stream.clear();
 
-    std::string example = inputs + " " + outputs + " " + stakeModifier + " " + snapshotData;
+    std::string example = inputs + " " + outputs + " " + stake_modifier + " " + chain_work + " " + snapshot_data;
     throw std::runtime_error(
         "calcsnapshothash\n"
         "\nReturns snapshot hash and its data after arithmetic calculations\n"
         "\nArguments:\n"
         "1. \"inputs\" (hex, required) serialized UTXOs to subtract.\n"
         "2. \"outputs\" (hex, required) serialized UTXOs to add.\n"
-        "3. \"stakeModifier\" (hex, required) stake modifier of the current block\n"
-        "4. \"snapshotData\" (hex, optional) initial snapshot data.\n"
+        "3. \"stake_modifier\" (hex, required) stake modifier of the current block\n"
+        "4. \"chain_work\" (hex, required) chain work of the current block\n"
+        "5. \"snapshotData\" (hex, optional) initial snapshot data.\n"
         "\nExamples:\n" +
         HelpExampleCli("calcsnapshothash", example) +
         HelpExampleRpc("calcsnapshothash", example));
@@ -241,11 +248,12 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   stream >> inputs;
   stream >> outputs;
 
-  uint256 stakeModifier = uint256(ParseHex(request.params[2].get_str()));
+  uint256 stake_modifier = uint256(ParseHex(request.params[2].get_str()));
+  uint256 chain_work = uint256(ParseHex(request.params[3].get_str()));
 
   SnapshotHash hash;
-  if (request.params.size() == 4) {
-    hash = SnapshotHash(ParseHex(request.params[3].get_str()));
+  if (request.params.size() == 5) {
+    hash = SnapshotHash(ParseHex(request.params[4].get_str()));
   }
 
   for (const auto &in : inputs) {
@@ -257,7 +265,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   }
 
   UniValue root(UniValue::VOBJ);
-  root.push_back(Pair("hash", HexStr(hash.GetHash(stakeModifier))));
+  root.push_back(Pair("hash", HexStr(hash.GetHash(stake_modifier, chain_work))));
   root.push_back(Pair("data", HexStr(hash.GetData())));
   return root;
 }
@@ -276,7 +284,9 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
 
   LOCK(cs_main);
   SnapshotHash hash = pcoinsTip->GetSnapshotHash();
-  root.push_back(Pair("hash", HexStr(hash.GetHash(chainActive.Tip()->stake_modifier))));
+  uint256 sm = chainActive.Tip()->stake_modifier;
+  uint256 cw = ArithToUint256(chainActive.Tip()->nChainWork);
+  root.push_back(Pair("hash", HexStr(hash.GetHash(sm, cw))));
   root.push_back(Pair("data", HexStr(hash.GetData())));
 
   return root;

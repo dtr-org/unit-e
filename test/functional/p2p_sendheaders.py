@@ -358,7 +358,7 @@ class SendHeadersTest(UnitETestFramework):
                     blocks[-1].solve()
                     tip = blocks[-1].sha256
                     utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-                    snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
+                    snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
                     block_time += 1
                     height += 1
                 if j == 0:
@@ -475,7 +475,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks[-1].solve()
             tip = blocks[-1].sha256
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
             block_time += 1
             height += 1
             inv_node.send_message(msg_block(blocks[-1]))
@@ -497,7 +497,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks[-1].solve()
             tip = blocks[-1].sha256
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshots.append(calc_snapshot_hash(self.nodes[0], snapshots[-1].data, 0, [], [utxo]))
+            snapshots.append(calc_snapshot_hash(self.nodes[0], snapshots[-1].data, 0, height, [], [utxo]))
             block_time += 1
             height += 1
 
@@ -522,7 +522,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks[-1].solve()
             tip = blocks[-1].sha256
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
             block_time += 1
             height += 1
 
@@ -573,7 +573,7 @@ class SendHeadersTest(UnitETestFramework):
                 blocks[-1].solve()
                 tip = blocks[-1].sha256
                 utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-                snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
+                snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
                 block_time += 1
                 height += 1
             # Send the header of the second block -> this won't connect.
@@ -598,7 +598,7 @@ class SendHeadersTest(UnitETestFramework):
             blocks[-1].solve()
             tip = blocks[-1].sha256
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, [], [utxo])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
             block_time += 1
             height += 1
 

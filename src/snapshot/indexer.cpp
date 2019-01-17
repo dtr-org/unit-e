@@ -9,8 +9,8 @@
 
 namespace snapshot {
 
-std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshotHash) {
-  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshotHash.GetHex());
+std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshot_hash) {
+  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshot_hash.GetHex());
 
   Meta meta;
   {
@@ -37,8 +37,8 @@ std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshotHash) {
   return std::unique_ptr<Indexer>(new Indexer(meta, std::move(dirIdx)));
 }
 
-bool Indexer::Delete(const uint256 &snapshotHash) {
-  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshotHash.GetHex());
+bool Indexer::Delete(const uint256 &snapshot_hash) {
+  fs::path dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshot_hash.GetHex());
   try {
     fs::remove_all(dirPath);
     return true;
@@ -49,19 +49,19 @@ bool Indexer::Delete(const uint256 &snapshotHash) {
   }
 }
 
-Indexer::Indexer(const uint256 &snapshotHash, const uint256 &blockHash,
-                 const uint256 &stakeModifier,
-                 uint32_t step, uint32_t stepsPerFile)
-    : m_meta(snapshotHash, blockHash, stakeModifier),
+Indexer::Indexer(const uint256 &snapshot_hash, const uint256 &block_hash,
+                 const uint256 &stake_modifier, const uint256 &chain_work,
+                 uint32_t step, uint32_t steps_per_file)
+    : m_meta(snapshot_hash, block_hash, stake_modifier, chain_work),
       m_stream(SER_DISK, PROTOCOL_VERSION),
       m_fileId(0),
       m_fileMsgs(0),
       m_fileBytes(0),
-      m_dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshotHash.GetHex()) {
+      m_dirPath(GetDataDir() / SNAPSHOT_FOLDER / snapshot_hash.GetHex()) {
   assert(step > 0);
-  assert(stepsPerFile > 0);
+  assert(steps_per_file > 0);
   m_meta.step = step;
-  m_meta.steps_per_file = stepsPerFile;
+  m_meta.steps_per_file = steps_per_file;
 
   TryCreateDirectories(m_dirPath);
 }

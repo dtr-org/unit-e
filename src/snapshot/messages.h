@@ -55,6 +55,7 @@ struct SnapshotHeader {
   uint256 snapshot_hash;
   uint256 block_hash;
   uint256 stake_modifier;
+  uint256 chain_work;
   uint64_t total_utxo_subsets = 0;
 
   SnapshotHeader() = default;
@@ -75,6 +76,7 @@ struct SnapshotHeader {
     snapshot_hash.SetNull();
     block_hash.SetNull();
     stake_modifier.SetNull();
+    chain_work.SetNull();
     total_utxo_subsets = 0;
   }
 
@@ -84,6 +86,7 @@ struct SnapshotHeader {
     READWRITE(snapshot_hash);
     READWRITE(block_hash);
     READWRITE(stake_modifier);
+    READWRITE(chain_work);
     READWRITE(total_utxo_subsets);
   }
 };
@@ -173,12 +176,15 @@ class SnapshotHash {
 
   //! GetHash returns the hash that represents the snapshot
   //!
-  //! \param stakeModifier which points to the same height as the snapshot hash
+  //! \param stake_modifier which points to the same height as the snapshot hash
+  //! \param chain_work which points to the same height as the snapshot hash
   //! \return the hash which is stored inside the coinbase TX
-  uint256 GetHash(uint256 stakeModifier) const;
+  uint256 GetHash(const uint256 &stake_modifier,
+                  const uint256 &chain_work) const;
 
   //! GetHashVector is a proxy to GetHash
-  std::vector<uint8_t> GetHashVector(uint256 stakeModifier) const;
+  std::vector<uint8_t> GetHashVector(const uint256 &stake_modifier,
+                                     const uint256 &chain_work) const;
 
   void Clear();
 

@@ -50,6 +50,7 @@ bool P2PState::ProcessGetSnapshotHeader(CNode &node, CDataStream &data,
   best_snapshot.snapshot_hash = indexer->GetMeta().snapshot_hash;
   best_snapshot.block_hash = indexer->GetMeta().block_hash;
   best_snapshot.stake_modifier = indexer->GetMeta().stake_modifier;
+  best_snapshot.chain_work = indexer->GetMeta().chain_work;
   best_snapshot.total_utxo_subsets = indexer->GetMeta().total_utxo_subsets;
 
   LogPrint(BCLog::SNAPSHOT, "%s: return snapshot_hash=%s block_hash=%s to peer=%i\n",
@@ -172,6 +173,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
     indexer.reset(new Indexer(msg.snapshot_hash,
                               node.m_best_snapshot.block_hash,
                               node.m_best_snapshot.stake_modifier,
+                              node.m_best_snapshot.chain_work,
                               DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
   }
 
@@ -199,7 +201,8 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
 
   if (indexer->GetMeta().total_utxo_subsets == node.m_best_snapshot.total_utxo_subsets) {
     Iterator iterator(std::move(indexer));
-    uint256 hash = iterator.CalculateHash(node.m_best_snapshot.stake_modifier);
+    uint256 hash = iterator.CalculateHash(node.m_best_snapshot.stake_modifier,
+                                          node.m_best_snapshot.chain_work);
     if (hash != msg.snapshot_hash) {
       LogPrint(BCLog::SNAPSHOT, "%s: invalid hash. has=%s got=%s\n",
                NetMsgType::SNAPSHOT,
@@ -333,8 +336,8 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
     return regular_processing();
   }
 
-  uint256 snapshotHash;
-  CBlockIndex *snapshotBlockIndex;
+  uint256 snapshot_hash;
+  CBlockIndex *snapshot_block_index;
   {
     LOCK(cs_main);
 
@@ -364,12 +367,15 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
     chainActive.SetTip(blockIndex->pprev);
     esperanza::FinalizationState::ResetToTip(*chainActive.Tip());
 
-    snapshotBlockIndex = blockIndex->pprev;
-    assert(GetSnapshotHash(snapshotBlockIndex, snapshotHash));
+    snapshot_block_index = blockIndex->pprev;
+    assert(GetSnapshotHash(snapshot_block_index, snapshot_hash));
   }
 
-  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotHash);
+  std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
   assert(idx);
+  snapshot_block_index->stake_modifier = idx->GetMeta().stake_modifier;
+  snapshot_block_index->nChainWork = UintToArith256(idx->GetMeta().chain_work);
+
   if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
     // if we can't write the snapshot, we have an issue with the DB
     // and most likely we can't recover.
@@ -418,10 +424,10 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
   }
 
   // at this stage we are leaving ISD
-  FinalizeSnapshots(snapshotBlockIndex);
+  FinalizeSnapshots(snapshot_block_index);
   uint256 hash;
   assert(GetLatestFinalizedSnapshotHash(hash));
-  assert(snapshotHash == hash);
+  assert(snapshot_hash == hash);
 }
 
 bool P2PState::FindNextBlocksToDownload(NodeId node_id,

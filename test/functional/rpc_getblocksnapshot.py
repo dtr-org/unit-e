@@ -49,6 +49,7 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
             assert_equal(keys, [
                 'block_hash',
                 'block_height',
+                'chain_work',
                 'snapshot_finalized',
                 'snapshot_hash',
                 'stake_modifier',
@@ -70,6 +71,7 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
             assert_equal(keys, [
                 'block_hash',
                 'block_height',
+                'chain_work',
                 'snapshot_finalized',
                 'snapshot_hash',
                 'stake_modifier',
