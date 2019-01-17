@@ -19,8 +19,8 @@ required when doing so would need changes to significant pieces of existing
 code.
   - Variable (including function arguments) and namespace names are all lowercase, and may use _ to separate words (snake_case).
     - Class member variables have a `m_` prefix.
+    - Public struct member variables don't have `m_` prefix.
     - Global variables have a `g_` prefix.
-    - Public struct member variables doesn't have `m_` prefix.
   - Constant names are all uppercase, and use `_` to separate words.
   - Class names, function names and method names are UpperCamelCase
     (PascalCase). Do not prefix class names with `C`.
