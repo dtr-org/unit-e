@@ -207,6 +207,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
 
     if (tx.IsVote()) {
       const esperanza::FinalizationState *state = esperanza::FinalizationState::GetState();
+      assert(state);
 
       esperanza::Vote vote;
       std::vector<unsigned char> voteSig;

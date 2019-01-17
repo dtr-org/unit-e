@@ -86,7 +86,7 @@ class ReindexCommits(UnitETestFramework):
 
         last_fin_epoch = validator.getfinalizationstate()['lastFinalizedEpoch']
         self.generate_sync(proposer, 10 * EPOCH_LENGTH)
-        assert_equal(last_fin_epoch + 5,
+        assert_equal(last_fin_epoch + 10,
                      validator.getfinalizationstate()['lastFinalizedEpoch'])
 
     def restart_nodes(self, reindex):
