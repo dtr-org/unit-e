@@ -165,7 +165,7 @@ uint64_t CSipHasher::Finalize() const
     return v0 ^ v1 ^ v2 ^ v3;
 }
 
-uint64_t SipHashUint256(uint64_t k0, uint64_t k1, const uint256& val)
+uint64_t SipHashUint256(const uint64_t k0, const uint64_t k1, const uint256& val)
 {
     /* Specialized implementation for efficiency */
     uint64_t d = val.GetUint64(0);

@@ -354,7 +354,7 @@ class SaltedTxidHasher
 {
 private:
     /** Salt */
-    const uint64_t k0, k1;
+    uint64_t k0, k1;
 
 public:
     SaltedTxidHasher();

@@ -1126,10 +1126,9 @@ void DisconnectedBlockTransactions::addForBlock(
         // In order to make sure we keep things in topological order, we check
         // if we already know of the parent of the current transaction. If so,
         // we remove them from the set and then add them back.
-        while (parents.size() > 0) {
-            std::unordered_set<uint256, SaltedTxidHasher> worklist(
-                std::move(parents)
-            );
+        while (!parents.empty()) {
+            std::unordered_set<uint256, SaltedTxidHasher> worklist;
+            parents.swap(worklist);
 
             for (const uint256 &txid : worklist) {
                 // If we do not have that txid in the set, nothing needs to be
