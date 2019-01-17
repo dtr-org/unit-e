@@ -5,13 +5,17 @@
 #ifndef UNIT_E_FINALIZATION_VOTE_RECORDER_H
 #define UNIT_E_FINALIZATION_VOTE_RECORDER_H
 
-#include <esperanza/finalizationstate.h>
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 #include <map>
 #include <memory>
+#include <sync.h>
+
+namespace esperanza {
+class FinalizationState;
+}
 
 namespace finalization {
 
