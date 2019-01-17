@@ -560,6 +560,17 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
     return CheckInputs(tx, state, view, true, flags, cacheSigStore, true, txdata);
 }
 
+static bool CheckCommit(const CTransaction &tx, CValidationState &err_state, const Consensus::Params &params) {
+    const auto fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
+    assert(fin_state != nullptr);
+    LogPrint(BCLog::FINALIZATION, "Accepting %s to mempool with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
+    if (!esperanza::CheckCommit(tx, err_state, params, *fin_state)) {
+        LogPrintf("%s (%s) cannot be included in mempool: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(), err_state.GetRejectReason());
+        return false;
+    }
+    return true;
+}
+
 static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state, const CTransactionRef& ptx,
                               bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
                               bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache)
@@ -617,7 +628,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
-    if (!CheckFinalizationTransaction(tx, state, chainparams)) {
+    if (tx.IsCommit() && !CheckCommit(tx, state, chainparams.GetConsensus())) {
         return false; // state already filled by CheckFinalizationTransaction
     }
 
@@ -3107,6 +3118,25 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
+static bool CheckBlockCommits(const CBlock &block, CValidationState &err_state, const Consensus::Params &params) {
+    esperanza::FinalizationState *fin_state = nullptr;
+    for (const auto &tx : block.vtx) {
+        if (tx->IsCommit() ) {
+            if (fin_state == nullptr) {
+                const CBlockIndex *const prev_index = LookupBlockIndex(block.hashPrevBlock);
+                fin_state = esperanza::FinalizationState::GetState(prev_index);
+                assert(fin_state != nullptr);
+            }
+            if (!esperanza::CheckCommit(*tx, err_state, params, *fin_state)) {
+                LogPrintf("Commit check failed: %s (%s): %s\n", tx->GetType()._to_string(),
+                          tx->GetHash().GetHex(), err_state.GetRejectReason());
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     // These are checks that are independent of context.
@@ -3149,6 +3179,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     for (unsigned int i = 1; i < block.vtx.size(); i++)
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
+
+    // Check commits
+    if (!CheckBlockCommits(block, state, consensusParams)) {
+        return false;
+    }
 
     // Check transactions
     for (const auto& tx : block.vtx)
@@ -3315,117 +3350,11 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                            "block height mismatch in coinbase");
         }
     }
+
     // Check that all transactions are finalized
-    const auto &fin_state = *esperanza::FinalizationState::GetState(pindexPrev);
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
-        }
-
-        //UNIT-E: pretty much the same code can be found in AcceptMemoryPoolWorker maybe it wourld be worth unifying
-        switch (tx->GetType()) {
-          case TxType ::VOTE: {
-
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Accepting vote to mempool with id %s.\n",
-                     __func__,
-                     tx->GetHash().GetHex());
-
-            if (!esperanza::CheckVoteTransaction(state, *tx, consensusParams, fin_state)) {
-
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Vote cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckVoteTransaction
-            }
-            break;
-          }
-          case TxType::DEPOSIT: {
-
-            LogPrint(BCLog::FINALIZATION,
-                "%s: Accepting deposit to mempool with id %s.\n",
-                __func__,
-                tx->GetHash().GetHex());
-
-            if (!esperanza::CheckDepositTransaction(state, *tx, fin_state)) {
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
-                       __func__,
-                       state.GetRejectReason(),
-                       tx->GetHash().GetHex());
-
-              return false; //state already filled by CheckDepositTransaction
-            }
-            break;
-          }
-          case TxType::LOGOUT: {
-
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Accepting logout to mempool with id %s.\n",
-                     __func__,
-                     tx->GetHash().GetHex());
-
-            if (!esperanza::CheckLogoutTransaction(state, *tx, consensusParams, fin_state)) {
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Logout cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckLogoutTransaction
-            }
-            break;
-          }
-          case TxType::WITHDRAW: {
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Accepting withdraw to mempool with id %s.\n", __func__,
-                     tx->GetHash().GetHex());
-
-            if (!esperanza::CheckWithdrawTransaction(state, *tx, consensusParams, fin_state)){
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Withdraw cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckWithdrawTransaction
-            }
-            break;
-          }
-          case TxType::SLASH: {
-            LogPrint(BCLog::FINALIZATION,
-                     "%s: Accepting slash to mempool with id %s.\n", __func__,
-                     tx->GetHash().GetHex());
-
-            if (!esperanza::CheckSlashTransaction(state, *tx, consensusParams, fin_state)){
-              LogPrint(BCLog::FINALIZATION,
-                       "%s: Slash cannot be included into mempool: %s.\n",
-                       __func__,
-                       state.GetRejectReason());
-
-              return false; //state already filled by CheckSlashTransaction
-            }
-            break;
-          }
-          case TxType::ADMIN: {
-
-            LogPrint(BCLog::ADMIN,
-                "%s: Accepting admin transaction to mempool with id %s.\n",
-                __func__, tx->GetHash().GetHex());
-
-            if (!esperanza::CheckAdminTransaction(state, *tx, fin_state)) {
-              LogPrint(BCLog::ADMIN,
-                  "%s: Admin transaction cannot be included into mempool: %s.\n",
-                   __func__,
-                   state.GetRejectReason());
-
-              return false; //state already filled by CheckAdminTransaction
-            }
-            break;
-          }
-          default: {
-            break;
-          }
         }
     }
 
@@ -4965,109 +4894,3 @@ public:
         mapBlockIndex.clear();
     }
 } instance_of_cmaincleanup;
-
-bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &state, const CChainParams &chainparams) {
-  const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
-  switch (tx.GetType()) {
-    case TxType::VOTE: {
-
-      LogPrint(BCLog::FINALIZATION,
-               "%s: Accepting vote to mempool with id %s.\n",
-               __func__,
-               tx.GetHash().GetHex());
-
-      if (!esperanza::CheckVoteTransaction(state, tx, chainparams.GetConsensus(), fin_state)) {
-        LogPrint(BCLog::FINALIZATION,
-                 "%s: Vote cannot be included into mempool: %s.\n",
-                 __func__,
-                 state.GetRejectReason());
-
-        return false; //state already filled by CheckVoteTransaction
-      }
-      break;
-    }
-    case TxType::DEPOSIT: {
-
-      LogPrint(BCLog::FINALIZATION,
-               "%s: Accepting deposit to mempool with id %s.\n", __func__,
-               tx.GetHash().GetHex());
-
-      if (!esperanza::CheckDepositTransaction(state, tx, fin_state)) {
-        LogPrint(BCLog::FINALIZATION,
-                 "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
-                 __func__,
-                 state.GetRejectReason(),
-                 tx.GetHash().GetHex());
-
-        return false; //state already filled by CheckDepositTransaction
-      }
-      break;
-    }
-    case TxType::LOGOUT: {
-      LogPrint(BCLog::FINALIZATION,
-               "%s: Accepting logout to mempool with id %s.\n", __func__,
-               tx.GetHash().GetHex());
-
-      if (!esperanza::CheckLogoutTransaction(state, tx, chainparams.GetConsensus(), fin_state)){
-        LogPrint(BCLog::FINALIZATION,
-                 "%s: Logout cannot be included into mempool: %s.\n",
-                 __func__,
-                 state.GetRejectReason());
-
-        return false; //state already filled by CheckLogoutTransaction
-      }
-      break;
-    }
-    case TxType::WITHDRAW: {
-      LogPrint(BCLog::FINALIZATION,
-               "%s: Accepting withdraw to mempool with id %s.\n", __func__,
-               tx.GetHash().GetHex());
-
-      if (!esperanza::CheckWithdrawTransaction(state, tx, chainparams.GetConsensus(), fin_state)){
-        LogPrint(BCLog::FINALIZATION,
-                 "%s: Withdraw cannot be included into mempool: %s.\n",
-                 __func__,
-                 state.GetRejectReason());
-
-        return false; //state already filled by CheckWithdrawTransaction
-      }
-      break;
-    }
-    case TxType::SLASH: {
-      LogPrint(BCLog::FINALIZATION,
-               "%s: Accepting slash to mempool with id %s.\n", __func__,
-               tx.GetHash().GetHex());
-
-      if (!esperanza::CheckSlashTransaction(state, tx, chainparams.GetConsensus(), fin_state)){
-        LogPrint(BCLog::FINALIZATION,
-                 "%s: Slash cannot be included into mempool: %s.\n",
-                 __func__,
-                 state.GetRejectReason());
-
-        return false; //state already filled by CheckSlashTransaction
-      }
-      break;
-    }
-    case TxType::ADMIN: {
-
-      LogPrint(BCLog::ADMIN,
-               "%s: Accepting admin transaction to mempool with id %s.\n",
-               __func__, tx.GetHash().GetHex());
-
-      if (!esperanza::CheckAdminTransaction(state, tx, fin_state)) {
-        LogPrint(BCLog::ADMIN,
-                 "%s: Admin transaction cannot be included into mempool: %s.\n",
-                 __func__,
-                 state.GetRejectReason());
-
-        return false; //state already filled by CheckAdminTransaction
-      }
-      break;
-    }
-    default: {
-      break;
-    }
-  }
-
-  return true;
-}
