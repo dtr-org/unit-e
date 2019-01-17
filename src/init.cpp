@@ -16,6 +16,7 @@
 #include <checkpoints.h>
 #include <compat/sanity.h>
 #include <consensus/validation.h>
+#include <finalization/vote_recorder.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/init.h>
@@ -55,7 +56,6 @@
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
-#include <finalization/vote_recorder.h>
 #include <rpc/proposing.h>
 #endif
 #include <warnings.h>
