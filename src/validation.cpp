@@ -3315,9 +3315,18 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                            "block height mismatch in coinbase");
         }
     }
+
+    esperanza::FinalizationState *fin_state = nullptr;
     // Check that all transactions are finalized
-    const auto &fin_state = *esperanza::FinalizationState::GetState(pindexPrev);
     for (const auto& tx : block.vtx) {
+        if (tx->IsCommit() && fin_state == nullptr) {
+            fin_state = esperanza::FinalizationState::GetState(pindexPrev);
+            if (fin_state == nullptr) {
+                LogPrint(BCLog::FINALIZATION, "Cannot validate commit transaction: no finalization state for %s (%d)\n", pindexPrev->GetBlockHash().GetHex(), pindexPrev->nHeight);
+                return false;
+            }
+        }
+
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
         }
@@ -3331,7 +3340,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckVoteTransaction(state, *tx, consensusParams, fin_state)) {
+            if (!esperanza::CheckVoteTransaction(state, *tx, consensusParams, *fin_state)) {
 
               LogPrint(BCLog::FINALIZATION,
                        "%s: Vote cannot be included into mempool: %s.\n",
@@ -3349,7 +3358,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 __func__,
                 tx->GetHash().GetHex());
 
-            if (!esperanza::CheckDepositTransaction(state, *tx, fin_state)) {
+            if (!esperanza::CheckDepositTransaction(state, *tx, *fin_state)) {
               LogPrint(BCLog::FINALIZATION,
                        "%s: Deposit cannot be included into mempool: %s, txid: %s.\n",
                        __func__,
@@ -3367,7 +3376,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckLogoutTransaction(state, *tx, consensusParams, fin_state)) {
+            if (!esperanza::CheckLogoutTransaction(state, *tx, consensusParams, *fin_state)) {
               LogPrint(BCLog::FINALIZATION,
                        "%s: Logout cannot be included into mempool: %s.\n",
                        __func__,
@@ -3382,7 +3391,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      "%s: Accepting withdraw to mempool with id %s.\n", __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckWithdrawTransaction(state, *tx, consensusParams, fin_state)){
+            if (!esperanza::CheckWithdrawTransaction(state, *tx, consensusParams, *fin_state)){
               LogPrint(BCLog::FINALIZATION,
                        "%s: Withdraw cannot be included into mempool: %s.\n",
                        __func__,
@@ -3397,7 +3406,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                      "%s: Accepting slash to mempool with id %s.\n", __func__,
                      tx->GetHash().GetHex());
 
-            if (!esperanza::CheckSlashTransaction(state, *tx, consensusParams, fin_state)){
+            if (!esperanza::CheckSlashTransaction(state, *tx, consensusParams, *fin_state)){
               LogPrint(BCLog::FINALIZATION,
                        "%s: Slash cannot be included into mempool: %s.\n",
                        __func__,
@@ -3413,7 +3422,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 "%s: Accepting admin transaction to mempool with id %s.\n",
                 __func__, tx->GetHash().GetHex());
 
-            if (!esperanza::CheckAdminTransaction(state, *tx, fin_state)) {
+            if (!esperanza::CheckAdminTransaction(state, *tx, *fin_state)) {
               LogPrint(BCLog::ADMIN,
                   "%s: Admin transaction cannot be included into mempool: %s.\n",
                    __func__,
