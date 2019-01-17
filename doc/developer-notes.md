@@ -20,12 +20,17 @@ code.
   - Variable (including function arguments) and namespace names are all lowercase, and may use _ to separate words (snake_case).
     - Class member variables have a `m_` prefix.
     - Global variables have a `g_` prefix.
+    - Public struct member variables doesn't have `m_` prefix.
   - Constant names are all uppercase, and use `_` to separate words.
   - Class names, function names and method names are UpperCamelCase
     (PascalCase). Do not prefix class names with `C`.
 
 - **Includes**. Make sure to always use `<>` notation instead of the "".
   This is done mostly for consistency with the current codebase.
+
+- **Forward declarations**. Forward declarations of classes and structs are allowed and welcome,
+especially when they solve circular dependencies problem or increase recompilation time. But note that
+forward declarations of functions and templated classes are prohibited according to Google Style Guide.
 
 - **If-Statements**.
     - Always use braces around if statements, even blocks
