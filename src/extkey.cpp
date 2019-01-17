@@ -8,6 +8,8 @@
 
 namespace {
 
+const uint32_t BIP44_COIN_TYPE = 2019;
+
 constexpr char ERR_PATH_STR_EMPTY[] = "Path string empty";
 constexpr char ERR_INT_INVALID_CHAR[] = "Integer conversion invalid character";
 constexpr char ERR_MALFORMED_PATH[] = "Malformed path";
@@ -17,7 +19,10 @@ constexpr char ERR_OFFSET_HARDENED[] = "Offset is hardened already";
 
 std::string GetDefaultAccountPathString() {
   char buffer[32];
-  int size = sprintf(buffer, "m/44'/%d'/0'", BIP44_COIN_TYPE);
+  int size = snprintf(buffer, sizeof(buffer), "m/44'/%d'/0'", BIP44_COIN_TYPE);
+  if (size < 0) {
+      return std::string();
+  }
 
   return std::string(buffer, buffer + size);
 }

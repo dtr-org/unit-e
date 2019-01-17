@@ -11,10 +11,6 @@
 
 const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;
 
-const uint32_t BIP44_COIN_TYPE = 2019;
-
-const int BIP44_ACCOUNT_KEY_DEPTH = 3;
-
 //! \brief Return the default BIP44 account path for this coin
 std::string GetDefaultAccountPathString();
 
