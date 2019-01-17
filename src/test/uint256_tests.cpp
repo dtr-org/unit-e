@@ -20,7 +20,7 @@ BOOST_FIXTURE_TEST_SUITE(uint256_tests, ReducedTestingSetup)
 const unsigned char R1Array[] =
     "\x9c\x52\x4a\xdb\xcf\x56\x11\x12\x2b\x29\x12\x5e\x5d\x35\xd2\xd2"
     "\x22\x81\xaa\xb5\x33\xf0\x08\x32\xd5\x56\xb1\xf9\xea\xe5\x1d\x7d";
-const char R1ArrayHex[] = "7D1DE5EAF9B156D53208F033B5AA8122D2d2355d5e12292b121156cfdb4a529c";
+const char R1ArrayHex[] = "9c524adbcf5611122b29125e5d35d2D22281AAB533F00832D556B1F9EAE51D7D";
 const uint256 R1L = uint256(std::vector<unsigned char>(R1Array,R1Array+32));
 const uint160 R1S = uint160(std::vector<unsigned char>(R1Array,R1Array+20));
 
@@ -54,7 +54,7 @@ std::string ArrayToString(const unsigned char A[], unsigned int width)
     Stream << std::hex;
     for (unsigned int i = 0; i < width; ++i)
     {
-        Stream<<std::setw(2)<<std::setfill('0')<<(unsigned int)A[width-i-1];
+        Stream<<std::setw(2)<<std::setfill('0')<<(unsigned int)A[i];
     }
     return Stream.str();
 }

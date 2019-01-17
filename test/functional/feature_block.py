@@ -188,7 +188,7 @@ class FullBlockTest(ComparisonTestFramework):
         return block
 
     def get_tests(self):
-        self.genesis_hash = int(self.nodes[0].getbestblockhash(), 16)
+        self.genesis_hash = uint256_from_str(hex_str_to_bytes(self.nodes[0].getbestblockhash()))
         self.block_heights[self.genesis_hash] = 0
         spendable_outputs = []
 
