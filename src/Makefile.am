@@ -130,6 +130,7 @@ UNITE_CORE_H = \
   init.h \
   injector.h \
   key.h \
+  key/extkey.h \
   key/mnemonic/mnemonic.h \
   key/mnemonic/chinese_simplified.h \
   key/mnemonic/chinese_traditional.h \
@@ -350,6 +351,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
+  key/extkey.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/block_builder.cpp \
   proposer/multiwallet.cpp \
