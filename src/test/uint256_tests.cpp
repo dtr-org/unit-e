@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE( basics ) // constructors, equality, inequality
 BOOST_AUTO_TEST_CASE( comparison ) // <= >= < >
 {
     uint256 LastL;
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < 256; ++i) {
         uint256 TmpL;
         *(TmpL.begin() + (i >> 3)) |= 1 << (i & 7);
         BOOST_CHECK( LastL < TmpL );
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE( comparison ) // <= >= < >
     BOOST_CHECK( R2L < MaxL );
 
     uint160 LastS;
-    for (int i = 0; i < 160; i++) {
+    for (int i = 0; i < 160; ++i) {
         uint160 TmpS;
         *(TmpS.begin() + (i >> 3)) |= 1 << (i & 7);
         BOOST_CHECK( LastS < TmpS );
