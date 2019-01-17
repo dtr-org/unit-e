@@ -754,11 +754,11 @@ DBErrors CWallet::ReorderTransactions()
 
             if (pwtx) {
                 if (!walletdb.WriteTx(*pwtx)) {
-                    return DB_LOAD_FAIL;
+                    return DBErrors::LOAD_FAIL;
                 }
             } else {
                 if (!walletdb.WriteAccountingEntry(pacentry->nEntryNo, *pacentry)) {
-                    return DB_LOAD_FAIL;
+                    return DBErrors::LOAD_FAIL;
                 }
             }
         } else
@@ -779,16 +779,16 @@ DBErrors CWallet::ReorderTransactions()
             // Since we're changing the order, write it back
             if (pwtx) {
                 if (!walletdb.WriteTx(*pwtx)) {
-                    return DB_LOAD_FAIL;
+                    return DBErrors::LOAD_FAIL;
                 }
             } else if (!walletdb.WriteAccountingEntry(pacentry->nEntryNo, *pacentry)) {
-                return DB_LOAD_FAIL;
+                return DBErrors::LOAD_FAIL;
             }
         }
     }
     walletdb.WriteOrderPosNext(nOrderPosNext);
 
-    return DB_LOAD_OK;
+    return DBErrors::LOAD_OK;
 }
 
 int64_t CWallet::IncOrderPosNext(CWalletDB *pwalletdb)
@@ -2284,10 +2284,10 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
                     continue;
                 }
 
-                bool fSpendableIn = ((mine & ISMINE_SPENDABLE) != ISMINE_NO) || (coinControl && coinControl->fAllowWatchOnly && (mine & ISMINE_WATCH_SOLVABLE) != ISMINE_NO);
-                bool fSolvableIn = (mine & (ISMINE_SPENDABLE | ISMINE_WATCH_SOLVABLE)) != ISMINE_NO;
+                bool solvable = IsSolvable(*this, pcoin->tx->vout[i].scriptPubKey);
+                bool spendable = ((mine & ISMINE_SPENDABLE) != ISMINE_NO) || (((mine & ISMINE_WATCH_ONLY) != ISMINE_NO) && (coinControl && coinControl->fAllowWatchOnly && solvable));
 
-                vCoins.push_back(COutput(pcoin, i, nDepth, fSpendableIn, fSolvableIn, safeTx));
+                vCoins.push_back(COutput(pcoin, i, nDepth, spendable, solvable, safeTx));
 
                 // Checks the sum amount of all UTXO's.
                 if (nMinimumSumAmount != MAX_MONEY) {
@@ -2590,7 +2590,7 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
         const CScript& scriptPubKey = mi->second.tx->vout[input.prevout.n].scriptPubKey;
         const CAmount& amount = mi->second.tx->vout[input.prevout.n].nValue;
         SignatureData sigdata;
-        if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, amount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+        if (!ProduceSignature(*this, TransactionSignatureCreator(&txNewConst, nIn, amount, SIGHASH_ALL), scriptPubKey, sigdata)) {
             return false;
         }
         UpdateTransaction(tx, nIn, sigdata);
@@ -2973,7 +2973,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
 
-                if (!ProduceSignature(TransactionSignatureCreator(this, &txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL), scriptPubKey, sigdata)) {
+                if (!ProduceSignature(*this, TransactionSignatureCreator(&txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL), scriptPubKey, sigdata)) {
                     strFailReason = _("Signing transaction failed");
                     return false;
                 }
@@ -3099,7 +3099,7 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
 
     fFirstRunRet = false;
     DBErrors nLoadWalletRet = CWalletDB(*dbw,"cr+").LoadWallet(this);
-    if (nLoadWalletRet == DB_NEED_REWRITE) {
+    if (nLoadWalletRet == DBErrors::NEED_REWRITE) {
         if (dbw->Rewrite("\x04pool")) {
             setInternalKeyPool.clear();
             setExternalKeyPool.clear();
@@ -3113,12 +3113,12 @@ DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
     // This wallet is in its first run if all of these are empty
     fFirstRunRet = mapKeys.empty() && mapCryptedKeys.empty() && mapWatchKeys.empty() && setWatchOnly.empty() && mapScripts.empty();
 
-    if (nLoadWalletRet != DB_LOAD_OK) {
+    if (nLoadWalletRet != DBErrors::LOAD_OK) {
         return nLoadWalletRet;
     }
     uiInterface.LoadWallet(this);
 
-    return DB_LOAD_OK;
+    return DBErrors::LOAD_OK;
 }
 
 DBErrors CWallet::ZapSelectTx(std::vector<uint256>& vHashIn, std::vector<uint256>& vHashOut)
@@ -3130,7 +3130,7 @@ DBErrors CWallet::ZapSelectTx(std::vector<uint256>& vHashIn, std::vector<uint256
         wtxOrdered.erase(it->second.m_it_wtxOrdered);
         mapWallet.erase(it);
     }
-    if (nZapSelectTxRet == DB_NEED_REWRITE) {
+    if (nZapSelectTxRet == DBErrors::NEED_REWRITE) {
         if (dbw->Rewrite("\x04pool")) {
             setInternalKeyPool.clear();
             setExternalKeyPool.clear();
@@ -3140,19 +3140,19 @@ DBErrors CWallet::ZapSelectTx(std::vector<uint256>& vHashIn, std::vector<uint256
             // that requires a new key.
         }
     }
-    if (nZapSelectTxRet != DB_LOAD_OK) {
+    if (nZapSelectTxRet != DBErrors::LOAD_OK) {
         return nZapSelectTxRet;
     }
     MarkDirty();
 
-    return DB_LOAD_OK;
+    return DBErrors::LOAD_OK;
 
 }
 
 DBErrors CWallet::ZapWalletTx(std::vector<CWalletTx>& vWtx)
 {
     DBErrors nZapWalletTxRet = CWalletDB(*dbw,"cr+").ZapWalletTx(vWtx);
-    if (nZapWalletTxRet == DB_NEED_REWRITE) {
+    if (nZapWalletTxRet == DBErrors::NEED_REWRITE) {
         if (dbw->Rewrite("\x04pool")) {
             LOCK(cs_wallet);
             setInternalKeyPool.clear();
@@ -3163,10 +3163,10 @@ DBErrors CWallet::ZapWalletTx(std::vector<CWalletTx>& vWtx)
             // that requires a new key.
         }
     }
-    if (nZapWalletTxRet != DB_LOAD_OK) {
+    if (nZapWalletTxRet != DBErrors::LOAD_OK) {
         return nZapWalletTxRet;
     }
-    return DB_LOAD_OK;
+    return DBErrors::LOAD_OK;
 }
 
 
@@ -3892,7 +3892,7 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::WalletExtensionDeps& dep
         std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, walletFile));
         std::unique_ptr<CWallet> tempWallet = MakeUnique<CWallet>(dependencies, std::move(dbw));
         DBErrors nZapWalletRet = tempWallet->ZapWalletTx(vWtx);
-        if (nZapWalletRet != DB_LOAD_OK) {
+        if (nZapWalletRet != DBErrors::LOAD_OK) {
             InitError(strprintf(_("Error loading %s: Wallet corrupted"), walletFile));
             return nullptr;
         }
@@ -3905,19 +3905,19 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::WalletExtensionDeps& dep
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, walletFile));
     CWallet *walletInstance = new CWallet(dependencies, std::move(dbw));
     DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
-    if (nLoadWalletRet != DB_LOAD_OK)
+    if (nLoadWalletRet != DBErrors::LOAD_OK)
     {
-        if (nLoadWalletRet == DB_CORRUPT) {
+        if (nLoadWalletRet == DBErrors::CORRUPT) {
             InitError(strprintf(_("Error loading %s: Wallet corrupted"), walletFile));
             return nullptr;
-        } else if (nLoadWalletRet == DB_NONCRITICAL_ERROR) {
+        } else if (nLoadWalletRet == DBErrors::NONCRITICAL_ERROR) {
             InitWarning(strprintf(_("Error reading %s! All keys read correctly, but transaction data"
                                          " or address book entries might be missing or incorrect."),
                 walletFile));
-        } else if (nLoadWalletRet == DB_TOO_NEW) {
+        } else if (nLoadWalletRet == DBErrors::TOO_NEW) {
             InitError(strprintf(_("Error loading %s: Wallet requires newer version of %s"), walletFile, _(PACKAGE_NAME)));
             return nullptr;
-        } else if (nLoadWalletRet == DB_NEED_REWRITE) {
+        } else if (nLoadWalletRet == DBErrors::NEED_REWRITE) {
             InitError(strprintf(_("Wallet needed to be rewritten: restart %s to complete"), _(PACKAGE_NAME)));
             return nullptr;
         } else {

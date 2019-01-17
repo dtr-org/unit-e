@@ -80,7 +80,7 @@ bool AppInit(int argc, char* argv[])
             strUsage += "\n" + _("Usage:") + "\n" +
                   "  united [options]                     " + strprintf(_("Start %s Daemon"), _(PACKAGE_NAME)) + "\n";
 
-            strUsage += "\n" + HelpMessage(HMM_UNITED);
+            strUsage += "\n" + HelpMessage(HelpMessageMode::UNITED);
         }
 
         fprintf(stdout, "%s", strUsage.c_str());
