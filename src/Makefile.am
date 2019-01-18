@@ -441,6 +441,7 @@ libunite_consensus_a_SOURCES = \
   primitives/transaction.cpp \
   primitives/transaction.h \
   primitives/txtype.h \
+  primitives/txid.h \
   pubkey.cpp \
   pubkey.h \
   script/uniteconsensus.cpp \
