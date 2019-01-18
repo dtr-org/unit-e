@@ -2664,7 +2664,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
         // process the parent snapshot block otherwise, fallback to the
         // regular ProcessNewBlock implementation
-        snapshot::ProcessSnapshotParentBlock(pblock.get(), [&](){
+        snapshot::ProcessSnapshotParentBlock(*pblock, [&](){
             bool fNewBlock = false;
             ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
             if (fNewBlock) {

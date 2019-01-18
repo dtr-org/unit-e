@@ -45,12 +45,12 @@ class Creator {
   uint32_t m_step = DEFAULT_INDEX_STEP;
 
   //! aggregations in one file
-  uint32_t m_stepsPerFile = DEFAULT_INDEX_STEP_PER_FILE;
+  uint32_t m_steps_per_file = DEFAULT_INDEX_STEP_PER_FILE;
 
   //! how many UTXOSubset include into the snapshot.
   //! 0 - all of them.
   //! non 0 value is used only for testing.
-  uint64_t m_maxUTXOSubsets = 0;
+  uint64_t m_max_utxo_subsets = 0;
 
   //! \brief Init Initializes the instance of Creator
   //!
@@ -69,12 +69,12 @@ class Creator {
   //! according to the ChainParams.createSnapshotPerEpoch. Snapshot creation is
   //! performed in a separate thread.
   //!
-  //! \@param currentEpoch is the current epoch number which starts from 0
-  static void GenerateOrSkip(uint32_t currentEpoch);
+  //! \@param current_epoch is the current epoch number which starts from 0
+  static void GenerateOrSkip(uint32_t current_epoch);
 
   //! Marks snapshots of the same branch as blockIndex
   //! and up to its height finalized
-  static void FinalizeSnapshots(const CBlockIndex *blockIndex);
+  static void FinalizeSnapshots(const CBlockIndex *block_index);
 
  private:
   ChainstateIterator m_iter;
