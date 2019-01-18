@@ -64,7 +64,6 @@ UNITE_TESTS = \
   test/esperanza/finalizationstate_slash_tests.cpp \
   test/esperanza/finalizationstate_utils.h \
   test/esperanza/finalizationstate_utils.cpp \
-  test/extkey_tests.cpp \
   test/finalization/vote_recorder_tests.cpp \
   test/fixed_vector_tests.cpp \
   test/getarg_tests.cpp \
@@ -130,6 +129,7 @@ if ENABLE_WALLET
 UNITE_TESTS += \
   test/counting_semaphore_tests.cpp \
   test/esperanza/walletextension_tests.cpp \
+  test/extkey_tests.cpp \
   test/injector_tests.cpp \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
