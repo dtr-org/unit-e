@@ -120,7 +120,6 @@ UNITE_CORE_H = \
   esperanza/walletextension.h \
   esperanza/walletextension_deps.h \
   esperanza/walletstate.h \
-  extkey.h \
   finalization/p2p.h \
   finalization/vote_recorder.h \
   fixed_vector.h \
@@ -351,7 +350,6 @@ libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
-  extkey.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/block_builder.cpp \
   proposer/multiwallet.cpp \
@@ -417,6 +415,8 @@ libunite_consensus_a_SOURCES = \
   consensus/merkle.h \
   consensus/params.h \
   consensus/validation.h \
+  extkey.cpp \
+  extkey.h \
   hash.cpp \
   hash.h \
   prevector.h \
