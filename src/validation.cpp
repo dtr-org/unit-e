@@ -2448,7 +2448,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         return false;
 
     if (disconnectpool) {
-        disconnectpool->addForBlock(block.vtx);
+        disconnectpool->AddForBlock(block.vtx);
     }
 
     chainActive.SetTip(pindexDelete->pprev);

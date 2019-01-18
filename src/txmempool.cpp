@@ -566,7 +566,7 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     std::vector<const CTxMemPoolEntry*> entries;
 
     DisconnectedBlockTransactions disconnectpool;
-    disconnectpool.addForBlock(vtx);
+    disconnectpool.AddForBlock(vtx);
 
     for (
         auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
@@ -1106,8 +1106,8 @@ bool CTxMemPool::TransactionWithinChainLimit(const uint256& txid, size_t chainLi
 
 SaltedTxidHasher::SaltedTxidHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
 
-void DisconnectedBlockTransactions::addForBlock(
-    const std::vector<CTransactionRef>& vtx
+void DisconnectedBlockTransactions::AddForBlock(
+    const std::vector<CTransactionRef> &vtx
 ) {
     // Save transactions to re-add to mempool at end of reorg
     for (const auto &tx : vtx) {

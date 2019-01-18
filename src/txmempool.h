@@ -780,7 +780,7 @@ struct DisconnectedBlockTransactions {
 
     // Add entries for a block while reconstructing the topological ordering so
     // they can be added back to the mempool simply.
-    void addForBlock(const std::vector<CTransactionRef>& vtx);
+    void AddForBlock(const std::vector<CTransactionRef> &vtx);
 
     // Remove entries based on txid_index, and update memory usage.
     void removeForBlock(const std::vector<CTransactionRef>& vtx)
