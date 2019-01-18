@@ -624,7 +624,6 @@ class CBlock(CBlockHeader):
         self.vtx = deser_vector(f, CTransaction)
 
     def serialize(self, with_witness=False):
-        self.ensure_ltor()
         r = b""
         r += super(CBlock, self).serialize()
         if with_witness:
@@ -748,7 +747,6 @@ class P2PHeaderAndShortIDs():
 
     # When using version 2 compact blocks, we must serialize with_witness.
     def serialize(self, with_witness=False):
-        self.ensure_ltor()
         r = b""
         r += self.header.serialize()
         r += struct.pack("<Q", self.nonce)
@@ -761,9 +759,6 @@ class P2PHeaderAndShortIDs():
         else:
             r += ser_vector(self.prefilled_txn, "serialize_without_witness")
         return r
-
-    def ensure_ltor(self):
-        self.shortids = [self.shortids[0]] + sorted(self.shortids[1:])
 
     def __repr__(self):
         return "P2PHeaderAndShortIDs(header=%s, nonce=%d, shortids_length=%d, shortids=%s, prefilled_txn_length=%d, prefilledtxn=%s" % (repr(self.header), self.nonce, self.shortids_length, repr(self.shortids), self.prefilled_txn_length, repr(self.prefilled_txn))
@@ -894,7 +889,6 @@ class BlockTransactions():
         self.transactions = deser_vector(f, CTransaction)
 
     def serialize(self, with_witness=True):
-        self.ensure_ltor()
         r = b""
         r += ser_uint256(self.blockhash)
         if with_witness:
@@ -902,13 +896,6 @@ class BlockTransactions():
         else:
             r += ser_vector(self.transactions, "serialize_without_witness")
         return r
-
-    def ensure_ltor(self):
-        if len(self.transactions) <= 1:
-            return
-        for tx in self.transactions:
-            tx.rehash()
-        self.transactions = self.transactions[0] + sorted(self.transactions[1:], key=lambda _tx: _tx.hash)
 
     def __repr__(self):
         return "BlockTransactions(hash=%064x transactions=%s)" % (self.blockhash, repr(self.transactions))

@@ -3424,7 +3424,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
             return state.DoS(
                 100, false, REJECT_INVALID, "tx-ordering", false,
                 strprintf(
-                    "Transaction order is invalid (%s < %s)",
+                    "Transaction order is invalid ((current: %s) < (prev: %s))",
                     tx->GetId().ToString(), prevTx->GetId().ToString()
                 )
             );
