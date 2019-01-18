@@ -560,8 +560,8 @@ unite_tx_SOURCES += unite-tx-res.rc
 endif
 
 unite_tx_LDADD = \
-  $(LIBUNIVALUE) \
   $(LIBUNITE_COMMON) \
+  $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \
