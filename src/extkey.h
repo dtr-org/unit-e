@@ -1,3 +1,7 @@
+// Copyright (c) 2019 The Unit-e developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef UNITE_EXTKEY_H_INCLUDED
 #define UNITE_EXTKEY_H_INCLUDED
 
