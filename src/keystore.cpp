@@ -68,10 +68,12 @@ bool CBasicKeyStore::HaveKey(const CKeyID &address) const
 
 isminetype CBasicKeyStore::IsMine(const CKeyID &address) const {
     LOCK(cs_KeyStore);
-    if (mapKeys.count(address) > 0)
+    if (mapKeys.count(address) > 0) {
         return ISMINE_SPENDABLE;
-    if (mapWatchKeys.count(address) > 0)
+    }
+    if (mapWatchKeys.count(address) > 0) {
         return ISMINE_WATCH_ONLY;
+    }
     return ISMINE_NO;
 }
 

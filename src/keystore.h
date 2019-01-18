@@ -31,7 +31,7 @@ public:
     virtual bool HaveKey(const CKeyID &address) const =0;
     virtual std::set<CKeyID> GetKeys() const =0;
     virtual bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const =0;
-    virtual isminetype IsMine(const CKeyID &address) const = 0;
+    virtual isminetype IsMine(const CKeyID &address) const =0;
 
     //! Support for BIP 0013 : see https://github.com/unite/bips/blob/master/bip-0013.mediawiki
     virtual bool AddCScript(const CScript& redeemScript) =0;
