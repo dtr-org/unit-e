@@ -26,9 +26,9 @@ DebugDevice::DebugDevice()
     m_ekv.SetSeed((const uint8_t*)seed, strlen(seed));
 }
 
-bool DebugDevice::Open() { return 0; }
+bool DebugDevice::Open() { return true; }
 
-bool DebugDevice::Close() { return 0; }
+bool DebugDevice::Close() { return true; }
 
 bool DebugDevice::GetFirmwareVersion(std::string &firmware, std::string &error)
 {
