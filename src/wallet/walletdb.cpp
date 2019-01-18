@@ -510,9 +510,8 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 return false;
             }
         }
-    } catch (std::exception &e)
+    } catch (...)
     {
-        LogPrintf("Exception! %s\n", e.what());
         return false;
     }
     return true;
