@@ -49,7 +49,7 @@ void ChainstateIterator::Next() {
   }
 
   m_utxo_subset = UTXOSubset(m_prev_tx_id, m_prev_coin.nHeight,
-                            m_prev_coin.IsCoinBase(), std::move(m_outputs));
+                             m_prev_coin.IsCoinBase(), std::move(m_outputs));
   m_outputs.clear();
 }
 

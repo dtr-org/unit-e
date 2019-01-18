@@ -95,7 +95,7 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
   uint256 snapshot_hash;
   if (block_index == chainActive.Tip()) {
     snapshot_hash = pcoinsTip->GetSnapshotHash().GetHash(block_index->stake_modifier,
-                                                        ArithToUint256(block_index->nChainWork));
+                                                         ArithToUint256(block_index->nChainWork));
   } else {
     CBlockIndex *parent = chainActive[block_index->nHeight + 1];
     if (parent->pprev != block_index) {

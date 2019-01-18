@@ -96,7 +96,7 @@ bool Indexer::WriteUTXOSubsets(const std::vector<UTXOSubset> &list) {
 
 bool Indexer::WriteUTXOSubset(const UTXOSubset &utxo_subset) {
   auto file_id = static_cast<uint32_t>(m_meta.total_utxo_subsets /
-                                      (m_meta.step * m_meta.steps_per_file));
+                                       (m_meta.step * m_meta.steps_per_file));
   if (file_id > m_file_id) {
     if (!FlushFile()) {
       return false;
@@ -123,7 +123,7 @@ bool Indexer::WriteUTXOSubset(const UTXOSubset &utxo_subset) {
 FILE *Indexer::GetClosestIdx(const uint64_t subset_index, uint32_t &subset_left_out,
                              uint64_t &subset_read_out) {
   auto file_id = static_cast<uint32_t>(subset_index /
-                                      (m_meta.step * m_meta.steps_per_file));
+                                       (m_meta.step * m_meta.steps_per_file));
   if (m_dir_idx.find(file_id) == m_dir_idx.end()) {
     return nullptr;
   }
