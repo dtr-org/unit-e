@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_COIN_H
-#define UNIT_E_COIN_H
+#ifndef UNIT_E_STAKING_COIN_H
+#define UNIT_E_STAKING_COIN_H
 
 #include <amount.h>
 #include <blockchain/blockchain_types.h>
@@ -49,4 +49,4 @@ struct Coin {
 
 }  // namespace staking
 
-#endif  //UNIT_E_COIN_H
+#endif  //UNIT_E_STAKING_COIN_H
