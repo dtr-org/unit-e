@@ -26,9 +26,14 @@ from test_framework.comptool import (
     TestInstance,
     TestManager
 )
-from test_framework.messages import uint256_from_str
+from test_framework.messages import (
+    CTxOut,
+    UNIT,
+    uint256_from_str
+)
 from test_framework.mininode import network_thread_start
 from test_framework.regtest_mnemonics import regtest_mnemonics
+from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     sync_blocks,
@@ -68,14 +73,21 @@ class LTORTest(UnitETestFramework):
 
     def test_ltor_infringement_detection(self):
         # Just creating easily accessible outputs (coinbase) for next txns
-        for _ in range(8):
+        for _ in range(2):
             yield self.create_spendable_outputs()
 
         txns = []
+        # We create more transactions here (doing it through blocks creation is
+        # problematic because blocks are created too fast.
         for block in self.spendable_outputs:
-            tx = create_transaction(block.vtx[0], 0, b'', 1)
-            tx.rehash()
-            txns.append(tx)
+            last_tx = block.vtx[0]
+            for divisor in map(lambda x: 2**x, range(1, 5)):
+                tx_value = int(0.95 * UNIT / divisor)
+                tx = create_transaction(last_tx, 0, b'', tx_value)
+                tx.vout.append(CTxOut(tx_value, CScript()))
+                tx.rehash()
+                txns.append(tx)
+                last_tx = tx  # We only use the first output each round
 
         block = self.get_empty_block()
         # We ensure that the transactions are NOT sorted in the correct order
@@ -168,7 +180,7 @@ class LTORTest(UnitETestFramework):
         block = self.get_empty_block()
 
         self.spendable_outputs.append(block)
-        sleep(0.05)
+        sleep(0.5)
 
         return TestInstance([[block, True]], test_name='')
 
