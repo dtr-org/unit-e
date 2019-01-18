@@ -40,22 +40,12 @@ bool DebugDevice::GetPubKey(
     const std::vector<uint32_t> &path, CPubKey &pk, std::string &error
 )
 {
-    if (path.size() > MAX_BIP32_PATH) {
-        error = "Path depth out of range";
+    CExtPubKey epk;
+    if (!GetExtPubKey(path, epk, error)) {
         return false;
     }
 
-    CExtKey keyOut, keyWork = m_ekv;
-
-    for (auto it = path.begin(); it != path.end(); ++it) {
-        if (!keyWork.Derive(keyOut, *it)) {
-            error = "CExtKey derive failed";
-            return false;
-        }
-        keyWork = keyOut;
-    }
-    pk = keyWork.key.GetPubKey();
-
+    pk = epk.pubkey;
     return true;
 }
 
@@ -63,7 +53,7 @@ bool DebugDevice::GetExtPubKey(
     const std::vector<uint32_t> &path, CExtPubKey &epk, std::string &error
 )
 {
-    if (path.size() < 1 || path.size() > MAX_BIP32_PATH) {
+    if (path.size() > MAX_BIP32_PATH) {
         error = "Path depth out of range";
         return false;
     }
