@@ -277,7 +277,6 @@ libunite_server_a_SOURCES = \
   esperanza/checkpoint.cpp \
   esperanza/checks.cpp \
   esperanza/finalizationstate.cpp \
-  esperanza/finalizationparams.cpp \
   esperanza/validator.cpp \
   finalization/p2p.cpp \
   finalization/vote_recorder.cpp \
@@ -454,6 +453,7 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  esperanza/finalizationparams.cpp \
   esperanza/vote.cpp \
   key.cpp \
   keystore.cpp \
