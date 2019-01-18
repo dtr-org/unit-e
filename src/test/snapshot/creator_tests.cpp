@@ -86,12 +86,12 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
 
       // validate reported state
       BOOST_CHECK_EQUAL(info.status, +snapshot::Status::OK);
-      BOOST_CHECK(!info.indexer_meta.snapshot_hash.IsNull());
-      BOOST_CHECK_EQUAL(info.indexer_meta.snapshot_hash.GetHex(),
+      BOOST_CHECK(!info.snapshot_header.snapshot_hash.IsNull());
+      BOOST_CHECK_EQUAL(info.snapshot_header.snapshot_hash.GetHex(),
                         checkpoints.rbegin()->snapshot_hash.GetHex());
-      BOOST_CHECK_EQUAL(HexStr(info.indexer_meta.block_hash),
+      BOOST_CHECK_EQUAL(HexStr(info.snapshot_header.block_hash),
                         HexStr(bestBlock));
-      BOOST_CHECK_EQUAL(info.indexer_meta.total_utxo_subsets, totalTX);
+      BOOST_CHECK_EQUAL(info.snapshot_header.total_utxo_subsets, totalTX);
       BOOST_CHECK_EQUAL(info.total_outputs,
                         static_cast<int>(totalTX * coinsPerTX));
 
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
         ++count;
         iter.Next();
       }
-      BOOST_CHECK_EQUAL(info.indexer_meta.total_utxo_subsets, count);
+      BOOST_CHECK_EQUAL(info.snapshot_header.total_utxo_subsets, count);
     }
 
     BOOST_CHECK_EQUAL(deletedSnapshots.size(), 5);

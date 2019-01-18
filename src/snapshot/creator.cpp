@@ -129,21 +129,23 @@ CCriticalSection cs_snapshot_creation;
 CreationInfo Creator::Create() {
   LOCK(cs_snapshot_creation);
 
+  CreationInfo info;
+
   CBlockIndex *block_index = mapBlockIndex.at(m_iter.GetBestBlock());
-  uint256 chain_work = ArithToUint256(block_index->nChainWork);
-  uint256 snapshot_hash = m_iter.GetSnapshotHash().GetHash(
-      block_index->stake_modifier, chain_work);
-  std::vector<uint256> to_remove = AddSnapshotHash(snapshot_hash, block_index);
+
+  SnapshotHeader snapshot_header;
+  snapshot_header.block_hash = block_index->GetBlockHash();
+  snapshot_header.stake_modifier = block_index->stake_modifier;
+  snapshot_header.chain_work = ArithToUint256(block_index->nChainWork);
+  snapshot_header.snapshot_hash = m_iter.GetSnapshotHash().GetHash(
+      snapshot_header.stake_modifier, snapshot_header.chain_work);
 
   LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
-           m_iter.GetBestBlock().GetHex(), snapshot_hash.GetHex());
+           snapshot_header.block_hash.GetHex(), snapshot_header.snapshot_hash.GetHex());
 
-  CreationInfo info;
-  Indexer indexer(snapshot_hash,
-                  block_index->GetBlockHash(),
-                  block_index->stake_modifier,
-                  chain_work,
-                  m_step, m_steps_per_file);
+  std::vector<uint256> to_remove = AddSnapshotHash(snapshot_header.snapshot_hash, block_index);
+
+  Indexer indexer(snapshot_header, m_step, m_steps_per_file);
 
   while (m_iter.Valid()) {
     boost::this_thread::interruption_point();
@@ -156,7 +158,7 @@ CreationInfo Creator::Create() {
       return info;
     }
 
-    if (indexer.GetMeta().total_utxo_subsets == m_max_utxo_subsets) {
+    if (indexer.GetSnapshotHeader().total_utxo_subsets == m_max_utxo_subsets) {
       break;
     }
 
@@ -168,13 +170,10 @@ CreationInfo Creator::Create() {
     return info;
   }
 
-  if (indexer.GetMeta().snapshot_hash.IsNull()) {
-    info.status = Status::CALC_SNAPSHOT_HASH_ERROR;
-    return info;
-  }
-  info.indexer_meta = indexer.GetMeta();
+  info.snapshot_header = indexer.GetSnapshotHeader();
 
-  LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is created\n", snapshot_hash.GetHex());
+  LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is created\n",
+           info.snapshot_header.snapshot_hash.GetHex());
 
   for (const auto &hash : to_remove) {
     if (Indexer::Delete(hash)) {

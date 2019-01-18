@@ -13,6 +13,7 @@
 #include <coins.h>
 #include <primitives/transaction.h>
 #include <snapshot/indexer.h>
+#include <snapshot/messages.h>
 #include <streams.h>
 #include <uint256.h>
 
@@ -24,14 +25,7 @@ class Iterator {
   explicit Iterator(std::unique_ptr<Indexer> indexer);
   ~Iterator();
 
-  uint256 GetSnapshotHash() { return m_indexer->GetMeta().snapshot_hash; }
-  uint256 GetBestBlockHash() { return m_indexer->GetMeta().block_hash; }
-  uint256 GetStakeModifier() { return m_indexer->GetMeta().stake_modifier; }
-  uint256 GetChainWork() { return m_indexer->GetMeta().chain_work; }
-  uint64_t GetTotalUTXOSubsets() {
-    return m_indexer->GetMeta().total_utxo_subsets;
-  }
-
+  const SnapshotHeader &GetSnapshotHeader() { return m_indexer->GetSnapshotHeader(); }
   UTXOSubset &GetUTXOSubset() { return m_utxo_subset; }
   bool GetUTXOSubsets(uint64_t subset_index, uint16_t count,
                       std::vector<UTXOSubset> &subsets_out);

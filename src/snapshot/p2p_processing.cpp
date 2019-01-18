@@ -46,13 +46,7 @@ bool P2PState::ProcessGetSnapshotHeader(CNode &node, CDataStream &data,
     return false;
   }
 
-  SnapshotHeader best_snapshot;
-  best_snapshot.snapshot_hash = indexer->GetMeta().snapshot_hash;
-  best_snapshot.block_hash = indexer->GetMeta().block_hash;
-  best_snapshot.stake_modifier = indexer->GetMeta().stake_modifier;
-  best_snapshot.chain_work = indexer->GetMeta().chain_work;
-  best_snapshot.total_utxo_subsets = indexer->GetMeta().total_utxo_subsets;
-
+  const SnapshotHeader &best_snapshot = indexer->GetSnapshotHeader();
   LogPrint(BCLog::SNAPSHOT, "%s: return snapshot_hash=%s block_hash=%s to peer=%i\n",
            NetMsgType::GETSNAPSHOTHEADER,
            best_snapshot.snapshot_hash.GetHex(),
@@ -93,7 +87,7 @@ bool P2PState::ProcessGetSnapshot(CNode &node, CDataStream &data,
 
   Iterator iter(std::move(indexer));
   Snapshot snapshot;
-  snapshot.snapshot_hash = iter.GetSnapshotHash();
+  snapshot.snapshot_hash = iter.GetSnapshotHeader().snapshot_hash;
   snapshot.utxo_subset_index = get.utxo_subset_index;
 
   if (!iter.GetUTXOSubsets(snapshot.utxo_subset_index, get.utxo_subset_count,
@@ -170,17 +164,14 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
 
   std::unique_ptr<Indexer> indexer = Indexer::Open(msg.snapshot_hash);
   if (!indexer) {
-    indexer.reset(new Indexer(msg.snapshot_hash,
-                              node.m_best_snapshot.block_hash,
-                              node.m_best_snapshot.stake_modifier,
-                              node.m_best_snapshot.chain_work,
+    indexer.reset(new Indexer(node.m_best_snapshot,
                               DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
   }
 
-  if (indexer->GetMeta().total_utxo_subsets != msg.utxo_subset_index) {
+  if (indexer->GetSnapshotHeader().total_utxo_subsets != msg.utxo_subset_index) {
     // ask the peer the correct index
     GetSnapshot get(msg.snapshot_hash);
-    get.utxo_subset_index = indexer->GetMeta().total_utxo_subsets;
+    get.utxo_subset_index = indexer->GetSnapshotHeader().total_utxo_subsets;
     get.utxo_subset_count = MAX_UTXO_SET_COUNT;
     return SendGetSnapshot(node, get, msg_maker);
   }
@@ -199,7 +190,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
     return false;
   }
 
-  if (indexer->GetMeta().total_utxo_subsets == node.m_best_snapshot.total_utxo_subsets) {
+  if (indexer->GetSnapshotHeader().total_utxo_subsets == node.m_best_snapshot.total_utxo_subsets) {
     Iterator iterator(std::move(indexer));
     uint256 hash = iterator.CalculateHash(node.m_best_snapshot.stake_modifier,
                                           node.m_best_snapshot.chain_work);
@@ -217,7 +208,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
     }
 
     LOCK(cs_main);
-    StoreCandidateBlockHash(iterator.GetBestBlockHash());
+    StoreCandidateBlockHash(iterator.GetSnapshotHeader().block_hash);
     const CBlockIndex *const bi = LookupBlockIndex(node.m_best_snapshot.block_hash);
     assert(bi);
     AddSnapshotHash(m_downloading_snapshot.snapshot_hash, bi);
@@ -291,7 +282,7 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
 
       std::unique_ptr<const Indexer> indexer = Indexer::Open(node.m_best_snapshot.snapshot_hash);
       if (indexer) {
-        msg.utxo_subset_index = indexer->GetMeta().total_utxo_subsets;
+        msg.utxo_subset_index = indexer->GetSnapshotHeader().total_utxo_subsets;
       }
 
       SendGetSnapshot(node, msg, msg_maker);
@@ -373,8 +364,8 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
 
   std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
   assert(idx);
-  snapshot_block_index->stake_modifier = idx->GetMeta().stake_modifier;
-  snapshot_block_index->nChainWork = UintToArith256(idx->GetMeta().chain_work);
+  snapshot_block_index->stake_modifier = idx->GetSnapshotHeader().stake_modifier;
+  snapshot_block_index->nChainWork = UintToArith256(idx->GetSnapshotHeader().chain_work);
 
   if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
     // if we can't write the snapshot, we have an issue with the DB
