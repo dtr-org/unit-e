@@ -32,13 +32,13 @@ class Iterator {
     return m_indexer->GetMeta().total_utxo_subsets;
   }
 
-  UTXOSubset &GetUTXOSubset() { return m_utxoSubset; }
-  bool GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
-                      std::vector<UTXOSubset> &subsetsOut);
+  UTXOSubset &GetUTXOSubset() { return m_utxo_subset; }
+  bool GetUTXOSubsets(uint64_t subset_index, uint16_t count,
+                      std::vector<UTXOSubset> &subsets_out);
 
   bool Valid();
   void Next();
-  bool MoveCursorTo(uint64_t subsetIndex);
+  bool MoveCursorTo(uint64_t subset_index);
 
   //! CalculateHash calculates the hash of the full snapshot content.
   //! After calling this function the cursor will be invalid. To re-use the
@@ -50,13 +50,13 @@ class Iterator {
  private:
   std::unique_ptr<Indexer> m_indexer;
 
-  FILE *m_file;           // current opened file
-  uint64_t m_readTotal;   // keep track of read all UTXOSubset
-  uint32_t m_subsetLeft;  // unread UTXOSubset in the current file
+  FILE *m_file;            // current opened file
+  uint64_t m_read_total;   // keep track of read all UTXOSubset
+  uint32_t m_subset_left;  // unread UTXOSubset in the current file
 
-  UTXOSubset m_utxoSubset;
+  UTXOSubset m_utxo_subset;
 
-  void closeFile();
+  void CloseFile();
 };
 }  // namespace snapshot
 

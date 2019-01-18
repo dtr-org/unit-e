@@ -21,7 +21,7 @@ class ChainstateIterator {
   explicit ChainstateIterator(CCoinsViewDB *view);
   bool Valid();
   void Next();
-  const UTXOSubset &GetUTXOSubset() const { return m_utxoSubset; }
+  const UTXOSubset &GetUTXOSubset() const { return m_utxo_subset; }
   const uint256 &GetBestBlock() const { return m_cursor->GetBestBlock(); }
   const SnapshotHash &GetSnapshotHash() const {
     return m_cursor->GetSnapshotHash();
@@ -31,9 +31,9 @@ class ChainstateIterator {
   bool m_valid;
   std::unique_ptr<CCoinsViewCursor> m_cursor;
   std::map<uint32_t, CTxOut> m_outputs;
-  Coin m_prevCoin;
-  uint256 m_prevTxId;
-  UTXOSubset m_utxoSubset;
+  Coin m_prev_coin;
+  uint256 m_prev_tx_id;
+  UTXOSubset m_utxo_subset;
 };
 
 }  // namespace snapshot

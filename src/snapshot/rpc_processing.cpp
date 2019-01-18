@@ -57,14 +57,14 @@ UniValue listsnapshots(const JSONRPCRequest &request) {
         HelpExampleRpc("listsnapshots", ""));
   }
 
-  UniValue listNode(UniValue::VARR);
+  UniValue list_nodes(UniValue::VARR);
   for (const Checkpoint &p : GetSnapshotCheckpoints()) {
     UniValue node = SnapshotNode(p.snapshot_hash);
     node.push_back(Pair("snapshot_finalized", p.finalized));
-    listNode.push_back(node);
+    list_nodes.push_back(node);
   }
 
-  return listNode;
+  return list_nodes;
 }
 
 UniValue getblocksnapshot(const JSONRPCRequest &request) {
@@ -79,30 +79,30 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
         HelpExampleRpc("getblocksnapshot", "0000000000d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"));
   }
 
-  UniValue rootNode(UniValue::VOBJ);
+  UniValue root_node(UniValue::VOBJ);
 
-  CBlockIndex *blockIndex = chainActive.Tip();
+  const CBlockIndex *block_index = chainActive.Tip();
   if (!request.params.empty()) {
-    uint256 blockHash = uint256S(request.params[0].get_str());
-    const auto it = mapBlockIndex.find(blockHash);
+    const uint256 block_hash = uint256S(request.params[0].get_str());
+    const auto it = mapBlockIndex.find(block_hash);
     if (it == mapBlockIndex.end()) {
-      rootNode.push_back(Pair("error", "invalid block hash"));
-      return rootNode;
+      root_node.push_back(Pair("error", "invalid block hash"));
+      return root_node;
     }
-    blockIndex = it->second;
+    block_index = it->second;
   }
 
-  uint256 snapshotHash;
-  if (blockIndex == chainActive.Tip()) {
-    snapshotHash = pcoinsTip->GetSnapshotHash().GetHash(blockIndex->stake_modifier,
-                                                        ArithToUint256(blockIndex->nChainWork));
+  uint256 snapshot_hash;
+  if (block_index == chainActive.Tip()) {
+    snapshot_hash = pcoinsTip->GetSnapshotHash().GetHash(block_index->stake_modifier,
+                                                        ArithToUint256(block_index->nChainWork));
   } else {
-    CBlockIndex *parent = chainActive[blockIndex->nHeight + 1];
-    if (parent->pprev != blockIndex) {
+    CBlockIndex *parent = chainActive[block_index->nHeight + 1];
+    if (parent->pprev != block_index) {
       // requested block is not in the active chain
       bool found = false;
       for (const auto &p : mapBlockIndex) {
-        if (p.second->pprev == blockIndex) {
+        if (p.second->pprev == block_index) {
           parent = p.second;
           found = true;
           break;
@@ -110,33 +110,33 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
       }
 
       if (!found) {
-        rootNode.push_back(Pair("error", "can't retrieve snapshot hash of the fork"));
-        return rootNode;
+        root_node.push_back(Pair("error", "can't retrieve snapshot hash of the fork"));
+        return root_node;
       }
     }
 
     CBlock block;
     if (!ReadBlockFromDisk(block, parent, ::Params().GetConsensus())) {
-      rootNode.push_back(Pair("error", "can't read block from disk"));
-      return rootNode;
+      root_node.push_back(Pair("error", "can't read block from disk"));
+      return root_node;
     }
 
-    if (!ReadSnapshotHashFromTx(*block.vtx[0].get(), snapshotHash)) {
-      rootNode.push_back(Pair("error", "block doesn't contain snapshot hash"));
-      return rootNode;
+    if (!ReadSnapshotHashFromTx(*block.vtx[0].get(), snapshot_hash)) {
+      root_node.push_back(Pair("error", "block doesn't contain snapshot hash"));
+      return root_node;
     }
   }
 
-  UniValue node = SnapshotNode(snapshotHash);
+  UniValue node = SnapshotNode(snapshot_hash);
   for (const Checkpoint &p : GetSnapshotCheckpoints()) {
-    if (p.snapshot_hash == snapshotHash) {
+    if (p.snapshot_hash == snapshot_hash) {
       node.push_back(Pair("snapshot_finalized", p.finalized));
       return node;
     }
   }
 
   node.push_back(Pair("snapshot_deleted", true));
-  node.push_back(Pair("block_hash", blockIndex->GetBlockHash().GetHex()));
+  node.push_back(Pair("block_hash", block_index->GetBlockHash().GetHex()));
   return node;
 }
 
@@ -155,23 +155,23 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
 
   Creator creator(pcoinsdbview.get());
   if (!request.params.empty()) {
-    creator.m_maxUTXOSubsets = static_cast<uint64_t>(request.params[0].get_int64());
+    creator.m_max_utxo_subsets = static_cast<uint64_t>(request.params[0].get_int64());
   }
 
   CreationInfo info = creator.Create();
   if (info.status != +Status::OK) {
-    UniValue rootNode(UniValue::VOBJ);
+    UniValue root_node(UniValue::VOBJ);
     switch (info.status) {
       case Status::WRITE_ERROR:
-        rootNode.push_back(Pair("error", "can't write to any *.dat files"));
+        root_node.push_back(Pair("error", "can't write to any *.dat files"));
         break;
       case Status::CALC_SNAPSHOT_HASH_ERROR:
-        rootNode.push_back(Pair("error", "can't calculate hash of the snapshot"));
+        root_node.push_back(Pair("error", "can't calculate hash of the snapshot"));
         break;
       default:
-        rootNode.push_back(Pair("error", "unknown error happened during creating snapshot"));
+        root_node.push_back(Pair("error", "unknown error happened during creating snapshot"));
     }
-    return rootNode;
+    return root_node;
   }
 
   return SnapshotNode(info.indexer_meta.snapshot_hash);
@@ -189,11 +189,11 @@ UniValue deletesnapshot(const JSONRPCRequest &request) {
         HelpExampleRpc("deletesnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"));
   }
 
-  uint256 snapshotHash = uint256S(request.params[0].get_str());
-  SnapshotIndex::DeleteSnapshot(snapshotHash);
+  const uint256 snapshot_hash = uint256S(request.params[0].get_str());
+  SnapshotIndex::DeleteSnapshot(snapshot_hash);
 
   UniValue root(UniValue::VOBJ);
-  root.push_back(Pair("snapshot_hash", snapshotHash.GetHex()));
+  root.push_back(Pair("snapshot_hash", snapshot_hash.GetHex()));
   return root;
 }
 

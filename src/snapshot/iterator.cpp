@@ -18,14 +18,14 @@ namespace snapshot {
 Iterator::Iterator(std::unique_ptr<Indexer> indexer)
     : m_indexer(std::move(indexer)),
       m_file(nullptr),
-      m_readTotal(0),
-      m_subsetLeft(0) {
+      m_read_total(0),
+      m_subset_left(0) {
   if (m_indexer->GetMeta().total_utxo_subsets > 0) {
     Next();
   }
 }
 
-Iterator::~Iterator() { closeFile(); }
+Iterator::~Iterator() { CloseFile(); }
 
 bool Iterator::Valid() {
   // there is an issue to read data
@@ -33,24 +33,24 @@ bool Iterator::Valid() {
     return false;
   }
 
-  return (m_readTotal <= m_indexer->GetMeta().total_utxo_subsets);
+  return (m_read_total <= m_indexer->GetMeta().total_utxo_subsets);
 }
 
 void Iterator::Next() {
-  if (m_readTotal > m_indexer->GetMeta().total_utxo_subsets) {
+  if (m_read_total > m_indexer->GetMeta().total_utxo_subsets) {
     return;  // whole snapshot is read
   }
 
-  if (m_readTotal == m_indexer->GetMeta().total_utxo_subsets) {
-    ++m_readTotal;  // mark as end of snapshot
+  if (m_read_total == m_indexer->GetMeta().total_utxo_subsets) {
+    ++m_read_total;  // mark as end of snapshot
     return;
   }
 
   // switch to the next file
-  if (m_subsetLeft == 0) {
-    closeFile();
+  if (m_subset_left == 0) {
+    CloseFile();
 
-    m_file = m_indexer->GetClosestIdx(m_readTotal, m_subsetLeft, m_readTotal);
+    m_file = m_indexer->GetClosestIdx(m_read_total, m_subset_left, m_read_total);
     if (!m_file) {
       return;
     }
@@ -59,26 +59,26 @@ void Iterator::Next() {
   // CAutoFile is used as a helper to unserialize one utxoSubset record but we
   // don't want to close the file so we release the ownership right away
   CAutoFile f(m_file, SER_DISK, PROTOCOL_VERSION);
-  f >> m_utxoSubset;
-  ++m_readTotal;
-  --m_subsetLeft;
+  f >> m_utxo_subset;
+  ++m_read_total;
+  --m_subset_left;
   f.release();
 }
 
-bool Iterator::MoveCursorTo(uint64_t subsetIndex) {
-  if (m_indexer->GetMeta().total_utxo_subsets <= subsetIndex) {
+bool Iterator::MoveCursorTo(const uint64_t subset_index) {
+  if (m_indexer->GetMeta().total_utxo_subsets <= subset_index) {
     return false;
   }
 
   // prevent reading the first message twice
   // when after the initialization MoveCursorTo(0) is invoked
-  if (m_readTotal == 1 && subsetIndex == 0) {
+  if (m_read_total == 1 && subset_index == 0) {
     return true;
   }
 
-  closeFile();
+  CloseFile();
 
-  m_file = m_indexer->GetClosestIdx(subsetIndex, m_subsetLeft, m_readTotal);
+  m_file = m_indexer->GetClosestIdx(subset_index, m_subset_left, m_read_total);
   if (!m_file) {
     return false;
   }
@@ -87,7 +87,7 @@ bool Iterator::MoveCursorTo(uint64_t subsetIndex) {
 
   // keep reading more messages
   // until the index is equal to requested
-  while (m_readTotal < subsetIndex + 1) {
+  while (m_read_total < subset_index + 1) {
     if (!Valid()) {
       return false;
     }
@@ -97,9 +97,9 @@ bool Iterator::MoveCursorTo(uint64_t subsetIndex) {
   return true;
 }
 
-bool Iterator::GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
-                              std::vector<UTXOSubset> &subsetsOut) {
-  if (!MoveCursorTo(subsetIndex)) {
+bool Iterator::GetUTXOSubsets(const uint64_t subset_index, const uint16_t count,
+                              std::vector<UTXOSubset> &subsets_out) {
+  if (!MoveCursorTo(subset_index)) {
     return false;
   }
 
@@ -107,8 +107,8 @@ bool Iterator::GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
   // message size in P2P. 10K UTXO Sets is ~1MB and on Bitcoin data doesn't grow
   // more than 1.2MB but theoretically it can go beyond the 4MB limit
 
-  subsetsOut.clear();
-  subsetsOut.reserve(count);
+  subsets_out.clear();
+  subsets_out.reserve(count);
 
   uint16_t n = 0;
   while (Valid()) {
@@ -116,7 +116,7 @@ bool Iterator::GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
       break;
     }
 
-    subsetsOut.emplace_back(GetUTXOSubset());
+    subsets_out.emplace_back(GetUTXOSubset());
     ++n;
 
     Next();
@@ -128,7 +128,7 @@ bool Iterator::GetUTXOSubsets(uint64_t subsetIndex, uint16_t count,
 uint256 Iterator::CalculateHash(const uint256 &stake_modifier,
                                 const uint256 &chain_work) {
   // unwind to the beginning if needed
-  if (m_readTotal > 1) {
+  if (m_read_total > 1) {
     MoveCursorTo(0);
   }
 
@@ -147,7 +147,7 @@ uint256 Iterator::CalculateHash(const uint256 &stake_modifier,
   return hash.GetHash(stake_modifier, chain_work);
 }
 
-void Iterator::closeFile() {
+void Iterator::CloseFile() {
   if (m_file) {
     fclose(m_file);
     m_file = nullptr;
