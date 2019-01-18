@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 
     CChainParams params = Params();
     esperanza::FinalizationParams fin_params = params.GetFinalization();
-    fin_params.m_epochLength = 999999;
+    fin_params.epoch_length = 999999;
     esperanza::FinalizationState::Reset(fin_params, params.GetAdminParams());
 
     BlockData genesisData;

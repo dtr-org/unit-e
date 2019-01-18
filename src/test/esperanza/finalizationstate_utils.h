@@ -13,7 +13,7 @@
 
 using namespace esperanza;
 
-const FinalizationParams params{};
+const FinalizationParams params = CreateChainParams(CBaseChainParams::MAIN)->GetFinalization();
 
 const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
 const int64_t EPOCH_LENGTH = 50;
@@ -32,14 +32,14 @@ class FinalizationStateSpy : public FinalizationState {
   }
   uint256 *RecommendedTargetHash() { return &m_recommendedTargetHash; }
 
-  uint32_t EpochLength() const { return m_settings.m_epochLength; }
-  CAmount MinDepositSize() const { return m_settings.m_minDepositSize; }
-  int64_t DynastyLogoutDelay() const { return m_settings.m_dynastyLogoutDelay; }
+  uint32_t EpochLength() const { return m_settings.epoch_length; }
+  CAmount MinDepositSize() const { return m_settings.min_deposit_size; }
+  int64_t DynastyLogoutDelay() const { return m_settings.dynasty_logout_delay; }
   int64_t WithdrawalEpochDelay() const {
-    return m_settings.m_withdrawalEpochDelay;
+    return m_settings.withdrawal_epoch_delay;
   }
   int64_t BountyFractionDenominator() const {
-    return m_settings.m_bountyFractionDenominator;
+    return m_settings.bounty_fraction_denominator;
   }
 
   using FinalizationState::GetCurrentDynasty;

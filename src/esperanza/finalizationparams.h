@@ -13,34 +13,32 @@ class CRegTestParams;
 
 namespace esperanza {
 
-class FinalizationParams final {
+struct FinalizationParams {
 
-  friend ::CRegTestParams;
+  FinalizationParams();
 
- public:
   //! Number of blocks between epochs
-  uint32_t m_epochLength = 50;
+  uint32_t epoch_length;
 
-  CAmount m_minDepositSize = 1500 * UNIT;
+  CAmount min_deposit_size;
 
-  int64_t m_dynastyLogoutDelay = 700;
+  int64_t dynasty_logout_delay;
 
-  int64_t m_withdrawalEpochDelay = static_cast<int>(1.5e4);
+  int64_t withdrawal_epoch_delay;
 
-  int64_t m_slashFractionMultiplier = 3;
+  int64_t slash_fraction_multiplier;
 
-  int64_t m_bountyFractionDenominator = 25;
+  int64_t bounty_fraction_denominator;
 
-  ufp64::ufp64_t m_baseInterestFactor = ufp64::to_ufp64(7);
+  ufp64::ufp64_t base_interest_factor;
 
-  ufp64::ufp64_t m_basePenaltyFactor = ufp64::div_2uint(2, 10000000);
+  ufp64::ufp64_t base_penalty_factor;
 
   // UNIT-E: move this once we have a argManager util that parses parameters
   // passed to the node at startup
 };
 
-bool ParseFinalizationParams(std::string jsonString,
-                             FinalizationParams &paramsOut);
+bool ParseFinalizationParams(const std::string &json_string, FinalizationParams &params_out);
 
 }  // namespace esperanza
 

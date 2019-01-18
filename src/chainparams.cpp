@@ -331,6 +331,15 @@ public:
                         //   (the tx=... number in the SetBestChain debug.log lines)
             3.5         // * estimated number of transactions per second after that timestamp
         };
+
+        finalization.epoch_length = 50;
+        finalization.min_deposit_size = 10000 * UNIT;
+        finalization.dynasty_logout_delay = 700;
+        finalization.withdrawal_epoch_delay = static_cast<int>(1.5e4);
+        finalization.slash_fraction_multiplier = 3;
+        finalization.bounty_fraction_denominator = 25;
+        finalization.base_interest_factor = ufp64::to_ufp64(7);
+        finalization.base_penalty_factor = ufp64::div_2uint(2, 10000000);
     }
 };
 
@@ -411,6 +420,14 @@ public:
             0.09
         };
 
+        finalization.epoch_length = 50;
+        finalization.min_deposit_size = 10000 * UNIT;
+        finalization.dynasty_logout_delay = 700;
+        finalization.withdrawal_epoch_delay = static_cast<int>(1.5e4);
+        finalization.slash_fraction_multiplier = 3;
+        finalization.bounty_fraction_denominator = 25;
+        finalization.base_interest_factor = ufp64::to_ufp64(7);
+        finalization.base_penalty_factor = ufp64::div_2uint(2, 10000000);
     }
 };
 
@@ -481,20 +498,14 @@ public:
             0
         };
 
-        finalization.m_epochLength = 5;
-        finalization.m_minDepositSize = 10000 * UNIT;
-        finalization.m_dynastyLogoutDelay = 2;
-        finalization.m_withdrawalEpochDelay = 5;
-        finalization.m_slashFractionMultiplier = 3;
-        finalization.m_bountyFractionDenominator = 25;
-        finalization.m_baseInterestFactor = ufp64::to_ufp64(700);
-        finalization.m_basePenaltyFactor = ufp64::div_2uint(2, 100000);
-
         adminParams.m_blockToAdminKeys.emplace(0, CreateRegTestAdminKeys());
 
         snapshotParams.create_snapshot_per_epoch = static_cast<uint16_t>(gArgs.GetArg("-createsnapshot", 1));
         snapshotParams.snapshot_chunk_timeout_sec = static_cast<uint16_t>(gArgs.GetArg("-snapshotchunktimeout", 5));
         snapshotParams.discovery_timeout_sec = static_cast<uint16_t>(gArgs.GetArg("-snapshotdiscoverytimeout", 5));
+
+        // Initialize with default values for regTest
+        finalization = esperanza::FinalizationParams();
     }
 };
 

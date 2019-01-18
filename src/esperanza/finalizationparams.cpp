@@ -9,58 +9,65 @@
 
 namespace esperanza {
 
-int64_t ParseNum(const UniValue &value, std::string key, int64_t defVal) {
+int64_t ParseNum(const UniValue &value, const std::string &key, int64_t def_val) {
 
   try {
-    if (!value[key].isNull() && value[key].isNum()) {
-      return value[key].get_int64();
+    const UniValue &val = value[key];
+    if (!val.isNull() && val.isNum()) {
+      return val.get_int64();
     }
   } catch (std::exception &e) {
     fprintf(stderr, "Error: Cannot parse parameter %s as numeric value!\n",
             key.c_str());
   }
 
-  return defVal;
+  return def_val;
 }
 
-bool ParseFinalizationParams(std::string jsonString,
-                             FinalizationParams &paramsOut) {
+bool ParseFinalizationParams(const std::string &json_string,
+                             FinalizationParams &params_out) {
 
   UniValue json;
-  if (!json.read(jsonString)) {
-    LogPrintf("Malformed json object: %s\n", jsonString);
+  if (!json.read(json_string)) {
+    LogPrintf("Malformed json object: %s\n", json_string);
     return false;
   }
 
-  paramsOut.m_epochLength =
-      static_cast<uint32_t>(ParseNum(json, "epochLength", 50));
+  params_out.epoch_length = static_cast<uint32_t>(ParseNum(json, "epochLength", params_out.epoch_length));
 
-  paramsOut.m_minDepositSize = ParseNum(json, "minDepositSize", 1500 * UNIT);
-  paramsOut.m_dynastyLogoutDelay = ParseNum(json, "dynastyLogoutDelay", 700);
-  paramsOut.m_withdrawalEpochDelay =
-      ParseNum(json, "withdrawalEpochDelay", static_cast<int>(1.5e4));
+  params_out.min_deposit_size = ParseNum(json, "minDepositSize", params_out.min_deposit_size);
 
-  paramsOut.m_slashFractionMultiplier =
-      ParseNum(json, "slashFractionMultiplier", 3);
-  paramsOut.m_bountyFractionDenominator =
-      ParseNum(json, "bountyFractionDenominator", 25);
+  params_out.dynasty_logout_delay = ParseNum(json, "dynastyLogoutDelay", params_out.dynasty_logout_delay);
 
-  int64_t baseInterestFactor = ParseNum(json, "baseInterestFactor", 7);
-  if (baseInterestFactor < 0) {
+  params_out.withdrawal_epoch_delay = ParseNum(json, "withdrawalEpochDelay", params_out.withdrawal_epoch_delay);
+
+  params_out.slash_fraction_multiplier = ParseNum(json, "slashFractionMultiplier", params_out.slash_fraction_multiplier);
+
+  params_out.bounty_fraction_denominator = ParseNum(json, "bountyFractionDenominator", params_out.bounty_fraction_denominator);
+
+  auto value = ParseNum(json, "baseInterestFactor", params_out.base_interest_factor);
+  if (value < 0) {
     LogPrintf("Param baseInterestFactor must be a positive number.\n");
     return false;
   }
-  paramsOut.m_baseInterestFactor =
-      ufp64::to_ufp64((uint64_t)baseInterestFactor);
+  params_out.base_interest_factor = ufp64::to_ufp64((uint64_t)value);
 
-  int64_t basePenaltyFactor = ParseNum(json, "basePenaltyFactor", 2);
-  if (basePenaltyFactor < 0) {
+  value = ParseNum(json, "basePenaltyFactor", ufp64::mul_to_uint(params_out.base_penalty_factor, 10000000));
+  if (value < 0) {
     LogPrintf("Param basePenaltyFactor must be a positive number.\n");
     return false;
   }
-  paramsOut.m_basePenaltyFactor =
-      ufp64::div_2uint((uint64_t)basePenaltyFactor, 10000000);
+  params_out.base_penalty_factor = ufp64::div_by_uint(ufp64::to_ufp64((uint64_t)value), 10000000);
+
   return true;
 }
 
+FinalizationParams::FinalizationParams() : epoch_length{5},
+                                           min_deposit_size{1500 * UNIT},
+                                           dynasty_logout_delay{2},
+                                           withdrawal_epoch_delay{5},
+                                           slash_fraction_multiplier{3},
+                                           bounty_fraction_denominator{25},
+                                           base_interest_factor{ufp64::to_ufp64(700)},
+                                           base_penalty_factor{ufp64::div_2uint(2, 10000000)} {}
 }  // namespace esperanza
