@@ -129,6 +129,7 @@ if ENABLE_WALLET
 UNITE_TESTS += \
   test/counting_semaphore_tests.cpp \
   test/esperanza/walletextension_tests.cpp \
+  test/extkey_tests.cpp \
   test/injector_tests.cpp \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \

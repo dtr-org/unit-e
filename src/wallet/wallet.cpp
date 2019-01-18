@@ -12,6 +12,7 @@
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/checks.h>
+#include <extkey.h>
 #include <fs.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
@@ -50,7 +51,6 @@ OutputType g_address_type = OUTPUT_TYPE_NONE;
 OutputType g_change_type = OUTPUT_TYPE_NONE;
 
 const char * DEFAULT_WALLET_DAT = "wallet.dat";
-const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;
 
 /**
  * Fees smaller than this (in satoshi) are considered zero fee (for transaction creation)
