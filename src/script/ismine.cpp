@@ -47,13 +47,20 @@ bool PermitsUncompressed(IsMineSigVersion sigversion)
     return sigversion == IsMineSigVersion::TOP || sigversion == IsMineSigVersion::P2SH;
 }
 
-bool HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
+IsMineResult HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
 {
+    IsMineResult ret = IsMineResult::NO;
     for (const valtype& pubkey : pubkeys) {
         CKeyID keyID = CPubKey(pubkey).GetID();
-        if (!keystore.HaveKey(keyID)) return false;
+        if (keystore.HaveHardwareKey(keyID)) {
+            ret = std::max(ret, IsMineResult::HW_DEVICE);
+        } else if (keystore.HaveKey(keyID)) {
+            ret = std::max(ret, IsMineResult::SPENDABLE);
+        } else {
+            return IsMineResult::NO;
+        }
     }
-    return true;
+    return ret;
 }
 
 IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion)
@@ -77,7 +84,10 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             return IsMineResult::INVALID;
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, static_cast<IsMineResult>(keystore.IsMine(keyID)));
+            ret = std::max(ret, IsMineResult::SPENDABLE);
+        }
+        if (keystore.HaveHardwareKey(keyID)) {
+            ret = std::max(ret, IsMineResult::HW_DEVICE);
         }
         break;
     case TX_WITNESS_V0_KEYHASH:
@@ -104,7 +114,10 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             }
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, static_cast<IsMineResult>(keystore.IsMine(keyID)));
+            ret = std::max(ret, IsMineResult::SPENDABLE);
+        }
+        if (keystore.HaveHardwareKey(keyID)) {
+            ret = std::max(ret, IsMineResult::HW_DEVICE);
         }
         break;
     case TX_SCRIPTHASH:
@@ -159,9 +172,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 }
             }
         }
-        if (HaveKeys(keys, keystore)) {
-            CKeyID keyID = CPubKey(keys[0]).GetID();
-            ret = std::max(ret, static_cast<IsMineResult>(keystore.IsMine(keyID)));
+        IsMineResult ret_all = HaveKeys(keys, keystore);
+        if (ret_all != IsMineResult::NO) {
+            ret = ret_all;
         }
         break;
     }
@@ -175,7 +188,10 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 return IsMineResult::INVALID;
             }
             if (keystore.HaveKey(keyID)) {
-                return static_cast<IsMineResult>(keystore.IsMine(keyID));
+                return IsMineResult::SPENDABLE;
+            }
+            if (keystore.HaveHardwareKey(keyID)) {
+                return IsMineResult::HW_DEVICE;
             }
         }
         break;

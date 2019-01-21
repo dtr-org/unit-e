@@ -357,37 +357,14 @@ bool CWallet::AddCryptedKey(const CPubKey &vchPubKey,
     }
 }
 
-bool CWallet::HaveKey(const CKeyID &address) const
+bool CWallet::HaveHardwareKey(const CKeyID &address) const
 {
-    AssertLockHeld(cs_wallet); // mapKeyMetadata
-    if (CCryptoKeyStore::HaveKey(address)) {
-        return true;
-    }
-
-    CKeyMetadata keyMeta;
     auto it = mapKeyMetadata.find(address);
-    if (it == mapKeyMetadata.end()) {
-        return false;
-    }
-
-    if (!it->second.master_key_id.IsNull()) {
+    if (it != mapKeyMetadata.end() && !it->second.master_key_id.IsNull()) {
         return true;
     }
 
     return false;
-}
-
-isminetype CWallet::IsMine(const CKeyID &address) const
-{
-    AssertLockHeld(cs_wallet); // mapKeyMetadata
-
-    CKeyMetadata keyMeta;
-    auto it = mapKeyMetadata.find(address);
-    if (it != mapKeyMetadata.end() && !it->second.master_key_id.IsNull()) {
-        return ISMINE_HW_DEVICE;
-    }
-
-    return CCryptoKeyStore::IsMine(address);
 }
 
 bool CWallet::LoadKeyMetadata(const CPubKey& pubkey, const CKeyMetadata &meta)
