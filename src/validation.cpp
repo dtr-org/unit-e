@@ -1748,12 +1748,12 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
         // information only in undo records for the last spend of a transactions'
         // outputs. This implies that it must be present for some other output of the same tx.
         const Coin& alternate = AccessByTxid(view, out.hash);
-        if (alternate.IsSpent()) {
-            // Adding output for transaction without known metadata
-            return DISCONNECT_FAILED;
-        } else {
+        if (!alternate.IsSpent()) {
             undo.nHeight = alternate.nHeight;
             undo.fCoinBase = alternate.fCoinBase;
+        } else {
+            // Adding output for transaction without known metadata
+            return DISCONNECT_FAILED;
         }
     }
 
@@ -2448,7 +2448,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         return false;
 
     if (disconnectpool) {
-        disconnectpool->AddForBlock(block.vtx);
+        disconnectpool->LoadFromBlockInTopologicalOrder(block.vtx);
     }
 
     chainActive.SetTip(pindexDelete->pprev);

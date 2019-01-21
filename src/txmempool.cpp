@@ -566,8 +566,11 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     std::vector<const CTxMemPoolEntry*> entries;
 
     DisconnectedBlockTransactions disconnectpool;
-    disconnectpool.AddForBlock(vtx);
+    disconnectpool.LoadFromBlockInTopologicalOrder(vtx);
 
+    // We take advantage from LoadFromBlockInTopologicalOrder sorting txns for
+    // us to ensure that transactions are removed from the mempool in a
+    // "correct" order, so the mempool is always consistent.
     for (
         auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
         ptx != disconnectpool.GetQueuedTx().get<insertion_order>().rend();
@@ -1106,7 +1109,7 @@ bool CTxMemPool::TransactionWithinChainLimit(const uint256& txid, size_t chainLi
 
 SaltedTxidHasher::SaltedTxidHasher() : k0(GetRand(std::numeric_limits<uint64_t>::max())), k1(GetRand(std::numeric_limits<uint64_t>::max())) {}
 
-void DisconnectedBlockTransactions::AddForBlock(
+void DisconnectedBlockTransactions::LoadFromBlockInTopologicalOrder(
     const std::vector<CTransactionRef> &vtx
 ) {
     // Save transactions to re-add to mempool at end of reorg
@@ -1116,7 +1119,8 @@ void DisconnectedBlockTransactions::AddForBlock(
             continue;
         }
 
-        addTransaction(tx); // Insert the transaction into the mempool
+        // Queue transaction to be re-inserted into the mempool
+        addTransaction(tx);
 
         // Fill in the set of parents.
         std::unordered_set<uint256, SaltedTxidHasher> parents;
