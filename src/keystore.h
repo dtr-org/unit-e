@@ -30,7 +30,7 @@ public:
     //! Check whether a key corresponding to a given address is present in the store.
     virtual bool HaveKey(const CKeyID &address) const =0;
     virtual std::set<CKeyID> GetKeys() const =0;
-    virtual bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const =0;
+    virtual bool GetPubKey(const CKeyID &address, CPubKey& pubkeyOut) const =0;
     virtual isminetype IsMine(const CKeyID &address) const =0;
 
     //! Support for BIP 0013 : see https://github.com/unite/bips/blob/master/bip-0013.mediawiki
@@ -63,7 +63,7 @@ protected:
 
 public:
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override;
-    bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const override;
+    bool GetPubKey(const CKeyID &address, CPubKey& pubkeyOut) const override;
     bool HaveKey(const CKeyID &address) const override;
     isminetype IsMine(const CKeyID &address) const override;
     std::set<CKeyID> GetKeys() const override;
