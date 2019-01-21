@@ -9,4 +9,4 @@ class CRPCTable;
 
 void RegisterUSBDeviceRPC(CRPCTable &t);
 
-#endif //UNITE_USBDEVICE_RPCUSBDEVICE_H
+#endif  //UNITE_USBDEVICE_RPCUSBDEVICE_H

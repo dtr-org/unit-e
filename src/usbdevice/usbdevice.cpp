@@ -4,13 +4,12 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <extkey.h>
-#include <usbdevice/usbdevice.h>
 #include <usbdevice/debugdevice.h>
+#include <usbdevice/usbdevice.h>
 #include <wallet/wallet.h>
 
-#include <vector>
 #include <memory>
-
+#include <vector>
 
 namespace usbdevice {
 
@@ -18,26 +17,24 @@ const DeviceType usbDeviceTypes[] = {
     DeviceType(0x0000, 0x0000, "Debug", "Device", USBDEVICE_DEBUG),
 };
 
-bool ListAllDevices(DeviceList &devices)
-{
-    devices.push_back(std::shared_ptr<USBDevice>(new DebugDevice()));
-    return true;
+bool ListAllDevices(DeviceList &devices) {
+  devices.push_back(std::shared_ptr<USBDevice>(new DebugDevice()));
+  return true;
 };
 
-std::shared_ptr<USBDevice> SelectDevice(std::string &error)
-{
-    std::vector<std::shared_ptr<USBDevice>> devices;
-    ListAllDevices(devices);
-    if (devices.size() < 1) {
-        error = "No device found.";
-        return nullptr;
-    }
-    if (devices.size() > 1) { // TODO: Select device
-        error = "Multiple devices found.";
-        return nullptr;
-    }
+std::shared_ptr<USBDevice> SelectDevice(std::string &error) {
+  std::vector<std::shared_ptr<USBDevice>> devices;
+  ListAllDevices(devices);
+  if (devices.size() < 1) {
+    error = "No device found.";
+    return nullptr;
+  }
+  if (devices.size() > 1) {  // TODO: Select device
+    error = "Multiple devices found.";
+    return nullptr;
+  }
 
-    return devices[0];
+  return devices[0];
 };
 
 #ifdef ENABLE_WALLET
@@ -45,57 +42,52 @@ std::shared_ptr<USBDevice> SelectDevice(std::string &error)
 DeviceSignatureCreator::DeviceSignatureCreator(
     std::shared_ptr<USBDevice> device,
     const CTransaction &tx,
-    unsigned int nin, const CAmount& amount,
-    int hash_type
-) : m_tx(tx),
-    m_nin(nin),
-    m_hash_type(hash_type),
-    m_amount(amount),
-    m_device(device),
-    m_checker(&tx, nin, amount)
-{
+    unsigned int nin, const CAmount &amount,
+    int hash_type) : m_tx(tx),
+                     m_nin(nin),
+                     m_hash_type(hash_type),
+                     m_amount(amount),
+                     m_device(device),
+                     m_checker(&tx, nin, amount) {
 }
 
 bool DeviceSignatureCreator::CreateSig(
-    const SigningProvider &provider, std::vector<unsigned char>& signature,
-    const CKeyID& keyid, const CScript& script_code, SigVersion sigversion
-) const
-{
-    CKeyMetadata metadata;
+    const SigningProvider &provider, std::vector<unsigned char> &signature,
+    const CKeyID &keyid, const CScript &script_code, SigVersion sigversion) const {
+  CKeyMetadata metadata;
 
-    try {
-        // Can we avoid tight coupling to CWallet here?
-        const CWallet &wallet = dynamic_cast<const CWallet&>(provider);
-        auto it = wallet.mapKeyMetadata.find(keyid);
-        if (it == wallet.mapKeyMetadata.end()) {
-            return false;
-        }
-        metadata = it->second;
-    } catch(std::bad_cast& exp) {
-        return false;
+  try {
+    // Can we avoid tight coupling to CWallet here?
+    const CWallet &wallet = dynamic_cast<const CWallet &>(provider);
+    auto it = wallet.mapKeyMetadata.find(keyid);
+    if (it == wallet.mapKeyMetadata.end()) {
+      return false;
     }
+    metadata = it->second;
+  } catch (std::bad_cast &exp) {
+    return false;
+  }
 
-    std::vector<uint32_t> path;
-    std::string error;
-    if (!ParseExtKeyPath(metadata.hdKeypath, path, error)) {
-        return false;
-    }
+  std::vector<uint32_t> path;
+  std::string error;
+  if (!ParseExtKeyPath(metadata.hdKeypath, path, error)) {
+    return false;
+  }
 
-    std::vector<uint8_t> shared_secret;
-    return m_device->SignTransaction(
-        path,
-        shared_secret,
-        m_tx,
-        m_nin,
-        script_code,
-        m_hash_type,
-        m_amount,
-        sigversion,
-        signature,
-        error
-    );
+  std::vector<uint8_t> shared_secret;
+  return m_device->SignTransaction(
+      path,
+      shared_secret,
+      m_tx,
+      m_nin,
+      script_code,
+      m_hash_type,
+      m_amount,
+      sigversion,
+      signature,
+      error);
 }
 
 #endif  // ENABLE_WALLET
 
-} // usbdevice
+}  // namespace usbdevice

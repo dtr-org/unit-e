@@ -13,39 +13,37 @@
 
 namespace usbdevice {
 
-class DebugDevice : public USBDevice
-{
-private:
-    CExtKey m_ekv;
+class DebugDevice : public USBDevice {
+ private:
+  CExtKey m_ekv;
 
-public:
-    DebugDevice();
+ public:
+  DebugDevice();
 
-    bool Open() override;
+  bool Open() override;
 
-    bool Close() override;
+  bool Close() override;
 
-    bool GetFirmwareVersion(std::string &firmware, std::string &error) override;
+  bool GetFirmwareVersion(std::string &firmware, std::string &error) override;
 
-    bool GetPubKey(const std::vector<uint32_t> &path, CPubKey &pk, std::string &error) override;
+  bool GetPubKey(const std::vector<uint32_t> &path, CPubKey &pk, std::string &error) override;
 
-    bool GetExtPubKey(const std::vector<uint32_t> &path, CExtPubKey &ekp, std::string &error) override;
+  bool GetExtPubKey(const std::vector<uint32_t> &path, CExtPubKey &ekp, std::string &error) override;
 
 #ifdef ENABLE_WALLET
 
-    bool PrepareTransaction(
-        const CTransaction &tx, const CCoinsViewCache &view,
-        const CKeyStore &keystore, int hash_type, std::string &error) override;
+  bool PrepareTransaction(
+      const CTransaction &tx, const CCoinsViewCache &view,
+      const CKeyStore &keystore, int hash_type, std::string &error) override;
 
-    bool SignTransaction(const std::vector<uint32_t> &path, const std::vector<uint8_t> &shared_secret,
-                         const CTransaction &tx,
-        int n_in, const CScript &script_code, int hash_type, const CAmount &amount, SigVersion sigversion,
-        std::vector<uint8_t> &signature, std::string &error) override;
+  bool SignTransaction(const std::vector<uint32_t> &path, const std::vector<uint8_t> &shared_secret,
+                       const CTransaction &tx,
+                       int n_in, const CScript &script_code, int hash_type, const CAmount &amount, SigVersion sigversion,
+                       std::vector<uint8_t> &signature, std::string &error) override;
 
 #endif  // ENABLE_WALLET
-
 };
 
-} // usbdevice
+}  // namespace usbdevice
 
-#endif // UNITE_USBDEVICE_DEBUGDEVICE_H
+#endif  // UNITE_USBDEVICE_DEBUGDEVICE_H
