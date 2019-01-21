@@ -379,7 +379,7 @@ bool CWallet::HaveKey(const CKeyID &address) const
 
 isminetype CWallet::IsMine(const CKeyID &address) const
 {
-    LOCK(cs_wallet);
+    AssertLockHeld(cs_wallet); // mapKeyMetadata
 
     CKeyMetadata keyMeta;
     auto it = mapKeyMetadata.find(address);
