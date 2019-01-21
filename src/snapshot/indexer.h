@@ -151,15 +151,18 @@ class Indexer {
 
   const Meta &GetMeta() const { return m_meta; }
   bool WriteUTXOSubsets(const std::vector<UTXOSubset> &list);
-  bool WriteUTXOSubset(const UTXOSubset &utxoSubset);
+  bool WriteUTXOSubset(const UTXOSubset &utxo_subset);
 
   //! \brief GetClosestIdx returns the file which contains the expected
   //! index and adjusts the file cursor as close as possible to the UTXOSubset.
   //!
-  //! \param subsetLeftOut how many records left in the current file
-  //! \param subsetReadOut how many records read (including all files)
-  FILE *GetClosestIdx(uint64_t subsetIndex, uint32_t &subsetLeftOut,
-                      uint64_t &subsetReadOut);
+  //! \param subset_index up to which position the file cursor should be moved
+  //! \param subset_left_out how many records left in the current file
+  //! \param subset_read_out how many records read (including all files)
+  //! \return the file that has the message the subset_index points to
+  //! and file cursor is moved as close to subset_index as possible
+  FILE *GetClosestIdx(uint64_t subset_index, uint32_t &subset_left_out,
+                      uint64_t &subset_read_out);
 
   //! \brief Flush flushes data in the memory to disk.
   //!
@@ -172,16 +175,16 @@ class Indexer {
   Meta m_meta;
   CDataStream m_stream;  // stores original messages
 
-  IdxMap m_fileIdx;                     // index, byte size
-  std::map<uint32_t, IdxMap> m_dirIdx;  // fileID, file index
-  uint32_t m_fileId;                    // current file ID
-  uint32_t m_fileMsgs;                  // messages in the current file
-  uint32_t m_fileBytes;                 // written bytes in the current file.
-  fs::path m_dirPath;
+  std::map<uint32_t, IdxMap> m_dir_idx;  // fileID, file index
+  IdxMap m_file_idx;                     // current opened file. key=index, value=byte size
+  uint32_t m_file_id = 0;                // current opened file ID
+  uint32_t m_file_msgs = 0;              // messages in the current opened file
+  uint32_t m_file_bytes = 0;             // written bytes in the current opened file
+  fs::path m_dir_path;
 
-  explicit Indexer(const Meta &meta, std::map<uint32_t, IdxMap> &&dirIdx);
+  explicit Indexer(const Meta &meta, std::map<uint32_t, IdxMap> &&dir_idx);
 
-  std::string FileName(uint32_t fileId);
+  std::string FileName(uint32_t file_id);
 
   bool FlushFile();
   bool FlushIndex();

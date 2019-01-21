@@ -218,7 +218,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
 
     LOCK(cs_main);
     StoreCandidateBlockHash(iterator.GetBestBlockHash());
-    CBlockIndex *bi = LookupBlockIndex(node.m_best_snapshot.block_hash);
+    const CBlockIndex *const bi = LookupBlockIndex(node.m_best_snapshot.block_hash);
     assert(bi);
     AddSnapshotHash(m_downloading_snapshot.snapshot_hash, bi);
 
@@ -233,7 +233,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
   return SendGetSnapshot(node, get, msg_maker);
 }
 
-void P2PState::StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
+void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index, const size_t total_nodes,
                                             const CNetMsgMaker &msg_maker) {
   if (!IsISDEnabled()) {
     return;
@@ -325,14 +325,14 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, size_t node_index, size
   }
 }
 
-void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
+void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
                                           std::function<void()> regular_processing) {
   if (!IsInitialSnapshotDownload()) {
     return regular_processing();
   }
 
-  uint256 blockHash = LoadCandidateBlockHash();
-  if (blockHash.IsNull()) {
+  const uint256 block_hash = LoadCandidateBlockHash();
+  if (block_hash.IsNull()) {
     return regular_processing();
   }
 
@@ -341,12 +341,12 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
   {
     LOCK(cs_main);
 
-    CBlockIndex *blockIndex = LookupBlockIndex(parent_block->GetHash());
-    if (!blockIndex || !blockIndex->pprev) {
+    const CBlockIndex *const block_index = LookupBlockIndex(parent_block.GetHash());
+    if (!block_index || !block_index->pprev) {
       return regular_processing();
     }
 
-    if (blockIndex->pprev->GetBlockHash() != blockHash) {
+    if (block_index->pprev->GetBlockHash() != block_hash) {
       return regular_processing();
     }
 
@@ -356,7 +356,7 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
 
     // set one transaction for every empty header to bypass the validation
     // for the parent block
-    CBlockIndex *prev = blockIndex->pprev;
+    CBlockIndex *prev = block_index->pprev;
     while (prev && prev->nHeight > 0) {
       prev->nTx = 1;
       prev->nChainTx = totalTxs + prev->nHeight;
@@ -364,10 +364,10 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
       prev = prev->pprev;
     }
 
-    chainActive.SetTip(blockIndex->pprev);
+    chainActive.SetTip(block_index->pprev);
     esperanza::FinalizationState::ResetToTip(*chainActive.Tip());
 
-    snapshot_block_index = blockIndex->pprev;
+    snapshot_block_index = block_index->pprev;
     assert(GetSnapshotHash(snapshot_block_index, snapshot_hash));
   }
 
@@ -417,10 +417,10 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
       blocks.push_back(block);
       block = block->pprev;
     }
-    int lastFile = 0;
-    pblocktree->ReadLastBlockFile(lastFile);
-    std::vector<std::pair<int, const CBlockFileInfo *>> fileInfo;
-    pblocktree->WriteBatchSync(fileInfo, lastFile, blocks);
+    int last_file = 0;
+    pblocktree->ReadLastBlockFile(last_file);
+    std::vector<std::pair<int, const CBlockFileInfo *>> file_info;
+    pblocktree->WriteBatchSync(file_info, last_file, blocks);
   }
 
   // at this stage we are leaving ISD
@@ -430,7 +430,7 @@ void P2PState::ProcessSnapshotParentBlock(CBlock *parent_block,
   assert(snapshot_hash == hash);
 }
 
-bool P2PState::FindNextBlocksToDownload(NodeId node_id,
+bool P2PState::FindNextBlocksToDownload(const NodeId node_id,
                                         std::vector<const CBlockIndex *> &blocks) {
   if (!IsISDEnabled()) {
     return false;
@@ -440,8 +440,8 @@ bool P2PState::FindNextBlocksToDownload(NodeId node_id,
     return false;
   }
 
-  const uint256 blockHash = LoadCandidateBlockHash();
-  if (blockHash.IsNull()) {
+  const uint256 block_hash = LoadCandidateBlockHash();
+  if (block_hash.IsNull()) {
     // waiting until the candidate snapshot is created
     return true;
   }
@@ -466,7 +466,7 @@ bool P2PState::FindNextBlocksToDownload(NodeId node_id,
       continue;
     }
 
-    if (prev->GetBlockHash() == blockHash) {
+    if (prev->GetBlockHash() == block_hash) {
       blocks.emplace_back(pair.second);
 
       g_connman->ForNode(node_id, [](CNode *node) {
@@ -589,17 +589,17 @@ bool ProcessSnapshot(CNode &node, CDataStream &data,
   return g_p2p_state.ProcessSnapshot(node, data, msg_maker);
 }
 
-void StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
+void StartInitialSnapshotDownload(CNode &node, const size_t node_index, const size_t total_nodes,
                                   const CNetMsgMaker &msg_maker) {
   g_p2p_state.StartInitialSnapshotDownload(node, node_index, total_nodes, msg_maker);
 }
 
-bool FindNextBlocksToDownload(NodeId node_id,
+bool FindNextBlocksToDownload(const NodeId node_id,
                               std::vector<const CBlockIndex *> &blocks) EXCLUSIVE_LOCKS_REQUIRED(cs_main) {
   return g_p2p_state.FindNextBlocksToDownload(node_id, blocks);
 }
 
-void ProcessSnapshotParentBlock(CBlock *parent_block,
+void ProcessSnapshotParentBlock(const CBlock &parent_block,
                                 std::function<void()> regular_processing) {
   g_p2p_state.ProcessSnapshotParentBlock(parent_block, std::move(regular_processing));
 }

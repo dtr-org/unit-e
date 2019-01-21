@@ -15,17 +15,11 @@ mergeable:
       must_include:
         regex: "^.{10,}"
         message: 'The description must not be empty (at least 10 characters)!'
-    stale:
-      days: 10
-      message: 'There has not been any activity in the past 10 days. Is this still active?'
   issues:
     label:
       must_include:
         regex: ".+"
         message: "The issue is not categorized using any label."
-    stale:
-      days: 30
-      message: 'There has not been any activity in the past month. Is there anything to follow-up?'
     description:
       must_include:
         regex: "^.{10,}"

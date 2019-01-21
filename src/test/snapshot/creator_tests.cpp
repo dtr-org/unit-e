@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
 
       snapshot::Creator creator(viewDB.get());
       creator.m_step = 3;
-      creator.m_stepsPerFile = 2;
+      creator.m_steps_per_file = 2;
       snapshot::CreationInfo info = creator.Create();
 
       std::vector<snapshot::Checkpoint> checkpoints =

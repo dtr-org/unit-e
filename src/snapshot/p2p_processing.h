@@ -59,7 +59,7 @@ class P2PState {
   bool FindNextBlocksToDownload(NodeId node_id,
                                 std::vector<const CBlockIndex *> &blocks);
 
-  void ProcessSnapshotParentBlock(CBlock *parent_block,
+  void ProcessSnapshotParentBlock(const CBlock &parent_block,
                                   std::function<void()> regular_processing);
 
   //! Deletes the snapshot the node is currently downloading
@@ -119,7 +119,7 @@ bool FindNextBlocksToDownload(NodeId node_id,
                               std::vector<const CBlockIndex *> &blocks);
 
 // proxy to g_p2p_state.ProcessSnapshotParentBlock
-void ProcessSnapshotParentBlock(CBlock *parent_block,
+void ProcessSnapshotParentBlock(const CBlock &parent_block,
                                 std::function<void()> regular_processing);
 }  // namespace snapshot
 

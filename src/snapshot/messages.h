@@ -23,16 +23,16 @@ struct UTXOSubset {
   uint256 tx_id;
 
   //! at which block height the TX was included
-  uint32_t height;
+  uint32_t height = 0;
 
-  bool is_coin_base;
+  bool is_coin_base = false;
 
   //! key is the CTxOut index
   std::map<uint32_t, CTxOut> outputs;
 
-  UTXOSubset() : tx_id(), height(0), is_coin_base(false), outputs() {}
+  UTXOSubset() : tx_id(), outputs() {}
 
-  UTXOSubset(uint256 _tx_id, uint32_t _height, bool _is_coin_base,
+  UTXOSubset(const uint256 &_tx_id, const uint32_t _height, const bool _is_coin_base,
              std::map<uint32_t, CTxOut> out_map)
       : tx_id(_tx_id),
         height(_height),
@@ -143,14 +143,12 @@ struct Snapshot {
 //! doesn't follow the P2P serialization convention.
 struct UTXO {
   COutPoint out_point;
-  uint32_t height;
-  bool is_coin_base;
+  uint32_t height = 0;
+  bool is_coin_base = false;
   CTxOut tx_out;
 
   UTXO()
       : out_point(),
-        height(0),
-        is_coin_base(false),
         tx_out() {}
 
   UTXO(const COutPoint &out, const Coin &coin);

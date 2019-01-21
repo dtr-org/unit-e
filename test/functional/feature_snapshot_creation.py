@@ -81,6 +81,8 @@ class SnapshotCreationTest(UnitETestFramework):
 
         node.generatetoaddress(10, node.getnewaddress())
         sync_blocks([node, validator])
+        self.stop_node(validator.index)
+
         wait_until(lambda: has_valid_snapshot_for_height(node, 38), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
         assert(has_valid_snapshot_for_height(node, 8) is False)

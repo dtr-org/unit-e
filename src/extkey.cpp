@@ -28,7 +28,7 @@ bool ParseExtKeyPath(const std::string &s, std::vector<uint32_t> &path, std::str
   const auto npos = std::string::npos;
   for (size_t start = 0, end = 0; end != npos; start = end + 1) {
     end = s.find('/', start);
-    int token_length = (end == npos) ? npos : (end - start);
+    size_t token_length = (end == npos) ? npos : (end - start);
     std::string token = s.substr(start, token_length);
 
     if (token.size() == 0) {

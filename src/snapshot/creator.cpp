@@ -92,7 +92,7 @@ void Creator::Deinit() {
 
 Creator::Creator(CCoinsViewDB *view) : m_iter(view) {}
 
-void Creator::GenerateOrSkip(uint32_t currentEpoch) {
+void Creator::GenerateOrSkip(const uint32_t current_epoch) {
   if (g_create_snapshot_per_epoch <= 0) {
     return;
   }
@@ -103,7 +103,7 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
     return;
   }
 
-  if (currentEpoch > 0 && (currentEpoch + 1) % g_create_snapshot_per_epoch != 0) {
+  if (current_epoch > 0 && (current_epoch + 1) % g_create_snapshot_per_epoch != 0) {
     return;
   }
 
@@ -117,8 +117,8 @@ void Creator::GenerateOrSkip(uint32_t currentEpoch) {
   cv.notify_one();
 }
 
-void Creator::FinalizeSnapshots(const CBlockIndex *blockIndex) {
-  std::unique_ptr<SnapshotJob> job(new SnapshotJob(blockIndex));
+void Creator::FinalizeSnapshots(const CBlockIndex *block_index) {
+  std::unique_ptr<SnapshotJob> job(new SnapshotJob(block_index));
   std::lock_guard<std::mutex> lock(mutex);
   jobs.push(std::move(job));
   cv.notify_one();
@@ -143,7 +143,7 @@ CreationInfo Creator::Create() {
                   block_index->GetBlockHash(),
                   block_index->stake_modifier,
                   chain_work,
-                  m_step, m_stepsPerFile);
+                  m_step, m_steps_per_file);
 
   while (m_iter.Valid()) {
     boost::this_thread::interruption_point();
@@ -156,7 +156,7 @@ CreationInfo Creator::Create() {
       return info;
     }
 
-    if (indexer.GetMeta().total_utxo_subsets == m_maxUTXOSubsets) {
+    if (indexer.GetMeta().total_utxo_subsets == m_max_utxo_subsets) {
       break;
     }
 
