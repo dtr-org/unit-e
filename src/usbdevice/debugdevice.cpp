@@ -17,6 +17,7 @@ namespace usbdevice {
 
 static const uint8_t seed[] = "debug key";
 
+//! Maximum supported depth for BIP32-derived keys
 const size_t MAX_BIP32_PATH = 10;
 
 DebugDevice::DebugDevice()
