@@ -15,13 +15,13 @@
 
 namespace usbdevice {
 
-static const char *seed = "debug key";
+static const uint8_t seed[] = "debug key";
 
 const size_t MAX_BIP32_PATH = 10;
 
 DebugDevice::DebugDevice()
     : USBDevice(&usbDeviceTypes[USBDEVICE_DEBUG - 1], "none", "1", 0) {
-  m_ekv.SetSeed((const uint8_t *)seed, strlen(seed));
+  m_ekv.SetSeed(seed, sizeof(seed) - 1);  // to account for trailing \0
 }
 
 bool DebugDevice::Open() { return true; }

@@ -77,7 +77,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             return IsMineResult::INVALID;
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, (IsMineResult)keystore.IsMine(keyID));
+            ret = std::max(ret, static_cast<IsMineResult>(keystore.IsMine(keyID)));
         }
         break;
     case TX_WITNESS_V0_KEYHASH:
@@ -104,7 +104,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             }
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, (IsMineResult)keystore.IsMine(keyID));
+            ret = std::max(ret, static_cast<IsMineResult>(keystore.IsMine(keyID)));
         }
         break;
     case TX_SCRIPTHASH:
@@ -161,7 +161,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         if (HaveKeys(keys, keystore)) {
             CKeyID keyID = CPubKey(keys[0]).GetID();
-            ret = std::max(ret, (IsMineResult)keystore.IsMine(keyID));
+            ret = std::max(ret, static_cast<IsMineResult>(keystore.IsMine(keyID)));
         }
         break;
     }
@@ -175,7 +175,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 return IsMineResult::INVALID;
             }
             if (keystore.HaveKey(keyID)) {
-                return (IsMineResult)keystore.IsMine(keyID);
+                return static_cast<IsMineResult>(keystore.IsMine(keyID));
             }
         }
         break;
