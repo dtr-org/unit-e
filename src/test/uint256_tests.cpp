@@ -1,6 +1,4 @@
 // Copyright (c) 2011-2017 The Bitcoin Core developers
-// Copyright (c) 2018 The Bitcoin ABC developers
-// Copyright (c) 2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <arith_uint256.h>
@@ -129,24 +127,24 @@ BOOST_AUTO_TEST_CASE( basics ) // constructors, equality, inequality
 BOOST_AUTO_TEST_CASE( comparison ) // <= >= < >
 {
     uint256 LastL;
-    for (int i = 0; i < 256; ++i) {
+    for (int i = 255; i >= 0; --i) {
         uint256 TmpL;
-        *(TmpL.begin() + (i >> 3)) |= 1 << (i & 7);
+        *(TmpL.begin() + (i>>3)) |= 1<<(7-(i&7));
         BOOST_CHECK( LastL < TmpL );
         LastL = TmpL;
     }
 
     BOOST_CHECK( ZeroL < R1L );
-    BOOST_CHECK( R1L < R2L );
+    BOOST_CHECK( R2L < R1L );
     BOOST_CHECK( ZeroL < OneL );
     BOOST_CHECK( OneL < MaxL );
     BOOST_CHECK( R1L < MaxL );
     BOOST_CHECK( R2L < MaxL );
 
     uint160 LastS;
-    for (int i = 0; i < 160; ++i) {
+    for (int i = 159; i >= 0; --i) {
         uint160 TmpS;
-        *(TmpS.begin() + (i >> 3)) |= 1 << (i & 7);
+        *(TmpS.begin() + (i>>3)) |= 1<<(7-(i&7));
         BOOST_CHECK( LastS < TmpS );
         LastS = TmpS;
     }

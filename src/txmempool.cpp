@@ -586,7 +586,7 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     for (
         auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
         ptx != disconnectpool.GetQueuedTx().get<insertion_order>().rend();
-        ptx++
+        ++ptx
     ) {
         auto tx = *ptx;
         txiter it = mapTx.find(tx->GetHash());

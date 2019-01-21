@@ -45,7 +45,9 @@ public:
         memset(data, 0, sizeof(data));
     }
 
-    inline int Compare(const base_blob &other) const {
+    inline int Compare(const base_blob &other) const { return memcmp(data, other.data, sizeof(data)); }
+
+    inline int CompareLexicographically(const base_blob<BITS> &other) const {
         for (size_t i = 0; i < sizeof(data); ++i) {
             uint8_t a = data[sizeof(data) - 1 - i];
             uint8_t b = other.data[sizeof(data) - 1 - i];
@@ -63,7 +65,6 @@ public:
     friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
     friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.Compare(b) != 0; }
     friend inline bool operator<(const base_blob& a, const base_blob& b) { return a.Compare(b) < 0; }
-    friend inline bool operator<=(const base_blob& a, const base_blob& b) { return a.Compare(b) <= 0; }
 
     std::string GetHex() const;
     void SetHex(const char* psz);

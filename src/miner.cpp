@@ -166,7 +166,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::sort(
         std::begin(pblock->vtx) + 1, std::end(pblock->vtx),
         [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
-            return a->GetId() < b->GetId();
+            return a->GetId().CompareLexicographically(b->GetId()) < 0;
         }
     );
 
