@@ -18,8 +18,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_flush) {
 
   uint32_t step = 3;
   uint32_t steps_per_file = 2;
-  std::unique_ptr<snapshot::Indexer> idx(
-      new snapshot::Indexer(snapshot::SnapshotHeader(), step, steps_per_file));
+  auto idx = MakeUnique<snapshot::Indexer>(snapshot::SnapshotHeader(), step, steps_per_file);
   CDataStream stream_in(SER_DISK, PROTOCOL_VERSION);
 
   uint64_t total_msgs = step * steps_per_file * 3;
@@ -87,8 +86,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   uint256 snapshot_hash = uint256S("aa");
   snapshot::SnapshotHeader snapshot_header;
   snapshot_header.snapshot_hash = snapshot_hash;
-  std::unique_ptr<snapshot::Indexer> indexer(new snapshot::Indexer(
-      snapshot_header, step, steps_per_file));
+  auto indexer = MakeUnique<snapshot::Indexer>(snapshot_header, step, steps_per_file);
 
   // close and re-open indexer after each write
   uint64_t total_msgs = (step * steps_per_file) * 3 + step;

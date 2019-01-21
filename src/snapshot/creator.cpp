@@ -131,19 +131,21 @@ CreationInfo Creator::Create() {
 
   CreationInfo info;
 
-  CBlockIndex *block_index = mapBlockIndex.at(m_iter.GetBestBlock());
+  CBlockIndex *block_index;
+  {
+    LOCK(cs_main);
+    block_index = LookupBlockIndex(m_iter.GetBestBlock());
+    assert(block_index);
+  }
 
   SnapshotHeader snapshot_header;
   snapshot_header.block_hash = block_index->GetBlockHash();
   snapshot_header.stake_modifier = block_index->stake_modifier;
   snapshot_header.chain_work = ArithToUint256(block_index->nChainWork);
-  snapshot_header.snapshot_hash = m_iter.GetSnapshotHash().GetHash(
-      snapshot_header.stake_modifier, snapshot_header.chain_work);
+  snapshot_header.snapshot_hash = m_iter.GetSnapshotHash().GetHash(*block_index);
 
   LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
            snapshot_header.block_hash.GetHex(), snapshot_header.snapshot_hash.GetHex());
-
-  std::vector<uint256> to_remove = AddSnapshotHash(snapshot_header.snapshot_hash, block_index);
 
   Indexer indexer(snapshot_header, m_step, m_steps_per_file);
 
@@ -166,6 +168,7 @@ CreationInfo Creator::Create() {
   }
 
   if (!indexer.Flush()) {
+    Indexer::Delete(snapshot_header.snapshot_hash);
     info.status = Status::WRITE_ERROR;
     return info;
   }
@@ -175,6 +178,7 @@ CreationInfo Creator::Create() {
   LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is created\n",
            info.snapshot_header.snapshot_hash.GetHex());
 
+  std::vector<uint256> to_remove = AddSnapshotHash(snapshot_header.snapshot_hash, block_index);
   for (const auto &hash : to_remove) {
     if (Indexer::Delete(hash)) {
       ConfirmRemoved(hash);

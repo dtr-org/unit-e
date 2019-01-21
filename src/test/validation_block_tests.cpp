@@ -50,8 +50,7 @@ struct TestSubscriber : public CValidationInterface {
 
 struct BlockData {
   std::shared_ptr<CBlock> block;
-  uint256 stakeModifier;
-  arith_uint256 chainWork;
+  CBlockIndex block_index;
   snapshot::SnapshotHash hash;
   uint32_t height;
 };
@@ -71,8 +70,7 @@ BlockData Block(const BlockData &prevData)
 
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vout.resize(1);
-    std::vector<uint8_t> snapshotHash = prevData.hash.GetHashVector(prevData.stakeModifier,
-                                                                    ArithToUint256(prevData.chainWork));
+    std::vector<uint8_t> snapshotHash = prevData.hash.GetHashVector(prevData.block_index);
     txCoinbase.vin[0].scriptSig = CScript() << (prevData.height + 1) << snapshotHash << OP_0;
     txCoinbase.vin[0].scriptWitness.SetNull();
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
@@ -82,11 +80,11 @@ BlockData Block(const BlockData &prevData)
     const Coin coin(pblock->vtx[0]->vout[0], prevData.height + 1, true);
     newHash.AddUTXO(snapshot::UTXO(out, coin));
 
-    uint256 newSM = prevData.stakeModifier;
     CBlockIndex bi;
+    bi.stake_modifier = prevData.block_index.stake_modifier;
     bi.nBits = pblock->nBits;
-    arith_uint256 newCW = prevData.chainWork + GetBlockProof(bi);
-    return BlockData{pblock, newSM, newCW, newHash, prevData.height + 1};
+    bi.nChainWork = prevData.block_index.nChainWork + GetBlockProof(bi);
+    return BlockData{pblock, bi, newHash, prevData.height + 1};
 }
 
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
@@ -161,7 +159,8 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 
         CBlockIndex bi;
         bi.nBits = genesisData.block->nBits;
-        genesisData.chainWork = GetBlockProof(bi);
+        bi.nChainWork = GetBlockProof(bi);
+        genesisData.block_index = bi;
 
         for (size_t txIdx = 0; txIdx < genesisData.block->vtx.size(); ++txIdx) {
             auto &tx = genesisData.block->vtx[txIdx];
