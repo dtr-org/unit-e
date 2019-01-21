@@ -35,7 +35,6 @@ bench_bench_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CLFAGS) $(
 bench_bench_unite_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bench_bench_unite_LDADD = \
   $(LIBUNITE_SERVER) \
-  $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
@@ -48,6 +47,11 @@ bench_bench_unite_LDADD = \
 
 if ENABLE_ZMQ
 bench_bench_unite_LDADD += $(LIBUNITE_ZMQ) $(ZMQ_LIBS)
+endif
+
+if ENABLE_USBDEVICE
+bench_bench_unite_LDADD += \
+    $(LIBUNITE_USBDEVICE)
 endif
 
 if ENABLE_WALLET

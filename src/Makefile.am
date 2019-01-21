@@ -390,6 +390,7 @@ if ENABLE_USBDEVICE
 libunite_usbdevice_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_usbdevice_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_usbdevice_a_SOURCES = \
+  extkey.cpp \
   usbdevice/debugdevice.cpp \
   usbdevice/rpcusbdevice.cpp \
   usbdevice/usbdevice.cpp
@@ -472,7 +473,6 @@ libunite_common_a_SOURCES = \
   core_read.cpp \
   core_write.cpp \
   esperanza/vote.cpp \
-  extkey.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \
