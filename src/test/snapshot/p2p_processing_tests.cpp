@@ -204,6 +204,14 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
     BOOST_CHECK(node.vSendMsg.empty());
   }
 
+  {
+    // mock that nodes without the snapshot timed out
+    auto first_request_at = std::chrono::steady_clock::now();
+    int64_t discovery_timeout_sec = Params().GetSnapshotParams().discovery_timeout_sec;
+    first_request_at -= std::chrono::seconds(discovery_timeout_sec + 1);
+    p2p_state.MockFirstDiscoveryRequestAt(first_request_at);
+  }
+
   // mock headers that node can start detecting best snapshots
   snapshot::HeadersDownloaded();
 
@@ -329,6 +337,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   }
 
   // test that node does't disable ISD until timeout elapsed
+  p2p_state.MockFirstDiscoveryRequestAt(std::chrono::steady_clock::now());
   p2p_state.StartInitialSnapshotDownload(*node1, 0, 1, msg_maker);
   BOOST_CHECK(snapshot::IsISDEnabled());
 

@@ -238,9 +238,10 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
   }
 
   // reset best snapshot at the beginning of the loop
-  // and check it the end of the iteration
+  // and check it at the end of the iteration
   if (node_index == 0) {
     m_best_snapshot.SetNull();
+    m_in_flight_snapshot_discovery = false;
   }
 
   if (m_first_discovery_request_at == time_point::min()) {
@@ -266,7 +267,11 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
   // start snapshot downloading
 
   SnapshotHeader node_best_snapshot = NodeBestSnapshot(node);
-  if (!node_best_snapshot.IsNull()) {
+  if (node_best_snapshot.IsNull()) {
+    if (InFlightSnapshotDiscovery(node)) {
+      m_in_flight_snapshot_discovery = true;
+    }
+  } else {
     SetIfBestSnapshot(node_best_snapshot);
 
     // if the peer has the snapshot that node decided to download
@@ -291,7 +296,7 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
   }
 
   // last peer processed, decide on the best snapshot
-  if (node_index + 1 == total_nodes) {
+  if (node_index + 1 == total_nodes && !m_in_flight_snapshot_discovery) {
     if (m_downloading_snapshot.IsNull()) {
       m_downloading_snapshot = m_best_snapshot;
     }
@@ -537,6 +542,44 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
     m_best_snapshot = best_snapshot;
     return;
   }
+}
+
+bool P2PState::InFlightSnapshotDiscovery(const CNode &node) {
+  if (!node.m_snapshot_discovery_sent) {
+    return false;
+  }
+
+  // node has already discovered its best snapshot
+  if (!node.m_best_snapshot.IsNull()) {
+    return false;
+  }
+
+  // node has been already asked for the snapshot data
+  if (node.m_requested_snapshot_at != time_point::min()) {
+    return false;
+  }
+
+  const auto now = steady_clock::now();
+
+  // check snapshot discovery timeout
+  {
+    const auto diff = now - m_first_discovery_request_at;
+    const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
+    if (diff_sec.count() > m_params.discovery_timeout_sec) {
+      return false;
+    }
+  }
+
+  // check node reply timeout
+  {
+    const auto diff = now - node.m_requested_snapshot_at;
+    const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
+    if (diff_sec.count() > m_params.snapshot_chunk_timeout_sec) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void P2PState::DeleteUnlinkedSnapshot() {
