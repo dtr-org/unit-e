@@ -636,6 +636,20 @@ Git and GitHub tips
   or `git fetch upstream-pull`. Afterwards, you can use `upstream-pull/NUMBER/head` in arguments to `git show`,
   `git checkout` and anywhere a commit id would be acceptable to see the changes from pull request NUMBER.
 
+### GitHub issues
+
+We use GitHub issues as a way to report bugs or feature requests and track work.
+See our [conventions for GitHub
+issues](https://github.com/dtr-org/unit-e-docs/blob/master/project/issues.md)
+for details. These are used across all unit-e related repos.
+
+We use labels to classify and categorize issues and pull requests. The labels
+are defined in a [YAML file](../.github/labels/dtr-org-unit-e-labels.yaml) and
+applied to GitHub via the API. Here is an overview of all labels used in the
+`unit-e` repository.
+
+![GitHub labels](../.github/labels/dtr-org-unit-e-labels.svg)
+
 Scripted diffs
 --------------
 
