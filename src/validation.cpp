@@ -560,12 +560,29 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
     return CheckInputs(tx, state, view, true, flags, cacheSigStore, true, txdata);
 }
 
+static BCLog::LogFlags GetCommitLogType(const CTransaction &tx) {
+    switch (tx.GetType()) {
+    case +TxType::STANDARD:
+    case +TxType::COINBASE:
+        assert(not("Shouldn't be called on non-commit transaction"));
+    case +TxType::DEPOSIT:
+    case +TxType::VOTE:
+    case +TxType::LOGOUT:
+    case +TxType::SLASH:
+    case +TxType::WITHDRAW:
+        return BCLog::FINALIZATION;
+    case +TxType::ADMIN:
+        return BCLog::ADMIN;
+    }
+}
+
 static bool CheckCommit(const CTransaction &tx, CValidationState &err_state, const Consensus::Params &params) {
     const auto fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
     assert(fin_state != nullptr);
-    LogPrint(BCLog::FINALIZATION, "Accepting %s to mempool with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
+    const auto log = GetCommitLogType(tx);
+    LogPrint(log, "Accepting %s to mempool with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
     if (!esperanza::CheckCommit(tx, err_state, params, *fin_state)) {
-        LogPrintf("%s (%s) cannot be included in mempool: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(), err_state.GetRejectReason());
+        LogPrint(log, "%s (%s) cannot be included in mempool: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(), err_state.GetRejectReason());
         return false;
     }
     return true;
@@ -3127,9 +3144,10 @@ static bool CheckBlockCommits(const CBlock &block, CValidationState &err_state, 
                 fin_state = esperanza::FinalizationState::GetState(prev_index);
                 assert(fin_state != nullptr);
             }
+            const auto log = GetCommitLogType(*tx);
             if (!esperanza::CheckCommit(*tx, err_state, params, *fin_state)) {
-                LogPrintf("Commit check failed: %s (%s): %s\n", tx->GetType()._to_string(),
-                          tx->GetHash().GetHex(), err_state.GetRejectReason());
+                LogPrint(log, "Commit check failed: %s (%s): %s\n", tx->GetType()._to_string(),
+                         tx->GetHash().GetHex(), err_state.GetRejectReason());
                 return false;
             }
         }
