@@ -275,20 +275,20 @@ bool CCryptoKeyStore::GetKey(const CKeyID &address, CKey& keyOut) const
     return false;
 }
 
-bool CCryptoKeyStore::GetPubKey(const CKeyID &address, CPubKey& pubkeyOut) const
+bool CCryptoKeyStore::GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const
 {
     LOCK(cs_KeyStore);
     if (!IsCrypted())
-        return CBasicKeyStore::GetPubKey(address, pubkeyOut);
+        return CBasicKeyStore::GetPubKey(address, vchPubKeyOut);
 
     CryptedKeyMap::const_iterator mi = mapCryptedKeys.find(address);
     if (mi != mapCryptedKeys.end())
     {
-        pubkeyOut = (*mi).second.first;
+        vchPubKeyOut = (*mi).second.first;
         return true;
     }
     // Check for watch-only pubkeys
-    return CBasicKeyStore::GetPubKey(address, pubkeyOut);
+    return CBasicKeyStore::GetPubKey(address, vchPubKeyOut);
 }
 
 std::set<CKeyID> CCryptoKeyStore::GetKeys() const

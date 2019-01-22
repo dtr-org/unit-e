@@ -36,19 +36,19 @@ void CBasicKeyStore::ImplicitlyLearnRelatedKeyScripts(const CPubKey& pubkey)
     }
 }
 
-bool CBasicKeyStore::GetPubKey(const CKeyID &address, CPubKey &pubkeyOut) const
+bool CBasicKeyStore::GetPubKey(const CKeyID &address, CPubKey &vchPubKeyOut) const
 {
     CKey key;
     if (!GetKey(address, key)) {
         LOCK(cs_KeyStore);
         WatchKeyMap::const_iterator it = mapWatchKeys.find(address);
         if (it != mapWatchKeys.end()) {
-            pubkeyOut = it->second;
+            vchPubKeyOut = it->second;
             return true;
         }
         return false;
     }
-    pubkeyOut = key.GetPubKey();
+    vchPubKeyOut = key.GetPubKey();
     return true;
 }
 

@@ -222,7 +222,7 @@ CPubKey CWallet::DeriveNewPubKey(CWalletDB &walletdb, bool internal)
             metadata.hdKeypath = accountPath + "/0/" + std::to_string(hdChain.nExternalChainCounter);
             hdChain.nExternalChainCounter++;
         }
-    } while (HaveKey(childPubKey.pubkey.GetID()));
+    } while (HaveHardwareKey(childPubKey.pubkey.GetID()));
 
     // update the chain model in the database
     if (!walletdb.WriteHDChain(hdChain))
