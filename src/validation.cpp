@@ -1808,7 +1808,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
     // Second, revert created outputs
     for (const auto &ptx : block.vtx) {
         const CTransaction &tx = *ptx;
-        TxId txid = tx.GetId();
+        const uint256& txid = tx.GetHash();
 
         // Check that all outputs are available and match the outputs in the
         // block itself exactly.
@@ -3411,12 +3411,12 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
             return false;
         }
-        if (prevTx && (tx->GetId().CompareLexicographically(prevTx->GetId()) <= 0)){
-            if (tx->GetId() == prevTx->GetId()) {
+        if (prevTx && (tx->GetHash().CompareLexicographically(prevTx->GetHash()) <= 0)){
+            if (tx->GetHash() == prevTx->GetHash()) {
                 return state.DoS(
                     100, false, REJECT_INVALID, "bad-txns-duplicate", false,
                     strprintf(
-                        "Duplicated transaction %s", tx->GetId().ToString()
+                        "Duplicated transaction %s", tx->GetHash().ToString()
                     )
                 );
             }
@@ -3425,7 +3425,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 100, false, REJECT_INVALID, "tx-ordering", false,
                 strprintf(
                     "Transaction order is invalid ((current: %s) < (prev: %s))",
-                    tx->GetId().ToString(), prevTx->GetId().ToString()
+                    tx->GetHash().ToString(), prevTx->GetHash().ToString()
                 )
             );
         }

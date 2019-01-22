@@ -1107,7 +1107,7 @@ void DisconnectedBlockTransactions::LoadFromBlockInTopologicalOrder(
 ) {
     // Save transactions to re-add to mempool at end of reorg
     for (const auto &tx : vtx) {
-        auto it = queuedTx.find(tx->GetId());
+        const auto it = queuedTx.find(tx->GetHash());
         if (it != queuedTx.end()) {
             continue;
         }
