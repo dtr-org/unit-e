@@ -30,8 +30,6 @@ class DebugDevice : public USBDevice {
 
   bool GetExtPubKey(const std::vector<uint32_t> &path, CExtPubKey &ekp, std::string &error) override;
 
-#ifdef ENABLE_WALLET
-
   bool PrepareTransaction(
       const CTransaction &tx, const CCoinsViewCache &view,
       const CKeyStore &keystore, int hash_type, std::string &error) override;
@@ -40,8 +38,6 @@ class DebugDevice : public USBDevice {
                        const CTransaction &tx,
                        int n_in, const CScript &script_code, int hash_type, const CAmount &amount, SigVersion sigversion,
                        std::vector<uint8_t> &signature, std::string &error) override;
-
-#endif  // ENABLE_WALLET
 };
 
 }  // namespace usbdevice

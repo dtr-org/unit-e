@@ -65,8 +65,6 @@ bool DebugDevice::GetExtPubKey(
   return true;
 }
 
-#ifdef ENABLE_WALLET
-
 bool DebugDevice::PrepareTransaction(
     const CTransaction &tx, const CCoinsViewCache &view,
     const CKeyStore &keystore, int hash_type, std::string &error) {
@@ -113,7 +111,5 @@ bool DebugDevice::SignTransaction(
 
   return true;
 }
-
-#endif  // ENABLE_WALLET
 
 }  // namespace usbdevice

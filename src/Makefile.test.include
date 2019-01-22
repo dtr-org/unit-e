@@ -64,7 +64,6 @@ UNITE_TESTS = \
   test/esperanza/finalizationstate_slash_tests.cpp \
   test/esperanza/finalizationstate_utils.h \
   test/esperanza/finalizationstate_utils.cpp \
-  test/extkey_tests.cpp \
   test/finalization/vote_recorder_tests.cpp \
   test/fixed_vector_tests.cpp \
   test/getarg_tests.cpp \
@@ -145,6 +144,10 @@ UNITE_TESTS += \
   wallet/test/accounting_tests.cpp \
   wallet/test/wallet_tests.cpp \
   wallet/test/crypto_tests.cpp
+endif
+
+if ENABLE_USBDEVICE
+UNITE_TESTS += test/extkey_tests.cpp
 endif
 
 test_test_unite_SOURCES = $(UNITE_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)

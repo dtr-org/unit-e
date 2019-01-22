@@ -63,8 +63,6 @@ class USBDevice {
       const std::vector<uint32_t> &path, CExtPubKey &ekp,
       std::string &error) = 0;
 
-#ifdef ENABLE_WALLET
-
   virtual bool PrepareTransaction(
       const CTransaction &tx, const CCoinsViewCache &view,
       const CKeyStore &keystore, int hash_type, std::string &error) = 0;
@@ -77,16 +75,12 @@ class USBDevice {
       const CAmount &amount, SigVersion sigversion,
       std::vector<uint8_t> &signature, std::string &error) = 0;
 
-#endif  // ENABLE_WALLET
-
   const DeviceType *m_type = nullptr;
   const std::string m_path;
   const std::string m_serial_no;
   const int m_interface;
   std::string m_error;
 };
-
-#ifdef ENABLE_WALLET
 
 class DeviceSignatureCreator : public BaseSignatureCreator {
   const CTransaction &m_tx;
@@ -108,8 +102,6 @@ class DeviceSignatureCreator : public BaseSignatureCreator {
       std::vector<unsigned char> &signature, const CKeyID &keyid,
       const CScript &script_code, SigVersion sigversion) const override;
 };
-
-#endif  // ENABLE_WALLET
 
 typedef std::vector<std::shared_ptr<USBDevice>> DeviceList;
 

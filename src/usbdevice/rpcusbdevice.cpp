@@ -11,10 +11,7 @@
 #include <usbdevice/usbdevice.h>
 #include <util.h>
 #include <utilstrencodings.h>
-
-#ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
-#endif
 
 #include <memory>
 
@@ -174,7 +171,6 @@ static UniValue getdeviceextpubkey(const JSONRPCRequest &request) {
   return rv;
 }
 
-#ifdef ENABLE_WALLET
 static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
   CWallet *pwallet = GetWalletForJSONRPCRequest(request);
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
@@ -270,7 +266,6 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
 
   return result;
 }
-#endif
 
 static const CRPCCommand commands[] =
     {
@@ -279,9 +274,7 @@ static const CRPCCommand commands[] =
         {"usbdevice", "listdevices", &listdevices, {}},
         {"usbdevice", "getdevicepubkey", &getdevicepubkey, {"path", "accountpath"}},
         {"usbdevice", "getdeviceextpubkey", &getdeviceextpubkey, {"path", "accountpath"}},
-#ifdef ENABLE_WALLET
         {"usbdevice", "initaccountfromdevice", &initaccountfromdevice, {"path"}},
-#endif
 };
 
 void RegisterUSBDeviceRPC(CRPCTable &t) {

@@ -1189,6 +1189,9 @@ fi
 
 dnl enable USB devices
 AC_MSG_CHECKING([if USB devices should be supported])
+if test x$enable_wallet = xno; then
+  enable_usbdevice=no
+fi
 if test x$enable_usbdevice != xno; then
   AC_MSG_RESULT(yes)
   AC_DEFINE_UNQUOTED([ENABLE_USBDEVICE],[1],[Define to enable hardware wallet support])
@@ -1342,7 +1345,9 @@ esac
 echo
 echo "Options used to compile and link:"
 echo "  with wallet   = $enable_wallet"
-echo "  with USB      = $enable_usbdevice"
+if test x$enable_wallet != xno; then
+    echo "    HW wallet   = $enable_usbdevice"
+fi
 echo "  with gui / qt = $unite_enable_qt"
 if test x$unite_enable_qt != xno; then
     echo "    qt version  = $unite_qt_got_major_vers"

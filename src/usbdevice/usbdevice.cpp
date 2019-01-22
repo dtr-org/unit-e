@@ -37,8 +37,6 @@ std::shared_ptr<USBDevice> SelectDevice(std::string &error) {
   return devices[0];
 };
 
-#ifdef ENABLE_WALLET
-
 DeviceSignatureCreator::DeviceSignatureCreator(
     std::shared_ptr<USBDevice> device,
     const CTransaction &tx,
@@ -87,7 +85,5 @@ bool DeviceSignatureCreator::CreateSig(
       signature,
       error);
 }
-
-#endif  // ENABLE_WALLET
 
 }  // namespace usbdevice
