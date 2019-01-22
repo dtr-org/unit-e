@@ -138,11 +138,11 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   // test that snapshot was created
   BOOST_CHECK(HasSnapshotHash(best_snapshot.snapshot_hash));
   std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(best_snapshot.snapshot_hash));
-  const snapshot::Meta &idxMeta = idx->GetMeta();
-  BOOST_CHECK_EQUAL(idxMeta.snapshot_hash.GetHex(), best_snapshot.snapshot_hash.GetHex());
-  BOOST_CHECK_EQUAL(idxMeta.block_hash.GetHex(), best_snapshot.block_hash.GetHex());
-  BOOST_CHECK_EQUAL(idxMeta.stake_modifier.GetHex(), best_snapshot.stake_modifier.GetHex());
-  BOOST_CHECK_EQUAL(idxMeta.total_utxo_subsets, best_snapshot.total_utxo_subsets);
+  const snapshot::SnapshotHeader &snapshot_header = idx->GetSnapshotHeader();
+  BOOST_CHECK_EQUAL(snapshot_header.snapshot_hash.GetHex(), best_snapshot.snapshot_hash.GetHex());
+  BOOST_CHECK_EQUAL(snapshot_header.block_hash.GetHex(), best_snapshot.block_hash.GetHex());
+  BOOST_CHECK_EQUAL(snapshot_header.stake_modifier.GetHex(), best_snapshot.stake_modifier.GetHex());
+  BOOST_CHECK_EQUAL(snapshot_header.total_utxo_subsets, best_snapshot.total_utxo_subsets);
 
   // test that snapshot has correct content
   uint64_t total = 0;

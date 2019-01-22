@@ -13,6 +13,7 @@
 #include <uint256.h>
 
 class Coin;
+class CBlockIndex;
 
 namespace snapshot {
 
@@ -180,9 +181,10 @@ class SnapshotHash {
   uint256 GetHash(const uint256 &stake_modifier,
                   const uint256 &chain_work) const;
 
+  uint256 GetHash(const CBlockIndex &block_index) const;
+
   //! GetHashVector is a proxy to GetHash
-  std::vector<uint8_t> GetHashVector(const uint256 &stake_modifier,
-                                     const uint256 &chain_work) const;
+  std::vector<uint8_t> GetHashVector(const CBlockIndex &block_index) const;
 
   void Clear();
 

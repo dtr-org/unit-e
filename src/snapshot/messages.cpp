@@ -6,6 +6,7 @@
 
 #include <algorithm>
 
+#include <chain.h>
 #include <coins.h>
 #include <streams.h>
 #include <version.h>
@@ -69,9 +70,12 @@ uint256 SnapshotHash::GetHash(const uint256 &stake_modifier,
   return hash;
 }
 
-std::vector<uint8_t> SnapshotHash::GetHashVector(const uint256 &stake_modifier,
-                                                 const uint256 &chain_work) const {
-  uint256 hash = GetHash(stake_modifier, chain_work);
+uint256 SnapshotHash::GetHash(const CBlockIndex &block_index) const {
+  return GetHash(block_index.stake_modifier, ArithToUint256(block_index.nChainWork));
+}
+
+std::vector<uint8_t> SnapshotHash::GetHashVector(const CBlockIndex &block_index) const {
+  uint256 hash = GetHash(block_index);
   return std::vector<uint8_t>(hash.begin(), hash.end());
 }
 

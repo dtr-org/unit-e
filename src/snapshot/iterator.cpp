@@ -20,7 +20,7 @@ Iterator::Iterator(std::unique_ptr<Indexer> indexer)
       m_file(nullptr),
       m_read_total(0),
       m_subset_left(0) {
-  if (m_indexer->GetMeta().total_utxo_subsets > 0) {
+  if (m_indexer->GetSnapshotHeader().total_utxo_subsets > 0) {
     Next();
   }
 }
@@ -33,15 +33,15 @@ bool Iterator::Valid() {
     return false;
   }
 
-  return (m_read_total <= m_indexer->GetMeta().total_utxo_subsets);
+  return (m_read_total <= m_indexer->GetSnapshotHeader().total_utxo_subsets);
 }
 
 void Iterator::Next() {
-  if (m_read_total > m_indexer->GetMeta().total_utxo_subsets) {
+  if (m_read_total > m_indexer->GetSnapshotHeader().total_utxo_subsets) {
     return;  // whole snapshot is read
   }
 
-  if (m_read_total == m_indexer->GetMeta().total_utxo_subsets) {
+  if (m_read_total == m_indexer->GetSnapshotHeader().total_utxo_subsets) {
     ++m_read_total;  // mark as end of snapshot
     return;
   }
@@ -66,7 +66,7 @@ void Iterator::Next() {
 }
 
 bool Iterator::MoveCursorTo(const uint64_t subset_index) {
-  if (m_indexer->GetMeta().total_utxo_subsets <= subset_index) {
+  if (m_indexer->GetSnapshotHeader().total_utxo_subsets <= subset_index) {
     return false;
   }
 

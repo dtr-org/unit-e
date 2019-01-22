@@ -18,9 +18,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_flush) {
 
   uint32_t step = 3;
   uint32_t steps_per_file = 2;
-  std::unique_ptr<snapshot::Indexer> idx(
-      new snapshot::Indexer(uint256(), uint256(), uint256(), uint256(),
-                            step, steps_per_file));
+  auto idx = MakeUnique<snapshot::Indexer>(snapshot::SnapshotHeader(), step, steps_per_file);
   CDataStream stream_in(SER_DISK, PROTOCOL_VERSION);
 
   uint64_t total_msgs = step * steps_per_file * 3;
@@ -52,8 +50,9 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   uint32_t step = 3;
   uint32_t steps_per_file = 2;
   uint256 snapshot_hash = uint256S("aa");
-  snapshot::Indexer indexer(snapshot_hash, uint256(), uint256(), uint256(),
-                            step, steps_per_file);
+  snapshot::SnapshotHeader snapshot_header;
+  snapshot_header.snapshot_hash = snapshot_hash;
+  snapshot::Indexer indexer(snapshot_header, step, steps_per_file);
 
   CDataStream stream(SER_DISK, PROTOCOL_VERSION);
   uint64_t total_msgs = (step * steps_per_file) * 2 + step;
@@ -61,7 +60,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
     snapshot::UTXOSubset utxo_subset;
     stream << utxo_subset;
     BOOST_CHECK(indexer.WriteUTXOSubset(utxo_subset));
-    BOOST_CHECK_EQUAL(indexer.GetMeta().total_utxo_subsets, i + 1);
+    BOOST_CHECK_EQUAL(indexer.GetSnapshotHeader().total_utxo_subsets, i + 1);
   }
 
   fs::path dir = GetDataDir() / "snapshots" / snapshot_hash.GetHex();
@@ -74,7 +73,8 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_writer) {
   BOOST_CHECK(fs::exists(dir / "index.dat"));
   BOOST_CHECK(!fs::exists(dir / "utxo3.dat"));
 
-  BOOST_CHECK_EQUAL(indexer.GetMeta().snapshot_hash.GetHex(), snapshot_hash.GetHex());
+  BOOST_CHECK_EQUAL(indexer.GetSnapshotHeader().snapshot_hash.GetHex(),
+                    snapshot_header.snapshot_hash.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
@@ -84,8 +84,9 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   uint32_t step = 3;
   uint32_t steps_per_file = 3;
   uint256 snapshot_hash = uint256S("aa");
-  std::unique_ptr<snapshot::Indexer> indexer(new snapshot::Indexer(
-      snapshot_hash, uint256(), uint256(), uint256(), step, steps_per_file));
+  snapshot::SnapshotHeader snapshot_header;
+  snapshot_header.snapshot_hash = snapshot_hash;
+  auto indexer = MakeUnique<snapshot::Indexer>(snapshot_header, step, steps_per_file);
 
   // close and re-open indexer after each write
   uint64_t total_msgs = (step * steps_per_file) * 3 + step;
@@ -101,7 +102,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
 
     stream_in << utxo_subset;
     BOOST_CHECK(indexer->WriteUTXOSubset(utxo_subset));
-    BOOST_CHECK_EQUAL(indexer->GetMeta().total_utxo_subsets, i + 1);
+    BOOST_CHECK_EQUAL(indexer->GetSnapshotHeader().total_utxo_subsets, i + 1);
     BOOST_CHECK(indexer->Flush());
     indexer = snapshot::Indexer::Open(snapshot_hash);
     BOOST_CHECK(indexer);
@@ -127,41 +128,42 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
     BOOST_CHECK_EQUAL(msg.tx_id.GetUint64(0), i);
   }
   BOOST_CHECK_EQUAL(HexStr(stream_in), HexStr(stream_out));
-  BOOST_CHECK_EQUAL(iter.GetSnapshotHash().GetHex(), snapshot_hash.GetHex());
+  BOOST_CHECK_EQUAL(iter.GetSnapshotHeader().snapshot_hash.GetHex(),
+                    snapshot_hash.GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
   SetDataDir("snapshot_indexer_open");
   fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
 
+  snapshot::SnapshotHeader snapshot_header;
+  snapshot_header.snapshot_hash = uint256S("aa");
+  snapshot_header.block_hash = uint256S("bb");
+  snapshot_header.stake_modifier = uint256S("cc");
+  snapshot_header.chain_work = uint256S("dd");
   uint32_t step = 3;
   uint32_t steps_per_file = 2;
-  uint256 snapshot_hash = uint256S("aa");
-  uint256 block_hash = uint256S("bb");
-  uint256 stake_modifier = uint256S("cc");
-  uint256 chain_work = uint256S("dd");
 
-  snapshot::Indexer indexer(snapshot_hash, block_hash,
-                            stake_modifier, chain_work, step, steps_per_file);
+  snapshot::Indexer indexer(snapshot_header, step, steps_per_file);
 
   uint64_t total_msgs = (step * steps_per_file) * 2 + step;
   for (uint64_t i = 0; i < total_msgs; ++i) {
     BOOST_CHECK(indexer.WriteUTXOSubset(snapshot::UTXOSubset()));
-    BOOST_CHECK_EQUAL(indexer.GetMeta().total_utxo_subsets, i + 1);
+    BOOST_CHECK_EQUAL(indexer.GetSnapshotHeader().total_utxo_subsets, i + 1);
   }
   BOOST_CHECK(indexer.Flush());
 
-  auto opened_idx = snapshot::Indexer::Open(snapshot_hash);
+  auto opened_idx = snapshot::Indexer::Open(snapshot_header.snapshot_hash);
   BOOST_CHECK(opened_idx);
-  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetMeta().snapshot_hash),
-                    HexStr(snapshot_hash));
-  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetMeta().block_hash),
-                    HexStr(block_hash));
-  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetMeta().stake_modifier),
-                    HexStr(stake_modifier));
-  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetMeta().chain_work),
-                    HexStr(chain_work));
-  BOOST_CHECK_EQUAL(opened_idx->GetMeta().total_utxo_subsets, total_msgs);
+  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().snapshot_hash),
+                    HexStr(snapshot_header.snapshot_hash));
+  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().block_hash),
+                    HexStr(snapshot_header.block_hash));
+  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().stake_modifier),
+                    HexStr(snapshot_header.stake_modifier));
+  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().chain_work),
+                    HexStr(snapshot_header.chain_work));
+  BOOST_CHECK_EQUAL(opened_idx->GetSnapshotHeader().total_utxo_subsets, total_msgs);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

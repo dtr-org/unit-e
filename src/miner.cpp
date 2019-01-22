@@ -161,9 +161,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nLastBlockTx = nBlockTx;
     nLastBlockWeight = nBlockWeight;
 
-    std::vector<uint8_t> snapshotHash = pcoinsTip->GetSnapshotHash().GetHashVector(
-        chainActive.Tip()->stake_modifier,
-        ArithToUint256(chainActive.Tip()->nChainWork));
+    std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
@@ -172,7 +170,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout.resize(1);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    coinbaseTx.vin[0].scriptSig = CScript() << CScriptNum::serialize(nHeight) << snapshotHash;
+    coinbaseTx.vin[0].scriptSig = CScript() << CScriptNum::serialize(nHeight) << snapshot_hash;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
     pblocktemplate->vTxFees[0] = -nFees;
@@ -491,8 +489,7 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     ++nExtraNonce;
     unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
 
-    const uint256 chain_work = ArithToUint256(pindexPrev->nChainWork);
-    const std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(pindexPrev->stake_modifier, chain_work);
+    const std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*pindexPrev);
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vin[0].scriptSig = (CScript() << CScriptNum::serialize(nHeight) << snapshot_hash << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);

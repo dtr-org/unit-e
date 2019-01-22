@@ -49,14 +49,14 @@ bool Indexer::Delete(const uint256 &snapshot_hash) {
   }
 }
 
-Indexer::Indexer(const uint256 &snapshot_hash, const uint256 &block_hash,
-                 const uint256 &stake_modifier, const uint256 &chain_work,
-                 uint32_t step, uint32_t steps_per_file)
-    : m_meta(snapshot_hash, block_hash, stake_modifier, chain_work),
+Indexer::Indexer(const SnapshotHeader &snapshot_header,
+                 const uint32_t step, const uint32_t steps_per_file)
+    : m_meta(snapshot_header),
       m_stream(SER_DISK, PROTOCOL_VERSION),
-      m_dir_path(GetDataDir() / SNAPSHOT_FOLDER / snapshot_hash.GetHex()) {
+      m_dir_path(GetDataDir() / SNAPSHOT_FOLDER / m_meta.snapshot_header.snapshot_hash.GetHex()) {
   assert(step > 0);
   assert(steps_per_file > 0);
+  m_meta.snapshot_header.total_utxo_subsets = 0;  // it's incremented after each write
   m_meta.step = step;
   m_meta.steps_per_file = steps_per_file;
 
@@ -67,7 +67,7 @@ Indexer::Indexer(const Meta &meta, std::map<uint32_t, IdxMap> &&dir_idx)
     : m_meta(meta),
       m_stream(SER_DISK, PROTOCOL_VERSION),
       m_dir_idx(std::move(dir_idx)),
-      m_dir_path(GetDataDir() / SNAPSHOT_FOLDER / m_meta.snapshot_hash.GetHex()) {
+      m_dir_path(GetDataDir() / SNAPSHOT_FOLDER / m_meta.snapshot_header.snapshot_hash.GetHex()) {
   assert(m_meta.step > 0);
   assert(m_meta.steps_per_file > 0);
 
@@ -75,7 +75,7 @@ Indexer::Indexer(const Meta &meta, std::map<uint32_t, IdxMap> &&dir_idx)
     m_file_id = m_dir_idx.rbegin()->first;
 
     uint64_t s = (m_dir_idx.size() - 1) * m_meta.step * m_meta.steps_per_file;
-    m_file_msgs = static_cast<uint32_t>(m_meta.total_utxo_subsets - s);
+    m_file_msgs = static_cast<uint32_t>(m_meta.snapshot_header.total_utxo_subsets - s);
     m_file_idx = m_dir_idx.rbegin()->second;
 
     if (!m_file_idx.empty()) {
@@ -95,7 +95,7 @@ bool Indexer::WriteUTXOSubsets(const std::vector<UTXOSubset> &list) {
 }
 
 bool Indexer::WriteUTXOSubset(const UTXOSubset &utxo_subset) {
-  auto file_id = static_cast<uint32_t>(m_meta.total_utxo_subsets /
+  auto file_id = static_cast<uint32_t>(m_meta.snapshot_header.total_utxo_subsets /
                                        (m_meta.step * m_meta.steps_per_file));
   if (file_id > m_file_id) {
     if (!FlushFile()) {
@@ -114,7 +114,7 @@ bool Indexer::WriteUTXOSubset(const UTXOSubset &utxo_subset) {
   uint32_t idx = m_file_msgs / m_meta.step;
   m_file_idx[idx] = static_cast<uint32_t>(m_stream.size()) + m_file_bytes;
 
-  ++m_meta.total_utxo_subsets;
+  ++m_meta.snapshot_header.total_utxo_subsets;
   ++m_file_msgs;
 
   return true;
@@ -142,7 +142,7 @@ FILE *Indexer::GetClosestIdx(const uint64_t subset_index, uint32_t &subset_left_
   if (m_dir_idx.find(file_id + 1) == m_dir_idx.end()) {
     // last file can have less messages than m_step * stepPerFile
     auto msg_in_file =
-        static_cast<uint32_t>(m_meta.total_utxo_subsets - prev_count);
+        static_cast<uint32_t>(m_meta.snapshot_header.total_utxo_subsets - prev_count);
     subset_left_out = msg_in_file - index * m_meta.step;
   } else {
     subset_left_out =
