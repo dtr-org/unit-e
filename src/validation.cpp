@@ -1795,9 +1795,9 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
         for (size_t j = 0; j < tx.vin.size(); ++j) {
             const COutPoint &out = tx.vin[j].prevout;
-            DisconnectResult res = (DisconnectResult)ApplyTxInUndo(
+            const auto res = static_cast<DisconnectResult>(ApplyTxInUndo(
                 std::move(txundo.vprevout[j]), view, out
-            );
+            ));
             if (res == DISCONNECT_FAILED) {
                 return DISCONNECT_FAILED;
             }
