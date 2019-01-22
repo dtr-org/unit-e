@@ -92,10 +92,8 @@ class DeviceSignatureCreator : public BaseSignatureCreator {
 
  public:
   DeviceSignatureCreator(
-      std::shared_ptr<USBDevice> device,
-      const CTransaction &tx,
-      unsigned int nin, const CAmount &amount,
-      int hash_type = SIGHASH_ALL);
+      std::shared_ptr<USBDevice> device, const CTransaction &tx,
+      unsigned int nin, const CAmount &amount, int hash_type = SIGHASH_ALL);
   const BaseSignatureChecker &Checker() const override { return m_checker; }
   bool CreateSig(
       const SigningProvider &provider,

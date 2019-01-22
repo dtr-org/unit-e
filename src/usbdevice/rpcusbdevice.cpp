@@ -267,18 +267,19 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
   return result;
 }
 
-static const CRPCCommand commands[] =
-    {
-        //  category              name                            actor (function)            argNames
-        //  --------------------- ------------------------        -----------------------     ----------
-        {"usbdevice", "listdevices", &listdevices, {}},
-        {"usbdevice", "getdevicepubkey", &getdevicepubkey, {"path", "accountpath"}},
-        {"usbdevice", "getdeviceextpubkey", &getdeviceextpubkey, {"path", "accountpath"}},
-        {"usbdevice", "initaccountfromdevice", &initaccountfromdevice, {"path"}},
+// clang-format off
+static const CRPCCommand commands[] = {
+//  category              name                            actor (function)            argNames
+//  --------------------- ------------------------        -----------------------     ----------
+    {"usbdevice",         "listdevices",                  &listdevices,               {}},
+    {"usbdevice",         "getdevicepubkey",              &getdevicepubkey,           {"path", "accountpath"}},
+    {"usbdevice",         "getdeviceextpubkey",           &getdeviceextpubkey,        {"path", "accountpath"}},
+    {"usbdevice",         "initaccountfromdevice",        &initaccountfromdevice,     {"path"}},
 };
+// clang-format on
 
 void RegisterUSBDeviceRPC(CRPCTable &t) {
-  for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++) {
-    t.appendCommand(commands[vcidx].name, &commands[vcidx]);
+  for (const auto &command : commands) {
+    t.appendCommand(command.name, &command);
   }
 }

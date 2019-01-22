@@ -63,7 +63,7 @@ protected:
 
 public:
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override;
-    bool GetPubKey(const CKeyID &address, CPubKey& pubkeyOut) const override;
+    bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const override;
     bool HaveKey(const CKeyID &address) const override;
     bool HaveHardwareKey(const CKeyID &address) const override;
     std::set<CKeyID> GetKeys() const override;

@@ -432,6 +432,9 @@ qt_unite_qt_LDADD = qt/libuniteqt.a $(LIBUNITE_SERVER)
 if ENABLE_WALLET
 qt_unite_qt_LDADD += $(LIBUNITE_WALLET)
 endif
+if ENABLE_USBDEVICE
+qt_unite_qt_LDADD += $(LIBUNITE_USBDEVICE)
+endif
 if ENABLE_ZMQ
 qt_unite_qt_LDADD += $(LIBUNITE_ZMQ) $(ZMQ_LIBS)
 endif

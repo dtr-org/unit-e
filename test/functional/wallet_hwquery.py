@@ -22,7 +22,7 @@ class UsbDeviceQueryTest(UnitETestFramework):
 
         # Get a device's public key
         result = node.getdevicepubkey("0/0")
-        assert_equal(result["path"], "m/44'/2019'/0'/0/0")
+        assert_equal(result["path"], "m/44'/600'/0'/0/0")
         assert_is_hex_string(result["pubkey"])
         assert result["address"], "Device should return the address"
 
@@ -31,7 +31,7 @@ class UsbDeviceQueryTest(UnitETestFramework):
 
         # Get a device's extended public key
         result = node.getdeviceextpubkey("0/0")
-        assert_equal(result["path"], "m/44'/2019'/0'/0/0")
+        assert_equal(result["path"], "m/44'/600'/0'/0/0")
         assert_is_hex_string(result["extpubkey"])
 
 

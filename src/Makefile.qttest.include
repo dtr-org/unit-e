@@ -54,6 +54,9 @@ qt_test_test_unite_qt_LDADD = $(LIBUNITEQT) $(LIBUNITE_SERVER)
 if ENABLE_WALLET
 qt_test_test_unite_qt_LDADD += $(LIBUNITE_WALLET)
 endif
+if ENABLE_USBDEVICE
+qt_test_test_unite_qt_LDADD += $(LIBUNITE_USBDEVICE)
+endif
 if ENABLE_ZMQ
 qt_test_test_unite_qt_LDADD += $(LIBUNITE_ZMQ) $(ZMQ_LIBS)
 endif

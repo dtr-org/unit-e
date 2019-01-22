@@ -3093,7 +3093,21 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                 std::string error;
                 pdevice = usbdevice::SelectDevice(error);
                 if (!pdevice) {
-                    strFailReason = _(error.c_str());
+                    strFailReason = std::move(error);
+                    return false;
+                }
+
+                CCoinsView view;
+                CCoinsViewCache cache(&view);
+                for (const CInputCoin &coin : setCoins) {
+                    Coin temp(coin.txout, 0, false);
+                    cache.AddCoin(coin.outpoint, std::move(temp), true);
+                }
+
+                if (!pdevice->PrepareTransaction(
+                    txNewConst, cache, *this, SIGHASH_ALL, error
+                )) {
+                    strFailReason = std::move(error);
                     return false;
                 }
             }
