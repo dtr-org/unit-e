@@ -45,7 +45,7 @@ public:
         memset(data, 0, sizeof(data));
     }
 
-    inline int Compare(const base_blob<BITS>& other) const { return memcmp(data, other.data, sizeof(data)); }
+    inline int Compare(const base_blob& other) const { return memcmp(data, other.data, sizeof(data)); }
 
     inline int CompareLexicographically(const base_blob<BITS> &other) const {
         for (size_t i = 0; i < WIDTH; ++i) {

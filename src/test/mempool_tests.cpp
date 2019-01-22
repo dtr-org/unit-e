@@ -574,7 +574,7 @@ BOOST_AUTO_TEST_CASE(MempoolSizeLimitTest)
 BOOST_AUTO_TEST_CASE(DisconnectionTopologicalOrderTest)
 {
     std::vector<CTransactionRef> vtx;
-    vtx.reserve(9);
+    vtx.reserve(13);
 
     CMutableTransaction first_mtx;
     first_mtx.vout.resize(2);
