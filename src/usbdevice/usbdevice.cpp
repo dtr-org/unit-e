@@ -29,7 +29,8 @@ std::shared_ptr<USBDevice> SelectDevice(std::string &error) {
     error = "No device found.";
     return nullptr;
   }
-  if (devices.size() > 1) {  // TODO: Select device
+  if (devices.size() > 1) {
+    // Should we allow the user to pick one?
     error = "Multiple devices found.";
     return nullptr;
   }
