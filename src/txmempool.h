@@ -359,6 +359,14 @@ private:
 public:
     SaltedTxidHasher();
 
+    SaltedTxidHasher(const SaltedTxidHasher&) = default;
+    SaltedTxidHasher(SaltedTxidHasher&&) = default;
+
+    SaltedTxidHasher& operator=(const SaltedTxidHasher&) = default;
+    SaltedTxidHasher& operator=(SaltedTxidHasher&&) = default;
+
+    ~SaltedTxidHasher() = default;
+
     size_t operator()(const uint256& txid) const {
         return SipHashUint256(k0, k1, txid);
     }
