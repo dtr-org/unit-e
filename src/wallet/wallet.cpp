@@ -225,8 +225,9 @@ CPubKey CWallet::DeriveNewPubKey(CWalletDB &walletdb, bool internal)
     } while (HaveHardwareKey(childPubKey.pubkey.GetID()));
 
     // update the chain model in the database
-    if (!walletdb.WriteHDChain(hdChain))
+    if (!walletdb.WriteHDChain(hdChain)) {
         throw std::runtime_error(std::string(__func__) + ": Writing HD chain model failed");
+    }
 
     CPubKey pubkey = childPubKey.pubkey;
     mapKeyMetadata[pubkey.GetID()] = metadata;
@@ -363,7 +364,6 @@ bool CWallet::HaveHardwareKey(const CKeyID &address) const
     if (it != mapKeyMetadata.end() && !it->second.master_key_id.IsNull()) {
         return true;
     }
-
     return false;
 }
 
@@ -1612,11 +1612,9 @@ bool CWallet::SetHDMasterKey(
     assert(acctKeys.size() == acctKeyMetadata.size());
 
     LOCK(cs_wallet);
-    // store the keyid (hash160) together with
-    // the child index counter in the database
-    // as a hdchain object
+
     CHDChain newHdChain;
-    newHdChain.nVersion = CanSupportFeature(FEATURE_HD_SPLIT) ? CHDChain::VERSION_HD_CHAIN_SPLIT : CHDChain::VERSION_HD_BASE;
+    newHdChain.nVersion = CHDChain::VERSION_HD_HW_WALLET;
     newHdChain.master_key_id = masterKey.GetID();
     newHdChain.account_pubkeys.insert(newHdChain.account_pubkeys.end(), acctKeys.begin(), acctKeys.end());
     newHdChain.is_hardware_device = isHardwareDevice;
@@ -3097,15 +3095,17 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                     return false;
                 }
 
+                // To generate SegWit signatures, we need the values of the
+                // outputs spent by the current transaction
                 CCoinsView view;
-                CCoinsViewCache cache(&view);
+                CCoinsViewCache coins_cache(&view);
                 for (const CInputCoin &coin : setCoins) {
                     Coin temp(coin.txout, 0, false);
-                    cache.AddCoin(coin.outpoint, std::move(temp), true);
+                    coins_cache.AddCoin(coin.outpoint, std::move(temp), true);
                 }
 
                 if (!pdevice->PrepareTransaction(
-                    txNewConst, cache, *this, SIGHASH_ALL, error
+                    txNewConst, coins_cache, *this, SIGHASH_ALL, error
                 )) {
                     strFailReason = std::move(error);
                     return false;
