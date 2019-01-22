@@ -13,14 +13,16 @@
 
 using namespace esperanza;
 
-const FinalizationParams params = CreateChainParams(CBaseChainParams::MAIN)->GetFinalization();
+static FinalizationParams GetFinalizationParams() {
+  return CreateChainParams(CBaseChainParams::MAIN)->GetFinalization();
+}
 
 const CAmount MIN_DEPOSIT_SIZE = 100000 * UNIT;
 const int64_t EPOCH_LENGTH = 50;
 
 class FinalizationStateSpy : public FinalizationState {
  public:
-  FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
+  FinalizationStateSpy() : FinalizationState(GetFinalizationParams(), AdminParams()) {}
 
   uint64_t *CurDynDeposits() { return &m_curDynDeposits; }
   uint64_t *PrevDynDeposits() { return &m_prevDynDeposits; }
