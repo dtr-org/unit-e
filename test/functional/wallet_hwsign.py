@@ -33,18 +33,18 @@ class UsbDeviceCryptoTest(UnitETestFramework):
         balance = node1.getbalance()
         assert_equal(balance, 0)
 
-        # TODO: Check all address types
-        addr = node0.getnewaddress()
+        for address_type in ['legacy', 'p2sh-segwit', 'bech32']:
+            addr = node0.getnewaddress(None, address_type)
+            node2.sendtoaddress(addr, 1)
+            node2.generate(1)
+            self.sync_all()
 
-        node2.sendtoaddress(addr, 1)
-        node2.generate(1)
-        self.sync_all()
+            balance = node0.getbalance()
+            assert_equal(balance, 1)
 
-        balance = node0.getbalance()
-        assert_equal(balance, 1)
-
-        node0.sendtoaddress(node2.getnewaddress(), 0.5)
-        self.sync_all()
+            node0.sendtoaddress(node2.getnewaddress(), 1, None, None, True)
+            node0.generate(1)
+            self.sync_all()
 
 
 if __name__ == '__main__':
