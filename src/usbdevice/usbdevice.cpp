@@ -73,10 +73,8 @@ bool DeviceSignatureCreator::CreateSig(
     return false;
   }
 
-  std::vector<uint8_t> shared_secret;
   return m_device->SignTransaction(
       path,
-      shared_secret,
       m_tx,
       m_nin,
       script_code,

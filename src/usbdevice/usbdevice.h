@@ -68,9 +68,7 @@ class USBDevice {
       const CKeyStore &keystore, int hash_type, std::string &error) = 0;
 
   virtual bool SignTransaction(
-      const std::vector<uint32_t> &path,
-      const std::vector<uint8_t> &shared_secret,
-      const CTransaction &tx,
+      const std::vector<uint32_t> &path, const CTransaction &tx,
       int n_in, const CScript &script_code, int hash_type,
       const CAmount &amount, SigVersion sigversion,
       std::vector<uint8_t> &signature, std::string &error) = 0;

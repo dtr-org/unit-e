@@ -72,10 +72,9 @@ bool DebugDevice::PrepareTransaction(
 }
 
 bool DebugDevice::SignTransaction(
-    const std::vector<uint32_t> &path, const std::vector<uint8_t> &tweak,
-    const CTransaction &tx, int n_in, const CScript &script_code,
-    int hash_type, const CAmount &amount, SigVersion sigversion,
-    std::vector<uint8_t> &signature, std::string &error) {
+    const std::vector<uint32_t> &path, const CTransaction &tx, int n_in,
+    const CScript &script_code, int hash_type, const CAmount &amount,
+    SigVersion sigversion, std::vector<uint8_t> &signature, std::string &error) {
   uint256 hash = SignatureHash(script_code, tx, n_in, hash_type, amount, sigversion);
 
   CExtKey keyOut, keyWork = m_ekv;
@@ -88,21 +87,6 @@ bool DebugDevice::SignTransaction(
   }
 
   CKey key = keyWork.key;
-  if (tweak.size() == 32) {
-    std::vector<uint8_t> keydata(key.begin(), key.end());
-    secp256k1_context *ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
-    int add_result = secp256k1_ec_privkey_tweak_add(
-        ctx, keydata.data(), tweak.data());
-    secp256k1_context_destroy(ctx);
-
-    if (!add_result) {
-      error = "Add failed";
-      return false;
-    }
-
-    key.Set(keydata.begin(), keydata.end(), false);
-  }
-
   if (!key.Sign(hash, signature)) {
     error = "Sign failed";
     return false;
