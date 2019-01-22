@@ -104,6 +104,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
     BOOST_CHECK(indexer->WriteUTXOSubset(utxo_subset));
     BOOST_CHECK_EQUAL(indexer->GetSnapshotHeader().total_utxo_subsets, i + 1);
     BOOST_CHECK(indexer->Flush());
+    LOCK(snapshot::cs_snapshot);
     indexer = snapshot::Indexer::Open(snapshot_hash);
     BOOST_CHECK(indexer);
   }
@@ -116,6 +117,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_resume_writing) {
   BOOST_CHECK(!fs::exists(dir / "utxo4.dat"));
 
   // validate the content
+  LOCK(snapshot::cs_snapshot);
   indexer = snapshot::Indexer::Open(snapshot_hash);
   BOOST_CHECK(indexer);
 
@@ -153,6 +155,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
   }
   BOOST_CHECK(indexer.Flush());
 
+  LOCK(snapshot::cs_snapshot);
   auto opened_idx = snapshot::Indexer::Open(snapshot_header.snapshot_hash);
   BOOST_CHECK(opened_idx);
   BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().snapshot_hash),

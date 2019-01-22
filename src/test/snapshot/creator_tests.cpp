@@ -96,12 +96,15 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
                         static_cast<int>(totalTX * coinsPerTX));
 
       // validate snapshot content
-      auto i = snapshot::Indexer::Open(checkpoints.rbegin()->snapshot_hash);
-      snapshot::Iterator iter(std::move(i));
       uint64_t count = 0;
-      while (iter.Valid()) {
-        ++count;
-        iter.Next();
+      {
+        LOCK(snapshot::cs_snapshot);
+        auto i = snapshot::Indexer::Open(checkpoints.rbegin()->snapshot_hash);
+        snapshot::Iterator iter(std::move(i));
+        while (iter.Valid()) {
+          ++count;
+          iter.Next();
+        }
       }
       BOOST_CHECK_EQUAL(info.snapshot_header.total_utxo_subsets, count);
     }
@@ -109,9 +112,86 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
     BOOST_CHECK_EQUAL(deletedSnapshots.size(), 5);
     for (const uint256 &hash : deletedSnapshots) {
       BOOST_CHECK(!HasSnapshotHash(hash));
+      LOCK(snapshot::cs_snapshot);
       BOOST_CHECK(snapshot::Indexer::Open(hash) == nullptr);
     }
   }
+
+  // cleanup as this test has side effects
+  UnloadBlockIndex();
+}
+
+BOOST_AUTO_TEST_CASE(snapshot_creator_concurrent_read) {
+  SetDataDir("snapshot_creator_multithreading");
+  fs::remove_all(GetDataDir() / snapshot::SNAPSHOT_FOLDER);
+  assert(snapshot::GetSnapshotCheckpoints().empty());
+
+  uint256 bestBlock = uint256S("aa");
+  auto bi = new CBlockIndex();
+  bi->nTime = 1269211443;
+  bi->nBits = 246;
+  bi->phashBlock = &mapBlockIndex.emplace(bestBlock, bi).first->first;
+
+  auto viewDB = MakeUnique<CCoinsViewDB>(0, false, true);
+  auto viewCache = MakeUnique<CCoinsViewCache>(viewDB.get());
+  viewCache->SetBestBlock(bestBlock);
+
+  const uint32_t totalTX = 100;
+  const uint32_t coinsPerTX = 2;
+
+  {
+    // generate Coins in chainstate
+    for (uint32_t i = 0; i < totalTX * coinsPerTX; ++i) {
+      COutPoint point;
+      point.n = i;
+      CDataStream s(SER_DISK, PROTOCOL_VERSION);
+      s << i / coinsPerTX;
+      point.hash.SetHex(HexStr(s));
+
+      Coin coin(CTxOut(1, CScript()), 1, false);
+      viewCache->AddCoin(point, std::move(coin), false);
+    }
+    BOOST_CHECK(viewCache->Flush());
+  }
+
+  // generate one snapshot
+  snapshot::Creator creator(viewDB.get());
+  BOOST_CHECK_EQUAL(creator.Create().status, +snapshot::Status::OK);
+  BOOST_CHECK_EQUAL(snapshot::GetSnapshotCheckpoints().size(), 1);
+
+  std::atomic<bool> stop_thread{false};
+  std::thread read_snapshot_thread([&] {
+    while (!stop_thread) {
+      LOCK(snapshot::cs_snapshot);
+      snapshot::Checkpoint p = snapshot::GetSnapshotCheckpoints()[0];
+      std::unique_ptr<snapshot::Indexer> indexer = snapshot::Indexer::Open(p.snapshot_hash);
+      snapshot::Iterator iter(std::move(indexer));
+      while (iter.Valid()) {
+        iter.Next();
+      }
+    }
+  });
+
+  snapshot::Checkpoint prev_point = snapshot::GetSnapshotCheckpoints()[0];
+  for (int i = 0; i < 50; ++i) {
+    // update chainstate to produce new snapshot hash
+    COutPoint point;
+    point.n = 5000 + static_cast<uint32_t>(i);
+    Coin coin(CTxOut(1, CScript()), 1, false);
+    viewCache->AddCoin(point, std::move(coin), false);
+    BOOST_CHECK(viewCache->Flush());
+
+    snapshot::Creator cr(viewDB.get());
+    BOOST_CHECK_EQUAL(cr.Create().status, +snapshot::Status::OK);
+
+    // ensures new snapshots are created
+    snapshot::Checkpoint new_point = snapshot::GetSnapshotCheckpoints()[0];
+    BOOST_CHECK(new_point.snapshot_hash != prev_point.snapshot_hash);
+    prev_point = new_point;
+  }
+
+  stop_thread = true;
+  read_snapshot_thread.join();
 
   // cleanup as this test has side effects
   UnloadBlockIndex();

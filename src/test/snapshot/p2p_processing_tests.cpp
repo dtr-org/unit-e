@@ -136,6 +136,7 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   }
 
   // test that snapshot was created
+  LOCK(snapshot::cs_snapshot);
   BOOST_CHECK(HasSnapshotHash(best_snapshot.snapshot_hash));
   std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(best_snapshot.snapshot_hash));
   const snapshot::SnapshotHeader &snapshot_header = idx->GetSnapshotHeader();

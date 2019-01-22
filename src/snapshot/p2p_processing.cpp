@@ -38,6 +38,8 @@ bool P2PState::ProcessGetSnapshotHeader(CNode &node, CDataStream &data,
     return false;
   }
 
+  LOCK(cs_snapshot);
+
   std::unique_ptr<const Indexer> indexer = Indexer::Open(snapshot_hash);
   if (!indexer) {
     LogPrint(BCLog::SNAPSHOT, "%s: can't read snapshot %s\n",
@@ -68,14 +70,9 @@ bool P2PState::ProcessGetSnapshot(CNode &node, CDataStream &data,
   GetSnapshot get;
   data >> get;
 
-  std::unique_ptr<Indexer> indexer = nullptr;
-  for (const Checkpoint &cp : GetSnapshotCheckpoints()) {
-    if (cp.snapshot_hash == get.snapshot_hash) {
-      indexer = Indexer::Open(get.snapshot_hash);
-      break;
-    }
-  }
+  LOCK(cs_snapshot);
 
+  std::unique_ptr<Indexer> indexer = SnapshotIndex::OpenSnapshot(get.snapshot_hash);
   if (!indexer) {
     // todo: send notfound that node can act immediately
     // instead of waiting for timeout
@@ -162,6 +159,8 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
     return false;
   }
 
+  LOCK2(cs_main, cs_snapshot);
+
   std::unique_ptr<Indexer> indexer = Indexer::Open(msg.snapshot_hash);
   if (!indexer) {
     indexer.reset(new Indexer(node.m_best_snapshot,
@@ -207,7 +206,6 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
       return false;
     }
 
-    LOCK(cs_main);
     StoreCandidateBlockHash(iterator.GetSnapshotHeader().block_hash);
     const CBlockIndex *const bi = LookupBlockIndex(node.m_best_snapshot.block_hash);
     assert(bi);
@@ -280,9 +278,12 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
       msg.utxo_subset_index = 0;
       msg.utxo_subset_count = MAX_UTXO_SET_COUNT;
 
-      std::unique_ptr<const Indexer> indexer = Indexer::Open(node.m_best_snapshot.snapshot_hash);
-      if (indexer) {
-        msg.utxo_subset_index = indexer->GetSnapshotHeader().total_utxo_subsets;
+      {
+        LOCK(cs_snapshot);
+        std::unique_ptr<const Indexer> indexer = Indexer::Open(node.m_best_snapshot.snapshot_hash);
+        if (indexer) {
+          msg.utxo_subset_index = indexer->GetSnapshotHeader().total_utxo_subsets;
+        }
       }
 
       SendGetSnapshot(node, msg, msg_maker);
@@ -298,6 +299,7 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
     // there are no nodes that can stream previously decided best snapshot
     // delete it and switch to the second best
     if (m_downloading_snapshot != m_best_snapshot) {
+      LOCK(cs_snapshot);
       Indexer::Delete(m_downloading_snapshot.snapshot_hash);
       m_downloading_snapshot = m_best_snapshot;
     }
@@ -362,15 +364,18 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     assert(GetSnapshotHash(snapshot_block_index, snapshot_hash));
   }
 
-  std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
-  assert(idx);
-  snapshot_block_index->stake_modifier = idx->GetSnapshotHeader().stake_modifier;
-  snapshot_block_index->nChainWork = UintToArith256(idx->GetSnapshotHeader().chain_work);
+  {
+    LOCK(cs_snapshot);
+    std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
+    assert(idx);
+    snapshot_block_index->stake_modifier = idx->GetSnapshotHeader().stake_modifier;
+    snapshot_block_index->nChainWork = UintToArith256(idx->GetSnapshotHeader().chain_work);
 
-  if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
-    // if we can't write the snapshot, we have an issue with the DB
-    // and most likely we can't recover.
-    return regular_processing();
+    if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
+      // if we can't write the snapshot, we have an issue with the DB
+      // and most likely we can't recover.
+      return regular_processing();
+    }
   }
 
   // disable block index check as at this stage we still have genesis block set
@@ -545,6 +550,7 @@ void P2PState::DeleteUnlinkedSnapshot() {
   GetLatestFinalizedSnapshotHash(finalized_hash);
   if (m_downloading_snapshot.snapshot_hash != LoadCandidateBlockHash() &&
       m_downloading_snapshot.snapshot_hash != finalized_hash) {
+    LOCK(cs_snapshot);
     Indexer::Delete(m_downloading_snapshot.snapshot_hash);
   }
 }

@@ -38,6 +38,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
 
   {
     // test snapshot hash calculation
+    LOCK(snapshot::cs_snapshot);
     std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(uint256S("bb"));
     BOOST_CHECK(idx != nullptr);
     snapshot::Iterator iter(std::move(idx));
@@ -47,6 +48,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
 
   {
     // open the snapshot
+    LOCK(snapshot::cs_snapshot);
     auto idx = snapshot::Indexer::Open(uint256S("bb"));
     BOOST_CHECK(idx != nullptr);
 
