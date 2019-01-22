@@ -45,12 +45,12 @@ public:
         memset(data, 0, sizeof(data));
     }
 
-    inline int Compare(const base_blob &other) const { return memcmp(data, other.data, sizeof(data)); }
+    inline int Compare(const base_blob<BITS>& other) const { return memcmp(data, other.data, sizeof(data)); }
 
     inline int CompareLexicographically(const base_blob<BITS> &other) const {
-        for (size_t i = 0; i < sizeof(data); ++i) {
-            uint8_t a = data[sizeof(data) - 1 - i];
-            uint8_t b = other.data[sizeof(data) - 1 - i];
+        for (size_t i = 0; i < WIDTH; ++i) {
+            uint8_t a = data[WIDTH - 1 - i];
+            uint8_t b = other.data[WIDTH - 1 - i];
             if (a > b) {
                 return 1;
             }

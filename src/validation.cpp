@@ -3401,7 +3401,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
     }
 
-    CTransactionRef prevTx = nullptr;
+    CTransactionRef prevTx;
 
     // Check that all transactions are finalized
     for (const auto& tx : block.vtx) {

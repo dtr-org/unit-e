@@ -571,12 +571,9 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     // We take advantage from LoadFromBlockInTopologicalOrder sorting txns for
     // us to ensure that transactions are removed from the mempool in a
     // "correct" order, so the mempool is always consistent.
-    for (
-        auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
-        ptx != disconnectpool.GetQueuedTx().get<insertion_order>().rend();
-        ++ptx
-    ) {
-        uint256 hash = (*ptx)->GetHash();
+    const auto& txns_queue = disconnectpool.GetQueuedTx().get<insertion_order>();
+    for (auto ptx = txns_queue.rbegin(); ptx != txns_queue.rend(); ++ptx) {
+        const uint256& hash = (*ptx)->GetHash();
 
         indexed_transaction_set::iterator i = mapTx.find(hash);
         if (i != mapTx.end())
@@ -586,12 +583,8 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     // Before the txs in the new block have been removed from the mempool, update policy estimates
     if (minerPolicyEstimator) {minerPolicyEstimator->processBlock(nBlockHeight, entries);}
 
-    for (
-        auto ptx = disconnectpool.GetQueuedTx().get<insertion_order>().rbegin();
-        ptx != disconnectpool.GetQueuedTx().get<insertion_order>().rend();
-        ++ptx
-    ) {
-        auto tx = *ptx;
+    for (auto ptx = txns_queue.rbegin(); ptx != txns_queue.rend(); ++ptx) {
+        const auto& tx = *ptx;
         txiter it = mapTx.find(tx->GetHash());
         if (it != mapTx.end()) {
             setEntries stage;
