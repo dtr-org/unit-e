@@ -24,6 +24,10 @@ class FinalizationState;
 //! \returns true if the vote is expired, false otherwise.
 bool IsVoteExpired(const CTransaction &tx);
 
+//! \brief Generalized finalization transaction check. Asserts on non-finalization transactions.
+bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
+                                  const Consensus::Params &params, const FinalizationState &fin_state);
+
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const FinalizationState &state);
 
