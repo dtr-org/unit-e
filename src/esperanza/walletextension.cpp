@@ -112,7 +112,7 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
 
   const CTransaction tx_const(tx);
   const auto &wallet = m_enclosing_wallet.mapWallet;
-  for (std::size_t i = 1; i < tx.vin.size(); ++i) {  // skips the first input, which is the meta input
+  for (unsigned int i = 1; i < tx.vin.size(); ++i) {  // skips the first input, which is the meta input
     const auto &input = tx.vin[i];
     const auto index = input.prevout.n;
     const auto mi = wallet.find(input.prevout.hash);

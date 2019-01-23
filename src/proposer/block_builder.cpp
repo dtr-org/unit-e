@@ -17,12 +17,56 @@ class BlockBuilderImpl : public BlockBuilder {
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<Settings> m_settings;
 
+  std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
+    auto number_of_pieces = amount / threshold;
+    if (amount % threshold > 0) {
+      // if spend can not be spread evenly we need one more to fit the rest
+      ++number_of_pieces;
+    }
+    // in order to not create a piece of dust of size (spend % threshold), try
+    // to spread evenly by forming pieces of size (spend / number_of_pieces) each
+    std::vector<CAmount> pieces(static_cast<std::size_t>(number_of_pieces),
+                                amount / number_of_pieces);
+    auto number_of_full_pieces = amount % number_of_pieces;
+    // distribute the remaining units not spread yet
+    for (auto i = 0; i < number_of_full_pieces; ++i) {
+      ++pieces[i];
+    }
+    return pieces;
+  }
+
+  bool SignBlock(CBlock &block, const staking::StakingWallet &wallet) const {
+    const boost::optional<CPubKey> pubkey = m_blockchain_behavior->ExtractBlockSigningKey(block);
+    if (!pubkey) {
+      Log("Could not extract staking key from block.");
+      return false;
+    }
+    const auto key = wallet.GetKey(*pubkey);
+    if (!key) {
+      Log("No private key for public key.");
+      return false;
+    }
+    const uint256 block_hash = block.GetHash();
+    if (!key->Sign(block_hash, block.signature)) {
+      Log("Could not create block signature.");
+      return false;
+    }
+    return true;
+  }
+
+ public:
+  explicit BlockBuilderImpl(
+      Dependency<blockchain::Behavior> blockchain_behavior,
+      Dependency<Settings> settings)
+      : m_blockchain_behavior(blockchain_behavior),
+        m_settings(settings) {}
+
   const CTransactionRef BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
       const EligibleCoin &eligible_coin,
       const std::vector<staking::Coin> &coins,
       const CAmount fees,
-      staking::StakingWallet &wallet) const {
+      staking::StakingWallet &wallet) const override {
     CMutableTransaction tx;
 
     // UNIT-E TODO: Restore BIP-9 versioning here
@@ -87,50 +131,6 @@ class BlockBuilderImpl : public BlockBuilder {
 
     return std::make_shared<CTransaction>(tx);
   }
-
-  std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
-    auto number_of_pieces = amount / threshold;
-    if (amount % threshold > 0) {
-      // if spend can not be spread evenly we need one more to fit the rest
-      ++number_of_pieces;
-    }
-    // in order to not create a piece of dust of size (spend % threshold), try
-    // to spread evenly by forming pieces of size (spend / number_of_pieces) each
-    std::vector<CAmount> pieces(static_cast<std::size_t>(number_of_pieces),
-                                amount / number_of_pieces);
-    auto number_of_full_pieces = amount % number_of_pieces;
-    // distribute the remaining units not spread yet
-    for (auto i = 0; i < number_of_full_pieces; ++i) {
-      ++pieces[i];
-    }
-    return pieces;
-  }
-
-  bool SignBlock(CBlock &block, const staking::StakingWallet &wallet) const {
-    const boost::optional<CPubKey> pubkey = m_blockchain_behavior->ExtractBlockSigningKey(block);
-    if (!pubkey) {
-      Log("Could not extract staking key from block.");
-      return false;
-    }
-    const auto key = wallet.GetKey(*pubkey);
-    if (!key) {
-      Log("No private key for public key.");
-      return false;
-    }
-    const uint256 block_hash = block.GetHash();
-    if (!key->Sign(block_hash, block.signature)) {
-      Log("Could not create block signature.");
-      return false;
-    }
-    return true;
-  }
-
- public:
-  explicit BlockBuilderImpl(
-      Dependency<blockchain::Behavior> blockchain_behavior,
-      Dependency<Settings> settings)
-      : m_blockchain_behavior(blockchain_behavior),
-        m_settings(settings) {}
 
   std::shared_ptr<const CBlock> BuildBlock(
       const CBlockIndex &prev_block,
