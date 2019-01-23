@@ -47,20 +47,34 @@ bool PermitsUncompressed(IsMineSigVersion sigversion)
     return sigversion == IsMineSigVersion::TOP || sigversion == IsMineSigVersion::P2SH;
 }
 
+/**
+ * Checks that we own all the keys in the same way (either all in hardware, or
+ * all in the software wallet).
+ */
 IsMineResult HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
 {
-    IsMineResult ret = IsMineResult::NO;
+    IsMineResult own_all = IsMineResult::NO;
     for (const valtype& pubkey : pubkeys) {
+        IsMineResult own_this_key = IsMineResult::NO;
         CKeyID keyID = CPubKey(pubkey).GetID();
+
         if (keystore.HaveHardwareKey(keyID)) {
-            ret = std::max(ret, IsMineResult::HW_DEVICE);
+            own_this_key = IsMineResult::HW_DEVICE;
         } else if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, IsMineResult::SPENDABLE);
+            own_this_key = IsMineResult::SPENDABLE;
         } else {
             return IsMineResult::NO;
         }
+
+        if (own_all == IsMineResult::NO) {
+            // One-time initialization
+            own_all = own_this_key;
+        }
+        if (own_all != own_this_key) {
+            return IsMineResult::NO;
+        }
     }
-    return ret;
+    return own_all;
 }
 
 IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion)
