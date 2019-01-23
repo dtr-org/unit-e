@@ -5,6 +5,7 @@
 #include <amount.h>
 #include <base58.h>
 #include <blockchain/blockchain_behavior.h>
+#include <chainparams.h>
 #include <consensus/validation.h>
 #include <esperanza/finalizationparams.h>
 #include <esperanza/vote.h>
@@ -17,9 +18,7 @@
 #include <test/test_unite.h>
 #include <txmempool.h>
 #include <validation.h>
-#include <base58.cpp>
 #include <boost/test/unit_test.hpp>
-#include <chainparams.cpp>
 
 BOOST_AUTO_TEST_SUITE(walletextension_tests)
 
