@@ -47,10 +47,10 @@ public:
 
     inline int Compare(const base_blob& other) const { return memcmp(data, other.data, sizeof(data)); }
 
-    inline int CompareAsNumber(const base_blob<BITS> &other) const {
-        for (size_t i = 0; i < WIDTH; ++i) {
-            uint8_t a = data[WIDTH - 1 - i];
-            uint8_t b = other.data[WIDTH - 1 - i];
+    inline int CompareAsNumber(const base_blob& other) const {
+        for (int i = WIDTH - 1; i >= 0; --i) {
+            uint8_t a = data[i];
+            uint8_t b = other.data[i];
             if (a > b) {
                 return 1;
             }
