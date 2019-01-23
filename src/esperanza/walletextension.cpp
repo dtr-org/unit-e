@@ -111,7 +111,6 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
   AssertLockHeld(GetLock());
 
   const CTransaction tx_const(tx);
-  unsigned int ix = 0;
   const auto &wallet = m_enclosing_wallet.mapWallet;
   for (std::size_t i = 1; i < tx.vin.size(); ++i) {  // skips the first input, which is the meta input
     const auto &input = tx.vin[i];
@@ -126,12 +125,11 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
     }
     const CTxOut &out = vout[index];
     SignatureData sigdata;
-    const TransactionSignatureCreator sigcreator(&tx_const, ix, out.nValue, SIGHASH_ALL);
+    const TransactionSignatureCreator sigcreator(&tx_const, i, out.nValue, SIGHASH_ALL);
     if (!ProduceSignature(m_enclosing_wallet, sigcreator, out.scriptPubKey, sigdata)) {
       return false;
     }
-    UpdateTransaction(tx, ix, sigdata);
-    ++ix;
+    UpdateTransaction(tx, i, sigdata);
   }
   return true;
 }
