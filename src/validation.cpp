@@ -560,7 +560,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
     return CheckInputs(tx, state, view, true, flags, cacheSigStore, true, txdata);
 }
 
-static BCLog::LogFlags GetTransactionLogType(const CTransaction &tx) {
+static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
     switch (tx.GetType()) {
     case +TxType::STANDARD:
     case +TxType::COINBASE:
@@ -586,10 +586,10 @@ static bool CheckFinalizationTransaction(const CTransaction &tx, CValidationStat
         fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
     }
     assert(fin_state != nullptr);
-    const auto log = GetTransactionLogType(tx);
-    LogPrint(log, "Accepting %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
+    const auto log_cat = GetTransactionLogCategory(tx);
+    LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
     if (!esperanza::CheckFinalizationTransaction(tx, err_state, params, *fin_state)) {
-        LogPrint(log, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
+        LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
     }
