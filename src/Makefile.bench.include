@@ -51,7 +51,8 @@ endif
 
 if ENABLE_USBDEVICE
 bench_bench_unite_LDADD += \
-    $(LIBUNITE_USBDEVICE)
+    $(LIBUNITE_USBDEVICE) \
+    $(HIDAPI_LIBS)
 endif
 
 if ENABLE_WALLET

@@ -3099,6 +3099,11 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                     return false;
                 }
 
+                if (!pdevice->Open()) {
+                    strFailReason = "Cannot open hardware device";
+                    return false;
+                }
+
                 // To generate SegWit signatures, we need the values of the
                 // outputs spent by the current transaction
                 CCoinsView view;

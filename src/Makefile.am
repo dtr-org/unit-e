@@ -232,9 +232,6 @@ UNITE_CORE_H = \
   undo.h \
   unilib/uninorms.h \
   unilib/utf8.h \
-  usbdevice/debugdevice.h \
-  usbdevice/rpcusbdevice.h \
-  usbdevice/usbdevice.h \
   util.h \
   utilfun.h \
   utilmoneystr.h \
@@ -389,13 +386,22 @@ libunite_wallet_a_SOURCES = \
   $(UNITE_CORE_H)
 
 if ENABLE_USBDEVICE
-libunite_usbdevice_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
+libunite_usbdevice_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) -DHAVE_HIDAPI
 libunite_usbdevice_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_usbdevice_a_SOURCES = \
   extkey.cpp \
   usbdevice/debugdevice.cpp \
+  usbdevice/debugdevice.h \
+  usbdevice/ledgerapdu.cpp \
+  usbdevice/ledgerapdu.h \
+  usbdevice/ledgerdevice.cpp \
+  usbdevice/ledgerdevice.h \
+  usbdevice/ledger/dongleCommHidHidapi.c \
+  usbdevice/ledger/ledgerLayer.c \
   usbdevice/rpcusbdevice.cpp \
-  usbdevice/usbdevice.cpp
+  usbdevice/rpcusbdevice.h \
+  usbdevice/usbdevice.cpp \
+  usbdevice/usbdevice.h
 endif
 
 # crypto primitives library
@@ -551,7 +557,8 @@ united_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-united_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+united_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) \
+  $(HIDAPI_LIBS) $(USB_LIBS)
 
 # unite-cli binary #
 unite_cli_SOURCES = unite-cli.cpp
@@ -568,7 +575,8 @@ unite_cli_LDADD = \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CRYPTO)
 
-unite_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+unite_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) \
+  $(HIDAPI_LIBS) $(USB_LIBS)
 #
 
 # unite-tx binary #
@@ -589,7 +597,8 @@ unite_tx_LDADD = \
   $(LIBUNITE_CRYPTO) \
   $(LIBSECP256K1)
 
-unite_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+unite_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) \
+  $(HIDAPI_LIBS) $(USB_LIBS)
 #
 
 # uniteconsensus library #

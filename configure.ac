@@ -1187,6 +1187,21 @@ if test x$unite_enable_qt != xno; then
   fi
 fi
 
+case $host in
+  *linux*)
+    LIBHIDAPINAME=hidapi-libusb
+    HIDAPILIBS=-l$LIBHIDAPINAME
+    ;;
+  *mingw*)
+    LIBHIDAPINAME=hidapi
+    HIDAPILIBS="-l$LIBHIDAPINAME -lsetupapi"
+    ;;
+  *)
+    LIBHIDAPINAME=hidapi
+    HIDAPILIBS=-l$LIBHIDAPINAME
+    ;;
+esac
+
 dnl enable USB devices
 AC_MSG_CHECKING([if USB devices should be supported])
 if test x$enable_wallet = xno; then
@@ -1195,6 +1210,8 @@ fi
 if test x$enable_usbdevice != xno; then
   AC_MSG_RESULT(yes)
   AC_DEFINE_UNQUOTED([ENABLE_USBDEVICE],[1],[Define to enable hardware wallet support])
+  AC_CHECK_LIB([$LIBHIDAPINAME], [hid_open],HIDAPI_LIBS=$HIDAPILIBS, AC_MSG_ERROR(hidapi missing))
+  USB_LIBS=" -lusb-1.0"
 else
   AC_MSG_RESULT(no)
 fi
@@ -1226,6 +1243,7 @@ AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
 AM_CONDITIONAL([ENABLE_USBDEVICE],[test x$enable_usbdevice = xyes])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
+AM_CONDITIONAL([ENABLE_USBDEVICE],[test x$enable_usbdevice = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$unite_enable_qt = xyes])
 AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$BUILD_TEST_QT = xyes])
@@ -1284,6 +1302,7 @@ AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
 AC_SUBST(PROTOBUF_LIBS)
 AC_SUBST(QR_LIBS)
+AC_SUBST(HIDAPI_LIBS)
 AC_CONFIG_FILES([Makefile src/Makefile doc/man/Makefile share/setup.nsi share/qt/Info.plist test/config.ini])
 AC_CONFIG_FILES([contrib/devtools/split-debug.sh],[chmod +x contrib/devtools/split-debug.sh])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
