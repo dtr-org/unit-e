@@ -13,31 +13,31 @@
 namespace snapshot {
 
 // keeps track of current available snapshots
-SnapshotIndex g_snapshotIndex(5, 3);
+SnapshotIndex g_snapshot_index(5, 3);
 
-std::vector<uint256> SnapshotIndex::AddSnapshotHash(const uint256 &snapshotHash,
-                                                    const CBlockIndex *blockIndex) {
+std::vector<uint256> SnapshotIndex::AddSnapshotHash(const uint256 &snapshot_hash,
+                                                    const CBlockIndex *block_index) {
   LOCK(m_cs);
 
-  Checkpoint checkpoint(blockIndex->nHeight, snapshotHash,
-                        blockIndex->GetBlockHash());
+  Checkpoint checkpoint(block_index->nHeight, snapshot_hash,
+                        block_index->GetBlockHash());
 
-  if (m_indexMap.empty()) {
-    m_indexMap[blockIndex->nHeight] = checkpoint;
+  if (m_index_map.empty()) {
+    m_index_map[block_index->nHeight] = checkpoint;
     return SnapshotsForRemoval();
   }
 
-  auto it = m_indexMap.find(blockIndex->nHeight);
-  if (it != m_indexMap.end()) {
-    m_snapshotsForRemoval.emplace(it->second.snapshot_hash);
-    it = m_indexMap.erase(it);
-    m_indexMap.emplace_hint(it, blockIndex->nHeight, checkpoint);
+  auto it = m_index_map.find(block_index->nHeight);
+  if (it != m_index_map.end()) {
+    m_snapshots_for_removal.emplace(it->second.snapshot_hash);
+    it = m_index_map.erase(it);
+    m_index_map.emplace_hint(it, block_index->nHeight, checkpoint);
     return SnapshotsForRemoval();
   }
 
-  it = m_indexMap.upper_bound(blockIndex->nHeight);
-  bool end = it == m_indexMap.end();
-  m_indexMap.emplace_hint(it, blockIndex->nHeight, checkpoint);
+  it = m_index_map.upper_bound(block_index->nHeight);
+  bool end = it == m_index_map.end();
+  m_index_map.emplace_hint(it, block_index->nHeight, checkpoint);
   if (end) {
     RemoveLowest();
   } else {
@@ -48,51 +48,51 @@ std::vector<uint256> SnapshotIndex::AddSnapshotHash(const uint256 &snapshotHash,
 }
 
 void SnapshotIndex::RemoveLowest() {
-  if (m_indexMap.size() <= m_maxSnapshots) {
+  if (m_index_map.size() <= m_max_snapshots) {
     return;
   }
 
   uint32_t finalized = 0;
-  for (const auto &p : m_indexMap) {
+  for (const auto &p : m_index_map) {
     if (p.second.finalized) {
       ++finalized;
     }
   }
 
-  if (finalized > m_minFinalizedSnapshots) {
-    auto it = m_indexMap.begin();
-    m_snapshotsForRemoval.emplace(it->second.snapshot_hash);
-    it = m_indexMap.erase(it);
+  if (finalized > m_min_finalized_snapshots) {
+    auto it = m_index_map.begin();
+    m_snapshots_for_removal.emplace(it->second.snapshot_hash);
+    it = m_index_map.erase(it);
     return;
   }
 
-  for (auto it = m_indexMap.begin(); it != m_indexMap.end(); ++it) {
+  for (auto it = m_index_map.begin(); it != m_index_map.end(); ++it) {
     if (it->second.finalized) {
       continue;
     }
 
-    m_snapshotsForRemoval.emplace(it->second.snapshot_hash);
-    m_indexMap.erase(it);
+    m_snapshots_for_removal.emplace(it->second.snapshot_hash);
+    m_index_map.erase(it);
     return;
   }
 }
 
 void SnapshotIndex::RemoveHighest() {
-  if (m_indexMap.size() <= m_maxSnapshots) {
+  if (m_index_map.size() <= m_max_snapshots) {
     return;
   }
-  auto it = std::prev(m_indexMap.end());
-  m_snapshotsForRemoval.emplace(it->second.snapshot_hash);
-  m_indexMap.erase(it);
+  auto it = std::prev(m_index_map.end());
+  m_snapshots_for_removal.emplace(it->second.snapshot_hash);
+  m_index_map.erase(it);
 }
 
-bool SnapshotIndex::GetSnapshotHash(const CBlockIndex *blockIndex,
-                                    uint256 &snapshotHashOut) {
+bool SnapshotIndex::GetSnapshotHash(const CBlockIndex *block_index,
+                                    uint256 &snapshot_hash_out) {
   LOCK(m_cs);
 
-  for (const auto &p : m_indexMap) {
-    if (p.second.block_hash == blockIndex->GetBlockHash()) {
-      snapshotHashOut = p.second.snapshot_hash;
+  for (const auto &p : m_index_map) {
+    if (p.second.block_hash == block_index->GetBlockHash()) {
+      snapshot_hash_out = p.second.snapshot_hash;
       return true;
     }
   }
@@ -104,40 +104,40 @@ std::vector<Checkpoint> SnapshotIndex::GetSnapshotCheckpoints() {
   LOCK(m_cs);
 
   std::vector<Checkpoint> list;
-  for (const auto &p : m_indexMap) {
+  for (const auto &p : m_index_map) {
     list.emplace_back(p.second);
   }
 
   return list;
 }
 
-void SnapshotIndex::DeleteSnapshotHash(const uint256 &snapshotHash) {
+void SnapshotIndex::DeleteSnapshotHash(const uint256 &snapshot_hash) {
   LOCK(m_cs);
 
-  for (auto it = m_indexMap.begin(); it != m_indexMap.end(); ++it) {
-    if (it->second.snapshot_hash == snapshotHash) {
-      m_indexMap.erase(it);
+  for (auto it = m_index_map.begin(); it != m_index_map.end(); ++it) {
+    if (it->second.snapshot_hash == snapshot_hash) {
+      m_index_map.erase(it);
       break;
     }
   }
 
-  m_snapshotsForRemoval.erase(snapshotHash);
+  m_snapshots_for_removal.erase(snapshot_hash);
 }
 
 std::vector<uint256> SnapshotIndex::SnapshotsForRemoval() {
-  if (m_sanityCheck) {
+  if (m_sanity_check) {
     SanityCheck();
   }
 
-  std::vector<uint256> forRemoval(m_snapshotsForRemoval.begin(),
-                                  m_snapshotsForRemoval.end());
-  return forRemoval;
+  std::vector<uint256> for_removal(m_snapshots_for_removal.begin(),
+                                  m_snapshots_for_removal.end());
+  return for_removal;
 }
 
-void SnapshotIndex::ConfirmRemoved(const uint256 &snapshotHash) {
+void SnapshotIndex::ConfirmRemoved(const uint256 &snapshot_hash) {
   LOCK(m_cs);
 
-  m_snapshotsForRemoval.erase(snapshotHash);
+  m_snapshots_for_removal.erase(snapshot_hash);
 }
 
 std::unique_ptr<Indexer> SnapshotIndex::OpenSnapshot(const uint256 &snapshot_hash)
@@ -158,67 +158,52 @@ void SnapshotIndex::DeleteSnapshot(const uint256 &snapshot_hash)
   AssertLockHeld(cs_snapshot);
 
   Indexer::Delete(snapshot_hash);  // remove from disk
-  g_snapshotIndex.DeleteSnapshotHash(snapshot_hash);
+  g_snapshot_index.DeleteSnapshotHash(snapshot_hash);
 }
 
 void SnapshotIndex::Clear() {
-  for (const auto &c : g_snapshotIndex.GetSnapshotCheckpoints()) {
-    g_snapshotIndex.DeleteSnapshotHash(c.snapshot_hash);
+  for (const auto &c : g_snapshot_index.GetSnapshotCheckpoints()) {
+    g_snapshot_index.DeleteSnapshotHash(c.snapshot_hash);
   }
 }
 
-std::vector<uint256> SnapshotIndex::FinalizeSnapshots(const CBlockIndex *blockIndex) {
+std::vector<uint256> SnapshotIndex::FinalizeSnapshots(const CBlockIndex *block_index) {
   LOCK(m_cs);
 
-  if (m_indexMap.empty()) {
+  if (m_index_map.empty()) {
     return SnapshotsForRemoval();
   }
 
   // find index equal or lower the lastEpochBlock height
-  auto it = m_indexMap.begin();
-  while (it != m_indexMap.end()) {
+  auto it = m_index_map.begin();
+  while (it != m_index_map.end()) {
     if (it->second.finalized) {
       ++it;
       continue;
     }
 
-    if (it->second.height > blockIndex->nHeight) {
+    if (it->second.height > block_index->nHeight) {
       break;
     }
 
-    const CBlockIndex *ancestor = blockIndex->GetAncestor(it->second.height);
+    const CBlockIndex *ancestor = block_index->GetAncestor(it->second.height);
     if (*ancestor->phashBlock == it->second.block_hash) {  // same branch
       it->second.finalized = true;
     } else {  // different branch, remove it
-      m_snapshotsForRemoval.emplace(it->second.snapshot_hash);
-      it = m_indexMap.erase(it);
+      m_snapshots_for_removal.emplace(it->second.snapshot_hash);
+      it = m_index_map.erase(it);
     }
   }
 
   return SnapshotsForRemoval();
 }
 
-bool SnapshotIndex::GetLatestFinalizedSnapshotHash(uint256 &snapshotHashOut) {
+bool SnapshotIndex::GetLatestFinalizedSnapshotHash(uint256 &snapshot_hash_out) {
   LOCK(m_cs);
 
-  for (auto it = m_indexMap.rbegin(); it != m_indexMap.rend(); ++it) {
+  for (auto it = m_index_map.rbegin(); it != m_index_map.rend(); ++it) {
     if (it->second.finalized) {
-      snapshotHashOut = it->second.snapshot_hash;
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool SnapshotIndex::GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
-                                             uint256 &snapshotHashOut) {
-  LOCK(m_cs);
-
-  for (auto it = m_indexMap.rbegin(); it != m_indexMap.rend(); ++it) {
-    if (it->second.finalized &&
-        it->second.block_hash == blockIndex->GetBlockHash()) {
-      snapshotHashOut = it->second.snapshot_hash;
+      snapshot_hash_out = it->second.snapshot_hash;
       return true;
     }
   }
@@ -227,63 +212,57 @@ bool SnapshotIndex::GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
 }
 
 void SnapshotIndex::SanityCheck() {
-  if (m_indexMap.empty()) {
+  if (m_index_map.empty()) {
     return;
   }
 
-  assert(m_indexMap.size() <= m_maxSnapshots);
+  assert(m_index_map.size() <= m_max_snapshots);
 
-  for (auto it = m_indexMap.begin(); it != m_indexMap.end(); ++it) {
+  for (auto it = m_index_map.begin(); it != m_index_map.end(); ++it) {
     assert(it->first == it->second.height && "height mismatch");
-    if (it != m_indexMap.begin()) {
+    if (it != m_index_map.begin()) {
       assert(std::prev(it)->first < it->first && "incorrect height position");
     }
   }
 }
 
 void LoadSnapshotIndex() {
-  pcoinsdbview->GetSnapshotIndex(g_snapshotIndex);
+  pcoinsdbview->GetSnapshotIndex(g_snapshot_index);
   LogPrint(BCLog::SNAPSHOT, "Loaded snapshot index\n");
 }
 
 void SaveSnapshotIndex() {
-  if (pcoinsdbview->SetSnapshotIndex(g_snapshotIndex)) {
+  if (pcoinsdbview->SetSnapshotIndex(g_snapshot_index)) {
     LogPrint(BCLog::SNAPSHOT, "Saved snapshot index\n");
   } else {
     LogPrint(BCLog::SNAPSHOT, "Can't persist snapshot index\n");
   }
 }
 
-std::vector<uint256> AddSnapshotHash(const uint256 &snapshotHash,
-                                     const CBlockIndex *block) {
-  return g_snapshotIndex.AddSnapshotHash(snapshotHash, block);
+std::vector<uint256> AddSnapshotHash(const uint256 &snapshot_hash,
+                                     const CBlockIndex *block_index) {
+  return g_snapshot_index.AddSnapshotHash(snapshot_hash, block_index);
 }
 
-bool GetSnapshotHash(const CBlockIndex *blockIndex,
-                     uint256 &snapshotHashOut) {
-  return g_snapshotIndex.GetSnapshotHash(blockIndex, snapshotHashOut);
+bool GetSnapshotHash(const CBlockIndex *block_index,
+                     uint256 &snapshot_hash_out) {
+  return g_snapshot_index.GetSnapshotHash(block_index, snapshot_hash_out);
 }
 
 std::vector<Checkpoint> GetSnapshotCheckpoints() {
-  return g_snapshotIndex.GetSnapshotCheckpoints();
+  return g_snapshot_index.GetSnapshotCheckpoints();
 };
 
-void ConfirmRemoved(const uint256 &snapshotHash) {
-  g_snapshotIndex.ConfirmRemoved(snapshotHash);
+void ConfirmRemoved(const uint256 &snapshot_hash) {
+  g_snapshot_index.ConfirmRemoved(snapshot_hash);
 }
 
-bool GetLatestFinalizedSnapshotHash(uint256 &snapshotHashOut) {
-  return g_snapshotIndex.GetLatestFinalizedSnapshotHash(snapshotHashOut);
+bool GetLatestFinalizedSnapshotHash(uint256 &snapshot_hash_out) {
+  return g_snapshot_index.GetLatestFinalizedSnapshotHash(snapshot_hash_out);
 }
 
-bool GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
-                              uint256 &snapshotHashOut) {
-  return g_snapshotIndex.GetFinalizedSnapshotHash(blockIndex,
-                                                  snapshotHashOut);
-}
-
-void FinalizeSnapshots(const CBlockIndex *blockIndex) {
-  g_snapshotIndex.FinalizeSnapshots(blockIndex);
+void FinalizeSnapshots(const CBlockIndex *block_index) {
+  g_snapshot_index.FinalizeSnapshots(block_index);
 }
 
 }  // namespace snapshot
