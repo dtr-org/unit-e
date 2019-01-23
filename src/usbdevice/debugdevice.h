@@ -26,19 +26,22 @@ class DebugDevice : public USBDevice {
 
   bool GetFirmwareVersion(std::string &firmware, std::string &error) override;
 
-  bool GetPubKey(const std::vector<uint32_t> &path, CPubKey &pk, std::string &error) override;
+  bool GetPubKey(const std::vector<uint32_t> &path, CPubKey &pk,
+                 std::string &error) override;
 
-  bool GetExtPubKey(const std::vector<uint32_t> &path, CExtPubKey &ekp, std::string &error) override;
+  bool GetExtPubKey(const std::vector<uint32_t> &path, CExtPubKey &ekp,
+                    std::string &error) override;
 
-  bool PrepareTransaction(
-      const CTransaction &tx, const CCoinsViewCache &view,
-      const CKeyStore &keystore, int hash_type, std::string &error) override;
+  bool PrepareTransaction(const CTransaction &tx, const CCoinsViewCache &view,
+                          const CKeyStore &keystore, int hash_type,
+                          std::string &error) override;
 
-  bool SignTransaction(
-      const std::vector<uint32_t> &path, const CTransaction &tx, int n_in,
-      const CScript &script_code, int hash_type, const CAmount &amount,
-      SigVersion sigversion, std::vector<uint8_t> &signature,
-      std::string &error) override;
+  bool SignTransaction(const std::vector<uint32_t> &path,
+                       const CTransaction &tx, int n_in,
+                       const CScript &script_code, int hash_type,
+                       const CAmount &amount, SigVersion sigversion,
+                       std::vector<uint8_t> &signature,
+                       std::string &error) override;
 };
 
 }  // namespace usbdevice

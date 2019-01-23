@@ -20,10 +20,10 @@ const DeviceType usbDeviceTypes[] = {
 bool ListAllDevices(DeviceList &devices) {
   devices.push_back(std::shared_ptr<USBDevice>(new DebugDevice()));
   return true;
-};
+}
 
 std::shared_ptr<USBDevice> SelectDevice(std::string &error) {
-  std::vector<std::shared_ptr<USBDevice>> devices;
+  DeviceList devices;
   ListAllDevices(devices);
   if (devices.size() < 1) {
     error = "No device found.";
@@ -36,23 +36,23 @@ std::shared_ptr<USBDevice> SelectDevice(std::string &error) {
   }
 
   return devices[0];
-};
-
-DeviceSignatureCreator::DeviceSignatureCreator(
-    std::shared_ptr<USBDevice> device,
-    const CTransaction &tx,
-    unsigned int nin, const CAmount &amount,
-    int hash_type) : m_tx(tx),
-                     m_nin(nin),
-                     m_hash_type(hash_type),
-                     m_amount(amount),
-                     m_device(device),
-                     m_checker(&tx, nin, amount) {
 }
 
-bool DeviceSignatureCreator::CreateSig(
-    const SigningProvider &provider, std::vector<unsigned char> &signature,
-    const CKeyID &keyid, const CScript &script_code, SigVersion sigversion) const {
+DeviceSignatureCreator::DeviceSignatureCreator(
+    std::shared_ptr<USBDevice> device, const CTransaction &tx, unsigned int nin,
+    const CAmount &amount, int hash_type)
+    : m_tx(tx),
+      m_nin(nin),
+      m_hash_type(hash_type),
+      m_amount(amount),
+      m_device(device),
+      m_checker(&tx, nin, amount) {}
+
+bool DeviceSignatureCreator::CreateSig(const SigningProvider &provider,
+                                       std::vector<unsigned char> &signature,
+                                       const CKeyID &keyid,
+                                       const CScript &script_code,
+                                       SigVersion sigversion) const {
   CKeyMetadata metadata;
 
   try {
@@ -73,16 +73,8 @@ bool DeviceSignatureCreator::CreateSig(
     return false;
   }
 
-  return m_device->SignTransaction(
-      path,
-      m_tx,
-      m_nin,
-      script_code,
-      m_hash_type,
-      m_amount,
-      sigversion,
-      signature,
-      error);
+  return m_device->SignTransaction(path, m_tx, m_nin, script_code, m_hash_type,
+                                   m_amount, sigversion, signature, error);
 }
 
 }  // namespace usbdevice

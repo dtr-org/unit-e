@@ -11,6 +11,7 @@
 #include <validation.h>
 
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace usbdevice {
@@ -29,13 +30,14 @@ bool DebugDevice::Open() { return true; }
 
 bool DebugDevice::Close() { return true; }
 
-bool DebugDevice::GetFirmwareVersion(std::string &firmware, std::string &error) {
+bool DebugDevice::GetFirmwareVersion(std::string &firmware,
+                                     std::string &error) {
   firmware = "debug v1";
   return true;
 }
 
-bool DebugDevice::GetPubKey(
-    const std::vector<uint32_t> &path, CPubKey &pk, std::string &error) {
+bool DebugDevice::GetPubKey(const std::vector<uint32_t> &path, CPubKey &pk,
+                            std::string &error) {
   CExtPubKey epk;
   if (!GetExtPubKey(path, epk, error)) {
     return false;
@@ -45,8 +47,8 @@ bool DebugDevice::GetPubKey(
   return true;
 }
 
-bool DebugDevice::GetExtPubKey(
-    const std::vector<uint32_t> &path, CExtPubKey &epk, std::string &error) {
+bool DebugDevice::GetExtPubKey(const std::vector<uint32_t> &path,
+                               CExtPubKey &epk, std::string &error) {
   if (path.size() > MAX_BIP32_PATH) {
     error = "Path depth out of range";
     return false;
@@ -65,17 +67,21 @@ bool DebugDevice::GetExtPubKey(
   return true;
 }
 
-bool DebugDevice::PrepareTransaction(
-    const CTransaction &tx, const CCoinsViewCache &view,
-    const CKeyStore &keystore, int hash_type, std::string &error) {
+bool DebugDevice::PrepareTransaction(const CTransaction &tx,
+                                     const CCoinsViewCache &view,
+                                     const CKeyStore &keystore, int hash_type,
+                                     std::string &error) {
   return true;
 }
 
-bool DebugDevice::SignTransaction(
-    const std::vector<uint32_t> &path, const CTransaction &tx, int n_in,
-    const CScript &script_code, int hash_type, const CAmount &amount,
-    SigVersion sigversion, std::vector<uint8_t> &signature, std::string &error) {
-  uint256 hash = SignatureHash(script_code, tx, n_in, hash_type, amount, sigversion);
+bool DebugDevice::SignTransaction(const std::vector<uint32_t> &path,
+                                  const CTransaction &tx, int n_in,
+                                  const CScript &script_code, int hash_type,
+                                  const CAmount &amount, SigVersion sigversion,
+                                  std::vector<uint8_t> &signature,
+                                  std::string &error) {
+  uint256 hash =
+      SignatureHash(script_code, tx, n_in, hash_type, amount, sigversion);
 
   CExtKey keyOut, keyWork = m_ekv;
   for (auto it = path.begin(); it != path.end(); ++it) {

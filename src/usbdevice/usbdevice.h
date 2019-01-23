@@ -10,8 +10,6 @@
 #include <keystore.h>
 #include <script/sign.h>
 
-#include <cassert>
-#include <cstring>
 #include <memory>
 #include <string>
 #include <vector>
@@ -30,11 +28,13 @@ enum DeviceTypeID {
 
 class DeviceType {
  public:
-  DeviceType(
-      int vendor_id, int product_id,
-      const char *vendor, const char *product,
-      DeviceTypeID type_id)
-      : m_vendor_id(vendor_id), m_product_id(product_id), m_vendor(vendor), m_product(product), m_type_id(type_id){};
+  DeviceType(int vendor_id, int product_id, const char *vendor,
+             const char *product, DeviceTypeID type_id)
+      : m_vendor_id(vendor_id),
+        m_product_id(product_id),
+        m_vendor(vendor),
+        m_product(product),
+        m_type_id(type_id) {}
 
   const int m_vendor_id;
   const int m_product_id;
@@ -47,31 +47,37 @@ extern const DeviceType usbDeviceTypes[];
 
 class USBDevice {
  public:
-  USBDevice(const DeviceType *type, const char *path, const char *serial_no, int interface)
-      : m_type(type), m_path(path), m_serial_no(serial_no), m_interface(interface){};
+  USBDevice(const DeviceType *type, const char *path, const char *serial_no,
+            int interface)
+      : m_type(type),
+        m_path(path),
+        m_serial_no(serial_no),
+        m_interface(interface) {}
 
-  virtual ~USBDevice(){};
+  virtual ~USBDevice() {}
 
   virtual bool Open() = 0;
   virtual bool Close() = 0;
 
-  virtual bool GetFirmwareVersion(std::string &firmware, std::string &error) = 0;
+  virtual bool GetFirmwareVersion(std::string &firmware,
+                                  std::string &error) = 0;
 
-  virtual bool GetPubKey(
-      const std::vector<uint32_t> &path, CPubKey &pk, std::string &error) = 0;
-  virtual bool GetExtPubKey(
-      const std::vector<uint32_t> &path, CExtPubKey &ekp,
-      std::string &error) = 0;
+  virtual bool GetPubKey(const std::vector<uint32_t> &path, CPubKey &pk,
+                         std::string &error) = 0;
+  virtual bool GetExtPubKey(const std::vector<uint32_t> &path, CExtPubKey &ekp,
+                            std::string &error) = 0;
 
-  virtual bool PrepareTransaction(
-      const CTransaction &tx, const CCoinsViewCache &view,
-      const CKeyStore &keystore, int hash_type, std::string &error) = 0;
+  virtual bool PrepareTransaction(const CTransaction &tx,
+                                  const CCoinsViewCache &view,
+                                  const CKeyStore &keystore, int hash_type,
+                                  std::string &error) = 0;
 
-  virtual bool SignTransaction(
-      const std::vector<uint32_t> &path, const CTransaction &tx,
-      int n_in, const CScript &script_code, int hash_type,
-      const CAmount &amount, SigVersion sigversion,
-      std::vector<uint8_t> &signature, std::string &error) = 0;
+  virtual bool SignTransaction(const std::vector<uint32_t> &path,
+                               const CTransaction &tx, int n_in,
+                               const CScript &script_code, int hash_type,
+                               const CAmount &amount, SigVersion sigversion,
+                               std::vector<uint8_t> &signature,
+                               std::string &error) = 0;
 
   const DeviceType *m_type = nullptr;
   const std::string m_path;
@@ -89,17 +95,17 @@ class DeviceSignatureCreator : public BaseSignatureCreator {
   const TransactionSignatureChecker m_checker;
 
  public:
-  DeviceSignatureCreator(
-      std::shared_ptr<USBDevice> device, const CTransaction &tx,
-      unsigned int nin, const CAmount &amount, int hash_type = SIGHASH_ALL);
+  DeviceSignatureCreator(std::shared_ptr<USBDevice> device,
+                         const CTransaction &tx, unsigned int nin,
+                         const CAmount &amount, int hash_type = SIGHASH_ALL);
   const BaseSignatureChecker &Checker() const override { return m_checker; }
-  bool CreateSig(
-      const SigningProvider &provider,
-      std::vector<unsigned char> &signature, const CKeyID &keyid,
-      const CScript &script_code, SigVersion sigversion) const override;
+  bool CreateSig(const SigningProvider &provider,
+                 std::vector<unsigned char> &signature, const CKeyID &keyid,
+                 const CScript &script_code,
+                 SigVersion sigversion) const override;
 };
 
-typedef std::vector<std::shared_ptr<USBDevice>> DeviceList;
+using DeviceList = std::vector<std::shared_ptr<USBDevice>>;
 
 bool ListAllDevices(DeviceList &devices);
 
