@@ -28,7 +28,7 @@ class SnapshotTest(UnitETestFramework):
 
         self.num_nodes = 6
         self.extra_args = [
-            # test_fast_sync
+            # test_service_flags, test_fast_sync
             ['-createsnapshot=0'],   # blank_node (without snapshots)
             [],                      # full_node (with snapshots)
             ['-prune=1', '-isd=1'],  # isd_node
@@ -176,6 +176,7 @@ class SnapshotTest(UnitETestFramework):
         sync_node = self.nodes[5]
 
         full_node.generatetoaddress(5, full_node.getnewaddress())
+        wait_until(lambda: len(full_node.listsnapshots()) == 1, timeout=10)
         for res in full_node.listsnapshots():
             full_node.deletesnapshot(res['snapshot_hash'])
 
