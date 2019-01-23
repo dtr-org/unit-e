@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator_concurrent_read) {
   BOOST_CHECK_EQUAL(creator.Create().status, +snapshot::Status::OK);
   BOOST_CHECK_EQUAL(snapshot::GetSnapshotCheckpoints().size(), 1);
 
-  std::atomic<bool> stop_thread{false};
+  std::atomic<bool> stop_thread(false);
   std::thread read_snapshot_thread([&] {
     while (!stop_thread) {
       LOCK(snapshot::cs_snapshot);
