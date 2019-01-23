@@ -130,7 +130,7 @@ std::vector<uint256> SnapshotIndex::SnapshotsForRemoval() {
   }
 
   std::vector<uint256> for_removal(m_snapshots_for_removal.begin(),
-                                  m_snapshots_for_removal.end());
+                                   m_snapshots_for_removal.end());
   return for_removal;
 }
 
