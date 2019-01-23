@@ -145,6 +145,7 @@ typedef CUnitEExtKeyBase<CExtPubKey, BIP32_EXTKEY_SIZE, blockchain::Base58Type::
 
 std::string EncodeDestination(const CTxDestination& dest);
 CTxDestination DecodeDestination(const std::string& str);
+CTxDestination DecodeDestination(const std::string& str, const blockchain::Behavior& params);
 bool IsValidDestinationString(const std::string& str);
 bool IsValidDestinationString(const std::string& str, const blockchain::Behavior&);
 
