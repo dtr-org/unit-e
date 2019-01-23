@@ -363,6 +363,7 @@ bool CWallet::HaveHardwareKey(const CKeyID &address) const
     // We assume that the key is stored in a hardware wallet if it stores the
     // HD master pubkey hash. Other HD keys only store the seed ID, and the
     // master key is generated on the fly when needed (see `DeriveNewChildKey`).
+    AssertLockHeld(cs_wallet);
     auto it = mapKeyMetadata.find(address);
     if (it != mapKeyMetadata.end() && !it->second.master_key_id.IsNull()) {
         return true;

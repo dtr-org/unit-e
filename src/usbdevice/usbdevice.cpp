@@ -58,6 +58,8 @@ bool DeviceSignatureCreator::CreateSig(const SigningProvider &provider,
   try {
     // Can we avoid tight coupling to CWallet here?
     const CWallet &wallet = dynamic_cast<const CWallet &>(provider);
+    LOCK(wallet.cs_wallet);
+
     auto it = wallet.mapKeyMetadata.find(keyid);
     if (it == wallet.mapKeyMetadata.end()) {
       return false;
