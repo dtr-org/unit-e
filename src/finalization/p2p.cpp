@@ -73,7 +73,7 @@ HeaderAndCommits FindHeaderAndCommits(const CBlockIndex *pindex, const Consensus
     assert(not("Cannot load block from the disk"));
   }
   for (const auto &tx : pblock->vtx) {
-    if (tx->IsCommit()) {
+    if (tx->IsFinalizationTransaction()) {
       hc.commits.push_back(tx);
     }
   }
@@ -116,7 +116,7 @@ bool ProcessNewCommits(const CommitsResponse &msg, const CChainParams &chainpara
   for (const auto &d : msg.data) {
     // UNIT-E: Check commits merkle root after it is added
     for (const auto &c : d.commits) {
-      if (!c->IsCommit()) {
+      if (!c->IsFinalizationTransaction()) {
         return err(100, "bad-non-commit", d.header.GetHash());
       }
     }

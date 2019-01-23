@@ -560,11 +560,11 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
     return CheckInputs(tx, state, view, true, flags, cacheSigStore, true, txdata);
 }
 
-static BCLog::LogFlags GetCommitLogType(const CTransaction &tx) {
+static BCLog::LogFlags GetTransactionLogType(const CTransaction &tx) {
     switch (tx.GetType()) {
     case +TxType::STANDARD:
     case +TxType::COINBASE:
-        assert(not("Shouldn't be called on non-commit transaction"));
+        return BCLog::VALIDATION;
     case +TxType::DEPOSIT:
     case +TxType::VOTE:
     case +TxType::LOGOUT:
@@ -576,14 +576,37 @@ static BCLog::LogFlags GetCommitLogType(const CTransaction &tx) {
     }
 }
 
-static bool CheckCommit(const CTransaction &tx, CValidationState &err_state, const Consensus::Params &params) {
-    const auto fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
+static bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
+                                         const Consensus::Params &params,
+                                         const esperanza::FinalizationState *fin_state = nullptr) {
+    if (fin_state == nullptr) {
+        fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
+    }
     assert(fin_state != nullptr);
-    const auto log = GetCommitLogType(tx);
-    LogPrint(log, "Accepting %s to mempool with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::CheckCommit(tx, err_state, params, *fin_state)) {
-        LogPrint(log, "%s (%s) cannot be included in mempool: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(), err_state.GetRejectReason());
+    const auto log = GetTransactionLogType(tx);
+    LogPrint(log, "Accepting %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
+    if (!esperanza::CheckFinalizationTransaction(tx, err_state, params, *fin_state)) {
+        LogPrint(log, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
+                 err_state.GetRejectReason());
         return false;
+    }
+    return true;
+}
+
+static bool CheckBlockFinalizationTransactions(const CBlock &block, CValidationState &err_state,
+                                               const Consensus::Params &params) {
+    esperanza::FinalizationState *fin_state = nullptr;
+    for (const auto &tx : block.vtx) {
+        if (tx->IsFinalizationTransaction() ) {
+            if (fin_state == nullptr) {
+                const CBlockIndex *const prev_index = LookupBlockIndex(block.hashPrevBlock);
+                fin_state = esperanza::FinalizationState::GetState(prev_index);
+                assert(fin_state != nullptr);
+            }
+            if (!CheckFinalizationTransaction(*tx, err_state, params, fin_state)) {
+                return false;
+            }
+        }
     }
     return true;
 }
@@ -645,7 +668,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
-    if (tx.IsCommit() && !CheckCommit(tx, state, chainparams.GetConsensus())) {
+    if (tx.IsFinalizationTransaction() && !CheckFinalizationTransaction(tx, state, chainparams.GetConsensus())) {
         return false; // state already filled by CheckFinalizationTransaction
     }
 
@@ -3135,26 +3158,6 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
-static bool CheckBlockCommits(const CBlock &block, CValidationState &err_state, const Consensus::Params &params) {
-    esperanza::FinalizationState *fin_state = nullptr;
-    for (const auto &tx : block.vtx) {
-        if (tx->IsCommit() ) {
-            if (fin_state == nullptr) {
-                const CBlockIndex *const prev_index = LookupBlockIndex(block.hashPrevBlock);
-                fin_state = esperanza::FinalizationState::GetState(prev_index);
-                assert(fin_state != nullptr);
-            }
-            const auto log = GetCommitLogType(*tx);
-            if (!esperanza::CheckCommit(*tx, err_state, params, *fin_state)) {
-                LogPrint(log, "Commit check failed: %s (%s): %s\n", tx->GetType()._to_string(),
-                         tx->GetHash().GetHex(), err_state.GetRejectReason());
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     // These are checks that are independent of context.
@@ -3198,8 +3201,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
-    // Check commits
-    if (!CheckBlockCommits(block, state, consensusParams)) {
+    // Check finalization transactions
+    if (!CheckBlockFinalizationTransactions(block, state, consensusParams)) {
         return false;
     }
 

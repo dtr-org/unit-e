@@ -25,8 +25,8 @@ class FinalizationState;
 bool IsVoteExpired(const CTransaction &tx);
 
 //! \brief Generalized commit transaction check. Asserts on non-commit transactions.
-bool CheckCommit(const CTransaction &tx, CValidationState &err_state,
-                 const Consensus::Params &params, const FinalizationState &fin_state);
+bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
+                                  const Consensus::Params &params, const FinalizationState &fin_state);
 
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const FinalizationState &state);

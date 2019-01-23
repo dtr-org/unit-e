@@ -14,12 +14,12 @@
 
 namespace esperanza {
 
-bool CheckCommit(const CTransaction &tx, CValidationState &err_state,
-                 const Consensus::Params &params, const FinalizationState &fin_state) {
+bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
+                                  const Consensus::Params &params, const FinalizationState &fin_state) {
   switch (tx.GetType()) {
     case +TxType::STANDARD:
     case +TxType::COINBASE:
-      assert(not("Shouldn't be called on non-commit transaction"));
+      assert(not("Shouldn't be called on non-finalization transaction"));
     case +TxType::DEPOSIT:
       return CheckDepositTransaction(err_state, tx, fin_state);
     case +TxType::VOTE:

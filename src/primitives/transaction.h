@@ -371,7 +371,7 @@ public:
         return GetType() == +TxType::SLASH;
     }
 
-    bool IsCommit() const {
+    bool IsFinalizationTransaction() const {
         switch (GetType()) {
         case +TxType::DEPOSIT:
         case +TxType::VOTE:
