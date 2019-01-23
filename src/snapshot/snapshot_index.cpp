@@ -4,7 +4,6 @@
 
 #include <snapshot/snapshot_index.h>
 
-#include <snapshot/indexer.h>
 #include <txdb.h>
 #include <util.h>
 #include <validation.h>
@@ -141,9 +140,25 @@ void SnapshotIndex::ConfirmRemoved(const uint256 &snapshotHash) {
   m_snapshotsForRemoval.erase(snapshotHash);
 }
 
-void SnapshotIndex::DeleteSnapshot(const uint256 &snapshotHash) {
-  Indexer::Delete(snapshotHash);  // remove from disk
-  g_snapshotIndex.DeleteSnapshotHash(snapshotHash);
+std::unique_ptr<Indexer> SnapshotIndex::OpenSnapshot(const uint256 &snapshot_hash)
+    EXCLUSIVE_LOCKS_REQUIRED(cs_snapshot) {
+  AssertLockHeld(cs_snapshot);
+
+  for (Checkpoint &p : snapshot::GetSnapshotCheckpoints()) {
+    if (p.snapshot_hash == snapshot_hash) {
+      return Indexer::Open(snapshot_hash);
+    }
+  }
+
+  return nullptr;
+}
+
+void SnapshotIndex::DeleteSnapshot(const uint256 &snapshot_hash)
+    EXCLUSIVE_LOCKS_REQUIRED(cs_snapshot) {
+  AssertLockHeld(cs_snapshot);
+
+  Indexer::Delete(snapshot_hash);  // remove from disk
+  g_snapshotIndex.DeleteSnapshotHash(snapshot_hash);
 }
 
 void SnapshotIndex::Clear() {

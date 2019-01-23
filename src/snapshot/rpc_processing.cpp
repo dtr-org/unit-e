@@ -20,10 +20,13 @@
 
 namespace snapshot {
 
-UniValue SnapshotNode(const uint256 &snapshotHash) {
+UniValue SnapshotNode(const uint256 &snapshot_hash) {
   UniValue node(UniValue::VOBJ);
-  node.push_back(Pair("snapshot_hash", snapshotHash.GetHex()));
-  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotHash);
+  node.push_back(Pair("snapshot_hash", snapshot_hash.GetHex()));
+
+  LOCK(cs_snapshot);
+
+  std::unique_ptr<Indexer> idx = SnapshotIndex::OpenSnapshot(snapshot_hash);
   if (!idx) {
     node.push_back(Pair("valid", false));
     return node;
@@ -186,6 +189,8 @@ UniValue deletesnapshot(const JSONRPCRequest &request) {
         HelpExampleCli("deletesnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03") +
         HelpExampleRpc("deletesnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"));
   }
+
+  LOCK(cs_snapshot);
 
   const uint256 snapshot_hash = uint256S(request.params[0].get_str());
   SnapshotIndex::DeleteSnapshot(snapshot_hash);

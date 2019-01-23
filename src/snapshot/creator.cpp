@@ -147,6 +147,15 @@ CreationInfo Creator::Create() {
   LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",
            snapshot_header.block_hash.GetHex(), snapshot_header.snapshot_hash.GetHex());
 
+  // can happen when the re-org happens back and forth
+  for (Checkpoint p : GetSnapshotCheckpoints()) {
+    if (p.snapshot_hash == snapshot_header.snapshot_hash) {
+      LogPrint(BCLog::SNAPSHOT, "skip creating snapshot for snapshot_hash=%s as it already exists\n",
+               snapshot_header.snapshot_hash.GetHex());
+      return info;
+    }
+  }
+
   Indexer indexer(snapshot_header, m_step, m_steps_per_file);
 
   while (m_iter.Valid()) {
@@ -168,6 +177,7 @@ CreationInfo Creator::Create() {
   }
 
   if (!indexer.Flush()) {
+    LOCK(cs_snapshot);
     Indexer::Delete(snapshot_header.snapshot_hash);
     info.status = Status::WRITE_ERROR;
     return info;
@@ -180,6 +190,7 @@ CreationInfo Creator::Create() {
 
   std::vector<uint256> to_remove = AddSnapshotHash(snapshot_header.snapshot_hash, block_index);
   for (const auto &hash : to_remove) {
+    LOCK(cs_snapshot);
     if (Indexer::Delete(hash)) {
       ConfirmRemoved(hash);
       LogPrint(BCLog::SNAPSHOT, "snapshot_hash=%s is deleted\n", hash.GetHex());

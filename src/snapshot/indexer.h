@@ -19,6 +19,7 @@
 #include <serialize.h>
 #include <snapshot/messages.h>
 #include <streams.h>
+#include <threadsafety.h>
 #include <util.h>
 #include <version.h>
 
@@ -102,6 +103,8 @@ namespace snapshot {
 constexpr uint32_t DEFAULT_INDEX_STEP = 1000;
 constexpr uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
 const char *const SNAPSHOT_FOLDER = "snapshots";
+
+extern CCriticalSection cs_snapshot;
 
 struct Meta {
   SnapshotHeader snapshot_header;

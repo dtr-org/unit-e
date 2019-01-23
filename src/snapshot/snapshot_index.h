@@ -7,6 +7,7 @@
 
 #include <chain.h>
 #include <serialize.h>
+#include <snapshot/indexer.h>
 #include <sync.h>
 #include <uint256.h>
 
@@ -118,8 +119,14 @@ class SnapshotIndex {
   bool GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
                                 uint256 &snapshotHashOut);
 
+  //! Returns Indexer if it is registered in g_snapshotIndex
+  //!
+  //! \param snapshot_hash which should be opened
+  //! \return Indexer if snapshot exists and registered in the index
+  static std::unique_ptr<Indexer> OpenSnapshot(const uint256 &snapshot_hash);
+
   //! Deletes snapshot from disk
-  static void DeleteSnapshot(const uint256 &snapshotHash);
+  static void DeleteSnapshot(const uint256 &snapshot_hash);
 
   // used in tests only
   static void Clear();

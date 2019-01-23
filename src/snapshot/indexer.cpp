@@ -9,7 +9,11 @@
 
 namespace snapshot {
 
-std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshot_hash) {
+CCriticalSection cs_snapshot;
+
+std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshot_hash) EXCLUSIVE_LOCKS_REQUIRED(cs_snapshot) {
+  AssertLockHeld(cs_snapshot);
+
   fs::path dir_path(GetDataDir() / SNAPSHOT_FOLDER / snapshot_hash.GetHex());
 
   Meta meta;
@@ -37,7 +41,9 @@ std::unique_ptr<Indexer> Indexer::Open(const uint256 &snapshot_hash) {
   return std::unique_ptr<Indexer>(new Indexer(meta, std::move(dir_idx)));
 }
 
-bool Indexer::Delete(const uint256 &snapshot_hash) {
+bool Indexer::Delete(const uint256 &snapshot_hash) EXCLUSIVE_LOCKS_REQUIRED(cs_snapshot) {
+  AssertLockHeld(cs_snapshot);
+
   fs::path dir_path(GetDataDir() / SNAPSHOT_FOLDER / snapshot_hash.GetHex());
   try {
     fs::remove_all(dir_path);
