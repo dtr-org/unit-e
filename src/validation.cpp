@@ -574,6 +574,9 @@ static BCLog::LogFlags GetTransactionLogType(const CTransaction &tx) {
     case +TxType::ADMIN:
         return BCLog::ADMIN;
     }
+    // suppress gcc warning
+    assert(not("Unreachable"));
+    return BCLog::NONE;
 }
 
 static bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
@@ -597,7 +600,7 @@ static bool CheckBlockFinalizationTransactions(const CBlock &block, CValidationS
                                                const Consensus::Params &params) {
     esperanza::FinalizationState *fin_state = nullptr;
     for (const auto &tx : block.vtx) {
-        if (tx->IsFinalizationTransaction() ) {
+        if (tx->IsFinalizationTransaction()) {
             if (fin_state == nullptr) {
                 LOCK(cs_main);
                 const CBlockIndex *const prev_index = LookupBlockIndex(block.hashPrevBlock);
