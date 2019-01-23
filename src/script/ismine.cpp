@@ -47,10 +47,9 @@ bool PermitsUncompressed(IsMineSigVersion sigversion)
     return sigversion == IsMineSigVersion::TOP || sigversion == IsMineSigVersion::P2SH;
 }
 
-/**
- * Checks that we own all the keys in the same way (either all in hardware, or
- * all in the software wallet).
- */
+
+//! Checks that we own all the keys in the same way (either all in hardware, or
+//! all in the software wallet).
 IsMineResult HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
 {
     IsMineResult own_all = IsMineResult::NO;
