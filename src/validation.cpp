@@ -3416,7 +3416,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 return state.DoS(
                     100, false, REJECT_INVALID, "bad-txns-duplicate", false,
                     strprintf(
-                        "Duplicated transaction %s", tx->GetHash().ToString()
+                        "Duplicate transaction %s", tx->GetHash().ToString()
                     )
                 );
             }
