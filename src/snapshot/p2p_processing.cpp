@@ -249,7 +249,7 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
   }
 
   // discover the best snapshot from the peers
-  if (!node.m_snapshot_discovery_sent) {
+  if (!node.m_snapshot_discovery_sent && (node.nServices & NODE_SNAPSHOT)) {
     node.m_snapshot_discovery_sent = true;
 
     const auto now = steady_clock::now();
@@ -545,6 +545,10 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
 }
 
 bool P2PState::InFlightSnapshotDiscovery(const CNode &node) {
+  if (~node.nServices & NODE_SNAPSHOT) {
+    return false;
+  }
+
   if (!node.m_snapshot_discovery_sent) {
     return false;
   }

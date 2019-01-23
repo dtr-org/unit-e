@@ -18,6 +18,15 @@ test_sync_with_restart checks:
 test_invalid_snapshot checks:
 1. the node ignores and deletes from disk the best snapshot when it's invalid
 2. the node fallbacks to the second best snapshot
+
+test_snapshot_service_flag checks:
+1. the node requests the snapshot from the peer that has snapshot flag set
+2. the node doesn't request the snapshot from the peer that doesn't have snapshot flag set
+
+test_missing_parent_block checks:
+1. the node asks all its current peers for the parent block
+2. the node asks newer connected peers for the parent block
+3. the node doesn't turn off ISD as the parent block is part of finalized epoch and peers must have it
 """
 
 from test_framework.test_framework import UnitETestFramework
@@ -25,6 +34,9 @@ from test_framework.mininode import (
     P2PInterface,
     network_thread_start,
     network_thread_join,
+    NODE_NETWORK,
+    NODE_WITNESS,
+    NODE_SNAPSHOT,
 )
 from test_framework.blocktools import (
     msg_headers,
@@ -61,6 +73,7 @@ import os
 class BaseNode(P2PInterface):
     def __init__(self):
         super().__init__()
+        self.return_snapshot_header = True
         self.snapshot_requested = False
         self.snapshot_header = SnapshotHeader()
         self.snapshot_data = []
@@ -77,8 +90,9 @@ class BaseNode(P2PInterface):
         self.send_message(msg)
 
     def on_getsnaphead(self, message):
-        assert(self.snapshot_header.snapshot_hash > 0)
-        self.send_message(msg_snaphead(self.snapshot_header))
+        if self.return_snapshot_header:
+            assert(self.snapshot_header.snapshot_hash > 0)
+            self.send_message(msg_snaphead(self.snapshot_header))
 
     def on_snaphead(self, message):
         self.snapshot_header = message.snapshot_header
@@ -139,6 +153,8 @@ class WaitNode(BaseNode):
 
         self.last_getsnapshot_message = None
 
+        self.snapshot_header_requested = False
+
         self.snapshot_chunk1_requested = False
         self.return_snapshot_chunk1 = False
 
@@ -147,6 +163,10 @@ class WaitNode(BaseNode):
 
         self.parent_block_requested = False
         self.return_parent_block = False
+
+    def on_getsnaphead(self, message):
+        self.snapshot_header_requested = True
+        super().on_getsnaphead(message)
 
     def on_getsnapshot(self, message):
         assert_equal(self.snapshot_header.snapshot_hash, message.getsnapshot.snapshot_hash)
@@ -222,7 +242,7 @@ def assert_no_snapshot_on_disk(node, snapshot_hash):
 class P2PSnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 6
+        self.num_nodes = 10
 
         serving_node_args = []
         syncing_node_args = ['-prune=1', '-isd=1', '-snapshotchunktimeout=60', '-snapshotdiscoverytimeout=60']
@@ -236,6 +256,14 @@ class P2PSnapshotTest(UnitETestFramework):
             syncing_node_args,
 
             # test_invalid_snapshot
+            serving_node_args,
+            syncing_node_args,
+
+            # test_snapshot_service_flag
+            serving_node_args,
+            syncing_node_args,
+
+            # test_missing_parent_block
             serving_node_args,
             syncing_node_args,
         ]
@@ -262,7 +290,7 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: has_valid_snapshot(serving_node, 3), timeout=10)
 
         syncing_p2p = serving_node.add_p2p_connection(BaseNode())
-        serving_p2p = syncing_node.add_p2p_connection(BaseNode())
+        serving_p2p = syncing_node.add_p2p_connection(BaseNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
 
         # configure serving_p2p to have snapshot header and parent block
         serving_p2p.update_snapshot_header_from(serving_node)
@@ -342,7 +370,7 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
 
         # configure p2p to have snapshot header and parent block
-        p2p = node.add_p2p_connection(WaitNode())
+        p2p = node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
         p2p.update_snapshot_header_from(snap_node)
         p2p.update_headers_and_blocks_from(snap_node)
 
@@ -366,7 +394,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # test 2. that node can be restarted after it downloaded half of the snapshot
         p2p.return_snapshot_chunk1 = True
-        node.add_p2p_connection(p2p)
+        node.add_p2p_connection(p2p, services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: p2p.snapshot_chunk2_requested, timeout=10)
         node.disconnect_p2ps()
@@ -377,7 +405,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # test 3. that node can be restarted after it downloaded the full snapshot
         p2p.return_snapshot_chunk2 = True
-        node.add_p2p_connection(p2p)
+        node.add_p2p_connection(p2p, services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: p2p.parent_block_requested, timeout=10)
         node.disconnect_p2ps()
@@ -387,7 +415,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # test 4. the node can be restarted after it downloaded the parent block
         p2p.return_parent_block = True
-        node.add_p2p_connection(p2p)
+        node.add_p2p_connection(p2p, services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: node.getblockcount() == snap_node.getblockcount(), timeout=10)
         assert_chainstate_equal(node, snap_node)
@@ -424,14 +452,14 @@ class P2PSnapshotTest(UnitETestFramework):
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
 
-        valid_p2p = node.add_p2p_connection(WaitNode())
+        valid_p2p = node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
         valid_p2p.update_snapshot_header_from(snap_node)
 
         # create the second snapshot and store it in broken_p2p
         snap_node.generatetoaddress(5, snap_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(snap_node, 8), timeout=10)
 
-        broken_p2p = node.add_p2p_connection(WaitNode())
+        broken_p2p = node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
         broken_p2p.update_snapshot_header_from(snap_node)
         broken_p2p.update_headers_and_blocks_from(snap_node)
         valid_p2p.update_headers_and_blocks_from(snap_node)
@@ -461,7 +489,7 @@ class P2PSnapshotTest(UnitETestFramework):
         assert_no_snapshot_on_disk(node, valid_p2p.snapshot_header.snapshot_hash)
         assert_equal(valid_p2p.snapshot_chunk1_requested, False)
 
-        # node detects broken snapshot, removes it and switching to the second best
+        # node detects broken snapshot, removes it and switches to the second best
         broken_p2p.return_snapshot_chunk2 = True
         broken_p2p.on_getsnapshot(broken_p2p.last_getsnapshot_message)
         wait_until(lambda: valid_p2p.snapshot_chunk1_requested, timeout=10)
@@ -486,12 +514,134 @@ class P2PSnapshotTest(UnitETestFramework):
 
         self.log.info('test_invalid_snapshot passed')
 
+    def test_snapshot_service_flag(self):
+        """
+        This test creates the following nodes:
+        1. snap_node - snapshot node that is used as a helper node to generate the snapshot
+        2. helper_p2p - mini node that retrieves the content of the snapshot
+        3. snap_p2p - mini node that delivers snapshot but without its parent block
+        4. no_snap_p2p - mini node that doesn't have snapshot
+        5. sync_node - the node which syncs with the snapshot but then fallbacks to IBD
+        """
+        snap_node = self.nodes[6]
+        sync_node = self.nodes[7]
+        self.start_node(snap_node.index)
+        self.start_node(sync_node.index)
+
+        # create the snapshot and store it in snap_p2p
+        snap_node.generatetoaddress(4, snap_node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
+
+        snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        snap_p2p.update_snapshot_header_from(snap_node)
+        snap_p2p.update_headers_and_blocks_from(snap_node)
+
+        no_snap_p2p = sync_node.add_p2p_connection(WaitNode())
+        no_snap_p2p.update_snapshot_header_from(snap_node)
+        no_snap_p2p.update_headers_and_blocks_from(snap_node)
+
+        # retrieve snapshot data
+        helper_p2p = snap_node.add_p2p_connection(BaseNode())
+        network_thread_start()
+        helper_p2p.wait_for_verack()
+        snap_p2p.snapshot_data = helper_p2p.fetch_snapshot_data(snap_p2p.snapshot_header)
+        self.stop_node(snap_node.index)
+
+        # test 1. the node requested the snapshot from the snap_p2p
+        snap_p2p.wait_for_verack()
+        wait_until(lambda: snap_p2p.snapshot_chunk1_requested, timeout=10)
+        assert(snap_p2p.snapshot_header_requested is True)
+
+        # test 2. the node doesn't requested the snapshot from the no_snap_p2p
+        no_snap_p2p.wait_for_verack()
+        assert(no_snap_p2p.snapshot_header_requested is False)
+        assert(no_snap_p2p.snapshot_chunk1_requested is False)
+
+        self.stop_node(sync_node.index)
+        network_thread_join()
+
+        self.log.info('test_snapshot_flag passed')
+
+    def test_missing_parent_block(self):
+        """
+        This test creates the following nodes:
+        1. snap_node - snapshot node that is used as a helper node to generate the snapshot
+        2. helper_p2p - mini node that retrieves the content of the snapshot
+        3. snap_p2p - mini node that delivers snapshot but without its parent block
+        4. no_snap_p2p - mini node that doesn't have snapshot
+        5. sync_node - the node which syncs with the snapshot but then fallbacks to IBD
+        """
+        snap_node = self.nodes[8]
+        sync_node = self.nodes[9]
+
+        self.start_node(snap_node.index)
+        self.start_node(sync_node.index)
+
+        # create the snapshot and store it in snap_p2p
+        snap_node.generatetoaddress(4, snap_node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
+
+        snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        snap_p2p.update_snapshot_header_from(snap_node)
+        snap_p2p.update_headers_and_blocks_from(snap_node)
+
+        no_snap_p2p = sync_node.add_p2p_connection(WaitNode())
+        no_snap_p2p.update_snapshot_header_from(snap_node)
+        no_snap_p2p.update_headers_and_blocks_from(snap_node)
+
+        # retrieve snapshot data
+        helper_p2p = snap_node.add_p2p_connection(BaseNode())
+        network_thread_start()
+        helper_p2p.wait_for_verack()
+        snap_p2p.snapshot_data = helper_p2p.fetch_snapshot_data(snap_p2p.snapshot_header)
+        self.stop_node(snap_node.index)
+
+        # deliver snapshot
+        snap_p2p.wait_for_verack()
+        no_snap_p2p.wait_for_verack()
+        wait_until(lambda: snap_p2p.snapshot_chunk1_requested, timeout=10)
+        snap_p2p.return_snapshot_chunk1 = True
+        snap_p2p.return_snapshot_chunk2 = True
+        snap_p2p.on_getsnapshot(snap_p2p.last_getsnapshot_message)
+
+        # test 1. the node asks all current peers for the parent block
+        wait_until(lambda: snap_p2p.parent_block_requested, timeout=10)
+        wait_until(lambda: no_snap_p2p.parent_block_requested, timeout=10)
+        assert_snapshot_on_disk(sync_node, snap_p2p.snapshot_header.snapshot_hash)
+
+        # test 2. the node asks newer connected peers for the parent block
+        sync_node.disconnect_p2ps()
+        network_thread_join()
+
+        snap_p2p.snapshot_chunk1_requested = False
+        snap_p2p.parent_block_requested = False
+        no_snap_p2p.parent_block_requested = False
+
+        sync_node.add_p2p_connection(snap_p2p)
+        sync_node.add_p2p_connection(no_snap_p2p)
+        network_thread_start()
+        snap_p2p.wait_for_verack()
+        snap_p2p.wait_for_verack()
+
+        wait_until(lambda: snap_p2p.parent_block_requested, timeout=10)
+        wait_until(lambda: no_snap_p2p.parent_block_requested, timeout=10)
+        assert(snap_p2p.snapshot_chunk1_requested is False)
+        assert(no_snap_p2p.snapshot_chunk1_requested is False)
+        assert_snapshot_on_disk(sync_node, snap_p2p.snapshot_header.snapshot_hash)
+
+        self.stop_node(sync_node.index)
+        network_thread_join()
+
+        self.log.info('test_missing_parent_block passed')
+
     def run_test(self):
         self.stop_nodes()
 
         self.test_p2p_schema()
         self.test_sync_with_restarts()
         self.test_invalid_snapshot()
+        self.test_snapshot_service_flag()
+        self.test_missing_parent_block()
 
 
 if __name__ == '__main__':
