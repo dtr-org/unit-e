@@ -14,6 +14,10 @@ test_sync_with_restart checks:
 2. the node can start after it downloaded half the snapshot and was stopped
 3. the node can start after it downloaded the full snapshot and was stopped
 4. the node can start after it downloaded the parent block of the snapshot and was stopped
+
+test_invalid_snapshot checks:
+1. the node ignores and deletes from disk the best snapshot when it's invalid
+2. the node fallbacks to the second best snapshot
 """
 
 from test_framework.test_framework import UnitETestFramework
@@ -46,6 +50,8 @@ from test_framework.util import (
     wait_until,
     bytes_to_hex_str,
     hex_str_to_bytes,
+    connect_nodes,
+    sync_blocks,
 )
 
 import math
@@ -92,7 +98,7 @@ class BaseNode(P2PInterface):
                 break
 
     def update_snapshot_header_from(self, node):
-        res = node.listsnapshots()[0]
+        res = node.listsnapshots()[-1]  # take the latest
         self.snapshot_header = SnapshotHeader(
             snapshot_hash=uint256_from_rev_hex(res['snapshot_hash']),
             block_hash=uint256_from_rev_hex(res['block_hash']),
@@ -117,10 +123,21 @@ class BaseNode(P2PInterface):
                 FromHex(self.parent_block, block)
                 self.parent_block.calc_sha256()
 
+    def fetch_snapshot_data(self, snapshot_header):
+        self.snapshot_data = []
+        self.snapshot_header = snapshot_header
+        getsnapshot = GetSnapshot(snapshot_header.snapshot_hash, 0,
+                                  snapshot_header.total_utxo_subsets)
+        self.send_message(msg_getsnapshot(getsnapshot))
+        wait_until(lambda: len(self.snapshot_data) > 0, timeout=10)
+        return self.snapshot_data
+
 
 class WaitNode(BaseNode):
     def __init__(self):
         super().__init__()
+
+        self.last_getsnapshot_message = None
 
         self.snapshot_chunk1_requested = False
         self.return_snapshot_chunk1 = False
@@ -132,6 +149,9 @@ class WaitNode(BaseNode):
         self.return_parent_block = False
 
     def on_getsnapshot(self, message):
+        assert_equal(self.snapshot_header.snapshot_hash, message.getsnapshot.snapshot_hash)
+        self.last_getsnapshot_message = message
+
         start = message.getsnapshot.utxo_subset_index
         stop = start + len(self.snapshot_data) / 2
         snapshot = Snapshot(
@@ -186,10 +206,23 @@ def assert_chainstate_equal(node1, node2):
         assert_equal(info1[k], info2[k])
 
 
+def path_to_snapshot(node, snapshot_hash):
+    h = bytes_to_hex_str(bytes(reversed(ser_uint256(snapshot_hash))))
+    return os.path.join(node.datadir, 'regtest', 'snapshots', h)
+
+
+def assert_snapshot_on_disk(node, snapshot_hash):
+    assert(os.path.isdir(path_to_snapshot(node, snapshot_hash)))
+
+
+def assert_no_snapshot_on_disk(node, snapshot_hash):
+    assert(os.path.isdir(path_to_snapshot(node, snapshot_hash)) is False)
+
+
 class P2PSnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 4
+        self.num_nodes = 6
 
         serving_node_args = []
         syncing_node_args = ['-prune=1', '-isd=1', '-snapshotchunktimeout=60', '-snapshotdiscoverytimeout=60']
@@ -199,6 +232,10 @@ class P2PSnapshotTest(UnitETestFramework):
             syncing_node_args,
 
             # test_sync_with_restarts
+            serving_node_args,
+            syncing_node_args,
+
+            # test_invalid_snapshot
             serving_node_args,
             syncing_node_args,
         ]
@@ -313,16 +350,11 @@ class P2PSnapshotTest(UnitETestFramework):
         snap_p2p = snap_node.add_p2p_connection(BaseNode())
 
         network_thread_start()
-        p2p.wait_for_verack()
+        snap_p2p.wait_for_verack()
 
         # fetch snapshot content for p2p
         snap_p2p.wait_for_verack()
-        snap_p2p.send_message(msg_getsnaphead())
-        wait_until(lambda: snap_p2p.snapshot_header.total_utxo_subsets > 0, timeout=10)
-        getsnapshot = GetSnapshot(snap_p2p.snapshot_header.snapshot_hash, 0, snap_p2p.snapshot_header.total_utxo_subsets)
-        snap_p2p.send_message(msg_getsnapshot(getsnapshot))
-        wait_until(lambda: len(snap_p2p.snapshot_data) > 0, timeout=10)
-        p2p.snapshot_data = snap_p2p.snapshot_data
+        p2p.snapshot_data = snap_p2p.fetch_snapshot_data(p2p.snapshot_header)
         snap_node.disconnect_p2ps()
 
         # test 1. the node can be restarted after it discovered the snapshot
@@ -372,11 +404,94 @@ class P2PSnapshotTest(UnitETestFramework):
         self.stop_node(node.index)
         self.log.info('test_sync_with_restarts passed')
 
+    def test_invalid_snapshot(self):
+        """
+        This test creates the following nodes:
+        1. snap_node - full node that has the the snapshot
+        2. snap_p2p - mini node that is used as a helper to retrieve the snapshot content
+        3. node - the node which syncs the snapshot
+        4. broken_p2p - mini node that claims has the best snapshot but it's broken
+        5. valid_p2p - mini node that sends a valid snapshot
+        """
+
+        snap_node = self.nodes[4]
+        node = self.nodes[5]
+
+        self.start_node(snap_node.index)
+        self.start_node(node.index)
+
+        # create the first snapshot and store it in valid_p2p
+        snap_node.generatetoaddress(4, snap_node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
+
+        valid_p2p = node.add_p2p_connection(WaitNode())
+        valid_p2p.update_snapshot_header_from(snap_node)
+
+        # create the second snapshot and store it in broken_p2p
+        snap_node.generatetoaddress(5, snap_node.getnewaddress())
+        wait_until(lambda: has_valid_snapshot(snap_node, 8), timeout=10)
+
+        broken_p2p = node.add_p2p_connection(WaitNode())
+        broken_p2p.update_snapshot_header_from(snap_node)
+        broken_p2p.update_headers_and_blocks_from(snap_node)
+        valid_p2p.update_headers_and_blocks_from(snap_node)
+
+        # helper p2p connection to fetch snapshot content
+        snap_p2p = snap_node.add_p2p_connection(BaseNode())
+
+        network_thread_start()
+
+        # make sure that node knows about both peers
+        valid_p2p.wait_for_verack()
+        broken_p2p.wait_for_verack()
+
+        # add snapshot data to p2p
+        snap_p2p.wait_for_verack()
+        valid_p2p.snapshot_data = snap_p2p.fetch_snapshot_data(valid_p2p.snapshot_header)
+        broken_p2p.snapshot_data = snap_p2p.fetch_snapshot_data(broken_p2p.snapshot_header)
+        broken_p2p.snapshot_data[-1].outputs[0].nValue *= 2  # break snapshot
+        snap_node.disconnect_p2ps()
+
+        # node must pick the best snapshot
+        wait_until(lambda: broken_p2p.snapshot_chunk1_requested, timeout=10)
+        broken_p2p.return_snapshot_chunk1 = True
+        broken_p2p.on_getsnapshot(broken_p2p.last_getsnapshot_message)
+        wait_until(lambda: broken_p2p.snapshot_chunk2_requested, timeout=10)
+        assert_snapshot_on_disk(node, broken_p2p.snapshot_header.snapshot_hash)
+        assert_no_snapshot_on_disk(node, valid_p2p.snapshot_header.snapshot_hash)
+        assert_equal(valid_p2p.snapshot_chunk1_requested, False)
+
+        # node detects broken snapshot, removes it and switching to the second best
+        broken_p2p.return_snapshot_chunk2 = True
+        broken_p2p.on_getsnapshot(broken_p2p.last_getsnapshot_message)
+        wait_until(lambda: valid_p2p.snapshot_chunk1_requested, timeout=10)
+        assert_no_snapshot_on_disk(node, broken_p2p.snapshot_header.snapshot_hash)
+        valid_p2p.return_snapshot_chunk1 = True
+        valid_p2p.on_getsnapshot(valid_p2p.last_getsnapshot_message)
+        wait_until(lambda: valid_p2p.snapshot_chunk2_requested, timeout=10)
+        assert_snapshot_on_disk(node, valid_p2p.snapshot_header.snapshot_hash)
+        valid_p2p.return_snapshot_chunk2 = True
+        valid_p2p.return_parent_block = True
+        valid_p2p.on_getsnapshot(valid_p2p.last_getsnapshot_message)
+
+        # node requests parent block and finishes ISD
+        wait_until(lambda: node.getblockcount() == 4, timeout=10)
+        assert_equal(node.getblockhash(4), valid_p2p.parent_block.hash)
+        node.disconnect_p2ps()
+
+        # sanity check. let the node finish syncing and validate the chainstate
+        connect_nodes(node, snap_node.index)
+        sync_blocks([node, snap_node], timeout=10)
+        assert_chainstate_equal(snap_node, node)
+
+        self.log.info('test_invalid_snapshot passed')
+
     def run_test(self):
         self.stop_nodes()
 
         self.test_p2p_schema()
         self.test_sync_with_restarts()
+        self.test_invalid_snapshot()
 
 
 if __name__ == '__main__':
