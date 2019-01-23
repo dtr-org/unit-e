@@ -599,6 +599,7 @@ static bool CheckBlockFinalizationTransactions(const CBlock &block, CValidationS
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizationTransaction() ) {
             if (fin_state == nullptr) {
+                LOCK(cs_main);
                 const CBlockIndex *const prev_index = LookupBlockIndex(block.hashPrevBlock);
                 fin_state = esperanza::FinalizationState::GetState(prev_index);
                 assert(fin_state != nullptr);
