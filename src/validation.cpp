@@ -3411,7 +3411,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
             return false;
         }
-        if (prevTx && (tx->GetHash().CompareLexicographically(prevTx->GetHash()) <= 0)){
+        if (prevTx && (tx->GetHash().CompareAsNumber(prevTx->GetHash()) <= 0)){
             if (tx->GetHash() == prevTx->GetHash()) {
                 return state.DoS(
                     100, false, REJECT_INVALID, "bad-txns-duplicate", false,

@@ -635,7 +635,7 @@ BOOST_AUTO_TEST_CASE(DisconnectionTopologicalOrderTest)
     std::sort(
         std::begin(vtx) + 1, std::end(vtx),
         [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
-          return a->GetHash().CompareLexicographically(b->GetHash()) < 0;
+          return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
         }
     );
 
