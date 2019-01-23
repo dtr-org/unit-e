@@ -52,28 +52,25 @@ bool PermitsUncompressed(IsMineSigVersion sigversion)
 //! all in the software wallet).
 IsMineResult HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
 {
-    IsMineResult own_all = IsMineResult::NO;
+    size_t hw_key_count = 0, wallet_key_count = 0;
+
     for (const valtype& pubkey : pubkeys) {
-        IsMineResult own_this_key = IsMineResult::NO;
         CKeyID keyID = CPubKey(pubkey).GetID();
-
         if (keystore.HaveHardwareKey(keyID)) {
-            own_this_key = IsMineResult::HW_DEVICE;
-        } else if (keystore.HaveKey(keyID)) {
-            own_this_key = IsMineResult::SPENDABLE;
-        } else {
-            return IsMineResult::NO;
+            hw_key_count++;
         }
-
-        if (own_all == IsMineResult::NO) {
-            // One-time initialization
-            own_all = own_this_key;
-        }
-        if (own_all != own_this_key) {
-            return IsMineResult::NO;
+        if (keystore.HaveKey(keyID)) {
+            wallet_key_count++;
         }
     }
-    return own_all;
+
+    if (wallet_key_count == pubkeys.size()) {
+        return IsMineResult::SPENDABLE;
+    }
+    if (hw_key_count == pubkeys.size()) {
+        return IsMineResult::HW_DEVICE;
+    }
+    return IsMineResult::NO;
 }
 
 IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion)
