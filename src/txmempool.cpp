@@ -595,6 +595,12 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         ClearPrioritisation(tx->GetHash());
     }
 
+    // Although one would expect that this call is not really needed, the
+    // DisconnectedBlockTransactions struct has been designed to assert in its
+    // destructor that all tx have been removed from its queue before, and it
+    // does not do that by itself, in order to enforce some system-broad
+    // properties. Here we are using this struct in a different way, so we have
+    // to take care on our own.
     disconnectpool.clear();
 
     lastRollingFeeUpdate = GetTime();
