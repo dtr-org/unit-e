@@ -40,9 +40,7 @@ bool ValidateCandidateBlockTx(const CTransaction &tx,
     return false;
   }
 
-  uint256 sm = blockIndex->pprev->stake_modifier;
-  uint256 cw = ArithToUint256(blockIndex->pprev->nChainWork);
-  return view.GetSnapshotHash().GetHash(sm, cw) == uint256(buf);
+  return view.GetSnapshotHash().GetHash(*blockIndex->pprev) == uint256(buf);
 }
 
 bool ReadSnapshotHashFromTx(const CTransaction &tx,

@@ -4,6 +4,7 @@
 
 #include <proposer/proposer.h>
 
+#include <proposer/eligible_coin.h>
 #include <proposer/multiwallet.h>
 #include <test/test_unite.h>
 #include <wallet/wallet.h>
@@ -97,6 +98,12 @@ struct Fixture {
   };
 
   class BlockBuilderMock : public proposer::BlockBuilder {
+    const CTransactionRef BuildCoinbaseTransaction(
+        const uint256 &,
+        const proposer::EligibleCoin &,
+        const std::vector<staking::Coin> &,
+        CAmount,
+        staking::StakingWallet &) const override { return nullptr; };
     std::shared_ptr<const CBlock> BuildBlock(
         const CBlockIndex &,
         const uint256 &,

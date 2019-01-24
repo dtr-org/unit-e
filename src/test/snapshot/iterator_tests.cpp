@@ -18,8 +18,10 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
 
   {
     // generate the snapshot
-    uint256 blockHash = uint256S("aa");
-    snapshot::Indexer idx(uint256S("bb"), blockHash, uint256(), uint256(), 3, 2);
+    snapshot::SnapshotHeader snapshot_header;
+    snapshot_header.block_hash = uint256S("aa");
+    snapshot_header.snapshot_hash = uint256S("bb");
+    snapshot::Indexer idx(snapshot_header, 3, 2);
     for (uint32_t i = 0; i < msgsToGenerate; ++i) {
       snapshot::UTXOSubset subset;
       subset.tx_id.SetHex(std::to_string(i));
@@ -36,6 +38,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
 
   {
     // test snapshot hash calculation
+    LOCK(snapshot::cs_snapshot);
     std::unique_ptr<snapshot::Indexer> idx = snapshot::Indexer::Open(uint256S("bb"));
     BOOST_CHECK(idx != nullptr);
     snapshot::Iterator iter(std::move(idx));
@@ -45,14 +48,15 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
 
   {
     // open the snapshot
+    LOCK(snapshot::cs_snapshot);
     auto idx = snapshot::Indexer::Open(uint256S("bb"));
     BOOST_CHECK(idx != nullptr);
 
     snapshot::Iterator iter(std::move(idx));
     BOOST_CHECK_EQUAL(
-        HexStr(iter.GetBestBlockHash()),
+        HexStr(iter.GetSnapshotHeader().block_hash),
         "aa00000000000000000000000000000000000000000000000000000000000000");
-    BOOST_CHECK_EQUAL(iter.GetTotalUTXOSubsets(), msgsToGenerate);
+    BOOST_CHECK_EQUAL(iter.GetSnapshotHeader().total_utxo_subsets, msgsToGenerate);
 
     // iterate sequentially
     uint32_t count = 0;

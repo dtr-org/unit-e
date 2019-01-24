@@ -14,6 +14,28 @@
 
 namespace esperanza {
 
+bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
+                                  const Consensus::Params &params, const FinalizationState &fin_state) {
+  switch (tx.GetType()) {
+    case +TxType::STANDARD:
+    case +TxType::COINBASE:
+      assert(not("Shouldn't be called on non-finalization transaction"));
+    case +TxType::DEPOSIT:
+      return CheckDepositTransaction(err_state, tx, fin_state);
+    case +TxType::VOTE:
+      return CheckVoteTransaction(err_state, tx, params, fin_state);
+    case +TxType::LOGOUT:
+      return CheckLogoutTransaction(err_state, tx, params, fin_state);
+    case +TxType::SLASH:
+      return CheckSlashTransaction(err_state, tx, params, fin_state);
+    case +TxType::WITHDRAW:
+      return CheckWithdrawTransaction(err_state, tx, params, fin_state);
+    case +TxType::ADMIN:
+      return CheckAdminTransaction(err_state, tx, fin_state);
+  }
+  return false;
+}
+
 bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
                              const FinalizationState &state) {
 

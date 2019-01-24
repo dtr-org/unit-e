@@ -19,6 +19,7 @@
 #include <serialize.h>
 #include <snapshot/messages.h>
 #include <streams.h>
+#include <threadsafety.h>
 #include <util.h>
 #include <version.h>
 
@@ -103,33 +104,23 @@ constexpr uint32_t DEFAULT_INDEX_STEP = 1000;
 constexpr uint32_t DEFAULT_INDEX_STEP_PER_FILE = 100;
 const char *const SNAPSHOT_FOLDER = "snapshots";
 
+extern CCriticalSection cs_snapshot;
+
 struct Meta {
-  uint256 snapshot_hash;
-  uint256 block_hash;
-  uint256 stake_modifier;
-  uint256 chain_work;
-  uint64_t total_utxo_subsets = 0;
+  SnapshotHeader snapshot_header;
   uint32_t step = 0;
   uint32_t steps_per_file = 0;
 
   Meta() = default;
 
-  Meta(const uint256 &_snapshot_hash, const uint256 &_block_hash,
-       const uint256 &_stake_modifier, const uint256 &_chain_work)
-      : snapshot_hash(_snapshot_hash),
-        block_hash(_block_hash),
-        stake_modifier(_stake_modifier),
-        chain_work(_chain_work) {}
+  explicit Meta(const SnapshotHeader &_snapshot_header)
+      : snapshot_header(_snapshot_header) {}
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(snapshot_hash);
-    READWRITE(block_hash);
-    READWRITE(stake_modifier);
-    READWRITE(chain_work);
-    READWRITE(total_utxo_subsets);
+    READWRITE(snapshot_header);
     READWRITE(step);
     READWRITE(steps_per_file);
   }
@@ -145,11 +136,10 @@ class Indexer {
   static std::unique_ptr<Indexer> Open(const uint256 &snapshot_hash);
   static bool Delete(const uint256 &snapshot_hash);
 
-  explicit Indexer(const uint256 &snapshot_hash, const uint256 &block_hash,
-                   const uint256 &stake_modifier, const uint256 &chain_work,
+  explicit Indexer(const SnapshotHeader &snapshot_header,
                    uint32_t step, uint32_t steps_per_file);
 
-  const Meta &GetMeta() const { return m_meta; }
+  const SnapshotHeader &GetSnapshotHeader() const { return m_meta.snapshot_header; }
   bool WriteUTXOSubsets(const std::vector<UTXOSubset> &list);
   bool WriteUTXOSubset(const UTXOSubset &utxo_subset);
 

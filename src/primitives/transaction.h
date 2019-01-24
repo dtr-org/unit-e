@@ -371,20 +371,7 @@ public:
         return GetType() == +TxType::SLASH;
     }
 
-    bool IsCommit() const {
-        switch (GetType()) {
-        case +TxType::DEPOSIT:
-        case +TxType::VOTE:
-        case +TxType::LOGOUT:
-        case +TxType::SLASH:
-        case +TxType::WITHDRAW:
-        case +TxType::ADMIN:
-            return true;
-        case +TxType::STANDARD:
-        case +TxType::COINBASE:
-            return false;
-        }
-    }
+    bool IsFinalizationTransaction() const;
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {

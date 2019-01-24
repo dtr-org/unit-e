@@ -7,6 +7,7 @@
 
 #include <chain.h>
 #include <serialize.h>
+#include <snapshot/indexer.h>
 #include <sync.h>
 #include <uint256.h>
 
@@ -20,20 +21,15 @@
 namespace snapshot {
 
 struct Checkpoint {
-  int height;
-  bool finalized;
+  int height = 0;
+  bool finalized = false;
   uint256 snapshot_hash;
   uint256 block_hash;
 
-  Checkpoint()
-      : height(0),
-        finalized(false),
-        snapshot_hash(),
-        block_hash() {}
+  Checkpoint() = default;
 
-  Checkpoint(int _height, uint256 _snapshot_hash, uint256 _block_hash)
+  Checkpoint(const int _height, const uint256 &_snapshot_hash, const uint256 &_block_hash)
       : height(_height),
-        finalized(false),
         snapshot_hash(_snapshot_hash),
         block_hash(_block_hash) {}
 
@@ -69,70 +65,73 @@ struct Checkpoint {
 //! that SnapshotIndex won't return them again when `AddSnapshotHash` is called.
 class SnapshotIndex {
  public:
-  explicit SnapshotIndex(uint32_t maxSnapshots, uint32_t minFinalizedSnapshots,
-                         bool m_sanityCheck = false)
-      : m_maxSnapshots(maxSnapshots),
-        m_minFinalizedSnapshots(minFinalizedSnapshots),
-        m_sanityCheck(m_sanityCheck) {
-    assert(m_minFinalizedSnapshots > 0);
-    assert(m_minFinalizedSnapshots < m_maxSnapshots);
+  explicit SnapshotIndex(const uint32_t max_snapshots, const uint32_t min_finalized_snapshots,
+                         const bool sanity_check = false)
+      : m_max_snapshots(max_snapshots),
+        m_min_finalized_snapshots(min_finalized_snapshots),
+        m_sanity_check(sanity_check) {
+    assert(m_min_finalized_snapshots > 0);
+    assert(m_min_finalized_snapshots < m_max_snapshots);
   }
 
   ADD_SERIALIZE_METHODS;
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(m_indexMap);
-    READWRITE(m_snapshotsForRemoval);
+    READWRITE(m_index_map);
+    READWRITE(m_snapshots_for_removal);
   }
 
   //! Adds snapshot hash to the index
   //!
-  //! \param snapshotHash that must be added
-  //! \param blockIndex that snapshotHash is referenced to
+  //! \param snapshot_hash that must be added
+  //! \param block_index that snapshotHash is referenced to
   //! \return the list of snapshots for removal. After removing each snapshot
   //! it must be confirmed via ConfirmRemoved to prevent returning it again
-  std::vector<uint256> AddSnapshotHash(const uint256 &snapshotHash,
-                                       const CBlockIndex *blockIndex);
+  std::vector<uint256> AddSnapshotHash(const uint256 &snapshot_hash,
+                                       const CBlockIndex *block_index);
 
-  bool GetSnapshotHash(const CBlockIndex *blockIndex,
-                       uint256 &snapshotHashOut);
+  bool GetSnapshotHash(const CBlockIndex *block_index,
+                       uint256 &snapshot_hash_out);
 
   //! returns all available checkpoints at which snapshot was created
   std::vector<Checkpoint> GetSnapshotCheckpoints();
 
   //! Confirms that the snapshot was removed from disk
   //! and now can be removed from the index
-  void ConfirmRemoved(const uint256 &snapshotHash);
+  void ConfirmRemoved(const uint256 &snapshot_hash);
 
   //! Marks snapshots of the same branch as the block
   //! up to the block height finalized
   //!
-  //! \param blockIndex is the last one of finalized epoch
+  //! \param block_index is the last one of finalized epoch
   //! \return the list of snapshots for removal. After removing each snapshot
   //! it must be confirmed via ConfirmRemoved to prevent returning it again
-  std::vector<uint256> FinalizeSnapshots(const CBlockIndex *blockIndex);
+  std::vector<uint256> FinalizeSnapshots(const CBlockIndex *block_index);
 
-  bool GetLatestFinalizedSnapshotHash(uint256 &snapshotHashOut);
+  bool GetLatestFinalizedSnapshotHash(uint256 &snapshot_hash_out);
 
-  bool GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
-                                uint256 &snapshotHashOut);
+  //! Returns Indexer if it is registered in g_snapshotIndex
+  //!
+  //! \param snapshot_hash which should be opened
+  //! \return Indexer if snapshot exists and registered in the index
+  static std::unique_ptr<Indexer> OpenSnapshot(const uint256 &snapshot_hash);
 
   //! Deletes snapshot from disk
-  static void DeleteSnapshot(const uint256 &snapshotHash);
+  static void DeleteSnapshot(const uint256 &snapshot_hash);
 
   // used in tests only
   static void Clear();
 
  private:
   //! maximum snapshots to keep
-  uint32_t m_maxSnapshots;
+  uint32_t m_max_snapshots;
 
   //! minimum finalized snapshots to keep
-  uint32_t m_minFinalizedSnapshots;
+  uint32_t m_min_finalized_snapshots;
 
   //! sanity check, disabled by default
-  bool m_sanityCheck;
+  bool m_sanity_check;
 
   //! controls synchronization of functions
   CCriticalSection m_cs;
@@ -140,10 +139,10 @@ class SnapshotIndex {
   //! keeps track of available snapshot hashes
   //! key - block height the snapshot hash points to
   //! value - block and snapshot hash
-  std::map<int, Checkpoint> m_indexMap;
+  std::map<int, Checkpoint> m_index_map;
 
   //! snapshots that must be confirmed that removed from disk
-  std::set<uint256> m_snapshotsForRemoval;
+  std::set<uint256> m_snapshots_for_removal;
 
   //! returns snapshots which must be removed
   std::vector<uint256> SnapshotsForRemoval();
@@ -155,7 +154,7 @@ class SnapshotIndex {
   void RemoveHighest();
 
   //! removes snapshotHash from index
-  void DeleteSnapshotHash(const uint256 &snapshotHash);
+  void DeleteSnapshotHash(const uint256 &snapshot_hash);
 
   void SanityCheck();
 };
@@ -167,28 +166,24 @@ void LoadSnapshotIndex();
 void SaveSnapshotIndex();
 
 //! proxy to g_snapshotIndex.AddSnapshotHash()
-std::vector<uint256> AddSnapshotHash(const uint256 &snapshotHash,
-                                     const CBlockIndex *block);
+std::vector<uint256> AddSnapshotHash(const uint256 &snapshot_hash,
+                                     const CBlockIndex *block_index);
 
 //! proxy to g_snapshotIndex.GetSnapshotHash()
-bool GetSnapshotHash(const CBlockIndex *blockIndex,
-                     uint256 &snapshotHashOut);
+bool GetSnapshotHash(const CBlockIndex *block_index,
+                     uint256 &snapshot_hash_out);
 
 //! proxy to g_snapshotIndex.GetSnapshotCheckpoints()
 std::vector<Checkpoint> GetSnapshotCheckpoints();
 
 //! proxy to g_snapshotIndex.ConfirmRemoved()
-void ConfirmRemoved(const uint256 &snapshotHash);
+void ConfirmRemoved(const uint256 &snapshot_hash);
 
 //! proxy to g_snapshotIndex.GetLatestFinalizedSnapshotHash()
-bool GetLatestFinalizedSnapshotHash(uint256 &snapshotHashOut);
-
-//! proxy to g_snapshotIndex.GetFinalizedSnapshotHash()
-bool GetFinalizedSnapshotHash(const CBlockIndex *blockIndex,
-                              uint256 &snapshotHashOut);
+bool GetLatestFinalizedSnapshotHash(uint256 &snapshot_hash_out);
 
 //! proxy to g_snapshotIndex.FinalizeSnapshots()
-void FinalizeSnapshots(const CBlockIndex *blockIndex);
+void FinalizeSnapshots(const CBlockIndex *block_index);
 
 }  // namespace snapshot
 

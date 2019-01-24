@@ -43,8 +43,7 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   const uint256 ComputeSnapshotHash() const override {
-    return pcoinsTip->GetSnapshotHash().GetHash(GetTip()->stake_modifier,
-                                                ArithToUint256(GetTip()->nChainWork));
+    return pcoinsTip->GetSnapshotHash().GetHash(*GetTip());
   }
 
   bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override {

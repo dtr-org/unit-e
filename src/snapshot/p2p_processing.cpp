@@ -38,6 +38,8 @@ bool P2PState::ProcessGetSnapshotHeader(CNode &node, CDataStream &data,
     return false;
   }
 
+  LOCK(cs_snapshot);
+
   std::unique_ptr<const Indexer> indexer = Indexer::Open(snapshot_hash);
   if (!indexer) {
     LogPrint(BCLog::SNAPSHOT, "%s: can't read snapshot %s\n",
@@ -46,13 +48,7 @@ bool P2PState::ProcessGetSnapshotHeader(CNode &node, CDataStream &data,
     return false;
   }
 
-  SnapshotHeader best_snapshot;
-  best_snapshot.snapshot_hash = indexer->GetMeta().snapshot_hash;
-  best_snapshot.block_hash = indexer->GetMeta().block_hash;
-  best_snapshot.stake_modifier = indexer->GetMeta().stake_modifier;
-  best_snapshot.chain_work = indexer->GetMeta().chain_work;
-  best_snapshot.total_utxo_subsets = indexer->GetMeta().total_utxo_subsets;
-
+  const SnapshotHeader &best_snapshot = indexer->GetSnapshotHeader();
   LogPrint(BCLog::SNAPSHOT, "%s: return snapshot_hash=%s block_hash=%s to peer=%i\n",
            NetMsgType::GETSNAPSHOTHEADER,
            best_snapshot.snapshot_hash.GetHex(),
@@ -74,14 +70,9 @@ bool P2PState::ProcessGetSnapshot(CNode &node, CDataStream &data,
   GetSnapshot get;
   data >> get;
 
-  std::unique_ptr<Indexer> indexer = nullptr;
-  for (const Checkpoint &cp : GetSnapshotCheckpoints()) {
-    if (cp.snapshot_hash == get.snapshot_hash) {
-      indexer = Indexer::Open(get.snapshot_hash);
-      break;
-    }
-  }
+  LOCK(cs_snapshot);
 
+  std::unique_ptr<Indexer> indexer = SnapshotIndex::OpenSnapshot(get.snapshot_hash);
   if (!indexer) {
     // todo: send notfound that node can act immediately
     // instead of waiting for timeout
@@ -93,7 +84,7 @@ bool P2PState::ProcessGetSnapshot(CNode &node, CDataStream &data,
 
   Iterator iter(std::move(indexer));
   Snapshot snapshot;
-  snapshot.snapshot_hash = iter.GetSnapshotHash();
+  snapshot.snapshot_hash = iter.GetSnapshotHeader().snapshot_hash;
   snapshot.utxo_subset_index = get.utxo_subset_index;
 
   if (!iter.GetUTXOSubsets(snapshot.utxo_subset_index, get.utxo_subset_count,
@@ -168,19 +159,18 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
     return false;
   }
 
+  LOCK2(cs_main, cs_snapshot);
+
   std::unique_ptr<Indexer> indexer = Indexer::Open(msg.snapshot_hash);
   if (!indexer) {
-    indexer.reset(new Indexer(msg.snapshot_hash,
-                              node.m_best_snapshot.block_hash,
-                              node.m_best_snapshot.stake_modifier,
-                              node.m_best_snapshot.chain_work,
+    indexer.reset(new Indexer(node.m_best_snapshot,
                               DEFAULT_INDEX_STEP, DEFAULT_INDEX_STEP_PER_FILE));
   }
 
-  if (indexer->GetMeta().total_utxo_subsets != msg.utxo_subset_index) {
+  if (indexer->GetSnapshotHeader().total_utxo_subsets != msg.utxo_subset_index) {
     // ask the peer the correct index
     GetSnapshot get(msg.snapshot_hash);
-    get.utxo_subset_index = indexer->GetMeta().total_utxo_subsets;
+    get.utxo_subset_index = indexer->GetSnapshotHeader().total_utxo_subsets;
     get.utxo_subset_count = MAX_UTXO_SET_COUNT;
     return SendGetSnapshot(node, get, msg_maker);
   }
@@ -199,7 +189,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
     return false;
   }
 
-  if (indexer->GetMeta().total_utxo_subsets == node.m_best_snapshot.total_utxo_subsets) {
+  if (indexer->GetSnapshotHeader().total_utxo_subsets == node.m_best_snapshot.total_utxo_subsets) {
     Iterator iterator(std::move(indexer));
     uint256 hash = iterator.CalculateHash(node.m_best_snapshot.stake_modifier,
                                           node.m_best_snapshot.chain_work);
@@ -216,8 +206,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
       return false;
     }
 
-    LOCK(cs_main);
-    StoreCandidateBlockHash(iterator.GetBestBlockHash());
+    StoreCandidateBlockHash(iterator.GetSnapshotHeader().block_hash);
     const CBlockIndex *const bi = LookupBlockIndex(node.m_best_snapshot.block_hash);
     assert(bi);
     AddSnapshotHash(m_downloading_snapshot.snapshot_hash, bi);
@@ -249,9 +238,10 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
   }
 
   // reset best snapshot at the beginning of the loop
-  // and check it the end of the iteration
+  // and check it at the end of the iteration
   if (node_index == 0) {
     m_best_snapshot.SetNull();
+    m_in_flight_snapshot_discovery = false;
   }
 
   if (m_first_discovery_request_at == time_point::min()) {
@@ -277,7 +267,11 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
   // start snapshot downloading
 
   SnapshotHeader node_best_snapshot = NodeBestSnapshot(node);
-  if (!node_best_snapshot.IsNull()) {
+  if (node_best_snapshot.IsNull()) {
+    if (InFlightSnapshotDiscovery(node)) {
+      m_in_flight_snapshot_discovery = true;
+    }
+  } else {
     SetIfBestSnapshot(node_best_snapshot);
 
     // if the peer has the snapshot that node decided to download
@@ -289,9 +283,12 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
       msg.utxo_subset_index = 0;
       msg.utxo_subset_count = MAX_UTXO_SET_COUNT;
 
-      std::unique_ptr<const Indexer> indexer = Indexer::Open(node.m_best_snapshot.snapshot_hash);
-      if (indexer) {
-        msg.utxo_subset_index = indexer->GetMeta().total_utxo_subsets;
+      {
+        LOCK(cs_snapshot);
+        std::unique_ptr<const Indexer> indexer = Indexer::Open(node.m_best_snapshot.snapshot_hash);
+        if (indexer) {
+          msg.utxo_subset_index = indexer->GetSnapshotHeader().total_utxo_subsets;
+        }
       }
 
       SendGetSnapshot(node, msg, msg_maker);
@@ -299,7 +296,7 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
   }
 
   // last peer processed, decide on the best snapshot
-  if (node_index + 1 == total_nodes) {
+  if (node_index + 1 == total_nodes && !m_in_flight_snapshot_discovery) {
     if (m_downloading_snapshot.IsNull()) {
       m_downloading_snapshot = m_best_snapshot;
     }
@@ -307,6 +304,7 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
     // there are no nodes that can stream previously decided best snapshot
     // delete it and switch to the second best
     if (m_downloading_snapshot != m_best_snapshot) {
+      LOCK(cs_snapshot);
       Indexer::Delete(m_downloading_snapshot.snapshot_hash);
       m_downloading_snapshot = m_best_snapshot;
     }
@@ -371,15 +369,18 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     assert(GetSnapshotHash(snapshot_block_index, snapshot_hash));
   }
 
-  std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
-  assert(idx);
-  snapshot_block_index->stake_modifier = idx->GetMeta().stake_modifier;
-  snapshot_block_index->nChainWork = UintToArith256(idx->GetMeta().chain_work);
+  {
+    LOCK(cs_snapshot);
+    std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
+    assert(idx);
+    snapshot_block_index->stake_modifier = idx->GetSnapshotHeader().stake_modifier;
+    snapshot_block_index->nChainWork = UintToArith256(idx->GetSnapshotHeader().chain_work);
 
-  if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
-    // if we can't write the snapshot, we have an issue with the DB
-    // and most likely we can't recover.
-    return regular_processing();
+    if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
+      // if we can't write the snapshot, we have an issue with the DB
+      // and most likely we can't recover.
+      return regular_processing();
+    }
   }
 
   // disable block index check as at this stage we still have genesis block set
@@ -543,6 +544,44 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
   }
 }
 
+bool P2PState::InFlightSnapshotDiscovery(const CNode &node) {
+  if (!node.m_snapshot_discovery_sent) {
+    return false;
+  }
+
+  // node has already discovered its best snapshot
+  if (!node.m_best_snapshot.IsNull()) {
+    return false;
+  }
+
+  // node has been already asked for the snapshot data
+  if (node.m_requested_snapshot_at != time_point::min()) {
+    return false;
+  }
+
+  const auto now = steady_clock::now();
+
+  // check snapshot discovery timeout
+  {
+    const auto diff = now - m_first_discovery_request_at;
+    const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
+    if (diff_sec.count() > m_params.discovery_timeout_sec) {
+      return false;
+    }
+  }
+
+  // check node reply timeout
+  {
+    const auto diff = now - node.m_requested_snapshot_at;
+    const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
+    if (diff_sec.count() > m_params.snapshot_chunk_timeout_sec) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void P2PState::DeleteUnlinkedSnapshot() {
   if (m_downloading_snapshot.IsNull()) {
     return;
@@ -554,6 +593,7 @@ void P2PState::DeleteUnlinkedSnapshot() {
   GetLatestFinalizedSnapshotHash(finalized_hash);
   if (m_downloading_snapshot.snapshot_hash != LoadCandidateBlockHash() &&
       m_downloading_snapshot.snapshot_hash != finalized_hash) {
+    LOCK(cs_snapshot);
     Indexer::Delete(m_downloading_snapshot.snapshot_hash);
   }
 }

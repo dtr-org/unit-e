@@ -20,21 +20,25 @@
 
 namespace snapshot {
 
-UniValue SnapshotNode(const uint256 &snapshotHash) {
+UniValue SnapshotNode(const uint256 &snapshot_hash) {
   UniValue node(UniValue::VOBJ);
-  node.push_back(Pair("snapshot_hash", snapshotHash.GetHex()));
-  std::unique_ptr<Indexer> idx = Indexer::Open(snapshotHash);
+  node.push_back(Pair("snapshot_hash", snapshot_hash.GetHex()));
+
+  LOCK(cs_snapshot);
+
+  std::unique_ptr<Indexer> idx = SnapshotIndex::OpenSnapshot(snapshot_hash);
   if (!idx) {
     node.push_back(Pair("valid", false));
     return node;
   }
 
+  const snapshot::SnapshotHeader &snapshot_header = idx->GetSnapshotHeader();
   node.push_back(Pair("valid", true));
-  node.push_back(Pair("block_hash", idx->GetMeta().block_hash.GetHex()));
-  node.push_back(Pair("block_height", mapBlockIndex[idx->GetMeta().block_hash]->nHeight));
-  node.push_back(Pair("stake_modifier", idx->GetMeta().stake_modifier.GetHex()));
-  node.push_back(Pair("chain_work", idx->GetMeta().chain_work.GetHex()));
-  node.push_back(Pair("total_utxo_subsets", idx->GetMeta().total_utxo_subsets));
+  node.push_back(Pair("block_hash", snapshot_header.block_hash.GetHex()));
+  node.push_back(Pair("block_height", mapBlockIndex[snapshot_header.block_hash]->nHeight));
+  node.push_back(Pair("stake_modifier", snapshot_header.stake_modifier.GetHex()));
+  node.push_back(Pair("chain_work", snapshot_header.chain_work.GetHex()));
+  node.push_back(Pair("total_utxo_subsets", snapshot_header.total_utxo_subsets));
 
   uint64_t outputs = 0;
   Iterator iter(std::move(idx));
@@ -165,16 +169,13 @@ UniValue createsnapshot(const JSONRPCRequest &request) {
       case Status::WRITE_ERROR:
         root_node.push_back(Pair("error", "can't write to any *.dat files"));
         break;
-      case Status::CALC_SNAPSHOT_HASH_ERROR:
-        root_node.push_back(Pair("error", "can't calculate hash of the snapshot"));
-        break;
       default:
         root_node.push_back(Pair("error", "unknown error happened during creating snapshot"));
     }
     return root_node;
   }
 
-  return SnapshotNode(info.indexer_meta.snapshot_hash);
+  return SnapshotNode(info.snapshot_header.snapshot_hash);
 }
 
 UniValue deletesnapshot(const JSONRPCRequest &request) {
@@ -188,6 +189,8 @@ UniValue deletesnapshot(const JSONRPCRequest &request) {
         HelpExampleCli("deletesnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03") +
         HelpExampleRpc("deletesnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"));
   }
+
+  LOCK(cs_snapshot);
 
   const uint256 snapshot_hash = uint256S(request.params[0].get_str());
   SnapshotIndex::DeleteSnapshot(snapshot_hash);

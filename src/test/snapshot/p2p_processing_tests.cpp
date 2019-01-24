@@ -136,13 +136,14 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   }
 
   // test that snapshot was created
+  LOCK(snapshot::cs_snapshot);
   BOOST_CHECK(HasSnapshotHash(best_snapshot.snapshot_hash));
   std::unique_ptr<snapshot::Indexer> idx(snapshot::Indexer::Open(best_snapshot.snapshot_hash));
-  const snapshot::Meta &idxMeta = idx->GetMeta();
-  BOOST_CHECK_EQUAL(idxMeta.snapshot_hash.GetHex(), best_snapshot.snapshot_hash.GetHex());
-  BOOST_CHECK_EQUAL(idxMeta.block_hash.GetHex(), best_snapshot.block_hash.GetHex());
-  BOOST_CHECK_EQUAL(idxMeta.stake_modifier.GetHex(), best_snapshot.stake_modifier.GetHex());
-  BOOST_CHECK_EQUAL(idxMeta.total_utxo_subsets, best_snapshot.total_utxo_subsets);
+  const snapshot::SnapshotHeader &snapshot_header = idx->GetSnapshotHeader();
+  BOOST_CHECK_EQUAL(snapshot_header.snapshot_hash.GetHex(), best_snapshot.snapshot_hash.GetHex());
+  BOOST_CHECK_EQUAL(snapshot_header.block_hash.GetHex(), best_snapshot.block_hash.GetHex());
+  BOOST_CHECK_EQUAL(snapshot_header.stake_modifier.GetHex(), best_snapshot.stake_modifier.GetHex());
+  BOOST_CHECK_EQUAL(snapshot_header.total_utxo_subsets, best_snapshot.total_utxo_subsets);
 
   // test that snapshot has correct content
   uint64_t total = 0;
@@ -201,6 +202,14 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
     CNode &node = *nodes[i];
     p2p_state.StartInitialSnapshotDownload(node, i, nodes.size(), msg_maker);
     BOOST_CHECK(node.vSendMsg.empty());
+  }
+
+  {
+    // mock that nodes without the snapshot timed out
+    auto first_request_at = std::chrono::steady_clock::now();
+    int64_t discovery_timeout_sec = Params().GetSnapshotParams().discovery_timeout_sec;
+    first_request_at -= std::chrono::seconds(discovery_timeout_sec + 1);
+    p2p_state.MockFirstDiscoveryRequestAt(first_request_at);
   }
 
   // mock headers that node can start detecting best snapshots
@@ -328,6 +337,7 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   }
 
   // test that node does't disable ISD until timeout elapsed
+  p2p_state.MockFirstDiscoveryRequestAt(std::chrono::steady_clock::now());
   p2p_state.StartInitialSnapshotDownload(*node1, 0, 1, msg_maker);
   BOOST_CHECK(snapshot::IsISDEnabled());
 

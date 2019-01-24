@@ -82,6 +82,10 @@ class P2PState {
   // keeps track of the best snapshot across all peers
   SnapshotHeader m_best_snapshot;
 
+  // if there is at least one peer that hasn't replied with the snapshot header
+  // the decision of which snapshot to download shouldn't be made in this iteration
+  bool m_in_flight_snapshot_discovery = false;
+
   bool SendGetSnapshot(CNode &node, GetSnapshot &msg,
                        const CNetMsgMaker &msg_maker);
 
@@ -91,6 +95,8 @@ class P2PState {
 
   //! update m_best_snapshot if provided one is a better one
   void SetIfBestSnapshot(const SnapshotHeader &best_snapshot);
+
+  bool InFlightSnapshotDiscovery(const CNode &node);
 };
 
 void InitP2P(const Params &params);

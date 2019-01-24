@@ -264,6 +264,7 @@ public:
 
     std::string operator()(const CNoDestination& no) const { return {}; }
 };
+} //namespace
 
 CTxDestination DecodeDestination(const std::string& str, const blockchain::Behavior& params)
 {
@@ -322,7 +323,6 @@ CTxDestination DecodeDestination(const std::string& str, const blockchain::Behav
     }
     return CNoDestination();
 }
-} // namespace
 
 void CUnitESecret::SetKey(const CKey& vchSecret)
 {

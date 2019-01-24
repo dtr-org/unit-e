@@ -23,14 +23,13 @@ BETTER_ENUM(
   Status,
   uint8_t,
   OK,
-  WRITE_ERROR,              // filesystem issue
-  CALC_SNAPSHOT_HASH_ERROR  // can't calculate the hash
+  WRITE_ERROR // filesystem issue
 )
 // clang-format on
 
 struct CreationInfo {
   Status status;
-  Meta indexer_meta;
+  SnapshotHeader snapshot_header;
   int total_outputs;
 
   CreationInfo() : status(Status::OK), total_outputs(0) {}

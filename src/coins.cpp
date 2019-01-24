@@ -245,14 +245,16 @@ void CCoinsViewCache::ClearCoins() {
 
 bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer) {
     LogPrint(BCLog::COINDB, "%s: Apply snapshot hash=%s.\n",
-             __func__, indexer->GetMeta().snapshot_hash.GetHex());
+             __func__, indexer->GetSnapshotHeader().snapshot_hash.GetHex());
 
     ClearCoins();
 
     snapshot::Iterator iter(std::move(indexer));
-    LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n", __func__, iter.GetTotalUTXOSubsets());
+    const snapshot::SnapshotHeader &snapshot_header = iter.GetSnapshotHeader();
+    LogPrint(BCLog::COINDB, "%s: 0/%i messages processed\n",
+             __func__, snapshot_header.total_utxo_subsets);
 
-    hashBlock = iter.GetBestBlockHash();
+    hashBlock = snapshot_header.block_hash;
 
     uint64_t writtenSubsets = 0;
     constexpr uint64_t batchSize = 100000;
@@ -274,10 +276,10 @@ bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer
         }
 
         // log every 5% of processed messages
-        uint64_t chunk = iter.GetTotalUTXOSubsets() / 20;
+        uint64_t chunk = snapshot_header.total_utxo_subsets / 20;
         if (chunk > 0 && writtenSubsets % chunk == 0) {
             LogPrint(BCLog::COINDB, "%s: %i/%i messages processed\n", __func__,
-                     writtenSubsets, iter.GetTotalUTXOSubsets());
+                     writtenSubsets, snapshot_header.total_utxo_subsets);
         }
 
         iter.Next();
@@ -288,8 +290,8 @@ bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer
         return false;
     }
 
-    assert(iter.GetTotalUTXOSubsets() == writtenSubsets);
-    assert(snapshotHash.GetHash(iter.GetStakeModifier(), iter.GetChainWork()) == iter.GetSnapshotHash());
+    assert(snapshot_header.total_utxo_subsets == writtenSubsets);
+    assert(snapshotHash.GetHash(snapshot_header.stake_modifier, snapshot_header.chain_work) == snapshot_header.snapshot_hash);
     LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXO subsets=%i\n",
              __func__, writtenSubsets);
 
