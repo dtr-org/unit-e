@@ -33,15 +33,21 @@
       has adr
     </text>
   </g>
-  <rect x="650" y="90" width="130" height="40" fill="#f7ca96" rx="5"/>
+  <rect x="650" y="90" width="130" height="40" fill="#cccccc" rx="5"/>
   <g font-size="14" font-family="arial" fill="black">
     <text x="663" y="116">
+      brainstorming
+    </text>
+  </g>
+  <rect x="200" y="150" width="130" height="40" fill="#f7ca96" rx="5"/>
+  <g font-size="14" font-family="arial" fill="black">
+    <text x="213" y="176">
       backport
     </text>
   </g>
-  <rect x="200" y="150" width="130" height="40" fill="#f7931a" rx="5"/>
+  <rect x="350" y="150" width="130" height="40" fill="#f7931a" rx="5"/>
   <g font-size="14" font-family="arial" fill="white">
-    <text x="213" y="176">
+    <text x="363" y="176">
       backported
     </text>
   </g>

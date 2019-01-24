@@ -15,6 +15,10 @@ categories:
     color: 'aaaaaa'
     description: ''
     id: 1134741914
+  - name: brainstorming
+    color: 'cccccc'
+    description: Needs input, ideas are welcome
+    id: brainstorming
   - name: backport
     color: f7ca96
     description: Feature should be contributed to bitcoin
