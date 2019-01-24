@@ -8,42 +8,37 @@ from test_framework.util import assert_equal
 
 class UsbDeviceCryptoTest(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 3
+        self.num_nodes = 2
         self.setup_clean_chain = True
 
     def run_test(self):
-        node0, node1, node2 = self.nodes
+        hw_node, other_node = self.nodes
+        hw_node.initaccountfromdevice()
 
-        node0.initaccountfromdevice()
-        node1.initaccountfromdevice()
+        assert_equal(len(hw_node.listunspent()), 0)
+        assert_equal(len(other_node.listunspent()), 0)
 
-        assert_equal(len(self.nodes[0].listunspent()), 0)
-        assert_equal(len(self.nodes[1].listunspent()), 0)
-        assert_equal(len(self.nodes[2].listunspent()), 0)
-
-        self.nodes[2].generate(101)
-
-        walletinfo = self.nodes[2].getwalletinfo()
-        assert_equal(walletinfo['balance'], 50)
+        money_addr = other_node.getnewaddress()
+        other_node.generatetoaddress(101, money_addr)
         self.sync_all()
 
-        balance = node2.getbalance()
-        assert_equal(balance, 50)
-
-        balance = node1.getbalance()
+        balance = hw_node.getbalance()
         assert_equal(balance, 0)
 
+        balance = other_node.getbalance()
+        assert_equal(balance, 50)
+
         for address_type in ['legacy', 'p2sh-segwit', 'bech32']:
-            addr = node0.getnewaddress(None, address_type)
-            node2.sendtoaddress(addr, 1)
-            node2.generate(1)
+            hw_addr = hw_node.getnewaddress(None, address_type)
+            other_node.sendtoaddress(hw_addr, 1)
+            other_node.generatetoaddress(1, money_addr)
             self.sync_all()
 
-            balance = node0.getbalance()
+            balance = hw_node.getbalance()
             assert_equal(balance, 1)
 
-            node0.sendtoaddress(node2.getnewaddress(), 1, None, None, True)
-            node0.generate(1)
+            hw_node.sendtoaddress(other_node.getnewaddress(), 1, None, None, True)
+            hw_node.generate(1)
             self.sync_all()
 
 
