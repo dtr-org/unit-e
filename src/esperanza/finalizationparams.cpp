@@ -68,6 +68,6 @@ FinalizationParams::FinalizationParams() : epoch_length{5},
                                            withdrawal_epoch_delay{5},
                                            slash_fraction_multiplier{3},
                                            bounty_fraction_denominator{25},
-                                           base_interest_factor{ufp64::to_ufp64(700)},
+                                           base_interest_factor{ufp64::to_ufp64(7)},
                                            base_penalty_factor{ufp64::div_2uint(2, 10000000)} {}
 }  // namespace esperanza
