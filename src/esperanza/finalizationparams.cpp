@@ -50,14 +50,14 @@ bool ParseFinalizationParams(const std::string &json_string,
     LogPrintf("Param baseInterestFactor must be a positive number.\n");
     return false;
   }
-  params_out.base_interest_factor = ufp64::to_ufp64((uint64_t)value);
+  params_out.base_interest_factor = ufp64::ufp64_t(value);
 
-  value = ParseNum(json, "basePenaltyFactor", ufp64::mul_to_uint(params_out.base_penalty_factor, 10000000));
+  value = ParseNum(json, "basePenaltyFactor", params_out.base_penalty_factor);
   if (value < 0) {
     LogPrintf("Param basePenaltyFactor must be a positive number.\n");
     return false;
   }
-  params_out.base_penalty_factor = ufp64::div_by_uint(ufp64::to_ufp64((uint64_t)value), 10000000);
+  params_out.base_penalty_factor = ufp64::ufp64_t(value);
 
   return true;
 }
@@ -69,5 +69,5 @@ FinalizationParams::FinalizationParams() : epoch_length{5},
                                            slash_fraction_multiplier{3},
                                            bounty_fraction_denominator{25},
                                            base_interest_factor{ufp64::to_ufp64(7)},
-                                           base_penalty_factor{ufp64::div_2uint(2, 10000000)} {}
+                                           base_penalty_factor{ufp64::div_2uint(2, 100000)} {}
 }  // namespace esperanza
