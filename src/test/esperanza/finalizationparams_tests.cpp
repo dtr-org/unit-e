@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(parse_params_values) {
             "minDepositSize": 500,
             "withdrawalEpochDelay" : 10,
             "bountyFractionDenominator" : 2,
-            "baseInterestFactor": 7
+            "baseInterestFactor": 700000000
         }
     )";
 
