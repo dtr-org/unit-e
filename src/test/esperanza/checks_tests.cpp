@@ -23,19 +23,23 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
   FinalizationState *esperanza = FinalizationState::GetState();
 
+  const auto &params = CreateChainParams(CBaseChainParams::MAIN)->GetFinalization();
+  const auto min_deposit = params.min_deposit_size;
+  const auto epoch_length = params.epoch_length;
+
   CKey k;
   InsecureNewKey(k, true);
   uint160 validatorAddress = k.GetPubKey().GetID();
 
   BOOST_CHECK_EQUAL(
-      esperanza->ValidateDeposit(validatorAddress, MIN_DEPOSIT_SIZE),
+      esperanza->ValidateDeposit(validatorAddress, min_deposit),
       +Result::SUCCESS);
 
-  esperanza->ProcessDeposit(validatorAddress, MIN_DEPOSIT_SIZE);
+  esperanza->ProcessDeposit(validatorAddress, min_deposit);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
   for (int i = 1; i < 6; i++) {
-    BOOST_CHECK_EQUAL(esperanza->InitializeEpoch(i * EPOCH_LENGTH),
+    BOOST_CHECK_EQUAL(esperanza->InitializeEpoch(i * epoch_length),
                       +Result::SUCCESS);
   }
 

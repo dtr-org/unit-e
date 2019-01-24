@@ -137,9 +137,9 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   m_totalSlashed[newEpoch] = GetTotalSlashed(newEpoch - 1);
 
   if (DepositExists()) {
-    ufp64::ufp64_t interestBase = ufp64::div(m_settings.m_baseInterestFactor, GetSqrtOfTotalDeposits());
+    ufp64::ufp64_t interestBase = ufp64::div(m_settings.base_interest_factor, GetSqrtOfTotalDeposits());
 
-    m_rewardFactor = ufp64::add(interestBase, ufp64::mul_by_uint(m_settings.m_basePenaltyFactor,
+    m_rewardFactor = ufp64::add(interestBase, ufp64::mul_by_uint(m_settings.base_penalty_factor,
                                                                  GetEpochsSinceFinalization()));
 
     if (m_rewardFactor <= 0) {
@@ -411,10 +411,10 @@ Result FinalizationState::ValidateDeposit(const uint160 &validatorAddress,
                 __func__, validatorAddress.GetHex());
   }
 
-  if (depositValue < m_settings.m_minDepositSize) {
+  if (depositValue < m_settings.min_deposit_size) {
     return fail(Result::DEPOSIT_INSUFFICIENT,
                 "%s: The deposit value must be %d > %d.\n", __func__,
-                depositValue, m_settings.m_minDepositSize);
+                depositValue, m_settings.min_deposit_size);
   }
 
   return success();
@@ -544,7 +544,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 }
 
 uint32_t FinalizationState::GetEndDynasty() const {
-  return m_currentDynasty + m_settings.m_dynastyLogoutDelay;
+  return m_currentDynasty + m_settings.dynasty_logout_delay;
 }
 
 Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const {
@@ -637,7 +637,7 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
   }
 
   uint32_t endEpoch = m_dynastyStartEpoch.find(endDynasty + 1)->second;
-  uint32_t withdrawalEpoch = endEpoch + m_settings.m_withdrawalEpochDelay;
+  uint32_t withdrawalEpoch = endEpoch + m_settings.withdrawal_epoch_delay;
 
   if (m_currentEpoch < withdrawalEpoch) {
     return fail(Result::WITHDRAW_TOO_EARLY,
@@ -652,15 +652,15 @@ Result FinalizationState::CalculateWithdrawAmount(const uint160 &validatorAddres
 
   } else {
     uint32_t baseEpoch;
-    if (2 * m_settings.m_withdrawalEpochDelay > withdrawalEpoch) {
+    if (2 * m_settings.withdrawal_epoch_delay > withdrawalEpoch) {
       baseEpoch = 0;
     } else {
-      baseEpoch = withdrawalEpoch - 2 * m_settings.m_withdrawalEpochDelay;
+      baseEpoch = withdrawalEpoch - 2 * m_settings.withdrawal_epoch_delay;
     }
 
     uint64_t recentlySlashed = GetTotalSlashed(withdrawalEpoch) - GetTotalSlashed(baseEpoch);
 
-    ufp64::ufp64_t fractionToSlash = ufp64::div_2uint(recentlySlashed * m_settings.m_slashFractionMultiplier,
+    ufp64::ufp64_t fractionToSlash = ufp64::div_2uint(recentlySlashed * m_settings.slash_fraction_multiplier,
                                                       validator.m_depositsAtLogout);
 
     uint64_t depositSize = ufp64::mul_to_uint(GetDepositScaleFactor(withdrawalEpoch), validator.m_deposit);
@@ -863,7 +863,7 @@ FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
 }
 
 uint32_t FinalizationState::GetEpochLength() const {
-  return m_settings.m_epochLength;
+  return m_settings.epoch_length;
 }
 
 uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
@@ -894,7 +894,7 @@ const Validator *FinalizationState::GetValidator(const uint160 &validatorAddress
 }
 
 bool FinalizationState::ValidateDepositAmount(CAmount amount) {
-  return amount >= GetState()->m_settings.m_minDepositSize;
+  return amount >= GetState()->m_settings.min_deposit_size;
 }
 
 void FinalizationState::Init(const esperanza::FinalizationParams &params,
@@ -1009,7 +1009,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   }
 
   // This is the first block of a new epoch.
-  if (block_index.nHeight % m_settings.m_epochLength == 0) {
+  if (block_index.nHeight % m_settings.epoch_length == 0) {
     InitializeEpoch(block_index.nHeight);
   }
 
@@ -1017,7 +1017,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     ProcessNewCommit(tx);
   }
 
-  if (!g_storage.Restoring() && (block_index.nHeight + 2) % m_settings.m_epochLength == 0) {
+  if (!g_storage.Restoring() && (block_index.nHeight + 2) % m_settings.epoch_length == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
     // The last epoch block will contain the snapshot hash pointing to this snapshot.
     snapshot::Creator::GenerateOrSkip(m_currentEpoch);
@@ -1025,7 +1025,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
 
   // This is the last block for the current epoch and it represent it, so we
   // update the targetHash.
-  if (block_index.nHeight % m_settings.m_epochLength == m_settings.m_epochLength - 1) {
+  if (block_index.nHeight % m_settings.epoch_length == m_settings.epoch_length - 1) {
     LogPrint(
         BCLog::FINALIZATION,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
@@ -1034,7 +1034,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     m_recommendedTargetHash = block_hash;
 
     // mark snapshots finalized up to the last finalized block
-    blockchain::Height height = (m_lastFinalizedEpoch + 1) * m_settings.m_epochLength - 1;
+    blockchain::Height height = (m_lastFinalizedEpoch + 1) * m_settings.epoch_length - 1;
     if (height == static_cast<blockchain::Height>(block_index.nHeight)) {  // instant confirmation
       snapshot::Creator::FinalizeSnapshots(&block_index);
     } else {
@@ -1081,7 +1081,7 @@ uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
 }
 
 bool FinalizationState::IsCheckpoint(blockchain::Height blockHeight) const {
-  return (blockHeight + 1) % m_settings.m_epochLength == 0;
+  return (blockHeight + 1) % m_settings.epoch_length == 0;
 }
 
 bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) const {

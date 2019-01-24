@@ -278,7 +278,6 @@ libunite_server_a_SOURCES = \
   esperanza/checkpoint.cpp \
   esperanza/checks.cpp \
   esperanza/finalizationstate.cpp \
-  esperanza/finalizationparams.cpp \
   esperanza/validator.cpp \
   finalization/p2p.cpp \
   finalization/vote_recorder.cpp \
@@ -456,6 +455,7 @@ libunite_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  esperanza/finalizationparams.cpp \
   esperanza/vote.cpp \
   key.cpp \
   keystore.cpp \
@@ -519,10 +519,10 @@ endif
 
 united_LDADD = \
   $(LIBUNITE_SERVER) \
-  $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \
+  $(LIBUNIVALUE) \
   $(LIBUNITE_ZMQ) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \
@@ -562,8 +562,8 @@ unite_tx_SOURCES += unite-tx-res.rc
 endif
 
 unite_tx_LDADD = \
-  $(LIBUNIVALUE) \
   $(LIBUNITE_COMMON) \
+  $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_CRYPTO) \

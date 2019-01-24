@@ -68,14 +68,14 @@ UniValue getfinalizationconfig(const JSONRPCRequest &request) {
   const esperanza::FinalizationParams params = Params().GetFinalization();
   UniValue obj(UniValue::VOBJ);
 
-  obj.pushKV("epochLength", (uint64_t) params.m_epochLength);
-  obj.pushKV("minDepositSize", (uint64_t) params.m_minDepositSize);
-  obj.pushKV("dynastyLogoutDelay", (uint64_t) params.m_dynastyLogoutDelay);
-  obj.pushKV("withdrawalEpochDelay", (uint64_t) params.m_withdrawalEpochDelay);
-  obj.pushKV("bountyFractionDenominator", (uint64_t) params.m_bountyFractionDenominator);
-  obj.pushKV("slashFractionMultiplier", (uint64_t) params.m_slashFractionMultiplier);
-  obj.pushKV("baseInterestFactor", ufp64::to_str(params.m_baseInterestFactor));
-  obj.pushKV("basePenaltyFactor", ufp64::to_str(params.m_basePenaltyFactor));
+  obj.pushKV("epochLength", (uint64_t) params.epoch_length);
+  obj.pushKV("minDepositSize", (uint64_t) params.min_deposit_size);
+  obj.pushKV("dynastyLogoutDelay", (uint64_t) params.dynasty_logout_delay);
+  obj.pushKV("withdrawalEpochDelay", (uint64_t) params.withdrawal_epoch_delay);
+  obj.pushKV("bountyFractionDenominator", (uint64_t) params.bounty_fraction_denominator);
+  obj.pushKV("slashFractionMultiplier", (uint64_t) params.slash_fraction_multiplier);
+  obj.pushKV("baseInterestFactor", ufp64::to_str(params.base_interest_factor));
+  obj.pushKV("basePenaltyFactor", ufp64::to_str(params.base_penalty_factor));
 
   return obj;
 }

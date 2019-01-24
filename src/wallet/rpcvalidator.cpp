@@ -115,7 +115,9 @@ UniValue withdraw(const JSONRPCRequest &request)
   }
 
   CWalletTx tx;
-  extWallet.SendWithdraw(address, tx);
+  if (!extWallet.SendWithdraw(address, tx)) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot send withdraw transaction.");
+  }
 
   return tx.GetHash().GetHex();
 }
