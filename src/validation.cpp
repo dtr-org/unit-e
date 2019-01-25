@@ -596,6 +596,25 @@ static bool CheckFinalizationTransaction(const CTransaction &tx, CValidationStat
     return true;
 }
 
+static bool CheckBlockFinalizationTransactions(const CBlock &block, CValidationState &err_state,
+                                               const CBlockIndex *prev_index,
+                                               const Consensus::Params &params) {
+    esperanza::FinalizationState *fin_state = nullptr;
+    for (const auto &tx : block.vtx) {
+        if (tx->IsFinalizationTransaction()) {
+            if (fin_state == nullptr) {
+                assert(prev_index != nullptr);
+                fin_state = esperanza::FinalizationState::GetState(prev_index);
+                assert(fin_state != nullptr);
+            }
+            if (!CheckFinalizationTransaction(*tx, err_state, params, fin_state)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool& pool, CValidationState& state, const CTransactionRef& ptx,
                               bool* pfMissingInputs, int64_t nAcceptTime, std::list<CTransactionRef>* plTxnReplaced,
                               bool bypass_limits, const CAmount& nAbsurdFee, std::vector<COutPoint>& coins_to_uncache)
@@ -2045,6 +2064,20 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     CBlockUndo blockundo;
 
+    // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
+    // deadlock between handler thread and miner one.
+    //
+    // Handler:
+    // - lock check queue in ConnectBlock()
+    // - lock mempool in ConnectBlock() -> CheckFinalizationTx() -> GetTransaction() -> mempool.get()
+    //
+    // Miner:
+    // - lock mempool in CreateBlock()
+    // - lock check queue in CreateBlock() -> TestBlockValidity() -> ConnectBlock()
+    if (!CheckBlockFinalizationTransactions(block, state, pindex->pprev, chainparams.GetConsensus())) {
+        return false;
+    }
+
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : nullptr);
 
     std::vector<int> prevheights;
@@ -2054,7 +2087,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
-    esperanza::FinalizationState *fin_state = nullptr;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2084,16 +2116,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
                 return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
                                  REJECT_INVALID, "bad-txns-nonfinal");
-            }
-            if (tx.IsFinalizationTransaction()) {
-                if (fin_state == nullptr) {
-                    assert (pindex->pprev != nullptr);
-                    fin_state = esperanza::FinalizationState::GetState(pindex->pprev);
-                    assert(fin_state != nullptr);
-                }
-                if (!CheckFinalizationTransaction(tx, state, chainparams.GetConsensus(), fin_state)) {
-                    return false;
-                }
             }
         }
 
