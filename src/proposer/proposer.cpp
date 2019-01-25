@@ -28,6 +28,8 @@ class ProposerStub : public Proposer {
 
 class ProposerImpl : public Proposer {
  private:
+  constexpr char *THREAD_NAME = "unite-proposer";
+
   Dependency<Settings> m_settings;
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<MultiWallet> m_multi_wallet;
@@ -58,6 +60,7 @@ class ProposerImpl : public Proposer {
   }
 
   void Run() {
+    RenameThread(THREAD_NAME);
     LogPrint(BCLog::PROPOSING, "Proposer thread started.\n");
     do {
       if (m_network->GetNodeCount() == 0) {
