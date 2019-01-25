@@ -364,7 +364,7 @@ bool CWallet::HaveHardwareKey(const CKeyID &address) const
     // HD master pubkey hash. Other HD keys only store the seed ID, and the
     // master key is generated on the fly when needed (see `DeriveNewChildKey`).
     LOCK(cs_wallet);
-    auto it = mapKeyMetadata.find(address);
+    const auto it = mapKeyMetadata.find(address);
     if (it != mapKeyMetadata.end() && !it->second.master_key_id.IsNull()) {
         return true;
     }
@@ -3534,11 +3534,9 @@ void CWallet::ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool, bool fRe
         if (!walletdb.ReadPool(nIndex, keypool)) {
             throw std::runtime_error(std::string(__func__) + ": read failed");
         }
-        if (!HaveKey(keypool.vchPubKey.GetID())) {
-            CKeyMetadata keyMeta = mapKeyMetadata[keypool.vchPubKey.GetID()];
-            if (keyMeta.master_key_id.IsNull()) {
-                throw std::runtime_error(std::string(__func__) + ": unknown key in key pool");
-            }
+        CKeyID keyID = keypool.vchPubKey.GetID();
+        if (!HaveKey(keyID) && !HaveHardwareKey(keyID)) {
+            throw std::runtime_error(std::string(__func__) + ": unknown key in key pool");
         }
         if (keypool.fInternal != fReturningInternal) {
             throw std::runtime_error(std::string(__func__) + ": keypool entry misclassified");

@@ -52,7 +52,7 @@ static std::vector<uint32_t> GetFullPath(const UniValue &path, const UniValue &a
 }
 
 static UniValue listdevices(const JSONRPCRequest &request) {
-  if (request.fHelp || request.params.size() > 0)
+  if (request.fHelp || request.params.size() > 0) {
     throw std::runtime_error(
         "listdevices\n"
         "list connected hardware devices.\n"
@@ -61,18 +61,19 @@ static UniValue listdevices(const JSONRPCRequest &request) {
         "  \"vendor\"           (string) USB vendor string.\n"
         "  \"product\"          (string) USB product string.\n"
         "  \"serial_no\"        (string) Device serial number.\n"
-        "  \"firmware_version\" (string, optional) Detected firmware version of device, if available.\n"
+        "  \"firmware_version\" (string, optional) Detected firmware version of the device, if available.\n"
         "}\n"
         "\nExamples\n" +
         HelpExampleCli("listdevices", "") +
         "\nAs a JSON-RPC call\n" + HelpExampleRpc("listdevices", ""));
+  }
 
   usbdevice::DeviceList devices;
   ListAllDevices(devices);
 
   UniValue result(UniValue::VARR);
 
-  for (auto &device : devices) {
+  for (const auto &device : devices) {
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("vendor", device->m_type->m_vendor);
     obj.pushKV("product", device->m_type->m_product);
@@ -97,7 +98,7 @@ static UniValue listdevices(const JSONRPCRequest &request) {
 }
 
 static UniValue getdevicepubkey(const JSONRPCRequest &request) {
-  if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+  if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
     throw std::runtime_error(
         "getdevicepubkey \"path\" (\"account_path\")\n"
         "Get the public key and address at \"path\" from a hardware device.\n"
@@ -116,10 +117,11 @@ static UniValue getdevicepubkey(const JSONRPCRequest &request) {
         "Get the first public key of external chain:\n" +
         HelpExampleCli("getdevicepubkey", "\"0/0\"") + "Get the first public key of internal chain of testnet account:\n" + HelpExampleCli("getdevicepubkey", "\"0/0\" \"44h/1h/0h\"") +
         "\nAs a JSON-RPC call\n" + HelpExampleRpc("getdevicepubkey", "\"0/0\""));
+  }
 
   std::vector<uint32_t> path = GetFullPath(request.params[0], request.params[1]);
 
-  auto device = SelectDevice();
+  const auto device = SelectDevice();
   std::string error;
   CPubKey pk;
 
@@ -136,7 +138,7 @@ static UniValue getdevicepubkey(const JSONRPCRequest &request) {
 }
 
 static UniValue getdeviceextpubkey(const JSONRPCRequest &request) {
-  if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+  if (request.fHelp || request.params.size() < 1 || request.params.size() > 2) {
     throw std::runtime_error(
         "getdeviceextpubkey \"path\" (\"account_path\")\n"
         "Get the extended public key at \"path\" from a hardware device.\n"
@@ -154,6 +156,7 @@ static UniValue getdeviceextpubkey(const JSONRPCRequest &request) {
         "\nExamples\n" +
         HelpExampleCli("getdeviceextpubkey", "\"0\"") +
         "\nAs a JSON-RPC call\n" + HelpExampleRpc("getdeviceextpubkey", "\"0\""));
+  }
 
   std::vector<uint32_t> path = GetFullPath(request.params[0], request.params[1]);
   auto device = SelectDevice();
@@ -173,10 +176,11 @@ static UniValue getdeviceextpubkey(const JSONRPCRequest &request) {
 
 static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
   CWallet *pwallet = GetWalletForJSONRPCRequest(request);
-  if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
+  }
 
-  if (request.fHelp || request.params.size() > 1)
+  if (request.fHelp || request.params.size() > 1) {
     throw std::runtime_error(
         "initaccountfromdevice (\"account_path\")\n"
         "Initialise an extended key account from a hardware device.\n" +
@@ -194,6 +198,7 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
         "\nExamples\n" +
         HelpExampleCli("initaccountfromdevice", "\"m/44'/1'/0'\"") +
         "\nAs a JSON-RPC call\n" + HelpExampleRpc("initaccountfromdevice", "\"m/44'/1'/0'\""));
+  }
 
   RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VBOOL, UniValue::VNUM}, true);
 
