@@ -588,29 +588,10 @@ static bool CheckFinalizationTransaction(const CTransaction &tx, CValidationStat
     assert(fin_state != nullptr);
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::CheckFinalizationTransaction(tx, err_state, params, *fin_state)) {
+    if (!esperanza::CheckFinalizationTx(tx, err_state, params, *fin_state)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
-    }
-    return true;
-}
-
-static bool CheckBlockFinalizationTransactions(const CBlock &block, CValidationState &err_state,
-                                               const Consensus::Params &params) {
-    esperanza::FinalizationState *fin_state = nullptr;
-    for (const auto &tx : block.vtx) {
-        if (tx->IsFinalizationTransaction()) {
-            if (fin_state == nullptr) {
-                LOCK(cs_main);
-                const CBlockIndex *const prev_index = LookupBlockIndex(block.hashPrevBlock);
-                fin_state = esperanza::FinalizationState::GetState(prev_index);
-                assert(fin_state != nullptr);
-            }
-            if (!CheckFinalizationTransaction(*tx, err_state, params, fin_state)) {
-                return false;
-            }
-        }
     }
     return true;
 }
@@ -2073,6 +2054,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
+    esperanza::FinalizationState *fin_state = nullptr;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2102,6 +2084,16 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
                 return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
                                  REJECT_INVALID, "bad-txns-nonfinal");
+            }
+            if (tx.IsFinalizationTransaction()) {
+                if (fin_state == nullptr) {
+                    assert (pindex->pprev != nullptr);
+                    fin_state = esperanza::FinalizationState::GetState(pindex->pprev);
+                    assert(fin_state != nullptr);
+                }
+                if (!CheckFinalizationTransaction(tx, state, chainparams.GetConsensus(), fin_state)) {
+                    return false;
+                }
             }
         }
 
@@ -3205,11 +3197,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
-    // Check finalization transactions
-    if (!CheckBlockFinalizationTransactions(block, state, consensusParams)) {
-        return false;
-    }
-
     // Check transactions
     for (const auto& tx : block.vtx)
         if (!CheckTransaction(*tx, state, true))
@@ -3380,6 +3367,9 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
+        }
+        if (tx->IsFinalizationTransaction() && !esperanza::VerifyFinalizationTx(*tx, state)) {
+            return false;
         }
     }
 

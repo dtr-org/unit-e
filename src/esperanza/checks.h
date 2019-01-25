@@ -24,32 +24,51 @@ class FinalizationState;
 //! \returns true if the vote is expired, false otherwise.
 bool IsVoteExpired(const CTransaction &tx);
 
+//! The Verify-family functions do base transaction verifications such as transaction
+//! type, format, solvable, etc.
+//! The Check-family functions do full transaction verifications. In addition to base
+//! checks it tests transaction is consistent with its input and finalization state.
+
+//! \brief Generalized finalization transaction verify. Asserts on non-finalization transactions.
+bool VerifyFinalizationTx(const CTransaction &tx, CValidationState &err_state);
+
 //! \brief Generalized finalization transaction check. Asserts on non-finalization transactions.
-bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
-                                  const Consensus::Params &params, const FinalizationState &fin_state);
+bool CheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
+                         const Consensus::Params &params, const FinalizationState &fin_state);
 
-bool CheckDepositTransaction(CValidationState &errState, const CTransaction &tx,
-                             const FinalizationState &state);
+bool VerifyDepositTx(const CTransaction &tx, CValidationState &err_state,
+                     uint160 *validator_address_out);
+bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
+                    const FinalizationState &fin_state);
 
-bool CheckVoteTransaction(CValidationState &errState, const CTransaction &tx,
-                          const Consensus::Params &consensusParams,
-                          const FinalizationState &state);
+bool VerifyVoteTx(const CTransaction &tx, CValidationState &err_state,
+                  Vote *vote_out, std::vector<unsigned char> *vote_sig_out);
+bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
+                 const Consensus::Params &consensus_params,
+                 const FinalizationState &fin_state);
 
-bool CheckSlashTransaction(CValidationState &errState, const CTransaction &tx,
-                           const Consensus::Params &consensusParams,
-                           const FinalizationState &state);
+bool VerifySlashTx(const CTransaction &tx, CValidationState &err_state,
+                   Vote *vote1_out, Vote *vote2_out);
+bool CheckSlashTx(const CTransaction &tx, CValidationState &err_state,
+                  const Consensus::Params &consensus_params,
+                  const FinalizationState &fin_state);
 
-bool CheckLogoutTransaction(CValidationState &errState, const CTransaction &tx,
-                            const Consensus::Params &consensusParams,
-                            const FinalizationState &state);
+bool VerifyLogoutTx(const CTransaction &tx, CValidationState &err_state,
+                    uint160 *out_validator_address);
+bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
+                   const Consensus::Params &consensus_params,
+                   const FinalizationState &fin_state);
 
-bool CheckWithdrawTransaction(CValidationState &errState,
-                              const CTransaction &tx,
-                              const Consensus::Params &consensusParams,
-                              const FinalizationState &state);
+bool VerifyWithdrawTx(const CTransaction &tx, CValidationState &err_state,
+                      uint160 *out_validator_address);
+bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
+                     const Consensus::Params &consensus_arams,
+                     const FinalizationState &fin_state);
 
-bool CheckAdminTransaction(CValidationState &state, const CTransaction &tx,
-                           const FinalizationState &finalizationState);
+bool VerifyAdminTx(const CTransaction &tx, CValidationState &err_state,
+                   std::vector<CPubKey> *keys_out);
+bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,
+                  const FinalizationState &fin_state);
 
 //! \brief Extracts the validator address from the transaction if applicable.
 //!

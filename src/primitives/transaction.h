@@ -371,6 +371,10 @@ public:
         return GetType() == +TxType::SLASH;
     }
 
+    bool IsAdmin() const {
+        return GetType() == +TxType::ADMIN;
+    }
+
     bool IsFinalizationTransaction() const;
 
     friend bool operator==(const CTransaction& a, const CTransaction& b)
