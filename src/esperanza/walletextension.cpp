@@ -406,8 +406,8 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
                                    const CBlockIndex &blockIndex) {
 
-  const FinalizationState &state = *FinalizationState::GetState(&blockIndex);
-
+  const FinalizationState &state = *FinalizationState::GetState();
+  assert(&state);
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
 
@@ -626,18 +626,19 @@ void WalletExtension::BlockConnected(
 
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
-        VoteIfNeeded(pblock, index);
-
         // In case we are logged out, stop validating.
-        FinalizationState *state = FinalizationState::GetState(&index);
+        FinalizationState *state = FinalizationState::GetState();
         uint32_t currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.get().m_endDynasty) {
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
+        } else {
+          VoteIfNeeded(pblock, index);
         }
+
         break;
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
-        FinalizationState *state = FinalizationState::GetState(&index);
+        FinalizationState *state = FinalizationState::GetState();
 
         if (state->GetLastFinalizedEpoch() >= validatorState.get().m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
