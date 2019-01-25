@@ -241,6 +241,8 @@ Threads
 
 - UnitEMiner : Generates unites (if wallet is enabled).
 
+- unite-snapshot : Creates snapshots and deletes outdated ones
+
 - Shutdown : Does an orderly shutdown of everything.
 
 Ignoring IDE/editor files
