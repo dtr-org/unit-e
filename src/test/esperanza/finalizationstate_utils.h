@@ -15,7 +15,7 @@ using namespace esperanza;
 
 class FinalizationStateSpy : public FinalizationState {
  private:
-  const FinalizationParams params = CreateChainParams(CBaseChainParams::MAIN)->GetFinalization();
+  const FinalizationParams params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
 
  public:
   FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}

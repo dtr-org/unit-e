@@ -62,12 +62,12 @@ bool ParseFinalizationParams(const std::string &json_string,
   return true;
 }
 
-FinalizationParams::FinalizationParams() : epoch_length{5},
-                                           min_deposit_size{1500 * UNIT},
-                                           dynasty_logout_delay{2},
-                                           withdrawal_epoch_delay{5},
-                                           slash_fraction_multiplier{3},
-                                           bounty_fraction_denominator{25},
-                                           base_interest_factor{ufp64::to_ufp64(7)},
-                                           base_penalty_factor{ufp64::div_2uint(2, 100000)} {}
+FinalizationParams::FinalizationParams() : epoch_length(5),
+                                           min_deposit_size(1500 * UNIT),
+                                           dynasty_logout_delay(2),
+                                           withdrawal_epoch_delay(5),
+                                           slash_fraction_multiplier(3),
+                                           bounty_fraction_denominator(25),
+                                           base_interest_factor(ufp64::to_ufp64(7)),
+                                           base_penalty_factor(ufp64::div_2uint(2, 100000)) {}
 }  // namespace esperanza
