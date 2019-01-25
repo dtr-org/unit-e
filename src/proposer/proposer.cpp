@@ -28,7 +28,7 @@ class ProposerStub : public Proposer {
 
 class ProposerImpl : public Proposer {
  private:
-  constexpr char *THREAD_NAME = "unite-proposer";
+  constexpr const char *THREAD_NAME = "unite-proposer";
 
   Dependency<Settings> m_settings;
   Dependency<blockchain::Behavior> m_blockchain_behavior;
