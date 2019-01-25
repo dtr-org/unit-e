@@ -241,6 +241,8 @@ Threads
 
 - unite-proposer : Proposes new blocks using the open wallets balance as stake.
 
+- unite-snapshot : Creates snapshots and deletes outdated ones
+
 - Shutdown : Does an orderly shutdown of everything.
 
 Ignoring IDE/editor files

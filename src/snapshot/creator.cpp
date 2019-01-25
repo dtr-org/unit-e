@@ -43,6 +43,9 @@ std::atomic_bool interrupt(false);
 }  // namespace
 
 void ProcessCreatorQueue() {
+  RenameThread("unite-snapshot");
+  LogPrint(BCLog::SNAPSHOT, "Snapshot thread started.\n");
+
   while (!interrupt) {
     std::unique_lock<std::mutex> lock(mutex);
     cv.wait(lock, [] { return !jobs.empty() || interrupt; });
@@ -70,15 +73,21 @@ void ProcessCreatorQueue() {
     SaveSnapshotIndex();
   }
 
-  LogPrint(BCLog::SNAPSHOT, "%s: interrupted\n", __func__);
+  LogPrint(BCLog::SNAPSHOT, "Snapshot thread interrupted\n");
 }
 
 void Creator::Init(const Params &params) {
   g_create_snapshot_per_epoch = params.create_snapshot_per_epoch;
-  g_creator_thread = std::thread(ProcessCreatorQueue);
+  if (g_create_snapshot_per_epoch > 0) {
+    g_creator_thread = std::thread(ProcessCreatorQueue);
+  }
 }
 
 void Creator::Deinit() {
+  if (g_create_snapshot_per_epoch == 0) {
+    return;
+  }
+
   LogPrint(BCLog::SNAPSHOT, "stopping snapshot creation thread...\n");
   interrupt = true;
   cv.notify_one();
@@ -93,7 +102,7 @@ void Creator::Deinit() {
 Creator::Creator(CCoinsViewDB *view) : m_iter(view) {}
 
 void Creator::GenerateOrSkip(const uint32_t current_epoch) {
-  if (g_create_snapshot_per_epoch <= 0) {
+  if (g_create_snapshot_per_epoch == 0) {
     return;
   }
 
@@ -118,6 +127,10 @@ void Creator::GenerateOrSkip(const uint32_t current_epoch) {
 }
 
 void Creator::FinalizeSnapshots(const CBlockIndex *block_index) {
+  if (g_create_snapshot_per_epoch == 0) {
+    return;
+  }
+
   std::unique_ptr<SnapshotJob> job(new SnapshotJob(block_index));
   std::lock_guard<std::mutex> lock(mutex);
   jobs.push(std::move(job));
