@@ -73,7 +73,7 @@ void ProcessCreatorQueue() {
     SaveSnapshotIndex();
   }
 
-  LogPrint(BCLog::SNAPSHOT, "%s: interrupted\n", __func__);
+  LogPrint(BCLog::SNAPSHOT, "Snapshot thread interrupted\n");
 }
 
 void Creator::Init(const Params &params) {
