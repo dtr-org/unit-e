@@ -102,7 +102,7 @@ void Creator::Deinit() {
 Creator::Creator(CCoinsViewDB *view) : m_iter(view) {}
 
 void Creator::GenerateOrSkip(const uint32_t current_epoch) {
-  if (g_create_snapshot_per_epoch <= 0) {
+  if (g_create_snapshot_per_epoch == 0) {
     return;
   }
 
@@ -127,7 +127,7 @@ void Creator::GenerateOrSkip(const uint32_t current_epoch) {
 }
 
 void Creator::FinalizeSnapshots(const CBlockIndex *block_index) {
-  if (g_create_snapshot_per_epoch <= 0) {
+  if (g_create_snapshot_per_epoch == 0) {
     return;
   }
 
