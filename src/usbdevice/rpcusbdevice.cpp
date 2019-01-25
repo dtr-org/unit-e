@@ -115,7 +115,7 @@ static UniValue getdevicepubkey(const JSONRPCRequest &request) {
         "}\n"
         "\nExamples\n"
         "Get the first public key of external chain:\n" +
-        HelpExampleCli("getdevicepubkey", "\"0/0\"") + "Get the first public key of internal chain of testnet account:\n" + HelpExampleCli("getdevicepubkey", "\"0/0\" \"44h/1h/0h\"") +
+        HelpExampleCli("getdevicepubkey", "\"0/0\"") + "Get the first public key of the internal chain of a testnet account:\n" + HelpExampleCli("getdevicepubkey", "\"0/0\" \"44h/1h/0h\"") +
         "\nAs a JSON-RPC call\n" + HelpExampleRpc("getdevicepubkey", "\"0/0\""));
   }
 
@@ -196,8 +196,8 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
         "  \"path\"             (string) The path used to derive the account.\n"
         "}\n"
         "\nExamples\n" +
-        HelpExampleCli("initaccountfromdevice", "\"m/44'/1'/0'\"") +
-        "\nAs a JSON-RPC call\n" + HelpExampleRpc("initaccountfromdevice", "\"m/44'/1'/0'\""));
+        HelpExampleCli("initaccountfromdevice", "\"m/44'/600'/0'\"") +
+        "\nAs a JSON-RPC call\n" + HelpExampleRpc("initaccountfromdevice", "\"m/44'/600'/0'\""));
   }
 
   RPCTypeCheck(request.params, {UniValue::VSTR, UniValue::VSTR, UniValue::VBOOL, UniValue::VNUM}, true);
