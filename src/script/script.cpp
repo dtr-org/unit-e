@@ -580,6 +580,7 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
 
     opcodetype opcode;
     std::vector<uint8_t> buffer;
+    outKeys.clear();
 
     const auto &witnessBack = witness.stack.back();
     CScript script(witnessBack.begin(), witnessBack.end());
