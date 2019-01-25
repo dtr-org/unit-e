@@ -55,6 +55,11 @@ class USBDevice {
         m_serial_no(serial_no),
         m_interface(interface) {}
 
+  USBDevice(const USBDevice &) = delete;
+  USBDevice(USBDevice &&) = delete;
+  USBDevice &operator=(const USBDevice &) = delete;
+  USBDevice &operator=(USBDevice &&) = delete;
+
   virtual ~USBDevice() {}
 
   virtual bool Open() = 0;
