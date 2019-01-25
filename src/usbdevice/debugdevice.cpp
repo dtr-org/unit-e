@@ -93,8 +93,7 @@ bool DebugDevice::SignTransaction(const std::vector<uint32_t> &path,
     keyWork = keyOut;
   }
 
-  CKey key = keyWork.key;
-  if (!key.Sign(hash, signature)) {
+  if (!keyWork.key.Sign(hash, signature)) {
     error = "Sign failed";
     return false;
   }

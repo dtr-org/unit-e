@@ -159,7 +159,7 @@ static UniValue getdeviceextpubkey(const JSONRPCRequest &request) {
   }
 
   std::vector<uint32_t> path = GetFullPath(request.params[0], request.params[1]);
-  auto device = SelectDevice();
+  const auto device = SelectDevice();
   std::string error;
   CExtPubKey ekp;
 
@@ -218,7 +218,7 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
     throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
   }
 
-  auto device = SelectDevice();
+  const auto device = SelectDevice();
 
   std::vector<uint32_t> path;
   std::string error;
