@@ -353,6 +353,7 @@ libunite_wallet_a_SOURCES = \
   extkey.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/block_builder.cpp \
+  proposer/eligible_coin.cpp \
   proposer/multiwallet.cpp \
   proposer/proposer.cpp \
   proposer/proposer_logic.cpp \
