@@ -239,7 +239,7 @@ Threads
 
 - ThreadRPCServer : Remote procedure call handler, listens on port 7181 for connections and services them.
 
-- UnitEMiner : Generates unites (if wallet is enabled).
+- unite-proposer : Proposes new blocks using the open wallets balance as stake.
 
 - Shutdown : Does an orderly shutdown of everything.
 
