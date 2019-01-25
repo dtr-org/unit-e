@@ -13,7 +13,7 @@
 
 namespace usbdevice {
 
-const DeviceType usbDeviceTypes[] = {
+const DeviceType USB_DEVICE_TYPES[] = {
     DeviceType(0x0000, 0x0000, "Debug", "Device", USBDEVICE_DEBUG),
 };
 

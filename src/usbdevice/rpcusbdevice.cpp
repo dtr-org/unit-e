@@ -75,8 +75,8 @@ static UniValue listdevices(const JSONRPCRequest &request) {
 
   for (const auto &device : devices) {
     UniValue obj(UniValue::VOBJ);
-    obj.pushKV("vendor", device->m_type->m_vendor);
-    obj.pushKV("product", device->m_type->m_product);
+    obj.pushKV("vendor", device->m_type.m_vendor);
+    obj.pushKV("product", device->m_type.m_product);
     obj.pushKV("serial_no", device->m_serial_no);
 
     std::string firmware, error;

@@ -43,11 +43,11 @@ class DeviceType {
   const DeviceTypeID m_type_id;
 };
 
-extern const DeviceType usbDeviceTypes[];
+extern const DeviceType USB_DEVICE_TYPES[];
 
 class USBDevice {
  public:
-  USBDevice(const DeviceType *type, const char *path, const char *serial_no,
+  USBDevice(const DeviceType &type, const char *path, const char *serial_no,
             int interface)
       : m_type(type),
         m_path(path),
@@ -79,7 +79,7 @@ class USBDevice {
                                std::vector<uint8_t> &signature,
                                std::string &error) = 0;
 
-  const DeviceType *m_type = nullptr;
+  const DeviceType &m_type;
   const std::string m_path;
   const std::string m_serial_no;
   const int m_interface;

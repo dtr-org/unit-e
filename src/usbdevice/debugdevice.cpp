@@ -23,7 +23,7 @@ static const char DEBUG_FIRMWARE[] = "debug v1";
 const size_t MAX_BIP32_PATH = 10;
 
 DebugDevice::DebugDevice()
-    : USBDevice(&usbDeviceTypes[USBDEVICE_DEBUG - 1], "none", "1", 0) {
+    : USBDevice(USB_DEVICE_TYPES[USBDEVICE_DEBUG - 1], "none", "1", 0) {
   m_ekv.SetSeed(SEED, sizeof(SEED) - 1);  // to account for trailing \0
 }
 
