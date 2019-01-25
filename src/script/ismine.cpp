@@ -38,7 +38,8 @@ enum class IsMineResult
     NO = 0,          //! Not ours
     WATCH_ONLY = 1,  //! Included in watch-only balance
     SPENDABLE = 2,   //! Included in all balances
-    INVALID = 3,     //! Not spendable by anyone (uncompressed pubkey in segwit, P2SH inside P2SH or witness, witness inside witness)
+    HW_DEVICE = 6,   //! Stored in a hardware wallet
+    INVALID = 7,     //! Not spendable by anyone (uncompressed pubkey in segwit, P2SH inside P2SH or witness, witness inside witness)
 };
 
 bool PermitsUncompressed(IsMineSigVersion sigversion)
@@ -46,13 +47,30 @@ bool PermitsUncompressed(IsMineSigVersion sigversion)
     return sigversion == IsMineSigVersion::TOP || sigversion == IsMineSigVersion::P2SH;
 }
 
-bool HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
+
+//! Checks that we own all the keys in the same way (either all in hardware, or
+//! all in the software wallet).
+IsMineResult HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
 {
+    size_t hw_key_count = 0, wallet_key_count = 0;
+
     for (const valtype& pubkey : pubkeys) {
         CKeyID keyID = CPubKey(pubkey).GetID();
-        if (!keystore.HaveKey(keyID)) return false;
+        if (keystore.HaveHardwareKey(keyID)) {
+            hw_key_count++;
+        }
+        if (keystore.HaveKey(keyID)) {
+            wallet_key_count++;
+        }
     }
-    return true;
+
+    if (wallet_key_count == pubkeys.size()) {
+        return IsMineResult::SPENDABLE;
+    }
+    if (hw_key_count == pubkeys.size()) {
+        return IsMineResult::HW_DEVICE;
+    }
+    return IsMineResult::NO;
 }
 
 IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion)
@@ -77,6 +95,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         if (keystore.HaveKey(keyID)) {
             ret = std::max(ret, IsMineResult::SPENDABLE);
+        }
+        if (keystore.HaveHardwareKey(keyID)) {
+            ret = std::max(ret, IsMineResult::HW_DEVICE);
         }
         break;
     case TX_WITNESS_V0_KEYHASH:
@@ -104,6 +125,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         if (keystore.HaveKey(keyID)) {
             ret = std::max(ret, IsMineResult::SPENDABLE);
+        }
+        if (keystore.HaveHardwareKey(keyID)) {
+            ret = std::max(ret, IsMineResult::HW_DEVICE);
         }
         break;
     case TX_SCRIPTHASH:
@@ -158,8 +182,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 }
             }
         }
-        if (HaveKeys(keys, keystore)) {
-            ret = std::max(ret, IsMineResult::SPENDABLE);
+        IsMineResult ret_all = HaveKeys(keys, keystore);
+        if (ret_all != IsMineResult::NO) {
+            ret = ret_all;
         }
         break;
     }
@@ -174,6 +199,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             }
             if (keystore.HaveKey(keyID)) {
                 return IsMineResult::SPENDABLE;
+            }
+            if (keystore.HaveHardwareKey(keyID)) {
+                return IsMineResult::HW_DEVICE;
             }
         }
         break;
@@ -198,6 +226,8 @@ isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
         return ISMINE_WATCH_ONLY;
     case IsMineResult::SPENDABLE:
         return ISMINE_SPENDABLE;
+    case IsMineResult::HW_DEVICE:
+        return ISMINE_HW_DEVICE;
     }
     assert(false);
 }

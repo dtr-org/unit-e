@@ -2819,6 +2819,7 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
     obj.push_back(Pair("keypoololdest", pwallet->GetOldestKeyPoolTime()));
     obj.push_back(Pair("keypoolsize", (int64_t)kpExternalSize));
     CKeyID seed_id = pwallet->GetHDChain().seed_id;
+    CKeyID master_key_id = pwallet->GetHDChain().master_key_id;
     if (!seed_id.IsNull() && pwallet->CanSupportFeature(FEATURE_HD_SPLIT)) {
         obj.push_back(Pair("keypoolsize_hd_internal",   (int64_t)(pwallet->GetKeyPoolSize() - kpExternalSize)));
     }
@@ -2831,8 +2832,10 @@ UniValue getwalletinfo(const JSONRPCRequest& request)
 
     obj.push_back(Pair("paytxfee",      ValueFromAmount(payTxFee.GetFeePerK())));
     if (!seed_id.IsNull()) {
-         obj.push_back(Pair("hdseedid", seed_id.GetHex()));
-         obj.push_back(Pair("hdmasterkeyid", seed_id.GetHex()));
+        obj.push_back(Pair("hdseedid", seed_id.GetHex()));
+    }
+    if (!master_key_id.IsNull()) {
+        obj.push_back(Pair("hdmasterkeyid", master_key_id.GetHex()));
     }
     return obj;
 }

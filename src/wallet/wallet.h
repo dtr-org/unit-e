@@ -728,6 +728,8 @@ private:
     /* HD derive new child key (on internal or external chain) */
     void DeriveNewChildKey(CWalletDB &walletdb, CKeyMetadata& metadata, CKey& secret, bool internal = false);
 
+    CPubKey DeriveNewPubKey(CWalletDB &walletdb, bool internal = false);
+
     std::set<int64_t> setInternalKeyPool;
     std::set<int64_t> setExternalKeyPool;
     int64_t m_max_keypool_index;
@@ -907,10 +909,12 @@ public:
     //! Adds a key to the store, and saves it to disk.
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override;
     bool AddKeyPubKeyWithDB(CWalletDB &walletdb,const CKey& key, const CPubKey &pubkey);
+    bool HaveHardwareKey(const CKeyID& address) const override;
     //! Adds a key to the store, without saving it to disk (used by LoadWallet)
     bool LoadKey(const CKey& key, const CPubKey &pubkey) { return CCryptoKeyStore::AddKeyPubKey(key, pubkey); }
     //! Load metadata (used by LoadWallet)
     bool LoadKeyMetadata(const CKeyID& keyID, const CKeyMetadata &metadata);
+    bool LoadKeyMetadata(const CPubKey& pubkey, const CKeyMetadata &metadata);
     bool LoadScriptMetadata(const CScriptID& script_id, const CKeyMetadata &metadata);
 
     bool LoadMinVersion(int nVersion) { AssertLockHeld(cs_wallet); nWalletVersion = nVersion; nWalletMaxVersion = std::max(nWalletMaxVersion, nVersion); return true; }
@@ -1150,6 +1154,11 @@ public:
        caller must ensure the current wallet version is correct before calling
        this function). */
     bool SetHDSeed(const CPubKey& key);
+
+    bool SetHDMasterKey(
+        const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
+        const std::vector<CKeyMetadata> &metadata, bool hardwareDevice = false
+    );
 
     /**
      * Blocks until the wallet state is up-to-date to /at least/ the current

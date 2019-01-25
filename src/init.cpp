@@ -53,6 +53,9 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validationinterface.h>
+#ifdef ENABLE_USBDEVICE
+#include <usbdevice/rpcusbdevice.h>
+#endif
 #ifdef ENABLE_WALLET
 #include <wallet/init.h>
 #include <wallet/wallet.h>
@@ -1371,6 +1374,9 @@ bool AppInitMain()
 #ifdef ENABLE_WALLET
     RegisterProposerRPCCommands(tableRPC);
     RegisterWalletRPC(tableRPC);
+#endif
+#ifdef ENABLE_USBDEVICE
+    RegisterUSBDeviceRPC(tableRPC);
 #endif
 
     /* Start the RPC server already.  It will be started in "warmup" mode

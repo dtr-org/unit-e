@@ -40,6 +40,9 @@ endif
 if ENABLE_WALLET
 LIBUNITE_WALLET=libunite_wallet.a
 endif
+if ENABLE_USBDEVICE
+LIBUNITE_USBDEVICE=libunite_usbdevice.a
+endif
 
 $(LIBSECP256K1): $(wildcard secp256k1/src/*) $(wildcard secp256k1/include/*)
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C $(@D) $(@F)
@@ -52,6 +55,7 @@ EXTRA_LIBRARIES += \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_CONSENSUS) \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_ZMQ)
 
@@ -227,6 +231,9 @@ UNITE_CORE_H = \
   undo.h \
   unilib/uninorms.h \
   unilib/utf8.h \
+  usbdevice/debugdevice.h \
+  usbdevice/rpcusbdevice.h \
+  usbdevice/usbdevice.h \
   util.h \
   utilfun.h \
   utilmoneystr.h \
@@ -350,7 +357,6 @@ libunite_wallet_a_SOURCES = \
   esperanza/init.cpp \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
-  extkey.cpp \
   key/mnemonic/mnemonic.cpp \
   proposer/block_builder.cpp \
   proposer/eligible_coin.cpp \
@@ -379,6 +385,16 @@ libunite_wallet_a_SOURCES = \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
   $(UNITE_CORE_H)
+
+if ENABLE_USBDEVICE
+libunite_usbdevice_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
+libunite_usbdevice_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libunite_usbdevice_a_SOURCES = \
+  extkey.cpp \
+  usbdevice/debugdevice.cpp \
+  usbdevice/rpcusbdevice.cpp \
+  usbdevice/usbdevice.cpp
+endif
 
 # crypto primitives library
 crypto_libunite_crypto_a_CPPFLAGS = $(AM_CPPFLAGS)
@@ -521,6 +537,7 @@ endif
 united_LDADD = \
   $(LIBUNITE_SERVER) \
   $(LIBUNITE_UTIL) \
+  $(LIBUNITE_USBDEVICE) \
   $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \
   $(LIBUNIVALUE) \

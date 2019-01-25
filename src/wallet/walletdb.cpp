@@ -435,7 +435,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
             CKeyMetadata keyMeta;
             ssValue >> keyMeta;
             wss.nKeyMeta++;
-            pwallet->LoadKeyMetadata(vchPubKey.GetID(), keyMeta);
+            pwallet->LoadKeyMetadata(vchPubKey, keyMeta);
         }
         else if (strType == "watchmeta")
         {

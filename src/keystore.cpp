@@ -66,6 +66,10 @@ bool CBasicKeyStore::HaveKey(const CKeyID &address) const
     return mapKeys.count(address) > 0;
 }
 
+bool CBasicKeyStore::HaveHardwareKey(const CKeyID &address) const {
+    return false;
+}
+
 std::set<CKeyID> CBasicKeyStore::GetKeys() const
 {
     LOCK(cs_KeyStore);

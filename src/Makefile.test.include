@@ -129,7 +129,6 @@ if ENABLE_WALLET
 UNITE_TESTS += \
   test/counting_semaphore_tests.cpp \
   test/esperanza/walletextension_tests.cpp \
-  test/extkey_tests.cpp \
   test/injector_tests.cpp \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
@@ -147,11 +146,18 @@ UNITE_TESTS += \
   wallet/test/crypto_tests.cpp
 endif
 
+if ENABLE_USBDEVICE
+UNITE_TESTS += test/extkey_tests.cpp
+endif
+
 test_test_unite_SOURCES = $(UNITE_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
 test_test_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(TESTDEFS) $(EVENT_CFLAGS)
 test_test_unite_LDADD =
 if ENABLE_WALLET
 test_test_unite_LDADD += $(LIBUNITE_WALLET)
+endif
+if ENABLE_USBDEVICE
+test_test_unite_LDADD += $(LIBUNITE_USBDEVICE)
 endif
 test_test_unite_LDADD += $(LIBUNITE_SERVER) $(LIBUNITE_CLI) $(LIBUNITE_COMMON) $(LIBUNITE_UTIL) $(LIBUNITE_CONSENSUS) $(LIBUNITE_CRYPTO) $(LIBUNIVALUE) \
   $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) $(BOOST_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)

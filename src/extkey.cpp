@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <sstream>
 
-const std::string DEFAULT_ACCOUNT_PATH("m/44'/2019'/0'");
+const std::string DEFAULT_ACCOUNT_PATH("m/44'/600'/0'");
 
 constexpr char ERR_PATH_STR_EMPTY[] = "Path string empty";
 constexpr char ERR_INT_INVALID_CHAR[] = "Integer conversion invalid character";
