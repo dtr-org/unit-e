@@ -78,6 +78,8 @@ class SnapshotIndex {
 
   template <typename Stream, typename Operation>
   inline void SerializationOp(Stream &s, Operation ser_action) {
+    LOCK(m_cs);
+
     READWRITE(m_index_map);
     READWRITE(m_snapshots_for_removal);
   }
