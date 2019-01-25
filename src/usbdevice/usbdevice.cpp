@@ -39,9 +39,11 @@ std::shared_ptr<USBDevice> SelectDevice(std::string &error) {
 }
 
 DeviceSignatureCreator::DeviceSignatureCreator(
-    std::shared_ptr<USBDevice> device, const CTransaction &tx, unsigned int nin,
-    const CAmount &amount, int hash_type)
-    : m_tx(tx),
+    std::shared_ptr<USBDevice> device, const CWallet &wallet,
+    const CTransaction &tx, unsigned int nin, const CAmount &amount,
+    int hash_type)
+    : m_wallet(wallet),
+      m_tx(tx),
       m_nin(nin),
       m_hash_type(hash_type),
       m_amount(amount),
@@ -55,18 +57,14 @@ bool DeviceSignatureCreator::CreateSig(const SigningProvider &provider,
                                        SigVersion sigversion) const {
   CKeyMetadata metadata;
 
-  try {
-    // Can we avoid tight coupling to CWallet here?
-    const CWallet &wallet = dynamic_cast<const CWallet &>(provider);
-    LOCK(wallet.cs_wallet);
+  {
+    LOCK(m_wallet.cs_wallet);
 
-    auto it = wallet.mapKeyMetadata.find(keyid);
-    if (it == wallet.mapKeyMetadata.end()) {
+    auto it = m_wallet.mapKeyMetadata.find(keyid);
+    if (it == m_wallet.mapKeyMetadata.end()) {
       return false;
     }
     metadata = it->second;
-  } catch (std::bad_cast &exp) {
-    return false;
   }
 
   std::vector<uint32_t> path;

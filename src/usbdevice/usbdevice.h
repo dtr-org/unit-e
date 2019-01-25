@@ -16,6 +16,7 @@
 
 class UniValue;
 class CCoinsViewCache;
+class CWallet;
 
 namespace usbdevice {
 
@@ -87,6 +88,7 @@ class USBDevice {
 };
 
 class DeviceSignatureCreator : public BaseSignatureCreator {
+  const CWallet &m_wallet;
   const CTransaction &m_tx;
   unsigned int m_nin;
   int m_hash_type;
@@ -96,8 +98,9 @@ class DeviceSignatureCreator : public BaseSignatureCreator {
 
  public:
   DeviceSignatureCreator(std::shared_ptr<USBDevice> device,
-                         const CTransaction &tx, unsigned int nin,
-                         const CAmount &amount, int hash_type = SIGHASH_ALL);
+                         const CWallet &wallet, const CTransaction &tx,
+                         unsigned int nin, const CAmount &amount,
+                         int hash_type = SIGHASH_ALL);
   const BaseSignatureChecker &Checker() const override { return m_checker; }
   bool CreateSig(const SigningProvider &provider,
                  std::vector<unsigned char> &signature, const CKeyID &keyid,

@@ -3128,7 +3128,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
 #ifdef ENABLE_USBDEVICE
                 if (::IsMine(*this, scriptPubKey) == ISMINE_HW_DEVICE) {
                     txCreator.reset(new usbdevice::DeviceSignatureCreator(
-                        pdevice, txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL
+                        pdevice, *this, txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL
                     ));
                 }
 #endif
