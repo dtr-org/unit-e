@@ -45,7 +45,7 @@ class MockP2PState : public snapshot::P2PState {
   }
 };
 
-std::unique_ptr<CNode> mockNode() {
+std::unique_ptr<CNode> MockNode() {
   uint32_t ip = 0xa0b0c001;
   in_addr s{ip};
   CService service(CNetAddr(s), 7182);
@@ -55,6 +55,7 @@ std::unique_ptr<CNode> mockNode() {
                                 INVALID_SOCKET, addr, 0, 0, CAddress(),
                                 "", /*fInboundIn=*/
                                 false);
+  node->nServices = ServiceFlags(NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT);
   node->nVersion = 1;
   node->fSuccessfullyConnected = true;
   return node;
@@ -79,7 +80,7 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   MockP2PState p2p_state;
 
   CNetMsgMaker msg_maker(1);
-  std::unique_ptr<CNode> node(mockNode());
+  std::unique_ptr<CNode> node(MockNode());
 
   snapshot::SnapshotHeader best_snapshot;
   best_snapshot.snapshot_hash = uint256S("294f4fba05bc2f19764960989b4a364466522b3009808ff99e89cfde56bf43e7");
@@ -178,10 +179,10 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   second_best.snapshot_hash = uint256S("a1");
   second_best.block_hash = b1->GetBlockHash();
 
-  std::unique_ptr<CNode> node1(mockNode());  // no snapshot
-  std::unique_ptr<CNode> node2(mockNode());  // second best
-  std::unique_ptr<CNode> node3(mockNode());  // best
-  std::unique_ptr<CNode> node4(mockNode());  // best
+  std::unique_ptr<CNode> node1(MockNode());  // no snapshot
+  std::unique_ptr<CNode> node2(MockNode());  // second best
+  std::unique_ptr<CNode> node3(MockNode());  // best
+  std::unique_ptr<CNode> node4(MockNode());  // best
   std::vector<CNode *> nodes{node1.get(), node2.get(), node3.get(), node4.get()};
 
   // test that discovery message was sent
