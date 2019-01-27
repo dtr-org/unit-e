@@ -14,51 +14,51 @@
 
 namespace esperanza {
 
-bool CheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
-                         const Consensus::Params &params, const FinalizationState &fin_state) {
+bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
+                                   const Consensus::Params &params, const FinalizationState &fin_state) {
   switch (tx.GetType()) {
     case +TxType::STANDARD:
     case +TxType::COINBASE:
       assert(not("Shouldn't be called on non-finalization transaction"));
     case +TxType::DEPOSIT:
-      return CheckDepositTx(tx, err_state, fin_state);
+      return ContextualCheckDepositTx(tx, err_state, fin_state);
     case +TxType::VOTE:
-      return CheckVoteTx(tx, err_state, params, fin_state);
+      return ContextualCheckVoteTx(tx, err_state, params, fin_state);
     case +TxType::LOGOUT:
-      return CheckLogoutTx(tx, err_state, params, fin_state);
+      return ContextualCheckLogoutTx(tx, err_state, params, fin_state);
     case +TxType::SLASH:
-      return CheckSlashTx(tx, err_state, params, fin_state);
+      return ContextualCheckSlashTx(tx, err_state, params, fin_state);
     case +TxType::WITHDRAW:
-      return CheckWithdrawTx(tx, err_state, params, fin_state);
+      return ContextualCheckWithdrawTx(tx, err_state, params, fin_state);
     case +TxType::ADMIN:
-      return CheckAdminTx(tx, err_state, fin_state);
+      return ContextualCheckAdminTx(tx, err_state, fin_state);
   }
   return false;
 }
 
-bool VerifyFinalizationTx(const CTransaction &tx, CValidationState &err_state) {
+bool CheckFinalizationTx(const CTransaction &tx, CValidationState &err_state) {
   switch (tx.GetType()) {
     case +TxType::STANDARD:
     case +TxType::COINBASE:
       assert(not("Shouldn't be called on non-finalization transaction"));
     case +TxType::DEPOSIT:
-      return VerifyDepositTx(tx, err_state, nullptr);
+      return CheckDepositTx(tx, err_state, nullptr);
     case +TxType::VOTE:
-      return VerifyVoteTx(tx, err_state, nullptr, nullptr);
+      return CheckVoteTx(tx, err_state, nullptr, nullptr);
     case +TxType::LOGOUT:
-      return VerifyLogoutTx(tx, err_state, nullptr);
+      return CheckLogoutTx(tx, err_state, nullptr);
     case +TxType::SLASH:
-      return VerifySlashTx(tx, err_state, nullptr, nullptr);
+      return CheckSlashTx(tx, err_state, nullptr, nullptr);
     case +TxType::WITHDRAW:
-      return VerifyWithdrawTx(tx, err_state, nullptr);
+      return CheckWithdrawTx(tx, err_state, nullptr);
     case +TxType::ADMIN:
-      return VerifyAdminTx(tx, err_state, nullptr);
+      return CheckAdminTx(tx, err_state, nullptr);
   }
   return false;
 }
 
 namespace {
-inline bool VerifyValidatorAddress(const CTransaction &tx, uint160 *addr_out) {
+inline bool CheckValidatorAddress(const CTransaction &tx, uint160 *addr_out) {
   static thread_local uint160 addr_tmp;
   if (addr_out == nullptr) {
     addr_out = &addr_tmp;
@@ -67,8 +67,8 @@ inline bool VerifyValidatorAddress(const CTransaction &tx, uint160 *addr_out) {
 }
 }  // namespace
 
-bool VerifyDepositTx(const CTransaction &tx, CValidationState &err_state,
-                     uint160 *validator_address_out) {
+bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
+                    uint160 *validator_address_out) {
 
   assert(tx.IsDeposit());
 
@@ -88,7 +88,7 @@ bool VerifyDepositTx(const CTransaction &tx, CValidationState &err_state,
                          "bad-deposit-script-not-solvable");
   }
 
-  if (!VerifyValidatorAddress(tx, validator_address_out)) {
+  if (!CheckValidatorAddress(tx, validator_address_out)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-deposit-cannot-extract-validator-address");
   }
@@ -96,11 +96,11 @@ bool VerifyDepositTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
-                    const FinalizationState &fin_state) {
+bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_state,
+                              const FinalizationState &fin_state) {
 
-  uint160 validator_address = uint160();
-  if (!VerifyDepositTx(tx, err_state, &validator_address)) {
+  uint160 validator_address;
+  if (!CheckDepositTx(tx, err_state, &validator_address)) {
     return false;
   }
 
@@ -124,8 +124,8 @@ bool IsVoteExpired(const CTransaction &tx) {
   return vote.m_targetEpoch < state->GetCurrentEpoch();
 }
 
-bool VerifyLogoutTx(const CTransaction &tx, CValidationState &err_state,
-                    uint160 *validator_address_out) {
+bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
+                   uint160 *validator_address_out) {
 
   assert(tx.IsLogout());
 
@@ -145,7 +145,7 @@ bool VerifyLogoutTx(const CTransaction &tx, CValidationState &err_state,
                          "bad-logout-script-not-solvable");
   }
 
-  if (!VerifyValidatorAddress(tx, validator_address_out)) {
+  if (!CheckValidatorAddress(tx, validator_address_out)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-logout-cannot-extract-validator-address");
   }
@@ -153,12 +153,12 @@ bool VerifyLogoutTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
-                   const Consensus::Params &consensus_params,
-                   const FinalizationState &fin_state) {
+bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
+                             const Consensus::Params &consensus_params,
+                             const FinalizationState &fin_state) {
 
   uint160 validator_address = uint160();
-  if (!VerifyLogoutTx(tx, err_state, &validator_address)) {
+  if (!CheckLogoutTx(tx, err_state, &validator_address)) {
     return false;
   }
 
@@ -195,8 +195,8 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool VerifyWithdrawTx(const CTransaction &tx, CValidationState &err_state,
-                      uint160 *out_validator_address) {
+bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
+                     uint160 *out_validator_address) {
 
   assert(tx.IsWithdraw());
 
@@ -216,20 +216,20 @@ bool VerifyWithdrawTx(const CTransaction &tx, CValidationState &err_state,
                          "bad-withdraw-script-not-solvable");
   }
 
-  if (!VerifyValidatorAddress(tx, out_validator_address)) {
+  if (!CheckValidatorAddress(tx, out_validator_address)) {
     return err_state.DoS(10, false, REJECT_INVALID,
-                         "bad-logout-cannot-extract-validator-address");
+                         "bad-withdraw-cannot-extract-validator-address");
   }
 
   return true;
 }
 
-bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
-                     const Consensus::Params &consensus_params,
-                     const FinalizationState &fin_state) {
+bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
+                               const Consensus::Params &consensus_params,
+                               const FinalizationState &fin_state) {
 
   uint160 validator_address = uint160();
-  if (!VerifyWithdrawTx(tx, err_state, &validator_address)) {
+  if (!CheckWithdrawTx(tx, err_state, &validator_address)) {
     return false;
   }
 
@@ -267,8 +267,8 @@ bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool VerifyVoteTx(const CTransaction &tx, CValidationState &err_state,
-                  Vote *vote_out, std::vector<unsigned char> *vote_sig_out) {
+bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
+                 Vote *vote_out, std::vector<unsigned char> *vote_sig_out) {
 
   assert(tx.IsVote());
 
@@ -307,13 +307,13 @@ bool VerifyVoteTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
-                 const Consensus::Params &consensus_params,
-                 const FinalizationState &fin_state) {
+bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
+                           const Consensus::Params &consensus_params,
+                           const FinalizationState &fin_state) {
 
   Vote vote;
   std::vector<unsigned char> vote_sig;
-  if (!VerifyVoteTx(tx, err_state, &vote, &vote_sig)) {
+  if (!CheckVoteTx(tx, err_state, &vote, &vote_sig)) {
     return false;
   }
 
@@ -347,8 +347,8 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool VerifySlashTx(const CTransaction &tx, CValidationState &err_state,
-                   Vote *vote1_out, Vote *vote2_out) {
+bool CheckSlashTx(const CTransaction &tx, CValidationState &err_state,
+                  Vote *vote1_out, Vote *vote2_out) {
 
   assert(tx.IsSlash());
 
@@ -375,14 +375,14 @@ bool VerifySlashTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool CheckSlashTx(const CTransaction &tx, CValidationState &err_state,
-                  const Consensus::Params &consensus_params,
-                  const FinalizationState &fin_state) {
+bool ContextualCheckSlashTx(const CTransaction &tx, CValidationState &err_state,
+                            const Consensus::Params &consensus_params,
+                            const FinalizationState &fin_state) {
 
   Vote vote1;
   Vote vote2;
 
-  if (!VerifySlashTx(tx, err_state, &vote1, &vote2)) {
+  if (!CheckSlashTx(tx, err_state, &vote1, &vote2)) {
     return false;
   }
 
@@ -394,8 +394,8 @@ bool CheckSlashTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool VerifyAdminTx(const CTransaction &tx, CValidationState &err_state,
-                   std::vector<CPubKey> *keys_out) {
+bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,
+                  std::vector<CPubKey> *keys_out) {
 
   assert(tx.IsAdmin());
 
@@ -452,15 +452,15 @@ bool VerifyAdminTx(const CTransaction &tx, CValidationState &err_state,
   return true;
 }
 
-bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,
-                  const FinalizationState &fin_state) {
+bool ContextualCheckAdminTx(const CTransaction &tx, CValidationState &err_state,
+                            const FinalizationState &fin_state) {
 
   if (!fin_state.IsPermissioningActive()) {
     return err_state.DoS(10, false, REJECT_INVALID, "admin-disabled");
   }
 
   std::vector<CPubKey> keys;
-  if (!VerifyAdminTx(tx, err_state, &keys)) {
+  if (!CheckAdminTx(tx, err_state, &keys)) {
     return false;
   }
 
