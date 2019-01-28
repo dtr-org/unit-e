@@ -67,6 +67,9 @@ import math
 import os
 
 
+SERVICE_FLAGS_WITH_SNAPSHOT = NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT
+
+
 class BaseNode(P2PInterface):
     def __init__(self):
         super().__init__()
@@ -283,7 +286,7 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: has_valid_snapshot(serving_node, 3), timeout=10)
 
         syncing_p2p = serving_node.add_p2p_connection(BaseNode())
-        serving_p2p = syncing_node.add_p2p_connection(BaseNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        serving_p2p = syncing_node.add_p2p_connection(BaseNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
 
         # configure serving_p2p to have snapshot header and parent block
         serving_p2p.update_snapshot_header_from(serving_node)
@@ -363,7 +366,7 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
 
         # configure p2p to have snapshot header and parent block
-        p2p = node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         p2p.update_snapshot_header_from(snap_node)
         p2p.update_headers_and_blocks_from(snap_node)
 
@@ -387,7 +390,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # test 2. that node can be restarted after it downloaded half of the snapshot
         p2p.return_snapshot_chunk1 = True
-        node.add_p2p_connection(p2p, services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        node.add_p2p_connection(p2p, services=SERVICE_FLAGS_WITH_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: p2p.snapshot_chunk2_requested, timeout=10)
         node.disconnect_p2ps()
@@ -398,7 +401,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # test 3. that node can be restarted after it downloaded the full snapshot
         p2p.return_snapshot_chunk2 = True
-        node.add_p2p_connection(p2p, services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        node.add_p2p_connection(p2p, services=SERVICE_FLAGS_WITH_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: p2p.parent_block_requested, timeout=10)
         node.disconnect_p2ps()
@@ -408,7 +411,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # test 4. the node can be restarted after it downloaded the parent block
         p2p.return_parent_block = True
-        node.add_p2p_connection(p2p, services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        node.add_p2p_connection(p2p, services=SERVICE_FLAGS_WITH_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: node.getblockcount() == snap_node.getblockcount(), timeout=10)
         assert_chainstate_equal(node, snap_node)
@@ -445,14 +448,14 @@ class P2PSnapshotTest(UnitETestFramework):
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
 
-        valid_p2p = node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        valid_p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         valid_p2p.update_snapshot_header_from(snap_node)
 
         # create the second snapshot and store it in broken_p2p
         snap_node.generatetoaddress(5, snap_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(snap_node, 8), timeout=10)
 
-        broken_p2p = node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        broken_p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         broken_p2p.update_snapshot_header_from(snap_node)
         broken_p2p.update_headers_and_blocks_from(snap_node)
         valid_p2p.update_headers_and_blocks_from(snap_node)
@@ -525,7 +528,7 @@ class P2PSnapshotTest(UnitETestFramework):
         # add 2nd best snapshot to full_snap_p2p
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
-        full_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        full_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         no_snap_p2p = sync_node.add_p2p_connection(WaitNode())
         for p2p in [full_snap_p2p, no_snap_p2p]:
             p2p.update_snapshot_header_from(snap_node)
@@ -533,7 +536,7 @@ class P2PSnapshotTest(UnitETestFramework):
         # add the best snapshot to half_snap_p2p
         snap_node.generatetoaddress(5, snap_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(snap_node, 8), timeout=10)
-        half_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=NODE_NETWORK | NODE_WITNESS | NODE_SNAPSHOT)
+        half_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         half_snap_p2p.update_snapshot_header_from(snap_node)
         for p2p in [half_snap_p2p, full_snap_p2p, no_snap_p2p]:
             p2p.update_headers_and_blocks_from(snap_node)
