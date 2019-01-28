@@ -206,26 +206,27 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     // create a bunch of threads that repeatedly process a block generated above at random
     // this will create parallelism and randomness inside validation - the ValidationInterface
     // will subscribe to events generated during block validation and assert on ordering invariance
-//    boost::thread_group threads;
+    boost::thread_group threads;
     for (int i = 0; i < 10; i++) {
-//        threads.create_thread([&blocks]() {
-//            bool ignored;
+        threads.create_thread([&blocks]() {
+            bool ignored;
             for (int i = 0; i < 1000; i++) {
                 auto block = blocks[GetRand(blocks.size() - 1)];
-                ProcessNewBlock(Params(), block, true, &ignored);
+                bool processed = ProcessNewBlock(Params(), block, true, &ignored);
+                BOOST_CHECK(processed);
             }
 
             // to make sure that eventually we process the full chain - do it here
             for (auto block : blocks) {
                 if (block->vtx.size() == 1) {
                     bool processed = ProcessNewBlock(Params(), block, true, &ignored);
-                    assert(processed);
+                    BOOST_CHECK(processed);
                 }
             }
-//        });
+        });
     }
 
-//    threads.join_all();
+    threads.join_all();
     while (GetMainSignals().CallbacksPending() > 0) {
         MilliSleep(100);
     }
