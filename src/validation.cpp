@@ -579,16 +579,16 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
     return BCLog::NONE;
 }
 
-static bool CheckFinalizationTransaction(const CTransaction &tx, CValidationState &err_state,
-                                         const Consensus::Params &params,
-                                         const esperanza::FinalizationState *fin_state = nullptr) {
+static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
+                                          const Consensus::Params &params,
+                                          const esperanza::FinalizationState *fin_state = nullptr) {
     if (fin_state == nullptr) {
         fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
     }
     assert(fin_state != nullptr);
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::CheckFinalizationTransaction(tx, err_state, params, *fin_state)) {
+    if (!esperanza::ContextualCheckFinalizationTx(tx, err_state, params, *fin_state)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
@@ -596,18 +596,18 @@ static bool CheckFinalizationTransaction(const CTransaction &tx, CValidationStat
     return true;
 }
 
-static bool CheckBlockFinalizationTransactions(const CBlock &block, CValidationState &err_state,
-                                               const Consensus::Params &params) {
+static bool ContextualCheckBlockFinalizationTxes(const CBlock &block, CValidationState &err_state,
+                                                 const CBlockIndex *prev_index,
+                                                 const Consensus::Params &params) {
     esperanza::FinalizationState *fin_state = nullptr;
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizationTransaction()) {
             if (fin_state == nullptr) {
-                LOCK(cs_main);
-                const CBlockIndex *const prev_index = LookupBlockIndex(block.hashPrevBlock);
+                assert(prev_index != nullptr);
                 fin_state = esperanza::FinalizationState::GetState(prev_index);
                 assert(fin_state != nullptr);
             }
-            if (!CheckFinalizationTransaction(*tx, err_state, params, fin_state)) {
+            if (!ContextualCheckFinalizationTx(*tx, err_state, params, fin_state)) {
                 return false;
             }
         }
@@ -672,8 +672,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
-    if (tx.IsFinalizationTransaction() && !CheckFinalizationTransaction(tx, state, chainparams.GetConsensus())) {
-        return false; // state already filled by CheckFinalizationTransaction
+    if (tx.IsFinalizationTransaction() && !ContextualCheckFinalizationTx(tx, state, chainparams.GetConsensus())) {
+        return false; // state already filled by ContextualCheckFinalizationTx
     }
 
     // Check for conflicts with in-memory transactions
@@ -2064,6 +2064,20 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     CBlockUndo blockundo;
 
+    // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
+    // deadlock between threads.
+    //
+    // unite-msghand (when accepting new block and connecting it):
+    // - lock pqueue->ControlMutex in ConnectBlock() -> CCheckQueueControl()
+    // - lock mempool.cs in ConnectBlock() -> CheckFinalizationTx() -> GetTransaction() -> mempool.get()
+    //
+    // unite-proposer or unite-http (when creating new block)
+    // - lock mempool.cs in BlockAssembler::CreateNewBlock()
+    // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
+    if (!ContextualCheckBlockFinalizationTxes(block, state, pindex->pprev, chainparams.GetConsensus())) {
+        return false;
+    }
+
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : nullptr);
 
     std::vector<int> prevheights;
@@ -3205,11 +3219,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
-    // Check finalization transactions
-    if (!CheckBlockFinalizationTransactions(block, state, consensusParams)) {
-        return false;
-    }
-
     // Check transactions
     for (const auto& tx : block.vtx)
         if (!CheckTransaction(*tx, state, true))
@@ -3380,6 +3389,9 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
+        }
+        if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
+            return false;
         }
     }
 
