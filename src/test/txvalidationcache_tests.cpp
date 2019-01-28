@@ -6,13 +6,9 @@
 #include <key.h>
 #include <validation.h>
 #include <miner.h>
-#include <pubkey.h>
-#include <txmempool.h>
-#include <random.h>
 #include <script/standard.h>
 #include <script/sign.h>
 #include <test/test_unite.h>
-#include <utiltime.h>
 #include <core_io.h>
 #include <keystore.h>
 #include <policy/policy.h>
@@ -164,6 +160,57 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     // Create 2 outputs that match the three scripts above, spending the first
     // coinbase tx.
+    CMutableTransaction dersig_invalid_tx;
+
+    dersig_invalid_tx.nVersion = 1;
+    dersig_invalid_tx.vin.resize(1);
+    dersig_invalid_tx.vin[0].prevout.hash = coinbaseTxns[0].GetHash();
+    dersig_invalid_tx.vin[0].prevout.n = 0;
+    dersig_invalid_tx.vout.resize(4);
+    dersig_invalid_tx.vout[0].nValue = 11*EEES;
+    dersig_invalid_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;
+    dersig_invalid_tx.vout[1].nValue = 11*EEES;
+    dersig_invalid_tx.vout[1].scriptPubKey = p2wpkh_scriptPubKey;
+    dersig_invalid_tx.vout[2].nValue = 11*EEES;
+    dersig_invalid_tx.vout[2].scriptPubKey = CScript() << OP_CHECKLOCKTIMEVERIFY << OP_DROP << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+    dersig_invalid_tx.vout[3].nValue = 11*EEES;
+    dersig_invalid_tx.vout[3].scriptPubKey = CScript() << OP_CHECKSEQUENCEVERIFY << OP_DROP << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+
+    // Sign, with a non-DER signature
+    {
+        std::vector<unsigned char> vchSig;
+        uint256 hash = SignatureHash(p2pk_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
+        vchSig.push_back((unsigned char) 0); // padding byte makes this non-DER
+        vchSig.push_back((unsigned char)SIGHASH_ALL);
+        dersig_invalid_tx.vin[0].scriptSig << vchSig;
+    }
+
+    // Test that invalidity under a set of flags doesn't preclude validity
+    // under other (eg consensus) flags.
+    // dersig_invalid_tx is invalid according to DERSIG
+    {
+        LOCK(cs_main);
+
+        CValidationState state;
+        PrecomputedTransactionData ptd_spend_tx(dersig_invalid_tx);
+
+        BOOST_CHECK(!CheckInputs(dersig_invalid_tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG, true, true, ptd_spend_tx, nullptr));
+
+        // If we call again asking for scriptchecks (as happens in
+        // ConnectBlock), we should add a script check object for this -- we're
+        // not caching invalidity (if that changes, delete this test case).
+        std::vector<CScriptCheck> scriptchecks;
+        BOOST_CHECK(CheckInputs(dersig_invalid_tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG, true, true, ptd_spend_tx, &scriptchecks));
+        BOOST_CHECK_EQUAL(scriptchecks.size(), 1);
+
+        // Test that CheckInputs returns true iff DERSIG-enforcing flags are
+        // not present.  Don't add these checks to the cache, so that we can
+        // test later that block validation works fine in the absence of cached
+        // successes.
+        ValidateCheckInputsForAllFlags(dersig_invalid_tx, SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC, false);
+    }
+
     CMutableTransaction spend_tx;
 
     spend_tx.nVersion = 1;
@@ -180,43 +227,17 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     spend_tx.vout[3].nValue = 11*EEES;
     spend_tx.vout[3].scriptPubKey = CScript() << OP_CHECKSEQUENCEVERIFY << OP_DROP << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
 
-    // Sign, with a non-DER signature
+    // Sign, with a DER signature
     {
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(p2pk_scriptPubKey, spend_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        uint256 hash = SignatureHash(p2pk_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
-        vchSig.push_back((unsigned char) 0); // padding byte makes this non-DER
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         spend_tx.vin[0].scriptSig << vchSig;
     }
 
-    // Test that invalidity under a set of flags doesn't preclude validity
-    // under other (eg consensus) flags.
-    // spend_tx is invalid according to DERSIG
-    {
-        LOCK(cs_main);
-
-        CValidationState state;
-        PrecomputedTransactionData ptd_spend_tx(spend_tx);
-
-        BOOST_CHECK(!CheckInputs(spend_tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG, true, true, ptd_spend_tx, nullptr));
-
-        // If we call again asking for scriptchecks (as happens in
-        // ConnectBlock), we should add a script check object for this -- we're
-        // not caching invalidity (if that changes, delete this test case).
-        std::vector<CScriptCheck> scriptchecks;
-        BOOST_CHECK(CheckInputs(spend_tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG, true, true, ptd_spend_tx, &scriptchecks));
-        BOOST_CHECK_EQUAL(scriptchecks.size(), 1);
-
-        // Test that CheckInputs returns true iff DERSIG-enforcing flags are
-        // not present.  Don't add these checks to the cache, so that we can
-        // test later that block validation works fine in the absence of cached
-        // successes.
-        ValidateCheckInputsForAllFlags(spend_tx, SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC, false);
-    }
-
-    // And if we produce a block with this tx, it should be valid (DERSIG not
-    // enabled yet), even though there's no cache entry.
+    // And if we produce a block with this tx, it should be valid,
+    // even though there's no cache entry.
     CBlock block;
 
     block = CreateAndProcessBlock({spend_tx}, p2pk_scriptPubKey);
