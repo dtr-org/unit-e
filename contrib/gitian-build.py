@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2018-2019 The Bitcoin Core developers
+# Copyright (c) 2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/licenses/MIT.
 
@@ -8,13 +9,15 @@ import os
 import subprocess
 import sys
 
-def setup():
-    global args, workdir
+import platform
+
+def install_linux_deps():
+    global args
     programs = ['ruby', 'git', 'apt-cacher-ng', 'make', 'wget']
     if args.kvm:
         programs += ['python-vm-builder', 'qemu-kvm', 'qemu-utils']
     elif args.docker:
-        dockers = ['docker.io', 'docker-ce']
+        dockers = ['docker-ce', 'docker.io']
         for i in dockers:
             return_code = subprocess.call(['sudo', 'apt-get', 'install', '-qq', i])
             if return_code == 0:
@@ -24,17 +27,59 @@ def setup():
             exit(1)
     else:
         programs += ['lxc', 'debootstrap']
+
     subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
-    if not os.path.isdir('gitian.sigs'):
+    if not os.path.isdir('unit-e-sigs'):
         subprocess.check_call(['git', 'clone', 'https://github.com/dtr-org/unit-e-sigs.git'])
-    if not os.path.isdir('unit-e-detached-sigs'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/dtr-org/unit-e-detached-sigs.git'])
     if not os.path.isdir('gitian-builder'):
         subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
     if not os.path.isdir('unit-e'):
         subprocess.check_call(['git', 'clone', 'https://github.com/dtr-org/unit-e.git'])
     os.chdir('gitian-builder')
     make_image_prog = ['bin/make-base-vm', '--suite', 'bionic', '--arch', 'amd64']
+
+    subprocess.check_call(['sudo', 'apt-get', 'update', '-qq'])
+    subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
+
+def install_mac_deps():
+    global args
+    if not args.docker:
+        print('Mac can only work with docker, re-run with --docker flag.', file=sys.stderr)
+        exit(1)
+
+    if subprocess.call(['docker', '--version']) != 0:
+        # TODO: check if it's enough (docker-machine?)
+        if subprocess.check_output(['brew', 'install', 'docker']) != 0:
+            print('Please install docker.', file=sys.stderr)
+            exit(1)
+
+    subprocess.check_call(['brew', 'install', 'ruby', 'coreutils'])
+
+def install_deps():
+    global args
+    system_str = platform.system()
+    if system_str == 'Linux':
+        install_linux_deps()
+    elif system_str == 'Darwin':
+        install_mac_deps()
+    else:
+        print('Unsupported system.', file=sys.stderr)
+        exit(1)
+
+
+def setup():
+    global args, workdir
+
+    install_deps()
+
+    if not os.path.isdir('unit-e-sigs'):
+        subprocess.check_call(['git', 'clone', 'git@github.com:dtr-org/unit-e-sigs.git'])
+    if not os.path.isdir('gitian-builder'):
+        subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
+    if not os.path.isdir('unit-e'):
+        subprocess.check_call(['git', 'clone', args.url, 'unit-e'])
+    os.chdir('gitian-builder')
+    make_image_prog = ['bin/make-base-vm', '--suite', 'trusty', '--arch', 'amd64']
     if args.docker:
         make_image_prog += ['--docker']
     elif not args.kvm:
@@ -63,20 +108,20 @@ def build():
     if args.linux:
         print('\nCompiling ' + args.version + ' Linux')
         subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, '../unit-e/contrib/gitian-descriptors/gitian-linux.yml'])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-linux', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-linux.yml'])
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-linux', '--destination', '../unit-e-sigs/', '../unit-e/contrib/gitian-descriptors/gitian-linux.yml'])
         subprocess.check_call('mv build/out/unite-*.tar.gz build/out/src/unite-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
 
     if args.windows:
         print('\nCompiling ' + args.version + ' Windows')
         subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-unsigned', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-unsigned', '--destination', '../unit-e-sigs/', '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
         subprocess.check_call('mv build/out/unite-*-win-unsigned.tar.gz inputs/', shell=True)
         subprocess.check_call('mv build/out/unite-*.zip build/out/unite-*.exe ../unit-e-binaries/'+args.version, shell=True)
 
     if args.macos:
         print('\nCompiling ' + args.version + ' MacOS')
         subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-unsigned', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-unsigned', '--destination', '../unit-e-sigs/', '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
         subprocess.check_call('mv build/out/unite-*-osx-unsigned.tar.gz inputs/', shell=True)
         subprocess.check_call('mv build/out/unite-*.tar.gz build/out/unite-*.dmg ../unit-e-binaries/'+args.version, shell=True)
 
@@ -84,7 +129,7 @@ def build():
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Unsigned Sigs\n')
-        os.chdir('gitian.sigs')
+        os.chdir('unit-e-sigs')
         subprocess.check_call(['git', 'add', args.version+'-linux/'+args.signer])
         subprocess.check_call(['git', 'add', args.version+'-win-unsigned/'+args.signer])
         subprocess.check_call(['git', 'add', args.version+'-osx-unsigned/'+args.signer])
@@ -99,7 +144,7 @@ def sign():
         print('\nSigning ' + args.version + ' Windows')
         subprocess.check_call('cp inputs/unite-' + args.version + '-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz', shell=True)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../unit-e-sigs/', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
         subprocess.check_call('mv build/out/unite-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True)
         subprocess.check_call('mv build/out/unite-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True)
 
@@ -107,14 +152,14 @@ def sign():
         print('\nSigning ' + args.version + ' MacOS')
         subprocess.check_call('cp inputs/unite-' + args.version + '-osx-unsigned.tar.gz inputs/unite-osx-unsigned.tar.gz', shell=True)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../unit-e-sigs/', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
         subprocess.check_call('mv build/out/unite-osx-signed.dmg ../unit-e-binaries/'+args.version+'/unite-'+args.version+'-osx.dmg', shell=True)
 
     os.chdir(workdir)
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Signed Sigs\n')
-        os.chdir('gitian.sigs')
+        os.chdir('unit-e-sigs')
         subprocess.check_call(['git', 'add', args.version+'-win-signed/'+args.signer])
         subprocess.check_call(['git', 'add', args.version+'-osx-signed/'+args.signer])
         subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' signed binary sigs for '+args.signer])
@@ -125,25 +170,25 @@ def verify():
     os.chdir('gitian-builder')
 
     print('\nVerifying v'+args.version+' Linux\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../gitian.sigs/', '-r', args.version+'-linux', '../unit-e/contrib/gitian-descriptors/gitian-linux.yml'])
+    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-linux', '../unit-e/contrib/gitian-descriptors/gitian-linux.yml'])
     print('\nVerifying v'+args.version+' Windows\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../gitian.sigs/', '-r', args.version+'-win-unsigned', '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
+    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-win-unsigned', '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
     print('\nVerifying v'+args.version+' MacOS\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../gitian.sigs/', '-r', args.version+'-osx-unsigned', '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
-    print('\nVerifying v'+args.version+' Signed Windows\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../gitian.sigs/', '-r', args.version+'-win-signed', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
+    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-osx-unsigned', '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
+    print('\nVerifying v'+args.version+' Signed Windows\n'unit-e
+    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-win-signed', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
     print('\nVerifying v'+args.version+' Signed MacOS\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../gitian.sigs/', '-r', args.version+'-osx-signed', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
+    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-osx-signed', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
 
     os.chdir(workdir)
 
 def main():
     global args, workdir
 
-    parser = argparse.ArgumentParser(usage='%(prog)s [options] signer version')
+    parser = argparse.ArgumentParser(usage='%(prog)s [options] [signer] [version]')
     parser.add_argument('-c', '--commit', action='store_true', dest='commit', help='Indicate that the version argument is for a commit or branch')
     parser.add_argument('-p', '--pull', action='store_true', dest='pull', help='Indicate that the version argument is the number of a github repository pull request')
-    parser.add_argument('-u', '--url', dest='url', default='https://github.com/dtr-org/unit-e', help='Specify the URL of the repository. Default is %(default)s')
+    parser.add_argument('-u', '--url', dest='url', default='git@github.com:dtr-org/unit-e.git', help='Specify the URL of the repository. Default is %(default)s')
     parser.add_argument('-v', '--verify', action='store_true', dest='verify', help='Verify the Gitian build')
     parser.add_argument('-b', '--build', action='store_true', dest='build', help='Do a Gitian build')
     parser.add_argument('-s', '--sign', action='store_true', dest='sign', help='Make signed binaries for Windows and MacOS')
@@ -156,8 +201,8 @@ def main():
     parser.add_argument('-S', '--setup', action='store_true', dest='setup', help='Set up the Gitian building environment. Uses LXC. If you want to use KVM, use the --kvm option. Only works on Debian-based systems (Ubuntu, Debian)')
     parser.add_argument('-D', '--detach-sign', action='store_true', dest='detach_sign', help='Create the assert file for detached signing. Will not commit anything.')
     parser.add_argument('-n', '--no-commit', action='store_false', dest='commit_files', help='Do not commit anything to git')
-    parser.add_argument('signer', help='GPG signer to sign each build assert file')
-    parser.add_argument('version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified')
+    parser.add_argument('signer', help='GPG signer to sign each build assert file. Required to build, sign or verify')
+    parser.add_argument('version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
 
     args = parser.parse_args()
     workdir = os.getcwd()
@@ -166,7 +211,7 @@ def main():
     args.windows = 'w' in args.os
     args.macos = 'm' in args.os
 
-    args.is_bionic = b'bionic' in subprocess.check_output(['lsb_release', '-cs'])
+    args.is_bionic = platform.dist() == ('Ubuntu', '18.04', 'bionic')
 
     if args.buildsign:
         args.build=True
@@ -192,12 +237,20 @@ def main():
         print('Cannot build for MacOS, SDK does not exist. Will build for other OSes')
         args.macos = False
 
+    if args.setup:
+        setup()
+
+    if not args.build and not args.sign and not args.verify:
+        return
+
     script_name = os.path.basename(sys.argv[0])
+
     # Signer and version shouldn't be empty
     if args.signer == '':
         print(script_name+': Missing signer.')
         print('Try '+script_name+' --help for more information')
         exit(1)
+
     if args.version == '':
         print(script_name+': Missing version.')
         print('Try '+script_name+' --help for more information')
@@ -207,9 +260,6 @@ def main():
     if args.commit and args.pull:
         raise Exception('Cannot have both commit and pull')
     args.commit = ('' if args.commit else 'v') + args.version
-
-    if args.setup:
-        setup()
 
     os.chdir('unit-e')
     if args.pull:
