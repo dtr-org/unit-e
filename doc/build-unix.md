@@ -89,9 +89,9 @@ You can add the repository and install using the following commands:
     sudo apt-get update
     sudo apt-get install libdb5.3-dev libdb5.3++-dev
 
-Ubuntu and Debian have their own libdb-dev and libdb++-dev packages, but these will install
-BerkeleyDB 5.1 or later, which break binary wallet compatibility with the distributed executables which
-are based on BerkeleyDB 5.3. If you do not care about wallet compatibility,
+Ubuntu and Debian have their own libdb-dev and libdb++-dev packages, but these
+may break binary wallet compatibility with the distributed executables which are
+based on BerkeleyDB 5.3. If you do not care about wallet compatibility,
 pass `--with-incompatible-bdb` to configure.
 
 See the section "Disable-wallet mode" to build UnitE Core without wallet.
