@@ -404,13 +404,12 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 }
 
 void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
-                                   const CBlockIndex &blockIndex, const FinalizationState *state) {
+                                   const CBlockIndex &blockIndex, const FinalizationState &state) {
 
-  assert(state);
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
 
-  const uint32_t dynasty = state->GetCurrentDynasty();
+  const uint32_t dynasty = state.GetCurrentDynasty();
 
   if (dynasty >= validator.m_endDynasty) {
     return;
@@ -420,7 +419,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
     return;
   }
 
-  const uint32_t epoch = state->GetEpoch(blockIndex);
+  const uint32_t epoch = state.GetEpoch(blockIndex);
 
   // Avoid double votes
   if (validator.m_voteMap.find(epoch) != validator.m_voteMap.end()) {
@@ -434,7 +433,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
            epoch, dynasty);
 
-  Vote vote = state->GetRecommendedVote(validator.m_validatorAddress);
+  Vote vote = state.GetRecommendedVote(validator.m_validatorAddress);
 
   // Check for sorrounding votes
   if (vote.m_targetEpoch < validator.m_lastTargetEpoch ||
@@ -633,7 +632,7 @@ void WalletExtension::BlockConnected(
         if (currentDynasty >= validatorState.get().m_endDynasty) {
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
         } else {
-          VoteIfNeeded(pblock, index, state);
+          VoteIfNeeded(pblock, index, *state);
         }
 
         break;
