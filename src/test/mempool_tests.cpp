@@ -571,4 +571,94 @@ BOOST_AUTO_TEST_CASE(MempoolSizeLimitTest)
     SetMockTime(0);
 }
 
+BOOST_AUTO_TEST_CASE(DisconnectionTopologicalOrderTest)
+{
+    std::vector<CTransactionRef> vtx;
+    vtx.reserve(13);
+
+    CMutableTransaction first_mtx;
+    first_mtx.vout.resize(2);
+    first_mtx.vout[0].scriptPubKey = CScript();
+    first_mtx.vout[0].nValue = 10 * UNIT;
+    first_mtx.vout[1].scriptPubKey = CScript();
+    first_mtx.vout[1].nValue = 10 * UNIT;
+    auto first_tx_ref = MakeTransactionRef(std::move(first_mtx));
+    vtx.push_back(first_tx_ref);
+
+
+    //      TX1       TX3
+    // TX0       TX2         ···
+    //      TX1'      TX3'
+    for (unsigned int i=0; i < 8; ++i) {
+        if (i % 2 == 0) {
+            CMutableTransaction mtx_a;
+            CMutableTransaction mtx_b;
+
+            mtx_a.vin.resize(1);
+            mtx_a.vin[0].prevout = COutPoint(vtx.back()->GetHash(), 0);
+            mtx_a.vin[0].scriptSig = CScript();
+            mtx_a.vout.resize(1);
+            mtx_a.vout[0].nValue = 10 * UNIT;
+            mtx_a.vout[0].scriptPubKey = CScript();
+
+            mtx_b.vin.resize(1);
+            mtx_b.vin[0].prevout = COutPoint(vtx.back()->GetHash(), 1);
+            mtx_b.vin[0].scriptSig = CScript();
+            mtx_b.vout.resize(1);
+            mtx_b.vout[0].nValue = 10 * UNIT;
+            mtx_b.vout[0].scriptPubKey = CScript();
+
+            vtx.emplace_back(MakeTransactionRef(std::move(mtx_a)));
+            vtx.emplace_back(MakeTransactionRef(std::move(mtx_b)));
+        } else {
+            CMutableTransaction mtx;
+
+            mtx.vin.resize(2);
+            auto prev_ptx = vtx.rbegin();
+            mtx.vin[0].prevout = COutPoint((*prev_ptx)->GetHash(), 0);
+            mtx.vin[0].scriptSig = CScript();
+            ++prev_ptx;
+            mtx.vin[1].prevout = COutPoint((*prev_ptx)->GetHash(), 0);
+            mtx.vin[1].scriptSig = CScript();
+            mtx.vout.resize(2);
+            mtx.vout[0].scriptPubKey = CScript();
+            mtx.vout[0].nValue = 10 * UNIT;
+            mtx.vout[1].scriptPubKey = CScript();
+            mtx.vout[1].nValue = 10 * UNIT;
+
+            vtx.emplace_back(MakeTransactionRef(std::move(mtx)));
+        }
+    }
+
+    // We sort transactions in lexicographical order to remove the previous
+    // topological order.
+    std::sort(
+        std::begin(vtx) + 1, std::end(vtx),
+        [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
+          return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
+        }
+    );
+
+    DisconnectedBlockTransactions disconnectpool;
+    disconnectpool.LoadFromBlockInTopologicalOrder(vtx); // System-Under-Test
+
+    std::unordered_set<uint256, SaltedTxidHasher> processed_tx_hashes;
+    processed_tx_hashes.insert(first_tx_ref->GetHash());
+
+    for (
+        auto it = disconnectpool.queuedTx.get<insertion_order>().rbegin();
+        it != disconnectpool.queuedTx.get<insertion_order>().rend();
+        ++it
+    ) {
+        CTransactionRef tx_ref = (*it);
+        for (CTxIn tx_in : tx_ref->vin) {
+            // We check that transactions have been ordered topologically
+            BOOST_CHECK(processed_tx_hashes.count(tx_in.prevout.hash) > 0);
+        }
+        processed_tx_hashes.insert(tx_ref->GetHash());
+    }
+
+    disconnectpool.clear();
+}
+
 BOOST_AUTO_TEST_SUITE_END()

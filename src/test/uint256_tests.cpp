@@ -156,6 +156,29 @@ BOOST_AUTO_TEST_CASE( comparison ) // <= >= < >
     BOOST_CHECK( R2S < MaxS );
 }
 
+BOOST_AUTO_TEST_CASE( number_comparison )
+{
+    const uint160 R1Sp = uint160(std::vector<unsigned char>(R1Array + 12, R1Array + 32));
+    const uint160 R2Sp = uint160(std::vector<unsigned char>(R2Array + 12, R2Array + 32));
+    uint160 nums160[] = {ZeroS, OneS, R1Sp, R2Sp, MaxS};
+    uint256 nums256[] = {ZeroL, OneL, R1L, R2L, MaxL};
+
+    for (size_t i=0; i < 5; ++i) {
+        for (size_t j=0; j < 5; ++j) {
+            if (i == j) {
+                BOOST_CHECK(nums160[i].CompareAsNumber(nums160[i]) == 0);
+                BOOST_CHECK(nums256[i].CompareAsNumber(nums256[i]) == 0);
+            } else if (i > j) {
+                BOOST_CHECK(nums160[i].CompareAsNumber(nums160[j]) > 0);
+                BOOST_CHECK(nums256[i].CompareAsNumber(nums256[j]) > 0);
+            } else {
+                BOOST_CHECK(nums160[i].CompareAsNumber(nums160[j]) < 0);
+                BOOST_CHECK(nums256[i].CompareAsNumber(nums256[j]) < 0);
+            }
+        }
+    }
+}
+
 BOOST_AUTO_TEST_CASE( methods ) // GetHex SetHex begin() end() size() GetLow64 GetSerializeSize, Serialize, Unserialize
 {
     BOOST_CHECK(R1L.GetHex() == R1L.ToString());

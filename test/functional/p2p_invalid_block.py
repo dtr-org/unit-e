@@ -90,6 +90,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         tx2 = create_transaction(tx1, 0, b'\x51', 50 * UNIT)
 
         block2.vtx.extend([tx1, tx2])
+        block2.ensure_ltor()
         block2.hashMerkleRoot = block2.calc_merkle_root()
         block2.rehash()
         block2.solve()
@@ -97,7 +98,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block2_orig = copy.deepcopy(block2)
 
         # Mutate block 2
-        block2.vtx.append(tx2)
+        block2.vtx.append(block2.vtx[-1])
         assert_equal(block2.hashMerkleRoot, block2.calc_merkle_root())
         assert_equal(orig_hash, block2.rehash())
         assert(block2_orig.vtx != block2.vtx)
@@ -111,6 +112,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block2_dup = copy.deepcopy(block2_orig)
         block2_dup.vtx[2].vin.append(block2_dup.vtx[2].vin[0])
         block2_dup.vtx[2].rehash()
+        block2_dup.ensure_ltor()
         block2_dup.hashMerkleRoot = block2_dup.calc_merkle_root()
         block2_dup.rehash()
         block2_dup.solve()

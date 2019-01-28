@@ -683,6 +683,13 @@ class CBlock(CBlockHeader):
             self.nNonce += 1
             self.rehash()
 
+    def ensure_ltor(self):
+        if len(self.vtx) <= 1:
+            return
+        for tx in self.vtx:
+            tx.rehash()
+        self.vtx = [self.vtx[0]] + sorted(self.vtx[1:], key=lambda _tx: _tx.hash)
+
     def __repr__(self):
         return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,

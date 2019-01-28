@@ -1,5 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018 The Bitcoin ABC developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -44,6 +46,21 @@ public:
     }
 
     inline int Compare(const base_blob& other) const { return memcmp(data, other.data, sizeof(data)); }
+
+    inline int CompareAsNumber(const base_blob& other) const {
+        for (int i = WIDTH - 1; i >= 0; --i) {
+            uint8_t a = data[i];
+            uint8_t b = other.data[i];
+            if (a > b) {
+                return 1;
+            }
+            if (a < b) {
+                return -1;
+            }
+        }
+
+        return 0;
+    }
 
     friend inline bool operator==(const base_blob& a, const base_blob& b) { return a.Compare(b) == 0; }
     friend inline bool operator!=(const base_blob& a, const base_blob& b) { return a.Compare(b) != 0; }

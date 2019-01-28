@@ -174,6 +174,7 @@ BASE_SCRIPTS= [
     'feature_snapshot.py',
     'p2p_snapshot.py',
     'feature_snapshot_creation.py',
+    'feature_ltor.py',
     'example_test.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time

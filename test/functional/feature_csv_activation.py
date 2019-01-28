@@ -91,6 +91,7 @@ def all_rlt_txs(txarray):
                     txs.append(txarray[b31][b25][b22][b18])
     return txs
 
+
 class BIP68_112_113Test(ComparisonTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
@@ -138,6 +139,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         block = create_block(self.tip, coinbase, self.last_block_time + 600)
         block.nVersion = version
         block.vtx.extend(txs)
+        block.ensure_ltor()
         block.hashMerkleRoot = block.calc_merkle_root()
         block.rehash()
         block.solve()

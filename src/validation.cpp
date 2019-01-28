@@ -1,5 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2018 The Bitcoin ABC developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1486,19 +1488,23 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
     }
 }
 
+void MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
+    if (tx.IsCoinBase()) {
+        return;
+    }
+
+    txundo.vprevout.reserve(tx.vin.size());
+    for (const CTxIn &txin : tx.vin) {
+        txundo.vprevout.emplace_back();
+        bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
+        assert(is_spent);
+    }
+}
+
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
 {
-    // mark inputs spent
-    if (!tx.IsCoinBase()) {
-        txundo.vprevout.reserve(tx.vin.size());
-        for (const CTxIn &txin : tx.vin) {
-            txundo.vprevout.emplace_back();
-            bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
-            assert(is_spent);
-        }
-    }
-    // add outputs
-    AddCoins(inputs, tx, nHeight);
+    MarkCoinAsSpent(tx, inputs, txundo);  // Mark inputs spent
+    AddCoins(inputs, tx, nHeight);  // Add outputs
 }
 
 void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
@@ -1571,10 +1577,6 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
     {
         if (pvChecks)
             pvChecks->reserve(tx.vin.size());
-
-        // The first loop above does all the inexpensive checks.
-        // Only if ALL inputs pass do we perform expensive ECDSA signature checks.
-        // Helps prevent CPU exhaustion attacks.
 
         // Skip script verification when connecting blocks under the
         // assumevalid block. Assuming the assumevalid block is valid this
@@ -1750,9 +1752,11 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
             undo.nHeight = alternate.nHeight;
             undo.fCoinBase = alternate.fCoinBase;
         } else {
-            return DISCONNECT_FAILED; // adding output for transaction without known metadata
+            // Adding output for transaction without known metadata
+            return DISCONNECT_FAILED;
         }
     }
+
     // The potential_overwrite parameter to AddCoin is only allowed to be false if we know for
     // sure that the coin did not already exist in the cache. As we have queried for that above
     // using HaveCoin, we don't need to guess. When fClean is false, a coin already existed and
@@ -1779,39 +1783,47 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    // undo transactions in reverse order
-    for (int i = block.vtx.size() - 1; i >= 0; i--) {
+    // First, restore inputs
+    for (size_t i = 1; i < block.vtx.size(); ++i) {
         const CTransaction &tx = *(block.vtx[i]);
-        uint256 hash = tx.GetHash();
-        bool is_coinbase = tx.IsCoinBase();
+        CTxUndo &txundo = blockUndo.vtxundo[i - 1];
 
-        // Check that all outputs are available and match the outputs in the block itself
-        // exactly.
-        for (size_t o = 0; o < tx.vout.size(); o++) {
-            if (!tx.vout[o].scriptPubKey.IsUnspendable()) {
-                COutPoint out(hash, o);
-                Coin coin;
-                bool is_spent = view.SpendCoin(out, &coin);
-                if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
-                    fClean = false; // transaction output mismatch
-                }
-            }
+        if (txundo.vprevout.size() != tx.vin.size()) {
+            error("DisconnectBlock(): transaction and undo data inconsistent");
+            return DISCONNECT_FAILED;
         }
 
-        // restore inputs
-        if (i > 0) { // not coinbases
-            CTxUndo &txundo = blockUndo.vtxundo[i-1];
-            if (txundo.vprevout.size() != tx.vin.size()) {
-                error("DisconnectBlock(): transaction and undo data inconsistent");
+        for (size_t j = 0; j < tx.vin.size(); ++j) {
+            const COutPoint &out = tx.vin[j].prevout;
+            const auto res = static_cast<DisconnectResult>(ApplyTxInUndo(
+                std::move(txundo.vprevout[j]), view, out
+            ));
+            if (res == DISCONNECT_FAILED) {
                 return DISCONNECT_FAILED;
             }
-            for (unsigned int j = tx.vin.size(); j-- > 0;) {
-                const COutPoint &out = tx.vin[j].prevout;
-                int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
-                if (res == DISCONNECT_FAILED) return DISCONNECT_FAILED;
-                fClean = fClean && res != DISCONNECT_UNCLEAN;
+            fClean = fClean && res != DISCONNECT_UNCLEAN;
+        }
+    }
+
+    // Second, revert created outputs
+    for (const auto &ptx : block.vtx) {
+        const CTransaction &tx = *ptx;
+        const uint256& txid = tx.GetHash();
+
+        // Check that all outputs are available and match the outputs in the
+        // block itself exactly.
+        for (size_t o = 0; o < tx.vout.size(); ++o) {
+            if (tx.vout[o].scriptPubKey.IsUnspendable()) {
+                continue;
             }
-            // At this point, all of txundo.vprevout should have been moved out.
+
+            COutPoint out(txid, o);
+            Coin coin;
+            bool is_spent = view.SpendCoin(out, &coin);
+
+            if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
+                fClean = false; // Transaction output mismatch
+            }
         }
     }
 
@@ -2087,41 +2099,48 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
-    for (unsigned int i = 0; i < block.vtx.size(); i++)
-    {
+
+    auto &tx = *(block.vtx[0]);
+    if (!snapshot::ValidateCandidateBlockTx(tx, pindex, &view)) {
+        return state.DoS(100, error("%s: tx doesn't pass snapshot validation", __func__),
+                         REJECT_INVALID, "bad-cb-snapshot-hash");
+    }
+
+    for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
 
-        if (!tx.IsCoinBase())
-        {
-            CAmount txfee = 0;
-            if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
-                return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
-            }
-            nFees += txfee;
-            if (!MoneyRange(nFees)) {
-                return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
-                                 REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
-            }
-
-            // Check that transaction is BIP68 final
-            // BIP68 lock checks (as opposed to nLockTime checks) must
-            // be in ConnectBlock because they require the UTXO set
-            prevheights.resize(tx.vin.size());
-            for (size_t j = 0; j < tx.vin.size(); j++) {
-                prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
-            }
-
-            if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
-                return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
-                                 REJECT_INVALID, "bad-txns-nonfinal");
-            }
+        txdata.emplace_back(tx);
+        if (tx.IsCoinBase()) {
+            nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
         }
 
-        if (!snapshot::ValidateCandidateBlockTx(tx, pindex, &view)) {
-            return state.DoS(100, error("%s: tx doesn't pass snapshot validation", __func__),
-                           REJECT_INVALID, "bad-cb-snapshot-hash");
+        AddCoins(view, tx, pindex->nHeight);
+    }
+
+    for (size_t i = 0; i < block.vtx.size(); i++) {
+        const CTransaction &tx = *(block.vtx[i]);
+        if (tx.IsCoinBase()) {
+            continue;
+        }
+
+        CAmount txfee = 0;
+        if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
+            return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
+        }
+
+        // Check that transaction is BIP68 final
+        // BIP68 lock checks (as opposed to nLockTime checks) must
+        // be in ConnectBlock because they require the UTXO set
+        prevheights.resize(tx.vin.size());
+        for (size_t j = 0; j < tx.vin.size(); j++) {
+            prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
+        }
+
+        if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
+            return state.DoS(100, error("%s: contains a non-BIP68-final transaction", __func__),
+                             REJECT_INVALID, "bad-txns-nonfinal");
         }
 
         // GetTransactionSigOpCost counts 3 types of sigops:
@@ -2133,23 +2152,27 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
 
-        txdata.emplace_back(tx);
-        if (!tx.IsCoinBase())
-        {
-            std::vector<CScriptCheck> vChecks;
-            bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
-            if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : nullptr))
-                return error("ConnectBlock(): CheckInputs on %s failed with %s",
-                    tx.GetHash().ToString(), FormatStateMessage(state));
-            control.Add(vChecks);
+        nFees += txfee;
+        if (!MoneyRange(nFees)) {
+            return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
+                             REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
         }
 
-        CTxUndo undoDummy;
-        if (i > 0) {
-            blockundo.vtxundo.push_back(CTxUndo());
+        // Don't cache results if we're actually connecting blocks (still
+        // consult the cache, though)
+        bool fCacheResults = fJustCheck;
+
+        std::vector<CScriptCheck> vChecks;
+        if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : nullptr)) {
+            return error("ConnectBlock(): CheckInputs on %s failed with %s",
+                         tx.GetHash().ToString(), FormatStateMessage(state));
         }
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
+        control.Add(vChecks);
+
+        blockundo.vtxundo.emplace_back(CTxUndo());
+        MarkCoinAsSpent(tx, view, blockundo.vtxundo.back());
     }
+
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
@@ -2412,8 +2435,10 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     {
         CCoinsViewCache view(pcoinsTip.get());
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
+
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
+
         bool flushed = view.Flush();
         assert(flushed);
     }
@@ -2423,16 +2448,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         return false;
 
     if (disconnectpool) {
-        // Save transactions to re-add to mempool at end of reorg
-        for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it) {
-            disconnectpool->addTransaction(*it);
-        }
-        while (disconnectpool->DynamicMemoryUsage() > MAX_DISCONNECTED_TX_POOL_SIZE * 1000) {
-            // Drop the earliest entry, and remove its children from the mempool.
-            auto it = disconnectpool->queuedTx.get<insertion_order>().begin();
-            mempool.removeRecursive(**it, MemPoolRemovalReason::REORG);
-            disconnectpool->removeEntry(it);
-        }
+        disconnectpool->LoadFromBlockInTopologicalOrder(block.vtx);
     }
 
     chainActive.SetTip(pindexDelete->pprev);
@@ -3385,6 +3401,8 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
     }
 
+    CTransactionRef prevTx;
+
     // Check that all transactions are finalized
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
@@ -3392,6 +3410,27 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
         if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
             return false;
+        }
+        if (prevTx && (tx->GetHash().CompareAsNumber(prevTx->GetHash()) <= 0)){
+            if (tx->GetHash() == prevTx->GetHash()) {
+                return state.DoS(
+                    100, false, REJECT_INVALID, "bad-txns-duplicate", false,
+                    strprintf(
+                        "Duplicate transaction %s", tx->GetHash().ToString()
+                    )
+                );
+            }
+
+            return state.DoS(
+                100, false, REJECT_INVALID, "tx-ordering", false,
+                strprintf(
+                    "Transaction order is invalid ((current: %s) < (prev: %s))",
+                    tx->GetHash().ToString(), prevTx->GetHash().ToString()
+                )
+            );
+        }
+        if (prevTx || !tx->IsCoinBase()) {
+            prevTx = tx;
         }
     }
 
@@ -4160,15 +4199,21 @@ bool CChainState::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& i
         return error("ReplayBlock(): ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
     }
 
-    for (const CTransactionRef& tx : block.vtx) {
-        if (!tx->IsCoinBase()) {
-            for (const CTxIn &txin : tx->vin) {
-                inputs.SpendCoin(txin.prevout);
-            }
-        }
+    for (const CTransactionRef &tx : block.vtx) {
         // Pass check = true as every addition may be an overwrite.
         AddCoins(inputs, *tx, pindex->nHeight, true);
     }
+
+    for (const CTransactionRef &tx : block.vtx) {
+        if (tx->IsCoinBase()) {
+            continue;
+        }
+
+        for (const CTxIn &txin : tx->vin) {
+            inputs.SpendCoin(txin.prevout);
+        }
+    }
+
     return true;
 }
 

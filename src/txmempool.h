@@ -354,10 +354,18 @@ class SaltedTxidHasher
 {
 private:
     /** Salt */
-    const uint64_t k0, k1;
+    uint64_t k0, k1;
 
 public:
     SaltedTxidHasher();
+
+    SaltedTxidHasher(const SaltedTxidHasher&) = default;
+    SaltedTxidHasher(SaltedTxidHasher&&) = default;
+
+    SaltedTxidHasher& operator=(const SaltedTxidHasher&) = default;
+    SaltedTxidHasher& operator=(SaltedTxidHasher&&) = default;
+
+    ~SaltedTxidHasher() = default;
 
     size_t operator()(const uint256& txid) const {
         return SipHashUint256(k0, k1, txid);
@@ -768,11 +776,19 @@ struct DisconnectedBlockTransactions {
         return memusage::MallocUsage(sizeof(CTransactionRef) + 6 * sizeof(void*)) * queuedTx.size() + cachedInnerUsage;
     }
 
+    const indexed_disconnected_transactions &GetQueuedTx() const {
+        return queuedTx;
+    }
+
     void addTransaction(const CTransactionRef& tx)
     {
         queuedTx.insert(tx);
         cachedInnerUsage += RecursiveDynamicUsage(tx);
     }
+
+    // Add entries for a block while reconstructing the topological ordering so
+    // they can be added back to the mempool simply.
+    void LoadFromBlockInTopologicalOrder(const std::vector<CTransactionRef> &vtx);
 
     // Remove entries based on txid_index, and update memory usage.
     void removeForBlock(const std::vector<CTransactionRef>& vtx)
