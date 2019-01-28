@@ -603,7 +603,7 @@ class P2PSnapshotTest(UnitETestFramework):
         self.stop_node(sync_node.index)
         network_thread_join()
 
-        self.log.info('test_snapshot_flag passed')
+        self.log.info('test_cannot_sync_with_snapshot passed')
 
     def run_test(self):
         self.stop_nodes()
