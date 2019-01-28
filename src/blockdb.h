@@ -5,8 +5,8 @@
 #ifndef UNIT_E_BLOCKDB_H
 #define UNIT_E_BLOCKDB_H
 
-#include <primitives/block.h>
 #include <chain.h>
+#include <primitives/block.h>
 
 //! \brief An interface to block read/write operations.
 class BlockDB {
@@ -15,11 +15,10 @@ class BlockDB {
   //! \brief This function reads a block from the database give a CBlockIndex
   //! reference to it.
   //!
-  //! \param block_out the block object read from the database.
-  //! \param pindex the reference to the block to read.
-  //! \return true if the operation was successful, false otherwise.
+  //! \param index the reference to the block to read.
+  //! \return the block if found.
   //!
-  virtual bool ReadBlock(CBlock& block_out, const CBlockIndex* pindex) = 0;
+  virtual boost::optional<CBlock> ReadBlock(const CBlockIndex &index) = 0;
 
   virtual ~BlockDB() = default;
 
@@ -27,4 +26,4 @@ class BlockDB {
   static std::unique_ptr<BlockDB> New();
 };
 
-#endif //UNIT_E_BLOCKDB_H
+#endif  //UNIT_E_BLOCKDB_H

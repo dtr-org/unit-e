@@ -3,8 +3,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <blockdb.h>
-#include <validation.h>
+
 #include <chainparams.h>
+#include <validation.h>
 
 //! \brief Implementation of BlockDB that uses disk to save and read the block
 //! data. It delegates to bitcoin functions like `ReadBlockFromDisk`.
@@ -16,16 +17,19 @@ class BlockDiskStorage final : public BlockDB {
  public:
   ~BlockDiskStorage() override = default;
 
-  BlockDiskStorage() : consensus_params(Params().GetConsensus()){}
+  BlockDiskStorage() : consensus_params(Params().GetConsensus()) {}
 
-  bool ReadBlock(CBlock &block_out, const CBlockIndex *pindex) override {
-
-    return ReadBlockFromDisk(block_out, pindex, consensus_params);
+  boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
+    CBlock block_out;
+    if (ReadBlockFromDisk(block_out, &index, consensus_params)) {
+      return block_out;
+    } else {
+      return boost::none;
+    }
   }
-
 };
+
 std::unique_ptr<BlockDB>
 BlockDB::New() {
   return std::unique_ptr<BlockDB>(new BlockDiskStorage());
 }
-

@@ -15,11 +15,11 @@ BOOST_AUTO_TEST_CASE(readblock) {
   auto block_disk_storage = BlockDB::New();
 
   CBlock block;
-  auto current_tip = chainActive.Tip();
-  bool result = block_disk_storage->ReadBlock(block, current_tip);
+  auto current_tip = *chainActive.Tip();
+  auto result = block_disk_storage->ReadBlock(current_tip);
 
   BOOST_CHECK(result);
-  BOOST_CHECK(block.GetHash() == current_tip->GetBlockHash());
+  BOOST_CHECK(result->GetHash() == current_tip.GetBlockHash());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
