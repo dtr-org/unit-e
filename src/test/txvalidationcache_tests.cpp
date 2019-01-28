@@ -76,7 +76,9 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
 
     // Test 3: ... and should be rejected if spend2 is in the memory pool
     BOOST_CHECK(ToMemPool(spends[1]));
-    block = CreateAndProcessBlock(spends, scriptPubKey);
+    bool processed;
+    block = CreateAndProcessBlock(spends, scriptPubKey, &processed);
+    BOOST_CHECK(!processed);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() != block.GetHash());
     mempool.clear();
 

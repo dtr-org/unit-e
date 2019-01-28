@@ -189,7 +189,7 @@ TestChain100Setup::TestChain100Setup() : TestingSetup(CBaseChainParams::REGTEST)
 // scriptPubKey, and try to add it to the current chain.
 //
 CBlock
-TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey)
+TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool *processed)
 {
     const CChainParams& chainparams = Params();
     std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey);
@@ -209,8 +209,11 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 
     std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
-    ProcessNewBlock(chainparams, shared_pblock, true, nullptr);
-
+    const bool was_processed = ProcessNewBlock(chainparams, shared_pblock, true, nullptr);
+    assert(processed != nullptr || was_processed);
+    if (processed != nullptr) {
+      *processed = was_processed;
+    }
     CBlock result = block;
     return result;
 }
