@@ -213,14 +213,14 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
             for (int i = 0; i < 1000; i++) {
                 auto block = blocks[GetRand(blocks.size() - 1)];
                 bool processed = ProcessNewBlock(Params(), block, true, &ignored);
-                assert(processed);
+                BOOST_CHECK(processed);
             }
 
             // to make sure that eventually we process the full chain - do it here
             for (auto block : blocks) {
                 if (block->vtx.size() == 1) {
                     bool processed = ProcessNewBlock(Params(), block, true, &ignored);
-                    assert(processed);
+                    BOOST_CHECK(processed);
                 }
             }
         });
