@@ -108,8 +108,12 @@ struct TestChain100Setup : public TestingSetup {
 
     // Create a new block with just given transactions, coinbase paying to
     // scriptPubKey, and try to add it to the current chain.
+    //
+    // Asserts that the a new block was successfully created. Alternatively
+    // a pointer to a bool can be passed in which the result will be stored in.
     CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
-                                 const CScript& scriptPubKey);
+                                 const CScript& scriptPubKey,
+                                 bool *processed = nullptr);
 
     ~TestChain100Setup();
 
