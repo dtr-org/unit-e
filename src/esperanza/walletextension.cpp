@@ -404,9 +404,8 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 }
 
 void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
-                                   const CBlockIndex &blockIndex) {
+                                   const CBlockIndex &blockIndex, const FinalizationState *state) {
 
-  const FinalizationState *state = FinalizationState::GetState();
   assert(state);
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
@@ -634,7 +633,7 @@ void WalletExtension::BlockConnected(
         if (currentDynasty >= validatorState.get().m_endDynasty) {
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
         } else {
-          VoteIfNeeded(pblock, index);
+          VoteIfNeeded(pblock, index, state);
         }
 
         break;
