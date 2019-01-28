@@ -73,22 +73,12 @@ class LTORTest(UnitETestFramework):
 
     def test_ltor_infringement_detection(self):
         # Just creating easily accessible outputs (coinbase) for next txns
-        for _ in range(2):
-            yield self.create_spendable_outputs()
+        yield self.create_spendable_outputs()
+        # We need to increase the seconds count at least by 1 before creating
+        # the new block.
+        sleep(1)
 
-        txns = []
-        # We create more transactions here (doing it through blocks creation is
-        # problematic because blocks are created too fast.
-        for block in self.spendable_outputs:
-            last_tx = block.vtx[0]
-            for divisor in map(lambda x: 2**x, range(1, 5)):
-                tx_value = int(0.95 * UNIT / divisor)
-                tx = create_transaction(last_tx, 0, b'', tx_value)
-                tx.vout.append(CTxOut(tx_value, CScript()))
-                tx.rehash()
-                txns.append(tx)
-                last_tx = tx  # We only use the first output each round
-
+        txns = self.create_chained_transactions()
         block = self.get_empty_block()
         # We ensure that the transactions are NOT sorted in the correct order
         block.vtx.extend(sorted(txns, key=lambda _tx: _tx.hash, reverse=True))
@@ -107,7 +97,7 @@ class LTORTest(UnitETestFramework):
             self.nodes[1].getnewaddress()
         ]
 
-        tx_ids = self.create_n_transactions(
+        tx_ids = self.ask_node_to_create_n_transactions(
             node_idx=0, num_tx=20, recipient_addresses=recipient_addresses
         )
         self.generate_block(0)
@@ -148,7 +138,7 @@ class LTORTest(UnitETestFramework):
             print("error generating block:", exp.error)
             raise AssertionError("Node %s cannot generate block" % node_idx)
 
-    def create_n_transactions(self, node_idx, num_tx, recipient_addresses):
+    def ask_node_to_create_n_transactions(self, node_idx, num_tx, recipient_addresses):
         tx_ids = []
         num_addresses = len(recipient_addresses)
 
@@ -167,6 +157,33 @@ class LTORTest(UnitETestFramework):
 
         return tx_ids
 
+    def create_chained_transactions(self):
+        # We create more transactions here (doing it through blocks creation is
+        # problematic because blocks are created too fast.
+        txns = []
+        last_tx = self.spendable_outputs[0].vtx[0]
+        tx_value = int(0.95 * UNIT * 0.5)
+        tx = create_transaction(last_tx, 0, b'', tx_value)
+        tx.vout.append(CTxOut(tx_value, CScript()))
+        tx.rehash()
+        txns.append(tx)
+        last_tx = tx
+
+        for divisor in map(lambda x: 2 ** x, range(2, 6)):
+            tx_value = int(0.95 * UNIT / divisor)
+
+            tx_a = create_transaction(last_tx, 0, b'', tx_value)
+            tx_a.vout.append(CTxOut(tx_value, CScript()))
+            tx_a.rehash()
+            tx_b = create_transaction(last_tx, 1, b'', tx_value)
+            tx_b.vout.append(CTxOut(tx_value, CScript()))
+            tx_b.rehash()
+
+            txns.extend([tx_a, tx_b])
+            last_tx = tx_a  # We only use the first output each round
+
+        return txns
+
     def get_tip_transactions(self, node_idx):
         node = self.nodes[node_idx]
 
@@ -178,10 +195,7 @@ class LTORTest(UnitETestFramework):
 
     def create_spendable_outputs(self):
         block = self.get_empty_block()
-
         self.spendable_outputs.append(block)
-        sleep(0.5)
-
         return TestInstance([[block, True]], test_name='')
 
     def get_empty_block(self):
