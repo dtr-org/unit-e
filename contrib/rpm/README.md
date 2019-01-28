@@ -60,7 +60,7 @@ most likely to be the case with the Qt packages.
 
 ## BerkeleyDB
 
-The `build-unix.md` file recommends building against BerkeleyDB 4.8.30. Even if
+The `build-unix.md` file recommends building against BerkeleyDB 5.3.28. Even if
 that is the version your Linux distribution ships with, it probably is a good
 idea to build UnitE Core against a static version of that library compiled
 according to the instructions in the `build-unix.md` file so that any changes

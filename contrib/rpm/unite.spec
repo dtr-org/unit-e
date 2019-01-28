@@ -1,4 +1,4 @@
-%define bdbv 4.8.30
+%define bdbv 5.3.28
 %global selinux_variants mls strict targeted
 
 %if 0%{?_no_gui:1}

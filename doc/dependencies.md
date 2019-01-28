@@ -5,7 +5,7 @@ These are the dependencies currently used by UnitE Core. You can find instructio
 
 | Dependency | Version used | Minimum required | CVEs | Shared | [Bundled Qt library](https://doc.qt.io/qt-5/configure-options.html) |
 | --- | --- | --- | --- | --- | --- |
-| Berkeley DB | [4.8.30](http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/downloads/index.html) | 4.8.x | No |  |  |
+| Berkeley DB | [5.3.28](http://www.oracle.com/technetwork/database/database-technologies/berkeleydb/downloads/index.html) | 5.3.x | No |  |  |
 | Boost | [1.64.0](http://www.boost.org/users/download/) | [1.47.0](https://github.com/unite/unite/pull/8920) | No |  |  |
 | ccache | [3.3.4](https://ccache.samba.org/download.html) |  | No |  |  |
 | Clang |  | [3.3+](http://llvm.org/releases/download.html) (C++11 support) |  |  |  |

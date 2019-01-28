@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Install libdb4.8 (Berkeley DB).
+# Install libdb5.3 (Berkeley DB).
 
 set -e
 
@@ -17,8 +17,8 @@ expand_path() {
 }
 
 BDB_PREFIX="$(expand_path ${1})/db4"; shift;
-BDB_VERSION='db-4.8.30.NC'
-BDB_HASH='12edc0df75bf9abd7f82f821795bcee50f42cb2e5f76a6a281b85732798364ef'
+BDB_VERSION='db-5.3.28.NC'
+BDB_HASH='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
 BDB_URL="https://download.oracle.com/berkeley-db/${BDB_VERSION}.tar.gz"
 
 check_exists() {
@@ -83,4 +83,4 @@ echo
 echo 'When compiling united, run `./configure` in the following way:'
 echo
 echo "  export BDB_PREFIX='${BDB_PREFIX}'"
-echo '  ./configure BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include" ...'
+echo '  ./configure BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-5.3" BDB_CFLAGS="-I${BDB_PREFIX}/include" ...'
