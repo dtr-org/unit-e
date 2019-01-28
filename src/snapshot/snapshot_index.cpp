@@ -251,7 +251,7 @@ bool GetSnapshotHash(const CBlockIndex *block_index,
 
 std::vector<Checkpoint> GetSnapshotCheckpoints() {
   return g_snapshot_index.GetSnapshotCheckpoints();
-};
+}
 
 void ConfirmRemoved(const uint256 &snapshot_hash) {
   g_snapshot_index.ConfirmRemoved(snapshot_hash);
