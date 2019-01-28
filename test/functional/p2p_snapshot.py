@@ -21,7 +21,7 @@ test_invalid_snapshot checks:
 
 test_cannot_sync_with_snapshot checks:
 1. the node requests the snapshot only from the peers that have NODE_SNAPSHOT service flag set
-2. the node fallbacks to 2nd snapshot if it can't retrieve some part of the snapshot
+2. the node fallbacks to 2nd best snapshot if it can't retrieve some part of the best one
 3. the node asks all its current peers for the parent block
 4. the node asks newer connected peers for the parent block
 """
