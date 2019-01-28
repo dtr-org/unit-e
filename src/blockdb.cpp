@@ -20,11 +20,11 @@ class BlockDiskStorage final : public BlockDB {
   BlockDiskStorage() : consensus_params(Params().GetConsensus()) {}
 
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
-    CBlock block_out;
-    if (ReadBlockFromDisk(block_out, &index, consensus_params)) {
-      return block_out;
-    } else {
+    boost::optional<CBlock> block{CBlock()};
+    if (!ReadBlockFromDisk(*block, &index, consensus_params)) {
       return boost::none;
+    } else {
+      return block;
     }
   }
 };
