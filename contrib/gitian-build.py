@@ -13,30 +13,22 @@ import platform
 
 def install_linux_deps():
     global args
-    programs = ['ruby', 'git', 'apt-cacher-ng', 'make', 'wget']
+    subprocess.check_call(['sudo', 'apt-get', 'update', '-qq'])
+    programs = ['ruby', 'git', 'make', 'wget']
     if args.kvm:
-        programs += ['python-vm-builder', 'qemu-kvm', 'qemu-utils']
+        programs += ['apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils']
     elif args.docker:
-        dockers = ['docker-ce', 'docker.io']
-        for i in dockers:
-            return_code = subprocess.call(['sudo', 'apt-get', 'install', '-qq', i])
-            if return_code == 0:
-                break
-        if return_code != 0:
-            print('Cannot find any way to install docker', file=sys.stderr)
-            exit(1)
+        if subprocess.call(['docker', '--version']) != 0:
+            dockers = ['docker-ce', 'docker.io']
+            for i in dockers:
+                return_code = subprocess.call(['sudo', 'apt-get', 'install', '-qq', i])
+                if return_code == 0:
+                    break
+            if return_code != 0:
+                print('Cannot find any way to install docker', file=sys.stderr)
+                exit(1)
     else:
-        programs += ['lxc', 'debootstrap']
-
-    subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
-    if not os.path.isdir('unit-e-sigs'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/dtr-org/unit-e-sigs.git'])
-    if not os.path.isdir('gitian-builder'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
-    if not os.path.isdir('unit-e'):
-        subprocess.check_call(['git', 'clone', 'https://github.com/dtr-org/unit-e.git'])
-    os.chdir('gitian-builder')
-    make_image_prog = ['bin/make-base-vm', '--suite', 'bionic', '--arch', 'amd64']
+        programs += ['apt-cacher-ng', 'lxc', 'debootstrap']
 
     subprocess.check_call(['sudo', 'apt-get', 'update', '-qq'])
     subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
@@ -144,7 +136,7 @@ def sign():
         print('\nSigning ' + args.version + ' Windows')
         subprocess.check_call('cp inputs/unite-' + args.version + '-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz', shell=True)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../unit-e-sigs/', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../unit-e-sigs/detached', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
         subprocess.check_call('mv build/out/unite-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True)
         subprocess.check_call('mv build/out/unite-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True)
 
@@ -152,7 +144,7 @@ def sign():
         print('\nSigning ' + args.version + ' MacOS')
         subprocess.check_call('cp inputs/unite-' + args.version + '-osx-unsigned.tar.gz inputs/unite-osx-unsigned.tar.gz', shell=True)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../unit-e-sigs/', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../unit-e-sigs/detached', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
         subprocess.check_call('mv build/out/unite-osx-signed.dmg ../unit-e-binaries/'+args.version+'/unite-'+args.version+'-osx.dmg', shell=True)
 
     os.chdir(workdir)
@@ -175,7 +167,7 @@ def verify():
     subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-win-unsigned', '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
     print('\nVerifying v'+args.version+' MacOS\n')
     subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-osx-unsigned', '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
-    print('\nVerifying v'+args.version+' Signed Windows\n'unit-e
+    print('\nVerifying v'+args.version+' Signed Windows\n')
     subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-win-signed', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
     print('\nVerifying v'+args.version+' Signed MacOS\n')
     subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-osx-signed', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
@@ -225,8 +217,12 @@ def main():
     # Set environment variable USE_LXC or USE_DOCKER, let gitian-builder know that we use lxc or docker
     if args.docker:
         os.environ['USE_DOCKER'] = '1'
+        os.environ['USE_LXC'] = ''
+        os.environ['USE_VBOX'] = ''
     elif not args.kvm:
         os.environ['USE_LXC'] = '1'
+        os.environ['USE_DOCKER'] = ''
+        os.environ['USE_VBOX'] = ''
         if not 'GITIAN_HOST_IP' in os.environ.keys():
             os.environ['GITIAN_HOST_IP'] = '10.0.3.1'
         if not 'LXC_GUEST_IP' in os.environ.keys():
