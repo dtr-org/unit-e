@@ -174,7 +174,6 @@ BASE_SCRIPTS= [
     'feature_snapshot.py',
     'p2p_snapshot.py',
     'feature_snapshot_creation.py',
-    'feature_ltor.py',
     'example_test.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
@@ -195,6 +194,7 @@ EXTENDED_SCRIPTS = [
 
 # UNIT-E TODO:
 DISABLED_SCRIPTS = [
+    'feature_ltor.py',
     'wallet_bumpfee.py',
     'feature_bip68_sequence.py',
     'p2p_segwit.py',
