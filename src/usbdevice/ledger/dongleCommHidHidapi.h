@@ -28,9 +28,9 @@
 extern "C" {
 #endif
 
-int sendApduHidHidapi(hid_device *handle, const unsigned char ledger,
-                      const unsigned char *apdu, size_t apduLength,
-                      unsigned char *out, size_t outLength, int *sw);
+int sendApduHidHidapi(hid_device *handle, const unsigned char *apdu,
+                      size_t apduLength, unsigned char *out, size_t outLength,
+                      int *sw);
 
 #ifdef __cplusplus
 }

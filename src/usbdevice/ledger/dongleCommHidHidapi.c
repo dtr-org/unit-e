@@ -34,9 +34,9 @@
 
 #ifdef HAVE_HIDAPI
 
-int sendApduHidHidapi(hid_device *handle, const unsigned char ledger,
-                      const unsigned char *apdu, size_t apduLength,
-                      unsigned char *out, size_t outLength, int *sw) {
+int sendApduHidHidapi(hid_device *handle, const unsigned char *apdu,
+                      size_t apduLength, unsigned char *out, size_t outLength,
+                      int *sw) {
   unsigned char buffer[400];
   unsigned char paddingBuffer[MAX_BLOCK + 1];
   int result;
@@ -49,17 +49,13 @@ int sendApduHidHidapi(hid_device *handle, const unsigned char ledger,
     *sw = 0;
   }
 
-  if (ledger) {
-    result = wrapCommandAPDU(DEFAULT_LEDGER_CHANNEL, apdu, apduLength,
-                             LEDGER_HID_PACKET_SIZE, buffer, sizeof(buffer));
-    if (result < 0) {
-      return result;
-    }
-    remaining = result;
-  } else {
-    memcpy(buffer, apdu, apduLength);
-    remaining = apduLength;
+  result = wrapCommandAPDU(DEFAULT_LEDGER_CHANNEL, apdu, apduLength,
+                           LEDGER_HID_PACKET_SIZE, buffer, sizeof(buffer));
+  if (result < 0) {
+    return result;
   }
+  remaining = result;
+
   while (remaining > 0) {
     int blockSize = (remaining > MAX_BLOCK ? MAX_BLOCK : remaining);
     memset(paddingBuffer, 0, MAX_BLOCK + 1);
@@ -82,60 +78,29 @@ int sendApduHidHidapi(hid_device *handle, const unsigned char ledger,
     return result;
   }
   offset = MAX_BLOCK;
-  if (!ledger) {
-    if (buffer[0] == SW1_DATA) {
-      length = buffer[1];
-      length += 2;
-      if (length > (MAX_BLOCK - 2)) {
-        remaining = length - (MAX_BLOCK - 2);
-        while (remaining != 0) {
-          int blockSize;
-          if (remaining > MAX_BLOCK) {
-            blockSize = MAX_BLOCK;
-          } else {
-            blockSize = remaining;
-          }
-          result =
-              hid_read_timeout(handle, buffer + offset, MAX_BLOCK, TIMEOUT);
-          if (result < 0) {
-            return result;
-          }
-          offset += blockSize;
-          remaining -= blockSize;
-        }
-      }
-      length -= 2;
-      memcpy(out, buffer + 2, length);
-      swOffset = 2 + length;
-    } else {
-      length = 0;
-      swOffset = 0;
+
+  for (;;) {
+    result = unwrapReponseAPDU(DEFAULT_LEDGER_CHANNEL, buffer, offset,
+                               LEDGER_HID_PACKET_SIZE, out, outLength);
+    if (result < 0) {
+      return result;
     }
-    if (sw != NULL) {
-      *sw = (buffer[swOffset] << 8) | buffer[swOffset + 1];
+    if (result != 0) {
+      length = result - 2;
+      swOffset = result - 2;
+      break;
     }
-  } else {
-    for (;;) {
-      result = unwrapReponseAPDU(DEFAULT_LEDGER_CHANNEL, buffer, offset,
-                                 LEDGER_HID_PACKET_SIZE, out, outLength);
-      if (result < 0) {
-        return result;
-      }
-      if (result != 0) {
-        length = result - 2;
-        swOffset = result - 2;
-        break;
-      }
-      result = hid_read_timeout(handle, buffer + offset, MAX_BLOCK, TIMEOUT);
-      if (result < 0) {
-        return result;
-      }
-      offset += MAX_BLOCK;
+    result = hid_read_timeout(handle, buffer + offset, MAX_BLOCK, TIMEOUT);
+    if (result < 0) {
+      return result;
     }
-    if (sw != NULL) {
-      *sw = (out[swOffset] << 8) | out[swOffset + 1];
-    }
+    offset += MAX_BLOCK;
   }
+
+  if (sw != NULL) {
+    *sw = (out[swOffset] << 8) | out[swOffset + 1];
+  }
+
   return length;
 }
 
