@@ -29,8 +29,14 @@ def install_linux_deps():
                 exit(1)
     else:
         programs += ['apt-cacher-ng', 'lxc', 'debootstrap']
-
-    subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
+    programs_to_be_installed = []
+    for program in programs:
+        if subprocess.call(['dpkg', '-s', program], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 1:
+            programs_to_be_installed.append(program)
+    if programs_to_be_installed:
+        print('Installing ' + ", ".join(programs_to_be_installed))
+        subprocess.check_call(['sudo', 'apt-get', 'update', '-qq'])
+        subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs_to_be_installed)
 
 def install_mac_deps():
     global args
