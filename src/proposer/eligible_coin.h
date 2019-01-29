@@ -6,6 +6,7 @@
 #define UNIT_E_PROPOSER_ELIGIBLE_COIN_H
 
 #include <amount.h>
+#include <blockchain/blockchain_parameters.h>
 #include <blockchain/blockchain_types.h>
 #include <primitives/transaction.h>
 #include <staking/coin.h>
@@ -24,7 +25,7 @@ struct EligibleCoin {
   uint256 kernel_hash;
 
   //! The reward associated with this coin, not including fees.
-  CAmount reward;
+  blockchain::BlockReward reward;
 
   //! The height at which the newly proposed block will be at. This is one more
   //! then the currently active chain's height.

@@ -54,6 +54,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(BlockBuilder, proposer::BlockBuilder, proposer::BlockBuilder::New,
             blockchain::Behavior,
+            BlockDB,
             Settings)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,

@@ -6,6 +6,7 @@
 #define UNIT_E_PROPOSER_BLOCK_BUILDER_H
 
 #include <blockchain/blockchain_behavior.h>
+#include <blockdb.h>
 #include <dependency.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
@@ -24,6 +25,7 @@ class BlockBuilder {
  public:
   //! \brief Builds a coinbase transaction.
   virtual const CTransactionRef BuildCoinbaseTransaction(
+      const CBlockIndex &prev_block_index,      //!< The index of the previous block.
       const uint256 &snapshot_hash,             //!< The snapshot hash to be included.
       const EligibleCoin &eligible_coin,        //!< The eligible coin to reference as stake. Also contains the target height.
       const std::vector<staking::Coin> &coins,  //!< Any other coins that should be combined into the coinbase tx.
@@ -42,10 +44,15 @@ class BlockBuilder {
       staking::StakingWallet &                  //!< A wallet used to sign blocks and stake.
       ) const = 0;
 
+  static staking::Coin GetValidatorsFund(const CBlock &block);
+
+  static staking::Coin GetProposersFund(const CBlock &block);
+
   virtual ~BlockBuilder() = default;
 
   static std::unique_ptr<BlockBuilder> New(
       Dependency<blockchain::Behavior>,
+      Dependency<BlockDB>,
       Dependency<Settings>);
 };
 

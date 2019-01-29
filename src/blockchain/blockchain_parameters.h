@@ -16,6 +16,7 @@
 #include <better-enums/enum.h>
 #include <cstdint>
 #include <type_traits>
+#include <ufp64.h>
 
 namespace blockchain {
 
@@ -26,6 +27,13 @@ struct GenesisBlock {
   explicit GenesisBlock(const CBlock &);
 };
 
+//! \brief Simple structure to represent the various components of the block reward.
+struct BlockReward {
+  CAmount immediate_reward;
+  CAmount finalization_reward;
+  CAmount validator_funds;
+};
+
 struct Parameters {
 
   //! \brief a function to calculate the block reward.
@@ -33,7 +41,7 @@ struct Parameters {
   //! The reward function is a pure function that takes as inputs the parameters
   //! that are currently active and the height to propose at.
 
-  using RewardFunction = CAmount (*)(const Parameters &, Height);
+  using RewardFunction = BlockReward (*)(const Parameters &, Height);
 
   //! \brief a function to calculate the difficulty for a given block.
   //!
@@ -150,6 +158,17 @@ struct Parameters {
 
   //! \brief The base block reward for each period.
   std::vector<CAmount> reward_schedule;
+
+  //! The reward associated with this coin, not including fees, that is  awarded
+  //! immediately for proposing a block.
+  ufp64::ufp64_t immediate_reward_fraction;
+
+  //! The part of the reward that will be awarded only when the epoch containing
+  //! this block is finalized.
+  ufp64::ufp64_t finalization_reward_fraction;
+
+  //! The part of the block reward that is instead sent to the validator fund.
+  ufp64::ufp64_t validator_fund_fraction;
 
   //! \brief The period size in blocks.
   std::uint32_t period_blocks;

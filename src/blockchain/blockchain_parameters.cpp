@@ -5,6 +5,7 @@
 #include <blockchain/blockchain_parameters.h>
 
 #include <blockchain/blockchain_genesis.h>
+#include <ufp64.h>
 #include <utilstrencodings.h>
 #include <numeric>
 
@@ -27,15 +28,26 @@ Parameters BuildMainNetParameters() {
   p.restake_maturity = 200;
   p.initial_supply = 150000000000000000;
   p.reward_schedule = {3750000000, 1700000000, 550000000, 150000000, 31000000};
+  p.immediate_reward_fraction = ufp64::div_2uint(1, 10);
+  p.finalization_reward_fraction = ufp64::div_2uint(4, 10);
+  p.validator_fund_fraction = ufp64::div_2uint(5, 10);
   p.period_blocks = 19710000;
   p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
   assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
-  p.reward_function = [](const Parameters &p, Height h) -> CAmount {
+  p.reward_function = [](const Parameters &p, Height h) -> BlockReward {
     const uint64_t period = h / p.period_blocks;
     if (period >= p.reward_schedule.size()) {
-      return 0;
+      return {0, 0, 0};
     }
-    return p.reward_schedule[period];
+
+    const auto base_reward = static_cast<uint64_t>(p.reward_schedule[period]);
+    const uint64_t immediate_reward = ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
+    const uint64_t finalization_reward = ufp64::mul_to_uint(p.finalization_reward_fraction, base_reward);
+    const uint64_t validator_fund = ufp64::mul_to_uint(p.validator_fund_fraction, base_reward);
+
+    return {static_cast<int64_t>(immediate_reward),
+            static_cast<int64_t>(finalization_reward),
+            static_cast<int64_t>(validator_fund)};
   };
   p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
     // UNIT-E: Does not adjust difficulty for now

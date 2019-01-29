@@ -7,6 +7,8 @@
 #include <consensus/merkle.h>
 #include <key.h>
 #include <pubkey.h>
+#include <validation.h>
+#include "block_builder.h"
 
 #include <numeric>
 
@@ -18,6 +20,7 @@ class BlockBuilderImpl : public BlockBuilder {
  private:
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<Settings> m_settings;
+  Dependency<BlockDB> m_block_db;
 
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
     auto number_of_pieces = amount / threshold;
@@ -59,11 +62,14 @@ class BlockBuilderImpl : public BlockBuilder {
  public:
   explicit BlockBuilderImpl(
       Dependency<blockchain::Behavior> blockchain_behavior,
+      Dependency<BlockDB> block_db,
       Dependency<Settings> settings)
       : m_blockchain_behavior(blockchain_behavior),
+        m_block_db(block_db),
         m_settings(settings) {}
 
   const CTransactionRef BuildCoinbaseTransaction(
+      const CBlockIndex &prev_block_index,
       const uint256 &snapshot_hash,
       const EligibleCoin &eligible_coin,
       const std::vector<staking::Coin> &coins,
@@ -81,6 +87,15 @@ class BlockBuilderImpl : public BlockBuilder {
                                      << ToByteVector(snapshot_hash);
       tx.vin.emplace_back(uint256(), 0, script_sig);
     }
+
+    const auto prev_block = m_block_db->ReadBlock(prev_block_index);
+    assert(prev_block);
+
+    const auto &validators_fund = GetValidatorsFund(*prev_block);
+    const auto &proposers_fund = GetProposersFund(*prev_block);
+    // add inputs for validator and proposer funds
+    tx.vin.emplace_back(validators_fund.txid, validators_fund.index);
+    tx.vin.emplace_back(proposers_fund.txid, proposers_fund.index);
 
     // add stake
     tx.vin.emplace_back(eligible_coin.utxo.txid, eligible_coin.utxo.index);
@@ -162,7 +177,7 @@ class BlockBuilderImpl : public BlockBuilder {
 
     // add coinbase transaction first
     const CTransactionRef coinbase_transaction =
-        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, wallet);
+        BuildCoinbaseTransaction(prev_block, snapshot_hash, coin, coins, fees, wallet);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;
@@ -202,8 +217,29 @@ class BlockBuilderImpl : public BlockBuilder {
 
 std::unique_ptr<BlockBuilder> BlockBuilder::New(
     Dependency<blockchain::Behavior> blockchain_behavior,
+    Dependency<BlockDB> block_db,
     Dependency<Settings> settings) {
-  return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(blockchain_behavior, settings));
+  return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(blockchain_behavior, block_db, settings));
+}
+
+staking::Coin BlockBuilder::GetValidatorsFund(const CBlock &block) {
+
+  //UNIT-E: TODO: uncomment when IsCoinBase starts checking the TxType
+  //  assert(block.vtx[0]->IsCoinBase());
+  const auto tx_id = block.vtx[0]->GetHash();
+  const auto vout_amount = block.vtx[0]->vout[0].nValue;
+
+  return {tx_id, 0, vout_amount};
+}
+
+staking::Coin BlockBuilder::GetProposersFund(const CBlock &block) {
+
+  //UNIT-E: TODO: uncomment when IsCoinBase starts checking the TxType
+  //  assert(block.vtx[0]->IsCoinBase());
+  const auto tx_id = block.vtx[0]->GetHash();
+  const auto vout_amount = block.vtx[0]->vout[1].nValue;
+
+  return {tx_id, 1, vout_amount};
 }
 
 }  // namespace proposer

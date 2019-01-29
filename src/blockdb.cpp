@@ -11,8 +11,6 @@
 //! data. It delegates to bitcoin functions like `ReadBlockFromDisk`.
 class BlockDiskStorage final : public BlockDB {
 
- private:
-
  public:
   ~BlockDiskStorage() override = default;
 

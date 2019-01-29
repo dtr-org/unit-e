@@ -45,7 +45,7 @@ class Behavior {
   Time CalculateProposingTimestampAfter(std::int64_t timestamp_sec) const;
 
   //! \brief Calculates the block reward given the block height.
-  CAmount CalculateBlockReward(const Height height);
+  BlockReward CalculateBlockReward(Height height);
 
   //! \brief Calculates the difficulty for BlockHeight
   Difficulty CalculateDifficulty(Height, ChainAccess &) const;
