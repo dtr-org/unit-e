@@ -48,6 +48,7 @@ Optional dependencies:
  libqrencode | QR codes in GUI  | Optional for generating QR codes (only needed when GUI enabled)
  univalue    | Utility          | JSON parsing and encoding (bundled version will be used unless --with-system-univalue passed to configure)
  libzmq3     | ZMQ notification | Optional, allows generating ZMQ notifications (requires ZMQ version >= 4.x)
+ hidapi      | Hardware support | Optional, allows working with hardware wallets such as the Ledger Nano S.
 
 For the versions used, see [dependencies.md](dependencies.md)
 
@@ -103,6 +104,10 @@ Optional (see --with-miniupnpc and --enable-upnp-default):
 ZMQ dependencies (provides ZMQ API 4.x):
 
     sudo apt-get install libzmq3-dev
+
+hidapi (provides USB HID device support):
+
+    sudo apt-get install libhidapi-dev
 
 Dependencies for the GUI: Ubuntu & Debian
 -----------------------------------------

@@ -200,10 +200,10 @@ AC_ARG_WITH([system-univalue],
 )
 
 AC_ARG_ENABLE([usbdevice],
-  [AS_HELP_STRING([--disable-usbdevice],
-  [disable hardware wallet support (default is enabled)])],
+  [AS_HELP_STRING([--enable-usbdevice],
+  [enable hardware wallet support (default is disabled)])],
   [enable_usbdevice=$enableval],
-  [enable_usbdevice=yes]
+  [enable_usbdevice=no]
 )
 
 AC_ARG_ENABLE([zmq],

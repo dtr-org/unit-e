@@ -15,6 +15,7 @@ These are the dependencies currently used by UnitE Core. You can find instructio
 | FreeType | [2.7.1](http://download.savannah.gnu.org/releases/freetype) |  | No |  |  |
 | GCC |  | [4.8+](https://gcc.gnu.org/) |  |  |  |
 | HarfBuzz-NG |  |  |  |  |  |
+| hidapi | [0.8.0-rc1](https://github.com/signal11/hidapi/releases/tag/hidapi-0.8.0-rc1) |  | No | Yes |  |
 | libevent | [2.1.8-stable](https://github.com/libevent/libevent/releases) | 2.0.22 | No |  |  |
 | libjpeg |  |  |  |  | [Yes](https://github.com/unite/unite/blob/master/depends/packages/qt.mk#L75) |
 | libpng |  |  |  |  | [Yes](https://github.com/unite/unite/blob/master/depends/packages/qt.mk#L74) |

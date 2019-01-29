@@ -86,12 +86,12 @@ jobs:
       name: "System libs (unit and functional tests)"
       env: >-
         HOST=x86_64-unknown-linux-gnu
-        PACKAGES="python3-zmq libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev xvfb"
+        PACKAGES="python3-zmq libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev xvfb libhidapi-dev"
         NO_DEPENDS=1
         NEED_XVFB=1
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --with-incompatible-bdb --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no"
+        UNITE_CONFIG="--enable-zmq --with-incompatible-bdb --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no --enable-usbdevice"
 
     - stage: test
       name: "32-bit + dash (unit and functional tests)"
