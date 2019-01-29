@@ -160,29 +160,24 @@ class LTORTest(UnitETestFramework):
     def create_chained_transactions(self):
         # We create more transactions here (doing it through blocks creation is
         # problematic because blocks are created too fast.
-        txns = []
         last_tx = self.spendable_outputs[0].vtx[0]
         tx_value = int(0.95 * UNIT * 0.5)
-        tx = create_transaction(last_tx, 0, b'', tx_value)
-        tx.vout.append(CTxOut(tx_value, CScript()))
-        tx.rehash()
-        txns.append(tx)
-        last_tx = tx
+        txns = [self.create_child_transaction(last_tx, tx_value, 0)]
 
         for divisor in map(lambda x: 2 ** x, range(2, 6)):
             tx_value = int(0.95 * UNIT / divisor)
-
-            tx_a = create_transaction(last_tx, 0, b'', tx_value)
-            tx_a.vout.append(CTxOut(tx_value, CScript()))
-            tx_a.rehash()
-            tx_b = create_transaction(last_tx, 1, b'', tx_value)
-            tx_b.vout.append(CTxOut(tx_value, CScript()))
-            tx_b.rehash()
-
-            txns.extend([tx_a, tx_b])
-            last_tx = tx_a  # We only use the first output each round
+            txns.extend([
+                self.create_child_transaction(txns[-1], tx_value, 0),
+                self.create_child_transaction(txns[-1], tx_value, 1)
+            ])
 
         return txns
+
+    def create_child_transaction(self, last_tx, tx_value, output_idx):
+        tx = create_transaction(last_tx, output_idx, b'', tx_value)
+        tx.vout.append(CTxOut(tx_value, CScript()))
+        tx.rehash()
+        return tx
 
     def get_tip_transactions(self, node_idx):
         node = self.nodes[node_idx]
@@ -196,7 +191,7 @@ class LTORTest(UnitETestFramework):
     def create_spendable_outputs(self):
         block = self.get_empty_block()
         self.spendable_outputs.append(block)
-        return TestInstance([[block, True]], test_name='')
+        return TestInstance([[block, True]], test_name='empty_block_synced')
 
     def get_empty_block(self):
         sync_blocks(self.nodes)
