@@ -17,12 +17,11 @@ class BlockDiskStorage final : public BlockDB {
   ~BlockDiskStorage() override = default;
 
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
-    auto block = boost::optional<CBlock>(CBlock());
-    if (ReadBlockFromDisk(*block, &index, Params().GetConsensus())) {
-      return block;
-    } else {
+    boost::optional<CBlock> block((CBlock()));
+    if (!ReadBlockFromDisk(*block, &index, Params().GetConsensus())) {
       return boost::none;
     }
+    return block;
   }
 };
 
