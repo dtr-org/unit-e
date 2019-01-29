@@ -7,7 +7,7 @@ architectures:
 packages:
 - "faketime"
 remotes:
-- "url": "https://github.com/dtr-org/unit-e-sigs.git"
+- "url": "git@github.com:dtr-org/unit-e-sigs.git"
   "dir": "signature"
 files:
 - "unite-osx-unsigned.tar.gz"
