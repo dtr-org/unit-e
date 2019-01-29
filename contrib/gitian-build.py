@@ -50,7 +50,7 @@ def install_mac_deps():
     if subprocess.call(['docker', '--version']) != 0:
         # TODO: check if it's enough (docker-machine?)
         if subprocess.check_output(['brew', 'install', 'docker']) != 0:
-            print('Please install docker.', file=sys.stderr)
+            print('Please install docker manually.', file=sys.stderr)
             exit(1)
 
     subprocess.check_call(['brew', 'install', 'ruby', 'coreutils'])

@@ -74,9 +74,11 @@ ShowUninstDetails show
 Section -Main SEC0000
     SetOutPath $INSTDIR
     SetOverwrite on
-    File @abs_top_srcdir@/release/@UNITE_GUI_NAME@@EXEEXT@
-    File /oname=COPYING.txt @abs_top_srcdir@/COPYING
-    File /oname=readme.txt @abs_top_srcdir@/doc/README_windows.txt
+    ${If} ${WithGui} == "yes"
+        File @abs_top_srcdir@/release/@UNITE_GUI_NAME@@EXEEXT@
+        File /oname=COPYING.txt @abs_top_srcdir@/COPYING
+        File /oname=readme.txt @abs_top_srcdir@/doc/README_windows.txt
+    ${EndIf}
     SetOutPath $INSTDIR\daemon
     File @abs_top_srcdir@/release/@UNITE_DAEMON_NAME@@EXEEXT@
     File @abs_top_srcdir@/release/@UNITE_CLI_NAME@@EXEEXT@
@@ -86,6 +88,7 @@ Section -Main SEC0000
     WriteRegStr HKCU "${REGKEY}\Components" Main 1
 SectionEnd
 
+${If} ${WithGui} == "yes"
 Section -post SEC0001
     WriteRegStr HKCU "${REGKEY}" Path $INSTDIR
     SetOutPath $INSTDIR
@@ -109,6 +112,7 @@ Section -post SEC0001
     WriteRegStr HKCR "@PACKAGE_TARNAME@\DefaultIcon" "" $INSTDIR\@UNITE_GUI_NAME@@EXEEXT@
     WriteRegStr HKCR "@PACKAGE_TARNAME@\shell\open\command" "" '"$INSTDIR\@UNITE_GUI_NAME@@EXEEXT@" "%1"'
 SectionEnd
+${EndIf}
 
 # Macro for selecting uninstaller sections
 !macro SELECT_UNSECTION SECTION_NAME UNSECTION_ID
@@ -125,9 +129,11 @@ done${UNSECTION_ID}:
 
 # Uninstaller sections
 Section /o -un.Main UNSEC0000
-    Delete /REBOOTOK $INSTDIR\@UNITE_GUI_NAME@@EXEEXT@
-    Delete /REBOOTOK $INSTDIR\COPYING.txt
-    Delete /REBOOTOK $INSTDIR\readme.txt
+    ${If} ${WithGui} == "yes"
+        Delete /REBOOTOK $INSTDIR\@UNITE_GUI_NAME@@EXEEXT@
+        Delete /REBOOTOK $INSTDIR\COPYING.txt
+        Delete /REBOOTOK $INSTDIR\readme.txt
+    ${EndIf}
     RMDir /r /REBOOTOK $INSTDIR\daemon
     RMDir /r /REBOOTOK $INSTDIR\doc
     DeleteRegValue HKCU "${REGKEY}\Components" Main
