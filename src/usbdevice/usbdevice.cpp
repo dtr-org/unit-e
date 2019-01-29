@@ -33,12 +33,10 @@ static bool MatchLedgerInterface(struct hid_device_info *cur_dev) {
 }
 
 bool ListAllDevices(DeviceList &devices) {
-  /*
-    if (Params().NetworkIDString() == "regtest") {
-        devices.push_back(std::shared_ptr<USBDevice>(new DebugDevice()));
-        return true;
-    }
-    */
+  if (Params().NetworkIDString() == "regtest") {
+    devices.push_back(std::shared_ptr<USBDevice>(new DebugDevice()));
+    return true;
+  }
 
   struct hid_device_info *devs, *cur_dev;
 
