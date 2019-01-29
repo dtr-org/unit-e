@@ -23,13 +23,12 @@ const DeviceType USB_DEVICE_TYPES[] = {
 };
 
 static bool MatchLedgerInterface(struct hid_device_info *cur_dev) {
-#ifdef MAC_OSX
+#if defined(MAC_OSX) || defined(WIN32)
   return cur_dev->usage_page == 0xffa0;
-#endif
-#ifdef WIN32
-  return cur_dev->usage_page == 0xffa0;
-#endif
+#else
+  // See https://github.com/signal11/hidapi/issues/385
   return cur_dev->interface_number == 0;
+#endif
 }
 
 bool ListAllDevices(DeviceList &devices) {
