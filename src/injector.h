@@ -15,6 +15,7 @@
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
+#include <blockdb.h>
 #include <util.h>
 #include <validation.h>
 
@@ -46,6 +47,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             blockchain::Behavior)
 
   COMPONENT(TransactionPicker, staking::TransactionPicker, staking::TransactionPicker::New)
+
+  COMPONENT(BlockDB, ::BlockDB, BlockDB::New)
 
 #ifdef ENABLE_WALLET
 
