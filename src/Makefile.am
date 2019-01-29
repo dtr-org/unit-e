@@ -396,8 +396,11 @@ libunite_usbdevice_a_SOURCES = \
   usbdevice/ledgerapdu.h \
   usbdevice/ledgerdevice.cpp \
   usbdevice/ledgerdevice.h \
+  usbdevice/ledger/btchipApdu.h \
   usbdevice/ledger/dongleCommHidHidapi.c \
+  usbdevice/ledger/dongleCommHidHidapi.h \
   usbdevice/ledger/ledgerLayer.c \
+  usbdevice/ledger/ledgerLayer.h \
   usbdevice/rpcusbdevice.cpp \
   usbdevice/rpcusbdevice.h \
   usbdevice/usbdevice.cpp \
