@@ -13,7 +13,14 @@ class UsbDeviceCryptoTest(UnitETestFramework):
 
     def run_test(self):
         hw_node, other_node = self.nodes
-        hw_node.initaccountfromdevice()
+
+        try:
+            hw_node.initaccountfromdevice()
+        except Exception as e:
+            if 'Method not found' in e.error:
+                # USB support not compiled in
+                return
+            raise
 
         assert_equal(len(hw_node.listunspent()), 0)
         assert_equal(len(other_node.listunspent()), 0)
