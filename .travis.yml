@@ -101,7 +101,7 @@ jobs:
         DEP_OPTS="NO_QT=1"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++ --with-gui=no"
+        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++ --with-gui=no --enable-usbdevice"
         USE_SHELL="/bin/dash"
 
     - stage: test
@@ -123,7 +123,7 @@ jobs:
         DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no"
+        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no --enable-usbdevice"
 
     - stage: test
       name: "x86_64 Linux, No wallet (unit tests)"
