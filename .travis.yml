@@ -66,7 +66,7 @@ jobs:
       env: >-
         HOST=arm-linux-gnueabihf
         PACKAGES="g++-arm-linux-gnueabihf python3-pip"
-        DEP_OPTS="NO_QT=1"
+        DEP_OPTS="NO_QT=1 NO_USB=1"
         CHECK_DOC=1
         GOAL="install"
         UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports --with-gui=no"
@@ -97,7 +97,8 @@ jobs:
       name: "32-bit + dash (unit and functional tests)"
       env: >-
         HOST=i686-pc-linux-gnu
-        PACKAGES="g++-multilib python3-zmq"
+        DPKG_ADD_ARCH="i386"
+        PACKAGES="g++-multilib python3-zmq libudev-dev:i386"
         DEP_OPTS="NO_QT=1"
         RUN_TESTS=true
         GOAL="install"
@@ -119,11 +120,11 @@ jobs:
       name: "x86_64 Linux (unit and functional tests)"
       env: >-
         HOST=x86_64-unknown-linux-gnu
-        PACKAGES="python3-zmq protobuf-compiler libdbus-1-dev libharfbuzz-dev"
-        DEP_OPTS="NO_QT=1 NO_UPNP=1 NO_USB=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
+        PACKAGES="python3-zmq protobuf-compiler libdbus-1-dev libharfbuzz-dev libudev-dev"
+        DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
         RUN_TESTS=true
         GOAL="install"
-        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no"
+        UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no --enable-usbdevice"
 
     - stage: test
       name: "x86_64 Linux, No wallet (unit tests)"
