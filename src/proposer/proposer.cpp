@@ -113,8 +113,15 @@ class ProposerImpl : public Proposer {
           const CAmount fees = std::accumulate(result.fees.begin(), result.fees.end(), CAmount(0));
           const uint256 snapshot_hash = m_active_chain->ComputeSnapshotHash();
 
+          // Generate an internal key to sign the block and to which send the reward.
+          CPubKey signing_key;
+          if (!wallet->GetKeyFromPool(signing_key, true)) {
+            LogPrint(BCLog::PROPOSING, "Wallet is locked, cannot generate key for proposing.\n");
+            continue;
+          }
+
           block = m_block_builder->BuildBlock(
-              tip, snapshot_hash, coin, coins, result.transactions, fees, wallet_ext);
+              signing_key, tip, snapshot_hash, coin, coins, result.transactions, fees, wallet_ext);
         }
         if (m_interrupted) {
           break;

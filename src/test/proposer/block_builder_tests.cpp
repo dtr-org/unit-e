@@ -141,10 +141,18 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   };
 
   auto block = builder->BuildBlock(
-      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+      f.pubkey, current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
   BOOST_REQUIRE(static_cast<bool>(block));
   auto is_valid = validator->CheckBlock(*block);
   BOOST_CHECK(is_valid);
+
+  auto stake_in = block->vtx[0]->vin[1];
+  BOOST_CHECK(stake_in.scriptWitness.stack[1] == f.pubkeydata);
+
+  std::vector<uint8_t> signature;
+  f.key.Sign(block->GetHash(), signature);
+
+  BOOST_CHECK(signature == block->signature);
 }
 
 BOOST_AUTO_TEST_CASE(split_amount) {
@@ -179,7 +187,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     };
 
     auto block = builder->BuildBlock(
-        current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+        f.pubkey, current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
     auto is_valid = validator->CheckBlock(*block);
     // must have a coinbase transaction

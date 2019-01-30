@@ -147,7 +147,7 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   // BuildCoinbaseTransaction() will also sign it
   CTransactionRef coinbase_transaction =
-      block_builder->BuildCoinbaseTransaction(uint256(), eligible_coin, coins, 700, pwalletMain->GetWalletExtension());
+      block_builder->BuildCoinbaseTransaction(pubkey, uint256(), eligible_coin, coins, 700, pwalletMain->GetWalletExtension());
 
   // check that a coinbase transaction was built successfully
   BOOST_REQUIRE(static_cast<bool>(coinbase_transaction));
@@ -168,6 +168,11 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
     BOOST_CHECK_EQUAL(stack.size(), 2);  // signature + public key
     auto &witness_pubkey = stack[1];
     BOOST_CHECK(witness_pubkey == pubkeydata);
+  }
+
+  // We should be able to spend all the outputs
+  for (auto out : coinbase_transaction->vout) {
+    BOOST_CHECK(::IsMine(*pwalletMain, out.scriptPubKey) == ISMINE_SPENDABLE);
   }
 }
 

@@ -62,6 +62,7 @@ class BlockBuilderImpl : public BlockBuilder {
         m_settings(settings) {}
 
   const CTransactionRef BuildCoinbaseTransaction(
+      const CPubKey &signing_key,
       const uint256 &snapshot_hash,
       const EligibleCoin &eligible_coin,
       const std::vector<staking::Coin> &coins,
@@ -104,8 +105,7 @@ class BlockBuilderImpl : public BlockBuilder {
     }
 
     // destination to send stake + reward to
-    const CPubKey pub_key;
-    const CTxDestination destination = WitnessV0KeyHash(pub_key.GetID());
+    const CTxDestination destination = WitnessV0KeyHash(signing_key.GetID());
     const CScript script_pub_key = GetScriptForDestination(destination);
 
     // add outputs
@@ -133,6 +133,7 @@ class BlockBuilderImpl : public BlockBuilder {
   }
 
   std::shared_ptr<const CBlock> BuildBlock(
+      const CPubKey &signing_key,
       const CBlockIndex &prev_block,
       const uint256 &snapshot_hash,
       const EligibleCoin &coin,
@@ -151,7 +152,7 @@ class BlockBuilderImpl : public BlockBuilder {
 
     // add coinbase transaction first
     const CTransactionRef coinbase_transaction =
-        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, wallet);
+        BuildCoinbaseTransaction(signing_key, snapshot_hash, coin, coins, fees, wallet);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;
