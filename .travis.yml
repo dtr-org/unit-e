@@ -97,7 +97,7 @@ jobs:
       name: "32-bit + dash (unit and functional tests)"
       env: >-
         HOST=i686-pc-linux-gnu
-        PACKAGES="g++-multilib python3-zmq libhidpi-dev"
+        PACKAGES="g++-multilib python3-zmq libhidapi-dev"
         DEP_OPTS="NO_QT=1"
         RUN_TESTS=true
         GOAL="install"
