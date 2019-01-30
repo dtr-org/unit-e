@@ -30,7 +30,6 @@ def install_linux_deps():
     else:
         programs += ['apt-cacher-ng', 'lxc', 'debootstrap']
 
-    subprocess.check_call(['sudo', 'apt-get', 'update', '-qq'])
     subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
 
 def install_mac_deps():
@@ -41,7 +40,7 @@ def install_mac_deps():
 
     if subprocess.call(['docker', '--version']) != 0:
         # TODO: check if it's enough (docker-machine?)
-        if subprocess.check_output(['brew', 'install', 'docker']) != 0:
+        if subprocess.call(['brew', 'install', 'docker']) != 0:
             print('Please install docker manually.', file=sys.stderr)
             exit(1)
 
@@ -177,7 +176,7 @@ def verify():
 def main():
     global args, workdir
 
-    parser = argparse.ArgumentParser(usage='%(prog)s [options] [signer] [version]')
+    parser = argparse.ArgumentParser(usage='%(prog)s [options]')
     parser.add_argument('-c', '--commit', action='store_true', dest='commit', help='Indicate that the version argument is for a commit or branch')
     parser.add_argument('-p', '--pull', action='store_true', dest='pull', help='Indicate that the version argument is the number of a github repository pull request')
     parser.add_argument('-u', '--url', dest='url', default='git@github.com:dtr-org/unit-e.git', help='Specify the URL of the repository. Default is %(default)s')
@@ -193,8 +192,8 @@ def main():
     parser.add_argument('-S', '--setup', action='store_true', dest='setup', help='Set up the Gitian building environment. Uses LXC. If you want to use KVM, use the --kvm option. Only works on Debian-based systems (Ubuntu, Debian)')
     parser.add_argument('-D', '--detach-sign', action='store_true', dest='detach_sign', help='Create the assert file for detached signing. Will not commit anything.')
     parser.add_argument('-n', '--no-commit', action='store_false', dest='commit_files', help='Do not commit anything to git')
-    parser.add_argument('signer', help='GPG signer to sign each build assert file. Required to build, sign or verify')
-    parser.add_argument('version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
+    parser.add_argument('--signer', dest='signer', help='GPG signer to sign each build assert file. Required to build, sign or verify')
+    parser.add_argument('--version', dest='version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
 
     args = parser.parse_args()
     workdir = os.getcwd()
@@ -242,12 +241,12 @@ def main():
     script_name = os.path.basename(sys.argv[0])
 
     # Signer and version shouldn't be empty
-    if args.signer == '':
+    if not args.signer:
         print(script_name+': Missing signer.')
         print('Try '+script_name+' --help for more information')
         exit(1)
 
-    if args.version == '':
+    if not args.version:
         print(script_name+': Missing version.')
         print('Try '+script_name+' --help for more information')
         exit(1)
