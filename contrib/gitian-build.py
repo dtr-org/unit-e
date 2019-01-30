@@ -64,21 +64,21 @@ def build():
         print('\nCompiling ' + args.version + ' Linux')
         subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, '../unit-e/contrib/gitian-descriptors/gitian-linux.yml'])
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-linux', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-linux.yml'])
-        subprocess.check_call('mv build/out/unit-e-*.tar.gz build/out/src/unit-e-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
+        subprocess.check_call('mv build/out/unite-*.tar.gz build/out/src/unite-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
 
     if args.windows:
         print('\nCompiling ' + args.version + ' Windows')
         subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-unsigned', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-win.yml'])
-        subprocess.check_call('mv build/out/unit-e-*-win-unsigned.tar.gz inputs/', shell=True)
-        subprocess.check_call('mv build/out/unit-e-*.zip build/out/unit-e-*.exe ../unit-e-binaries/'+args.version, shell=True)
+        subprocess.check_call('mv build/out/unite-*-win-unsigned.tar.gz inputs/', shell=True)
+        subprocess.check_call('mv build/out/unite-*.zip build/out/unite-*.exe ../unit-e-binaries/'+args.version, shell=True)
 
     if args.macos:
         print('\nCompiling ' + args.version + ' MacOS')
         subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-unsigned', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-osx.yml'])
-        subprocess.check_call('mv build/out/unit-e-*-osx-unsigned.tar.gz inputs/', shell=True)
-        subprocess.check_call('mv build/out/unit-e-*.tar.gz build/out/unit-e-*.dmg ../unit-e-binaries/'+args.version, shell=True)
+        subprocess.check_call('mv build/out/unite-*-osx-unsigned.tar.gz inputs/', shell=True)
+        subprocess.check_call('mv build/out/unite-*.tar.gz build/out/unite-*.dmg ../unit-e-binaries/'+args.version, shell=True)
 
     os.chdir(workdir)
 
@@ -97,18 +97,18 @@ def sign():
 
     if args.windows:
         print('\nSigning ' + args.version + ' Windows')
-        subprocess.check_call('cp inputs/unit-e-' + args.version + '-win-unsigned.tar.gz inputs/unit-e-win-unsigned.tar.gz', shell=True)
+        subprocess.check_call('cp inputs/unite-' + args.version + '-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz', shell=True)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml'])
-        subprocess.check_call('mv build/out/unit-e-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True)
-        subprocess.check_call('mv build/out/unit-e-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True)
+        subprocess.check_call('mv build/out/unite-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True)
+        subprocess.check_call('mv build/out/unite-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True)
 
     if args.macos:
         print('\nSigning ' + args.version + ' MacOS')
-        subprocess.check_call('cp inputs/unit-e-' + args.version + '-osx-unsigned.tar.gz inputs/unit-e-osx-unsigned.tar.gz', shell=True)
+        subprocess.check_call('cp inputs/unite-' + args.version + '-osx-unsigned.tar.gz inputs/unite-osx-unsigned.tar.gz', shell=True)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../gitian.sigs/', '../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml'])
-        subprocess.check_call('mv build/out/unit-e-osx-signed.dmg ../unit-e-binaries/'+args.version+'/unit-e-'+args.version+'-osx.dmg', shell=True)
+        subprocess.check_call('mv build/out/unite-osx-signed.dmg ../unit-e-binaries/'+args.version+'/unite-'+args.version+'-osx.dmg', shell=True)
 
     os.chdir(workdir)
 
