@@ -103,8 +103,14 @@ class BlockBuilderImpl : public BlockBuilder {
       tx.vin.emplace_back(coin.txid, coin.index);
     }
 
-    // add outputs
-    const CAmount spend = combined_total + eligible_coin.reward + fees;
+    CAmount spend = combined_total;
+    CAmount to_reward_address = 0;
+    if (m_settings->reward_destination) {
+      to_reward_address += fees + eligible_coin.reward;
+    } else {
+      spend += fees + eligible_coin.reward;
+    }
+
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && spend > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(spend, threshold);
@@ -113,6 +119,12 @@ class BlockBuilderImpl : public BlockBuilder {
       }
     } else {
       tx.vout.emplace_back(spend, eligible_coin.utxo.script_pubkey);
+    }
+
+    // Send fees and block reward to the reward_address set.
+    if (to_reward_address > 0) {
+      assert(m_settings->reward_destination);
+      tx.vout.emplace_back(to_reward_address, GetScriptForDestination(*m_settings->reward_destination));
     }
 
     // sign inputs
