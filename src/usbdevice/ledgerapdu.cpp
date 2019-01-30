@@ -17,8 +17,6 @@ inline constexpr uint8_t u8(T arg) {
   return static_cast<uint8_t>(arg);
 }
 
-//! Generate a command APDU for retrieving an HD hardware wallet's
-//! public key, for a given derivation path.
 bool GetExtPubKeyAPDU(const std::vector<uint32_t> &path, APDU &apdu_out,
                       std::string &error) {
   if (path.size() > MAX_BIP32_PATH) {
@@ -36,15 +34,6 @@ bool GetExtPubKeyAPDU(const std::vector<uint32_t> &path, APDU &apdu_out,
   return true;
 }
 
-//! \brief Generate command APDUs for initializing a wallet's transaction state
-//! and prepare it for signing.
-//!
-//! See https://ledgerhq.github.io/btchip-doc/bitcoin-technical-beta.html for
-//! description of the HASH INPUT START command and signing process.
-//!
-//! \param[in] tx the transaction to be signed
-//! \param[in] view a cache of spendable coins in the wallet
-//! \param[out] apdus_out the list of commands to send to the device
 bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
                           std::vector<APDU> &apdus_out, std::string &error) {
   apdus_out.clear();
@@ -101,21 +90,12 @@ bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
     }
 
     // Mark last block as such
-    apdus_out.rbegin()->m_in[2] = 0x80;
+    apdus_out.back().m_in[2] = 0x80;
   }
 
   return true;
 }
 
-//! \brief Generate command APDUs for initializing a wallet's transaction state
-//! and prepare it for signing.
-//!
-//! \param[in] path the BIP32 derivation path for the signing key
-//! \param[in] tx the transaction to be signed
-//! \param[in] n_in the input number to be signed
-//! \param[in] script_code the previous output's scriptPubKey
-//! \param[in] amount the monetary value of the previous output
-//! \param[out] apdus_out the list of commands to send to the device
 bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
                        const CTransaction &tx, int n_in,
                        const CScript &script_code, int hash_type,

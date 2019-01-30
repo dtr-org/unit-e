@@ -82,12 +82,34 @@ struct APDU {
   }
 };
 
+//! Generate a command APDU for retrieving an HD hardware wallet's
+//! public key.
+//!
+//! \param[in] path the BIP32 derivation path for the public key
 bool GetExtPubKeyAPDU(const std::vector<uint32_t> &path, APDU &apdu_out,
                       std::string &error);
 
+//! \brief Generate command APDUs for initializing a wallet's transaction state
+//! and prepare it for signing.
+//!
+//! See https://ledgerhq.github.io/btchip-doc/bitcoin-technical-beta.html for
+//! description of the HASH INPUT START command and signing process.
+//!
+//! \param[in] tx the transaction to be signed
+//! \param[in] view a cache of spendable coins in the wallet
+//! \param[out] apdus_out the list of commands to send to the device
 bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
                           std::vector<APDU> &apdus_out, std::string &error);
 
+//! \brief Generate command APDUs for initializing a wallet's transaction state
+//! and prepare it for signing.
+//!
+//! \param[in] path the BIP32 derivation path for the signing key
+//! \param[in] tx the transaction to be signed
+//! \param[in] n_in the input number to be signed
+//! \param[in] script_code the previous output's scriptPubKey
+//! \param[in] amount the monetary value of the previous output
+//! \param[out] apdus_out the list of commands to send to the device
 bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
                        const CTransaction &tx, int n_in,
                        const CScript &script_code, int hash_type,
