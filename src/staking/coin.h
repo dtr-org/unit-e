@@ -22,6 +22,9 @@ struct Coin {
   //! The amount of the index-th output in the referenced transaction.
   CAmount amount;
 
+  //! The destination script of this coin.
+  CScript script_pubkey;
+
   //! The depth of the piece of stake that is used as Proof-of-Stake in the
   //! newly proposed block. This depth is relative to the currently active
   //! chain's height. The depth of the tip of the chain is one by definition.
