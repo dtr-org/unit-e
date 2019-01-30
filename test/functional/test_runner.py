@@ -93,6 +93,7 @@ BASE_SCRIPTS= [
     'wallet_address_types.py',
     'feature_reindex.py',
     # vv Tests less than 30s vv
+    'feature_ltor.py',
     'feature_assumevalid.py',
     'wallet_keypool_topup.py',
     'interface_zmq.py',
@@ -194,7 +195,6 @@ EXTENDED_SCRIPTS = [
 
 # UNIT-E TODO:
 DISABLED_SCRIPTS = [
-    'feature_ltor.py',
     'wallet_bumpfee.py',
     'feature_bip68_sequence.py',
     'p2p_segwit.py',

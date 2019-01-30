@@ -12,7 +12,7 @@ from random import (
     seed,
     setstate as rnd_setstate,
 )
-from time import sleep
+from time import time as time_time
 
 from test_framework.authproxy import JSONRPCException
 from test_framework.blocktools import (
@@ -73,22 +73,9 @@ class LTORTest(UnitETestFramework):
 
     def test_ltor_infringement_detection(self):
         # Just creating easily accessible outputs (coinbase) for next txns
-        for _ in range(2):
-            yield self.create_spendable_outputs()
+        yield self.create_spendable_outputs()
 
-        txns = []
-        # We create more transactions here (doing it through blocks creation is
-        # problematic because blocks are created too fast.
-        for block in self.spendable_outputs:
-            last_tx = block.vtx[0]
-            for divisor in map(lambda x: 2**x, range(1, 5)):
-                tx_value = int(0.95 * UNIT / divisor)
-                tx = create_transaction(last_tx, 0, b'', tx_value)
-                tx.vout.append(CTxOut(tx_value, CScript()))
-                tx.rehash()
-                txns.append(tx)
-                last_tx = tx  # We only use the first output each round
-
+        txns = self.create_chained_transactions()
         block = self.get_empty_block()
         # We ensure that the transactions are NOT sorted in the correct order
         block.vtx.extend(sorted(txns, key=lambda _tx: _tx.hash, reverse=True))
@@ -107,7 +94,7 @@ class LTORTest(UnitETestFramework):
             self.nodes[1].getnewaddress()
         ]
 
-        tx_ids = self.create_n_transactions(
+        tx_ids = self.ask_node_to_create_n_transactions(
             node_idx=0, num_tx=20, recipient_addresses=recipient_addresses
         )
         self.generate_block(0)
@@ -148,7 +135,7 @@ class LTORTest(UnitETestFramework):
             print("error generating block:", exp.error)
             raise AssertionError("Node %s cannot generate block" % node_idx)
 
-    def create_n_transactions(self, node_idx, num_tx, recipient_addresses):
+    def ask_node_to_create_n_transactions(self, node_idx, num_tx, recipient_addresses):
         tx_ids = []
         num_addresses = len(recipient_addresses)
 
@@ -167,6 +154,28 @@ class LTORTest(UnitETestFramework):
 
         return tx_ids
 
+    def create_chained_transactions(self):
+        # We create more transactions here (doing it through blocks creation is
+        # problematic because blocks are created too fast.
+        last_tx = self.spendable_outputs[0].vtx[0]
+        tx_value = int(0.95 * UNIT * 0.5)
+        txns = [self.create_child_transaction(last_tx, tx_value, 0)]
+
+        for divisor in map(lambda x: 2 ** x, range(2, 6)):
+            tx_value = int(0.95 * UNIT / divisor)
+            txns.extend([
+                self.create_child_transaction(txns[-1], tx_value, 0),
+                self.create_child_transaction(txns[-1], tx_value, 1)
+            ])
+
+        return txns
+
+    def create_child_transaction(self, last_tx, tx_value, output_idx):
+        tx = create_transaction(last_tx, output_idx, b'', tx_value)
+        tx.vout.append(CTxOut(tx_value, CScript()))
+        tx.rehash()
+        return tx
+
     def get_tip_transactions(self, node_idx):
         node = self.nodes[node_idx]
 
@@ -178,11 +187,8 @@ class LTORTest(UnitETestFramework):
 
     def create_spendable_outputs(self):
         block = self.get_empty_block()
-
         self.spendable_outputs.append(block)
-        sleep(0.5)
-
-        return TestInstance([[block, True]], test_name='')
+        return TestInstance([[block, True]], test_name='empty_block_synced')
 
     def get_empty_block(self):
         sync_blocks(self.nodes)
@@ -192,12 +198,18 @@ class LTORTest(UnitETestFramework):
         height = node0.getblockcount() + 1
         snapshot_hash = SnapshotMeta(node0.gettipsnapshot()).hash
 
+        if len(self.spendable_outputs) > 0:
+            block_time = self.spendable_outputs[-1].nTime + 1
+        else:
+            block_time = int(time_time()) + 2
+
         block = create_block(
             hashprev=hashprev,
             coinbase=create_coinbase(
                 height=height,
                 snapshot_hash=snapshot_hash
-            )
+            ),
+            nTime=block_time
         )
         block.solve()
 
