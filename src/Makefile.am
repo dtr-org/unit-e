@@ -388,6 +388,7 @@ libunite_wallet_a_SOURCES = \
 if ENABLE_USBDEVICE
 libunite_usbdevice_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) -DHAVE_HIDAPI
 libunite_usbdevice_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+libunite_usbdevice_a_CFLAGS = $(AM_CFLAGS) $(PIE_FLAGS) -DHAVE_HIDAPI
 libunite_usbdevice_a_SOURCES = \
   extkey.cpp \
   usbdevice/debugdevice.cpp \
