@@ -12,7 +12,7 @@ from random import (
     seed,
     setstate as rnd_setstate,
 )
-from time import sleep
+from time import time as time_time
 
 from test_framework.authproxy import JSONRPCException
 from test_framework.blocktools import (
@@ -74,9 +74,6 @@ class LTORTest(UnitETestFramework):
     def test_ltor_infringement_detection(self):
         # Just creating easily accessible outputs (coinbase) for next txns
         yield self.create_spendable_outputs()
-        # We need to increase the seconds count at least by 1 before creating
-        # the new block.
-        sleep(1)
 
         txns = self.create_chained_transactions()
         block = self.get_empty_block()
@@ -201,12 +198,18 @@ class LTORTest(UnitETestFramework):
         height = node0.getblockcount() + 1
         snapshot_hash = SnapshotMeta(node0.gettipsnapshot()).hash
 
+        if len(self.spendable_outputs) > 0:
+            block_time = self.spendable_outputs[-1].nTime + 1
+        else:
+            block_time = int(time_time()) + 2
+
         block = create_block(
             hashprev=hashprev,
             coinbase=create_coinbase(
                 height=height,
                 snapshot_hash=snapshot_hash
-            )
+            ),
+            nTime=block_time
         )
         block.solve()
 
