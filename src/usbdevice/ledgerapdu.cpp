@@ -12,7 +12,8 @@
 
 namespace usbdevice {
 
-inline constexpr uint8_t operator""_u8(unsigned long long arg) {
+template <typename T>
+inline constexpr uint8_t u8(T arg) {
   return static_cast<uint8_t>(arg);
 }
 
@@ -26,7 +27,7 @@ bool GetExtPubKeyAPDU(const std::vector<uint32_t> &path, APDU &apdu_out,
   }
 
   APDU apdu(BTCHIP_INS_GET_WALLET_PUBLIC_KEY, 0x00, 0x00);
-  apdu << static_cast<uint8_t>(path.size());
+  apdu << u8(path.size());
   for (uint32_t child : path) {
     apdu.write_be(child);
   }
@@ -43,6 +44,7 @@ bool GetExtPubKeyAPDU(const std::vector<uint32_t> &path, APDU &apdu_out,
 //!
 //! \param[in] tx the transaction to be signed
 //! \param[in] view a cache of spendable coins in the wallet
+//! \param[out] apdus_out the list of commands to send to the device
 bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
                           std::vector<APDU> &apdus_out, std::string &error) {
   apdus_out.clear();
@@ -64,10 +66,10 @@ bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
 
     const Coin &coin = view.AccessCoin(txin.prevout);
     APDU apdu(BTCHIP_INS_HASH_INPUT_START, 0x80, 0x00);
-    apdu << 0x02_u8  // Indicates a SegWit input
+    apdu << u8(0x02)  // Indicates a SegWit input
          << txin.prevout
          << coin.out.nValue
-         << 0x00_u8  // In the pre-sign phase, scriptSig is empty
+         << u8(0x00)  // In the pre-sign phase, scriptSig is empty
          << txin.nSequence;
     apdus_out.emplace_back(std::move(apdu));
   }
@@ -105,14 +107,15 @@ bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
   return true;
 }
 
-//! Generate command APDUs for initializing a wallet's transaction state and
-//! prepare it for signing.
+//! \brief Generate command APDUs for initializing a wallet's transaction state
+//! and prepare it for signing.
 //!
 //! \param[in] path the BIP32 derivation path for the signing key
 //! \param[in] tx the transaction to be signed
 //! \param[in] n_in the input number to be signed
 //! \param[in] script_code the previous output's scriptPubKey
 //! \param[in] amount the monetary value of the previous output
+//! \param[out] apdus_out the list of commands to send to the device
 bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
                        const CTransaction &tx, int n_in,
                        const CScript &script_code, int hash_type,
@@ -126,17 +129,17 @@ bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
   }
 
   {
-    // Hashing a pseudo-transaction with 1 input and no outputs
+    // To get the signature, we send a pseudo-transaction with 1 input and no outputs
     APDU apdu(BTCHIP_INS_HASH_INPUT_START, 0x00, 0x80);
     apdu << tx.nVersion
-         << 1_u8;
+         << u8(1);
     apdus_out.emplace_back(std::move(apdu));
   }
 
   {
     const auto &txin = tx.vin[n_in];
     APDU apdu(BTCHIP_INS_HASH_INPUT_START, 0x80, 0x00);
-    apdu << 0x02_u8  // This is a SegWit input
+    apdu << u8(0x02)  // This is a SegWit input
          << txin.prevout
          << amount;
     ::WriteCompactSize(apdu, script_code.size());
@@ -171,17 +174,17 @@ bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
     // Sign the generated hash
     APDU apdu(BTCHIP_INS_HASH_SIGN, 0x00, 0x00);
 
-    // The key derivation path
-    apdu << static_cast<uint8_t>(path.size());
+    // The BIP32 derivation path for the signing key
+    apdu << u8(path.size());
     for (uint32_t child : path) {
       apdu.write_be(child);
     }
 
-    // No PIN
-    apdu << 0x00_u8;
+    // The key is not protected by a PIN
+    apdu << u8(0x00);
 
     apdu.write_be(tx.nLockTime);
-    apdu << static_cast<uint8_t>(hash_type);
+    apdu << u8(hash_type);
     apdus_out.emplace_back(std::move(apdu));
   }
 
