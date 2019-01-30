@@ -64,6 +64,7 @@ class Behavior {
 
   bool IsGenesisBlockHash(const uint256 &) const;
 
+  //! \brief extracts the pubkey stored in the staking transaction's witness program.
   boost::optional<CPubKey> ExtractBlockSigningKey(const CBlock &) const;
 
   //! \brief The name of this network as a standard string.

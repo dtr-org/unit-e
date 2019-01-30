@@ -103,21 +103,16 @@ class BlockBuilderImpl : public BlockBuilder {
       tx.vin.emplace_back(coin.txid, coin.index);
     }
 
-    // destination to send stake + reward to
-    const CPubKey pub_key;
-    const CTxDestination destination = WitnessV0KeyHash(pub_key.GetID());
-    const CScript script_pub_key = GetScriptForDestination(destination);
-
     // add outputs
     const CAmount spend = combined_total + eligible_coin.reward + fees;
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && spend > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(spend, threshold);
       for (const CAmount amount : pieces) {
-        tx.vout.emplace_back(amount, script_pub_key);
+        tx.vout.emplace_back(amount, eligible_coin.utxo.script_pubkey);
       }
     } else {
-      tx.vout.emplace_back(spend, script_pub_key);
+      tx.vout.emplace_back(spend, eligible_coin.utxo.script_pubkey);
     }
 
     // sign inputs
