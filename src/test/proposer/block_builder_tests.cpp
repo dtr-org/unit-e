@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   auto is_valid = validator->CheckBlock(*block);
   BOOST_CHECK(is_valid);
 
-  auto stake_in = block->vtx[0]->vin[1];
+  auto &stake_in = block->vtx[0]->vin[1];
   BOOST_CHECK(stake_in.scriptWitness.stack[1] == f.pubkeydata);
 
   std::vector<uint8_t> signature;
