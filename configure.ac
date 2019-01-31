@@ -1191,7 +1191,11 @@ case $host in
   *linux*)
     LIBHIDAPINAME=hidapi-libusb
     HIDAPILIBS=-l$LIBHIDAPINAME
-    HIDAPI_DEP_LIBS="-lpthread -lusb-1.0 -ludev"
+    if test x$NO_DEPENDS = x1 ; then
+      HIDAPI_DEP_LIBS="-lpthread"
+    else
+      HIDAPI_DEP_LIBS="-lpthread -lusb-1.0 -ludev"
+    fi
     ;;
   *mingw*)
     LIBHIDAPINAME=hidapi
@@ -1201,7 +1205,7 @@ case $host in
   *)
     LIBHIDAPINAME=hidapi
     HIDAPILIBS=-l$LIBHIDAPINAME
-    HIDAPI_DEP_LIBS="-lpthread -lusb-1.0 -ludev"
+    HIDAPI_DEP_LIBS="-lpthread -lusb-1.0"
     ;;
 esac
 
