@@ -4,8 +4,8 @@
 
 #include <settings.h>
 
-#include <dependency.h>
 #include <base58.h>
+#include <dependency.h>
 
 std::unique_ptr<Settings> Settings::New(Dependency<::ArgsManager> args) {
   std::unique_ptr<Settings> settings = MakeUnique<Settings>();
@@ -29,7 +29,7 @@ std::unique_ptr<Settings> Settings::New(Dependency<::ArgsManager> args) {
       settings->reward_destination = std::move(reward_dest);
     } else {
       settings->reward_destination = boost::none;
-      LogPrintf("-rewardaddress: Invalid address provided %s\n", __func__, reward_address);
+      LogPrintf("%s: -rewardaddress: Invalid address provided %s\n", __func__, reward_address);
     }
   }
 

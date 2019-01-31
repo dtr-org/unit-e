@@ -105,10 +105,11 @@ class BlockBuilderImpl : public BlockBuilder {
 
     CAmount spend = combined_total;
     CAmount to_reward_address = 0;
+    CAmount reward = fees + eligible_coin.reward;
     if (m_settings->reward_destination) {
-      to_reward_address += fees + eligible_coin.reward;
+      to_reward_address += reward;
     } else {
-      spend += fees + eligible_coin.reward;
+      spend += reward;
     }
 
     const CAmount threshold = m_settings->stake_split_threshold;

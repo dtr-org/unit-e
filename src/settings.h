@@ -9,8 +9,8 @@
 #include <dependency.h>
 #include <util.h>
 
-#include <memory>
 #include <script/standard.h>
+#include <memory>
 
 struct Settings {
 
@@ -36,8 +36,10 @@ struct Settings {
   //! require solving the Knapsack problem otherwise).
   CAmount stake_combine_maximum = 0;
 
-  //! \brief the destination of the proposing reward. If not set it will use the
-  //! destination of the coin used for proposing the block.
+  //! \brief the destination of the proposing reward.
+  //
+  //! If not set it will use the destination of the coin used for proposing the
+  //! block.
   boost::optional<CTxDestination> reward_destination = boost::none;
 
   static std::unique_ptr<Settings> New(Dependency<::ArgsManager>);
