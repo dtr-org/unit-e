@@ -51,8 +51,6 @@ struct Params {
     int nSubsidyHalvingInterval;
     /** Block height at which BIP16 becomes active */
     int BIP16Height;
-    /** Block height at which BIP65 becomes active */
-    int BIP65Height;
     /**
      * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,
      * (nPowTargetTimespan / nPowTargetSpacing) which is also used for BIP9 deployments.
