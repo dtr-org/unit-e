@@ -1210,7 +1210,10 @@ fi
 if test x$enable_usbdevice != xno; then
   AC_MSG_RESULT(yes)
   AC_DEFINE_UNQUOTED([ENABLE_USBDEVICE],[1],[Define to enable hardware wallet support])
-  AC_CHECK_LIB([$LIBHIDAPINAME], [hid_open],HIDAPI_LIBS=$HIDAPILIBS, AC_MSG_ERROR(hidapi missing))
+  AC_CHECK_LIB(
+    [$LIBHIDAPINAME], [hid_open], HIDAPI_LIBS=$HIDAPILIBS,
+    AC_MSG_ERROR(hidapi missing), "-lpthread"
+  )
   USB_LIBS=" -lusb-1.0"
 else
   AC_MSG_RESULT(no)
