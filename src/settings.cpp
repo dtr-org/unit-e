@@ -22,11 +22,11 @@ std::unique_ptr<Settings> Settings::New(Dependency<::ArgsManager> args) {
   settings->stake_split_threshold =
       args->GetArg("-stakesplitthreshold", settings->stake_split_threshold);
 
-  auto reward_address = args->GetArg("-rewardaddress", "");
+  const std::string reward_address = args->GetArg("-rewardaddress", "");
   if (!reward_address.empty()) {
     CTxDestination reward_dest = DecodeDestination(reward_address);
     if (IsValidDestination(reward_dest)) {
-      settings->reward_destination = reward_dest;
+      settings->reward_destination = std::move(reward_dest);
     } else {
       settings->reward_destination = boost::none;
       LogPrintf("-rewardaddress: Invalid address provided %s\n", __func__, reward_address);
