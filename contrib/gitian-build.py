@@ -14,11 +14,10 @@ import platform
 
 class Apt:
     """ Lazy apt wrapper. Not thread safe. """
-    def __init__(self):
-        global args
+    def __init__(self, quiet=False):
         self.updated = False
         self.to_install = []
-        if args.quiet:
+        if quiet:
             self.apt_flags = ['-qq']
         else:
             self.apt_flags = []
@@ -52,7 +51,7 @@ class Apt:
 
 def install_linux_deps():
     global args
-    apt = Apt()
+    apt = Apt(args.quiet)
     apt.add_requirements('ruby', 'git', 'make', 'wget')
     if args.kvm:
         apt.add_requirements('apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils')
