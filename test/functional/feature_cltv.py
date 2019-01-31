@@ -98,7 +98,7 @@ class BIP65Test(UnitETestFramework):
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))
-        assert_equal(int(self.nodes[0].getbestblockhash(), 16), int(tip, 16))
+        assert_equal(self.nodes[0].getbestblockhash(), tip)
 
         wait_until(lambda: "reject" in self.nodes[0].p2p.last_message.keys(), lock=mininode_lock)
         with mininode_lock:
