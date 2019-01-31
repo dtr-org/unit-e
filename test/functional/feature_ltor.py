@@ -27,17 +27,24 @@ from test_framework.comptool import (
     TestManager
 )
 from test_framework.messages import (
+    CBlock,
     CTxOut,
     UNIT,
+    msg_block,
+    msg_headers,
     uint256_from_str
 )
-from test_framework.mininode import network_thread_start
+from test_framework.mininode import (
+    network_thread_start,
+    P2PInterface
+)
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     sync_blocks,
-    sync_mempools
+    sync_mempools,
+    wait_until
 )
 
 
@@ -48,11 +55,17 @@ class LTORTest(UnitETestFramework):
     """
 
     def run_test(self):
+        # This mininode will help us to create blocks
+        mininode = self.nodes[0].add_p2p_connection(P2PInterface())
+
         test = TestManager(self, self.options.tmpdir)
         test.add_all_connections(self.nodes)
+        network_thread_start()
+
+        mininode.wait_for_verack()
+
         self.tip = None
         self.block_time = None
-        network_thread_start()
         test.run()
 
     def get_tests(self):
@@ -64,16 +77,16 @@ class LTORTest(UnitETestFramework):
 
         self.exit_ibd_state()  # Exit IBD state, so we can sync mempools
 
-        for test_result in self.test_ltor_infringement_detection():
-            yield test_result
         for test_result in self.test_created_blocks_satisfy_ltor():
+            yield test_result
+        for test_result in self.test_ltor_infringement_detection():
             yield test_result
 
         rnd_setstate(rnd_state)
 
     def test_ltor_infringement_detection(self):
         # Just creating easily accessible outputs (coinbase) for next txns
-        yield self.create_spendable_outputs()
+        self.create_spendable_outputs()
 
         txns = self.create_chained_transactions()
         block = self.get_empty_block()
@@ -188,9 +201,26 @@ class LTORTest(UnitETestFramework):
     def create_spendable_outputs(self):
         block = self.get_empty_block()
         self.spendable_outputs.append(block)
-        return TestInstance([[block, True]], test_name='empty_block_synced')
 
-    def get_empty_block(self):
+        mininode: P2PInterface = self.nodes[0].p2p
+        mininode.send_message(msg_headers([block]))
+        wait_until(self.is_block_hash_in_inv_predicate(block.hash))
+        mininode.send_message(msg_block(block))
+        sync_blocks(self.nodes)
+
+    def is_block_hash_in_inv_predicate(self, block_hash):
+        mininode: P2PInterface = self.nodes[0].p2p
+        hash_uint256 = uint256_from_str(unhexlify(block_hash)[::-1])
+
+        def is_block_hash_in_inv() -> bool:
+            msg = mininode.last_message.get('getdata', None)
+            if msg is None:
+                return False
+            return hash_uint256 in [cinv.hash for cinv in msg.inv]
+
+        return is_block_hash_in_inv
+
+    def get_empty_block(self) -> CBlock:
         sync_blocks(self.nodes)
         node0 = self.nodes[0]
 
@@ -201,7 +231,7 @@ class LTORTest(UnitETestFramework):
         if len(self.spendable_outputs) > 0:
             block_time = self.spendable_outputs[-1].nTime + 1
         else:
-            block_time = int(time_time()) + 2
+            block_time = int(time_time()) + 16
 
         block = create_block(
             hashprev=hashprev,
