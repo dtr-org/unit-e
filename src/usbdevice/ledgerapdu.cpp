@@ -89,7 +89,7 @@ bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
       }
     }
 
-    // Mark last block as such
+    // Mark last output block as such (the Tx will have at least one output)
     apdus_out.back().m_in[2] = 0x80;
   }
 

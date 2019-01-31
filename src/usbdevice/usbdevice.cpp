@@ -57,6 +57,7 @@ bool ListAllDevices(DeviceList &devices) {
         std::shared_ptr<USBDevice> device(new LedgerDevice(
             type, cur_dev->path, mbs, cur_dev->interface_number));
         devices.push_back(std::move(device));
+        break;
       }
     }
     cur_dev = cur_dev->next;
