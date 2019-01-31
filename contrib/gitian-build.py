@@ -13,7 +13,7 @@ import platform
 
 
 class Apt:
-    """ Lazy apt wrapper. Not thread safe. """
+    """ Lazy apt wrapper """
     def __init__(self, quiet=False):
         self.updated = False
         self.to_install = []
@@ -27,9 +27,9 @@ class Apt:
             self.updated = True
             subprocess.check_call(['sudo', 'apt-get', 'update'] + self.apt_flags)
 
-    def try_to_install(self, program):
+    def try_to_install(self, *programs):
         self.update()
-        return subprocess.call(['sudo', 'apt-get', 'install'] + self.apt_flags + program) == 0
+        return subprocess.call(['sudo', 'apt-get', 'install'] + self.apt_flags + list(programs)) == 0
 
     def batch_install(self):
         if not self.to_install:
@@ -38,7 +38,7 @@ class Apt:
 
         print('Apt: installing', ", ".join(self.to_install))
         self.update()
-        subprocess.check_call(['sudo', 'apt-get', 'install'] + self.apt_flags + self.to_install)
+        self.try_to_install(*self.to_install)
         self.to_install = []
 
     def is_installed(self, program):
