@@ -94,9 +94,9 @@ BOOST_AUTO_TEST_CASE(propose) {
   const uint256 k2 = uint256S("de2157f24915d2fb7e8bb62cfc8adc81029a7b7909e503b79aac0900195d1f5c");
   const uint256 k3 = uint256S("6738ef1b0509836ea7a0fcc2f31887930454c96bb9c7bf2f6b04adbe2bb0d290");
   const std::vector<staking::Coin> coins{
-      staking::Coin{t1, 7, 20, 1},
-      staking::Coin{t2, 2, 50, 1},
-      staking::Coin{t3, 4, 70, 1}};
+      staking::Coin{t1, 7, 20, CScript(), 1},
+      staking::Coin{t2, 2, 50, CScript(), 1},
+      staking::Coin{t3, 4, 70, CScript(), 1}};
   f.stake_validator_mock.checkkernelfunc = [&](uint256 kernel) {
     return kernel == k2;
   };

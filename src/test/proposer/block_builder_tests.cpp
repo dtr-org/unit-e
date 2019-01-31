@@ -214,4 +214,52 @@ BOOST_AUTO_TEST_CASE(split_amount) {
   split_amount_test(149, 2);
 }
 
+BOOST_AUTO_TEST_CASE(check_reward_destination) {
+
+  std::string address = "bc1q2znaq2pnwqg92lpsc9sf7p5z0drluu27jn2a92";
+  auto expected_reward_dest = DecodeDestination(address);
+  Fixture f{tfm::format("-rewardaddress=%s", address)};
+  auto validator = f.MakeBlockValidator();
+  auto builder = f.MakeBlockBuilder();
+
+  uint256 block_hash = uint256();
+  CBlockIndex current_tip = [&] {
+    CBlockIndex ix;
+    ix.phashBlock = &block_hash;
+    ix.pprev = nullptr;
+    ix.pskip = nullptr;
+    ix.nHeight = 17;
+    return ix;
+  }();
+
+  staking::Coin coin1{uint256(), 0, 70, 3};
+  std::vector<staking::Coin> coins{coin1};
+  std::vector<CTransactionRef> transactions;
+  CAmount fees(5);
+
+  f.wallet.key = f.key;
+  f.wallet.signfunc = [&](CMutableTransaction &tx) {
+    auto &witness_stack = tx.vin[1].scriptWitness.stack;
+    witness_stack.emplace_back();              // empty signature
+    witness_stack.emplace_back(f.pubkeydata);  // pubkey
+    return true;
+  };
+
+  auto block = builder->BuildBlock(
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+  BOOST_REQUIRE(static_cast<bool>(block));
+  auto is_valid = validator->CheckBlock(*block);
+  BOOST_CHECK(is_valid);
+
+  auto stake_out = block->vtx[0]->vout[0];
+  BOOST_CHECK_EQUAL(f.eligible_coin.utxo.amount, stake_out.nValue);
+
+  auto to_address_reward = block->vtx[0]->vout[1].nValue;
+  BOOST_CHECK_EQUAL(to_address_reward, f.eligible_coin.reward + fees);
+
+  CTxDestination reward_dest;
+  ExtractDestination(block->vtx[0]->vout[1].scriptPubKey, reward_dest);
+  BOOST_CHECK(expected_reward_dest == reward_dest);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
