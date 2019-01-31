@@ -1202,6 +1202,11 @@ case $host in
     HIDAPILIBS="-l$LIBHIDAPINAME -lsetupapi"
     HIDAPI_DEP_LIBS="-lsetupapi"
     ;;
+  *darwin*)
+    LIBHIDAPINAME=hidapi
+    HIDAPILIBS="-l$LIBHIDAPINAME -framework IOKit -framework CoreFoundation"
+    HIDAPI_DEP_LIBS="-framework IOKit -framework CoreFoundation"
+    ;;
   *)
     LIBHIDAPINAME=hidapi
     HIDAPILIBS=-l$LIBHIDAPINAME
