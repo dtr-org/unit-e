@@ -38,7 +38,9 @@ class Apt:
 
         print('Apt: installing', ", ".join(self.to_install))
         self.update()
-        self.try_to_install(*self.to_install)
+        if not self.try_to_install(*self.to_install):
+            print('Could not install packages.')
+            exit(1)
         self.to_install = []
 
     def is_installed(self, program):
