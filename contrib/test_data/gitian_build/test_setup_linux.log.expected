@@ -2,7 +2,6 @@ Test: test_setup_linux
 dpkg -s ruby  stdout=-3
 dpkg -s git  stdout=-3
 dpkg -s make  stdout=-3
-dpkg -s wget  stdout=-3
 dpkg -s apt-cacher-ng  stdout=-3
 dpkg -s python-vm-builder  stdout=-3
 dpkg -s qemu-kvm  stdout=-3
@@ -10,6 +9,4 @@ dpkg -s qemu-utils  stdout=-3
 git clone git@github.com:dtr-org/unit-e-sigs.git
 git clone https://github.com/devrandom/gitian-builder.git
 git clone /some/repo unit-e
-chdir('gitian-builder')
-bin/make-base-vm --suite trusty --arch amd64 --docker
-chdir('someworkdir')
+bin/make-base-vm --suite trusty --arch amd64 --docker  cwd=gitian-builder

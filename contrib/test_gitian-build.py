@@ -30,13 +30,15 @@ class Log:
             with open(self.filename() + ".expected") as file_expected:
                 assert file.read() == file_expected.read()
 
-    def log_call(self, parameters, shell=None, stdout=None, stderr=None, universal_newlines=None, encoding=None):
+    def log_call(self, parameters, shell=None, stdout=None, stderr=None, universal_newlines=None, encoding=None, cwd=None):
         if isinstance(parameters, list):
             line = " ".join(parameters)
         else:
             line = parameters
         if shell:
             line += "  shell=" + str(shell)
+        if cwd:
+            line += "  cwd=" + str(os.path.relpath(cwd))
         if stdout:
             line += "  stdout=" + str(stdout)
         if stderr:
@@ -66,6 +68,14 @@ def create_args(mocker):
     args.signer = "somesigner"
     return args
 
+# Mock find_osslsigncode function to return the user_spec path
+# Test the function separately
+def find_osslsigncode_mock(user_spec):
+    return user_spec
+
+original_find_osslsigncode = gitian_build.find_osslsigncode
+gitian_build.find_osslsigncode = find_osslsigncode_mock
+
 def test_build(mocker):
     log = Log("test_build")
 
@@ -82,12 +92,26 @@ def test_build(mocker):
 def test_sign(mocker):
     log = Log("test_sign")
 
+    class TemporaryDirectoryMock():
+        def __init__(self, dirname):
+            self.dirname = dirname
+        def __enter__(self):
+            return self.dirname
+        def __exit__(self, *args):
+            pass
+
+    # glob.glob has to return a generator, so ['...', '...'] is not enough
+    mocker.patch("glob.glob", return_value=(f for f in ['unite-someversion-win32-setup-unsigned.exe', 'unite-someversion-win32-setup-unsigned.exe']))
+    mocker.patch("tempfile.TemporaryDirectory", return_value=TemporaryDirectoryMock("tmp"))
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
 
     args = create_args(mocker)
+    args.osslsigncode_path = 'osslsigncode_executable'
+    args.win_code_cert_path = 'somecert'
+    args.win_code_key_path = 'somekey'
 
-    gitian_build.sign(args, "someworkdir")
+    gitian_build.sign(args)
 
     log.check()
 
@@ -109,7 +133,7 @@ def test_setup_linux(mocker):
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.call", side_effect=log.log_call)
 
-    gitian_build.setup(create_args(mocker), "someworkdir")
+    gitian_build.setup(create_args(mocker))
 
     log.check()
 
@@ -123,3 +147,82 @@ def test_prepare_git_dir(mocker):
     gitian_build.prepare_git_dir(create_args(mocker), "someworkdir")
 
     log.check()
+
+def test_apt_wrapper(mocker):
+    log = Log("test_apt_wrapper")
+
+    mocker.patch("subprocess.check_call", side_effect=log.log_call)
+    mocker.patch("subprocess.call", side_effect=log.log_call)
+
+    apt = gitian_build.Apt(quiet=False)
+    apt.add_requirements('package_1')
+    apt.add_requirements('package_2a', 'package_2b')
+    apt.try_to_install('package_3')
+    apt.updated = False
+    apt.batch_install()
+
+    apt = gitian_build.Apt(quiet=True)
+    apt.is_installed = lambda p: False
+    apt.add_requirements('package_1')
+    apt.add_requirements('package_2a', 'package_2b')
+    apt.batch_install()
+    apt.try_to_install('package_3')
+
+    log.check()
+
+def test_find_osslsigncode(mocker):
+
+    mocker.patch("subprocess.call", return_value=255)
+
+    # won't find the osslsigncode
+    mocker.patch("os.path.isfile", return_value=False)
+    assert(original_find_osslsigncode("") is None)
+
+    # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode
+    mocker.patch("os.path.isfile", return_value=True)
+    assert('osslsigncode-1.7.1/osslsigncode' in original_find_osslsigncode(""))
+
+
+    mocker.patch("subprocess.call", return_value=1)
+
+    # won't find the osslsigncode
+    mocker.patch("os.path.isfile", return_value=False)
+    assert(original_find_osslsigncode("") is None)
+
+    # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode but won't be able to execute it
+    mocker.patch("os.path.isfile", return_value=True)
+    assert(original_find_osslsigncode("") is None)
+
+    # won't find the osslsigncode
+    mocker.patch("os.path.isfile", return_value=False)
+    mocker.patch("subprocess.call", return_value=255)
+    try:
+        original_find_osslsigncode("somepath")
+        assert(False)
+    except SystemExit as e:
+        pass
+
+    # won't be able to execute the osslsigncode
+    mocker.patch("os.path.isfile", return_value=True)
+    mocker.patch("subprocess.call", return_value=1)
+    try:
+        original_find_osslsigncode("somepath")
+        assert(False)
+    except SystemExit as e:
+        pass
+
+    # Should return the path passed in
+    mocker.patch("os.path.isfile", return_value=True)
+    mocker.patch("subprocess.call", return_value=255)
+    assert(os.path.basename(original_find_osslsigncode("somepath")) == "somepath")
+
+    class which_mock:
+        def wait(self):
+            return 0
+        def communicate(self):
+            return (b'/someosslpath\n', b'')
+
+    # check which () output
+    mocker.patch("subprocess.Popen", return_value=which_mock())
+    assert(original_find_osslsigncode("") == '/someosslpath')
+
