@@ -32,8 +32,10 @@ static bool MatchLedgerInterface(struct hid_device_info *cur_dev) {
 }
 
 bool ListAllDevices(DeviceList &devices) {
+  devices.clear();
+
   if (Params().NetworkIDString() == "regtest") {
-    devices.push_back(std::shared_ptr<USBDevice>(new DebugDevice()));
+    devices.emplace_back(std::move(std::shared_ptr<USBDevice>(new DebugDevice())));
     return true;
   }
 
@@ -52,11 +54,11 @@ bool ListAllDevices(DeviceList &devices) {
       }
 
       if (type.m_type_id == USBDEVICE_LEDGER_NANO_S && MatchLedgerInterface(cur_dev)) {
-        char mbs[128];
-        wcstombs(mbs, cur_dev->serial_number, sizeof(mbs));
+        char serial_no[128];
+        wcstombs(serial_no, cur_dev->serial_number, sizeof(serial_no));
         std::shared_ptr<USBDevice> device(new LedgerDevice(
-            type, cur_dev->path, mbs, cur_dev->interface_number));
-        devices.push_back(std::move(device));
+            type, cur_dev->path, serial_no, cur_dev->interface_number));
+        devices.emplace_back(std::move(device));
         break;
       }
     }
