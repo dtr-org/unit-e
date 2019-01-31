@@ -29,6 +29,7 @@ class Apt:
 
     def try_to_install(self, *programs):
         self.update()
+        print('Apt: installing', ", ".join(programs))
         return subprocess.call(['sudo', 'apt-get', 'install'] + self.apt_flags + list(programs)) == 0
 
     def batch_install(self):
@@ -36,8 +37,6 @@ class Apt:
             print('Apt: nothing to install')
             return
 
-        print('Apt: installing', ", ".join(self.to_install))
-        self.update()
         if not self.try_to_install(*self.to_install):
             print('Could not install packages.')
             exit(1)
