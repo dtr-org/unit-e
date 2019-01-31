@@ -9,6 +9,10 @@ if [ -n "$DPKG_ADD_ARCH" ]; then
   sudo dpkg --add-architecture "$DPKG_ADD_ARCH"
 fi
 
+if [ -n "$APT_CUSTOM_SOURCE" ]; then
+  echo "$APT_CUSTOM_SOURCE" | sudo tee -a /etc/apt/sources.list.d/unite-custom.list > /dev/null
+fi
+
 if [ -n "$PACKAGES" ]; then
   travis_retry sudo apt-get update
 fi

@@ -65,7 +65,7 @@ jobs:
       name: "ARM"
       env: >-
         HOST=arm-linux-gnueabihf
-        DPKG_ADD_ARCH="armhf"
+        APT_CUSTOM_SOURCE="deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ trusty main restricted universe multiverse"
         PACKAGES="g++-arm-linux-gnueabihf python3-pip libudev-dev:armhf"
         DEP_OPTS="NO_QT=1"
         CHECK_DOC=1
