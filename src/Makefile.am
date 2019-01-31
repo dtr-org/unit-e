@@ -95,7 +95,6 @@ UNITE_CORE_H = \
   chainparams.h \
   chainparamsbase.h \
   chainparamsseeds.h \
-  checkpoints.h \
   checkqueue.h \
   clientversion.h \
   coins.h \
@@ -280,7 +279,6 @@ libunite_server_a_SOURCES = \
   blockdb.cpp \
   blockencodings.cpp \
   chain.cpp \
-  checkpoints.cpp \
   consensus/tx_verify.cpp \
   esperanza/admincommand.cpp \
   esperanza/adminstate.cpp \
