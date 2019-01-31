@@ -19,7 +19,7 @@ def install_linux_deps():
         programs += ['apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils']
     elif args.docker:
         if subprocess.call(['docker', '--version']) != 0:
-            dockers = ['docker-ce', 'docker.io']
+            dockers = ['docker.io', 'docker-ce']
             for i in dockers:
                 return_code = subprocess.call(['sudo', 'apt-get', 'install', '-qq', i])
                 if return_code == 0:
