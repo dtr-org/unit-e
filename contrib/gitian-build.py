@@ -11,26 +11,60 @@ import sys
 
 import platform
 
+
+class Apt:
+    """ Lazy apt wrapper. Not thread safe. """
+    def __init__(self):
+        global args
+        self.updated = False
+        self.to_install = []
+        if args.quiet:
+            self.apt_flags = ['-qq']
+        else:
+            self.apt_flags = []
+
+    def update(self):
+        if not self.updated:
+            self.updated = True
+            subprocess.check_call(['sudo', 'apt-get', 'update'] + self.apt_flags)
+
+    def try_to_install(self, program):
+        self.update()
+        return subprocess.call(['sudo', 'apt-get', 'install'] + self.apt_flags + program) == 0
+
+    def batch_install(self):
+        if not self.to_install:
+            print('Apt: nothing to install')
+            return
+
+        print('Apt: installing', ", ".join(self.to_install))
+        self.update()
+        subprocess.check_call(['sudo', 'apt-get', 'install'] + self.apt_flags + self.to_install)
+        self.to_install = []
+
+    def is_installed(self, program):
+        return subprocess.call(['dpkg', '-s', program], stdout=subprocess.DEVNULL) == 0
+
+    def add_requirements(self, *programs):
+        for program in programs:
+            if not self.is_installed(program):
+                self.to_install.append(program)
+
 def install_linux_deps():
     global args
-    subprocess.check_call(['sudo', 'apt-get', 'update', '-qq'])
-    programs = ['ruby', 'git', 'make', 'wget']
+    apt = Apt()
+    apt.add_requirements('ruby', 'git', 'make', 'wget')
     if args.kvm:
-        programs += ['apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils']
+        apt.add_requirements('apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils')
     elif args.docker:
         if subprocess.call(['docker', '--version']) != 0:
-            dockers = ['docker.io', 'docker-ce']
-            for i in dockers:
-                return_code = subprocess.call(['sudo', 'apt-get', 'install', '-qq', i])
-                if return_code == 0:
-                    break
-            if return_code != 0:
+            if not apt.try_to_install('docker.io') and not apt.try_to_install('docker-ce'):
                 print('Cannot find any way to install docker', file=sys.stderr)
                 exit(1)
     else:
-        programs += ['apt-cacher-ng', 'lxc', 'debootstrap']
+        apt.add_requirements('apt-cacher-ng', 'lxc', 'debootstrap')
 
-    subprocess.check_call(['sudo', 'apt-get', 'install', '-qq'] + programs)
+    apt.batch_install()
 
 def install_mac_deps():
     global args
@@ -192,6 +226,7 @@ def main():
     parser.add_argument('-S', '--setup', action='store_true', dest='setup', help='Set up the Gitian building environment. Uses LXC. If you want to use KVM, use the --kvm option. Only works on Debian-based systems (Ubuntu, Debian)')
     parser.add_argument('-D', '--detach-sign', action='store_true', dest='detach_sign', help='Create the assert file for detached signing. Will not commit anything.')
     parser.add_argument('-n', '--no-commit', action='store_false', dest='commit_files', help='Do not commit anything to git')
+    parser.add_argument('-q', '--quiet', action='store_true', dest='quiet', help='Do not prompt user for confirmations')
     parser.add_argument('--signer', dest='signer', help='GPG signer to sign each build assert file. Required to build, sign or verify')
     parser.add_argument('--version', dest='version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
 
