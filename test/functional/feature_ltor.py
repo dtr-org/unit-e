@@ -27,7 +27,6 @@ from test_framework.comptool import (
     TestManager
 )
 from test_framework.messages import (
-    CBlock,
     CTxOut,
     UNIT,
     msg_block,
@@ -202,17 +201,17 @@ class LTORTest(UnitETestFramework):
         block = self.get_empty_block()
         self.spendable_outputs.append(block)
 
-        mininode: P2PInterface = self.nodes[0].p2p
+        mininode = self.nodes[0].p2p
         mininode.send_message(msg_headers([block]))
         wait_until(self.is_block_hash_in_inv_predicate(block.hash))
         mininode.send_message(msg_block(block))
         sync_blocks(self.nodes)
 
     def is_block_hash_in_inv_predicate(self, block_hash):
-        mininode: P2PInterface = self.nodes[0].p2p
+        mininode = self.nodes[0].p2p
         hash_uint256 = uint256_from_str(unhexlify(block_hash)[::-1])
 
-        def is_block_hash_in_inv() -> bool:
+        def is_block_hash_in_inv():
             msg = mininode.last_message.get('getdata', None)
             if msg is None:
                 return False
@@ -220,7 +219,7 @@ class LTORTest(UnitETestFramework):
 
         return is_block_hash_in_inv
 
-    def get_empty_block(self) -> CBlock:
+    def get_empty_block(self):
         sync_blocks(self.nodes)
         node0 = self.nodes[0]
 
