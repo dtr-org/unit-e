@@ -130,6 +130,13 @@ BOOST_AUTO_TEST_CASE(script_standard_Solver_success)
     BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
     BOOST_CHECK(solutions[1] == ToByteVector(pubkeys[1].GetSha256()));
 
+    // TX_NONSTANDARD: invalid witness v1 program
+    s.clear();
+    s << OP_1 << ToByteVector(pubkeys[0].GetID()) << ToByteVector(pubkeys[1].GetID());
+    BOOST_CHECK(!Solver(s, whichType, solutions));
+    BOOST_CHECK_EQUAL(whichType, TX_NONSTANDARD);
+    BOOST_CHECK_EQUAL(solutions.size(), 0);
+
     // TX_NONSTANDARD
     s.clear();
     s << OP_9 << OP_ADD << OP_11 << OP_EQUAL;
@@ -783,7 +790,7 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
 
         scriptPubKey.clear();
-        scriptPubKey << OP_1 << ToByteVector(uncompressedPubkey.GetID()) << ToByteVector(pubkeys[0].GetID());
+        scriptPubKey << OP_1 << ToByteVector(uncompressedPubkey.GetID()) << ToByteVector(pubkeys[0].GetSha256());
 
         result = IsMine(keystore, scriptPubKey);
         BOOST_CHECK_EQUAL(result, ISMINE_NO);
