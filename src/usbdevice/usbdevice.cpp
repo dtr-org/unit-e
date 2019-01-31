@@ -35,7 +35,7 @@ bool ListAllDevices(DeviceList &devices) {
   devices.clear();
 
   if (Params().NetworkIDString() == "regtest") {
-    devices.emplace_back(std::move(std::shared_ptr<USBDevice>(new DebugDevice())));
+    devices.emplace_back(new DebugDevice());
     return true;
   }
 

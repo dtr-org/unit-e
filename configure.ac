@@ -1191,14 +1191,17 @@ case $host in
   *linux*)
     LIBHIDAPINAME=hidapi-libusb
     HIDAPILIBS=-l$LIBHIDAPINAME
+    HIDAPI_DEP_LIBS="-lpthread -lusb-1.0"
     ;;
   *mingw*)
     LIBHIDAPINAME=hidapi
     HIDAPILIBS="-l$LIBHIDAPINAME -lsetupapi"
+    HIDAPI_DEP_LIBS="-lsetupapi"
     ;;
   *)
     LIBHIDAPINAME=hidapi
     HIDAPILIBS=-l$LIBHIDAPINAME
+    HIDAPI_DEP_LIBS="-lpthread -lusb-1.0"
     ;;
 esac
 
@@ -1212,7 +1215,7 @@ if test x$enable_usbdevice != xno; then
   AC_DEFINE_UNQUOTED([ENABLE_USBDEVICE],[1],[Define to enable hardware wallet support])
   AC_CHECK_LIB(
     [$LIBHIDAPINAME], [hid_open], HIDAPI_LIBS=$HIDAPILIBS,
-    AC_MSG_ERROR(hidapi missing), "-lpthread"
+    AC_MSG_ERROR(hidapi missing), $HIDAPI_DEP_LIBS
   )
   USB_LIBS=" -lusb-1.0"
 else
