@@ -1452,6 +1452,11 @@ isminetype CWallet::IsMine(const CTxOut& txout) const
     return ::IsMine(*this, txout.scriptPubKey);
 }
 
+bool CWallet::IsStakeableByMe(const CTxOut& txout) const
+{
+    return ::IsStakeableByMe(*this, txout.scriptPubKey);
+}
+
 CAmount CWallet::GetCredit(const CTxOut& txout, const isminefilter& filter) const
 {
     if (!MoneyRange(txout.nValue)) {
@@ -1493,7 +1498,7 @@ CAmount CWallet::GetChange(const CTxOut& txout) const
 bool CWallet::IsMine(const CTransaction& tx) const
 {
     for (const CTxOut& txout : tx.vout) {
-        if (IsMine(txout)) {
+        if (IsMine(txout) || IsStakeableByMe(txout)) {
             return true;
         }
     }
