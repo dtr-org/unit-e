@@ -11,7 +11,6 @@
 
 #include <chain.h>
 #include <chainparams.h>
-#include <checkpoints.h>
 #include <clientversion.h>
 #include <validation.h>
 #include <net.h>
