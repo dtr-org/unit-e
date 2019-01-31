@@ -186,9 +186,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         dersig_invalid_tx.vin[0].scriptSig << vchSig;
     }
 
-    // Test that invalidity under a set of flags doesn't preclude validity
-    // under other (eg consensus) flags.
-    // dersig_invalid_tx is invalid according to DERSIG
+    // Test the invalidity of a transaction not signed using strict DER
     {
         LOCK(cs_main);
 
@@ -204,10 +202,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         BOOST_CHECK(CheckInputs(dersig_invalid_tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_DERSIG, true, true, ptd_spend_tx, &scriptchecks));
         BOOST_CHECK_EQUAL(scriptchecks.size(), 1);
 
-        // Test that CheckInputs returns true iff DERSIG-enforcing flags are
-        // not present.  Don't add these checks to the cache, so that we can
-        // test later that block validation works fine in the absence of cached
-        // successes.
+        // Check that the invalid transaction is in fact recognized as invalid
+        // under the strict DER flags.
         ValidateCheckInputsForAllFlags(dersig_invalid_tx, SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC, false);
     }
 

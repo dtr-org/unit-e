@@ -14,8 +14,6 @@ from test_framework.blocktools import create_coinbase, create_block, get_tip_sna
 from test_framework.script import CScript
 from io import BytesIO
 
-DERSIG_HEIGHT = 5
-
 # Reject codes that we might receive in this test
 REJECT_INVALID = 16
 REJECT_OBSOLETE = 17
@@ -61,13 +59,13 @@ class BIP66Test(UnitETestFramework):
         # wait_for_verack ensures that the P2P connection is fully up.
         self.nodes[0].p2p.wait_for_verack()
 
-        self.log.info("Mining %d blocks", DERSIG_HEIGHT - 1)
-        self.coinbase_blocks = self.nodes[0].generate(DERSIG_HEIGHT - 1)
+        self.log.info("Mining one block")
+        self.coinbase_blocks = self.nodes[0].generate(1)
         self.nodeaddress = self.nodes[0].getnewaddress()
 
         self.log.info("Test that transactions with non-DER signatures cannot appear in a block")
 
-        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[1],
+        spendtx = create_transaction(self.nodes[0], self.coinbase_blocks[0],
                 self.nodeaddress, 1.0)
         unDERify(spendtx)
         spendtx.rehash()
@@ -82,7 +80,7 @@ class BIP66Test(UnitETestFramework):
         tip = self.nodes[0].getbestblockhash()
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(int(tip, 16), create_coinbase(DERSIG_HEIGHT, snapshot_hash), block_time)
+        block = create_block(int(tip, 16), create_coinbase(1, snapshot_hash), block_time)
         block.nVersion = 3
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
@@ -109,7 +107,7 @@ class BIP66Test(UnitETestFramework):
 
         self.log.info("Test that a version 3 block with a DERSIG-compliant transaction is accepted")
         block.vtx[1] = create_transaction(self.nodes[0],
-                self.coinbase_blocks[1], self.nodeaddress, 1.0)
+                self.coinbase_blocks[0], self.nodeaddress, 1.0)
         block.hashMerkleRoot = block.calc_merkle_root()
         block.rehash()
         block.solve()
