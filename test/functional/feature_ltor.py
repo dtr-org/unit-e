@@ -60,6 +60,7 @@ class LTORTest(UnitETestFramework):
 
         # This mininode will help us to create blocks
         mininode = self.nodes[0].add_p2p_connection(P2PInterface())
+        self.nodes[1].add_p2p_connection(mininode)
 
         test = TestManager(self, self.options.tmpdir)
         test.add_all_connections(self.nodes)
@@ -229,7 +230,7 @@ class LTORTest(UnitETestFramework):
         node0 = self.nodes[0]
 
         hashprev = uint256_from_str(unhexlify(node0.getbestblockhash())[::-1])
-        height = node0.getblockcount() + 1
+        height = node0.getblockcount()
         snapshot_hash = SnapshotMeta(node0.gettipsnapshot()).hash
 
         if len(self.spendable_outputs) > 0:
