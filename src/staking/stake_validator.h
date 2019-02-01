@@ -58,7 +58,7 @@ class StakeValidator {
       const uint256 &       //!< [in] The kernel hash of this block
       ) const = 0;
 
-  //! \brief Checks the stake of a block.
+  //! \brief Checks the stake of a block and remote staking outputs in the coinbase transaction.
   //!
   //! Requires the lock for the active chain to be held
   //! (aka: cs_main, ActiveChain::GetLock()).
@@ -67,8 +67,8 @@ class StakeValidator {
   //! to be checked must be about to be connected as a new tip. The following
   //! data will be requested from the active chain:
   //!
-  //! - the previos block to compute the stake modifier
-  //! - the UTXO which is spent as stake
+  //! - the previous block to compute the stake modifier
+  //! - the UTXOs which are spent in the coinbase transaction
   virtual BlockValidationResult CheckStake(
       const CBlock &,        //!< [in] The block to check.
       BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).

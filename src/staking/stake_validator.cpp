@@ -101,6 +101,42 @@ class StakeValidatorImpl : public StakeValidator {
     }
     // Adding an error should immediately have returned so we assert to have validated the stake.
     assert(result);
+    return CheckRemoteStakingOutputs(coinbase_tx);
+  }
+
+  //! \brief Check remote-staking outputs of a coinbase transaction.
+  //!
+  //! If a coinbase transaction contains an input with a remote-staking
+  //! scriptPubKey then at least the same amount MUST be sent back to the same
+  //! scriptPubKey.
+  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef coinbase_tx) const {
+    BlockValidationResult result;
+    std::map<CScript, CAmount> remote_staking_amounts;
+    for (std::size_t i = 1; i < coinbase_tx->vin.size(); ++i) {
+      const COutPoint out = coinbase_tx->vin[i].prevout;
+      const boost::optional<staking::Coin> utxo = m_active_chain->GetUTXO(out);
+      if (!utxo) {
+        result.errors += BlockValidationError::TRANSACTION_INPUT_NOT_FOUND;
+        return result;
+      }
+      WitnessProgram wp;
+      if (utxo->script_pubkey.ExtractWitnessProgram(wp) && wp.IsRemoteStaking()) {
+        remote_staking_amounts[utxo->script_pubkey] += utxo->amount;
+      }
+    }
+    for (const auto &out : coinbase_tx->vout) {
+      if (remote_staking_amounts.count(out.scriptPubKey) != 0) {
+        // This does not underflow if the transaction passes CheckTransaction from consensus/tx_verify.h
+        remote_staking_amounts[out.scriptPubKey] -= out.nValue;
+      }
+    }
+
+    for (const auto &p : remote_staking_amounts) {
+      if (p.second > 0) {
+        result.errors += BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT;
+        return result;
+      }
+    }
     return result;
   }
 
