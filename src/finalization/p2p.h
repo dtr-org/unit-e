@@ -8,7 +8,7 @@
 #include <serialize.h>
 
 /*
- * Implementation of UIP-21.
+ * Implementation of UIP21.
  */
 
 class CNode;

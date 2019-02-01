@@ -304,7 +304,7 @@ enum ServiceFlags : uint64_t {
 
     // NODE_SNAPSHOT means that node generates periodically snapshots
     // and is capable of responding to the getsnapshot protocol request.
-    // See UIP-11 for details
+    // See UIP11 for details
     NODE_SNAPSHOT = (1 << 15),
 
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
