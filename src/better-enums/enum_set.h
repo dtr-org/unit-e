@@ -211,10 +211,10 @@ class EnumSet {
     auto it = this->begin();
     if (it != this->end()) {
       buf << (*it)._to_string();
-    }
-    for (++it; it != this->end(); ++it) {
-      buf << delimiter;
-      buf << (*it)._to_string();
+      for (++it; it != this->end(); ++it) {
+        buf << delimiter;
+        buf << (*it)._to_string();
+      }
     }
     return buf.str();
   }
