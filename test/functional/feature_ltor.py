@@ -89,9 +89,6 @@ class LTORTest(UnitETestFramework):
         rnd_setstate(rnd_state)
 
     def test_ltor_infringement_detection(self):
-        # Just creating easily accessible outputs (coinbase) for next txns
-        self.create_spendable_outputs()
-
         txns = self.create_chained_transactions()
         block = self.get_empty_block()
         # We ensure that the transactions are NOT sorted in the correct order
@@ -112,13 +109,17 @@ class LTORTest(UnitETestFramework):
         ]
 
         tx_ids = self.ask_node_to_create_n_transactions(
-            node_idx=0, num_tx=20, recipient_addresses=recipient_addresses
+            node_idx=0, num_tx=10, recipient_addresses=recipient_addresses
         )
-        self.generate_block(0)
+        # We expect from the node to pick txns in the mempool and include them
+        # in the next block
+        self.ask_node_to_generate_block(0)
 
         # Block transactions are ordered lexicographically (except coinbase)
         block_tx_ids = self.get_tip_transactions(0)
         assert sorted(tx_ids) == block_tx_ids[1:]
+
+        # We also check node1 to ensure that block is properly relayed
         block_tx_ids = self.get_tip_transactions(1)
         assert sorted(tx_ids) == block_tx_ids[1:]
 
@@ -137,11 +138,10 @@ class LTORTest(UnitETestFramework):
         self.nodes[1].importmasterkey(regtest_mnemonics[1]['mnemonics'])
 
     def exit_ibd_state(self):
-        # We generate a couple of blocks to exit IBD state
-        self.generate_block(0)
-        self.generate_block(1)
+        # We generate a block to exit IBD state
+        self.create_spendable_outputs()
 
-    def generate_block(self, node_idx):
+    def ask_node_to_generate_block(self, node_idx):
         try:
             self.nodes[node_idx].generatetoaddress(
                 nblocks=1,
@@ -178,7 +178,7 @@ class LTORTest(UnitETestFramework):
         tx_value = int(0.95 * UNIT * 0.5)
         txns = [self.create_child_transaction(last_tx, tx_value, 0)]
 
-        for divisor in map(lambda x: 2 ** x, range(2, 6)):
+        for divisor in map(lambda x: 2 ** x, range(2, 5)):
             tx_value = int(0.95 * UNIT / divisor)
             txns.extend([
                 self.create_child_transaction(txns[-1], tx_value, 0),
