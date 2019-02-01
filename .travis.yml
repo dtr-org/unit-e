@@ -66,7 +66,7 @@ jobs:
       env: >-
         HOST=arm-linux-gnueabihf
         APT_CUSTOM_SOURCE="deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports/ trusty main restricted universe multiverse"
-        PACKAGES="g++-arm-linux-gnueabihf python3-pip libudev-dev:armhf"
+        PACKAGES="g++-arm-linux-gnueabihf python3-pip libudev-dev:armhf libudev1:armhf"
         DEP_OPTS="NO_QT=1"
         CHECK_DOC=1
         GOAL="install"
