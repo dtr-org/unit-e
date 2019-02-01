@@ -85,6 +85,9 @@ class WalletExtension : public staking::StakingWallet {
   // defined in staking::StakingWallet
   CAmount GetStakeableBalance() const override;
 
+  //! \brief returns the balance that is being staked on other nodes.
+  virtual CAmount GetRemoteStakingBalance() const;
+
   // defined in staking::StakingWallet
   std::vector<staking::Coin> GetStakeableCoins() const override;
 
