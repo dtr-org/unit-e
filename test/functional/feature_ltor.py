@@ -34,6 +34,7 @@ from test_framework.messages import (
     uint256_from_str
 )
 from test_framework.mininode import (
+    network_thread_join,
     network_thread_start,
     P2PInterface
 )
@@ -54,18 +55,22 @@ class LTORTest(UnitETestFramework):
     """
 
     def run_test(self):
+        self.tip = None
+        self.block_time = None
+
         # This mininode will help us to create blocks
         mininode = self.nodes[0].add_p2p_connection(P2PInterface())
 
         test = TestManager(self, self.options.tmpdir)
         test.add_all_connections(self.nodes)
+
         network_thread_start()
-
         mininode.wait_for_verack()
-
-        self.tip = None
-        self.block_time = None
         test.run()
+
+        # Releasing network resources
+        mininode.close()
+        network_thread_join()
 
     def get_tests(self):
         self.spendable_outputs = []
