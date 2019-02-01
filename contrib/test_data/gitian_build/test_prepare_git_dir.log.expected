@@ -1,0 +1,9 @@
+Test: test_prepare_git_dir
+chdir('unit-e')
+git fetch /some/repo refs/pull/someversion/merge
+chdir('../gitian-builder/inputs/unit-e')
+git fetch /some/repo refs/pull/someversion/merge
+git show -s --format=%H FETCH_HEAD  universal_newlines=True  encoding=utf8
+git fetch
+git checkout somecommit
+chdir('someworkdir')

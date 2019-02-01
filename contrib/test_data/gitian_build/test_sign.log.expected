@@ -1,0 +1,17 @@
+Test: test_sign
+chdir('gitian-builder')
+cp inputs/unite-someversion-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz  shell=True
+bin/gbuild -i --commit signature=v1.1.1 ../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml
+bin/gsign -p gpg --signer somesigner --release someversion-win-signed --destination ../unit-e-sigs/ ../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml
+mv build/out/unite-*win64-setup.exe ../unit-e-binaries/someversion  shell=True
+mv build/out/unite-*win32-setup.exe ../unit-e-binaries/someversion  shell=True
+cp inputs/unite-someversion-osx-unsigned.tar.gz inputs/unite-osx-unsigned.tar.gz  shell=True
+bin/gbuild -i --commit signature=v1.1.1 ../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml
+bin/gsign -p gpg --signer somesigner --release someversion-osx-signed --destination ../unit-e-sigs/ ../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml
+mv build/out/unite-osx-signed.dmg ../unit-e-binaries/someversion/unite-someversion-osx.dmg  shell=True
+chdir('someworkdir')
+chdir('unit-e-sigs')
+git add someversion-win-signed/somesigner
+git add someversion-osx-signed/somesigner
+git commit -a -m Add someversion signed binary sigs for somesigner
+chdir('someworkdir')
