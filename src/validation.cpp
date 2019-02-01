@@ -3383,7 +3383,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         if (pindexPrev->nStatus & BLOCK_FAILED_MASK)
             return state.DoS(100, error("%s: prev block invalid", __func__), REJECT_INVALID, "bad-prevblk");
         const staking::BlockValidationResult block_validation_result =
-            GetInjector().GetBlockValidator()->ContextualCheckBlockHeader(block, *pindexPrev, GetAdjustedTime());
+            GetComponent(BlockValidator)->ContextualCheckBlockHeader(block, *pindexPrev, GetAdjustedTime());
         if (!block_validation_result) {
           return state.Invalid(false, REJECT_INVALID, "invalid-header", block_validation_result.ToString());
         }
@@ -3585,7 +3585,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
 
     // NOTE: CheckBlockHeader is called by CheckBlock
     const staking::BlockValidationResult block_validation_result =
-        GetInjector().GetBlockValidator()->ContextualCheckBlockHeader(block, *pindexPrev, GetAdjustedTime());
+        GetComponent(BlockValidator)->ContextualCheckBlockHeader(block, *pindexPrev, GetAdjustedTime());
     if (!block_validation_result)
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, block_validation_result.ToString());
     if (!CheckBlock(block, state, chainparams.GetConsensus(), fCheckMerkleRoot))
