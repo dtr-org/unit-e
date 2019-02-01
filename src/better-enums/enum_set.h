@@ -8,7 +8,6 @@
 #include <array>
 #include <string>
 #include <sstream>
-#include <iostream>
 #include <type_traits>
 
 namespace {
