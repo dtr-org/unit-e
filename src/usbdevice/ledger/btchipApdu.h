@@ -2,7 +2,6 @@
 *******************************************************************************
 *   BTChip Bitcoin Hardware Wallet C test interface
 *   (c) 2014 BTChip - 1BTChip7VfTnrPra5jqci7ejnMguuHogTn
-*   (c) 2019 The Unit-e developers
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
 *  you may not use this file except in compliance with the License.
