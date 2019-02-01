@@ -106,7 +106,7 @@ class BlockBuilderImpl : public BlockBuilder {
     }
 
     const CAmount reward = fees + eligible_coin.reward;
-    const CAmount spend = m_settings->reward_destination ? combined_total : combined_total + reward;
+    const CAmount spend = m_settings->reward_destination ? combined_total : (combined_total + reward);
 
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && spend > threshold) {
@@ -123,9 +123,9 @@ class BlockBuilderImpl : public BlockBuilder {
       tx.vout.emplace_back(reward, GetScriptForDestination(*m_settings->reward_destination));
     }
 
-    assert(std::accumulate(tx.vout.begin(), tx.vout.end(), 0, [](const CAmount sum, const CTxOut out) -> CAmount {
-      return sum + out.nValue;
-    }) == combined_total + reward);
+    assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0), [](const CAmount sum, const CTxOut out) -> CAmount {
+             return sum + out.nValue;
+           }) == combined_total + reward);
 
     // sign inputs
     {
