@@ -381,7 +381,7 @@ inline const std::string &to_string(const std::string &str) {
     return str;
 }
 
-inline std::string to_string(uint256 v) {
+inline std::string to_string(const uint256 v) {
     return v.GetHex();
 }
 
@@ -396,14 +396,21 @@ Range<Tbegin, Tend> range(const Tbegin &begin, const Tend &end) {
     return { begin, end };
 }
 
+template <typename T>
+std::string to_string(const T &v) {
+    return std::to_string(v);
+}
+
 template <typename Tbegin, typename Tend>
 std::string to_string(const Range<Tbegin, Tend> &r) {
     std::string res = "[";
-    for (auto it = r.begin; it != r.end; ++it) {
-        if (it != r.begin) {
-            res += ", ";
-        }
+    auto it = r.begin;
+    if (it != r.end) {
         res += util::to_string(*it);
+        for (++it; it != r.end; ++it) {
+            res += ", ";
+            res += util::to_string(*it);
+        }
     }
     res += "]";
     return res;
@@ -414,11 +421,6 @@ std::string to_string(const std::vector<T> &v) {
     return util::to_string(range(v.begin(), v.end()));
 }
 
-// Last chance, try to rely on std::to_string
-template <typename T>
-std::string to_string(const T &v) {
-    return std::to_string(v);
-}
 } // util
 
 

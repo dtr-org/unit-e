@@ -285,4 +285,28 @@ BOOST_AUTO_TEST_CASE(iterator_on_set_with_all_elements) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(to_string) {
+  EnumSet<SomeTestEnum> s{SomeTestEnum::A, SomeTestEnum::B};
+  std::string result = s.ToString();
+  BOOST_CHECK_EQUAL(result, "A, B");
+}
+
+BOOST_AUTO_TEST_CASE(to_string_empty_set) {
+  EnumSet<SomeTestEnum> s;
+  std::string result = s.ToString();
+  BOOST_CHECK_EQUAL(result, "");
+}
+
+BOOST_AUTO_TEST_CASE(to_string_one_element) {
+  EnumSet<SomeTestEnum> s{SomeTestEnum::G};
+  std::string result = s.ToString();
+  BOOST_CHECK_EQUAL(result, "G");
+}
+
+BOOST_AUTO_TEST_CASE(to_string_custom_delimiter) {
+  EnumSet<SomeTestEnum> s{SomeTestEnum::A, SomeTestEnum::B};
+  std::string result = s.ToString("|");
+  BOOST_CHECK_EQUAL(result, "A|B");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

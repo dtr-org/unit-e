@@ -735,4 +735,38 @@ BOOST_AUTO_TEST_CASE(test_LockDirectory)
     fs::remove_all(dirname);
 }
 
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector) {
+    const std::vector<std::uint32_t> vec{1, 1, 2, 3, 5};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[1, 1, 2, 3, 5]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_uint256) {
+    const uint256 u1 = uint256S("87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7");
+    const uint256 u2 = uint256S("0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f");
+    const std::vector<uint256> vec{u1, u2};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7, 0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_strings) {
+    const std::string s1("abc");
+    const std::string s2("xyz");
+    const std::vector<std::string> vec{s1, s2};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[abc, xyz]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_empty_vector) {
+    const std::vector<std::uint32_t> vec;
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_one_element_vector) {
+    const std::vector<std::uint32_t> vec{13};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[13]", str);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
