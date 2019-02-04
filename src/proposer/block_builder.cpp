@@ -118,14 +118,18 @@ class BlockBuilderImpl : public BlockBuilder {
       tx.vout.emplace_back(spend, eligible_coin.utxo.script_pubkey);
     }
 
-    // Send fees and block reward to the reward_address set.
-    if (m_settings->reward_destination) {
+    // Send fees and block reward to the reward_address set, if one is
+    // configured. If an empty block is proposed and there's no block reward
+    // (which happens after the finite supply limit is reached)
+    // then there is no reward at all.
+    if (m_settings->reward_destination && reward > 0) {
       tx.vout.emplace_back(reward, GetScriptForDestination(*m_settings->reward_destination));
     }
 
-    assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0), [](const CAmount sum, const CTxOut out) -> CAmount {
-             return sum + out.nValue;
-           }) == combined_total + reward);
+    assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),
+                           [](const CAmount sum, const CTxOut out) -> CAmount {
+                             return sum + out.nValue;
+                           }) == combined_total + reward);
 
     // sign inputs
     {
