@@ -245,6 +245,11 @@ CScript CScript::CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHa
             << publicKeyHash << OP_EQUALVERIFY << OP_CHECKSIG;
 }
 
+CScript CScript::CreateRemoteStakingScript(const std::vector<unsigned char> &staking_key_hash,
+                                           const std::vector<unsigned char> &spending_key_hash) {
+    return CScript() << OP_1 << staking_key_hash << spending_key_hash;
+}
+
 bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
 {
     // Extra-fast test for pay-to-script-hash CScripts:

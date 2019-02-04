@@ -147,12 +147,11 @@ bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient &recipient
   CPubKey spending_key;
   m_enclosing_wallet.GetKeyFromPool(spending_key, false);
 
-  CScript staking_script;
-  staking_script << OP_1 << solutions[0] << ToByteVector(spending_key.GetSha256());
+  CRecipient staking_recipient = recipient;
+  staking_recipient.scriptPubKey = CScript::CreateRemoteStakingScript(
+      solutions[0], ToByteVector(spending_key.GetSha256()));
 
-  const std::vector<CRecipient> recipients = {
-      {.scriptPubKey = staking_script, .nAmount = recipient.nAmount, .fSubtractFeeFromAmount = recipient.fSubtractFeeFromAmount},
-  };
+  const std::vector<CRecipient> recipients = {staking_recipient};
 
   return m_enclosing_wallet.CreateTransaction(
       recipients, *wtx_out, *key_change_out, *fee_out, change_pos_out, *error_out, coin_control);
