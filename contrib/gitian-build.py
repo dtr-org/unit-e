@@ -14,6 +14,8 @@ import platform
 import tempfile
 import glob
 
+OSSLSIGNCODE_VER = '1.7.1'
+OSSLSIGNCODE_DIR = 'osslsigncode-'+OSSLSIGNCODE_VER
 
 class Apt:
     """ Lazy apt wrapper """
@@ -73,21 +75,32 @@ def find_osslsigncode(user_spec_path):
         if subprocess.call([ossl_path, '--version'], stderr=subprocess.DEVNULL) == 255:
             return ossl_path
 
-    if os.path.isfile('osslsigncode-1.7.1/osslsigncode') and subprocess.call(['osslsigncode-1.7.1/osslsigncode', '--version'], stderr=subprocess.DEVNULL) == 255:
-        return os.path.abspath('osslsigncode-1.7.1/osslsigncode')
+    expected_path = os.path.join(OSSLSIGNCODE_DIR, 'osslsigncode')
+    if os.path.isfile(expected_path) and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
+        return os.path.abspath(expected_path)
 
     return None
 
 def install_osslsigner():
-    subprocess.check_call(['wget', '-N', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-1.7.1.tar.gz'])
-    subprocess.check_call(['wget', '-N', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-1.7.1.patch'])
-    subprocess.check_call(["echo 'a8c4e9cafba922f89de0df1f2152e7be286aba73f78505169bc351a7938dd911 osslsigncode-Backports-to-1.7.1.patch' | sha256sum -c"], shell=True)
-    subprocess.check_call(["echo 'f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9 osslsigncode-1.7.1.tar.gz' | sha256sum -c"], shell=True)
-    subprocess.check_call(['tar', '-xzf', 'osslsigncode-1.7.1.tar.gz'])
-    subprocess.check_call(['patch -p1 < ../osslsigncode-Backports-to-1.7.1.patch'], shell=True, cwd='osslsigncode-1.7.1')
-    subprocess.check_call(['./configure', '--without-gsf', '--without-curl', '--disable-dependency-tracking'], cwd='osslsigncode-1.7.1')
-    subprocess.check_call(['make'], cwd='osslsigncode-1.7.1')
-    return os.path.abspath('osslsigncode-1.7.1/osslsigncode')
+    subprocess.check_call(['wget', '-N', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'])
+    subprocess.check_call(['wget', '-N', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'])
+    subprocess.check_call(["echo 'a8c4e9cafba922f89de0df1f2152e7be286aba73f78505169bc351a7938dd911 osslsigncode-Backports-to-"+OSSLSIGNCODE_VER+".patch' | sha256sum -c"], shell=True)
+    subprocess.check_call(["echo 'f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9 osslsigncode-"+OSSLSIGNCODE_VER+".tar.gz' | sha256sum -c"], shell=True)
+    subprocess.check_call(['tar', '-xzf', 'osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'])
+    subprocess.check_call(['patch -p1 < ../osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], shell=True, cwd=OSSLSIGNCODE_DIR)
+    subprocess.check_call(['./configure', '--without-gsf', '--without-curl', '--disable-dependency-tracking'], cwd=OSSLSIGNCODE_DIR)
+    subprocess.check_call(['make'], cwd=OSSLSIGNCODE_DIR)
+    return os.path.abspath(os.path.join(OSSLSIGNCODE_DIR, 'osslsigncode'))
+
+
+def install_libssl_dev(apt):
+    dist_str = platform.dist()
+    dist_type = dist_str[0]
+    dist_no = dist_str[1].replace('.', '')
+    if dist_type == 'Ubuntu' and dist_no < 1800 or dist_type == 'Debian' and dist_no < 900:
+        apt.add_requirements('libssl-dev')
+    else:
+        apt.add_requirements('libssl1.0-dev')
 
 
 def install_linux_deps(args):
@@ -108,8 +121,8 @@ def install_linux_deps(args):
         args.osslsigncode_path = find_osslsigncode(args.osslsigncode_path)
         if not args.osslsigncode_path:
             should_make_ossl = True
-            # Building osslsigncode probably requires some more packages (at least gcc?)
-            apt.add_requirements('tar', 'wget', 'libssl1.0-dev')
+            apt.add_requirements('tar', 'wget', 'patch', 'autoconf')
+            install_libssl_dev(apt)
 
     apt.batch_install()
 
@@ -207,22 +220,22 @@ def sign(args):
 
     if args.windows:
         osslsign_path = args.osslsigncode_path
-        subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-1.7.1.tar.gz'], cwd=gitian_dir)
-        subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-1.7.1.patch'], cwd=gitian_dir)
+        subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], cwd=gitian_dir)
 
-        signatures_tarball = gitian_dir+'/inputs/unite-win-signatures.tar'
+        signatures_tarball = os.path.join(gitian_dir, 'inputs/unite-win-signatures.tar')
         if os.path.isfile(signatures_tarball):
             os.remove(signatures_tarball)
 
         print('\nSigning ' + args.version + ' Windows')
         with tempfile.TemporaryDirectory() as build_dir:
-            subprocess.check_call(['cp', 'inputs/unite-' + args.version + '-win-unsigned.tar.gz', build_dir+'/unite-win-unsigned.tar.gz'], cwd=gitian_dir)
+            subprocess.check_call(['cp', 'inputs/unite-' + args.version + '-win-unsigned.tar.gz', os.path.join(build_dir, 'unite-win-unsigned.tar.gz')], cwd=gitian_dir)
             subprocess.check_call(['tar', '-xzf', 'unite-win-unsigned.tar.gz'], cwd=build_dir)
 
             for fp in glob.glob(build_dir+'/unsigned/*.exe'):
                 subprocess.check_call([osslsign_path, 'sign', '-certs', args.win_code_cert_path, '-in', fp, '-out', fp+'-signed', '-key', args.win_code_key_path, '-askpass'])
                 subprocess.check_call([osslsign_path, 'extract-signature', '-pem', '-in', fp+'-signed', '-out', fp+'.pem'])
-                subprocess.check_call(['tar', '-rf', signatures_tarball, os.path.basename(fp+'.pem')], cwd=build_dir+'/unsigned')
+                subprocess.check_call(['tar', '-rf', signatures_tarball, os.path.basename(fp+'.pem')], cwd=os.path.join(build_dir, 'unsigned'))
 
         subprocess.check_call('cp inputs/unite-' + args.version + '-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz', shell=True, cwd=gitian_dir)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature=master', gitian_descriptors(args, 'win-signer')], cwd=gitian_dir)
