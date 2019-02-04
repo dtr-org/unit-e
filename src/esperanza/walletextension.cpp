@@ -58,7 +58,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
         continue;
       }
       const CTxOut &coin = coins[outix];
-      if (!m_enclosing_wallet.IsStakeableByMe(coin) || coin.nValue <= 0) {
+      if (!IsStakeableByMe(m_enclosing_wallet, coin.scriptPubKey) || coin.nValue <= 0) {
         continue;
       }
 

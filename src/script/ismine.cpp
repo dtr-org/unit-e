@@ -259,6 +259,7 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
     txnouttype which_type;
     Solver(script_pub_key, which_type, solutions);
 
+    // UNIT-E TODO: Restrict to witness programs only once #212 is merged (fixes #48)
     switch (which_type)
     {
         case TX_PUBKEYHASH:
