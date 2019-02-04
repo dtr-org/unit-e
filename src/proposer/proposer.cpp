@@ -30,7 +30,6 @@ class ProposerImpl : public Proposer {
  private:
   static constexpr const char *THREAD_NAME = "unite-proposer";
 
-  Dependency<Settings> m_settings;
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<MultiWallet> m_multi_wallet;
   Dependency<staking::Network> m_network;
@@ -135,16 +134,14 @@ class ProposerImpl : public Proposer {
   }
 
  public:
-  ProposerImpl(Dependency<Settings> settings,
-               Dependency<blockchain::Behavior> blockchain_behavior,
+  ProposerImpl(Dependency<blockchain::Behavior> blockchain_behavior,
                Dependency<MultiWallet> multi_wallet,
                Dependency<staking::Network> network,
                Dependency<staking::ActiveChain> active_chain,
                Dependency<staking::TransactionPicker> transaction_picker,
                Dependency<proposer::BlockBuilder> block_builder,
                Dependency<proposer::Logic> proposer_logic)
-      : m_settings(settings),
-        m_blockchain_behavior(blockchain_behavior),
+      : m_blockchain_behavior(blockchain_behavior),
         m_multi_wallet(multi_wallet),
         m_network(network),
         m_active_chain(active_chain),
@@ -189,7 +186,7 @@ std::unique_ptr<Proposer> Proposer::New(
     Dependency<proposer::BlockBuilder> block_builder,
     Dependency<proposer::Logic> proposer_logic) {
   if (settings->node_is_proposer) {
-    return std::unique_ptr<Proposer>(new ProposerImpl(settings, behavior, multi_wallet, network, active_chain, transaction_picker, block_builder, proposer_logic));
+    return std::unique_ptr<Proposer>(new ProposerImpl(behavior, multi_wallet, network, active_chain, transaction_picker, block_builder, proposer_logic));
   } else {
     return std::unique_ptr<Proposer>(new ProposerStub());
   }

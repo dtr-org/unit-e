@@ -22,21 +22,21 @@ std::unique_ptr<blockchain::Behavior> b =
 BOOST_AUTO_TEST_SUITE(stake_validator_tests)
 
 BOOST_AUTO_TEST_CASE(check_kernel) {
-  const auto stake_validator = staking::StakeValidator::New(b.get());
+  const auto stake_validator = staking::StakeValidator::New();
   const uint256 kernel;
   const auto difficulty = blockchain::GenesisBlockBuilder().Build(p).nBits;
   BOOST_CHECK(stake_validator->CheckKernel(1, kernel, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(check_kernel_fail) {
-  const auto stake_validator = staking::StakeValidator::New(b.get());
+  const auto stake_validator = staking::StakeValidator::New();
   const uint256 kernel = uint256S("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
   const auto difficulty = blockchain::GenesisBlockBuilder().Build(p).nBits;
   BOOST_CHECK(!stake_validator->CheckKernel(1, kernel, difficulty));
 }
 
 BOOST_AUTO_TEST_CASE(remember_and_forget) {
-  const auto stake_validator = staking::StakeValidator::New(b.get());
+  const auto stake_validator = staking::StakeValidator::New();
   const uint256 kernel = uint256S("000000000000000000000000e6b8347d447e02ed383a3e96986815d576fb2a5a");
   LOCK(stake_validator->GetLock());
   BOOST_CHECK(!stake_validator->IsKernelKnown(kernel));

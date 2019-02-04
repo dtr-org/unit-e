@@ -75,7 +75,7 @@ class StakeValidator {
 
   virtual ~StakeValidator() = default;
 
-  static std::unique_ptr<StakeValidator> New(Dependency<blockchain::Behavior>);
+  static std::unique_ptr<StakeValidator> New();
 };
 
 }  // namespace staking
