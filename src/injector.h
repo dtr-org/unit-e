@@ -81,6 +81,25 @@ class UnitEInjector : public Injector<UnitEInjector> {
             proposer::Logic)
 
 #endif
+
+  //! \brief Initializes a globally available instance of the injector.
+  static void Init();
+
+  //! \brief Destructs the injector and all components managed by it.
+  static void Destroy();
 };
+
+//! \brief Retrieves the globally available instance of the injector.
+//!
+//! This mechanism solely exists such that old bitcoin code which is not
+//! part of the component framework can access components. It must never
+//! be invoked from within any function that lives in a component.
+//!
+//! It is actually an instance of the Service Locator pattern, which is
+//! considered an anti-pattern (by the author of this comment), but a
+//! necessary evil to interface legacy code with the component based design.
+UnitEInjector &GetInjector();
+
+#define GetComponent(NAME) (GetInjector().Get##NAME())
 
 #endif  // UNIT_E_INJECTOR_H

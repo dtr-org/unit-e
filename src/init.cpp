@@ -207,7 +207,7 @@ void Shutdown()
     StopHTTPServer();
 
     // stop all injected components, including proposer and validator
-    injector.reset();
+    UnitEInjector::Destroy();
 
 #ifdef ENABLE_WALLET
     FlushWallets();
@@ -1293,8 +1293,7 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain()
 {
-    injector = MakeUnique<UnitEInjector>();
-    injector->Initialize();
+    UnitEInjector::Init();
 
     const CChainParams& chainparams = Params();
 
@@ -1730,7 +1729,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
-    esperanza::WalletExtensionDeps deps(*injector);
+    esperanza::WalletExtensionDeps deps(GetInjector());
     if (!OpenWallets(deps)) {
         return false;
     }
@@ -1897,8 +1896,8 @@ bool AppInitMain()
     // ********************************************************* Step 13: start proposer
 
 #ifdef ENABLE_WALLET
-    injector->GetProposer()->Start();
-    SetProposerRPC(injector->GetProposerRPC());
+    GetComponent(Proposer)->Start();
+    SetProposerRPC(GetComponent(ProposerRPC));
 #endif
 
     LogPrintf("Started up.\n");
