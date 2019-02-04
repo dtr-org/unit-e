@@ -7,6 +7,8 @@
 from unittest.mock import call
 import os
 
+from pathlib import Path
+
 gitian_build = __import__('gitian-build')
 
 class Log:
@@ -32,13 +34,13 @@ class Log:
 
     def log_call(self, parameters, shell=None, stdout=None, stderr=None, universal_newlines=None, encoding=None, cwd=None):
         if isinstance(parameters, list):
-            line = " ".join(parameters)
+            line = " ".join([str(param) for param in parameters])
         else:
             line = parameters
         if shell:
             line += "  shell=" + str(shell)
         if cwd:
-            line += "  cwd=" + str(os.path.relpath(cwd))
+            line += "  cwd=" + str(Path(cwd).resolve().relative_to(Path('.').resolve()))
         if stdout:
             line += "  stdout=" + str(stdout)
         if stderr:
@@ -172,39 +174,49 @@ def test_apt_wrapper(mocker):
 
 def test_find_osslsigncode(mocker):
 
+    class which_mock:
+        def __init__(self, rc, rp=''):
+            self.rc = rc
+            self.rp = rp
+        def wait(self):
+            return self.rc
+        def communicate(self):
+            return (self.rp.encode()+b'\n', b'')
+
+
+    mocker.patch("subprocess.Popen", return_value=which_mock(1))
     mocker.patch("subprocess.call", return_value=255)
 
     # won't find the osslsigncode
-    mocker.patch("os.path.isfile", return_value=False)
+    mocker.patch("pathlib.Path.is_file", return_value=False)
     assert(original_find_osslsigncode("") is None)
 
     # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode
-    mocker.patch("os.path.isfile", return_value=True)
-    assert('osslsigncode-1.7.1/osslsigncode' in original_find_osslsigncode(""))
+    mocker.patch("pathlib.Path.is_file", return_value=True)
+    assert(Path('osslsigncode-1.7.1/osslsigncode').resolve() == original_find_osslsigncode(""))
 
 
     mocker.patch("subprocess.call", return_value=1)
 
     # won't find the osslsigncode
-    mocker.patch("os.path.isfile", return_value=False)
+    mocker.patch("pathlib.Path.is_file", return_value=False)
     assert(original_find_osslsigncode("") is None)
 
-    # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode but won't be able to execute it
-    mocker.patch("os.path.isfile", return_value=True)
+    # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode but won't be able to execute it (--version won't return 255)
+    mocker.patch("pathlib.Path.is_file", return_value=True)
     assert(original_find_osslsigncode("") is None)
 
-    # won't find the osslsigncode
-    mocker.patch("os.path.isfile", return_value=False)
-    mocker.patch("subprocess.call", return_value=255)
+    # Tests user specified path
+    # user-specified path does not return 255 on --version
+    mocker.patch("pathlib.Path.is_file", return_value=False)
     try:
         original_find_osslsigncode("somepath")
         assert(False)
     except SystemExit as e:
         pass
 
-    # won't be able to execute the osslsigncode
-    mocker.patch("os.path.isfile", return_value=True)
-    mocker.patch("subprocess.call", return_value=1)
+    # user-specified path does not return 255 on --version
+    mocker.patch("pathlib.Path.is_file", return_value=True)
     try:
         original_find_osslsigncode("somepath")
         assert(False)
@@ -212,17 +224,15 @@ def test_find_osslsigncode(mocker):
         pass
 
     # Should return the path passed in
-    mocker.patch("os.path.isfile", return_value=True)
+    mocker.patch("pathlib.Path.is_file", return_value=True)
     mocker.patch("subprocess.call", return_value=255)
     assert(os.path.basename(original_find_osslsigncode("somepath")) == "somepath")
 
-    class which_mock:
-        def wait(self):
-            return 0
-        def communicate(self):
-            return (b'/someosslpath\n', b'')
-
     # check which () output
-    mocker.patch("subprocess.Popen", return_value=which_mock())
+    mocker.patch("subprocess.Popen", return_value=which_mock(0, '/someosslpath'))
     assert(original_find_osslsigncode("") == '/someosslpath')
+
+    mocker.patch("subprocess.call", return_value=1)
+    mocker.patch("subprocess.Popen", return_value=which_mock(0, '/someosslpath'))
+    assert(original_find_osslsigncode("") is None)
 

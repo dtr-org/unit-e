@@ -14,6 +14,8 @@ import platform
 import tempfile
 import glob
 
+from pathlib import Path
+
 OSSLSIGNCODE_VER = '1.7.1'
 OSSLSIGNCODE_DIR = 'osslsigncode-'+OSSLSIGNCODE_VER
 
@@ -57,12 +59,12 @@ class Apt:
 
 def find_osslsigncode(user_spec_path):
     if user_spec_path:
-        if not os.path.isfile(user_spec_path):
+        if not Path(user_spec_path).is_file():
             print('osslsign does not exists:', user_spec_path, file=sys.stderr)
             exit(1)
         try:
             if subprocess.call([user_spec_path, '--version'], stderr=subprocess.DEVNULL) == 255:
-                return os.path.abspath(user_spec_path)
+                return Path(user_spec_path).resolve()
             print('cannot execute provided osslsigncode:', user_spec_path, file=sys.stderr)
             exit(1)
         except Exception as e:
@@ -75,9 +77,9 @@ def find_osslsigncode(user_spec_path):
         if subprocess.call([ossl_path, '--version'], stderr=subprocess.DEVNULL) == 255:
             return ossl_path
 
-    expected_path = os.path.join(OSSLSIGNCODE_DIR, 'osslsigncode')
-    if os.path.isfile(expected_path) and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
-        return os.path.abspath(expected_path)
+    expected_path = Path(OSSLSIGNCODE_DIR, 'osslsigncode')
+    if expected_path.is_file(expected_path) and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
+        return expected_path.resolve()
 
     return None
 
@@ -90,7 +92,7 @@ def install_osslsigner():
     subprocess.check_call(['patch -p1 < ../osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], shell=True, cwd=OSSLSIGNCODE_DIR)
     subprocess.check_call(['./configure', '--without-gsf', '--without-curl', '--disable-dependency-tracking'], cwd=OSSLSIGNCODE_DIR)
     subprocess.check_call(['make'], cwd=OSSLSIGNCODE_DIR)
-    return os.path.abspath(os.path.join(OSSLSIGNCODE_DIR, 'osslsigncode'))
+    return Path(OSSLSIGNCODE_DIR, 'osslsigncode').resolve()
 
 
 def install_libssl_dev(apt):
@@ -156,11 +158,11 @@ def install_deps(args):
 def setup(args):
     install_deps(args)
 
-    if not os.path.isdir('unit-e-sigs'):
+    if not Path('unit-e-sigs').is_dir():
         subprocess.check_call(['git', 'clone', 'git@github.com:dtr-org/unit-e-sigs.git'])
-    if not os.path.isdir('gitian-builder'):
+    if not Path('gitian-builder').is_dir():
         subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
-    if not os.path.isdir(args.git_dir):
+    if not Path(args.git_dir).is_dir():
         subprocess.check_call(['git', 'clone', args.url, args.git_dir])
     make_image_prog = ['bin/make-base-vm', '--suite', 'trusty', '--arch', 'amd64']
     if args.docker:
@@ -216,26 +218,26 @@ def build(args, workdir):
         os.chdir(workdir)
 
 def sign(args):
-    gitian_dir = os.path.abspath('gitian-builder')
+    gitian_dir = Path('gitian-builder').resolve()
 
     if args.windows:
         osslsign_path = args.osslsigncode_path
         subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'], cwd=gitian_dir)
         subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], cwd=gitian_dir)
 
-        signatures_tarball = os.path.join(gitian_dir, 'inputs/unite-win-signatures.tar')
-        if os.path.isfile(signatures_tarball):
+        signatures_tarball = Path(gitian_dir, 'inputs', 'unite-win-signatures.tar')
+        if Path(signatures_tarball).is_file():
             os.remove(signatures_tarball)
 
         print('\nSigning ' + args.version + ' Windows')
         with tempfile.TemporaryDirectory() as build_dir:
-            subprocess.check_call(['cp', 'inputs/unite-' + args.version + '-win-unsigned.tar.gz', os.path.join(build_dir, 'unite-win-unsigned.tar.gz')], cwd=gitian_dir)
+            subprocess.check_call(['cp', 'inputs/unite-' + args.version + '-win-unsigned.tar.gz', Path(build_dir, 'unite-win-unsigned.tar.gz')], cwd=gitian_dir)
             subprocess.check_call(['tar', '-xzf', 'unite-win-unsigned.tar.gz'], cwd=build_dir)
 
             for fp in glob.glob(build_dir+'/unsigned/*.exe'):
                 subprocess.check_call([osslsign_path, 'sign', '-certs', args.win_code_cert_path, '-in', fp, '-out', fp+'-signed', '-key', args.win_code_key_path, '-askpass'])
                 subprocess.check_call([osslsign_path, 'extract-signature', '-pem', '-in', fp+'-signed', '-out', fp+'.pem'])
-                subprocess.check_call(['tar', '-rf', signatures_tarball, os.path.basename(fp+'.pem')], cwd=os.path.join(build_dir, 'unsigned'))
+                subprocess.check_call(['tar', '-rf', signatures_tarball, Path(fp+'.pem').name], cwd=Path(build_dir, 'unsigned'))
 
         subprocess.check_call('cp inputs/unite-' + args.version + '-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz', shell=True, cwd=gitian_dir)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature=master', gitian_descriptors(args, 'win-signer')], cwd=gitian_dir)
@@ -343,7 +345,7 @@ def main():
             os.environ['LXC_GUEST_IP'] = '10.0.3.5'
 
     # Disable for MacOS if no SDK found
-    if args.macos and not os.path.isfile('gitian-builder/inputs/MacOSX10.11.sdk.tar.gz'):
+    if args.macos and not Path('gitian-builder/inputs/MacOSX10.11.sdk.tar.gz').is_file():
         print('Cannot build for MacOS, SDK does not exist. Will build for other OSes')
         args.macos = False
 
@@ -353,7 +355,7 @@ def main():
     if not args.build and not args.sign and not args.verify:
         return
 
-    script_name = os.path.basename(sys.argv[0])
+    script_name = Path(sys.argv[0]).name
 
     # Signer and version shouldn't be empty
     if not args.signer:
@@ -375,11 +377,11 @@ def main():
             print('Cannot find osslsigncode. Please provide it with --osslsign or run --setup to make it.', file=sys.stderr)
             exit(1)
 
-        if not args.win_code_cert_path or not os.path.isfile(args.win_code_cert_path):
+        if not args.win_code_cert_path or not Path(args.win_code_cert_path).is_file():
             print('Please provide code signing certificate path (--code-cert)', file=sys.stderr)
             exit(1)
 
-        if not args.win_code_key_path or not os.path.isfile(args.win_code_key_path):
+        if not args.win_code_key_path or not Path(args.win_code_key_path).is_file():
             print('Please provide code signing key path (--code-key)', file=sys.stderr)
             exit(1)
 
