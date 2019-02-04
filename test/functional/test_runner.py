@@ -187,6 +187,7 @@ EXTENDED_SCRIPTS = [
     'feature_dbcrash.py',
     # vv Tests less than 20m vv
     # vv Tests less than 5m vv
+    'feature_no_esperanza_tx_relay_delay.py',
     # vv Tests less than 2m vv
     # vv Tests less than 60s vv
     'rpc_bind.py',
