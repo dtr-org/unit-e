@@ -16,7 +16,7 @@
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 
-static CRecipient ParseOutputArgument(const UniValue &output) {
+static CRecipient ParseOutputArgument(const UniValue &output, bool allow_script = true) {
   if (!output.isObject()) {
     throw JSONRPCError(RPC_TYPE_ERROR, "Not an object");
   }
@@ -32,9 +32,12 @@ static CRecipient ParseOutputArgument(const UniValue &output) {
   }
 
   CScript scriptPubKey;
+  if (obj.exists("script") && !allow_script) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid key: 'script'");
+  }
   if (obj.exists("script")) {
     if (address != "script") {
-      JSONRPCError(
+      throw JSONRPCError(
           RPC_INVALID_PARAMETER,
           "address parameter must be 'script' to set script explicitly.");
     }
@@ -303,6 +306,117 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
 
   CValidationState state;
   if (!pwallet->CommitTransaction(wtx, keyChange, g_connman.get(), state)) {
+    throw JSONRPCError(
+        RPC_WALLET_ERROR,
+        strprintf("Transaction commit failed: %s", FormatStateMessage(state)));
+  }
+
+  return wtx.GetHash().GetHex();
+}
+
+constexpr const char* STAKEAT_HELP = "stakeat \"output\" test_fee coin_control\n"
+"\nSend UnitE to a remote staking address.\n"
+"%s\n"
+"Argument:\n"
+"1. output              (json, required)\n"
+"    1.1 \"address\"  (string, required) The UnitE address to send to.\n"
+"    1.2 \"amount\"   (numeric or string, required) The amount in %s "
+"to send, e.g. 0.1\n"
+"    1.3 \"subfee\"   (boolean, optional, default=false) Deduct the fee "
+"from the amount being sent.\n"
+"2. test_fee          (bool, optional, default=false) Only return the fee it "
+"would cost to send, txn is discarded.\n"
+"3. coin_control      (json, optional) Coincontrol object.\n"
+"    3.1 \"changeaddress\"  (string, optional) The Address for "
+"receiving change\n"
+"    3.2 \"inputs\"         (json, optional) \n"
+"           [{\"tx\":, \"n\":},...],\n"
+"    3.3 \"replaceable\"    (boolean, optional)  Allow this "
+"transaction to be replaced by a transaction\n"
+"                           with higher fees via BIP 125\n"
+"    3.4 \"conf_target\"    (numeric, optional) Confirmation target "
+"(in blocks)\n"
+"    3.5 \"estimate_mode\"  (string, optional) The fee estimate mode, "
+"must be one of:\n"
+"            \"UNSET\"\n"
+"            \"ECONOMICAL\"\n"
+"            \"CONSERVATIVE\"\n"
+"    3.6 \"fee_rate\"        (numeric, optional, default not set: "
+"makes wallet determine the fee) Set a specific \n"
+"                           feerate (%s per KB)\n"
+"\nResult:\n"
+"\"txid\"              (string) The transaction id.\n"
+"\nExamples:\n%s";
+
+constexpr const char* STAKEAT_CLI_PARAMS = "\"{\\\"address\\\":\\\"2NDoNG8nR57LDs9m2VKV4wzYVR9YBJ2L5Nd\\\","
+  "\\\"amount\\\":0.1}\"";
+
+static UniValue stakeat(const JSONRPCRequest &request) {
+  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+    return NullUniValue;
+  }
+
+  if (request.fHelp || request.params.size() < 1 || request.params.size() > 3) {
+    std::string help_text = strprintf(STAKEAT_HELP,
+                                      HelpRequiringPassphrase(pwallet),
+                                      CURRENCY_UNIT, CURRENCY_UNIT,
+                                      HelpExampleCli("stakeat", STAKEAT_CLI_PARAMS));
+    throw std::runtime_error(help_text.c_str());
+  }
+
+  ObserveSafeMode();
+
+  // Make sure the results are valid at least up to the most recent block
+  // the user could have gotten from another RPC command prior to now
+  pwallet->BlockUntilSyncedToCurrentChain();
+
+  if (pwallet->GetBroadcastTransactions() && !g_connman) {
+    throw JSONRPCError(RPC_CLIENT_P2P_DISABLED,
+                       "Error: Peer-to-peer functionality missing or disabled");
+  }
+
+  CRecipient recipient = ParseOutputArgument(request.params[0].get_obj(), false);
+  CAmount total_amount = recipient.nAmount;
+
+  EnsureWalletIsUnlocked(pwallet);
+
+  if (total_amount > pwallet->GetBalance()) {
+    throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient funds");
+  }
+
+  bool test_fee = false;
+  if (request.params.size() > 1) {
+    test_fee = request.params[1].get_bool();
+  }
+
+  CCoinControl coin_control;
+  if (request.params.size() > 2 && request.params[2].isObject()) {
+    coin_control = ParseCoinControlArgument(request.params[2].get_obj());
+  }
+
+  std::string error;
+  CAmount tx_fee(0);
+  CWalletTx wtx;
+  CReserveKey key_change(pwallet);
+
+  auto &wallet_ext = pwallet->GetWalletExtension();
+  bool created = wallet_ext.CreateRemoteStakingTransaction(
+      recipient, &wtx, &key_change, &tx_fee, &error, coin_control);
+  if (!created) {
+    throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, error);
+  }
+
+  if (test_fee) {
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("fee", ValueFromAmount(tx_fee));
+    result.pushKV("bytes", (int)GetVirtualTransactionSize(*(wtx.tx)));
+
+    return result;
+  }
+
+  CValidationState state;
+  if (!pwallet->CommitTransaction(wtx, key_change, g_connman.get(), state)) {
     throw JSONRPCError(
         RPC_WALLET_ERROR,
         strprintf("Transaction commit failed: %s", FormatStateMessage(state)));
@@ -733,6 +847,7 @@ static const CRPCCommand commands[] = {
 //  category               name                      actor (function)         argNames
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
   {"wallet",             "sendtypeto",               &sendtypeto,             {"typein", "typeout", "outputs", "comment", "comment_to", "test_fee", "coincontrol"}},
+  {"wallet",             "stakeat",                  &stakeat,                {"recipient", "test_fee", "coincontrol"}},
   {"wallet",             "filtertransactions",       &filtertransactions,     {"options"}},
 };
 // clang-format on

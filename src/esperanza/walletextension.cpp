@@ -111,6 +111,54 @@ boost::optional<CKey> WalletExtension::GetKey(const CPubKey &pubkey) const {
   return key;
 }
 
+bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient& recipient,
+                                                     CWalletTx *wtx_out, CReserveKey *key_change_out,
+                                                     CAmount *fee_out, std::string *error_out,
+                                                     const CCoinControl& coin_control) {
+  int change_pos_out = -1;
+  CAmount fee = 0;
+  CWalletTx wtx;
+  std::string error;
+
+  if (fee_out == nullptr) {
+    fee_out = &fee;
+  }
+  if (error_out == nullptr) {
+    error_out = &error;
+  }
+  if (wtx_out == nullptr) {
+    wtx_out = &wtx;
+  }
+
+  // The caller must initialize change output key
+  assert(key_change_out != nullptr);
+
+  std::vector<std::vector<uint8_t>> solutions;
+  txnouttype type;
+  if (!Solver(recipient.scriptPubKey, type, solutions)) {
+    *error_out = "Invalid scriptPubKey for recipient";
+    return false;
+  }
+  if (solutions.size() != 1 || solutions[0].size() != 20) {
+    *error_out = "Invalid address for recipient: must be a single 160-bit pubkey hash";
+    return false;
+  }
+
+  CPubKey spending_key;
+  m_enclosing_wallet.GetKeyFromPool(spending_key, false);
+
+  CScript staking_script;
+  staking_script << OP_1 << solutions[0] << ToByteVector(spending_key.GetSha256());
+
+  const std::vector<CRecipient> recipients = {
+    { .scriptPubKey = staking_script, .nAmount = recipient.nAmount,
+      .fSubtractFeeFromAmount = recipient.fSubtractFeeFromAmount },
+  };
+
+  return m_enclosing_wallet.CreateTransaction(
+      recipients, *wtx_out, *key_change_out, *fee_out, change_pos_out, *error_out, coin_control);
+}
+
 bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
   AssertLockHeld(GetLock());
 
