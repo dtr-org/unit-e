@@ -314,11 +314,11 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
   return wtx.GetHash().GetHex();
 }
 
-constexpr const char* STAKEAT_HELP = "stakeat \"output\" test_fee coin_control\n"
+constexpr const char* STAKEAT_HELP = "stakeat recipient test_fee coin_control\n"
 "\nSend UnitE to a remote staking address.\n"
 "%s\n"
 "Argument:\n"
-"1. output              (json, required)\n"
+"1. recipient           (json, required)\n"
 "    1.1 \"address\"  (string, required) The UnitE address to send to.\n"
 "    1.2 \"amount\"   (numeric or string, required) The amount in %s "
 "to send, e.g. 0.1\n"
