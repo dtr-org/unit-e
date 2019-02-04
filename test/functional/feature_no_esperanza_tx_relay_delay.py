@@ -28,8 +28,6 @@ from test_framework.admin import Admin
 import time
 from functools import reduce
 
-from test_framework.regtest_mnemonics import regtest_mnemonics
-
 TEST_SAMPLES = 5
 
 class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
@@ -69,10 +67,10 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
         def calc_tx_relay_delay(generate_node, record_from, record_to):
             txid = generate_node.sendtoaddress(generate_node.getnewaddress(), 1)
-            wait_until(lambda: has_tx_in_mempool(record_from, txid), timeout=40)
+            wait_until(lambda: has_tx_in_mempool(record_from, txid), timeout=150)
 
             now = time.perf_counter()
-            wait_until(lambda: has_tx_in_mempool(record_to, txid), timeout=40)
+            wait_until(lambda: has_tx_in_mempool(record_to, txid), timeout=150)
             return time.perf_counter() - now
 
         def calc_vote_relay_delay(generate_node, record_from, record_to):
@@ -80,7 +78,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             self.sync_all()
 
             generate_node.generatetoaddress(1, generate_node.getnewaddress())
-            wait_until(lambda: len(new_votes_in_mempool(record_from)) > 0, timeout=30)
+            wait_until(lambda: len(new_votes_in_mempool(record_from)) > 0, timeout=150)
 
             now = time.perf_counter()
 
@@ -91,7 +89,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
                     vote_tx_ids.add(vote_tx)
                     break
             assert vote_tx is not None
-            sync_mempools([record_from, record_to], wait=0.05, timeout=30)
+            sync_mempools([record_from, record_to], wait=0.05, timeout=150)
             delay = time.perf_counter() - now
 
             # sanity check: tx we measured is a vote tx
@@ -160,7 +158,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         # disable instant finalization
         payto = validator.getnewaddress('', 'legacy')
         txid = validator.deposit(payto, 10000)
-        self.wait_for_transaction(txid)
+        self.wait_for_transaction(txid, timeout=150)
 
         node0.generatetoaddress(2, node0.getnewaddress())
         sync_blocks(self.nodes)

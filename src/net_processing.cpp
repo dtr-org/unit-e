@@ -3553,7 +3553,6 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                 for (std::set<uint256>::iterator it = pto->setInventoryTxToSend.begin(); it != pto->setInventoryTxToSend.end(); it++) {
                     bool send = fSendTrickle;
                     if (!send) {
-                        // relay esperanza txs ASAP https://github.com/dtr-org/unit-e/issues/369
                         CTransactionRef tx = mempool.get(*it);
                         send = tx && tx->IsFinalizationTransaction();
                     }
