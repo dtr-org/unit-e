@@ -18,8 +18,6 @@ class RemoteStakingTest(UnitETestFramework):
         alice.generatetoaddress(101, dummy_addr)
         self.sync_all()
 
-        # print([x for x in alice.listunspent() if x['spendable']])
-
         # Estimate staking fee
         recipient = {"address": bobs_addr, "amount": 1}
         result = alice.stakeat(recipient, True)
