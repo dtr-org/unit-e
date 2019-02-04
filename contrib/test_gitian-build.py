@@ -91,6 +91,33 @@ def test_build(mocker):
 
     log.check()
 
+def test_codesign(mocker):
+    log = Log("test_codesign")
+
+    class TemporaryDirectoryMock():
+        def __init__(self, dirname):
+            self.dirname = dirname
+        def __enter__(self):
+            return self.dirname
+        def __exit__(self, *args):
+            pass
+
+    mocker.patch("platform.system", return_value='Darwin')
+    mocker.patch("pathlib.Path.mkdir")
+    # glob has to return a generator, so ['...', '...'] is not enough
+    mocker.patch("pathlib.Path.glob", return_value=(f for f in ['unite-someversion-win32-setup-unsigned.exe', 'unite-someversion-win32-setup-unsigned.exe']))
+    mocker.patch("tempfile.TemporaryDirectory", return_value=TemporaryDirectoryMock("tmp"))
+    mocker.patch("subprocess.check_call", side_effect=log.log_call)
+
+    args = create_args(mocker)
+    args.osslsigncode_path = 'osslsigncode_executable'
+    args.win_code_cert_path = 'somecert'
+    args.win_code_key_path = 'somekey'
+
+    gitian_build.codesign(args)
+
+    log.check()
+
 def test_sign(mocker):
     log = Log("test_sign")
 
@@ -102,20 +129,48 @@ def test_sign(mocker):
         def __exit__(self, *args):
             pass
 
-    # glob.glob has to return a generator, so ['...', '...'] is not enough
-    mocker.patch("glob.glob", return_value=(f for f in ['unite-someversion-win32-setup-unsigned.exe', 'unite-someversion-win32-setup-unsigned.exe']))
-    mocker.patch("tempfile.TemporaryDirectory", return_value=TemporaryDirectoryMock("tmp"))
-    mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
+    mocker.patch("pathlib.Path.is_file", return_value=True)
+    original_get_signatures_path = gitian_build.get_signatures_path
+    gitian_build.get_signatures_path = lambda platform_str, ver: Path("version-platform-sigs-path")
 
     args = create_args(mocker)
-    args.osslsigncode_path = 'osslsigncode_executable'
-    args.win_code_cert_path = 'somecert'
-    args.win_code_key_path = 'somekey'
 
+    args.windows = True
+    args.macos = False
     gitian_build.sign(args)
 
+    mocker.patch("pathlib.Path.is_file", return_value=False)
+    original_get_signatures_path = gitian_build.get_signatures_path
+    gitian_build.get_signatures_path = lambda platform_str, ver: Path("version-platform-sigs-path")
+
+    try:
+        # Should not find signatures and exit
+        gitian_build.sign(args)
+        assert(False)
+    except SystemExit as e:
+        pass
+
+
+    mocker.patch("pathlib.Path.is_file", return_value=True)
+
+    args.windows = False
+    args.macos = True
+    gitian_build.sign(args)
+
+    mocker.patch("pathlib.Path.is_file", return_value=False)
+    original_get_signatures_path = gitian_build.get_signatures_path
+    gitian_build.get_signatures_path = lambda platform_str, ver: Path("version-platform-sigs-path")
+
+    try:
+        # Should not find signatures and exit
+        gitian_build.sign(args)
+        assert(False)
+    except SystemExit as e:
+        pass
+
     log.check()
+    gitian_build.get_signatures_path = original_get_signatures_path
 
 def test_verify(mocker):
     log = Log("test_verify")
