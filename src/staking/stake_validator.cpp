@@ -17,14 +17,11 @@ namespace staking {
 class StakeValidatorImpl : public StakeValidator {
 
  private:
-  Dependency<blockchain::Behavior> m_blockchain_behavior;
-
   CCriticalSection m_cs;
   std::set<uint256> m_kernel_seen;
 
  public:
-  StakeValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
-      : m_blockchain_behavior(blockchain_behavior) {}
+  StakeValidatorImpl() {}
 
   CCriticalSection &GetLock() override {
     return m_cs;
@@ -110,9 +107,8 @@ class StakeValidatorImpl : public StakeValidator {
   }
 };
 
-std::unique_ptr<StakeValidator> StakeValidator::New(
-    Dependency<blockchain::Behavior> blockchain_behavior) {
-  return std::unique_ptr<StakeValidator>(new StakeValidatorImpl(blockchain_behavior));
+std::unique_ptr<StakeValidator> StakeValidator::New() {
+  return std::unique_ptr<StakeValidator>(new StakeValidatorImpl());
 }
 
 }  // namespace staking

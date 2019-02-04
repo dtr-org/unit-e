@@ -291,6 +291,7 @@ libunite_server_a_SOURCES = \
   httprpc.cpp \
   httpserver.cpp \
   init.cpp \
+  injector.cpp \
   dbwrapper.cpp \
   merkleblock.cpp \
   miner.cpp \

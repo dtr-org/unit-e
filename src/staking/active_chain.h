@@ -81,7 +81,7 @@ class ActiveChain : public blockchain::ChainAccess {
   ~ActiveChain() override = default;
 
   //! \brief Factory method for creating a Chain.
-  static std::unique_ptr<ActiveChain> New(Dependency<blockchain::Behavior>);
+  static std::unique_ptr<ActiveChain> New();
 };
 
 }  // namespace staking

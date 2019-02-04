@@ -13,12 +13,8 @@ namespace staking {
 
 class ActiveChainAdapter final : public ActiveChain {
 
- private:
-  Dependency<blockchain::Behavior> m_blockchain_behavior;
-
  public:
-  explicit ActiveChainAdapter(Dependency<blockchain::Behavior> blockchain_behavior)
-      : m_blockchain_behavior(blockchain_behavior) {}
+  explicit ActiveChainAdapter() {}
 
   CCriticalSection &GetLock() const override { return cs_main; }
 
@@ -57,9 +53,8 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 };
 
-std::unique_ptr<ActiveChain> ActiveChain::New(
-    Dependency<blockchain::Behavior> blockchain_behavior) {
-  return std::unique_ptr<ActiveChain>(new ActiveChainAdapter(blockchain_behavior));
+std::unique_ptr<ActiveChain> ActiveChain::New() {
+  return std::unique_ptr<ActiveChain>(new ActiveChainAdapter());
 }
 
 }  // namespace staking
