@@ -147,10 +147,10 @@ class WalletExtension : public staking::StakingWallet {
   //!
   //! The arguments mirror the ones for CWallet::CreateTransaction.
   //! \returns true if the operation was successful, false otherwise.
-  bool CreateRemoteStakingTransaction(const CRecipient& recipient, CWalletTx *wtx_out,
+  bool CreateRemoteStakingTransaction(const CRecipient &recipient, CWalletTx *wtx_out,
                                       CReserveKey *key_change_out, CAmount *fee_out,
                                       std::string *error_out,
-                                      const CCoinControl& coin_control);
+                                      const CCoinControl &coin_control);
 
   bool AddToWalletIfInvolvingMe(const CTransactionRef &tx,
                                 const CBlockIndex *pIndex);

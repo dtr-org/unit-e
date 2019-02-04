@@ -111,10 +111,10 @@ boost::optional<CKey> WalletExtension::GetKey(const CPubKey &pubkey) const {
   return key;
 }
 
-bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient& recipient,
+bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient &recipient,
                                                      CWalletTx *wtx_out, CReserveKey *key_change_out,
                                                      CAmount *fee_out, std::string *error_out,
-                                                     const CCoinControl& coin_control) {
+                                                     const CCoinControl &coin_control) {
   int change_pos_out = -1;
   CAmount fee = 0;
   CWalletTx wtx;
@@ -151,8 +151,7 @@ bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient& recipient
   staking_script << OP_1 << solutions[0] << ToByteVector(spending_key.GetSha256());
 
   const std::vector<CRecipient> recipients = {
-    { .scriptPubKey = staking_script, .nAmount = recipient.nAmount,
-      .fSubtractFeeFromAmount = recipient.fSubtractFeeFromAmount },
+      {.scriptPubKey = staking_script, .nAmount = recipient.nAmount, .fSubtractFeeFromAmount = recipient.fSubtractFeeFromAmount},
   };
 
   return m_enclosing_wallet.CreateTransaction(
