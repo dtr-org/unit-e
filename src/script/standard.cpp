@@ -97,6 +97,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
                                  witnessProgram.program.end());
             return true;
         }
+        typeRet = TX_NONSTANDARD;
         return false;
     }
 
