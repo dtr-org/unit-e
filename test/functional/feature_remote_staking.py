@@ -21,27 +21,30 @@ class RemoteStakingTest(UnitETestFramework):
         alice, bob = self.nodes
         alice.importmasterkey(GENESIS_KEY)
 
-        dummy_addr = alice.getnewaddress()
-        bobs_addr = bob.getnewaddress()
+        alices_addr = alice.getnewaddress()
+
+        # 'legacy': we need the PK hash, not a script hash
+        bobs_addr = bob.getnewaddress('', 'legacy')
 
         # Estimate staking fee
         recipient = {"address": bobs_addr, "amount": 1}
         result = alice.stakeat(recipient, True)
         assert(result['fee'] < 0.001)
 
-        bob.proposerwake()
-
         # Stake the funds
         result = alice.stakeat(recipient)
+        alice.generatetoaddress(1, alices_addr)
         self.sync_all()
+
+        bob.proposerwake()
 
         # Bob should be able to stake the newly received coin
         ps = bob.proposerstatus()
+        assert(ps['wallets'][0]['status'] == 'IS_PROPOSING')
         assert(ps['wallets'][0]['stakeable_balance'] > 0)
-        assert(ps['status'] == 'IS_PROPOSING')
 
-        # Coinbase, change output, and the balance staked remotely
-        assert(len(alice.listunspent()) == 3)
+        # Change output, and the balance staked remotely
+        assert(len(alice.listunspent()) == 2)
 
 
 if __name__ == '__main__':

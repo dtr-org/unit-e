@@ -247,6 +247,8 @@ CScript CScript::CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHa
 
 CScript CScript::CreateRemoteStakingScript(const std::vector<unsigned char> &staking_key_hash,
                                            const std::vector<unsigned char> &spending_key_hash) {
+    assert(staking_key_hash.size() == 20);
+    assert(spending_key_hash.size() == 32);
     return CScript() << OP_1 << staking_key_hash << spending_key_hash;
 }
 
