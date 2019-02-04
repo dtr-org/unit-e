@@ -127,8 +127,8 @@ class BlockBuilderImpl : public BlockBuilder {
     }
 
     assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),
-                           [](const CAmount sum, const CTxOut out) -> CAmount {
-                             return sum + out.nValue;
+                           [](const CAmount sum, const CTxOut &tx_out) -> CAmount {
+                             return sum + tx_out.nValue;
                            }) == combined_total + reward);
 
     // sign inputs
