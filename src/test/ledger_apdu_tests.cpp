@@ -17,7 +17,7 @@ namespace {
 template <size_t Size>
 std::vector<uint8_t> randvec() {
   std::vector<uint8_t> result(Size);
-  for (size_t i = 0; i < Size; i++) {
+  for (size_t i = 0; i < Size; ++i) {
     result[i] = rand() % 256;
   }
   return result;
