@@ -26,18 +26,6 @@ Before every major release:
 * Update `src/chainparams.cpp` chainTxData with statistics about the transaction count and rate.
 * Update version of `contrib/gitian-descriptors/*.yml`: usually one'd want to do this on master after branching off the release - but be sure to at least do it before a new major release
 
-### First time / New builders
-
-If you're using the automated script (found in [contrib/gitian-build.sh](/contrib/gitian-build.sh)), then at this point you should run it with the "--setup" command. Otherwise ignore this.
-
-Check out the source code in the following directory hierarchy.
-
-    cd /path/to/your/toplevel/build
-    git clone https://github.com/unite-core/gitian.sigs.git
-    git clone https://github.com/unite-core/unite-detached-sigs.git
-    git clone https://github.com/devrandom/gitian-builder.git
-    git clone https://github.com/unite/unite.git
-
 ### UnitE maintainers/release engineers, suggestion for writing release notes
 
 Write release notes. git shortlog helps a lot, for example:
@@ -55,40 +43,17 @@ Tag version (or release candidate) in git
 
     git tag -s v(new version, e.g. 0.8.0)
 
-### Setup and perform Gitian builds
+### Build and sign UnitE Core for Linux, Windows, and OS X:
 
-If you're using the automated script (found in [contrib/gitian-build.sh](/contrib/gitian-build.sh)), then at this point you should run it with the "--build" command. Otherwise ignore this.
+Run the automated script found in [contrib/gitian-build.py](/contrib/gitian-build.py) from your top level build directory with "--build" (and "--setup" if you want to automatically install dependencies).
 
-Setup Gitian descriptors:
+Build output expected:
 
-    pushd ./unite
-    export SIGNER=(your Gitian key, ie bluematt, sipa, etc)
-    export VERSION=(new version, e.g. 0.8.0)
-    git fetch
-    git checkout v${VERSION}
-    popd
-
-Ensure your gitian.sigs are up-to-date if you wish to gverify your builds against other Gitian signatures.
-
-    pushd ./gitian.sigs
-    git pull
-    popd
-
-Ensure gitian-builder is up-to-date:
-
-    pushd ./gitian-builder
-    git pull
-    popd
-
-### Fetch and create inputs: (first time, or when dependency versions change)
-
-    pushd ./gitian-builder
-    mkdir -p inputs
-    wget -P inputs https://bitcoincore.org/cfields/osslsigncode-Backports-to-1.7.1.patch
-    wget -P inputs http://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-1.7.1.tar.gz
-    popd
-
-Create the OS X SDK tarball, see the [OS X readme](README_osx.md) for details, and copy it into the inputs directory.
+  1. source tarball (`unite-${VERSION}.tar.gz`)
+  2. linux 32-bit and 64-bit dist tarballs (`unite-${VERSION}-linux[32|64].tar.gz`)
+  3. windows 32-bit and 64-bit unsigned installers and dist zips (`unite-${VERSION}-win[32|64]-setup-unsigned.exe`, `unite-${VERSION}-win[32|64].zip`)
+  4. OS X unsigned installer and dist tarball (`unite-${VERSION}-osx-unsigned.dmg`, `unite-${VERSION}-osx64.tar.gz`)
+  5. Gitian signatures (in `unit-e-sigs/${VERSION}-<linux|{win,osx}-unsigned>/(your Gitian key)/`)
 
 ### Optional: Seed the Gitian sources cache and offline git repositories
 
@@ -101,126 +66,49 @@ By default, Gitian will fetch source files as needed. To cache them ahead of tim
 Only missing files will be fetched, so this is safe to re-run for each build.
 
 NOTE: Offline builds must use the --url flag to ensure Gitian fetches only from local URLs. For example:
+    ./unit-e/contrib/gitian-build.py --url file:///path/to/unite {rest of arguments}
 
-    pushd ./gitian-builder
-    ./bin/gbuild --url unite=/path/to/unite,signature=/path/to/sigs {rest of arguments}
-    popd
-
-The gbuild invocations below <b>DO NOT DO THIS</b> by default.
-
-### Build and sign UnitE Core for Linux, Windows, and OS X:
-
-    pushd ./gitian-builder
-    ./bin/gbuild --num-make 2 --memory 3000 --commit unite=v${VERSION} ../unite/contrib/gitian-descriptors/gitian-linux.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-linux --destination ../gitian.sigs/ ../unite/contrib/gitian-descriptors/gitian-linux.yml
-    mv build/out/unite-*.tar.gz build/out/src/unite-*.tar.gz ../
-
-    ./bin/gbuild --num-make 2 --memory 3000 --commit unite=v${VERSION} ../unite/contrib/gitian-descriptors/gitian-win.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-win-unsigned --destination ../gitian.sigs/ ../unite/contrib/gitian-descriptors/gitian-win.yml
-    mv build/out/unite-*-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz
-    mv build/out/unite-*.zip build/out/unite-*.exe ../
-
-    ./bin/gbuild --num-make 2 --memory 3000 --commit unite=v${VERSION} ../unite/contrib/gitian-descriptors/gitian-osx.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-osx-unsigned --destination ../gitian.sigs/ ../unite/contrib/gitian-descriptors/gitian-osx.yml
-    mv build/out/unite-*-osx-unsigned.tar.gz inputs/unite-osx-unsigned.tar.gz
-    mv build/out/unite-*.tar.gz build/out/unite-*.dmg ../
-    popd
-
-Build output expected:
-
-  1. source tarball (`unite-${VERSION}.tar.gz`)
-  2. linux 32-bit and 64-bit dist tarballs (`unite-${VERSION}-linux[32|64].tar.gz`)
-  3. windows 32-bit and 64-bit unsigned installers and dist zips (`unite-${VERSION}-win[32|64]-setup-unsigned.exe`, `unite-${VERSION}-win[32|64].zip`)
-  4. OS X unsigned installer and dist tarball (`unite-${VERSION}-osx-unsigned.dmg`, `unite-${VERSION}-osx64.tar.gz`)
-  5. Gitian signatures (in `gitian.sigs/${VERSION}-<linux|{win,osx}-unsigned>/(your Gitian key)/`)
+It is not possible to specify the path to local signatures repository.
 
 ### Verify other gitian builders signatures to your own. (Optional)
 
 Add other unit-e Gitian builders' keys to your gpg keyring, and/or refresh keys: See `../unit-e/contrib/gitian-keys/README.md`.
 
-Verify the signatures
-
-    pushd ./gitian-builder
-    ./bin/gverify -v -d ../gitian.sigs/ -r ${VERSION}-linux ../unite/contrib/gitian-descriptors/gitian-linux.yml
-    ./bin/gverify -v -d ../gitian.sigs/ -r ${VERSION}-win-unsigned ../unite/contrib/gitian-descriptors/gitian-win.yml
-    ./bin/gverify -v -d ../gitian.sigs/ -r ${VERSION}-osx-unsigned ../unite/contrib/gitian-descriptors/gitian-osx.yml
-    popd
+Run the build script with "--verify" flag
 
 ### Next steps:
 
-Commit your signature to gitian.sigs:
+Commit your signature to unit-e-sigs:
 
-    pushd gitian.sigs
+    pushd unit-e-sigs
     git add ${VERSION}-linux/${SIGNER}
     git add ${VERSION}-win-unsigned/${SIGNER}
     git add ${VERSION}-osx-unsigned/${SIGNER}
     git commit -a
-    git push  # Assuming you can push to the gitian.sigs tree
+    git push  # Assuming you can push to the unit-e-sigs tree
     popd
 
 Codesigner only: Create Windows/OS X detached signatures:
 - Only one person handles codesigning. Everyone else should skip to the next step.
 - Only once the Windows/OS X builds each have 3 matching signatures may they be signed with their respective release keys.
 
-Codesigner only: Sign the osx binary:
+	./unit-e/contrib/gitian-build.py [--setup] [--build] --codesign -o [w|m] --signer <signer> --version <version> [--win-code-cert unit-e/contrib/windeploy/win-codesign.cert --win-code-key <path to corresponding key>]
+	The signatures will be created in unit-e-sigs/<version>-detached.
 
-    transfer unite-osx-unsigned.tar.gz to osx for signing
-    tar xf unite-osx-unsigned.tar.gz
-    ./detached-sig-create.sh -s "Key ID"
-    Enter the keychain password and authorize the signature
-    Move signature-osx.tar.gz back to the gitian host
-
-Codesigner only: Sign the windows binaries:
-
-    tar xf unite-win-unsigned.tar.gz
-    ./detached-sig-create.sh -key /path/to/codesign.key
-    Enter the passphrase for the key when prompted
-    signature-win.tar.gz will be created
-
-Codesigner only: Commit the detached codesign payloads:
-
-    cd ~/unite-detached-sigs
-    checkout the appropriate branch for this release series
-    rm -rf *
-    tar xf signature-osx.tar.gz
-    tar xf signature-win.tar.gz
-    git add -a
-    git commit -m "point to ${VERSION}"
-    git tag -s v${VERSION} HEAD
-    git push the current branch and new tag
+NOTE: Codesigning OS X binary is only possible on a Mac OS.
 
 Non-codesigners: wait for Windows/OS X detached signatures:
 
 - Once the Windows/OS X builds each have 3 matching signatures, they will be signed with their respective release keys.
-- Detached signatures will then be committed to the [unite-detached-sigs](https://github.com/unite-core/unite-detached-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
+- Detached signatures will then be committed to the [unit-e-sigs](https://github.com/unite-core/unit-e-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
 
-Create (and optionally verify) the signed OS X binary:
+Create the signed Windows/OS X binary
 
-    pushd ./gitian-builder
-    ./bin/gbuild -i --commit signature=v${VERSION} ../unite/contrib/gitian-descriptors/gitian-osx-signer.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-osx-signed --destination ../gitian.sigs/ ../unite/contrib/gitian-descriptors/gitian-osx-signer.yml
-    ./bin/gverify -v -d ../gitian.sigs/ -r ${VERSION}-osx-signed ../unite/contrib/gitian-descriptors/gitian-osx-signer.yml
-    mv build/out/unite-osx-signed.dmg ../unite-${VERSION}-osx.dmg
-    popd
+	./unit-e/contrib/gitian-build.py [--setup] [--build] --sign -o [w|m] --signer <signer> --version <version>
 
-Create (and optionally verify) the signed Windows binaries:
+The signatures for signed build will be created in unit-e-sigs/<version>-[win|osx]-signed/<signer>
 
-    pushd ./gitian-builder
-    ./bin/gbuild -i --commit signature=v${VERSION} ../unite/contrib/gitian-descriptors/gitian-win-signer.yml
-    ./bin/gsign --signer $SIGNER --release ${VERSION}-win-signed --destination ../gitian.sigs/ ../unite/contrib/gitian-descriptors/gitian-win-signer.yml
-    ./bin/gverify -v -d ../gitian.sigs/ -r ${VERSION}-win-signed ../unite/contrib/gitian-descriptors/gitian-win-signer.yml
-    mv build/out/unite-*win64-setup.exe ../unite-${VERSION}-win64-setup.exe
-    mv build/out/unite-*win32-setup.exe ../unite-${VERSION}-win32-setup.exe
-    popd
-
-Commit your signature for the signed OS X/Windows binaries:
-
-    pushd gitian.sigs
-    git add ${VERSION}-osx-signed/${SIGNER}
-    git add ${VERSION}-win-signed/${SIGNER}
-    git commit -a
-    git push  # Assuming you can push to the gitian.sigs tree
-    popd
+Verify the signed binaries by running the build script with "--verify".
 
 ### After 3 or more people have gitian-built and their results match:
 
