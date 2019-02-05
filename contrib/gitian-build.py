@@ -244,7 +244,7 @@ def codesign_windows(osslsign_path, version, win_code_cert_path, win_code_key_pa
         subprocess.check_call(['tar', '-czf', signatures_tarball, *[path.name for path in Path(build_dir, 'unsigned').glob('*.exe.pem')]], cwd=Path(build_dir, 'unsigned'))
 
 
-def codesign_osx(version, signer):
+def codesign_osx(version, signer, git_dir):
     gitian_dir = Path('gitian-builder').resolve()
     if platform.system() != 'Darwin':
         print('Codesigning MacOS binaries is only possible on a MacOS', file=sys.stderr)
@@ -257,7 +257,7 @@ def codesign_osx(version, signer):
 
     with tempfile.TemporaryDirectory() as build_dir:
         subprocess.check_call(['cp', 'inputs/unite-' + version + '-osx-unsigned.tar.gz', Path(build_dir, 'unite-osx-unsigned.tar.gz')], cwd=gitian_dir)
-        subprocess.check_call(['cp', 'unit-e/contrib/macdeploy/detached-sig-create.sh', build_dir])
+        subprocess.check_call(['cp', Path(git_dir, 'contrib/macdeploy/detached-sig-create.sh'), build_dir])
         subprocess.check_call(['tar', '-xzf', 'unite-osx-unsigned.tar.gz'], cwd=build_dir)
         subprocess.check_call(['detached-sig-create.sh', '-s', signer], cwd=build_dir)
         subprocess.check_call(['cp', 'signature-osx.tar.gz', signatures_tarball], cwd=build_dir)
@@ -268,7 +268,7 @@ def codesign(args):
         codesign_windows(args.osslsigncode_path, args.version, args.win_code_cert_path, args.win_code_key_path)
 
     if args.macos:
-        codesign_osx(args.version, args.signer)
+        codesign_osx(args.version, args.signer, args.git_dir)
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Detached Sigs\n')
@@ -307,7 +307,7 @@ def sign(args):
 
         print('\nSigning ' + args.version + ' MacOS')
         subprocess.check_call(['cp', signatures_tarball, 'inputs/unite-osx-signatures.tar.gz'], cwd=gitian_dir)
-        subprocess.check_call(['cp', '../unit-e/contrib/macdeploy/detached-sig-apply.sh', 'inputs/detached-sig-apply.sh'], cwd=gitian_dir)
+        subprocess.check_call(['cp', Path('..', args.git_dir, 'contrib/macdeploy/detached-sig-apply.sh'), 'inputs/detached-sig-apply.sh'], cwd=gitian_dir)
         subprocess.check_call(['cp inputs/unite-' + args.version + '-osx-unsigned.tar.gz', 'inputs/unite-osx-unsigned.tar.gz'], cwd=gitian_dir)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature=master', gitian_descriptors(args, 'osx-signer')], cwd=gitian_dir)
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'osx-signer')], cwd=gitian_dir)
