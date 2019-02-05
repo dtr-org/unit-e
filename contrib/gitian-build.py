@@ -319,21 +319,34 @@ def sign(args):
         subprocess.check_call(['git', 'add', args.version+'-osx-signed/'+args.signer], cwd='unit-e-sigs')
         subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' signed binary sigs for '+args.signer], cwd='unit-e-sigs')
 
-def verify(args, workdir):
-    os.chdir('gitian-builder')
 
-    print('\nVerifying v'+args.version+' Linux\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-linux', gitian_descriptors(args, 'linux')])
-    print('\nVerifying v'+args.version+' Windows\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-win-unsigned', gitian_descriptors(args, 'win')])
-    print('\nVerifying v'+args.version+' MacOS\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-osx-unsigned', gitian_descriptors(args, 'osx')])
-    print('\nVerifying v'+args.version+' Signed Windows\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-win-signed', gitian_descriptors(args, 'win-signer')])
-    print('\nVerifying v'+args.version+' Signed MacOS\n')
-    subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', args.version+'-osx-signed', gitian_descriptors(args, 'osx-signer')])
+def verify(args):
+    """ Verify the builds. Exits with error in case any of the signatures fail to verify and if any of the signatures are missing. """
+    gitian_builder = Path('gitian-builder')
+    sigs_path = Path('unit-e-sigs')
 
-    os.chdir(workdir)
+    builds_were_missing = False
+
+    for (sig_path_suffix, descriptor_suffix, build_name) in [
+        ('linux', 'linux', 'Linux'),
+        ('win-unsigned', 'win', 'Windows'),
+        ('osx-unsigned', 'osx', 'MacOS'),
+        ('win-signed', 'win-signer', 'Signed Windows'),
+        ('osx-signed', 'osx-signer', 'Signed Max OS')
+    ]:
+        build_sig_dir = args.version + '-' + sig_path_suffix
+        if Path(sigs_path, build_sig_dir).is_dir():
+            print('\nVerifying v{} {}\n'.format(args.version, build_name))
+            descriptor = gitian_descriptors(args, descriptor_suffix)
+            subprocess.check_call(['bin/gverify', '-v', '-d', '../unit-e-sigs/', '-r', build_sig_dir, descriptor], cwd=gitian_builder)
+        else:
+            print('\nSkipping v{} {} as it is not present\n'.format(args.version, build_name))
+            builds_were_missing = True
+
+    if builds_were_missing:
+        print('Some builds were missing, please refer to previous logs.', file=sys.stderr)
+        exit(1)
+
 
 def prepare_git_dir(args, workdir):
     os.chdir(args.git_dir)
@@ -465,7 +478,7 @@ def main():
         sign(args)
 
     if args.verify:
-        verify(args, workdir)
+        verify(args)
 
 if __name__ == '__main__':
     main()
