@@ -1,15 +1,15 @@
 Test: test_build
 chdir('gitian-builder')
 make -C ../unit-e/depends download SOURCES_PATH=somedir/cache/common
-bin/gbuild -j 2 -m 3000 --commit unit-e=v1.1.1 --url unit-e=/some/repo ../unit-e/contrib/gitian-descriptors/gitian-linux.yml
-bin/gsign -p gpg --signer somesigner --release someversion-linux --destination ../unit-e-sigs/ ../unit-e/contrib/gitian-descriptors/gitian-linux.yml
+bin/gbuild -j 2 -m 3000 --commit unit-e=v1.1.1 --url unit-e=/some/repo ../work/gitian-descriptors/gitian-linux.yml
+bin/gsign -p gpg --signer somesigner --release someversion-linux --destination ../unit-e-sigs/ ../work/gitian-descriptors/gitian-linux.yml
 mv build/out/unite-*.tar.gz build/out/src/unite-*.tar.gz ../unit-e-binaries/someversion  shell=True
-bin/gbuild -j 2 -m 3000 --commit unit-e=v1.1.1 --url unit-e=/some/repo ../unit-e/contrib/gitian-descriptors/gitian-win.yml
-bin/gsign -p gpg --signer somesigner --release someversion-win-unsigned --destination ../unit-e-sigs/ ../unit-e/contrib/gitian-descriptors/gitian-win.yml
+bin/gbuild -j 2 -m 3000 --commit unit-e=v1.1.1 --url unit-e=/some/repo ../work/gitian-descriptors/gitian-win.yml
+bin/gsign -p gpg --signer somesigner --release someversion-win-unsigned --destination ../unit-e-sigs/ ../work/gitian-descriptors/gitian-win.yml
 mv build/out/unite-*-win-unsigned.tar.gz inputs/  shell=True
 mv build/out/unite-*.zip build/out/unite-*.exe ../unit-e-binaries/someversion  shell=True
-bin/gbuild -j 2 -m 3000 --commit unit-e=v1.1.1 --url unit-e=/some/repo ../unit-e/contrib/gitian-descriptors/gitian-osx.yml
-bin/gsign -p gpg --signer somesigner --release someversion-osx-unsigned --destination ../unit-e-sigs/ ../unit-e/contrib/gitian-descriptors/gitian-osx.yml
+bin/gbuild -j 2 -m 3000 --commit unit-e=v1.1.1 --url unit-e=/some/repo ../work/gitian-descriptors/gitian-osx.yml
+bin/gsign -p gpg --signer somesigner --release someversion-osx-unsigned --destination ../unit-e-sigs/ ../work/gitian-descriptors/gitian-osx.yml
 mv build/out/unite-*-osx-unsigned.tar.gz inputs/  shell=True
 mv build/out/unite-*.tar.gz build/out/unite-*.dmg ../unit-e-binaries/someversion  shell=True
 chdir('someworkdir')

@@ -177,7 +177,7 @@ def setup(args):
         exit(0)
 
 def gitian_descriptors(args, platform_str):
-    return '../' + args.git_dir + '/contrib/gitian-descriptors/gitian-' + platform_str + '.yml'
+    return '../work/gitian-descriptors/gitian-' + platform_str + '.yml'
 
 def build(args, workdir):
     os.makedirs('unit-e-binaries/' + args.version, exist_ok=True)
@@ -357,9 +357,28 @@ def prepare_git_dir(args, workdir):
         args.commit = subprocess.check_output(['git', 'show', '-s', '--format=%H', 'FETCH_HEAD'], universal_newlines=True, encoding='utf8').strip()
         args.version = 'pull-' + args.version
     print(args.commit)
-    subprocess.check_call(['git', 'fetch'])
-    subprocess.check_call(['git', 'checkout', args.commit])
+    if not args.skip_checkout:
+        subprocess.check_call(['git', 'fetch'])
+        subprocess.check_call(['git', 'checkout', args.commit])
     os.chdir(workdir)
+
+def prepare_gitian_descriptors(*, source, target, hosts=None):
+    descriptor_source_dir = Path(source)
+    descriptor_dir = Path(target)
+    if not descriptor_source_dir.exists():
+        raise Exception("Gitian descriptor dir '%s' does not exist" % descriptor_source_dir)
+    descriptor_dir.mkdir(parents=True, exist_ok=True)
+    for descriptor_path in descriptor_source_dir.glob("*.yml"):
+        filename = descriptor_path.relative_to(descriptor_source_dir)
+        descriptor_in = descriptor_source_dir / filename
+        descriptor_out = descriptor_dir / filename
+        with descriptor_out.open("w") as file_out:
+            with descriptor_in.open() as file_in:
+                for line in file_in:
+                    if hosts and line.startswith('  HOSTS='):
+                        file_out.write('  HOSTS="%s"\n' % hosts)
+                    else:
+                        file_out.write(line)
 
 def main():
     parser = argparse.ArgumentParser(usage='%(prog)s [options]')
@@ -386,6 +405,8 @@ def main():
     parser.add_argument('--win-code-key', dest='win_code_key_path', help='Path to key corresponding to code signing certificate.')
     parser.add_argument('--signer', dest='signer', help='GPG signer to sign each build assert file. Required to build, sign or verify')
     parser.add_argument('--version', dest='version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
+    parser.add_argument('--skip-checkout', action='store_true', help='Skip checkout of git repo. Use with care as it might leave you in an inconsistent state.')
+    parser.add_argument('--hosts', dest='hosts', help='Specify hosts for which is built. See the gitian descriptors for valid values.')
 
     args = parser.parse_args()
     workdir = os.getcwd()
@@ -466,7 +487,12 @@ def main():
         raise Exception('Cannot have both commit and pull')
     args.commit = ('' if args.commit else 'v') + args.version
 
+    if args.pull and args.skip_checkout:
+        raise Exception('Cannot pull and skip-checkout at the same time')
+
     prepare_git_dir(args, workdir)
+    prepare_gitian_descriptors(source=args.git_dir + "/contrib/gitian-descriptors/", target="work/gitian-descriptors",
+                               hosts=args.hosts)
 
     if args.build:
         build(args, workdir)
