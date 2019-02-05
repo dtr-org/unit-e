@@ -151,6 +151,28 @@ const char* GetOpName(opcodetype opcode)
     }
 }
 
+bool WitnessProgram::IsPayToScriptHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 32;
+}
+
+bool WitnessProgram::IsPayToPubkeyHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 20;
+}
+
+bool WitnessProgram::IsRemoteStaking() const
+{
+    return version == 1 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
+}
+
+bool WitnessProgram::IsRemoteStakingP2SH() const
+{
+    return version == 2 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
+}
+
 unsigned int CScript::GetSigOpCount(bool fAccurate) const
 {
     unsigned int n = 0;
@@ -612,20 +634,4 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     }
 
     return it == script.end();
-}
-
-bool WitnessProgram::IsPayToScriptHash() const
-{
-    return version == 0 && program.size() == 1 && program[0].size() == 32;
-}
-
-bool WitnessProgram::IsPayToPubkeyHash() const
-{
-    return version == 0 && program.size() == 1 && program[0].size() == 20;
-}
-
-bool WitnessProgram::IsRemoteStaking() const
-{
-    return version == 1 && program.size() == 2 && program[0].size() == 20
-        && program[1].size() == 32;
 }

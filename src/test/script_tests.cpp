@@ -1721,6 +1721,15 @@ BOOST_AUTO_TEST_CASE(witness_program)
                                   hash_160.begin(), hash_160.end());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),
                                   hash_256.begin(), hash_256.end());
+
+    script.clear();
+    script << OP_2 << hash_160 << hash_256;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsRemoteStakingP2SH());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
+                                  hash_160.begin(), hash_160.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),
+                                  hash_256.begin(), hash_256.end());
 }
 
 #if defined(HAVE_CONSENSUS_LIB)

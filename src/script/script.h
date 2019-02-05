@@ -433,7 +433,16 @@ private:
     int64_t m_value;
 };
 
-struct WitnessProgram;
+struct WitnessProgram
+{
+  int version;
+  std::vector<std::vector<unsigned char>> program;
+
+  bool IsPayToScriptHash() const;
+  bool IsPayToPubkeyHash() const;
+  bool IsRemoteStaking() const;
+  bool IsRemoteStakingP2SH() const;
+};
 
 /**
  * We use a prevector for the script to reduce the considerable memory overhead
@@ -745,16 +754,6 @@ public:
         CScriptBase::clear();
         shrink_to_fit();
     }
-};
-
-struct WitnessProgram
-{
-    int version;
-    std::vector<std::vector<unsigned char>> program;
-
-    bool IsPayToScriptHash() const;
-    bool IsPayToPubkeyHash() const;
-    bool IsRemoteStaking() const;
 };
 
 class CReserveScript
