@@ -11,6 +11,13 @@ import sys
 
 import platform
 
+import tempfile
+import glob
+
+from pathlib import Path
+
+OSSLSIGNCODE_VER = '1.7.1'
+OSSLSIGNCODE_DIR = 'osslsigncode-'+OSSLSIGNCODE_VER
 
 class Apt:
     """ Lazy apt wrapper """
@@ -38,7 +45,7 @@ class Apt:
             return
 
         if not self.try_to_install(*self.to_install):
-            print('Could not install packages.')
+            print('Could not install packages.', file=sys.stderr)
             exit(1)
         self.to_install = []
 
@@ -50,9 +57,59 @@ class Apt:
             if not self.is_installed(program):
                 self.to_install.append(program)
 
+def verify_user_specified_osslsigncode(user_spec_path):
+    if not Path(user_spec_path).is_file():
+        raise Exception('provided osslsign does not exists: {}'.format(user_spec_path))
+
+    try:
+        if subprocess.call([user_spec_path, '--version'], stderr=subprocess.DEVNULL) != 255:
+            raise Exception('cannot execute provided osslsigncode: {}'.format(user_spec_path))
+    except subprocess.CalledProcessError as e:
+        raise Exception('unexpected exception raised while executing provided osslsigncode: {}'.format(str(e)))
+
+    return Path(user_spec_path).resolve()
+
+def find_osslsigncode(user_spec_path):
+    if user_spec_path:
+        return verify_user_specified_osslsigncode(user_spec_path)
+
+    which_ossl_proc = subprocess.Popen(['which', 'osslsigncode'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    if which_ossl_proc.wait() == 0:
+        ossl_path = which_ossl_proc.communicate()[0].split()[0].decode()
+        if subprocess.call([ossl_path, '--version'], stderr=subprocess.DEVNULL) == 255:
+            return ossl_path
+
+    expected_path = Path(OSSLSIGNCODE_DIR, 'osslsigncode')
+    if expected_path.is_file(expected_path) and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
+        return expected_path.resolve()
+
+    return None
+
+def install_osslsigner():
+    subprocess.check_call(['wget', '-N', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'])
+    subprocess.check_call(['wget', '-N', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'])
+    subprocess.check_call(["echo 'a8c4e9cafba922f89de0df1f2152e7be286aba73f78505169bc351a7938dd911 osslsigncode-Backports-to-"+OSSLSIGNCODE_VER+".patch' | sha256sum -c"], shell=True)
+    subprocess.check_call(["echo 'f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9 osslsigncode-"+OSSLSIGNCODE_VER+".tar.gz' | sha256sum -c"], shell=True)
+    subprocess.check_call(['tar', '-xzf', 'osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'])
+    subprocess.check_call(['patch -p1 < ../osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], shell=True, cwd=OSSLSIGNCODE_DIR)
+    subprocess.check_call(['./configure', '--without-gsf', '--without-curl', '--disable-dependency-tracking'], cwd=OSSLSIGNCODE_DIR)
+    subprocess.check_call(['make'], cwd=OSSLSIGNCODE_DIR)
+    return Path(OSSLSIGNCODE_DIR, 'osslsigncode').resolve()
+
+
+def install_libssl_dev(apt):
+    dist_str = platform.dist()
+    dist_type = dist_str[0]
+    dist_no = dist_str[1].replace('.', '')
+    if dist_type == 'Ubuntu' and dist_no < 1800 or dist_type == 'Debian' and dist_no < 900:
+        apt.add_requirements('libssl-dev')
+    else:
+        apt.add_requirements('libssl1.0-dev')
+
+
 def install_linux_deps(args):
     apt = Apt(args.quiet)
-    apt.add_requirements('ruby', 'git', 'make', 'wget')
+    apt.add_requirements('ruby', 'git', 'make')
     if args.kvm:
         apt.add_requirements('apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils')
     elif args.docker:
@@ -63,7 +120,18 @@ def install_linux_deps(args):
     else:
         apt.add_requirements('apt-cacher-ng', 'lxc', 'debootstrap')
 
+    should_make_ossl = False
+    if args.codesign and args.windows:
+        args.osslsigncode_path = find_osslsigncode(args.osslsigncode_path)
+        if not args.osslsigncode_path:
+            should_make_ossl = True
+            apt.add_requirements('tar', 'wget', 'patch', 'autoconf')
+            install_libssl_dev(apt)
+
     apt.batch_install()
+
+    if should_make_ossl:
+        args.osslsigncode_path = install_osslsigner()
 
 def install_mac_deps(args):
     if not args.docker:
@@ -71,7 +139,6 @@ def install_mac_deps(args):
         exit(1)
 
     if subprocess.call(['docker', '--version']) != 0:
-        # TODO: check if it's enough (docker-machine?)
         if subprocess.call(['brew', 'install', 'docker']) != 0:
             print('Please install docker manually.', file=sys.stderr)
             exit(1)
@@ -89,33 +156,28 @@ def install_deps(args):
         exit(1)
 
 
-def setup(args, workdir):
+def setup(args):
     install_deps(args)
 
-    if not os.path.isdir('unit-e-sigs'):
+    if not Path('unit-e-sigs').is_dir():
         subprocess.check_call(['git', 'clone', 'git@github.com:dtr-org/unit-e-sigs.git'])
-    if not os.path.isdir('gitian-builder'):
+    if not Path('gitian-builder').is_dir():
         subprocess.check_call(['git', 'clone', 'https://github.com/devrandom/gitian-builder.git'])
-    if not os.path.isdir(args.git_dir):
+    if not Path(args.git_dir).is_dir():
         subprocess.check_call(['git', 'clone', args.url, args.git_dir])
-    os.chdir('gitian-builder')
     make_image_prog = ['bin/make-base-vm', '--suite', 'trusty', '--arch', 'amd64']
     if args.docker:
         make_image_prog += ['--docker']
     elif not args.kvm:
         make_image_prog += ['--lxc']
-    subprocess.check_call(make_image_prog)
-    os.chdir(workdir)
+    subprocess.check_call(make_image_prog, cwd='gitian-builder')
     if args.is_bionic and not args.kvm and not args.docker:
         subprocess.check_call(['sudo', 'sed', '-i', 's/lxcbr0/br0/', '/etc/default/lxc-net'])
         print('Reboot is required')
         exit(0)
 
-def prepare_gitian_descriptors(args):
-    os.makedirs('build')
-
-def gitian_descriptors(args, platform):
-    return '../' + args.git_dir + '/contrib/gitian-descriptors/gitian-' + platform + '.yml'
+def gitian_descriptors(args, platform_str):
+    return '../' + args.git_dir + '/contrib/gitian-descriptors/gitian-' + platform_str + '.yml'
 
 def build(args, workdir):
     os.makedirs('unit-e-binaries/' + args.version, exist_ok=True)
@@ -123,10 +185,6 @@ def build(args, workdir):
     os.chdir('gitian-builder')
     os.makedirs('inputs', exist_ok=True)
 
-    subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-1.7.1.tar.gz'])
-    subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-1.7.1.patch'])
-    subprocess.check_call(["echo 'a8c4e9cafba922f89de0df1f2152e7be286aba73f78505169bc351a7938dd911 inputs/osslsigncode-Backports-to-1.7.1.patch' | sha256sum -c"], shell=True)
-    subprocess.check_call(["echo 'f9a8cdb38b9c309326764ebc937cba1523a3a751a7ab05df3ecc99d18ae466c9 inputs/osslsigncode-1.7.1.tar.gz' | sha256sum -c"], shell=True)
     subprocess.check_call(['make', '-C', '../unit-e/depends', 'download', 'SOURCES_PATH=' + os.getcwd() + '/cache/common'])
 
     if args.linux:
@@ -160,33 +218,106 @@ def build(args, workdir):
         subprocess.check_call(['git', 'commit', '-m', 'Add '+args.version+' unsigned sigs for '+args.signer])
         os.chdir(workdir)
 
-def sign(args, workdir):
-    os.chdir('gitian-builder')
 
+def get_signatures_path(platform_str, version):
+    return Path('unit-e-sigs', version + '-detached', 'unite-'+platform_str+'-signatures.tar.gz').resolve()
+
+
+def codesign_windows(osslsign_path, version, win_code_cert_path, win_code_key_path):
+    gitian_dir = Path('gitian-builder').resolve()
+    signatures_tarball = get_signatures_path('win', version)
+    if signatures_tarball.is_file():
+        print('Signatures already present at:', signatures_tarball, '\nI cowardly refuse to continue', file=sys.stderr)
+        exit(1)
+
+    signatures_tarball.parent.mkdir(exist_ok=True)
+
+    print('\nSigning ' + version + ' Windows')
+    with tempfile.TemporaryDirectory() as build_dir:
+        subprocess.check_call(['cp', 'inputs/unite-' + version + '-win-unsigned.tar.gz', Path(build_dir, 'unite-win-unsigned.tar.gz')], cwd=gitian_dir)
+        subprocess.check_call(['tar', '-xzf', 'unite-win-unsigned.tar.gz'], cwd=build_dir)
+
+        for fp in Path(build_dir).glob('unsigned/*.exe'):
+            subprocess.check_call([osslsign_path, 'sign', '-certs', win_code_cert_path, '-in', fp, '-out', str(fp)+'-signed', '-key', win_code_key_path, '-askpass'])
+            subprocess.check_call([osslsign_path, 'extract-signature', '-pem', '-in', str(fp)+'-signed', '-out', str(fp)+'.pem'])
+
+        subprocess.check_call(['tar', '-czf', signatures_tarball, *[path.name for path in Path(build_dir, 'unsigned').glob('*.exe.pem')]], cwd=Path(build_dir, 'unsigned'))
+
+
+def codesign_osx(version, signer, git_dir):
+    gitian_dir = Path('gitian-builder').resolve()
+    if platform.system() != 'Darwin':
+        print('Codesigning MacOS binaries is only possible on a MacOS', file=sys.stderr)
+        exit(1)
+
+    signatures_tarball = get_signatures_path('osx', version)
+    if signatures_tarball.is_file():
+        print('Signatures already present at:', signatures_tarball, '\nI cowardly refuse to continue', file=sys.stderr)
+        exit(1)
+
+    with tempfile.TemporaryDirectory() as build_dir:
+        subprocess.check_call(['cp', 'inputs/unite-' + version + '-osx-unsigned.tar.gz', Path(build_dir, 'unite-osx-unsigned.tar.gz')], cwd=gitian_dir)
+        subprocess.check_call(['cp', Path(git_dir, 'contrib/macdeploy/detached-sig-create.sh'), build_dir])
+        subprocess.check_call(['tar', '-xzf', 'unite-osx-unsigned.tar.gz'], cwd=build_dir)
+        subprocess.check_call(['detached-sig-create.sh', '-s', signer], cwd=build_dir)
+        subprocess.check_call(['cp', 'signature-osx.tar.gz', signatures_tarball], cwd=build_dir)
+
+
+def codesign(args):
     if args.windows:
-        print('\nSigning ' + args.version + ' Windows')
-        subprocess.check_call('cp inputs/unite-' + args.version + '-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz', shell=True)
-        subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, gitian_descriptors(args, 'win-signer')])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'win-signer')])
-        subprocess.check_call('mv build/out/unite-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True)
-        subprocess.check_call('mv build/out/unite-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True)
+        codesign_windows(args.osslsigncode_path, args.version, args.win_code_cert_path, args.win_code_key_path)
 
     if args.macos:
-        print('\nSigning ' + args.version + ' MacOS')
-        subprocess.check_call('cp inputs/unite-' + args.version + '-osx-unsigned.tar.gz inputs/unite-osx-unsigned.tar.gz', shell=True)
-        subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature='+args.commit, gitian_descriptors(args, 'osx-signer')])
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'osx-signer')])
-        subprocess.check_call('mv build/out/unite-osx-signed.dmg ../unit-e-binaries/'+args.version+'/unite-'+args.version+'-osx.dmg', shell=True)
+        codesign_osx(args.version, args.signer, args.git_dir)
 
-    os.chdir(workdir)
+    if args.commit_files:
+        print('\nCommitting '+args.version+' Detached Sigs\n')
+        subprocess.check_call(['git', 'add', Path(args.version + '-detached', 'unite-win-signatures.tar.gz')], cwd='unit-e-sigs')
+        subprocess.check_call(['git', 'add', Path(args.version + '-detached', 'unite-osx-signatures.tar.gz')], cwd='unit-e-sigs')
+        subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' detached signatures by '+args.signer], cwd='unit-e-sigs')
+
+
+def sign(args):
+    gitian_dir = Path('gitian-builder').resolve()
+    sigs_dir = Path('unit-e-sigs').resolve()
+
+    if args.windows:
+        osslsign_path = args.osslsigncode_path
+        subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], cwd=gitian_dir)
+
+        signatures_tarball = get_signatures_path('win', args.version)
+        if not signatures_tarball.is_file():
+            print('Signatures not present at:', signatures_tarball, file=sys.stderr)
+            exit(1)
+
+        print('\nSigning ' + args.version + ' Windows')
+        subprocess.check_call(['cp', signatures_tarball, 'inputs/unite-win-signatures.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['cp', 'inputs/unite-' + args.version + '-win-unsigned.tar.gz', 'inputs/unite-win-unsigned.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature=master', gitian_descriptors(args, 'win-signer')], cwd=gitian_dir)
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'win-signer')], cwd=gitian_dir)
+        subprocess.check_call('mv build/out/unite-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
+        subprocess.check_call('mv build/out/unite-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
+
+    if args.macos:
+        signatures_tarball = get_signatures_path('osx', args.version)
+        if not signatures_tarball.is_file():
+            print('Signatures not present at:', signatures_tarball, file=sys.stderr)
+            exit(1)
+
+        print('\nSigning ' + args.version + ' MacOS')
+        subprocess.check_call(['cp', signatures_tarball, 'inputs/unite-osx-signatures.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['cp', Path('..', args.git_dir, 'contrib/macdeploy/detached-sig-apply.sh'), 'inputs/detached-sig-apply.sh'], cwd=gitian_dir)
+        subprocess.check_call(['cp inputs/unite-' + args.version + '-osx-unsigned.tar.gz', 'inputs/unite-osx-unsigned.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature=master', gitian_descriptors(args, 'osx-signer')], cwd=gitian_dir)
+        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'osx-signer')], cwd=gitian_dir)
+        subprocess.check_call('mv build/out/unite-osx-signed.dmg ../unit-e-binaries/'+args.version+'/unite-'+args.version+'-osx.dmg', shell=True, cwd=gitian_dir)
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Signed Sigs\n')
-        os.chdir('unit-e-sigs')
-        subprocess.check_call(['git', 'add', args.version+'-win-signed/'+args.signer])
-        subprocess.check_call(['git', 'add', args.version+'-osx-signed/'+args.signer])
-        subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' signed binary sigs for '+args.signer])
-        os.chdir(workdir)
+        subprocess.check_call(['git', 'add', args.version+'-win-signed/'+args.signer], cwd='unit-e-sigs')
+        subprocess.check_call(['git', 'add', args.version+'-osx-signed/'+args.signer], cwd='unit-e-sigs')
+        subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' signed binary sigs for '+args.signer], cwd='unit-e-sigs')
 
 def verify(args, workdir):
     os.chdir('gitian-builder')
@@ -225,6 +356,7 @@ def main():
     parser.add_argument('-g', '--git-dir', dest='git_dir', default='unit-e', help='Specify the name of the directory where the unit-e git repo is checked out')
     parser.add_argument('-v', '--verify', action='store_true', dest='verify', help='Verify the Gitian build')
     parser.add_argument('-b', '--build', action='store_true', dest='build', help='Do a Gitian build')
+    parser.add_argument('-C', '--codesign', action='store_true', dest='codesign', help='Make detached signatures for Windows and MacOS')
     parser.add_argument('-s', '--sign', action='store_true', dest='sign', help='Make signed binaries for Windows and MacOS')
     parser.add_argument('-B', '--buildsign', action='store_true', dest='buildsign', help='Build both signed and unsigned binaries')
     parser.add_argument('-o', '--os', dest='os', default='lwm', help='Specify which Operating Systems the build is for. Default is %(default)s. l for Linux, w for Windows, m for MacOS')
@@ -236,6 +368,9 @@ def main():
     parser.add_argument('-D', '--detach-sign', action='store_true', dest='detach_sign', help='Create the assert file for detached signing. Will not commit anything.')
     parser.add_argument('-n', '--no-commit', action='store_false', dest='commit_files', help='Do not commit anything to git')
     parser.add_argument('-q', '--quiet', action='store_true', dest='quiet', help='Do not prompt user for confirmations')
+    parser.add_argument('--osslsign', dest='osslsigncode_path', help='Path to osslsigncode executable.')
+    parser.add_argument('--win-code-cert', dest='win_code_cert_path', help='Path to code signing certificate.')
+    parser.add_argument('--win-code-key', dest='win_code_key_path', help='Path to key corresponding to code signing certificate.')
     parser.add_argument('--signer', dest='signer', help='GPG signer to sign each build assert file. Required to build, sign or verify')
     parser.add_argument('--version', dest='version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
 
@@ -272,17 +407,17 @@ def main():
             os.environ['LXC_GUEST_IP'] = '10.0.3.5'
 
     # Disable for MacOS if no SDK found
-    if args.macos and not os.path.isfile('gitian-builder/inputs/MacOSX10.11.sdk.tar.gz'):
+    if args.macos and not Path('gitian-builder/inputs/MacOSX10.11.sdk.tar.gz').is_file():
         print('Cannot build for MacOS, SDK does not exist. Will build for other OSes')
         args.macos = False
 
     if args.setup:
-        setup(args, workdir)
+        setup(args)
 
-    if not args.build and not args.sign and not args.verify:
+    if not args.build and not args.sign and not args.verify and not args.codesign:
         return
 
-    script_name = os.path.basename(sys.argv[0])
+    script_name = Path(sys.argv[0]).name
 
     # Signer and version shouldn't be empty
     if not args.signer:
@@ -295,18 +430,39 @@ def main():
         print('Try '+script_name+' --help for more information')
         exit(1)
 
+    # Check that path to osslsigncode executable is known
+    if args.windows and args.codesign:
+        if not args.setup:
+            args.osslsigncode_path = find_osslsigncode(args.osslsigncode_path)
+
+        if not args.osslsigncode_path:
+            print('Cannot find osslsigncode. Please provide it with --osslsign or run --setup to make it.', file=sys.stderr)
+            exit(1)
+
+        if not args.win_code_cert_path or not Path(args.win_code_cert_path).is_file():
+            print('Please provide code signing certificate path (--code-cert)', file=sys.stderr)
+            exit(1)
+
+        if not args.win_code_key_path or not Path(args.win_code_key_path).is_file():
+            print('Please provide code signing key path (--code-key)', file=sys.stderr)
+            exit(1)
+
+
     # Add leading 'v' for tags
     if args.commit and args.pull:
         raise Exception('Cannot have both commit and pull')
     args.commit = ('' if args.commit else 'v') + args.version
 
-    prepare_git_dir(args)
+    prepare_git_dir(args, workdir)
 
     if args.build:
         build(args, workdir)
 
+    if args.codesign:
+        codesign(args)
+
     if args.sign:
-        sign(args, workdir)
+        sign(args)
 
     if args.verify:
         verify(args, workdir)
