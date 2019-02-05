@@ -75,7 +75,6 @@ ReducedTestingSetup::ReducedTestingSetup(const std::string& chainName)
 
 ReducedTestingSetup::~ReducedTestingSetup()
 {
-  UnitEInjector::Destroy();
   ECC_Stop();
   snapshot::DestroySecp256k1Context();
 }
