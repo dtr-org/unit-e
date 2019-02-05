@@ -74,8 +74,8 @@ void Deinitialize() {
   }
   DestroySecp256k1Context();
   Creator::Deinit();
-  SaveSnapshotIndex();
   DeinitP2P();
+  SaveSnapshotIndex();
 }
 
 }  // namespace snapshot
