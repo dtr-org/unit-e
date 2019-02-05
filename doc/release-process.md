@@ -55,6 +55,8 @@ Build output expected:
   4. OS X unsigned installer and dist tarball (`unite-${VERSION}-osx-unsigned.dmg`, `unite-${VERSION}-osx64.tar.gz`)
   5. Gitian signatures (in `unit-e-sigs/${VERSION}-<linux|{win,osx}-unsigned>/(your Gitian key)/`)
 
+The changes will be automatically commited. Push your signatures to the repository.
+
 ### Optional: Seed the Gitian sources cache and offline git repositories
 
 By default, Gitian will fetch source files as needed. To cache them ahead of time:
@@ -76,29 +78,21 @@ Add other unit-e Gitian builders' keys to your gpg keyring, and/or refresh keys:
 
 Run the build script with "--verify" flag
 
-### Next steps:
+### Create Windows/OS X detached signatures
 
-Commit your signature to unit-e-sigs:
+This is only to be done by the codesigner.
+NOTE: Codesigning OS X binary is only possible on a Mac OS.
 
-    pushd unit-e-sigs
-    git add ${VERSION}-linux/${SIGNER}
-    git add ${VERSION}-win-unsigned/${SIGNER}
-    git add ${VERSION}-osx-unsigned/${SIGNER}
-    git commit -a
-    git push  # Assuming you can push to the unit-e-sigs tree
-    popd
-
-Codesigner only: Create Windows/OS X detached signatures:
 - Only one person handles codesigning. Everyone else should skip to the next step.
 - Only once the Windows/OS X builds each have 3 matching signatures may they be signed with their respective release keys.
 
 	./unit-e/contrib/gitian-build.py [--setup] [--build] --codesign -o [w|m] --signer <signer> --version <version> [--win-code-cert unit-e/contrib/windeploy/win-codesign.cert --win-code-key <path to corresponding key>]
-	The signatures will be created in unit-e-sigs/<version>-detached.
 
-NOTE: Codesigning OS X binary is only possible on a Mac OS.
+The signatures will be commited in `unit-e-sigs/<version>-detached`. Push them to the repository.
 
-Non-codesigners: wait for Windows/OS X detached signatures:
+### Create signed Windows/OS X binaries
 
+Wait for Windows/OS X detached signatures:
 - Once the Windows/OS X builds each have 3 matching signatures, they will be signed with their respective release keys.
 - Detached signatures will then be committed to the [unit-e-sigs](https://github.com/unite-core/unit-e-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
 
@@ -106,9 +100,9 @@ Create the signed Windows/OS X binary
 
 	./unit-e/contrib/gitian-build.py [--setup] [--build] --sign -o [w|m] --signer <signer> --version <version>
 
-The signatures for signed build will be created in unit-e-sigs/<version>-[win|osx]-signed/<signer>
-
 Verify the signed binaries by running the build script with "--verify".
+
+The signatures for signed builds will be commited in `unit-e-sigs/<version>-[win|osx]-signed/<signer>`. Push them to the repository.
 
 ### After 3 or more people have gitian-built and their results match:
 
