@@ -12,6 +12,8 @@ import os
 
 from pathlib import Path
 
+from subprocess import CalledProcessError
+
 gitian_build = __import__('gitian-build')
 
 class Log:
@@ -175,10 +177,19 @@ def test_sign(mocker):
 def test_verify(mocker):
     log = Log("test_verify")
 
-    mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
 
-    gitian_build.verify(create_args(mocker), "someworkdir")
+    mocker.patch("pathlib.Path.is_dir", return_value=True)
+    gitian_build.verify(create_args(mocker))
+
+    mocker.patch("subprocess.check_call", side_effect=CalledProcessError(1, 'gverify'))
+    with raises(Exception) as e:
+        gitian_build.verify(create_args(mocker))
+    assert('Command \'gverify\' returned non-zero exit status 1.' in str(e))
+
+    mocker.patch("pathlib.Path.is_dir", return_value=False)
+    with raises(SystemExit):
+        gitian_build.verify(create_args(mocker))
 
     log.check()
 
@@ -228,8 +239,6 @@ def test_apt_wrapper(mocker):
     log.check()
 
 def test_verify_user_specified_osslsigncode(mocker):
-    from subprocess import CalledProcessError
-
     mocker.patch("pathlib.Path.is_file", return_value=False)
     with raises(Exception) as e:
         gitian_build.verify_user_specified_osslsigncode('ossl_path')
