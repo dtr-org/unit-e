@@ -4,7 +4,10 @@
 #
 # Run tests with `pytest`, requires `pytest-mock` to be installed.
 
+
 from unittest.mock import call
+from pytest import raises
+
 import os
 
 from pathlib import Path
@@ -102,6 +105,9 @@ def test_codesign(mocker):
         def __exit__(self, *args):
             pass
 
+    original_get_signatures_path = gitian_build.get_signatures_path
+    gitian_build.get_signatures_path = lambda platform_str, ver: Path("version-platform-sigs-path")
+
     mocker.patch("platform.system", return_value='Darwin')
     mocker.patch("pathlib.Path.mkdir")
     # glob has to return a generator, so ['...', '...'] is not enough
@@ -117,6 +123,7 @@ def test_codesign(mocker):
     gitian_build.codesign(args)
 
     log.check()
+    gitian_build.get_signatures_path = original_get_signatures_path
 
 def test_sign(mocker):
     log = Log("test_sign")
@@ -144,13 +151,9 @@ def test_sign(mocker):
     original_get_signatures_path = gitian_build.get_signatures_path
     gitian_build.get_signatures_path = lambda platform_str, ver: Path("version-platform-sigs-path")
 
-    try:
+    with raises(SystemExit):
         # Should not find signatures and exit
         gitian_build.sign(args)
-        assert(False)
-    except SystemExit as e:
-        pass
-
 
     mocker.patch("pathlib.Path.is_file", return_value=True)
 
@@ -162,12 +165,9 @@ def test_sign(mocker):
     original_get_signatures_path = gitian_build.get_signatures_path
     gitian_build.get_signatures_path = lambda platform_str, ver: Path("version-platform-sigs-path")
 
-    try:
+    with raises(SystemExit):
         # Should not find signatures and exit
         gitian_build.sign(args)
-        assert(False)
-    except SystemExit as e:
-        pass
 
     log.check()
     gitian_build.get_signatures_path = original_get_signatures_path
@@ -227,8 +227,29 @@ def test_apt_wrapper(mocker):
 
     log.check()
 
-def test_find_osslsigncode(mocker):
+def test_verify_user_specified_osslsigncode(mocker):
+    from subprocess import CalledProcessError
 
+    mocker.patch("pathlib.Path.is_file", return_value=False)
+    with raises(Exception) as e:
+        gitian_build.verify_user_specified_osslsigncode('ossl_path')
+    assert('provided osslsign does not exists: ossl_path' in str(e))
+
+    mocker.patch("pathlib.Path.is_file", return_value=True)
+    mocker.patch("subprocess.call", return_value=1)
+    with raises(Exception) as e:
+        gitian_build.verify_user_specified_osslsigncode('ossl_path')
+    assert('cannot execute provided osslsigncode: ossl_path' in str(e))
+
+    mocker.patch("subprocess.call", side_effect=CalledProcessError(1, 'some cmd'))
+    with raises(Exception) as e:
+        gitian_build.verify_user_specified_osslsigncode('ossl_path')
+    assert('unexpected exception raised while executing provided osslsigncode: Command \'some cmd\' returned non-zero exit status 1.' in str(e))
+
+    mocker.patch("subprocess.call", return_value=255)
+    assert(gitian_build.verify_user_specified_osslsigncode('ossl_path') == Path('ossl_path').resolve())
+
+def test_find_osslsigncode(mocker):
     class which_mock:
         def __init__(self, rc, rp=''):
             self.rc = rc
@@ -237,7 +258,6 @@ def test_find_osslsigncode(mocker):
             return self.rc
         def communicate(self):
             return (self.rp.encode()+b'\n', b'')
-
 
     mocker.patch("subprocess.Popen", return_value=which_mock(1))
     mocker.patch("subprocess.call", return_value=255)
@@ -248,7 +268,7 @@ def test_find_osslsigncode(mocker):
 
     # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode
     mocker.patch("pathlib.Path.is_file", return_value=True)
-    assert(Path('osslsigncode-1.7.1/osslsigncode').resolve() == original_find_osslsigncode(""))
+    assert(original_find_osslsigncode("") == Path('osslsigncode-1.7.1/osslsigncode').resolve())
 
 
     mocker.patch("subprocess.call", return_value=1)
@@ -261,33 +281,8 @@ def test_find_osslsigncode(mocker):
     mocker.patch("pathlib.Path.is_file", return_value=True)
     assert(original_find_osslsigncode("") is None)
 
-    # Tests user specified path
-    # user-specified path does not return 255 on --version
-    mocker.patch("pathlib.Path.is_file", return_value=False)
-    try:
-        original_find_osslsigncode("somepath")
-        assert(False)
-    except SystemExit as e:
-        pass
 
-    # user-specified path does not return 255 on --version
-    mocker.patch("pathlib.Path.is_file", return_value=True)
-    try:
-        original_find_osslsigncode("somepath")
-        assert(False)
-    except SystemExit as e:
-        pass
-
-    # Should return the path passed in
+    # Test that user specified path will be properly returned (sanity test)
     mocker.patch("pathlib.Path.is_file", return_value=True)
     mocker.patch("subprocess.call", return_value=255)
-    assert(os.path.basename(original_find_osslsigncode("somepath")) == "somepath")
-
-    # check which () output
-    mocker.patch("subprocess.Popen", return_value=which_mock(0, '/someosslpath'))
-    assert(original_find_osslsigncode("") == '/someosslpath')
-
-    mocker.patch("subprocess.call", return_value=1)
-    mocker.patch("subprocess.Popen", return_value=which_mock(0, '/someosslpath'))
-    assert(original_find_osslsigncode("") is None)
-
+    assert(gitian_build.verify_user_specified_osslsigncode('ossl_path') == Path('ossl_path').resolve())

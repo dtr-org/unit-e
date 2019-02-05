@@ -57,19 +57,21 @@ class Apt:
             if not self.is_installed(program):
                 self.to_install.append(program)
 
+def verify_user_specified_osslsigncode(user_spec_path):
+    if not Path(user_spec_path).is_file():
+        raise Exception('provided osslsign does not exists: {}'.format(user_spec_path))
+
+    try:
+        if subprocess.call([user_spec_path, '--version'], stderr=subprocess.DEVNULL) != 255:
+            raise Exception('cannot execute provided osslsigncode: {}'.format(user_spec_path))
+    except subprocess.CalledProcessError as e:
+        raise Exception('unexpected exception raised while executing provided osslsigncode: {}'.format(str(e)))
+
+    return Path(user_spec_path).resolve()
+
 def find_osslsigncode(user_spec_path):
     if user_spec_path:
-        if not Path(user_spec_path).is_file():
-            print('osslsign does not exists:', user_spec_path, file=sys.stderr)
-            exit(1)
-        try:
-            if subprocess.call([user_spec_path, '--version'], stderr=subprocess.DEVNULL) == 255:
-                return Path(user_spec_path).resolve()
-            print('cannot execute provided osslsigncode:', user_spec_path, file=sys.stderr)
-            exit(1)
-        except Exception as e:
-            print('cannot execute provided osslsigncode, reason was:', e, file=sys.stderr)
-            exit(1)
+        return verify_user_specified_osslsigncode(user_spec_path)
 
     which_ossl_proc = subprocess.Popen(['which', 'osslsigncode'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     if which_ossl_proc.wait() == 0:
@@ -255,8 +257,9 @@ def codesign_osx(version, signer):
 
     with tempfile.TemporaryDirectory() as build_dir:
         subprocess.check_call(['cp', 'inputs/unite-' + version + '-osx-unsigned.tar.gz', Path(build_dir, 'unite-osx-unsigned.tar.gz')], cwd=gitian_dir)
+        subprocess.check_call(['cp', 'unit-e/contrib/macdeploy/detached-sig-create.sh', build_dir])
         subprocess.check_call(['tar', '-xzf', 'unite-osx-unsigned.tar.gz'], cwd=build_dir)
-        subprocess.check_call([Path('unit-e/contrib/macdeploy/detached-sig-create.sh').resolve(), '-s', signer], cwd=build_dir)
+        subprocess.check_call(['detached-sig-create.sh', '-s', signer], cwd=build_dir)
         subprocess.check_call(['cp', 'signature-osx.tar.gz', signatures_tarball], cwd=build_dir)
 
 
