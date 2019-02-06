@@ -43,7 +43,7 @@ NOTE: Offline builds must use the `--url` flag to ensure Gitian fetches only fro
 
 It is not possible to specify the path to local signatures repository.
 
-### Verify other gitian builders signatures to your own. (Optional)
+### Verify other gitian builders signatures to your own.
 
 Add other unit-e Gitian builders' keys to your gpg keyring, and/or refresh keys: See `../unit-e/contrib/gitian-keys/README.md`.
 
@@ -71,6 +71,4 @@ Create the signed Windows/OS X binary
 
 	./unit-e/contrib/gitian-build.py [--setup] [--build] --sign [--verify] [--os wm] --signer <signer> --version <version>
 
-Verify the signed binaries by running the build script with `--verify` if you did not provide the flag on signing.
-
-The signatures for signed builds will be commited in `unit-e-sigs/<version>-[win|osx]-signed/<signer>`. Push them to the repository.
+The signatures for signed builds will be commited in `unit-e-sigs/<version>-[win|osx]-signed/<signer>`. Verify the signed binaries and push the signatures to the repository.
