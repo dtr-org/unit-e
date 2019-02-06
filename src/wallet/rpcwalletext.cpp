@@ -294,7 +294,7 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
   if (checkFeeOnly) {
     UniValue result(UniValue::VOBJ);
     result.pushKV("fee", ValueFromAmount(feeRet));
-    result.pushKV("bytes", (int)GetVirtualTransactionSize(*(wtx.tx)));
+    result.pushKV("bytes", GetVirtualTransactionSize(*(wtx.tx)));
 
     if (showHex) {
       std::string strHex = EncodeHexTx(*(wtx.tx), RPCSerializationFlags());
@@ -410,7 +410,7 @@ static UniValue stakeat(const JSONRPCRequest &request) {
   if (test_fee) {
     UniValue result(UniValue::VOBJ);
     result.pushKV("fee", ValueFromAmount(tx_fee));
-    result.pushKV("bytes", (int)GetVirtualTransactionSize(*(wtx.tx)));
+    result.pushKV("bytes", GetVirtualTransactionSize(*(wtx.tx)));
 
     return result;
   }
@@ -832,7 +832,7 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
   if (collate) {
     UniValue retObj(UniValue::VOBJ);
     UniValue stats(UniValue::VOBJ);
-    stats.pushKV("records", (int)result.size());
+    stats.pushKV("records", result.size());
     stats.pushKV("total_amount", ValueFromAmount(totalAmount));
     retObj.pushKV("tx", result);
     retObj.pushKV("collated", stats);
