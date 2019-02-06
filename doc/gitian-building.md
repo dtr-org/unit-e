@@ -5,7 +5,7 @@ Gitian building
 
 If you are using Ubuntu, Debian or MacOS, running the `gitian-build.py` with `--setup` flag should be enough. If you are having problems or if you are using different operating system, see [the gitian guide](https://github.com/dtr-org/unit-e-docs/blob/master/gitian-building.md).
 
-### Build and sign Unit-e Core for Linux, Windows, and OS X:
+### Build and sign unit-e for Linux, Windows, and OS X:
 
 Run the automated script found in [contrib/gitian-build.py](/contrib/gitian-build.py) from your top level build directory:
 
