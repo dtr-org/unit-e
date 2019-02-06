@@ -5,6 +5,7 @@
 
 from test_framework.blocktools import *
 from test_framework.util import *
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import CTransaction
 from test_framework.admin import Admin
@@ -76,10 +77,8 @@ class EsperanzaSlashTest(UnitETestFramework):
         # wait_for_verack ensures that the P2P connection is fully up.
         proposer.p2p.wait_for_verack()
 
-        proposer.importmasterkey(
-            'swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready')
-        validator.importmasterkey(
-            'chef gas expect never jump rebel huge rabbit venue nature dwarf pact below surprise foam magnet science sister shrimp blanket example okay office ugly')
+        proposer.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        validator.importmasterkey(regtest_mnemonics[1]['mnemonics'])
 
         assert (validator.getbalance() == 10000)
 

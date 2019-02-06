@@ -6,6 +6,7 @@
 from test_framework.util import (assert_equal, Decimal, hex_str_to_bytes,
                                  bytes_to_hex_str)
 from test_framework.messages import CTransaction, msg_witness_tx
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin, AdminCommandType, ADMIN_TX_TYPE
 from test_framework.mininode import P2PInterface, network_thread_start
@@ -115,10 +116,7 @@ class AdminValidation(UnitETestFramework):
         self.admin.add_p2p_connection(self.reject_tracker)
         network_thread_start()
 
-        self.admin.importmasterkey(
-            'swap fog boost power mountain pair gallery crush price fiscal '
-            'thing supreme chimney drastic grab acquire any cube cereal '
-            'another jump what drastic ready')
+        self.admin.importmasterkey(regtest_mnemonics[0]['mnemonics'])
 
         assert_equal(10000, self.admin.getbalance())
 

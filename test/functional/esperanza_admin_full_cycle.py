@@ -3,9 +3,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+from test_framework.regtest_mnemonics import regtest_mnemonics
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (json, connect_nodes_bi, assert_equal,
                                  assert_raises_rpc_error)
-from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
 
 MIN_DEPOSIT_SIZE = 1000
@@ -115,24 +116,8 @@ class AdminFullCycle(UnitETestFramework):
                 connect_nodes_bi(self.nodes, i, j)
 
     def run_test(self):
-        self.nodes[0].importmasterkey(
-            'swap fog boost power mountain pair gallery crush price fiscal '
-            'thing supreme chimney drastic grab acquire any cube cereal '
-            'another jump what drastic ready')
-        self.nodes[1].importmasterkey(
-            'chef gas expect never jump rebel huge rabbit venue nature dwarf '
-            'pact below surprise foam magnet science sister shrimp blanket '
-            'example okay office ugly')
-        self.nodes[2].importmasterkey(
-            'narrow horror cheap tape language turn smart arch grow tired '
-            'crazy squirrel sun pumpkin much panic scissors math pass tribe '
-            'limb myself bone hat')
-        self.nodes[3].importmasterkey(
-            'soon empty next roof proof scorpion treat bar try noble denial '
-            'army shoulder foam doctor right shiver reunion hub horror push '
-            'theme language fade')
-
-        for node in self.nodes:
+        for i, node in enumerate(self.nodes):
+            node.importmasterkey(regtest_mnemonics[i]['mnemonics'])
             assert_equal(10000, node.getbalance())
 
         # Exit IBD

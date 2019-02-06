@@ -10,14 +10,11 @@ from test_framework.util import JSONRPCException
 from test_framework.util import connect_nodes_bi
 from test_framework.util import disconnect_nodes
 from test_framework.util import wait_until
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
 
 block_time = 1
-master_keys = ['swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready',
-               'chef gas expect never jump rebel huge rabbit venue nature dwarf pact below surprise foam magnet science sister shrimp blanket example okay office ugly',
-               'narrow horror cheap tape language turn smart arch grow tired crazy squirrel sun pumpkin much panic scissors math pass tribe limb myself bone hat',
-               'soon empty next roof proof scorpion treat bar try noble denial army shoulder foam doctor right shiver reunion hub horror push theme language fade']
 
 
 def test_setup(test, proposers, validators):
@@ -62,9 +59,8 @@ def test_setup(test, proposers, validators):
 
 def setup_deposit(self, nodes):
 
-    i = 0
-    for n in nodes:
-        n.importmasterkey(master_keys[i])
+    for i, n in enumerate(nodes):
+        n.importmasterkey(regtest_mnemonics[i]['mnemonics'])
         n.new_address = n.getnewaddress("", "legacy")
 
         assert_equal(n.getbalance(), 10000)
