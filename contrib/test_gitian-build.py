@@ -130,14 +130,6 @@ def test_codesign(mocker):
 def test_sign(mocker):
     log = Log("test_sign")
 
-    class TemporaryDirectoryMock():
-        def __init__(self, dirname):
-            self.dirname = dirname
-        def __enter__(self):
-            return self.dirname
-        def __exit__(self, *args):
-            pass
-
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("pathlib.Path.is_file", return_value=True)
     original_get_signatures_path = gitian_build.get_signatures_path
