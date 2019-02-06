@@ -236,7 +236,7 @@ class LTORTest(UnitETestFramework):
         if len(self.spendable_outputs) > 0:
             block_time = self.spendable_outputs[-1].nTime + 1
         else:
-            block_time = int(time_time()) + 16
+            block_time = int(time_time()) + 2
 
         block = create_block(
             hashprev=hashprev,
