@@ -1467,6 +1467,29 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
         } else {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
+    } else if (witnessProgram.version == 2) {
+        if (witnessProgram.IsRemoteStakingP2SH()) {
+            if (checker.GetTxType() == +TxType::COINBASE) {
+                if (witness.stack.size() != 2) {
+                    return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+                }
+                scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.program[0] << OP_EQUALVERIFY << OP_CHECKSIG;
+                stack = witness.stack;
+            } else {
+                if (witness.stack.size() == 0) {
+                    return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY);
+                }
+                scriptPubKey = CScript(witness.stack.back().begin(), witness.stack.back().end());
+                stack = std::vector<std::vector<unsigned char>>(witness.stack.begin(), witness.stack.end() - 1);
+                uint256 hashScriptPubKey;
+                CSHA256().Write(&scriptPubKey[0], scriptPubKey.size()).Finalize(hashScriptPubKey.begin());
+                if (memcmp(hashScriptPubKey.begin(), witnessProgram.program[1].data(), 32) != 0) {
+                    return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+                }
+            }
+        } else {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
+        }
     } else if (flags & SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM) {
         return set_error(serror, SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM);
     } else {
