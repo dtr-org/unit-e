@@ -365,7 +365,7 @@ def prepare_git_dir(args, workdir):
 def prepare_gitian_descriptors(*, source, target, hosts=None):
     descriptor_source_dir = Path(source)
     descriptor_dir = Path(target)
-    if not descriptor_source_dir.exists():
+    if not descriptor_source_dir.is_dir():
         raise Exception("Gitian descriptor dir '%s' does not exist" % descriptor_source_dir)
     descriptor_dir.mkdir(parents=True, exist_ok=True)
     for descriptor_path in descriptor_source_dir.glob("*.yml"):
