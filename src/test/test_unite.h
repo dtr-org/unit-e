@@ -62,7 +62,7 @@ struct ReducedTestingSetup {
 /** Basic testing setup.
  * This just configures logging and chain parameters.
  */
-struct BasicTestingSetup {
+struct BasicTestingSetup : public ReducedTestingSetup {
     ECCVerifyHandle globalVerifyHandle;
 
     explicit BasicTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);

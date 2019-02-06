@@ -58,13 +58,10 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
         continue;
       }
       const CTxOut &coin = coins[outix];
-      if (m_enclosing_wallet.GetCredit(coin, ISMINE_SPENDABLE) <= 0) {
+      if (!IsStakeableByMe(m_enclosing_wallet, coin.scriptPubKey) || coin.nValue <= 0) {
         continue;
       }
-      // UNIT-E TODO: Restrict to P2WPKH only once #212 is merged (fixes #48)
-      if (!coin.scriptPubKey.IsPayToWitnessScriptHash() && !coin.scriptPubKey.IsPayToPublicKeyHash()) {
-        continue;
-      }
+
       f(tx, std::uint32_t(outix), depth);
     }
   }
@@ -89,7 +86,11 @@ CAmount WalletExtension::GetStakeableBalance() const {
 std::vector<staking::Coin> WalletExtension::GetStakeableCoins() const {
   std::vector<staking::Coin> coins;
   ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
-    coins.emplace_back(staking::Coin{tx->tx->GetHash(), outIx, tx->tx->vout[outIx].nValue, depth});
+    coins.emplace_back(staking::Coin{tx->tx->GetHash(),
+                                     outIx,
+                                     tx->tx->vout[outIx].nValue,
+                                     tx->tx->vout[outIx].scriptPubKey,
+                                     depth});
   });
   return coins;
 }

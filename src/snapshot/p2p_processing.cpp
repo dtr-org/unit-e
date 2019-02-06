@@ -595,10 +595,12 @@ void P2PState::DeleteUnlinkedSnapshot() {
   // as it will be unlinked and be never deleted
   uint256 finalized_hash;
   GetLatestFinalizedSnapshotHash(finalized_hash);
-  if (m_downloading_snapshot.snapshot_hash != LoadCandidateBlockHash() &&
+  if (m_downloading_snapshot.block_hash != LoadCandidateBlockHash() &&
       m_downloading_snapshot.snapshot_hash != finalized_hash) {
     LOCK(cs_snapshot);
-    Indexer::Delete(m_downloading_snapshot.snapshot_hash);
+    SnapshotIndex::DeleteSnapshot(m_downloading_snapshot.snapshot_hash);
+    LogPrint(BCLog::SNAPSHOT, "downloaded snapshot %s is deleted\n",
+             m_downloading_snapshot.snapshot_hash.GetHex());
   }
 }
 

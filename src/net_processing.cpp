@@ -3546,12 +3546,19 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
             }
 
             // Determine transactions to relay
-            if (fSendTrickle) {
+            {
                 // Produce a vector with all candidates for sending
                 std::vector<std::set<uint256>::iterator> vInvTx;
                 vInvTx.reserve(pto->setInventoryTxToSend.size());
                 for (std::set<uint256>::iterator it = pto->setInventoryTxToSend.begin(); it != pto->setInventoryTxToSend.end(); it++) {
-                    vInvTx.push_back(it);
+                    bool send = fSendTrickle;
+                    if (!send) {
+                        CTransactionRef tx = mempool.get(*it);
+                        send = tx && tx->IsFinalizationTransaction();
+                    }
+                    if (send) {
+                        vInvTx.push_back(it);
+                    }
                 }
                 CAmount filterrate = 0;
                 {

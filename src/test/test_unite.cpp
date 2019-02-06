@@ -10,6 +10,7 @@
 #include <crypto/sha256.h>
 #include <esperanza/finalizationstate.h>
 #include <finalization/vote_recorder.h>
+#include <injector.h>
 #include <validation.h>
 #include <miner.h>
 #include <net_processing.h>
@@ -78,22 +79,11 @@ ReducedTestingSetup::~ReducedTestingSetup()
   snapshot::DestroySecp256k1Context();
 }
 
-BasicTestingSetup::BasicTestingSetup(const std::string& chainName)
+BasicTestingSetup::BasicTestingSetup(const std::string& chainName) : ReducedTestingSetup(chainName)
 {
-        SHA256AutoDetect();
-        RandomInit();
-        ECC_Start();
-        assert(snapshot::InitSecp256k1Context());
-        snapshot::SnapshotIndex::Clear();
-        SetupEnvironment();
-        SetupNetworking();
-        InitSignatureCache();
-        InitScriptExecutionCache();
-        fPrintToDebugLog = false; // don't want to write to debug.log file
-        fCheckBlockIndex = true;
         blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(chainName.c_str())));
+        UnitEInjector::Init();
         SelectParams(chainName);
-        noui_connect();
 }
 
 fs::path BasicTestingSetup::SetDataDir(const std::string& name)
@@ -106,8 +96,7 @@ fs::path BasicTestingSetup::SetDataDir(const std::string& name)
 
 BasicTestingSetup::~BasicTestingSetup()
 {
-        ECC_Stop();
-        snapshot::DestroySecp256k1Context();
+        UnitEInjector::Destroy();
 }
 
 TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(chainName)

@@ -7,10 +7,12 @@ architectures:
 packages:
 - "faketime"
 remotes:
-- "url": "https://github.com/unite-core/unite-detached-sigs.git"
+- "url": "git@github.com:dtr-org/unit-e-sigs.git"
   "dir": "signature"
 files:
+- "detached-sig-apply.sh"
 - "unite-osx-unsigned.tar.gz"
+- "unite-osx-signatures.tar.gz"
 script: |
   WRAP_DIR=$HOME/wrapped
   mkdir -p ${WRAP_DIR}
@@ -31,6 +33,8 @@ script: |
   SIGNED=unite-osx-signed.dmg
 
   tar -xf ${UNSIGNED}
+  tar -xf unite-osx-signatures.tar.gz
+
   OSX_VOLNAME="$(cat osx_volname)"
   ./detached-sig-apply.sh ${UNSIGNED} signature/osx
   ${WRAP_DIR}/genisoimage -no-cache-inodes -D -l -probe -V "${OSX_VOLNAME}" -no-pad -r -dir-mode 0755 -apple -o uncompressed.dmg signed-app

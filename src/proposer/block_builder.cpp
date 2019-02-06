@@ -8,6 +8,8 @@
 #include <key.h>
 #include <pubkey.h>
 
+#include <numeric>
+
 #define Log(MSG) LogPrint(BCLog::PROPOSING, "%s: " MSG "\n", __func__)
 
 namespace proposer {
@@ -103,22 +105,31 @@ class BlockBuilderImpl : public BlockBuilder {
       tx.vin.emplace_back(coin.txid, coin.index);
     }
 
-    // destination to send stake + reward to
-    const CPubKey pub_key;
-    const CTxDestination destination = WitnessV0KeyHash(pub_key.GetID());
-    const CScript script_pub_key = GetScriptForDestination(destination);
+    const CAmount reward = fees + eligible_coin.reward;
+    const CAmount spend = m_settings->reward_destination ? combined_total : (combined_total + reward);
 
-    // add outputs
-    const CAmount spend = combined_total + eligible_coin.reward + fees;
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && spend > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(spend, threshold);
       for (const CAmount amount : pieces) {
-        tx.vout.emplace_back(amount, script_pub_key);
+        tx.vout.emplace_back(amount, eligible_coin.utxo.script_pubkey);
       }
     } else {
-      tx.vout.emplace_back(spend, script_pub_key);
+      tx.vout.emplace_back(spend, eligible_coin.utxo.script_pubkey);
     }
+
+    // Send fees and block reward to the reward_address set, if one is
+    // configured. If an empty block is proposed and there's no block reward
+    // (which happens after the finite supply limit is reached)
+    // then there is no reward at all.
+    if (m_settings->reward_destination && reward > 0) {
+      tx.vout.emplace_back(reward, GetScriptForDestination(*m_settings->reward_destination));
+    }
+
+    assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),
+                           [](const CAmount sum, const CTxOut &tx_out) -> CAmount {
+                             return sum + tx_out.nValue;
+                           }) == combined_total + reward);
 
     // sign inputs
     {

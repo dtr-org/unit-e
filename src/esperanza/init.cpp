@@ -15,6 +15,7 @@ std::string GetHelpString(bool showDebug) {
   strUsage += HelpMessageOpt("-stakecombinemaximum", "Maximum amount to combine when proposing. Default: unlimited (0)");
   strUsage += HelpMessageOpt("-stakesplitthreshold", "Maximum amount a single coinbase output should have. Default: unlimited (0)");
   strUsage += HelpMessageOpt("-validating", "Stake your coins to become a validator (default: false)");
+  strUsage += HelpMessageOpt("-rewardaddress=<addr>", "Address to which any reward from block proposing should be sent to, if not set the destination of the staking coin will be chosen");
 
   return strUsage;
 }

@@ -6,6 +6,8 @@
 #define UNIT_E_ENUM_SET_H
 
 #include <array>
+#include <string>
+#include <sstream>
 #include <type_traits>
 
 namespace {
@@ -202,6 +204,19 @@ class EnumSet {
 
   std::size_t GetSize() const {
     return CountBitsSet(m_bits);
+  }
+
+  std::string ToString(const char *delimiter = ", ") const {
+    std::ostringstream buf;
+    auto it = this->begin();
+    if (it != this->end()) {
+      buf << (*it)._to_string();
+      for (++it; it != this->end(); ++it) {
+        buf << delimiter;
+        buf << (*it)._to_string();
+      }
+    }
+    return buf.str();
   }
 };
 

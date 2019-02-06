@@ -13,7 +13,6 @@
 #include <amount.h>
 #include <chain.h>
 #include <chainparams.h>
-#include <checkpoints.h>
 #include <compat/sanity.h>
 #include <consensus/validation.h>
 #include <finalization/vote_recorder.h>
@@ -208,7 +207,7 @@ void Shutdown()
     StopHTTPServer();
 
     // stop all injected components, including proposer and validator
-    injector.reset();
+    UnitEInjector::Destroy();
 
 #ifdef ENABLE_WALLET
     FlushWallets();
@@ -482,7 +481,6 @@ std::string HelpMessage(HelpMessageMode mode)
         strUsage += HelpMessageOpt("-checklevel=<n>", strprintf(_("How thorough the block verification of -checkblocks is (0-4, default: %u)"), DEFAULT_CHECKLEVEL));
         strUsage += HelpMessageOpt("-checkblockindex", strprintf("Do a full consistency check for mapBlockIndex, setBlockIndexCandidates, chainActive and mapBlocksUnlinked occasionally. Also sets -checkmempool (default: %u)", defaultChainParams->DefaultConsistencyChecks()));
         strUsage += HelpMessageOpt("-checkmempool=<n>", strprintf("Run checks every <n> transactions (default: %u)", defaultChainParams->DefaultConsistencyChecks()));
-        strUsage += HelpMessageOpt("-checkpoints", strprintf("Disable expensive verification for known chain history (default: %u)", DEFAULT_CHECKPOINTS_ENABLED));
         strUsage += HelpMessageOpt("-disablesafemode", strprintf("Disable safemode, override a real safe mode event (default: %u)", DEFAULT_DISABLE_SAFEMODE));
         strUsage += HelpMessageOpt("-deprecatedrpc=<method>", "Allows deprecated RPC method(s) to be used");
         strUsage += HelpMessageOpt("-testsafemode", strprintf("Force safe mode (default: %u)", DEFAULT_TESTSAFEMODE));
@@ -1072,7 +1070,6 @@ bool AppInitParameterInteraction()
         mempool.setSanityCheck(1.0 / ratio);
     }
     fCheckBlockIndex = gArgs.GetBoolArg("-checkblockindex", chainparams.DefaultConsistencyChecks());
-    fCheckpointsEnabled = gArgs.GetBoolArg("-checkpoints", DEFAULT_CHECKPOINTS_ENABLED);
 
     hashAssumeValid = uint256S(gArgs.GetArg("-assumevalid", chainparams.GetConsensus().defaultAssumeValid.GetHex()));
     if (!hashAssumeValid.IsNull()) {
@@ -1296,8 +1293,7 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain()
 {
-    injector = MakeUnique<UnitEInjector>();
-    injector->Initialize();
+    UnitEInjector::Init();
 
     const CChainParams& chainparams = Params();
 
@@ -1733,7 +1729,7 @@ bool AppInitMain()
 
     // ********************************************************* Step 8: load wallet
 #ifdef ENABLE_WALLET
-    esperanza::WalletExtensionDeps deps(*injector);
+    esperanza::WalletExtensionDeps deps(GetInjector());
     if (!OpenWallets(deps)) {
         return false;
     }
@@ -1900,8 +1896,8 @@ bool AppInitMain()
     // ********************************************************* Step 13: start proposer
 
 #ifdef ENABLE_WALLET
-    injector->GetProposer()->Start();
-    SetProposerRPC(injector->GetProposerRPC());
+    GetComponent(Proposer)->Start();
+    SetProposerRPC(GetComponent(ProposerRPC));
 #endif
 
     LogPrintf("Started up.\n");

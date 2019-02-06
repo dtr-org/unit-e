@@ -1,0 +1,16 @@
+Test: test_codesign
+cp inputs/unite-someversion-win-unsigned.tar.gz tmp/unite-win-unsigned.tar.gz  cwd=gitian-builder
+tar -xzf unite-win-unsigned.tar.gz  cwd=tmp
+osslsigncode_executable sign -certs somecert -in unite-someversion-win32-setup-unsigned.exe -out unite-someversion-win32-setup-unsigned.exe-signed -key somekey -askpass
+osslsigncode_executable extract-signature -pem -in unite-someversion-win32-setup-unsigned.exe-signed -out unite-someversion-win32-setup-unsigned.exe.pem
+osslsigncode_executable sign -certs somecert -in unite-someversion-win32-setup-unsigned.exe -out unite-someversion-win32-setup-unsigned.exe-signed -key somekey -askpass
+osslsigncode_executable extract-signature -pem -in unite-someversion-win32-setup-unsigned.exe-signed -out unite-someversion-win32-setup-unsigned.exe.pem
+tar -czf version-platform-sigs-path  cwd=tmp/unsigned
+cp inputs/unite-someversion-osx-unsigned.tar.gz tmp/unite-osx-unsigned.tar.gz  cwd=gitian-builder
+cp unit-e/contrib/macdeploy/detached-sig-create.sh tmp
+tar -xzf unite-osx-unsigned.tar.gz  cwd=tmp
+detached-sig-create.sh -s somesigner  cwd=tmp
+cp signature-osx.tar.gz version-platform-sigs-path  cwd=tmp
+git add someversion-detached/unite-win-signatures.tar.gz  cwd=unit-e-sigs
+git add someversion-detached/unite-osx-signatures.tar.gz  cwd=unit-e-sigs
+git commit -a -m Add someversion detached signatures by somesigner  cwd=unit-e-sigs

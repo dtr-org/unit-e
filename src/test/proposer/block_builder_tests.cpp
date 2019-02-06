@@ -31,6 +31,7 @@ struct Fixture {
     coin.utxo.txid = uint256();
     coin.utxo.index = 0;
     coin.utxo.amount = 100;
+    coin.utxo.script_pubkey = GetScriptForDestination(CKeyID());
     coin.utxo.depth = 3;
     coin.kernel_hash = uint256();
     coin.reward = 50;
@@ -145,13 +146,21 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   BOOST_REQUIRE(static_cast<bool>(block));
   auto is_valid = validator->CheckBlock(*block);
   BOOST_CHECK(is_valid);
+
+  auto &stake_in = block->vtx[0]->vin[1];
+  BOOST_CHECK(stake_in.scriptWitness.stack[1] == f.pubkeydata);
+
+  std::vector<uint8_t> signature;
+  f.key.Sign(block->GetHash(), signature);
+
+  BOOST_CHECK(signature == block->signature);
 }
 
 BOOST_AUTO_TEST_CASE(split_amount) {
   auto split_amount_test = [&](int split_threshold, int expected_outputs) -> void {
     Fixture f{tfm::format("-stakesplitthreshold=%d", split_threshold)};
-    auto validator = f.MakeBlockValidator();
-    auto builder = f.MakeBlockBuilder();
+    std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();
+    std::unique_ptr<proposer::BlockBuilder> builder = f.MakeBlockBuilder();
 
     uint256 block_hash = uint256();
     CBlockIndex current_tip = [&] {
@@ -178,14 +187,14 @@ BOOST_AUTO_TEST_CASE(split_amount) {
       return true;
     };
 
-    auto block = builder->BuildBlock(
+    std::shared_ptr<const CBlock> block = builder->BuildBlock(
         current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
     BOOST_REQUIRE(static_cast<bool>(block));
-    auto is_valid = validator->CheckBlock(*block);
+    const staking::BlockValidationResult is_valid = validator->CheckBlock(*block);
     // must have a coinbase transaction
     BOOST_REQUIRE(!block->vtx.empty());
-    auto coinbase = block->vtx[0];
-    auto &outputs = coinbase->vout;
+    const CTransactionRef coinbase = block->vtx[0];
+    const std::vector<CTxOut> &outputs = coinbase->vout;
     BOOST_CHECK_EQUAL(outputs.size(), expected_outputs);
 
     auto minmax = std::minmax_element(outputs.begin(), outputs.end(), [](const CTxOut &left, const CTxOut &right) {
@@ -193,7 +202,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     });
     // check that outputs differ no more than one in size (this avoids dust)
     BOOST_CHECK(abs(minmax.first->nValue - minmax.second->nValue) <= 1);
-    BOOST_CHECK(is_valid);
+    BOOST_CHECK(static_cast<bool>(is_valid));
   };
 
   // eligible_coin.amount=100, reward=50, outsum=150 -> 10x15
@@ -204,6 +213,53 @@ BOOST_AUTO_TEST_CASE(split_amount) {
 
   // check that dust is avoided
   split_amount_test(149, 2);
+}
+
+BOOST_AUTO_TEST_CASE(check_reward_destination) {
+
+  const std::string address("bc1q2znaq2pnwqg92lpsc9sf7p5z0drluu27jn2a92");
+  const CTxDestination expected_reward_dest = DecodeDestination(address);
+  Fixture f{tfm::format("-rewardaddress=%s", address)};
+  std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();
+  std::unique_ptr<proposer::BlockBuilder> builder = f.MakeBlockBuilder();
+
+  const uint256 block_hash = uint256();
+  CBlockIndex current_tip = [&] {
+    CBlockIndex ix;
+    ix.phashBlock = &block_hash;
+    ix.pprev = nullptr;
+    ix.pskip = nullptr;
+    ix.nHeight = 17;
+    return ix;
+  }();
+
+  std::vector<staking::Coin> coins{f.eligible_coin.utxo};
+  std::vector<CTransactionRef> transactions;
+  CAmount fees(5);
+
+  f.wallet.key = f.key;
+  f.wallet.signfunc = [&](CMutableTransaction &tx) {
+    auto &witness_stack = tx.vin[1].scriptWitness.stack;
+    witness_stack.emplace_back();              // empty signature
+    witness_stack.emplace_back(f.pubkeydata);  // pubkey
+    return true;
+  };
+
+  std::shared_ptr<const CBlock> block = builder->BuildBlock(
+      current_tip, f.snapshot_hash, f.eligible_coin, coins, transactions, fees, f.wallet);
+  BOOST_REQUIRE(static_cast<bool>(block));
+  const staking::BlockValidationResult is_valid = validator->CheckBlock(*block);
+  BOOST_CHECK(static_cast<bool>(is_valid));
+
+  const CTxOut stake_out = block->vtx[0]->vout[0];
+  BOOST_CHECK_EQUAL(f.eligible_coin.utxo.amount, stake_out.nValue);
+
+  const CAmount to_address_reward = block->vtx[0]->vout[1].nValue;
+  BOOST_CHECK_EQUAL(to_address_reward, f.eligible_coin.reward + fees);
+
+  CTxDestination reward_dest;
+  ExtractDestination(block->vtx[0]->vout[1].scriptPubKey, reward_dest);
+  BOOST_CHECK(expected_reward_dest == reward_dest);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

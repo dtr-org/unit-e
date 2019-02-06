@@ -33,13 +33,13 @@ class BlockBuilder {
 
   //! \brief Builds a brand new block.
   virtual std::shared_ptr<const CBlock> BuildBlock(
-      const CBlockIndex &,                   //!< The previous block / current tip
-      const uint256 &,                       //!< The snapshot hash to be included in the new block
-      const EligibleCoin &,                  //!< The coin to use as stake
-      const std::vector<staking::Coin> &,    //!< Other coins to combine with the stake
-      const std::vector<CTransactionRef> &,  //!< Transactions to include in the block
-      CAmount,                               //!< The fees on the transactions
-      staking::StakingWallet &               //!< A wallet used to sign blocks and stake
+      const CBlockIndex &index,                 //!< The previous block / current tip.
+      const uint256 &snapshot_hash,             //!< The snapshot hash to be included in the new block.
+      const EligibleCoin &stake_coin,           //!< The coin to use as stake.
+      const std::vector<staking::Coin> &coins,  //!< Other coins to combine with the stake.
+      const std::vector<CTransactionRef> &txs,  //!< Transactions to include in the block.
+      CAmount,                                  //!< The fees on the transactions.
+      staking::StakingWallet &                  //!< A wallet used to sign blocks and stake.
       ) const = 0;
 
   virtual ~BlockBuilder() = default;

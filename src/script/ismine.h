@@ -29,4 +29,7 @@ typedef uint8_t isminefilter;
 isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey);
 isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest);
 
+//! Check if we are able to use an output with given script_pub_key as a stake
+bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key);
+
 #endif // UNITE_SCRIPT_ISMINE_H

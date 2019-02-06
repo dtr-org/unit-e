@@ -136,10 +136,7 @@ Build output expected:
 
 ### Verify other gitian builders signatures to your own. (Optional)
 
-Add other gitian builders keys to your gpg keyring, and/or refresh keys.
-
-    gpg --import unite/contrib/gitian-keys/*.pgp
-    gpg --refresh-keys
+Add other unit-e Gitian builders' keys to your gpg keyring, and/or refresh keys: See `../unit-e/contrib/gitian-keys/README.md`.
 
 Verify the signatures
 

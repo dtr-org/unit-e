@@ -1,0 +1,6 @@
+Test: test_verify
+bin/gverify -v -d ../unit-e-sigs/ -r someversion-linux ../unit-e/contrib/gitian-descriptors/gitian-linux.yml  cwd=gitian-builder
+bin/gverify -v -d ../unit-e-sigs/ -r someversion-win-unsigned ../unit-e/contrib/gitian-descriptors/gitian-win.yml  cwd=gitian-builder
+bin/gverify -v -d ../unit-e-sigs/ -r someversion-osx-unsigned ../unit-e/contrib/gitian-descriptors/gitian-osx.yml  cwd=gitian-builder
+bin/gverify -v -d ../unit-e-sigs/ -r someversion-win-signed ../unit-e/contrib/gitian-descriptors/gitian-win-signer.yml  cwd=gitian-builder
+bin/gverify -v -d ../unit-e-sigs/ -r someversion-osx-signed ../unit-e/contrib/gitian-descriptors/gitian-osx-signer.yml  cwd=gitian-builder

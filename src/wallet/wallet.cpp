@@ -6,7 +6,6 @@
 #include <wallet/wallet.h>
 
 #include <base58.h>
-#include <checkpoints.h>
 #include <chain.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
@@ -1494,7 +1493,7 @@ CAmount CWallet::GetChange(const CTxOut& txout) const
 bool CWallet::IsMine(const CTransaction& tx) const
 {
     for (const CTxOut& txout : tx.vout) {
-        if (IsMine(txout)) {
+        if (IsMine(txout) || ::IsStakeableByMe(*this, txout.scriptPubKey)) {
             return true;
         }
     }

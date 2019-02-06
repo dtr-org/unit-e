@@ -116,23 +116,28 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
     pwalletMain->LoadToWallet(walletTx3);
   }
 
+  CScript prev_script_pubkey = CScript::CreateP2PKHScript(ToByteVector(pubkey.GetID()));
   staking::Coin coin1{
-      tx1ref->GetHash(),  // txid
-      0,                  // index
-      100,                // amount
-      230                 // depth
+      tx1ref->GetHash(),   // txid
+      0,                   // index
+      100,                 // amount
+      prev_script_pubkey,  // scriptpubkey
+      230                  // depth
   };
   staking::Coin coin2{
-      tx2ref->GetHash(),  // txid
-      0,                  // index
-      1250,               // amount
-      230                 // depth
+      tx2ref->GetHash(),   // txid
+      0,                   // index
+      1250,                // amount
+      prev_script_pubkey,  // scriptpubkey
+      230                  // depth
+
   };
   staking::Coin coin3{
-      tx3ref->GetHash(),  // txid
-      0,                  // index
-      125,                // amount
-      230                 // depth
+      tx3ref->GetHash(),   // txid
+      0,                   // index
+      125,                 // amount
+      prev_script_pubkey,  // scriptpubkey
+      230                  // depth
   };
   proposer::EligibleCoin eligible_coin{
       coin2,       // coin used as stake
@@ -168,6 +173,11 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
     BOOST_CHECK_EQUAL(stack.size(), 2);  // signature + public key
     auto &witness_pubkey = stack[1];
     BOOST_CHECK(witness_pubkey == pubkeydata);
+  }
+
+  // We should be able to spend all the outputs
+  for (const auto &out : coinbase_transaction->vout) {
+    BOOST_CHECK(::IsMine(*pwalletMain, out.scriptPubKey) == ISMINE_SPENDABLE);
   }
 }
 

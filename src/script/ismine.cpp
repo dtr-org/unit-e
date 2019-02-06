@@ -94,10 +94,10 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             return IsMineResult::INVALID;
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, IsMineResult::SPENDABLE);
+            ret = IsMineResult::SPENDABLE;
         }
         if (keystore.HaveHardwareKey(keyID)) {
-            ret = std::max(ret, IsMineResult::HW_DEVICE);
+            ret = IsMineResult::HW_DEVICE;
         }
         break;
     case TX_WITNESS_V0_KEYHASH:
@@ -112,7 +112,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             // This also applies to the P2WSH case.
             break;
         }
-        ret = std::max(ret, IsMineInner(keystore, GetScriptForDestination(CKeyID(uint160(vSolutions[0]))), IsMineSigVersion::WITNESS_V0));
+        ret = IsMineInner(keystore, GetScriptForDestination(CKeyID(uint160(vSolutions[0]))), IsMineSigVersion::WITNESS_V0);
         break;
     }
     case TX_PUBKEYHASH:
@@ -124,10 +124,10 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             }
         }
         if (keystore.HaveKey(keyID)) {
-            ret = std::max(ret, IsMineResult::SPENDABLE);
+            ret = IsMineResult::SPENDABLE;
         }
         if (keystore.HaveHardwareKey(keyID)) {
-            ret = std::max(ret, IsMineResult::HW_DEVICE);
+            ret = IsMineResult::HW_DEVICE;
         }
         break;
     case TX_SCRIPTHASH:
@@ -139,7 +139,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         CScriptID scriptID = CScriptID(uint160(vSolutions[0]));
         CScript subscript;
         if (keystore.GetCScript(scriptID, subscript)) {
-            ret = std::max(ret, IsMineInner(keystore, subscript, IsMineSigVersion::P2SH));
+            ret = IsMineInner(keystore, subscript, IsMineSigVersion::P2SH);
         }
         break;
     }
@@ -157,7 +157,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         CScriptID scriptID = CScriptID(hash);
         CScript subscript;
         if (keystore.GetCScript(scriptID, subscript)) {
-            ret = std::max(ret, IsMineInner(keystore, subscript, IsMineSigVersion::WITNESS_V0));
+            ret = IsMineInner(keystore, subscript, IsMineSigVersion::WITNESS_V0);
         }
         break;
     }
@@ -193,7 +193,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
     {
         if (vSolutions[0].size() == 33) {
             keyID = CPubKey(vSolutions[0]).GetID();
-            //UNIT-E: At the moment we do not support SegWit deposit or vote transactions
+            // UNIT-E: At the moment we do not support deposit or vote transactions nested in P2SH/P2WSH
             if (sigversion != IsMineSigVersion::TOP) {
                 return IsMineResult::INVALID;
             }
@@ -206,10 +206,25 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         break;
     }
+
+    case TX_WITNESS_V1_REMOTE_STAKING:
+    {
+        if (sigversion != IsMineSigVersion::TOP) {
+            return IsMineResult::INVALID;
+        }
+
+        uint160 hash;
+        CRIPEMD160().Write(&vSolutions[1][0], vSolutions[1].size()).Finalize(hash.begin());
+        CKeyID spending_key_id = CKeyID(hash);
+
+        ret = IsMineInner(keystore, GetScriptForDestination(spending_key_id), IsMineSigVersion::WITNESS_V0);
+
+        break;
+    }
     }
 
     if (ret == IsMineResult::NO && keystore.HaveWatchOnly(scriptPubKey)) {
-        ret = std::max(ret, IsMineResult::WATCH_ONLY);
+        ret = IsMineResult::WATCH_ONLY;
     }
     return ret;
 }
@@ -236,4 +251,32 @@ isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest)
 {
     CScript script = GetScriptForDestination(dest);
     return IsMine(keystore, script);
+}
+
+bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
+{
+    std::vector<valtype> solutions;
+    txnouttype which_type;
+    Solver(script_pub_key, which_type, solutions);
+
+    // UNIT-E TODO: Restrict to witness programs only once #212 is merged (fixes #48)
+    switch (which_type)
+    {
+        case TX_PUBKEYHASH:
+        case TX_WITNESS_V0_KEYHASH:
+        case TX_WITNESS_V1_REMOTE_STAKING: {
+            CKeyID key_id = CKeyID(uint160(solutions[0]));
+            CPubKey pubkey;
+            if (keystore.GetPubKey(key_id, pubkey) && !pubkey.IsCompressed()) {
+                return false;
+            }
+
+            if (keystore.HaveKey(key_id)) {
+                return true;
+            }
+        }
+        default:
+            return false;
+    }
+    return false;
 }
