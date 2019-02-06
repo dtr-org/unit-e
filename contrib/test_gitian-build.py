@@ -241,14 +241,14 @@ def test_apt_wrapper(mocker):
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.call", side_effect=log.log_call)
 
-    apt = gitian_build.Apt(quiet=False)
+    apt = gitian_build.Installer(backend='apt', quiet=False)
     apt.add_requirements('package_1')
     apt.add_requirements('package_2a', 'package_2b')
     apt.try_to_install('package_3')
     apt.updated = False
     apt.batch_install()
 
-    apt = gitian_build.Apt(quiet=True)
+    apt = gitian_build.Installer(backend='apt', quiet=True)
     apt.is_installed = lambda p: False
     apt.add_requirements('package_1')
     apt.add_requirements('package_2a', 'package_2b')
@@ -263,14 +263,14 @@ def test_brew_wrapper(mocker):
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.call", side_effect=log.log_call)
 
-    brew = gitian_build.Brew(quiet=False)
+    brew = gitian_build.Installer(backend='brew')
     brew.add_requirements('package_1')
     brew.add_requirements('package_2a', 'package_2b')
     brew.try_to_install('package_3')
     brew.updated = False
     brew.batch_install()
 
-    brew = gitian_build.Brew(quiet=True)
+    brew = gitian_build.Installer(backend='brew', quiet=True)
     brew.is_installed = lambda p: False
     brew.add_requirements('package_1')
     brew.add_requirements('package_2a', 'package_2b')

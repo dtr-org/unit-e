@@ -29,29 +29,43 @@ def cd(dir):
     finally:
         os.chdir(original_dir)
 
-class Apt:
-    """ Lazy apt wrapper """
-    def __init__(self, quiet=False):
+class Installer:
+    """ Wrapper around native package installer, supports apt-get and brew, only
+        installs packages which aren't installed yet."""
+    def __init__(self, backend=None, quiet=False):
+        if backend != "apt" and backend != "brew":
+            raise ValueError("Invalid value for backend argument: '%'. Valid values are `apt` and `brew`.")
+        self.backend = backend
         self.updated = False
         self.to_install = []
-        if quiet:
-            self.apt_flags = ['-qq']
+        if quiet and self.backend == "apt":
+            self.flags = ['-qq']
         else:
-            self.apt_flags = []
+            self.flags = []
+
+    def backend_command(self, subcommand):
+        if self.backend == 'apt':
+            if subcommand == 'ls':
+                command = ['dpkg', '-s']
+            else:
+                command = ['sudo', 'apt-get', subcommand] + self.flags
+        elif self.backend == 'brew':
+            command = ['brew', subcommand]
+        return command
 
     def update(self):
         if not self.updated:
             self.updated = True
-            subprocess.check_call(['sudo', 'apt-get', 'update'] + self.apt_flags)
+            subprocess.check_call(self.backend_command('update'))
 
     def try_to_install(self, *programs):
         self.update()
-        print('Apt: installing', ", ".join(programs))
-        return subprocess.call(['sudo', 'apt-get', 'install'] + self.apt_flags + list(programs)) == 0
+        print(self.backend + ': installing', ", ".join(programs))
+        return subprocess.call(self.backend_command('install') + list(programs)) == 0
 
     def batch_install(self):
         if not self.to_install:
-            print('Apt: nothing to install')
+            print(self.backend + ': nothing to install')
             return
 
         if not self.try_to_install(*self.to_install):
@@ -60,50 +74,13 @@ class Apt:
         self.to_install = []
 
     def is_installed(self, program):
-        return subprocess.call(['dpkg', '-s', program], stdout=subprocess.DEVNULL) == 0
+        return subprocess.call(self.backend_command('ls') + [program], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
     def add_requirements(self, *programs):
         for program in programs:
             if not self.is_installed(program):
                 self.to_install.append(program)
 
-class Brew:
-    """ Lazy brew wrapper """
-    def __init__(self, quiet=False):
-        self.updated = False
-        self.to_install = []
-        if quiet:
-            self.flags = []
-        else:
-            self.flags = []
-
-    def update(self):
-        if not self.updated:
-            self.updated = True
-            subprocess.check_call(['brew', 'update'] + self.flags)
-
-    def try_to_install(self, *programs):
-        self.update()
-        print('Brew: installing', ", ".join(programs))
-        return subprocess.call(['brew', 'install'] + self.flags + list(programs)) == 0
-
-    def batch_install(self):
-        if not self.to_install:
-            print('Brew: nothing to install')
-            return
-
-        if not self.try_to_install(*self.to_install):
-            print('Could not install packages.', file=sys.stderr)
-            exit(1)
-        self.to_install = []
-
-    def is_installed(self, program):
-        return subprocess.call(['brew', 'ls', program], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
-
-    def add_requirements(self, *programs):
-        for program in programs:
-            if not self.is_installed(program):
-                self.to_install.append(program)
 
 def verify_user_specified_osslsigncode(user_spec_path):
     if not Path(user_spec_path).is_file():
@@ -156,7 +133,7 @@ def install_libssl_dev(apt):
 
 
 def install_linux_deps(args):
-    apt = Apt(args.quiet)
+    apt = Installer(backend='apt', quiet=args.quiet)
     apt.add_requirements('ruby', 'git', 'make')
     if args.kvm:
         apt.add_requirements('apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils')
@@ -190,8 +167,8 @@ def install_mac_deps(args):
         print('Please install docker manually, e.g. with `brew cask install docker`.', file=sys.stderr)
         exit(1)
 
-    brew = Brew(args.quiet)
-    brew.add_requirements('ruby', 'coreutils', 'lynx')
+    brew = Installer(backend='brew')
+    brew.add_requirements('ruby', 'coreutils')
     brew.batch_install()
 
 def install_deps(args):
