@@ -110,6 +110,7 @@ std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {
     case Network::test:
       return NewFromParameters(Parameters::TestNet());
     case Network::regtest:
+    default:
       return NewFromParameters(Parameters::RegTest());
   }
 }
