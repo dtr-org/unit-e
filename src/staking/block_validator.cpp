@@ -8,29 +8,12 @@
 #include <primitives/transaction.h>
 #include <pubkey.h>
 #include <script/script.h>
+#include <staking/validation_result.h>
 #include <streams.h>
 
 #include <limits>
 
 namespace staking {
-
-void BlockValidationResult::operator+=(const BlockValidationResult &other) {
-  errors += other.errors;
-  if (other.height) {
-    height = other.height;
-  }
-  if (other.snapshot_hash) {
-    snapshot_hash = other.snapshot_hash;
-  }
-}
-
-//! \brief Validation succeeded if there are no validation errors
-BlockValidationResult::operator bool() const {
-  const bool is_valid = errors.IsEmpty();
-  assert(!is_valid || height);
-  assert(!is_valid || snapshot_hash);
-  return is_valid;
-}
 
 class BlockValidatorImpl : public BlockValidator {
 

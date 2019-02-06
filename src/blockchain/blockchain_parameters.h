@@ -139,8 +139,8 @@ struct Parameters {
   //! \brief Rewards from proposing blocks can only be spent after the maturity period.
   Height coinbase_maturity;
 
-  //! \brief Stake can only be re-used after the maturity period.
-  Height restake_maturity;
+  //! \brief Stake can only be used after the stake maturity period.
+  Height stake_maturity;
 
   //! \brief The initial amount of premined coins.
   CAmount initial_supply;

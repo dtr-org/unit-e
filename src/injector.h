@@ -39,7 +39,9 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(ActiveChain, staking::ActiveChain, staking::ActiveChain::New)
 
-  COMPONENT(StakeValidator, staking::StakeValidator, staking::StakeValidator::New)
+  COMPONENT(StakeValidator, staking::StakeValidator, staking::StakeValidator::New,
+            blockchain::Behavior,
+            staking::ActiveChain)
 
   COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New,
             blockchain::Behavior)

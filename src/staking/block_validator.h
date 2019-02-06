@@ -11,47 +11,13 @@
 #include <dependency.h>
 #include <primitives/block.h>
 #include <uint256.h>
+#include <staking/validation_result.h>
 
 #include <boost/optional.hpp>
 
 #include <cstdint>
 
 namespace staking {
-
-// clang-format off
-BETTER_ENUM(
-    BlockValidationError,
-    std::uint8_t,
-    BLOCK_SIGNATURE_VERIFICATION_FAILED,
-    COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST,
-    COINBASE_TRANSACTION_WITHOUT_OUTPUT,
-    DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE,
-    DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE,
-    FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION,
-    INVALID_BLOCK_HEIGHT,
-    INVALID_BLOCK_TIME,
-    INVALID_BLOCK_PUBLIC_KEY,
-    MERKLE_ROOT_MISMATCH,
-    NO_BLOCK_HEIGHT,
-    NO_META_INPUT,
-    NO_SNAPSHOT_HASH,
-    NO_STAKING_INPUT,
-    NO_TRANSACTIONS,
-    WITNESS_MERKLE_ROOT_MISMATCH
-)
-// clang-format on
-
-class BlockValidationResult {
- public:
-  EnumSet<BlockValidationError> errors;
-  boost::optional<blockchain::Height> height = boost::none;
-  boost::optional<uint256> snapshot_hash = boost::none;
-
-  void operator+=(const BlockValidationResult &other);
-
-  //! \brief Validation succeeded if there are no validation errors
-  explicit operator bool() const;
-};
 
 //! \brief A component for validating blocks.
 //!

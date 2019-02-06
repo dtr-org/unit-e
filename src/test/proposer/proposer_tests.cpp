@@ -83,12 +83,15 @@ struct Fixture {
     const CBlockIndex *GetTip() const override { return nullptr; }
     const CBlockIndex *AtDepth(blockchain::Depth depth) override { return nullptr; }
     const CBlockIndex *AtHeight(blockchain::Height height) override { return nullptr; }
+    blockchain::Depth GetDepth(const blockchain::Height) const override { return 0; }
+    const CBlockIndex *GetBlockIndex(const uint256 &) const override { return nullptr; }
     const uint256 ComputeSnapshotHash() const override { return uint256(); }
     bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
     ::SyncStatus GetInitialBlockDownloadStatus() const override {
       ++GetInitialBlockDownloadStatus_invocations;
       return syncstatus;
     }
+    boost::optional<staking::Coin> GetUTXO(const COutPoint &) const override { return boost::none; };
   };
 
   class TransactionPickerMock : public staking::TransactionPicker {

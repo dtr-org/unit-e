@@ -64,6 +64,9 @@ class Behavior {
 
   bool IsGenesisBlockHash(const uint256 &) const;
 
+  //! \brief Checks whether a piece of stake at the given depth is considered mature or not.
+  bool IsStakeMature(blockchain::Depth) const;
+
   //! \brief extracts the pubkey stored in the staking transaction's witness program.
   boost::optional<CPubKey> ExtractBlockSigningKey(const CBlock &) const;
 

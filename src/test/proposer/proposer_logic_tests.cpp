@@ -4,6 +4,8 @@
 
 #include <proposer/proposer_logic.h>
 
+#include <staking/validation_result.h>
+
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
@@ -43,9 +45,12 @@ struct Fixture {
       }
       return nullptr;
     }
-    const CBlockIndex *AtHeight(blockchain::Height height) override { return nullptr; }
+    const CBlockIndex *AtHeight(const blockchain::Height) override { return nullptr; }
+    blockchain::Depth GetDepth(const blockchain::Height) const override { return 0; }
+    const CBlockIndex *GetBlockIndex(const uint256 &) const override { return nullptr; }
     const uint256 ComputeSnapshotHash() const override { return uint256(); }
     bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
+    boost::optional<staking::Coin> GetUTXO(const COutPoint &) const override { return boost::none; }
     ::SyncStatus GetInitialBlockDownloadStatus() const override { return sync_status; }
   };
 
@@ -65,10 +70,13 @@ struct Fixture {
     uint256 ComputeKernelHash(const CBlockIndex *blockindex, const staking::Coin &coin, blockchain::Time time) const override {
       return computekernelfunc(blockindex, coin, time);
     }
+    staking::BlockValidationResult CheckStake(const CBlock &) const override {
+      return staking::BlockValidationResult();
+    }
     uint256 ComputeStakeModifier(const CBlockIndex *, const uint256 &) const override { return uint256(); }
-    bool IsKernelKnown(const uint256 &) override { return false; }
-    void RememberKernel(const uint256 &) override {}
-    void ForgetKernel(const uint256 &) override {}
+    bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
+    void RememberPieceOfStake(const COutPoint &) override {}
+    void ForgetPieceOfStake(const COutPoint &) override {}
   };
 
   NetworkMock network_mock;

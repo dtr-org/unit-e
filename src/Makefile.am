@@ -212,6 +212,8 @@ UNITE_CORE_H = \
   staking/stake_validator.h \
   staking/stakingwallet.h \
   staking/transactionpicker.h \
+  staking/validation_error.h \
+  staking/validation_result.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -328,6 +330,8 @@ libunite_server_a_SOURCES = \
   staking/network.cpp \
   staking/stake_validator.cpp \
   staking/transactionpicker.cpp \
+  staking/validation_error.cpp \
+  staking/validation_result.cpp \
   timedata.cpp \
   torcontrol.cpp \
   txdb.cpp \

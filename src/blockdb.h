@@ -8,6 +8,10 @@
 #include <chain.h>
 #include <primitives/block.h>
 
+#include <boost/optional.hpp>
+
+#include <memory>
+
 //! \brief An interface to block read/write operations.
 class BlockDB {
 
