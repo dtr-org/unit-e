@@ -18,7 +18,7 @@ class Fixture {
 
   Fixture()
     : m_repo(finalization::StateRepository::New(&m_chain)),
-      m_proc(finalization::StateProcessor::New(m_repo.get())) {
+      m_proc(finalization::StateProcessor::New(m_repo.get(), &m_chain)) {
     m_finalization_params = Params().GetFinalization();
     m_finalization_params.epoch_length = epoch_length;
     m_admin_params = Params().GetAdminParams();

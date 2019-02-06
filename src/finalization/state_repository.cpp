@@ -108,6 +108,7 @@ FinalizationState *RepositoryImpl::FindOrCreate(const CBlockIndex &block_index,
 
 void RepositoryImpl::Reset(const esperanza::FinalizationParams &params,
                            const esperanza::AdminParams &admin_params) {
+  LogPrint(BCLog::FINALIZATION, "Completely reset state repository\n");
   LOCK(cs);
   m_states.clear();
   m_genesis_state.reset(new FinalizationState(params, admin_params));

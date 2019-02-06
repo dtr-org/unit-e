@@ -53,7 +53,6 @@
 #include <boost/thread.hpp>
 
 #include <esperanza/finalizationstate.h>
-#include <finalization/cache.h>
 #include <tinyformat.h>
 #include <snapshot/snapshot_validation.h>
 
@@ -2559,16 +2558,17 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
     if (!block_index->pprev->IsValid()) {
         return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
     }
+    auto state_processor = GetComponent(FinalizationStateProcessor);
     bool ok = false;
     if (block != nullptr) {
-      ok = finalization::cache::ProcessNewTipCandidate(*block_index, *block);
+      ok = state_processor->ProcessNewTipCandidate(*block_index, *block);
     } else {
         LogPrintf("Read %s from the disk\n", block_index->GetBlockHash().GetHex());
         CBlock block;
         if (!ReadBlockFromDisk(block, block_index, params)) {
             return error("Cannot read from the disk");
         }
-        ok = finalization::cache::ProcessNewTipCandidate(*block_index, block);
+        ok = state_processor->ProcessNewTipCandidate(*block_index, block);
     }
     if (ok) {
         UpdateLastJustifiedEpoch(block_index);
@@ -3484,10 +3484,15 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
                 }
             }
         }
-        const auto fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
+
+        const auto *fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
         assert(fin_state != nullptr);
-        if (fin_state->GetEpoch(pindexPrev->nHeight + 1) < fin_state->GetLastFinalizedEpoch()) {
-            return state.DoS(10, error("%s: %s came from previous dynasty", __func__, hash.ToString()), 0, "bad-block-dynasty");
+        const CBlockIndex *most_common_index = chainActive.FindFork(pindexPrev);
+        assert(most_common_index != nullptr);
+        if (fin_state->GetEpoch(most_common_index->nHeight) < fin_state->GetLastFinalizedEpoch()) {
+            return state.DoS(10,
+                             error("%s: %s came from previous dynasty", __func__, hash.ToString()),
+                             REJECT_INVALID, "bad-fork-dynasty");
         }
     }
 

@@ -5,8 +5,6 @@
 #ifndef UNITE_FINALIZATION_P2P
 #define UNITE_FINALIZATION_P2P
 
-#include <chainparams.h>
-#include <primitives/block.h>
 #include <serialize.h>
 
 /*
@@ -91,20 +89,11 @@ struct CommitsResponse {
 //!
 //! Collect commits in between the most recent common block hash and stop condition.
 bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsgMaker &msgMaker,
-                       const CChainParams &chainparams);
+                       const CChainParams &params);
 
 //! \brief Process the "commits" message
-bool ProcessNewCommits(CNode *node, const CommitsResponse &commits, const CNetMsgMaker &msgMaker,
-                       const CChainParams &chainparams, CValidationState &validation_state,
-                       uint256 *failed_block_out);
-
-//! \brief Returns a CommitsLocator
-//! locator.start = [finalized-checkpoint,.. checkpoints,.. start]
-//! locator.stop = stop
-CommitsLocator GetCommitsLocator(const CBlockIndex *start, const CBlockIndex *stop);
-
-//! \brief Callback that must be called whenever we connect new block to any chain.
-void OnBlock(const uint256 &block_hash);
+bool ProcessNewCommits(const CommitsResponse &commits, const CChainParams &chainparams,
+                       CValidationState &validation_state, uint256 *failed_block_out);
 
 }  // namespace p2p
 }  // namespace finalization

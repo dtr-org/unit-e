@@ -16,7 +16,7 @@ from test_framework.admin import Admin
 from test_framework.regtest_mnemonics import regtest_mnemonics
 
 
-class ForkChoiceRulesTest(UnitETestFramework):
+class ForkChoiceFinalizationTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
@@ -127,4 +127,4 @@ class ForkChoiceRulesTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    ForkChoiceRulesTest().main()
+    ForkChoiceFinalizationTest().main()

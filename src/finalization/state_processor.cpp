@@ -3,14 +3,17 @@
 #include <esperanza/finalizationstate.h>
 #include <finalization/state_repository.h>
 #include <snapshot/creator.h>
+#include <staking/active_chain.h>
 
 namespace finalization {
 namespace {
 
 class ProcessorImpl final : public StateProcessor {
  public:
-  explicit ProcessorImpl(Dependency<finalization::StateRepository> repo)
-      : m_repo(repo) {}
+  explicit ProcessorImpl(Dependency<finalization::StateRepository> repo,
+                         Dependency<staking::ActiveChain> active_chain)
+      : m_repo(repo),
+        m_active_chain(active_chain) {}
 
   bool ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes) override;
   bool ProcessNewTipCandidate(const CBlockIndex &block_index, const CBlock &block) override;
@@ -21,6 +24,7 @@ class ProcessorImpl final : public StateProcessor {
   bool FinalizationHappened(const CBlockIndex &block_index, blockchain::Height *out_height);
 
   Dependency<finalization::StateRepository> m_repo;
+  Dependency<staking::ActiveChain> m_active_chain;
 };
 
 bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block) {
@@ -114,6 +118,7 @@ bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &
   blockchain::Height finalization_height = 0;
   if (FinalizationHappened(block_index, &finalization_height)) {
     m_repo->TrimUntilHeight(finalization_height);
+    snapshot::Creator::FinalizeSnapshots(m_active_chain->AtHeight(finalization_height));
   }
   return true;
 }
@@ -158,8 +163,9 @@ bool ProcessorImpl::ProcessNewCommits(const CBlockIndex &block_index, const std:
 
 }  // namespace
 
-std::unique_ptr<StateProcessor> StateProcessor::New(Dependency<finalization::StateRepository> repo) {
-  return MakeUnique<ProcessorImpl>(repo);
+std::unique_ptr<StateProcessor> StateProcessor::New(Dependency<finalization::StateRepository> repo,
+                                                    Dependency<staking::ActiveChain> active_chain) {
+  return MakeUnique<ProcessorImpl>(repo, active_chain);
 }
 
 }  // namespace finalization

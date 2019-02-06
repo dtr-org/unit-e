@@ -36,7 +36,18 @@ from test_framework.regtest_mnemonics import regtest_mnemonics
 
 
 class BaseNode(P2PInterface):
-    pass
+    def __init__(self):
+        super().__init__()
+        self.rejects = []
+
+    def on_reject(self, msg):
+        self.rejects.append(msg)
+
+    def has_reject(self, err, block):
+        for r in self.rejects:
+            if r.reason == err and r.data == block:
+                return True
+        return False
 
 
 class ForkChoiceParallelJustificationsTest(UnitETestFramework):
@@ -105,6 +116,10 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
             assert_equal(node.getblockhash(node.getblockcount()), block_hash)
             disconnect_nodes(node, fork.index)
 
+        def wait_for_reject(p2p, err, block):
+            wait_until(lambda: p2p.has_reject(err, block), timeout=5)
+
+
         # Two validators (but actually having the same key) produce parallel justifications.
         # node must always follow the longest justified fork
         # validator1 -> dummy_node1 -> fork1
@@ -133,9 +148,8 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, node.index, dummy_node2.index)
 
         # leave IBD
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(2, node.getnewaddress())
         sync_blocks([node, fork1, fork2, validator1, validator2])
-        Admin.authorize_and_disable(self, node)
 
         # check that validators are synced after disabling the admin
         wait_until(lambda: validator1.getblockcount() == 2)
@@ -173,8 +187,8 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         node.generatetoaddress(21, node.getnewaddress())
         assert_equal(node.getblockcount(), 24)
         assert_equal(node.getfinalizationstate()['currentEpoch'], 4)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 3)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 3)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 2)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 2)
         assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 3)
         assert_equal(node.getfinalizationstate()['validators'], 1)
 
@@ -194,14 +208,14 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         #                        fork2
         create_justification(fork=fork1, finalizer=validator1, after_blocks=2, proxy_node=dummy_node1)
         assert_equal(fork1.getfinalizationstate()['currentEpoch'], 5)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 3)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 4)
 
         sync_node_to_fork(node, fork1)
 
         assert_equal(node.getfinalizationstate()['currentEpoch'], 5)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 3)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 4)
 
         self.log.info('node successfully switched to the justified fork')
 
@@ -216,13 +230,13 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         create_justification(fork=fork2, finalizer=validator2, after_blocks=12, proxy_node=dummy_node2)
         assert_equal(fork2.getfinalizationstate()['currentEpoch'], 7)
         assert_equal(fork2.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 7)
+        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 6)
 
         sync_node_to_fork(node, fork2)
 
         assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
         assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
 
         self.log.info('node successfully switched to the longest justified fork')
 
@@ -237,13 +251,13 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         create_justification(fork=fork1, finalizer=validator1, after_blocks=16, proxy_node=dummy_node1)
         assert_equal(fork1.getfinalizationstate()['currentEpoch'], 8)
         assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 8)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 7)
 
         sync_node_to_fork(node, fork1)
 
         assert_equal(node.getfinalizationstate()['currentEpoch'], 8)
         assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 8)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 7)
 
         self.log.info('node successfully switched back to the longest justified fork')
 
@@ -260,15 +274,15 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
 
         known_fork1_hash = fork1.getblockhash(known_fork1_height)
         assert_equal(node.getblockhash(known_fork1_height), known_fork1_hash)
-        create_justification(fork=fork1, finalizer=validator1, after_blocks=15, proxy_node=dummy_node1)
+        create_justification(fork=fork1, finalizer=validator1, after_blocks=10, proxy_node=dummy_node1)
 
         # create one more empty block to test how it's being processed
         fork1.generatetoaddress(1, fork1.getnewaddress())
 
-        assert_equal(fork1.getblockcount(), 58)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 11)
+        assert_equal(fork1.getblockcount(), 53)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 10)
         assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 11)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 9)
 
         attacker = node.add_p2p_connection(BaseNode())
         network_thread_start()
@@ -295,23 +309,23 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         assert_equal(fork2.getblockcount(), 47)
         assert_equal(fork2.getfinalizationstate()['currentEpoch'], 9)
         assert_equal(fork2.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 9)
+        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 8)
         assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 3)
 
         create_justification(fork=fork2, finalizer=validator2, after_blocks=6, proxy_node=dummy_node2)
         assert_equal(fork2.getblockcount(), 53)
         assert_equal(fork2.getfinalizationstate()['currentEpoch'], 10)
         assert_equal(fork2.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 10)
-        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 9)
+        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 9)
+        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 8)
 
         sync_node_to_fork(node, fork2)
 
         assert_equal(node.getblockcount(), 53)
         assert_equal(node.getfinalizationstate()['currentEpoch'], 10)
         assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 10)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 9)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 9)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 8)
 
         # send block with surrounded vote that justifies longer fork
         # node's view:
@@ -324,29 +338,15 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
 
         block_hash = fork1.getblockhash(fork1.getblockcount() - 1)
         block = FromHex(CBlock(), fork1.getblock(block_hash, 0))
+        block.calc_sha256()
         attacker.send_message(msg_witness_block(block))
-
-        node.waitforblock(block_hash)
 
         # node should't re-org to malicious fork
+        wait_for_reject(attacker, b'bad-fork-dynasty', block.sha256)
         assert_equal(node.getfinalizationstate()['currentEpoch'], 10)
         assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 10)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 9)
-        assert_equal(node.getblockcount(), 53)
-
-        # send the following block of a previous malicious one
-        block_hash = fork1.getblockhash(fork1.getblockcount())
-        block = FromHex(CBlock(), fork1.getblock(block_hash, 0))
-        attacker.send_message(msg_witness_block(block))
-
-        node.waitforblock(block_hash)
-
-        # still node should't re-org to malicious fork
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 10)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 10)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 9)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 9)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 8)
         assert_equal(node.getblockcount(), 53)
 
         self.log.info('node did not re-org before finalization')

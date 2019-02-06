@@ -1018,14 +1018,6 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
 
     m_recommendedTarget = &block_index;
     m_expectedSourceEpoch = m_lastJustifiedEpoch;
-
-    // mark snapshots finalized up to the last finalized block
-    blockchain::Height height = (m_lastFinalizedEpoch + 1) * m_settings.epoch_length - 1;
-    if (height == static_cast<blockchain::Height>(block_index.nHeight)) {  // instant confirmation
-      snapshot::Creator::FinalizeSnapshots(&block_index);
-    } else {
-      snapshot::Creator::FinalizeSnapshots(chainActive[height]);
-    }
   }
   m_status = FROM_COMMITS;
   return true;
