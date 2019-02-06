@@ -257,6 +257,28 @@ def test_apt_wrapper(mocker):
 
     log.check()
 
+def test_brew_wrapper(mocker):
+    log = Log("test_brew_wrapper")
+
+    mocker.patch("subprocess.check_call", side_effect=log.log_call)
+    mocker.patch("subprocess.call", side_effect=log.log_call)
+
+    brew = gitian_build.Brew(quiet=False)
+    brew.add_requirements('package_1')
+    brew.add_requirements('package_2a', 'package_2b')
+    brew.try_to_install('package_3')
+    brew.updated = False
+    brew.batch_install()
+
+    brew = gitian_build.Brew(quiet=True)
+    brew.is_installed = lambda p: False
+    brew.add_requirements('package_1')
+    brew.add_requirements('package_2a', 'package_2b')
+    brew.batch_install()
+    brew.try_to_install('package_3')
+
+    log.check()
+
 def test_verify_user_specified_osslsigncode(mocker):
     mocker.patch("pathlib.Path.is_file", return_value=False)
     with raises(Exception) as e:

@@ -67,6 +67,44 @@ class Apt:
             if not self.is_installed(program):
                 self.to_install.append(program)
 
+class Brew:
+    """ Lazy brew wrapper """
+    def __init__(self, quiet=False):
+        self.updated = False
+        self.to_install = []
+        if quiet:
+            self.flags = []
+        else:
+            self.flags = []
+
+    def update(self):
+        if not self.updated:
+            self.updated = True
+            subprocess.check_call(['brew', 'update'] + self.flags)
+
+    def try_to_install(self, *programs):
+        self.update()
+        print('Brew: installing', ", ".join(programs))
+        return subprocess.call(['brew', 'install'] + self.flags + list(programs)) == 0
+
+    def batch_install(self):
+        if not self.to_install:
+            print('Brew: nothing to install')
+            return
+
+        if not self.try_to_install(*self.to_install):
+            print('Could not install packages.', file=sys.stderr)
+            exit(1)
+        self.to_install = []
+
+    def is_installed(self, program):
+        return subprocess.call(['brew', 'ls', program], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+
+    def add_requirements(self, *programs):
+        for program in programs:
+            if not self.is_installed(program):
+                self.to_install.append(program)
+
 def verify_user_specified_osslsigncode(user_spec_path):
     if not Path(user_spec_path).is_file():
         raise Exception('provided osslsign does not exists: {}'.format(user_spec_path))
@@ -149,11 +187,12 @@ def install_mac_deps(args):
         exit(1)
 
     if subprocess.call(['docker', '--version']) != 0:
-        if subprocess.call(['brew', 'install', 'docker']) != 0:
-            print('Please install docker manually.', file=sys.stderr)
-            exit(1)
+        print('Please install docker manually, e.g. with `brew cask install docker`.', file=sys.stderr)
+        exit(1)
 
-    subprocess.check_call(['brew', 'install', 'ruby', 'coreutils'])
+    brew = Brew(args.quiet)
+    brew.add_requirements('ruby', 'coreutils', 'lynx')
+    brew.batch_install()
 
 def install_deps(args):
     system_str = platform.system()
