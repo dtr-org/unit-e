@@ -150,9 +150,8 @@ class ProposerBalanceTest(UnitETestFramework):
         }
 
     def load_wallets(self, nodes):
-        nodes[0].importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        nodes[1].importmasterkey(regtest_mnemonics[1]['mnemonics'])
-        nodes[2].importmasterkey(regtest_mnemonics[2]['mnemonics'])
+        for i in range(self.num_nodes):
+            nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
 
     @staticmethod
     def generate_block(nodes, node_idx):
