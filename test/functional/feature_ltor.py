@@ -58,13 +58,11 @@ class LTORTest(UnitETestFramework):
         self.tip = None
         self.block_time = None
 
-        # This mininode will help us to create blocks
-        mininode = self.nodes[0].add_p2p_connection(P2PInterface())
-        self.nodes[1].add_p2p_connection(mininode)
-
         test = TestManager(self, self.options.tmpdir)
         test.add_all_connections(self.nodes)
 
+        # This mininode will help us to create blocks
+        mininode = self.nodes[0].add_p2p_connection(P2PInterface())
         network_thread_start()
         mininode.wait_for_verack()
         test.run()
