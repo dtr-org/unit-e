@@ -362,6 +362,7 @@ def prepare_git_dir(args, workdir):
         subprocess.check_call(['git', 'checkout', args.commit])
     os.chdir(workdir)
 
+# Use only keyword-only arguments as defined in PEP 3102 to avoid accidentally swapping of arguments
 def prepare_gitian_descriptors(*, source, target, hosts=None):
     descriptor_source_dir = Path(source)
     descriptor_dir = Path(target)
