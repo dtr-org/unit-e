@@ -285,10 +285,8 @@ def codesign(args):
 
 def sign(args):
     gitian_dir = Path('gitian-builder').resolve()
-    sigs_dir = Path('unit-e-sigs').resolve()
 
     if args.windows:
-        osslsign_path = args.osslsigncode_path
         subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'], cwd=gitian_dir)
         subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], cwd=gitian_dir)
 
