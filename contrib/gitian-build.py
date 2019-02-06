@@ -162,7 +162,7 @@ def install_deps(args):
     elif system_str == 'Darwin':
         install_mac_deps(args)
     else:
-        print('Unsupported system.', file=sys.stderr)
+        print("Unsupported system '%s'." % system_str, file=sys.stderr)
         exit(1)
 
 
