@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.test_framework import UnitETestFramework
+from test_framework.util import assert_equal, assert_greater_than
 
 
 GENESIS_KEY = 'swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready'
@@ -29,7 +30,10 @@ class RemoteStakingTest(UnitETestFramework):
         # Estimate staking fee
         recipient = {"address": bobs_addr, "amount": 1}
         result = alice.stakeat(recipient, True)
-        assert(result['fee'] < 0.001)
+        assert_greater_than(0.001, result['fee'])
+
+        ps = bob.proposerstatus()
+        assert_equal(ps['wallets'][0]['stakeable_balance'], 0)
 
         # Stake the funds
         result = alice.stakeat(recipient)
@@ -40,11 +44,11 @@ class RemoteStakingTest(UnitETestFramework):
 
         # Bob should be able to stake the newly received coin
         ps = bob.proposerstatus()
-        assert(ps['wallets'][0]['status'] == 'IS_PROPOSING')
-        assert(ps['wallets'][0]['stakeable_balance'] > 0)
+        assert_equal(ps['wallets'][0]['status'], 'IS_PROPOSING')
+        assert_equal(ps['wallets'][0]['stakeable_balance'], 1)
 
         # Change output, and the balance staked remotely
-        assert(len(alice.listunspent()) == 2)
+        assert_equal(len(alice.listunspent()), 2)
 
 
 if __name__ == '__main__':
