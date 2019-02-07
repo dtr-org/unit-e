@@ -832,7 +832,7 @@ UniValue filtertransactions(const JSONRPCRequest &request) {
   if (collate) {
     UniValue retObj(UniValue::VOBJ);
     UniValue stats(UniValue::VOBJ);
-    stats.pushKV("records", result.size());
+    stats.pushKV("records", static_cast<uint64_t>(result.size()));
     stats.pushKV("total_amount", ValueFromAmount(totalAmount));
     retObj.pushKV("tx", result);
     retObj.pushKV("collated", stats);
