@@ -375,6 +375,10 @@ def sync_blocks(rpc_connections, *, wait=1, timeout=60):
     start_time = cur_time = time.time()
     while cur_time <= start_time + timeout:
         tips = [r.waitforblockheight(maxheight, int(wait * 1000)) for r in rpc_connections]
+
+        # We update maxheight to avoid timeouts when the value is outdated
+        maxheight = max(maxheight, max(t["height"] for t in tips))
+
         if all(t["height"] == maxheight for t in tips):
             if all(t["hash"] == tips[0]["hash"] for t in tips):
                 return
