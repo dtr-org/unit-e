@@ -40,11 +40,12 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   const CBlockIndex *GetBlockIndex(const uint256 &block_hash) const override {
+    AssertLockHeld(GetLock());
     const CBlockIndex *const block_index = LookupBlockIndex(block_hash);
     if (!block_index) {
       return nullptr;
     }
-    if (chainActive[block_index->nHeight] != block_index) {
+    if (!chainActive.Contains(block_index)) {
       // the block is not part of the active chain but in a fork.
       return nullptr;
     }
@@ -60,6 +61,7 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   const uint256 ComputeSnapshotHash() const override {
+    AssertLockHeld(GetLock());
     return pcoinsTip->GetSnapshotHash().GetHash(*GetTip());
   }
 

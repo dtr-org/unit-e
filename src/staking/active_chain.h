@@ -69,6 +69,8 @@ class ActiveChain : public blockchain::ChainAccess {
 
   //! \brief lookup a block index entry by its hash/id.
   //!
+  //! Requires the lock obtained from `GetLock()` to be held.
+  //!
   //! If the block is part of the active chain it is guaranteed to have a
   //! CBlockIndex associated with it.
   //!
@@ -78,6 +80,8 @@ class ActiveChain : public blockchain::ChainAccess {
   virtual const CBlockIndex *GetBlockIndex(const uint256 &block_hash) const = 0;
 
   //! \brief computes the snapshot hash for the current utxo set
+  //!
+  //! Requires the lock obtained from `GetLock()` to be held.
   //!
   //! Note that a block contains the snapshot hash of the utxo set at the
   //! time of proposing the new block, i.e. not the snapshot hash of the utxo

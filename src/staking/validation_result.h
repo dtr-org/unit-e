@@ -13,10 +13,15 @@ namespace staking {
 class BlockValidationResult {
  public:
   EnumSet<BlockValidationError> errors;
-  boost::optional<blockchain::Height> height = boost::none;
-  boost::optional<uint256> snapshot_hash = boost::none;
 
-  void operator+=(const BlockValidationResult &other);
+  //! \brief Add all errors from the given validation result to this one.
+  void AddAll(const BlockValidationResult &other);
+
+  //! \brief Add another error to this validation result.
+  void AddError(BlockValidationError);
+
+  //! \brief Remove an error from this validation result.
+  void RemoveError(BlockValidationError);
 
   //! \brief Validation succeeded if there are no validation errors
   explicit operator bool() const;

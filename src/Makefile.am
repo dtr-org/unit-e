@@ -206,6 +206,7 @@ UNITE_CORE_H = \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
   staking/active_chain.h \
+  staking/block_validation_info.h \
   staking/block_validator.h \
   staking/coin.h \
   staking/network.h \
@@ -226,6 +227,7 @@ UNITE_CORE_H = \
   threadinterrupt.h \
   timedata.h \
   torcontrol.h \
+  trit.h \
   txdb.h \
   txmempool.h \
   ufp64.h \
@@ -326,6 +328,7 @@ libunite_server_a_SOURCES = \
   snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
   staking/active_chain.cpp \
+  staking/block_validation_info.cpp \
   staking/block_validator.cpp \
   staking/network.cpp \
   staking/stake_validator.cpp \
@@ -334,6 +337,7 @@ libunite_server_a_SOURCES = \
   staking/validation_result.cpp \
   timedata.cpp \
   torcontrol.cpp \
+  trit.cpp \
   txdb.cpp \
   txmempool.cpp \
   ui_interface.cpp \

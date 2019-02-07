@@ -151,7 +151,5 @@ bool CTransaction::IsFinalizationTransaction() const {
     case +TxType::COINBASE:
         return false;
     }
-    // suppress gcc warning
-    assert(not("Unreachable"));
-    return false;
+    assert(false && "silence gcc warnings");
 }

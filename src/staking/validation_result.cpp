@@ -2,14 +2,16 @@
 
 namespace staking {
 
-void BlockValidationResult::operator+=(const BlockValidationResult &other) {
+void BlockValidationResult::AddAll(const BlockValidationResult &other) {
   errors += other.errors;
-  if (other.height) {
-    height = other.height;
-  }
-  if (other.snapshot_hash) {
-    snapshot_hash = other.snapshot_hash;
-  }
+}
+
+void BlockValidationResult::AddError(const BlockValidationError error) {
+  errors += error;
+}
+
+void BlockValidationResult::RemoveError(const BlockValidationError error) {
+  errors -= error;
 }
 
 BlockValidationResult::operator bool() const {
