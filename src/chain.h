@@ -234,6 +234,8 @@ public:
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
     boost::optional<std::vector<CTransactionRef>> commits;
 
+    boost::optional<uint32_t> last_justified_epoch;
+
     void SetNull()
     {
         phashBlock = nullptr;
@@ -256,6 +258,7 @@ public:
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
+        last_justified_epoch = boost::none;
 
         ResetCommits();
     }
@@ -447,6 +450,7 @@ public:
 
         // commits
         READWRITE(commits);
+        READWRITE(last_justified_epoch);
     }
 
     uint256 GetBlockHash() const

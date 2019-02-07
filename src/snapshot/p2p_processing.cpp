@@ -364,6 +364,7 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     }
 
     chainActive.SetTip(block_index->pprev);
+    GetComponent(FinalizationStateRepository)->ResetToTip(*chainActive.Tip());
 
     snapshot_block_index = block_index->pprev;
     assert(GetSnapshotHash(snapshot_block_index, snapshot_hash));

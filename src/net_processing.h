@@ -83,7 +83,7 @@ bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
 /** Increase a node's misbehavior score. */
 void Misbehaving(NodeId nodeid, int howmuch);
 
-void UpdateBlockAvailability(NodeId nodeid, const uint256 &block_hash);
+void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash);
 bool WIPMarkBlockAsInFlight(NodeId nodeid, const uint256& block_hash, const CBlockIndex* block_index);
 
 #endif // UNITE_NET_PROCESSING_H

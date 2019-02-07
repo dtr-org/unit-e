@@ -71,7 +71,19 @@ namespace {
     struct CBlockIndexWorkComparator
     {
         bool operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
-            // First sort by most total work, ...
+            // First sort by justification
+            bool pa_has_last_justified_epoch = static_cast<bool>(pa->last_justified_epoch);
+            bool pb_has_last_justified_epoch = static_cast<bool>(pb->last_justified_epoch);
+
+            if (pa_has_last_justified_epoch && pb_has_last_justified_epoch) {
+              if (pa->last_justified_epoch.get() > pb->last_justified_epoch.get()) return false;
+              if (pa->last_justified_epoch.get() < pb->last_justified_epoch.get()) return true;
+            }
+
+            if (pa_has_last_justified_epoch && !pb_has_last_justified_epoch) return false;
+            if (!pa_has_last_justified_epoch && pb_has_last_justified_epoch) return true;
+
+            // then sort by most total work, ...
             if (pa->nChainWork > pb->nChainWork) return false;
             if (pa->nChainWork < pb->nChainWork) return true;
 
@@ -122,11 +134,6 @@ private:
      */
     std::set<CBlockIndex*, CBlockIndexWorkComparator> setBlockIndexCandidates;
 
-    // The set of all the tips (including active chain).
-    // We use this set to track all concurrent tips we have in the current
-    // dynasty. Once one of chains becomes longest justified, we switch main chain
-    // there.
-    std::set<CBlockIndex*> chain_tips;
     /**
      * Every received block is assigned a unique and increasing identifier, so we
      * know which one to give priority in case of a fork.
@@ -209,12 +216,13 @@ private:
     void CheckBlockIndex(const Consensus::Params& consensusParams);
 
     void InvalidBlockFound(CBlockIndex *pindex, const CValidationState &state);
-    CBlockIndex *FindLongestJustifiedChain();
     CBlockIndex* FindMostWorkChain();
     bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams);
     bool ProcessFinalizationState(const Consensus::Params &params, CBlockIndex *block_index, const CBlock *block);
 
     bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params);
+
+    void UpdateLastJustifiedEpoch(CBlockIndex *block_index);
 } g_chainstate;
 
 
@@ -2516,6 +2524,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     if (!GetComponent(FinalizationStateProcessor)->ProcessNewTip(*pindexNew, blockConnecting)) {
       return state.DoS(100, error("esperanza::ProcessNewTip failed"), REJECT_INVALID, "bad-finalization");
     }
+    UpdateLastJustifiedEpoch(pindexNew);
 
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
@@ -2547,7 +2556,6 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
     if (!block_index->IsValid()) {
         return error("Block %s is invalid", block_index->GetBlockHash().GetHex());
     }
-    chain_tips.erase(block_index->pprev);
     if (!block_index->pprev->IsValid()) {
         return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
     }
@@ -2563,38 +2571,11 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
         ok = finalization::cache::ProcessNewTipCandidate(*block_index, block);
     }
     if (ok) {
-        chain_tips.emplace(block_index);
+        UpdateLastJustifiedEpoch(block_index);
     } else {
         return error("finalization::cache::ProcessNewTip failed");
     }
     return true;
-}
-
-CBlockIndex *CChainState::FindLongestJustifiedChain() {
-    if (chainActive.Tip() == nullptr) {
-        return nullptr;
-    }
-    const esperanza::FinalizationState *const tip_state = finalization::cache::GetState(*chainActive.Tip());
-    assert(tip_state != nullptr);
-    uint32_t tip_longest_justified = tip_state->GetLastJustifiedEpoch();
-
-    CBlockIndex *block_index = nullptr;
-    for (auto it = chain_tips.begin(); it != chain_tips.end(); ) {
-        CBlockIndex *const tip = *it;
-        const esperanza::FinalizationState *const state = finalization::cache::GetState(*tip);
-        if (state != nullptr) {
-            const auto longest_justified = state->GetLastJustifiedEpoch();
-            if (longest_justified > tip_longest_justified) {
-                block_index = tip;
-                tip_longest_justified = longest_justified;
-            }
-            ++it;
-        } else {
-            // FinalizationState for this tip has been erased from the cache, get rid of the tip.
-            it = chain_tips.erase(it);
-        }
-    }
-    return block_index;
 }
 
 /**
@@ -2603,16 +2584,10 @@ CBlockIndex *CChainState::FindLongestJustifiedChain() {
  */
 CBlockIndex* CChainState::FindMostWorkChain() {
     do {
-        CBlockIndex *pindexNew = FindLongestJustifiedChain();
+        CBlockIndex *pindexNew = nullptr;
 
         // Find the best candidate header.
-        if (pindexNew != nullptr) {
-            LogPrintf("Found candidate with greatest justified epoch: %s\n", pindexNew->GetBlockHash().GetHex());
-            // Clear setBlockIndexCandidates to protect from switching to the chain started
-            // from previous dynasty.
-            setBlockIndexCandidates.clear();
-            setBlockIndexCandidates.emplace(pindexNew);
-        } else {
+        {
             std::set<CBlockIndex*, CBlockIndexWorkComparator>::reverse_iterator it = setBlockIndexCandidates.rbegin();
             if (it == setBlockIndexCandidates.rend())
                 return nullptr;
@@ -2648,10 +2623,8 @@ CBlockIndex* CChainState::FindMostWorkChain() {
                         mapBlocksUnlinked.insert(std::make_pair(pindexFailed->pprev, pindexFailed));
                     }
                     setBlockIndexCandidates.erase(pindexFailed);
-                    chain_tips.erase(pindexFailed);
                     pindexFailed = pindexFailed->pprev;
                 }
-                chain_tips.erase(pindexTest);
                 setBlockIndexCandidates.erase(pindexTest);
                 fInvalidAncestor = true;
                 break;
@@ -3086,10 +3059,12 @@ bool CChainState::ReceivedBlockTransactions(const CBlock &block, CValidationStat
                 LOCK(cs_nBlockSequenceId);
                 pindex->nSequenceId = nBlockSequenceId++;
             }
+
+            ProcessFinalizationState(consensusParams, pindex, pindex == pindexNew ? &block : nullptr);
+
             if (chainActive.Tip() == nullptr || !setBlockIndexCandidates.value_comp()(pindex, chainActive.Tip())) {
                 setBlockIndexCandidates.insert(pindex);
             }
-            ProcessFinalizationState(consensusParams, pindex, pindex == pindexNew ? &block : nullptr);
             std::pair<std::multimap<CBlockIndex*, CBlockIndex*>::iterator, std::multimap<CBlockIndex*, CBlockIndex*>::iterator> range = mapBlocksUnlinked.equal_range(pindex);
             while (range.first != range.second) {
                 std::multimap<CBlockIndex*, CBlockIndex*>::iterator it = range.first;
@@ -4388,7 +4363,6 @@ void CChainState::UnloadBlockIndex() {
     nBlockSequenceId = 1;
     g_failed_blocks.clear();
     setBlockIndexCandidates.clear();
-    chain_tips.clear();
 }
 
 // May NOT be used after any connections are up as much
@@ -4594,6 +4568,20 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
     return nLoaded > 0;
 }
 
+void CChainState::UpdateLastJustifiedEpoch(CBlockIndex *block_index) {
+    esperanza::FinalizationState *fin_state = esperanza::FinalizationState::GetState(block_index);
+    assert(fin_state);
+
+    if (setBlockIndexCandidates.count(block_index) > 0) {
+      setBlockIndexCandidates.erase(block_index);
+      block_index->last_justified_epoch = fin_state->GetLastJustifiedEpoch();
+      setBlockIndexCandidates.insert(block_index);
+      return;
+    }
+
+    block_index->last_justified_epoch = fin_state->GetLastJustifiedEpoch();
+}
+
 void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)
 {
     if (!fCheckBlockIndex) {
@@ -4678,10 +4666,6 @@ void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)
             // Checks for not-invalid blocks.
             assert((pindex->nStatus & BLOCK_FAILED_MASK) == 0); // The failed mask cannot be set for blocks without invalid parents.
         }
-        // UNIT-E TODO: after switching to longest justified but with less work chain,
-        // this assert triggers. Need to either remove such indexes from mapBlockIndex
-        // or to mark specially them.
-        /*
         if (!CBlockIndexWorkComparator()(pindex, chainActive.Tip()) && pindexFirstNeverProcessed == nullptr) {
             if (pindexFirstInvalid == nullptr) {
                 // If this block sorts at least as good as the current tip and
@@ -4698,7 +4682,6 @@ void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)
         } else { // If this block sorts worse than the current tip or some ancestor's block has never been seen, it cannot be in setBlockIndexCandidates.
             assert(setBlockIndexCandidates.count(pindex) == 0);
         }
-        */
         // Check whether this block is in mapBlocksUnlinked.
         std::pair<std::multimap<CBlockIndex*,CBlockIndex*>::iterator,std::multimap<CBlockIndex*,CBlockIndex*>::iterator> rangeUnlinked = mapBlocksUnlinked.equal_range(pindex->pprev);
         bool foundInUnlinked = false;

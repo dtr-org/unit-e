@@ -64,11 +64,11 @@ class Storage {
   //! The `state` must be a state processed from the block. This function fetches previous state
   //! of the same index processed from commits, and replaces it by new state. Compare previous
   //! state with new one and set a result in `out_ok`.
-  FinalizationState *Confirm(const CBlockIndex *index, FinalizationState &&state, bool *out_ok);
+  FinalizationState *Confirm(const CBlockIndex *block_index, FinalizationState &&state, bool *ok_out);
 
   struct RestoringRAII {
     Storage &s;
-    RestoringRAII(Storage &s) : s(s) { s.m_restoring = true; }
+    explicit RestoringRAII(Storage &s) : s(s) { s.m_restoring = true; }
     ~RestoringRAII() { s.m_restoring = false; }
   };
 
@@ -78,7 +78,7 @@ class Storage {
   mutable CCriticalSection cs;
   std::map<const CBlockIndex *, FinalizationState> m_states;
   std::unique_ptr<FinalizationState> m_genesis_state;
-  std::atomic<bool> m_restoring;
+  std::atomic<bool> m_restoring{false};
 } g_storage;
 
 }  // namespace
@@ -208,7 +208,7 @@ bool ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block) {
     }
 
     case FinalizationState::FROM_COMMITS: {
-      LogPrint(BCLog::FINALIZATION, "State for block_hash=%s heigh=%d has been processed from commits, confirming...\n",
+      LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been processed from commits, confirming...\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
       const auto ancestor_state = g_storage.Find(block_index.pprev);
       assert(ancestor_state != nullptr);
@@ -264,10 +264,6 @@ void TrimCache(blockchain::Height height) {
   g_storage.ClearUntilHeight(height);
 }
 
-void FinalizeSnapshot(blockchain::Height height) {
-  snapshot::Creator::FinalizeSnapshots(chainActive[height]);
-}
-
 }  // namespace
 
 // Global functions section
@@ -298,7 +294,7 @@ bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) {
   blockchain::Height finalization_height = 0;
   if (FinalizationHappened(block_index, &finalization_height)) {
     TrimCache(finalization_height);
-    FinalizeSnapshot(finalization_height);
+    snapshot::Creator::FinalizeSnapshots(chainActive[finalization_height]);
   }
   return true;
 }
@@ -322,17 +318,17 @@ bool ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransa
   switch (state->GetStatus()) {
     case esperanza::FinalizationState::NEW: {
       return state->ProcessNewCommits(block_index, txes);
-    };
+    }
     case esperanza::FinalizationState::FROM_COMMITS: {
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been already processed from commits\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
       return true;
-    };
+    }
     case esperanza::FinalizationState::CONFIRMED: {
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been already processed\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
       return true;
-    };
+    }
   }
   // gcc
   assert(not("unreachable"));

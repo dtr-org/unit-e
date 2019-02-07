@@ -389,6 +389,28 @@ void ProcessBlockAvailability(NodeId nodeid) {
     }
 }
 
+} // namespace
+
+/** Update tracking information about which blocks a peer is assumed to have. */
+void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash) {
+    CNodeState *state = State(nodeid);
+    assert(state != nullptr);
+
+    ProcessBlockAvailability(nodeid);
+
+    BlockMap::iterator it = mapBlockIndex.find(hash);
+    if (it != mapBlockIndex.end() && it->second->nChainWork > 0) {
+        // An actually better block was announced.
+        if (state->pindexBestKnownBlock == nullptr || it->second->nChainWork >= state->pindexBestKnownBlock->nChainWork)
+            state->pindexBestKnownBlock = it->second;
+    } else {
+        // An unknown block was announced; just assume that the latest one is the best one.
+        state->hashLastUnknownBlock = hash;
+    }
+}
+
+namespace {
+
 void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman* connman) {
     AssertLockHeld(cs_main);
     CNodeState* nodestate = State(nodeid);
@@ -540,24 +562,6 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<con
 }
 
 } // namespace
-
-/** Update tracking information about which blocks a peer is assumed to have. */
-void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash) {
-    CNodeState *state = State(nodeid);
-    assert(state != nullptr);
-
-    ProcessBlockAvailability(nodeid);
-
-    BlockMap::iterator it = mapBlockIndex.find(hash);
-    if (it != mapBlockIndex.end() && it->second->nChainWork > 0) {
-        // An actually better block was announced.
-        if (state->pindexBestKnownBlock == nullptr || it->second->nChainWork >= state->pindexBestKnownBlock->nChainWork)
-            state->pindexBestKnownBlock = it->second;
-    } else {
-        // An unknown block was announced; just assume that the latest one is the best one.
-        state->hashLastUnknownBlock = hash;
-    }
-}
 
 bool WIPMarkBlockAsInFlight(NodeId nodeid, const uint256 &hash, const CBlockIndex *pindex) {
     return MarkBlockAsInFlight(nodeid, hash, pindex);
@@ -2890,7 +2894,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     else if (strCommand == NetMsgType::COMMITS) {
         finalization::p2p::CommitsResponse commits;
         vRecv >> commits;
-        LogPrint(BCLog::NET, "received: %d headers+commits, satus=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
+        LogPrint(BCLog::NET, "received: %d headers+commits, status=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
         CValidationState validation_state;
         uint256 failed_block;
         bool ok = finalization::p2p::ProcessNewCommits(pfrom, commits, msgMaker, chainparams, validation_state, &failed_block);
@@ -3324,8 +3328,6 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                    got back an empty response.  */
                 if (pindexStart->pprev)
                     pindexStart = pindexStart->pprev;
-                // LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
-                // connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexStart), uint256()));
                 LogPrint(BCLog::NET, "initial getcommits (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
                 connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETCOMMITS, finalization::p2p::GetCommitsLocator(pindexStart, nullptr)));
             }
