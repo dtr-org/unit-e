@@ -3230,10 +3230,39 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
     // Check transactions
-    for (const auto& tx : block.vtx)
-        if (!CheckTransaction(*tx, state, true))
-            return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
-                                 strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), state.GetDebugMessage()));
+    CTransactionRef prevTx;
+    for (const auto& tx : block.vtx) {
+        if (!CheckTransaction(*tx, state, true)) {
+            return state.Invalid(
+                false, state.GetRejectCode(), state.GetRejectReason(),
+                strprintf(
+                    "Transaction check failed (tx hash %s) %s",
+                    tx->GetHash().ToString(), state.GetDebugMessage()
+                )
+            );
+        }
+        if (prevTx && (tx->GetHash().CompareAsNumber(prevTx->GetHash()) <= 0)){
+            if (tx->GetHash() == prevTx->GetHash()) {
+                return state.DoS(
+                    100, false, REJECT_INVALID, "bad-txns-duplicate", false,
+                    strprintf(
+                        "Duplicate transaction %s", tx->GetHash().ToString()
+                    )
+                );
+            }
+
+            return state.DoS(
+                100, false, REJECT_INVALID, "bad-tx-ordering", false,
+                strprintf(
+                    "Transaction order is invalid ((current: %s) < (prev: %s))",
+                    tx->GetHash().ToString(), prevTx->GetHash().ToString()
+                )
+            );
+        }
+        if (prevTx || !tx->IsCoinBase()) {
+            prevTx = tx;
+        }
+    }
 
     unsigned int nSigOps = 0;
     for (const auto& tx : block.vtx)
@@ -3360,8 +3389,6 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
                               ? pindexPrev->GetMedianTimePast()
                               : block.GetBlockTime();
 
-    CTransactionRef prevTx;
-
     // Check that all transactions are finalized
     for (const auto& tx : block.vtx) {
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
@@ -3369,27 +3396,6 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
         }
         if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
             return false;
-        }
-        if (prevTx && (tx->GetHash().CompareAsNumber(prevTx->GetHash()) <= 0)){
-            if (tx->GetHash() == prevTx->GetHash()) {
-                return state.DoS(
-                    100, false, REJECT_INVALID, "bad-txns-duplicate", false,
-                    strprintf(
-                        "Duplicate transaction %s", tx->GetHash().ToString()
-                    )
-                );
-            }
-
-            return state.DoS(
-                100, false, REJECT_INVALID, "bad-tx-ordering", false,
-                strprintf(
-                    "Transaction order is invalid ((current: %s) < (prev: %s))",
-                    tx->GetHash().ToString(), prevTx->GetHash().ToString()
-                )
-            );
-        }
-        if (prevTx || !tx->IsCoinBase()) {
-            prevTx = tx;
         }
     }
 
