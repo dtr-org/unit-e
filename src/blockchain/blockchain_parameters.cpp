@@ -54,7 +54,7 @@ Parameters BuildMainNetParameters() {
   p.base58_prefixes[Base58Type::EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
   p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
-  p.bech32_human_readable_prefix = "bc";
+  p.bech32_human_readable_prefix = "ue";
 
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
