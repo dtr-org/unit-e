@@ -389,9 +389,11 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
   bool oldCheckBlockIndex = fCheckBlockIndex;
   fCheckBlockIndex = false;
   try {
+    LogPrint(BCLog::SNAPSHOT, "Processing parent block\n");
     regular_processing();
   } catch (...) {
     fCheckBlockIndex = oldCheckBlockIndex;
+    LogPrint(BCLog::SNAPSHOT, "Failed to process parent block\n");
     throw;
   }
   fCheckBlockIndex = oldCheckBlockIndex;
@@ -429,6 +431,7 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
   uint256 hash;
   assert(GetLatestFinalizedSnapshotHash(hash));
   assert(snapshot_hash == hash);
+  LogPrint(BCLog::SNAPSHOT, "Finished fast syncing\n");
 }
 
 bool P2PState::FindNextBlocksToDownload(const NodeId node_id,
