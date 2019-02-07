@@ -362,7 +362,7 @@ static UniValue stakeat(const JSONRPCRequest &request) {
                                       HelpRequiringPassphrase(pwallet),
                                       CURRENCY_UNIT, CURRENCY_UNIT,
                                       HelpExampleCli("stakeat", STAKEAT_CLI_PARAMS));
-    throw std::runtime_error(help_text.c_str());
+    throw std::runtime_error(help_text);
   }
 
   ObserveSafeMode();
