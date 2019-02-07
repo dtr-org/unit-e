@@ -1,5 +1,6 @@
 #include <staking/validation_error.h>
 
+#include <string>
 #include <cassert>
 
 namespace staking {

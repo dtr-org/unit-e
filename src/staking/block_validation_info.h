@@ -55,28 +55,28 @@ class BlockValidationInfo {
   //!
   //! Further invocations of ContextualCheckBlock may return true immediately.
   void MarkCheckBlockHeaderSuccessfull() noexcept {
-    m_check_CheckBlockHeader = Trit::TRUE;
+    m_check_CheckBlockHeader = Trit::T_TRUE;
   }
 
   //! \brief Marks that CheckBlockHeader() failed to validate the block.
   //!
   //! Further invocations of ContextualCheckBlock may return false immediately.
   void MarkCheckBlockHeaderFailed() noexcept {
-    m_check_CheckBlockHeader = Trit::FALSE;
+    m_check_CheckBlockHeader = Trit::T_FALSE;
   }
 
   //! \brief Marks that ContextualCheckBlockHeader() validated the block successfully.
   //!
   //! Further invocations of ContextualCheckBlock may return true immediately.
   void MarkContextualCheckBlockHeaderSuccessfull() noexcept {
-    m_check_ContextualCheckBlockHeader = Trit::TRUE;
+    m_check_ContextualCheckBlockHeader = Trit::T_TRUE;
   }
 
   //! \brief Marks that ContextualCheckBlockHeader() failed to validate the block.
   //!
   //! Further invocations of ContextualCheckBlock may return false immediately.
   void MarkContextualCheckBlockHeaderFailed() noexcept {
-    m_check_ContextualCheckBlockHeader = Trit::FALSE;
+    m_check_ContextualCheckBlockHeader = Trit::T_FALSE;
   }
 
   //! \brief Marks that CheckBlock() validated the block successfully.
@@ -92,42 +92,42 @@ class BlockValidationInfo {
       const uint256 &snapshot_hash) noexcept {
     m_height = height;
     m_snapshot_hash = snapshot_hash;
-    m_check_CheckBlock = Trit::TRUE;
+    m_check_CheckBlock = Trit::T_TRUE;
   }
 
   //! \brief Marks that CheckBlock() failed to validate the block.
   //!
   //! Further invocations of CheckBlock may return false immediately.
   void MarkCheckBlockFailed() noexcept {
-    m_check_CheckBlock = Trit::FALSE;
+    m_check_CheckBlock = Trit::T_FALSE;
   }
 
   //! \brief Marks that ContextualCheckBlock() validated the block successfully.
   //!
   //! Further invocations of ContextualCheckBlock may return true immediately.
   void MarkContextualCheckBlockSuccessfull() noexcept {
-    m_check_ContextualCheckBlock = Trit::TRUE;
+    m_check_ContextualCheckBlock = Trit::T_TRUE;
   }
 
   //! \brief Marks that ContextualCheckBlock() failed to validate the block.
   //!
   //! Further invocations of ContextualCheckBlock may return false immediately.
   void MarkContextualCheckBlockFailed() noexcept {
-    m_check_ContextualCheckBlock = Trit::FALSE;
+    m_check_ContextualCheckBlock = Trit::T_FALSE;
   }
 
   //! \brief Marks that CheckStake() validated the block successfully.
   //!
   //! Further invocations of ContextualCheckBlock may return true immediately.
   void MarkCheckStakeSuccessfull() noexcept {
-    m_check_CheckStake = Trit::TRUE;
+    m_check_CheckStake = Trit::T_TRUE;
   }
 
   //! \brief Marks that CheckStake() failed to validate the block.
   //!
   //! Further invocations of CheckStake() may return false immediately.
   void MarkCheckStakeFailed() noexcept {
-    m_check_CheckStake = Trit::FALSE;
+    m_check_CheckStake = Trit::T_FALSE;
   }
 
   //! \brief Retrieves the status of the CheckBlock() check.

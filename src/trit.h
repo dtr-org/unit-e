@@ -7,9 +7,9 @@
 class Trit final {
 
  public:
-  static const Trit TRUE;
-  static const Trit FALSE;
-  static const Trit UNKNOWN;
+  static const Trit T_TRUE;
+  static const Trit T_FALSE;
+  static const Trit T_UNKNOWN;
 
  private:
   enum value_t : std::uint8_t {
@@ -52,34 +52,34 @@ class Trit final {
   //! \brief Ternary AND.
   Trit And(const Trit other) const noexcept {
     if (IsTrue() && other.IsTrue()) {
-      return TRUE;
+      return T_TRUE;
     }
     if (IsFalse() || other.IsFalse()) {
-      return FALSE;
+      return T_FALSE;
     }
-    return UNKNOWN;
+    return T_UNKNOWN;
   }
 
   //! \brief Ternary OR.
   Trit Or(Trit other) const noexcept {
     if (IsFalse() && other.IsFalse()) {
-      return FALSE;
+      return T_FALSE;
     }
     if (IsTrue() || other.IsTrue()) {
-      return TRUE;
+      return T_TRUE;
     }
-    return UNKNOWN;
+    return T_UNKNOWN;
   }
 
   //! \brief Ternary NOT.
   Trit Not() const noexcept {
     if (IsTrue()) {
-      return FALSE;
+      return T_FALSE;
     }
     if (IsFalse()) {
-      return TRUE;
+      return T_TRUE;
     }
-    return UNKNOWN;
+    return T_UNKNOWN;
   }
 
   static Trit And(Trit t1, Trit t2) noexcept {

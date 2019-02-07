@@ -3,6 +3,8 @@
 
 #include <better-enums/enum.h>
 
+#include <cstdint>
+
 namespace staking {
 
 // clang-format off
