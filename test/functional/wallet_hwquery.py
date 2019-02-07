@@ -14,7 +14,14 @@ class UsbDeviceQueryTest(UnitETestFramework):
         node = self.nodes[0]
 
         # List connected devices
-        devices = node.listdevices()
+        try:
+            devices = node.listdevices()
+        except Exception as e:
+            if 'Method not found' in e.error:
+                # USB support not compiled in
+                return
+            raise
+
         assert_equal(len(devices), 1)
         assert_equal(devices[0]['vendor'], 'Debug')
         assert_equal(devices[0]['product'], 'Device')
