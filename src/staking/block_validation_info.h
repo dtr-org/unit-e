@@ -7,7 +7,16 @@
 
 namespace staking {
 
-//! \brief Meta-information about a block
+//! \brief Validation related information about a block.
+//!
+//! There's a sea of validation functions available to check blocks at
+//! different states of completeness. Nevertheless we never want to miss
+//! a check for correctness reasons, but we also do not want to perform
+//! any checks twice (for efficiency/performance reasons). In order to
+//! orchestrate that gracefully instances of this class can track the
+//! state of certain validations.
+//!
+//! This was inspired by CBlock::fCheck introduced in bitcoin around 2012.
 class BlockValidationInfo {
 
  private:
@@ -70,12 +79,20 @@ class BlockValidationInfo {
     m_check_ContextualCheckBlockHeader = Trit::FALSE;
   }
 
+  //! \brief Marks that CheckBlock() validated the block successfully.
+  //!
+  //! When CheckBlock() successfully validated a block, it will also come
+  //! across height and snapshot_hash from the coinbase transaction. These
+  //! can be re-used in contextual check block to check that they match what
+  //! we know about the previous block.
+  //!
+  //! Further invocations of CheckBlock() may return immediately.
   void MarkCheckBlockSuccessfull(
       const blockchain::Height &height,
       const uint256 &snapshot_hash) noexcept {
-    m_check_CheckBlock = Trit::TRUE;
     m_height = height;
     m_snapshot_hash = snapshot_hash;
+    m_check_CheckBlock = Trit::TRUE;
   }
 
   //! \brief Marks that CheckBlock() failed to validate the block.
