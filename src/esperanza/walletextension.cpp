@@ -136,6 +136,10 @@ bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient &recipient
     *error_out = "Invalid scriptPubKey for recipient";
     return false;
   }
+  if (type != TX_PUBKEYHASH) {
+    *error_out = "Invalid recipient script: must be P2PKH";
+    return false;
+  }
   if (solutions.size() != 1 || solutions[0].size() != 20) {
     *error_out = "Invalid address for recipient: must be a single 160-bit pubkey hash";
     return false;
