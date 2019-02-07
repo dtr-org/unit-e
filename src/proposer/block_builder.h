@@ -25,11 +25,11 @@ class BlockBuilder {
  public:
   //! \brief Builds a coinbase transaction.
   virtual const CTransactionRef BuildCoinbaseTransaction(
+      const blockchain::BlockReward &reward,    //!< The block reward for this block.
       const CBlockIndex &prev_block_index,      //!< The index of the previous block.
       const uint256 &snapshot_hash,             //!< The snapshot hash to be included.
       const EligibleCoin &eligible_coin,        //!< The eligible coin to reference as stake. Also contains the target height.
       const std::vector<staking::Coin> &coins,  //!< Any other coins that should be combined into the coinbase tx.
-      CAmount fees,                             //!< The amount of fees to be included (for the reward).
       staking::StakingWallet &wallet            //!< The wallet to be used for signing the transaction.
       ) const = 0;
 
@@ -44,9 +44,8 @@ class BlockBuilder {
       staking::StakingWallet &                  //!< A wallet used to sign blocks and stake.
       ) const = 0;
 
-  static staking::Coin GetValidatorsFund(const CBlock &block);
-
-  static staking::Coin GetProposersFund(const CBlock &block);
+  //! \brief extract the validators' fund value from the coinbase.
+  static bool GetValidatorsFund(const CBlock &block, CAmount &fund_out);
 
   virtual ~BlockBuilder() = default;
 

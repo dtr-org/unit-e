@@ -10,8 +10,8 @@ using namespace blockchain;
 
 bool BlockRewardEquals(const BlockReward &a, const BlockReward &b) {
   return a.finalization_reward == b.finalization_reward &&
-      a.immediate_reward == b.immediate_reward &&
-      a.validator_funds == b.validator_funds;
+         a.immediate_reward == b.immediate_reward &&
+         a.validator_funds == b.validator_funds;
 }
 
 BOOST_FIXTURE_TEST_SUITE(blockchain_parameters_tests, ReducedTestingSetup)
@@ -33,44 +33,53 @@ BOOST_AUTO_TEST_CASE(reward_function_test) {
 
   const Parameters params = blockchain::Parameters::MainNet();
 
-  auto test_reward = [params](int period) -> BlockReward {
-    auto base_reward = static_cast<uint64_t>(params.reward_schedule[period]);
-    return {static_cast<int64_t>(ufp64::mul_to_uint(ufp64::div_2uint(1, 10), base_reward)),
-            static_cast<int64_t>(ufp64::mul_to_uint(ufp64::div_2uint(4, 10), base_reward)),
-            static_cast<int64_t>(ufp64::mul_to_uint(ufp64::div_2uint(5, 10), base_reward))};
+  auto test_reward = [params](int period, CAmount fees) -> BlockReward {
+    blockchain::Parameters::RewardFunction reward_func = [](const Parameters &params, Height period, CAmount fees) -> BlockReward {
+      auto base_reward = static_cast<uint64_t>(params.reward_schedule[period]);
+      if (period >= params.reward_schedule.size()) {
+        base_reward = 0;
+      }
+      return {static_cast<int64_t>(ufp64::mul_to_uint(ufp64::div_2uint(1, 10), base_reward + fees)),
+              static_cast<int64_t>(ufp64::mul_to_uint(ufp64::div_2uint(4, 10), base_reward + fees)),
+              static_cast<int64_t>(ufp64::mul_to_uint(ufp64::div_2uint(5, 10), base_reward))};
+    };
+    return reward_func(params, static_cast<Height>(period), fees);
   };
 
-  BlockReward block_reward = params.reward_function(params, 0);
-  BlockReward expected_reward = test_reward(0);
+  CAmount fees = 2130000;
+  BlockReward block_reward = params.reward_function(params, 0, fees);
+  BlockReward expected_reward = test_reward(0, fees);
   BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, 1000);
+  block_reward = params.reward_function(params, 1000, fees);
   BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, params.period_blocks - 1);
+  block_reward = params.reward_function(params, params.period_blocks - 1, fees);
   BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, params.period_blocks);
-  expected_reward = test_reward(1);
+  block_reward = params.reward_function(params, params.period_blocks, fees);
+  expected_reward = test_reward(1, fees);
   BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, params.period_blocks * 2);
-  expected_reward = test_reward(2);
+  block_reward = params.reward_function(params, params.period_blocks * 2, fees);
+  expected_reward = test_reward(2, fees);
   BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, params.period_blocks * 3);
-  expected_reward = test_reward(3);
+  block_reward = params.reward_function(params, params.period_blocks * 3, fees);
+  expected_reward = test_reward(3, fees);
   BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, params.period_blocks * 4);
-  expected_reward = test_reward(4);
+  block_reward = params.reward_function(params, params.period_blocks * 4, fees);
+  expected_reward = test_reward(4, fees);
   BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, params.period_blocks * 5);
-  BOOST_CHECK(BlockRewardEquals({0,0,0}, block_reward));
+  block_reward = params.reward_function(params, params.period_blocks * 5, fees);
+  expected_reward = test_reward(5, fees);
+  BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 
-  block_reward = params.reward_function(params, params.period_blocks * 500);
-  BOOST_CHECK(BlockRewardEquals({0,0,0}, block_reward));
+  block_reward = params.reward_function(params, params.period_blocks * 500, fees);
+  expected_reward = test_reward(140, fees);
+  BOOST_CHECK(BlockRewardEquals(expected_reward, block_reward));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

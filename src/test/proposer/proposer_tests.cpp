@@ -99,11 +99,11 @@ struct Fixture {
 
   class BlockBuilderMock : public proposer::BlockBuilder {
     const CTransactionRef BuildCoinbaseTransaction(
+        const blockchain::BlockReward &reward,
         const CBlockIndex &,
         const uint256 &,
         const proposer::EligibleCoin &,
         const std::vector<staking::Coin> &,
-        CAmount,
         staking::StakingWallet &) const override { return nullptr; };
     std::shared_ptr<const CBlock> BuildBlock(
         const CBlockIndex &,

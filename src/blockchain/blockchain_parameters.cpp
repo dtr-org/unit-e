@@ -8,6 +8,7 @@
 #include <ufp64.h>
 #include <utilstrencodings.h>
 #include <numeric>
+#include <algorithm>
 
 namespace blockchain {
 
@@ -34,15 +35,18 @@ Parameters BuildMainNetParameters() {
   p.period_blocks = 19710000;
   p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
   assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
-  p.reward_function = [](const Parameters &p, Height h) -> BlockReward {
+  p.reward_function = [](const Parameters &p, Height h, CAmount fees) -> BlockReward {
+
     const uint64_t period = h / p.period_blocks;
-    if (period >= p.reward_schedule.size()) {
-      return {0, 0, 0};
+
+    uint64_t base_reward = 0;
+
+    if(period < p.reward_schedule.size()) {
+      base_reward = static_cast<uint64_t>(p.reward_schedule[period]);
     }
 
-    const auto base_reward = static_cast<uint64_t>(p.reward_schedule[period]);
-    const uint64_t immediate_reward = ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
-    const uint64_t finalization_reward = ufp64::mul_to_uint(p.finalization_reward_fraction, base_reward);
+    const uint64_t immediate_reward = ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward + fees);
+    const uint64_t finalization_reward = ufp64::mul_to_uint(p.finalization_reward_fraction, base_reward + fees);
     const uint64_t validator_fund = ufp64::mul_to_uint(p.validator_fund_fraction, base_reward);
 
     return {static_cast<int64_t>(immediate_reward),

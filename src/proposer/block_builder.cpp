@@ -25,11 +25,11 @@ class BlockBuilderImpl : public BlockBuilder {
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
     auto number_of_pieces = amount / threshold;
     if (amount % threshold > 0) {
-      // if spend can not be spread evenly we need one more to fit the rest
+      // if the amount is not a perfect multiple of threshold, we need one more piece
       ++number_of_pieces;
     }
     // in order to not create a piece of dust of size (spend % threshold), try
-    // to spread evenly by forming pieces of size (spend / number_of_pieces) each
+    // to distribute evenly by forming pieces of size (spend / number_of_pieces) each
     std::vector<CAmount> pieces(static_cast<std::size_t>(number_of_pieces),
                                 amount / number_of_pieces);
     auto number_of_full_pieces = amount % number_of_pieces;
@@ -69,11 +69,11 @@ class BlockBuilderImpl : public BlockBuilder {
         m_settings(settings) {}
 
   const CTransactionRef BuildCoinbaseTransaction(
+      const blockchain::BlockReward &block_reward,
       const CBlockIndex &prev_block_index,
       const uint256 &snapshot_hash,
       const EligibleCoin &eligible_coin,
       const std::vector<staking::Coin> &coins,
-      const CAmount fees,
       staking::StakingWallet &wallet) const override {
     CMutableTransaction tx;
 
@@ -81,21 +81,20 @@ class BlockBuilderImpl : public BlockBuilder {
     tx.SetVersion(1);
     tx.SetType(TxType::COINBASE);
 
-    // build meta input
-    {
-      CScript script_sig = CScript() << CScriptNum::serialize(eligible_coin.target_height)
-                                     << ToByteVector(snapshot_hash);
-      tx.vin.emplace_back(uint256(), 0, script_sig);
-    }
-
     const auto prev_block = m_block_db->ReadBlock(prev_block_index);
     assert(prev_block);
 
-    const auto &validators_fund = GetValidatorsFund(*prev_block);
-    const auto &proposers_fund = GetProposersFund(*prev_block);
-    // add inputs for validator and proposer funds
-    tx.vin.emplace_back(validators_fund.txid, validators_fund.index);
-    tx.vin.emplace_back(proposers_fund.txid, proposers_fund.index);
+    CAmount validators_fund;
+    assert(GetValidatorsFund(*prev_block, validators_fund));
+    validators_fund += block_reward.validator_funds;
+
+    // build meta input
+    {
+      CScript script_sig = CScript() << CScriptNum::serialize(eligible_coin.target_height)
+                                     << ToByteVector(snapshot_hash)
+                                     << validators_fund;
+      tx.vin.emplace_back(uint256(), 0, script_sig);
+    }
 
     // add stake
     tx.vin.emplace_back(eligible_coin.utxo.txid, eligible_coin.utxo.index);
@@ -120,7 +119,7 @@ class BlockBuilderImpl : public BlockBuilder {
       tx.vin.emplace_back(coin.txid, coin.index);
     }
 
-    const CAmount reward = fees + eligible_coin.reward;
+    const CAmount reward = block_reward.immediate_reward;
     const CAmount spend = m_settings->reward_destination ? combined_total : (combined_total + reward);
 
     const CAmount threshold = m_settings->stake_split_threshold;
@@ -176,8 +175,10 @@ class BlockBuilderImpl : public BlockBuilder {
     // nonce will be removed and is not relevant in PoS, not setting it here
 
     // add coinbase transaction first
+    auto next_block_height = static_cast<blockchain::Height>(prev_block.nHeight + 1);
+    const blockchain::BlockReward reward = m_blockchain_behavior->CalculateBlockReward(next_block_height, fees);
     const CTransactionRef coinbase_transaction =
-        BuildCoinbaseTransaction(prev_block, snapshot_hash, coin, coins, fees, wallet);
+        BuildCoinbaseTransaction(reward, prev_block, snapshot_hash, coin, coins, wallet);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;
@@ -222,24 +223,35 @@ std::unique_ptr<BlockBuilder> BlockBuilder::New(
   return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(blockchain_behavior, block_db, settings));
 }
 
-staking::Coin BlockBuilder::GetValidatorsFund(const CBlock &block) {
+bool BlockBuilder::GetValidatorsFund(const CBlock &block, CAmount &fund_out) {
 
-  //UNIT-E: TODO: uncomment when IsCoinBase starts checking the TxType
-  //  assert(block.vtx[0]->IsCoinBase());
-  const auto tx_id = block.vtx[0]->GetHash();
-  const auto vout_amount = block.vtx[0]->vout[0].nValue;
+  assert(block.vtx[0]->GetType() == +TxType::COINBASE);
 
-  return {tx_id, 0, vout_amount};
-}
+  CScript script = block.vtx[0]->vin[0].scriptSig;
 
-staking::Coin BlockBuilder::GetProposersFund(const CBlock &block) {
+  opcodetype op;
+  std::vector<uint8_t> buf;
 
-  //UNIT-E: TODO: uncomment when IsCoinBase starts checking the TxType
-  //  assert(block.vtx[0]->IsCoinBase());
-  const auto tx_id = block.vtx[0]->GetHash();
-  const auto vout_amount = block.vtx[0]->vout[1].nValue;
+  CScript::const_iterator it = script.begin();
+  if (!script.GetOp(it, op, buf)) {  // skip height
+    return false;
+  }
 
-  return {tx_id, 1, vout_amount};
+  if (!script.GetOp(it, op, buf)) {  // skip snapshot hash
+    return false;
+  }
+
+  if (!script.GetOp(it, op, buf)) {  // read validators' fund
+    return false;
+  }
+
+  CAmount validators_fund = 0;
+  if (!CScriptNum::deserialize(buf, validators_fund)) {
+    return false;
+  }
+
+  fund_out = validators_fund;
+  return it == script.end();
 }
 
 }  // namespace proposer

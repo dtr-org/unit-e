@@ -24,9 +24,6 @@ struct EligibleCoin {
   //! The kernel hash that was computed for the block using this coin.
   uint256 kernel_hash;
 
-  //! The reward associated with this coin, not including fees.
-  blockchain::BlockReward reward;
-
   //! The height at which the newly proposed block will be at. This is one more
   //! then the currently active chain's height.
   blockchain::Height target_height;

@@ -23,8 +23,8 @@ Time Behavior::CalculateProposingTimestampAfter(const std::int64_t time) const {
   return CalculateProposingTimestamp(time) + m_parameters.block_stake_timestamp_interval_seconds;
 }
 
-BlockReward Behavior::CalculateBlockReward(const Height height) {
-  return m_parameters.reward_function(m_parameters, height);
+BlockReward Behavior::CalculateBlockReward(Height height, CAmount fees) {
+  return m_parameters.reward_function(m_parameters, height, fees);
 }
 
 uint256 Behavior::GetGenesisBlockHash() const {

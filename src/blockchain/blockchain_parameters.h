@@ -41,7 +41,7 @@ struct Parameters {
   //! The reward function is a pure function that takes as inputs the parameters
   //! that are currently active and the height to propose at.
 
-  using RewardFunction = BlockReward (*)(const Parameters &, Height);
+  using RewardFunction = BlockReward (*)(const Parameters &, Height, CAmount fees);
 
   //! \brief a function to calculate the difficulty for a given block.
   //!

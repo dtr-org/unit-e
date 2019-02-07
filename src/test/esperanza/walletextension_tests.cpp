@@ -18,6 +18,7 @@
 #include <proposer/eligible_coin.h>
 #include <script/script.h>
 #include <staking/coin.h>
+#include <test/blockdb_utils.h>
 #include <test/esperanza/finalization_utils.h>
 #include <txmempool.h>
 #include <validation.h>
@@ -80,8 +81,24 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   const auto pubkey = key.GetPubKey();
   const auto pubkeydata = std::vector<unsigned char>(pubkey.begin(), pubkey.end());
 
+  // Create the previous block in the chain, is gonna be used to create the
+  // validators' fund in the coinbase.
+  std::map<uint256, CBlock> blockMap;
+  CBlock prev_block;
+  CMutableTransaction prev_coinbase;
+  prev_coinbase.SetType(TxType::COINBASE);
+  // We only care that the script has the right format
+  auto script_sig = CScript() << CScriptNum::serialize(143012)
+                              << ToByteVector(GetRandHash())
+                              << 0;
+  prev_coinbase.vin.emplace_back(GetRandHash(), 0, script_sig);
+  auto prev_coinbase_tx = MakeTransactionRef(std::move(prev_coinbase));
+  prev_block.vtx.push_back(prev_coinbase_tx);
+  blockMap.insert(std::make_pair(prev_block.GetHash(), prev_block));
+
   auto behavior = blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
-  auto block_builder = proposer::BlockBuilder::New(behavior.get(), &settings);
+  auto blockdb = MockBlockDB::New(blockMap);
+  auto block_builder = proposer::BlockBuilder::New(behavior.get(), blockdb.get(), &settings);
 
   {
     LOCK(pwalletMain->cs_wallet);
@@ -107,13 +124,16 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
     LOCK(pwalletMain->cs_wallet);
     const CWallet *wallet = pwalletMain.get();
 
-    CWalletTx walletTx1(wallet, tx1ref);
-    CWalletTx walletTx2(wallet, tx2ref);
-    CWalletTx walletTx3(wallet, tx3ref);
+    CWalletTx wallet_prev_coinbase(wallet, prev_coinbase_tx);
 
-    pwalletMain->LoadToWallet(walletTx1);
-    pwalletMain->LoadToWallet(walletTx2);
-    pwalletMain->LoadToWallet(walletTx3);
+    CWalletTx wallet_tx1(wallet, tx1ref);
+    CWalletTx wallet_tx2(wallet, tx2ref);
+    CWalletTx wallet_tx3(wallet, tx3ref);
+
+    pwalletMain->LoadToWallet(wallet_prev_coinbase);
+    pwalletMain->LoadToWallet(wallet_tx1);
+    pwalletMain->LoadToWallet(wallet_tx2);
+    pwalletMain->LoadToWallet(wallet_tx3);
   }
 
   CScript prev_script_pubkey = CScript::CreateP2PKHScript(ToByteVector(pubkey.GetID()));
@@ -142,7 +162,6 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   proposer::EligibleCoin eligible_coin{
       coin2,       // coin used as stake
       uint256(),   // kernel hash
-      5000,        // reward
       7251,        // target height
       1548255362,  // target time,
       0x1d00ffff   // difficulty = 1
@@ -150,9 +169,16 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   std::vector<staking::Coin> coins{coin1, coin2, coin3};
 
+  CBlockIndex prev_block_index;
+  uint256 prev_block_hash = prev_block.GetHash();
+  prev_block_index.phashBlock = &prev_block_hash;
+
+  // The goal of this test is not to check if the reward is correct, so and empty one is ok
+  blockchain::BlockReward bc = {0, 0, 0};
+
   // BuildCoinbaseTransaction() will also sign it
   CTransactionRef coinbase_transaction =
-      block_builder->BuildCoinbaseTransaction(uint256(), eligible_coin, coins, 700, pwalletMain->GetWalletExtension());
+      block_builder->BuildCoinbaseTransaction(bc, prev_block_index, GetRandHash(), eligible_coin, coins, pwalletMain->GetWalletExtension());
 
   // check that a coinbase transaction was built successfully
   BOOST_REQUIRE(static_cast<bool>(coinbase_transaction));
