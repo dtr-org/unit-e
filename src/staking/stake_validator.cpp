@@ -83,7 +83,7 @@ class StakeValidatorImpl : public StakeValidator {
       return result;
     }
     const uint256 kernel_hash = ComputeKernelHash(&previous_block, *stake, block.nTime);
-    // There is two ways to get the height of a block - either by parsing it from the coinbase, or by looking
+    // There are two ways to get the height of a block - either by parsing it from the coinbase, or by looking
     // at the height of the preceding block and incrementing it by one. The latter is simpler, so we do that.
     const blockchain::Height target_height = static_cast<blockchain::Height>(previous_block.nHeight) + 1;
     const blockchain::Difficulty target_difficulty =

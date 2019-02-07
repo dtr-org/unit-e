@@ -15,7 +15,7 @@ namespace staking {
 class ActiveChainAdapter final : public ActiveChain {
 
  public:
-  explicit ActiveChainAdapter() = default;
+  ActiveChainAdapter() = default;
 
   CCriticalSection &GetLock() const override { return cs_main; }
 
