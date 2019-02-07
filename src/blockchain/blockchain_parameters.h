@@ -96,6 +96,9 @@ struct Parameters {
   //! \brief frequency of blocks (a block time of 37 secs is one block every 37 secs)
   std::uint32_t block_time_seconds;
 
+  //! \brief maximum time drift that a block is allowed to have with respect to the current time.
+  std::uint32_t max_future_block_time_seconds;
+
   //! \brief Whether nodes in this network should relay non-standard transactions by default or not.
   //!
   //! For ordinary payment transactions there is a notion of "standard", i.e.

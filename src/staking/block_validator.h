@@ -83,6 +83,7 @@ class BlockValidator {
   virtual BlockValidationResult ContextualCheckBlock(
       const CBlock &,        //!< [in] The block to check.
       const CBlockIndex &,   //!< [in] The block index entry of the preceding block.
+      blockchain::Time,      //!< [in] The adjusted network time at the point in time to check for.
       BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
@@ -98,9 +99,11 @@ class BlockValidator {
   //! This function can not be used to check the genesis block's eader, as that one
   //! does not have a preceding block.
   virtual BlockValidationResult ContextualCheckBlockHeader(
-      const CBlockHeader &,
-      const CBlockIndex &,
-      BlockValidationInfo *) const = 0;
+      const CBlockHeader &,  //!< [in] The header to check
+      const CBlockIndex &,   //!< [in] The block index entry for the previous block.
+      blockchain::Time,      //!< [in] The adjusted network time at the point in time to check for.
+      BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
+      ) const = 0;
 
   virtual ~BlockValidator() = default;
 

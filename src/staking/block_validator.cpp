@@ -141,8 +141,19 @@ class BlockValidatorImpl : public BlockValidator {
 
   void ContextualCheckBlockHeaderInternal(
       const CBlockHeader &block_header,
-      const CBlockIndex &prev_block,
+      const blockchain::Time adjusted_time,
+      const CBlockIndex &previous_block,
       BlockValidationResult &result) const {
+
+    if (block_header.hashPrevBlock != *previous_block.phashBlock) {
+      result.AddError(Error::PREVIOUS_BLOCK_DOESNT_MATCH);
+    }
+    if (block_header.GetBlockTime() <= previous_block.GetMedianTimePast()) {
+      result.AddError(Error::BLOCKTIME_TOO_EARLY);
+    }
+    if (block_header.GetBlockTime() > adjusted_time + m_blockchain_behavior->GetParameters().max_future_block_time_seconds) {
+      result.AddError(Error::BLOCKTIME_TOO_FAR_INTO_FUTURE);
+    }
   }
 
   void CheckBlockInternal(
@@ -254,6 +265,7 @@ class BlockValidatorImpl : public BlockValidator {
   BlockValidationResult ContextualCheckBlock(
       const CBlock &block,
       const CBlockIndex &prev_block,
+      blockchain::Time adjusted_time,
       BlockValidationInfo *const block_validation_info) const override {
 
     BlockValidationResult result;
@@ -270,7 +282,7 @@ class BlockValidatorImpl : public BlockValidator {
     }
     // Make sure ContextualCheckBlockHeader has passed
     if (!block_validation_info || !block_validation_info->GetContextualCheckBlockHeaderStatus()) {
-      result.AddAll(ContextualCheckBlockHeader(block, prev_block, block_validation_info));
+      result.AddAll(ContextualCheckBlockHeader(block, prev_block, adjusted_time, block_validation_info));
       if (!result) {
         return result;
       }
@@ -313,6 +325,7 @@ class BlockValidatorImpl : public BlockValidator {
   BlockValidationResult ContextualCheckBlockHeader(
       const CBlockHeader &block_header,
       const CBlockIndex &prev_block,
+      const blockchain::Time adjusted_time,
       BlockValidationInfo *const block_validation_info) const override {
 
     BlockValidationResult result;
@@ -328,7 +341,7 @@ class BlockValidatorImpl : public BlockValidator {
       }
     }
     // perform the actual checks
-    ContextualCheckBlockHeaderInternal(block_header, prev_block, result);
+    ContextualCheckBlockHeaderInternal(block_header, adjusted_time, prev_block, result);
     // save results in block_validation_info if present
     if (block_validation_info) {
       if (result) {
