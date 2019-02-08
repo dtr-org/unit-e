@@ -29,6 +29,9 @@ class CWallet;
 class CWalletTx;
 class COutput;
 class CScheduler;
+class CRecipient;
+class CCoinControl;
+class CReserveKey;
 
 namespace esperanza {
 
@@ -139,6 +142,15 @@ class WalletExtension : public staking::StakingWallet {
   //! \returns true if the operation is succesful, false otehrwise.
   bool SendSlash(const finalization::VoteRecord &vote1,
                  const finalization::VoteRecord &vote2);
+
+  //! \brief Creates a remote staking transaction for a given address.
+  //!
+  //! The arguments mirror the ones for CWallet::CreateTransaction.
+  //! \returns true if the operation was successful, false otherwise.
+  bool CreateRemoteStakingTransaction(const CRecipient &recipient, CWalletTx *wtx_out,
+                                      CReserveKey *key_change_out, CAmount *fee_out,
+                                      std::string *error_out,
+                                      const CCoinControl &coin_control);
 
   bool AddToWalletIfInvolvingMe(const CTransactionRef &tx,
                                 const CBlockIndex *pIndex);

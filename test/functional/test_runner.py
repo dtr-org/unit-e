@@ -146,6 +146,7 @@ BASE_SCRIPTS= [
     'wallet_txn_doublespend.py',
     'wallet_txn_clone.py --mineblock',
     'feature_notifications.py',
+    'feature_remote_staking.py',
     'rpc_invalidateblock.py',
     'feature_rbf.py',
     'wallet_resendwallettransactions.py',

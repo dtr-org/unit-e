@@ -701,6 +701,8 @@ public:
     static CScript CreatePayVoteSlashScript(const CPubKey &pubkey);
     static CScript CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash);
     static CScript CreateUnspendableScript();
+    static CScript CreateRemoteStakingScript(const std::vector<unsigned char> &staking_key_hash,
+                                             const std::vector<unsigned char> &spending_key_hash);
 
     bool IsPayToPublicKeyHash() const;
     bool IsPayToScriptHash() const;
