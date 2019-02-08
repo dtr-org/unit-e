@@ -359,26 +359,27 @@ def connect_nodes_bi(nodes, a, b):
     connect_nodes(nodes[a], b)
     connect_nodes(nodes[b], a)
 
-def sync_blocks(rpc_connections, *, wait=1, timeout=60):
+def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
     """
     Wait until everybody has the same tip.
 
-    sync_blocks needs to be called with an rpc_connections set that has least
-    one node already synced to the latest, stable tip, otherwise there's a
-    chance it might return before all nodes are stably synced.
+    if height is not specified, then sync_blocks needs to be called with an
+    rpc_connections set that has least one node already synced to the latest,
+    stable tip, otherwise there's a chance it might return before all nodes are
+    stably synced.
     """
-    # Use getblockcount() instead of waitforblockheight() to determine the
-    # initial max height because the two RPCs look at different internal global
-    # variables (chainActive vs latestBlock) and the former gets updated
-    # earlier.
-    maxheight = max(x.getblockcount() for x in rpc_connections)
+    if height is None:
+        # Use getblockcount() instead of waitforblockheight() to determine the
+        # initial max height because the two RPCs look at different internal
+        # global variables (chainActive vs latestBlock) and the former gets
+        # updated earlier.
+        maxheight = max(x.getblockcount() for x in rpc_connections)
+    else:
+        maxheight = height
+
     start_time = cur_time = time.time()
     while cur_time <= start_time + timeout:
         tips = [r.waitforblockheight(maxheight, int(wait * 1000)) for r in rpc_connections]
-
-        # We update maxheight to avoid timeouts when the value is outdated
-        maxheight = max(maxheight, max(t["height"] for t in tips))
-
         if all(t["height"] == maxheight for t in tips):
             if all(t["hash"] == tips[0]["hash"] for t in tips):
                 return
