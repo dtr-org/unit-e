@@ -80,16 +80,16 @@ class LTORTest(UnitETestFramework):
 
         self.exit_ibd_state()  # Exit IBD state, so we can sync mempools
 
-        for test_result in self.test_created_blocks_satisfy_ltor():
+        for test_result in self.test_created_blocks_satisfy_ltor(sync_height=201):
             yield test_result
-        for test_result in self.test_ltor_infringement_detection():
+        for test_result in self.test_ltor_infringement_detection(sync_height=202):
             yield test_result
 
         rnd_setstate(rnd_state)
 
-    def test_ltor_infringement_detection(self):
+    def test_ltor_infringement_detection(self, sync_height):
         txns = self.create_chained_transactions()
-        block = self.get_empty_block()
+        block = self.get_empty_block(sync_height=sync_height)
         # We ensure that the transactions are NOT sorted in the correct order
         block.vtx.extend(sorted(txns, key=lambda _tx: _tx.hash, reverse=True))
 
@@ -101,7 +101,7 @@ class LTORTest(UnitETestFramework):
             test_name='test_ltor_infringement_detection'
         )
 
-    def test_created_blocks_satisfy_ltor(self):
+    def test_created_blocks_satisfy_ltor(self, sync_height):
         recipient_addresses = [
             self.nodes[0].getnewaddress(),
             self.nodes[1].getnewaddress()
@@ -112,7 +112,7 @@ class LTORTest(UnitETestFramework):
         )
         # We expect from the node to pick txns in the mempool and include them
         # in the next block
-        self.ask_node_to_generate_block(0)
+        self.ask_node_to_generate_block(0, sync_height=sync_height)
 
         # Block transactions are ordered lexicographically (except coinbase)
         block_tx_ids = self.get_tip_transactions(0)
@@ -138,15 +138,17 @@ class LTORTest(UnitETestFramework):
 
     def exit_ibd_state(self):
         # We generate a block to exit IBD state
-        self.create_spendable_outputs()
+        self.create_spendable_outputs(sync_height=200)
 
-    def ask_node_to_generate_block(self, node_idx):
+    def ask_node_to_generate_block(self, node_idx, sync_height):
         try:
+            sync_blocks(self.nodes, height=sync_height)
             self.nodes[node_idx].generatetoaddress(
                 nblocks=1,
                 address=self.nodes[node_idx].getnewaddress()
             )
-            sync_blocks(self.nodes)
+            # This call is safe because there's one node up to date
+            sync_blocks(self.nodes, height=sync_height + 1)
         except JSONRPCException as exp:
             print("error generating block:", exp.error)
             raise AssertionError("Node %s cannot generate block" % node_idx)
@@ -201,15 +203,15 @@ class LTORTest(UnitETestFramework):
 
         return tx_hashes
 
-    def create_spendable_outputs(self):
-        block = self.get_empty_block()
+    def create_spendable_outputs(self, sync_height):
+        block = self.get_empty_block(sync_height=sync_height)
         self.spendable_outputs.append(block)
 
         mininode = self.nodes[0].p2p
         mininode.send_message(msg_headers([block]))
         wait_until(self.is_block_hash_in_inv_predicate(block.hash))
         mininode.send_message(msg_block(block))
-        sync_blocks(self.nodes)
+        sync_blocks(self.nodes, height=sync_height + 1)
 
     def is_block_hash_in_inv_predicate(self, block_hash):
         mininode = self.nodes[0].p2p
@@ -223,12 +225,11 @@ class LTORTest(UnitETestFramework):
 
         return is_block_hash_in_inv
 
-    def get_empty_block(self):
-        sync_blocks(self.nodes)
+    def get_empty_block(self, sync_height):
+        sync_blocks(self.nodes, height=sync_height)
         node0 = self.nodes[0]
 
         hashprev = uint256_from_str(unhexlify(node0.getbestblockhash())[::-1])
-        height = node0.getblockcount()
         snapshot_hash = SnapshotMeta(node0.gettipsnapshot()).hash
 
         if len(self.spendable_outputs) > 0:
@@ -239,7 +240,7 @@ class LTORTest(UnitETestFramework):
         block = create_block(
             hashprev=hashprev,
             coinbase=create_coinbase(
-                height=height,
+                height=sync_height + 1,
                 snapshot_hash=snapshot_hash
             ),
             nTime=block_time
