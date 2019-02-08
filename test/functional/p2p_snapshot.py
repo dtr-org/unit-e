@@ -231,7 +231,7 @@ def path_to_snapshot(node, snapshot_hash):
     return os.path.join(node.datadir, 'regtest', 'snapshots', h)
 
 
-def assert_snapshot_on_disk(node, snapshot_hash):
+def assert_has_snapshot_on_disk(node, snapshot_hash):
     assert(os.path.isdir(path_to_snapshot(node, snapshot_hash)))
 
 
@@ -388,33 +388,48 @@ class P2PSnapshotTest(UnitETestFramework):
         self.restart_node(node.index)
         self.log.info('Node restarted successfully after it discovered the snapshot')
 
-        # test 2. that node can be restarted after it downloaded half of the snapshot
+        # test 2. the node can be restarted after it downloaded half of the snapshot
+        # and deletes it's partially downloaded snapshot
         p2p.return_snapshot_chunk1 = True
         node.add_p2p_connection(p2p, services=SERVICE_FLAGS_WITH_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: p2p.snapshot_chunk2_requested, timeout=10)
         node.disconnect_p2ps()
         network_thread_join()
+        assert_has_snapshot_on_disk(node, p2p.snapshot_header.snapshot_hash)
         self.restart_node(node.index)
+        assert_no_snapshot_on_disk(node, p2p.snapshot_header.snapshot_hash)
         assert_equal(len(os.listdir(os.path.join(node.datadir, "regtest", "snapshots"))), 0)
         self.log.info('Node restarted successfully after it downloaded half of the snapshot')
 
-        # test 3. that node can be restarted after it downloaded the full snapshot
+        # test 3. the node can be restarted after it downloaded the full snapshot
+        # and doesn't delete it
         p2p.return_snapshot_chunk2 = True
         node.add_p2p_connection(p2p, services=SERVICE_FLAGS_WITH_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: p2p.parent_block_requested, timeout=10)
         node.disconnect_p2ps()
         network_thread_join()
+        assert_has_snapshot_on_disk(node, p2p.snapshot_header.snapshot_hash)
         self.restart_node(node.index)
+        assert_has_snapshot_on_disk(node, p2p.snapshot_header.snapshot_hash)
         self.log.info('Node restarted successfully after it downloaded the full snapshot')
 
         # test 4. the node can be restarted after it downloaded the parent block
+        p2p.snapshot_header_requested = False
+        p2p.snapshot_chunk1_requested = False
+        p2p.snapshot_chunk2_requested = False
         p2p.return_parent_block = True
         node.add_p2p_connection(p2p, services=SERVICE_FLAGS_WITH_SNAPSHOT)
         network_thread_start()
         wait_until(lambda: node.getblockcount() == snap_node.getblockcount(), timeout=10)
         assert_chainstate_equal(node, snap_node)
+
+        # node didn't request a new snapshot as it already downloaded the one
+        assert_equal(p2p.snapshot_header_requested, False)
+        assert_equal(p2p.snapshot_chunk1_requested, False)
+        assert_equal(p2p.snapshot_chunk2_requested, False)
+
         node.disconnect_p2ps()
         network_thread_join()
         self.restart_node(node.index)
@@ -481,7 +496,7 @@ class P2PSnapshotTest(UnitETestFramework):
         broken_p2p.return_snapshot_chunk1 = True
         broken_p2p.on_getsnapshot(broken_p2p.last_getsnapshot_message)
         wait_until(lambda: broken_p2p.snapshot_chunk2_requested, timeout=10)
-        assert_snapshot_on_disk(node, broken_p2p.snapshot_header.snapshot_hash)
+        assert_has_snapshot_on_disk(node, broken_p2p.snapshot_header.snapshot_hash)
         assert_no_snapshot_on_disk(node, valid_p2p.snapshot_header.snapshot_hash)
         assert_equal(valid_p2p.snapshot_chunk1_requested, False)
 
@@ -493,7 +508,7 @@ class P2PSnapshotTest(UnitETestFramework):
         valid_p2p.return_snapshot_chunk1 = True
         valid_p2p.on_getsnapshot(valid_p2p.last_getsnapshot_message)
         wait_until(lambda: valid_p2p.snapshot_chunk2_requested, timeout=10)
-        assert_snapshot_on_disk(node, valid_p2p.snapshot_header.snapshot_hash)
+        assert_has_snapshot_on_disk(node, valid_p2p.snapshot_header.snapshot_hash)
         valid_p2p.return_snapshot_chunk2 = True
         valid_p2p.return_parent_block = True
         valid_p2p.on_getsnapshot(valid_p2p.last_getsnapshot_message)
@@ -567,7 +582,7 @@ class P2PSnapshotTest(UnitETestFramework):
         half_snap_p2p.return_snapshot_chunk1 = True
         half_snap_p2p.on_getsnapshot(half_snap_p2p.last_getsnapshot_message)
         wait_until(lambda: half_snap_p2p.snapshot_chunk2_requested, timeout=10)
-        assert_snapshot_on_disk(sync_node, half_snap_p2p.snapshot_header.snapshot_hash)
+        assert_has_snapshot_on_disk(sync_node, half_snap_p2p.snapshot_header.snapshot_hash)
         wait_until(lambda: full_snap_p2p.snapshot_chunk1_requested, timeout=10)  # fallback to 2nd best
         assert_no_snapshot_on_disk(sync_node, half_snap_p2p.snapshot_header.snapshot_hash)
         self.log.info('Node cannot receive 2nd half of the snapshot')
@@ -578,7 +593,7 @@ class P2PSnapshotTest(UnitETestFramework):
         full_snap_p2p.on_getsnapshot(full_snap_p2p.last_getsnapshot_message)
         wait_until(lambda: full_snap_p2p.parent_block_requested, timeout=10)
         wait_until(lambda: no_snap_p2p.parent_block_requested, timeout=10)
-        assert_snapshot_on_disk(sync_node, full_snap_p2p.snapshot_header.snapshot_hash)
+        assert_has_snapshot_on_disk(sync_node, full_snap_p2p.snapshot_header.snapshot_hash)
         self.log.info('Node cannot receive parent block from already connected peers')
 
         # test 4. the node can't receive the parent block from new peers
@@ -600,7 +615,7 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: no_snap_p2p.parent_block_requested, timeout=10)
         assert(full_snap_p2p.snapshot_chunk1_requested is False)
         assert(no_snap_p2p.snapshot_chunk1_requested is False)
-        assert_snapshot_on_disk(sync_node, full_snap_p2p.snapshot_header.snapshot_hash)
+        assert_has_snapshot_on_disk(sync_node, full_snap_p2p.snapshot_header.snapshot_hash)
         self.log.info('Node cannot receive parent block from new peers')
 
         self.stop_node(sync_node.index)

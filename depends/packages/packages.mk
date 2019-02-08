@@ -13,6 +13,7 @@ qt_mingw32_packages=qt
 wallet_packages=bdb
 
 upnp_packages=miniupnpc
+usb_packages=libusb hidapi
 
 darwin_native_packages = native_biplist native_ds_store native_mac_alias
 

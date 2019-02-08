@@ -54,7 +54,7 @@ Parameters BuildMainNetParameters() {
   p.base58_prefixes[Base58Type::EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
   p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
-  p.bech32_human_readable_prefix = "bc";
+  p.bech32_human_readable_prefix = "ue";
 
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
@@ -91,7 +91,7 @@ Parameters BuildTestNetParameters() {
   p.base58_prefixes[Base58Type::EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
   p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-  p.bech32_human_readable_prefix = "tb";
+  p.bech32_human_readable_prefix = "tue";
 
   static GenesisBlock genesisBlock{
       GenesisBlockBuilder()
@@ -125,7 +125,7 @@ Parameters BuildRegTestParameters() {
   p.base58_prefixes[Base58Type::EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
   p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-  p.bech32_human_readable_prefix = "bcrt";
+  p.bech32_human_readable_prefix = "uert";
 
   static GenesisBlock genesisBlock{
       GenesisBlockBuilder()

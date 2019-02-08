@@ -19,13 +19,13 @@ namespace snapshot {
 //! 4. snapshot applied (leave ISD)
 class State {
  public:
-  State() : m_isdMode(false), m_isdLatch(false), m_headersDownloaded(false) {}
+  State() : m_isd_mode(false), m_isd_latch(false), m_headers_downloaded(false) {}
 
-  void StoreCandidateBlockHash(const uint256 &hash);
+  void StoreCandidateBlockHash(const uint256 &block_hash);
   uint256 LoadCandidateBlockHash();
-  void EnableISDMode() { m_isdMode = true; }
-  void DisableISDMode() { m_isdMode = false; }
-  bool IsISDEnabled() { return m_isdMode; }
+  void EnableISDMode() { m_isd_mode = true; }
+  void DisableISDMode() { m_isd_mode = false; }
+  bool IsISDEnabled() { return m_isd_mode; }
 
   //! \brief IsInitialSnapshotDownload checks if we are in the ISD mode
   //!
@@ -39,20 +39,21 @@ class State {
 
  private:
   // true if we're running in the Initial Snapshot Download mode.
-  std::atomic<bool> m_isdMode;
+  std::atomic<bool> m_isd_mode;
 
   // tracks when we leave ISD
-  std::atomic<bool> m_isdLatch;
+  std::atomic<bool> m_isd_latch;
 
   // keeps track when all headers are downloaded
-  std::atomic<bool> m_headersDownloaded;
+  std::atomic<bool> m_headers_downloaded;
 
-  // pre-caches candidate snapshot hash to avoid lookup to the disk
-  uint256 m_candidateHash;
-  CCriticalSection cs_candidateBlockHash;
+  // pre-caches block hash of the candidate snapshot
+  // to avoid reading the snapshot from disk
+  uint256 m_candidate_block_hash;
+  CCriticalSection m_cs_candidate_block_hash;
 };
 
-void StoreCandidateBlockHash(const uint256 &hash);
+void StoreCandidateBlockHash(const uint256 &block_hash);
 uint256 LoadCandidateBlockHash();
 bool IsInitialSnapshotDownload();
 void EnableISDMode();

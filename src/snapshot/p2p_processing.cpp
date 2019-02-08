@@ -389,9 +389,11 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
   bool oldCheckBlockIndex = fCheckBlockIndex;
   fCheckBlockIndex = false;
   try {
+    LogPrint(BCLog::SNAPSHOT, "Processing parent block\n");
     regular_processing();
   } catch (...) {
     fCheckBlockIndex = oldCheckBlockIndex;
+    LogPrint(BCLog::SNAPSHOT, "Failed to process parent block\n");
     throw;
   }
   fCheckBlockIndex = oldCheckBlockIndex;
@@ -429,6 +431,7 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
   uint256 hash;
   assert(GetLatestFinalizedSnapshotHash(hash));
   assert(snapshot_hash == hash);
+  LogPrint(BCLog::SNAPSHOT, "Finished fast syncing\n");
 }
 
 bool P2PState::FindNextBlocksToDownload(const NodeId node_id,
@@ -595,10 +598,12 @@ void P2PState::DeleteUnlinkedSnapshot() {
   // as it will be unlinked and be never deleted
   uint256 finalized_hash;
   GetLatestFinalizedSnapshotHash(finalized_hash);
-  if (m_downloading_snapshot.snapshot_hash != LoadCandidateBlockHash() &&
+  if (m_downloading_snapshot.block_hash != LoadCandidateBlockHash() &&
       m_downloading_snapshot.snapshot_hash != finalized_hash) {
     LOCK(cs_snapshot);
-    Indexer::Delete(m_downloading_snapshot.snapshot_hash);
+    SnapshotIndex::DeleteSnapshot(m_downloading_snapshot.snapshot_hash);
+    LogPrint(BCLog::SNAPSHOT, "downloaded snapshot %s is deleted\n",
+             m_downloading_snapshot.snapshot_hash.GetHex());
   }
 }
 

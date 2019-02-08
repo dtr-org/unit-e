@@ -9,44 +9,46 @@
 
 namespace snapshot {
 
-void State::StoreCandidateBlockHash(const uint256 &hash) {
-  LOCK(cs_candidateBlockHash);
-  m_candidateHash = hash;
+void State::StoreCandidateBlockHash(const uint256 &block_hash) {
+  LOCK(m_cs_candidate_block_hash);
+  m_candidate_block_hash = block_hash;
 }
 
 uint256 State::LoadCandidateBlockHash() {
-  LOCK(cs_candidateBlockHash);
-  return m_candidateHash;
+  LOCK(m_cs_candidate_block_hash);
+  return m_candidate_block_hash;
 }
 
 bool State::IsInitialSnapshotDownload() {
-  if (m_isdLatch.load(std::memory_order_relaxed)) {
+  if (m_isd_latch.load(std::memory_order_relaxed)) {
     return false;
   }
 
-  uint256 snapshotHash;
-  if (GetLatestFinalizedSnapshotHash(snapshotHash)) {
-    m_isdLatch.store(true, std::memory_order_relaxed);
+  uint256 snapshot_hash;
+  if (GetLatestFinalizedSnapshotHash(snapshot_hash)) {
+    LogPrint(BCLog::SNAPSHOT, "Finalized snapshot found. Set IsInitialSnapshotDownload to false\n");
+    m_isd_latch.store(true, std::memory_order_relaxed);
     return false;
   }
 
   if (chainActive.Height() > 0) {
     // at least one full block is processed, leave ISD
-    m_isdLatch.store(true, std::memory_order_relaxed);
+    LogPrint(BCLog::SNAPSHOT, "chainActive height is not zero. Set IsInitialSnapshotDownload to false\n");
+    m_isd_latch.store(true, std::memory_order_relaxed);
     return false;
   }
 
   return true;
 }
 
-void State::HeadersDownloaded() { m_headersDownloaded.store(true); }
+void State::HeadersDownloaded() { m_headers_downloaded.store(true); }
 
-bool State::IsHeadersDownloaded() { return m_headersDownloaded.load(); }
+bool State::IsHeadersDownloaded() { return m_headers_downloaded.load(); }
 
 State state;
 
-void StoreCandidateBlockHash(const uint256 &hash) {
-  state.StoreCandidateBlockHash(hash);
+void StoreCandidateBlockHash(const uint256 &block_hash) {
+  state.StoreCandidateBlockHash(block_hash);
 }
 uint256 LoadCandidateBlockHash() { return state.LoadCandidateBlockHash(); }
 bool IsInitialSnapshotDownload() { return state.IsInitialSnapshotDownload(); }
