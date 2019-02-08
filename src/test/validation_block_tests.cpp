@@ -207,20 +207,27 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     // this will create parallelism and randomness inside validation - the ValidationInterface
     // will subscribe to events generated during block validation and assert on ordering invariance
     boost::thread_group threads;
+    // boost unit test is not thread safe as the checks record the results in some shared memory
+    // which is not synchronized / does not happen under mutual exclusion.
+    std::mutex cs;
+    const auto check = [&cs](bool condition) {
+      std::lock_guard<decltype(cs)> lock(cs);
+      BOOST_CHECK(condition);
+    };
     for (int i = 0; i < 10; i++) {
-        threads.create_thread([&blocks]() {
+        threads.create_thread([&]() {
             bool ignored;
             for (int i = 0; i < 1000; i++) {
                 auto block = blocks[GetRand(blocks.size() - 1)];
                 bool processed = ProcessNewBlock(Params(), block, true, &ignored);
-                BOOST_CHECK(processed);
+                check(processed);
             }
 
             // to make sure that eventually we process the full chain - do it here
             for (auto block : blocks) {
                 if (block->vtx.size() == 1) {
                     bool processed = ProcessNewBlock(Params(), block, true, &ignored);
-                    BOOST_CHECK(processed);
+                    check(processed);
                 }
             }
         });
