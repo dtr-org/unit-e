@@ -219,7 +219,8 @@ class EnumSet {
     return buf.str();
   }
 
-  std::string ToStringUsing(std::string (*func)(Enum), const char *delimiter = ", ") const {
+  template <typename Callable>
+  std::string ToStringUsing(Callable func, const char *delimiter = ", ") const {
     std::ostringstream buf;
     auto it = this->begin();
     if (it != this->end()) {

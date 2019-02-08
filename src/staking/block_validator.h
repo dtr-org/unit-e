@@ -30,7 +30,7 @@ namespace staking {
 //! - everything it needs to validate comes from the arguments passed to
 //!   a function of from the currently active blockchain Behavior (which network).
 //!
-//! Since the previos call graph of validation functions was very hard to follow,
+//! Since the previous call graph of validation functions was very hard to follow,
 //! the relationship of the validation functions in the validator has been defined
 //! in the following way:
 //!
@@ -67,10 +67,10 @@ class BlockValidator {
   //! object which tracks validation information across invocations of different
   //! validation functions like CheckBlock, ContextualCheckBlock, CheckStake.
   //!
-  //! Postconditions when invoked as `CheckBlock(block, blockValidationInfo)`:
-  //! - (bool) BlockValidationResult == (bool) blockValidationInfo.GetCheckBlockStatus()
-  //! - block.vtx.size() >= 1
-  //! - block.vtx[0].GetType() == +TxType::COINBASE
+  //! Postconditions when invoked as `blockValidationResult = CheckBlock(block, blockValidationInfo)`:
+  //! - (bool) blockValidationResult == (bool) blockValidationInfo.GetCheckBlockStatus()
+  //! - !blockValidationResult || block.vtx.size() >= 1
+  //! - !blockValidationResult || block.vtx[0].GetType() == +TxType::COINBASE
   virtual BlockValidationResult CheckBlock(
       const CBlock &,        //!< [in] The block to check.
       BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).

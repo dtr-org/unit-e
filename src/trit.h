@@ -7,15 +7,15 @@
 class Trit final {
 
  public:
-  static const Trit T_TRUE;
-  static const Trit T_FALSE;
-  static const Trit T_UNKNOWN;
+  static const Trit True;
+  static const Trit False;
+  static const Trit Unknown;
 
  private:
   enum value_t : std::uint8_t {
-    VALUE_TRUE,
-    VALUE_FALSE,
-    VALUE_UNKNOWN
+    value_true,
+    value_false,
+    value_unknown
   };
 
   value_t value;
@@ -31,17 +31,17 @@ class Trit final {
 
   //! \brief Whether this is Trit::TRUE
   inline bool IsTrue() const noexcept {
-    return value == VALUE_TRUE;
+    return value == value_true;
   }
 
   //! \brief Whether this is Trit::FALSE
   inline bool IsFalse() const noexcept {
-    return value == VALUE_FALSE;
+    return value == value_false;
   }
 
   //! \brief Whether this is Trit::UNKNOWN
   inline bool IsUnknown() const noexcept {
-    return value == VALUE_UNKNOWN;
+    return value == value_unknown;
   }
 
   //! \brief Same as IsTrue() but useful in if statements.
@@ -52,34 +52,34 @@ class Trit final {
   //! \brief Ternary AND.
   Trit And(const Trit other) const noexcept {
     if (IsTrue() && other.IsTrue()) {
-      return T_TRUE;
+      return True;
     }
     if (IsFalse() || other.IsFalse()) {
-      return T_FALSE;
+      return False;
     }
-    return T_UNKNOWN;
+    return Unknown;
   }
 
   //! \brief Ternary OR.
   Trit Or(Trit other) const noexcept {
     if (IsFalse() && other.IsFalse()) {
-      return T_FALSE;
+      return False;
     }
     if (IsTrue() || other.IsTrue()) {
-      return T_TRUE;
+      return True;
     }
-    return T_UNKNOWN;
+    return Unknown;
   }
 
   //! \brief Ternary NOT.
   Trit Not() const noexcept {
     if (IsTrue()) {
-      return T_FALSE;
+      return False;
     }
     if (IsFalse()) {
-      return T_TRUE;
+      return True;
     }
-    return T_UNKNOWN;
+    return Unknown;
   }
 
   static Trit And(Trit t1, Trit t2) noexcept {
