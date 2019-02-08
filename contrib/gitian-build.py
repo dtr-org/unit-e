@@ -373,13 +373,12 @@ def prepare_gitian_descriptors(*, source, target, hosts=None):
         filename = descriptor_path.relative_to(descriptor_source_dir)
         descriptor_in = descriptor_source_dir / filename
         descriptor_out = descriptor_dir / filename
-        with descriptor_out.open("w") as file_out:
-            with descriptor_in.open() as file_in:
-                for line in file_in:
-                    if hosts and line.startswith('  HOSTS='):
-                        file_out.write('  HOSTS="%s"\n' % hosts)
-                    else:
-                        file_out.write(line)
+        with descriptor_out.open("w") as file_out, descriptor_in.open() as file_in:
+            for line in file_in:
+                if hosts and line.startswith('  HOSTS='):
+                    file_out.write('  HOSTS="%s"\n' % hosts)
+                else:
+                    file_out.write(line)
 
 def main():
     parser = argparse.ArgumentParser(usage='%(prog)s [options]')
