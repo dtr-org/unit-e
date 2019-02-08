@@ -88,11 +88,11 @@ def test_build(mocker):
 
     mocker.patch("platform.system", return_value="Linux")
     mocker.patch("os.makedirs")
+    mocker.patch("os.getcwd", return_value="someworkdir")
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
-    mocker.patch("os.getcwd", return_value="somedir")
 
-    gitian_build.build(create_args(mocker), "someworkdir")
+    gitian_build.build(create_args(mocker))
 
     log.check()
 
@@ -208,6 +208,7 @@ def test_setup_linux(mocker):
 def test_prepare_git_dir(mocker):
     log = Log("test_prepare_git_dir")
 
+    mocker.patch("os.getcwd", return_value="someworkdir")
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.check_output", side_effect=log.log_call)
@@ -215,13 +216,14 @@ def test_prepare_git_dir(mocker):
     args = create_args(mocker)
     args.pull = True
     args.skip_checkout = False
-    gitian_build.prepare_git_dir(args, "someworkdir")
+    gitian_build.prepare_git_dir(args)
 
     log.check()
 
 def test_prepare_git_dir_skip(mocker):
     log = Log("test_prepare_git_dir_skip")
 
+    mocker.patch("os.getcwd", return_value="someworkdir")
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.check_output", side_effect=log.log_call)
@@ -229,7 +231,7 @@ def test_prepare_git_dir_skip(mocker):
     args = create_args(mocker)
     args.skip_checkout = True
     args.pull = False
-    gitian_build.prepare_git_dir(args, "someworkdir")
+    gitian_build.prepare_git_dir(args)
 
     log.check()
 
