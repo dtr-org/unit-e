@@ -88,7 +88,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return false;
 
     CKeyID keyID;
-    CScript witnessscript;
+    CScript scriptForSigHash;
     switch (whichTypeRet)
     {
     case TX_NONSTANDARD:
@@ -132,19 +132,19 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
 
     case TX_WITNESS_V1_REMOTE_STAKING:
         if (creator.Checker().GetTxType() == +TxType::COINBASE) {
-            witnessscript << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
+            scriptForSigHash << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
             h160 = uint160(vSolutions[0]);
         } else {
             CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(h160.begin());
-            witnessscript << OP_DUP << OP_SHA256 << vSolutions[1] << OP_EQUALVERIFY << OP_CHECKSIG;
+            scriptForSigHash << OP_DUP << OP_SHA256 << vSolutions[1] << OP_EQUALVERIFY << OP_CHECKSIG;
         }
-        return SignWithPubKeyHash(provider, creator, witnessscript, h160, ret, SigVersion::WITNESS_V0);
+        return SignWithPubKeyHash(provider, creator, scriptForSigHash, h160, ret, SigVersion::WITNESS_V0);
 
     case TX_WITNESS_V2_REMOTE_STAKING_SCRIPTHASH:
         if (creator.Checker().GetTxType() == +TxType::COINBASE) {
-            witnessscript << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
+            scriptForSigHash << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
             h160 = uint160(vSolutions[0]);
-            return SignWithPubKeyHash(provider, creator, witnessscript, h160, ret, SigVersion::WITNESS_V0);
+            return SignWithPubKeyHash(provider, creator, scriptForSigHash, h160, ret, SigVersion::WITNESS_V0);
         } else {
             CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(h160.begin());
             if (provider.GetCScript(h160, scriptRet)) {
