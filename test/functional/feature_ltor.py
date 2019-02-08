@@ -230,7 +230,6 @@ class LTORTest(UnitETestFramework):
         node0 = self.nodes[0]
 
         hashprev = uint256_from_str(unhexlify(node0.getbestblockhash())[::-1])
-        height = node0.getblockcount() + 1
         snapshot_hash = SnapshotMeta(node0.gettipsnapshot()).hash
 
         if len(self.spendable_outputs) > 0:
@@ -241,7 +240,7 @@ class LTORTest(UnitETestFramework):
         block = create_block(
             hashprev=hashprev,
             coinbase=create_coinbase(
-                height=height,
+                height=sync_height + 1,
                 snapshot_hash=snapshot_hash
             ),
             nTime=block_time
