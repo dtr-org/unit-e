@@ -96,7 +96,7 @@ class BlockValidator {
 
   //! \brief checks the block header with resepect to its preceding block.
   //!
-  //! This function can not be used to check the genesis block's eader, as that one
+  //! This function can not be used to check the genesis block's header, as that one
   //! does not have a preceding block.
   virtual BlockValidationResult ContextualCheckBlockHeader(
       const CBlockHeader &,  //!< [in] The header to check
