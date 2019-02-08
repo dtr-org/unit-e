@@ -200,6 +200,7 @@ def test_setup_linux(mocker):
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.call", side_effect=log.log_call)
+    mocker.patch("pathlib.Path.is_dir", return_value=False)
 
     gitian_build.setup(create_args(mocker))
 
