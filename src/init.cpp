@@ -30,6 +30,7 @@
 #include <net.h>
 #include <net_processing.h>
 #include <p2p/embargoman_init.h>
+#include <p2p/graphene.h>
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
@@ -216,6 +217,7 @@ void Shutdown()
     GetInjector().Stop();
 
     peerLogic.reset();
+
     g_connman.reset();
 
     StopTorControl();
@@ -429,6 +431,7 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-embargotxs=<enable>", strprintf("Whether to use embargoing mechanism(aka Dandelion-Lite) (default: %s)", defaultEmbargoManParams.enabled));
     strUsage += HelpMessageOpt("-externalip=<ip>", _("Specify your own public address"));
     strUsage += HelpMessageOpt("-forcednsseed", strprintf(_("Always query for peer addresses via DNS lookup (default: %u)"), DEFAULT_FORCEDNSSEED));
+    strUsage += HelpMessageOpt("-graphene", _("Whether to use graphene protocol (default: true)"));
     strUsage += HelpMessageOpt("-listen", _("Accept connections from outside (default: 1 if no -proxy or -connect)"));
     strUsage += HelpMessageOpt("-listenonion", strprintf(_("Automatically create Tor hidden service (default: %d)"), DEFAULT_LISTEN_ONION));
     strUsage += HelpMessageOpt("-maxconnections=<n>", strprintf(_("Maintain at most <n> connections to peers (default: %u)"), DEFAULT_MAX_PEER_CONNECTIONS));

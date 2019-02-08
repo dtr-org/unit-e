@@ -16,6 +16,9 @@
 #include <finalization/state_repository.h>
 #include <injector_config.h>
 #include <p2p/finalizer_commits_handler.h>
+#include <p2p/graphene.h>
+#include <p2p/graphene_receiver.h>
+#include <p2p/graphene_sender.h>
 #include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
@@ -23,6 +26,7 @@
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
+#include <txpool.h>
 #include <util.h>
 #include <validation.h>
 
@@ -31,6 +35,7 @@
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_rpc.h>
+
 #endif
 
 class UnitEInjector : public Injector<UnitEInjector> {
@@ -83,6 +88,16 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::ActiveChain,
             finalization::StateRepository,
             finalization::StateProcessor)
+
+  COMPONENT(TxPool, ::TxPool, ::TxPool::New);
+
+  COMPONENT(GrapheneReceiver, p2p::GrapheneReceiver, p2p::GrapheneReceiver::New,
+            ::ArgsManager,
+            ::TxPool);
+
+  COMPONENT(GrapheneSender, p2p::GrapheneSender, p2p::GrapheneSender::New,
+            ::ArgsManager,
+            ::TxPool);
 
 #ifdef ENABLE_WALLET
 

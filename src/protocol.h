@@ -271,6 +271,30 @@ extern const char *GETCOMMITS;
  * Sent in respose to a "getcommits" message.
  */
 extern const char *COMMITS;
+
+/**
+ * Contains a p2p::GrapheneBlockRequest
+ * Sent in response "headers" message
+ */
+extern const char *GETGRAPHENE;
+
+/**
+ * Contains a p2p::GrapheneBlock
+ * Sent in response to "GETGRAPHENE" message
+ */
+extern const char *GRAPHENEBLOCK;
+
+/**
+ * Contains a p2p::GrapheneTxRequest
+ * Sent in response to "GRAPHENEBLOCK" message
+ */
+extern const char *GETGRAPHENETX;
+
+/**
+ * Contains a p2p::GrapheneTx
+ * Sent in response to "GETGRAPHENETX" message
+ */
+extern const char *GRAPHENETX;
 };
 
 /* Get a vector of all valid message types (see above) */
@@ -413,6 +437,7 @@ enum GetDataMsg
     // The following can only occur in getdata. Invs always use TX or BLOCK.
     MSG_FILTERED_BLOCK = 3,  //!< Defined in BIP37
     MSG_CMPCT_BLOCK = 4,     //!< Defined in BIP152
+    MSG_GRAPHENE_BLOCK = 5, // TODO:
     MSG_WITNESS_BLOCK = MSG_BLOCK | MSG_WITNESS_FLAG, //!< Defined in BIP144
     MSG_WITNESS_TX = MSG_TX | MSG_WITNESS_FLAG,       //!< Defined in BIP144
     MSG_FILTERED_WITNESS_BLOCK = MSG_FILTERED_BLOCK | MSG_WITNESS_FLAG,

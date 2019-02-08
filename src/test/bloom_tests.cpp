@@ -758,4 +758,16 @@ BOOST_AUTO_TEST_CASE(rolling_bloom)
     }
 }
 
+BOOST_AUTO_TEST_CASE(bloom_filter_honors_max_size) {
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << CBloomFilter(100000, 0.000001, 0, BLOOM_UPDATE_ALL, 100);
+
+    BOOST_CHECK_EQUAL(110, stream.size());
+    stream.clear();
+
+    stream << CBloomFilter(10000000, 0.000001, 0, BLOOM_UPDATE_ALL);
+
+    BOOST_CHECK_EQUAL(MAX_BLOOM_FILTER_SIZE + 12, stream.size());
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -154,10 +154,20 @@ class BaseNode(P2PInterface):
         self.send_message(getblocks_message)
 
     def wait_for_getdata(self, hash_list, timeout=60):
-        if hash_list == []:
-            return
+        hash_set = set(hash_list)
 
-        test_function = lambda: "getdata" in self.last_message and [x.hash for x in self.last_message["getdata"].inv] == hash_list
+        def test_function():
+            getdata = self.last_message.get("getdata", None)
+            if getdata is not None:
+                for inv in getdata.inv:
+                    hash_set.discard(inv.hash)
+
+            getgraphene = self.last_message.get("getgraphene", None)
+            if getgraphene is not None:
+                hash_set.discard(getgraphene.request.requested_block_hash)
+
+            return hash_set == set()
+
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
     def wait_for_block_announcement(self, block_hash, timeout=60):
