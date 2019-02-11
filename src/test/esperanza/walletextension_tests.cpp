@@ -210,9 +210,8 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
-      ToByteVector(staking_pubkey.GetID()),
-      ToByteVector(staking_pubkey.GetSha256())
-    ));
+                                  ToByteVector(staking_pubkey.GetID()),
+                                  ToByteVector(staking_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
@@ -225,9 +224,8 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
-      ToByteVector(staking_pubkey.GetID()),
-      ToByteVector(spending_pubkey.GetSha256())
-    ));
+                                  ToByteVector(staking_pubkey.GetID()),
+                                  ToByteVector(spending_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
