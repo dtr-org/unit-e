@@ -39,7 +39,7 @@ class RemoteStakingTest(UnitETestFramework):
         self.sync_all()
 
         wi = alice.getwalletinfo()
-        assert(wi['remote_staking_balance'] == 1)
+        assert_equal(wi['remote_staking_balance'], 1)
         bob.proposerwake()
 
         # Bob should be able to stake the newly received coin
