@@ -386,16 +386,13 @@ def prepare_gitian_descriptors(*, source, target, hosts=None):
                     file_out.write(line)
 
 def create_work_dir(args):
-    if args.work_dir:
-        work_dir = Path(args.work_dir)
-        if Path(args.work_dir).exists() and not Path(args.work_dir).is_dir():
-            raise Exception("Work dir '%s' exists but is not a directory." % work_dir)
-        if not work_dir.exists():
-            print("Creating working directory '%s'" % work_dir)
-            work_dir.mkdir()
-        return work_dir.resolve()
-    else:
-        return Path(tempfile.mkdtemp(prefix="gitian-build-"))
+    work_dir = Path(args.work_dir)
+    if Path(args.work_dir).exists() and not Path(args.work_dir).is_dir():
+        raise Exception("Work dir '%s' exists but is not a directory." % work_dir)
+    if not work_dir.exists():
+        print("Creating working directory '%s'" % work_dir)
+        work_dir.mkdir()
+    return work_dir.resolve()
 
 def main():
     parser = argparse.ArgumentParser(usage='%(prog)s [options]')
@@ -424,8 +421,12 @@ def main():
     parser.add_argument('--version', dest='version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
     parser.add_argument('--skip-checkout', action='store_true', help='Skip checkout of git repo. Use with care as it might leave you in an inconsistent state.')
     parser.add_argument('--hosts', dest='hosts', help='Specify hosts for which is built. See the gitian descriptors for valid values.')
-    parser.add_argument('-w', '--work-dir', dest='work_dir', help='Working directory where data is checked out and the build takes place.')
+    parser.add_argument('-w', '--work-dir', dest='work_dir', help='Working directory where data is checked out and the build takes place. The directory will be created if it does not exist.')
     args = parser.parse_args()
+
+    if not args.work_dir:
+        print("Please provide a working directory (--work-dir <path>)", file=sys.stderr)
+        exit(1)
 
     work_dir = create_work_dir(args)
     with cd(work_dir):
