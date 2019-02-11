@@ -10,9 +10,11 @@
 #include <validation.h>
 #include <boost/test/unit_test.hpp>
 
-bool compareTxs(CTransactionRef &a, CTransactionRef &b) {
+namespace {
+bool CompareTxs(CTransactionRef &a, CTransactionRef &b) {
   return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
 }
+}  // namespace
 
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
@@ -45,7 +47,7 @@ CMutableTransaction CreateTx() {
   vchSig.push_back((unsigned char)SIGHASH_ALL);
 
   mut_tx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
-                                     << ToByteVector(k.GetPubKey());
+                                      << ToByteVector(k.GetPubKey());
 
   return mut_tx;
 }
@@ -182,7 +184,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     not_final_height_tx.vin[0].nSequence = 0;
     not_final_height_tx.nLockTime = 12;
     block.vtx.push_back(MakeTransactionRef(not_final_height_tx));
-    std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
+    std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
 
     CValidationState state;
     ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
@@ -200,7 +202,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     not_final_time_tx.vin[0].nSequence = 0;
     not_final_time_tx.nLockTime = 500000001;
     block.vtx.push_back(MakeTransactionRef(not_final_time_tx));
-    std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
+    std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
 
     CValidationState state;
     ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
@@ -229,7 +231,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_tx_order) {
   CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
-  std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
+  std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
   std::reverse(block.vtx.begin(), block.vtx.end());
 
   CValidationState state;
@@ -261,7 +263,8 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {
   }
 
   auto consensus_params = Params().GetConsensus();
-  consensus_params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;; //Activate segwit
+  consensus_params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+  ;  //Activate segwit
 
   // Test bad witness nonce empty
   {
@@ -302,7 +305,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {
     GenerateCoinbaseCommitment(block, &prev, consensus_params);
     CMutableTransaction coinbase(*block.vtx[0]);
     auto coinbase_script_pubkey = coinbase.vout[1].scriptPubKey;
-    coinbase.vout[1].scriptPubKey = CScript(coinbase_script_pubkey.begin(), coinbase_script_pubkey.begin()+6) << ToByteVector(GetRandHash());
+    coinbase.vout[1].scriptPubKey = CScript(coinbase_script_pubkey.begin(), coinbase_script_pubkey.begin() + 6) << ToByteVector(GetRandHash());
     block.vtx[0] = MakeTransactionRef(coinbase);
 
     CValidationState state;
@@ -316,11 +319,11 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
 
   CBlockIndex prev;
   CBlock block;
-  for(int i = 0; i < 5000; ++i) {
-      block.vtx.push_back(MakeTransactionRef(CreateTx()));
-      block.vtx.push_back(MakeTransactionRef(CreateTx()));
+  for (int i = 0; i < 5000; ++i) {
+    block.vtx.push_back(MakeTransactionRef(CreateTx()));
+    block.vtx.push_back(MakeTransactionRef(CreateTx()));
   }
-  std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
+  std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
 
   CValidationState state;
   ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
