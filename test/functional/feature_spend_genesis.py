@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -17,8 +18,8 @@ class SpendGenensisTest(UnitETestFramework):
         block = node.getblock(node.getblockhash(0))
         assert (block['hash'])
 
-        node.importmasterkey('swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready')
-        node.rescanblockchain(0, 0) #UNIT-E this can be removed as soon as importmasterkey correclty perform a rescan
+        node.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        node.rescanblockchain(0, 0)  # UNIT-E this can be removed as soon as importmasterkey correctly perform a rescan
 
         # Make the coinbase mature
         node.generate(100)

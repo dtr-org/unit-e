@@ -15,6 +15,7 @@ class UsbDeviceQueryTest(UnitETestFramework):
 
         # List connected devices
         devices = node.listdevices()
+
         assert_equal(len(devices), 1)
         assert_equal(devices[0]['vendor'], 'Debug')
         assert_equal(devices[0]['product'], 'Device')

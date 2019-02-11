@@ -144,40 +144,6 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
   return node;
 }
 
-UniValue createsnapshot(const JSONRPCRequest &request) {
-  if (request.fHelp || request.params.size() > 1) {
-    throw std::runtime_error(
-        "createsnapshot (<maxutxosubsets>)\n"
-        "\nCreates the snapshot of the UTXO subsets on the disk.\n"
-        "\nArguments:\n"
-        "1. maxutxosubsets (numeric, optional) Maximum UTXO subsets to dump into the file"
-        "\nExamples:\n" +
-        HelpExampleCli("createsnapshot", "10") + HelpExampleRpc("createsnapshot", "10"));
-  }
-
-  FlushStateToDisk();
-
-  Creator creator(pcoinsdbview.get());
-  if (!request.params.empty()) {
-    creator.m_max_utxo_subsets = static_cast<uint64_t>(request.params[0].get_int64());
-  }
-
-  CreationInfo info = creator.Create();
-  if (info.status != +Status::OK) {
-    UniValue root_node(UniValue::VOBJ);
-    switch (info.status) {
-      case Status::WRITE_ERROR:
-        root_node.push_back(Pair("error", "can't write to any *.dat files"));
-        break;
-      default:
-        root_node.push_back(Pair("error", "unknown error happened during creating snapshot"));
-    }
-    return root_node;
-  }
-
-  return SnapshotNode(info.snapshot_header.snapshot_hash);
-}
-
 UniValue deletesnapshot(const JSONRPCRequest &request) {
   if (request.fHelp || request.params.size() > 1) {
     throw std::runtime_error(
@@ -299,7 +265,6 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
 static const CRPCCommand commands[] = {
     // category   name                actor (function)   argNames
     // --------   ------------------  -----------------  --------
-    { "snapshot", "createsnapshot",   &createsnapshot,   {"maxutxosubsets"} },
     { "snapshot", "deletesnapshot",   &deletesnapshot,   {"snapshothash"} },
     { "snapshot", "getblocksnapshot", &getblocksnapshot, {"blockhash"} },
     { "snapshot", "listsnapshots",    &listsnapshots,    {""} },

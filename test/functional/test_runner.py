@@ -118,8 +118,6 @@ BASE_SCRIPTS= [
     'rpc_decodescript.py',
     'rpc_blockchain.py',
     'rpc_deprecated.py',
-    'wallet_hwquery.py',
-    'wallet_hwsign.py',
     'wallet_disable.py',
     'rpc_net.py',
     'wallet_keypool.py',
@@ -148,6 +146,7 @@ BASE_SCRIPTS= [
     'wallet_txn_doublespend.py',
     'wallet_txn_clone.py --mineblock',
     'feature_notifications.py',
+    'feature_remote_staking.py',
     'rpc_invalidateblock.py',
     'feature_rbf.py',
     'wallet_resendwallettransactions.py',
@@ -169,7 +168,6 @@ BASE_SCRIPTS= [
     'feature_config_args.py',
     'feature_help.py',
     'rpc_calcsnapshothash.py',
-    'rpc_createsnapshot.py',
     'rpc_getblocksnapshot.py',
     'rpc_validator.py',
     'feature_snapshot.py',
@@ -194,6 +192,13 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 30s vv
 ]
 
+USBDEVICE_SCRIPTS = [
+    # These tests are enabled or disabled based on the ENABLE_USBDEVICE
+    # flag in configure.ini
+    'wallet_hwquery.py',
+    'wallet_hwsign.py',
+]
+
 # UNIT-E TODO:
 DISABLED_SCRIPTS = [
     'wallet_bumpfee.py',
@@ -205,7 +210,7 @@ DISABLED_SCRIPTS = [
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
-ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS
+ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS + USBDEVICE_SCRIPTS
 
 NON_SCRIPTS = [
     # These are python files that live in the functional tests directory, but are not test scripts.
@@ -258,6 +263,7 @@ def main():
     enable_wallet = config["components"].getboolean("ENABLE_WALLET")
     enable_utils = config["components"].getboolean("ENABLE_UTILS")
     enable_united = config["components"].getboolean("ENABLE_UNITED")
+    enable_usbdevice = config["components"].getboolean("ENABLE_USBDEVICE")
 
     if config["environment"]["EXEEXT"] == ".exe" and not args.force:
         # https://github.com/unite/unite/commit/d52802551752140cf41f0d9a225a43e84404d3e9
@@ -283,8 +289,10 @@ def main():
                 print("{}WARNING!{} Test '{}' not found in full test list.".format(BOLD[1], BOLD[0], t))
     else:
         # No individual tests have been specified.
-        # Run all base tests, and optionally run extended tests.
+        # Run all base tests, and optionally run hardware device and extended tests.
         test_list = BASE_SCRIPTS
+        if enable_usbdevice:
+            test_list += USBDEVICE_SCRIPTS
         if args.extended:
             # place the EXTENDED_SCRIPTS first since the three longest ones
             # are there and the list is shorter

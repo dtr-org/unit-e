@@ -15,6 +15,7 @@ from random import (
 from decimal import Decimal
 
 from test_framework.authproxy import JSONRPCException
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
@@ -149,21 +150,8 @@ class ProposerBalanceTest(UnitETestFramework):
         }
 
     def load_wallets(self, nodes):
-        nodes[0].importmasterkey(
-            'chef gas expect never jump rebel huge rabbit venue nature dwarf '
-            'pact below surprise foam magnet science sister shrimp blanket '
-            'example okay office ugly'
-        )
-        nodes[1].importmasterkey(
-            'narrow horror cheap tape language turn smart arch grow tired '
-            'crazy squirrel sun pumpkin much panic scissors math pass tribe '
-            'limb myself bone hat'
-        )
-        nodes[2].importmasterkey(
-            'soon empty next roof proof scorpion treat bar try noble denial '
-            'army shoulder foam doctor right shiver reunion hub horror push '
-            'theme language fade'
-        )
+        for i in range(self.num_nodes):
+            nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
 
     @staticmethod
     def generate_block(nodes, node_idx):

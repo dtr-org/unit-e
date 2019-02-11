@@ -10,6 +10,7 @@ This test checks the following scenarios:
 2. node keeps up to 5 snapshots
 3. node keeps at least 3 finalized snapshots
 """
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
@@ -49,8 +50,8 @@ class SnapshotCreationTest(UnitETestFramework):
         validator = self.nodes[0]
         node = self.nodes[1]
 
-        validator.importmasterkey('swap fog boost power mountain pair gallery crush price fiscal thing supreme chimney drastic grab acquire any cube cereal another jump what drastic ready')
-        node.importmasterkey('chef gas expect never jump rebel huge rabbit venue nature dwarf pact below surprise foam magnet science sister shrimp blanket example okay office ugly')
+        validator.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        node.importmasterkey(regtest_mnemonics[1]['mnemonics'])
 
         node.generatetoaddress(1, node.getnewaddress())  # IBD
         Admin.authorize_and_disable(self, node)

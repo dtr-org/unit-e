@@ -200,10 +200,10 @@ AC_ARG_WITH([system-univalue],
 )
 
 AC_ARG_ENABLE([usbdevice],
-  [AS_HELP_STRING([--disable-usbdevice],
-  [disable hardware wallet support (default is enabled)])],
+  [AS_HELP_STRING([--enable-usbdevice],
+  [enable hardware wallet support (default is disabled)])],
   [enable_usbdevice=$enableval],
-  [enable_usbdevice=yes]
+  [enable_usbdevice=no]
 )
 
 AC_ARG_ENABLE([zmq],
@@ -1187,6 +1187,33 @@ if test x$unite_enable_qt != xno; then
   fi
 fi
 
+case $host in
+  *linux*)
+    LIBHIDAPINAME=hidapi-libusb
+    HIDAPILIBS=-l$LIBHIDAPINAME
+    if test x$NO_DEPENDS = x1 ; then
+      HIDAPI_DEP_LIBS="-lpthread"
+    else
+      HIDAPI_DEP_LIBS="-lpthread -lusb-1.0 -ludev"
+    fi
+    ;;
+  *mingw*)
+    LIBHIDAPINAME=hidapi
+    HIDAPILIBS="-l$LIBHIDAPINAME -lsetupapi"
+    HIDAPI_DEP_LIBS="-lsetupapi"
+    ;;
+  *darwin*)
+    LIBHIDAPINAME=hidapi
+    HIDAPILIBS="-l$LIBHIDAPINAME -framework IOKit -framework CoreFoundation"
+    HIDAPI_DEP_LIBS="-framework IOKit -framework CoreFoundation"
+    ;;
+  *)
+    LIBHIDAPINAME=hidapi
+    HIDAPILIBS=-l$LIBHIDAPINAME
+    HIDAPI_DEP_LIBS="-lpthread -lusb-1.0"
+    ;;
+esac
+
 dnl enable USB devices
 AC_MSG_CHECKING([if USB devices should be supported])
 if test x$enable_wallet = xno; then
@@ -1195,6 +1222,11 @@ fi
 if test x$enable_usbdevice != xno; then
   AC_MSG_RESULT(yes)
   AC_DEFINE_UNQUOTED([ENABLE_USBDEVICE],[1],[Define to enable hardware wallet support])
+  AC_CHECK_LIB(
+    [$LIBHIDAPINAME], [hid_open], HIDAPI_LIBS=$HIDAPILIBS,
+    AC_MSG_ERROR(hidapi missing), $HIDAPI_DEP_LIBS
+  )
+  USB_LIBS=" -lusb-1.0"
 else
   AC_MSG_RESULT(no)
 fi
@@ -1226,6 +1258,7 @@ AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
 AM_CONDITIONAL([ENABLE_USBDEVICE],[test x$enable_usbdevice = xyes])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
+AM_CONDITIONAL([ENABLE_USBDEVICE],[test x$enable_usbdevice = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$unite_enable_qt = xyes])
 AM_CONDITIONAL([ENABLE_QT_TESTS],[test x$BUILD_TEST_QT = xyes])
@@ -1284,6 +1317,7 @@ AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
 AC_SUBST(PROTOBUF_LIBS)
 AC_SUBST(QR_LIBS)
+AC_SUBST(HIDAPI_LIBS)
 AC_CONFIG_FILES([Makefile src/Makefile doc/man/Makefile share/setup.nsi share/qt/Info.plist test/config.ini])
 AC_CONFIG_FILES([contrib/devtools/split-debug.sh],[chmod +x contrib/devtools/split-debug.sh])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])

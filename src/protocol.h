@@ -245,9 +245,9 @@ extern const char *BLOCKTXN;
 extern const char *GETSNAPSHOTHEADER;
 
 /**
-* Contains the snapshot::SnapshotHeader message.
-* Sent in response to a "getsnaphead" message.
-*/
+ * Contains the snapshot::SnapshotHeader message.
+ * Sent in response to a "getsnaphead" message.
+ */
 extern const char *SNAPSHOTHEADER;
 
 /**

@@ -12,6 +12,7 @@ responses we received and they should be the same
 """
 
 from test_framework.util import connect_nodes, assert_equal
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import (P2PInterface, network_thread_start,
                                      msg_getdata, msg_mempool, msg_inv)
@@ -43,10 +44,7 @@ class EmbargoProbing(UnitETestFramework):
 
     def run_test(self):
         source = self.nodes[0]
-        source.importmasterkey(
-            'swap fog boost power mountain pair gallery crush price fiscal '
-            'thing supreme chimney drastic grab acquire any cube cereal '
-            'another jump what drastic ready')
+        source.importmasterkey(regtest_mnemonics[0]['mnemonics'])
 
         # Exit IBD
         source.generate(1)
