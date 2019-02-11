@@ -85,7 +85,7 @@ bool GetPreparePhaseAPDUs(const CTransaction &tx, const CCoinsViewCache &view,
         it += chunk_size;
 
         apdus_out.emplace_back(std::move(apdu));
-        apdu = std::move(APDU(BTCHIP_INS_HASH_INPUT_FINALIZE_FULL, 0x00, 0x00));
+        apdu = APDU(BTCHIP_INS_HASH_INPUT_FINALIZE_FULL, 0x00, 0x00);
       }
     }
 
@@ -131,7 +131,7 @@ bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
     while (script_data_left > 0) {
       if (apdu.max_size == apdu.size) {
         apdus_out.emplace_back(std::move(apdu));
-        apdu = std::move(APDU(BTCHIP_INS_HASH_INPUT_START, 0x80, 0x00));
+        apdu = APDU(BTCHIP_INS_HASH_INPUT_START, 0x80, 0x00);
       }
 
       size_t space_left = apdu.max_size - apdu.size;
@@ -143,7 +143,7 @@ bool GetSignPhaseAPDUs(const std::vector<uint32_t> &path,
 
     if (apdu.max_size - apdu.size < 4) {
       apdus_out.emplace_back(std::move(apdu));
-      apdu = std::move(APDU(BTCHIP_INS_HASH_INPUT_START, 0x80, 0x00));
+      apdu = APDU(BTCHIP_INS_HASH_INPUT_START, 0x80, 0x00);
     }
 
     apdu << txin.nSequence;
