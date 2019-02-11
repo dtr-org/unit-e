@@ -144,11 +144,12 @@ BOOST_AUTO_TEST_CASE(checkblock_merkle_root_mutated) {
   CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
   auto tx = CTransaction(CreateTx());
+  block.vtx.push_back(MakeTransactionRef(CreateTx()));
   block.vtx.push_back(MakeTransactionRef(tx));
   block.vtx.push_back(MakeTransactionRef(tx));
 
-  bool *ignored;
-  block.hashMerkleRoot = BlockMerkleRoot(block, ignored);
+  bool ignored;
+  block.hashMerkleRoot = BlockMerkleRoot(block, &ignored);
 
   CValidationState state;
   CheckBlock(block, state, Params().GetConsensus(), false, true);
