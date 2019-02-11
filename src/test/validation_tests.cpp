@@ -11,8 +11,16 @@
 #include <boost/test/unit_test.hpp>
 
 namespace {
-bool CompareTxs(CTransactionRef &a, CTransactionRef &b) {
-  return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
+bool SortTxs(CBlock &block, bool reverse = false) {
+
+  auto comparator = [](CTransactionRef a, CTransactionRef b) -> bool {
+    return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
+  };
+
+  std::sort(block.vtx.begin(), block.vtx.end(), comparator);
+  if (reverse) {
+    std::reverse(block.vtx.begin(), block.vtx.end());
+  }
 }
 }  // namespace
 
@@ -184,7 +192,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     not_final_height_tx.vin[0].nSequence = 0;
     not_final_height_tx.nLockTime = 12;
     block.vtx.push_back(MakeTransactionRef(not_final_height_tx));
-    std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
+    SortTxs(block);
 
     CValidationState state;
     ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
@@ -202,7 +210,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     not_final_time_tx.vin[0].nSequence = 0;
     not_final_time_tx.nLockTime = 500000001;
     block.vtx.push_back(MakeTransactionRef(not_final_time_tx));
-    std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
+    SortTxs(block);
 
     CValidationState state;
     ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
@@ -231,8 +239,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_tx_order) {
   CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
-  std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
-  std::reverse(block.vtx.begin(), block.vtx.end());
+  SortTxs(block, true);
 
   CValidationState state;
   ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
@@ -322,7 +329,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
     block.vtx.push_back(MakeTransactionRef(CreateTx()));
     block.vtx.push_back(MakeTransactionRef(CreateTx()));
   }
-  std::sort(block.vtx.begin(), block.vtx.end(), CompareTxs);
+  SortTxs(block);
 
   CValidationState state;
   ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
