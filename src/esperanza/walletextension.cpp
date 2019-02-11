@@ -24,6 +24,7 @@
 #include <wallet/wallet.h>
 
 #include <cstdint>
+#include <cstdio>
 
 namespace esperanza {
 
