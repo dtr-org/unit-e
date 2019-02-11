@@ -123,6 +123,7 @@ UNITE_TESTS = \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
   test/util_fun_tests.cpp \
+  test/validation_tests.cpp \
   test/validation_block_tests.cpp \
   test/versionbits_tests.cpp
 
