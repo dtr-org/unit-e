@@ -106,13 +106,9 @@ CAmount WalletExtension::GetRemoteStakingBalance() const {
     const CWalletTx *const tx = &it.second;
 
     for (const auto &txout : tx->tx->vout) {
-      if (::IsStakeableByMe(m_enclosing_wallet, txout.scriptPubKey)) {
-        continue;
+      if (::IsStakedRemotely(m_enclosing_wallet, txout.scriptPubKey)) {
+        balance += txout.nValue;
       }
-      if (!(m_enclosing_wallet.IsMine(txout) & ISMINE_SPENDABLE)) {
-        continue;
-      }
-      balance += txout.nValue;
     }
   }
 

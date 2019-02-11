@@ -185,21 +185,25 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   auto pwallet = pwalletMain.get();
   auto &wallet_ext = pwallet->GetWalletExtension();
 
-  CKey spending_key;
-  spending_key.MakeNewKey(/* compressed: */ true);
-  CPubKey spending_pubkey = spending_key.GetPubKey();
-  pwalletMain->AddKey(spending_key);
+  CKey our_key;
+  our_key.MakeNewKey(/* compressed: */ true);
+  CPubKey our_pubkey = our_key.GetPubKey();
+  pwalletMain->AddKey(our_key);
 
-  CKey staking_key;
-  staking_key.MakeNewKey(true);
-  CPubKey staking_pubkey = staking_key.GetPubKey();
+  CKey their_key;
+  their_key.MakeNewKey(true);
+  CPubKey their_pubkey = their_key.GetPubKey();
+
+  CKey random_key;
+  random_key.MakeNewKey(true);
+  CPubKey random_pubkey = random_key.GetPubKey();
 
   LOCK2(cs_main, pwalletMain->cs_wallet);
 
   // P2PKH transactions don't affect remote staking balance
   {
     CMutableTransaction tx;
-    tx.vout.emplace_back(100, CScript::CreateP2PKHScript(ToByteVector(spending_pubkey.GetID())));
+    tx.vout.emplace_back(100, CScript::CreateP2PKHScript(ToByteVector(our_pubkey.GetID())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
@@ -210,7 +214,7 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   // ...neither do P2PK transactions
   {
     CMutableTransaction tx;
-    tx.vout.emplace_back(100, CScript() << ToByteVector(spending_pubkey) << OP_CHECKSIG);
+    tx.vout.emplace_back(100, CScript() << ToByteVector(our_pubkey) << OP_CHECKSIG);
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
     BOOST_CHECK_EQUAL(pwalletMain->IsMine(tx.vout[0]), ISMINE_SPENDABLE);
@@ -223,8 +227,21 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
-                                  ToByteVector(staking_pubkey.GetID()),
-                                  ToByteVector(staking_pubkey.GetSha256())));
+                                  ToByteVector(their_pubkey.GetID()),
+                                  ToByteVector(random_pubkey.GetSha256())));
+    CWalletTx wtx(pwallet, MakeTransactionRef(tx));
+    pwalletMain->LoadToWallet(wtx);
+
+    CAmount balance = wallet_ext.GetRemoteStakingBalance();
+    BOOST_CHECK_EQUAL(balance, 0);
+  }
+
+  // ...or tranctions that other people are staking on this node
+  {
+    CMutableTransaction tx;
+    tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
+                                  ToByteVector(our_pubkey.GetID()),
+                                  ToByteVector(their_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
@@ -236,8 +253,8 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
-                                  ToByteVector(staking_pubkey.GetID()),
-                                  ToByteVector(spending_pubkey.GetSha256())));
+                                  ToByteVector(their_pubkey.GetID()),
+                                  ToByteVector(our_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 

@@ -99,7 +99,18 @@ inline uint256 Sha256(const T1 pbegin, const T1 pend)
     return result;
 }
 
-/** Compute the 160-bit hash an object. */
+//! Compute the RIPEMD-160 hash of an object.
+template<typename T1>
+inline uint160 Ripemd160(const T1 pbegin, const T1 pend)
+{
+    static const unsigned char pblank[1] = {0};
+    uint160 result;
+    CRIPEMD160().Write(pbegin == pend ? pblank : (const unsigned char*)&pbegin[0], (pend - pbegin) * sizeof(pbegin[0]))
+                .Finalize((unsigned char*)&result);
+    return result;
+}
+
+/** Compute the 160-bit hash (RIPEMD-160 of SHA-256) of an object. */
 template<typename T1>
 inline uint160 Hash160(const T1 pbegin, const T1 pend)
 {

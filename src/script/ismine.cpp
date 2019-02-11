@@ -280,3 +280,39 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
     }
     return false;
 }
+
+bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key)
+{
+    std::vector<valtype> solutions;
+    txnouttype which_type;
+
+    if (!Solver(script_pub_key, which_type, solutions)) {
+        return false;
+    }
+
+    if (which_type != TX_WITNESS_V1_REMOTE_STAKING) {
+        return false;
+    }
+
+    CKeyID staking_keyid = CKeyID(uint160(solutions[0]));
+
+    // Uncompressed staking keys are not supported
+    CPubKey staking_pubkey;
+    if (keystore.GetPubKey(staking_keyid, staking_pubkey) &&
+        !staking_pubkey.IsCompressed()) {
+        return false;
+    }
+
+    // If the local node knows the staking key, the coin is not staked remotely
+    if (keystore.HaveKey(staking_keyid)) {
+        return false;
+    }
+
+    // The local node should be able to spend the coin
+    CKeyID spending_keyid = CKeyID(uint160(Ripemd160(solutions[1].begin(), solutions[1].end())));
+    if (keystore.HaveKey(spending_keyid) || keystore.HaveHardwareKey(spending_keyid)) {
+        return true;
+    }
+
+    return false;
+}
