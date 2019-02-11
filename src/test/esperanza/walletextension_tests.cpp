@@ -181,4 +181,59 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
+  auto pwallet = pwalletMain.get();
+  auto &wallet_ext = pwallet->GetWalletExtension();
+
+  CKey spending_key;
+  spending_key.MakeNewKey(/* compressed: */ true);
+  CPubKey spending_pubkey = spending_key.GetPubKey();
+
+  CKey staking_key;
+  staking_key.MakeNewKey(true);
+  CPubKey staking_pubkey = staking_key.GetPubKey();
+
+  LOCK2(cs_main, pwalletMain->cs_wallet);
+
+  // Regular transactions don't affect remote staking balance
+  {
+    CMutableTransaction tx;
+    tx.vout.emplace_back(100, CScript::CreateP2PKHScript(ToByteVector(spending_pubkey.GetID())));
+    CWalletTx wtx(pwallet, MakeTransactionRef(tx));
+    pwalletMain->LoadToWallet(wtx);
+
+    CAmount balance = wallet_ext.GetRemoteStakingBalance();
+    BOOST_CHECK_EQUAL(balance, 0);
+  }
+
+  // ...neither do other people's remote staking transactions...
+  {
+    CMutableTransaction tx;
+    tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
+      ToByteVector(staking_pubkey.GetID()),
+      ToByteVector(staking_pubkey.GetSha256())
+    ));
+    CWalletTx wtx(pwallet, MakeTransactionRef(tx));
+    pwalletMain->LoadToWallet(wtx);
+
+    CAmount balance = wallet_ext.GetRemoteStakingBalance();
+    BOOST_CHECK_EQUAL(balance, 0);
+  }
+
+  // ...we have to own the spending key for it to count.
+  pwalletMain->AddKey(spending_key);
+  {
+    CMutableTransaction tx;
+    tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
+      ToByteVector(staking_pubkey.GetID()),
+      ToByteVector(spending_pubkey.GetSha256())
+    ));
+    CWalletTx wtx(pwallet, MakeTransactionRef(tx));
+    pwalletMain->LoadToWallet(wtx);
+
+    CAmount balance = wallet_ext.GetRemoteStakingBalance();
+    BOOST_CHECK_EQUAL(balance, 100);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
