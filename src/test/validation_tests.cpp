@@ -10,6 +10,10 @@
 #include <validation.h>
 #include <boost/test/unit_test.hpp>
 
+bool compareTxs(CTransactionRef &a, CTransactionRef &b) {
+  return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
+}
+
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
 CMutableTransaction CreateTx() {
@@ -44,10 +48,6 @@ CMutableTransaction CreateTx() {
                                      << ToByteVector(k.GetPubKey());
 
   return mut_tx;
-}
-
-bool sortTxs(CTransactionRef &a, CTransactionRef &b) {
-  return a->GetHash().GetHex() < b->GetHash().GetHex();
 }
 
 CMutableTransaction CreateCoinbase() {
@@ -182,7 +182,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     not_final_height_tx.vin[0].nSequence = 0;
     not_final_height_tx.nLockTime = 12;
     block.vtx.push_back(MakeTransactionRef(not_final_height_tx));
-    std::sort(block.vtx.begin(), block.vtx.end(), sortTxs);
+    std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
 
     CValidationState state;
     ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     not_final_time_tx.vin[0].nSequence = 0;
     not_final_time_tx.nLockTime = 500000001;
     block.vtx.push_back(MakeTransactionRef(not_final_time_tx));
-    std::sort(block.vtx.begin(), block.vtx.end(), sortTxs);
+    std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
 
     CValidationState state;
     ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
@@ -229,7 +229,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_tx_order) {
   CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
-  std::sort(block.vtx.begin(), block.vtx.end(), sortTxs);
+  std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
   std::reverse(block.vtx.begin(), block.vtx.end());
 
   CValidationState state;
@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
       block.vtx.push_back(MakeTransactionRef(CreateTx()));
       block.vtx.push_back(MakeTransactionRef(CreateTx()));
   }
-  std::sort(block.vtx.begin(), block.vtx.end(), sortTxs);
+  std::sort(block.vtx.begin(), block.vtx.end(), compareTxs);
 
   CValidationState state;
   ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
