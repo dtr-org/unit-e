@@ -281,7 +281,6 @@ public:
         pchMessageStart[2] = 0xae;
         pchMessageStart[3] = 0xc1;
         nDefaultPort = 7182;
-        nPruneAfterHeight = 100000;
 
         genesis = CreateGenesisBlock(1231006505, 2083236893, 0x1d00ffff, 1, 50 * UNIT);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -360,7 +359,6 @@ public:
         pchMessageStart[2] = 0xfb;
         pchMessageStart[3] = 0xfa;
         nDefaultPort = 17182;
-        nPruneAfterHeight = 1000;
 
         genesis = CreateGenesisBlock(1296688602, 414098458, 0x1d00ffff, 1, 50 * UNIT);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -432,7 +430,6 @@ public:
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
         nDefaultPort = 17292;
-        nPruneAfterHeight = 1000;
 
         genesis = CreateGenesisBlockRegTest(1296688602, 7, 0x207fffff, 1, 50 * UNIT);
         consensus.hashGenesisBlock = genesis.GetHash();

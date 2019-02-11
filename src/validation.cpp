@@ -304,7 +304,7 @@ enum class FlushStateMode {
 // See definition for documentation
 static bool FlushStateToDisk(const CChainParams& chainParams, CValidationState &state, FlushStateMode mode, int nManualPruneHeight=0);
 static void FindFilesToPruneManual(std::set<int>& setFilesToPrune, int nManualPruneHeight);
-static void FindFilesToPrune(std::set<int>& setFilesToPrune, uint64_t nPruneAfterHeight);
+static void FindFilesToPrune(std::set<int>& setFilesToPrune);
 bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks = nullptr);
 static FILE* OpenUndoFile(const CDiskBlockPos &pos, bool fReadOnly = false);
 
@@ -2233,7 +2233,7 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
             if (nManualPruneHeight > 0) {
                 FindFilesToPruneManual(setFilesToPrune, nManualPruneHeight);
             } else {
-                FindFilesToPrune(setFilesToPrune, chainparams.PruneAfterHeight());
+                FindFilesToPrune(setFilesToPrune);
                 fCheckForPruning = false;
             }
             if (!setFilesToPrune.empty()) {
@@ -3792,13 +3792,14 @@ void PruneBlockFilesManual(int nManualPruneHeight)
  *
  * @param[out]   setFilesToPrune   The set of file indices that can be unlinked will be returned
  */
-static void FindFilesToPrune(std::set<int>& setFilesToPrune, uint64_t nPruneAfterHeight)
+static void FindFilesToPrune(std::set<int>& setFilesToPrune)
 {
     LOCK2(cs_main, cs_LastBlockFile);
     if (chainActive.Tip() == nullptr || nPruneTarget == 0) {
         return;
     }
-    if ((uint64_t)chainActive.Tip()->nHeight <= nPruneAfterHeight) {
+    if ((uint64_t)chainActive.Tip()->nHeight <= 0) {
+        // exclude genesis block
         return;
     }
 
