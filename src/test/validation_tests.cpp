@@ -263,8 +263,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {
   }
 
   auto consensus_params = Params().GetConsensus();
-  consensus_params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-  ;  //Activate segwit
+  consensus_params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  //Activate segwit
 
   // Test bad witness nonce empty
   {
