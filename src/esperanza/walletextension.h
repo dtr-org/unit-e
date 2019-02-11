@@ -29,9 +29,9 @@ class CWallet;
 class CWalletTx;
 class COutput;
 class CScheduler;
-class CRecipient;
 class CCoinControl;
 class CReserveKey;
+struct CRecipient;
 
 namespace esperanza {
 
