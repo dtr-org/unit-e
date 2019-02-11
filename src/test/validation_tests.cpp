@@ -14,47 +14,47 @@ BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
 CMutableTransaction CreateTx() {
 
-  CMutableTransaction mutTx;
+  CMutableTransaction mut_tx;
 
   CBasicKeyStore keystore;
   CKey k;
   InsecureNewKey(k, true);
   keystore.AddKey(k);
 
-  mutTx.vin.emplace_back(GetRandHash(), 0);
-  mutTx.vin.emplace_back(GetRandHash(), 0);
-  mutTx.vin.emplace_back(GetRandHash(), 0);
-  mutTx.vin.emplace_back(GetRandHash(), 0);
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
 
   CTxOut out(100 * UNIT, CScript::CreateP2PKHScript(std::vector<unsigned char>(20)));
-  mutTx.vout.push_back(out);
-  mutTx.vout.push_back(out);
-  mutTx.vout.push_back(out);
-  mutTx.vout.push_back(out);
+  mut_tx.vout.push_back(out);
+  mut_tx.vout.push_back(out);
+  mut_tx.vout.push_back(out);
+  mut_tx.vout.push_back(out);
 
   // Sign
   std::vector<unsigned char> vchSig(20);
-  uint256 hash = SignatureHash(CScript(), mutTx, 0,
+  uint256 hash = SignatureHash(CScript(), mut_tx, 0,
                                SIGHASH_ALL, 0, SigVersion::BASE);
 
   BOOST_CHECK(k.Sign(hash, vchSig));
   vchSig.push_back((unsigned char)SIGHASH_ALL);
 
-  mutTx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
+  mut_tx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
                                      << ToByteVector(k.GetPubKey());
 
-  return mutTx;
+  return mut_tx;
 }
 
 CTransaction CreateCoinbase() {
-  CMutableTransaction coinbaseTx;
-  coinbaseTx.vin.resize(1);
-  coinbaseTx.vin[0].prevout.SetNull();
-  coinbaseTx.vout.resize(1);
-  coinbaseTx.vout[0].scriptPubKey = CScript();
-  coinbaseTx.vout[0].nValue = 0;
-  coinbaseTx.vin[0].scriptSig = CScript() << CScriptNum::serialize(0) << ToByteVector(GetRandHash());
-  return coinbaseTx;
+  CMutableTransaction coinbase_tx;
+  coinbase_tx.vin.resize(1);
+  coinbase_tx.vin[0].prevout.SetNull();
+  coinbase_tx.vout.resize(1);
+  coinbase_tx.vout[0].scriptPubKey = CScript();
+  coinbase_tx.vout[0].nValue = 0;
+  coinbase_tx.vin[0].scriptSig = CScript() << CScriptNum::serialize(0) << ToByteVector(GetRandHash());
+  return coinbase_tx;
 }
 
 BOOST_AUTO_TEST_CASE(checkblock_empty) {
