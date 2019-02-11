@@ -241,8 +241,7 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
 
 class CMainParams : public CChainParams {
 public:
-    CMainParams() {
-        strNetworkID = "main";
+    CMainParams() : CChainParams(blockchain::Parameters::MainNet()) {
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -271,15 +270,6 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000000000000005214481d2d96f898e3d5416e43359c145944a909d242e0"); //506067
 
-        /**
-         * The message start string is designed to be unlikely to occur in normal data.
-         * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
-         * a large 32-bit integer with any alignment.
-         */
-        pchMessageStart[0] = 0xee;
-        pchMessageStart[1] = 0xee;
-        pchMessageStart[2] = 0xae;
-        pchMessageStart[3] = 0xc1;
         nDefaultPort = 7182;
         nPruneAfterHeight = 100000;
 
@@ -299,7 +289,6 @@ public:
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
-        fMineBlocksOnDemand = false;
 
         chainTxData = ChainTxData{
             // Data as of block 0000000000000000002d6cca6761c99b3c2e936f9a0e304b7c7651a993f461de (height 506081).
@@ -325,8 +314,7 @@ public:
  */
 class CTestNetParams : public CChainParams {
 public:
-    CTestNetParams() {
-        strNetworkID = "test";
+    CTestNetParams() : CChainParams(blockchain::Parameters::TestNet()) {
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -355,10 +343,6 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000002e9e7b00e1f6dc5123a04aad68dd0f0968d8c7aa45f6640795c37b1"); //1135275
 
-        pchMessageStart[0] = 0xfd;
-        pchMessageStart[1] = 0xfc;
-        pchMessageStart[2] = 0xfb;
-        pchMessageStart[3] = 0xfa;
         nDefaultPort = 17182;
         nPruneAfterHeight = 1000;
 
@@ -376,7 +360,6 @@ public:
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
-        fMineBlocksOnDemand = false;
 
         chainTxData = ChainTxData{
             // Data as of block 000000000000033cfa3c975eb83ecf2bb4aaedf68e6d279f6ed2b427c64caff9 (height 1260526)
@@ -401,8 +384,7 @@ public:
  */
 class CRegTestParams : public CChainParams {
 public:
-    CRegTestParams() {
-        strNetworkID = "regtest";
+    CRegTestParams() : CChainParams(blockchain::Parameters::RegTest()) {
         consensus.nSubsidyHalvingInterval = 150;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -427,10 +409,6 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
 
-        pchMessageStart[0] = 0xfa;
-        pchMessageStart[1] = 0xbf;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xda;
         nDefaultPort = 17292;
         nPruneAfterHeight = 1000;
 
@@ -444,7 +422,6 @@ public:
 
         fDefaultConsistencyChecks = true;
         fRequireStandard = false;
-        fMineBlocksOnDemand = true;
 
         chainTxData = ChainTxData{
             0,
@@ -465,7 +442,7 @@ public:
 
 void CChainParams::UpdateFinalizationParams(esperanza::FinalizationParams &params) {
 
-  if (strNetworkID == "regtest") {
+  if (NetworkIDString() == "regtest") {
     finalization = params;
   }
 }
