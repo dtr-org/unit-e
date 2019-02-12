@@ -3,6 +3,9 @@
 
 #include <better-enums/enum.h>
 
+#include <consensus/validation.h>
+#include <staking/validation_result.h>
+
 #include <cstdint>
 
 namespace staking {
@@ -39,7 +42,9 @@ BETTER_ENUM(
 )
 // clang-format on
 
-std::string GetRejectionMessageFor(BlockValidationError);
+const std::string& GetRejectionMessageFor(BlockValidationError);
+
+bool CheckResult(const BlockValidationResult& result, CValidationState &state);
 
 }
 
