@@ -130,7 +130,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         }
         return false;
 
-    case TX_WITNESS_V1_REMOTE_STAKING:
+    case TX_WITNESS_V1_RS_KEYHASH:
         if (creator.Checker().GetTxType() == +TxType::COINBASE) {
             scriptForSigHash << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
             h160 = uint160(vSolutions[0]);
@@ -140,7 +140,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         }
         return SignWithPubKeyHash(provider, creator, scriptForSigHash, h160, ret, SigVersion::WITNESS_V0);
 
-    case TX_WITNESS_V2_REMOTE_STAKING_SCRIPTHASH:
+    case TX_WITNESS_V2_RS_SCRIPTHASH:
         if (creator.Checker().GetTxType() == +TxType::COINBASE) {
             scriptForSigHash << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
             h160 = uint160(vSolutions[0]);
@@ -178,7 +178,7 @@ static CScript PushAll(const std::vector<valtype>& values)
 static bool CanBeNestedInP2WSH(txnouttype type)
 {
     return type != TX_SCRIPTHASH && type != TX_WITNESS_V0_SCRIPTHASH && type != TX_WITNESS_V0_KEYHASH
-        && type != TX_WITNESS_V1_REMOTE_STAKING && type != TX_WITNESS_V2_REMOTE_STAKING_SCRIPTHASH;
+        && type != TX_WITNESS_V1_RS_KEYHASH && type != TX_WITNESS_V2_RS_SCRIPTHASH;
 }
 
 bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata, const CTransaction* tx)
@@ -215,8 +215,8 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         result.push_back(std::vector<unsigned char>(witnessscript.begin(), witnessscript.end()));
         sigdata.scriptWitness.stack = result;
         result.clear();
-    } else if (solved && (whichType == TX_WITNESS_V1_REMOTE_STAKING ||
-                          whichType == TX_WITNESS_V2_REMOTE_STAKING_SCRIPTHASH)) {
+    } else if (solved && (whichType == TX_WITNESS_V1_RS_KEYHASH ||
+                          whichType == TX_WITNESS_V2_RS_SCRIPTHASH)) {
         sigdata.scriptWitness.stack = result;
         result.clear();
     }

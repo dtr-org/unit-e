@@ -30,7 +30,8 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NULL_DATA: return "nulldata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
-    case TX_WITNESS_V1_REMOTE_STAKING: return "witness_v1_remote_staking";
+    case TX_WITNESS_V1_RS_KEYHASH: return "witness_v1_rs_keyhash";
+    case TX_WITNESS_V2_RS_SCRIPTHASH: return "witness_v2_rs_scripthash";
     case TX_WITNESS_UNKNOWN: return "witness_unknown";
     case TX_PAYVOTESLASH: return "payvoteslash";
     }
@@ -85,13 +86,13 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
             return true;
         }
         if (witnessProgram.IsRemoteStaking()) {
-            typeRet = TX_WITNESS_V1_REMOTE_STAKING;
+            typeRet = TX_WITNESS_V1_RS_KEYHASH;
             vSolutionsRet.push_back(witnessProgram.program[0]);  // staking pubkey hash
             vSolutionsRet.push_back(witnessProgram.program[1]);  // spending pubkey hash
             return true;
         }
         if (witnessProgram.IsRemoteStakingP2SH()) {
-            typeRet = TX_WITNESS_V2_REMOTE_STAKING_SCRIPTHASH;
+            typeRet = TX_WITNESS_V2_RS_SCRIPTHASH;
             vSolutionsRet.push_back(witnessProgram.program[0]);  // staking pubkey hash
             vSolutionsRet.push_back(witnessProgram.program[1]);  // spending script hash
             return true;
@@ -237,13 +238,13 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         std::copy(vSolutions[0].begin(), vSolutions[0].end(), hash.begin());
         addressRet = hash;
         return true;
-    } else if (whichType == TX_WITNESS_V1_REMOTE_STAKING) {
+    } else if (whichType == TX_WITNESS_V1_RS_KEYHASH) {
         // Here we only return spending destination converted to Witness V0 format
         WitnessV0KeyHash hash;
         CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(hash.begin());
         addressRet = hash;
         return true;
-    } else if (whichType == TX_WITNESS_V2_REMOTE_STAKING_SCRIPTHASH) {
+    } else if (whichType == TX_WITNESS_V2_RS_SCRIPTHASH) {
         // Here we only return spending destination converted to Witness V0 format
         WitnessV0ScriptHash hash;
         std::copy(vSolutions[1].begin(), vSolutions[1].end(), hash.begin());
@@ -295,7 +296,7 @@ bool ExtractDestinations(const CScript& scriptPubKey, txnouttype& typeRet, std::
 
         if (addressRet.empty())
             return false;
-    } else if (typeRet == TX_WITNESS_V1_REMOTE_STAKING) {
+    } else if (typeRet == TX_WITNESS_V1_RS_KEYHASH) {
         WitnessV0KeyHash stakingHash;
         std::copy(vSolutions[0].begin(), vSolutions[0].end(), stakingHash.begin());
         WitnessV0KeyHash spendingHash;
