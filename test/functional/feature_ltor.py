@@ -97,7 +97,7 @@ class LTORTest(UnitETestFramework):
         block.solve()
 
         yield TestInstance(
-            [[block, RejectResult(16, b'tx-ordering')]],
+            [[block, RejectResult(16, b'bad-tx-ordering')]],
             test_name='test_ltor_infringement_detection'
         )
 

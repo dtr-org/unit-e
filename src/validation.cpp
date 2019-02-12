@@ -3346,7 +3346,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
  *  in ConnectBlock().
  *  Note that -reindex-chainstate skips the validation that happens here!
  */
-static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
+bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
 
@@ -3381,7 +3381,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
             }
 
             return state.DoS(
-                100, false, REJECT_INVALID, "tx-ordering", false,
+                100, false, REJECT_INVALID, "bad-tx-ordering", false,
                 strprintf(
                     "Transaction order is invalid ((current: %s) < (prev: %s))",
                     tx->GetHash().ToString(), prevTx->GetHash().ToString()

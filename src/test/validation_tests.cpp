@@ -10,6 +10,20 @@
 #include <validation.h>
 #include <boost/test/unit_test.hpp>
 
+namespace {
+bool SortTxs(CBlock &block, bool reverse = false) {
+
+  auto comparator = [](CTransactionRef a, CTransactionRef b) -> bool {
+    return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
+  };
+
+  std::sort(block.vtx.begin(), block.vtx.end(), comparator);
+  if (reverse) {
+    std::reverse(block.vtx.begin(), block.vtx.end());
+  }
+}
+}  // namespace
+
 BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
 CMutableTransaction CreateTx() {
@@ -41,12 +55,12 @@ CMutableTransaction CreateTx() {
   vchSig.push_back((unsigned char)SIGHASH_ALL);
 
   mut_tx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
-                                     << ToByteVector(k.GetPubKey());
+                                      << ToByteVector(k.GetPubKey());
 
   return mut_tx;
 }
 
-CTransaction CreateCoinbase() {
+CMutableTransaction CreateCoinbase() {
   CMutableTransaction coinbase_tx;
   coinbase_tx.vin.resize(1);
   coinbase_tx.vin[0].prevout.SetNull();
@@ -155,6 +169,172 @@ BOOST_AUTO_TEST_CASE(checkblock_merkle_root_mutated) {
   CheckBlock(block, state, Params().GetConsensus(), false, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
+}
+
+BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
+
+  CBlockIndex prev;
+  prev.nTime = 100000;
+  prev.nHeight = 10;
+
+  auto final_tx = CreateTx();
+  final_tx.nLockTime = 0;
+  final_tx.vin.resize(1);
+  final_tx.vin[0].nSequence = CTxIn::SEQUENCE_FINAL;
+
+  //test with a tx non final because of height
+  {
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(final_tx));
+
+    auto not_final_height_tx = CreateTx();
+    not_final_height_tx.vin.resize(1);
+    not_final_height_tx.vin[0].nSequence = 0;
+    not_final_height_tx.nLockTime = 12;
+    block.vtx.push_back(MakeTransactionRef(not_final_height_tx));
+    SortTxs(block);
+
+    CValidationState state;
+    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
+  }
+
+  //test with a tx non final because of time
+  {
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(final_tx));
+
+    auto not_final_time_tx = CreateTx();
+    not_final_time_tx.vin.resize(1);
+    not_final_time_tx.vin[0].nSequence = 0;
+    not_final_time_tx.nLockTime = 500000001;
+    block.vtx.push_back(MakeTransactionRef(not_final_time_tx));
+    SortTxs(block);
+
+    CValidationState state;
+    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(contextualcheckblock_duplicates_tx) {
+
+  CBlockIndex prev;
+  CBlock block;
+  auto tx = CreateTx();
+  block.vtx.push_back(MakeTransactionRef(tx));
+  block.vtx.push_back(MakeTransactionRef(tx));
+
+  CValidationState state;
+  ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
+}
+
+BOOST_AUTO_TEST_CASE(contextualcheckblock_tx_order) {
+
+  CBlockIndex prev;
+  CBlock block;
+  block.vtx.push_back(MakeTransactionRef(CreateTx()));
+  block.vtx.push_back(MakeTransactionRef(CreateTx()));
+  SortTxs(block, true);
+
+  CValidationState state;
+  ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-ordering");
+}
+
+BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {
+
+  CBlockIndex prev;
+
+  // Test unexpected witness
+  {
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+    CMutableTransaction coinbase(*block.vtx[0]);
+
+    CScriptWitness scriptWitness;
+    scriptWitness.stack.push_back(ToByteVector(GetRandHash()));
+
+    coinbase.vin[0].scriptWitness = scriptWitness;
+    block.vtx[0] = MakeTransactionRef(coinbase);
+
+    CValidationState state;
+    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "unexpected-witness");
+  }
+
+  auto consensus_params = Params().GetConsensus();
+  consensus_params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  //Activate segwit
+
+  // Test bad witness nonce empty
+  {
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+    GenerateCoinbaseCommitment(block, &prev, consensus_params);
+    CMutableTransaction coinbase(*block.vtx[0]);
+    coinbase.vin[0].scriptWitness.stack.clear();
+    block.vtx[0] = MakeTransactionRef(coinbase);
+
+    CValidationState state;
+    ContextualCheckBlock(block, state, consensus_params, &prev);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-nonce-size");
+  }
+
+  // Test bad witness wrong size (> 32 bytes)
+  {
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+    GenerateCoinbaseCommitment(block, &prev, consensus_params);
+    CMutableTransaction coinbase(*block.vtx[0]);
+    std::vector<unsigned char> too_long(33);
+    auto &stack = coinbase.vin[0].scriptWitness.stack;
+    stack.insert(stack.begin(), too_long);
+    block.vtx[0] = MakeTransactionRef(coinbase);
+
+    CValidationState state;
+    ContextualCheckBlock(block, state, consensus_params, &prev);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-nonce-size");
+  }
+
+  //bad witness merkle not matching
+  {
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+    GenerateCoinbaseCommitment(block, &prev, consensus_params);
+    CMutableTransaction coinbase(*block.vtx[0]);
+    auto coinbase_script_pubkey = coinbase.vout[1].scriptPubKey;
+    coinbase.vout[1].scriptPubKey = CScript(coinbase_script_pubkey.begin(), coinbase_script_pubkey.begin() + 6) << ToByteVector(GetRandHash());
+    block.vtx[0] = MakeTransactionRef(coinbase);
+
+    CValidationState state;
+    ContextualCheckBlock(block, state, consensus_params, &prev);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
+
+  CBlockIndex prev;
+  CBlock block;
+  for (int i = 0; i < 5000; ++i) {
+    block.vtx.push_back(MakeTransactionRef(CreateTx()));
+    block.vtx.push_back(MakeTransactionRef(CreateTx()));
+  }
+  SortTxs(block);
+
+  CValidationState state;
+  ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-weight");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
