@@ -12,8 +12,9 @@
 #include <chainparams.h>
 #include <coins.h>
 #include <consensus/consensus.h>
-#include <consensus/tx_verify.h>
+#include <consensus/ltor.h>
 #include <consensus/merkle.h>
+#include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
@@ -158,17 +159,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
 
-    // LTOR/CTOR: We ensure that all transactions (except the 0th, coinbase) are
-    // sorted in lexicographical order. Notice that we don't sort
-    // blocktemplate->vTxFees nor blocktemplate->vTxSigOpsCost because they are
-    // not used at all. These two vectors are just a "residue" from Bitcoin's
-    // PoW mining pools code.
-    std::sort(
-        std::begin(pblock->vtx) + 1, std::end(pblock->vtx),
-        [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
-            return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
-        }
-    );
+    ltor::SortTransactionsWithLTOR(pblock->vtx);
 
     int64_t nTime1 = GetTimeMicros();
 

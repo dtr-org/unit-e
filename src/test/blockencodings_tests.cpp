@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <blockencodings.h>
+#include <consensus/ltor.h>
 #include <consensus/merkle.h>
 #include <chainparams.h>
 #include <random.h>
@@ -44,12 +45,7 @@ static CBlock BuildBlockTestCase() {
     }
     block.vtx[2] = MakeTransactionRef(tx);
 
-    std::sort(
-        std::begin(block.vtx) + 1, std::end(block.vtx),
-        [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
-          return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
-        }
-    );
+    ltor::SortTransactionsWithLTOR(block.vtx);
 
     bool mutated;
     block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
