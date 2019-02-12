@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(propose) {
       staking::Coin{t2, 2, 50, CScript(), 1},
       staking::Coin{t3, 4, 70, CScript(), 1}};
   f.active_chain_mock.tip = &f.tip;
-  f.active_chain_mock.block_at_depth = [&f](const blockchain::Depth depth) -> CBlockIndex* {
+  f.active_chain_mock.block_at_depth = [&f](const blockchain::Depth depth) -> CBlockIndex * {
     if (depth == 1) {
       return &f.at_depth_1;
     }
