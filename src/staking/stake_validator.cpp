@@ -55,6 +55,13 @@ class StakeValidatorImpl : public StakeValidator {
     return Hash(s.begin(), s.end());
   }
 
+  //! \brief Checks the stake of the given block. The previos block has to be part of the active chain.
+  //!
+  //! Looks up the stake in the UTXO set, which needs to be available from the
+  //! active chain (this can not be used to validate blocks on a fork). The
+  //! UTXO set should be always available and consistent, during reorgs the
+  //! chain is rolled back using undo data and at every point a check of stake
+  //! should be possible.
   BlockValidationResult CheckStake(const CBlockIndex &previous_block, const CBlock &block) const {
     BlockValidationResult result;
 
@@ -167,6 +174,7 @@ class StakeValidatorImpl : public StakeValidator {
   }
 
   BlockValidationResult CheckStake(const CBlock &block) const override {
+    AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
     if (m_blockchain_behavior->IsGenesisBlock(block)) {
       // The genesis block does not stake anything.

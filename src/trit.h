@@ -1,3 +1,7 @@
+// Copyright (c) 2019 The Unit-e developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef UNIT_E_TRIT_H
 #define UNIT_E_TRIT_H
 
@@ -92,12 +96,12 @@ class Trit final {
   }
 
   static Trit Or(Trit t1, Trit t2) noexcept {
-    return t1.And(t2);
+    return t1.Or(t2);
   }
 
   template <typename... T>
   static Trit Or(Trit t, T... ts) noexcept {
-    return t.And(And(ts...));
+    return t.Or(Or(ts...));
   }
 
 };

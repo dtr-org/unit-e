@@ -58,6 +58,16 @@ class StakeValidator {
       ) const = 0;
 
   //! \brief Checks the stake of a block.
+  //!
+  //! Requires the lock for the active chain to be held
+  //! (aka: cs_main, ActiveChain::GetLock()).
+  //!
+  //! Will lookup referenced block in the active chain, which means the block
+  //! to be checked must be about to be connected as a new tip. The following
+  //! data will be requested from the active chain:
+  //!
+  //! - the previos block to compute the stake modifier
+  //! - the UTXO which is spent as stake
   virtual BlockValidationResult CheckStake(
       const CBlock &  //!< [in] The block to check.
       ) const = 0;
