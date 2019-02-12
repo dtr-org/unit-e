@@ -43,6 +43,9 @@ Parameters BuildMainNetParameters() {
     return tip->nBits;
   };
 
+  // The message start string is designed to be unlikely to occur in normal data.
+  // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
+  // a large 32-bit integer with any alignment. They are different from bitcoin.
   p.message_start_characters[0] = 0xee;
   p.message_start_characters[1] = 0xee;
   p.message_start_characters[2] = 0xae;

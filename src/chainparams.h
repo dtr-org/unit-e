@@ -6,6 +6,7 @@
 #ifndef UNITE_CHAINPARAMS_H
 #define UNITE_CHAINPARAMS_H
 
+#include <blockchain/blockchain_parameters.h>
 #include <chainparamsbase.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
@@ -50,7 +51,7 @@ public:
     const esperanza::FinalizationParams& GetFinalization() const { return finalization; }
     const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
     const snapshot::Params& GetSnapshotParams() const { return snapshotParams; }
-    const CMessageHeader::MessageStartChars& MessageStart() const { return pchMessageStart; }
+    const CMessageHeader::MessageStartChars& MessageStart() const { return parameters.message_start_characters; }
     int GetDefaultPort() const { return nDefaultPort; }
 
     const CBlock& GenesisBlock() const { return genesis; }
@@ -59,9 +60,9 @@ public:
     /** Policy: Filter transactions that do not match well-defined patterns */
     bool RequireStandard() const { return fRequireStandard; }
     /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
-    bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
+    bool MineBlocksOnDemand() const { return parameters.mine_blocks_on_demand; }
     /** Return the BIP70 network string (main, test or regtest) */
-    std::string NetworkIDString() const { return strNetworkID; }
+    const std::string NetworkIDString() const { return parameters.network_name; }
     /** Return the list of hostnames to look up for DNS seeds */
     const std::vector<std::string>& DNSSeeds() const { return vSeeds; }
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
@@ -69,22 +70,21 @@ public:
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
     void UpdateFinalizationParams(esperanza::FinalizationParams &params);
 
+    const blockchain::Parameters& parameters;
+
 protected:
-    CChainParams() {}
+    explicit CChainParams(const blockchain::Parameters& _parameters) : parameters(_parameters) {}
 
     Consensus::Params consensus;
     esperanza::FinalizationParams finalization;
     esperanza::AdminParams adminParams;
     snapshot::Params snapshotParams;
-    CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
     std::vector<std::string> vSeeds;
-    std::string strNetworkID;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
     bool fDefaultConsistencyChecks;
     bool fRequireStandard;
-    bool fMineBlocksOnDemand;
     ChainTxData chainTxData;
 };
 

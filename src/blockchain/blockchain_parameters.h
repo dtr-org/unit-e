@@ -78,7 +78,7 @@ struct Parameters {
   //! \brief a unique identifier for this network.
   //!
   //! The usual predefined identifiers are "main", "test", and "regtest".
-  const char *network_name;
+  std::string network_name;
 
   //! \brief The genesis block of this chain.
   GenesisBlock const *genesis_block;
