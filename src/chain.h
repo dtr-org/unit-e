@@ -6,13 +6,15 @@
 #ifndef UNITE_CHAIN_H
 #define UNITE_CHAIN_H
 
-#include <boost/optional.hpp>
 #include <arith_uint256.h>
 #include <blockchain/blockchain_types.h>
-#include <primitives/block.h>
+#include <consensus/params.h>
 #include <pow.h>
-#include <tinyformat.h>
+#include <primitives/block.h>
 #include <uint256.h>
+
+#include <boost/optional.hpp>
+#include <tinyformat.h>
 
 #include <vector>
 
