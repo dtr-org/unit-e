@@ -307,7 +307,7 @@ bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key)
         return false;
     }
 
-    if (which_type != TX_WITNESS_V1_RS_KEYHASH) {
+    if (which_type != TX_WITNESS_V1_RS_KEYHASH && which_type != TX_WITNESS_V2_RS_SCRIPTHASH) {
         return false;
     }
 
@@ -326,10 +326,6 @@ bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key)
     }
 
     // The local node should be able to spend the coin
-    CKeyID spending_keyid = CKeyID(uint160(Ripemd160(solutions[1].begin(), solutions[1].end())));
-    if (keystore.HaveKey(spending_keyid) || keystore.HaveHardwareKey(spending_keyid)) {
-        return true;
-    }
-
-    return false;
+    IsMineResult mine = IsMineInner(keystore, script_pub_key, IsMineSigVersion::TOP);
+    return mine == IsMineResult::SPENDABLE || mine == IsMineResult::HW_DEVICE;
 }

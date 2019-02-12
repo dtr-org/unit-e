@@ -170,7 +170,7 @@ bool WalletExtension::CreateRemoteStakingTransaction(const CRecipient &recipient
   m_enclosing_wallet.GetKeyFromPool(spending_key, false);
 
   CRecipient staking_recipient = recipient;
-  staking_recipient.scriptPubKey = CScript::CreateRemoteStakingScript(
+  staking_recipient.scriptPubKey = CScript::CreateRemoteStakingKeyhashScript(
       solutions[0], ToByteVector(spending_key.GetSha256()));
 
   const std::vector<CRecipient> recipients = {staking_recipient};

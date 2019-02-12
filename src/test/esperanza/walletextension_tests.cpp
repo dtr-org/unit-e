@@ -197,8 +197,15 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   random_key.MakeNewKey(true);
   CPubKey random_pubkey = random_key.GetPubKey();
 
+  const auto our_script = CScript() << ToByteVector(our_pubkey) << OP_CHECKSIG;
+  const auto our_script_hash = Sha256(our_script.begin(), our_script.end());
+
+  const auto their_script = CScript() << ToByteVector(their_pubkey) << OP_CHECKSIG;
+  const auto their_script_hash = Sha256(their_script.begin(), their_script.end());
+
   LOCK2(cs_main, pwalletMain->cs_wallet);
   pwallet->AddKey(our_key);
+  pwallet->AddCScript(our_script);
 
   // P2PKH transactions don't affect remote staking balance
   {
@@ -226,11 +233,18 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   // ...neither do other people's remote staking transactions...
   {
     CMutableTransaction tx;
-    tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
-                                  ToByteVector(their_pubkey.GetID()),
-                                  ToByteVector(random_pubkey.GetSha256())));
+    tx.vout.emplace_back(100, CScript::CreateRemoteStakingKeyhashScript(
+        ToByteVector(their_pubkey.GetID()),
+        ToByteVector(random_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
+
+    CMutableTransaction tx2;
+    tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
+        ToByteVector(their_pubkey.GetID()),
+        ToByteVector(their_script_hash)));
+    CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
+    pwalletMain->LoadToWallet(wtx2);
 
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
     BOOST_CHECK_EQUAL(balance, 0);
@@ -239,27 +253,41 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   // ...or tranctions that other people are staking on this node
   {
     CMutableTransaction tx;
-    tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
-                                  ToByteVector(our_pubkey.GetID()),
-                                  ToByteVector(their_pubkey.GetSha256())));
+    tx.vout.emplace_back(100, CScript::CreateRemoteStakingKeyhashScript(
+        ToByteVector(our_pubkey.GetID()),
+        ToByteVector(their_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
+
+    CMutableTransaction tx2;
+    tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
+        ToByteVector(our_pubkey.GetID()),
+        ToByteVector(their_script_hash)));
+    CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
+    pwalletMain->LoadToWallet(wtx2);
 
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
     BOOST_CHECK_EQUAL(balance, 0);
   }
 
-  // ...we have to own the spending key for it to count.
+  // ...we have to be able to spend it to count.
   {
     CMutableTransaction tx;
-    tx.vout.emplace_back(100, CScript::CreateRemoteStakingScript(
-                                  ToByteVector(their_pubkey.GetID()),
-                                  ToByteVector(our_pubkey.GetSha256())));
+    tx.vout.emplace_back(100, CScript::CreateRemoteStakingKeyhashScript(
+        ToByteVector(their_pubkey.GetID()),
+        ToByteVector(our_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
+    CMutableTransaction tx2;
+    tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
+        ToByteVector(their_pubkey.GetID()),
+        ToByteVector(our_script_hash)));
+    CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
+    pwalletMain->LoadToWallet(wtx2);
+
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
-    BOOST_CHECK_EQUAL(balance, 100);
+    BOOST_CHECK_EQUAL(balance, 200);
   }
 }
 
