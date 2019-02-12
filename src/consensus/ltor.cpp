@@ -8,7 +8,9 @@
 namespace ltor {
 
 void SortTransactionsWithLTOR(std::vector<CTransactionRef> &transactions) {
-    if (transactions.size() <= 1) {
+    if (transactions.size() <= 2) {
+        // The first transaction has to be coinbase, and having just one
+        // regular transaction does not require sorting neither.
         return;
     }
 
