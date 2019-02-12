@@ -17,6 +17,7 @@ Parameters BuildMainNetParameters() {
   p.network_name = "main";
   p.block_stake_timestamp_interval_seconds = 16;
   p.block_time_seconds = 16;
+  p.max_future_block_time_seconds = 2 * 60 * 60;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
   p.maximum_block_size = 1000000;
@@ -24,12 +25,12 @@ Parameters BuildMainNetParameters() {
   p.maximum_block_serialized_size = 4000000;
   p.maximum_block_sigops_cost = 80000;
   p.coinbase_maturity = 100;
-  p.restake_maturity = 200;
+  p.stake_maturity = 200;
   p.initial_supply = 150000000000000000;
   p.reward_schedule = {3750000000, 1700000000, 550000000, 150000000, 31000000};
   p.period_blocks = 19710000;
   p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
-  assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
+  assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount(0)) * p.period_blocks);
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
     const uint64_t period = h / p.period_blocks;
     if (period >= p.reward_schedule.size()) {
@@ -81,7 +82,7 @@ Parameters BuildTestNetParameters() {
   p.network_name = "test";
   p.relay_non_standard_transactions = true;
   p.coinbase_maturity = 10;
-  p.restake_maturity = 20;
+  p.stake_maturity = 20;
 
   p.message_start_characters[0] = 0xfd;
   p.message_start_characters[1] = 0xfc;
@@ -115,7 +116,7 @@ Parameters BuildRegTestParameters() {
   p.network_name = "regtest";
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
-  p.restake_maturity = 2;
+  p.stake_maturity = 2;
 
   p.message_start_characters[0] = 0xfa;
   p.message_start_characters[1] = 0xbf;

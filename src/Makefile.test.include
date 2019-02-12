@@ -115,9 +115,11 @@ UNITE_TESTS = \
   test/test_unite.h \
   test/test_unite.cpp \
   test/test_unite_main.cpp \
+  test/test_unite_mocks.h \
   test/timedata_tests.cpp \
   test/torcontrol_tests.cpp \
   test/transaction_tests.cpp \
+  test/trit_tests.cpp \
   test/txvalidation_tests.cpp \
   test/txvalidationcache_tests.cpp \
   test/uint256_tests.cpp \

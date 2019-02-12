@@ -4,7 +4,10 @@
 
 #include <proposer/proposer_logic.h>
 
+#include <staking/validation_result.h>
+
 #include <test/test_unite.h>
+#include <test/test_unite_mocks.h>
 #include <boost/test/unit_test.hpp>
 
 #include <functional>
@@ -16,64 +19,12 @@ struct Fixture {
   blockchain::Parameters parameters = blockchain::Parameters::MainNet();
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::NewFromParameters(parameters);
 
-  class NetworkMock : public staking::Network {
-   public:
-    int64_t GetTime() const override { return 0; }
-    size_t GetNodeCount() const override { return 0; }
-    size_t GetInboundNodeCount() const override { return 0; }
-    size_t GetOutboundNodeCount() const override { return 0; }
-  };
+  CBlockIndex tip;
+  CBlockIndex at_depth_1;
 
-  class ActiveChainMock : public staking::ActiveChain {
-    mutable CCriticalSection lock;
-
-   public:
-    CBlockIndex tip;
-    CBlockIndex at_depth_1;
-    ::SyncStatus sync_status = SyncStatus::SYNCED;
-
-    CCriticalSection &GetLock() const override { return lock; }
-    blockchain::Height GetSize() const override { return 1; }
-    blockchain::Height GetHeight() const override { return 0; }
-    const CBlockIndex *GetTip() const override { return &tip; }
-    const CBlockIndex *AtDepth(blockchain::Depth depth) override {
-      switch (depth) {
-        case 1:
-          return &at_depth_1;
-      }
-      return nullptr;
-    }
-    const CBlockIndex *AtHeight(blockchain::Height height) override { return nullptr; }
-    const uint256 ComputeSnapshotHash() const override { return uint256(); }
-    bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
-    ::SyncStatus GetInitialBlockDownloadStatus() const override { return sync_status; }
-  };
-
-  class StakeValidatorMock : public staking::StakeValidator {
-    mutable CCriticalSection lock;
-
-   public:
-    std::function<bool(uint256)> checkkernelfunc =
-        [](uint256 kernel) { return false; };
-    std::function<uint256(const CBlockIndex *, const staking::Coin &, blockchain::Time)> computekernelfunc =
-        [](const CBlockIndex *, const staking::Coin &, blockchain::Time) { return uint256(); };
-
-    CCriticalSection &GetLock() override { return lock; }
-    bool CheckKernel(CAmount, const uint256 &kernel, blockchain::Difficulty) const override {
-      return checkkernelfunc(kernel);
-    }
-    uint256 ComputeKernelHash(const CBlockIndex *blockindex, const staking::Coin &coin, blockchain::Time time) const override {
-      return computekernelfunc(blockindex, coin, time);
-    }
-    uint256 ComputeStakeModifier(const CBlockIndex *, const uint256 &) const override { return uint256(); }
-    bool IsKernelKnown(const uint256 &) override { return false; }
-    void RememberKernel(const uint256 &) override {}
-    void ForgetKernel(const uint256 &) override {}
-  };
-
-  NetworkMock network_mock;
-  ActiveChainMock active_chain_mock;
-  StakeValidatorMock stake_validator_mock;
+  mocks::NetworkMock network_mock;
+  mocks::ActiveChainMock active_chain_mock;
+  mocks::StakeValidatorMock stake_validator_mock;
 
   std::unique_ptr<proposer::Logic> GetProposerLogic() {
     return proposer::Logic::New(behavior.get(), &network_mock, &active_chain_mock, &stake_validator_mock);
@@ -97,6 +48,13 @@ BOOST_AUTO_TEST_CASE(propose) {
       staking::Coin{t1, 7, 20, CScript(), 1},
       staking::Coin{t2, 2, 50, CScript(), 1},
       staking::Coin{t3, 4, 70, CScript(), 1}};
+  f.active_chain_mock.tip = &f.tip;
+  f.active_chain_mock.block_at_depth = [&f](const blockchain::Depth depth) -> CBlockIndex * {
+    if (depth == 1) {
+      return &f.at_depth_1;
+    }
+    return nullptr;
+  };
   f.stake_validator_mock.checkkernelfunc = [&](uint256 kernel) {
     return kernel == k2;
   };

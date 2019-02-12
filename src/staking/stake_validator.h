@@ -9,7 +9,9 @@
 #include <blockchain/blockchain_behavior.h>
 #include <chain.h>
 #include <dependency.h>
+#include <staking/active_chain.h>
 #include <staking/coin.h>
+#include <staking/validation_result.h>
 #include <sync.h>
 #include <uint256.h>
 
@@ -55,27 +57,51 @@ class StakeValidator {
       const uint256 &       //!< [in] The kernel hash of this block
       ) const = 0;
 
-  //! \brief Checks whether a kernel hash is known.
+  //! \brief Checks the stake of a block.
   //!
-  //! When a kernel hash is encountered that we've seen before,
-  //! someone is trying to bullshit us.
+  //! Requires the lock for the active chain to be held
+  //! (aka: cs_main, ActiveChain::GetLock()).
   //!
-  //! Requires the lock (obtained via GetLock) to be held.
-  virtual bool IsKernelKnown(const uint256 &) = 0;
+  //! Will lookup referenced block in the active chain, which means the block
+  //! to be checked must be about to be connected as a new tip. The following
+  //! data will be requested from the active chain:
+  //!
+  //! - the previos block to compute the stake modifier
+  //! - the UTXO which is spent as stake
+  virtual BlockValidationResult CheckStake(
+      const CBlock &  //!< [in] The block to check.
+      ) const = 0;
 
-  //! \brief Learn about a kernel hash.
+  //! \brief Checks whether piece of stake was used as stake before.
+  //!
+  //! When a block refers to a piece of stake that another block that we've
+  //! seen has refered to before, someone is trying to bullshit us and use a
+  //! piece of stake twice.
   //!
   //! Requires the lock (obtained via GetLock) to be held.
-  virtual void RememberKernel(const uint256 &) = 0;
+  virtual bool IsPieceOfStakeKnown(
+      const COutPoint &  //!< [in] The reference to the UTXO used for staking.
+      ) const = 0;
 
-  //! \brief Forget about a kernel hash.
+  //! \brief Learn about a piece of stake being used for staking.
   //!
   //! Requires the lock (obtained via GetLock) to be held.
-  virtual void ForgetKernel(const uint256 &) = 0;
+  virtual void RememberPieceOfStake(
+      const COutPoint &  //!< [in] The reference to the UTXO used for staking.
+      ) = 0;
+
+  //! \brief Forget about a piece of stake having been used for staking.
+  //!
+  //! Requires the lock (obtained via GetLock) to be held.
+  virtual void ForgetPieceOfStake(
+      const COutPoint &  //!< [in] The reference to the UTXO used for staking.
+      ) = 0;
 
   virtual ~StakeValidator() = default;
 
-  static std::unique_ptr<StakeValidator> New();
+  static std::unique_ptr<StakeValidator> New(
+      Dependency<blockchain::Behavior>,
+      Dependency<ActiveChain>);
 };
 
 }  // namespace staking

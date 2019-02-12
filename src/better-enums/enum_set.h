@@ -6,8 +6,8 @@
 #define UNIT_E_ENUM_SET_H
 
 #include <array>
-#include <string>
 #include <sstream>
+#include <string>
 #include <type_traits>
 
 namespace {
@@ -214,6 +214,20 @@ class EnumSet {
       for (++it; it != this->end(); ++it) {
         buf << delimiter;
         buf << (*it)._to_string();
+      }
+    }
+    return buf.str();
+  }
+
+  template <typename Callable>
+  std::string ToStringUsing(Callable func, const char *delimiter = ", ") const {
+    std::ostringstream buf;
+    auto it = this->begin();
+    if (it != this->end()) {
+      buf << func(*it);
+      for (++it; it != this->end(); ++it) {
+        buf << delimiter;
+        buf << func(*it);
       }
     }
     return buf.str();

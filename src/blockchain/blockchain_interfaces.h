@@ -9,8 +9,6 @@
 #include <chain.h>
 #include <primitives/block.h>
 
-#include <cstdint>
-
 // The interfaces defined in this file expose very limited functionality each
 // and do not come with implementations. They can be used to express things such
 // as the difficulty function (a pure function which is shared by all compilation
@@ -25,14 +23,14 @@ class ChainAccess {
   //!
   //! The given depth must be greater than or equal to 1.
   //!
-  //! \return nullptr if no Block at the given height/depth exists.
+  //! \return nullptr if no Block at the given depth exists.
   virtual const CBlockIndex *AtDepth(blockchain::Depth depth) = 0;
 
   //! \brief Access CBlockIndexes in the active chain at the given height.
   //!
   //! The given height must be greater than or equal to 0.
   //!
-  //! \return nullptr if no Block at the given height/depth exists.
+  //! \return nullptr if no Block at the given height exists.
   virtual const CBlockIndex *AtHeight(blockchain::Height height) = 0;
 
   virtual ~ChainAccess() = default;

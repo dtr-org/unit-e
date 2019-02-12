@@ -43,6 +43,10 @@ bool Behavior::IsGenesisBlock(const CBlock &block) const {
   return IsGenesisBlockHash(block.GetHash());
 }
 
+bool Behavior::IsStakeMature(const blockchain::Depth at_depth) const {
+  return at_depth >= m_parameters.stake_maturity;
+}
+
 const Parameters &Behavior::GetParameters() const {
   return m_parameters;
 }

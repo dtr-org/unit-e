@@ -7,6 +7,7 @@
 
 #include <amount.h>
 
+#include <uint256.h>
 #include <better-enums/enum.h>
 
 #include <cstdint>
@@ -20,7 +21,6 @@ using Difficulty = std::uint32_t;
 using Height = std::uint32_t;
 using Depth = Height;
 using Time = std::uint32_t;
-using MoneySupply = CAmount;
 
 // clang-format off
 BETTER_ENUM(

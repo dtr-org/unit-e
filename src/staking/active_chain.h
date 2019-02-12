@@ -9,8 +9,11 @@
 #include <blockchain/blockchain_interfaces.h>
 #include <chain.h>
 #include <primitives/block.h>
+#include <staking/coin.h>
 #include <sync.h>
 #include <sync_status.h>
+
+#include <boost/optional.hpp>
 
 #include <cstdint>
 #include <memory>
@@ -52,15 +55,33 @@ class ActiveChain : public blockchain::ChainAccess {
   //! genesis block.
   virtual blockchain::Height GetHeight() const = 0;
 
+  //! \brief returns the tip of the currently active chain.
   virtual const CBlockIndex *GetTip() const = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtDepth(blockchain::Depth depth) override = 0;
+  const CBlockIndex *AtDepth(blockchain::Depth) override = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtHeight(blockchain::Height height) override = 0;
+  const CBlockIndex *AtHeight(blockchain::Height) override = 0;
+
+  //! \brief compute the current respective depth for the given height.
+  virtual blockchain::Depth GetDepth(blockchain::Height) const = 0;
+
+  //! \brief lookup a block index entry by its hash/id.
+  //!
+  //! Requires the lock obtained from `GetLock()` to be held.
+  //!
+  //! If the block is part of the active chain it is guaranteed to have a
+  //! CBlockIndex associated with it.
+  //!
+  //! If there is no entry in the block index db for this particular block
+  //! hash or if the block is not actually part of the active chain
+  //! this function will return `nullptr`.
+  virtual const CBlockIndex *GetBlockIndex(const uint256 &block_hash) const = 0;
 
   //! \brief computes the snapshot hash for the current utxo set
+  //!
+  //! Requires the lock obtained from `GetLock()` to be held.
   //!
   //! Note that a block contains the snapshot hash of the utxo set at the
   //! time of proposing the new block, i.e. not the snapshot hash of the utxo
@@ -73,10 +94,22 @@ class ActiveChain : public blockchain::ChainAccess {
   virtual const uint256 ComputeSnapshotHash() const = 0;
 
   //! \brief add a new block at the current active chains tip.
-  virtual bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) = 0;
+  virtual bool ProcessNewBlock(std::shared_ptr<const CBlock>) = 0;
 
   //! \brief Check the current status of the initial block download.
   virtual ::SyncStatus GetInitialBlockDownloadStatus() const = 0;
+
+  //! \brief Retrieve a UTXO from the currently active chain.
+  //!
+  //! Requires the lock obtained from `GetLock()` to be held.
+  virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &) const = 0;
+
+  //! \brief Shorthand for `GetUTXO({ txid, index })`.
+  //!
+  //! Requires the lock obtained from `GetLock()` to be held.
+  virtual boost::optional<staking::Coin> GetUTXO(const uint256 &txid, const std::uint32_t index) const {
+    return GetUTXO({txid, index});
+  }
 
   ~ActiveChain() override = default;
 
