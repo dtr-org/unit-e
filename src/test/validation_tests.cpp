@@ -11,7 +11,7 @@
 #include <boost/test/unit_test.hpp>
 
 namespace {
-bool SortTxs(CBlock &block, bool reverse = false) {
+void SortTxs(CBlock &block, bool reverse = false) {
 
   auto comparator = [](CTransactionRef a, CTransactionRef b) -> bool {
     return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
