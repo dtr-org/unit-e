@@ -188,7 +188,6 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   CKey our_key;
   our_key.MakeNewKey(/* compressed: */ true);
   CPubKey our_pubkey = our_key.GetPubKey();
-  pwalletMain->AddKey(our_key);
 
   CKey their_key;
   their_key.MakeNewKey(true);
@@ -199,6 +198,7 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   CPubKey random_pubkey = random_key.GetPubKey();
 
   LOCK2(cs_main, pwalletMain->cs_wallet);
+  pwallet->AddKey(our_key);
 
   // P2PKH transactions don't affect remote staking balance
   {
