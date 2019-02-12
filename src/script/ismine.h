@@ -32,4 +32,8 @@ isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest);
 //! Check if we are able to use an output with given script_pub_key as a stake
 bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key);
 
+//! Check if the output with the given script is staked on a remote node
+//! (meaning that we can spend the coin, but not stake it)
+bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key);
+
 #endif // UNITE_SCRIPT_ISMINE_H

@@ -95,6 +95,25 @@ std::vector<staking::Coin> WalletExtension::GetStakeableCoins() const {
   return coins;
 }
 
+CAmount WalletExtension::GetRemoteStakingBalance() const {
+  AssertLockHeld(cs_main);
+  AssertLockHeld(m_enclosing_wallet.cs_wallet);  // access to mapWallet
+
+  CAmount balance = 0;
+
+  for (const auto &it : m_enclosing_wallet.mapWallet) {
+    const CWalletTx *const tx = &it.second;
+
+    for (const auto &txout : tx->tx->vout) {
+      if (::IsStakedRemotely(m_enclosing_wallet, txout.scriptPubKey)) {
+        balance += txout.nValue;
+      }
+    }
+  }
+
+  return balance;
+}
+
 proposer::State &WalletExtension::GetProposerState() {
   return m_proposer_state;
 }

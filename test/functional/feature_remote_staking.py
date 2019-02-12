@@ -38,6 +38,8 @@ class RemoteStakingTest(UnitETestFramework):
         alice.generatetoaddress(1, alices_addr)
         self.sync_all()
 
+        wi = alice.getwalletinfo()
+        assert_equal(wi['remote_staking_balance'], 1)
         bob.proposerwake()
 
         # Bob should be able to stake the newly received coin
