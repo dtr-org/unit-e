@@ -55,7 +55,7 @@ class StakeValidatorImpl : public StakeValidator {
     return Hash(s.begin(), s.end());
   }
 
-  //! \brief Checks the stake of the given block. The previos block has to be part of the active chain.
+  //! \brief Checks the stake of the given block. The previous block has to be part of the active chain.
   //!
   //! Looks up the stake in the UTXO set, which needs to be available from the
   //! active chain (this can not be used to validate blocks on a fork). The
