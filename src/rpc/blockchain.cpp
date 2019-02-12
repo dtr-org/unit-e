@@ -371,7 +371,7 @@ UniValue getdifficulty(const JSONRPCRequest& request)
         );
 
     LOCK(cs_main);
-    return SanitizeDouble(GetDifficulty(blockindex));
+    return SanitizeDouble(GetDifficulty());
 }
 
 std::string EntryDescriptionString()
