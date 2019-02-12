@@ -337,4 +337,48 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-weight");
 }
 
+BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
+
+  // Block time is too far in the past
+  int64_t adjusted_time = 151230;
+  {
+    // Setup prev chain
+    CBlockIndex prev_0;
+    CBlockIndex prev_1;
+    CBlockIndex prev_2;
+
+    prev_0.nTime = 1000;
+    prev_1.nTime = 2000;
+    prev_2.nTime = 3000;
+
+    prev_1.pprev = &prev_0;
+    prev_2.pprev = &prev_1;
+
+    CBlock block;
+    block.nTime = 2001; // 1 unit more than the median
+
+    CValidationState state;
+    BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
+
+    block.nTime = 1999; // 1 unit less than the median
+    ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time);
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-old");
+  }
+
+  // Block time is too far in the future
+  {
+    int64_t adjusted_time = 0;
+    CBlockIndex prev;
+    CBlock block;
+    block.nTime = adjusted_time + MAX_FUTURE_BLOCK_TIME;
+
+    CValidationState state;
+    BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
+
+    block.nTime = adjusted_time + MAX_FUTURE_BLOCK_TIME + 1;
+    ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time);
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-new");
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
