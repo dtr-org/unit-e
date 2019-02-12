@@ -1,0 +1,3 @@
+Test: test_prepare_git_dir_skip
+chdir('unit-e')
+chdir('someworkdir')

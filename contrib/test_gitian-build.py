@@ -88,11 +88,11 @@ def test_build(mocker):
 
     mocker.patch("platform.system", return_value="Linux")
     mocker.patch("os.makedirs")
+    mocker.patch("os.getcwd", return_value="someworkdir")
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
-    mocker.patch("os.getcwd", return_value="somedir")
 
-    gitian_build.build(create_args(mocker), "someworkdir")
+    gitian_build.build(create_args(mocker))
 
     log.check()
 
@@ -200,6 +200,7 @@ def test_setup_linux(mocker):
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.call", side_effect=log.log_call)
+    mocker.patch("pathlib.Path.is_dir", return_value=False)
 
     gitian_build.setup(create_args(mocker))
 
@@ -208,13 +209,39 @@ def test_setup_linux(mocker):
 def test_prepare_git_dir(mocker):
     log = Log("test_prepare_git_dir")
 
+    mocker.patch("os.getcwd", return_value="someworkdir")
     mocker.patch("os.chdir", side_effect=log.log_chdir)
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.check_output", side_effect=log.log_call)
 
-    gitian_build.prepare_git_dir(create_args(mocker), "someworkdir")
+    args = create_args(mocker)
+    args.pull = True
+    args.skip_checkout = False
+    gitian_build.prepare_git_dir(args)
 
     log.check()
+
+def test_prepare_git_dir_skip(mocker):
+    log = Log("test_prepare_git_dir_skip")
+
+    mocker.patch("os.getcwd", return_value="someworkdir")
+    mocker.patch("os.chdir", side_effect=log.log_chdir)
+    mocker.patch("subprocess.check_call", side_effect=log.log_call)
+    mocker.patch("subprocess.check_output", side_effect=log.log_call)
+
+    args = create_args(mocker)
+    args.skip_checkout = True
+    args.pull = False
+    gitian_build.prepare_git_dir(args)
+
+    log.check()
+
+def test_prepare_gitian_descriptors(mocker, tmpdir):
+    gitian_build.prepare_gitian_descriptors(source="test_data/gitian_descriptors", target=tmpdir, hosts="a-1 b-2")
+    with (tmpdir / "gitian-linux.yml").open() as file:
+        assert file.read() == '---\nscript: |\n  HOSTS="a-1 b-2"\n'
+    with (tmpdir / "gitian-win.yml").open() as file:
+        assert file.read() == '---\nscript: |\n  HOSTS="a-1 b-2"\n'
 
 def test_apt_wrapper(mocker):
     log = Log("test_apt_wrapper")
