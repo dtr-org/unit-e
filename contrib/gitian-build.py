@@ -12,7 +12,6 @@ import sys
 import platform
 
 import tempfile
-import glob
 
 from pathlib import Path
 from contextlib import contextmanager
@@ -21,9 +20,9 @@ OSSLSIGNCODE_VER = '1.7.1'
 OSSLSIGNCODE_DIR = 'osslsigncode-'+OSSLSIGNCODE_VER
 
 @contextmanager
-def cd(dir):
+def cd(destination_dir):
     original_dir = os.getcwd()
-    os.chdir(dir)
+    os.chdir(destination_dir)
     try:
         yield
     finally:
@@ -105,7 +104,7 @@ def find_osslsigncode(user_spec_path):
             return ossl_path
 
     expected_path = Path(OSSLSIGNCODE_DIR, 'osslsigncode')
-    if expected_path.is_file(expected_path) and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
+    if expected_path.is_file() and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
         return expected_path.resolve()
 
     return None
@@ -125,7 +124,7 @@ def install_osslsigner():
 def install_libssl_dev(apt):
     dist_str = platform.dist()
     dist_type = dist_str[0]
-    dist_no = dist_str[1].replace('.', '')
+    dist_no = int(dist_str[1].replace('.', ''))
     if dist_type == 'Ubuntu' and dist_no < 1800 or dist_type == 'Debian' and dist_no < 900:
         apt.add_requirements('libssl-dev')
     else:
@@ -356,12 +355,12 @@ def verify(args):
     builds_were_missing = False
 
     for (sig_path_suffix, descriptor_suffix, build_name) in [
-        ('linux', 'linux', 'Linux'),
-        ('win-unsigned', 'win', 'Windows'),
-        ('osx-unsigned', 'osx', 'MacOS'),
-        ('win-signed', 'win-signer', 'Signed Windows'),
-        ('osx-signed', 'osx-signer', 'Signed Max OS')
-    ]:
+            ('linux', 'linux', 'Linux'),
+            ('win-unsigned', 'win', 'Windows'),
+            ('osx-unsigned', 'osx', 'MacOS'),
+            ('win-signed', 'win-signer', 'Signed Windows'),
+            ('osx-signed', 'osx-signer', 'Signed Max OS')
+        ]:
         build_sig_dir = args.version + '-' + sig_path_suffix
         if Path(sigs_path, build_sig_dir).is_dir():
             print('\nVerifying v{} {}\n'.format(args.version, build_name))
@@ -407,9 +406,9 @@ def prepare_gitian_descriptors(*, source, target, hosts=None):
                 else:
                     file_out.write(line)
 
-def create_work_dir(args):
-    work_dir = Path(args.work_dir)
-    if Path(args.work_dir).exists() and not Path(args.work_dir).is_dir():
+def create_work_dir(work_dir):
+    work_dir = Path(work_dir)
+    if Path(work_dir).exists() and not Path(work_dir).is_dir():
         raise Exception("Work dir '%s' exists but is not a directory." % work_dir)
     if not work_dir.exists():
         print("Creating working directory '%s'" % work_dir)
@@ -450,7 +449,13 @@ def main():
         print("Please provide a working directory (--work-dir <path>)", file=sys.stderr)
         exit(1)
 
-    work_dir = create_work_dir(args)
+    if args.win_code_cert_path:
+        args.win_code_cert_path = Path(args.win_code_cert_path).resolve()
+
+    if args.win_code_key_path:
+        args.win_code_key_path = Path(args.win_code_key_path).resolve()
+
+    work_dir = create_work_dir(args.work_dir)
     with cd(work_dir):
         print("Using working directory '%s'" % work_dir)
 
@@ -463,8 +468,8 @@ def main():
         args.is_bionic = platform.dist() == ('Ubuntu', '18.04', 'bionic')
 
         if args.buildsign:
-            args.build=True
-            args.sign=True
+            args.build = True
+            args.sign = True
 
         if args.kvm and args.docker:
             raise Exception('Error: cannot have both kvm and docker')
@@ -519,11 +524,11 @@ def main():
                 exit(1)
 
             if not args.win_code_cert_path or not Path(args.win_code_cert_path).is_file():
-                print('Please provide code signing certificate path (--code-cert)', file=sys.stderr)
+                print('Please provide code signing certificate path (--win-code-cert)', file=sys.stderr)
                 exit(1)
 
             if not args.win_code_key_path or not Path(args.win_code_key_path).is_file():
-                print('Please provide code signing key path (--code-key)', file=sys.stderr)
+                print('Please provide code signing key path (--win-code-key)', file=sys.stderr)
                 exit(1)
 
 
@@ -536,8 +541,8 @@ def main():
             raise Exception('Cannot pull and skip-checkout at the same time')
 
         prepare_git_dir(args)
-        prepare_gitian_descriptors(source=args.git_dir + "/contrib/gitian-descriptors/", target="work/gitian-descriptors",
-                                hosts=args.hosts)
+        prepare_gitian_descriptors(source=args.git_dir + "/contrib/gitian-descriptors/",
+                                   target="work/gitian-descriptors", hosts=args.hosts)
 
         if args.build:
             build(args)
