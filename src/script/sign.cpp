@@ -175,10 +175,15 @@ static CScript PushAll(const std::vector<valtype>& values)
     return result;
 }
 
+static bool CanBeNestedInP2SH(txnouttype type)
+{
+    return type != TX_SCRIPTHASH && type != TX_WITNESS_V1_RS_KEYHASH && type != TX_WITNESS_V2_RS_SCRIPTHASH
+        && type != TX_PAYVOTESLASH;
+}
+
 static bool CanBeNestedInP2WSH(txnouttype type)
 {
-    return type != TX_SCRIPTHASH && type != TX_WITNESS_V0_SCRIPTHASH && type != TX_WITNESS_V0_KEYHASH
-        && type != TX_WITNESS_V1_RS_KEYHASH && type != TX_WITNESS_V2_RS_SCRIPTHASH;
+    return CanBeNestedInP2SH(type) && type != TX_WITNESS_V0_SCRIPTHASH && type != TX_WITNESS_V0_KEYHASH;
 }
 
 bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata, const CTransaction* tx)
@@ -196,7 +201,8 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         // the final scriptSig is the signatures from that
         // and then the serialized subscript:
         script = subscript = CScript(result[0].begin(), result[0].end());
-        solved = solved && SignStep(provider, creator, script, result, whichType, SigVersion::BASE) && whichType != TX_SCRIPTHASH;
+        solved = solved && SignStep(provider, creator, script, result, whichType, SigVersion::BASE)
+            && CanBeNestedInP2SH(whichType);
         P2SH = true;
     }
 
