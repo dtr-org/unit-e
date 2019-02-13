@@ -1,5 +1,3 @@
-// This file was automatically generated. Please do not modify it.
-
 #ifndef UNIT_E_BLOCKCHAIN_REGTEST_FUNDS_H
 #define UNIT_E_BLOCKCHAIN_REGTEST_FUNDS_H
 
