@@ -123,7 +123,6 @@ UNITE_TESTS = \
   test/util_tests.cpp \
   test/util_fun_tests.cpp \
   test/validation_tests.cpp \
-  test/validation_block_tests.cpp \
   test/versionbits_tests.cpp
 
 if ENABLE_WALLET
@@ -141,6 +140,7 @@ UNITE_TESTS += \
   test/staking/stake_validator_tests.cpp \
   test/txvalidation_tests.cpp \
   test/txvalidationcache_tests.cpp \
+  test/validation_block_tests.cpp \
   test/waiter_tests.cpp \
   wallet/test/rpcvalidator_tests.cpp \
   wallet/test/wallet_test_fixture.cpp \
