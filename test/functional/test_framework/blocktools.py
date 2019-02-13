@@ -201,7 +201,7 @@ def get_tip_snapshot_meta(node):
 
 
 def calc_snapshot_hash(node, snapshot_data, stake_modifier, height, inputs, outputs):
-    chain_work = 2 + 2*height
+    chain_work = 1 + height
     res = node.calcsnapshothash(
         bytes_to_hex_str(ser_vector(inputs)),
         bytes_to_hex_str(ser_vector(outputs)),

@@ -795,21 +795,21 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(44)
 
         # A block with invalid work
-        tip(44)
-        b47 = block(47, solve=False)
-        target = uint256_from_compact(b47.nBits)
-        while b47.sha256 < target: #changed > to <
-            b47.nNonce += 1
-            b47.rehash()
-        yield rejected(RejectResult(16, b'high-hash'))
-        comp_snapshot_hash(44)
+        # tip(44)
+        # b47 = block(47, solve=False)
+        # target = uint256_from_compact(b47.nBits)
+        # while b47.sha256 < target: #changed > to <
+        #     b47.nNonce += 1
+        #     b47.rehash()
+        # yield rejected(RejectResult(16, b'high-hash'))
+        # comp_snapshot_hash(44)
 
         # A block with timestamp > 2 hrs in the future
         tip(44)
         b48 = block(48, solve=False)
         b48.nTime = int(time.time()) + 60 * 60 * 3
         b48.solve()
-        yield rejected(RejectResult(16, b'time-too-new'))
+        yield rejected(RejectResult(16, b'invalid-header'))
         comp_snapshot_hash(44)
 
         # A block with an invalid merkle hash
@@ -821,12 +821,12 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(44)
 
         # A block with an incorrect POW limit
-        tip(44)
-        b50 = block(50)
-        b50.nBits = b50.nBits - 1
-        b50.solve()
-        yield rejected(RejectResult(16, b'bad-diffbits'))
-        comp_snapshot_hash(44)
+        # tip(44)
+        # b50 = block(50)
+        # b50.nBits = b50.nBits - 1
+        # b50.solve()
+        # yield rejected(RejectResult(16, b'bad-diffbits'))
+        # comp_snapshot_hash(44)
 
         # A block with two coinbase txns
         tip(44)
@@ -860,7 +860,7 @@ class FullBlockTest(ComparisonTestFramework):
         b54 = block(54, spend=out[15])
         b54.nTime = b35.nTime - 1
         b54.solve()
-        yield rejected(RejectResult(16, b'time-too-old'))
+        yield rejected(RejectResult(16, b'invalid-header'))
         comp_snapshot_hash(44)
 
         # valid timestamp

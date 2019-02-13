@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(checkblock_empty) {
   assert(block.vtx.empty());
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(checkblock_too_many_transactions) {
   }
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(checkblock_coinbase_missing) {
   block.vtx.push_back(MakeTransactionRef(CTransaction(CreateTx())));
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-missing");
 }
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(checkblock_duplicate_coinbase) {
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-multiple");
 }
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(checkblock_too_many_sigs) {
   block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  CheckBlock(block, state, Params().GetConsensus(), false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-sigops");
 }
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE(checkblock_merkle_root) {
   block.hashMerkleRoot = GetRandHash();
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, true);
+  CheckBlock(block, state, Params().GetConsensus(), true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txnmrklroot");
 }
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(checkblock_merkle_root_mutated) {
   block.hashMerkleRoot = BlockMerkleRoot(block, &ignored);
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, true);
+  CheckBlock(block, state, Params().GetConsensus(), true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
@@ -357,6 +357,8 @@ BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
     CBlock block;
     block.nTime = 2001; // 1 unit more than the median
 
+    prev_2.phashBlock = &block.hashPrevBlock;
+
     CValidationState state;
     BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
 
@@ -371,6 +373,8 @@ BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
     CBlockIndex prev;
     CBlock block;
     block.nTime = adjusted_time + MAX_FUTURE_BLOCK_TIME;
+
+    prev.phashBlock = &block.hashPrevBlock;
 
     CValidationState state;
     BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));

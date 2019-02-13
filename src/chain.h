@@ -195,7 +195,7 @@ public:
     //! Byte offset within rev?????.dat where this block's undo data is stored
     unsigned int nUndoPos;
 
-    //! (memory only) Total amount of work (expected number of hashes) in the chain up to and including this block
+    //! (memory only) Total amount of stake in the chain up to and including this block
     arith_uint256 nChainWork;
 
     //! Number of transactions in this block.
@@ -213,6 +213,7 @@ public:
     //! block header
     int32_t nVersion;
     uint256 hashMerkleRoot;
+    uint256 hash_witness_merkle_root;
     blockchain::Time nTime;
     blockchain::Difficulty nBits;
     uint32_t nNonce;
@@ -223,14 +224,19 @@ public:
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
 
-    //! Proof-of-Stake: the stake modifier is a hash of some entropy bits to make pre-computing blocks more difficult
+    //! (memory only) the stake modifier is a hash of some entropy bits to make pre-computing blocks more difficult.
+    //!
+    //! When fast-sync is enabled, CBlockIndex's which were transmitted as part of
+    //! a snapshot will not have this field available (will be 0). Reconstructing
+    //! this field would require to access already spent outputs.
     uint256 stake_modifier;
 
-    //! Proof-of-Stake: the previous stake (used for kernel hash and stake modifier)
-    COutPoint prevout_stake;
-
-    //! Proof-of-Stake: total money supply in the chain up to this point (used to calculate PoS-Reward)
-    CAmount money_supply;
+    //! The amount of stake that was used to propose this block.
+    //!
+    //! When fast-sync is enabled, CBlockIndex's which were transmitted as part of
+    //! a snapshot will not have this field available (will be 0). Reconstructing
+    //! this field would require to access already spent outputs.
+    CAmount stake_amount;
 
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
     boost::optional<std::vector<CTransactionRef>> commits;
@@ -250,6 +256,8 @@ public:
         nStatus = 0;
         nSequenceId = 0;
         nTimeMax = 0;
+        stake_modifier = uint256();
+        stake_amount = 0;
 
         nVersion       = 0;
         hashMerkleRoot = uint256();
@@ -419,8 +427,7 @@ public:
         READWRITE(VARINT(nTx));
 
         READWRITE(stake_modifier);
-        READWRITE(prevout_stake);
-        READWRITE(VARINT(money_supply));
+        READWRITE(VARINT(stake_amount));
 
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
             READWRITE(VARINT(nFile));
@@ -433,6 +440,7 @@ public:
         READWRITE(this->nVersion);
         READWRITE(hashPrev);
         READWRITE(hashMerkleRoot);
+        READWRITE(hash_witness_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
