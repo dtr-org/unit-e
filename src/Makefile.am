@@ -295,7 +295,6 @@ libunite_server_a_SOURCES = \
   injector.cpp \
   dbwrapper.cpp \
   merkleblock.cpp \
-  miner.cpp \
   net.cpp \
   net_processing.cpp \
   noui.cpp \
@@ -364,6 +363,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
   key/mnemonic/mnemonic.cpp \
+  miner.cpp \
   proposer/block_builder.cpp \
   proposer/eligible_coin.cpp \
   proposer/multiwallet.cpp \

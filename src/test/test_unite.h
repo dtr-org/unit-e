@@ -99,6 +99,7 @@ class CBlock;
 struct CMutableTransaction;
 class CScript;
 
+#ifdef ENABLE_WALLET
 //
 // Testing fixture that pre-creates a
 // 100-block REGTEST-mode block chain
@@ -120,6 +121,7 @@ struct TestChain100Setup : public TestingSetup {
     std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
     CKey coinbaseKey; // private/public key needed to spend coinbase transactions
 };
+#endif
 
 class CTxMemPoolEntry;
 

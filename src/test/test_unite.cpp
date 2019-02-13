@@ -157,6 +157,7 @@ TestingSetup::~TestingSetup()
         fs::remove_all(pathTemp);
 }
 
+#ifdef ENABLE_WALLET
 TestChain100Setup::TestChain100Setup() : TestingSetup(CBaseChainParams::REGTEST)
 {
     // CreateAndProcessBlock() does not support building SegWit blocks, so don't activate in these tests.
@@ -210,7 +211,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
 TestChain100Setup::~TestChain100Setup()
 {
 }
-
+#endif
 
 CTxMemPoolEntry TestMemPoolEntryHelper::FromTx(const CMutableTransaction &tx) {
     CTransaction txn(tx);
