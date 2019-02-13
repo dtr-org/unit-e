@@ -193,7 +193,7 @@ class BlockchainTest(UnitETestFramework):
         assert isinstance(header['nonce'], int)
         assert isinstance(header['version'], int)
         assert isinstance(int(header['versionHex'], 16), int)
-        assert isinstance(header['difficulty'], Decimal)
+        assert isinstance(header['difficulty'], Decimal) or isinstance(header['difficulty'], int)
 
     def _test_getdifficulty(self):
         difficulty = self.nodes[0].getdifficulty()
