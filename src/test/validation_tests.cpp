@@ -17,9 +17,9 @@ void SortTxs(CBlock &block, bool reverse = false) {
     return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
   };
 
-  std::sort(block.vtx.begin(), block.vtx.end(), comparator);
+  std::sort(block.vtx.begin() + 1, block.vtx.end(), comparator);
   if (reverse) {
-    std::reverse(block.vtx.begin(), block.vtx.end());
+    std::reverse(block.vtx.begin() + 1, block.vtx.end());
   }
 }
 }  // namespace
@@ -171,6 +171,37 @@ BOOST_AUTO_TEST_CASE(checkblock_merkle_root_mutated) {
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
 
+BOOST_AUTO_TEST_CASE(checkblock_duplicates_tx) {
+
+    CBlockIndex prev;
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+
+    auto tx = CreateTx();
+    block.vtx.push_back(MakeTransactionRef(tx));
+    block.vtx.push_back(MakeTransactionRef(tx));
+
+    CValidationState state;
+    CheckBlock(block, state, Params().GetConsensus(), false, false);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
+}
+
+BOOST_AUTO_TEST_CASE(checkblock_tx_order) {
+
+    CBlockIndex prev;
+    CBlock block;
+    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+    block.vtx.push_back(MakeTransactionRef(CreateTx()));
+    block.vtx.push_back(MakeTransactionRef(CreateTx()));
+    SortTxs(block, true);
+
+    CValidationState state;
+    CheckBlock(block, state, Params().GetConsensus(), false, false);
+
+    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-ordering");
+}
+
 BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
 
   CBlockIndex prev;
@@ -217,34 +248,6 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
   }
-}
-
-BOOST_AUTO_TEST_CASE(contextualcheckblock_duplicates_tx) {
-
-  CBlockIndex prev;
-  CBlock block;
-  auto tx = CreateTx();
-  block.vtx.push_back(MakeTransactionRef(tx));
-  block.vtx.push_back(MakeTransactionRef(tx));
-
-  CValidationState state;
-  ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
-
-  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
-}
-
-BOOST_AUTO_TEST_CASE(contextualcheckblock_tx_order) {
-
-  CBlockIndex prev;
-  CBlock block;
-  block.vtx.push_back(MakeTransactionRef(CreateTx()));
-  block.vtx.push_back(MakeTransactionRef(CreateTx()));
-  SortTxs(block, true);
-
-  CValidationState state;
-  ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
-
-  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-ordering");
 }
 
 BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {

@@ -44,6 +44,13 @@ static CBlock BuildBlockTestCase() {
     }
     block.vtx[2] = MakeTransactionRef(tx);
 
+    std::sort(
+        std::begin(block.vtx) + 1, std::end(block.vtx),
+        [](const CTransactionRef &a, const CTransactionRef &b) -> bool {
+          return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
+        }
+    );
+
     bool mutated;
     block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
     assert(!mutated);
