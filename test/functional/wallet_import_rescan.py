@@ -19,7 +19,7 @@ importing nodes pick up the new transactions regardless of whether rescans
 happened previously.
 """
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import (assert_raises_rpc_error, connect_nodes, sync_blocks, assert_equal, set_node_times)
 
 import collections
@@ -117,9 +117,10 @@ TIMESTAMP_WINDOW = 2 * 60 * 60
 class ImportRescanTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2 + len(IMPORT_NODES)
+        self.setup_clean_chain = True
 
     def setup_network(self):
-        extra_args = [["-addresstype=legacy"] for _ in range(self.num_nodes)]
+        extra_args = [["-addresstype=legacy", DISABLE_FINALIZATION] for _ in range(self.num_nodes)]
         for i, import_node in enumerate(IMPORT_NODES, 2):
             if import_node.prune:
                 extra_args[i] += ["-prune=1"]
@@ -130,6 +131,9 @@ class ImportRescanTest(UnitETestFramework):
             connect_nodes(self.nodes[i], 0)
 
     def run_test(self):
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
+        sync_blocks(self.nodes)
+
         # Create one transaction on node 0 with a unique amount and label for
         # each possible type of wallet import RPC.
         for i, variant in enumerate(IMPORT_VARIANTS):

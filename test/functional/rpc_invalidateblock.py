@@ -4,14 +4,14 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the invalidateblock RPC."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import *
 
 class InvalidateTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [['-esperanzaconfig={"epochLength": 99999}']] * 3
+        self.extra_args = [[DISABLE_FINALIZATION]] * 3
 
     def setup_network(self):
         self.setup_nodes()
