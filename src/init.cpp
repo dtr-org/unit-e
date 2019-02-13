@@ -169,7 +169,6 @@ public:
 
 static std::unique_ptr<CCoinsViewErrorCatcher> pcoinscatcher;
 static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
-static std::unique_ptr<UnitEInjector> injector;
 
 static boost::thread_group threadGroup;
 static CScheduler scheduler;
