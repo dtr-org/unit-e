@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, assert_greater_than
+from test_framework.util import assert_equal, assert_greater_than, wait_until
 
 
 class RemoteStakingTest(UnitETestFramework):
@@ -42,10 +42,11 @@ class RemoteStakingTest(UnitETestFramework):
         assert_equal(wi['remote_staking_balance'], 1)
         bob.proposerwake()
 
-        # Bob should be able to stake the newly received coin
-        ps = bob.proposerstatus()
-        assert_equal(ps['wallets'][0]['status'], 'IS_PROPOSING')
-        assert_equal(ps['wallets'][0]['stakeable_balance'], 1)
+        def bob_is_staking_the_new_coin():
+            ps = bob.proposerstatus()
+            return (ps['wallets'][0]['status'] == 'IS_PROPOSING' and
+                    ps['wallets'][0]['stakeable_balance'] == 1)
+        wait_until(bob_is_staking_the_new_coin, timeout=10)
 
         # Change output, and the balance staked remotely
         assert_equal(len(alice.listunspent()), 2)
