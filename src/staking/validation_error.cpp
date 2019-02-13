@@ -10,9 +10,9 @@ std::string GetRejectionMessageFor(const BlockValidationError error) {
     case BlockValidationError::BLOCK_SIGNATURE_VERIFICATION_FAILED:
       return "bad-blk-signature";
     case BlockValidationError::BLOCKTIME_TOO_EARLY:
-      return "time-too-new";
-    case BlockValidationError::BLOCKTIME_TOO_FAR_INTO_FUTURE:
       return "time-too-old";
+    case BlockValidationError::BLOCKTIME_TOO_FAR_INTO_FUTURE:
+      return "time-too-new";
     case BlockValidationError::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST:
       return "bad-cp-out-of-order";
     case BlockValidationError::COINBASE_TRANSACTION_WITHOUT_OUTPUT:

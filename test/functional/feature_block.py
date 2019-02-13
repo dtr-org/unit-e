@@ -820,14 +820,6 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected(RejectResult(16, b'bad-txnmrklroot'))
         comp_snapshot_hash(44)
 
-        # A block with an incorrect POW limit
-        tip(44)
-        b50 = block(50)
-        b50.nBits = b50.nBits - 1
-        b50.solve()
-        yield rejected(RejectResult(16, b'bad-diffbits'))
-        comp_snapshot_hash(44)
-
         # A block with two coinbase txns
         tip(44)
         snapshot_hash = self.block_snapshot_meta[self.tip.sha256].hash

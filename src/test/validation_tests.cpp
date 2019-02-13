@@ -357,6 +357,8 @@ BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
     CBlock block;
     block.nTime = 2001; // 1 unit more than the median
 
+    prev_2.phashBlock = &block.hashPrevBlock;
+
     CValidationState state;
     BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
 
@@ -371,6 +373,8 @@ BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
     CBlockIndex prev;
     CBlock block;
     block.nTime = adjusted_time + MAX_FUTURE_BLOCK_TIME;
+
+    prev.phashBlock = &block.hashPrevBlock;
 
     CValidationState state;
     BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
