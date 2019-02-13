@@ -39,7 +39,6 @@ UNITE_TESTS = \
   test/bip32_tests.cpp \
   test/blockchain/blockchain_parameters_tests.cpp \
   test/blockchain_tests.cpp \
-  test/blockdiskstorage_tests.cpp \
   test/blockencodings_tests.cpp \
   test/bloom_tests.cpp \
   test/bswap_tests.cpp \
@@ -131,6 +130,7 @@ UNITE_TESTS = \
 
 if ENABLE_WALLET
 UNITE_TESTS += \
+  test/blockdiskstorage_tests.cpp \
   test/counting_semaphore_tests.cpp \
   test/esperanza/walletextension_tests.cpp \
   test/injector_tests.cpp \
