@@ -45,7 +45,7 @@ COINBASE_MATURITY = 100
 
 # This parameter simulates the scenario that the node "never" reaches finalization.
 # The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
-# so the existing tests will perform the check withing one dynasty.
+# so the existing tests will perform the check within one dynasty.
 # When this parameter is used, framework must be configured with `setup_clean_chain = True`
 # to prevent using the cache which was generated with the finalization enabled.
 DISABLE_FINALIZATION = '-esperanzaconfig={"epochLength": 99999}'
