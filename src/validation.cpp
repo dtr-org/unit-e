@@ -20,6 +20,7 @@
 #include <cuckoocache.h>
 #include <hash.h>
 #include <init.h>
+#include <injector.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
@@ -3260,19 +3261,17 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
 {
     assert(pindexPrev != nullptr);
 
-    // Check proof of work
-    const Consensus::Params& consensusParams = params.GetConsensus();
-    if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams))
-        return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect proof of work");
-
-    // Check timestamp against prev
-    if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
-        return state.Invalid(false, REJECT_INVALID, "time-too-old", "block's timestamp is too early");
-
-    // Check timestamp
-    if (block.GetBlockTime() > nAdjustedTime + MAX_FUTURE_BLOCK_TIME)
-        return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
-
+    staking::BlockValidationInfo info;
+    // UNIT-E TODO:
+    // bitcoin/ContextualCheckBlockHeader does not invoke CheckBlockHeader,
+    // but CheckBlockHeader in unit-e checks the timestamp to match with
+    // the each-16-seconds-rule. This call is bypassed by marking it successful.
+    info.MarkCheckBlockHeaderSuccessfull();
+    const staking::BlockValidationResult result =
+        GetComponent(BlockValidator)->ContextualCheckBlockHeader(block, *pindexPrev, nAdjustedTime, &info);
+    if (!result) {
+        return state.Invalid(false, REJECT_INVALID, result.GetRejectionMessage());
+    }
     return true;
 }
 
