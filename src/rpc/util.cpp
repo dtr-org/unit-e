@@ -66,3 +66,16 @@ CScript CreateMultisigRedeemscript(const int required, const std::vector<CPubKey
 
     return result;
 }
+
+UniValue SanitizeDouble(const double value) {
+    if (value > std::numeric_limits<decltype(value)>::max()) {
+        return "+Inf";
+    }
+    if (value < std::numeric_limits<decltype(value)>::min()) {
+        return "-Inf";
+    }
+    if (value != value) {
+        return "NaN";
+    }
+    return value;
+}

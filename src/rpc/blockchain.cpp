@@ -16,6 +16,7 @@
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <rpc/server.h>
+#include <rpc/util.h>
 #include <streams.h>
 #include <sync.h>
 #include <txdb.h>
@@ -103,7 +104,7 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("nonce", (uint64_t)blockindex->nNonce));
     result.push_back(Pair("bits", strprintf("%08x", blockindex->nBits)));
-    result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
+    result.push_back(Pair("difficulty", SanitizeDouble(GetDifficulty(blockindex))));
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
     result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
 
@@ -149,7 +150,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
     result.push_back(Pair("nonce", (uint64_t)block.nNonce));
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
-    result.push_back(Pair("difficulty", GetDifficulty(blockindex)));
+    result.push_back(Pair("difficulty", SanitizeDouble(GetDifficulty(blockindex))));
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
     result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
 
@@ -370,7 +371,7 @@ UniValue getdifficulty(const JSONRPCRequest& request)
         );
 
     LOCK(cs_main);
-    return GetDifficulty();
+    return SanitizeDouble(GetDifficulty());
 }
 
 std::string EntryDescriptionString()
