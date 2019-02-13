@@ -198,6 +198,23 @@ def test_setup_linux(mocker):
 
     log.check()
 
+def test_setup_mac(mocker):
+    log = Log("test_setup_mac")
+
+    mocker.patch("platform.system", return_value="Darwin")
+    mocker.patch("os.chdir", side_effect=log.log_chdir)
+    mocker.patch("subprocess.check_call", side_effect=log.log_call)
+    mocker.patch("subprocess.call", side_effect=log.log_call)
+    mocker.patch("pathlib.Path.is_dir", return_value=False)
+
+    mocker.patch("pathlib.Path.exists", return_value=False)
+    mock_symlink = mocker.patch("pathlib.Path.symlink_to")
+
+    gitian_build.setup(create_args(mocker))
+
+    assert mock_symlink.call_count == 2
+    log.check()
+
 def test_prepare_git_dir(mocker):
     log = Log("test_prepare_git_dir")
 

@@ -158,6 +158,11 @@ def install_linux_deps(args):
     if should_make_ossl:
         args.osslsigncode_path = install_osslsigner()
 
+def create_bin_symlink(link, target):
+    bin_path = Path("bin", link)
+    if not bin_path.exists():
+        bin_path.symlink_to(target)
+
 def install_mac_deps(args):
     if not args.docker:
         print('Mac can only work with docker, re-run with --docker flag.', file=sys.stderr)
@@ -170,6 +175,9 @@ def install_mac_deps(args):
     brew = Installer(backend='brew')
     brew.add_requirements('ruby', 'coreutils')
     brew.batch_install()
+
+    create_bin_symlink("date", "/usr/local/bin/gdate")
+    create_bin_symlink("sha256sum", "/usr/local/bin/gsha256sum")
 
 def install_deps(args):
     system_str = platform.system()
@@ -445,6 +453,8 @@ def main():
     work_dir = create_work_dir(args)
     with cd(work_dir):
         print("Using working directory '%s'" % work_dir)
+
+        os.environ["PATH"] = str(Path("bin").resolve()) + ":" + os.environ["PATH"]
 
         args.linux = 'l' in args.os
         args.windows = 'w' in args.os
