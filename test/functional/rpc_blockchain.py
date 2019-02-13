@@ -35,9 +35,12 @@ from test_framework.util import (
 class BlockchainTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [['-stopatheight=207', '-prune=1']]
+        self.extra_args = [['-stopatheight=207', '-prune=1', '-esperanzaconfig={"epochLength": 99999}']]
+        self.setup_clean_chain = True
 
     def run_test(self):
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
+
         self._test_getblockchaininfo()
         self._test_getchaintxstats()
         self._test_gettxoutsetinfo()
@@ -80,12 +83,12 @@ class BlockchainTest(UnitETestFramework):
         assert res['pruned']
         assert not res['automatic_pruning']
 
-        self.restart_node(0, ['-stopatheight=207'])
+        self.restart_node(0, ['-stopatheight=207', '-esperanzaconfig={"epochLength": 99999}'])
         res = self.nodes[0].getblockchaininfo()
         # should have exact keys
         assert_equal(sorted(res.keys()), keys)
 
-        self.restart_node(0, ['-stopatheight=207', '-prune=550'])
+        self.restart_node(0, ['-stopatheight=207', '-prune=550', '-esperanzaconfig={"epochLength": 99999}'])
         res = self.nodes[0].getblockchaininfo()
         # result should have these additional pruning keys if prune=550
         assert_equal(sorted(res.keys()), sorted(['pruneheight', 'automatic_pruning', 'prune_target_size'] + keys))
@@ -101,9 +104,9 @@ class BlockchainTest(UnitETestFramework):
         chaintxstats = self.nodes[0].getchaintxstats(1)
         # 200 txs plus genesis tx
         assert_equal(chaintxstats['txcount'], 201)
-        # tx rate should be 1 per 10 minutes, or 1/600
-        # we have to round because of binary math
-        assert_equal(round(chaintxstats['txrate'] * 600, 10), Decimal(1))
+
+        # all transactions are created with the rate lower than 1 sec
+        assert('txrate' not in chaintxstats)
 
         b1 = self.nodes[0].getblock(self.nodes[0].getblockhash(1))
         b200 = self.nodes[0].getblock(self.nodes[0].getblockhash(200))
@@ -135,7 +138,7 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(res['transactions'], 201)
         assert_equal(res['height'], 200)
         assert_equal(res['txouts'], 305)
-        assert_equal(res['bogosize'], 24875),
+        assert_equal(res['bogosize'], 22475),
         assert_equal(res['bestblock'], node.getblockhash(200))
         size = res['disk_size']
         assert size > 6400

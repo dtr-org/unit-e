@@ -15,13 +15,16 @@ from test_framework.util import *
 class MempoolCoinbaseTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
-        self.extra_args = [["-checkmempool"]] * 2
+        self.extra_args = [["-checkmempool",  '-esperanzaconfig={"epochLength": 99999}']] * 2
+        self.setup_clean_chain = True
 
     alert_filename = None  # Set by setup_network
 
     def run_test(self):
         # Start with a 200 block chain
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
         assert_equal(self.nodes[0].getblockcount(), 200)
+        self.sync_all()
 
         # Mine four blocks. After this, nodes[0] blocks
         # 101, 102, and 103 are spend-able.

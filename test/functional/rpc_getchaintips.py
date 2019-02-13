@@ -17,8 +17,13 @@ class GetChainTipsTest (UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.extra_args = [['-esperanzaconfig={"epochLength": 99999}']] * 4
+        self.setup_clean_chain = True
 
     def run_test (self):
+        # start with 200 blocks
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
+        self.sync_all()
+
         tips = self.nodes[0].getchaintips ()
         assert_equal (len (tips), 1)
         assert_equal (tips[0]['branchlen'], 0)
