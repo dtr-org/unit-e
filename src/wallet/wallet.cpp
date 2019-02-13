@@ -2402,6 +2402,11 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
                     continue;
                 }
 
+                bool ignore_remote_staked = coinControl && coinControl->m_ignore_remote_staked;
+                if (::IsStakedRemotely(*this, pcoin->tx->vout[i].scriptPubKey) && ignore_remote_staked) {
+                    continue;
+                }
+
                 bool solvable = IsSolvable(*this, pcoin->tx->vout[i].scriptPubKey);
                 bool spendable = ((mine & ISMINE_SPENDABLE) != ISMINE_NO) || (((mine & ISMINE_WATCH_ONLY) != ISMINE_NO) && (coinControl && coinControl->fAllowWatchOnly && solvable));
 

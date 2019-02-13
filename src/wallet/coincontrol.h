@@ -34,6 +34,8 @@ public:
     bool signalRbf;
     //! Fee estimation mode to control arguments to estimateSmartFee
     FeeEstimateMode m_fee_mode;
+    //! Omit coins that are staked remotely.
+    bool m_ignore_remote_staked;
 
     CCoinControl()
     {
@@ -52,6 +54,7 @@ public:
         m_confirm_target.reset();
         signalRbf = fWalletRbf;
         m_fee_mode = FeeEstimateMode::UNSET;
+        m_ignore_remote_staked = false;
     }
 
     bool HasSelected() const
