@@ -40,12 +40,10 @@ class RemoteStakingTest(UnitETestFramework):
 
         wi = alice.getwalletinfo()
         assert_equal(wi['remote_staking_balance'], 1)
-        bob.proposerwake()
 
         def bob_is_staking_the_new_coin():
             ps = bob.proposerstatus()
-            return (ps['wallets'][0]['status'] == 'IS_PROPOSING' and
-                    ps['wallets'][0]['stakeable_balance'] == 1)
+            return ps['wallets'][0]['stakeable_balance'] == 1
         wait_until(bob_is_staking_the_new_coin, timeout=10)
 
         # Change output, and the balance staked remotely
