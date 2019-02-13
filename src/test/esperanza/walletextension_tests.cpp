@@ -234,15 +234,15 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateRemoteStakingKeyhashScript(
-        ToByteVector(their_pubkey.GetID()),
-        ToByteVector(random_pubkey.GetSha256())));
+                                  ToByteVector(their_pubkey.GetID()),
+                                  ToByteVector(random_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
     CMutableTransaction tx2;
     tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
-        ToByteVector(their_pubkey.GetID()),
-        ToByteVector(their_script_hash)));
+                                   ToByteVector(their_pubkey.GetID()),
+                                   ToByteVector(their_script_hash)));
     CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
     pwalletMain->LoadToWallet(wtx2);
 
@@ -254,15 +254,15 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateRemoteStakingKeyhashScript(
-        ToByteVector(our_pubkey.GetID()),
-        ToByteVector(their_pubkey.GetSha256())));
+                                  ToByteVector(our_pubkey.GetID()),
+                                  ToByteVector(their_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
     CMutableTransaction tx2;
     tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
-        ToByteVector(our_pubkey.GetID()),
-        ToByteVector(their_script_hash)));
+                                   ToByteVector(our_pubkey.GetID()),
+                                   ToByteVector(their_script_hash)));
     CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
     pwalletMain->LoadToWallet(wtx2);
 
@@ -274,15 +274,15 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateRemoteStakingKeyhashScript(
-        ToByteVector(their_pubkey.GetID()),
-        ToByteVector(our_pubkey.GetSha256())));
+                                  ToByteVector(their_pubkey.GetID()),
+                                  ToByteVector(our_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
     pwalletMain->LoadToWallet(wtx);
 
     CMutableTransaction tx2;
     tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
-        ToByteVector(their_pubkey.GetID()),
-        ToByteVector(our_script_hash)));
+                                   ToByteVector(their_pubkey.GetID()),
+                                   ToByteVector(our_script_hash)));
     CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
     pwalletMain->LoadToWallet(wtx2);
 
