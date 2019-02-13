@@ -108,7 +108,7 @@ from test_framework.mininode import (
     msg_inv,
     msg_sendheaders,
 )
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import (
     assert_equal,
     sync_blocks,
@@ -215,7 +215,7 @@ class SendHeadersTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [['-esperanzaconfig={"epochLength": 99999}']] * 2
+        self.extra_args = [[DISABLE_FINALIZATION]] * 2
 
     def mine_blocks(self, count):
         """Mine count blocks and return the new tip."""

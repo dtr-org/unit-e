@@ -11,7 +11,7 @@ We use the testing framework in which we expect a particular answer from
 each test.
 """
 
-from test_framework.test_framework import ComparisonTestFramework
+from test_framework.test_framework import (ComparisonTestFramework, DISABLE_FINALIZATION)
 from test_framework.util import *
 from test_framework.comptool import TestManager, TestInstance, RejectResult
 from test_framework.blocktools import *
@@ -63,7 +63,7 @@ class FullBlockTest(ComparisonTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        self.extra_args = [['-whitelist=127.0.0.1', '-esperanzaconfig={"epochLength": 99999}']]
+        self.extra_args = [['-whitelist=127.0.0.1', DISABLE_FINALIZATION]]
         self.block_heights = {}
         self.block_snapshot_meta = {}  # key(block_hash) : value(SnapshotMeta)
         self.coinbase_key = CECKey()

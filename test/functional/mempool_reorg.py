@@ -8,14 +8,14 @@ Test re-org scenarios with a mempool that contains transactions
 that spend (directly or indirectly) coinbase transactions.
 """
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import *
 
 # Create one-input, one-output, no-fee transaction:
 class MempoolCoinbaseTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
-        self.extra_args = [["-checkmempool",  '-esperanzaconfig={"epochLength": 99999}']] * 2
+        self.extra_args = [["-checkmempool", DISABLE_FINALIZATION]] * 2
         self.setup_clean_chain = True
 
     alert_filename = None  # Set by setup_network

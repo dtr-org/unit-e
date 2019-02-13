@@ -21,7 +21,7 @@ from decimal import Decimal
 import http.client
 import subprocess
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
@@ -35,7 +35,7 @@ from test_framework.util import (
 class BlockchainTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [['-stopatheight=207', '-prune=1', '-esperanzaconfig={"epochLength": 99999}']]
+        self.extra_args = [['-stopatheight=207', '-prune=1', DISABLE_FINALIZATION]]
         self.setup_clean_chain = True
 
     def run_test(self):
@@ -83,12 +83,12 @@ class BlockchainTest(UnitETestFramework):
         assert res['pruned']
         assert not res['automatic_pruning']
 
-        self.restart_node(0, ['-stopatheight=207', '-esperanzaconfig={"epochLength": 99999}'])
+        self.restart_node(0, ['-stopatheight=207', DISABLE_FINALIZATION])
         res = self.nodes[0].getblockchaininfo()
         # should have exact keys
         assert_equal(sorted(res.keys()), keys)
 
-        self.restart_node(0, ['-stopatheight=207', '-prune=550', '-esperanzaconfig={"epochLength": 99999}'])
+        self.restart_node(0, ['-stopatheight=207', '-prune=550', DISABLE_FINALIZATION])
         res = self.nodes[0].getblockchaininfo()
         # result should have these additional pruning keys if prune=550
         assert_equal(sorted(res.keys()), sorted(['pruneheight', 'automatic_pruning', 'prune_target_size'] + keys))
