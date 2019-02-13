@@ -62,7 +62,11 @@ CBlock MinimalBlock() {
 }
 
 void CheckGenesisBlock(const blockchain::Parameters &parameters) {
-  const auto block_validator = staking::BlockValidator::New(b.get());
+  // the behaviour has to be from the correct parameters,
+  // as the genesis block differs for each of them
+  std::unique_ptr<blockchain::Behavior> chain_behaviour =
+      blockchain::Behavior::NewFromParameters(parameters);
+  const auto block_validator = staking::BlockValidator::New(chain_behaviour.get());
   const auto validation_result = block_validator->CheckBlock(parameters.genesis_block->block, nullptr);
 
   BOOST_CHECK(static_cast<bool>(validation_result));

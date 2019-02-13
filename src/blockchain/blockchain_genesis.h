@@ -32,6 +32,10 @@ struct Funds {
   std::vector<P2WPKH> destinations;
 };
 
+Funds MainnetFunds();
+Funds TestnetFunds();
+Funds RegtestFunds();
+
 //! \brief Helper for building a genesis block.
 class GenesisBlockBuilder {
 

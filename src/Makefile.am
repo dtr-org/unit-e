@@ -486,6 +486,9 @@ libunite_common_a_SOURCES = \
   blockchain/blockchain_behavior.cpp \
   blockchain/blockchain_genesis.cpp \
   blockchain/blockchain_parameters.cpp \
+  blockchain/mainnet_funds.cpp \
+  blockchain/testnet_funds.cpp \
+  blockchain/regtest_funds.cpp \
   chainparams.cpp \
   coins.cpp \
   compressor.cpp \
