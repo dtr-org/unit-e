@@ -18,6 +18,7 @@ packages:
 - "g++-4.8-multilib"
 - "gcc-4.8-multilib"
 - "binutils-gold"
+- "libudev-dev"
 - "git-core"
 - "pkg-config"
 - "autoconf"
