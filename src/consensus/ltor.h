@@ -10,7 +10,7 @@
 
 namespace ltor {
 
-void SortTransactionsWithLTOR(std::vector<CTransactionRef> &transactions);
+void SortTransactions(std::vector<CTransactionRef>& transactions);
 
 }
 

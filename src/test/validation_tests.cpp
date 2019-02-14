@@ -13,7 +13,7 @@
 
 namespace {
 void SortTxs(CBlock &block, bool reverse = false) {
-  ltor::SortTransactionsWithLTOR(block.vtx);
+  ltor::SortTransactions(block.vtx);
   if (reverse) {
     std::reverse(block.vtx.begin() + 1, block.vtx.end());
   }

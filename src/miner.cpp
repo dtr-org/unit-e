@@ -159,7 +159,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int nDescendantsUpdated = 0;
     addPackageTxs(nPackagesSelected, nDescendantsUpdated);
 
-    ltor::SortTransactionsWithLTOR(pblock->vtx);
+    ltor::SortTransactions(pblock->vtx);
 
     int64_t nTime1 = GetTimeMicros();
 

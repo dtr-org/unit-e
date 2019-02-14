@@ -45,7 +45,7 @@ static CBlock BuildBlockTestCase() {
     }
     block.vtx[2] = MakeTransactionRef(tx);
 
-    ltor::SortTransactionsWithLTOR(block.vtx);
+    ltor::SortTransactions(block.vtx);
 
     bool mutated;
     block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
