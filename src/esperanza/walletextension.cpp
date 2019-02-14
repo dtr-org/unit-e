@@ -471,8 +471,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   return true;
 }
 
-void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
-                                   const CBlockIndex &blockIndex, const FinalizationState &state) {
+void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
 
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
@@ -487,28 +486,36 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
     return;
   }
 
-  const uint32_t epoch = state.GetEpoch(blockIndex);
+  const CBlockIndex *target = state.GetRecommendedTarget();
+  if (!target) {
+    // todo: must not happen once the following issue is implemented:
+    // https://github.com/dtr-org/unit-e/issues/570
+    // for now only instant finalization is possible for the first epoch
+    assert(false && "recommended target must be set!");
+    return;
+  }
+
+  const uint32_t target_epoch = state.GetEpoch(*target);
+  assert(state.GetCurrentEpoch() == target_epoch + 1 && "inconsistent state");
 
   // Avoid double votes
-  if (validator.m_voteMap.find(epoch) != validator.m_voteMap.end()) {
-    LogPrint(BCLog::FINALIZATION,
-             "%s: Attampting to make a double vote for epoch %s.\n", __func__,
-             epoch);
+  if (validator.m_voteMap.find(target_epoch) != validator.m_voteMap.end()) {
     return;
   }
 
   LogPrint(BCLog::FINALIZATION,
            "%s: Validator voting for epoch %d and dynasty %d.\n", __func__,
-           epoch, dynasty);
+           target_epoch, dynasty);
 
   Vote vote = state.GetRecommendedVote(validator.m_validatorAddress);
+  assert(vote.m_targetEpoch == target_epoch);
 
-  // Check for sorrounding votes
+  // Check for surrounding votes
   if (vote.m_targetEpoch < validator.m_lastTargetEpoch ||
       vote.m_sourceEpoch < validator.m_lastSourceEpoch) {
 
     LogPrint(BCLog::FINALIZATION,
-             "%s: Attampting to make a sorround vote, source: %s, target: %s"
+             "%s: Attempting to make a surrounded vote, source: %s, target: %s"
              " prevSource %s, prevTarget: %s.\n",
              __func__, vote.m_sourceEpoch, vote.m_targetEpoch,
              validator.m_lastSourceEpoch, validator.m_lastTargetEpoch);
@@ -519,7 +526,7 @@ void WalletExtension::VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
   CTransactionRef &prevRef = validator.m_lastEsperanzaTx;
 
   if (SendVote(prevRef, vote, createdTx)) {
-    validator.m_voteMap[epoch] = vote;
+    validator.m_voteMap[target_epoch] = vote;
     validator.m_lastTargetEpoch = vote.m_targetEpoch;
     validator.m_lastSourceEpoch = vote.m_sourceEpoch;
 
@@ -700,7 +707,7 @@ void WalletExtension::BlockConnected(
         if (currentDynasty >= validatorState.get().m_endDynasty) {
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
         } else {
-          VoteIfNeeded(pblock, index, *state);
+          VoteIfNeeded(*state);
         }
 
         break;
@@ -709,7 +716,10 @@ void WalletExtension::BlockConnected(
         FinalizationState *state = FinalizationState::GetState();
         assert(state);
 
-        if (state->GetLastFinalizedEpoch() >= validatorState.get().m_depositEpoch) {
+        // todo: remove "state->GetCurrentEpoch() > 2" when we delete instant finalization
+        // and start epoch from 1 #570, #572
+        if (state->GetCurrentEpoch() > 2 &&
+            state->GetLastFinalizedEpoch() >= validatorState.get().m_depositEpoch) {
           // Deposit is finalized there is no possible rollback
           validatorState.get().m_phase = ValidatorState::Phase::IS_VALIDATING;
 

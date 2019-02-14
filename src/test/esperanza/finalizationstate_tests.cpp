@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_wrong_height_passed) {
   BOOST_CHECK_EQUAL(0, state.GetLastJustifiedEpoch());
 }
 
-BOOST_AUTO_TEST_CASE(initialize_epoch_insta_finalize) {
+BOOST_AUTO_TEST_CASE(initialize_epoch_insta_justify) {
 
   FinalizationStateSpy spy;
 
@@ -53,13 +53,11 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_insta_finalize) {
         BOOST_CHECK_EQUAL(spy.InitializeEpoch(i), +Result::SUCCESS);
       }
 
-      int expectedEpoch = i / spy.EpochLength();
-      int expectedDynasty = (i / spy.EpochLength()) - 1;
-
-      BOOST_CHECK_EQUAL(expectedEpoch, spy.GetCurrentEpoch());
-      BOOST_CHECK_EQUAL(expectedDynasty, spy.GetCurrentDynasty());
-      BOOST_CHECK_EQUAL(expectedDynasty, spy.GetLastFinalizedEpoch());
-      BOOST_CHECK_EQUAL(expectedDynasty, spy.GetLastJustifiedEpoch());
+      uint32_t current_epoch = i / spy.EpochLength();
+      BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), current_epoch);
+      BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), current_epoch > 2 ? current_epoch - 3 : 0);
+      BOOST_CHECK_EQUAL(spy.GetLastFinalizedEpoch(), current_epoch > 1 ? current_epoch - 2 : 0);
+      BOOST_CHECK_EQUAL(spy.GetLastJustifiedEpoch(), current_epoch - 1);
     }
   }
 }
@@ -77,44 +75,27 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 }
 
 // GetRecommendedVote tests
-BOOST_AUTO_TEST_CASE(getrecommendedvote) {
-
+BOOST_AUTO_TEST_CASE(get_recommended_vote) {
   FinalizationStateSpy spy;
-  uint160 validatorAddress = RandValidatorAddr();
-  CAmount depositSize = spy.MinDepositSize();
+  uint160 validator_address = RandValidatorAddr();
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
+  uint256 target_hash = GetRandHash();
+  CBlockIndex target;
+  target.phashBlock = &target_hash;
+  target.nHeight = 7 * spy.EpochLength();
+  spy.SetRecommendedTarget(&target);
+  spy.SetExpectedSourceEpoch(3);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  Vote res = spy.GetRecommendedVote(validator_address);
 
-  int i;
-  for (i = 4; i < 8; i++) {
-    BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
-                      +Result::SUCCESS);
-  }
-
-  // For simplicity we keep the targetHash constant since it does not
-  // affect the state.
-  uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
-
-  Vote res = spy.GetRecommendedVote(validatorAddress);
-
-  BOOST_CHECK_EQUAL(res.m_validatorAddress.GetHex(), validatorAddress.GetHex());
+  BOOST_CHECK_EQUAL(res.m_validatorAddress.GetHex(), validator_address.GetHex());
   BOOST_CHECK_EQUAL(res.m_sourceEpoch, 3);
   BOOST_CHECK_EQUAL(res.m_targetEpoch, 7);
-  BOOST_CHECK_EQUAL(res.m_targetHash, targetHash);
+  BOOST_CHECK_EQUAL(res.m_targetHash, target_hash);
 }
 
 BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
-
-  auto state = FinalizationState::GetState();
+  FinalizationStateSpy state;
 
   CKey k;
   InsecureNewKey(k, true);
@@ -137,10 +118,10 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
   block.vtx = std::vector<CTransactionRef>{depositTx};
 
   uint256 depositHash = depositTx->GetHash();
-  state->ProcessNewTip(blockIndex, block);
+  state.ProcessNewTip(blockIndex, block);
 
   BOOST_CHECK_EQUAL(depositHash.GetHex(),
-                    state->GetLastTxHash(validatorAddress).GetHex());
+                    state.GetLastTxHash(validatorAddress).GetHex());
 
   // Test vote
   CBlock block_49;
@@ -150,25 +131,26 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
   block_99.nNonce = 2;
 
   blockIndex.nHeight = 49;
-  state->ProcessNewTip(blockIndex, block_49);
+  state.ProcessNewTip(blockIndex, block_49);
 
   blockIndex.nHeight = 50;
-  state->ProcessNewTip(blockIndex, CBlock());
+  state.ProcessNewTip(blockIndex, CBlock());
 
   blockIndex.nHeight = 99;
-  state->ProcessNewTip(blockIndex, block_99);
+  state.ProcessNewTip(blockIndex, block_99);
 
   blockIndex.nHeight = 100;
-  state->ProcessNewTip(blockIndex, CBlock());
+  state.ProcessNewTip(blockIndex, CBlock());
+  state.SetExpectedSourceEpoch(100);
 
   Vote vote{validatorAddress, block_99.GetHash(), 1, 2};
   CTransactionRef voteTx = MakeTransactionRef(CreateVoteTx(vote, k));
   block.vtx = std::vector<CTransactionRef>{voteTx};
   uint256 voteHash = voteTx->GetHash();
   blockIndex.nHeight = 101;
-  state->ProcessNewTip(blockIndex, block);
+  state.ProcessNewTip(blockIndex, block);
   BOOST_CHECK_EQUAL(voteHash.GetHex(),
-                    state->GetLastTxHash(validatorAddress).GetHex());
+                    state.GetLastTxHash(validatorAddress).GetHex());
 
   // Test logout
   CTransactionRef logoutTx =
@@ -176,9 +158,9 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
 
   block.vtx = std::vector<CTransactionRef>{logoutTx};
   uint256 logoutHash = logoutTx->GetHash();
-  state->ProcessNewTip(blockIndex, block);
+  state.ProcessNewTip(blockIndex, block);
   BOOST_CHECK_EQUAL(logoutHash.GetHex(),
-                    state->GetLastTxHash(validatorAddress).GetHex());
+                    state.GetLastTxHash(validatorAddress).GetHex());
 }
 
 BOOST_AUTO_TEST_CASE(deposit_amount) {
@@ -259,7 +241,10 @@ BOOST_AUTO_TEST_CASE(storage) {
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length]) != nullptr);
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length * 2 - 1]) != nullptr);
 
-  // generate one more block, trigger finalization of previous epoch
+  // generate one more epoch, trigger first finalization
+  for (; prev->nHeight < epoch_length * 3 - 1;) {
+    prev = AddBlock(prev);
+  }
   prev = AddBlock(prev);
 
   BOOST_CHECK(esperanza::FinalizationState::GetState(chainActive[epoch_length]) == nullptr);

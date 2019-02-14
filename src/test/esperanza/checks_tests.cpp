@@ -48,16 +48,16 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
   Vote expired{RandValidatorAddr(), targetHash, 0, 2};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(expired, k)), true);
 
-  Vote current{RandValidatorAddr(), targetHash, 0, 6};
+  Vote current{RandValidatorAddr(), targetHash, 0, 5};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(current, k)), false);
 
-  Vote afterLastFinalization{RandValidatorAddr(), targetHash, 0, 4};
+  Vote afterLastFinalization{RandValidatorAddr(), targetHash, 0, 3};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(afterLastFinalization, k)), true);
 
   Vote future{RandValidatorAddr(), targetHash, 0, 12};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(future, k)), false);
 
-  Vote currentOtherFork{RandValidatorAddr(), GetRandHash(), 0, 6};
+  Vote currentOtherFork{RandValidatorAddr(), GetRandHash(), 0, 5};
   BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(currentOtherFork, k)), false);
 }
 

@@ -13,7 +13,7 @@
 namespace snapshot {
 
 // keeps track of current available snapshots
-SnapshotIndex g_snapshot_index(5, 3);
+SnapshotIndex g_snapshot_index(5, 2);
 
 std::vector<uint256> SnapshotIndex::AddSnapshotHash(const uint256 &snapshot_hash,
                                                     const CBlockIndex *block_index) {

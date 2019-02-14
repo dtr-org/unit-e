@@ -28,7 +28,12 @@ class FinalizationStateSpy : public FinalizationState {
   std::map<uint32_t, Checkpoint> &Checkpoints() {
     return const_cast<std::map<uint32_t, Checkpoint> &>(m_checkpoints);
   }
-  uint256 *RecommendedTargetHash() { return &m_recommendedTargetHash; }
+  void SetRecommendedTarget(CBlockIndex *block_index) {
+    m_recommendedTarget = block_index;
+  }
+  void SetExpectedSourceEpoch(uint32_t epoch) {
+    m_expectedSourceEpoch = epoch;
+  }
 
   uint32_t EpochLength() const { return m_settings.epoch_length; }
   CAmount MinDepositSize() const { return m_settings.min_deposit_size; }

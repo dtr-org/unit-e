@@ -95,8 +95,8 @@ class EsperanzaSlashTest(UnitETestFramework):
         self.deposit_amount = 1500
         self.deposit_id = validator.deposit(self.validator_address, self.deposit_amount)
 
-        # generate 2 more epochs
-        for n in range(0, 20):
+        # generate 3 more epochs
+        for n in range(0, 30):
             self.generate_block(proposer)
 
         self.wait_for_transaction(self.deposit_id, 30)

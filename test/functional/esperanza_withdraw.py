@@ -7,6 +7,7 @@ import math
 from test_framework.util import json
 from test_framework.util import assert_equal
 from test_framework.util import JSONRPCException
+from test_framework.util import wait_until
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
@@ -62,13 +63,20 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # wait for transaction to propagate
         self.wait_for_transaction(deposit_tx, 30)
 
-        # mine 20 blocks (2 dynasties if we keep finalizing) to allow the deposit to get included in a block
+        # mine 21 blocks (2 dynasties if we keep finalizing) to allow the deposit to get included in a block
         # and dynastyLogoutDelay to expire
         # +1 block to include a vote that was casted in 20th block
         for n in range(0, 21):
             self.generate_block(nodes[(n % 3) + 1])
 
-        assert_equal(validator.getblockchaininfo()['blocks'], 141)
+        # ensure vote is created and included in the next block
+        for n in self.nodes:
+            wait_until(lambda: len(n.getrawmempool()) > 0, timeout=10)
+        self.generate_block(nodes[1])
+        self.sync_all()
+        assert_equal(len(validator.getrawmempool()), 0)
+
+        assert_equal(validator.getblockchaininfo()['blocks'], 142)
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
@@ -85,9 +93,9 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         assert resp["enabled"]
         assert_equal(resp["validator_status"], "NOT_VALIDATING")
 
-        # let's wait 14 epochs before trying to withdraw (12 for the delay and 2 for the
+        # let's wait 14 epochs before trying to withdraw (12 for the delay and 3 for the
         # fact that the endEpoch is startEpoch(endDynasty + 1) )
-        for n in range(0, 140):
+        for n in range(0, 150):
             self.generate_block(nodes[(n % 3) + 1])
 
         # check that there is no leftover vote in the mempool,

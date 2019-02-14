@@ -87,14 +87,16 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   int i;
   for (i = 4; i < 8; i++) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 1, (uint32_t)i};
+    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 2, (uint32_t)i - 1};
 
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
@@ -125,14 +127,16 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   int i;
   for (i = 4; i < 8; i++) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 1, (uint32_t)i};
+    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 2, (uint32_t)i - 1};
 
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
@@ -170,14 +174,16 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   int i;
   for (i = 4; i < 8; i++) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 1, (uint32_t)i};
+    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 2, (uint32_t)i - 1};
 
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
@@ -213,14 +219,16 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   int i;
   for (i = 4; i < 8; i++) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 1, (uint32_t)i};
+    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 2, (uint32_t)i - 1};
 
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);

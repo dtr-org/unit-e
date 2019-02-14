@@ -150,7 +150,7 @@ class AdminFullCycle(UnitETestFramework):
         validator3.deposit_ok(MIN_DEPOSIT_SIZE * 2)
 
         # Finalize deposits
-        self.generate_sync(proposer, EPOCH_LENGTH * 2)
+        self.generate_sync(proposer, EPOCH_LENGTH * 3)
 
         # Generate some blocks and check that validators are voting
         n_blocks = 2 * EPOCH_LENGTH

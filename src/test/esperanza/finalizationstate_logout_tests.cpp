@@ -36,7 +36,9 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -47,13 +49,15 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
+                    +Result::SUCCESS);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
+                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress),
@@ -69,7 +73,9 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -79,6 +85,8 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
+                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);

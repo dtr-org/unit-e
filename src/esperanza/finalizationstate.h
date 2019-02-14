@@ -87,7 +87,7 @@ class FinalizationStateData {
   // Map of epoch number to dynasty number
   std::map<uint32_t, uint32_t> m_epochToDynasty;
 
-  // Map of epoch number to the starting epoch for that dynasty
+  // Map of dynasty number to the starting epoch number
   std::map<uint32_t, uint32_t> m_dynastyStartEpoch;
 
   // Map of epoch number to checkpoint hash
@@ -105,9 +105,6 @@ class FinalizationStateData {
   // Map of the epoch number with the running total of deposits slashed
   std::map<uint32_t, uint64_t> m_totalSlashed;
 
-  // Is true if the current expected hash justified
-  bool m_mainHashJustified = false;
-
   // The current epoch number
   uint32_t m_currentEpoch = 0;
 
@@ -120,8 +117,8 @@ class FinalizationStateData {
   // Total scaled deposits in the previous dynasty
   uint64_t m_prevDynDeposits = 0;
 
-  // Expected source epoch
-  uint32_t m_expectedSrcEpoch = 0;
+  // Expected epoch of the vote source
+  uint32_t m_expectedSourceEpoch = 0;
 
   // Number of the last finalized epoch
   uint32_t m_lastFinalizedEpoch = 0;
@@ -129,8 +126,8 @@ class FinalizationStateData {
   // Number of the last justified epoch
   uint32_t m_lastJustifiedEpoch = 0;
 
-  // Hash of the last checkpoint
-  uint256 m_recommendedTargetHash;
+  // Last checkpoint
+  const CBlockIndex *m_recommendedTarget = nullptr;
 
   ufp64::ufp64_t m_lastVoterRescale = 0;
 
@@ -215,6 +212,8 @@ class FinalizationState : public FinalizationStateData {
 
   uint64_t GetDepositSize(const uint160 &validatorAddress) const;
 
+  const CBlockIndex *GetRecommendedTarget() const;
+
   Vote GetRecommendedVote(const uint160 &validatorAddress) const;
 
   std::vector<Validator> GetValidators() const;
@@ -263,8 +262,8 @@ class FinalizationState : public FinalizationStateData {
   bool IsFinalizedCheckpoint(blockchain::Height blockHeight) const;
 
  private:
-  //!In case there is nobody available to finalize we finalize automatically.
-  void InstaFinalize();
+  //!In case there is nobody available to justify we justify automatically.
+  void InstaJustify();
 
   //! Increments the current dynasty if finalization has been reached.
   void IncrementDynasty();

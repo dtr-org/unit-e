@@ -959,6 +959,11 @@ int CTxMemPool::ExpireVotes() {
   if (stage.size() > 0) {
     RemoveStaged(stage, false, MemPoolRemovalReason::OUTDATED_VOTE);
   }
+
+  if (!stage.empty()) {
+    LogPrint(BCLog::MEMPOOL, "Expired %i votes from the memory pool.\n", stage.size());
+  }
+
   return stage.size();
 }
 
