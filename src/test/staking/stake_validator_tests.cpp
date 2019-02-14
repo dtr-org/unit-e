@@ -74,9 +74,7 @@ BOOST_AUTO_TEST_CASE(check_stake) {
   tx.vin = {stake};
 
   LOCK(fixture.active_chain_mock.GetLock());
-  stake_validator->CheckStake(block);
-
-
+  stake_validator->CheckStake(block, nullptr);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

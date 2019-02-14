@@ -10,6 +10,7 @@
 #include <chain.h>
 #include <dependency.h>
 #include <staking/active_chain.h>
+#include <staking/block_validation_info.h>
 #include <staking/coin.h>
 #include <staking/validation_result.h>
 #include <sync.h>
@@ -69,7 +70,8 @@ class StakeValidator {
   //! - the previos block to compute the stake modifier
   //! - the UTXO which is spent as stake
   virtual BlockValidationResult CheckStake(
-      const CBlock &  //!< [in] The block to check.
+      const CBlock &,        //!< [in] The block to check.
+      BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
   //! \brief Checks whether piece of stake was used as stake before.
