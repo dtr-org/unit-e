@@ -698,6 +698,8 @@ private:
      *  removal.
      */
     void removeUnchecked(txiter entry, MemPoolRemovalReason reason = MemPoolRemovalReason::UNKNOWN);
+
+    void CollectStats() const;
 };
 
 /** 

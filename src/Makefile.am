@@ -223,6 +223,8 @@ UNITE_CORE_H = \
   staking/transactionpicker.h \
   staking/validation_error.h \
   staking/validation_result.h \
+  stats_logs/stats_collector.h \
+  stats_logs/stats_collector.cpp \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \

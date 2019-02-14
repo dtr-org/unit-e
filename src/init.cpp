@@ -44,6 +44,7 @@
 #include <snapshot/initialization.h>
 #include <snapshot/rpc_processing.h>
 #include <snapshot/creator.h>
+#include <stats_logs/stats_collector.h>
 #include <timedata.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -188,6 +189,8 @@ void Shutdown()
     TRY_LOCK(cs_Shutdown, lockShutdown);
     if (!lockShutdown)
         return;
+
+    stats_logs::StatsCollector::GetInstance().StopSampling();
 
     /// Note: Shutdown() must be able to handle cases in which initialization failed part of the way,
     /// for example if the data directory was found to be locked.

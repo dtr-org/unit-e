@@ -10,7 +10,7 @@
 /**
  * Name of client reported in the 'version' message.
  */
-const std::string CLIENT_NAME("Feuerland");
+const std::string CLIENT_NAME("Feuerland-For-Simulations");
 
 /**
  * Client version number

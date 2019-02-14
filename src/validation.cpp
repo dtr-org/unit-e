@@ -33,6 +33,7 @@
 #include <script/script_error.h>
 #include <script/sigcache.h>
 #include <script/standard.h>
+#include <stats_logs/stats_collector.h>
 #include <timedata.h>
 #include <tinyformat.h>
 #include <txdb.h>
@@ -208,6 +209,9 @@ private:
 
 
     bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params);
+
+    void collectTipStats() const;
+    void computeTipCounters(stats_logs::StatsCollector &stats_collector) const;
 } g_chainstate;
 
 
@@ -2675,7 +2679,84 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
     else
         CheckForkWarningConditions();
 
+    collectTipStats();
+
     return true;
+}
+
+struct CompareBlocksByHeight
+{
+  bool operator()(const CBlockIndex* a, const CBlockIndex* b) const
+  {
+      if (a->nHeight != b->nHeight) {
+          return (a->nHeight > b->nHeight);
+      }
+      return a < b;
+  }
+};
+
+void CChainState::collectTipStats() const {
+    auto& stats_collector = stats_logs::StatsCollector::GetInstance();
+    stats_collector.SetHeight(static_cast<uint32_t>(chainActive.Tip()->nHeight));
+
+    computeTipCounters(stats_collector);
+
+}
+
+void CChainState::computeTipCounters(stats_logs::StatsCollector &stats_collector) const {
+    std::set<const CBlockIndex*, CompareBlocksByHeight> setTips;
+    std::set<const CBlockIndex*> setOrphans;
+    std::set<const CBlockIndex*> setPrevs;
+
+    uint itemsInMapBlockIndex = 0;
+    for (const std::pair<const uint256, CBlockIndex*>& item : mapBlockIndex)
+    {
+        if (!chainActive.Contains(item.second)) {
+            setOrphans.insert(item.second);
+            setPrevs.insert(item.second->pprev);
+        }
+        ++itemsInMapBlockIndex;
+    }
+
+    LogPrintf("computeTipCounters : %i items in mapBlockIndex\n", itemsInMapBlockIndex);
+
+    for (auto orphan : setOrphans)
+    {
+        if (setPrevs.erase(orphan) == 0) {
+            setTips.insert(orphan);
+        }
+    }
+    setTips.insert(chainActive.Tip());
+
+    uint16_t tip_stats_active = 0;
+    uint16_t tip_stats_valid_fork = 0;
+    uint16_t tip_stats_valid_header = 0;
+    uint16_t tip_stats_headers_only = 0;
+    uint16_t tip_stats_invalid = 0;
+
+    /* Construct the output array.  */
+    for (const CBlockIndex* block : setTips)
+    {
+        if (chainActive.Contains(block)) {
+            ++tip_stats_active;
+        } else if (block->nStatus & BLOCK_FAILED_MASK) {
+            ++tip_stats_invalid;
+        } else if (block->nChainTx == 0) {
+            ++tip_stats_headers_only;
+        } else if (block->IsValid(BLOCK_VALID_SCRIPTS)) {
+            ++tip_stats_valid_fork;
+        } else if (block->IsValid(BLOCK_VALID_TREE)) {
+            ++tip_stats_valid_header;
+        } else {
+            // ??
+        }
+    }
+
+    stats_collector.SetTipStatsActive(tip_stats_active);
+    stats_collector.SetTipStatsValidFork(tip_stats_valid_fork);
+    stats_collector.SetTipStatsValidHeader(tip_stats_valid_header);
+    stats_collector.SetTipStatsHeadersOnly(tip_stats_headers_only);
+    stats_collector.SetTipStatsInvalid(tip_stats_invalid);
 }
 
 static void NotifyHeaderTip() {
@@ -2800,6 +2881,8 @@ bool CChainState::ActivateBestChain(CValidationState &state, const CChainParams&
         return false;
     }
 
+    collectTipStats();
+
     return true;
 }
 
@@ -2896,6 +2979,9 @@ bool CChainState::InvalidateBlock(CValidationState& state, const CChainParams& c
 
     InvalidChainFound(pindex);
     uiInterface.NotifyBlockTip(IsInitialBlockDownload(), pindex->pprev);
+
+    collectTipStats();
+
     return true;
 }
 bool InvalidateBlock(CValidationState& state, const CChainParams& chainparams, CBlockIndex *pindex) {
@@ -2971,6 +3057,8 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block)
 
     setDirtyBlockIndex.insert(pindexNew);
 
+    collectTipStats();
+
     return pindexNew;
 }
 
@@ -3019,6 +3107,8 @@ bool CChainState::ReceivedBlockTransactions(const CBlock &block, CValidationStat
             mapBlocksUnlinked.insert(std::make_pair(pindexNew->pprev, pindexNew));
         }
     }
+
+    collectTipStats();
 
     return true;
 }
@@ -3560,6 +3650,8 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         FlushStateToDisk(chainparams, state, FlushStateMode::NONE); // we just allocated more disk space for block files
 
     CheckBlockIndex(chainparams.GetConsensus());
+
+    collectTipStats();
 
     return true;
 }
