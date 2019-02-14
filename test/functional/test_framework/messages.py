@@ -1454,18 +1454,18 @@ class msg_snaphead:
 
 
 class SnapshotHeader:
-    def __init__(self, snapshot_hash=0, block_hash=0, stake_modifier=0, chain_work=0, total_utxo_subsets=0):
+    def __init__(self, snapshot_hash=0, block_hash=0, stake_modifier=0, chain_stake=0, total_utxo_subsets=0):
         self.snapshot_hash = snapshot_hash
         self.block_hash = block_hash
         self.stake_modifier = stake_modifier
-        self.chain_work = chain_work
+        self.chain_stake = chain_stake
         self.total_utxo_subsets = total_utxo_subsets
 
     def deserialize(self, f):
         self.snapshot_hash = deser_uint256(f)
         self.block_hash = deser_uint256(f)
         self.stake_modifier = deser_uint256(f)
-        self.chain_work = deser_uint256(f)
+        self.chain_stake = deser_uint256(f)
         self.total_utxo_subsets = struct.unpack('<Q', f.read(8))[0]
 
     def serialize(self):
@@ -1473,13 +1473,13 @@ class SnapshotHeader:
         r += ser_uint256(self.snapshot_hash)
         r += ser_uint256(self.block_hash)
         r += ser_uint256(self.stake_modifier)
-        r += ser_uint256(self.chain_work)
+        r += ser_uint256(self.chain_stake)
         r += struct.pack('<Q', self.total_utxo_subsets)
         return r
 
     def __repr__(self):
-        return "SnapshotHeader(snapshot_hash=%064x block_hash=%064x stake_modifier=%064x chain_work=%064x total_utxo_subsets=%i)" \
-                % (self.snapshot_hash, self.block_hash, self.stake_modifier, self.chain_work, self.total_utxo_subsets)
+        return "SnapshotHeader(snapshot_hash=%064x block_hash=%064x stake_modifier=%064x chain_stake=%064x total_utxo_subsets=%i)" \
+                % (self.snapshot_hash, self.block_hash, self.stake_modifier, self.chain_stake, self.total_utxo_subsets)
 
 
 class msg_getsnapshot:

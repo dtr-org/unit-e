@@ -53,7 +53,7 @@ class MinimumChainWorkTest(UnitETestFramework):
         self.log.info("Generating %d blocks on node0", num_blocks_to_generate)
         hashes = self.nodes[0].generate(num_blocks_to_generate)
 
-        self.log.info("Node0 current chain work: %s", self.nodes[0].getblockheader(hashes[-1])['chainwork'])
+        self.log.info("Node0 current chain work: %s", self.nodes[0].getblockheader(hashes[-1])['chainstake'])
 
         # Sleep a few seconds and verify that node2 didn't get any new blocks
         # or headers.  We sleep, rather than sync_blocks(node0, node1) because

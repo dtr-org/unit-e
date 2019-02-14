@@ -117,7 +117,7 @@ class BaseNode(P2PInterface):
             snapshot_hash=uint256_from_rev_hex(res['snapshot_hash']),
             block_hash=uint256_from_rev_hex(res['block_hash']),
             stake_modifier=uint256_from_rev_hex(res['stake_modifier']),
-            chain_work=uint256_from_rev_hex(res['chain_work']),
+            chain_stake=uint256_from_rev_hex(res['chain_stake']),
             total_utxo_subsets=res['total_utxo_subsets'],
         )
 
@@ -319,8 +319,8 @@ class P2PSnapshotTest(UnitETestFramework):
         inputs = bytes_to_hex_str(ser_vector([]))
         outputs = bytes_to_hex_str(ser_vector(utxos))
         stake_modifier = bytes_to_hex_str(ser_uint256(syncing_p2p.snapshot_header.stake_modifier))
-        chain_work = bytes_to_hex_str(ser_uint256(syncing_p2p.snapshot_header.chain_work))
-        res = self.nodes[0].calcsnapshothash(inputs, outputs, stake_modifier, chain_work)
+        chain_stake = bytes_to_hex_str(ser_uint256(syncing_p2p.snapshot_header.chain_stake))
+        res = self.nodes[0].calcsnapshothash(inputs, outputs, stake_modifier, chain_stake)
         snapshot_hash = uint256_from_hex(res['hash'])
         assert_equal(snapshot_hash, syncing_p2p.snapshot_header.snapshot_hash)
 
