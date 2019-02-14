@@ -84,6 +84,7 @@ jobs:
 
     - stage: test
       name: "System libs (unit and functional tests)"
+      if: type = cron
       env: >-
         HOST=x86_64-unknown-linux-gnu
         PACKAGES="python3-zmq libssl-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-program-options-dev libboost-test-dev libboost-thread-dev libdb5.1++-dev libminiupnpc-dev libzmq3-dev libprotobuf-dev protobuf-compiler libqrencode-dev xvfb libhidapi-dev"
@@ -107,6 +108,7 @@ jobs:
 
     - stage: test
       name: "Win64 (unit tests)"
+      if: type = cron
       env: >-
         HOST=x86_64-w64-mingw32
         DPKG_ADD_ARCH="i386"
