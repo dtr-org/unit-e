@@ -39,7 +39,7 @@ class Iterator {
   //! iterator again, it must be explicitly unwind to the beginning.
   //! iter->MoveCursorTo(0)
   uint256 CalculateHash(const uint256 &stake_modifier,
-                        const uint256 &chain_work);
+                        const uint256 &chain_stake);
 
  private:
   std::unique_ptr<Indexer> m_indexer;

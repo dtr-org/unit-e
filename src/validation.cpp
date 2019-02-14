@@ -130,8 +130,8 @@ private:
     int32_t nBlockSequenceId = 1;
     /** Decreasing counter (used by subsequent preciousblock calls). */
     int32_t nBlockReverseSequenceId = -1;
-    /** chainwork for the last block that preciousblock has been applied to. */
-    arith_uint256 nLastPreciousChainwork = 0;
+    /** chainstake for the last block that preciousblock has been applied to. */
+    arith_uint256 nLastPreciousChainstake = 0;
 
     /** In order to efficiently track invalidity of headers, we keep the set of
       * blocks which we tried to connect and found to be invalid here (ie which
@@ -2818,11 +2818,11 @@ bool CChainState::PreciousBlock(CValidationState& state, const CChainParams& par
             // Nothing to do, this block is not at the tip.
             return true;
         }
-        if (chainActive.Tip()->chain_stake > nLastPreciousChainwork) {
+        if (chainActive.Tip()->chain_stake > nLastPreciousChainstake) {
             // The chain has been extended since the last call, reset the counter.
             nBlockReverseSequenceId = -1;
         }
-        nLastPreciousChainwork = chainActive.Tip()->chain_stake;
+        nLastPreciousChainstake = chainActive.Tip()->chain_stake;
         setBlockIndexCandidates.erase(pindex);
         pindex->nSequenceId = nBlockReverseSequenceId;
         if (nBlockReverseSequenceId > std::numeric_limits<int32_t>::min()) {
