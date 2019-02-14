@@ -3298,10 +3298,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     info.MarkCheckBlockHeaderSuccessfull();
     const staking::BlockValidationResult result =
         GetComponent(BlockValidator)->ContextualCheckBlockHeader(block, *pindexPrev, nAdjustedTime, &info);
-    if (!result) {
-        return state.Invalid(false, REJECT_INVALID, result.GetRejectionMessage());
-    }
-    return true;
+    return staking::CheckResult(result, state);
 }
 
 /** NOTE: This function is not currently invoked by ConnectBlock(), so we

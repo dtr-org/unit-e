@@ -1,5 +1,8 @@
 #include <staking/validation_error.h>
 
+#include <consensus/validation.h>
+#include <staking/validation_result.h>
+
 #include <cassert>
 #include <string>
 
@@ -12,14 +15,14 @@ struct ValidationError {
   bool corruption;
 
   explicit ValidationError(
-      const char *_reject_reason,
-      const std::uint32_t _level = 100,
-      const std::uint32_t _reject_code = REJECT_INVALID,
-      const bool _corruption = false)
-      : reject_reason(_reject_reason),
-        level(_level),
-        reject_code(_reject_code),
-        corruption(_corruption) {}
+      const char *reject_reason,
+      const std::uint32_t level = 100,
+      const std::uint32_t reject_code = REJECT_INVALID,
+      const bool corruption = false)
+      : reject_reason(reject_reason),
+        level(level),
+        reject_code(reject_code),
+        corruption(corruption) {}
 };
 
 const ValidationError &GetValidationErrorFor(const staking::BlockValidationError error) {
@@ -138,7 +141,7 @@ const std::string &GetRejectionMessageFor(const BlockValidationError error) {
 
 bool CheckResult(const BlockValidationResult &result, CValidationState &state) {
   if (!result) {
-    const ValidationError &validation_error = GetValidationErrorFor(error);
+    const ValidationError &validation_error = GetValidationErrorFor(*result.errors.begin());
     state.DoS(
         validation_error.level, false, validation_error.reject_code, validation_error.reject_reason,
         validation_error.corruption, result.errors.ToString());

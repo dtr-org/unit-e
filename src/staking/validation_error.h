@@ -3,12 +3,13 @@
 
 #include <better-enums/enum.h>
 
-#include <consensus/validation.h>
-#include <staking/validation_result.h>
-
 #include <cstdint>
 
+class CValidationState;
+
 namespace staking {
+
+class BlockValidationResult;
 
 // clang-format off
 BETTER_ENUM(
