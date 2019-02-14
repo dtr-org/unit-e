@@ -176,7 +176,7 @@ class StakeValidatorMock : public staking::StakeValidator {
   uint256 ComputeKernelHash(const CBlockIndex *blockindex, const staking::Coin &coin, blockchain::Time time) const override {
     return computekernelfunc(blockindex, coin, time);
   }
-  staking::BlockValidationResult CheckStake(const CBlock &) const override {
+  staking::BlockValidationResult CheckStake(const CBlock &, staking::BlockValidationInfo*) const override {
     return staking::BlockValidationResult();
   }
   uint256 ComputeStakeModifier(const CBlockIndex *, const uint256 &) const override { return uint256(); }

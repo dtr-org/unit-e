@@ -62,7 +62,7 @@ class StakeValidatorImpl : public StakeValidator {
   //! UTXO set should be always available and consistent, during reorgs the
   //! chain is rolled back using undo data and at every point a check of stake
   //! should be possible.
-  BlockValidationResult CheckStake(const CBlockIndex &previous_block, const CBlock &block) const {
+  BlockValidationResult CheckStakeInternal(const CBlockIndex &previous_block, const CBlock &block) const {
     BlockValidationResult result;
 
     if (block.vtx.empty()) {
@@ -173,11 +173,15 @@ class StakeValidatorImpl : public StakeValidator {
     return UintToArith256(kernel_hash) <= target_value;
   }
 
-  BlockValidationResult CheckStake(const CBlock &block) const override {
+  BlockValidationResult CheckStake(const CBlock &block, BlockValidationInfo *validation_info) const override {
     AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
     if (m_blockchain_behavior->IsGenesisBlock(block)) {
       // The genesis block does not stake anything.
+      return result;
+    }
+    if (validation_info && validation_info->GetCheckStakeStatus()) {
+      // short circuit in case the validation already happened
       return result;
     }
     const CBlockIndex *const tip = m_active_chain->GetBlockIndex(block.hashPrevBlock);
@@ -185,7 +189,7 @@ class StakeValidatorImpl : public StakeValidator {
       result.errors += BlockValidationError::PREVIOUS_BLOCK_NOT_PART_OF_ACTIVE_CHAIN;
       return result;
     }
-    return CheckStake(*tip, block);
+    return CheckStakeInternal(*tip, block);
   }
 
   bool IsPieceOfStakeKnown(const COutPoint &stake) const override {
