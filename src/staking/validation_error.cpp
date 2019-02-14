@@ -15,7 +15,7 @@ struct ValidationError {
   bool corruption;
 
   explicit ValidationError(
-      const char *reject_reason,
+      const char *const reject_reason,
       const std::uint32_t level = 100,
       const std::uint32_t reject_code = REJECT_INVALID,
       const bool corruption = false)
