@@ -130,14 +130,6 @@ def test_codesign(mocker):
 def test_sign(mocker):
     log = Log("test_sign")
 
-    class TemporaryDirectoryMock():
-        def __init__(self, dirname):
-            self.dirname = dirname
-        def __enter__(self):
-            return self.dirname
-        def __exit__(self, *args):
-            pass
-
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("pathlib.Path.is_file", return_value=True)
     original_get_signatures_path = gitian_build.get_signatures_path
@@ -206,6 +198,23 @@ def test_setup_linux(mocker):
 
     log.check()
 
+def test_setup_mac(mocker):
+    log = Log("test_setup_mac")
+
+    mocker.patch("platform.system", return_value="Darwin")
+    mocker.patch("os.chdir", side_effect=log.log_chdir)
+    mocker.patch("subprocess.check_call", side_effect=log.log_call)
+    mocker.patch("subprocess.call", side_effect=log.log_call)
+    mocker.patch("pathlib.Path.is_dir", return_value=False)
+
+    mocker.patch("pathlib.Path.exists", return_value=False)
+    mock_symlink = mocker.patch("pathlib.Path.symlink_to")
+
+    gitian_build.setup(create_args(mocker))
+
+    assert mock_symlink.call_count == 2
+    log.check()
+
 def test_prepare_git_dir(mocker):
     log = Log("test_prepare_git_dir")
 
@@ -249,19 +258,41 @@ def test_apt_wrapper(mocker):
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
     mocker.patch("subprocess.call", side_effect=log.log_call)
 
-    apt = gitian_build.Apt(quiet=False)
+    apt = gitian_build.Installer(backend='apt', quiet=False)
     apt.add_requirements('package_1')
     apt.add_requirements('package_2a', 'package_2b')
     apt.try_to_install('package_3')
     apt.updated = False
     apt.batch_install()
 
-    apt = gitian_build.Apt(quiet=True)
+    apt = gitian_build.Installer(backend='apt', quiet=True)
     apt.is_installed = lambda p: False
     apt.add_requirements('package_1')
     apt.add_requirements('package_2a', 'package_2b')
     apt.batch_install()
     apt.try_to_install('package_3')
+
+    log.check()
+
+def test_brew_wrapper(mocker):
+    log = Log("test_brew_wrapper")
+
+    mocker.patch("subprocess.check_call", side_effect=log.log_call)
+    mocker.patch("subprocess.call", side_effect=log.log_call)
+
+    brew = gitian_build.Installer(backend='brew')
+    brew.add_requirements('package_1')
+    brew.add_requirements('package_2a', 'package_2b')
+    brew.try_to_install('package_3')
+    brew.updated = False
+    brew.batch_install()
+
+    brew = gitian_build.Installer(backend='brew', quiet=True)
+    brew.is_installed = lambda p: False
+    brew.add_requirements('package_1')
+    brew.add_requirements('package_2a', 'package_2b')
+    brew.batch_install()
+    brew.try_to_install('package_3')
 
     log.check()
 

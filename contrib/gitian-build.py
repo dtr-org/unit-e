@@ -12,7 +12,6 @@ import sys
 import platform
 
 import tempfile
-import glob
 
 from pathlib import Path
 from contextlib import contextmanager
@@ -21,37 +20,51 @@ OSSLSIGNCODE_VER = '1.7.1'
 OSSLSIGNCODE_DIR = 'osslsigncode-'+OSSLSIGNCODE_VER
 
 @contextmanager
-def cd(dir):
+def cd(destination_dir):
     original_dir = os.getcwd()
-    os.chdir(dir)
+    os.chdir(destination_dir)
     try:
         yield
     finally:
         os.chdir(original_dir)
 
-class Apt:
-    """ Lazy apt wrapper """
-    def __init__(self, quiet=False):
+class Installer:
+    """ Wrapper around native package installer, supports apt-get and brew, only
+        installs packages which aren't installed yet."""
+    def __init__(self, backend=None, quiet=False):
+        if backend != "apt" and backend != "brew":
+            raise ValueError("Invalid value for backend argument: '%'. Valid values are `apt` and `brew`.")
+        self.backend = backend
         self.updated = False
         self.to_install = []
-        if quiet:
-            self.apt_flags = ['-qq']
+        if quiet and self.backend == "apt":
+            self.flags = ['-qq']
         else:
-            self.apt_flags = []
+            self.flags = []
+
+    def backend_command(self, subcommand):
+        if self.backend == 'apt':
+            if subcommand == 'ls':
+                command = ['dpkg', '-s']
+            else:
+                command = ['sudo', 'apt-get', subcommand] + self.flags
+        elif self.backend == 'brew':
+            command = ['brew', subcommand]
+        return command
 
     def update(self):
         if not self.updated:
             self.updated = True
-            subprocess.check_call(['sudo', 'apt-get', 'update'] + self.apt_flags)
+            subprocess.check_call(self.backend_command('update'))
 
     def try_to_install(self, *programs):
         self.update()
-        print('Apt: installing', ", ".join(programs))
-        return subprocess.call(['sudo', 'apt-get', 'install'] + self.apt_flags + list(programs)) == 0
+        print(self.backend + ': installing', ", ".join(programs))
+        return subprocess.call(self.backend_command('install') + list(programs)) == 0
 
     def batch_install(self):
         if not self.to_install:
-            print('Apt: nothing to install')
+            print(self.backend + ': nothing to install')
             return
 
         if not self.try_to_install(*self.to_install):
@@ -60,12 +73,13 @@ class Apt:
         self.to_install = []
 
     def is_installed(self, program):
-        return subprocess.call(['dpkg', '-s', program], stdout=subprocess.DEVNULL) == 0
+        return subprocess.call(self.backend_command('ls') + [program], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
     def add_requirements(self, *programs):
         for program in programs:
             if not self.is_installed(program):
                 self.to_install.append(program)
+
 
 def verify_user_specified_osslsigncode(user_spec_path):
     if not Path(user_spec_path).is_file():
@@ -90,7 +104,7 @@ def find_osslsigncode(user_spec_path):
             return ossl_path
 
     expected_path = Path(OSSLSIGNCODE_DIR, 'osslsigncode')
-    if expected_path.is_file(expected_path) and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
+    if expected_path.is_file() and subprocess.call([expected_path, '--version'], stderr=subprocess.DEVNULL) == 255:
         return expected_path.resolve()
 
     return None
@@ -110,7 +124,7 @@ def install_osslsigner():
 def install_libssl_dev(apt):
     dist_str = platform.dist()
     dist_type = dist_str[0]
-    dist_no = dist_str[1].replace('.', '')
+    dist_no = int(dist_str[1].replace('.', ''))
     if dist_type == 'Ubuntu' and dist_no < 1800 or dist_type == 'Debian' and dist_no < 900:
         apt.add_requirements('libssl-dev')
     else:
@@ -118,7 +132,7 @@ def install_libssl_dev(apt):
 
 
 def install_linux_deps(args):
-    apt = Apt(args.quiet)
+    apt = Installer(backend='apt', quiet=args.quiet)
     apt.add_requirements('ruby', 'git', 'make')
     if args.kvm:
         apt.add_requirements('apt-cacher-ng', 'python-vm-builder', 'qemu-kvm', 'qemu-utils')
@@ -143,17 +157,26 @@ def install_linux_deps(args):
     if should_make_ossl:
         args.osslsigncode_path = install_osslsigner()
 
+def create_bin_symlink(link, target):
+    bin_path = Path("bin", link)
+    if not bin_path.exists():
+        bin_path.symlink_to(target)
+
 def install_mac_deps(args):
     if not args.docker:
         print('Mac can only work with docker, re-run with --docker flag.', file=sys.stderr)
         exit(1)
 
     if subprocess.call(['docker', '--version']) != 0:
-        if subprocess.call(['brew', 'install', 'docker']) != 0:
-            print('Please install docker manually.', file=sys.stderr)
-            exit(1)
+        print('Please install docker manually, e.g. with `brew cask install docker`.', file=sys.stderr)
+        exit(1)
 
-    subprocess.check_call(['brew', 'install', 'ruby', 'coreutils'])
+    brew = Installer(backend='brew')
+    brew.add_requirements('ruby', 'coreutils')
+    brew.batch_install()
+
+    create_bin_symlink("date", "/usr/local/bin/gdate")
+    create_bin_symlink("sha256sum", "/usr/local/bin/gsha256sum")
 
 def install_deps(args):
     system_str = platform.system()
@@ -162,7 +185,7 @@ def install_deps(args):
     elif system_str == 'Darwin':
         install_mac_deps(args)
     else:
-        print('Unsupported system.', file=sys.stderr)
+        print("Unsupported system '%s'." % system_str, file=sys.stderr)
         exit(1)
 
 
@@ -285,10 +308,8 @@ def codesign(args):
 
 def sign(args):
     gitian_dir = Path('gitian-builder').resolve()
-    sigs_dir = Path('unit-e-sigs').resolve()
 
     if args.windows:
-        osslsign_path = args.osslsigncode_path
         subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-'+OSSLSIGNCODE_VER+'.tar.gz'], cwd=gitian_dir)
         subprocess.check_call(['wget', '-N', '-P', 'inputs', 'https://bitcoincore.org/cfields/osslsigncode-Backports-to-'+OSSLSIGNCODE_VER+'.patch'], cwd=gitian_dir)
 
@@ -334,12 +355,12 @@ def verify(args):
     builds_were_missing = False
 
     for (sig_path_suffix, descriptor_suffix, build_name) in [
-        ('linux', 'linux', 'Linux'),
-        ('win-unsigned', 'win', 'Windows'),
-        ('osx-unsigned', 'osx', 'MacOS'),
-        ('win-signed', 'win-signer', 'Signed Windows'),
-        ('osx-signed', 'osx-signer', 'Signed Max OS')
-    ]:
+            ('linux', 'linux', 'Linux'),
+            ('win-unsigned', 'win', 'Windows'),
+            ('osx-unsigned', 'osx', 'MacOS'),
+            ('win-signed', 'win-signer', 'Signed Windows'),
+            ('osx-signed', 'osx-signer', 'Signed Max OS')
+        ]:
         build_sig_dir = args.version + '-' + sig_path_suffix
         if Path(sigs_path, build_sig_dir).is_dir():
             print('\nVerifying v{} {}\n'.format(args.version, build_name))
@@ -385,9 +406,9 @@ def prepare_gitian_descriptors(*, source, target, hosts=None):
                 else:
                     file_out.write(line)
 
-def create_work_dir(args):
-    work_dir = Path(args.work_dir)
-    if Path(args.work_dir).exists() and not Path(args.work_dir).is_dir():
+def create_work_dir(work_dir):
+    work_dir = Path(work_dir)
+    if Path(work_dir).exists() and not Path(work_dir).is_dir():
         raise Exception("Work dir '%s' exists but is not a directory." % work_dir)
     if not work_dir.exists():
         print("Creating working directory '%s'" % work_dir)
@@ -428,9 +449,17 @@ def main():
         print("Please provide a working directory (--work-dir <path>)", file=sys.stderr)
         exit(1)
 
-    work_dir = create_work_dir(args)
+    if args.win_code_cert_path:
+        args.win_code_cert_path = Path(args.win_code_cert_path).resolve()
+
+    if args.win_code_key_path:
+        args.win_code_key_path = Path(args.win_code_key_path).resolve()
+
+    work_dir = create_work_dir(args.work_dir)
     with cd(work_dir):
         print("Using working directory '%s'" % work_dir)
+
+        os.environ["PATH"] = str(Path("bin").resolve()) + ":" + os.environ["PATH"]
 
         args.linux = 'l' in args.os
         args.windows = 'w' in args.os
@@ -439,8 +468,8 @@ def main():
         args.is_bionic = platform.dist() == ('Ubuntu', '18.04', 'bionic')
 
         if args.buildsign:
-            args.build=True
-            args.sign=True
+            args.build = True
+            args.sign = True
 
         if args.kvm and args.docker:
             raise Exception('Error: cannot have both kvm and docker')
@@ -495,11 +524,11 @@ def main():
                 exit(1)
 
             if not args.win_code_cert_path or not Path(args.win_code_cert_path).is_file():
-                print('Please provide code signing certificate path (--code-cert)', file=sys.stderr)
+                print('Please provide code signing certificate path (--win-code-cert)', file=sys.stderr)
                 exit(1)
 
             if not args.win_code_key_path or not Path(args.win_code_key_path).is_file():
-                print('Please provide code signing key path (--code-key)', file=sys.stderr)
+                print('Please provide code signing key path (--win-code-key)', file=sys.stderr)
                 exit(1)
 
 
@@ -512,8 +541,8 @@ def main():
             raise Exception('Cannot pull and skip-checkout at the same time')
 
         prepare_git_dir(args)
-        prepare_gitian_descriptors(source=args.git_dir + "/contrib/gitian-descriptors/", target="work/gitian-descriptors",
-                                hosts=args.hosts)
+        prepare_gitian_descriptors(source=args.git_dir + "/contrib/gitian-descriptors/",
+                                   target="work/gitian-descriptors", hosts=args.hosts)
 
         if args.build:
             build(args)

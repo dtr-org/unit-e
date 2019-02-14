@@ -1,7 +1,7 @@
 Test: test_apt_wrapper
-dpkg -s package_1  stdout=-3
-dpkg -s package_2a  stdout=-3
-dpkg -s package_2b  stdout=-3
+dpkg -s package_1  stdout=-3  stderr=-3
+dpkg -s package_2a  stdout=-3  stderr=-3
+dpkg -s package_2b  stdout=-3  stderr=-3
 sudo apt-get update
 sudo apt-get install package_3
 sudo apt-get update -qq
