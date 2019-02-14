@@ -15,7 +15,7 @@ wallet_packages=bdb
 upnp_packages=miniupnpc
 usb_packages=hidapi
 
-ifeq (,$(findstring "linux",$(host)))
+ifneq (,$(findstring linux,$(host)))
 usb_packages += libusb
 endif
 
