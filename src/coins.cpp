@@ -291,7 +291,7 @@ bool CCoinsViewCache::ApplySnapshot(std::unique_ptr<snapshot::Indexer> &&indexer
     }
 
     assert(snapshot_header.total_utxo_subsets == writtenSubsets);
-    assert(snapshotHash.GetHash(snapshot_header.stake_modifier, snapshot_header.chain_work) == snapshot_header.snapshot_hash);
+    assert(snapshotHash.GetHash(snapshot_header.stake_modifier, snapshot_header.chain_stake) == snapshot_header.snapshot_hash);
     LogPrint(BCLog::COINDB, "%s: finished snapshot loading. UTXO subsets=%i\n",
              __func__, writtenSubsets);
 

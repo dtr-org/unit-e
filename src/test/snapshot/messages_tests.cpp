@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(snapshot_header_serialization) {
   msg.snapshot_hash.SetHex("aa");
   msg.block_hash.SetHex("bb");
   msg.stake_modifier.SetHex("cc");
-  msg.chain_work.SetHex("dd");
+  msg.chain_stake.SetHex("dd");
   msg.total_utxo_subsets = 10;
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(snapshot_header_serialization) {
   BOOST_CHECK_EQUAL(msg.snapshot_hash, msg2.snapshot_hash);
   BOOST_CHECK_EQUAL(msg.block_hash, msg2.block_hash);
   BOOST_CHECK_EQUAL(msg.stake_modifier, msg2.stake_modifier);
-  BOOST_CHECK_EQUAL(msg.chain_work, msg2.chain_work);
+  BOOST_CHECK_EQUAL(msg.chain_stake, msg2.chain_stake);
   BOOST_CHECK_EQUAL(msg.total_utxo_subsets, msg2.total_utxo_subsets);
 }
 

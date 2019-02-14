@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   best_snapshot.snapshot_hash = uint256S("294f4fba05bc2f19764960989b4a364466522b3009808ff99e89cfde56bf43e7");
   best_snapshot.block_hash = uint256S("aa");
   best_snapshot.stake_modifier = uint256S("bb");
-  best_snapshot.chain_work = uint256S("cc");
+  best_snapshot.chain_stake = uint256S("cc");
   best_snapshot.total_utxo_subsets = 6;
 
   node->m_best_snapshot = best_snapshot;

@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
   snapshot_header.snapshot_hash = uint256S("aa");
   snapshot_header.block_hash = uint256S("bb");
   snapshot_header.stake_modifier = uint256S("cc");
-  snapshot_header.chain_work = uint256S("dd");
+  snapshot_header.chain_stake = uint256S("dd");
   uint32_t step = 3;
   uint32_t steps_per_file = 2;
 
@@ -164,8 +164,8 @@ BOOST_AUTO_TEST_CASE(snapshot_indexer_open) {
                     HexStr(snapshot_header.block_hash));
   BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().stake_modifier),
                     HexStr(snapshot_header.stake_modifier));
-  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().chain_work),
-                    HexStr(snapshot_header.chain_work));
+  BOOST_CHECK_EQUAL(HexStr(opened_idx->GetSnapshotHeader().chain_stake),
+                    HexStr(snapshot_header.chain_stake));
   BOOST_CHECK_EQUAL(opened_idx->GetSnapshotHeader().total_utxo_subsets, total_msgs);
 }
 

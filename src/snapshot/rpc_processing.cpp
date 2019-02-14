@@ -37,7 +37,7 @@ UniValue SnapshotNode(const uint256 &snapshot_hash) {
   node.push_back(Pair("block_hash", snapshot_header.block_hash.GetHex()));
   node.push_back(Pair("block_height", mapBlockIndex[snapshot_header.block_hash]->nHeight));
   node.push_back(Pair("stake_modifier", snapshot_header.stake_modifier.GetHex()));
-  node.push_back(Pair("chain_work", snapshot_header.chain_work.GetHex()));
+  node.push_back(Pair("chain_work", snapshot_header.chain_stake.GetHex()));
   node.push_back(Pair("total_utxo_subsets", snapshot_header.total_utxo_subsets));
 
   uint64_t outputs = 0;

@@ -154,7 +154,7 @@ CreationInfo Creator::Create() {
   SnapshotHeader snapshot_header;
   snapshot_header.block_hash = block_index->GetBlockHash();
   snapshot_header.stake_modifier = block_index->stake_modifier;
-  snapshot_header.chain_work = ArithToUint256(block_index->chain_stake);
+  snapshot_header.chain_stake = ArithToUint256(block_index->chain_stake);
   snapshot_header.snapshot_hash = m_iter.GetSnapshotHash().GetHash(*block_index);
 
   LogPrint(BCLog::SNAPSHOT, "start creating snapshot block_hash=%s snapshot_hash=%s\n",

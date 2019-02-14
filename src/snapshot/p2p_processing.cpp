@@ -192,7 +192,7 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
   if (indexer->GetSnapshotHeader().total_utxo_subsets == node.m_best_snapshot.total_utxo_subsets) {
     Iterator iterator(std::move(indexer));
     uint256 hash = iterator.CalculateHash(node.m_best_snapshot.stake_modifier,
-                                          node.m_best_snapshot.chain_work);
+                                          node.m_best_snapshot.chain_stake);
     if (hash != msg.snapshot_hash) {
       LogPrint(BCLog::SNAPSHOT, "%s: invalid hash. has=%s got=%s\n",
                NetMsgType::SNAPSHOT,
@@ -374,7 +374,7 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
     assert(idx);
     snapshot_block_index->stake_modifier = idx->GetSnapshotHeader().stake_modifier;
-    snapshot_block_index->chain_stake = UintToArith256(idx->GetSnapshotHeader().chain_work);
+    snapshot_block_index->chain_stake = UintToArith256(idx->GetSnapshotHeader().chain_stake);
 
     if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
       // if we can't write the snapshot, we have an issue with the DB

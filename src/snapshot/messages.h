@@ -56,7 +56,7 @@ struct SnapshotHeader {
   uint256 snapshot_hash;
   uint256 block_hash;
   uint256 stake_modifier;
-  uint256 chain_work;
+  uint256 chain_stake;
   uint64_t total_utxo_subsets = 0;
 
   SnapshotHeader() = default;
@@ -77,7 +77,7 @@ struct SnapshotHeader {
     snapshot_hash.SetNull();
     block_hash.SetNull();
     stake_modifier.SetNull();
-    chain_work.SetNull();
+    chain_stake.SetNull();
     total_utxo_subsets = 0;
   }
 
@@ -87,7 +87,7 @@ struct SnapshotHeader {
     READWRITE(snapshot_hash);
     READWRITE(block_hash);
     READWRITE(stake_modifier);
-    READWRITE(chain_work);
+    READWRITE(chain_stake);
     READWRITE(total_utxo_subsets);
   }
 };
