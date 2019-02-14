@@ -176,10 +176,10 @@ class SnapshotHash {
   //! GetHash returns the hash that represents the snapshot
   //!
   //! \param stake_modifier which points to the same height as the snapshot hash
-  //! \param chain_work which points to the same height as the snapshot hash
+  //! \param chain_stake which points to the same height as the snapshot hash
   //! \return the hash which is stored inside the coinbase TX
   uint256 GetHash(const uint256 &stake_modifier,
-                  const uint256 &chain_work) const;
+                  const uint256 &chain_stake) const;
 
   uint256 GetHash(const CBlockIndex &block_index) const;
 

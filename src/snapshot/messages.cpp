@@ -54,10 +54,10 @@ void SnapshotHash::SubtractUTXO(const UTXO &utxo) {
 }
 
 uint256 SnapshotHash::GetHash(const uint256 &stake_modifier,
-                              const uint256 &chain_work) const {
+                              const uint256 &chain_stake) const {
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
   stream << stake_modifier;
-  stream << chain_work;
+  stream << chain_stake;
 
   // don't modify the existing hash with extra meta data
   secp256k1_multiset multiset = m_multiset;

@@ -37,7 +37,7 @@ UniValue SnapshotNode(const uint256 &snapshot_hash) {
   node.push_back(Pair("block_hash", snapshot_header.block_hash.GetHex()));
   node.push_back(Pair("block_height", mapBlockIndex[snapshot_header.block_hash]->nHeight));
   node.push_back(Pair("stake_modifier", snapshot_header.stake_modifier.GetHex()));
-  node.push_back(Pair("chain_work", snapshot_header.chain_stake.GetHex()));
+  node.push_back(Pair("chain_stake", snapshot_header.chain_stake.GetHex()));
   node.push_back(Pair("total_utxo_subsets", snapshot_header.total_utxo_subsets));
 
   uint64_t outputs = 0;
@@ -183,7 +183,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
     stream.clear();
 
     stream << uint256S("bb");
-    std::string chain_work = HexStr(stream);
+    std::string chain_stake = HexStr(stream);
     stream.clear();
 
     SnapshotHash hash;
@@ -191,7 +191,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
     std::string snapshot_data = HexStr(stream);
     stream.clear();
 
-    std::string example = inputs + " " + outputs + " " + stake_modifier + " " + chain_work + " " + snapshot_data;
+    std::string example = inputs + " " + outputs + " " + stake_modifier + " " + chain_stake + " " + snapshot_data;
     throw std::runtime_error(
         "calcsnapshothash\n"
         "\nReturns snapshot hash and its data after arithmetic calculations\n"
@@ -199,7 +199,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
         "1. \"inputs\" (hex, required) serialized UTXOs to subtract.\n"
         "2. \"outputs\" (hex, required) serialized UTXOs to add.\n"
         "3. \"stake_modifier\" (hex, required) stake modifier of the current block\n"
-        "4. \"chain_work\" (hex, required) chain work of the current block\n"
+        "4. \"chain_stake\" (hex, required) chain work of the current block\n"
         "5. \"snapshotData\" (hex, optional) initial snapshot data.\n"
         "\nExamples:\n" +
         HelpExampleCli("calcsnapshothash", example) +
@@ -218,7 +218,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   stream >> outputs;
 
   uint256 stake_modifier = uint256(ParseHex(request.params[2].get_str()));
-  uint256 chain_work = uint256(ParseHex(request.params[3].get_str()));
+  uint256 chain_stake = uint256(ParseHex(request.params[3].get_str()));
 
   SnapshotHash hash;
   if (request.params.size() == 5) {
@@ -234,7 +234,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   }
 
   UniValue root(UniValue::VOBJ);
-  root.push_back(Pair("hash", HexStr(hash.GetHash(stake_modifier, chain_work))));
+  root.push_back(Pair("hash", HexStr(hash.GetHash(stake_modifier, chain_stake))));
   root.push_back(Pair("data", HexStr(hash.GetData())));
   return root;
 }
