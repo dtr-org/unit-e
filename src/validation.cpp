@@ -3128,12 +3128,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 {
     // These are checks that are independent of context.
 
-    if (block.fChecked)
+    if (block.GetBlockValidationInfo()->GetCheckBlockStatus())
         return true;
 
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, consensusParams))
+    if (!block.GetBlockValidationInfo()->GetCheckBlockHeaderStatus() && !CheckBlockHeader(block, state, consensusParams))
         return false;
 
     // Check the merkle root.
@@ -3211,7 +3211,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
 
     if (fCheckMerkleRoot)
-        block.fChecked = true;
+        block.GetBlockValidationInfo()->MarkCheckBlockSuccessfull(0, uint256());
 
     return true;
 }

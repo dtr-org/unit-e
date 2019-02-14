@@ -116,6 +116,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     resetBlock();
 
     pblocktemplate.reset(new CBlockTemplate());
+    pblocktemplate->block.GetBlockValidationInfo()->MarkCheckBlockHeaderSuccessfull();
 
     if(!pblocktemplate.get())
         return nullptr;

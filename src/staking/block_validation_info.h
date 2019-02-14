@@ -88,7 +88,7 @@ class BlockValidationInfo {
   //!
   //! Further invocations of CheckBlock() may return immediately.
   void MarkCheckBlockSuccessfull(
-      const blockchain::Height &height,
+      const blockchain::Height height,
       const uint256 &snapshot_hash) noexcept {
     m_height = height;
     m_snapshot_hash = snapshot_hash;

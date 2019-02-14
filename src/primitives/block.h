@@ -9,6 +9,7 @@
 #include <blockchain/blockchain_types.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
+#include <staking/block_validation_info.h>
 #include <uint256.h>
 
 /** Nodes collect new transactions into a block, hash them into a hash tree,
@@ -81,7 +82,7 @@ public:
     std::vector<uint8_t> signature;
 
     // memory only
-    mutable bool fChecked;
+    mutable std::unique_ptr<staking::BlockValidationInfo> fChecked = nullptr;
 
     CBlock()
     {
@@ -94,7 +95,17 @@ public:
         *((CBlockHeader*)this) = header;
     }
 
-    CBlock(const CBlock &block) = default;
+    CBlock(const CBlock &block) : CBlockHeader(block) {
+        vtx = block.vtx;
+        signature = block.signature;
+    }
+
+    CBlock &operator=(const CBlock& block) {
+        *((CBlockHeader*)this) = static_cast<const CBlockHeader&>(block);
+        vtx = block.vtx;
+        signature = block.signature;
+        return *this;
+    }
 
     ADD_SERIALIZE_METHODS;
 
@@ -110,7 +121,7 @@ public:
         CBlockHeader::SetNull();
         vtx.clear();
         signature.clear();
-        fChecked = false;
+        fChecked.reset();
     }
 
     CBlockHeader GetBlockHeader() const
@@ -124,6 +135,14 @@ public:
         block.nBits = nBits;
         block.nNonce = nNonce;
         return block;
+    }
+
+    staking::BlockValidationInfo* GetBlockValidationInfo() const
+    {
+        if (!fChecked) {
+          fChecked.reset(new staking::BlockValidationInfo());
+        }
+        return fChecked.get();
     }
 
     std::string ToString() const;

@@ -59,6 +59,8 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     }
 
     CBlock block;
+    block.GetBlockValidationInfo()->MarkCheckBlockHeaderSuccessfull();
+
     bool processed;
 
     // Test 1: block with both of those transactions should be rejected.
@@ -235,6 +237,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // And if we produce a block with this tx, it should be valid,
     // even though there's no cache entry.
     CBlock block;
+    block.GetBlockValidationInfo()->MarkCheckBlockHeaderSuccessfull();
 
     block = CreateAndProcessBlock({spend_tx}, p2pk_scriptPubKey);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() == block.GetHash());
