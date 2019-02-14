@@ -2402,7 +2402,7 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
                     continue;
                 }
 
-                bool ignore_remote_staked = coinControl && coinControl->m_ignore_remote_staked;
+                const bool ignore_remote_staked = coinControl && coinControl->m_ignore_remote_staked;
                 if (ignore_remote_staked && ::IsStakedRemotely(*this, pcoin->tx->vout[i].scriptPubKey)) {
                     continue;
                 }
