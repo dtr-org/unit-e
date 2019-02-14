@@ -1,64 +1,153 @@
 #include <staking/validation_error.h>
 
-#include <string>
+#include <consensus/validation.h>
+#include <staking/validation_result.h>
+
 #include <cassert>
+#include <string>
+
+namespace {
+
+struct ValidationError {
+  std::string reject_reason;
+  std::uint32_t level;
+  std::uint32_t reject_code;
+  bool corruption;
+
+  explicit ValidationError(
+      const char *const reject_reason,
+      const std::uint32_t level = 100,
+      const std::uint32_t reject_code = REJECT_INVALID,
+      const bool corruption = false)
+      : reject_reason(reject_reason),
+        level(level),
+        reject_code(reject_code),
+        corruption(corruption) {}
+};
+
+const ValidationError &GetValidationErrorFor(const staking::BlockValidationError error) {
+  switch (+error) {
+    case staking::BlockValidationError::BLOCK_SIGNATURE_VERIFICATION_FAILED: {
+      static ValidationError err("bad-blk-signature");
+      return err;
+    }
+    case staking::BlockValidationError::BLOCKTIME_TOO_EARLY: {
+      static ValidationError err("time-too-old");
+      return err;
+    }
+    case staking::BlockValidationError::BLOCKTIME_TOO_FAR_INTO_FUTURE: {
+      static ValidationError err("time-too-new");
+      return err;
+    }
+    case staking::BlockValidationError::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST: {
+      static ValidationError err("bad-cb-out-of-order");
+      return err;
+    }
+    case staking::BlockValidationError::COINBASE_TRANSACTION_WITHOUT_OUTPUT: {
+      static ValidationError err("bad-cb-no-outputs");
+      return err;
+    }
+    case staking::BlockValidationError::DUPLICATE_STAKE: {
+      static ValidationError err("bad-stake-duplicate");
+      return err;
+    }
+    case staking::BlockValidationError::DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE: {
+      static ValidationError err("bad-txns-duplicate");
+      return err;
+    }
+    case staking::BlockValidationError::DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE: {
+      static ValidationError err("bad-txns-witness-duplicate");
+      return err;
+    }
+    case staking::BlockValidationError::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION: {
+      static ValidationError err("bad-cb-missing");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_BLOCK_HEIGHT: {
+      static ValidationError err("bad-cb-height");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_BLOCK_TIME: {
+      static ValidationError err("bad-blk-time");
+      return err;
+    }
+    case staking::BlockValidationError::INVALID_BLOCK_PUBLIC_KEY: {
+      static ValidationError err("bad-blk-public-key");
+      return err;
+    }
+    case staking::BlockValidationError::MERKLE_ROOT_MISMATCH: {
+      static ValidationError err("bad-txnmrklroot");
+      return err;
+    }
+    case staking::BlockValidationError::NO_BLOCK_HEIGHT: {
+      static ValidationError err("bad-cb-height-missing");
+      return err;
+    }
+    case staking::BlockValidationError::NO_COINBASE_TRANSACTION: {
+      static ValidationError err("bad-cb-missing");
+      return err;
+    }
+    case staking::BlockValidationError::NO_META_INPUT: {
+      static ValidationError err("bad-cb-meta-input-missing");
+      return err;
+    }
+    case staking::BlockValidationError::NO_SNAPSHOT_HASH: {
+      static ValidationError err("bad-cb-snapshot-hash-missing");
+      return err;
+    }
+    case staking::BlockValidationError::NO_STAKING_INPUT: {
+      static ValidationError err("bad-stake-missing");
+      return err;
+    }
+    case staking::BlockValidationError::NO_TRANSACTIONS: {
+      static ValidationError err("bad-blk-no-transactions");
+      return err;
+    }
+    case staking::BlockValidationError::PREVIOUS_BLOCK_DOESNT_MATCH: {
+      static ValidationError err("bad-blk-prev-block-mismatch");
+      return err;
+    }
+    case staking::BlockValidationError::PREVIOUS_BLOCK_NOT_PART_OF_ACTIVE_CHAIN: {
+      static ValidationError err("prev-blk-not-found", 10, 0);
+      return err;
+    }
+    case staking::BlockValidationError::STAKE_IMMATURE: {
+      static ValidationError err("bad-stake-immature");
+      return err;
+    }
+    case staking::BlockValidationError::STAKE_NOT_ELIGIBLE: {
+      static ValidationError err("bad-stake-not-eligible");
+      return err;
+    }
+    case staking::BlockValidationError::STAKE_NOT_FOUND: {
+      static ValidationError err("bad-stake-not-found");
+      return err;
+    }
+    case staking::BlockValidationError::WITNESS_MERKLE_ROOT_MISMATCH: {
+      static ValidationError err("bad-witness-merkle-match");
+      return err;
+    }
+  }
+  assert(false && "silence gcc warnings");
+}
+
+}  // namespace
 
 namespace staking {
 
-std::string GetRejectionMessageFor(const BlockValidationError error) {
-  switch (+error) {
-    case BlockValidationError::BLOCK_SIGNATURE_VERIFICATION_FAILED:
-      return "bad-blk-signature";
-    case BlockValidationError::BLOCKTIME_TOO_EARLY:
-      return "time-too-old";
-    case BlockValidationError::BLOCKTIME_TOO_FAR_INTO_FUTURE:
-      return "time-too-new";
-    case BlockValidationError::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST:
-      return "bad-cp-out-of-order";
-    case BlockValidationError::COINBASE_TRANSACTION_WITHOUT_OUTPUT:
-      return "bad-cp-no-outputs";
-    case BlockValidationError::DUPLICATE_STAKE:
-      return "bad-stake-duplicate";
-    case BlockValidationError::DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE:
-      return "bad-txns-duplicate";
-    case BlockValidationError::DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE:
-      return "bad-txns-witness-duplicate";
-    case BlockValidationError::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION:
-      return "bad-cb-missing";
-    case BlockValidationError::INVALID_BLOCK_HEIGHT:
-      return "bad-cb-height";
-    case BlockValidationError::INVALID_BLOCK_TIME:
-      return "bad-blk-time";
-    case BlockValidationError::INVALID_BLOCK_PUBLIC_KEY:
-      return "bad-blk-public-key";
-    case BlockValidationError::MERKLE_ROOT_MISMATCH:
-      return "bad-txnmrklroot";
-    case BlockValidationError::NO_BLOCK_HEIGHT:
-      return "bad-cb-height-missing";
-    case BlockValidationError::NO_COINBASE_TRANSACTION:
-      return "bad-cb-missing";
-    case BlockValidationError::NO_META_INPUT:
-      return "bad-cb-meta-input-missing";
-    case BlockValidationError::NO_SNAPSHOT_HASH:
-      return "bad-cb-snapshot-hash-missing";
-    case BlockValidationError::NO_STAKING_INPUT:
-      return "bad-stake-missing";
-    case BlockValidationError::NO_TRANSACTIONS:
-      return "bad-blk-no-transactions";
-    case BlockValidationError::PREVIOUS_BLOCK_DOESNT_MATCH:
-      return "bad-blk-prev-block-mismatch";
-    case BlockValidationError::PREVIOUS_BLOCK_NOT_PART_OF_ACTIVE_CHAIN:
-      return "bad-blk-prev-block-missing";
-    case BlockValidationError::STAKE_IMMATURE:
-      return "bad-stake-immature";
-    case BlockValidationError::STAKE_NOT_ELIGIBLE:
-      return "bad-stake-not-eligible";
-    case BlockValidationError::STAKE_NOT_FOUND:
-      return "bad-stake-not-found";
-    case BlockValidationError::WITNESS_MERKLE_ROOT_MISMATCH:
-      return "bad-witness-merkle-match";
+const std::string &GetRejectionMessageFor(const BlockValidationError error) {
+  return GetValidationErrorFor(error).reject_reason;
+}
+
+bool CheckResult(const BlockValidationResult &result, CValidationState &state) {
+  if (!result) {
+    const ValidationError &validation_error = GetValidationErrorFor(*result.errors.begin());
+    state.DoS(
+        validation_error.level, false, validation_error.reject_code, validation_error.reject_reason,
+        validation_error.corruption, result.errors.ToString());
+    return false;
   }
-  assert(false && "silence gcc warnings");
+  return true;
 }
 
 }  // namespace staking

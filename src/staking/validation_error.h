@@ -5,7 +5,11 @@
 
 #include <cstdint>
 
+class CValidationState;
+
 namespace staking {
+
+class BlockValidationResult;
 
 // clang-format off
 BETTER_ENUM(
@@ -39,7 +43,9 @@ BETTER_ENUM(
 )
 // clang-format on
 
-std::string GetRejectionMessageFor(BlockValidationError);
+const std::string& GetRejectionMessageFor(BlockValidationError);
+
+bool CheckResult(const BlockValidationResult& result, CValidationState &state);
 
 }
 
