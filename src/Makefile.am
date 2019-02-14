@@ -295,7 +295,6 @@ libunite_server_a_SOURCES = \
   injector.cpp \
   dbwrapper.cpp \
   merkleblock.cpp \
-  miner.cpp \
   net.cpp \
   net_processing.cpp \
   noui.cpp \
@@ -332,7 +331,6 @@ libunite_server_a_SOURCES = \
   staking/block_validator.cpp \
   staking/network.cpp \
   staking/stake_validator.cpp \
-  staking/transactionpicker.cpp \
   staking/validation_error.cpp \
   staking/validation_result.cpp \
   timedata.cpp \
@@ -364,6 +362,7 @@ libunite_wallet_a_SOURCES = \
   esperanza/walletextension.cpp \
   esperanza/walletextension_deps.cpp \
   key/mnemonic/mnemonic.cpp \
+  miner.cpp \
   proposer/block_builder.cpp \
   proposer/eligible_coin.cpp \
   proposer/multiwallet.cpp \
@@ -372,6 +371,7 @@ libunite_wallet_a_SOURCES = \
   proposer/proposer_rpc.cpp \
   proposer/sync.cpp \
   proposer/waiter.cpp \
+  staking/transactionpicker.cpp \
   rpc/proposing.cpp \
   unilib/uninorms.cpp \
   unilib/utf8.cpp \

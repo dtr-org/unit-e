@@ -46,11 +46,11 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New,
             blockchain::Behavior)
 
-  COMPONENT(TransactionPicker, staking::TransactionPicker, staking::TransactionPicker::New)
-
   COMPONENT(BlockDB, ::BlockDB, BlockDB::New)
 
 #ifdef ENABLE_WALLET
+
+  COMPONENT(TransactionPicker, staking::TransactionPicker, staking::TransactionPicker::New)
 
   COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New)
 
