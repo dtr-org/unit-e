@@ -57,7 +57,7 @@ class BlockchainTest(UnitETestFramework):
             'bip9_softforks',
             'blocks',
             'chain',
-            'chainwork',
+            'chainstake',
             'difficulty',
             'headers',
             'initialblockdownload',
@@ -185,7 +185,7 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(header['height'], 200)
         assert_equal(header['confirmations'], 1)
         assert_equal(header['previousblockhash'], secondbesthash)
-        assert_is_hex_string(header['chainwork'])
+        assert_is_hex_string(header['chainstake'])
         assert_equal(header['nTx'], 1)
         assert_is_hash_string(header['hash'])
         assert_is_hash_string(header['previousblockhash'])
