@@ -7,6 +7,7 @@
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
+#include <injector.h>
 #include <miner.h>
 #include <pow.h>
 #include <random.h>
@@ -150,7 +151,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     CChainParams params = Params();
     esperanza::FinalizationParams fin_params = params.GetFinalization();
     fin_params.epoch_length = 999999;
-    esperanza::FinalizationState::Reset(fin_params, params.GetAdminParams());
+    GetComponent(FinalizationStateStorage)->Reset(fin_params, params.GetAdminParams());
 
     BlockData genesisData;
     {

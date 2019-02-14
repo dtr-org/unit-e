@@ -1307,8 +1307,8 @@ bool AppInitMain()
         }
     }
 
-    esperanza::FinalizationState::Init(chainparams.GetFinalization(),
-                                       chainparams.GetAdminParams());
+    GetComponent(FinalizationStateStorage)->Reset(chainparams.GetFinalization(),
+                                           chainparams.GetAdminParams());
     finalization::VoteRecorder::Init();
 
     // ********************************************************* Step 4a: application initialization

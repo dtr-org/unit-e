@@ -68,4 +68,10 @@ const AdminParams &AdminState::GetParams() const {
   return m_adminParams;
 }
 
+bool AdminState::operator==(const AdminState &other) const {
+  return m_adminPubKeys == other.m_adminPubKeys &&
+         m_whiteList == other.m_whiteList &&
+         m_permissioningIsActive == other.m_permissioningIsActive;
+}
+
 }  // namespace esperanza

@@ -2499,7 +2499,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
-    esperanza::ProcessNewTip(*pindexNew, blockConnecting);
+    GetComponent(FinalizationStateStorage)->ProcessNewTip(*pindexNew, blockConnecting);
 
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
@@ -3972,7 +3972,7 @@ bool LoadChainTip(const CChainParams& chainparams)
 
     g_chainstate.PruneBlockIndexCandidates();
 
-    esperanza::RestoreFinalizationState(chainparams);
+    GetComponent(FinalizationStateStorage)->Restore(chainparams);
 
     LogPrintf("Loaded best chain: hashBestChain=%s height=%d date=%s progress=%f\n",
         chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(),
@@ -4264,10 +4264,10 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         CheckBlockIndex(params.GetConsensus());
 
         if (esperanza::FinalizationState::GetState(chainActive.Tip()) == nullptr) {
-            esperanza::RestoreFinalizationState(params);
+            GetComponent(FinalizationStateStorage)->Restore(params);
         }
     } else {
-        esperanza::FinalizationState::Reset(params.GetFinalization(), params.GetAdminParams());
+       GetComponent(FinalizationStateStorage)->Reset(params.GetFinalization(), params.GetAdminParams());
     }
 
     return true;

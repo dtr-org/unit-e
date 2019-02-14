@@ -61,6 +61,9 @@ BETTER_ENUM(
  * you probably would add it here.
  */
 class FinalizationStateData {
+ public:
+  bool operator==(const FinalizationStateData &other) const;
+
  protected:
   FinalizationStateData(const AdminParams &adminParams);
   FinalizationStateData(const FinalizationStateData &) = default;
@@ -142,10 +145,22 @@ class FinalizationStateData {
  */
 class FinalizationState : public FinalizationStateData {
  public:
+  //! \brief Status of the state
+  enum Status {
+    // State is just created
+    NEW = 0,
+    // State processed finalizer commits.
+    FROM_COMMITS = 1,
+    // State processed finalizer commits from the real block.
+    CONFIRMED = 2,
+  };
+
   FinalizationState(const esperanza::FinalizationParams &params,
                     const esperanza::AdminParams &adminParams);
-  FinalizationState(const FinalizationState &parent);
-  FinalizationState(FinalizationState &&) = default;
+  FinalizationState(const FinalizationState &parent, Status status = NEW);
+  FinalizationState(FinalizationState &&parent);
+  bool operator==(const FinalizationState &other) const;
+  bool operator!=(const FinalizationState &other) const;
 
   //! \brief If the block height passed is the first of a new epoch, then we prepare the
   //! new epoch.
@@ -216,17 +231,6 @@ class FinalizationState : public FinalizationStateData {
   std::vector<Validator> GetValidators() const;
   const Validator *GetValidator(const uint160 &validatorAddress) const;
 
-  static void Init(const esperanza::FinalizationParams &params,
-                   const esperanza::AdminParams &admin_params);
-
-  static void Reset(const esperanza::FinalizationParams &params,
-                    const esperanza::AdminParams &admin_params);
-
-  //! \brief Initialize empty finalization state for current tip.
-  //! It's a workaround for prune mode. We will get rid of it by restoring finalization
-  //! state from commits.
-  static void ResetToTip(const CBlockIndex &block_index);
-
   //! \brief Returns the finalization state for the given block.
   static FinalizationState *GetState(const CBlockIndex *block = nullptr);
 
@@ -257,6 +261,9 @@ class FinalizationState : public FinalizationStateData {
 
   //! \brief Returns whether block on height blockHeight is finalized checkpoint
   bool IsFinalizedCheckpoint(blockchain::Height blockHeight) const;
+
+  //! \brief Returns the status of the state
+  Status GetStatus() const;
 
  private:
   //!In case there is nobody available to justify we justify automatically.
@@ -298,18 +305,11 @@ class FinalizationState : public FinalizationStateData {
 
  protected:
   const FinalizationParams &m_settings;
+  Status m_status = NEW;
 
  private:
   void OnBlock(blockchain::Height blockHeight);
-  void TrimCache();
 };
-
-//! Global version of FinalizationState::ProcessNewTip. Unlike that, this function creates
-//! new instance of the state basing on the state of the previous block.
-bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block);
-
-//! Restore finalization state for actual active chain
-void RestoreFinalizationState(const CChainParams &chainparams);
 
 inline uint32_t GetEpochLength() { return FinalizationState::GetState()->GetEpochLength(); }
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }

@@ -5,6 +5,7 @@
 #include <snapshot/p2p_processing.h>
 
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <snapshot/iterator.h>
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
@@ -363,7 +364,7 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     }
 
     chainActive.SetTip(block_index->pprev);
-    esperanza::FinalizationState::ResetToTip(*chainActive.Tip());
+    GetComponent(FinalizationStateStorage)->ResetToTip(*chainActive.Tip());
 
     snapshot_block_index = block_index->pprev;
     assert(GetSnapshotHash(snapshot_block_index, snapshot_hash));

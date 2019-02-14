@@ -17,6 +17,7 @@ class Validator {
  public:
   Validator();
   Validator(uint64_t deposit, uint32_t startDynasty, uint160 validatorAddress);
+  bool operator==(const Validator &other) const;
 
   uint160 m_validatorAddress;
   uint64_t m_deposit;

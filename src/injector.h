@@ -9,6 +9,7 @@
 
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_parameters.h>
+#include <finalization/state_storage.h>
 #include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/block_validator.h>
@@ -47,6 +48,9 @@ class UnitEInjector : public Injector<UnitEInjector> {
             blockchain::Behavior)
 
   COMPONENT(BlockDB, ::BlockDB, BlockDB::New)
+
+  COMPONENT(FinalizationStateStorage, finalization::StateStorage, finalization::StateStorage::New,
+            staking::ActiveChain)
 
 #ifdef ENABLE_WALLET
 

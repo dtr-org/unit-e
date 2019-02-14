@@ -40,6 +40,7 @@ class AdminState {
   void EndPermissioning();
   bool IsPermissioningActive() const;
   const AdminParams &GetParams() const;
+  bool operator==(const AdminState &other) const;
 };
 
 }  // namespace esperanza

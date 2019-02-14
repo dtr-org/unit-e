@@ -7,6 +7,7 @@
 #include <chainparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/vote.h>
+#include <injector.h>
 #include <script/ismine.h>
 #include <snapshot/creator.h>
 #include <tinyformat.h>
@@ -25,53 +26,6 @@
 namespace esperanza {
 
 namespace {
-//! \brief Storage of finalization states
-//!
-//! This cache keeps track of finalization states corresponding to block indexes.
-class Storage {
- public:
-  //! \brief Return finalization state for index, if any
-  FinalizationState *Find(const CBlockIndex *index);
-
-  //! \brief Try to find, then try to create new state for index.
-  FinalizationState *FindOrCreate(const CBlockIndex *index);
-
-  //! \brief Return state for genesis block
-  FinalizationState *Genesis() const;
-
-  //! \brief Destroy states for indexes with heights less than `height`
-  void ClearUntilHeight(blockchain::Height height);
-
-  //! \brief Reset the storage
-  void Reset(const esperanza::FinalizationParams &params,
-             const esperanza::AdminParams &admin_arams);
-
-  //! \brief Reset the storage and initialize with fresh state for index (for prune mode)
-  void ResetToTip(const esperanza::FinalizationParams &params,
-                  const esperanza::AdminParams &admin_arams,
-                  const CBlockIndex *index);
-
-  //! \brief Restoring tells whether node is reconstructing finalization state
-  bool Restoring() const {
-    return m_restoring;
-  }
-
-  struct RestoringRAII {
-    Storage &s;
-    RestoringRAII(Storage &s) : s(s) { s.m_restoring = true; }
-    ~RestoringRAII() { s.m_restoring = false; }
-  };
-
- private:
-  FinalizationState *Create(const CBlockIndex *index);
-
-  mutable CCriticalSection cs;
-  std::map<const CBlockIndex *, FinalizationState> m_states;
-  std::unique_ptr<FinalizationState> m_genesis_state;
-  std::atomic<bool> m_restoring;
-};
-
-Storage g_storage;
 CCriticalSection cs_init_lock;
 const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 }  // namespace
@@ -88,6 +42,28 @@ inline Result success() { return Result::SUCCESS; }
 FinalizationStateData::FinalizationStateData(const AdminParams &adminParams)
     : m_adminState(adminParams) {}
 
+bool FinalizationStateData::operator==(const FinalizationStateData &other) const {
+  return m_checkpoints == other.m_checkpoints &&
+         m_epochToDynasty == other.m_epochToDynasty &&
+         m_dynastyStartEpoch == other.m_dynastyStartEpoch &&
+         m_validators == other.m_validators &&
+         m_dynastyDeltas == other.m_dynastyDeltas &&
+         m_depositScaleFactor == other.m_depositScaleFactor &&
+         m_totalSlashed == other.m_totalSlashed &&
+         m_currentEpoch == other.m_currentEpoch &&
+         m_currentDynasty == other.m_currentDynasty &&
+         m_curDynDeposits == other.m_curDynDeposits &&
+         m_prevDynDeposits == other.m_prevDynDeposits &&
+         m_expectedSourceEpoch == other.m_expectedSourceEpoch &&
+         m_lastFinalizedEpoch == other.m_lastFinalizedEpoch &&
+         m_lastJustifiedEpoch == other.m_lastJustifiedEpoch &&
+         m_recommendedTarget == other.m_recommendedTarget &&
+         m_lastVoterRescale == other.m_lastVoterRescale &&
+         m_lastNonVoterRescale == other.m_lastNonVoterRescale &&
+         m_rewardFactor == other.m_rewardFactor &&
+         m_adminState == other.m_adminState;
+}
+
 FinalizationState::FinalizationState(
     const esperanza::FinalizationParams &params,
     const esperanza::AdminParams &adminParams)
@@ -102,8 +78,24 @@ FinalizationState::FinalizationState(
   m_checkpoints[0] = cp;
 }
 
-FinalizationState::FinalizationState(const FinalizationState &parent)
-    : FinalizationStateData(parent), m_settings(parent.m_settings) {}
+FinalizationState::FinalizationState(const FinalizationState &parent, Status status)
+    : FinalizationStateData(parent),
+      m_settings(parent.m_settings),
+      m_status(status) {}
+
+FinalizationState::FinalizationState(FinalizationState &&parent)
+    : FinalizationStateData(std::move(parent)),
+      m_settings(parent.m_settings),
+      m_status(parent.m_status) {}
+
+bool FinalizationState::operator==(const FinalizationState &other) const {
+  return static_cast<const FinalizationStateData &>(*this) ==
+         static_cast<const FinalizationStateData &>(other);
+}
+
+bool FinalizationState::operator!=(const FinalizationState &other) const {
+  return not(*this == other);
+}
 
 Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
@@ -179,8 +171,6 @@ void FinalizationState::InstaJustify() {
       m_lastFinalizedEpoch = expected_finalized;
     }
   }
-
-  TrimCache();
 
   LogPrint(BCLog::FINALIZATION, "%s: Justified epoch=%d.\n", __func__,
            m_lastJustifiedEpoch);
@@ -545,7 +535,6 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     if (targetEpoch == sourceEpoch + 1) {
       GetCheckpoint(sourceEpoch).m_isFinalized = true;
       m_lastFinalizedEpoch = sourceEpoch;
-      TrimCache();
       LogPrint(BCLog::FINALIZATION, "%s: epoch=%d finalized.\n", __func__,
                sourceEpoch);
     }
@@ -868,9 +857,9 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
 
 FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
   if (block_index == nullptr) {
-    block_index = chainActive.Tip();
+    return GetComponent(FinalizationStateStorage)->GetState();
   }
-  return g_storage.Find(block_index);
+  return GetComponent(FinalizationStateStorage)->GetState(*block_index);
 }
 
 uint32_t FinalizationState::GetEpochLength() const {
@@ -906,28 +895,6 @@ const Validator *FinalizationState::GetValidator(const uint160 &validatorAddress
 
 bool FinalizationState::ValidateDepositAmount(CAmount amount) {
   return amount >= GetState()->m_settings.min_deposit_size;
-}
-
-void FinalizationState::Init(const esperanza::FinalizationParams &params,
-                             const esperanza::AdminParams &admin_params) {
-  LOCK(cs_init_lock);
-  g_storage.Reset(params, admin_params);
-}
-
-void FinalizationState::Reset(const esperanza::FinalizationParams &params,
-                              const esperanza::AdminParams &admin_params) {
-  LogPrint(BCLog::FINALIZATION, "Completely reset finalization state\n");
-  LOCK(cs_init_lock);
-  g_storage.Reset(params, admin_params);
-}
-
-void FinalizationState::ResetToTip(const CBlockIndex &index) {
-  LogPrint(BCLog::FINALIZATION, "Restore finalization state to tip: %s\n",
-           index.GetBlockHash().GetHex());
-  LOCK(cs_init_lock);
-  const auto state = g_storage.Genesis();
-  assert(state != nullptr);
-  g_storage.ResetToTip(state->m_settings, state->m_adminState.GetParams(), &index);
 }
 
 void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
@@ -1003,7 +970,11 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
 
 bool FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
                                       const CBlock &block) {
-  return ProcessNewCommits(block_index, block.vtx);
+  if (!ProcessNewCommits(block_index, block.vtx)) {
+    return false;
+  }
+  m_status = CONFIRMED;
+  return true;
 }
 
 bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
@@ -1028,12 +999,6 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     ProcessNewCommit(tx);
   }
 
-  if (!g_storage.Restoring() && (block_index.nHeight + 2) % m_settings.epoch_length == 0) {
-    // Generate the snapshot for the block which is one block behind the last one.
-    // The last epoch block will contain the snapshot hash pointing to this snapshot.
-    snapshot::Creator::GenerateOrSkip(m_currentEpoch);
-  }
-
   // This is the last block for the current epoch and it represent it, so we
   // update the targetHash.
   if (block_index.nHeight % m_settings.epoch_length == m_settings.epoch_length - 1) {
@@ -1053,6 +1018,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
       snapshot::Creator::FinalizeSnapshots(chainActive[height]);
     }
   }
+  m_status = FROM_COMMITS;
   return true;
 }
 
@@ -1112,119 +1078,8 @@ bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) co
   return it != m_checkpoints.end() && it->second.m_isFinalized;
 }
 
-void FinalizationState::TrimCache() {
-  // last finalized checkpoint
-  const auto height = (GetLastFinalizedEpoch() + 1) * GetEpochLength() - 1;
-  LogPrint(BCLog::FINALIZATION, "Removing finalization states for height < %d\n", height);
-  g_storage.ClearUntilHeight(height);
-}
-
-// Storage implementation section
-
-FinalizationState *Storage::Find(const CBlockIndex *index) {
-  LOCK(cs);
-  if (index == nullptr) {
-    return nullptr;
-  }
-  if (index->nHeight == 0) {
-    return Genesis();
-  }
-  const auto it = m_states.find(index);
-  if (it == m_states.end()) {
-    return nullptr;
-  } else {
-    return &it->second;
-  }
-}
-
-FinalizationState *Storage::Create(const CBlockIndex *index) {
-  AssertLockHeld(cs);
-  if (index->pprev == nullptr) {
-    return nullptr;
-  }
-  const auto parent = Find(index->pprev);
-  if (parent == nullptr) {
-    return nullptr;
-  }
-  const auto res = m_states.emplace(index, FinalizationState(*parent));
-  return &res.first->second;
-}
-
-FinalizationState *Storage::FindOrCreate(const CBlockIndex *index) {
-  LOCK(cs);
-  if (const auto state = Find(index)) {
-    return state;
-  }
-  return Create(index);
-}
-
-void Storage::Reset(const esperanza::FinalizationParams &params,
-                    const esperanza::AdminParams &admin_params) {
-  LOCK(cs);
-  m_states.clear();
-  m_genesis_state.reset(new FinalizationState(params, admin_params));
-}
-
-void Storage::ResetToTip(const esperanza::FinalizationParams &params,
-                         const esperanza::AdminParams &admin_params,
-                         const CBlockIndex *index) {
-  LOCK(cs);
-  Reset(params, admin_params);
-  m_states.emplace(index, FinalizationState(*Genesis()));
-}
-
-void Storage::ClearUntilHeight(blockchain::Height height) {
-  LOCK(cs);
-  for (auto it = m_states.begin(); it != m_states.end();) {
-    const auto index = it->first;
-    if (static_cast<blockchain::Height>(index->nHeight) < height) {
-      it = m_states.erase(it);
-    } else {
-      ++it;
-    }
-  }
-}
-
-FinalizationState *Storage::Genesis() const {
-  LOCK(cs);
-  return m_genesis_state.get();
-}
-
-// Global functions section
-
-bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) {
-  LogPrint(BCLog::FINALIZATION, "%s: Processing block %d with hash %s.\n",
-           __func__, block_index.nHeight, block_index.GetBlockHash().GetHex());
-  const auto state = g_storage.FindOrCreate(&block_index);
-  if (state == nullptr) {
-    return false;
-  }
-  return state->ProcessNewTip(block_index, block);
-}
-
-// In this version we read all the blocks from the disk.
-// This function might be significantly optimized by using finalization
-// state serialization.
-void RestoreFinalizationState(const CChainParams &chainparams) {
-  Storage::RestoringRAII restoring(g_storage);
-  if (fPruneMode) {
-    if (chainActive.Tip() != nullptr) {
-      FinalizationState::ResetToTip(*chainActive.Tip());
-    } else {
-      FinalizationState::Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
-    }
-    return;
-  }
-  LogPrint(BCLog::FINALIZATION, "Restore finalization state from disk\n");
-  g_storage.Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
-  for (int i = 1; i <= chainActive.Height(); ++i) {
-    const CBlockIndex *const index = chainActive[i];
-    CBlock block;
-    if (!ReadBlockFromDisk(block, index, chainparams.GetConsensus())) {
-      assert(not("Failed to read block"));
-    }
-    esperanza::ProcessNewTip(*index, block);
-  }
+FinalizationState::Status FinalizationState::GetStatus() const {
+  return m_status;
 }
 
 }  // namespace esperanza

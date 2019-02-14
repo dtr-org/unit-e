@@ -22,4 +22,14 @@ uint64_t Checkpoint::GetPrevDynastyVotes(uint32_t epoch) {
   return pair.first->second;
 }
 
+bool Checkpoint::operator==(const Checkpoint &other) const {
+  return m_isJustified == other.m_isJustified &&
+         m_isFinalized == other.m_isFinalized &&
+         m_curDynastyDeposits == other.m_curDynastyDeposits &&
+         m_prevDynastyDeposits == other.m_prevDynastyDeposits &&
+         m_curDynastyVotes == other.m_curDynastyVotes &&
+         m_prevDynastyVotes == other.m_prevDynastyVotes &&
+         m_voteSet == other.m_voteSet;
+}
+
 }  // namespace esperanza

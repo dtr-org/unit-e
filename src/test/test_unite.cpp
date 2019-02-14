@@ -116,8 +116,8 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         threadGroup.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
 
-        esperanza::FinalizationState::Reset(chainparams.GetFinalization(),
-                                            chainparams.GetAdminParams());
+        GetComponent(FinalizationStateStorage)->Reset(chainparams.GetFinalization(),
+                                               chainparams.GetAdminParams());
 
         finalization::VoteRecorder::Reset();
 
