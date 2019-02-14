@@ -145,6 +145,11 @@ static CCoinControl ParseCoinControlArgument(const UniValue &uvCoinControl) {
     coinControl.fOverrideFeeRate = true;
   }
 
+  if (uvCoinControl.exists("ignore_remote_staked")) {
+    coinControl.m_ignore_remote_staked =
+        uvCoinControl["ignore_remote_staked"].get_bool();
+  }
+
   return coinControl;
 }
 
@@ -204,6 +209,8 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
         "                           feerate (" +
         CURRENCY_UNIT +
         " per KB)\n"
+        "    7.7 \"ignore_remote_staked\" (boolean, opional, default=false) "
+        "Exclude coins that are currently staked on other nodes.\n"
         "\nResult:\n"
         "\"txid\"              (string) The transaction id.\n"
         "\nExamples:\n" +
@@ -344,6 +351,8 @@ constexpr const char* STAKEAT_HELP = "stakeat recipient test_fee coin_control\n"
 "    3.6 \"fee_rate\"        (numeric, optional, default not set: "
 "makes wallet determine the fee) Set a specific \n"
 "                           feerate (%s per KB)\n"
+"    7.7 \"ignore_remote_staked\" (boolean, opional, default=false) "
+"Exclude coins that are currently staked on other nodes.\n"
 "\nResult:\n"
 "\"txid\"              (string) The transaction id.\n"
 "\nExamples:\n%s";

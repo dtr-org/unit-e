@@ -702,4 +702,43 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 }
 
+// Test that AvailableCoins follows coin control settings for
+// ignoring remotely staked coins.
+BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
+{
+    std::vector<COutput> coins;
+
+    CKey our_key;
+    our_key.MakeNewKey(/* compressed: */ true);
+    {
+        LOCK(wallet->cs_wallet);
+        wallet->AddKey(our_key);
+    }
+
+    CKey their_key;
+    their_key.MakeNewKey(true);
+
+    wallet->AvailableCoins(coins);
+    // One coinbase has reached maturity
+    BOOST_CHECK_EQUAL(1, coins.size());
+
+    AddTx(CRecipient {
+      CScript::CreateRemoteStakingScript(
+        ToByteVector(their_key.GetPubKey().GetID()),
+        ToByteVector(our_key.GetPubKey().GetSha256())
+      ), 1 * UNIT, false
+    });
+
+    wallet->AvailableCoins(coins);
+    // Two coinbase and one remote staking output
+    BOOST_CHECK_EQUAL(3, coins.size());
+
+    CCoinControl coin_control;
+    coin_control.m_ignore_remote_staked = true;
+
+    wallet->AvailableCoins(coins, true, &coin_control);
+    // Remote staking output should be ignored
+    BOOST_CHECK_EQUAL(2, coins.size());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
