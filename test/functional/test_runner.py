@@ -16,6 +16,7 @@ For a description of arguments recognized by test scripts, see
 
 import argparse
 from collections import deque
+from multiprocessing import cpu_count
 import configparser
 import datetime
 import os
@@ -220,6 +221,7 @@ NON_SCRIPTS = [
 ]
 
 def main():
+    num_cores = cpu_count()
     # Parse arguments and pass through unrecognised args
     parser = argparse.ArgumentParser(add_help=False,
                                      usage='%(prog)s [test_runner.py options] [script options] [scripts]',
@@ -233,7 +235,7 @@ def main():
     parser.add_argument('--extended', action='store_true', help='run the extended test suite in addition to the basic tests')
     parser.add_argument('--force', '-f', action='store_true', help='run tests even on platforms where they are disabled by default (e.g. windows).')
     parser.add_argument('--help', '-h', '-?', action='store_true', help='print help text and exit')
-    parser.add_argument('--jobs', '-j', type=int, default=4, help='how many test scripts to run in parallel. Default=4.')
+    parser.add_argument('--jobs', '-j', type=int, default=num_cores, help='how many test scripts to run in parallel. Default=%d.' % num_cores)
     parser.add_argument('--keepcache', '-k', action='store_true', help='the default behavior is to flush the cache directory on startup. --keepcache retains the cache from the previous testrun.')
     parser.add_argument('--quiet', '-q', action='store_true', help='only print results summary and failure logs')
     parser.add_argument('--tmpdirprefix', '-t', default=tempfile.gettempdir(), help="Root directory for datadirs")
@@ -259,6 +261,7 @@ def main():
     os.makedirs(tmpdir)
 
     logging.debug("Temporary test directory at %s" % tmpdir)
+    logging.debug("Running %d jobs in parallel" % args.jobs)
 
     enable_wallet = config["components"].getboolean("ENABLE_WALLET")
     enable_utils = config["components"].getboolean("ENABLE_UTILS")
