@@ -704,7 +704,7 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(1, coins.size());
 
     AddTx(CRecipient {
-      CScript::CreateRemoteStakingScript(
+      CScript::CreateRemoteStakingKeyhashScript(
         ToByteVector(their_key.GetPubKey().GetID()),
         ToByteVector(our_key.GetPubKey().GetSha256())
       ), 1 * UNIT, false
