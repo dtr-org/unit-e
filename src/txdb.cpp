@@ -6,13 +6,14 @@
 #include <txdb.h>
 
 #include <chainparams.h>
+#include <consensus/validation.h>
 #include <hash.h>
 #include <random.h>
-#include <pow.h>
 #include <uint256.h>
 #include <util.h>
 #include <ui_interface.h>
 #include <init.h>
+#include <validation.h>
 
 #include <stdint.h>
 
@@ -296,7 +297,8 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nTx            = diskindex.nTx;
                 pindexNew->commits        = std::move(diskindex.commits);
 
-                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams))
+                CValidationState validation_state;
+                if (!CheckBlockHeader(pindexNew->GetBlockHeader(), validation_state, consensusParams))
                     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
 
                 pcursor->Next();
