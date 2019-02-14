@@ -83,7 +83,7 @@ BlockData Block(const BlockData &prevData)
     CBlockIndex bi;
     bi.stake_modifier = prevData.block_index.stake_modifier;
     bi.nBits = pblock->nBits;
-    bi.nChainWork = prevData.block_index.nChainWork + GetBlockProof(bi);
+    bi.chain_stake = prevData.block_index.chain_stake + GetBlockProof(bi);
     return BlockData{pblock, bi, newHash, prevData.height + 1};
 }
 
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 
         CBlockIndex bi;
         bi.nBits = genesisData.block->nBits;
-        bi.nChainWork = GetBlockProof(bi);
+        bi.chain_stake = GetBlockProof(bi);
         genesisData.block_index = bi;
 
         for (size_t txIdx = 0; txIdx < genesisData.block->vtx.size(); ++txIdx) {

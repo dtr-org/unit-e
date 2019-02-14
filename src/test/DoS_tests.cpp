@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
     // This test requires that we have a chain with non-zero work.
     LOCK(cs_main);
     BOOST_CHECK(chainActive.Tip() != nullptr);
-    BOOST_CHECK(chainActive.Tip()->nChainWork > 0);
+    BOOST_CHECK(chainActive.Tip()->chain_stake > 0);
 
     // Test starts here
     LOCK(dummyNode1.cs_sendProcessing);

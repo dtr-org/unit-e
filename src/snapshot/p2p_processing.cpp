@@ -374,7 +374,7 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     std::unique_ptr<Indexer> idx = Indexer::Open(snapshot_hash);
     assert(idx);
     snapshot_block_index->stake_modifier = idx->GetSnapshotHeader().stake_modifier;
-    snapshot_block_index->nChainWork = UintToArith256(idx->GetSnapshotHeader().chain_work);
+    snapshot_block_index->chain_stake = UintToArith256(idx->GetSnapshotHeader().chain_work);
 
     if (!pcoinsTip->ApplySnapshot(std::move(idx))) {
       // if we can't write the snapshot, we have an issue with the DB

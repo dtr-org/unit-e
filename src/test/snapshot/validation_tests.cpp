@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
     block.nHeight = 100;
     CBlockIndex prevBlock;
     prevBlock.stake_modifier = uint256S("aa");
-    prevBlock.nChainWork = arith_uint256("bb");
+    prevBlock.chain_stake = arith_uint256("bb");
     block.pprev = &prevBlock;
 
     snapshot::SnapshotHash hash1;
@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
     CTxIn in;
 
     uint256 h = snapshot::SnapshotHash().GetHash(prevBlock.stake_modifier,
-                                                 ArithToUint256(prevBlock.nChainWork));
+                                                 ArithToUint256(prevBlock.chain_stake));
     std::vector<uint8_t> hash(h.begin(), h.end());
     in.scriptSig << block.nHeight << hash << OP_0;
     mtx.vin.emplace_back(in);
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
     CCoinsMap map;
     BOOST_CHECK(pcoinsdbview->BatchWrite(map, uint256S("aa"), snapHash));
     uint256 hash = snapHash.GetHash(prevBlock.stake_modifier,
-                                    ArithToUint256(prevBlock.nChainWork));
+                                    ArithToUint256(prevBlock.chain_stake));
 
     CMutableTransaction mtx;
     CTxIn in;

@@ -137,10 +137,10 @@ int64_t GetBlockProofEquivalentTime(const CBlockIndex& to, const CBlockIndex& fr
 {
     arith_uint256 r;
     int sign = 1;
-    if (to.nChainWork > from.nChainWork) {
-        r = to.nChainWork - from.nChainWork;
+    if (to.chain_stake > from.chain_stake) {
+        r = to.chain_stake - from.chain_stake;
     } else {
-        r = from.nChainWork - to.nChainWork;
+        r = from.chain_stake - to.chain_stake;
         sign = -1;
     }
     r = r * arith_uint256(params.nPowTargetSpacing) / GetBlockProof(tip);

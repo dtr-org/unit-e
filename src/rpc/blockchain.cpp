@@ -105,7 +105,7 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("nonce", (uint64_t)blockindex->nNonce));
     result.push_back(Pair("bits", strprintf("%08x", blockindex->nBits)));
     result.push_back(Pair("difficulty", SanitizeDouble(GetDifficulty(blockindex))));
-    result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
+    result.push_back(Pair("chainwork", blockindex->chain_stake.GetHex()));
     result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
 
     if (blockindex->pprev)
@@ -151,7 +151,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.push_back(Pair("nonce", (uint64_t)block.nNonce));
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
     result.push_back(Pair("difficulty", SanitizeDouble(GetDifficulty(blockindex))));
-    result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
+    result.push_back(Pair("chainwork", blockindex->chain_stake.GetHex()));
     result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
 
     if (blockindex->pprev)
@@ -1193,7 +1193,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.push_back(Pair("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip())));
     obj.push_back(Pair("initialblockdownload",  IsInitialBlockDownload()));
     obj.push_back(Pair("initialsnapshotdownload",  snapshot::IsInitialSnapshotDownload()));
-    obj.push_back(Pair("chainwork",             chainActive.Tip()->nChainWork.GetHex()));
+    obj.push_back(Pair("chainwork",             chainActive.Tip()->chain_stake.GetHex()));
     obj.push_back(Pair("size_on_disk",          CalculateCurrentUsage()));
     obj.push_back(Pair("pruned",                fPruneMode));
     if (fPruneMode) {

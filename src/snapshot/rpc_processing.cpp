@@ -99,7 +99,7 @@ UniValue getblocksnapshot(const JSONRPCRequest &request) {
   uint256 snapshot_hash;
   if (block_index == chainActive.Tip()) {
     snapshot_hash = pcoinsTip->GetSnapshotHash().GetHash(block_index->stake_modifier,
-                                                         ArithToUint256(block_index->nChainWork));
+                                                         ArithToUint256(block_index->chain_stake));
   } else {
     CBlockIndex *parent = chainActive[block_index->nHeight + 1];
     if (parent->pprev != block_index) {
@@ -254,7 +254,7 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
   LOCK(cs_main);
   SnapshotHash hash = pcoinsTip->GetSnapshotHash();
   uint256 sm = chainActive.Tip()->stake_modifier;
-  uint256 cw = ArithToUint256(chainActive.Tip()->nChainWork);
+  uint256 cw = ArithToUint256(chainActive.Tip()->chain_stake);
   root.push_back(Pair("hash", HexStr(hash.GetHash(sm, cw))));
   root.push_back(Pair("data", HexStr(hash.GetData())));
 

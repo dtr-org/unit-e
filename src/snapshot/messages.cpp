@@ -71,7 +71,7 @@ uint256 SnapshotHash::GetHash(const uint256 &stake_modifier,
 }
 
 uint256 SnapshotHash::GetHash(const CBlockIndex &block_index) const {
-  return GetHash(block_index.stake_modifier, ArithToUint256(block_index.nChainWork));
+  return GetHash(block_index.stake_modifier, ArithToUint256(block_index.chain_stake));
 }
 
 std::vector<uint8_t> SnapshotHash::GetHashVector(const CBlockIndex &block_index) const {
