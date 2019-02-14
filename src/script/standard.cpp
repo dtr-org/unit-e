@@ -85,7 +85,7 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
             vSolutionsRet.push_back(witnessProgram.program[0]);
             return true;
         }
-        if (witnessProgram.IsRemoteStaking()) {
+        if (witnessProgram.IsRemoteStakingP2PKH()) {
             typeRet = TX_WITNESS_V1_RS_KEYHASH;
             vSolutionsRet.push_back(witnessProgram.program[0]);  // staking pubkey hash
             vSolutionsRet.push_back(witnessProgram.program[1]);  // spending pubkey hash

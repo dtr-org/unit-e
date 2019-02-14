@@ -1453,7 +1453,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
     } else if (witnessProgram.version == 1) {
-        if (witnessProgram.IsRemoteStaking()) {
+        if (witnessProgram.IsRemoteStakingP2PKH()) {
             // Both branches of remote staking script require two items in witness
             if (witness.stack.size() != 2) {
                 return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
@@ -1635,7 +1635,7 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
 
 size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitness& witness, int flags)
 {
-    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStaking()) {
+    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStakingP2PKH()) {
         return 1;
     }
 

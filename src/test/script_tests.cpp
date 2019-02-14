@@ -1716,7 +1716,7 @@ BOOST_AUTO_TEST_CASE(witness_program)
     script.clear();
     script << OP_1 << hash_160 << hash_256;
     BOOST_CHECK(script.ExtractWitnessProgram(program));
-    BOOST_CHECK(program.IsRemoteStaking());
+    BOOST_CHECK(program.IsRemoteStakingP2PKH());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
                                   hash_160.begin(), hash_160.end());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),

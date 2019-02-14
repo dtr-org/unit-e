@@ -440,7 +440,7 @@ struct WitnessProgram
 
   bool IsPayToScriptHash() const;
   bool IsPayToPubkeyHash() const;
-  bool IsRemoteStaking() const;
+  bool IsRemoteStakingP2PKH() const;
   bool IsRemoteStakingP2SH() const;
 };
 
