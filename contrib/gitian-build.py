@@ -440,7 +440,7 @@ def main():
     parser.add_argument('--win-code-key', dest='win_code_key_path', help='Path to key corresponding to code signing certificate.')
     parser.add_argument('--signer', dest='signer', help='GPG signer to sign each build assert file. Required to build, sign or verify')
     parser.add_argument('--version', dest='version', help='Version number, commit, or branch to build. If building a commit or branch, the -c option must be specified. Required to build, sign or verify')
-    parser.add_argument('--skip-checkout', action='store_true', help='Skip checkout of git repo. Use with care as it might leave you in an inconsistent state.')
+    parser.add_argument('--skip-checkout', dest='skip_checkout', action='store_true', help='Skip checkout of git repo. Use with care as it might leave you in an inconsistent state.')
     parser.add_argument('--hosts', dest='hosts', help='Specify hosts for which is built. See the gitian descriptors for valid values.')
     parser.add_argument('-w', '--work-dir', dest='work_dir', help='Working directory where data is checked out and the build takes place. The directory will be created if it does not exist.')
     args = parser.parse_args()
