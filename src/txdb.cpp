@@ -283,6 +283,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nHeight        = diskindex.nHeight;
                 pindexNew->nFile          = diskindex.nFile;
                 pindexNew->stake_modifier = diskindex.stake_modifier;
+                pindexNew->stake_amount   = diskindex.stake_amount;
                 pindexNew->prevout_stake  = diskindex.prevout_stake;
                 pindexNew->money_supply   = diskindex.money_supply;
                 pindexNew->nDataPos       = diskindex.nDataPos;

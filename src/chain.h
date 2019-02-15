@@ -198,6 +198,11 @@ public:
     //! (memory only) Total amount of work (expected number of hashes) in the chain up to and including this block
     arith_uint256 nChainWork;
 
+    //! \brief The amount of stake that was used to propose this block.
+    //!
+    //! This value is crucial for kernel and difficulty computation.
+    CAmount stake_amount;
+
     //! Number of transactions in this block.
     //! Note: in a potential headers-first mode, this number cannot be relied upon
     unsigned int nTx;
@@ -245,6 +250,7 @@ public:
         nDataPos = 0;
         nUndoPos = 0;
         nChainWork = arith_uint256();
+        stake_amount = 0;
         nTx = 0;
         nChainTx = 0;
         nStatus = 0;
@@ -420,6 +426,7 @@ public:
 
         READWRITE(stake_modifier);
         READWRITE(prevout_stake);
+        READWRITE(VARINT(stake_amount));
         READWRITE(VARINT(money_supply));
 
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
