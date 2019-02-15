@@ -133,12 +133,12 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         // Legacy counting only includes signature operations in scriptSigs and scriptPubKeys
         // of a transaction and does not take the actual executed sig operations into account.
         // spendingTx in itself does not contain a signature operation.
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 0);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 0);
         // creationTx contains two signature operations in its scriptPubKey, but legacy counting
         // is not accurate.
-        assert(GetTransactionSigOpCost(CTransaction(creationTx), coins, flags) == MAX_PUBKEYS_PER_MULTISIG * WITNESS_SCALE_FACTOR);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(creationTx), coins, flags), MAX_PUBKEYS_PER_MULTISIG * WITNESS_SCALE_FACTOR);
         // Sanity check: script verification fails because of an invalid signature.
-        assert(VerifyWithFlag(creationTx, spendingTx, flags) == SCRIPT_ERR_CHECKMULTISIGVERIFY);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
     }
 
     // Multisig nested in P2SH
@@ -148,8 +148,8 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         CScript scriptSig = CScript() << OP_0 << OP_0 << ToByteVector(redeemScript);
 
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, CScriptWitness());
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 2 * WITNESS_SCALE_FACTOR);
-        assert(VerifyWithFlag(creationTx, spendingTx, flags) == SCRIPT_ERR_CHECKMULTISIGVERIFY);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2 * WITNESS_SCALE_FACTOR);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
     }
 
     // P2WPKH witness program
@@ -163,22 +163,22 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
 
 
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 1);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
         // No signature operations if we don't verify the witness.
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS) == 0);
-        assert(VerifyWithFlag(creationTx, spendingTx, flags) == SCRIPT_ERR_EQUALVERIFY);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
 
-        // The sig op cost for witness version != 0 is zero.
-        assert(scriptPubKey[0] == 0x00);
-        scriptPubKey[0] = 0x51;
+        // The sig op cost for witness version > 2 is zero.
+        BOOST_CHECK_EQUAL(scriptPubKey[0], 0x00);
+        scriptPubKey[0] = 0x53;
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 0);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 0);
         scriptPubKey[0] = 0x00;
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
 
         // The witness of a coinbase transaction is not taken into account.
         spendingTx.vin[0].prevout.SetNull();
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 0);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 0);
     }
 
     // P2WPKH nested in P2SH
@@ -192,8 +192,8 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         scriptWitness.stack.push_back(std::vector<unsigned char>(0));
 
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 1);
-        assert(VerifyWithFlag(creationTx, spendingTx, flags) == SCRIPT_ERR_EQUALVERIFY);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
 
     // P2WSH witness program
@@ -207,9 +207,9 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         scriptWitness.stack.push_back(std::vector<unsigned char>(witnessScript.begin(), witnessScript.end()));
 
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 2);
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS) == 0);
-        assert(VerifyWithFlag(creationTx, spendingTx, flags) == SCRIPT_ERR_CHECKMULTISIGVERIFY);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
     }
 
     // P2WSH nested in P2SH
@@ -224,8 +224,52 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         scriptWitness.stack.push_back(std::vector<unsigned char>(witnessScript.begin(), witnessScript.end()));
 
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 2);
-        assert(VerifyWithFlag(creationTx, spendingTx, flags) == SCRIPT_ERR_CHECKMULTISIGVERIFY);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
+    }
+
+    // Remote staking P2PKH witness program
+    {
+        CScript scriptPubKey = CScript() << OP_1 << ToByteVector(pubkey.GetID()) << ToByteVector(pubkey.GetSha256());
+        CScript scriptSig = CScript();
+        CScriptWitness scriptWitness;
+        scriptWitness.stack.emplace_back(0);
+        scriptWitness.stack.emplace_back(0);
+
+        BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
+        // No signature operations if we don't verify the witness.
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
+
+        // The number of signature operations for RSP2PKH does not depend on the type of the transaction
+        spendingTx.SetType(TxType::COINBASE);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
+    }
+
+    // Remote staking P2WSH witness program
+    {
+        CScript witnessScript = CScript() << 1 << ToByteVector(pubkey) << ToByteVector(pubkey) << 2 << OP_CHECKMULTISIGVERIFY;
+        CScript scriptPubKey = CScript() << OP_2 << ToByteVector(pubkey.GetID()) << ToByteVector(Sha256(witnessScript.begin(), witnessScript.end()));
+        CScript scriptSig = CScript();
+        CScriptWitness scriptWitness;
+        scriptWitness.stack.emplace_back(0);
+        scriptWitness.stack.emplace_back(0);
+        scriptWitness.stack.emplace_back(witnessScript.begin(), witnessScript.end());
+
+        BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
+        spendingTx.SetType(TxType::STANDARD);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
+
+        // The number of signature operations for RSP2PKH in a coinbase transaction always equals one
+        scriptWitness.stack.pop_back();
+        BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
+        spendingTx.SetType(TxType::COINBASE);
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
 }
 

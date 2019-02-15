@@ -1633,13 +1633,14 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
     return set_success(serror);
 }
 
-size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitness& witness, int flags)
+size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitness& witness, int flags, TxType type)
 {
-    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStakingP2PKH()) {
+    bool is_staking_rsp2sh = type == +TxType::COINBASE && witprogram.IsRemoteStakingP2SH();
+    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStakingP2PKH() || is_staking_rsp2sh) {
         return 1;
     }
 
-    if (witprogram.IsPayToScriptHash() && witness.stack.size() > 0) {
+    if ((witprogram.IsPayToScriptHash() || witprogram.IsRemoteStakingP2SH()) && !witness.stack.empty()) {
         CScript subscript(witness.stack.back().begin(), witness.stack.back().end());
         return subscript.GetSigOpCount(true);
     }
@@ -1648,7 +1649,8 @@ size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitne
     return 0;
 }
 
-size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness, unsigned int flags)
+size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness,
+                          unsigned int flags, TxType type)
 {
     static const CScriptWitness witnessEmpty;
 
@@ -1659,7 +1661,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
 
     WitnessProgram witnessProgram;
     if (scriptPubKey.ExtractWitnessProgram(witnessProgram)) {
-        return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags);
+        return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags, type);
     }
 
     if (scriptPubKey.IsPayToScriptHash() && scriptSig.IsPushOnly()) {
@@ -1671,7 +1673,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
         }
         CScript subscript(data.begin(), data.end());
         if (subscript.ExtractWitnessProgram(witnessProgram)) {
-            return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags);
+            return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags, type);
         }
     }
 
