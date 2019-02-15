@@ -105,6 +105,8 @@ UNITE_CORE_H = \
   compressor.h \
   consensus/consensus.h \
   consensus/tx_verify.h \
+  consensus/ltor.h \
+  consensus/ltor.cpp \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
@@ -448,6 +450,8 @@ libunite_consensus_a_SOURCES = \
   amount.h \
   arith_uint256.cpp \
   arith_uint256.h \
+  consensus/ltor.h \
+  consensus/ltor.cpp \
   consensus/merkle.cpp \
   consensus/merkle.h \
   consensus/params.h \

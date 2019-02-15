@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <consensus/ltor.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
 #include <keystore.h>
@@ -12,12 +13,7 @@
 
 namespace {
 void SortTxs(CBlock &block, bool reverse = false) {
-
-  auto comparator = [](CTransactionRef a, CTransactionRef b) -> bool {
-    return a->GetHash().CompareAsNumber(b->GetHash()) < 0;
-  };
-
-  std::sort(block.vtx.begin() + 1, block.vtx.end(), comparator);
+  ltor::SortTransactions(block.vtx);
   if (reverse) {
     std::reverse(block.vtx.begin() + 1, block.vtx.end());
   }
