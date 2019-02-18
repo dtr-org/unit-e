@@ -297,7 +297,7 @@ BlockValidationResult AbstractBlockValidator::ContextualCheckBlock(
     }
   }
   // Make sure ContextualCheckBlockHeader has passed
-  if (!block_validation_info || !block_validation_info->GetContextualCheckBlockHeaderStatus()) {
+  if (!block_validation_info->GetContextualCheckBlockHeaderStatus()) {
     result.AddAll(ContextualCheckBlockHeader(block, prev_block, adjusted_time, block_validation_info));
     if (!result) {
       return result;
@@ -305,13 +305,11 @@ BlockValidationResult AbstractBlockValidator::ContextualCheckBlock(
   }
   // perform the actual checks
   ContextualCheckBlockInternal(block, prev_block, *block_validation_info, result);
-  // save results in block_validation_info if present
-  if (block_validation_info) {
-    if (result) {
-      block_validation_info->MarkContextualCheckBlockSuccessfull();
-    } else {
-      block_validation_info->MarkContextualCheckBlockFailed();
-    }
+  // save results in block_validation_info
+  if (result) {
+    block_validation_info->MarkContextualCheckBlockSuccessfull();
+  } else {
+    block_validation_info->MarkContextualCheckBlockFailed();
   }
   return result;
 }
