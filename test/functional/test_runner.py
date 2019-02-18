@@ -85,6 +85,7 @@ BASE_SCRIPTS= [
     'wallet_zapwallettxes.py',
     'esperanza_expired_vote_conflict.py',
     'wallet_importmulti.py',
+    'wallet_bumpfee.py',
     'mempool_limit.py',
     'rpc_txoutproof.py',
     'wallet_listreceivedby.py',
@@ -202,7 +203,6 @@ USBDEVICE_SCRIPTS = [
 
 # UNIT-E TODO:
 DISABLED_SCRIPTS = [
-    'wallet_bumpfee.py',
     'p2p_segwit.py',
     'feature_nulldummy.py',
     'p2p_compactblocks.py',
