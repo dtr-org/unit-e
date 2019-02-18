@@ -611,6 +611,8 @@ UniValue importwallet(const JSONRPCRequest& request)
         pwallet->ShowProgress("", 100); // hide progress dialog in GUI
         pwallet->UpdateTimeFirstKey(nTimeBegin);
     }
+    // Scan genesis for initial funds
+    pwallet->ScanForWalletTransactions(chainActive.Genesis(), chainActive.Genesis(), reserver, true);
     pwallet->RescanFromTime(nTimeBegin, reserver, false /* update */);
     pwallet->MarkDirty();
 

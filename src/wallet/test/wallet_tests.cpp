@@ -411,7 +411,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // after.
     {
         CWallet wallet;
-        vpwallets.clear(); // Remove default wallet
+        vpwallets.clear(); // Remove the wallet used to create the chain
         vpwallets.insert(vpwallets.begin(), &wallet);
         UniValue keys;
         keys.setArray();
@@ -470,8 +470,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     coinbaseTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
 
     LOCK(cs_main);
-    vpwallets.clear(); // Remove default wallet
-
+    vpwallets.clear(); // Remove the wallet used to create the chain
     // Import key into wallet and call dumpwallet to create backup file.
     {
         CWallet wallet;
@@ -608,11 +607,6 @@ BOOST_AUTO_TEST_CASE(LoadReceiveRequests)
 class ListCoinsTestingSetup : public TestChain100Setup
 {
 public:
-    ListCoinsTestingSetup()
-    {
-        CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
-    }
-
     CWalletTx& AddTx(CRecipient recipient)
     {
         CWalletTx wtx;
@@ -649,8 +643,12 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
 
-    // Check initial balance from one mature coinbase transaction.
-    BOOST_CHECK_EQUAL(50 * UNIT, pwalletMain->GetAvailableBalance());
+    // Check initial balance from the regtest balance of 10000 UNITs
+    BOOST_CHECK_EQUAL(10000 * UNIT, pwalletMain->GetAvailableBalance());
+
+    // Check now we added the reward from a new block
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+    BOOST_CHECK_EQUAL(10050 * UNIT, pwalletMain->GetAvailableBalance());
 
     // Add a transaction creating a change address, and confirm ListCoins still
     // returns the coin associated with the change address underneath the
@@ -660,12 +658,12 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 3); // reward + stake + change
 
     // Lock both coins. Confirm number of available coins drops to 0.
     std::vector<COutput> available;
     pwalletMain->AvailableCoins(available);
-    BOOST_CHECK_EQUAL(available.size(), 2);
+    BOOST_CHECK_EQUAL(available.size(), 3);
     for (const auto& group : list) {
         for (const auto& coin : group.second) {
           LOCK(pwalletMain->cs_wallet);
@@ -680,7 +678,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 3);
 }
 
 // Test that AvailableCoins follows coin control settings for

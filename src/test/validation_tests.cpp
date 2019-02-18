@@ -58,6 +58,7 @@ CMutableTransaction CreateTx() {
 
 CMutableTransaction CreateCoinbase() {
   CMutableTransaction coinbase_tx;
+  coinbase_tx.SetType(TxType::COINBASE);
   coinbase_tx.vin.resize(1);
   coinbase_tx.vin[0].prevout.SetNull();
   coinbase_tx.vout.resize(1);

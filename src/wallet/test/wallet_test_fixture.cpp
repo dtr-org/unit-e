@@ -48,9 +48,10 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
   // TODO: fix the code to support SegWit blocks.
   UpdateVersionBitsParameters(Consensus::DEPLOYMENT_SEGWIT, 0, Consensus::BIP9Deployment::NO_TIMEOUT);
 
-  // Generate a 100-block chain:
-  coinbaseKey.MakeNewKey(true);
-
+  CUnitESecret vchSecret;
+  bool fGood = vchSecret.SetString("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
+  assert(fGood);
+  coinbaseKey = vchSecret.GetKey();
   {
     LOCK(pwalletMain->cs_wallet);
     assert(pwalletMain->AddKey(coinbaseKey));
