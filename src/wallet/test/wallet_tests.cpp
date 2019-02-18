@@ -672,7 +672,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
           pwalletMain->LockCoin(COutPoint(coin.tx->GetHash(), coin.i));
         }
     }
-    pwalletMain->AvailableCoins(available);
+  pwalletMain->AvailableCoins(available);
     BOOST_CHECK_EQUAL(available.size(), 0);
 
     // Confirm ListCoins still returns same result as before, despite coins
@@ -699,7 +699,7 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     CKey their_key;
     their_key.MakeNewKey(true);
 
-    pwalletMain->AvailableCoins(coins);
+  pwalletMain->AvailableCoins(coins);
     // One coinbase has reached maturity
     BOOST_CHECK_EQUAL(1, coins.size());
 
