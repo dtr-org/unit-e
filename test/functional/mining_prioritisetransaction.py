@@ -132,7 +132,10 @@ class PrioritiseTransactionTest(UnitETestFramework):
         assert_equal(self.nodes[0].sendrawtransaction(tx_hex), tx_id)
         assert(tx_id in self.nodes[0].getrawmempool())
 
-        # UNIT-E TODO: assert that a block will be included in a transaction
+        self.log.info("Assert that prioritised free transaction is included in a block")
+        blockhash = self.nodes[0].generate(1)
+        block = self.nodes[0].getblock(blockhash[0])
+        assert(tx_id in block['tx'])
 
 if __name__ == '__main__':
     PrioritiseTransactionTest().main()
