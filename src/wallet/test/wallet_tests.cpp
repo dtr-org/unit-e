@@ -699,7 +699,7 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     CKey their_key;
     their_key.MakeNewKey(true);
 
-  pwalletMain->AvailableCoins(coins);
+    pwalletMain->AvailableCoins(coins);
     // One coinbase has reached maturity
     BOOST_CHECK_EQUAL(1, coins.size());
 
