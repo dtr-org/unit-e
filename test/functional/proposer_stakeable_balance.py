@@ -48,14 +48,15 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
         for i in range(0, self.num_nodes):
             nodes[i].proposerwake()
 
-        def has_reached_state(i, expected):
-            def predicate():
+        def wait_until_all_have_reached_state(expected, which_nodes):
+            def predicate(i):
                 status = nodes[i].proposerstatus()
-                return status['wallets'][0]['status'] == status
+                return status['wallets'][0]['status'] == expected
+            wait_until(lambda: all(predicate(i) for i in which_nodes), timeout=5)
             return predicate
 
         self.log.info("Waiting for nodes to be connected (should read NOT_PROPOSING_NOT_ENOUGH_BALANCE then)")
-        wait_until(lambda: all(has_reached_state(i, 'NOT_PROPOSING_NOT_ENOUGH_BALANCE') for i in range(0, self.num_nodes)), timeout=5)
+        wait_until_all_have_reached_state('NOT_PROPOSING_NOT_ENOUGH_BALANCE', range(0, self.num_nodes))
 
         # none of the nodes has any money now, but a bunch of friends
         for i in range(0, self.num_nodes):
@@ -72,10 +73,10 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             nodes[i].proposerwake()
 
         self.log.info("The nodes with funds should advance to IS_PROPOSING")
-        wait_until(lambda: all(has_reached_state(i, 'IS_PROPOSING') for i in range(0, num_keys)), timeout=5)
+        wait_until_all_have_reached_state('IS_PROPOSING', range(0, num_keys))
 
-        self.log.info("The others sould stay in NOT_ENOUGH_BALANCE")
-        wait_until(lambda: all(has_reached_state(i, 'NOT_PROPOSING_NOT_ENOUGH_BALANCE') for i in range(num_keys, self.num_nodes)), timeout=5)
+        self.log.info("The others should stay in NOT_ENOUGH_BALANCE")
+        wait_until_all_have_reached_state('NOT_PROPOSING_NOT_ENOUGH_BALANCE', range(num_keys, self.num_nodes))
 
         # now the funded nodes should have switched to IS_PROPOSING
         for i in range(0, num_keys):
