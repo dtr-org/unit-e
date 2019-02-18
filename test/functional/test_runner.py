@@ -66,6 +66,7 @@ BASE_SCRIPTS= [
     'feature_fee_estimation.py',
     'esperanza_withdraw.py',
     # vv Tests less than 2m vv
+    'feature_bip68_sequence.py',
     'wallet_basic.py',
     'wallet_accounts.py',
     'p2p_embargoman_star.py',
@@ -202,7 +203,6 @@ USBDEVICE_SCRIPTS = [
 # UNIT-E TODO:
 DISABLED_SCRIPTS = [
     'wallet_bumpfee.py',
-    'feature_bip68_sequence.py',
     'p2p_segwit.py',
     'feature_nulldummy.py',
     'p2p_compactblocks.py',
