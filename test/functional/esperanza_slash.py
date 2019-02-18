@@ -5,7 +5,6 @@
 
 from test_framework.blocktools import *
 from test_framework.util import *
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import CTransaction
 from test_framework.admin import Admin
@@ -77,8 +76,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         # wait_for_verack ensures that the P2P connection is fully up.
         proposer.p2p.wait_for_verack()
 
-        proposer.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        validator.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.setup_stake_coins(validator, proposer)
 
         assert (validator.getbalance() == 10000)
 
@@ -130,7 +128,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         vote_sig = key.sign(vote_data.get_hash())
 
         tx = CTransaction()
-        tx.nVersion = 0x00030001  # TxType::VOTE
+        tx.set_type(TxType.VOTE)
         tx.vin.append(CTxIn(COutPoint(int(prev_tx['txid'], 16), 0), vote_data.serialize(vote_sig)))
         tx.vout.append(CTxOut(int(prev_tx['vout'][0]['value'] * UNIT),
                               hex_str_to_bytes(prev_tx['vout'][0]['scriptPubKey']['hex'])))

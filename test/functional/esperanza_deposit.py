@@ -6,7 +6,6 @@
 from test_framework.util import json
 from test_framework.util import assert_equal
 from test_framework.util import JSONRPCException
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
 
@@ -47,12 +46,11 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         validator = nodes[0]
 
-        for i in range(self.num_nodes):
-            nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
+        self.setup_stake_coins(*self.nodes)
 
         payto = validator.getnewaddress("", "legacy")
 
-        assert_equal(validator.getbalance(), 10000)
+        assert_equal(validator.getbalance(), validator.initial_stake)
 
         # wait for coinbase maturity
         for n in range(0, 119):

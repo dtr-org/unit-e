@@ -104,6 +104,7 @@ def create_coinbase2(height, snapshot_hash, pubkey=None):
 # otherwise an anyone-can-spend output.
 def create_coinbase(height, snapshot_hash, pubkey = None):
     coinbase = CTransaction()
+    coinbase.set_type(TxType.COINBASE)
     script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash)])
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
     coinbaseoutput = CTxOut()

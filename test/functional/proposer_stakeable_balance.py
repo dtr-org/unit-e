@@ -3,7 +3,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.util import *
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 
 class ProposerStakeableBalanceTest(UnitETestFramework):
@@ -57,9 +56,7 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             wallet = status['wallets'][0]
             assert_equal(wallet['status'], 'NOT_PROPOSING_NOT_ENOUGH_BALANCE')
 
-        # import master keys which unlock funds from the genesis blocks
-        for i in range(num_keys):
-            nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
+        self.setup_stake_coins(*self.nodes[0:num_keys])
 
         # wakes all the proposers in case they are sleeping right now
         for i in range(self.num_nodes):

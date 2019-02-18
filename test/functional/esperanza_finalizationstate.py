@@ -10,7 +10,6 @@ from test_framework.util import JSONRPCException
 from test_framework.util import connect_nodes_bi
 from test_framework.util import disconnect_nodes
 from test_framework.util import wait_until
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
 
@@ -30,7 +29,7 @@ def test_setup(test, proposers, validators):
     json_params = json.dumps(params_data)
 
     proposer_node_params = [
-        '-proposing=0',
+        '-proposing=1',
         '-debug=all',
         '-whitelist=127.0.0.1',
         '-connect=0',
@@ -60,7 +59,6 @@ def test_setup(test, proposers, validators):
 def setup_deposit(self, nodes):
 
     for i, n in enumerate(nodes):
-        n.importmasterkey(regtest_mnemonics[i]['mnemonics'])
         n.new_address = n.getnewaddress("", "legacy")
 
         assert_equal(n.getbalance(), 10000)
@@ -127,6 +125,8 @@ class ExpiredVoteTest(UnitETestFramework):
         p0 = self.nodes[0]
         p1 = self.nodes[1]
         v = self.nodes[2]
+
+        self.setup_stake_coins(p0, p1, v)
 
         setup_deposit(self, [v])
         sync_blocks([p0, p1, v])

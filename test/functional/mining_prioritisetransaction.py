@@ -15,6 +15,9 @@ class PrioritiseTransactionTest(UnitETestFramework):
         self.extra_args = [["-printpriority=1"], ["-printpriority=1"]]
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0])
+
         # Test `prioritisetransaction` required parameters
         assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction)
         assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction, '')

@@ -6,7 +6,6 @@
 from test_framework.util import json
 from test_framework.util import assert_equal
 from test_framework.util import JSONRPCException
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin
 
@@ -41,8 +40,7 @@ class EsperanzaVoteTest(UnitETestFramework):
     def run_test(self):
         nodes = self.nodes
 
-        for i in range(self.num_nodes):
-            nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
+        self.setup_stake_coins(*self.nodes)
 
         address1 = nodes[1].getnewaddress("", "legacy")
         address2 = nodes[2].getnewaddress("", "legacy")

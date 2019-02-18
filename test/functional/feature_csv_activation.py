@@ -205,6 +205,9 @@ class BIP68_112_113Test(ComparisonTestFramework):
         return txs
 
     def get_tests(self):
+
+        self.setup_stake_coins(self.nodes[0])
+
         long_past_time = int(time.time()) - 600 * 1000 # enough to build up to 1000 blocks 10 minutes apart without worrying about getting into the future
         self.nodes[0].setmocktime(long_past_time - 100) # enough so that the generated blocks will still all be before long_past_time
         self.coinbase_blocks = self.nodes[0].generate(1 + 16 + 2*32 + 1) # 82 blocks generated for inputs

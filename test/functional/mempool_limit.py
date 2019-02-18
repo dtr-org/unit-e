@@ -14,6 +14,8 @@ class MempoolLimitTest(UnitETestFramework):
         self.extra_args = [["-maxmempool=5", "-spendzeroconfchange=0"]]
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         txouts = gen_return_txouts()
         relayfee = self.nodes[0].getnetworkinfo()['relayfee']
 

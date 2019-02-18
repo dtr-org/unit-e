@@ -84,6 +84,9 @@ class P2PFingerprintTest(UnitETestFramework):
     # This does not currently test that stale blocks timestamped within the
     # last month but that have over a month's worth of work are also withheld.
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0])
+
         node0 = self.nodes[0].add_p2p_connection(P2PInterface())
 
         network_thread_start()

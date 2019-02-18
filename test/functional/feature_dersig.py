@@ -59,6 +59,8 @@ class BIP66Test(UnitETestFramework):
         # wait_for_verack ensures that the P2P connection is fully up.
         self.nodes[0].p2p.wait_for_verack()
 
+        self.setup_stake_coins(self.nodes[0])
+
         self.log.info("Mining one block")
         self.coinbase_blocks = self.nodes[0].generate(1)
         self.nodeaddress = self.nodes[0].getnewaddress()
