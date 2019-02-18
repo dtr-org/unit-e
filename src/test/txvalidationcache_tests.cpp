@@ -14,6 +14,7 @@
 #include <policy/policy.h>
 
 #include <boost/test/unit_test.hpp>
+#include <wallet/test/wallet_test_fixture.h>
 
 bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks);
 

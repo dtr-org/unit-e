@@ -15,12 +15,9 @@
 #include <validationinterface.h>
 #include <snapshot/messages.h>
 #include <esperanza/finalizationstate.h>
+#include <wallet/test/wallet_test_fixture.h>
 
-struct RegtestingSetup : public TestingSetup {
-    RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
-};
-
-BOOST_FIXTURE_TEST_SUITE(validation_block_tests, RegtestingSetup)
+BOOST_FIXTURE_TEST_SUITE(validation_block_tests, TestChain100Setup)
 
 struct TestSubscriber : public CValidationInterface {
     uint256 m_expected_tip;
