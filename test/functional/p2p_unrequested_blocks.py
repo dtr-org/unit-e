@@ -99,6 +99,8 @@ class AcceptBlockTest(UnitETestFramework):
 
         fork_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
+        self.setup_stake_coins(*self.nodes)
+
         # 1. Have nodes mine a block (leave IBD)
         [ n.generate(1) for n in self.nodes ]
         tips = [ int("0x" + n.getbestblockhash(), 0) for n in self.nodes ]

@@ -20,6 +20,9 @@ class GetChainTipsTest (UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test (self):
+
+        self.setup_stake_coins(*self.nodes)
+
         # start with 200 blocks
         self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
         self.sync_all()

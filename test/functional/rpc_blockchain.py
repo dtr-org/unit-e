@@ -39,6 +39,8 @@ class BlockchainTest(UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
 
         self._test_getblockchaininfo()

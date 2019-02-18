@@ -14,6 +14,8 @@ class ListSinceBlockTest (UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[1], self.nodes[2])
         self.nodes[2].generate(101)
         self.sync_all()
 

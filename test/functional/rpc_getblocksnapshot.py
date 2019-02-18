@@ -111,6 +111,9 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
         #         ... 10
         node0 = self.nodes[0]
         node1 = self.nodes[1]
+
+        self.setup_stake_coins(node0, node1)
+
         node0.generatetoaddress(5, node0.getnewaddress())
         connect_nodes(node1, node0.index)
         sync_blocks([node0, node1])

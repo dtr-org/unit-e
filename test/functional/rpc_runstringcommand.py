@@ -9,6 +9,7 @@ Test corresponds to code in rpc/misc.cpp.
 
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_raises_rpc_error, Decimal
+from test_framework.regtest_mnemonics import regtest_mnemonics
 
 
 class RunstringcommandTest(UnitETestFramework):
@@ -26,9 +27,13 @@ class RunstringcommandTest(UnitETestFramework):
         assert_raises_rpc_error(-8, 'Parameters must all be strings',
                                 self.nodes[0].runstringcommand, 'generate', 'w1', 101)
 
+        self.nodes[0].runstringcommand('importmasterkey', 'w1', regtest_mnemonics[0]['mnemonics'])
+        self.nodes[0].initial_stake = regtest_mnemonics[0]['balance']
+
         resp = self.nodes[0].runstringcommand('generate', 'w1', '101')
         assert_equal(101, len(resp))
-        assert_equal(Decimal(50), self.nodes[0].runstringcommand('getbalance', 'w1'))
+
+        assert_equal(self.nodes[0].initial_stake + Decimal(50), self.nodes[0].runstringcommand('getbalance', 'w1'))
         assert_equal(Decimal(0), self.nodes[0].runstringcommand('getbalance', 'w2'))
 
         # Default wallet

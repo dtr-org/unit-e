@@ -47,6 +47,8 @@ class RawTransactionsTest(UnitETestFramework):
 
     def run_test(self):
 
+        self.setup_stake_coins(self.nodes[0], self.nodes[2])
+
         #prepare some coins for multiple *rawtransaction commands
         self.nodes[2].generate(1)
         self.sync_all()
