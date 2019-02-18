@@ -281,6 +281,8 @@ class P2PSnapshotTest(UnitETestFramework):
         self.start_node(serving_node.index)
         self.start_node(syncing_node.index)
 
+        self.setup_stake_coins(serving_node, syncing_node)
+
         # generate 4 blocks to create the first snapshot
         serving_node.generatetoaddress(4, serving_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(serving_node, 3), timeout=10)

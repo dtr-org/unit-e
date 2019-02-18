@@ -21,7 +21,6 @@ from test_framework.messages import (
     NODE_SNAPSHOT,
 )
 
-
 class SnapshotTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -191,6 +190,9 @@ class SnapshotTest(UnitETestFramework):
         self.log.info('Test fallback to IBD passed')
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         self.test_service_flags()
         self.test_fast_sync()
         self.test_fallback_to_ibd()

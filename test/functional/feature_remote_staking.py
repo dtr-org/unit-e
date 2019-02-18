@@ -2,7 +2,6 @@
 # Copyright (c) 2019 The Unit-e Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_greater_than, wait_until
 
@@ -18,7 +17,7 @@ class RemoteStakingTest(UnitETestFramework):
 
     def run_test(self):
         alice, bob = self.nodes
-        alice.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        self.setup_stake_coins(alice, bob)
 
         alices_addr = alice.getnewaddress()
 
@@ -31,7 +30,7 @@ class RemoteStakingTest(UnitETestFramework):
         assert_greater_than(0.001, result['fee'])
 
         ps = bob.proposerstatus()
-        assert_equal(ps['wallets'][0]['stakeable_balance'], 0)
+        assert_equal(ps['wallets'][0]['stakeable_balance'], bob.initial_stake)
 
         # Stake the funds
         result = alice.stakeat(recipient)

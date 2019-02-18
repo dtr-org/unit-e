@@ -87,6 +87,7 @@ void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CMutableT
     creationTx.nVersion = 1;
     creationTx.vin.resize(1);
     creationTx.vin[0].prevout.SetNull();
+    creationTx.SetType(TxType::COINBASE);
     creationTx.vin[0].scriptSig = CScript();
     creationTx.vout.resize(1);
     creationTx.vout[0].nValue = 1;
@@ -178,6 +179,7 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
 
         // The witness of a coinbase transaction is not taken into account.
         spendingTx.vin[0].prevout.SetNull();
+        spendingTx.SetType(TxType::COINBASE);
         assert(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags) == 0);
     }
 

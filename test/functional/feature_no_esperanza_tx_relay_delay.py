@@ -10,7 +10,6 @@ FeatureNoEsperanzaTxRelayDelayTest does the following:
 """
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.util import (
     assert_equal,
     sync_mempools,
@@ -106,8 +105,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
         validator = self.nodes[4]
 
-        node3.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        validator.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.setup_stake_coins(validator, node3)
 
         # leave IBD
         node3.generatetoaddress(1, node3.getnewaddress())

@@ -15,7 +15,6 @@ from random import (
 from decimal import Decimal
 
 from test_framework.authproxy import JSONRPCException
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
@@ -39,7 +38,7 @@ class ProposerBalanceTest(UnitETestFramework):
 
         # We import the wallet master keys so the nodes will be able to use some
         # funds as a stake to propose blocks (and to make transactions as well)
-        self.load_wallets(nodes)
+        self.setup_stake_coins(*nodes)
 
         # We start our tests with an initial amount of created money
         created_money = nodes[0].gettxoutsetinfo()['total_amount']
@@ -149,9 +148,6 @@ class ProposerBalanceTest(UnitETestFramework):
             tx_ids[4]: 2, tx_ids[5]: 2
         }
 
-    def load_wallets(self, nodes):
-        for i in range(self.num_nodes):
-            nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
 
     @staticmethod
     def generate_block(nodes, node_idx):

@@ -99,30 +99,6 @@ class CBlock;
 struct CMutableTransaction;
 class CScript;
 
-#ifdef ENABLE_WALLET
-//
-// Testing fixture that pre-creates a
-// 100-block REGTEST-mode block chain
-//
-struct TestChain100Setup : public TestingSetup {
-    TestChain100Setup();
-
-    // Create a new block with just given transactions, coinbase paying to
-    // scriptPubKey, and try to add it to the current chain.
-    //
-    // Asserts that the a new block was successfully created. Alternatively
-    // a pointer to a bool can be passed in which the result will be stored in.
-    CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
-                                 const CScript& scriptPubKey,
-                                 bool *processed = nullptr);
-
-    ~TestChain100Setup();
-
-    std::vector<CTransaction> coinbaseTxns; // For convenience, coinbase transactions
-    CKey coinbaseKey; // private/public key needed to spend coinbase transactions
-};
-#endif
-
 class CTxMemPoolEntry;
 
 struct TestMemPoolEntryHelper

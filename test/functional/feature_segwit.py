@@ -70,6 +70,8 @@ class SegWitTest(UnitETestFramework):
         sync_blocks(self.nodes)
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].generate(161) #block 161
 
         self.log.info("Verify sigops are counted in GBT with pre-BIP141 rules before the fork")

@@ -28,6 +28,8 @@ class NotificationsTest(UnitETestFramework):
         super().setup_network()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], self.nodes[1])
+
         self.log.info("test -blocknotify")
         block_count = 10
         blocks = self.nodes[1].generate(block_count)

@@ -38,7 +38,6 @@ from test_framework.mininode import (
     network_thread_start,
     P2PInterface
 )
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
@@ -73,7 +72,7 @@ class LTORTest(UnitETestFramework):
 
     def get_tests(self):
         self.spendable_outputs = []
-        self.load_wallets()
+        self.setup_stake_coins(self.nodes[0], self.nodes[1])
 
         rnd_state = rnd_getstate()  # We do this to isolate this test
         seed(2718281828459)
@@ -132,9 +131,6 @@ class LTORTest(UnitETestFramework):
         # Required to avoid having our mininode banned for misbehaving
         self.extra_args = [['-whitelist=127.0.0.1'], ['-whitelist=127.0.0.1']]
 
-    def load_wallets(self):
-        self.nodes[0].importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        self.nodes[1].importmasterkey(regtest_mnemonics[1]['mnemonics'])
 
     def exit_ibd_state(self):
         # We generate a block to exit IBD state

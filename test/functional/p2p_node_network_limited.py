@@ -30,6 +30,8 @@ class NodeNetworkLimitedTest(UnitETestFramework):
         self.extra_args = [['-prune=550', '-createsnapshot=0']]
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         node = self.nodes[0].add_p2p_connection(P2PIgnoreInv())
         NetworkThread().start()
         node.wait_for_verack()
