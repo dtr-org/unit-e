@@ -90,7 +90,6 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             wallet = status['wallets'][0]
             assert_equal(wallet['balance'], Decimal('0.00000000'))
             assert_equal(wallet['stakeable_balance'], Decimal('0.00000000'))
-            assert_equal(wallet['status'], 'NOT_PROPOSING_NOT_ENOUGH_BALANCE')
 
         print("Test succeeded.")
 
