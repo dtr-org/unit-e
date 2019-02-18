@@ -15,6 +15,7 @@ msg_block, msg_tx, msg_headers, etc.:
 
 ser_*, deser_*: functions that handle serialization/deserialization."""
 from codecs import encode
+from enum import Enum
 import copy
 import hashlib
 from io import BytesIO
@@ -439,6 +440,15 @@ class CTxWitness():
                 return False
         return True
 
+class TxType(Enum):
+    STANDARD = 0
+    COINBASE = 1
+    DEPOSIT = 2
+    VOTE = 3
+    LOGOUT = 4
+    SLASH = 5
+    WITHDRAW = 6
+    ADMIN = 7
 
 class CTransaction():
     def __init__(self, tx=None):
@@ -458,6 +468,9 @@ class CTransaction():
             self.sha256 = tx.sha256
             self.hash = tx.hash
             self.wit = copy.deepcopy(tx.wit)
+
+    def set_type(self, tx_type):
+        self.nVersion = (self.nVersion & 0x0000FFFF) | (tx_type.value << 16)
 
     def deserialize(self, f):
         self.nVersion = struct.unpack("<i", f.read(4))[0]
