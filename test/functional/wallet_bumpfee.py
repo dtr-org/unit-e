@@ -17,7 +17,8 @@ make assumptions about execution order.
 from test_framework.blocktools import send_to_witness
 from test_framework.test_framework import UnitETestFramework
 from test_framework import blocktools
-from test_framework.mininode import CTransaction
+from test_framework.messages import msg_witness_block
+from test_framework.mininode import (CTransaction, P2PInterface, network_thread_start)
 from test_framework.util import *
 
 import io
@@ -37,15 +38,22 @@ class BumpFeeTest(UnitETestFramework):
                            for i in range(self.num_nodes)]
 
     def run_test(self):
+        peer_node, rbf_node = self.nodes
+
         # Encrypt wallet for test_locked_wallet_fails test
-        self.nodes[1].node_encrypt_wallet(WALLET_PASSPHRASE)
+        rbf_node.node_encrypt_wallet(WALLET_PASSPHRASE)
+
         self.start_node(1)
-        self.nodes[1].walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
+
+        rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
+
+        rbf_node.add_p2p_connection(P2PInterface())
+        network_thread_start()
+        rbf_node.p2p.wait_for_verack()
 
         connect_nodes_bi(self.nodes, 0, 1)
         self.sync_all()
 
-        peer_node, rbf_node = self.nodes
         rbf_node_address = rbf_node.getnewaddress()
 
         # fund rbf node with 10 coins of 0.001 btc (100,000 satoshis)
@@ -72,8 +80,7 @@ class BumpFeeTest(UnitETestFramework):
         test_settxfee(rbf_node, dest_address)
         test_rebumping(rbf_node, dest_address)
         test_rebumping_not_replaceable(rbf_node, dest_address)
-        # UNIT-E: Skipped, pending fix for issue #280
-        # test_unconfirmed_not_spendable(rbf_node, rbf_node_address)
+        test_unconfirmed_not_spendable(rbf_node, rbf_node_address)
         test_bumpfee_metadata(rbf_node, dest_address)
         test_locked_wallet_fails(rbf_node, dest_address)
         self.log.info("Success")
@@ -299,11 +306,10 @@ def submit_block_with_tx(node, tx):
     snapshot_hash = blocktools.get_tip_snapshot_meta(node).hash
     block = blocktools.create_block(int(tip, 16), blocktools.create_coinbase(height, snapshot_hash), block_time)
     block.vtx.append(ctx)
-    block.rehash()
-    block.hashMerkleRoot = block.calc_merkle_root()
     blocktools.add_witness_commitment(block)
     block.solve()
-    node.submitblock(bytes_to_hex_str(block.serialize(True)))
+    node.p2p.send_and_ping(msg_witness_block(block))
+    assert_equal(node.getbestblockhash(), block.hash)
     return block
 
 
