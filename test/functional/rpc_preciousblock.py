@@ -10,6 +10,12 @@ from test_framework.util import (
     connect_nodes_bi,
     sync_chain,
     sync_blocks,
+    wait_until,
+    hex_str_to_bytes,
+)
+from test_framework.mininode import (
+    network_thread_start,
+    P2PInterface,
 )
 
 def unidirectional_node_sync_via_rpc(node_src, node_dest):
@@ -22,10 +28,12 @@ def unidirectional_node_sync_via_rpc(node_src, node_dest):
         except:
             blocks_to_copy.append(blockhash)
             blockhash = node_src.getblockheader(blockhash, True)['previousblockhash']
+
     blocks_to_copy.reverse()
     for blockhash in blocks_to_copy:
         blockdata = node_src.getblock(blockhash, False)
-        assert(node_dest.submitblock(blockdata) in (None, 'inconclusive'))
+        node_dest.p2p.send_data(b'block', hex_str_to_bytes(blockdata))
+        node_dest.p2p.sync_with_ping()
 
 def node_sync_via_rpc(nodes):
     for node_src in nodes:
@@ -43,6 +51,12 @@ class PreciousTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
+        for i in range(self.num_nodes):
+            self.nodes[i].add_p2p_connection(P2PInterface())
+        network_thread_start()
+
+        wait_until(lambda: all(self.nodes[i].p2p.got_verack() for i in range(self.num_nodes)), timeout=10)
+
         self.log.info("Ensure submitblock can in principle reorg to a competing chain")
         self.nodes[0].generate(1)
         assert_equal(self.nodes[0].getblockcount(), 1)

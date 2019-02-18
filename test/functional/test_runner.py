@@ -131,6 +131,7 @@ BASE_SCRIPTS= [
     'p2p_invalid_block.py',
     'p2p_invalid_tx.py',
     'feature_versionbits_warning.py',
+    'rpc_preciousblock.py',
     'wallet_importprunedfunds.py',
     'rpc_signmessage.py',
     'feature_spend_genesis.py',
@@ -206,7 +207,6 @@ DISABLED_SCRIPTS = [
     'p2p_segwit.py',
     'feature_nulldummy.py',
     'p2p_compactblocks.py',
-    'rpc_preciousblock.py',
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
