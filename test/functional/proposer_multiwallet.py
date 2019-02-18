@@ -30,7 +30,7 @@ class ProposerMultiwalletTest(UnitETestFramework):
         # message).
         def all_have_switched_away_from_not_proposing_state():
             status = self.nodes[0].proposerstatus()['wallets']
-            return all([not status[i]['status'] == 'NOT_PROPOSING' for i in range(0, self.num_wallets)])
+            return all(not status[i]['status'] == 'NOT_PROPOSING' for i in range(0, self.num_wallets))
 
         self.log.info("Waiting for all proposers to have advanced to some state")
         wait_until(all_have_switched_away_from_not_proposing_state, timeout=10)
