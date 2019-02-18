@@ -95,7 +95,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
             # sanity check: tx we measured is a vote tx
             tx = FromHex(CTransaction(), record_from.getrawtransaction(vote_tx))
-            assert_equal(tx.nVersion >> 16, 3)
+            assert_equal(tx.get_type, TxType.VOTE)
 
             return delay
 

@@ -5,10 +5,10 @@
 
 from test_framework.util import (assert_equal, Decimal, hex_str_to_bytes,
                                  bytes_to_hex_str)
-from test_framework.messages import CTransaction, msg_witness_tx
+from test_framework.messages import CTransaction, msg_witness_tx, TxType
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.admin import Admin, AdminCommandType, ADMIN_TX_TYPE
+from test_framework.admin import Admin, AdminCommandType
 from test_framework.mininode import P2PInterface, network_thread_start
 from io import BytesIO
 
@@ -48,7 +48,7 @@ def set_type_to_admin(raw_tx):
     f = BytesIO(hex_str_to_bytes(raw_tx))
     tx.deserialize(f)
 
-    tx.nVersion = (tx.nVersion & 0x0000FFFF) | (ADMIN_TX_TYPE << 16)
+    tx.set_type(TxType.ADMIN)
 
     return bytes_to_hex_str(tx.serialize())
 

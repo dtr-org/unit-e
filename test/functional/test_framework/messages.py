@@ -472,6 +472,9 @@ class CTransaction():
     def set_type(self, tx_type):
         self.nVersion = (self.nVersion & 0x0000FFFF) | (tx_type.value << 16)
 
+    def get_type(self):
+        return TxType(self.nVersion >> 16).name
+
     def deserialize(self, f):
         self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.vin = deser_vector(f, CTxIn)
