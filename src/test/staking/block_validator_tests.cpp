@@ -72,11 +72,11 @@ void CheckGenesisBlock(const blockchain::Parameters &parameters) {
   BOOST_CHECK(static_cast<bool>(validation_result));
 }
 
+using Error = staking::BlockValidationError;
+
 }  // namespace
 
 BOOST_FIXTURE_TEST_SUITE(block_validator_tests, BasicTestingSetup)
-
-using Error = staking::BlockValidationError;
 
 BOOST_AUTO_TEST_CASE(check_empty_block) {
   const auto block_validator = staking::BlockValidator::New(b.get());

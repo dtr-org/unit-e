@@ -79,6 +79,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-txnmrklroot");
       return err;
     }
+    case staking::BlockValidationError::MISMATCHING_HEIGHT: {
+      static ValidationError err("bad-cb-height");
+      return err;
+    }
     case staking::BlockValidationError::NO_BLOCK_HEIGHT: {
       static ValidationError err("bad-cb-height-missing");
       return err;

@@ -136,6 +136,7 @@ UNITE_TESTS += \
   test/proposer/block_builder_tests.cpp \
   test/proposer/proposer_logic_tests.cpp \
   test/proposer/proposer_tests.cpp \
+  test/staking/abstract_block_validator_tests.cpp \
   test/staking/block_validator_tests.cpp \
   test/staking/stake_validator_tests.cpp \
   test/txvalidation_tests.cpp \

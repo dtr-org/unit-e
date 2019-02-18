@@ -30,7 +30,7 @@ namespace staking {
 //! This allows reading through the actual validation logic from top to bottom,
 //! leaving the details of saving checks/caching status to the brave reader who
 //! makes it to the bottom of this file.
-class BlockValidatorImpl : public BlockValidator {
+class BlockValidatorImpl : public AbstractBlockValidator {
 
  private:
   Dependency<blockchain::Behavior> m_blockchain_behavior;
@@ -132,7 +132,7 @@ class BlockValidatorImpl : public BlockValidator {
 
   void CheckBlockHeaderInternal(
       const CBlockHeader &block_header,
-      BlockValidationResult &result) const {
+      BlockValidationResult &result) const override {
 
     if (m_blockchain_behavior->CalculateProposingTimestamp(block_header.nTime) != block_header.nTime) {
       result.AddError(Error::INVALID_BLOCK_TIME);
@@ -143,7 +143,7 @@ class BlockValidatorImpl : public BlockValidator {
       const CBlockHeader &block_header,
       const blockchain::Time adjusted_time,
       const CBlockIndex &previous_block,
-      BlockValidationResult &result) const {
+      BlockValidationResult &result) const override {
 
     if (block_header.hashPrevBlock != *previous_block.phashBlock) {
       result.AddError(Error::PREVIOUS_BLOCK_DOESNT_MATCH);
@@ -161,7 +161,7 @@ class BlockValidatorImpl : public BlockValidator {
       blockchain::Height &height_out,  //!< [out] The height extracted from the scriptSig
       uint256 &snapshot_hash_out,      //!< [out] The snapshot hash extracted from the scriptSig
       BlockValidationResult &result    //!< [in,out] The validation result
-      ) const {
+      ) const override {
 
     // check that there are transactions
     if (block.vtx.empty()) {
@@ -222,142 +222,151 @@ class BlockValidatorImpl : public BlockValidator {
   void ContextualCheckBlockInternal(
       const CBlock &block,
       const CBlockIndex &prev_block,
-      BlockValidationResult &result) const {
+      const BlockValidationInfo &validation_info,
+      BlockValidationResult &result) const override {
+
+    if (validation_info.GetHeight() != static_cast<blockchain::Height>(prev_block.nHeight) + 1) {
+      result.AddError(Error::MISMATCHING_HEIGHT);
+    }
   }
 
  public:
   explicit BlockValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
       : m_blockchain_behavior(blockchain_behavior) {}
-
-  // here there be boredom - orchestration logic (no dragons, no unicorns)
-
-  BlockValidationResult CheckBlock(
-      const CBlock &block,
-      BlockValidationInfo *const block_validation_info) const override {
-
-    BlockValidationResult result;
-    if (block_validation_info && block_validation_info->GetCheckBlockStatus()) {
-      // short circuit in case the validation already happened
-      return result;
-    }
-    // Make sure CheckBlockHeader has passed
-    if (!block_validation_info || !block_validation_info->GetCheckBlockHeaderStatus()) {
-      result.AddAll(CheckBlockHeader(block, block_validation_info));
-      if (!result) {
-        return result;
-      }
-    }
-    // perform the actual checks
-    blockchain::Height height;
-    uint256 snapshot_hash;
-    CheckBlockInternal(block, height, snapshot_hash, result);
-    // save results in block_validation_info if present
-    if (block_validation_info) {
-      if (result) {
-        block_validation_info->MarkCheckBlockSuccessfull(height, snapshot_hash);
-      } else {
-        block_validation_info->MarkCheckBlockFailed();
-      }
-    }
-    return result;
-  }
-
-  BlockValidationResult ContextualCheckBlock(
-      const CBlock &block,
-      const CBlockIndex &prev_block,
-      blockchain::Time adjusted_time,
-      BlockValidationInfo *const block_validation_info) const override {
-
-    BlockValidationResult result;
-    if (block_validation_info && block_validation_info->GetContextualCheckBlockStatus()) {
-      // short circuit in case the validation already happened
-      return result;
-    }
-    // Make sure CheckBlock has passed
-    if (!block_validation_info || !block_validation_info->GetCheckBlockStatus()) {
-      result.AddAll(CheckBlock(block, block_validation_info));
-      if (!result) {
-        return result;
-      }
-    }
-    // Make sure ContextualCheckBlockHeader has passed
-    if (!block_validation_info || !block_validation_info->GetContextualCheckBlockHeaderStatus()) {
-      result.AddAll(ContextualCheckBlockHeader(block, prev_block, adjusted_time, block_validation_info));
-      if (!result) {
-        return result;
-      }
-    }
-    // perform the actual checks
-    ContextualCheckBlockInternal(block, prev_block, result);
-    // save results in block_validation_info if present
-    if (block_validation_info) {
-      if (result) {
-        block_validation_info->MarkContextualCheckBlockSuccessfull();
-      } else {
-        block_validation_info->MarkContextualCheckBlockFailed();
-      }
-    }
-    return result;
-  }
-
-  BlockValidationResult CheckBlockHeader(
-      const CBlockHeader &block_header,
-      BlockValidationInfo *const block_validation_info) const override {
-
-    BlockValidationResult result;
-    if (block_validation_info && block_validation_info->GetCheckBlockHeaderStatus()) {
-      // short circuit in case the validation already happened
-      return result;
-    }
-    // perform the actual checks
-    CheckBlockHeaderInternal(block_header, result);
-    // save results in block_validation_info if present
-    if (block_validation_info) {
-      if (result) {
-        block_validation_info->MarkCheckBlockHeaderSuccessfull();
-      } else {
-        block_validation_info->MarkCheckBlockHeaderFailed();
-      }
-    }
-    return result;
-  }
-
-  BlockValidationResult ContextualCheckBlockHeader(
-      const CBlockHeader &block_header,
-      const CBlockIndex &prev_block,
-      const blockchain::Time adjusted_time,
-      BlockValidationInfo *const block_validation_info) const override {
-
-    BlockValidationResult result;
-    if (block_validation_info && block_validation_info->GetContextualCheckBlockHeaderStatus()) {
-      // short circuit in case the validation already happened
-      return result;
-    }
-    // Make sure CheckBlockHeader has passed
-    if (!block_validation_info || !block_validation_info->GetCheckBlockHeaderStatus()) {
-      result.AddAll(CheckBlockHeader(block_header, block_validation_info));
-      if (!result) {
-        return result;
-      }
-    }
-    // perform the actual checks
-    ContextualCheckBlockHeaderInternal(block_header, adjusted_time, prev_block, result);
-    // save results in block_validation_info if present
-    if (block_validation_info) {
-      if (result) {
-        block_validation_info->MarkContextualCheckBlockHeaderSuccessfull();
-      } else {
-        block_validation_info->MarkContextualCheckBlockHeaderFailed();
-      }
-    }
-    return result;
-  }
-
-};  // namespace staking
+};
 
 std::unique_ptr<BlockValidator> BlockValidator::New(
     Dependency<blockchain::Behavior> blockchain_behavior) {
   return std::unique_ptr<BlockValidator>(new BlockValidatorImpl(blockchain_behavior));
+}
+
+BlockValidationResult AbstractBlockValidator::CheckBlock(
+    const CBlock &block,
+    BlockValidationInfo *const block_validation_info) const {
+
+  BlockValidationResult result;
+  if (block_validation_info && block_validation_info->GetCheckBlockStatus()) {
+    // short circuit in case the validation already happened
+    return result;
+  }
+  // Make sure CheckBlockHeader has passed
+  if (!block_validation_info || !block_validation_info->GetCheckBlockHeaderStatus()) {
+    result.AddAll(CheckBlockHeader(block, block_validation_info));
+    if (!result) {
+      return result;
+    }
+  }
+  // perform the actual checks
+  blockchain::Height height;
+  uint256 snapshot_hash;
+  CheckBlockInternal(block, height, snapshot_hash, result);
+  // save results in block_validation_info if present
+  if (block_validation_info) {
+    if (result) {
+      block_validation_info->MarkCheckBlockSuccessfull(height, snapshot_hash);
+    } else {
+      block_validation_info->MarkCheckBlockFailed();
+    }
+  }
+  return result;
+}
+
+BlockValidationResult AbstractBlockValidator::ContextualCheckBlock(
+    const CBlock &block,
+    const CBlockIndex &prev_block,
+    blockchain::Time adjusted_time,
+    BlockValidationInfo *block_validation_info) const {
+
+  BlockValidationResult result;
+  // block_validation_info is optional for the caller but carries meta data from
+  // the coinbase transaction, hence we make sure to have one available here.
+  std::unique_ptr<BlockValidationInfo> ptr = nullptr;
+  if (!block_validation_info) {
+    ptr.reset(new BlockValidationInfo());
+    block_validation_info = ptr.get();
+  }
+  if (block_validation_info->GetContextualCheckBlockStatus()) {
+    // short circuit in case the validation already happened
+    return result;
+  }
+  // Make sure CheckBlock has passed
+  if (!block_validation_info->GetCheckBlockStatus()) {
+    result.AddAll(CheckBlock(block, block_validation_info));
+    if (!result) {
+      return result;
+    }
+  }
+  // Make sure ContextualCheckBlockHeader has passed
+  if (!block_validation_info || !block_validation_info->GetContextualCheckBlockHeaderStatus()) {
+    result.AddAll(ContextualCheckBlockHeader(block, prev_block, adjusted_time, block_validation_info));
+    if (!result) {
+      return result;
+    }
+  }
+  // perform the actual checks
+  ContextualCheckBlockInternal(block, prev_block, *block_validation_info, result);
+  // save results in block_validation_info if present
+  if (block_validation_info) {
+    if (result) {
+      block_validation_info->MarkContextualCheckBlockSuccessfull();
+    } else {
+      block_validation_info->MarkContextualCheckBlockFailed();
+    }
+  }
+  return result;
+}
+
+BlockValidationResult AbstractBlockValidator::CheckBlockHeader(
+    const CBlockHeader &block_header,
+    BlockValidationInfo *const block_validation_info) const {
+
+  BlockValidationResult result;
+  if (block_validation_info && block_validation_info->GetCheckBlockHeaderStatus()) {
+    // short circuit in case the validation already happened
+    return result;
+  }
+  // perform the actual checks
+  CheckBlockHeaderInternal(block_header, result);
+  // save results in block_validation_info if present
+  if (block_validation_info) {
+    if (result) {
+      block_validation_info->MarkCheckBlockHeaderSuccessfull();
+    } else {
+      block_validation_info->MarkCheckBlockHeaderFailed();
+    }
+  }
+  return result;
+}
+
+BlockValidationResult AbstractBlockValidator::ContextualCheckBlockHeader(
+    const CBlockHeader &block_header,
+    const CBlockIndex &prev_block,
+    const blockchain::Time adjusted_time,
+    BlockValidationInfo *const block_validation_info) const {
+
+  BlockValidationResult result;
+  if (block_validation_info && block_validation_info->GetContextualCheckBlockHeaderStatus()) {
+    // short circuit in case the validation already happened
+    return result;
+  }
+  // Make sure CheckBlockHeader has passed
+  if (!block_validation_info || !block_validation_info->GetCheckBlockHeaderStatus()) {
+    result.AddAll(CheckBlockHeader(block_header, block_validation_info));
+    if (!result) {
+      return result;
+    }
+  }
+  // perform the actual checks
+  ContextualCheckBlockHeaderInternal(block_header, adjusted_time, prev_block, result);
+  // save results in block_validation_info if present
+  if (block_validation_info) {
+    if (result) {
+      block_validation_info->MarkContextualCheckBlockHeaderSuccessfull();
+    } else {
+      block_validation_info->MarkContextualCheckBlockHeaderFailed();
+    }
+  }
+  return result;
 }
 
 }  // namespace staking
