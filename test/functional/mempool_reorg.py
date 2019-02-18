@@ -21,6 +21,9 @@ class MempoolCoinbaseTest(UnitETestFramework):
     alert_filename = None  # Set by setup_network
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0], self.nodes[1])
+
         # Start with a 200 block chain
         self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
         assert_equal(self.nodes[0].getblockcount(), 200)

@@ -16,6 +16,7 @@ import time
 
 from .authproxy import JSONRPCException
 from . import coverage
+from .regtest_mnemonics import regtest_mnemonics
 from .test_node import TestNode
 from .util import (
     MAX_NODES,
@@ -213,6 +214,11 @@ class UnitETestFramework():
             extra_args = self.extra_args
         self.add_nodes(self.num_nodes, extra_args)
         self.start_nodes()
+
+    def setup_stake_coins(self, *args):
+        for i, node in enumerate(args):
+            node.importmasterkey(regtest_mnemonics[i]['mnemonics'])
+            node.initial_stake = regtest_mnemonics[i]['balance']
 
     def run_test(self):
         """Tests must override this method to define test logic"""
@@ -445,7 +451,7 @@ class UnitETestFramework():
             # Create cache directories, run uniteds:
             for i in range(MAX_NODES):
                 datadir = initialize_datadir(self.options.cachedir, i)
-                args = [os.getenv("UNITED", "united"), "-server", "-keypool=1", "-datadir=" + datadir, "-discover=0"]
+                args = [os.getenv("UNITED", "united"), "-server", "-keypool=1", "-datadir=" + datadir, "-discover=0", "-proposing=0"]
                 if i > 0:
                     args.append("-connect=127.0.0.1:" + str(p2p_port(0)))
                 self.nodes.append(TestNode(i, self.options.cachedir, extra_args=[], rpchost=None, timewait=None, binary=None, stderr=None, mocktime=self.mocktime, coverage_dir=None))
@@ -461,8 +467,15 @@ class UnitETestFramework():
             # Note: To preserve compatibility with older versions of
             # initialize_chain, only 4 nodes will generate coins.
             #
-            # blocks are created with timestamps 10 minutes apart
+            # We need to initalize also nodes wallets with some genesis funds
+            # and we use the last 4 addresses in the genesis to do so.
+            #
+            # Blocks are created with timestamps 10 minutes apart
             # starting from 2010 minutes in the past
+
+            for peer in range(4):
+                self.nodes[peer].importmasterkey(regtest_mnemonics[-peer]['mnemonics'])
+
             self.enable_mocktime()
             block_time = self.mocktime - (201 * 10 * 60)
             for i in range(2):

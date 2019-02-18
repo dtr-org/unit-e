@@ -148,6 +148,8 @@ class ExampleTest(UnitETestFramework):
         # wait_for_verack ensures that the P2P connection is fully up.
         self.nodes[0].p2p.wait_for_verack()
 
+        self.setup_stake_coins(self.nodes[0])
+
         # Generating a block on one of the nodes will get us out of IBD
         blocks = [int(self.nodes[0].generate(nblocks=1)[0], 16)]
         self.sync_all([self.nodes[0:1]])

@@ -54,7 +54,8 @@ class WalletBackupTest(UnitETestFramework):
     def one_send(self, from_node, to_address):
         if (randint(1,2) == 1):
             amount = Decimal(randint(1,10)) / Decimal(10)
-            self.nodes[from_node].sendtoaddress(to_address, amount)
+            tx_id = self.nodes[from_node].sendtoaddress(to_address, amount)
+            self.nodes[from_node].decoderawtransaction(self.nodes[from_node].getrawtransaction(tx_id))
 
     def do_one_round(self):
         a0 = self.nodes[0].getnewaddress()
@@ -95,6 +96,9 @@ class WalletBackupTest(UnitETestFramework):
         os.remove(self.options.tmpdir + "/node2/regtest/wallets/wallet.dat")
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         self.log.info("Generating initial blockchain")
         self.nodes[0].generate(1)
         sync_blocks(self.nodes)
@@ -105,10 +109,10 @@ class WalletBackupTest(UnitETestFramework):
         self.nodes[3].generate(100)
         sync_blocks(self.nodes)
 
-        assert_equal(self.nodes[0].getbalance(), 50)
-        assert_equal(self.nodes[1].getbalance(), 50)
-        assert_equal(self.nodes[2].getbalance(), 50)
-        assert_equal(self.nodes[3].getbalance(), 0)
+        assert_equal(self.nodes[0].getbalance(), 50 + self.nodes[0].initial_stake)
+        assert_equal(self.nodes[1].getbalance(), 50 + self.nodes[1].initial_stake)
+        assert_equal(self.nodes[2].getbalance(), 50 + self.nodes[2].initial_stake)
+        assert_equal(self.nodes[3].getbalance(), 0 + self.nodes[3].initial_stake)
 
         self.log.info("Creating transactions")
         # Five rounds of sending each other transactions.
@@ -140,7 +144,7 @@ class WalletBackupTest(UnitETestFramework):
 
         # At this point, there are 214 blocks (103 for setup, then 10 rounds, then 101.)
         # 114 are mature, so the sum of all wallets should be 114 * 50 = 5700.
-        assert_equal(total, 5700)
+        assert_equal(total, 5700 + (4 * self.nodes[0].initial_stake))
 
         ##
         # Test restoring spender wallets from backups

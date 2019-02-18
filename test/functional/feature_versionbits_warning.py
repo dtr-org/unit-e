@@ -74,6 +74,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.p2p.wait_for_verack()
 
         # Mine one period worth of blocks
+        self.setup_stake_coins(node)
         node.generate(VB_PERIOD)
 
         self.log.info("Check that there is no warning if previous VB_BLOCKS have <VB_THRESHOLD blocks with unknown versionbits version.")
