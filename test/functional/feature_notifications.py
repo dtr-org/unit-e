@@ -29,6 +29,10 @@ class NotificationsTest(UnitETestFramework):
 
     def run_test(self):
         self.log.info("test -blocknotify")
+
+        # Setup stake
+        self.setup_stake_coins(*self.nodes)
+
         block_count = 10
         blocks = self.nodes[1].generate(block_count)
 
@@ -44,7 +48,7 @@ class NotificationsTest(UnitETestFramework):
         wait_until(lambda: os.path.isfile(self.tx_filename) and os.stat(self.tx_filename).st_size >= (block_count * 65), timeout=10)
 
         # file content should equal the generated transaction hashes
-        txids_rpc = list(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", block_count)))
+        txids_rpc = list(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", block_count + 1)))
         with open(self.tx_filename, 'r') as f:
             assert_equal(sorted(txids_rpc), sorted(f.read().splitlines()))
         os.remove(self.tx_filename)
