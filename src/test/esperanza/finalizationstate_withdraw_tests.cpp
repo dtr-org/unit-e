@@ -57,10 +57,10 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
 
-  for (uint32_t i = 5; i < spy.DynastyLogoutDelay() + 1; i++) {
+  for (uint32_t i = 5; i < spy.DynastyLogoutDelay() + 1; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
-    Vote vote = {validatorAddress, targetHash, i - 2, i - 1};
+    Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
@@ -117,12 +117,12 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
   uint32_t endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 6;
 
   uint32_t i = 5;
-  for (; i <= endEpoch; i++) {
+  for (; i <= endEpoch; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
     if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
-      Vote vote = {validatorAddress, targetHash, i - 2, i - 1};
+      Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
       spy.ProcessVote(vote);
@@ -191,12 +191,12 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   // Just to be sure we are after the lock period
   uint32_t endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 10;
 
-  for (uint32_t i = 5; i < endEpoch; i++) {
+  for (uint32_t i = 5; i < endEpoch; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
     if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
-      Vote vote = {validatorAddress, targetHash, i - 2, i - 1};
+      Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
       spy.ProcessVote(vote);

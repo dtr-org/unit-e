@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
   esperanza->ProcessDeposit(validatorAddress, min_deposit);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
-  for (int i = 1; i < 6; i++) {
+  for (int i = 1; i < 6; ++i) {
     BOOST_CHECK_EQUAL(esperanza->InitializeEpoch(i * epoch_length),
                       +Result::SUCCESS);
   }

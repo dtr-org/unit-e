@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
   spy.ProcessDeposit(validatorAddress, depositSize);
 
   // e0/d0 - try to vote but fail because wrong target
-  Vote vote = {validatorAddress, targetHash, 0, 0};
+  Vote vote{validatorAddress, targetHash, 0, 0};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
 
   // e1/d0 - try to vote but fail because too early
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 3, 5};
+  Vote vote{validatorAddress, targetHash, 3, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 3, 4};
+  Vote vote{validatorAddress, targetHash, 3, 4};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
 
   vote = {validatorAddress, targetHash, 3, 6};
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 3, 6};
+  Vote vote{validatorAddress, targetHash, 3, 6};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_HASH);
 }
@@ -211,7 +211,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 5, 5};
+  Vote vote{validatorAddress, targetHash, 5, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote),
                     +Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED);
@@ -244,7 +244,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 1, 4};
+  Vote vote{validatorAddress, targetHash, 1, 4};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
 }
@@ -282,7 +282,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress_1, targetHash, 3, 4};
+  Vote vote{validatorAddress_1, targetHash, 3, 4};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
@@ -325,7 +325,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress_2, targetHash, 4, 5};
+  Vote vote{validatorAddress_2, targetHash, 4, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);

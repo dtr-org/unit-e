@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_insta_justify) {
 
   FinalizationStateSpy spy;
 
-  for (uint32_t i = 0; i < spy.EpochLength() * 3; i++) {
+  for (uint32_t i = 0; i < spy.EpochLength() * 3; ++i) {
     if (i < spy.EpochLength()) {
       BOOST_CHECK_EQUAL(spy.InitializeEpoch(i), +Result::INIT_WRONG_EPOCH);
     } else {
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_insta_justify) {
         BOOST_CHECK_EQUAL(spy.InitializeEpoch(i), +Result::SUCCESS);
       }
 
-      uint32_t current_epoch = i / spy.EpochLength();
+      const uint32_t current_epoch = i / spy.EpochLength();
       BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), current_epoch);
       BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), current_epoch > 2 ? current_epoch - 3 : 0);
       BOOST_CHECK_EQUAL(spy.GetLastFinalizedEpoch(), current_epoch > 1 ? current_epoch - 2 : 0);
@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(get_recommended_vote) {
   FinalizationStateSpy spy;
   uint160 validator_address = RandValidatorAddr();
 
-  uint256 target_hash = GetRandHash();
+  const uint256 target_hash = GetRandHash();
   CBlockIndex target;
   target.phashBlock = &target_hash;
   target.nHeight = 7 * spy.EpochLength();
