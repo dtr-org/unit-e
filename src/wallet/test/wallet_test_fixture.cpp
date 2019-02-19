@@ -60,6 +60,7 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
   reserver.reserve();
   pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
 
+  // Generate a 100-block chain:
   CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
   for (int i = 0; i < COINBASE_MATURITY; i++)
   {
@@ -99,6 +100,9 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   if (processed != nullptr) {
     *processed = was_processed;
   }
+
+  SyncWithValidationInterfaceQueue(); // To preven Wallet::ConnectBlock from running concurrently
+
   CBlock result = block;
   return result;
 }
