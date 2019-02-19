@@ -27,8 +27,7 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
   // transactions will have to be mocked.
 
   auto blockAssemblerAdapter = staking::TransactionPicker::New();
-
-  staking::TransactionPicker::PickTransactionsParameters params;
+  const auto params = staking::TransactionPicker::PickTransactionsParameters();
 
   auto result = blockAssemblerAdapter->PickTransactions(params);
 
