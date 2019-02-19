@@ -215,9 +215,9 @@ class UnitETestFramework():
         self.add_nodes(self.num_nodes, extra_args)
         self.start_nodes()
 
-    def setup_stake_coins(self, *args):
+    def setup_stake_coins(self, *args, rescan=True):
         for i, node in enumerate(args):
-            node.importmasterkey(regtest_mnemonics[i]['mnemonics'])
+            node.importmasterkey(regtest_mnemonics[i]['mnemonics'], "", rescan)
             node.initial_stake = regtest_mnemonics[i]['balance']
 
     def run_test(self):

@@ -191,6 +191,9 @@ class SnapshotTest(UnitETestFramework):
         self.log.info('Test fallback to IBD passed')
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes, rescan=False)
+
         self.test_service_flags()
         self.test_fast_sync()
         self.test_fallback_to_ibd()
