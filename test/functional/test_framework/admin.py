@@ -8,9 +8,6 @@ from enum import Enum
 from test_framework.messages import ser_compact_size
 import codecs
 
-ADMIN_TX_TYPE = 7
-
-
 class AdminCommandType(Enum):
     ADD_TO_WHITELIST = 0,
     REMOVE_FROM_WHITELIST = 1

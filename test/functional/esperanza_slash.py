@@ -130,7 +130,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         vote_sig = key.sign(vote_data.get_hash())
 
         tx = CTransaction()
-        tx.nVersion = 0x00030001  # TxType::VOTE
+        tx.set_type(TxType.VOTE)
         tx.vin.append(CTxIn(COutPoint(int(prev_tx['txid'], 16), 0), vote_data.serialize(vote_sig)))
         tx.vout.append(CTxOut(int(prev_tx['vout'][0]['value'] * UNIT),
                               hex_str_to_bytes(prev_tx['vout'][0]['scriptPubKey']['hex'])))
