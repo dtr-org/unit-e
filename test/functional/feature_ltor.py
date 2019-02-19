@@ -133,8 +133,8 @@ class LTORTest(UnitETestFramework):
         self.extra_args = [['-whitelist=127.0.0.1'], ['-whitelist=127.0.0.1']]
 
     def load_wallets(self):
-        self.nodes[0].importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        self.nodes[1].importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.nodes[0].importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.nodes[1].importmasterkey(regtest_mnemonics[2]['mnemonics'])
 
     def exit_ibd_state(self):
         # We generate a block to exit IBD state
