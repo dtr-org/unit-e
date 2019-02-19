@@ -18,7 +18,12 @@ libraries, compile flags, etc.
 - [Unix Build Notes](build-unix.md)
 - [Windows Build Notes](build-windows.md)
 - [OpenBSD Build Notes](build-openbsd.md)
+- [NetBSD Build Notes](build-netbsd.md)
+
+### Reproducible builds
+
 - [Gitian Building Guide](gitian-building.md)
+- [Deterministic OS X Dmg Notes](README_osx.md)
 
 ## Development
 
@@ -26,10 +31,7 @@ The unit-e repo's [root README](/README.md) contains relevant information on the
 development process and automated testing.
 
 - [Developer Notes](developer-notes.md)
-- [Release Notes](release-notes.md)
 - [Release Process](release-process.md)
-- [Source Code Documentation (External
-  Link)](https://dev.visucore.com/unite/doxygen/)
 - [Translation Process](translation_process.md)
 - [Translation Strings Policy](translation_strings_policy.md)
 - [Travis CI](travis-ci.md)
@@ -41,7 +43,6 @@ development process and automated testing.
 
 ## Miscellaneous
 
-- [Assets Attribution](assets-attribution.md)
 - [Files](files.md)
 - [Fuzz-testing](fuzzing.md)
 - [Reduce Traffic](reduce-traffic.md)
