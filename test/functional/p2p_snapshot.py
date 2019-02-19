@@ -281,6 +281,8 @@ class P2PSnapshotTest(UnitETestFramework):
         self.start_node(serving_node.index)
         self.start_node(syncing_node.index)
 
+        self.setup_stake_coins(serving_node)
+
         # generate 4 blocks to create the first snapshot
         serving_node.generatetoaddress(4, serving_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(serving_node, 3), timeout=10)
@@ -360,6 +362,8 @@ class P2PSnapshotTest(UnitETestFramework):
 
         self.start_node(snap_node.index)
         self.start_node(node.index)
+
+        self.setup_stake_coins(snap_node)
 
         # generate 4 blocks to create the first snapshot
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
@@ -459,6 +463,8 @@ class P2PSnapshotTest(UnitETestFramework):
         self.start_node(snap_node.index)
         self.start_node(node.index)
 
+        self.setup_stake_coins(snap_node)
+
         # create the first snapshot and store it in valid_p2p
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
@@ -539,6 +545,8 @@ class P2PSnapshotTest(UnitETestFramework):
         sync_node = self.nodes[7]
         self.start_node(snap_node.index)
         self.start_node(sync_node.index)
+
+        self.setup_stake_coins(snap_node)
 
         # add 2nd best snapshot to full_snap_p2p
         snap_node.generatetoaddress(4, snap_node.getnewaddress())
