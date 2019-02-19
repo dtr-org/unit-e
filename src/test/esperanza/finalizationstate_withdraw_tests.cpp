@@ -57,10 +57,10 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
 
-  for (int i = 5; i < spy.DynastyLogoutDelay() + 1; i++) {
+  for (uint32_t i = 5; i < spy.DynastyLogoutDelay() + 1; i++) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
-    Vote vote = {validatorAddress, targetHash, (uint32_t)i - 2, (uint32_t)i - 1};
+    Vote vote = {validatorAddress, targetHash, i - 2, i - 1};
 
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
@@ -114,15 +114,15 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
   Validator *validator = &(*spy.pValidators())[validatorAddress];
 
   // The reason for this apparently magic "+ 6" is explained later on.
-  int endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 6;
+  uint32_t endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 6;
 
-  int i = 5;
+  uint32_t i = 5;
   for (; i <= endEpoch; i++) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
     if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
-      Vote vote = {validatorAddress, targetHash, (uint32_t)i - 2, (uint32_t)i - 1};
+      Vote vote = {validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
       spy.ProcessVote(vote);
@@ -189,14 +189,14 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   Vote v2 = {validatorAddress, uint256S("6"), 3, 5};
 
   // Just to be sure we are after the lock period
-  int endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 10;
+  uint32_t endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 10;
 
-  for (int i = 5; i < endEpoch; i++) {
+  for (uint32_t i = 5; i < endEpoch; i++) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
     if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
-      Vote vote = {validatorAddress, targetHash, (uint32_t)i - 2, (uint32_t)i - 1};
+      Vote vote = {validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
       spy.ProcessVote(vote);

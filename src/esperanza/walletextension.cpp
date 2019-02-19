@@ -492,11 +492,13 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
     // https://github.com/dtr-org/unit-e/issues/570
     // for now only instant finalization is possible for the first epoch
     assert(false && "recommended target must be set!");
-    return;
   }
 
   const uint32_t target_epoch = state.GetEpoch(*target);
-  assert(state.GetCurrentEpoch() == target_epoch + 1 && "inconsistent state");
+  if (state.GetCurrentEpoch() != target_epoch + 1) {
+    // not the right time to vote
+    return;
+  }
 
   // Avoid double votes
   if (validator.m_voteMap.find(target_epoch) != validator.m_voteMap.end()) {
