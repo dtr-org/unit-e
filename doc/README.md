@@ -59,3 +59,6 @@ developed by the OpenSSL Project for use in the [OpenSSL
 Toolkit](https://www.openssl.org/). This product includes cryptographic software
 written by Eric Young ([eay@cryptsoft.com](mailto:eay@cryptsoft.com)), and UPnP
 software written by Thomas Bernard.
+
+Attribution of assets can be found at
+[contrib/debian/copyright](../contrib/debian/copyright).
