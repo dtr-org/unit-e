@@ -90,9 +90,6 @@ class FinalizationStateData {
   // Map of dynasty number to the starting epoch number
   std::map<uint32_t, uint32_t> m_dynastyStartEpoch;
 
-  // Map of epoch number to checkpoint hash
-  std::map<uint32_t, uint256> m_epochToCheckpointHash;
-
   // List of validators
   std::map<uint160, Validator> m_validators;
 

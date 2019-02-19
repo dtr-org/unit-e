@@ -488,7 +488,7 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
 
   const CBlockIndex *target = state.GetRecommendedTarget();
   if (!target) {
-    // todo: must not happen once the following issue is implemented:
+    // TODO: UNIT-E: must not happen once the following issue is implemented:
     // https://github.com/dtr-org/unit-e/issues/570
     // for now only instant finalization is possible for the first epoch
     assert(false && "recommended target must be set!");
@@ -718,7 +718,7 @@ void WalletExtension::BlockConnected(
         FinalizationState *state = FinalizationState::GetState();
         assert(state);
 
-        // todo: remove "state->GetCurrentEpoch() > 2" when we delete instant finalization
+        // TODO: UNIT-E: remove "state->GetCurrentEpoch() > 2" when we delete instant finalization
         // and start epoch from 1 #570, #572
         if (state->GetCurrentEpoch() > 2 &&
             state->GetLastFinalizedEpoch() >= validatorState.get().m_depositEpoch) {
