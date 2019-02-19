@@ -80,6 +80,9 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         assert_equal(self.get_bip9_status(bipName)['status'], 'defined')
         assert_equal(self.get_bip9_status(bipName)['since'], 0)
 
+        # Setup stake
+        self.setup_stake_coins(*self.nodes)
+
         # generate some coins for later
         self.coinbase_blocks = self.nodes[0].generate(2)
         self.height = 3  # height of the next block to build
@@ -94,7 +97,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 1
         # Advance from DEFINED to STARTED
         test_blocks = self.generate_blocks(141, 4)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 1")
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'started')
         assert_equal(self.get_bip9_status(bipName)['since'], 144)
@@ -105,7 +108,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # check stats after max number of "signalling not" blocks such that LOCKED_IN still possible this period
         test_blocks = self.generate_blocks(36, 4, test_blocks) # 0x00000004 (signalling not)
         test_blocks = self.generate_blocks(10, activated_version) # 0x20000001 (signalling ready)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 1-A")
 
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 46)
         assert_equal(self.get_bip9_status(bipName)['statistics']['count'], 10)
@@ -114,7 +117,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 1-B
         # check stats after one additional "signalling not" block --  LOCKED_IN no longer possible this period
         test_blocks = self.generate_blocks(1, 4, test_blocks) # 0x00000004 (signalling not)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 1-B")
 
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 47)
         assert_equal(self.get_bip9_status(bipName)['statistics']['count'], 10)
@@ -123,7 +126,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 1-C
         # finish period with "ready" blocks, but soft fork will still fail to advance to LOCKED_IN
         test_blocks = self.generate_blocks(97, activated_version) # 0x20000001 (signalling ready)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 1-C")
 
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 0)
         assert_equal(self.get_bip9_status(bipName)['statistics']['count'], 0)
@@ -137,7 +140,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         test_blocks = self.generate_blocks(20, 4, test_blocks) # 0x00000004 (signalling not)
         test_blocks = self.generate_blocks(50, activated_version, test_blocks) # 0x20000101 (signalling ready)
         test_blocks = self.generate_blocks(24, 4, test_blocks) # 0x20010000 (signalling not)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 2")
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'started')
         assert_equal(self.get_bip9_status(bipName)['since'], 144)
@@ -151,7 +154,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         test_blocks = self.generate_blocks(26, 4, test_blocks) # 0x00000004 (signalling not)
         test_blocks = self.generate_blocks(50, activated_version, test_blocks) # 0x20000101 (signalling ready)
         test_blocks = self.generate_blocks(10, 4, test_blocks) # 0x20010000 (signalling not)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 3")
 
         # check counting stats and "possible" flag before last block of this period achieves LOCKED_IN...
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 143)
@@ -161,7 +164,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
         # ...continue with Test 3
         test_blocks = self.generate_blocks(1, activated_version) # 0x20000001 (signalling ready)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 3 (cont.)")
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'locked_in')
         assert_equal(self.get_bip9_status(bipName)['since'], 576)
@@ -169,7 +172,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 4
         # 143 more version 536870913 blocks (waiting period-1)
         test_blocks = self.generate_blocks(143, 4)
-        yield TestInstance(test_blocks, sync_every_block=False)
+        yield TestInstance(test_blocks, sync_every_block=False, test_name="Test 4")
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'locked_in')
         assert_equal(self.get_bip9_status(bipName)['since'], 576)
@@ -201,7 +204,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         self.last_block_time += 1
         self.tip = block.sha256
         self.height += 1
-        yield TestInstance([[block, True]])
+        yield TestInstance([[block, True]], test_name="Test 5")
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'active')
         assert_equal(self.get_bip9_status(bipName)['since'], 720)
@@ -223,7 +226,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         block.rehash()
         block.solve()
         self.last_block_time += 1
-        yield TestInstance([[block, False]])
+        yield TestInstance([[block, False]], test_name="Test 6")
 
         # Restart all
         self.test.clear_all_connections()
