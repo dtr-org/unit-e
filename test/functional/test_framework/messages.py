@@ -24,7 +24,7 @@ import struct
 import time
 
 from test_framework.siphash import siphash256
-from test_framework.util import hex_str_to_bytes, bytes_to_hex_str
+from test_framework.util import hex_str_to_bytes, bytes_to_hex_str, assert_equal, assert_contents_equal
 
 MIN_VERSION_SUPPORTED = 60001
 MY_VERSION = 70014  # past bip-31 for ping/pong
@@ -696,6 +696,40 @@ class CBlock(CBlockHeader):
                time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
 
 
+class COrderedBlock(CBlock):
+    """ CBlock that keeps track of pre-ltor transactions for use with utxo set and compact blocks"""
+    def __init__(self, block):
+        super(COrderedBlock, self).__init__(block)
+        self.vtx = block.vtx.copy()
+        self.ovtx = block.vtx.copy()
+        self.ensure_ltor()
+        self.txs_order = [self.vtx.index(tx) for tx in self.ovtx]
+
+    def append_transactions(self, txs):
+        assert_contents_equal(self.vtx, self.ovtx, key=lambda x: x.hash)
+        assert(all(tx.hash is not None for tx in txs))
+        self.ovtx.extend(txs)
+        self.vtx = self.ovtx.copy()
+        self.ensure_ltor()
+        self.txs_order = [self.vtx.index(tx) for tx in self.ovtx]
+
+    def remove_at(self, index):
+        assert_contents_equal(self.vtx, self.ovtx, key=lambda x: x.hash)
+        removed_index = self.txs_order[index]
+        assert_equal(self.ovtx[index], self.vtx[removed_index])
+        del self.ovtx[index]
+        del self.vtx[removed_index]
+        self.txs_order = [self.vtx.index(tx) for tx in self.ovtx]
+
+    def prefill_for(self, indexes):
+        assert_contents_equal(self.vtx, self.ovtx, key=lambda x: x.hash)
+        prefill = []
+        for i in indexes:
+            assert_equal(self.ovtx[i], self.vtx[self.txs_order[i]])
+            prefill.append(self.txs_order[i])
+        return prefill
+
+
 class PrefilledTransaction():
     def __init__(self, index=0, tx = None):
         self.index = index
@@ -806,7 +840,8 @@ class HeaderAndShortIDs():
         ret.prefilled_txn_length = len(self.prefilled_txn)
         ret.prefilled_txn = []
         last_index = -1
-        for x in self.prefilled_txn:
+        ordered_txn = sorted(self.prefilled_txn, key=lambda x: x.index)
+        for x in ordered_txn:
             ret.prefilled_txn.append(PrefilledTransaction(x.index - last_index - 1, x.tx))
             last_index = x.index
         return ret
@@ -827,6 +862,7 @@ class HeaderAndShortIDs():
         self.shortids = []
         self.use_witness = use_witness
         [k0, k1] = self.get_siphash_keys()
+
         for i in range(len(block.vtx)):
             if i not in prefill_list:
                 tx_hash = block.vtx[i].sha256
@@ -882,7 +918,7 @@ class BlockTransactions():
 
     def __init__(self, blockhash=0, transactions = None):
         self.blockhash = blockhash
-        self.transactions = transactions if transactions != None else []
+        self.transactions = sorted(transactions, key=lambda x: x.hash) if transactions != None else []
 
     def deserialize(self, f):
         self.blockhash = deser_uint256(f)

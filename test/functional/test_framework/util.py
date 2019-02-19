@@ -46,6 +46,10 @@ def assert_greater_than_or_equal(thing1, thing2):
     if thing1 < thing2:
         raise AssertionError("%s < %s" % (str(thing1), str(thing2)))
 
+def assert_in(thing, sequence):
+    if thing not in sequence:
+        raise AssertionError("%s not in %s" % (str(thing), str(sequence)))
+
 def assert_contents_equal(thing1, thing2, key=lambda x: x):
     if len(thing1) != len(thing2):
         raise AssertionError("different lengths between {} and {}".format(thing1, thing2))
