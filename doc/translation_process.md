@@ -1,6 +1,9 @@
 Translations
 ============
 
+**This describes the Bitcoin Core translation process. It will need to be
+adapted to the unit-e release process when we start doing translations.**
+
 The Unit-e-Core project has been designed to support multiple localisations. This makes adding new phrases, and completely new languages easily achievable. For managing all application translations, Unit-e-Core makes use of the Transifex online translation management tool.
 
 ### Helping to translate (using Transifex)
