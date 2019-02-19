@@ -1,6 +1,9 @@
 Release Process
 ====================
 
+**This describes the Bitcoin Core release process. It will need to be adapted to
+the unit-e release process when we start doing releases.**
+
 Before every release candidate:
 
 * Update translations (ping wumpus on IRC) see [translation_process.md](https://github.com/unite/unite/blob/master/doc/translation_process.md#synchronising-translations).
