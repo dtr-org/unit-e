@@ -111,12 +111,13 @@ class AdminValidation(UnitETestFramework):
                                              address_type)["address"]
 
     def run_test(self):
+        # Setup stake
+        self.setup_stake_coins(*self.nodes)
+
         self.admin = self.nodes[0]
         self.reject_tracker = TestNode()
         self.admin.add_p2p_connection(self.reject_tracker)
         network_thread_start()
-
-        self.admin.importmasterkey(regtest_mnemonics[0]['mnemonics'])
 
         assert_equal(10000, self.admin.getbalance())
 
