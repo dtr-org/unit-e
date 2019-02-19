@@ -110,9 +110,11 @@ class BlockValidator {
   static std::unique_ptr<BlockValidator> New(Dependency<blockchain::Behavior>);
 };
 
+//! \brief Block Validator that handles orchestration logic only
+//!
+//! This class is extracted so that it can be unit tested and check the interactions between
+//! calls if orchestrated using staking::BlockValidationInfo.
 class AbstractBlockValidator : public BlockValidator {
-
-  // here there be boredom - orchestration logic (no dragons, no unicorns)
 
  protected:
   virtual void CheckBlockHeaderInternal(
@@ -140,23 +142,23 @@ class AbstractBlockValidator : public BlockValidator {
  public:
   BlockValidationResult CheckBlock(
       const CBlock &block,
-      BlockValidationInfo *block_validation_info) const final override;
+      BlockValidationInfo *block_validation_info) const final;
 
   BlockValidationResult ContextualCheckBlock(
       const CBlock &block,
       const CBlockIndex &prev_block,
       blockchain::Time adjusted_time,
-      BlockValidationInfo *block_validation_info) const final override;
+      BlockValidationInfo *block_validation_info) const final;
 
   BlockValidationResult CheckBlockHeader(
       const CBlockHeader &block_header,
-      BlockValidationInfo *block_validation_info) const final override;
+      BlockValidationInfo *block_validation_info) const final;
 
   BlockValidationResult ContextualCheckBlockHeader(
       const CBlockHeader &block_header,
       const CBlockIndex &prev_block,
-      const blockchain::Time adjusted_time,
-      BlockValidationInfo *block_validation_info) const final override;
+      blockchain::Time adjusted_time,
+      BlockValidationInfo *block_validation_info) const final;
 };
 
 }  // namespace staking
