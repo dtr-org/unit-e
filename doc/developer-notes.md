@@ -159,7 +159,7 @@ that run in -regtest mode.
 
 **DEBUG_LOCKORDER**
 
-UnitE Core is a multithreaded application, and deadlocks or other multithreading bugs
+unit-e is a multithreaded application, and deadlocks or other multithreading bugs
 can be very difficult to track down. Compiling with -DDEBUG_LOCKORDER (configure
 CXXFLAGS="-DDEBUG_LOCKORDER -g") inserts run-time checks to keep track of which locks
 are held, and adds warnings to the debug.log file if inconsistencies are detected.
@@ -168,7 +168,7 @@ are held, and adds warnings to the debug.log file if inconsistencies are detecte
 
 Valgrind is a programming tool for memory debugging, memory leak detection, and
 profiling. The repo contains a Valgrind suppressions file
-([`valgrind.supp`](https://github.com/unite/unite/blob/master/contrib/valgrind.supp))
+([`valgrind.supp`](https://github.com/dtr-org/unit-e/blob/master/contrib/valgrind.supp))
 which includes known Valgrind warnings in our dependencies that cannot be fixed
 in-tree. Example use:
 
@@ -251,7 +251,7 @@ Ignoring IDE/editor files
 In closed-source environments in which everyone uses the same IDE it is common
 to add temporary files it produces to the project-wide `.gitignore` file.
 
-However, in open source software such as UnitE Core, where everyone uses
+However, in open source software such as unit-e, where everyone uses
 their own editors/IDE/tools, it is less common. Only you know what files your
 editor produces and this may change from version to version. The canonical way
 to do this is thus to create your local gitignore. Add this to `~/.gitconfig`:
@@ -281,9 +281,9 @@ Development guidelines
 ============================
 
 A few non-style-related recommendations for developers, as well as points to
-pay attention to for reviewers of UnitE Core code.
+pay attention to for reviewers of unit-e code.
 
-General UnitE Core
+General unit-e
 ----------------------
 
 - New features should be exposed on RPC first, then can be made available in the GUI
@@ -399,7 +399,7 @@ Strings and formatting
 
 - For `strprintf`, `LogPrint`, `LogPrintf` formatting characters don't need size specifiers
 
-  - *Rationale*: UnitE Core uses tinyformat, which is type safe. Leave them out to avoid confusion
+  - *Rationale*: unit-e uses tinyformat, which is type safe. Leave them out to avoid confusion
 
 Variable names
 --------------
@@ -556,7 +556,7 @@ These are the current subtrees and where they are coming from:
 
 - src/crypto/ctaes
 
-  Upstream at https://github.com/unite-core/ctaes, actively maintained by
+  Upstream at https://github.com/bitcoin-core/ctaes, actively maintained by
   Bitcoin Core contributors.
 
 - src/univalue
@@ -632,7 +632,7 @@ Git and GitHub tips
 
         [remote "upstream-pull"]
                 fetch = +refs/pull/*:refs/remotes/upstream-pull/*
-                url = git@github.com:unite/unite.git
+                url = git@github.com:dtr-org/unit-e.git
 
   This will add an `upstream-pull` remote to your git repository, which can be fetched using `git fetch --all`
   or `git fetch upstream-pull`. Afterwards, you can use `upstream-pull/NUMBER/head` in arguments to `git show`,
@@ -753,7 +753,7 @@ A few guidelines for introducing and reviewing new RPC interfaces:
   RPCs whose behavior does *not* depend on the current chainstate may omit this
   call.
 
-  - *Rationale*: In previous versions of UnitE Core, the wallet was always
+  - *Rationale*: In previous versions of unit-e, the wallet was always
     in-sync with the chainstate (by virtue of them all being updated in the
     same cs_main lock). In order to maintain the behavior that wallet RPCs
     return results as of at least the highest best-known block an RPC

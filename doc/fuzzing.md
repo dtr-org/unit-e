@@ -1,4 +1,4 @@
-Fuzz-testing UnitE Core
+Fuzz-testing unit-e
 ==========================
 
 A special test harness `test_unite_fuzzy` is provided to provide an easy
@@ -20,7 +20,7 @@ export AFLPATH=$PWD
 Instrumentation
 ----------------
 
-To build UnitE Core using AFL instrumentation (this assumes that the
+To build unit-e using AFL instrumentation (this assumes that the
 `AFLPATH` was set as above):
 ```
 ./configure --disable-ccache --disable-shared --enable-tests CC=${AFLPATH}/afl-gcc CXX=${AFLPATH}/afl-g++

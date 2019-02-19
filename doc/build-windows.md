@@ -1,12 +1,12 @@
 WINDOWS BUILD NOTES
 ====================
 
-Below are some notes on how to build UnitE Core for Windows.
+Below are some notes on how to build unit-e for Windows.
 
-The options known to work for building UnitE Core on Windows are:
+The options known to work for building unit-e on Windows are:
 
 * On Linux using the [Mingw-w64](https://mingw-w64.org/doku.php) cross compiler tool chain. Ubuntu Bionic 18.04 is required
-and is the platform used to build the UnitE Core Windows release binaries.
+and is the platform used to build the unit-e Windows release binaries.
 * On Windows using [Windows
 Subsystem for Linux (WSL)](https://msdn.microsoft.com/commandline/wsl/about) and the Mingw-w64 cross compiler tool chain.
 
@@ -78,15 +78,15 @@ Ubuntu Bionic 18.04 <sup>[1](#footnote1)</sup>:
 
 Once the tool chain is installed the build steps are common:
 
-Note that for WSL the UnitE Core source path MUST be somewhere in the default mount file system, for
+Note that for WSL the unit-e source path MUST be somewhere in the default mount file system, for
 example /usr/src/unite, AND not under /mnt/d/. If this is not the case the dependency autoconf scripts will fail.
 This means you cannot use a directory that located directly on the host Windows file system to perform the build.
 
 The next three steps are an example of how to acquire the source in an appropriate way.
 
     cd /usr/src
-    sudo git clone https://github.com/unite/unite.git
-    sudo chmod -R a+rw unite
+    sudo git clone https://github.com/dtr-org/unit-e.git
+    sudo chmod -R a+rw unit-e
 
 Once the source code is ready the build steps are below.
 
@@ -108,15 +108,15 @@ For Ubuntu Bionic 18.04 and Windows Subsystem for Linux <sup>[1](#footnote1)</su
 
     sudo update-alternatives --config i686-w64-mingw32-g++  # Set the default mingw32 g++ compiler option to posix.
 
-Note that for WSL the UnitE Core source path MUST be somewhere in the default mount file system, for
+Note that for WSL the unit-e source path MUST be somewhere in the default mount file system, for
 example /usr/src/unite, AND not under /mnt/d/. If this is not the case the dependency autoconf scripts will fail.
 This means you cannot use a directory that located directly on the host Windows file system to perform the build.
 
 The next three steps are an example of how to acquire the source in an appropriate way.
 
     cd /usr/src
-    sudo git clone https://github.com/unite/unite.git
-    sudo chmod -R a+rw unite
+    sudo git clone https://github.com/dtr-org/unit-e.git
+    sudo chmod -R a+rw unit-e
 
 Then build using:
 
@@ -138,9 +138,9 @@ Installation
 After building using the Windows subsystem it can be useful to copy the compiled
 executables to a directory on the windows drive in the same directory structure
 as they appear in the release `.zip` archive. This can be done in the following
-way. This will install to `c:\workspace\unite`, for example:
+way. This will install to `c:\workspace\unit-e`, for example:
 
-    make install DESTDIR=/mnt/c/workspace/unite
+    make install DESTDIR=/mnt/c/workspace/unit-e
 
 Footnotes
 ---------

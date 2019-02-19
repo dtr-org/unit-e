@@ -40,13 +40,13 @@ from the root of the repository.
 
 **Note**: You only need Berkeley DB if the wallet is enabled (see the section *Disable-Wallet mode* below).
 
-Build UnitE Core
+Build unit-e
 ------------------------
 
 1. Clone the unite source code and cd into `unite`
 
-        git clone https://github.com/unite/unite
-        cd unite
+        git clone https://github.com/dtr-org/unit-e
+        cd unit-e
 
 2.  Build unite-core:
 
@@ -69,19 +69,19 @@ Build UnitE Core
 Running
 -------
 
-UnitE Core is now available at `./src/united`
+unit-e is now available at `./src/united`
 
 Before running, it's recommended you create an RPC configuration file.
 
-    echo -e "rpcuser=uniterpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/UnitE/unite.conf"
+    echo -e "rpcuser=uniterpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Unit-e/unite.conf"
 
-    chmod 600 "/Users/${USER}/Library/Application Support/UnitE/unite.conf"
+    chmod 600 "/Users/${USER}/Library/Application Support/Unit-e/unite.conf"
 
 The first time you run united, it will start downloading the blockchain. This process could take several hours.
 
 You can monitor the download process by looking at the debug.log file:
 
-    tail -f $HOME/Library/Application\ Support/UnitE/debug.log
+    tail -f $HOME/Library/Application\ Support/Unit-e/debug.log
 
 Other commands:
 -------
@@ -112,4 +112,4 @@ Notes
 
 * Tested on OS X 10.8 through 10.13 on 64-bit Intel processors only.
 
-* Building with downloaded Qt binaries is not officially supported. See the notes in [#7714](https://github.com/unite/unite/issues/7714)
+* Building with downloaded Qt binaries is not officially supported. See the notes in [#7714](https://github.com/bitcoin/bitcoin/issues/7714)

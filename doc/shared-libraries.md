@@ -3,7 +3,7 @@ Shared Libraries
 
 ## uniteconsensus
 
-The purpose of this library is to make the verification functionality that is critical to UnitE's consensus available to other applications, e.g. to language bindings.
+The purpose of this library is to make the verification functionality that is critical to Unit-e's consensus available to other applications, e.g. to language bindings.
 
 ### API
 
@@ -43,7 +43,7 @@ The interface is defined in the C header `uniteconsensus.h` located in  `src/scr
 - `uniteconsensus_ERR_AMOUNT_REQUIRED` - Input amount is required if WITNESS is used
 
 ### Example Implementations
-- [NUnitE](https://github.com/NicolasDorier/NUnitE/blob/master/NUnitE/Script.cs#L814) (.NET Bindings)
+- [NBitcoin](https://github.com/NicolasDorier/NBitcoin/blob/master/NBitcoin/Script.cs#L814) (.NET Bindings)
 - [node-libuniteconsensus](https://github.com/bitpay/node-libuniteconsensus) (Node.js Bindings)
 - [java-libuniteconsensus](https://github.com/dexX7/java-libuniteconsensus) (Java Bindings)
 - [uniteconsensus-php](https://github.com/Bit-Wasp/uniteconsensus-php) (PHP Bindings)

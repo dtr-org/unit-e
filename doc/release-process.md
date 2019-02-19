@@ -26,7 +26,7 @@ Before every major release:
 * Update `src/chainparams.cpp` chainTxData with statistics about the transaction count and rate.
 * Update version of `contrib/gitian-descriptors/*.yml`: usually one'd want to do this on master after branching off the release - but be sure to at least do it before a new major release
 
-### UnitE maintainers/release engineers, suggestion for writing release notes
+### Unit-e maintainers/release engineers, suggestion for writing release notes
 
 Write release notes. git shortlog helps a lot, for example:
 
@@ -101,14 +101,14 @@ unite.org (see below for unite.org update instructions).
 
 - Update unite.org version
 
-  - First, check to see if the UnitE.org maintainers have prepared a
+  - First, check to see if the Unit-e.org maintainers have prepared a
     release: https://github.com/unite-dot-org/unite.org/labels/Releases
 
       - If they have, it will have previously failed their Travis CI
         checks because the final release files weren't uploaded.
         Trigger a Travis CI rebuild---if it passes, merge.
 
-  - If they have not prepared a release, follow the UnitE.org release
+  - If they have not prepared a release, follow the Unit-e.org release
     instructions: https://github.com/unite-dot-org/unite.org#release-notes
 
   - After the pull request is merged, the website will automatically show the newest version within 15 minutes, as well
@@ -118,13 +118,13 @@ unite.org (see below for unite.org update instructions).
 
   - unite-dev and unite-core-dev mailing list
 
-  - UnitE Core announcements list https://bitcoincore.org/en/list/announcements/join/
+  - unit-e announcements list https://bitcoincore.org/en/list/announcements/join/
 
   - bitcoincore.org blog post
 
   - Update title of #unite on Freenode IRC
 
-  - Optionally twitter, reddit /r/UnitE, ... but this will usually sort out itself
+  - Optionally twitter, reddit /r/Unit-e, ... but this will usually sort out itself
 
   - Notify BlueMatt so that he can start building [the PPAs](https://launchpad.net/~unite/+archive/ubuntu/unite)
 

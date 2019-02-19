@@ -1,15 +1,15 @@
-UnitE Core
+unit-e
 =============
 
 Setup
 ---------------------
-UnitE Core is the original UnitE client and it builds the backbone of the network. It downloads and, by default, stores the entire history of UnitE transactions (which is currently more than 100 GBs); depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
+unit-e is the original Unit-e client and it builds the backbone of the network. It downloads and, by default, stores the entire history of Unit-e transactions (which is currently more than 100 GBs); depending on the speed of your computer and network connection, the synchronization process can take anywhere from a few hours to a day or more.
 
-To download UnitE Core, visit [bitcoincore.org](https://bitcoincore.org/en/releases/).
+To download unit-e, visit [bitcoincore.org](https://bitcoincore.org/en/releases/).
 
 Running
 ---------------------
-The following are some helpful notes on how to run UnitE on your native platform.
+The following are some helpful notes on how to run Unit-e on your native platform.
 
 ### Unix
 
@@ -24,18 +24,18 @@ Unpack the files into a directory, and then run unite-qt.exe.
 
 ### OS X
 
-Drag UnitE-Core to your applications folder, and then run UnitE-Core.
+Drag Unit-e-Core to your applications folder, and then run Unit-e-Core.
 
 ### Need Help?
 
-* See the documentation at the [UnitE Wiki](https://en.unite.it/wiki/Main_Page)
+* See the documentation at the [Unit-e Wiki](https://en.unite.it/wiki/Main_Page)
 for help and more information.
 * Ask for help on [#unite](http://webchat.freenode.net?channels=unite) on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net?channels=unite).
-* Ask for help on the [UnitETalk](https://bitcointalk.org/) forums, in the [Technical Support board](https://bitcointalk.org/index.php?board=4.0).
+* Ask for help on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Technical Support board](https://bitcointalk.org/index.php?board=4.0).
 
 Building
 ---------------------
-The following are developer notes on how to build UnitE on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
+The following are developer notes on how to build Unit-e on your native platform. They are not complete guides, but include notes on the necessary libraries, compile flags, etc.
 
 - [Dependencies](dependencies.md)
 - [OS X Build Notes](build-osx.md)
@@ -46,7 +46,7 @@ The following are developer notes on how to build UnitE on your native platform.
 
 Development
 ---------------------
-The UnitE repo's [root README](/README.md) contains relevant information on the development process and automated testing.
+The Unit-e repo's [root README](/README.md) contains relevant information on the development process and automated testing.
 
 - [Developer Notes](developer-notes.md)
 - [Release Notes](release-notes.md)
@@ -62,9 +62,9 @@ The UnitE repo's [root README](/README.md) contains relevant information on the 
 - [Benchmarking](benchmarking.md)
 
 ### Resources
-* Discuss on the [UnitETalk](https://bitcointalk.org/) forums, in the [Development & Technical Discussion board](https://bitcointalk.org/index.php?board=6.0).
+* Discuss on the [BitcoinTalk](https://bitcointalk.org/) forums, in the [Development & Technical Discussion board](https://bitcointalk.org/index.php?board=6.0).
 * Discuss project-specific development on #unite-core-dev on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net/?channels=unite-core-dev).
-* Discuss general UnitE development on #unite-dev on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net/?channels=unite-dev).
+* Discuss general Unit-e development on #unite-dev on Freenode. If you don't have an IRC client use [webchat here](http://webchat.freenode.net/?channels=unite-dev).
 
 ### Miscellaneous
 - [Assets Attribution](assets-attribution.md)

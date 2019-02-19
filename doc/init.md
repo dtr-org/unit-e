@@ -68,9 +68,9 @@ can then be controlled by group membership.
 ### Mac OS X
 
 Binary:              `/usr/local/bin/united`
-Configuration file:  `~/Library/Application Support/UnitE/unite.conf`
-Data directory:      `~/Library/Application Support/UnitE`
-Lock file:           `~/Library/Application Support/UnitE/.lock`
+Configuration file:  `~/Library/Application Support/Unit-e/unite.conf`
+Data directory:      `~/Library/Application Support/Unit-e`
+Lock file:           `~/Library/Application Support/Unit-e/.lock`
 
 Installing Service Configuration
 -----------------------------------
