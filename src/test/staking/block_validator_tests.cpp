@@ -72,11 +72,11 @@ void CheckGenesisBlock(const blockchain::Parameters &parameters) {
   BOOST_CHECK(static_cast<bool>(validation_result));
 }
 
+using Error = staking::BlockValidationError;
+
 }  // namespace
 
 BOOST_FIXTURE_TEST_SUITE(block_validator_tests, BasicTestingSetup)
-
-using Error = staking::BlockValidationError;
 
 BOOST_AUTO_TEST_CASE(check_empty_block) {
   const auto block_validator = staking::BlockValidator::New(b.get());
@@ -158,6 +158,7 @@ BOOST_AUTO_TEST_CASE(check_NO_block_height) {
 
   const auto validation_result = block_validator->CheckBlock(block, nullptr);
 
+  BOOST_CHECK(validation_result.errors.Contains(Error::NO_BLOCK_HEIGHT));
   BOOST_CHECK(!validation_result);
 }
 
@@ -286,6 +287,41 @@ BOOST_AUTO_TEST_CASE(valid_block) {
   BOOST_CHECK_EQUAL(validation_result.GetRejectionMessage(), "");
   BOOST_CHECK_EQUAL(block_validation_info.GetSnapshotHash(), expected_snapshot_hash);
   BOOST_CHECK_EQUAL(block_validation_info.GetHeight(), expected_height);
+}
+
+BOOST_AUTO_TEST_CASE(check_mismatching_height) {
+
+  const auto block_validator = staking::BlockValidator::New(b.get());
+
+  CBlockIndex prev_block;
+  prev_block.nHeight = 1499;
+
+  {
+    staking::BlockValidationInfo block_validation_info;
+    block_validation_info.MarkCheckBlockHeaderSuccessfull();
+    block_validation_info.MarkContextualCheckBlockHeaderSuccessfull();
+    block_validation_info.MarkCheckBlockSuccessfull(1500, uint256());
+
+    const auto validation_result =
+        block_validator->ContextualCheckBlock(MinimalBlock(), prev_block, std::time(nullptr), &block_validation_info);
+    BOOST_CHECK(static_cast<bool>(validation_result));
+    BOOST_CHECK(block_validation_info.GetContextualCheckBlockStatus().IsTrue());
+  }
+
+  {
+    staking::BlockValidationInfo block_validation_info;
+    block_validation_info.MarkCheckBlockHeaderSuccessfull();
+    block_validation_info.MarkContextualCheckBlockHeaderSuccessfull();
+    block_validation_info.MarkCheckBlockSuccessfull(1500, uint256());
+
+    prev_block.nHeight = 1498;
+
+    const auto validation_result =
+        block_validator->ContextualCheckBlock(MinimalBlock(), prev_block, std::time(nullptr), &block_validation_info);
+    BOOST_CHECK(validation_result.errors.Contains(Error::MISMATCHING_HEIGHT));
+    BOOST_CHECK(!static_cast<bool>(validation_result));
+    BOOST_CHECK(block_validation_info.GetContextualCheckBlockStatus().IsFalse());
+  }
 }
 
 BOOST_AUTO_TEST_CASE(genesis_block_mainnet) {
