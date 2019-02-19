@@ -48,7 +48,7 @@ Build unit-e
         git clone https://github.com/dtr-org/unit-e
         cd unit-e
 
-2.  Build unite-core:
+2.  Build unit-e:
 
     Configure and build the headless unite binaries as well as the GUI (if Qt is found).
 
