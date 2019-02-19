@@ -28,6 +28,9 @@ class RawTransactionsTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, 0, 3)
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         min_relay_tx_fee = self.nodes[0].getnetworkinfo()['relayfee']
         # This test is not meant to test fee estimation and we'd like
         # to be sure all txs are sent at a consistent desired feerate
@@ -632,7 +635,8 @@ class RawTransactionsTest(UnitETestFramework):
         #######################
 
         # Make sure there is exactly one input so coin selection can't skew the result
-        assert_equal(len(self.nodes[3].listunspent(1)), 1)
+        height_excluding_genesis = self.nodes[3].getblockcount() - 2
+        assert_equal(len(self.nodes[3].listunspent(1, height_excluding_genesis)), 1)
 
         inputs = []
         outputs = {self.nodes[3].getnewaddress() : 1}
@@ -664,7 +668,8 @@ class RawTransactionsTest(UnitETestFramework):
         ######################################
 
         # Make sure there is exactly one input so coin selection can't skew the result
-        assert_equal(len(self.nodes[3].listunspent(1)), 1)
+        height_excluding_genesis = self.nodes[3].getblockcount() - 2
+        assert_equal(len(self.nodes[3].listunspent(1, height_excluding_genesis)), 1)
 
         inputs = []
         outputs = {self.nodes[2].getnewaddress(): 1}
