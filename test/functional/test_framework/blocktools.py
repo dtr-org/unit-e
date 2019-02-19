@@ -49,6 +49,16 @@ def get_witness_script(witness_root, witness_nonce):
     return CScript([OP_RETURN, output_data])
 
 
+def update_uncommited_block_structures(block, nonce=0):
+    # First calculate the merkle root of the block's
+    # transactions, with witnesses.
+    witness_nonce = nonce
+    witness_root = block.calc_witness_merkle_root()
+    # witness_nonce should go to coinbase witness.
+    block.vtx[0].wit.vtxinwit = [CTxInWitness()]
+    block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(witness_nonce)]
+
+
 # According to BIP141, blocks with witness rules active must commit to the
 # hash of all in-block transactions including witness.
 def add_witness_commitment(block, nonce=0):
@@ -82,22 +92,6 @@ def serialize_script_num(value):
         r[-1] |= 0x80
     return r
 
-
-def create_coinbase2(height, snapshot_hash, pubkey=None):
-    coinbase = CTransaction()
-    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff),
-                              CScript([CScriptNum(height), ser_uint256(snapshot_hash)]), 0xffffffff))
-    coinbaseoutput = CTxOut()
-    coinbaseoutput.nValue = 50 * UNIT
-    halvings = int(height/150) # regtest
-    coinbaseoutput.nValue >>= halvings
-    if (pubkey != None):
-        coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
-    else:
-        coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
-    coinbase.vout = [ coinbaseoutput ]
-    coinbase.calc_sha256()
-    return coinbase
 
 # Create a coinbase transaction, assuming no miner fees.
 # If pubkey is passed in, the coinbase output will be a P2PK output;

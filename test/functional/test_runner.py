@@ -62,6 +62,7 @@ BASE_SCRIPTS= [
     'mempool_packages.py',
     'feature_block.py --runbarelyexpensive=false',
     'rpc_fundrawtransaction.py',
+    'p2p_compactblocks.py',
     'feature_segwit.py',
     'feature_fee_estimation.py',
     'esperanza_withdraw.py',
@@ -207,7 +208,6 @@ USBDEVICE_SCRIPTS = [
 DISABLED_SCRIPTS = [
     'p2p_segwit.py',
     'feature_nulldummy.py',
-    'p2p_compactblocks.py',
 ]
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
