@@ -193,7 +193,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
       proposer::EligibleCoin eligible_coin = {
           coin,
           GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
-          GetBlockSubsidy(nHeight, chainparams.GetConsensus()) - coin.amount, //TODO UNIT-E: Still want to generate the same amount of coins that PoW would
+          GetBlockSubsidy(nHeight, chainparams.GetConsensus()),
           0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
           0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
           0 //TODO UNIT-E: At the moment is not used, since we still have PoW here

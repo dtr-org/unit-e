@@ -612,8 +612,9 @@ UniValue importwallet(const JSONRPCRequest& request)
         pwallet->UpdateTimeFirstKey(nTimeBegin);
     }
     // Scan genesis for initial funds
-    pwallet->ScanForWalletTransactions(chainActive.Genesis(), chainActive.Genesis(), reserver, true);
-    pwallet->RescanFromTime(nTimeBegin, reserver, false /* update */);
+    //TODO UNIT-E: here we shoud start from nTimeBegin only if we don't have a key
+    //in the genesis block, otherwise we need to start from beginning
+    pwallet->RescanFromTime(0, reserver, false /* update */);
     pwallet->MarkDirty();
 
     if (!fGood)

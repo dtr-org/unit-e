@@ -705,10 +705,14 @@ void CWallet::AddToSpends(const uint256& wtxid)
     auto it = mapWallet.find(wtxid);
     assert(it != mapWallet.end());
     CWalletTx& thisTx = it->second;
-    if (thisTx.IsCoinBase()) { // Coinbases don't spend anything!
-        return;
+
+    int start_index = 0;
+    if (thisTx.IsCoinBase()) {
+        start_index = 1; // Skip meta input
     }
-    for (const CTxIn& txin : thisTx.tx->vin) {
+
+    for (int i = start_index; i < thisTx.tx->vin.size(); ++i) {
+        const CTxIn& txin = thisTx.tx->vin[i];
         AddToSpends(txin.prevout, wtxid);
     }
 }
@@ -4312,9 +4316,6 @@ int CMerkleTx::GetDepthInMainChain(const CBlockIndex* &pindexRet) const
     pindexRet = pindex;
     const int height = pindex->nHeight;
     const int depth = chainActive.Height() - pindex->nHeight + 1;
-    if (height == 0) {  // genesis block
-        return std::max(COINBASE_MATURITY+1, depth);
-    }
     return ((nIndex == -1) ? (-1) : 1) * depth;
 }
 

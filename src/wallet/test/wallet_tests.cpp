@@ -388,7 +388,8 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(nullBlock, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 100 * UNIT);
+        // TODO UNIT-E: check that is 50*UNIT once coin maturity is reintroduced
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 0);
     }
 
     // Prune the older block file.
@@ -403,7 +404,8 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(oldTip, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 50 * UNIT);
+        // TODO UNIT-E: check that is 50*UNIT once coin maturity is reintroduced
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 0);
     }
 
     // Verify importmulti RPC returns failure for a key whose creation time is
@@ -499,12 +501,10 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         LOCK(wallet.cs_wallet);
         BOOST_CHECK_EQUAL(wallet.mapWallet.size(), 3);
         BOOST_CHECK_EQUAL(coinbaseTxns.size(), 103);
-        for (size_t i = 0; i < coinbaseTxns.size(); ++i) {
-            bool found = wallet.GetWalletTx(coinbaseTxns[i].GetHash());
-            bool expected = i >= 100;
-            BOOST_CHECK_EQUAL(found, expected);
-        }
     }
+
+    //TODO UNIT-E: Create a test that asserts that importwallet does not scan
+    // for blocks coming before the oldest key used.
 
     SetMockTime(0);
     vpwallets.erase(vpwallets.begin());
@@ -532,7 +532,8 @@ BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
     // credit amount is calculated.
     wtx.MarkDirty();
     wallet.AddKeyPubKey(coinbaseKey, coinbaseKey.GetPubKey());
-    BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), 50*UNIT);
+  // TODO UNIT-E: check that is 50*UNIT once coin maturity is reintroduced
+    BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), 0);
 }
 
 static int64_t AddTx(CWallet& wallet, uint32_t lockTime, int64_t mockTime, int64_t blockTime)
@@ -636,19 +637,19 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
 {
     std::string coinbaseAddress = coinbaseKey.GetPubKey().GetID().ToString();
 
-    // Confirm ListCoins initially returns 1 coin grouped under coinbaseKey
-    // address.
+    // Confirm ListCoins initially returns 2 coin grouped under coinbaseKey
+    // address (the last coinbase is split into 2).
     auto list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 
-    // Check initial balance from the regtest balance of 10000 UNITs
-    BOOST_CHECK_EQUAL(10000 * UNIT, pwalletMain->GetAvailableBalance());
+    // Check initial balance from the regtest balance of 10000 UNITs + block rewards 5000
+    BOOST_CHECK_EQUAL(15000 * UNIT, pwalletMain->GetAvailableBalance());
 
     // Check now we added the reward from a new block
     CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
-    BOOST_CHECK_EQUAL(10050 * UNIT, pwalletMain->GetAvailableBalance());
+    BOOST_CHECK_EQUAL(15050 * UNIT, pwalletMain->GetAvailableBalance());
 
     // Add a transaction creating a change address, and confirm ListCoins still
     // returns the coin associated with the change address underneath the
@@ -658,19 +659,19 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 3); // reward + stake + change
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2); // stake + change
 
     // Lock both coins. Confirm number of available coins drops to 0.
     std::vector<COutput> available;
     pwalletMain->AvailableCoins(available);
-    BOOST_CHECK_EQUAL(available.size(), 3);
+    BOOST_CHECK_EQUAL(available.size(), 2);
     for (const auto& group : list) {
         for (const auto& coin : group.second) {
           LOCK(pwalletMain->cs_wallet);
-          pwalletMain->LockCoin(COutPoint(coin.tx->GetHash(), coin.i));
+            pwalletMain->LockCoin(COutPoint(coin.tx->GetHash(), coin.i));
         }
     }
-  pwalletMain->AvailableCoins(available);
+    pwalletMain->AvailableCoins(available);
     BOOST_CHECK_EQUAL(available.size(), 0);
 
     // Confirm ListCoins still returns same result as before, despite coins
@@ -678,7 +679,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 3);
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 }
 
 // Test that AvailableCoins follows coin control settings for
@@ -699,7 +700,7 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
 
     pwalletMain->AvailableCoins(coins);
     // One coinbase has reached maturity
-    BOOST_CHECK_EQUAL(1, coins.size());
+    BOOST_CHECK_EQUAL(2, coins.size());
 
     AddTx(CRecipient {
       CScript::CreateRemoteStakingScript(

@@ -212,7 +212,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     spend_tx.nVersion = 1;
     spend_tx.vin.resize(1);
     spend_tx.vin[0].prevout.hash = coinbaseTxns.back().GetHash();
-    spend_tx.vin[0].prevout.n = 0;
+    spend_tx.vin[0].prevout.n = 1; // the 0th is used by CreateAndProcessBlock later to create a block
     spend_tx.vout.resize(4);
     spend_tx.vout[0].nValue = 11*EEES;
     spend_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;
@@ -226,7 +226,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Sign, with a DER signature
     {
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(p2pkh_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, coinbaseTxns.back().vout[0].nValue, SigVersion::BASE);
+        uint256 hash = SignatureHash(p2pkh_scriptPubKey, spend_tx, 0, SIGHASH_ALL, coinbaseTxns.back().vout[0].nValue, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         spend_tx.vin[0].scriptSig = CScript() << vchSig << ToByteVector(coinbaseKey.GetPubKey());

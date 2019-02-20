@@ -1421,12 +1421,15 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
 }
 
 void MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
+    txundo.vprevout.reserve(tx.vin.size());
+
+    int index_start = 0;
     if (tx.IsCoinBase()) {
-        return;
+      index_start = 1;
     }
 
-    txundo.vprevout.reserve(tx.vin.size());
-    for (const CTxIn &txin : tx.vin) {
+    for (int i = index_start; i < tx.vin.size(); ++i) {
+        const CTxIn &txin = tx.vin[i];
         txundo.vprevout.emplace_back();
         bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
         assert(is_spent);
@@ -2048,6 +2051,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
         if (tx.IsCoinBase()) {
+            blockundo.vtxundo.emplace_back(CTxUndo());
+            MarkCoinAsSpent(tx, view, blockundo.vtxundo.back());
             continue;
         }
 
@@ -2103,14 +2108,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
     bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
-    if (!isGenesisBlock) {
-        CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
-        if (block.vtx[0]->GetValueOut() > blockReward)
-          return state.DoS(100,
-                         error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
-                               block.vtx[0]->GetValueOut(), blockReward),
-                         REJECT_INVALID, "bad-cb-amount");
-    }
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
