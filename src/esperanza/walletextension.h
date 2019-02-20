@@ -67,6 +67,10 @@ class WalletExtension : public staking::StakingWallet {
   template <typename Callable>
   void ForEachStakeableCoin(Callable) const;
 
+  //! Backup the enclosing wallet to a new file in the datadir, appending
+  //! the current timestamp to avoid overwriting previous backups.
+  bool BackupWallet();
+
  public:
   //! \brief non-intrusive extension of the bitcoin-core wallet.
   //!
