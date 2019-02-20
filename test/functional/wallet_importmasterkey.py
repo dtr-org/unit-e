@@ -17,8 +17,12 @@ class WalletImportmasterkeyTest(UnitETestFramework):
     _seed = 'tongue man magnet bacon galaxy enrich cram globe invest steel undo half nature present lend'
     _passphrase = 'crazy horse battery staple'
 
+    @property
+    def backup_count(self):
+        return len(glob('%s/regtest/wallet.dat~*' % self.nodes[0].datadir))
+
     def run_test (self):
-        backup_count = glob('wallet.dat~*')
+        old_backup_count = self.backup_count
 
         result = self.nodes[0].importmasterkey(self._seed, self._passphrase)
         assert_equal(result['success'], True)
@@ -26,8 +30,8 @@ class WalletImportmasterkeyTest(UnitETestFramework):
         result = self.nodes[1].importmasterkey(self._seed, self._passphrase)
         assert_equal(result['success'], True)
 
-        # importmasterkey should not create any new backups in the current directory
-        assert_equal(glob('wallet.dat~*'), backup_count)
+        # importmasterkey should create the backups in the datadir
+        assert_equal(self.backup_count, old_backup_count + 1)
 
         # generate a bunch of addresses on both nodes
         node0_address0 = self.nodes[0].getnewaddress()
