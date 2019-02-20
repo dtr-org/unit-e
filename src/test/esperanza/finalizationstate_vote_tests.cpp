@@ -34,7 +34,10 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  block_index.nHeight = 0;
+  spy.SetRecommendedTarget(&block_index);
 
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
@@ -44,23 +47,29 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
                     +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
 
-  // e0/d0 - try to vote but fail because too early
-  Vote vote = {validatorAddress, targetHash, 0, 0};
-  BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
+  // e0/d0 - try to vote but fail because wrong target
+  Vote vote{validatorAddress, targetHash, 0, 0};
+  BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
 
   // e1/d0 - try to vote but fail because too early
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  vote = {validatorAddress, targetHash, 0, 1};
+  vote = {validatorAddress, targetHash, 0, 0};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
 
   // e2/d1 - try to vote but fail because too early
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
                     +Result::SUCCESS);
+  vote = {validatorAddress, targetHash, 0, 1};
+  BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
+
+  // e3/d1 - try to vote but fail because too early
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
+                    +Result::SUCCESS);
   vote = {validatorAddress, targetHash, 1, 2};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
 
-  // e3/d2 - try to vote and succeed
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
+  // e4/d2 - try to vote and succeed
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
   vote = {validatorAddress, targetHash, 2, 3};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
@@ -73,7 +82,9 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
@@ -87,15 +98,15 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
-  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
+  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 3, 6};
+  Vote vote{validatorAddress, targetHash, 3, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
@@ -111,7 +122,9 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -121,16 +134,18 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
-  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
+  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 3, 5};
+  Vote vote{validatorAddress, targetHash, 3, 4};
+  BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
 
+  vote = {validatorAddress, targetHash, 3, 6};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
 }
 
@@ -140,7 +155,10 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  *spy.RecommendedTargetHash() = GetRandHash();
+  uint256 old_target_hash = GetRandHash();
+  CBlockIndex block_index;
+  block_index.phashBlock = &old_target_hash;
+  spy.SetRecommendedTarget(&block_index);
 
   uint256 targetHash = GetRandHash();
 
@@ -160,7 +178,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 3, 6};
+  Vote vote{validatorAddress, targetHash, 3, 6};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_HASH);
 }
@@ -173,7 +191,9 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -183,15 +203,15 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
-  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
+  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 4, 6};
+  Vote vote{validatorAddress, targetHash, 5, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote),
                     +Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED);
@@ -206,7 +226,9 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -216,13 +238,13 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
-  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
+  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress, targetHash, 1, 5};
+  Vote vote{validatorAddress, targetHash, 1, 4};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
 }
@@ -238,7 +260,9 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1),
                     +Result::SUCCESS);
@@ -252,13 +276,13 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
-  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
+  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
 
-  Vote vote = {validatorAddress_1, targetHash, 3, 5};
+  Vote vote{validatorAddress_1, targetHash, 3, 4};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
@@ -277,7 +301,9 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
   uint256 targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  CBlockIndex block_index;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1),
                     +Result::SUCCESS);
@@ -291,13 +317,15 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
-  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
+  // The validator is included from here on
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
                     +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
+                    +Result::SUCCESS);
 
-  Vote vote = {validatorAddress_2, targetHash, 3, 5};
+  Vote vote{validatorAddress_2, targetHash, 4, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
@@ -305,17 +333,18 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isJustified, true);
   BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isFinalized, false);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(7 * spy.EpochLength()),
                     +Result::SUCCESS);
 
   targetHash = GetRandHash();
-  *spy.RecommendedTargetHash() = targetHash;
+  block_index.phashBlock = &targetHash;
+  spy.SetRecommendedTarget(&block_index);
   vote = {validatorAddress_2, targetHash, 5, 6};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
 
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[6].m_isJustified, true);
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isFinalized, true);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isJustified, true);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[4].m_isFinalized, true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

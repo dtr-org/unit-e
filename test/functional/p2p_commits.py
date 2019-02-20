@@ -86,15 +86,16 @@ class CommitsTest(UnitETestFramework):
             for i in range(0, len(hashes)):
                 assert_equal(m.data[i].header.sha256, hashes[i])
 
+        generate(18)
+        # When no validators present, node automatically justifies previous epoch.
+        # So that:
+        # F      F      J
+        # 0..4 - 5..9 - 10..14 - 15..18
+        assert_equal(node.getblockcount(), 18)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 1)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 2)
 
-        generate(13)
-        # When no validators present, node automatically justifies and finalize every
-        # previous epoch. So that:
-        # 4 is justified and finalized
-        # 9 is justified and finalized
-        # Last epoch is 10..13, not finalized
-
-        getcommits([blocks[5]]) # expect error: not a checkpoint
+        getcommits([blocks[5]])  # expect error: not a checkpoint
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
 
@@ -102,47 +103,54 @@ class CommitsTest(UnitETestFramework):
         check_commits(0, blocks[5:10])
 
         getcommits([blocks[4], blocks[9]])
-        check_commits(1, blocks[10:14])
+        check_commits(1, blocks[10:19])
 
         getcommits([blocks[4], blocks[12]])
-        check_commits(1, blocks[13:14])
+        check_commits(1, blocks[13:19])
 
         getcommits([blocks[4], blocks[9], blocks[11]])
-        check_commits(1, blocks[12:14])
+        check_commits(1, blocks[12:19])
 
         # ascend ordering is broken, 11 is considered biggest
         getcommits([blocks[4], blocks[11], blocks[9]])
-        check_commits(1, blocks[12:14])
+        check_commits(1, blocks[12:19])
 
         # ascend ordering is broken, 11 is considered biggest, 12 is shadowed
-        getcommits([blocks[4], blocks[11], blocks[9], blocks[12]]) #expect [12..13]
-        check_commits(1, blocks[12:14])
+        getcommits([blocks[4], blocks[11], blocks[9], blocks[12]])
+        check_commits(1, blocks[12:19])
 
-        generate(1) # 14th block, unfinalized checkpoint
+        generate(1)  # 19th block, non-finalized checkpoint
+        assert_equal(node.getblockcount(), 19)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 1)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 2)
+
         getcommits([blocks[14]])  # expect error
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
 
         # last epoch is full but still not finalized, expect status=1
         getcommits([blocks[9]])
-        check_commits(1, blocks[10:15])
+        check_commits(1, blocks[10:20])
 
-        getcommits([blocks[14]]) # expect error: not finalized checkpoint
+        getcommits([blocks[14]])  # expect error: not finalized checkpoint
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
 
-        generate(1) # 15th block
-        # Epoch 10..14 is now finalized, expect status=0
+        generate(1)
+        assert_equal(node.getblockcount(), 20)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 2)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 3)
+
+        # Epoch 15..19 is now finalized, expect status=0
         getcommits([blocks[9]])
         check_commits(0, blocks[10:15])
 
         getcommits([blocks[14]])
-        check_commits(1, [blocks[15]])
+        check_commits(1, blocks[15:21])
 
         # Ask for unknown block hash, check most recent block is 14.
         getcommits([blocks[9], blocks[14], 0x4242424242])
-        check_commits(1, [blocks[15]])
-
+        check_commits(1, blocks[15:21])
 
     def commits_test(self, node):
         def check_headers(number):

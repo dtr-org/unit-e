@@ -60,8 +60,7 @@ class WalletExtension : public staking::StakingWallet {
 
   std::vector<std::pair<finalization::VoteRecord, finalization::VoteRecord>> pendingSlashings;
 
-  void VoteIfNeeded(const std::shared_ptr<const CBlock> &pblock,
-                    const CBlockIndex &index, const FinalizationState &state);
+  void VoteIfNeeded(const FinalizationState &state);
 
   void ManagePendingSlashings();
 

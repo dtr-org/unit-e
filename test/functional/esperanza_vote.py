@@ -68,7 +68,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         # After we generated the first 120 blocks with no validators the state is
         # - currentEpoch: 12 (we are in the first block of this epoch)
         # - currentDynasty: 11
-        # - lastFinalizedEpoch: 11
+        # - lastFinalizedEpoch: 10
         # - lastJustifiedEpoch: 11
         # - validators: 0
         # Then we generate other 10 epochs
@@ -77,9 +77,9 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         resp = nodes[0].getfinalizationstate()
         assert_equal(resp["currentEpoch"], 17)
-        assert_equal(resp["currentDynasty"], 16)
-        assert_equal(resp["lastFinalizedEpoch"], 15)
-        assert_equal(resp["lastJustifiedEpoch"], 16)
+        assert_equal(resp["currentDynasty"], 15)
+        assert_equal(resp["lastFinalizedEpoch"], 14)
+        assert_equal(resp["lastJustifiedEpoch"], 15)
         assert_equal(resp["validators"], 3)
 
 

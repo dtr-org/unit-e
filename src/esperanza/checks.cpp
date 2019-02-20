@@ -121,7 +121,7 @@ bool IsVoteExpired(const CTransaction &tx) {
   assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, vote_sig));
   const FinalizationState *state = FinalizationState::GetState();
 
-  return vote.m_targetEpoch < state->GetCurrentEpoch();
+  return vote.m_targetEpoch < state->GetCurrentEpoch() - 1;
 }
 
 bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,

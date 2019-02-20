@@ -440,10 +440,7 @@ static void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) 
         LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool.\n", expired);
     }
 
-    int votesExpired = pool.ExpireVotes();
-    if (votesExpired != 0) {
-      LogPrint(BCLog::MEMPOOL, "Expired %i votes from the memory pool.\n", votesExpired);
-    }
+    pool.ExpireVotes();
 
     std::vector<COutPoint> vNoSpendsRemaining;
     pool.TrimToSize(limit, &vNoSpendsRemaining);

@@ -148,63 +148,61 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
     }
 
   } else {
-    InstaFinalize();
+    InstaJustify();
     m_rewardFactor = 0;
   }
-
-  m_epochToCheckpointHash[m_currentEpoch] = m_recommendedTargetHash;
 
   IncrementDynasty();
 
   LogPrint(BCLog::FINALIZATION,
-           "%s: Epoch with height %d initialized. The current dynasty is %s.\n",
+           "%s: Epoch=%d initialized. The current dynasty=%d.\n",
            __func__, newEpoch, m_currentDynasty);
 
   if (m_lastJustifiedEpoch < m_currentEpoch - 1) {
     LogPrint(BCLog::FINALIZATION,
-             "%s: Epoch %d was not justified. Last justified epoch is %d, last finalized epoch is %d.\n",
+             "%s: Epoch=%d was not justified. last_justified_epoch=%d last_finalized_epoch=%d.\n",
              __func__, m_currentEpoch - 1, m_lastJustifiedEpoch, m_lastFinalizedEpoch);
   }
 
   return success();
 }
 
-void FinalizationState::InstaFinalize() {
-  uint32_t epoch = this->m_currentEpoch;
-  m_mainHashJustified = true;
-
-  Checkpoint &cp = GetCheckpoint(epoch - 1);
+void FinalizationState::InstaJustify() {
+  Checkpoint &cp = GetCheckpoint(m_currentEpoch - 1);
   cp.m_isJustified = true;
-  cp.m_isFinalized = true;
-  m_lastJustifiedEpoch = epoch - 1;
-  m_lastFinalizedEpoch = epoch - 1;
+  m_lastJustifiedEpoch = m_currentEpoch - 1;
+
+  if (m_currentEpoch > 1) {
+    uint32_t expected_finalized = m_currentEpoch - 2;
+    if (GetCheckpoint(expected_finalized).m_isJustified) {
+      GetCheckpoint(expected_finalized).m_isFinalized = true;
+      m_lastFinalizedEpoch = expected_finalized;
+    }
+  }
 
   TrimCache();
 
-  LogPrint(BCLog::FINALIZATION, "%s: Finalized block for epoch %d.\n", __func__,
-           epoch);
+  LogPrint(BCLog::FINALIZATION, "%s: Justified epoch=%d.\n", __func__,
+           m_lastJustifiedEpoch);
 }
 
 void FinalizationState::IncrementDynasty() {
-  uint32_t epoch = this->m_currentEpoch;
-
-  if (epoch > 1 && GetCheckpoint(epoch - 2).m_isFinalized) {
+  // finalized epoch is m_currentEpoch - 3 because:
+  // finalized (0) - justified (1) - votes to justify (2) - current epoch (3)
+  // TODO: UNIT-E: remove "m_currentEpoch > 2" when we delete instant finalization
+  // and start epoch from 1 #570, #572
+  if (m_currentEpoch > 2 && GetCheckpoint(m_currentEpoch - 3).m_isFinalized) {
 
     m_currentDynasty += 1;
     m_prevDynDeposits = m_curDynDeposits;
     m_curDynDeposits += GetDynastyDelta(m_currentDynasty);
-    m_dynastyStartEpoch[m_currentDynasty] = epoch;
+    m_dynastyStartEpoch[m_currentDynasty] = m_currentEpoch;
 
-    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty is %d.\n", __func__,
+    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d.\n", __func__,
              m_currentDynasty);
     // UNIT-E: we can clear old checkpoints (up to lastFinalizedEpoch - 1)
   }
-  m_epochToDynasty[epoch] = m_currentDynasty;
-
-  if (m_mainHashJustified) {
-    m_expectedSrcEpoch = epoch - 1;
-    m_mainHashJustified = false;
-  }
+  m_epochToDynasty[m_currentEpoch] = m_currentDynasty;
 }
 
 ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
@@ -216,11 +214,11 @@ ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
   }
 
   ufp64::ufp64_t curVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(epoch - 1).GetCurDynastyVotes(m_expectedSrcEpoch),
+      GetCheckpoint(epoch - 1).GetCurDynastyVotes(m_expectedSourceEpoch),
       m_curDynDeposits);
 
   ufp64::ufp64_t prevVoteFraction = ufp64::div_2uint(
-      GetCheckpoint(epoch - 1).GetPrevDynastyVotes(m_expectedSrcEpoch),
+      GetCheckpoint(epoch - 1).GetPrevDynastyVotes(m_expectedSourceEpoch),
       m_prevDynDeposits);
 
   ufp64::ufp64_t voteFraction = ufp64::min(curVoteFraction, prevVoteFraction);
@@ -265,21 +263,28 @@ uint64_t FinalizationState::GetDepositSize(const uint160 &validatorAddress) cons
   }
 }
 
+const CBlockIndex *FinalizationState::GetRecommendedTarget() const {
+  return m_recommendedTarget;
+}
+
 Vote FinalizationState::GetRecommendedVote(const uint160 &validatorAddress) const {
   LOCK(cs_esperanza);
 
+  assert(m_recommendedTarget && "m_recommendedTarget must be set!");
+
   Vote vote;
   vote.m_validatorAddress = validatorAddress;
-  vote.m_targetHash = m_recommendedTargetHash;
-  vote.m_targetEpoch = m_currentEpoch;
-  vote.m_sourceEpoch = m_expectedSrcEpoch;
+  vote.m_targetHash = m_recommendedTarget->GetBlockHash();
+  vote.m_targetEpoch = GetEpoch(*m_recommendedTarget);
+  vote.m_sourceEpoch = m_expectedSourceEpoch;
 
   LogPrint(BCLog::FINALIZATION,
-           "%s: Getting recommended vote for epoch %d and dynasty %d is: { %s, "
-           "%d, %d }.\n",
-           __func__, m_currentEpoch, m_currentDynasty,
-           m_recommendedTargetHash.GetHex(), m_currentEpoch,
-           m_expectedSrcEpoch);
+           "%s: source_epoch=%d target_epoch=%d dynasty=%d target_hash=%s.\n",
+           __func__,
+           vote.m_sourceEpoch,
+           vote.m_targetEpoch,
+           m_currentDynasty,
+           vote.m_targetHash.GetHex());
 
   return vote;
 }
@@ -341,7 +346,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   auto it = m_checkpoints.find(targetEpoch);
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
-                "%s: the target epoch %d is in the future.\n", __func__,
+                "%s: target_epoch=%d is in the future.\n", __func__,
                 targetEpoch);
   }
 
@@ -351,37 +356,37 @@ Result FinalizationState::IsVotable(const Validator &validator,
 
   if (alreadyVoted) {
     return fail(Result::VOTE_ALREADY_VOTED,
-                "%s: the validator %s has already voted for target epoch %d.\n",
+                "%s: validator=%s has already voted for target_epoch=%d.\n",
                 __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
-  if (targetHash != m_recommendedTargetHash) {
+  if (targetHash != m_recommendedTarget->GetBlockHash()) {
     return fail(Result::VOTE_WRONG_TARGET_HASH,
-                "%s: the validator %s is voting for the %s, instead of the "
-                "recommended targetHash %s.\n",
+                "%s: validator=%s is voting for target=%s instead of the "
+                "recommended_target=%s.\n",
                 __func__, validatorAddress.GetHex(), targetHash.GetHex(),
-                m_recommendedTargetHash.GetHex());
+                m_recommendedTarget->GetBlockHash().GetHex());
   }
 
-  if (targetEpoch != m_currentEpoch) {
+  if (targetEpoch != m_currentEpoch - 1) {
     return fail(
         Result::VOTE_WRONG_TARGET_EPOCH,
-        "%s: the validator %s is voting for the wrong target epoch %d.\n",
-        __func__, validatorAddress.GetHex(), targetEpoch);
+        "%s: vote for wrong target_epoch=%d. validator=%s current_epoch=%d\n",
+        __func__, targetEpoch, validatorAddress.GetHex(), m_currentEpoch);
   }
 
   it = m_checkpoints.find(sourceEpoch);
   if (it == m_checkpoints.end()) {
     return fail(Result::VOTE_MALFORMED,
-                "%s: the source epoch %d is in the future.\n", __func__,
-                sourceEpoch);
+                "%s: source_epoch=%d is in the future. current_epoch=%d\n", __func__,
+                sourceEpoch, m_currentEpoch);
   }
 
   auto &sourceCheckpoint = it->second;
   if (!sourceCheckpoint.m_isJustified) {
     return fail(
         Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED,
-        "%s: the validator %s is voting for a non justified source epoch %d.\n",
+        "%s: validator=%s is voting for a non justified source epoch=%d.\n",
         __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
@@ -390,7 +395,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
   }
 
   return fail(Result::VOTE_NOT_VOTABLE,
-              "%s: validator %s is not in dynasty %d nor the previous.\n",
+              "%s: validator=%s is not in dynasty=%d nor the previous.\n",
               __func__, validatorAddress.GetHex(), m_currentDynasty);
 }
 
@@ -400,14 +405,13 @@ Result FinalizationState::ValidateDeposit(const uint160 &validatorAddress,
 
   if (!m_adminState.IsValidatorAuthorized(validatorAddress)) {
     return fail(esperanza::Result::ADMIN_BLACKLISTED,
-                "%s: Validator is blacklisted: %s.\n", __func__,
+                "%s: validator=%s is blacklisted.\n", __func__,
                 validatorAddress.GetHex());
   }
 
   if (m_validators.find(validatorAddress) != m_validators.end()) {
     return fail(Result::DEPOSIT_ALREADY_VALIDATOR,
-                "%s: Validator with deposit hash of %s already "
-                "exists.\n",
+                "%s: validator=%s with the deposit already exists.\n",
                 __func__, validatorAddress.GetHex());
   }
 
@@ -448,7 +452,7 @@ Result FinalizationState::ValidateVote(const Vote &vote) const {
 
   if (!m_adminState.IsValidatorAuthorized(vote.m_validatorAddress)) {
     return fail(esperanza::Result::ADMIN_BLACKLISTED,
-                "%s: Validator is blacklisted: %s.\n", __func__,
+                "%s: validator=%s is blacklisted\n", __func__,
                 vote.m_validatorAddress.GetHex());
   }
 
@@ -463,16 +467,21 @@ Result FinalizationState::ValidateVote(const Vote &vote) const {
                                vote.m_targetEpoch, vote.m_sourceEpoch);
 
   if (isVotable != +Result::SUCCESS) {
-    return fail(isVotable, "%s: The tuple (%s, %s, %d, %d) is not votable.\n",
-                __func__, vote.m_validatorAddress.GetHex(),
-                vote.m_targetHash.GetHex(), vote.m_sourceEpoch,
+    return fail(isVotable, "%s: not votable. validator=%s target=%s source_epoch=%d target_epoch=%d\n",
+                __func__,
+                vote.m_validatorAddress.GetHex(),
+                vote.m_targetHash.GetHex(),
+                vote.m_sourceEpoch,
                 vote.m_targetEpoch);
   }
 
   LogPrint(BCLog::FINALIZATION,
-           "%s: Validator %s vote (%s, %d, %d) is valid.\n", __func__,
-           vote.m_validatorAddress.GetHex(), vote.m_targetHash.GetHex(),
-           vote.m_sourceEpoch, vote.m_targetEpoch);
+           "%s: valid. validator=%s target=%s source_epoch=%d target_epoch=%d\n",
+           __func__,
+           vote.m_validatorAddress.GetHex(),
+           vote.m_targetHash.GetHex(),
+           vote.m_sourceEpoch,
+           vote.m_targetEpoch);
 
   return success();
 }
@@ -483,9 +492,12 @@ void FinalizationState::ProcessVote(const Vote &vote) {
   GetCheckpoint(vote.m_targetEpoch).m_voteSet.insert(vote.m_validatorAddress);
 
   LogPrint(BCLog::FINALIZATION,
-           "%s: Validator %s voted successfully (%s, %d, %d).\n", __func__,
-           vote.m_validatorAddress.GetHex(), vote.m_targetHash.GetHex(),
-           vote.m_sourceEpoch, vote.m_targetEpoch);
+           "%s: validator=%s voted successfully. target=%s source_epoch=%d target_epoch=%d.\n",
+           __func__,
+           vote.m_validatorAddress.GetHex(),
+           vote.m_targetHash.GetHex(),
+           vote.m_sourceEpoch,
+           vote.m_targetEpoch);
 
   const uint160 &validatorAddress = vote.m_validatorAddress;
   uint32_t sourceEpoch = vote.m_sourceEpoch;
@@ -509,7 +521,7 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     GetCheckpoint(targetEpoch).m_prevDynastyVotes[sourceEpoch] = prevDynastyVotes;
   }
 
-  if (m_expectedSrcEpoch == sourceEpoch) {
+  if (m_expectedSourceEpoch == sourceEpoch) {
     uint64_t reward = CalculateVoteReward(validator);
     ProcessReward(validatorAddress, reward);
   }
@@ -526,20 +538,19 @@ void FinalizationState::ProcessVote(const Vote &vote) {
 
     GetCheckpoint(targetEpoch).m_isJustified = true;
     m_lastJustifiedEpoch = targetEpoch;
-    m_mainHashJustified = true;
 
-    LogPrint(BCLog::FINALIZATION, "%s: Epoch %d justified.\n", __func__,
+    LogPrint(BCLog::FINALIZATION, "%s: epoch=%d justified.\n", __func__,
              targetEpoch);
 
     if (targetEpoch == sourceEpoch + 1) {
       GetCheckpoint(sourceEpoch).m_isFinalized = true;
       m_lastFinalizedEpoch = sourceEpoch;
       TrimCache();
-      LogPrint(BCLog::FINALIZATION, "%s: Epoch %d finalized.\n", __func__,
+      LogPrint(BCLog::FINALIZATION, "%s: epoch=%d finalized.\n", __func__,
                sourceEpoch);
     }
   }
-  LogPrint(BCLog::FINALIZATION, "%s: Vote from validator %s processed.\n",
+  LogPrint(BCLog::FINALIZATION, "%s: vote from validator=%s processed.\n",
            __func__, validatorAddress.GetHex());
 }
 
@@ -569,7 +580,7 @@ Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const 
 
   if (validator.m_endDynasty <= endDynasty) {
     return fail(Result::LOGOUT_ALREADY_DONE,
-                "%s: the validator with address %s already logget out.\n",
+                "%s: validator=%s already logged out.\n",
                 __func__, validator.m_validatorAddress.GetHex());
   }
 
@@ -587,7 +598,7 @@ void FinalizationState::ProcessLogout(const uint160 &validatorAddress) {
   m_dynastyDeltas[endDyn] = GetDynastyDelta(endDyn) - validator.m_deposit;
 
   LogPrint(BCLog::FINALIZATION,
-           "%s: Vote from validator %s logging out at %d.\n", __func__,
+           "%s: validator=%s logging out at dynasty=%d.\n", __func__,
            validatorAddress.GetHex(), endDyn);
 }
 
@@ -1031,7 +1042,8 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
         __func__, block_hash.GetHex());
 
-    m_recommendedTargetHash = block_hash;
+    m_recommendedTarget = &block_index;
+    m_expectedSourceEpoch = m_lastJustifiedEpoch;
 
     // mark snapshots finalized up to the last finalized block
     blockchain::Height height = (m_lastFinalizedEpoch + 1) * m_settings.epoch_length - 1;
