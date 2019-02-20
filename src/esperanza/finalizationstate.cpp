@@ -970,6 +970,7 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
 
 bool FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
                                       const CBlock &block) {
+  assert(m_status == NEW);
   if (!ProcessNewCommits(block_index, block.vtx)) {
     return false;
   }
@@ -979,6 +980,7 @@ bool FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
 
 bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
                                           const std::vector<CTransactionRef> &txes) {
+  assert(m_status == NEW);
   uint256 block_hash = block_index.GetBlockHash();
 
   // Used to apply hardcoded parameters for a given block
