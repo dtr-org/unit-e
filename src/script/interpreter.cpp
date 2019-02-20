@@ -1476,7 +1476,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
                 scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.program[0] << OP_EQUALVERIFY << OP_CHECKSIG;
                 stack = witness.stack;
             } else {
-                if (witness.stack.size() == 0) {
+                if (witness.stack.empty()) {
                     return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY);
                 }
                 scriptPubKey = CScript(witness.stack.back().begin(), witness.stack.back().end());
