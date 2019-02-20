@@ -37,6 +37,7 @@
 
 
 #include <math.h>
+#include <stats_logs/stats_collector.h>
 
 // Dump addresses to peers.dat and banlist.dat every 15 minutes (900s)
 #define DUMP_ADDRESSES_INTERVAL 900
@@ -1204,6 +1205,8 @@ void CConnman::ThreadSocketHandler()
                     }
                 }
             }
+
+            CollectPeersStats();
         }
         size_t vNodesSize;
         {
@@ -1443,6 +1446,8 @@ void CConnman::ThreadSocketHandler()
             for (CNode* pnode : vNodesCopy)
                 pnode->Release();
         }
+
+        CollectPeersStats();
     }
 }
 
@@ -2012,6 +2017,29 @@ void CConnman::OpenNetworkConnection(const CAddress& addrConnect, bool fCountFai
         LOCK(cs_vNodes);
         vNodes.push_back(pnode);
     }
+
+    CollectPeersStats();
+}
+void CConnman::CollectPeersStats() const {
+    LOCK(cs_vNodes);
+
+    uint16_t nInbound = 0;
+    uint16_t nOutbound = 0;
+
+    for (const auto& pnode : vNodes) {
+        if (!CConnman::NodeFullyConnected(pnode) || pnode->fFeeler) {
+            continue;
+        }
+
+        if (pnode->fInbound) {
+            ++nInbound;
+        } else {
+            ++nOutbound;
+        }
+    }
+
+    auto& stats_collector = stats_logs::StatsCollector::GetInstance();
+    stats_collector.SetPeersStats(nInbound, nOutbound);
 }
 
 void CConnman::ThreadMessageHandler()

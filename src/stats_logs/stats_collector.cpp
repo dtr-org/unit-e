@@ -78,6 +78,8 @@ void StatsCollector::Sample() {
         << height                   << ','
         << mempool_num_transactions << ','
         << mempool_used_memory      << ','
+        << peers_num_inbound        << ','
+        << peers_num_outbound       << ','
         << tip_stats_active         << ','
         << tip_stats_valid_fork     << ','
         << tip_stats_valid_header   << ','
@@ -138,6 +140,11 @@ void StatsCollector::SetTipStatsHeadersOnly(uint16_t value) {
 
 void StatsCollector::SetTipStatsInvalid(uint16_t value) {
     tip_stats_invalid = value;
+}
+
+void StatsCollector::SetPeersStats(uint16_t num_inbound, uint16_t num_outbound) {
+    peers_num_inbound = num_inbound;
+    peers_num_outbound = num_outbound;
 }
 
 }

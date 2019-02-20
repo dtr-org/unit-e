@@ -444,6 +444,8 @@ private:
     std::atomic_bool m_try_another_outbound_peer;
 
     friend struct CConnmanTest;
+
+    void CollectPeersStats() const;
 };
 extern std::unique_ptr<CConnman> g_connman;
 void Discover(boost::thread_group& threadGroup);

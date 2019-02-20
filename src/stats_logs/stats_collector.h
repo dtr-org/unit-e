@@ -41,6 +41,8 @@ class StatsCollector final {
        uint16_t tip_stats_valid_header;
        uint16_t tip_stats_headers_only;
        uint16_t tip_stats_invalid;
+       uint16_t peers_num_inbound;
+       uint16_t peers_num_outbound;
 
        // Other resources
        std::ofstream output_file;
@@ -72,7 +74,9 @@ class StatsCollector final {
            tip_stats_valid_fork(0),
            tip_stats_valid_header(0),
            tip_stats_headers_only(0),
-           tip_stats_invalid(0) {};
+           tip_stats_invalid(0),
+           peers_num_inbound(0),
+           peers_num_outbound(0) {};
 
        ~StatsCollector();
 
@@ -91,6 +95,7 @@ class StatsCollector final {
        void SetTipStatsValidHeader(uint16_t value);
        void SetTipStatsHeadersOnly(uint16_t value);
        void SetTipStatsInvalid(uint16_t value);
+       void SetPeersStats(uint16_t num_inbound, uint16_t num_outbound);
 };
 
 
