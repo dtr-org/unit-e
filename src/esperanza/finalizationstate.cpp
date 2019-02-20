@@ -410,7 +410,7 @@ Result FinalizationState::ValidateDeposit(const uint160 &validatorAddress,
   }
 
   if (m_validators.find(validatorAddress) != m_validators.end()) {
-    return fail(Result::DEPOSIT_ALREADY_VALIDATOR,
+    return fail(Result::DEPOSIT_DUPLICATE,
                 "%s: validator=%s with the deposit already exists.\n",
                 __func__, validatorAddress.GetHex());
   }

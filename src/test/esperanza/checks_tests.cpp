@@ -17,7 +17,7 @@
 
 using namespace esperanza;
 
-BOOST_FIXTURE_TEST_SUITE(finalization_validation_tests, TestingSetup)
+BOOST_FIXTURE_TEST_SUITE(finalization_checks_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
@@ -98,6 +98,59 @@ BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_deposit) {
   BOOST_CHECK(ExtractValidatorAddress(deposit, validatorAddress));
 
   BOOST_CHECK_EQUAL(k.GetPubKey().GetID().GetHex(), validatorAddress.GetHex());
+}
+
+BOOST_AUTO_TEST_CASE(contextual_check_deposit_tx) {
+  CKey key;
+  InsecureNewKey(key, true);
+
+  CMutableTransaction mtx;
+  mtx.SetType(TxType::DEPOSIT);
+  mtx.vin.resize(1);
+  mtx.vout.resize(1);
+
+  {
+    // insufficient amount in deposit
+    CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000);
+    CValidationState err_state;
+
+    FinalizationState *fin_state = FinalizationState::GetState();
+    bool ok = ContextualCheckDepositTx(deposit, err_state, *fin_state);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::DEPOSIT_INSUFFICIENT);
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 10);
+  }
+
+  {
+    // duplicate deposit
+    CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000 * UNIT);
+    CValidationState err_state;
+    FinalizationState *fin_state = FinalizationState::GetState();
+
+    bool ok = ContextualCheckDepositTx(deposit, err_state, *fin_state);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::SUCCESS);
+    BOOST_CHECK(err_state.IsValid());
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 0);
+
+    uint160 address;
+    BOOST_CHECK(ExtractValidatorAddress(deposit, address));
+    fin_state->ProcessDeposit(address, deposit.vout[0].nValue);
+
+    ok = ContextualCheckDepositTx(deposit, err_state, *fin_state);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::DEPOSIT_DUPLICATE);
+    BOOST_CHECK(!err_state.IsValid());
+
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 0);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_logout) {
