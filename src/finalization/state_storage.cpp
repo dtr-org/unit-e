@@ -238,7 +238,9 @@ bool StateStorageImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const
       const auto ancestor_state = m_storage.Find(block_index.pprev);
       assert(ancestor_state != nullptr);
       FinalizationState new_state(*ancestor_state);
-      new_state.ProcessNewTip(block_index, block);
+      if (!new_state.ProcessNewTip(block_index, block)) {
+        return false;
+      }
       if (m_storage.Confirm(&block_index, std::move(new_state), nullptr)) {
         // UNIT-E TODO: DoS commits sender.
         LogPrint(BCLog::FINALIZATION, "WARN: After processing the block_hash=%s height=%d, its finalization state differs from one given from commits. Overwrite it anyway.\n",
@@ -397,7 +399,8 @@ void StateStorageImpl::Restore(const CChainParams &chainparams) {
     if (!ReadBlockFromDisk(block, index, chainparams.GetConsensus())) {
       assert(not("Failed to read block"));
     }
-    ProcessNewTip(*index, block);
+    const bool ok = ProcessNewTip(*index, block);
+    assert(ok);
   }
 }
 
