@@ -226,13 +226,13 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
 
 bool WalletExtension::BackupWallet() {
   const std::string wallet_file_name = m_enclosing_wallet.GetName();
-  const std::time_t current_time = std::time(nullptr);
+  const int64_t current_time = GetTime();
 
   const std::string backup_wallet_filename =
       wallet_file_name + "~" + std::to_string(current_time);
   const fs::path backup_path = GetDataDir() / backup_wallet_filename;
 
-  return m_enclosing_wallet.BackupWallet(backup_path.native());
+  return m_enclosing_wallet.BackupWallet(backup_path.string());
 }
 
 // UNIT-E: read validatorState from the wallet file
