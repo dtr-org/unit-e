@@ -11,11 +11,11 @@
 namespace stats_logs {
 
 // Used in GetInstance methods
-bool StatsCollector::created_global_instance = false;
+std::atomic_bool StatsCollector::created_global_instance(false);
 
 //! WARNING: Don't call this class method before calling its parametrized version!
 StatsCollector& StatsCollector::GetInstance() {
-    if (!StatsCollector::created_global_instance) {
+    if (!StatsCollector::created_global_instance.load()) {
         // Trick to avoid creating a not usable StatsCollector global instance.
         static StatsCollector dummy("", 1000);
         return dummy;
@@ -32,8 +32,8 @@ StatsCollector& StatsCollector::GetInstance(
 ) {
     static StatsCollector instance(std::move(output_filename), sampling_interval);
     LogPrintf("Accessing the StatsCollector global instance (%s)\n", instance.output_filename);
-    StatsCollector::created_global_instance = true;
 
+    StatsCollector::created_global_instance.store(true);
     return instance;
 }
 

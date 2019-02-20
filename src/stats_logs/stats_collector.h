@@ -7,6 +7,7 @@
 #define UNITE_STATS_COLLECTOR_H
 
 
+#include <atomic>
 #include <cassert>
 #include <fstream>
 #include <string>
@@ -22,7 +23,7 @@ enum StatsCollectorStates { PENDING, STARTING, SAMPLING, CLOSING, CLOSED };
 class StatsCollector final {
    private:
        // Global state
-       static bool created_global_instance;
+       static std::atomic_bool created_global_instance;
 
        // Stats Collector settings
        std::string output_filename;
