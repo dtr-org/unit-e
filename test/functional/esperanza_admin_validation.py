@@ -58,9 +58,8 @@ def set_type_to_admin(raw_tx):
 # accepted. Admin txs should also contain at least one valid command
 class AdminValidation(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 1
-        self.extra_args = [
-            ['-permissioning=1', '-proposing=1', '-debug=all', '-whitelist=127.0.0.1']]
+        self.num_nodes = 2
+        self.extra_args = [['-permissioning=1', '-proposing=0', '-debug=all', '-whitelist=127.0.0.1']] * self.num_nodes
         self.setup_clean_chain = True
 
     def send_via_mininode(self, cmds, address):
@@ -92,7 +91,7 @@ class AdminValidation(UnitETestFramework):
 
         reason = self.reject_tracker.reject_map.get(txid, None)
         if reason is None:
-            raise AssertionError("Tx was not rejected!")
+            raise AssertionError("Tx was not rejected! (txid=%s, expected=%s)" % (txid, expected_reason))
         assert_equal(expected_reason, reason)
 
     # Sends commands to node and asserts that they were accepted
@@ -111,18 +110,22 @@ class AdminValidation(UnitETestFramework):
                                              address_type)["address"]
 
     def run_test(self):
-        # Setup stake
-        self.setup_stake_coins(*self.nodes)
-
-        self.admin = self.nodes[0]
+        self.generator = self.nodes[0]
+        self.admin = self.nodes[1]
         self.reject_tracker = TestNode()
         self.admin.add_p2p_connection(self.reject_tracker)
         network_thread_start()
 
+        self.setup_stake_coins()
+
+        self.generator.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        self.admin.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+
+        assert_equal(10000, self.generator.getbalance())
         assert_equal(10000, self.admin.getbalance())
 
         # Exit IBD
-        self.generate_sync(self.admin)
+        self.generate_sync(self.generator)
 
         self.admin.p2p.wait_for_verack()
 
@@ -185,7 +188,7 @@ class AdminValidation(UnitETestFramework):
                      "b'admin-invalid-command'")
 
         # This is to ensure end_permissioning was not applied
-        self.generate_sync(self.admin)
+        self.generate_sync(self.generator)
 
         # Going to reset admin keys. Generate new keys first
         new_addresses = list(self.admin.getnewaddress() for _ in range(3))
@@ -199,7 +202,7 @@ class AdminValidation(UnitETestFramework):
         self.accepts([reset_admin_cmd], admin_address)
 
         # Admin commands have no power until included into block
-        self.generate_sync(self.admin)
+        self.generate_sync(self.generator)
 
         # Previous command has changed admin keys. Old address is invalid
         self.rejects([end_permissioning_cmd],
@@ -210,7 +213,7 @@ class AdminValidation(UnitETestFramework):
                                                       "p2sh-segwit")["address"]
 
         self.accepts([end_permissioning_cmd], admin_address)
-        self.generate_sync(self.admin)  # to actually execute above command
+        self.generate_sync(self.generator)  # to actually execute above command
 
         self.rejects([end_permissioning_cmd],
                      admin_address,
