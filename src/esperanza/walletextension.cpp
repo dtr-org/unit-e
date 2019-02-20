@@ -23,6 +23,8 @@
 #include <wallet/fees.h>
 #include <wallet/wallet.h>
 
+#include <boost/filesystem.hpp>
+
 #include <cstdint>
 
 namespace esperanza {
@@ -206,11 +208,9 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                                            std::string &error) {
-  const std::string walletFileName = m_enclosing_wallet.GetName();
-  const std::time_t currentTime = std::time(nullptr);
-  std::string backupWalletFileName =
-      walletFileName + "~" + std::to_string(currentTime);
-  m_enclosing_wallet.BackupWallet(backupWalletFileName);
+  // Backup existing wallet before invalidating keypool
+  BackupWallet();
+
   CKey key = seed.GetExtKey().key;
   const CPubKey hdSeed = m_enclosing_wallet.InitHDSeed(key);
   if (!m_enclosing_wallet.SetHDSeed(hdSeed)) {
@@ -222,6 +222,17 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
     return false;
   }
   return true;
+}
+
+bool WalletExtension::BackupWallet() {
+  const std::string wallet_file_name = m_enclosing_wallet.GetName();
+  const std::time_t current_time = std::time(nullptr);
+
+  const std::string backup_wallet_filename =
+      wallet_file_name + "~" + std::to_string(current_time);
+  const fs::path backup_path = GetDataDir() / backup_wallet_filename;
+
+  return m_enclosing_wallet.BackupWallet(backup_path.native());
 }
 
 // UNIT-E: read validatorState from the wallet file

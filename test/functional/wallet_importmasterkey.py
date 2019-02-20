@@ -4,6 +4,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test importing a HD masterkey from a seed value (BIP39)."""
 
+from glob import glob
+
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal
 
@@ -16,11 +18,16 @@ class WalletImportmasterkeyTest(UnitETestFramework):
     _passphrase = 'crazy horse battery staple'
 
     def run_test (self):
+        backup_count = glob('wallet.dat~*')
+
         result = self.nodes[0].importmasterkey(self._seed, self._passphrase)
         assert_equal(result['success'], True)
 
         result = self.nodes[1].importmasterkey(self._seed, self._passphrase)
         assert_equal(result['success'], True)
+
+        # importmasterkey should not create any new backups in the current directory
+        assert_equal(glob('wallet.dat~*'), backup_count)
 
         # generate a bunch of addresses on both nodes
         node0_address0 = self.nodes[0].getnewaddress()
