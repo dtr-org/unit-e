@@ -1431,12 +1431,9 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
 }
 
 void MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
-    if (tx.IsCoinBase()) {
-        return;
-    }
-
     txundo.vprevout.reserve(tx.vin.size());
-    for (const CTxIn &txin : tx.vin) {
+    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
+        const CTxIn &txin = tx.vin[i];
         txundo.vprevout.emplace_back();
         bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
         assert(is_spent);
@@ -1515,8 +1512,6 @@ void InitScriptExecutionCache() {
  */
 bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks)
 {
-    if (!tx.IsCoinBase())
-    {
         if (pvChecks)
             pvChecks->reserve(tx.vin.size());
 
@@ -1541,7 +1536,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 return true;
             }
 
-            for (unsigned int i = 0; i < tx.vin.size(); i++) {
+            for (unsigned int i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
                 const COutPoint &prevout = tx.vin[i].prevout;
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
@@ -1587,7 +1582,6 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 scriptExecutionCache.insert(hashCacheEntry);
             }
         }
-    }
 
     return true;
 }
@@ -1720,22 +1714,24 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    if (blockUndo.vtxundo.size() + 1 != block.vtx.size()) {
+    if (blockUndo.vtxundo.size() != block.vtx.size()) {
         error("DisconnectBlock(): block and undo data inconsistent");
         return DISCONNECT_FAILED;
     }
 
     // First, restore inputs
-    for (size_t i = 1; i < block.vtx.size(); ++i) {
+    for (size_t i = 0; i < block.vtx.size(); ++i) {
         const CTransaction &tx = *(block.vtx[i]);
-        CTxUndo &txundo = blockUndo.vtxundo[i - 1];
+        CTxUndo &txundo = blockUndo.vtxundo[i];
 
-        if (txundo.vprevout.size() != tx.vin.size()) {
+        if (txundo.vprevout.size() + (tx.IsCoinBase() ? 1 : 0) != tx.vin.size()) {
+            LogPrintf("inconsistent undo data: coinbase=%s, prevout=%d, vin=%d\n",
+                tx.IsCoinBase() ? "yes" : "no", txundo.vprevout.size(), tx.vin.size());
             error("DisconnectBlock(): transaction and undo data inconsistent");
             return DISCONNECT_FAILED;
         }
 
-        for (size_t j = 0; j < tx.vin.size(); ++j) {
+        for (size_t j = tx.IsCoinBase() ? 1 : 0; j < tx.vin.size(); ++j) {
             const COutPoint &out = tx.vin[j].prevout;
             const auto res = static_cast<DisconnectResult>(ApplyTxInUndo(
                 std::move(txundo.vprevout[j]), view, out
@@ -2047,7 +2043,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
-    blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    blockundo.vtxundo.reserve(block.vtx.size());
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
 
@@ -2072,9 +2068,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
-        if (tx.IsCoinBase()) {
-            continue;
-        }
 
         CAmount txfee = 0;
         if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
@@ -2098,15 +2091,18 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * legacy (always)
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
-        nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST)
+        if (!tx.IsCoinBase()) {
+          nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
+          if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+            LogPrintf("too many sigops:  txid=%s  cost=%d\n", tx.GetHash().GetHex(), nSigOpsCost);
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
-
-        nFees += txfee;
-        if (!MoneyRange(nFees)) {
+          }
+          nFees += txfee;
+          if (!MoneyRange(nFees)) {
             return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
                              REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
+          }
         }
 
         // Don't cache results if we're actually connecting blocks (still
@@ -2120,7 +2116,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         control.Add(vChecks);
 
-        blockundo.vtxundo.emplace_back(CTxUndo());
+        blockundo.vtxundo.emplace_back();
         MarkCoinAsSpent(tx, view, blockundo.vtxundo.back());
     }
 
@@ -3271,8 +3267,10 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     {
         nSigOps += GetLegacySigOpCount(*tx);
     }
-    if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
+    if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST) {
+        LogPrintf("too many block sigops:  block=%s  cost=%d\n", block.GetHash().GetHex(), nSigOps * WITNESS_SCALE_FACTOR);
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
+    }
 
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;
