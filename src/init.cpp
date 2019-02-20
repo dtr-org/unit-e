@@ -205,9 +205,6 @@ void Shutdown()
     StopRPC();
     StopHTTPServer();
 
-    // stop all injected components, including proposer and validator
-    UnitEInjector::Destroy();
-
 #ifdef ENABLE_WALLET
     FlushWallets();
 #endif
@@ -226,6 +223,9 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
     threadGroup.join_all();
+
+    // stop all injected components, including proposer and validator
+    UnitEInjector::Destroy();
 
     if (fDumpMempoolLater && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
