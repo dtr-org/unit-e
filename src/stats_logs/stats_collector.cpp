@@ -30,8 +30,8 @@ StatsCollector& StatsCollector::GetInstance(
     std::string output_filename,
     uint32_t sampling_interval
 ) {
-    LogPrintf("Creating the StatsCollector global instance (%s)\n", output_filename);
     static StatsCollector instance(std::move(output_filename), sampling_interval);
+    LogPrintf("Accessing the StatsCollector global instance (%s)\n", instance.output_filename);
     StatsCollector::created_global_instance = true;
 
     return instance;

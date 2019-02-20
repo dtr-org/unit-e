@@ -211,7 +211,7 @@ private:
     bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params);
 
     void collectTipStats() const;
-    void computeTipCounters(stats_logs::StatsCollector &stats_collector) const;
+    void computeTipCounters() const;
 } g_chainstate;
 
 
@@ -2696,14 +2696,21 @@ struct CompareBlocksByHeight
 };
 
 void CChainState::collectTipStats() const {
-    auto& stats_collector = stats_logs::StatsCollector::GetInstance();
-    stats_collector.SetHeight(static_cast<uint32_t>(chainActive.Tip()->nHeight));
+    auto tip = chainActive.Tip();
+    if (tip) {
+        auto& stats_collector = stats_logs::StatsCollector::GetInstance();
+        stats_collector.SetHeight(static_cast<uint32_t>(tip->nHeight));
+    }
 
-    computeTipCounters(stats_collector);
+    computeTipCounters();
 
 }
 
-void CChainState::computeTipCounters(stats_logs::StatsCollector &stats_collector) const {
+void CChainState::computeTipCounters() const {
+    if (mapBlockIndex.empty()) {
+        return;
+    }
+
     std::set<const CBlockIndex*, CompareBlocksByHeight> setTips;
     std::set<const CBlockIndex*> setOrphans;
     std::set<const CBlockIndex*> setPrevs;
@@ -2726,7 +2733,10 @@ void CChainState::computeTipCounters(stats_logs::StatsCollector &stats_collector
             setTips.insert(orphan);
         }
     }
-    setTips.insert(chainActive.Tip());
+    auto tip = chainActive.Tip();
+    if (tip) {
+        setTips.insert(chainActive.Tip());
+    }
 
     uint16_t tip_stats_active = 0;
     uint16_t tip_stats_valid_fork = 0;
@@ -2752,6 +2762,7 @@ void CChainState::computeTipCounters(stats_logs::StatsCollector &stats_collector
         }
     }
 
+    auto& stats_collector = stats_logs::StatsCollector::GetInstance();
     stats_collector.SetTipStatsActive(tip_stats_active);
     stats_collector.SetTipStatsValidFork(tip_stats_valid_fork);
     stats_collector.SetTipStatsValidHeader(tip_stats_valid_header);
