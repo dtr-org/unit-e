@@ -114,8 +114,8 @@ BOOST_AUTO_TEST_CASE(contextual_check_deposit_tx) {
     CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000);
     CValidationState err_state;
 
-    FinalizationState *fin_state = FinalizationState::GetState();
-    bool ok = ContextualCheckDepositTx(deposit, err_state, *fin_state);
+    FinalizationState fin_state(FinalizationParams{}, AdminParams{});
+    bool ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::DEPOSIT_INSUFFICIENT);
 
@@ -128,9 +128,9 @@ BOOST_AUTO_TEST_CASE(contextual_check_deposit_tx) {
     // duplicate deposit
     CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000 * UNIT);
     CValidationState err_state;
-    FinalizationState *fin_state = FinalizationState::GetState();
+    FinalizationState fin_state(FinalizationParams{}, AdminParams{});
 
-    bool ok = ContextualCheckDepositTx(deposit, err_state, *fin_state);
+    bool ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::SUCCESS);
     BOOST_CHECK(err_state.IsValid());
@@ -141,9 +141,9 @@ BOOST_AUTO_TEST_CASE(contextual_check_deposit_tx) {
 
     uint160 address;
     BOOST_CHECK(ExtractValidatorAddress(deposit, address));
-    fin_state->ProcessDeposit(address, deposit.vout[0].nValue);
+    fin_state.ProcessDeposit(address, deposit.vout[0].nValue);
 
-    ok = ContextualCheckDepositTx(deposit, err_state, *fin_state);
+    ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::DEPOSIT_DUPLICATE);
     BOOST_CHECK(!err_state.IsValid());
