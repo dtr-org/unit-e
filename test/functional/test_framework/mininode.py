@@ -389,8 +389,11 @@ class P2PInterface(P2PConnection):
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
     def wait_for_verack(self, timeout=60):
-        test_function = lambda: self.message_count["verack"]
+        test_function = lambda: self.got_verack()
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
+
+    def got_verack(self):
+        return self.message_count["verack"]
 
     # Message sending helper functions
 
@@ -404,7 +407,6 @@ class P2PInterface(P2PConnection):
         test_function = lambda: self.last_message.get("pong") and self.last_message["pong"].nonce == self.ping_counter
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
         self.ping_counter += 1
-
 
 # Keep our own socket map for asyncore, so that we can track disconnects
 # ourselves (to workaround an issue with closing an asyncore socket when

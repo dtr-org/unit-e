@@ -22,6 +22,11 @@ class BIP68Test(UnitETestFramework):
         self.extra_args = [[], ["-acceptnonstdtxn=0"]]
 
     def run_test(self):
+        self.nodes[0].add_p2p_connection(P2PInterface())
+        network_thread_start()
+
+        wait_until(lambda: self.nodes[0].p2p.got_verack(), timeout=10)
+
         self.relayfee = self.nodes[0].getnetworkinfo()["relayfee"]
 
         # Generate some coins
@@ -310,11 +315,14 @@ class BIP68Test(UnitETestFramework):
             block.solve()
             tip = block.sha256
             utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, 0, [], [utxo])
+            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, 0, height + i, [], [utxo])
+
             height += 1
-            self.nodes[0].submitblock(ToHex(block))
+            self.nodes[0].p2p.send_and_ping(msg_block(block))
             cur_time += 1
 
+        # sync as the reorg is happening
+        self.nodes[0].p2p.sync_with_ping()
         mempool = self.nodes[0].getrawmempool()
         assert(tx3.hash not in mempool)
         assert(tx2.hash in mempool)
@@ -345,32 +353,31 @@ class BIP68Test(UnitETestFramework):
         tx2_raw = self.nodes[0].signrawtransaction(ToHex(tx2))["hex"]
         tx2 = FromHex(tx2, tx2_raw)
         tx2.rehash()
-
         self.nodes[0].sendrawtransaction(ToHex(tx2))
 
-        # Now make an invalid spend of tx2 according to BIP68
-        sequence_value = 100 # 100 block relative locktime
+        # Now make an invalid (non-final) spend of tx2 according to BIP68
+        non_final_sequence_value = 100
 
         tx3 = CTransaction()
         tx3.nVersion = 2
-        tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=sequence_value)]
+        tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=non_final_sequence_value)]
         tx3.vout = [CTxOut(int(tx2.vout[0].nValue - self.relayfee * UNIT), CScript([b'a' * 35]))]
         tx3.rehash()
 
+        # Make sure the transaction will not be accepted into mempool
         assert_raises_rpc_error(-26, NOT_FINAL_ERROR, self.nodes[0].sendrawtransaction, ToHex(tx3))
 
-        # make a block that violates bip68; ensure that the tip updates
+        # Make a block that violates bip68; ensure that the tip updates
         tip = int(self.nodes[0].getbestblockhash(), 16)
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
         block = create_block(tip, create_coinbase(self.nodes[0].getblockcount()+1, snapshot_hash))
         block.nVersion = 3
         block.vtx.extend([tx1, tx2, tx3])
-        block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.ensure_ltor()
         add_witness_commitment(block)
         block.solve()
 
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
+        self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
         assert_equal(self.nodes[0].getbestblockhash(), block.hash)
 
     def activateCSV(self):
