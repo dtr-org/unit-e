@@ -6,7 +6,7 @@
 #ifndef UNITE_IBLT_PARAMS_H
 #define UNITE_IBLT_PARAMS_H
 
-#include <map>
+#include <vector>
 
 class IbltParams {
  public:
@@ -18,12 +18,12 @@ class IbltParams {
   //! \brief Optimal number of hash functions to use
   const uint8_t num_hashes;
 
-  IbltParams(float overhead, size_t num_hashes);
+  IbltParams(float overhead, uint8_t num_hashes);
 
   static IbltParams FindOptimal(size_t expected_items_count);
 
  private:
-  static std::map<size_t, IbltParams> m_experimental_params;
+  static std::vector<IbltParams> m_experimental_params;
 };
 
 #endif /* UNITE_IBLT_PARAMS_H */
