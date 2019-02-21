@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(validate_deposit_tx_double_deposit) {
                     +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::DEPOSIT_ALREADY_VALIDATOR);
+                    +Result::DEPOSIT_DUPLICATE);
 }
 
 BOOST_AUTO_TEST_CASE(process_deposit_tx) {

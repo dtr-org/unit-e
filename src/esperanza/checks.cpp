@@ -105,11 +105,14 @@ bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_stat
   }
 
   const Result res = fin_state.ValidateDeposit(validator_address, tx.GetValueOut());
-  if (res != +Result::SUCCESS) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-deposit-invalid-state");
+  switch (res) {
+    case +Result::SUCCESS:
+      return true;
+    case +Result::DEPOSIT_DUPLICATE:
+      return err_state.Invalid(false, REJECT_INVALID, "bad-deposit-duplicate");
+    default:
+      return err_state.DoS(10, false, REJECT_INVALID, "bad-deposit-invalid");
   }
-
-  return true;
 }
 
 bool IsVoteExpired(const CTransaction &tx) {
