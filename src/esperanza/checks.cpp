@@ -109,9 +109,9 @@ bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_stat
     case +Result::SUCCESS:
       return true;
     case +Result::DEPOSIT_DUPLICATE:
-      return err_state.Invalid(false, res, "bad-deposit-duplicate");
+      return err_state.Invalid(false, REJECT_INVALID, "bad-deposit-duplicate");
     default:
-      return err_state.DoS(10, false, res, "bad-deposit-invalid-state");
+      return err_state.DoS(10, false, REJECT_INVALID, "bad-deposit-invalid");
   }
 }
 

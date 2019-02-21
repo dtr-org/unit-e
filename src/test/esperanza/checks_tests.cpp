@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(contextual_check_deposit_tx) {
     FinalizationState fin_state(FinalizationParams{}, AdminParams{});
     bool ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(!ok);
-    BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::DEPOSIT_INSUFFICIENT);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-deposit-invalid");
 
     int dos = 0;
     err_state.IsInvalid(dos);
@@ -132,7 +132,6 @@ BOOST_AUTO_TEST_CASE(contextual_check_deposit_tx) {
 
     bool ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(ok);
-    BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::SUCCESS);
     BOOST_CHECK(err_state.IsValid());
 
     int dos = 0;
@@ -145,7 +144,7 @@ BOOST_AUTO_TEST_CASE(contextual_check_deposit_tx) {
 
     ok = ContextualCheckDepositTx(deposit, err_state, fin_state);
     BOOST_CHECK(!ok);
-    BOOST_CHECK_EQUAL(err_state.GetRejectCode(), +Result::DEPOSIT_DUPLICATE);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-deposit-duplicate");
     BOOST_CHECK(!err_state.IsValid());
 
     err_state.IsInvalid(dos);
