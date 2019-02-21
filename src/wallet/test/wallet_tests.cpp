@@ -668,11 +668,11 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(available.size(), 2);
     for (const auto& group : list) {
         for (const auto& coin : group.second) {
-            LOCK(pwalletMain->cs_wallet);
+          LOCK(pwalletMain->cs_wallet);
           pwalletMain->LockCoin(COutPoint(coin.tx->GetHash(), coin.i));
         }
     }
-  pwalletMain->AvailableCoins(available);
+    pwalletMain->AvailableCoins(available);
     BOOST_CHECK_EQUAL(available.size(), 0);
 
     // Confirm ListCoins still returns same result as before, despite coins
