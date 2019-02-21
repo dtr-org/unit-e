@@ -30,6 +30,13 @@ from .util import (
     set_node_times,
     sync_blocks,
     sync_mempools,
+    connect_nodes,
+    wait_until,
+)
+from .messages import (
+    FromHex,
+    CTransaction,
+    TxType,
 )
 
 class TestStatus(Enum):
@@ -355,6 +362,19 @@ class UnitETestFramework():
         for group in node_groups:
             sync_blocks(group)
             sync_mempools(group)
+
+    @staticmethod
+    def wait_for_vote_and_disconnect(finalizer, node):
+        txs = node.getrawmempool()
+        connect_nodes(finalizer, node.index)
+        sync_blocks([finalizer, node])
+        wait_until(lambda: len(node.getrawmempool()) > len(txs), timeout=10)
+        disconnect_nodes(finalizer, node.index)
+
+        new_txs = [tx for tx in node.getrawmempool() if tx not in txs]
+        assert_equal(len(new_txs), 1)
+        vote = FromHex(CTransaction(), node.getrawtransaction(new_txs[0]))
+        assert_equal(vote.get_type(), TxType.VOTE.name)
 
     def generate_sync(self, generator_node, nblocks=1):
         """
