@@ -1,7 +1,7 @@
 Translation Strings Policy
 ===========================
 
-This document provides guidelines for internationalization of the UnitE Core software.
+This document provides guidelines for internationalization of the unit-e software.
 
 How to translate?
 ------------------
@@ -85,10 +85,10 @@ In Qt code use tr's third argument for optional plurality. For example:
 This adds `<numerusform>`s to the respective `.ts` file, which can be translated separately depending on the language. In English, this is simply:
 
     <message numerus="yes">
-        <source>%n active connection(s) to UnitE network</source>
+        <source>%n active connection(s) to Unit-e network</source>
         <translation>
-            <numerusform>%n active connection to UnitE network</numerusform>
-            <numerusform>%n active connections to UnitE network</numerusform>
+            <numerusform>%n active connection to Unit-e network</numerusform>
+            <numerusform>%n active connections to Unit-e network</numerusform>
         </translation>
     </message>
 

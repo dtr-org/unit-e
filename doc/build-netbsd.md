@@ -25,12 +25,12 @@ python27
 
 Download the source code:
 ```
-git clone https://github.com/unite/unite
+git clone https://github.com/dtr-org/unit-e
 ```
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
-### Building UnitE Core
+### Building unit-e
 
 **Important**: Use `gmake` (the non-GNU `make` will exit with an error).
 

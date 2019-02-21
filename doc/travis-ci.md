@@ -1,11 +1,9 @@
 Travis CI
 =========
 
-Support for using travis-ci has been added in order to automate pull-testing.
-See [travis-ci.org](https://travis-ci.org/) for more info
-
-This procedure is different than the pull-tester that came before it in a few
-ways.
+[Travis CI](https://travis-ci.com/) is used as continuous integration system for
+unit-e. It runs automated tests on all commits to the master branch and all pull
+requests.
 
 There is nothing to administer. This is a major feature as it means
 that builds have no local state. Because there is no ability to login to the
@@ -32,7 +30,7 @@ trigger cache-invalidation and rebuilds as necessary.
 
 These caches can be manually removed if necessary. This is one of the very few
 manual operations that is possible with Travis, and it can be done by the
-UnitE Core committer via the Travis web interface.
+unit-e committer via the Travis web interface.
 
 In some cases, secure strings may be needed for hiding sensitive info such as
 private keys or URLs. The travis client may be used to create these strings:

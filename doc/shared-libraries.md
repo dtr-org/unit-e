@@ -3,7 +3,7 @@ Shared Libraries
 
 ## uniteconsensus
 
-The purpose of this library is to make the verification functionality that is critical to UnitE's consensus available to other applications, e.g. to language bindings.
+The purpose of this library is to make the verification functionality that is critical to Unit-e's consensus available to other applications, e.g. to language bindings.
 
 ### API
 
@@ -11,7 +11,7 @@ The interface is defined in the C header `uniteconsensus.h` located in  `src/scr
 
 #### Version
 
-`uniteconsensus_version` returns an `unsigned int` with the API version *(currently at an experimental `0`)*.
+`uniteconsensus_version` returns an `unsigned int` with the API version *(currently `1`)*.
 
 #### Script Validation
 
@@ -28,12 +28,12 @@ The interface is defined in the C header `uniteconsensus.h` located in  `src/scr
 
 ##### Script Flags
 - `uniteconsensus_SCRIPT_FLAGS_VERIFY_NONE`
-- `uniteconsensus_SCRIPT_FLAGS_VERIFY_P2SH` - Evaluate P2SH ([BIP16](https://github.com/unite/bips/blob/master/bip-0016.mediawiki)) subscripts
-- `uniteconsensus_SCRIPT_FLAGS_VERIFY_DERSIG` - Enforce strict DER ([BIP66](https://github.com/unite/bips/blob/master/bip-0066.mediawiki)) compliance
-- `uniteconsensus_SCRIPT_FLAGS_VERIFY_NULLDUMMY` - Enforce NULLDUMMY ([BIP147](https://github.com/unite/bips/blob/master/bip-0147.mediawiki))
-- `uniteconsensus_SCRIPT_FLAGS_VERIFY_CHECKLOCKTIMEVERIFY` - Enable CHECKLOCKTIMEVERIFY ([BIP65](https://github.com/unite/bips/blob/master/bip-0065.mediawiki))
-- `uniteconsensus_SCRIPT_FLAGS_VERIFY_CHECKSEQUENCEVERIFY` - Enable CHECKSEQUENCEVERIFY ([BIP112](https://github.com/unite/bips/blob/master/bip-0112.mediawiki))
-- `uniteconsensus_SCRIPT_FLAGS_VERIFY_WITNESS` - Enable WITNESS ([BIP141](https://github.com/unite/bips/blob/master/bip-0141.mediawiki))
+- `uniteconsensus_SCRIPT_FLAGS_VERIFY_P2SH` - Evaluate P2SH ([BIP16](https://github.com/bitcoin/bips/blob/master/bip-0016.mediawiki)) subscripts
+- `uniteconsensus_SCRIPT_FLAGS_VERIFY_DERSIG` - Enforce strict DER ([BIP66](https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki)) compliance
+- `uniteconsensus_SCRIPT_FLAGS_VERIFY_NULLDUMMY` - Enforce NULLDUMMY ([BIP147](https://github.com/bitcoin/bips/blob/master/bip-0147.mediawiki))
+- `uniteconsensus_SCRIPT_FLAGS_VERIFY_CHECKLOCKTIMEVERIFY` - Enable CHECKLOCKTIMEVERIFY ([BIP65](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki))
+- `uniteconsensus_SCRIPT_FLAGS_VERIFY_CHECKSEQUENCEVERIFY` - Enable CHECKSEQUENCEVERIFY ([BIP112](https://github.com/bitcoin/bips/blob/master/bip-0112.mediawiki))
+- `uniteconsensus_SCRIPT_FLAGS_VERIFY_WITNESS` - Enable WITNESS ([BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki))
 
 ##### Errors
 - `uniteconsensus_ERR_OK` - No errors with input parameters *(see the return value of `uniteconsensus_verify_script` for the verification status)*
@@ -41,9 +41,3 @@ The interface is defined in the C header `uniteconsensus.h` located in  `src/scr
 - `uniteconsensus_ERR_TX_SIZE_MISMATCH` - `txToLen` did not match with the size of `txTo`
 - `uniteconsensus_ERR_DESERIALIZE` - An error deserializing `txTo`
 - `uniteconsensus_ERR_AMOUNT_REQUIRED` - Input amount is required if WITNESS is used
-
-### Example Implementations
-- [NUnitE](https://github.com/NicolasDorier/NUnitE/blob/master/NUnitE/Script.cs#L814) (.NET Bindings)
-- [node-libuniteconsensus](https://github.com/bitpay/node-libuniteconsensus) (Node.js Bindings)
-- [java-libuniteconsensus](https://github.com/dexX7/java-libuniteconsensus) (Java Bindings)
-- [uniteconsensus-php](https://github.com/Bit-Wasp/uniteconsensus-php) (PHP Bindings)
