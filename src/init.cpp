@@ -214,6 +214,10 @@ void Shutdown()
     // using the other before destroying them.
     if (peerLogic) UnregisterValidationInterface(peerLogic.get());
     if (g_connman) g_connman->Stop();
+
+    // stop all injected components, including proposer and validator
+    UnitEInjector::Destroy();
+
     peerLogic.reset();
     g_connman.reset();
 
@@ -223,9 +227,6 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroup.interrupt_all();
     threadGroup.join_all();
-
-    // stop all injected components, including proposer and validator
-    UnitEInjector::Destroy();
 
     if (fDumpMempoolLater && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
