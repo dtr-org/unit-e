@@ -230,8 +230,8 @@ class SegWitTest(UnitETestFramework):
         assert(tx.wit.is_null())
         assert(txid3 in self.nodes[0].getrawmempool())
 
-        # Unit-e TODO: Previously checked here was that a node without segwit would not include the second and third transactions
-        # but it does not make sense here as we want to force segwit. Remove this comment after enabling segwit
+        # UNIT-E TODO: Previously checked here was that a node without segwit would not include the second and third transactions
+        # but it does not make sense here as we want to enable segwit by default. Remove this comment after enabling segwit
         # or add the check if we allow for running without segwit support.
 
         # Check that wtxid is properly reported in mempool entry
