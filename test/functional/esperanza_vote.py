@@ -97,7 +97,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         assert_equal(len(node0.getrawmempool()), 3)
         self.log.info('Finalizers voted after first block of new epoch')
 
-        # todo: there is a know issue https://github.com/dtr-org/unit-e/issues/643
+        # TODO: UNIT-E: there is a know issue https://github.com/dtr-org/unit-e/issues/643
         # that finalizer doesn't vote after processing the checkpoint.
         # Once it's resolved, the bellow test must be uncommented
         #
