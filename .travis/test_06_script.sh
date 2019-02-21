@@ -27,7 +27,7 @@ mkdir build && cd build
 
 make distdir VERSION=$HOST
 
-cd unite-$HOST
+cd unit-e-$HOST
 
 ./configure --cache-file=../config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
 
