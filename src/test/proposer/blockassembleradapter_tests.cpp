@@ -12,12 +12,13 @@
 #include <boost/test/unit_test.hpp>
 
 #include <staking/transactionpicker.h>
+#include <wallet/test/wallet_test_fixture.h>
 
-struct RegtestingSetup : public TestingSetup {
-  RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
+struct RegtestingWalletSetup : public WalletTestingSetup {
+  RegtestingWalletSetup() : WalletTestingSetup(CBaseChainParams::REGTEST) {}
 };
 
-BOOST_FIXTURE_TEST_SUITE(blockassembleradapter_tests, RegtestingSetup)
+BOOST_FIXTURE_TEST_SUITE(blockassembleradapter_tests, RegtestingWalletSetup)
 
 BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
 
@@ -26,8 +27,7 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
   // transactions will have to be mocked.
 
   auto blockAssemblerAdapter = staking::TransactionPicker::New();
-
-  staking::TransactionPicker::PickTransactionsParameters params;
+  const auto params = staking::TransactionPicker::PickTransactionsParameters();
 
   auto result = blockAssemblerAdapter->PickTransactions(params);
 

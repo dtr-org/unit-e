@@ -411,6 +411,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // after.
     {
         CWallet wallet;
+        vpwallets.clear(); // Remove default wallet
         vpwallets.insert(vpwallets.begin(), &wallet);
         UniValue keys;
         keys.setArray();
@@ -469,6 +470,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     coinbaseTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
 
     LOCK(cs_main);
+    vpwallets.clear(); // Remove default wallet
 
     // Import key into wallet and call dumpwallet to create backup file.
     {
@@ -609,52 +611,31 @@ public:
     ListCoinsTestingSetup()
     {
         CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
-        ::bitdb.MakeMock();
-        g_address_type = OUTPUT_TYPE_DEFAULT;
-        g_change_type = OUTPUT_TYPE_DEFAULT;
-        wallet.reset(new CWallet(
-          esperanza::WalletExtensionDeps(),
-          std::unique_ptr<CWalletDBWrapper>(new CWalletDBWrapper(&bitdb, "wallet_test.dat"))));
-        bool firstRun;
-        wallet->LoadWallet(firstRun);
-        AddKey(*wallet, coinbaseKey);
-        WalletRescanReserver reserver(wallet.get());
-        reserver.reserve();
-        wallet->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
-    }
-
-    ~ListCoinsTestingSetup()
-    {
-        wallet.reset();
-        ::bitdb.Flush(true);
-        ::bitdb.Reset();
     }
 
     CWalletTx& AddTx(CRecipient recipient)
     {
         CWalletTx wtx;
-        CReserveKey reservekey(wallet.get());
+        CReserveKey reservekey(pwalletMain.get());
         CAmount fee;
         int changePos = -1;
         std::string error;
         CCoinControl dummy;
-        BOOST_CHECK(wallet->CreateTransaction({recipient}, wtx, reservekey, fee, changePos, error, dummy));
+        BOOST_CHECK(pwalletMain->CreateTransaction({recipient}, wtx, reservekey, fee, changePos, error, dummy));
         CValidationState state;
-        BOOST_CHECK(wallet->CommitTransaction(wtx, reservekey, nullptr, state));
+        BOOST_CHECK(pwalletMain->CommitTransaction(wtx, reservekey, nullptr, state));
         CMutableTransaction blocktx;
         {
-            LOCK(wallet->cs_wallet);
-            blocktx = CMutableTransaction(*wallet->mapWallet.at(wtx.GetHash()).tx);
+            LOCK(pwalletMain->cs_wallet);
+            blocktx = CMutableTransaction(*pwalletMain->mapWallet.at(wtx.GetHash()).tx);
         }
         CreateAndProcessBlock({CMutableTransaction(blocktx)}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
-        LOCK(wallet->cs_wallet);
-        auto it = wallet->mapWallet.find(wtx.GetHash());
-        BOOST_CHECK(it != wallet->mapWallet.end());
+        LOCK(pwalletMain->cs_wallet);
+        auto it = pwalletMain->mapWallet.find(wtx.GetHash());
+        BOOST_CHECK(it != pwalletMain->mapWallet.end());
         it->second.SetMerkleBranch(chainActive.Tip(), 1);
         return it->second;
     }
-
-    std::unique_ptr<CWallet> wallet;
 };
 
 BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
@@ -663,40 +644,40 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
 
     // Confirm ListCoins initially returns 1 coin grouped under coinbaseKey
     // address.
-    auto list = wallet->ListCoins();
+    auto list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
 
     // Check initial balance from one mature coinbase transaction.
-    BOOST_CHECK_EQUAL(50 * UNIT, wallet->GetAvailableBalance());
+    BOOST_CHECK_EQUAL(50 * UNIT, pwalletMain->GetAvailableBalance());
 
     // Add a transaction creating a change address, and confirm ListCoins still
     // returns the coin associated with the change address underneath the
     // coinbaseKey pubkey, even though the change address has a different
     // pubkey.
     AddTx(CRecipient{GetScriptForRawPubKey({}), 1 * UNIT, false /* subtract fee */});
-    list = wallet->ListCoins();
+    list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 
     // Lock both coins. Confirm number of available coins drops to 0.
     std::vector<COutput> available;
-    wallet->AvailableCoins(available);
+    pwalletMain->AvailableCoins(available);
     BOOST_CHECK_EQUAL(available.size(), 2);
     for (const auto& group : list) {
         for (const auto& coin : group.second) {
-            LOCK(wallet->cs_wallet);
-            wallet->LockCoin(COutPoint(coin.tx->GetHash(), coin.i));
+          LOCK(pwalletMain->cs_wallet);
+          pwalletMain->LockCoin(COutPoint(coin.tx->GetHash(), coin.i));
         }
     }
-    wallet->AvailableCoins(available);
+    pwalletMain->AvailableCoins(available);
     BOOST_CHECK_EQUAL(available.size(), 0);
 
     // Confirm ListCoins still returns same result as before, despite coins
     // being locked.
-    list = wallet->ListCoins();
+    list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
@@ -711,14 +692,14 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     CKey our_key;
     our_key.MakeNewKey(/* compressed: */ true);
     {
-        LOCK(wallet->cs_wallet);
-        wallet->AddKey(our_key);
+        LOCK(pwalletMain->cs_wallet);
+        pwalletMain->AddKey(our_key);
     }
 
     CKey their_key;
     their_key.MakeNewKey(true);
 
-    wallet->AvailableCoins(coins);
+    pwalletMain->AvailableCoins(coins);
     // One coinbase has reached maturity
     BOOST_CHECK_EQUAL(1, coins.size());
 
@@ -729,14 +710,14 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
       ), 1 * UNIT, false
     });
 
-    wallet->AvailableCoins(coins);
+    pwalletMain->AvailableCoins(coins);
     // Two coinbase and one remote staking output
     BOOST_CHECK_EQUAL(3, coins.size());
 
     CCoinControl coin_control;
     coin_control.m_ignore_remote_staked = true;
 
-    wallet->AvailableCoins(coins, true, &coin_control);
+    pwalletMain->AvailableCoins(coins, true, &coin_control);
     // Remote staking output should be ignored
     BOOST_CHECK_EQUAL(2, coins.size());
 }

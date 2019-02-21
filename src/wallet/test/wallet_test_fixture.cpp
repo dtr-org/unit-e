@@ -41,3 +41,72 @@ WalletTestingSetup::~WalletTestingSetup()
     bitdb.Flush(true);
     bitdb.Reset();
 }
+
+TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::REGTEST)
+{
+  // CreateAndProcessBlock() does not support building SegWit blocks, so don't activate in these tests.
+  // TODO: fix the code to support SegWit blocks.
+  UpdateVersionBitsParameters(Consensus::DEPLOYMENT_SEGWIT, 0, Consensus::BIP9Deployment::NO_TIMEOUT);
+
+  // Generate a 100-block chain:
+  coinbaseKey.MakeNewKey(true);
+
+  {
+    LOCK(pwalletMain->cs_wallet);
+    assert(pwalletMain->AddKey(coinbaseKey));
+  }
+
+  WalletRescanReserver reserver(pwalletMain.get());
+  reserver.reserve();
+  pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
+
+  // Generate a 100-block chain:
+  CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+  for (int i = 0; i < COINBASE_MATURITY; i++)
+  {
+    std::vector<CMutableTransaction> noTxns;
+    CBlock b = CreateAndProcessBlock(noTxns, scriptPubKey);
+    coinbaseTxns.push_back(*b.vtx[0]);
+  }
+}
+
+//
+// Create a new block with just given transactions, coinbase paying to
+// scriptPubKey, and try to add it to the current chain.
+//
+CBlock
+TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool *processed)
+{
+  const CChainParams& chainparams = Params();
+  std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey);
+  CBlock& block = pblocktemplate->block;
+
+  // Replace mempool-selected txns with just coinbase plus passed-in txns:
+  block.vtx.resize(1);
+  for (const CMutableTransaction& tx : txns)
+    block.vtx.push_back(MakeTransactionRef(tx));
+  // IncrementExtraNonce creates a valid coinbase and merkleRoot
+  unsigned int extraNonce = 0;
+  {
+    LOCK(cs_main);
+    IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
+  }
+
+  while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
+
+  std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
+  const bool was_processed = ProcessNewBlock(chainparams, shared_pblock, true, nullptr);
+  assert(processed != nullptr || was_processed);
+  if (processed != nullptr) {
+    *processed = was_processed;
+  }
+
+  SyncWithValidationInterfaceQueue(); // To preven Wallet::ConnectBlock from running concurrently
+
+  CBlock result = block;
+  return result;
+}
+
+TestChain100Setup::~TestChain100Setup()
+{
+}

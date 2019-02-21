@@ -11,6 +11,7 @@
 #include <test/test_unite.h>
 
 #include <boost/test/unit_test.hpp>
+#include <wallet/test/wallet_test_fixture.h>
 
 
 BOOST_AUTO_TEST_SUITE(txvalidation_tests)
