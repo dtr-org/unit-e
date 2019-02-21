@@ -118,7 +118,11 @@ Parameters BuildRegTestParameters(Dependency<::ArgsManager>* args = nullptr) {
 
   p.bech32_human_readable_prefix = "uert";
 
-  // Set some parameters from passed args
+  // We can inject some parameters through `args`.
+  // The expected convention is to use argument names following this pattern:
+  //   -chain-some-property-name
+  // Where the "-chain-" prefix is always there, and "property-name" corresponds
+  // to one of the Parameter class' properties.
   if (args) {
       p.block_time_seconds = static_cast<uint32_t>(
           (*args)->GetArg("-chain-block-time-seconds", p.block_time_seconds)
