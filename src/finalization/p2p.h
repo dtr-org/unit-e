@@ -80,7 +80,7 @@ struct CommitsResponse {
   ADD_SERIALIZE_METHODS
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(*(uint8_t *)&status);
+    READWRITE(*reinterpret_cast<uint8_t *>(&status));
     READWRITE(data);
   }
 };
