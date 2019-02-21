@@ -1730,6 +1730,9 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             const auto res = static_cast<DisconnectResult>(ApplyTxInUndo(
                 std::move(txundo.vprevout[j]), view, out
             ));
+            if (res == DISCONNECT_UNCLEAN) {
+              LogPrintf("ERROR: Unclean disconnect of  txid=%s  ix=%d\n", tx.GetHash().GetHex(), j);
+            }
             if (res == DISCONNECT_FAILED) {
                 return DISCONNECT_FAILED;
             }
@@ -1744,7 +1747,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
         // Check that all outputs are available and match the outputs in the
         // block itself exactly.
-        for (size_t o = 0; o < tx.vout.size(); ++o) {
+        for (size_t o = tx.IsCoinBase() ? 1 : 0; o < tx.vout.size(); ++o) {
             if (tx.vout[o].scriptPubKey.IsUnspendable()) {
                 continue;
             }
@@ -1754,6 +1757,8 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             bool is_spent = view.SpendCoin(out, &coin);
 
             if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
+                LogPrintf("ERROR: Transaction output mismatch: ix=%d, is_spent=%d,tx_vout=%s, coin_out=%s, height=%d, coin_height=%d, tx.IsCoinBase=%d, coin.IsCoinBase=%d\n",
+                    o, is_spent, tx.vout[o].ToString(), coin.out.ToString(), pindex->nHeight, coin.nHeight, tx.IsCoinBase(), coin.fCoinBase);
                 fClean = false; // Transaction output mismatch
             }
         }

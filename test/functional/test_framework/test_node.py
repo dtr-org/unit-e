@@ -104,7 +104,9 @@ class TestNode():
         # unclean shutdown), it will get overwritten anyway by united, and
         # potentially interfere with our attempt to authenticate
         delete_cookie_file(self.datadir)
-        self.process = subprocess.Popen(self.args + extra_args, stderr=stderr, *args, **kwargs)
+        command = self.args + extra_args
+        self.log.info("Running command: %s" % ' '.join(command))
+        self.process = subprocess.Popen(command, stderr=stderr, *args, **kwargs)
         self.running = True
         self.log.debug("united started, waiting for RPC to come up")
 
@@ -248,7 +250,7 @@ class TestNode():
 
         Convenience property - most tests only use a single p2p connection to each
         node, so this saves having to write node.p2ps[0] many times."""
-        assert self.p2ps, "No p2p connection"
+        assert self.p2ps, "No p2p connection"/tmp/test_82813v3/node0/regtest/debug.log
         return self.p2ps[0]
 
     def disconnect_p2ps(self):
