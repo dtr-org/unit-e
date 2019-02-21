@@ -440,6 +440,7 @@ class CTxWitness():
                 return False
         return True
 
+
 class TxType(Enum):
     STANDARD = 0
     COINBASE = 1
@@ -449,6 +450,7 @@ class TxType(Enum):
     SLASH = 5
     WITHDRAW = 6
     ADMIN = 7
+
 
 class CTransaction():
     def __init__(self, tx=None):
