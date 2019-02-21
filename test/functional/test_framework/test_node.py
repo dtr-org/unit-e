@@ -250,7 +250,7 @@ class TestNode():
 
         Convenience property - most tests only use a single p2p connection to each
         node, so this saves having to write node.p2ps[0] many times."""
-        assert self.p2ps, "No p2p connection"/tmp/test_82813v3/node0/regtest/debug.log
+        assert self.p2ps, "No p2p connection"
         return self.p2ps[0]
 
     def disconnect_p2ps(self):
