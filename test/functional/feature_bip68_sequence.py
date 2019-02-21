@@ -355,12 +355,12 @@ class BIP68Test(UnitETestFramework):
         tx2.rehash()
         self.nodes[0].sendrawtransaction(ToHex(tx2))
 
-        # Now make an invalid spend of tx2 according to BIP68
-        invalid_sequence_value = 100
+        # Now make an invalid (non-final) spend of tx2 according to BIP68
+        non_final_sequence_value = 100
 
         tx3 = CTransaction()
         tx3.nVersion = 2
-        tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=invalid_sequence_value)]
+        tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=non_final_sequence_value)]
         tx3.vout = [CTxOut(int(tx2.vout[0].nValue - self.relayfee * UNIT), CScript([b'a' * 35]))]
         tx3.rehash()
 
