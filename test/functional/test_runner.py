@@ -138,6 +138,7 @@ BASE_SCRIPTS= [
     'rpc_signmessage.py',
     'feature_spend_genesis.py',
     'rpc_filtertransactions.py',
+    'feature_nulldummy.py',
     'rpc_sendtypeto.py',
     'wallet_import_rescan.py',
     'rpc_named_arguments.py',
@@ -204,10 +205,7 @@ USBDEVICE_SCRIPTS = [
     'wallet_hwsign.py',
 ]
 
-# UNIT-E TODO:
-DISABLED_SCRIPTS = [
-    'feature_nulldummy.py',
-]
+DISABLED_SCRIPTS = []
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
 ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS + USBDEVICE_SCRIPTS
