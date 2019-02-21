@@ -111,14 +111,14 @@ std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
   }
 }
 
-std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {
+std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network, Dependency<::ArgsManager>* args) {
   switch (network) {
     case Network::main:
       return NewFromParameters(Parameters::MainNet());
     case Network::test:
       return NewFromParameters(Parameters::TestNet());
     case Network::regtest:
-      return NewFromParameters(Parameters::RegTest());
+      return NewFromParameters(Parameters::RegTest(args));
   }
   assert(false && "silence gcc warnings");
 }

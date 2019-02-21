@@ -98,7 +98,7 @@ Parameters BuildTestNetParameters() {
   return p;
 }
 
-Parameters BuildRegTestParameters() {
+Parameters BuildRegTestParameters(Dependency<::ArgsManager>* args = nullptr) {
   Parameters p = Parameters::MainNet();
   p.network_name = "regtest";
   p.mine_blocks_on_demand = true;
@@ -117,6 +117,13 @@ Parameters BuildRegTestParameters() {
   p.base58_prefixes[Base58Type::EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
   p.bech32_human_readable_prefix = "uert";
+
+  // Set some parameters from passed args
+  if (args) {
+      p.block_time_seconds = static_cast<uint32_t>(
+          (*args)->GetArg("-chain-block-time-seconds", p.block_time_seconds)
+      );
+  }
 
   static GenesisBlock genesisBlock{
       GenesisBlockBuilder().Add(RegtestFunds()).Build(p)};
@@ -137,8 +144,13 @@ const Parameters &Parameters::TestNet() noexcept {
   return parameters;
 }
 
-const Parameters &Parameters::RegTest() noexcept {
-  static Parameters parameters = BuildRegTestParameters();
+const Parameters &Parameters::RegTest(Dependency<::ArgsManager>* args) noexcept {
+  static Parameters parameters = BuildRegTestParameters(args);
+  static Dependency<::ArgsManager>* first_args = args;
+
+  // We must not call this function twice with different arguments
+  assert(args == first_args);
+
   return parameters;
 }
 

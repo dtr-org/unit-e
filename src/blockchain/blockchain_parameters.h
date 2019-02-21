@@ -9,10 +9,12 @@
 #include <blockchain/blockchain_interfaces.h>
 #include <blockchain/blockchain_types.h>
 #include <consensus/params.h>
+#include <dependency.h>
 #include <primitives/block.h>
 #include <protocol.h>
 #include <settings.h>
 #include <uint256.h>
+#include <util.h>
 
 #include <better-enums/enum.h>
 #include <cstdint>
@@ -214,7 +216,7 @@ struct Parameters {
 
   static const Parameters &MainNet() noexcept;
   static const Parameters &TestNet() noexcept;
-  static const Parameters &RegTest() noexcept;
+  static const Parameters &RegTest(Dependency<::ArgsManager>* args = nullptr) noexcept;
 };
 
 }  // namespace blockchain
