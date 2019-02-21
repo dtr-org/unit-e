@@ -18,10 +18,10 @@ using FinalizationState = esperanza::FinalizationState;
 
 namespace {
 
-//! \brief Underlying storage of finalization states
+//! \brief Underlying repository of finalization states
 //!
 //! This storage keeps track of finalization states corresponding to block indexes.
-class Storage {
+class Repository {
  public:
   //! \brief Return finalization state for index, if any
   FinalizationState *Find(const CBlockIndex &index);
@@ -39,11 +39,11 @@ class Storage {
   //! \brief Destroy states for indexes with heights less than `height`
   void ClearUntilHeight(blockchain::Height height);
 
-  //! \brief Reset the storage
+  //! \brief Reset the repo
   void Reset(const esperanza::FinalizationParams &params,
              const esperanza::AdminParams &admin_params);
 
-  //! \brief Reset the storage and initialize empty and confirmed state for the tip.
+  //! \brief Reset the repo and initialize empty and confirmed state for the tip.
   //!
   //! It's a workaround for prune mode. We will get rid of it by restoring finalization
   //! state from disk.
@@ -56,7 +56,7 @@ class Storage {
     return m_restoring;
   }
 
-  //! \brief Put new state to the storage, return pointer to it.
+  //! \brief Put new state to the repo, return pointer to it.
   FinalizationState *Set(const CBlockIndex &index, FinalizationState &&state);
 
   //! \brief Confirm the state.
@@ -67,9 +67,9 @@ class Storage {
   bool Confirm(const CBlockIndex &index, FinalizationState &&new_state, FinalizationState **state_out);
 
   struct RestoringRAII {
-    Storage &s;
-    explicit RestoringRAII(Storage &s) : s(s) { s.m_restoring = true; }
-    ~RestoringRAII() { s.m_restoring = false; }
+    Repository &r;
+    explicit RestoringRAII(Repository &r) : r(r) { r.m_restoring = true; }
+    ~RestoringRAII() { r.m_restoring = false; }
   };
 
  private:
@@ -81,9 +81,9 @@ class Storage {
   std::atomic<bool> m_restoring{false};
 };
 
-// Storage implementation section
+// Repository implementation section
 
-FinalizationState *Storage::Find(const CBlockIndex &index) {
+FinalizationState *Repository::Find(const CBlockIndex &index) {
   LOCK(cs);
   if (index.nHeight == 0) {
     return GetGenesisState();
@@ -95,8 +95,8 @@ FinalizationState *Storage::Find(const CBlockIndex &index) {
   return &it->second;
 }
 
-FinalizationState *Storage::Create(const CBlockIndex &index,
-                                   FinalizationState::InitStatus required_parent_status) {
+FinalizationState *Repository::Create(const CBlockIndex &index,
+                                      FinalizationState::InitStatus required_parent_status) {
   AssertLockHeld(cs);
   if (index.pprev == nullptr) {
     return nullptr;
@@ -110,8 +110,8 @@ FinalizationState *Storage::Create(const CBlockIndex &index,
   return &res.first->second;
 }
 
-FinalizationState *Storage::FindOrCreate(const CBlockIndex &index,
-                                         FinalizationState::InitStatus required_parent_status) {
+FinalizationState *Repository::FindOrCreate(const CBlockIndex &index,
+                                            FinalizationState::InitStatus required_parent_status) {
   LOCK(cs);
   if (const auto state = Find(index)) {
     return state;
@@ -119,22 +119,22 @@ FinalizationState *Storage::FindOrCreate(const CBlockIndex &index,
   return Create(index, required_parent_status);
 }
 
-void Storage::Reset(const esperanza::FinalizationParams &params,
-                    const esperanza::AdminParams &admin_params) {
+void Repository::Reset(const esperanza::FinalizationParams &params,
+                       const esperanza::AdminParams &admin_params) {
   LOCK(cs);
   m_states.clear();
   m_genesis_state.reset(new FinalizationState(params, admin_params));
 }
 
-void Storage::ResetToTip(const esperanza::FinalizationParams &params,
-                         const esperanza::AdminParams &admin_params,
-                         const CBlockIndex &index) {
+void Repository::ResetToTip(const esperanza::FinalizationParams &params,
+                            const esperanza::AdminParams &admin_params,
+                            const CBlockIndex &index) {
   LOCK(cs);
   Reset(params, admin_params);
   m_states.emplace(&index, FinalizationState(*GetGenesisState(), FinalizationState::COMPLETED));
 }
 
-void Storage::ClearUntilHeight(blockchain::Height height) {
+void Repository::ClearUntilHeight(blockchain::Height height) {
   LOCK(cs);
   for (auto it = m_states.begin(); it != m_states.end();) {
     const auto index = it->first;
@@ -146,12 +146,12 @@ void Storage::ClearUntilHeight(blockchain::Height height) {
   }
 }
 
-FinalizationState *Storage::GetGenesisState() const {
+FinalizationState *Repository::GetGenesisState() const {
   LOCK(cs);
   return m_genesis_state.get();
 }
 
-FinalizationState *Storage::Set(const CBlockIndex &block_index, FinalizationState &&state) {
+FinalizationState *Repository::Set(const CBlockIndex &block_index, FinalizationState &&state) {
   LOCK(cs);
   const auto res = m_states.emplace(&block_index, std::move(state));
   if (res.second) {
@@ -160,7 +160,7 @@ FinalizationState *Storage::Set(const CBlockIndex &block_index, FinalizationStat
   return nullptr;
 }
 
-bool Storage::Confirm(const CBlockIndex &block_index, FinalizationState &&new_state, FinalizationState **state_out) {
+bool Repository::Confirm(const CBlockIndex &block_index, FinalizationState &&new_state, FinalizationState **state_out) {
   assert(new_state.GetInitStatus() == esperanza::FinalizationState::COMPLETED);
 
   LOCK(cs);
@@ -203,7 +203,7 @@ class StateStorageImpl final : public StateStorage {
   void Trim(blockchain::Height height);
 
   Dependency<staking::ActiveChain> m_active_chain;
-  Storage m_storage;
+  Repository m_repo;
 
   // TODO: these members is configured via Reset(). It's done to keep a way how
   // FinalizationState::Init and FinalizationState::Reset worked. Let's remove Reset
@@ -213,7 +213,7 @@ class StateStorageImpl final : public StateStorage {
 };
 
 bool StateStorageImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block) {
-  const auto state = m_storage.FindOrCreate(block_index, FinalizationState::COMPLETED);
+  const auto state = m_repo.FindOrCreate(block_index, FinalizationState::COMPLETED);
   if (state == nullptr) {
     LogPrint(BCLog::FINALIZATION, "ERROR: Cannot find or create finalization state for %s\n",
              block_index.GetBlockHash().GetHex());
@@ -229,13 +229,13 @@ bool StateStorageImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s heigh=%d has been processed from commits, confirming...\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
       assert(block_index.pprev != nullptr);  // we don't process commits of genesis block
-      const auto ancestor_state = m_storage.Find(*block_index.pprev);
+      const auto ancestor_state = m_repo.Find(*block_index.pprev);
       assert(ancestor_state != nullptr);
       FinalizationState new_state(*ancestor_state);
       if (!new_state.ProcessNewTip(block_index, block)) {
         return false;
       }
-      if (m_storage.Confirm(block_index, std::move(new_state), nullptr)) {
+      if (m_repo.Confirm(block_index, std::move(new_state), nullptr)) {
         // UNIT-E TODO: DoS commits sender.
         LogPrint(BCLog::FINALIZATION, "WARN: After processing the block_hash=%s height=%d, its finalization state differs from one given from commits. Overwrite it anyway.\n",
                  block_index.GetBlockHash().GetHex(), block_index.nHeight);
@@ -290,7 +290,7 @@ bool StateStorageImpl::FinalizationHappened(const CBlockIndex &block_index, bloc
 
 void StateStorageImpl::Trim(blockchain::Height height) {
   LogPrint(BCLog::FINALIZATION, "Trimming finalization storage for height < %d\n", height);
-  m_storage.ClearUntilHeight(height);
+  m_repo.ClearUntilHeight(height);
 }
 
 FinalizationState *StateStorageImpl::GetState() {
@@ -302,7 +302,7 @@ FinalizationState *StateStorageImpl::GetState() {
 }
 
 FinalizationState *StateStorageImpl::GetState(const CBlockIndex &block_index) {
-  return m_storage.Find(block_index);
+  return m_repo.Find(block_index);
 }
 
 const esperanza::FinalizationParams &StateStorageImpl::GetFinalizationParams() const {
@@ -321,8 +321,8 @@ bool StateStorageImpl::ProcessNewTip(const CBlockIndex &block_index, const CBloc
   if (!ProcessNewTipWorker(block_index, block)) {
     return false;
   }
-  if (block_index.nHeight > 0 && !m_storage.Restoring() &&
-      (block_index.nHeight + 2) % m_storage.GetGenesisState()->GetEpochLength() == 0) {
+  if (block_index.nHeight > 0 && !m_repo.Restoring() &&
+      (block_index.nHeight + 2) % m_repo.GetGenesisState()->GetEpochLength() == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
     // The last epoch block will contain the snapshot hash pointing to this snapshot.
     snapshot::Creator::GenerateOrSkip(GetState()->GetCurrentEpoch());
@@ -343,7 +343,7 @@ bool StateStorageImpl::ProcessNewTipCandidate(const CBlockIndex &block_index, co
 bool StateStorageImpl::ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes) {
   LogPrint(BCLog::FINALIZATION, "Process commits block_hash=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
-  const auto state = m_storage.FindOrCreate(block_index, FinalizationState::FROM_COMMITS);
+  const auto state = m_repo.FindOrCreate(block_index, FinalizationState::FROM_COMMITS);
   if (state == nullptr) {
     LogPrint(BCLog::FINALIZATION, "ERROR: Cannot find or create finalization state for %s\n",
              block_index.GetBlockHash().GetHex());
@@ -375,21 +375,21 @@ bool StateStorageImpl::ProcessNewCommits(const CBlockIndex &block_index, const s
 // This function might be significantly optimized by using finalization
 // state serialization.
 void StateStorageImpl::RestoreFromDisk(const CChainParams &chainparams) {
-  Storage::RestoringRAII restoring(m_storage);
+  Repository::RestoringRAII restoring(m_repo);
   if (fPruneMode) {
     const auto tip = m_active_chain->GetTip();
     if (tip != nullptr) {
-      m_storage.ResetToTip(chainparams.GetFinalization(),
-                           chainparams.GetAdminParams(),
-                           *tip);
+      m_repo.ResetToTip(chainparams.GetFinalization(),
+                        chainparams.GetAdminParams(),
+                        *tip);
     } else {
-      m_storage.Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
+      m_repo.Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
     }
     return;
   }
 
   LogPrint(BCLog::FINALIZATION, "Restore finalization state from disk\n");
-  m_storage.Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
+  m_repo.Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
   for (blockchain::Height i = 1; i <= m_active_chain->GetHeight(); ++i) {
     const CBlockIndex *const index = m_active_chain->AtHeight(i);
     CBlock block;
@@ -405,11 +405,11 @@ void StateStorageImpl::Reset(const esperanza::FinalizationParams &params,
                              const esperanza::AdminParams &admin_params) {
   m_finalization_params = &params;
   m_admin_params = &admin_params;
-  m_storage.Reset(params, admin_params);
+  m_repo.Reset(params, admin_params);
 }
 
 void StateStorageImpl::ResetToTip(const CBlockIndex &block_index) {
-  m_storage.ResetToTip(GetFinalizationParams(), GetAdminParams(), block_index);
+  m_repo.ResetToTip(GetFinalizationParams(), GetAdminParams(), block_index);
 }
 
 }  // namespace
