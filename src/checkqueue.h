@@ -117,8 +117,10 @@ private:
             }
             // execute work
             for (T& check : vChecks)
-                if (fOk)
-                    fOk = check();
+                if (fOk) {
+                    const bool is_ok = check();
+                    fOk = is_ok;
+                }
             vChecks.clear();
         } while (true);
     }

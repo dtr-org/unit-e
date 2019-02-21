@@ -94,6 +94,9 @@ std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags
 
 bool EvaluateSequenceLocks(const CBlockIndex& block, std::pair<int, int64_t> lockPair)
 {
+    if (block.nHeight == 0) {
+        return true;
+    }
     assert(block.pprev);
     int64_t nBlockTime = block.pprev->GetMedianTimePast();
     if (lockPair.first >= block.nHeight || lockPair.second >= nBlockTime)
@@ -229,7 +232,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
     return true;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
+bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, CAmount *value_in)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -238,7 +241,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
         assert(!coin.IsSpent());
@@ -259,15 +262,19 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
+    if (value_in) {
+        *value_in = nValueIn;
+    }
+
     const CAmount value_out = tx.GetValueOut();
-    if (nValueIn < value_out) {
+    if (!tx.IsCoinBase() && nValueIn < value_out) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
             strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
     }
 
     // Tally transaction fees
     const CAmount txfee_aux = nValueIn - value_out;
-    if (!MoneyRange(txfee_aux)) {
+    if (!tx.IsCoinBase() && !MoneyRange(txfee_aux)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-fee-outofrange");
     }
 

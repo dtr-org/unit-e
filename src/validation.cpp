@@ -1422,13 +1422,7 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
 
 void MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
     txundo.vprevout.reserve(tx.vin.size());
-
-    int index_start = 0;
-    if (tx.IsCoinBase()) {
-      index_start = 1;
-    }
-
-    for (int i = index_start; i < tx.vin.size(); ++i) {
+    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
         const CTxIn &txin = tx.vin[i];
         txundo.vprevout.emplace_back();
         bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
@@ -1457,6 +1451,10 @@ bool CScriptCheck::operator()() {
             BCLog::VALIDATION,
             "script verification FAILED: %s with message \"%s\"\n",
             ToString(), ScriptErrorString(GetScriptError()));
+    }
+    if (ptxTo->IsCoinBase()) {
+      // UNIT-E TODO: Temporary to get things going, remove
+      return true;
     }
     return result;
 }
@@ -1508,8 +1506,6 @@ void InitScriptExecutionCache() {
  */
 bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks)
 {
-    if (!tx.IsCoinBase())
-    {
         if (pvChecks)
             pvChecks->reserve(tx.vin.size());
 
@@ -1534,7 +1530,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 return true;
             }
 
-            for (unsigned int i = 0; i < tx.vin.size(); i++) {
+            for (unsigned int i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
                 const COutPoint &prevout = tx.vin[i].prevout;
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
@@ -1580,7 +1576,6 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 scriptExecutionCache.insert(hashCacheEntry);
             }
         }
-    }
 
     return true;
 }
@@ -1713,22 +1708,24 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    if (blockUndo.vtxundo.size() + 1 != block.vtx.size()) {
+    if (blockUndo.vtxundo.size() != block.vtx.size()) {
         error("DisconnectBlock(): block and undo data inconsistent");
         return DISCONNECT_FAILED;
     }
 
     // First, restore inputs
-    for (size_t i = 1; i < block.vtx.size(); ++i) {
+    for (size_t i = 0; i < block.vtx.size(); ++i) {
         const CTransaction &tx = *(block.vtx[i]);
-        CTxUndo &txundo = blockUndo.vtxundo[i - 1];
+        CTxUndo &txundo = blockUndo.vtxundo[i];
 
-        if (txundo.vprevout.size() != tx.vin.size()) {
+        if (txundo.vprevout.size() + (tx.IsCoinBase() ? 1 : 0) != tx.vin.size()) {
+            LogPrintf("inconsistent undo data: coinbase=%s, prevout=%d, vin=%d\n",
+                tx.IsCoinBase() ? "yes" : "no", txundo.vprevout.size(), tx.vin.size());
             error("DisconnectBlock(): transaction and undo data inconsistent");
             return DISCONNECT_FAILED;
         }
 
-        for (size_t j = 0; j < tx.vin.size(); ++j) {
+        for (size_t j = tx.IsCoinBase() ? 1 : 0; j < tx.vin.size(); ++j) {
             const COutPoint &out = tx.vin[j].prevout;
             const auto res = static_cast<DisconnectResult>(ApplyTxInUndo(
                 std::move(txundo.vprevout[j]), view, out
@@ -2025,7 +2022,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
-    blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    blockundo.vtxundo.reserve(block.vtx.size());
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
 
@@ -2048,16 +2045,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         AddCoins(view, tx, pindex->nHeight);
     }
 
+    CAmount coinbase_in = 0;
     for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
-        if (tx.IsCoinBase()) {
-            blockundo.vtxundo.emplace_back(CTxUndo());
-            MarkCoinAsSpent(tx, view, blockundo.vtxundo.back());
-            continue;
-        }
 
         CAmount txfee = 0;
-        if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
+        CAmount value_in = 0;
+        if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee, &value_in)) {
             return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
         }
 
@@ -2074,19 +2068,24 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                              REJECT_INVALID, "bad-txns-nonfinal");
         }
 
-        // GetTransactionSigOpCost counts 3 types of sigops:
-        // * legacy (always)
-        // * p2sh (when P2SH enabled in flags and excludes coinbase)
-        // * witness (when witness enabled in flags and excludes coinbase)
-        nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST)
+        if (tx.IsCoinBase()) {
+          coinbase_in += value_in;
+        } else {
+          // GetTransactionSigOpCost counts 3 types of sigops:
+          // * legacy (always)
+          // * p2sh (when P2SH enabled in flags and excludes coinbase)
+          // * witness (when witness enabled in flags and excludes coinbase)
+          nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
+          if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+            LogPrintf("too many sigops:  txid=%s  cost=%d\n", tx.GetHash().GetHex(), nSigOpsCost);
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
-
-        nFees += txfee;
-        if (!MoneyRange(nFees)) {
+          }
+          nFees += txfee;
+          if (!MoneyRange(nFees)) {
             return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
                              REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
+          }
         }
 
         // Don't cache results if we're actually connecting blocks (still
@@ -2100,7 +2099,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         control.Add(vChecks);
 
-        blockundo.vtxundo.emplace_back(CTxUndo());
+        blockundo.vtxundo.emplace_back();
         MarkCoinAsSpent(tx, view, blockundo.vtxundo.back());
     }
 
@@ -2108,6 +2107,14 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
     bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
+    if (!isGenesisBlock) {
+        CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
+        if (block.vtx[0]->GetValueOut() - coinbase_in > blockReward)
+          return state.DoS(100,
+                         error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
+                               block.vtx[0]->GetValueOut(), blockReward),
+                         REJECT_INVALID, "bad-cb-amount");
+    }
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
@@ -3200,8 +3207,10 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     {
         nSigOps += GetLegacySigOpCount(*tx);
     }
-    if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
+    if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST) {
+        LogPrintf("too many block sigops:  block=%s  cost=%d\n", block.GetHash().GetHex(), nSigOps * WITNESS_SCALE_FACTOR);
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
+    }
 
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;

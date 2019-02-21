@@ -391,7 +391,7 @@ class FullBlockTest(ComparisonTestFramework):
         lots_of_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS - 1))
         tip(13)
         block(15, spend=out[5], script=lots_of_checksigs)
-        yield accepted()
+        yield accepted(test_name="accept MAX_BLOCK_SIGOPS - 1")
         save_spendable_output()
         comp_snapshot_hash(15)
 

@@ -74,10 +74,8 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
 // UNIT-E: Remove or change to adapt to PoS
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
 {
-    // UNIT-E: If the hash is the genesis (regTest, testnet, mainnet) then make it pass anyway
-    if(hash.GetHex() == "7213a844fb67eb79fe84befc196244690b6ecdaa0ae1cd6367df523c943dc259" ||
-        hash.GetHex() == "d6d268d0d84dc5e832bccb96c2949f926fc490bf2d9dfd2006346c518c3b57cf" ||
-        hash.GetHex() == "0318aa4d107203133b18021e82e04eac23f455f7ae20afbbd1d696cffbeabf8d" ) {
+    // UNIT-E: If the hash is the genesis then make it pass anyway
+    if (hash == params.hashGenesisBlock) {
       return true;
     }
 
