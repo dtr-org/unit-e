@@ -3972,7 +3972,7 @@ bool LoadChainTip(const CChainParams& chainparams)
 
     g_chainstate.PruneBlockIndexCandidates();
 
-    GetComponent(FinalizationStateStorage)->Restore(chainparams);
+    GetComponent(FinalizationStateStorage)->RestoreFromDisk(chainparams);
 
     LogPrintf("Loaded best chain: hashBestChain=%s height=%d date=%s progress=%f\n",
         chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(),
@@ -4264,7 +4264,7 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         CheckBlockIndex(params.GetConsensus());
 
         if (esperanza::FinalizationState::GetState(chainActive.Tip()) == nullptr) {
-            GetComponent(FinalizationStateStorage)->Restore(params);
+            GetComponent(FinalizationStateStorage)->RestoreFromDisk(params);
         }
     } else {
        GetComponent(FinalizationStateStorage)->Reset(params.GetFinalization(), params.GetAdminParams());

@@ -78,7 +78,7 @@ FinalizationState::FinalizationState(
   m_checkpoints[0] = cp;
 }
 
-FinalizationState::FinalizationState(const FinalizationState &parent, Status status)
+FinalizationState::FinalizationState(const FinalizationState &parent, InitStatus status)
     : FinalizationStateData(parent),
       m_settings(parent.m_settings),
       m_status(status) {}
@@ -898,6 +898,7 @@ bool FinalizationState::ValidateDepositAmount(CAmount amount) {
 }
 
 void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
+  AssertLockHeld(cs_esperanza);
   switch (tx->GetType()) {
     case TxType::VOTE: {
       Vote vote;
@@ -970,16 +971,18 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
 
 bool FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
                                       const CBlock &block) {
+  LOCK(cs_esperanza);
   assert(m_status == NEW);
   if (!ProcessNewCommits(block_index, block.vtx)) {
     return false;
   }
-  m_status = CONFIRMED;
+  m_status = COMPLETED;
   return true;
 }
 
 bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
                                           const std::vector<CTransactionRef> &txes) {
+  LOCK(cs_esperanza);
   assert(m_status == NEW);
   uint256 block_hash = block_index.GetBlockHash();
 
@@ -1080,7 +1083,7 @@ bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) co
   return it != m_checkpoints.end() && it->second.m_isFinalized;
 }
 
-FinalizationState::Status FinalizationState::GetStatus() const {
+FinalizationState::InitStatus FinalizationState::GetInitStatus() const {
   return m_status;
 }
 

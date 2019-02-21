@@ -15,7 +15,7 @@
 //! Finalization state of every CBlockIndex in the current dynasty is stored. Once being
 //! processed, it's stored unless next checkpoint is finalized. Every state is a copy of
 //! the previous one plus new finalized commits given from corresponding block. During
-//! lifetime state changes its status: NEW -> [ FROM_COMMITS -> ] CONFIRMED.
+//! lifetime state changes its status: NEW -> [ FROM_COMMITS -> ] COMPLETED.
 //!
 //! Every finalization state is associated with one CBlockIndex (in the current dynasty).
 //! Parent state means the state of the CBlockIndex.pprev. States must be processed
@@ -34,7 +34,7 @@
 //!     Now state is filled, but not yet confirmed, it's FROM_COMMITS.
 //! 2 [In a process of receiving a real block] call StateStorage::ProcessNewTipCandidate, here:
 //!   * Build new state, fill it by transactions given from the block, compare with previous state
-//!     that had been built from commits. Now it's CONFIRMED.
+//!     that had been built from commits. Now it's COMPLETED.
 //! 3 [In the process of switching to the best chain], call StateStorage::ProcessNewTip, here:
 //!   * Get previouly processed state (or process new), make sure it's confirmed.
 //! 4 Once we reach the next finalized checkpoint, trim all states from old dynasties.
@@ -81,10 +81,10 @@ class StateStorage {
 
   //! \brief Create new finalization state for given block_index.
   //!
-  //! If state exists and CONFIRMED, return true.
+  //! If state exists and COMPLETED, return true.
   //! If state exists but processed from COMMITS, reevaluate and compare with one given from commits.
-  //! Otherwise, create new one (parent state must exist and be CONFIRMED, otherwise return false)
-  //! and process it. Resulting state is CONFIRMED.
+  //! Otherwise, create new one (parent state must exist and be COMPLETED, otherwise return false)
+  //! and process it. Resulting state is COMPLETED.
   //! The final return value is result of calling to esperanza::FinalizationState::ProcessNewTip.
   //!
   //! This function is supposed to be called when a block connecting to any chain in the current
@@ -93,10 +93,10 @@ class StateStorage {
 
   //! \brief Create new finalization state for given block_index.
   //!
-  //! If state exists and CONFIRMED, return true.
+  //! If state exists and COMPLETED, return true.
   //! If state exists but processed from COMMITS, reevaluate and compare with one given from commits
-  //! Otherwise, create new one (parent state must exist and be CONFIRMED, otherwise return false)
-  //! and process it. Resulting state is CONFIRMED.
+  //! Otherwise, create new one (parent state must exist and be COMPLETED, otherwise return false)
+  //! and process it. Resulting state is COMPLETED.
   //!
   //! This function is supposed to be called when a block is connecting to the main chain.
   virtual bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) = 0;
@@ -104,7 +104,7 @@ class StateStorage {
   //! \brief Restore the storage for actual active chain.
   //!
   //! Must be called during startup of the node to restore storage for current active chain.
-  virtual void Restore(const CChainParams &chainparams) = 0;
+  virtual void RestoreFromDisk(const CChainParams &chainparams) = 0;
 
   //! \brief Reset the storage.
   //! This function must be called during initialization of the node.

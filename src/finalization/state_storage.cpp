@@ -12,7 +12,8 @@
 
 namespace finalization {
 
-// FinalizationState is gonna be moved to finalization namespace. When it happen, remove this line.
+// UNIT-E TODO: FinalizationState is gonna be moved to finalization namespace.
+// When it happen, remove this line.
 using FinalizationState = esperanza::FinalizationState;
 
 namespace {
@@ -30,7 +31,7 @@ class Storage {
   //! `required_parent_status` reflects the minimal status of the parent's state
   //! in case of `OrCreate`,
   FinalizationState *FindOrCreate(const CBlockIndex &index,
-                                  FinalizationState::Status required_parent_status);
+                                  FinalizationState::InitStatus required_parent_status);
 
   //! \brief Return state for genesis block
   FinalizationState *GetGenesisState() const;
@@ -72,7 +73,7 @@ class Storage {
   };
 
  private:
-  FinalizationState *Create(const CBlockIndex &index, FinalizationState::Status required_parent_status);
+  FinalizationState *Create(const CBlockIndex &index, FinalizationState::InitStatus required_parent_status);
 
   mutable CCriticalSection cs;
   std::map<const CBlockIndex *, FinalizationState> m_states;
@@ -95,14 +96,14 @@ FinalizationState *Storage::Find(const CBlockIndex &index) {
 }
 
 FinalizationState *Storage::Create(const CBlockIndex &index,
-                                   FinalizationState::Status required_parent_status) {
+                                   FinalizationState::InitStatus required_parent_status) {
   AssertLockHeld(cs);
   if (index.pprev == nullptr) {
     return nullptr;
   }
   const auto parent_state = Find(*index.pprev);
   if ((parent_state == nullptr) ||
-      (parent_state != GetGenesisState() && parent_state->GetStatus() < required_parent_status)) {
+      (parent_state != GetGenesisState() && parent_state->GetInitStatus() < required_parent_status)) {
     return nullptr;
   }
   const auto res = m_states.emplace(&index, FinalizationState(*parent_state));
@@ -110,7 +111,7 @@ FinalizationState *Storage::Create(const CBlockIndex &index,
 }
 
 FinalizationState *Storage::FindOrCreate(const CBlockIndex &index,
-                                         FinalizationState::Status required_parent_status) {
+                                         FinalizationState::InitStatus required_parent_status) {
   LOCK(cs);
   if (const auto state = Find(index)) {
     return state;
@@ -130,7 +131,7 @@ void Storage::ResetToTip(const esperanza::FinalizationParams &params,
                          const CBlockIndex &index) {
   LOCK(cs);
   Reset(params, admin_params);
-  m_states.emplace(&index, FinalizationState(*GetGenesisState(), FinalizationState::CONFIRMED));
+  m_states.emplace(&index, FinalizationState(*GetGenesisState(), FinalizationState::COMPLETED));
 }
 
 void Storage::ClearUntilHeight(blockchain::Height height) {
@@ -160,13 +161,13 @@ FinalizationState *Storage::Set(const CBlockIndex &block_index, FinalizationStat
 }
 
 bool Storage::Confirm(const CBlockIndex &block_index, FinalizationState &&new_state, FinalizationState **state_out) {
-  assert(new_state.GetStatus() == esperanza::FinalizationState::CONFIRMED);
+  assert(new_state.GetInitStatus() == esperanza::FinalizationState::COMPLETED);
 
   LOCK(cs);
   const auto it = m_states.find(&block_index);
   assert(it != m_states.end());
   const auto &old_state = it->second;
-  assert(old_state.GetStatus() == esperanza::FinalizationState::FROM_COMMITS);
+  assert(old_state.GetInitStatus() == esperanza::FinalizationState::FROM_COMMITS);
   bool result = old_state == new_state;
 
   m_states.erase(it);
@@ -191,7 +192,7 @@ class StateStorageImpl final : public StateStorage {
   bool ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes) override;
   bool ProcessNewTipCandidate(const CBlockIndex &block_index, const CBlock &block) override;
   bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) override;
-  void Restore(const CChainParams &chainparams) override;
+  void RestoreFromDisk(const CChainParams &chainparams) override;
   void Reset(const esperanza::FinalizationParams &params,
              const esperanza::AdminParams &admin_params) override;
   void ResetToTip(const CBlockIndex &block_index) override;
@@ -212,14 +213,14 @@ class StateStorageImpl final : public StateStorage {
 };
 
 bool StateStorageImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block) {
-  const auto state = m_storage.FindOrCreate(block_index, FinalizationState::CONFIRMED);
+  const auto state = m_storage.FindOrCreate(block_index, FinalizationState::COMPLETED);
   if (state == nullptr) {
     LogPrint(BCLog::FINALIZATION, "ERROR: Cannot find or create finalization state for %s\n",
              block_index.GetBlockHash().GetHex());
     return false;
   }
 
-  switch (state->GetStatus()) {
+  switch (state->GetInitStatus()) {
     case FinalizationState::NEW: {
       return state->ProcessNewTip(block_index, block);
     }
@@ -245,7 +246,7 @@ bool StateStorageImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const
       return true;
     }
 
-    case FinalizationState::CONFIRMED: {
+    case FinalizationState::COMPLETED: {
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been already processed\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
       return true;
@@ -349,7 +350,7 @@ bool StateStorageImpl::ProcessNewCommits(const CBlockIndex &block_index, const s
     return false;
   }
 
-  switch (state->GetStatus()) {
+  switch (state->GetInitStatus()) {
     case esperanza::FinalizationState::NEW: {
       return state->ProcessNewCommits(block_index, txes);
     }
@@ -360,7 +361,7 @@ bool StateStorageImpl::ProcessNewCommits(const CBlockIndex &block_index, const s
       return true;
     }
 
-    case esperanza::FinalizationState::CONFIRMED: {
+    case esperanza::FinalizationState::COMPLETED: {
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been already processed\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
       return true;
@@ -373,7 +374,7 @@ bool StateStorageImpl::ProcessNewCommits(const CBlockIndex &block_index, const s
 // In this version we read all the blocks from the disk.
 // This function might be significantly optimized by using finalization
 // state serialization.
-void StateStorageImpl::Restore(const CChainParams &chainparams) {
+void StateStorageImpl::RestoreFromDisk(const CChainParams &chainparams) {
   Storage::RestoringRAII restoring(m_storage);
   if (fPruneMode) {
     const auto tip = m_active_chain->GetTip();

@@ -349,21 +349,21 @@ BOOST_AUTO_TEST_CASE(storage_states_workflow) {
   // Process state from commits. It't not confirmed yet, finalization shouldn't happen.
   ok = fixture.ProcessNewCommits(block_index);
   BOOST_REQUIRE(ok);
-  BOOST_CHECK(fixture.GetState(block_index)->GetStatus() == esperanza::FinalizationState::FROM_COMMITS);
+  BOOST_CHECK(fixture.GetState(block_index)->GetInitStatus() == esperanza::FinalizationState::FROM_COMMITS);
   BOOST_CHECK(fixture.GetState(1) != nullptr);
 
   // Process the same state from the block, it must be confirmed now. As it's not yet considered as
   // a prt of the main chain, finalization shouldn't happen.
   ok = fixture.ProcessNewTipCandidate(block_index);
   BOOST_REQUIRE(ok);
-  BOOST_CHECK(fixture.GetState(block_index)->GetStatus() == esperanza::FinalizationState::CONFIRMED);
+  BOOST_CHECK(fixture.GetState(block_index)->GetInitStatus() == esperanza::FinalizationState::COMPLETED);
   BOOST_CHECK(fixture.GetState(1) != nullptr);
 
   // Process the same state from the block and consider it as a part of the main chain so that expect
   // finalization and trimming the storage.
   ok = fixture.ProcessNewTip(block_index);
   BOOST_REQUIRE(ok);
-  BOOST_CHECK(fixture.GetState(block_index)->GetStatus() == esperanza::FinalizationState::CONFIRMED);
+  BOOST_CHECK(fixture.GetState(block_index)->GetInitStatus() == esperanza::FinalizationState::COMPLETED);
   BOOST_CHECK(fixture.GetState(1) == nullptr);
 
   // Generate two more indexes

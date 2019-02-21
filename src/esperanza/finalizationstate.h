@@ -145,19 +145,19 @@ class FinalizationStateData {
  */
 class FinalizationState : public FinalizationStateData {
  public:
-  //! \brief Status of the state
-  enum Status {
+  //! \brief A status that represents the current stage in the finalization state initialization process.
+  enum InitStatus {
     // State is just created
     NEW = 0,
-    // State processed finalizer commits.
+    // State initialized from finalizer commits.
     FROM_COMMITS = 1,
-    // State processed finalizer commits from the real block.
-    CONFIRMED = 2,
+    // State initialization completed using a block.
+    COMPLETED = 2,
   };
 
   FinalizationState(const esperanza::FinalizationParams &params,
                     const esperanza::AdminParams &adminParams);
-  FinalizationState(const FinalizationState &parent, Status status = NEW);
+  FinalizationState(const FinalizationState &parent, InitStatus status = NEW);
   FinalizationState(FinalizationState &&parent);
   bool operator==(const FinalizationState &other) const;
   bool operator!=(const FinalizationState &other) const;
@@ -262,8 +262,8 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Returns whether block on height blockHeight is finalized checkpoint
   bool IsFinalizedCheckpoint(blockchain::Height blockHeight) const;
 
-  //! \brief Returns the status of the state
-  Status GetStatus() const;
+  //! \brief Returns the current initalization status
+  InitStatus GetInitStatus() const;
 
  private:
   //!In case there is nobody available to justify we justify automatically.
@@ -305,7 +305,7 @@ class FinalizationState : public FinalizationStateData {
 
  protected:
   const FinalizationParams &m_settings;
-  Status m_status = NEW;
+  InitStatus m_status = NEW;
 
  private:
   void OnBlock(blockchain::Height blockHeight);
