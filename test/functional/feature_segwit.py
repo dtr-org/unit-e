@@ -72,12 +72,18 @@ class SegWitTest(UnitETestFramework):
     def run_test(self):
         self.nodes[0].generate(161) #block 161
 
-        self.log.info("Verify sigops are counted in GBT with pre-BIP141 rules before the fork")
+        self.log.info("Verify sending to p2sh-embedded and native segwit addresses")
         txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 1)
 
-        # UNIT-E TODO: check that blocks are mines using segwit (was getblocktemplate)
+        # Check that segwit is not active (should activate at height 423)
+        assert(get_bip9_status(self.nodes[0], 'segwit')['status'] == 'started')
 
-        self.nodes[0].generate(1) #block 162
+        blockhash = self.nodes[0].generate(1)  # block 162
+
+        # Check that the node includes non-segwit transactions
+        block = self.nodes[0].getblock(blockhash[0])
+        assert_equal(len(block['tx']), 2)
+        assert_equal(block['tx'][1], txid)
 
         balance_presetup = self.nodes[0].getbalance()
         self.pubkey = []
@@ -156,6 +162,9 @@ class SegWitTest(UnitETestFramework):
         self.log.info("Verify previous witness txs skipped for mining can now be mined")
         assert_equal(len(self.nodes[2].getrawmempool()), 4)
         block = self.nodes[2].generate(1) #block 432 (first block with new rules; 432 = 144 * 3)
+
+        assert(get_bip9_status(self.nodes[0], 'segwit')['status'] == 'active')
+
         sync_blocks(self.nodes)
         assert_equal(len(self.nodes[2].getrawmempool()), 0)
         segwit_tx_list = self.nodes[2].getblock(block[0])["tx"]
@@ -184,14 +193,15 @@ class SegWitTest(UnitETestFramework):
         self.success_mine(self.nodes[0], p2sh_ids[NODE_0][WIT_V0][0], True) #block 434
         self.success_mine(self.nodes[0], p2sh_ids[NODE_0][WIT_V1][0], True) #block 435
 
-        self.log.info("Verify sigops are counted in GBT with BIP141 rules after the fork")
+        self.log.info("Verify node includes non-segwit transactions after activation")
         txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 1)
+        blockhash = self.nodes[0].generate(1)
 
-        # UNIT-E TODO: verify that new blocks contain segwit transactions
+        block = self.nodes[0].getblock(blockhash[0])
+        assert_equal(len(block['tx']), 2)
+        assert_equal(block['tx'][1], txid)
 
-        self.nodes[0].generate(1) # Mine a block to clear the gbt cache
-
-        self.log.info("Non-segwit miners are able to use GBT response after activation.")
+        self.log.info("Verify that the node accepts segwit transactions to it's mempool and includes them in a block.")
         # Create a 3-tx chain: tx1 (non-segwit input, paying to a segwit output) ->
         #                      tx2 (segwit input, paying to a non-segwit output) ->
         #                      tx3 (non-segwit input, paying to a non-segwit output).
@@ -220,15 +230,19 @@ class SegWitTest(UnitETestFramework):
         assert(tx.wit.is_null())
         assert(txid3 in self.nodes[0].getrawmempool())
 
-        # UNIT-E TODO: Now try calling getblocktemplate() without segwit support.
-
-        # UNIT-E TODO: Check that running with segwit support results in all 3 being included.
+        # UNIT-E TODO: Previously checked here was that a node without segwit would not include the second and third transactions
+        # but it does not make sense here as we want to enable segwit by default. Remove this comment after enabling segwit
+        # or add the check if we allow for running without segwit support.
 
         # Check that wtxid is properly reported in mempool entry
         assert_equal(int(self.nodes[0].getmempoolentry(txid3)["wtxid"], 16), tx.calc_sha256(True))
 
-        # Mine a block to clear the gbt cache again.
-        self.nodes[0].generate(1)
+        # Verify that the node included all three of the transactions after fork activation
+        blockhash = self.nodes[0].generate(1)
+
+        block = self.nodes[0].getblock(blockhash[0])
+        assert_equal(len(block['tx']), 4)
+        assert_contents_equal(block['tx'][1:], [txid1, txid2, txid3])
 
         self.log.info("Verify behaviour of importaddress, addwitnessaddress and listunspent")
 
