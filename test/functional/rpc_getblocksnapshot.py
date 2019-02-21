@@ -18,6 +18,7 @@ from test_framework.util import (
     connect_nodes,
     sync_blocks,
     disconnect_nodes,
+    wait_until,
 )
 
 
@@ -27,64 +28,82 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
-        def assert_deleted_snapshot(node, height):
-            block_hash = node.getblockhash(height)
-            res = node.getblocksnapshot(block_hash)
-            keys = sorted(res.keys())
-            assert_equal(keys, [
-                'block_hash',
-                'snapshot_deleted',
-                'snapshot_hash',
-                'valid',
-            ])
-            assert_equal(res['valid'], False)
-            assert_equal(res['snapshot_deleted'], True)
-            assert_equal(res['block_hash'], block_hash)
-            assert_equal(len(res['snapshot_hash']), 64)
+        def wait_for_deleted_snapshot(node, height):
+            def check():
+                block_hash = node.getblockhash(height)
+                res = node.getblocksnapshot(block_hash)
+                keys = sorted(res.keys())
+                expected_keys = [
+                    'block_hash',
+                    'snapshot_deleted',
+                    'snapshot_hash',
+                    'valid',
+                ]
+                if keys != expected_keys:
+                    return False
+                return all([
+                    res['valid'] == False,
+                    res['snapshot_deleted'] == True,
+                    res['block_hash'] == block_hash,
+                    len(res['snapshot_hash']) == 64,
+                ])
+            wait_until(check)
 
-        def assert_valid_finalized(node, height):
-            block_hash = node.getblockhash(height)
-            res = node.getblocksnapshot(block_hash)
-            keys = sorted(res.keys())
-            assert_equal(keys, [
-                'block_hash',
-                'block_height',
-                'chain_work',
-                'snapshot_finalized',
-                'snapshot_hash',
-                'stake_modifier',
-                'total_outputs',
-                'total_utxo_subsets',
-                'valid',
-            ])
-            assert_equal(res['valid'], True)
-            assert_equal(res['block_hash'], block_hash)
-            assert_equal(res['block_height'], height)
-            assert_equal(res['snapshot_finalized'], True)
-            assert_equal(len(res['snapshot_hash']), 64)
-            assert_equal(len(res['stake_modifier']), 64)
+        def wait_for_valid_finalized(node, height):
+            def check():
+                block_hash = node.getblockhash(height)
+                res = node.getblocksnapshot(block_hash)
+                keys = sorted(res.keys())
+                expected_keys = [
+                    'block_hash',
+                    'block_height',
+                    'chain_work',
+                    'snapshot_finalized',
+                    'snapshot_hash',
+                    'stake_modifier',
+                    'total_outputs',
+                    'total_utxo_subsets',
+                    'valid',
+                ]
+                if keys != expected_keys:
+                    return False
+                return all([
+                    res['valid'] == True,
+                    res['block_hash'] == block_hash,
+                    res['block_height'] == height,
+                    res['snapshot_finalized'] == True,
+                    len(res['snapshot_hash']) == 64,
+                    len(res['stake_modifier']) == 64,
+                ])
+            wait_until(check)
 
-        def assert_valid_non_finalized(node, height):
-            block_hash = node.getblockhash(height)
-            res = node.getblocksnapshot(block_hash)
-            keys = sorted(res.keys())
-            assert_equal(keys, [
-                'block_hash',
-                'block_height',
-                'chain_work',
-                'snapshot_finalized',
-                'snapshot_hash',
-                'stake_modifier',
-                'total_outputs',
-                'total_utxo_subsets',
-                'valid',
-            ])
-            assert_equal(res['valid'], True)
-            assert_equal(res['block_hash'], block_hash)
-            assert_equal(res['block_height'], height)
-            assert_equal(res['snapshot_finalized'], False)
-            assert_equal(len(res['snapshot_hash']), 64)
-            assert_equal(len(res['stake_modifier']), 64)
+        def wait_for_valid_non_finalized(node, height):
+            def check():
+                block_hash = node.getblockhash(height)
+                res = node.getblocksnapshot(block_hash)
+                keys = sorted(res.keys())
+                expected_keys = [
+                    'block_hash',
+                    'block_height',
+                    'chain_work',
+                    'snapshot_finalized',
+                    'snapshot_hash',
+                    'stake_modifier',
+                    'total_outputs',
+                    'total_utxo_subsets',
+                    'valid',
+                ]
+                if keys != expected_keys:
+                    return False
+                return all([
+                    res['valid'] == True,
+                    res['block_hash'] == block_hash,
+                    res['block_height'] == height,
+                    res['snapshot_finalized'] == False,
+                    len(res['snapshot_hash']) == 64,
+                    len(res['stake_modifier']) == 64
+                ])
+            wait_until(check)
 
         # generate two forks that are available for node0
         # 0 ... 5 ... 10 ... 25
@@ -101,10 +120,10 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
         disconnect_nodes(node1, node0.index)
         node0.generatetoaddress(20, node0.getnewaddress())
 
-        assert_deleted_snapshot(node0, height=3)  # actually deleted
-        assert_deleted_snapshot(node0, height=4)  # wasn't created
-        assert_valid_finalized(node0, height=8)
-        assert_valid_non_finalized(node0, height=28)
+        wait_for_deleted_snapshot(node0, height=3)  # actually deleted
+        wait_for_deleted_snapshot(node0, height=4)  # wasn't created
+        wait_for_valid_finalized(node0, height=8)
+        wait_for_valid_non_finalized(node0, height=28)
 
         res = node0.getblocksnapshot(forked_block_hash)
         assert_equal(res['valid'], False)
