@@ -7,7 +7,6 @@
 #include <blockchain/blockchain_genesis.h>
 #include <utilstrencodings.h>
 #include <numeric>
-#include <boost/optional/optional_io.hpp>
 
 namespace blockchain {
 
