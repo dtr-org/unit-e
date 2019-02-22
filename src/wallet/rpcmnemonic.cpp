@@ -185,9 +185,9 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
     }
 
     if(shouldRescan) {
-      const int64_t rescannedTill = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
-      if (rescannedTill > TIMESTAMP_MIN) {
-        warnings.emplace_back("could not read before " + DateTimeToString(rescannedTill));
+      const int64_t rescanned_till = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
+      if (rescanned_till > TIMESTAMP_MIN) {
+        warnings.emplace_back("could not read before " + DateTimeToString(rescanned_till));
       }
     }
 
