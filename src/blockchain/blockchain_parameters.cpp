@@ -119,7 +119,7 @@ Parameters BuildRegTestParameters(RegTestOptionalParameters* params = nullptr) {
 
   p.bech32_human_readable_prefix = "uert";
 
-  // We can inject some parameters through `args`.
+  // We can inject some parameters through `params`.
   // The expected convention is to use argument names following this pattern:
   //   -chain-some-property-name
   // Where the "-chain-" prefix is always there, and "property-name" corresponds
