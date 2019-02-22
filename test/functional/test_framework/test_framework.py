@@ -365,6 +365,10 @@ class UnitETestFramework():
 
     @staticmethod
     def wait_for_vote_and_disconnect(finalizer, node):
+        """
+        Wait until the finalizer votes on the node's tip
+        and disconnect the finalizer from the node.
+        """
         txs = node.getrawmempool()
         connect_nodes(finalizer, node.index)
         sync_blocks([finalizer, node])
