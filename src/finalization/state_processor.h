@@ -40,7 +40,7 @@ namespace finalization {
 class StateRepository;
 
 class StateProcessor {
-public:
+ public:
   //! \brief Create new finalization state for given commits.
   //!
   //! If state exists and not NEW, return true.
@@ -76,6 +76,6 @@ public:
   static std::unique_ptr<StateProcessor> New(Dependency<finalization::StateRepository> repo);
 };
 
-}
+}  // namespace finalization
 
 #endif
