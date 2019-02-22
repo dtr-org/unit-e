@@ -205,9 +205,9 @@ def wait_until(predicate, *, attempts=float('inf'), timeout=float('inf'), lock=N
     if attempts == float('inf') and timeout == float('inf'):
         timeout = 60
     attempt = 0
-    timeout += time.time()
+    end_time = timeout + time.time()
 
-    while attempt < attempts and time.time() < timeout:
+    while attempt < attempts and time.time() < end_time:
         if lock:
             with lock:
                 if predicate():
@@ -218,10 +218,14 @@ def wait_until(predicate, *, attempts=float('inf'), timeout=float('inf'), lock=N
         attempt += 1
         time.sleep(0.05)
 
-    # Print the cause of the timeout
-    assert_greater_than(attempts, attempt)
-    assert_greater_than(timeout, time.time())
-    raise RuntimeError('Unreachable')
+    # Print the check and the cause of the timeout
+    check_name = predicate.__name__ or 'lambda function'
+    if attempt >= attempts:
+        message = "'%s' is still false after %d attempts" % (check_name, attempts)
+    else:
+        message = "'%s' is still false after %d seconds" % (check_name, timeout)
+    raise AssertionError(message)
+
 
 # RPC/P2P connection constants and functions
 ############################################
