@@ -12,7 +12,7 @@ namespace esperanza {
 std::string GetHelpString(bool showDebug) {
   std::string strUsage = HelpMessageGroup(_("Staking options:"));
   strUsage += HelpMessageOpt("-proposing", "Whether to participate in proposing new blocks or not. Default: true");
-  strUsage += HelpMessageOpt("-permissioning", "Whether to start with permissioning enabled (works only on regtest)");
+  strUsage += HelpMessageOpt("-permissioning", "Whether to start with permissioning enabled (works only on regtest). Default: false");
   strUsage += HelpMessageOpt("-stakecombinemaximum", "Maximum amount to combine when proposing. Default: unlimited (0)");
   strUsage += HelpMessageOpt("-stakesplitthreshold", "Maximum amount a single coinbase output should have. Default: unlimited (0)");
   strUsage += HelpMessageOpt("-validating", "Stake your coins to become a validator (default: false)");
