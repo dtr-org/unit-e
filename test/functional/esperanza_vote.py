@@ -8,7 +8,6 @@ from test_framework.util import assert_equal
 from test_framework.util import JSONRPCException
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.admin import Admin
 
 
 class EsperanzaVoteTest(UnitETestFramework):
@@ -24,12 +23,11 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         validator_node_params = [
             '-validating=1',
-            '-proposing=0',
             '-debug=all',
             '-whitelist=127.0.0.1',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = ['-proposing=0','-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig='+json_params]
+        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig='+json_params]
 
         self.extra_args = [proposer_node_params,
                            validator_node_params,
@@ -50,12 +48,8 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         assert(all(nodes[i].getbalance() == 10000 for i in range(0, 4)))
 
-        # wait for coinbase maturity
-        for n in range(0, 119):
-            self.generate_block(nodes[0])
-
-        # generates 1 more block
-        Admin.authorize_and_disable(self, nodes[0])
+        # Leave IBD
+        self.generate_block(nodes[0])
 
         deptx1 = nodes[1].deposit(address1, 1500)
         deptx2 = nodes[2].deposit(address2, 2000)
@@ -65,21 +59,21 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.wait_for_transaction(deptx2, 60)
         self.wait_for_transaction(deptx3, 60)
 
-        # After we generated the first 120 blocks with no validators the state is
-        # - currentEpoch: 12 (we are in the first block of this epoch)
-        # - currentDynasty: 11
-        # - lastFinalizedEpoch: 10
-        # - lastJustifiedEpoch: 11
+        # After we generated the first block with no validators the state is
+        # - currentEpoch: 0 (we are in the first block of this epoch)
+        # - currentDynasty: 0
+        # - lastFinalizedEpoch: 0
+        # - lastJustifiedEpoch: 0
         # - validators: 0
         # Then we generate other 10 epochs
         for n in range(0, 50):
             self.generate_block(nodes[0])
 
         resp = nodes[0].getfinalizationstate()
-        assert_equal(resp["currentEpoch"], 17)
-        assert_equal(resp["currentDynasty"], 15)
-        assert_equal(resp["lastFinalizedEpoch"], 14)
-        assert_equal(resp["lastJustifiedEpoch"], 15)
+        assert_equal(resp["currentEpoch"], 5)
+        assert_equal(resp["currentDynasty"], 3)
+        assert_equal(resp["lastFinalizedEpoch"], 3)
+        assert_equal(resp["lastJustifiedEpoch"], 4)
         assert_equal(resp["validators"], 3)
 
 

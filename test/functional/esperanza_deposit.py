@@ -8,7 +8,6 @@ from test_framework.util import assert_equal
 from test_framework.util import JSONRPCException
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.admin import Admin
 
 class EsperanzaDepositTest(UnitETestFramework):
 
@@ -54,20 +53,24 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         assert_equal(validator.getbalance(), 10000)
 
-        # wait for coinbase maturity
-        for n in range(0, 119):
-            self.generate_block(nodes[1])
-
-        # generates 1 more block
-        Admin.authorize_and_disable(self, nodes[1])
+        # Leave IBD
+        self.generate_sync(nodes[1])
 
         txid = validator.deposit(payto, 10000)
 
         # wait for transaction to propagate
         self.wait_for_transaction(txid, 60)
 
-        # mine some blocks to allow the deposit to get included in a block
-        for n in range(0, 20):
+        assert_equal(validator.getvalidatorinfo()["validator_status"], "WAITING_DEPOSIT_CONFIRMATION")
+
+        # mine a block to allow the deposit to get included
+        self.generate_sync(nodes[2])
+
+        assert_equal(validator.getvalidatorinfo()["validator_status"], "WAITING_DEPOSIT_FINALIZATION")
+
+        # the validator will be ready to operate in epoch 3
+        # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
+        for n in range(0, 29):
             self.generate_block(nodes[(n % 3) + 1])
 
         resp = validator.getvalidatorinfo()

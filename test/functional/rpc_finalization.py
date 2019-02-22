@@ -62,14 +62,13 @@ class RpcFinalizationTest(UnitETestFramework):
         self.log.info('initial finalization state is correct')
 
         # add finalizer
-        Admin.authorize_and_disable(self, node)
         payto = finalizer.getnewaddress('', 'legacy')
         txid = finalizer.deposit(payto, 10000)
         self.wait_for_transaction(txid, timeout=150)
         disconnect_nodes(node, finalizer.index)
 
         # test state of last checkpoint
-        node.generatetoaddress(2, node.getnewaddress())
+        node.generatetoaddress(3, node.getnewaddress())
         assert_equal(node.getblockcount(), 4)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 0)

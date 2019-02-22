@@ -9,7 +9,6 @@ from test_framework.util import JSONRPCException
 from test_framework.util import wait_until
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.admin import Admin
 
 
 class EsperanzaLogoutTest(UnitETestFramework):
@@ -50,22 +49,17 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         assert_equal(validator.getbalance(), 10000)
 
-        # wait for coinbase maturity
-        for n in range(0, 119):
-            self.generate_block(nodes[1])
-
-        # generates 1 more block
-        Admin.authorize_and_disable(self, nodes[1])
+        # Leave IBD
+        self.generate_block(nodes[1])
 
         deposit_tx = validator.deposit(payto, 10000)
 
         # wait for transaction to propagate
         self.wait_for_transaction(deposit_tx, 60)
 
-        # mine 21 blocks (2 dynasties if we keep finalizing) to allow the deposit to get included in a block
-        # and dynastyLogoutDelay to expire
-        # +1 block to include a vote that was casted in 20th block
-        for n in range(0, 21):
+        # the validator will be ready to operate in epoch 3 and start voting on that checkpoint at height 39
+        # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
+        for n in range(0, 39):
             self.generate_block(nodes[(n % 3) + 1])
 
         # ensure vote is created and included in the next block
@@ -75,7 +69,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         self.sync_all()
         assert_equal(len(validator.getrawmempool()), 0)
 
-        assert_equal(validator.getblockchaininfo()['blocks'], 142)
+        assert_equal(validator.getblockchaininfo()['blocks'], 41)
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]
@@ -98,8 +92,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         # invalid at submission. This is to account for those cases.
         while i < 5:
             try:
-                self.generate_sync(node)
-                return
+                return self.generate_sync(node)
             except JSONRPCException as exp:
                 i += 1
                 print("error generating block:", exp.error)

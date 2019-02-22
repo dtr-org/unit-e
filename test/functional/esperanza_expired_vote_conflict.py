@@ -2,7 +2,6 @@
 # Copyright (c) 2018-2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-from test_framework.admin import Admin
 from test_framework.mininode import P2PInterface, network_thread_start
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
@@ -65,8 +64,6 @@ class ExpiredVoteConflict(UnitETestFramework):
         # Exit IBD
         self.generate_sync(proposer)
 
-        Admin.authorize_and_disable(self, proposer)
-
         deposit = validator.deposit(
             validator.getnewaddress("", "legacy"), MIN_DEPOSIT_SIZE)
 
@@ -75,9 +72,8 @@ class ExpiredVoteConflict(UnitETestFramework):
         # Later in this test we will be operating in 'epochs', not blocks
         # So it is convenient to always start and end at checkpoint
         # -1 for IBD
-        # -1 for admin
         # -1 to be at checkpoint
-        self.generate_sync(proposer, EPOCH_LENGTH - 3)
+        self.generate_sync(proposer, EPOCH_LENGTH - 2)
 
         # Enable tx censorship
         relay.relay_txs = False

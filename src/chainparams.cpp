@@ -419,7 +419,9 @@ public:
             0
         };
 
-        adminParams.m_blockToAdminKeys.emplace(0, CreateRegTestAdminKeys());
+        if(gArgs.GetBoolArg("-permissioning", false)) {
+          adminParams.m_blockToAdminKeys.emplace(0, CreateRegTestAdminKeys());
+        }
 
         snapshotParams.create_snapshot_per_epoch = static_cast<uint16_t>(gArgs.GetArg("-createsnapshot", 1));
         snapshotParams.snapshot_chunk_timeout_sec = static_cast<uint16_t>(gArgs.GetArg("-snapshotchunktimeout", 5));

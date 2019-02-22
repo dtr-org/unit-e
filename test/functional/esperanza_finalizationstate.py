@@ -12,7 +12,6 @@ from test_framework.util import disconnect_nodes
 from test_framework.util import wait_until
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.admin import Admin
 
 block_time = 1
 
@@ -65,27 +64,16 @@ def setup_deposit(self, nodes):
 
         assert_equal(n.getbalance(), 10000)
 
-    # wait for coinbase maturity
-    for n in range(0, 119):
-        generate_block(nodes[0])
-
-    # generates 1 more block
-    Admin.authorize_and_disable(self, nodes[0])
-
-    assert_equal(nodes[0].getblockchaininfo()['blocks'], 120)
-    sync_blocks(self.nodes[0:len(nodes)])
-
-    assert (nodes[0].getblockchaininfo()['blocks'] == 120)
-
     for n in nodes:
         deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx)
 
-    # finalize deposits and start voting
-    for n in range(0, 20):
+    # the validator will be ready to operate in epoch 3
+    # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
+    for n in range(0, 29):
         generate_block(nodes[0])
 
-    assert_equal(nodes[0].getblockchaininfo()['blocks'], 140)
+    assert_equal(nodes[0].getblockchaininfo()['blocks'], 30)
 
 
 def generate_block(node):
@@ -128,6 +116,9 @@ class ExpiredVoteTest(UnitETestFramework):
         p1 = self.nodes[1]
         v = self.nodes[2]
 
+        # Leave IBD
+        self.generate_sync(p0)
+
         setup_deposit(self, [v])
         sync_blocks([p0, p1, v])
 
@@ -135,7 +126,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 8):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 148)
+        assert_equal(p0.getblockchaininfo()['blocks'], 38)
         sync_blocks([p0, p1, v])
 
         # Rearrange connection like p0 -> p1 xxx v so the validator
@@ -159,7 +150,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 10):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 160)
+        assert_equal(p0.getblockchaininfo()['blocks'], 50)
 
         # now we disconnect v again so it will not vote in the epoch just created
         # since that would interfere with the test.
@@ -176,7 +167,7 @@ class ExpiredVoteTest(UnitETestFramework):
         generate_block(p1)
         sync_blocks([p0, p1])
 
-        assert_equal(p1.getblockchaininfo()['blocks'], 161)
+        assert_equal(p1.getblockchaininfo()['blocks'], 51)
 
 
 if __name__ == '__main__':
