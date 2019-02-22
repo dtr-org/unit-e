@@ -844,7 +844,7 @@ class HeaderAndShortIDs():
         if add_genesis:
             if block.vtx[0] not in prefill:
                 prefill = [block.vtx[0]] + prefill
-        prefill.sort(key=lambda tx: tx.hash)
+
         self.prefilled_txn = [ PrefilledTransaction(block.vtx.index(tx), tx) for tx in prefill ]
         self.prefilled_txn.sort(key=lambda tx: tx.index) # the prefilled transactions can be out of order
         self.shortids = []
