@@ -24,24 +24,24 @@ namespace {
 class Repository {
  public:
   //! \brief Return finalization state for index, if any
-  FinalizationState *Find(const CBlockIndex &index);
+  FinalizationState *Find(const CBlockIndex &index) &;
 
   //! \brief Try to find, then try to create new state for index.
   //!
   //! `required_parent_status` reflects the minimal status of the parent's state
   //! in case of `OrCreate`,
   FinalizationState *FindOrCreate(const CBlockIndex &index,
-                                  FinalizationState::InitStatus required_parent_status);
+                                  FinalizationState::InitStatus required_parent_status) &;
 
   //! \brief Return state for genesis block
-  FinalizationState *GetGenesisState() const;
+  FinalizationState *GetGenesisState() const &;
 
   //! \brief Destroy states for indexes with heights less than `height`
   void ClearUntilHeight(blockchain::Height height);
 
   //! \brief Reset the repo
   void Reset(const esperanza::FinalizationParams &params,
-             const esperanza::AdminParams &admin_params);
+             const esperanza::AdminParams &admin_params) &;
 
   //! \brief Reset the repo and initialize empty and confirmed state for the tip.
   //!
@@ -49,7 +49,7 @@ class Repository {
   //! state from disk.
   void ResetToTip(const esperanza::FinalizationParams &params,
                   const esperanza::AdminParams &admin_params,
-                  const CBlockIndex &index);
+                  const CBlockIndex &index) &;
 
   //! \brief Restoring tells whether node is reconstructing finalization state
   bool Restoring() const {
@@ -73,7 +73,7 @@ class Repository {
   };
 
  private:
-  FinalizationState *Create(const CBlockIndex &index, FinalizationState::InitStatus required_parent_status);
+  FinalizationState *Create(const CBlockIndex &index, FinalizationState::InitStatus required_parent_status) &;
 
   mutable CCriticalSection cs;
   std::map<const CBlockIndex *, FinalizationState> m_states;
@@ -83,7 +83,7 @@ class Repository {
 
 // Repository implementation section
 
-FinalizationState *Repository::Find(const CBlockIndex &index) {
+FinalizationState *Repository::Find(const CBlockIndex &index) & {
   LOCK(cs);
   if (index.nHeight == 0) {
     return GetGenesisState();
@@ -96,7 +96,7 @@ FinalizationState *Repository::Find(const CBlockIndex &index) {
 }
 
 FinalizationState *Repository::Create(const CBlockIndex &index,
-                                      FinalizationState::InitStatus required_parent_status) {
+                                      FinalizationState::InitStatus required_parent_status) & {
   AssertLockHeld(cs);
   if (index.pprev == nullptr) {
     return nullptr;
@@ -111,7 +111,7 @@ FinalizationState *Repository::Create(const CBlockIndex &index,
 }
 
 FinalizationState *Repository::FindOrCreate(const CBlockIndex &index,
-                                            FinalizationState::InitStatus required_parent_status) {
+                                            FinalizationState::InitStatus required_parent_status) & {
   LOCK(cs);
   if (const auto state = Find(index)) {
     return state;
@@ -120,7 +120,7 @@ FinalizationState *Repository::FindOrCreate(const CBlockIndex &index,
 }
 
 void Repository::Reset(const esperanza::FinalizationParams &params,
-                       const esperanza::AdminParams &admin_params) {
+                       const esperanza::AdminParams &admin_params) & {
   LOCK(cs);
   m_states.clear();
   m_genesis_state.reset(new FinalizationState(params, admin_params));
@@ -128,7 +128,7 @@ void Repository::Reset(const esperanza::FinalizationParams &params,
 
 void Repository::ResetToTip(const esperanza::FinalizationParams &params,
                             const esperanza::AdminParams &admin_params,
-                            const CBlockIndex &index) {
+                            const CBlockIndex &index) & {
   LOCK(cs);
   Reset(params, admin_params);
   m_states.emplace(&index, FinalizationState(*GetGenesisState(), FinalizationState::COMPLETED));
@@ -146,7 +146,7 @@ void Repository::ClearUntilHeight(blockchain::Height height) {
   }
 }
 
-FinalizationState *Repository::GetGenesisState() const {
+FinalizationState *Repository::GetGenesisState() const & {
   LOCK(cs);
   return m_genesis_state.get();
 }
