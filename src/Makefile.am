@@ -28,7 +28,6 @@ LIBUNITE_COMMON=libunite_common.a
 LIBUNITE_CONSENSUS=libunite_consensus.a
 LIBUNITE_UTIL=libunite_util.a
 LIBUNITE_CRYPTO=crypto/libunite_crypto.a
-LIBUNITEQT=qt/libuniteqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 
 if ENABLE_ZMQ
@@ -272,7 +271,7 @@ obj/build.h: FORCE
 	  "$(abs_top_srcdir)"
 libunite_util_a-clientversion.$(OBJEXT): obj/build.h
 
-# server: shared between united and unite-qt
+# server
 libunite_server_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(MINIUPNPC_CPPFLAGS) $(EVENT_CFLAGS) $(EVENT_PTHREADS_CFLAGS)
 libunite_server_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_server_a_SOURCES = \
@@ -355,8 +354,7 @@ libunite_zmq_a_SOURCES = \
   zmq/zmqpublishnotifier.cpp
 endif
 
-# wallet: shared between united and unite-qt, but only linked
-# when wallet enabled
+# wallet: only linked when wallet enabled
 libunite_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_wallet_a_SOURCES = \
@@ -481,7 +479,7 @@ libunite_consensus_a_SOURCES = \
   utilstrencodings.h \
   version.h
 
-# common: shared between united, and unite-qt and non-server tools
+# common: shared between united and non-server tools
 libunite_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
@@ -706,12 +704,4 @@ endif
 
 if ENABLE_BENCH
 include Makefile.bench.include
-endif
-
-if ENABLE_QT
-include Makefile.qt.include
-endif
-
-if ENABLE_QT_TESTS
-include Makefile.qttest.include
 endif
