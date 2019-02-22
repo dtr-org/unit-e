@@ -572,8 +572,9 @@ class CompactBlocksTest(UnitETestFramework):
             msg = msg_witness_blocktxn()
 
         missing_txs = block.middle_txs[6:] + [block.unspent_tx]
-        # Swap six for the fifth, making the block invalid, but we should not be disconnected
-        # note that the count of transactions is as it should be in a valid txn response
+
+        # Send the fifth tx (which the node already has) instead of the sixth, making the response invalid,
+        # but we should not be disconnected as the count of transactions is as it should be in a valid txn response
         missing_txs[0] = block.middle_txs[5]
         msg.block_transactions = BlockTransactions(block.sha256, sorted(missing_txs, key=lambda tx: tx.hash))
         test_node.send_and_ping(msg)

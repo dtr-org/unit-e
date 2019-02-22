@@ -49,14 +49,11 @@ def get_witness_script(witness_root, witness_nonce):
     return CScript([OP_RETURN, output_data])
 
 
+# Update coinbase input witness according to BIP141
 def update_uncommited_block_structures(block, nonce=0):
-    # First calculate the merkle root of the block's
-    # transactions, with witnesses.
-    witness_nonce = nonce
-    witness_root = block.calc_witness_merkle_root()
     # witness_nonce should go to coinbase witness.
     block.vtx[0].wit.vtxinwit = [CTxInWitness()]
-    block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(witness_nonce)]
+    block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(nonce)]
 
 
 # According to BIP141, blocks with witness rules active must commit to the
@@ -66,9 +63,8 @@ def add_witness_commitment(block, nonce=0):
     # transactions, with witnesses.
     witness_nonce = nonce
     witness_root = block.calc_witness_merkle_root()
-    # witness_nonce should go to coinbase witness.
-    block.vtx[0].wit.vtxinwit = [CTxInWitness()]
-    block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(witness_nonce)]
+
+    update_uncommited_block_structures(block, witness_nonce)
 
     # witness commitment is the last OP_RETURN output in coinbase
     block.vtx[0].vout.append(CTxOut(0, get_witness_script(witness_root, witness_nonce)))
