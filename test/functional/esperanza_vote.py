@@ -44,7 +44,7 @@ class EsperanzaVoteTest(UnitETestFramework):
             node.importmasterkey(regtest_mnemonics[node.index]['mnemonics'])
         assert(all(n.getbalance() == 10000 for n in self.nodes))
 
-        # create topology where arrows denote non-persisted connection
+        # create topology where arrows denote non-persistent connection
         # finalizer1 → node0 ← finalizer2
         #                ↑
         #            finalizer3
