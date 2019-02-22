@@ -387,7 +387,8 @@ class UnitETestFramework():
         try:
             wait_until(lambda: len(node.getrawmempool()) > len(txs), timeout=10)
         except AssertionError:
-            assert False, 'finalizer did not vote for the tip={} during {} sec'.format(node.getblockcount(), 10)
+            msg = 'finalizer did not vote for the tip={} during {} sec'.format(node.getblockcount(), 10)
+            raise AssertionError(msg)
         disconnect_nodes(finalizer, node.index)
 
         new_txs = [tx for tx in node.getrawmempool() if tx not in txs]
