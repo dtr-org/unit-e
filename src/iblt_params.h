@@ -6,9 +6,10 @@
 #ifndef UNITE_IBLT_PARAMS_H
 #define UNITE_IBLT_PARAMS_H
 
-#include <vector>
+#include <cstddef>
+#include <cstdint>
 
-class IbltParams {
+class IBLTParams {
  public:
   //! \brief Optimal iblt overhead
   // If IBLT would contain N items, than it would require N * overhead entries
@@ -18,12 +19,12 @@ class IbltParams {
   //! \brief Optimal number of hash functions to use
   const uint8_t num_hashes;
 
-  IbltParams(float overhead, uint8_t num_hashes);
+  IBLTParams(float overhead, uint8_t num_hashes);
 
-  static IbltParams FindOptimal(size_t expected_items_count);
+  static IBLTParams FindOptimal(size_t expected_items_count);
 
  private:
-  static std::vector<IbltParams> m_experimental_params;
+  static IBLTParams experimental_params[];
 };
 
 #endif /* UNITE_IBLT_PARAMS_H */

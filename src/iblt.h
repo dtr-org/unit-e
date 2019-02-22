@@ -42,7 +42,7 @@ class IBLT {
   using TEntriesMap = std::map<TKey, std::vector<uint8_t>>;
 
   explicit IBLT(size_t expected_items_count) {
-    const IbltParams optimal_params = IbltParams::FindOptimal(expected_items_count);
+    const IBLTParams optimal_params = IBLTParams::FindOptimal(expected_items_count);
     m_num_hashes = optimal_params.num_hashes;
 
     const size_t entries_num = ComputeEntriesNum(expected_items_count, optimal_params);
@@ -228,10 +228,10 @@ class IBLT {
   }
 
   static size_t ComputeEntriesNum(size_t expected_items_count,
-                                  boost::optional<IbltParams> params = {}) {
-    const IbltParams iblt_params = params
+                                  boost::optional<IBLTParams> params = {}) {
+    const IBLTParams iblt_params = params
                                        ? params.get()
-                                       : IbltParams::FindOptimal(expected_items_count);
+                                       : IBLTParams::FindOptimal(expected_items_count);
 
     auto entries_num = static_cast<size_t>(iblt_params.overhead * expected_items_count);
 
