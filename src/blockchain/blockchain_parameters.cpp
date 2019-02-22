@@ -7,6 +7,7 @@
 #include <blockchain/blockchain_genesis.h>
 #include <utilstrencodings.h>
 #include <numeric>
+#include <boost/optional/optional_io.hpp>
 
 namespace blockchain {
 
@@ -98,7 +99,7 @@ Parameters BuildTestNetParameters() {
   return p;
 }
 
-Parameters BuildRegTestParameters(Dependency<::ArgsManager>* args = nullptr) {
+Parameters BuildRegTestParameters(RegTestOptionalParameters* params = nullptr) {
   Parameters p = BuildMainNetParameters();
   p.network_name = "regtest";
   p.mine_blocks_on_demand = true;
@@ -123,10 +124,8 @@ Parameters BuildRegTestParameters(Dependency<::ArgsManager>* args = nullptr) {
   //   -chain-some-property-name
   // Where the "-chain-" prefix is always there, and "property-name" corresponds
   // to one of the Parameter class' properties.
-  if (args) {
-      p.block_time_seconds = static_cast<uint32_t>(
-          (*args)->GetArg("-chain-block-time-seconds", p.block_time_seconds)
-      );
+  if (params) {
+      p.block_time_seconds = params->m_block_time_seconds.get_value_or(p.block_time_seconds);
   }
 
   static GenesisBlock genesisBlock{
@@ -148,12 +147,17 @@ const Parameters &Parameters::TestNet() noexcept {
   return parameters;
 }
 
-const Parameters &Parameters::RegTest(Dependency<::ArgsManager>* args) noexcept {
-    // We must not call this function twice with different arguments
-    static Dependency<::ArgsManager>* first_args = args;
-    assert(args == first_args);
+const Parameters &Parameters::RegTest() noexcept {
+    static Parameters parameters = BuildRegTestParameters();
+    return parameters;
+}
 
-    static Parameters parameters = BuildRegTestParameters(args);
+const Parameters &Parameters::RegTest(RegTestOptionalParameters& params) noexcept {
+    // We must not call this function twice with different arguments
+    static RegTestOptionalParameters first_params = params;
+    assert(params == first_params);
+
+    static Parameters parameters = BuildRegTestParameters(&params);
     return parameters;
 }
 
@@ -165,9 +169,21 @@ RegTestOptionalParameters RegTestOptionalParameters::FromCommandLineArguments(
         return injectable_parameters;
     }
 
-    injectable_parameters.block_time_seconds = (*args)->GetOptionalIntArg("-chain-block-time-seconds");
+    injectable_parameters.m_block_time_seconds = (*args)->GetOptionalIntArg("-chain-block-time-seconds");
 
     return injectable_parameters;
+}
+
+bool RegTestOptionalParameters::operator==(const RegTestOptionalParameters& b) const {
+    if (this == &b) {
+        return true;
+    }
+
+    static uint32_t max_uint32_t = std::numeric_limits<uint32_t>::max();
+
+    return (
+        m_block_time_seconds.get_value_or(max_uint32_t) == b.m_block_time_seconds.get_value_or(max_uint32_t)
+    );
 }
 
 GenesisBlock::GenesisBlock(const CBlock &block)

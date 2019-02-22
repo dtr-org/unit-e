@@ -118,7 +118,8 @@ std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network, Dependency<::
     case Network::test:
       return NewFromParameters(Parameters::TestNet());
     case Network::regtest:
-      return NewFromParameters(Parameters::RegTest(args));
+      RegTestOptionalParameters parameters = RegTestOptionalParameters::FromCommandLineArguments(args);
+      return NewFromParameters(Parameters::RegTest(parameters));
   }
   assert(false && "silence gcc warnings");
 }

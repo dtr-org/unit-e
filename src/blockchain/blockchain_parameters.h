@@ -32,15 +32,17 @@ struct GenesisBlock {
 
 //! \brief Injectable data container useful to set RegTest chain parameters
 class RegTestOptionalParameters {
- public:
-  boost::optional<std::uint32_t> block_time_seconds;
+    public:
+        boost::optional<std::uint32_t> m_block_time_seconds;
 
- public:
-  RegTestOptionalParameters() : block_time_seconds(boost::none) {}
+    public:
+        RegTestOptionalParameters() : m_block_time_seconds(boost::none) {}
 
-  static RegTestOptionalParameters FromCommandLineArguments(
-      Dependency<::ArgsManager>* args = nullptr
-  );
+        static RegTestOptionalParameters FromCommandLineArguments(
+            Dependency<::ArgsManager>* args = nullptr
+        );
+
+        bool operator==(const RegTestOptionalParameters&) const;
 };
 
 struct Parameters {
@@ -230,7 +232,8 @@ struct Parameters {
 
   static const Parameters &MainNet() noexcept;
   static const Parameters &TestNet() noexcept;
-  static const Parameters &RegTest(Dependency<::ArgsManager>* args = nullptr) noexcept;
+  static const Parameters &RegTest() noexcept;
+  static const Parameters &RegTest(RegTestOptionalParameters& params) noexcept;
 };
 
 }  // namespace blockchain
