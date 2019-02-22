@@ -151,18 +151,6 @@ def test_sign(mocker):
 
     mocker.patch("pathlib.Path.is_file", return_value=True)
 
-    args.windows = False
-    args.macos = True
-    gitian_build.sign(args)
-
-    mocker.patch("pathlib.Path.is_file", return_value=False)
-    original_get_signatures_path = gitian_build.get_signatures_path
-    gitian_build.get_signatures_path = lambda platform_str, ver: Path("version-platform-sigs-path")
-
-    with raises(SystemExit):
-        # Should not find signatures and exit
-        gitian_build.sign(args)
-
     log.check()
     gitian_build.get_signatures_path = original_get_signatures_path
 

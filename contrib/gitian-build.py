@@ -237,8 +237,7 @@ def build(args):
             print('\nCompiling ' + args.version + ' MacOS')
             subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, gitian_descriptors(args, 'osx')])
             subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-unsigned', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'osx')])
-            subprocess.check_call('mv build/out/unite-*-osx-unsigned.tar.gz inputs/', shell=True)
-            subprocess.check_call('mv build/out/unite-*.tar.gz build/out/unite-*.dmg ../unit-e-binaries/'+args.version, shell=True)
+            subprocess.check_call('mv build/out/unite-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Unsigned Sigs\n')
@@ -273,36 +272,13 @@ def codesign_windows(osslsign_path, version, win_code_cert_path, win_code_key_pa
         subprocess.check_call(['tar', '-czf', signatures_tarball, *[path.name for path in Path(build_dir, 'unsigned').glob('*.exe.pem')]], cwd=Path(build_dir, 'unsigned'))
 
 
-def codesign_osx(version, signer, git_dir):
-    gitian_dir = Path('gitian-builder').resolve()
-    if platform.system() != 'Darwin':
-        print('Codesigning MacOS binaries is only possible on a MacOS', file=sys.stderr)
-        exit(1)
-
-    signatures_tarball = get_signatures_path('osx', version)
-    if signatures_tarball.is_file():
-        print('Signatures already present at:', signatures_tarball, '\nI cowardly refuse to continue', file=sys.stderr)
-        exit(1)
-
-    with tempfile.TemporaryDirectory() as build_dir:
-        subprocess.check_call(['cp', 'inputs/unite-' + version + '-osx-unsigned.tar.gz', Path(build_dir, 'unite-osx-unsigned.tar.gz')], cwd=gitian_dir)
-        subprocess.check_call(['cp', Path(git_dir, 'contrib/macdeploy/detached-sig-create.sh'), build_dir])
-        subprocess.check_call(['tar', '-xzf', 'unite-osx-unsigned.tar.gz'], cwd=build_dir)
-        subprocess.check_call(['detached-sig-create.sh', '-s', signer], cwd=build_dir)
-        subprocess.check_call(['cp', 'signature-osx.tar.gz', signatures_tarball], cwd=build_dir)
-
-
 def codesign(args):
     if args.windows:
         codesign_windows(args.osslsigncode_path, args.version, args.win_code_cert_path, args.win_code_key_path)
 
-    if args.macos:
-        codesign_osx(args.version, args.signer, args.git_dir)
-
     if args.commit_files:
         print('\nCommitting '+args.version+' Detached Sigs\n')
         subprocess.check_call(['git', 'add', Path(args.version + '-detached', 'unite-win-signatures.tar.gz')], cwd='unit-e-sigs')
-        subprocess.check_call(['git', 'add', Path(args.version + '-detached', 'unite-osx-signatures.tar.gz')], cwd='unit-e-sigs')
         subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' detached signatures by '+args.signer], cwd='unit-e-sigs')
 
 
@@ -326,24 +302,9 @@ def sign(args):
         subprocess.check_call('mv build/out/unite-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
         subprocess.check_call('mv build/out/unite-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
 
-    if args.macos:
-        signatures_tarball = get_signatures_path('osx', args.version)
-        if not signatures_tarball.is_file():
-            print('Signatures not present at:', signatures_tarball, file=sys.stderr)
-            exit(1)
-
-        print('\nSigning ' + args.version + ' MacOS')
-        subprocess.check_call(['cp', signatures_tarball, 'inputs/unite-osx-signatures.tar.gz'], cwd=gitian_dir)
-        subprocess.check_call(['cp', Path('..', args.git_dir, 'contrib/macdeploy/detached-sig-apply.sh'), 'inputs/detached-sig-apply.sh'], cwd=gitian_dir)
-        subprocess.check_call(['cp inputs/unite-' + args.version + '-osx-unsigned.tar.gz', 'inputs/unite-osx-unsigned.tar.gz'], cwd=gitian_dir)
-        subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature=master', gitian_descriptors(args, 'osx-signer')], cwd=gitian_dir)
-        subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-signed', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'osx-signer')], cwd=gitian_dir)
-        subprocess.check_call('mv build/out/unite-osx-signed.dmg ../unit-e-binaries/'+args.version+'/unite-'+args.version+'-osx.dmg', shell=True, cwd=gitian_dir)
-
     if args.commit_files:
         print('\nCommitting '+args.version+' Signed Sigs\n')
         subprocess.check_call(['git', 'add', args.version+'-win-signed/'+args.signer], cwd='unit-e-sigs')
-        subprocess.check_call(['git', 'add', args.version+'-osx-signed/'+args.signer], cwd='unit-e-sigs')
         subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' signed binary sigs for '+args.signer], cwd='unit-e-sigs')
 
 
@@ -359,7 +320,6 @@ def verify(args):
             ('win-unsigned', 'win', 'Windows'),
             ('osx-unsigned', 'osx', 'MacOS'),
             ('win-signed', 'win-signer', 'Signed Windows'),
-            ('osx-signed', 'osx-signer', 'Signed Max OS')
         ]:
         build_sig_dir = args.version + '-' + sig_path_suffix
         if Path(sigs_path, build_sig_dir).is_dir():
@@ -424,7 +384,7 @@ def main():
     parser.add_argument('-v', '--verify', action='store_true', dest='verify', help='Verify the Gitian build')
     parser.add_argument('-b', '--build', action='store_true', dest='build', help='Do a Gitian build')
     parser.add_argument('-C', '--codesign', action='store_true', dest='codesign', help='Make detached signatures for Windows and MacOS')
-    parser.add_argument('-s', '--sign', action='store_true', dest='sign', help='Make signed binaries for Windows and MacOS')
+    parser.add_argument('-s', '--sign', action='store_true', dest='sign', help='Make signed binaries for Windows')
     parser.add_argument('-B', '--buildsign', action='store_true', dest='buildsign', help='Build both signed and unsigned binaries')
     parser.add_argument('-o', '--os', dest='os', default='lwm', help='Specify which Operating Systems the build is for. Default is %(default)s. l for Linux, w for Windows, m for MacOS')
     parser.add_argument('-j', '--jobs', dest='jobs', default='2', help='Number of processes to use. Default %(default)s')

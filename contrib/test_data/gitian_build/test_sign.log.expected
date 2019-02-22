@@ -8,16 +8,6 @@ bin/gsign -p gpg --signer somesigner --release someversion-win-signed --destinat
 mv build/out/unite-*win64-setup.exe ../unit-e-binaries/someversion  shell=True  cwd=gitian-builder
 mv build/out/unite-*win32-setup.exe ../unit-e-binaries/someversion  shell=True  cwd=gitian-builder
 git add someversion-win-signed/somesigner  cwd=unit-e-sigs
-git add someversion-osx-signed/somesigner  cwd=unit-e-sigs
 git commit -a -m Add someversion signed binary sigs for somesigner  cwd=unit-e-sigs
 wget -N -P inputs https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-1.7.1.tar.gz  cwd=gitian-builder
 wget -N -P inputs https://bitcoincore.org/cfields/osslsigncode-Backports-to-1.7.1.patch  cwd=gitian-builder
-cp version-platform-sigs-path inputs/unite-osx-signatures.tar.gz  cwd=gitian-builder
-cp ../unit-e/contrib/macdeploy/detached-sig-apply.sh inputs/detached-sig-apply.sh  cwd=gitian-builder
-cp inputs/unite-someversion-osx-unsigned.tar.gz inputs/unite-osx-unsigned.tar.gz  cwd=gitian-builder
-bin/gbuild -i --commit signature=master ../work/gitian-descriptors/gitian-osx-signer.yml  cwd=gitian-builder
-bin/gsign -p gpg --signer somesigner --release someversion-osx-signed --destination ../unit-e-sigs/ ../work/gitian-descriptors/gitian-osx-signer.yml  cwd=gitian-builder
-mv build/out/unite-osx-signed.dmg ../unit-e-binaries/someversion/unite-someversion-osx.dmg  shell=True  cwd=gitian-builder
-git add someversion-win-signed/somesigner  cwd=unit-e-sigs
-git add someversion-osx-signed/somesigner  cwd=unit-e-sigs
-git commit -a -m Add someversion signed binary sigs for somesigner  cwd=unit-e-sigs
