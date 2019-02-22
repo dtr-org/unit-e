@@ -85,13 +85,13 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         # move tip to the height when deposits are finalized
         # complete epoch + 3 epochs + 1 block of new epoch
-        node0.generatetoaddress(2+5+5+5+0, node0.getnewaddress())
-        #assert_equal(node0.getblockcount(), 20)
-        # assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)
-        # assert_equal(node0.getfinalizationstate()['currentDynasty'], 2)
-        # assert_equal(node0.getfinalizationstate()['lastFinalizedEpoch'], 2)
-        # assert_equal(node0.getfinalizationstate()['lastJustifiedEpoch'], 3)
-        # assert_equal(node0.getfinalizationstate()['validators'], 3)
+        node0.generatetoaddress(2+5+5+5+1, node0.getnewaddress())
+        assert_equal(node0.getblockcount(), 20)
+        assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)
+        assert_equal(node0.getfinalizationstate()['currentDynasty'], 2)
+        assert_equal(node0.getfinalizationstate()['lastFinalizedEpoch'], 2)
+        assert_equal(node0.getfinalizationstate()['lastJustifiedEpoch'], 3)
+        assert_equal(node0.getfinalizationstate()['validators'], 3)
 
         # test that finalizers vote after processing 1st block of new epoch
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
