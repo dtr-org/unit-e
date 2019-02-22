@@ -15,8 +15,8 @@ remotes:
 files:
 - "osslsigncode-1.7.1.tar.gz"
 - "osslsigncode-Backports-to-1.7.1.patch"
-- "unite-win-unsigned.tar.gz"
-- "unite-win-signatures.tar.gz"
+- "unit-e-win-unsigned.tar.gz"
+- "unit-e-win-signatures.tar.gz"
 script: |
   BUILD_DIR=`pwd`
   SIGDIR=${BUILD_DIR}/signature/win
@@ -27,8 +27,8 @@ script: |
 
   mkdir -p ${UNSIGNED_DIR} ${SIGDIR}
 
-  tar -C ${UNSIGNED_DIR} -xf unite-win-unsigned.tar.gz
-  tar -C ${SIGDIR} -xf unite-win-signatures.tar.gz
+  tar -C ${UNSIGNED_DIR} -xf unit-e-win-unsigned.tar.gz
+  tar -C ${SIGDIR} -xf unit-e-win-signatures.tar.gz
 
   tar xf osslsigncode-1.7.1.tar.gz
   cd osslsigncode-1.7.1

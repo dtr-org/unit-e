@@ -224,20 +224,20 @@ def build(args):
             print('\nCompiling ' + args.version + ' Linux')
             subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, gitian_descriptors(args, 'linux')])
             subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-linux', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'linux')])
-            subprocess.check_call('mv build/out/unite-*.tar.gz build/out/src/unite-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
+            subprocess.check_call('mv build/out/unit-e-*.tar.gz build/out/src/unit-e-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
 
         if args.windows:
             print('\nCompiling ' + args.version + ' Windows')
             subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, gitian_descriptors(args, 'win')])
             subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-unsigned', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'win')])
-            subprocess.check_call('mv build/out/unite-*-win-unsigned.tar.gz inputs/', shell=True)
-            subprocess.check_call('mv build/out/unite-*.zip build/out/unite-*.exe ../unit-e-binaries/'+args.version, shell=True)
+            subprocess.check_call('mv build/out/unit-e-*-win-unsigned.tar.gz inputs/', shell=True)
+            subprocess.check_call('mv build/out/unit-e-*.zip build/out/unit-e-*.exe ../unit-e-binaries/'+args.version, shell=True)
 
         if args.macos:
             print('\nCompiling ' + args.version + ' MacOS')
             subprocess.check_call(['bin/gbuild', '-j', args.jobs, '-m', args.memory, '--commit', 'unit-e='+args.commit, '--url', 'unit-e='+args.url, gitian_descriptors(args, 'osx')])
             subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-osx-unsigned', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'osx')])
-            subprocess.check_call('mv build/out/unite-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
+            subprocess.check_call('mv build/out/unit-e-*.tar.gz ../unit-e-binaries/'+args.version, shell=True)
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Unsigned Sigs\n')
@@ -248,7 +248,7 @@ def build(args):
             subprocess.check_call(['git', 'commit', '-m', 'Add '+args.version+' unsigned sigs for '+args.signer])
 
 def get_signatures_path(platform_str, version):
-    return Path('unit-e-sigs', version + '-detached', 'unite-'+platform_str+'-signatures.tar.gz').resolve()
+    return Path('unit-e-sigs', version + '-detached', 'unit-e-'+platform_str+'-signatures.tar.gz').resolve()
 
 
 def codesign_windows(osslsign_path, version, win_code_cert_path, win_code_key_path):
@@ -262,8 +262,8 @@ def codesign_windows(osslsign_path, version, win_code_cert_path, win_code_key_pa
 
     print('\nSigning ' + version + ' Windows')
     with tempfile.TemporaryDirectory() as build_dir:
-        subprocess.check_call(['cp', 'inputs/unite-' + version + '-win-unsigned.tar.gz', Path(build_dir, 'unite-win-unsigned.tar.gz')], cwd=gitian_dir)
-        subprocess.check_call(['tar', '-xzf', 'unite-win-unsigned.tar.gz'], cwd=build_dir)
+        subprocess.check_call(['cp', 'inputs/unit-e-' + version + '-win-unsigned.tar.gz', Path(build_dir, 'unit-e-win-unsigned.tar.gz')], cwd=gitian_dir)
+        subprocess.check_call(['tar', '-xzf', 'unit-e-win-unsigned.tar.gz'], cwd=build_dir)
 
         for fp in Path(build_dir).glob('unsigned/*.exe'):
             subprocess.check_call([osslsign_path, 'sign', '-certs', win_code_cert_path, '-in', fp, '-out', str(fp)+'-signed', '-key', win_code_key_path, '-askpass'])
@@ -278,7 +278,7 @@ def codesign(args):
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Detached Sigs\n')
-        subprocess.check_call(['git', 'add', Path(args.version + '-detached', 'unite-win-signatures.tar.gz')], cwd='unit-e-sigs')
+        subprocess.check_call(['git', 'add', Path(args.version + '-detached', 'unit-e-win-signatures.tar.gz')], cwd='unit-e-sigs')
         subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' detached signatures by '+args.signer], cwd='unit-e-sigs')
 
 
@@ -295,12 +295,12 @@ def sign(args):
             exit(1)
 
         print('\nSigning ' + args.version + ' Windows')
-        subprocess.check_call(['cp', signatures_tarball, 'inputs/unite-win-signatures.tar.gz'], cwd=gitian_dir)
-        subprocess.check_call(['cp', 'inputs/unite-' + args.version + '-win-unsigned.tar.gz', 'inputs/unite-win-unsigned.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['cp', signatures_tarball, 'inputs/unit-e-win-signatures.tar.gz'], cwd=gitian_dir)
+        subprocess.check_call(['cp', 'inputs/unit-e-' + args.version + '-win-unsigned.tar.gz', 'inputs/unit-e-win-unsigned.tar.gz'], cwd=gitian_dir)
         subprocess.check_call(['bin/gbuild', '-i', '--commit', 'signature=master', gitian_descriptors(args, 'win-signer')], cwd=gitian_dir)
         subprocess.check_call(['bin/gsign', '-p', args.sign_prog, '--signer', args.signer, '--release', args.version+'-win-signed', '--destination', '../unit-e-sigs/', gitian_descriptors(args, 'win-signer')], cwd=gitian_dir)
-        subprocess.check_call('mv build/out/unite-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
-        subprocess.check_call('mv build/out/unite-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
+        subprocess.check_call('mv build/out/unit-e-*win64-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
+        subprocess.check_call('mv build/out/unit-e-*win32-setup.exe ../unit-e-binaries/'+args.version, shell=True, cwd=gitian_dir)
 
     if args.commit_files:
         print('\nCommitting '+args.version+' Signed Sigs\n')
