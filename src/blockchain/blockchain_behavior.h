@@ -81,6 +81,8 @@ class Behavior {
 
   const Parameters &GetParameters() const;
 
+  const Settings &GetDefaultSettings() const;
+
   static std::unique_ptr<Behavior> New(Dependency<::ArgsManager>);
 
   static std::unique_ptr<Behavior> NewForNetwork(Network);

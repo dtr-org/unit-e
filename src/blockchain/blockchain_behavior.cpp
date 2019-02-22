@@ -51,6 +51,10 @@ const Parameters &Behavior::GetParameters() const {
   return m_parameters;
 }
 
+const Settings &Behavior::GetDefaultSettings() const {
+  return m_parameters.default_settings;
+}
+
 boost::optional<CPubKey> Behavior::ExtractBlockSigningKey(const CBlock &block) const {
   if (block.vtx.empty()) {
     return boost::none;

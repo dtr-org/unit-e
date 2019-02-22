@@ -12,6 +12,10 @@
 #include <script/standard.h>
 #include <memory>
 
+namespace blockchain {
+class Behavior;
+}
+
 struct Settings {
 
   //! Whether this node should act as a validator or not.
@@ -42,7 +46,9 @@ struct Settings {
   //! block.
   boost::optional<CTxDestination> reward_destination = boost::none;
 
-  static std::unique_ptr<Settings> New(Dependency<::ArgsManager>);
+  static std::unique_ptr<Settings> New(
+      Dependency<::ArgsManager>,
+      Dependency<blockchain::Behavior>);
 };
 
 #endif // UNIT_E_SETTINGS_H
