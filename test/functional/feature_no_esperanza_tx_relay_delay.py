@@ -77,10 +77,11 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             return time.perf_counter() - now
 
         def calc_vote_relay_delay(generate_node, record_from, record_to):
-            # ensure all nodes are synced before recording the delay
-            # TODO: UNIT-E: node can't vote when it processed the checkpoint
-            # so we create 2 blocks to pass that. see # https://github.com/dtr-org/unit-e/issues/643
+            # UNIT-E TODO: node can't vote when it processed the checkpoint
+            # so we create one extra block to pass that. See https://github.com/dtr-org/unit-e/issues/643
             generate_node.generatetoaddress(1, generate_node.getnewaddress())
+
+            # ensure all nodes are synced before recording the delay
             self.sync_all()
             assert_equal(len(new_votes_in_mempool(record_from)), 0)
 
