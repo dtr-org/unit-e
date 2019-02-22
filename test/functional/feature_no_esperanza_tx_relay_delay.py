@@ -23,6 +23,7 @@ from test_framework.util import (
 from test_framework.messages import (
     FromHex,
     CTransaction,
+    TxType,
 )
 from test_framework.admin import Admin
 
@@ -31,12 +32,13 @@ from functools import reduce
 
 TEST_SAMPLES = 5
 
+
 class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 5
         self.setup_clean_chain = True
 
-        esperanza_config = '-esperanzaconfig={"epochLength":1}'
+        esperanza_config = '-esperanzaconfig={"epochLength":2}'
         self.extra_args = [
             [esperanza_config],
             [esperanza_config],
@@ -75,8 +77,13 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             return time.perf_counter() - now
 
         def calc_vote_relay_delay(generate_node, record_from, record_to):
+            # UNIT-E TODO: node can't vote when it processed the checkpoint
+            # so we create one extra block to pass that. See https://github.com/dtr-org/unit-e/issues/643
+            generate_node.generatetoaddress(1, generate_node.getnewaddress())
+
             # ensure all nodes are synced before recording the delay
             self.sync_all()
+            assert_equal(len(new_votes_in_mempool(record_from)), 0)
 
             generate_node.generatetoaddress(1, generate_node.getnewaddress())
             wait_until(lambda: len(new_votes_in_mempool(record_from)) > 0, timeout=150)
@@ -95,7 +102,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
             # sanity check: tx we measured is a vote tx
             tx = FromHex(CTransaction(), record_from.getrawtransaction(vote_tx))
-            assert_equal(tx.get_type, TxType.VOTE)
+            assert_equal(tx.get_type(), TxType.VOTE.name)
 
             return delay
 
@@ -161,7 +168,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         txid = validator.deposit(payto, 10000)
         self.wait_for_transaction(txid, timeout=150)
 
-        node0.generatetoaddress(2, node0.getnewaddress())
+        node0.generatetoaddress(4, node0.getnewaddress())
         sync_blocks(self.nodes)
 
         # record relay time of the vote transaction to the outbound peer
