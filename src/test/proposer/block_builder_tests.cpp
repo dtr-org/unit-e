@@ -20,9 +20,9 @@ namespace {
 struct Fixture {
 
   std::unique_ptr<::ArgsManager> args_manager;
+  std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::New(args_manager.get());
   std::unique_ptr<::Settings> settings;
   blockchain::Parameters parameters = blockchain::Parameters::MainNet();
-  std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::New(args_manager.get());
 
   uint256 snapshot_hash = uint256();
 
@@ -76,7 +76,7 @@ struct Fixture {
           delete[] argv;
           return argsman;
         }()),
-        settings(Settings::New(args_manager.get())) {
+        settings(Settings::New(args_manager.get(), behavior.get())) {
 
     const key::mnemonic::Seed seed("scout wheat rhythm inmate make insect chimney interest fire oxygen gap party slush grid post");
     const CExtKey &ext_key = seed.GetExtKey();

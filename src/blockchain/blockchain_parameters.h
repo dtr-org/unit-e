@@ -11,6 +11,7 @@
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <protocol.h>
+#include <settings.h>
 #include <uint256.h>
 
 #include <better-enums/enum.h>
@@ -207,6 +208,9 @@ struct Parameters {
 
   //! \brief Number of blocks which have to have a softfork activated in a confirmation period.
   std::uint32_t rule_change_activation_threshold;
+
+  //! \brief Default settings to use for this chain.
+  Settings default_settings;
 
   static const Parameters &MainNet() noexcept;
   static const Parameters &TestNet() noexcept;
