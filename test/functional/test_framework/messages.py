@@ -838,18 +838,24 @@ class HeaderAndShortIDs():
         return [ key0, key1 ]
 
     # Version 2 compact blocks use wtxid in shortids (rather than txid)
-    def initialize_from_block(self, block, nonce=0, prefill_list = [0], use_witness = False):
+    def initialize_from_block(self, block, prefill = [], add_genesis=True, nonce=0, use_witness = False):
         self.header = CBlockHeader(block)
         self.nonce = nonce
-        self.prefilled_txn = [ PrefilledTransaction(i, block.vtx[i]) for i in prefill_list ]
+        if add_genesis:
+            if block.vtx[0] not in prefill:
+                prefill = [block.vtx[0]] + prefill
+
+        self.prefilled_txn = [ PrefilledTransaction(block.vtx.index(tx), tx) for tx in prefill ]
+        self.prefilled_txn.sort(key=lambda tx: tx.index) # the prefilled transactions can be out of order
         self.shortids = []
         self.use_witness = use_witness
         [k0, k1] = self.get_siphash_keys()
-        for i in range(len(block.vtx)):
-            if i not in prefill_list:
-                tx_hash = block.vtx[i].sha256
+
+        for tx in block.vtx:
+            if tx not in prefill:
+                tx_hash = tx.sha256
                 if use_witness:
-                    tx_hash = block.vtx[i].calc_sha256(with_witness=True)
+                    tx_hash = tx.calc_sha256(with_witness=True)
                 self.shortids.append(calculate_shortid(k0, k1, tx_hash))
 
     def __repr__(self):
