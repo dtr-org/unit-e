@@ -154,7 +154,7 @@ const blockchain::Network Parameters::GetNetwork() const {
   } else if (network_name == REGTEST_NET_NAME) {
     return Network::regtest;
   }
-  assert(false && "Unknow network type");
+  assert(false && "Unknown network type");
 }
 
 GenesisBlock::GenesisBlock(const CBlock &block)
