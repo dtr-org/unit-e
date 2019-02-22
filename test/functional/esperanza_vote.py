@@ -58,7 +58,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         connect_nodes(finalizer3, node0.index)
 
         # leave IBD
-        node0.generatetoaddress(1, self.nodes[0].getnewaddress())
+        node0.generatetoaddress(1, node0.getnewaddress())
         sync_blocks(self.nodes)
 
         # generates 1 more block
