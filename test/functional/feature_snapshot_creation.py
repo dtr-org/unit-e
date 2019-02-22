@@ -17,7 +17,6 @@ from test_framework.util import (
     wait_until,
     sync_blocks,
 )
-from test_framework.admin import Admin
 
 
 class SnapshotCreationTest(UnitETestFramework):
@@ -54,10 +53,9 @@ class SnapshotCreationTest(UnitETestFramework):
         node.importmasterkey(regtest_mnemonics[1]['mnemonics'])
 
         node.generatetoaddress(1, node.getnewaddress())  # IBD
-        Admin.authorize_and_disable(self, node)
 
         # test 1. node generates snapshots with the expected interval
-        node.generatetoaddress(22, node.getnewaddress())
+        node.generatetoaddress(23, node.getnewaddress())
         wait_until(lambda: len(node.listsnapshots()) == 5)
         assert(has_valid_snapshot_for_height(node, 3))
         assert(has_valid_snapshot_for_height(node, 8))

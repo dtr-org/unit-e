@@ -24,7 +24,6 @@ from test_framework.messages import (
     FromHex,
     CTransaction,
 )
-from test_framework.admin import Admin
 
 import time
 from functools import reduce
@@ -112,8 +111,6 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         # leave IBD
         node3.generatetoaddress(1, node3.getnewaddress())
         sync_blocks(self.nodes)
-
-        Admin.authorize_and_disable(self, node3)
 
         # create network topology where arrows denote the connection direction:
         #    node3 ←→ validator

@@ -92,10 +92,10 @@ class AdminFullCycle(UnitETestFramework):
         }
         json_params = json.dumps(params_data)
 
-        proposer_settings = ['-proposing=1', '-debug=all',
+        proposer_settings = ['-proposing=1', '-permissioning=1', '-proposing=1', '-debug=all',
                              '-whitelist=127.0.0.1',
                              '-esperanzaconfig=' + json_params]
-        validator_settings = ['-proposing=0', '-validating=1', '-debug=all',
+        validator_settings = ['-proposing=1', '-permissioning=1', '-validating=1', '-debug=all',
                               '-whitelist=127.0.0.1',
                               '-esperanzaconfig=' + json_params]
 

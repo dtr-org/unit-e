@@ -8,7 +8,6 @@ from test_framework.util import *
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import CTransaction
-from test_framework.admin import Admin
 from test_framework.address import *
 from test_framework.key import CECKey
 
@@ -51,12 +50,11 @@ class EsperanzaSlashTest(UnitETestFramework):
 
         validator_node_params = [
             '-validating=1',
-            '-proposing=0',
             '-debug=all',
             '-whitelist=127.0.0.1',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
+        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
 
         self.extra_args = [proposer_node_params,
                            validator_node_params,
@@ -86,11 +84,8 @@ class EsperanzaSlashTest(UnitETestFramework):
         self.validator_privkey = validator.dumpprivkey(self.validator_address)
 
         # generate the first epoch
-        for n in range(0, 9):
+        for n in range(0, 10):
             self.generate_block(proposer)
-
-        # generates 1 more block
-        Admin.authorize_and_disable(self, proposer)
 
         self.deposit_amount = 1500
         self.deposit_id = validator.deposit(self.validator_address, self.deposit_amount)

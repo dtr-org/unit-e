@@ -82,12 +82,6 @@ class Admin:
         return txid
 
     @staticmethod
-    def authorize_and_disable(framework, admin_node, donor_node=None,
-                              fee=Decimal("0.001")):
-        admin = Admin.authorize(framework, admin_node, donor_node, fee)
-        admin.end_permissioning()
-
-    @staticmethod
     def find_output_for_address(node, txid, address):
         raw_tx = node.getrawtransaction(txid)
         tx = node.decoderawtransaction(raw_tx)
