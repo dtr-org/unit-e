@@ -67,7 +67,7 @@ class IBLT {
 
   //! \brief try to get value from IBLT
   //! \returns true if a result is definitely found or not
-  //! found. If not found, result will be empty.
+  //! found. If not found, \param value_out will be empty.
   //! \returns false if overloaded and we don't know whether or
   //! not key is in the table.
   bool Get(TKey key, std::vector<uint8_t> &value_out) const {
@@ -102,8 +102,7 @@ class IBLT {
       }
     }
 
-    // Don't know if key is in table or not; "peel" the IBLT to try to find
-    // it:
+    // Don't know if key is in table or not; "peel" the IBLT to try to find it
     IBLT<TKey, TCount, ValueSize> peeled = *this;
     size_t n_erased = 0;
     for (size_t i = 0; i < peeled.m_hash_table.size(); ++i) {
@@ -115,8 +114,9 @@ class IBLT {
           return true;
         }
         ++n_erased;
-        // Update will reiterate table and might change our entry because it
-        // is a reference
+
+        // Need a copy because `Update` will reiterate table and might change
+        // our entry because it is a reference
         const std::vector<uint8_t> value_sum_copy = entry.value_sum;
         peeled.Update(-entry.count, entry.key_sum, value_sum_copy);
       }
@@ -129,11 +129,12 @@ class IBLT {
     return false;
   }
 
-  //! \brief Adds entries to the given sets:
+  //! \brief Decodes IBLT entries
+  //! Adds entries to the given sets:
   //! \param positive_out is all entries that were inserted
   //! \param negative_out is all entries that were erased but never added (or if
   //! the IBLT = A-B, all entries in B that are not in A)
-  //! \returns true if all entries could be decoded, false otherwise.
+  //! \returns true if all entries could be decoded, false otherwise
   bool ListEntries(TEntriesMap &positive_out,
                    TEntriesMap &negative_out) const {
     IBLT<TKey, TCount, ValueSize> peeled = *this;
@@ -217,8 +218,8 @@ class IBLT {
   }
 
   //! \brief checks if iblt parameters are within acceptable limits
-  //! When we are creating new iblt - we can adjust those values to whatever we need,
-  //! but if we receive them from network - they must meet these criteria
+  //! When we are creating new iblt - we can adjust those values to whatever we
+  //! need, but if we receive them from network - they must meet these criteria
   bool IsValid() const {
     if (m_num_hashes == 0) {
       return false;
@@ -227,6 +228,7 @@ class IBLT {
     return m_hash_table.size() % m_num_hashes == 0;
   }
 
+  //! \brief computes exact number of entries before creating IBLT
   static size_t ComputeEntriesNum(size_t expected_items_count,
                                   boost::optional<IBLTParams> params = {}) {
     const IBLTParams iblt_params = params
