@@ -92,6 +92,7 @@ UNITE_TESTS = \
   test/rpc_test_utils.cpp \
   test/sanity_tests.cpp \
   test/scheduler_tests.cpp \
+  test/settings_tests.cpp \
   test/script_P2SH_tests.cpp \
   test/script_tests.cpp \
   test/script_standard_tests.cpp \

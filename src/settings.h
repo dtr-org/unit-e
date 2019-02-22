@@ -8,6 +8,7 @@
 #include <amount.h>
 #include <dependency.h>
 #include <util.h>
+#include <blockchain/blockchain_behavior.h>
 
 #include <script/standard.h>
 #include <memory>
@@ -42,7 +43,7 @@ struct Settings {
   //! block.
   boost::optional<CTxDestination> reward_destination = boost::none;
 
-  static std::unique_ptr<Settings> New(Dependency<::ArgsManager>);
+  static std::unique_ptr<Settings> New(Dependency<::ArgsManager>, Dependency<blockchain::Behavior>);
 };
 
 #endif // UNIT_E_SETTINGS_H

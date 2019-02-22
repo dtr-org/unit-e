@@ -12,9 +12,13 @@ namespace blockchain {
 
 namespace {
 
+constexpr const char *MAIN_NET_NAME = "main";
+constexpr const char *TEST_NET_NAME = "test";
+constexpr const char *REGTEST_NET_NAME = "regtest";
+
 Parameters BuildMainNetParameters() {
   Parameters p{};  // designated initializers would be so nice here
-  p.network_name = "main";
+  p.network_name = MAIN_NET_NAME;
   p.block_stake_timestamp_interval_seconds = 16;
   p.block_time_seconds = 16;
   p.max_future_block_time_seconds = 2 * 60 * 60;
@@ -73,7 +77,7 @@ Parameters BuildMainNetParameters() {
 
 Parameters BuildTestNetParameters() {
   Parameters p = Parameters::MainNet();
-  p.network_name = "test";
+  p.network_name = TEST_NET_NAME;
   p.relay_non_standard_transactions = true;
   p.coinbase_maturity = 10;
   p.stake_maturity = 20;
@@ -100,7 +104,7 @@ Parameters BuildTestNetParameters() {
 
 Parameters BuildRegTestParameters() {
   Parameters p = Parameters::MainNet();
-  p.network_name = "regtest";
+  p.network_name = REGTEST_NET_NAME;
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
   p.stake_maturity = 2;
@@ -140,6 +144,17 @@ const Parameters &Parameters::TestNet() noexcept {
 const Parameters &Parameters::RegTest() noexcept {
   static Parameters parameters = BuildRegTestParameters();
   return parameters;
+}
+
+const blockchain::Network Parameters::GetNetwork() const {
+  if (network_name == MAIN_NET_NAME) {
+    return Network::main;
+  } else if (network_name == TEST_NET_NAME) {
+    return Network::test;
+  } else if (network_name == REGTEST_NET_NAME) {
+    return Network::regtest;
+  }
+  assert(false && "Unknow network type");
 }
 
 GenesisBlock::GenesisBlock(const CBlock &block)

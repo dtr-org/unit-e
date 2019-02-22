@@ -26,8 +26,8 @@ struct GenesisBlock {
   explicit GenesisBlock(const CBlock &);
 };
 
-struct Parameters {
-
+class Parameters {
+ public:
   //! \brief a function to calculate the block reward.
   //!
   //! The reward function is a pure function that takes as inputs the parameters
@@ -207,6 +207,8 @@ struct Parameters {
 
   //! \brief Number of blocks which have to have a softfork activated in a confirmation period.
   std::uint32_t rule_change_activation_threshold;
+
+  const blockchain::Network GetNetwork() const;
 
   static const Parameters &MainNet() noexcept;
   static const Parameters &TestNet() noexcept;

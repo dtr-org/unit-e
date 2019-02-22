@@ -8,11 +8,15 @@
 #include <dependency.h>
 #include <init.h>
 
-std::unique_ptr<Settings> Settings::New(Dependency<::ArgsManager> args) {
+std::unique_ptr<Settings> Settings::New(Dependency<::ArgsManager> args, Dependency<blockchain::Behavior> behavior) {
   std::unique_ptr<Settings> settings = MakeUnique<Settings>();
 
+  bool default_is_proposer = settings->node_is_proposer;
+  if (behavior->GetParameters().GetNetwork() == +blockchain::Network::regtest) {
+    default_is_proposer = false;
+  }
   settings->node_is_proposer =
-      args->GetBoolArg("-proposing", settings->node_is_proposer);
+      args->GetBoolArg("-proposing", default_is_proposer);
 
   settings->node_is_validator =
       args->GetBoolArg("-validating", settings->node_is_validator);

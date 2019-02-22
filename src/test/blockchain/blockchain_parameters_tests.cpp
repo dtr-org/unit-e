@@ -2,9 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <blockchain/blockchain_parameters.h>
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
-#include <blockchain/blockchain_parameters.h>
 
 using namespace blockchain;
 
@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(total_supply_test) {
   constexpr CAmount max_supply = initial_supply + (3750000000 + 1700000000 + 550000000 + 150000000 + 31000000) * 1971000 * 10;
   BOOST_CHECK_EQUAL(max_supply, params.maximum_supply);
 
-  constexpr CAmount theoretic_supply = 2718281828 * UNIT; // e billion tokens
+  constexpr CAmount theoretic_supply = 2718281828 * UNIT;  // e billion tokens
   constexpr CAmount expected_delta = 6728 * UNIT;
   BOOST_CHECK_EQUAL(params.maximum_supply, theoretic_supply - expected_delta);
 }
@@ -58,6 +58,17 @@ BOOST_AUTO_TEST_CASE(reward_function_test) {
 
   block_reward = params.reward_function(params, params.period_blocks * 500);
   BOOST_CHECK_EQUAL(0, block_reward);
+}
+
+BOOST_AUTO_TEST_CASE(network_type) {
+  Parameters params = blockchain::Parameters::MainNet();
+  BOOST_CHECK(params.GetNetwork() == +blockchain::Network::main);
+
+  params = blockchain::Parameters::TestNet();
+  BOOST_CHECK(params.GetNetwork() == +blockchain::Network::test);
+
+  params = blockchain::Parameters::RegTest();
+  BOOST_CHECK(params.GetNetwork() == +blockchain::Network::regtest);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
