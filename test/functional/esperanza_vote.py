@@ -61,10 +61,6 @@ class EsperanzaVoteTest(UnitETestFramework):
         node0.generatetoaddress(1, node0.getnewaddress())
         sync_blocks(self.nodes)
 
-        # generates 1 more block
-        Admin.authorize_and_disable(self, node0)
-        assert_equal(node0.getblockcount(), 2)
-
         # leave instant finalization
         address1 = self.nodes[1].getnewaddress("", "legacy")
         address2 = self.nodes[2].getnewaddress("", "legacy")
@@ -85,7 +81,7 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         # move tip to the height when deposits are finalized
         # complete epoch + 3 epochs + 1 block of new epoch
-        node0.generatetoaddress(2+5+5+5+1, node0.getnewaddress())
+        node0.generatetoaddress(3 + 5 + 5 + 5 + 1, node0.getnewaddress())
         assert_equal(node0.getblockcount(), 20)
         assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)
         assert_equal(node0.getfinalizationstate()['currentDynasty'], 2)

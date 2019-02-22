@@ -369,26 +369,28 @@ class UnitETestFramework():
         Wait until the finalizer votes on the node's tip
         and disconnect the finalizer from the node.
         """
-
         def connected(addr):
             for p in finalizer.getpeerinfo():
                 if p['addr'] == addr:
                     return True
             return False
 
+        def wait_for_new_vote(old_txs):
+            try:
+                wait_until(lambda: len(node.getrawmempool()) > len(old_txs), timeout=10)
+            except AssertionError:
+                msg = 'finalizer did not vote for the tip={} during {} sec'.format(node.getblockcount(), 10)
+                raise AssertionError(msg)
+
         ip_port = "127.0.0.1:" + str(p2p_port(node.index))
-        assert not(connected(ip_port)), 'finalizer must not be connected for the correctness of the test'
+        assert not connected(ip_port), 'finalizer must not be connected for the correctness of the test'
 
         txs = node.getrawmempool()
         connect_nodes(finalizer, node.index)
-        assert_equal(connected(ip_port), True)  # ensure that the right IP was used
+        assert connected(ip_port)  # ensure that the right IP was used
 
         sync_blocks([finalizer, node])
-        try:
-            wait_until(lambda: len(node.getrawmempool()) > len(txs), timeout=10)
-        except AssertionError:
-            msg = 'finalizer did not vote for the tip={} during {} sec'.format(node.getblockcount(), 10)
-            raise AssertionError(msg)
+        wait_for_new_vote(txs)
         disconnect_nodes(finalizer, node.index)
 
         new_txs = [tx for tx in node.getrawmempool() if tx not in txs]
