@@ -226,7 +226,6 @@ def wait_until(predicate, *, attempts=float('inf'), timeout=float('inf'), lock=N
         message = "'%s' is still false after %d seconds" % (check_name, timeout)
     raise AssertionError(message)
 
-
 # RPC/P2P connection constants and functions
 ############################################
 
