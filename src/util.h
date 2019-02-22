@@ -276,6 +276,14 @@ public:
     int64_t GetArg(const std::string& strArg, int64_t nDefault) const;
 
     /**
+     * Return wrapped integer argument into boost::optional
+     *
+     * @param strArg Argument to get (e.g. "-foo")
+     * @return command-line argument or boost::none
+     */
+    boost::optional<int64_t> GetOptionalIntArg(const std::string& strArg) const;
+
+    /**
      * Return boolean argument or default value
      *
      * @param strArg Argument to get (e.g. "-foo")

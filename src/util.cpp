@@ -568,6 +568,14 @@ int64_t ArgsManager::GetArg(const std::string& strArg, int64_t nDefault) const
     return nDefault;
 }
 
+boost::optional<int64_t> ArgsManager::GetOptionalIntArg(const std::string& strArg) const
+{
+    LOCK(cs_args);
+    auto it = mapArgs.find(strArg);
+    if (it != mapArgs.end()) return atoi64(it->second);
+    return boost::none;
+}
+
 bool ArgsManager::GetBoolArg(const std::string& strArg, bool fDefault) const
 {
     LOCK(cs_args);
