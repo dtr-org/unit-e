@@ -52,16 +52,16 @@ class IBLT {
 
   IBLT() = default;
 
-  IBLT(size_t num_entries, uint8_t num_hashes)
+  IBLT(const size_t num_entries, const uint8_t num_hashes)
       : m_hash_table(num_entries), m_num_hashes(num_hashes) {
     assert(IsValid());
   }
 
-  void Insert(TKey key, const std::vector<uint8_t> &value) {
+  void Insert(const TKey key, const std::vector<uint8_t> &value) {
     Update(1, key, value);
   }
 
-  void Erase(TKey key, const std::vector<uint8_t> &value) {
+  void Erase(const TKey key, const std::vector<uint8_t> &value) {
     Update(-1, key, value);
   }
 
@@ -70,10 +70,10 @@ class IBLT {
   //! found. If not found, \param value_out will be empty.
   //! \returns false if overloaded and we don't know whether or
   //! not key is in the table.
-  bool Get(TKey key, std::vector<uint8_t> &value_out) const {
+  bool Get(const TKey key, std::vector<uint8_t> &value_out) const {
     value_out.clear();
 
-    std::vector<uint8_t> kvec = ToVec(key);
+    const std::vector<uint8_t> kvec = ToVec(key);
 
     const size_t buckets_per_hash = m_hash_table.size() / m_num_hashes;
     for (size_t i = 0; i < m_num_hashes; i++) {

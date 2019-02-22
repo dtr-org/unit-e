@@ -1018,7 +1018,7 @@ IBLTParams IBLTParams::experimental_params[] = {
     {IBLTParams(1.356000, 4)},
 };
 
-IBLTParams IBLTParams::FindOptimal(size_t expected_items_count) {
+IBLTParams IBLTParams::FindOptimal(const size_t expected_items_count) {
   constexpr size_t PARAMS_LENGTH =
       sizeof(experimental_params) / sizeof(experimental_params[0]);
 
