@@ -146,7 +146,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
       HelpExampleRpc("importmasterkey",
                      "\"next debate force grief bleak want truck prepare "
                      "theme lecture wear century rich grace someone\"");
-  if (request.fHelp || request.params.size() > 2 || request.params.size() < 1) {
+  if (request.fHelp || request.params.size() > 3 || request.params.empty()) {
     throw std::runtime_error(help);
   }
   CWallet *wallet = GetWalletForJSONRPCRequest(request);
@@ -169,23 +169,31 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   key::mnemonic::Seed seed(mnemonic, passphrase);
   std::string error;
   std::vector<std::string> warnings;
+
   {
     LOCK2(cs_main, wallet->cs_wallet);
+
+    if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, error)) {
+      throw std::runtime_error(error);
+    }
+
     WalletRescanReserver reserver(wallet);
-    if (shouldRescan && !reserver.reserve()) {
+    if(!reserver.reserve()) {
       throw JSONRPCError(
           RPC_WALLET_ERROR,
           "Wallet is currently rescanning. Abort existing rescan or wait.");
     }
-    if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, error)) {
-      throw std::runtime_error(error);
+
+    if(shouldRescan) {
+      const int64_t rescannedTill = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
+      if (rescannedTill > TIMESTAMP_MIN) {
+        warnings.emplace_back("could not read before " + DateTimeToString(rescannedTill));
+      }
     }
-    const int64_t rescannedTill = wallet->RescanFromTime(TIMESTAMP_MIN, reserver, /* update */ true);
-    if (rescannedTill > TIMESTAMP_MIN) {
-      warnings.emplace_back("could not read before " + DateTimeToString(rescannedTill));
-    }
+
     wallet->ReacceptWalletTransactions();
   }
+
   UniValue response(UniValue::VOBJ);
   response.pushKV("wallet", UniValue(walletFileName));
   response.pushKV("language", UniValue(seed.GetHumandReadableLanguage()));
