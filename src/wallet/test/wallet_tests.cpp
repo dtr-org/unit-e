@@ -499,8 +499,15 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
         ::importwallet(request);
 
         LOCK(wallet.cs_wallet);
-        BOOST_CHECK_EQUAL(wallet.mapWallet.size(), 3);
-        BOOST_CHECK_EQUAL(coinbaseTxns.size(), 103);
+      // 3 from blocks + 1 from genesis + 100 pieces of stake
+        BOOST_CHECK_EQUAL(wallet.mapWallet.size(), 104);
+
+      // Make sure also the txs from the genesis block are imported
+      CCoinControl coin_control;
+      // Initial 10000 + 3*50 for blocks generated + 50 * 100 of the TestChain100Setup
+      BOOST_CHECK_EQUAL(wallet.GetAvailableBalance(&coin_control), 15150 * UNIT);
+
+      BOOST_CHECK_EQUAL(coinbaseTxns.size(), 103);
     }
 
     //TODO UNIT-E: Create a test that asserts that importwallet does not scan
