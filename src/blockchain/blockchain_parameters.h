@@ -8,6 +8,7 @@
 #include <amount.h>
 #include <blockchain/blockchain_interfaces.h>
 #include <blockchain/blockchain_types.h>
+#include <boost/optional.hpp>
 #include <consensus/params.h>
 #include <dependency.h>
 #include <primitives/block.h>
@@ -27,6 +28,19 @@ struct GenesisBlock {
   const uint256 hash;
 
   explicit GenesisBlock(const CBlock &);
+};
+
+//! \brief Injectable data container useful to set RegTest chain parameters
+class RegTestOptionalParameters {
+ public:
+  boost::optional<std::uint32_t> block_time_seconds;
+
+ public:
+  RegTestOptionalParameters() : block_time_seconds(boost::none) {}
+
+  static RegTestOptionalParameters FromCommandLineArguments(
+      Dependency<::ArgsManager>* args = nullptr
+  );
 };
 
 struct Parameters {

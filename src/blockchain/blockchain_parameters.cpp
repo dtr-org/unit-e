@@ -72,7 +72,7 @@ Parameters BuildMainNetParameters() {
 }
 
 Parameters BuildTestNetParameters() {
-  Parameters p = Parameters::MainNet();
+  Parameters p = BuildMainNetParameters();
   p.network_name = "test";
   p.relay_non_standard_transactions = true;
   p.coinbase_maturity = 10;
@@ -99,7 +99,7 @@ Parameters BuildTestNetParameters() {
 }
 
 Parameters BuildRegTestParameters(Dependency<::ArgsManager>* args = nullptr) {
-  Parameters p = Parameters::MainNet();
+  Parameters p = BuildMainNetParameters();
   p.network_name = "regtest";
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
@@ -149,13 +149,25 @@ const Parameters &Parameters::TestNet() noexcept {
 }
 
 const Parameters &Parameters::RegTest(Dependency<::ArgsManager>* args) noexcept {
-  static Parameters parameters = BuildRegTestParameters(args);
-  static Dependency<::ArgsManager>* first_args = args;
+    // We must not call this function twice with different arguments
+    static Dependency<::ArgsManager>* first_args = args;
+    assert(args == first_args);
 
-  // We must not call this function twice with different arguments
-  assert(args == first_args);
+    static Parameters parameters = BuildRegTestParameters(args);
+    return parameters;
+}
 
-  return parameters;
+RegTestOptionalParameters RegTestOptionalParameters::FromCommandLineArguments(
+    Dependency<::ArgsManager>* args
+) {
+    auto injectable_parameters = RegTestOptionalParameters();
+    if (!args) {
+        return injectable_parameters;
+    }
+
+    injectable_parameters.block_time_seconds = (*args)->GetOptionalIntArg("-chain-block-time-seconds");
+
+    return injectable_parameters;
 }
 
 GenesisBlock::GenesisBlock(const CBlock &block)
