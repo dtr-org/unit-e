@@ -27,12 +27,11 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         validator_node_params = [
             '-validating=1',
-            '-proposing=0',
             '-debug=all',
             '-rescan=1',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = ['-proposing=0', '-debug=all', '-esperanzaconfig=' + json_params]
+        proposer_node_params = ['-debug=all', '-esperanzaconfig=' + json_params]
 
         self.extra_args = [validator_node_params,
                            proposer_node_params,

@@ -31,8 +31,7 @@ class EmbargoProbing(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
 
-        self.extra_args = [['-proposing=1',
-                            '-debug=all',
+        self.extra_args = [['-debug=all',
                             '-whitelist=127.0.0.1',
                             '-embargotxs=1',
                             '-embargomin=9999']] * self.num_nodes

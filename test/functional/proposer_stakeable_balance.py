@@ -12,7 +12,6 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
         self.num_nodes = 6
 
         self.extra_args = list([
-            '-proposing=1',
             '-minimumchainwork-0',
             '-maxtipage=1000000000'
         ] for i in range(0, self.num_nodes))

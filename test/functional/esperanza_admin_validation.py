@@ -60,7 +60,7 @@ class AdminValidation(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.extra_args = [
-            ['-proposing=1', '-debug=all', '-whitelist=127.0.0.1']]
+            ['-debug=all', '-whitelist=127.0.0.1']]
         self.setup_clean_chain = True
 
     def send_via_mininode(self, cmds, address):

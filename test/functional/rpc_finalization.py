@@ -26,8 +26,8 @@ class RpcFinalizationTest(UnitETestFramework):
 
         esperanza_config = '-esperanzaconfig={"epochLength":5}'
         self.extra_args = [
-            ['-proposing=0', esperanza_config],
-            ['-proposing=0', esperanza_config, '-validating=1'],
+            [esperanza_config],
+            [esperanza_config, '-validating=1'],
         ]
 
     def setup_network(self):

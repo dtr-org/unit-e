@@ -12,8 +12,8 @@ class RemoteStakingTest(UnitETestFramework):
         self.num_nodes = 2
         self.setup_clean_chain = True
         self.extra_args=[
-            ['-proposing=0'],
-            ['-proposing=1', '-minimumchainwork=0', '-maxtipage=1000000000']
+            [],
+            ['-minimumchainwork=0', '-maxtipage=1000000000']
         ]
 
     def run_test(self):

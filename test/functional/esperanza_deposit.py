@@ -22,14 +22,12 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         validator_node_params = [
             '-validating=1',
-            '-proposing=0',
             '-debug=all',
             '-rescan=1',
             '-whitelist=127.0.0.1',
             '-esperanzaconfig=' + json_params
         ]
         proposer_node_params = [
-            '-proposing=0',
             '-debug=all',
             '-txindex',
             '-whitelist=127.0.0.1',

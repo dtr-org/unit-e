@@ -51,12 +51,11 @@ class EsperanzaSlashTest(UnitETestFramework):
 
         validator_node_params = [
             '-validating=1',
-            '-proposing=0',
             '-debug=all',
             '-whitelist=127.0.0.1',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
+        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
 
         self.extra_args = [proposer_node_params,
                            validator_node_params,
