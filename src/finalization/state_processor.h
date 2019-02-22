@@ -2,29 +2,21 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_FINALIZATION_STATE_STORAGE
-#define UNITE_FINALIZATION_STATE_STORAGE
+#ifndef UNITE_FINALIZATION_STATE_PROCESSOR
+#define UNITE_FINALIZATION_STATE_PROCESSOR
 
 #include <dependency.h>
 #include <primitives/transaction.h>
-#include <staking/active_chain.h>
 
-#include <memory>
+class CBlock;
+class CBlockIndex;
+
 #include <vector>
 
-//! Finalization state of every CBlockIndex in the current dynasty is stored. Once being
-//! processed, it's stored unless next checkpoint is finalized. Every state is a copy of
-//! the previous one plus new finalized commits given from corresponding block. During
-//! lifetime state changes its status: NEW -> [ FROM_COMMITS -> ] COMPLETED.
-//!
-//! Every finalization state is associated with one CBlockIndex (in the current dynasty).
-//! Parent state means the state of the CBlockIndex.pprev. States must be processed
-//! index by index.
-//!
 //! Workflow of the states.
 //!
 //! Precondition:
-//! * Create the 0th and empty state for genesis block (by StateStorage::ProcessNewTip).
+//! * Create the 0th and empty state for genesis block (by StateProcessor::ProcessNewTip).
 //!
 //! The usual life cycle of the state during full sync (longest possible story):
 //! 1 [In a process of accepting new commits], call StateStorage::ProcessNewCommits, here:
@@ -42,34 +34,13 @@
 //! Note, the real processing may be started from any of item 1, 2, or 3. For instance,
 //! in the usual mode (e.g., compact block) it's started from 2.
 //!
-//! !The storage only holds states, it doesn't care about forks!
-
-namespace esperanza {
-class FinalizationState;
-struct FinalizationParams;
-struct AdminParams;
-};  // namespace esperanza
-
-class CBlock;
-class CBlockIndex;
-class CChainParams;
 
 namespace finalization {
 
-class StateStorage {
- public:
-  //! Return the finalization state of the current active chain tip.
-  virtual esperanza::FinalizationState *GetState() = 0;
+class StateRepository;
 
-  //! Return the finalization state of the given block_index.
-  virtual esperanza::FinalizationState *GetState(const CBlockIndex &block_index) = 0;
-
-  //! Return the finalization params
-  virtual const esperanza::FinalizationParams &GetFinalizationParams() const = 0;
-
-  //! Return the admin params
-  virtual const esperanza::AdminParams &GetAdminParams() const = 0;
-
+class StateProcessor {
+public:
   //! \brief Create new finalization state for given commits.
   //!
   //! If state exists and not NEW, return true.
@@ -101,26 +72,10 @@ class StateStorage {
   //! This function is supposed to be called when a block is connecting to the main chain.
   virtual bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) = 0;
 
-  //! \brief Restore the storage for actual active chain.
-  //!
-  //! Must be called during startup of the node to restore storage for current active chain.
-  virtual void RestoreFromDisk(const CChainParams &chainparams) = 0;
-
-  //! \brief Reset the storage.
-  //! This function must be called during initialization of the node.
-  //! TODO: encapsulate finalization params in dependency.
-  virtual void Reset(const esperanza::FinalizationParams &params,
-                     const esperanza::AdminParams &admin_params) = 0;
-
-  // \brief Storage::ResetToTip() mediator
-  // This function will gone after merging commits full sync (wip PR #525)
-  virtual void ResetToTip(const CBlockIndex &block_index) = 0;
-
-  virtual ~StateStorage() = default;
-
-  static std::unique_ptr<StateStorage> New(Dependency<staking::ActiveChain> active_chain);
+  virtual ~StateProcessor() = default;
+  static std::unique_ptr<StateProcessor> New(Dependency<finalization::StateRepository> repo);
 };
 
-}  // namespace finalization
+}
 
 #endif

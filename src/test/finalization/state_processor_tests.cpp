@@ -2,7 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <finalization/state_storage.h>
+#include <finalization/state_processor.h>
+#include <finalization/state_repository.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/adminparams.h>
 #include <test/test_unite.h>
@@ -11,15 +12,17 @@
 #include <boost/test/unit_test.hpp>
 
 namespace {
-class StorageFixture {
+class Fixture {
  public:
   static constexpr blockchain::Height epoch_length = 5;
 
-  StorageFixture() : m_storage(finalization::StateStorage::New(&m_chain)) {
+  Fixture()
+    : m_repo(finalization::StateRepository::New(&m_chain)),
+      m_proc(finalization::StateProcessor::New(m_repo.get())) {
     m_finalization_params = Params().GetFinalization();
     m_finalization_params.epoch_length = epoch_length;
     m_admin_params = Params().GetAdminParams();
-    m_storage->Reset(m_finalization_params, m_admin_params);
+    m_repo->Reset(m_finalization_params, m_admin_params);
     m_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       BOOST_REQUIRE(it != this->m_block_heights.end());
@@ -27,32 +30,32 @@ class StorageFixture {
     };
   }
 
-  CBlockIndex *GenerateBlockIndex() {
+  CBlockIndex &CreateBlockIndex() {
     const auto height = FindNextHeight();
-    const auto ins_res = m_block_indexes.emplace(uint256S(std::to_string(height)), new CBlockIndex);
-    CBlockIndex *index = ins_res.first->second;
-    index->nHeight = height;
-    index->phashBlock = &ins_res.first->first;
-    index->pprev = m_chain.tip;
-    m_chain.tip = index;
-    m_block_heights[index->nHeight] = index;
+    const auto ins_res = m_block_indexes.emplace(uint256S(std::to_string(height)), CBlockIndex());
+    CBlockIndex &index = ins_res.first->second;
+    index.nHeight = height;
+    index.phashBlock = &ins_res.first->first;
+    index.pprev = m_chain.tip;
+    m_chain.tip = &index;
+    m_block_heights[index.nHeight] = &index;
     return index;
   }
 
-  bool ProcessNewCommits(const CBlockIndex *block_index) {
-    return m_storage->ProcessNewCommits(*block_index, {});
+  bool ProcessNewCommits(const CBlockIndex &block_index) {
+    return m_proc->ProcessNewCommits(block_index, {});
   }
 
-  bool ProcessNewTipCandidate(const CBlockIndex *block_index) {
-    return m_storage->ProcessNewTipCandidate(*block_index, CBlock());
+  bool ProcessNewTipCandidate(const CBlockIndex &block_index) {
+    return m_proc->ProcessNewTipCandidate(block_index, CBlock());
   }
 
-  bool ProcessNewTip(const CBlockIndex *block_index) {
-    return m_storage->ProcessNewTip(*block_index, CBlock());
+  bool ProcessNewTip(const CBlockIndex &block_index) {
+    return m_proc->ProcessNewTip(block_index, CBlock());
   }
 
   void AddBlock() {
-    const auto *block_index = GenerateBlockIndex();
+    const auto &block_index = CreateBlockIndex();
     const bool process_res = ProcessNewTip(block_index);
     BOOST_REQUIRE(process_res);
   }
@@ -64,11 +67,11 @@ class StorageFixture {
   }
 
   const esperanza::FinalizationState *GetState(const blockchain::Height h) {
-    return m_storage->GetState(*m_chain.AtHeight(h));
+    return m_repo->Find(*m_chain.AtHeight(h));
   }
 
-  const esperanza::FinalizationState *GetState(const CBlockIndex *block_index) {
-    return m_storage->GetState(*block_index);
+  const esperanza::FinalizationState *GetState(const CBlockIndex &block_index) {
+    return m_repo->Find(block_index);
   }
 
  private:
@@ -82,17 +85,18 @@ class StorageFixture {
 
   esperanza::FinalizationParams m_finalization_params;
   esperanza::AdminParams m_admin_params;
-  std::map<uint256, CBlockIndex *> m_block_indexes;
-  std::map<blockchain::Height, CBlockIndex *> m_block_heights;
+  std::map<uint256, CBlockIndex> m_block_indexes;
+  std::map<blockchain::Height, CBlockIndex *> m_block_heights; // m_block_index owns these block indexes
   mocks::ActiveChainMock m_chain;
-  std::unique_ptr<finalization::StateStorage> m_storage;
+  std::unique_ptr<finalization::StateRepository> m_repo;
+  std::unique_ptr<finalization::StateProcessor> m_proc;
 };
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(state_storage_tests)
+BOOST_FIXTURE_TEST_SUITE(state_processor_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(trimming) {
-  StorageFixture fixture;
+  Fixture fixture;
   BOOST_REQUIRE(fixture.epoch_length == 5);
 
   // Generate first epoch
@@ -144,14 +148,14 @@ BOOST_AUTO_TEST_CASE(trimming) {
 }
 
 BOOST_AUTO_TEST_CASE(states_workflow) {
-  StorageFixture fixture;
+  Fixture fixture;
   BOOST_REQUIRE(fixture.epoch_length == 5);
 
   // Generate first epoch
   fixture.AddBlocks(5);
 
   bool ok = false;
-  const auto *block_index = fixture.GenerateBlockIndex();
+  const auto &block_index = fixture.CreateBlockIndex();
 
   // Process state from commits. It't not confirmed yet, finalization shouldn't happen.
   ok = fixture.ProcessNewCommits(block_index);
@@ -174,8 +178,8 @@ BOOST_AUTO_TEST_CASE(states_workflow) {
   BOOST_CHECK(fixture.GetState(1) == nullptr);
 
   // Generate two more indexes
-  const auto *b1 = fixture.GenerateBlockIndex();
-  const auto *b2 = fixture.GenerateBlockIndex();
+  const auto &b1 = fixture.CreateBlockIndex();
+  const auto &b2 = fixture.CreateBlockIndex();
 
   // Try to process new state for b2. This should fail due to we haven't processed state for b1 yet.
   ok = fixture.ProcessNewCommits(b2);

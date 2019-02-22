@@ -128,7 +128,8 @@ UNITE_CORE_H = \
   esperanza/walletstate.h \
   extkey.h \
   finalization/p2p.h \
-  finalization/state_storage.h \
+  finalization/state_processor.h \
+  finalization/state_repository.h \
   finalization/vote_recorder.h \
   fixed_vector.h \
   fs.h \
@@ -291,7 +292,8 @@ libunite_server_a_SOURCES = \
   esperanza/finalizationstate.cpp \
   esperanza/validator.cpp \
   finalization/p2p.cpp \
-  finalization/state_storage.cpp \
+  finalization/state_processor.cpp \
+  finalization/state_repository.cpp \
   finalization/vote_recorder.cpp \
   httprpc.cpp \
   httpserver.cpp \

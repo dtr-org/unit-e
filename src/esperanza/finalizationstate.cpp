@@ -857,9 +857,9 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
 
 FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
   if (block_index == nullptr) {
-    return GetComponent(FinalizationStateStorage)->GetState();
+    return GetComponent(FinalizationStateRepository)->GetTipState();
   }
-  return GetComponent(FinalizationStateStorage)->GetState(*block_index);
+  return GetComponent(FinalizationStateRepository)->Find(*block_index);
 }
 
 uint32_t FinalizationState::GetEpochLength() const {

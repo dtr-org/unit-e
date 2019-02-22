@@ -1308,8 +1308,9 @@ bool AppInitMain()
         }
     }
 
-    GetComponent(FinalizationStateStorage)->Reset(chainparams.GetFinalization(),
-                                           chainparams.GetAdminParams());
+    auto state_repository = GetComponent(FinalizationStateRepository);
+    state_repository->Reset(chainparams.GetFinalization(),
+                            chainparams.GetAdminParams());
     finalization::VoteRecorder::Init();
 
     // ********************************************************* Step 4a: application initialization
