@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_FINALIZATION_STATE_STORAGE
-#define UNITE_FINALIZATION_STATE_STORAGE
+#ifndef UNITE_FINALIZATION_STATE_REPOSITORY
+#define UNITE_FINALIZATION_STATE_REPOSITORY
 
 #include <dependency.h>
 #include <esperanza/finalizationstate.h>
@@ -63,19 +63,19 @@ class StateRepository {
                        FinalizationState &&new_state,
                        FinalizationState **state_out) = 0;
 
-  //! \brief Restore the storage for actual active chain.
+  //! \brief Restore the repository for actual active chain.
   //!
-  //! Must be called during startup of the node to restore storage for current active chain.
+  //! Must be called during startup of the node to restore repository for current active chain.
   //!
-  //! UNIT-E TODO; The way we restore storage now requires us to use processor dependency.
+  //! UNIT-E TODO; The way we restore repository now requires us to use processor dependency.
   //! We don't use it as a class component to avoid circular dependencies.
   virtual void RestoreFromDisk(const CChainParams &chainparams,
                                Dependency<finalization::StateProcessor> proc) = 0;
 
-  //! \brief Resturns whether node is reconstructing the storage.
+  //! \brief Resturns whether node is reconstructing the repository.
   virtual bool Restoring() const = 0;
 
-  //! \brief Reset the storage.
+  //! \brief Reset the repository.
   //! This function must be called during initialization of the node.
   //! TODO: encapsulate finalization params in dependency.
   virtual void Reset(const esperanza::FinalizationParams &params,

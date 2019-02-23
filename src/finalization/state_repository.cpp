@@ -186,7 +186,7 @@ void RepositoryImpl::RestoreFromDisk(const CChainParams &chainparams,
     return;
   }
 
-  LogPrint(BCLog::FINALIZATION, "Restore state storage from disk\n");
+  LogPrint(BCLog::FINALIZATION, "Restore state repository from disk\n");
   Reset(chainparams.GetFinalization(), chainparams.GetAdminParams());
   for (blockchain::Height i = 1; i <= m_active_chain->GetHeight(); ++i) {
     const CBlockIndex *const index = m_active_chain->AtHeight(i);

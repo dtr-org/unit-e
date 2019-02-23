@@ -102,21 +102,28 @@ BOOST_AUTO_TEST_CASE(trimming) {
   // Generate first epoch
   fixture.AddBlocks(5);
 
-  // Check, all states presented in the storage
-  BOOST_CHECK(fixture.GetState(blockchain::Height(0)) != nullptr);
+  // Check, all states presented in the repository
+  BOOST_CHECK(fixture.GetState(0) != nullptr);
   BOOST_CHECK(fixture.GetState(1) != nullptr);
   BOOST_CHECK(fixture.GetState(2) != nullptr);
   BOOST_CHECK(fixture.GetState(3) != nullptr);
   BOOST_CHECK(fixture.GetState(4) != nullptr);
 
   // Check, states are different
-  BOOST_CHECK(fixture.GetState(blockchain::Height(0)) != fixture.GetState(1));
-  BOOST_CHECK(fixture.GetState(1) != fixture.GetState(4));
+  for (blockchain::Height h1 = 0; h1 < 5; ++h1) {
+    for (blockchain::Height h2 = 0; h2 <= h1; ++h2) {
+      const auto lhs = fixture.GetState(h1);
+      const auto rhs = fixture.GetState(h2);
+      BOOST_CHECK(lhs != nullptr);
+      BOOST_CHECK(rhs != nullptr);
+      BOOST_CHECK_EQUAL(lhs == rhs, h1 == h2);
+    }
+  }
 
   // Generate one more block, trigger finalization of previous epoch
   fixture.AddBlocks(1);
 
-  // Now epoch 1 is finalized, check old states disappear from the storage
+  // Now epoch 1 is finalized, check old states disappear from the repository
   BOOST_CHECK(fixture.GetState(blockchain::Height(0)) != nullptr);  // genesis
   BOOST_CHECK(fixture.GetState(1) == nullptr);
   BOOST_CHECK(fixture.GetState(2) == nullptr);
@@ -127,7 +134,7 @@ BOOST_AUTO_TEST_CASE(trimming) {
   // Complete current epoch
   fixture.AddBlocks(4);
 
-  // Check, new states are in the storage
+  // Check, new states are in the repository
   BOOST_CHECK(fixture.GetState(4) != nullptr);
   BOOST_CHECK(fixture.GetState(5) != nullptr);
   BOOST_CHECK(fixture.GetState(9) != nullptr);
@@ -171,7 +178,7 @@ BOOST_AUTO_TEST_CASE(states_workflow) {
   BOOST_CHECK(fixture.GetState(1) != nullptr);
 
   // Process the same state from the block and consider it as a part of the main chain so that expect
-  // finalization and trimming the storage.
+  // finalization and trimming the repository.
   ok = fixture.ProcessNewTip(block_index);
   BOOST_REQUIRE(ok);
   BOOST_CHECK(fixture.GetState(block_index)->GetInitStatus() == esperanza::FinalizationState::COMPLETED);
