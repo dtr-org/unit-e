@@ -448,7 +448,12 @@ std::string HelpMessage(HelpMessageMode mode)
     strUsage += HelpMessageOpt("-timeout=<n>", strprintf(_("Specify connection timeout in milliseconds (minimum: 1, default: %d)"), DEFAULT_CONNECT_TIMEOUT));
     strUsage += HelpMessageOpt("-torcontrol=<ip>:<port>", strprintf(_("Tor control port to use if onion listening enabled (default: %s)"), DEFAULT_TOR_CONTROL));
     strUsage += HelpMessageOpt("-torpassword=<pass>", _("Tor control port password (default: empty)"));
-    strUsage += HelpMessageOpt("-esperanzaconfig=<config>", _("Pass a configuration for the esperanza protocol in JSON format (default: empty)"));
+    if (showDebug) {
+        strUsage += HelpMessageOpt("-esperanzaconfig=<config>",
+                                   _("Pass a configuration for the esperanza protocol in JSON format (default: empty)"));
+        strUsage += HelpMessageOpt("-customchainparams=<config>",
+                                   _("Pass custom chain parameters in JSON format. This put the node in regtest mode. (default: empty)"));
+    }
 #ifdef USE_UPNP
 #if USE_UPNP
     strUsage += HelpMessageOpt("-upnp", _("Use UPnP to map the listening port (default: 1 when listening and no -proxy)"));
@@ -1293,7 +1298,12 @@ bool AppInitLockDataDirectory()
 
 bool AppInitMain()
 {
-    UnitEInjector::Init();
+    try {
+        UnitEInjector::Init();
+    } catch (const std::runtime_error& error) {
+        LogPrintf("Failed to initialize application: %s", error.what());
+        return false;
+    }
 
     const CChainParams& chainparams = Params();
 

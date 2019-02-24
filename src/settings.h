@@ -51,4 +51,4 @@ struct Settings {
       Dependency<blockchain::Behavior>);
 };
 
-#endif // UNIT_E_SETTINGS_H
+#endif  // UNIT_E_SETTINGS_H

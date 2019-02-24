@@ -741,6 +741,16 @@ BOOST_AUTO_TEST_CASE(test_to_string_with_vector) {
     BOOST_CHECK_EQUAL("[1, 1, 2, 3, 5]", str);
 }
 
+BOOST_AUTO_TEST_CASE(test_to_string_with_set) {
+    std::set<std::uint32_t> set;
+    set.emplace(3);
+    set.emplace(1);
+    set.emplace(7);
+    set.emplace(1);
+    const std::string str = util::to_string(set);
+    BOOST_CHECK_EQUAL("[1, 3, 7]", str);
+}
+
 BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_uint256) {
     const uint256 u1 = uint256S("87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7");
     const uint256 u2 = uint256S("0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f");
@@ -760,6 +770,12 @@ BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_strings) {
 BOOST_AUTO_TEST_CASE(test_to_string_with_empty_vector) {
     const std::vector<std::uint32_t> vec;
     const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_empty_set) {
+    const std::set<std::uint32_t> set;
+    const std::string str = util::to_string(set);
     BOOST_CHECK_EQUAL("[]", str);
 }
 

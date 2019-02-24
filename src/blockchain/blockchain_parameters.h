@@ -27,13 +27,22 @@ struct GenesisBlock {
   explicit GenesisBlock(const CBlock &);
 };
 
+//! \brief The defining parameters of a unit-e blockchain network.
+//!
+//! This struct is supposed to be a "data class", that is it contains
+//! only the values for these parameters, no behavior should be associated
+//! with it (i.e. no member functions should be defined for it).
+//!
+//! For the lack of a better name there is a different, proper class
+//! `blockchain::Behavior` that builds a facade on top of these
+//! `blockchain::Parameters` (and everything else which might be needed
+//! for working with these easily).
 struct Parameters {
 
   //! \brief a function to calculate the block reward.
   //!
   //! The reward function is a pure function that takes as inputs the parameters
   //! that are currently active and the height to propose at.
-
   using RewardFunction = CAmount (*)(const Parameters &, Height);
 
   //! \brief a function to calculate the difficulty for a given block.
