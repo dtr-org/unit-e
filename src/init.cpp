@@ -205,9 +205,6 @@ void Shutdown()
     StopRPC();
     StopHTTPServer();
 
-    // stop all injected components, including proposer and validator
-    UnitEInjector::Destroy();
-
 #ifdef ENABLE_WALLET
     FlushWallets();
 #endif
@@ -217,6 +214,10 @@ void Shutdown()
     // using the other before destroying them.
     if (peerLogic) UnregisterValidationInterface(peerLogic.get());
     if (g_connman) g_connman->Stop();
+
+    // stop all injected components, including proposer and validator
+    UnitEInjector::Destroy();
+
     peerLogic.reset();
     g_connman.reset();
 
@@ -1307,8 +1308,9 @@ bool AppInitMain()
         }
     }
 
-    esperanza::FinalizationState::Init(chainparams.GetFinalization(),
-                                       chainparams.GetAdminParams());
+    auto state_repository = GetComponent(FinalizationStateRepository);
+    state_repository->Reset(chainparams.GetFinalization(),
+                            chainparams.GetAdminParams());
     finalization::VoteRecorder::Init();
 
     // ********************************************************* Step 4a: application initialization

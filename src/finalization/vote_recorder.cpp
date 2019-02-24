@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <finalization/vote_recorder.h>
 #include <esperanza/finalizationstate.h>
+#include <finalization/vote_recorder.h>
 
 #include <util.h>
 #include <validationinterface.h>

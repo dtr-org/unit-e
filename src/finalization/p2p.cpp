@@ -3,12 +3,12 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
-#include <validation.h>
-#include <finalization/p2p.h>
+#include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
+#include <finalization/p2p.h>
 #include <net.h>
 #include <netmessagemaker.h>
-#include <consensus/validation.h>
+#include <validation.h>
 
 namespace finalization {
 namespace p2p {
@@ -28,7 +28,7 @@ const CBlockIndex *FindMostRecentStart(const CChain &chain, const CommitsLocator
       return last;
     }
     CBlockIndex *const pindex = it->second;
-    if (last == nullptr) { // first hash in `start` must be finalized
+    if (last == nullptr) {  // first hash in `start` must be finalized
       if (!state->IsFinalizedCheckpoint(pindex->nHeight)) {
         LogPrint(BCLog::FINALIZATION, "The first hash in locator must be finalized checkpoint: %s (%d)\n",
                  h.GetHex(), pindex->nHeight);
@@ -79,7 +79,7 @@ HeaderAndCommits FindHeaderAndCommits(const CBlockIndex *pindex, const Consensus
   }
   return hc;
 }
-} // namespace
+}  // namespace
 
 bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsgMaker &msgMaker,
                        const CChainParams &chainparams) {
@@ -107,7 +107,7 @@ bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsg
 
 bool ProcessNewCommits(const CommitsResponse &msg, const CChainParams &chainparams,
                        CValidationState &validation_state, uint256 *failed_block_out) {
-  const auto err = [&] (int code, const std::string &str, const uint256 &block) {
+  const auto err = [&](int code, const std::string &str, const uint256 &block) {
     if (failed_block_out != nullptr) {
       *failed_block_out = block;
     }
@@ -135,19 +135,18 @@ bool ProcessNewCommits(const CommitsResponse &msg, const CChainParams &chainpara
   }
   // UNIT-E: Implement in two further steps: full-sync and PUSH
   switch (msg.status) {
-  case CommitsResponse::Status::StopOrFinReached:
-    // UNIT-E: Request next bulk
-    break;
-  case CommitsResponse::Status::TipReached:
-    // UNIT-E: Trigger fork choice if reconstructed finalization state is better than current one
-    break;
-  case CommitsResponse::Status::LengthExceeded:
-    // UNIT-E: Wait the next message
-    break;
+    case CommitsResponse::Status::StopOrFinReached:
+      // UNIT-E: Request next bulk
+      break;
+    case CommitsResponse::Status::TipReached:
+      // UNIT-E: Trigger fork choice if reconstructed finalization state is better than current one
+      break;
+    case CommitsResponse::Status::LengthExceeded:
+      // UNIT-E: Wait the next message
+      break;
   }
   return true;
 }
 
-
-} // p2p
-} // finalization
+}  // namespace p2p
+}  // namespace finalization

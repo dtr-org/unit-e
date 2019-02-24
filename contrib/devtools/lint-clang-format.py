@@ -59,6 +59,7 @@ def main(argv):
   autogitadd = autoformat and "--git-add" in argv
   iscurrentcommit = "--check-commit" in argv
   dirs = [
+    "src/finalization",
     "src/esperanza",
     "src/key",
     "src/p2p",
