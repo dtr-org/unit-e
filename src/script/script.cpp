@@ -161,13 +161,13 @@ bool WitnessProgram::IsPayToPubkeyHash() const
     return version == 0 && program.size() == 1 && program[0].size() == 20;
 }
 
-bool WitnessProgram::IsRemoteStakingP2PKH() const
+bool WitnessProgram::IsRemoteStakingP2WPKH() const
 {
     return version == 1 && program.size() == 2 && program[0].size() == 20
         && program[1].size() == 32;
 }
 
-bool WitnessProgram::IsRemoteStakingP2SH() const
+bool WitnessProgram::IsRemoteStakingP2WSH() const
 {
     return version == 2 && program.size() == 2 && program[0].size() == 20
         && program[1].size() == 32;

@@ -1716,7 +1716,7 @@ BOOST_AUTO_TEST_CASE(witness_program)
     script.clear();
     script << OP_1 << hash_160 << hash_256;
     BOOST_CHECK(script.ExtractWitnessProgram(program));
-    BOOST_CHECK(program.IsRemoteStakingP2PKH());
+    BOOST_CHECK(program.IsRemoteStakingP2WPKH());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
                                   hash_160.begin(), hash_160.end());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),
@@ -1725,7 +1725,7 @@ BOOST_AUTO_TEST_CASE(witness_program)
     script.clear();
     script << OP_2 << hash_160 << hash_256;
     BOOST_CHECK(script.ExtractWitnessProgram(program));
-    BOOST_CHECK(program.IsRemoteStakingP2SH());
+    BOOST_CHECK(program.IsRemoteStakingP2WSH());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
                                   hash_160.begin(), hash_160.end());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),

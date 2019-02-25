@@ -1453,7 +1453,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
     } else if (witnessProgram.version == 1) {
-        if (witnessProgram.IsRemoteStakingP2PKH()) {
+        if (witnessProgram.IsRemoteStakingP2WPKH()) {
             // Both branches of remote staking script require two items in witness
             if (witness.stack.size() != 2) {
                 return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
@@ -1468,7 +1468,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
     } else if (witnessProgram.version == 2) {
-        if (witnessProgram.IsRemoteStakingP2SH()) {
+        if (witnessProgram.IsRemoteStakingP2WSH()) {
             if (checker.GetTxType() == +TxType::COINBASE) {
                 if (witness.stack.size() != 2) {
                     return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
@@ -1635,12 +1635,12 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
 
 size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitness& witness, int flags, TxType type)
 {
-    bool is_staking_rsp2sh = type == +TxType::COINBASE && witprogram.IsRemoteStakingP2SH();
-    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStakingP2PKH() || is_staking_rsp2sh) {
+    bool is_staking_rsp2wsh = type == +TxType::COINBASE && witprogram.IsRemoteStakingP2WSH();
+    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStakingP2WPKH() || is_staking_rsp2wsh) {
         return 1;
     }
 
-    if ((witprogram.IsPayToScriptHash() || witprogram.IsRemoteStakingP2SH()) && !witness.stack.empty()) {
+    if ((witprogram.IsPayToScriptHash() || witprogram.IsRemoteStakingP2WSH()) && !witness.stack.empty()) {
         CScript subscript(witness.stack.back().begin(), witness.stack.back().end());
         return subscript.GetSigOpCount(true);
     }
