@@ -49,35 +49,26 @@ class ActiveChainMock : public staking::ActiveChain {
   mutable CCriticalSection lock;
 
  public:
-  mutable std::atomic<std::uint32_t> invocations_GetLock;
-  mutable std::atomic<std::uint32_t> invocations_GetSize;
-  mutable std::atomic<std::uint32_t> invocations_GetHeight;
-  mutable std::atomic<std::uint32_t> invocations_GetTip;
-  mutable std::atomic<std::uint32_t> invocations_AtDepth;
-  mutable std::atomic<std::uint32_t> invocations_AtHeight;
-  mutable std::atomic<std::uint32_t> invocations_GetDepth;
-  mutable std::atomic<std::uint32_t> invocations_GetBlockIndex;
-  mutable std::atomic<std::uint32_t> invocations_ComputeSnapshotHash;
-  mutable std::atomic<std::uint32_t> invocations_ProcessNewBlock;
-  mutable std::atomic<std::uint32_t> invocations_GetUTXO;
-  mutable std::atomic<std::uint32_t> invocations_GetInitialBlockDownloadStatus;
-
-  ActiveChainMock()
-      : invocations_GetLock(0),
-        invocations_GetSize(0),
-        invocations_GetHeight(0),
-        invocations_GetTip(0),
-        invocations_AtDepth(0),
-        invocations_AtHeight(0),
-        invocations_GetDepth(0),
-        invocations_GetBlockIndex(0),
-        invocations_ComputeSnapshotHash(0),
-        invocations_ProcessNewBlock(0),
-        invocations_GetUTXO(0),
-        invocations_GetInitialBlockDownloadStatus(0) {}
+  mutable std::atomic<std::uint32_t> invocations_GetLock{0};
+  mutable std::atomic<std::uint32_t> invocations_GetSize{0};
+  mutable std::atomic<std::uint32_t> invocations_GetHeight{0};
+  mutable std::atomic<std::uint32_t> invocations_GetTip{0};
+  mutable std::atomic<std::uint32_t> invocations_GetGenesis{0};
+  mutable std::atomic<std::uint32_t> invocations_Contains{0};
+  mutable std::atomic<std::uint32_t> invocations_AtDepth{0};
+  mutable std::atomic<std::uint32_t> invocations_AtHeight{0};
+  mutable std::atomic<std::uint32_t> invocations_GetDepth{0};
+  mutable std::atomic<std::uint32_t> invocations_GetBlockIndex{0};
+  mutable std::atomic<std::uint32_t> invocations_ComputeSnapshotHash{0};
+  mutable std::atomic<std::uint32_t> invocations_ProcessNewBlock{0};
+  mutable std::atomic<std::uint32_t> invocations_GetUTXO{0};
+  mutable std::atomic<std::uint32_t> invocations_GetInitialBlockDownloadStatus{0};
 
   //! The tip to be returned by GetTip()
   CBlockIndex *tip = nullptr;
+
+  //! The genesis to be returned by GetGenesis()
+  CBlockIndex *genesis = nullptr;
 
   //! The sync states to be returned by GetIBDStatus()
   ::SyncStatus sync_status = SyncStatus::SYNCED;
@@ -123,6 +114,14 @@ class ActiveChainMock : public staking::ActiveChain {
   const CBlockIndex *GetTip() const override {
     ++invocations_GetTip;
     return tip;
+  }
+  const CBlockIndex *GetGenesis() const override {
+    ++invocations_GetGenesis;
+    return genesis;
+  }
+  bool Contains(const CBlockIndex &block_index) const override {
+    ++invocations_Contains;
+    return block_at_height(block_index.nHeight) == &block_index;
   }
   const CBlockIndex *AtDepth(blockchain::Depth depth) override {
     ++invocations_AtDepth;
