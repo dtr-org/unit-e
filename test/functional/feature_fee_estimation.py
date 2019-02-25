@@ -150,8 +150,8 @@ class EstimateFeeTest(UnitETestFramework):
         But first we need to use one node to create a lot of outputs
         which we will use to generate our transactions.
         """
-        self.add_nodes(3, extra_args=[["-maxorphantx=1000", "-whitelist=127.0.0.1"],
-                                      ["-maxorphantx=1000", "-deprecatedrpc=estimatefee"],
+        self.add_nodes(3, extra_args=[["-maxorphantx=1000", "-whitelist=127.0.0.1", '-stakesplitthreshold=10000000000'],
+                                      ["-maxorphantx=1000", "-deprecatedrpc=estimatefee", '-stakesplitthreshold=10000000000'],
                                       ["-maxorphantx=1000"]])
         # Use node0 to mine blocks for input splitting
         # Node1 mines small blocks but that are bigger than the expected transaction rate.
@@ -199,6 +199,9 @@ class EstimateFeeTest(UnitETestFramework):
         self.start_node(0)
         self.txouts = []
         self.txouts2 = []
+
+        self.nodes[0].generate(1)
+
         # Split a coinbase into two transaction puzzle outputs
         split_inputs(self.nodes[0], self.nodes[0].listunspent(0), self.txouts, True)
 

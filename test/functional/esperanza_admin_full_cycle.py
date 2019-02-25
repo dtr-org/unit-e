@@ -92,7 +92,7 @@ class AdminFullCycle(UnitETestFramework):
         json_params = json.dumps(params_data)
 
         proposer_settings = ['-proposing=1', '-permissioning=1', '-proposing=1', '-debug=all',
-                             '-stakesplitthreshold=10000000000'
+                             '-stakesplitthreshold=100000000000'
                              '-whitelist=127.0.0.1',
                              '-esperanzaconfig=' + json_params]
         validator_settings = ['-proposing=1', '-permissioning=1', '-validating=1', '-debug=all',

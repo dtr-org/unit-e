@@ -28,7 +28,7 @@ def test_setup(test, proposers, validators):
     json_params = json.dumps(params_data)
 
     proposer_node_params = [
-        '-stakesplitthreshold=10000000000',
+        '-stakesplitthreshold=100000000000',
         '-proposing=1',
         '-debug=all',
         '-whitelist=127.0.0.1',
