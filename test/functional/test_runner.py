@@ -60,7 +60,7 @@ BASE_SCRIPTS= [
     # vv Tests less than 5m vv
     'feature_maxuploadtarget.py',
     'mempool_packages.py',
-    'feature_block.py --runbarelyexpensive=false',
+    'feature_block.py',
     'rpc_fundrawtransaction.py',
     'p2p_compactblocks.py',
     'feature_segwit.py',
