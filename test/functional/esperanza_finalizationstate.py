@@ -28,6 +28,7 @@ def test_setup(test, proposers, validators):
     json_params = json.dumps(params_data)
 
     proposer_node_params = [
+        '-stakesplitthreshold=10000000000',
         '-proposing=1',
         '-debug=all',
         '-whitelist=127.0.0.1',
@@ -55,23 +56,23 @@ def test_setup(test, proposers, validators):
     test.setup_clean_chain = True
 
 
-def setup_deposit(self, nodes):
+def setup_deposit(self, proser, validators):
 
-    for i, n in enumerate(nodes):
+    for i, n in enumerate(validators):
         n.new_address = n.getnewaddress("", "legacy")
 
         assert_equal(n.getbalance(), 10000)
 
-    for n in nodes:
+    for n in validators:
         deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx)
 
     # the validator will be ready to operate in epoch 3
     # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
     for n in range(0, 29):
-        generate_block(nodes[0])
+        generate_block(proser)
 
-    assert_equal(nodes[0].getblockchaininfo()['blocks'], 30)
+    assert_equal(proser.getblockchaininfo()['blocks'], 30)
 
 
 def generate_block(node):
@@ -119,7 +120,7 @@ class ExpiredVoteTest(UnitETestFramework):
         # Leave IBD
         self.generate_sync(p0)
 
-        setup_deposit(self, [v])
+        setup_deposit(self, p0, [v])
         sync_blocks([p0, p1, v])
 
         # get to up to block 148, just one before the new checkpoint
