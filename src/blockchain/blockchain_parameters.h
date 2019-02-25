@@ -24,8 +24,8 @@ struct GenesisBlock {
   CBlock block;
   uint256 hash;
 
-  GenesisBlock();
-  explicit GenesisBlock(const CBlock &);
+  GenesisBlock() noexcept;
+  explicit GenesisBlock(const CBlock &) noexcept;
 };
 
 //! \brief The defining parameters of a unit-e blockchain network.
@@ -44,7 +44,7 @@ struct Parameters {
   //!
   //! The reward function is a pure function that takes as inputs the parameters
   //! that are currently active and the height to propose at.
-  using RewardFunction = CAmount (*)(const Parameters &, Height);
+  using RewardFunction = std::function<CAmount(const Parameters &, Height)>;
 
   //! \brief a function to calculate the difficulty for a given block.
   //!
@@ -84,7 +84,7 @@ struct Parameters {
   //!
   //!   return bnNew.GetCompact();
   //! };
-  using DifficultyFunction = Difficulty (*)(const Parameters &, Height, ChainAccess &);
+  using DifficultyFunction = std::function<Difficulty(const Parameters &, Height, ChainAccess &)>;
 
   //! \brief a unique identifier for this network.
   //!

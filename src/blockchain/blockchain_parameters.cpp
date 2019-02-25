@@ -14,7 +14,6 @@ namespace blockchain {
 Parameters Parameters::MainNet() noexcept {
   Parameters p{};  // designated initializers would be so nice here
   p.network_name = "main";
-  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(MainnetFunds()).Build(p));
 
   p.block_stake_timestamp_interval_seconds = 16;
   p.block_time_seconds = 16;
@@ -64,13 +63,14 @@ Parameters Parameters::MainNet() noexcept {
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
 
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(MainnetFunds()).Build(p));
+
   return p;
 }
 
 Parameters Parameters::TestNet() noexcept {
   Parameters p = Parameters::MainNet();
   p.network_name = "test";
-  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
 
   p.relay_non_standard_transactions = true;
   p.coinbase_maturity = 10;
@@ -89,13 +89,14 @@ Parameters Parameters::TestNet() noexcept {
 
   p.bech32_human_readable_prefix = "tue";
 
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
+
   return p;
 }
 
 Parameters Parameters::RegTest() noexcept {
   Parameters p = Parameters::MainNet();
   p.network_name = "regtest";
-  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(RegtestFunds()).Build(p));
 
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
@@ -116,11 +117,13 @@ Parameters Parameters::RegTest() noexcept {
 
   p.default_settings.node_is_proposer = false;
 
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(RegtestFunds()).Build(p));
+
   return p;
 }
 
-GenesisBlock::GenesisBlock() : block(), hash(block.GetHash()) {}
+GenesisBlock::GenesisBlock() noexcept : block(), hash(block.GetHash()) {}
 
-GenesisBlock::GenesisBlock(const CBlock &block) : block(block), hash(block.GetHash()) {}
+GenesisBlock::GenesisBlock(const CBlock &block) noexcept : block(block), hash(block.GetHash()) {}
 
 }  // namespace blockchain
