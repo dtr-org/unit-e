@@ -65,10 +65,10 @@ class ActiveChain : public blockchain::ChainAccess {
   virtual bool Contains(const CBlockIndex &) const = 0;
 
   // defined in blockchain::ChainAccess
-  virtual const CBlockIndex *AtDepth(blockchain::Depth) override = 0;
+  const CBlockIndex *AtDepth(blockchain::Depth) override = 0;
 
   // defined in blockchain::ChainAccess
-  virtual const CBlockIndex *AtHeight(blockchain::Height) override = 0;
+  const CBlockIndex *AtHeight(blockchain::Height) override = 0;
 
   //! \brief compute the current respective depth for the given height.
   virtual blockchain::Depth GetDepth(blockchain::Height) const = 0;
