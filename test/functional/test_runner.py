@@ -70,6 +70,7 @@ BASE_SCRIPTS= [
     'feature_bip68_sequence.py',
     'wallet_basic.py',
     'wallet_accounts.py',
+    'p2p_segwit.py',
     'p2p_embargoman_star.py',
     'esperanza_admin_full_cycle.py',
     'p2p_timeouts.py',
@@ -206,7 +207,6 @@ USBDEVICE_SCRIPTS = [
 
 # UNIT-E TODO:
 DISABLED_SCRIPTS = [
-    'p2p_segwit.py',
     'feature_nulldummy.py',
 ]
 
