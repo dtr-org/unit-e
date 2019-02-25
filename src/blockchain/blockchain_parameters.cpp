@@ -122,6 +122,8 @@ Parameters BuildRegTestParameters() {
       GenesisBlockBuilder().Add(RegtestFunds()).Build(p)};
   p.genesis_block = &genesisBlock;
 
+  p.default_settings.node_is_proposer = false;
+
   return p;
 }
 
