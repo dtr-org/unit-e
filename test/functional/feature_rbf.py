@@ -64,6 +64,7 @@ class ReplaceByFeeTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.extra_args= [["-maxorphantx=1000",
+                           "-stakesplitthreshold=10000000000",
                            "-whitelist=127.0.0.1",
                            "-limitancestorcount=50",
                            "-limitancestorsize=101",
