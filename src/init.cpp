@@ -1301,7 +1301,7 @@ bool AppInitMain()
     try {
         UnitEInjector::Init();
     } catch (const std::runtime_error& error) {
-        LogPrintf("Failed to initialize application: %s", error.what());
+        fprintf(stderr, "Error: %s\n", error.what());
         return false;
     }
 

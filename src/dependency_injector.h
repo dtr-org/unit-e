@@ -327,8 +327,7 @@ class Injector {
   //!
   //! \throws CircularDependenciesError if the dependency graph contains cycles.
   //!
-  //! \return If the dependency graph checks out: a vector of
-  //! type_index objects
+  //! \return If the dependency graph checks out: a vector of type_index objects
   std::vector<std::type_index> DetermineInitializationOrder() const {
     CheckDependencies();
     std::vector<std::pair<std::type_index, std::type_index>> dependencyGraph;
