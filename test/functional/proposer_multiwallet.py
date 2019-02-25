@@ -13,7 +13,9 @@ class ProposerMultiwalletTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.num_wallets = 3
-        self.extra_args = [list('-wallet=w{0}.dat'.format(i) for i in range(0, self.num_wallets))]
+        args = list('-wallet=w{0}.dat'.format(i) for i in range(0, self.num_wallets))
+        args.append("-proposing=1")
+        self.extra_args = [args]
 
     def run_test(self):
 
