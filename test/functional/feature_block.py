@@ -72,10 +72,6 @@ class FullBlockTest(ComparisonTestFramework):
         self.tip = None
         self.blocks = {}
 
-    def add_options(self, parser):
-        super().add_options(parser)
-        parser.add_option("--runbarelyexpensive", dest="runbarelyexpensive", default=True)
-
     def run_test(self):
         self.test = TestManager(self, self.options.tmpdir)
         self.test.add_all_connections(self.nodes)
@@ -1399,68 +1395,67 @@ class FullBlockTest(ComparisonTestFramework):
         #  Test re-org of a week's worth of blocks (1088 blocks)
         #  This test takes a minute or two and can be accomplished in memory
         #
-        if self.options.runbarelyexpensive:
-            tip(88)
-            LARGE_REORG_SIZE = 1088
-            test1 = TestInstance(sync_every_block=False)
-            spend=out[32]
-            for i in range(89, LARGE_REORG_SIZE + 89):
-                b = block(i, spend)
-                tx = CTransaction()
-                script_length = MAX_BLOCK_BASE_SIZE - len(b.serialize()) - 69
-                script_output = CScript([b'\x00' * script_length])
-                tx.vout.append(CTxOut(0, script_output))
-                tx.vin.append(CTxIn(COutPoint(b.vtx[1].sha256, 0)))
-                b = update_block(i, [tx])
-                assert_equal(len(b.serialize()), MAX_BLOCK_BASE_SIZE)
-                test1.blocks_and_transactions.append([self.tip, True])
-                save_spendable_output()
-                spend = get_spendable_output()
+        tip(88)
+        LARGE_REORG_SIZE = 1088
+        test1 = TestInstance(sync_every_block=False)
+        spend=out[32]
+        for i in range(89, LARGE_REORG_SIZE + 89):
+            b = block(i, spend)
+            tx = CTransaction()
+            script_length = MAX_BLOCK_BASE_SIZE - len(b.serialize()) - 69
+            script_output = CScript([b'\x00' * script_length])
+            tx.vout.append(CTxOut(0, script_output))
+            tx.vin.append(CTxIn(COutPoint(b.vtx[1].sha256, 0)))
+            b = update_block(i, [tx])
+            assert_equal(len(b.serialize()), MAX_BLOCK_BASE_SIZE)
+            test1.blocks_and_transactions.append([self.tip, True])
+            save_spendable_output()
+            spend = get_spendable_output()
 
-            yield test1
-            chain1_tip = i
-            comp_snapshot_hash(chain1_tip)
+        yield test1
+        chain1_tip = i
+        comp_snapshot_hash(chain1_tip)
 
-            # now create alt chain of same length
-            tip(88)
-            test2 = TestInstance(sync_every_block=False)
-            for i in range(89, LARGE_REORG_SIZE + 89):
-                block("alt"+str(i))
-                test2.blocks_and_transactions.append([self.tip, False])
-            yield test2
-            comp_snapshot_hash(chain1_tip)
+        # now create alt chain of same length
+        tip(88)
+        test2 = TestInstance(sync_every_block=False)
+        for i in range(89, LARGE_REORG_SIZE + 89):
+            block("alt"+str(i))
+            test2.blocks_and_transactions.append([self.tip, False])
+        yield test2
+        comp_snapshot_hash(chain1_tip)
 
-            # extend alt chain to trigger re-org
-            block("alt" + str(chain1_tip + 1))
-            yield accepted()
-            comp_snapshot_hash("alt" + str(chain1_tip + 1))
+        # extend alt chain to trigger re-org
+        block("alt" + str(chain1_tip + 1))
+        yield accepted()
+        comp_snapshot_hash("alt" + str(chain1_tip + 1))
 
-            # ... and re-org back to the first chain
-            tip(chain1_tip)
-            block(chain1_tip + 1)
-            yield rejected()
-            comp_snapshot_hash("alt" + str(chain1_tip + 1))
-            block(chain1_tip + 2)
+        # ... and re-org back to the first chain
+        tip(chain1_tip)
+        block(chain1_tip + 1)
+        yield rejected()
+        comp_snapshot_hash("alt" + str(chain1_tip + 1))
+        block(chain1_tip + 2)
 
-            yield accepted()
-            comp_snapshot_hash(chain1_tip + 2)
+        yield accepted()
+        comp_snapshot_hash(chain1_tip + 2)
 
-            chain1_tip += 2
+        chain1_tip += 2
 
-            # reject block with invalid snapshot hash
-            height = self.block_heights[self.tip.sha256] + 1
-            snapshot_hash = self.block_snapshot_meta[self.tip.hashPrevBlock].hash
-            coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
-            chain1b3 = block(chain1_tip + 1)
-            chain1b3.vtx[0] = coinbase
-            update_block(chain1_tip + 1, [])
-            yield rejected(RejectResult(16, b'bad-cb-snapshot-hash'))
+        # reject block with invalid snapshot hash
+        height = self.block_heights[self.tip.sha256] + 1
+        snapshot_hash = self.block_snapshot_meta[self.tip.hashPrevBlock].hash
+        coinbase = create_coinbase(height, snapshot_hash, self.coinbase_pubkey)
+        chain1b3 = block(chain1_tip + 1)
+        chain1b3.vtx[0] = coinbase
+        update_block(chain1_tip + 1, [])
+        yield rejected(RejectResult(16, b'bad-cb-snapshot-hash'))
 
-            tip(chain1_tip)
-            block(chain1_tip + 2)
-            yield accepted()
+        tip(chain1_tip)
+        block(chain1_tip + 2)
+        yield accepted()
 
-            chain1_tip += 2
+        chain1_tip += 2
 
 
 if __name__ == '__main__':
