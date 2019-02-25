@@ -378,8 +378,9 @@ class UnitETestFramework():
         def wait_for_new_vote(old_txs):
             try:
                 wait_until(lambda: len(node.getrawmempool()) > len(old_txs), timeout=10)
-            except AssertionError:
-                msg = 'finalizer did not vote for the tip={} during {} sec'.format(node.getblockcount(), 10)
+            except AssertionError as e:
+                msg = "{}\nERROR: finalizer did not vote for the tip={} during {} sec.".format(
+                    e, node.getblockcount(), 10)
                 raise AssertionError(msg)
 
         ip_port = "127.0.0.1:" + str(p2p_port(node.index))
