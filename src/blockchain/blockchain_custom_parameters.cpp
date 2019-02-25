@@ -86,34 +86,6 @@ ReadResult Read<bool>(
 }
 
 template <>
-ReadResult Read<std::uint32_t>(
-    const std::map<std::string, UniValue> &json_object,
-    const char *const key,
-    std::uint32_t &value) {
-  if (json_object.count(key) == 0) {
-    return ReadResult::NO_VALUE_READ;
-  }
-  const UniValue &json_value = json_object.at(key);
-  if (!json_value.isNum()) {
-    return ReadResult::FAILED_TO_READ;
-  }
-  std::int64_t int64_value;
-  try {
-    int64_value = json_value.get_int64();
-  } catch (const std::runtime_error &) {
-    return ReadResult::FAILED_TO_READ;
-  }
-  if (int64_value < 0) {
-    return ReadResult::FAILED_TO_READ;
-  }
-  if (int64_value > std::numeric_limits<std::uint32_t>::max()) {
-    return ReadResult::FAILED_TO_READ;
-  }
-  value = static_cast<std::uint32_t>(int64_value);
-  return ReadResult::VALUE_READ_SUCCESSFULLY;
-}
-
-template <>
 ReadResult Read<std::int64_t>(
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -132,6 +104,28 @@ ReadResult Read<std::int64_t>(
   }
   return ReadResult::VALUE_READ_SUCCESSFULLY;
 }
+
+template <>
+ReadResult Read<std::uint32_t>(
+    const std::map<std::string, UniValue> &json_object,
+    const char *const key,
+    std::uint32_t &value) {
+
+  std::int64_t intermediate_value;
+  const ReadResult intermediate_result = Read(json_object, key, intermediate_value);
+  if (intermediate_result != ReadResult::VALUE_READ_SUCCESSFULLY) {
+    return intermediate_result;
+  }
+  if (intermediate_value < 0) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  if (intermediate_value > std::numeric_limits<std::uint32_t>::max()) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  value = static_cast<std::uint32_t>(intermediate_value);
+  return ReadResult::VALUE_READ_SUCCESSFULLY;
+}
+
 READ_VECTOR_DECLARATION(std::int64_t)
 
 template <>
