@@ -135,6 +135,8 @@ UNITE_CORE_H = \
   fs.h \
   httprpc.h \
   httpserver.h \
+  iblt.h \
+  iblt_params.h \
   indirectmap.h \
   init.h \
   injector.h \
@@ -297,6 +299,7 @@ libunite_server_a_SOURCES = \
   finalization/vote_recorder.cpp \
   httprpc.cpp \
   httpserver.cpp \
+  iblt_params.cpp \
   init.cpp \
   injector.cpp \
   dbwrapper.cpp \
