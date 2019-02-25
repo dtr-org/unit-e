@@ -29,45 +29,11 @@ enum class ReadResult {
 template <typename T>
 ReadResult Read(
     const std::map<std::string, UniValue> &json_object,
-    const char *const key,
+    const char *key,
     T &value) {
   static_assert(std::is_void<T>::value, "unsupported type to Read()");
   return ReadResult::FAILED_TO_READ;
 }
-
-template <typename T>
-ReadResult ReadArray(
-    const std::map<std::string, UniValue> &json_object,
-    const char *const key,
-    std::vector<T> &value) {
-  if (json_object.count(key) == 0) {
-    return ReadResult::NO_VALUE_READ;
-  }
-  const UniValue &json_value = json_object.at(key);
-  if (!json_value.isArray()) {
-    return ReadResult::FAILED_TO_READ;
-  }
-  std::vector<T> result;
-  for (std::size_t i = 0; i < json_value.size(); ++i) {
-    std::map<std::string, UniValue> obj;
-    obj[""] = json_value[i];
-    result.emplace_back();
-    if (Read(obj, "", result.back()) == ReadResult::FAILED_TO_READ) {
-      return ReadResult::FAILED_TO_READ;
-    }
-  }
-  value = result;
-  return ReadResult::VALUE_READ_SUCCESSFULLY;
-}
-
-#define READ_VECTOR_DECLARATION(ELEMENT_TYPE)             \
-  template <>                                             \
-  ReadResult Read<std::vector<ELEMENT_TYPE>>(             \
-      const std::map<std::string, UniValue> &json_object, \
-      const char *const key,                              \
-      std::vector<ELEMENT_TYPE> &value) {                 \
-    return ReadArray(json_object, key, value);            \
-  }
 
 template <>
 ReadResult Read<bool>(
@@ -126,8 +92,6 @@ ReadResult Read<std::uint32_t>(
   return ReadResult::VALUE_READ_SUCCESSFULLY;
 }
 
-READ_VECTOR_DECLARATION(std::int64_t)
-
 template <>
 ReadResult Read<std::string>(
     const std::map<std::string, UniValue> &json_object,
@@ -144,13 +108,31 @@ ReadResult Read<std::string>(
   return ReadResult::VALUE_READ_SUCCESSFULLY;
 }
 
-}  // namespace
-
-#define READ_PARAMETER(NAME)                                                     \
-  if (Read(json_object, #NAME, parameters.NAME) == ReadResult::FAILED_TO_READ) { \
-    ++error_count;                                                               \
-    report_error("Failed to read \"" #NAME "\"");                                \
+template <typename T>
+ReadResult Read(
+    const std::map<std::string, UniValue> &json_object,
+    const char *const key,
+    std::vector<T> &value) {
+  if (json_object.count(key) == 0) {
+    return ReadResult::NO_VALUE_READ;
   }
+  const UniValue &json_value = json_object.at(key);
+  if (!json_value.isArray()) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  std::vector<T> result(json_value.size());
+  for (std::size_t i = 0; i < json_value.size(); ++i) {
+    std::map<std::string, UniValue> obj;
+    obj[""] = json_value[i];
+    if (Read(obj, "", result[i]) == ReadResult::FAILED_TO_READ) {
+      return ReadResult::FAILED_TO_READ;
+    }
+  }
+  value = result;
+  return ReadResult::VALUE_READ_SUCCESSFULLY;
+}
+
+}  // namespace
 
 boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
     const UniValue &json,
@@ -165,6 +147,15 @@ boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
 
   std::size_t error_count = 0;
   blockchain::Parameters parameters = base_parameters;
+
+#define READ_PARAMETER(NAME)                                                     \
+  if (Read(json_object, #NAME, parameters.NAME) == ReadResult::FAILED_TO_READ) { \
+    ++error_count;                                                               \
+    report_error("Failed to read \"" #NAME "\"");                                \
+  }
+
+  // using the READ_PARAMETER macro ensures that no typos create a mismatch
+  // between the json key and the parameters key.
 
   READ_PARAMETER(network_name);
   READ_PARAMETER(block_stake_timestamp_interval_seconds);
@@ -185,6 +176,8 @@ boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
   READ_PARAMETER(bech32_human_readable_prefix);
   READ_PARAMETER(deployment_confirmation_period);
   READ_PARAMETER(rule_change_activation_threshold);
+
+#undef READ_PARAMETER
 
   if (error_count > 0) {
     return boost::none;
