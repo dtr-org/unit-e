@@ -12,7 +12,7 @@
 namespace blockchain {
 
 Parameters Parameters::MainNet() noexcept {
-  Parameters p;  // designated initializers would be so nice here
+  Parameters p{};  // designated initializers would be so nice here
   p.network_name = "main";
   p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(MainnetFunds()).Build(p));
 

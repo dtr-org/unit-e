@@ -64,7 +64,7 @@ public:
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
     void UpdateFinalizationParams(esperanza::FinalizationParams &params);
 
-    const blockchain::Parameters& parameters;
+    const blockchain::Parameters parameters;
 
 protected:
     explicit CChainParams(const blockchain::Parameters& _parameters) : parameters(_parameters) {}
