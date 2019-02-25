@@ -21,9 +21,10 @@
 namespace blockchain {
 
 struct GenesisBlock {
-  const CBlock block;
-  const uint256 hash;
+  CBlock block;
+  uint256 hash;
 
+  GenesisBlock();
   explicit GenesisBlock(const CBlock &);
 };
 
@@ -91,7 +92,7 @@ struct Parameters {
   std::string network_name;
 
   //! \brief The genesis block of this chain.
-  GenesisBlock const *genesis_block;
+  GenesisBlock genesis_block;
 
   //! \brief The usable staking timestamps
   //!
@@ -221,9 +222,9 @@ struct Parameters {
   //! \brief Default settings to use for this chain.
   Settings default_settings;
 
-  static const Parameters &MainNet() noexcept;
-  static const Parameters &TestNet() noexcept;
-  static const Parameters &RegTest() noexcept;
+  static Parameters MainNet() noexcept;
+  static Parameters TestNet() noexcept;
+  static Parameters RegTest() noexcept;
 };
 
 }  // namespace blockchain

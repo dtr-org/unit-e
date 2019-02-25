@@ -6,15 +6,16 @@
 
 #include <blockchain/blockchain_genesis.h>
 #include <utilstrencodings.h>
+
 #include <numeric>
 
 namespace blockchain {
 
-namespace {
-
-Parameters BuildMainNetParameters() {
-  Parameters p{};  // designated initializers would be so nice here
+Parameters Parameters::MainNet() noexcept {
+  Parameters p;  // designated initializers would be so nice here
   p.network_name = "main";
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(MainnetFunds()).Build(p));
+
   p.block_stake_timestamp_interval_seconds = 16;
   p.block_time_seconds = 16;
   p.max_future_block_time_seconds = 2 * 60 * 60;
@@ -63,17 +64,14 @@ Parameters BuildMainNetParameters() {
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
 
-  static GenesisBlock genesisBlock{
-      GenesisBlockBuilder().Add(MainnetFunds()).Build(p)};
-
-  p.genesis_block = &genesisBlock;
-
   return p;
 }
 
-Parameters BuildTestNetParameters() {
+Parameters Parameters::TestNet() noexcept {
   Parameters p = Parameters::MainNet();
   p.network_name = "test";
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
+
   p.relay_non_standard_transactions = true;
   p.coinbase_maturity = 10;
   p.stake_maturity = 20;
@@ -91,16 +89,14 @@ Parameters BuildTestNetParameters() {
 
   p.bech32_human_readable_prefix = "tue";
 
-  static GenesisBlock genesisBlock{
-      GenesisBlockBuilder().Add(TestnetFunds()).Build(p)};
-  p.genesis_block = &genesisBlock;
-
   return p;
 }
 
-Parameters BuildRegTestParameters() {
+Parameters Parameters::RegTest() noexcept {
   Parameters p = Parameters::MainNet();
   p.network_name = "regtest";
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(RegtestFunds()).Build(p));
+
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
   p.stake_maturity = 2;
@@ -118,33 +114,13 @@ Parameters BuildRegTestParameters() {
 
   p.bech32_human_readable_prefix = "uert";
 
-  static GenesisBlock genesisBlock{
-      GenesisBlockBuilder().Add(RegtestFunds()).Build(p)};
-  p.genesis_block = &genesisBlock;
-
   p.default_settings.node_is_proposer = false;
 
   return p;
 }
 
-}  // namespace
+GenesisBlock::GenesisBlock() : block(), hash(block.GetHash()) {}
 
-const Parameters &Parameters::MainNet() noexcept {
-  static Parameters parameters = BuildMainNetParameters();
-  return parameters;
-}
-
-const Parameters &Parameters::TestNet() noexcept {
-  static Parameters parameters = BuildTestNetParameters();
-  return parameters;
-}
-
-const Parameters &Parameters::RegTest() noexcept {
-  static Parameters parameters = BuildRegTestParameters();
-  return parameters;
-}
-
-GenesisBlock::GenesisBlock(const CBlock &block)
-    : block(block), hash(block.GetHash()) {}
+GenesisBlock::GenesisBlock(const CBlock &block) : block(block), hash(block.GetHash()) {}
 
 }  // namespace blockchain

@@ -4,6 +4,7 @@
 
 #include <blockchain/blockchain_custom_parameters.h>
 
+#include <blockchain/blockchain_genesis.h>
 #include <blockchain/blockchain_parameters.h>
 #include <blockchain/blockchain_types.h>
 #include <util.h>

@@ -30,11 +30,11 @@ CAmount Behavior::CalculateBlockReward(const Height height) {
 }
 
 uint256 Behavior::GetGenesisBlockHash() const {
-  return m_parameters.genesis_block->hash;
+  return m_parameters.genesis_block.hash;
 }
 
 const CBlock &Behavior::GetGenesisBlock() const {
-  return m_parameters.genesis_block->block;
+  return m_parameters.genesis_block.block;
 }
 
 bool Behavior::IsGenesisBlockHash(const uint256 &hash) const {
