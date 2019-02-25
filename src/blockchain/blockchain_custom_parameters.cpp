@@ -29,8 +29,9 @@ enum class ReadResult {
 
 template <typename T>
 ReadResult Read(
+    const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
-    const char *key,
+    const char *const key,
     T &value) {
   static_assert(std::is_void<T>::value, "unsupported type to Read()");
   return ReadResult::FAILED_TO_READ;
@@ -38,6 +39,7 @@ ReadResult Read(
 
 template <>
 ReadResult Read<bool>(
+    const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
     bool &value) {
@@ -54,6 +56,7 @@ ReadResult Read<bool>(
 
 template <>
 ReadResult Read<std::int64_t>(
+    const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
     std::int64_t &value) {
@@ -74,12 +77,13 @@ ReadResult Read<std::int64_t>(
 
 template <>
 ReadResult Read<std::uint32_t>(
+    const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
     std::uint32_t &value) {
 
   std::int64_t intermediate_value;
-  const ReadResult intermediate_result = Read(json_object, key, intermediate_value);
+  const ReadResult intermediate_result = Read(parameters, json_object, key, intermediate_value);
   if (intermediate_result != ReadResult::VALUE_READ_SUCCESSFULLY) {
     return intermediate_result;
   }
@@ -95,6 +99,7 @@ ReadResult Read<std::uint32_t>(
 
 template <>
 ReadResult Read<std::string>(
+    const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
     std::string &value) {
@@ -109,8 +114,81 @@ ReadResult Read<std::string>(
   return ReadResult::VALUE_READ_SUCCESSFULLY;
 }
 
+template <>
+ReadResult Read<uint256>(
+    const blockchain::Parameters &parameters,
+    const std::map<std::string, UniValue> &json_object,
+    const char *const key,
+    uint256 &value) {
+
+  std::string intermediate_value;
+  const ReadResult intermediate_result = Read(parameters, json_object, key, intermediate_value);
+  if (intermediate_result != ReadResult::VALUE_READ_SUCCESSFULLY) {
+    return intermediate_result;
+  }
+  value = uint256S(intermediate_value);
+  return ReadResult::VALUE_READ_SUCCESSFULLY;
+}
+
+template<>
+ReadResult Read<P2WPKH>(
+    const blockchain::Parameters &parameters,
+    const std::map<std::string, UniValue> &json_object,
+    const char *const key,
+    P2WPKH &value) {
+
+  if (json_object.count(key) == 0) {
+    return ReadResult::NO_VALUE_READ;
+  }
+  const UniValue &json_value = json_object.at(key);
+  if (!json_value.isObject()) {
+    return ReadResult::FAILED_TO_READ;
+  }
+
+  std::map<std::string, UniValue> obj;
+  json_value.getObjMap(obj);
+
+  if (Read(parameters, obj, "amount", value.amount) != ReadResult::VALUE_READ_SUCCESSFULLY) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  std::string key_hash;
+  if (Read(parameters, obj, "pub_key_hash", value.pub_key_hash) != ReadResult::VALUE_READ_SUCCESSFULLY) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  return ReadResult::VALUE_READ_SUCCESSFULLY;
+}
+
+template<>
+ReadResult Read<P2WSH>(
+    const blockchain::Parameters &parameters,
+    const std::map<std::string, UniValue> &json_object,
+    const char *const key,
+    P2WSH &value) {
+
+  if (json_object.count(key) == 0) {
+    return ReadResult::NO_VALUE_READ;
+  }
+  const UniValue &json_value = json_object.at(key);
+  if (!json_value.isObject()) {
+    return ReadResult::FAILED_TO_READ;
+  }
+
+  std::map<std::string, UniValue> obj;
+  json_value.getObjMap(obj);
+
+  if (Read(parameters, obj, "amount", value.amount) != ReadResult::VALUE_READ_SUCCESSFULLY) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  std::string key_hash;
+  if (Read(parameters, obj, "script_hash", value.script_hash) != ReadResult::VALUE_READ_SUCCESSFULLY) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  return ReadResult::VALUE_READ_SUCCESSFULLY;
+}
+
 template <typename T>
 ReadResult Read(
+    const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
     std::vector<T> &value) {
@@ -125,11 +203,87 @@ ReadResult Read(
   for (std::size_t i = 0; i < json_value.size(); ++i) {
     std::map<std::string, UniValue> obj;
     obj[""] = json_value[i];
-    if (Read(obj, "", result[i]) == ReadResult::FAILED_TO_READ) {
+    if (Read(parameters, obj, "", result[i]) == ReadResult::FAILED_TO_READ) {
       return ReadResult::FAILED_TO_READ;
     }
   }
   value = result;
+  return ReadResult::VALUE_READ_SUCCESSFULLY;
+}
+
+template <>
+ReadResult Read<GenesisBlock>(
+    const blockchain::Parameters &parameters,
+    const std::map<std::string, UniValue> &json_object,
+    const char *const key,
+    GenesisBlock &value) {
+  if (json_object.count(key) == 0) {
+    return ReadResult::NO_VALUE_READ;
+  }
+  const UniValue &json_value = json_object.at(key);
+  if (!json_value.isObject()) {
+    return ReadResult::FAILED_TO_READ;
+  }
+  GenesisBlockBuilder builder;
+
+  std::map<std::string, UniValue> obj;
+  json_value.getObjMap(obj);
+
+  uint256 difficulty;
+  switch (Read(parameters, obj, "difficulty", difficulty)) {
+    case ReadResult::VALUE_READ_SUCCESSFULLY:
+      builder.SetDifficulty(difficulty);
+    case ReadResult::NO_VALUE_READ:
+      break;
+    case ReadResult::FAILED_TO_READ:
+      return ReadResult::FAILED_TO_READ;
+  }
+
+  blockchain::Time time;
+  switch (Read(parameters, obj, "time", time)) {
+    case ReadResult::VALUE_READ_SUCCESSFULLY:
+      builder.SetTime(time);
+    case ReadResult::NO_VALUE_READ:
+      break;
+    case ReadResult::FAILED_TO_READ:
+      return ReadResult::FAILED_TO_READ;
+  }
+
+  std::uint32_t version;
+  switch (Read(parameters, obj, "version", version)) {
+    case ReadResult::VALUE_READ_SUCCESSFULLY:
+      builder.SetVersion(version);
+    case ReadResult::NO_VALUE_READ:
+      break;
+    case ReadResult::FAILED_TO_READ:
+      return ReadResult::FAILED_TO_READ;
+  }
+
+  std::vector<P2WPKH> p2wpkh_funds;
+  switch (Read(parameters, obj, "p2wpkh_funds", p2wpkh_funds)) {
+    case ReadResult::VALUE_READ_SUCCESSFULLY:
+      for (const P2WPKH &funds : p2wpkh_funds) {
+        builder.AddFundsForPayToPubKeyHash(funds.amount, funds.pub_key_hash);
+      }
+    case ReadResult::NO_VALUE_READ:
+      break;
+    case ReadResult::FAILED_TO_READ:
+      return ReadResult::FAILED_TO_READ;
+  }
+
+  std::vector<P2WSH> p2wsh_funds;
+  switch (Read(parameters, obj, "p2wsh_funds", p2wsh_funds)) {
+    case ReadResult::VALUE_READ_SUCCESSFULLY:
+      for (const P2WSH &funds : p2wsh_funds) {
+        builder.AddFundsForPayToScriptHash(funds.amount, funds.script_hash);
+      }
+    case ReadResult::NO_VALUE_READ:
+      break;
+    case ReadResult::FAILED_TO_READ:
+      return ReadResult::FAILED_TO_READ;
+  }
+
+  value = GenesisBlock(builder.Build(parameters));
   return ReadResult::VALUE_READ_SUCCESSFULLY;
 }
 
@@ -149,10 +303,10 @@ boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
   std::size_t error_count = 0;
   blockchain::Parameters parameters = base_parameters;
 
-#define READ_PARAMETER(NAME)                                                     \
-  if (Read(json_object, #NAME, parameters.NAME) == ReadResult::FAILED_TO_READ) { \
-    ++error_count;                                                               \
-    report_error("Failed to read \"" #NAME "\"");                                \
+#define READ_PARAMETER(NAME)                                                                 \
+  if (Read(parameters, json_object, #NAME, parameters.NAME) == ReadResult::FAILED_TO_READ) { \
+    ++error_count;                                                                           \
+    report_error("Failed to read \"" #NAME "\"");                                            \
   }
 
   // using the READ_PARAMETER macro ensures that no typos create a mismatch
@@ -177,6 +331,7 @@ boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
   READ_PARAMETER(bech32_human_readable_prefix);
   READ_PARAMETER(deployment_confirmation_period);
   READ_PARAMETER(rule_change_activation_threshold);
+  READ_PARAMETER(genesis_block);
 
 #undef READ_PARAMETER
 

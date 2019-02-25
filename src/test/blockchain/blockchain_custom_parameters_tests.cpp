@@ -124,4 +124,22 @@ BOOST_AUTO_TEST_CASE(error_reporting) {
   BOOST_CHECK_EQUAL(errors, expected_errors);
 }
 
+BOOST_AUTO_TEST_CASE(load_genesis_block) {
+
+  const boost::optional<blockchain::Parameters> custom_parameters = blockchain::ReadCustomParametersFromJsonString(
+      "{"
+      "\"genesis_block\":{"
+      "  \"version\":1,"
+      "  \"difficulty\":\"0x00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\","
+      "  \"p2wpkh_funds\":["
+      "    { \"amount\": 10000, \"pub_key_hash\": \"33a471b2c4d3f45b9ab4707455f7d2e917af5a6e\" }"
+      "    { \"amount\": 10000, \"pub_key_hash\": \"7eac29a2e24c161e2d18d8d1249a6327d18d390f\" }"
+      "  ]"
+      "}"
+      "}",
+      blockchain::Parameters::RegTest());
+
+  BOOST_REQUIRE(static_cast<bool>(custom_parameters));
+}
+
 BOOST_AUTO_TEST_SUITE_END()

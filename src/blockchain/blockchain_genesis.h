@@ -17,6 +17,7 @@ struct P2WPKH {
   CAmount amount;
   std::string pub_key_hash;
 
+  P2WPKH() = default;
   P2WPKH(CAmount, const std::string &&);
 };
 
@@ -24,6 +25,7 @@ struct P2WSH {
   CAmount amount;
   std::string script_hash;
 
+  P2WSH() = default;
   P2WSH(CAmount, const std::string &&);
 };
 

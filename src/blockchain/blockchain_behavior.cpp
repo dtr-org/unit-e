@@ -17,6 +17,9 @@ Difficulty Behavior::CalculateDifficulty(Height height, ChainAccess &chain) cons
 
 Time Behavior::CalculateProposingTimestamp(const std::int64_t timestamp_sec) const {
   auto blocktime = static_cast<std::uint32_t>(timestamp_sec);
+  if (m_parameters.block_stake_timestamp_interval_seconds == 0) {
+    return blocktime;
+  }
   blocktime = blocktime - (blocktime % m_parameters.block_stake_timestamp_interval_seconds);
   return blocktime;
 }

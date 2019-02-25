@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(caddrdb_read)
     bool exceptionThrown = false;
     CAddrMan addrman1;
 
-    BOOST_CHECK(addrman1.size() == 0);
+    BOOST_CHECK_EQUAL(addrman1.size(), 0);
     try {
         unsigned char pchMsgTmp[4];
         ssPeers1 >> FLATDATA(pchMsgTmp);
@@ -118,17 +118,17 @@ BOOST_AUTO_TEST_CASE(caddrdb_read)
         exceptionThrown = true;
     }
 
-    BOOST_CHECK(addrman1.size() == 3);
-    BOOST_CHECK(exceptionThrown == false);
+    BOOST_CHECK_EQUAL(addrman1.size(), 3);
+    BOOST_CHECK(!exceptionThrown);
 
     // Test that CAddrDB::Read creates an addrman with the correct number of addrs.
     CDataStream ssPeers2 = AddrmanToStream(addrmanUncorrupted);
 
     CAddrMan addrman2;
     CAddrDB adb;
-    BOOST_CHECK(addrman2.size() == 0);
+    BOOST_CHECK_EQUAL(addrman2.size(), 0);
     adb.Read(addrman2, ssPeers2);
-    BOOST_CHECK(addrman2.size() == 3);
+    BOOST_CHECK_EQUAL(addrman2.size(), 3);
 }
 
 
