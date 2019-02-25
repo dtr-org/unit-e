@@ -29,7 +29,6 @@ def test_setup(test, proposers, validators):
     json_params = json.dumps(params_data)
 
     proposer_node_params = [
-        '-proposing=0',
         '-debug=all',
         '-whitelist=127.0.0.1',
         '-connect=0',
@@ -39,7 +38,6 @@ def test_setup(test, proposers, validators):
 
     validator_node_params = [
         '-validating=1',
-        '-proposing=0',
         '-whitelist=127.0.0.1',
         '-debug=all',
         '-connect=0',
