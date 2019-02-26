@@ -2514,7 +2514,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
-    esperanza::ProcessNewTip(*pindexNew, blockConnecting);
+    GetComponent(FinalizationStateProcessor)->ProcessNewTip(*pindexNew, blockConnecting);
 
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
@@ -3989,7 +3989,9 @@ bool LoadChainTip(const CChainParams& chainparams)
 
     g_chainstate.PruneBlockIndexCandidates();
 
-    esperanza::RestoreFinalizationState(chainparams);
+    auto state_repository = GetComponent(FinalizationStateRepository);
+    auto state_processor = GetComponent(FinalizationStateProcessor);
+    state_repository->RestoreFromDisk(chainparams, state_processor);
 
     LogPrintf("Loaded best chain: hashBestChain=%s height=%d date=%s progress=%f\n",
         chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(),
@@ -4273,6 +4275,8 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         }
     }
 
+    auto state_repository = GetComponent(FinalizationStateRepository);
+    auto state_processor = GetComponent(FinalizationStateProcessor);
     if (chainActive.Tip() != nullptr) {
         // We can't prune block index candidates based on our tip if we have
         // no tip due to chainActive being empty!
@@ -4281,10 +4285,10 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         CheckBlockIndex(params.GetConsensus());
 
         if (esperanza::FinalizationState::GetState(chainActive.Tip()) == nullptr) {
-            esperanza::RestoreFinalizationState(params);
+            state_repository->RestoreFromDisk(params, state_processor);
         }
     } else {
-        esperanza::FinalizationState::Reset(params.GetFinalization(), params.GetAdminParams());
+       state_repository->Reset(params.GetFinalization(), params.GetAdminParams());
     }
 
     return true;

@@ -27,7 +27,7 @@ class EmbargoManLoop(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2 + LOOPS_N
 
-        self.extra_args = [['-proposing=1', '-debug=all',
+        self.extra_args = [['-debug=all',
                             '-embargotxs=1', '-embargomin=9999',
                             '-whitelist=127.0.0.1']] * self.num_nodes
         self.setup_clean_chain = True

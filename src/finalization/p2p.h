@@ -13,6 +13,7 @@
 
 class CNode;
 class CNetMsgMaker;
+class CValidationState;
 
 namespace finalization {
 namespace p2p {
@@ -79,7 +80,7 @@ struct CommitsResponse {
   ADD_SERIALIZE_METHODS
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
-    READWRITE(*(uint8_t*)&status);
+    READWRITE(*reinterpret_cast<uint8_t *>(&status));
     READWRITE(data);
   }
 };
@@ -94,7 +95,7 @@ bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsg
 bool ProcessNewCommits(const CommitsResponse &commits, const CChainParams &chainparams,
                        CValidationState &validation_state, uint256 *failed_block_out);
 
-} // p2p
-} // finalization
+}  // namespace p2p
+}  // namespace finalization
 
 #endif

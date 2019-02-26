@@ -29,4 +29,10 @@ BOOST_AUTO_TEST_CASE(pick_settings_test) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(proposer_is_disabled_in_regtest) {
+
+  blockchain::Parameters params = blockchain::Parameters::RegTest();
+  BOOST_CHECK(!params.default_settings.node_is_proposer);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

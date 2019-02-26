@@ -58,6 +58,12 @@ class ActiveChain : public blockchain::ChainAccess {
   //! \brief returns the tip of the currently active chain.
   virtual const CBlockIndex *GetTip() const = 0;
 
+  //! \brief returns the chain genesis
+  virtual const CBlockIndex *GetGenesis() const = 0;
+
+  //! \brief returns whether chain contains a block index
+  virtual bool Contains(const CBlockIndex &) const = 0;
+
   // defined in blockchain::ChainAccess
   const CBlockIndex *AtDepth(blockchain::Depth) override = 0;
 

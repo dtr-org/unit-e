@@ -60,8 +60,9 @@ BASE_SCRIPTS= [
     # vv Tests less than 5m vv
     'feature_maxuploadtarget.py',
     'mempool_packages.py',
-    'feature_block.py --runbarelyexpensive=false',
+    'feature_block.py',
     'rpc_fundrawtransaction.py',
+    'p2p_compactblocks.py',
     'feature_segwit.py',
     'feature_fee_estimation.py',
     'esperanza_withdraw.py',
@@ -69,6 +70,7 @@ BASE_SCRIPTS= [
     'feature_bip68_sequence.py',
     'wallet_basic.py',
     'wallet_accounts.py',
+    'p2p_segwit.py',
     'p2p_embargoman_star.py',
     'esperanza_admin_full_cycle.py',
     'p2p_timeouts.py',
@@ -136,6 +138,7 @@ BASE_SCRIPTS= [
     'rpc_signmessage.py',
     'feature_spend_genesis.py',
     'rpc_filtertransactions.py',
+    'feature_nulldummy.py',
     'rpc_sendtypeto.py',
     'wallet_import_rescan.py',
     'rpc_named_arguments.py',
@@ -203,12 +206,7 @@ USBDEVICE_SCRIPTS = [
     'wallet_hwsign.py',
 ]
 
-# UNIT-E TODO:
-DISABLED_SCRIPTS = [
-    'p2p_segwit.py',
-    'feature_nulldummy.py',
-    'p2p_compactblocks.py',
-]
+DISABLED_SCRIPTS = []
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
 ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS + USBDEVICE_SCRIPTS

@@ -6,6 +6,7 @@
 
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
+from test_framework.messages import msg_block, msg_witness_block
 from test_framework.util import *
 from test_framework.script import *
 from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, get_witness_script, WITNESS_COMMITMENT_HEADER
@@ -141,7 +142,9 @@ class SegWitTest(UnitETestFramework):
 
     # Adds list of transactions to block, adds witness commitment, then solves.
     def update_witness_block_with_transactions(self, block, tx_list, nonce=0):
+        assert(all(tx.hash is not None for tx in tx_list))
         block.vtx.extend(tx_list)
+        block.ensure_ltor()
         add_witness_commitment(block, nonce)
         block.solve()
         return
@@ -404,28 +407,6 @@ class SegWitTest(UnitETestFramework):
     def test_block_malleability(self):
         self.log.info("Testing witness block malleability")
 
-        # Make sure that a block that has too big a virtual size
-        # because of a too-large coinbase witness is not permanently
-        # marked bad.
-        block = self.build_next_block()
-        add_witness_commitment(block)
-        block.solve()
-
-        block.vtx[0].wit.vtxinwit[0].scriptWitness.stack.append(b'a'*5000000)
-        assert(get_virtual_size(block) > MAX_BLOCK_BASE_SIZE)
-
-        # We can't send over the p2p network, because this is too big to relay
-        # TODO: repeat this test with a block that can be relayed
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
-
-        assert(self.nodes[0].getbestblockhash() != block.hash)
-
-        block.vtx[0].wit.vtxinwit[0].scriptWitness.stack.pop()
-        assert(get_virtual_size(block) < MAX_BLOCK_BASE_SIZE)
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
-
-        assert(self.nodes[0].getbestblockhash() == block.hash)
-
         # Now make sure that malleating the witness nonce doesn't
         # result in a block permanently marked bad.
         block = self.build_next_block()
@@ -491,7 +472,7 @@ class SegWitTest(UnitETestFramework):
         while additional_bytes > 0:
             # Add some more bytes to each input until we hit MAX_BLOCK_BASE_SIZE+1
             extra_bytes = min(additional_bytes+1, 55)
-            block.vtx[-1].wit.vtxinwit[int(i/(2*NUM_DROPS))].scriptWitness.stack[i%(2*NUM_DROPS)] = b'a'*(195+extra_bytes)
+            child_tx.wit.vtxinwit[int(i/(2*NUM_DROPS))].scriptWitness.stack[i%(2*NUM_DROPS)] = b'a'*(195+extra_bytes)
             additional_bytes -= extra_bytes
             i += 1
 
@@ -507,8 +488,8 @@ class SegWitTest(UnitETestFramework):
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=False)
 
         # Now resize the second transaction to make the block fit.
-        cur_length = len(block.vtx[-1].wit.vtxinwit[0].scriptWitness.stack[0])
-        block.vtx[-1].wit.vtxinwit[0].scriptWitness.stack[0] = b'a'*(cur_length-1)
+        cur_length = len(child_tx.wit.vtxinwit[0].scriptWitness.stack[0])
+        child_tx.wit.vtxinwit[0].scriptWitness.stack[0] = b'a'*(cur_length-1)
         block.vtx[0].vout.pop()
         add_witness_commitment(block)
         block.solve()
@@ -518,44 +499,7 @@ class SegWitTest(UnitETestFramework):
 
         # Update available utxo's
         self.utxo.pop(0)
-        self.utxo.append(UTXO(block.vtx[-1].sha256, 0, block.vtx[-1].vout[0].nValue))
-
-
-    # submitblock will try to add the nonce automatically, so that mining
-    # software doesn't need to worry about doing so itself.
-    def test_submit_block(self):
-        block = self.build_next_block()
-
-        # Try using a custom nonce and then don't supply it.
-        # This shouldn't possibly work.
-        add_witness_commitment(block, nonce=1)
-        block.vtx[0].wit = CTxWitness() # drop the nonce
-        block.solve()
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
-        assert(self.nodes[0].getbestblockhash() != block.hash)
-
-        # Now redo commitment with the standard nonce, but let united fill it in.
-        add_witness_commitment(block, nonce=0)
-        block.vtx[0].wit = CTxWitness()
-        block.solve()
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
-        assert_equal(self.nodes[0].getbestblockhash(), block.hash)
-
-        # This time, add a tx with non-empty witness, but don't supply
-        # the commitment.
-        block_2 = self.build_next_block()
-
-        add_witness_commitment(block_2)
-
-        block_2.solve()
-
-        # Drop commitment and nonce -- submitblock should not fill in.
-        block_2.vtx[0].vout.pop()
-        block_2.vtx[0].wit = CTxWitness()
-
-        self.nodes[0].submitblock(bytes_to_hex_str(block_2.serialize(True)))
-        # Tip should not advance!
-        assert(self.nodes[0].getbestblockhash() != block_2.hash)
+        self.utxo.append(UTXO(child_tx.sha256, 0, child_tx.vout[0].nValue))
 
 
     # Consensus tests of extra witness data in a transaction.
@@ -601,6 +545,7 @@ class SegWitTest(UnitETestFramework):
         tx2.wit.vtxinwit.extend([CTxInWitness(), CTxInWitness()])
         tx2.wit.vtxinwit[0].scriptWitness.stack = [ CScript([CScriptNum(1)]), CScript([CScriptNum(1)]), witness_program ]
         tx2.wit.vtxinwit[1].scriptWitness.stack = [ CScript([OP_TRUE]) ]
+        tx2.rehash()
 
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx2])
@@ -740,6 +685,7 @@ class SegWitTest(UnitETestFramework):
             tx.vout.append(CTxOut(int(nValue/10), scriptPubKey))
         tx.vout[0].nValue -= 1000
         assert(tx.vout[0].nValue >= 0)
+        tx.rehash()
 
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx])
@@ -775,6 +721,7 @@ class SegWitTest(UnitETestFramework):
         for i in range(11):
             tx2.wit.vtxinwit.append(CTxInWitness())
             tx2.wit.vtxinwit[i].scriptWitness.stack = [b'a', witness_program]
+        tx2.rehash()
 
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx2])
@@ -1143,7 +1090,9 @@ class SegWitTest(UnitETestFramework):
         witness_program = CScript([OP_TRUE])
         witness_hash = sha256(witness_program)
         assert_equal(len(self.nodes[1].getrawmempool()), 0)
-        for version in list(range(OP_1, OP_16+1)) + [OP_0]:
+        # Do not check OP_1 (remote staking) here as it is a standard version
+        # and version 0 is enough to test spending standard transaction in a non-standard one
+        for version in list(range(OP_2, OP_16+1)) + [OP_0]:
             count += 1
             # First try to spend to a future version segwit scriptPubKey.
             scriptPubKey = CScript([CScriptOp(version), witness_hash])
@@ -1159,9 +1108,9 @@ class SegWitTest(UnitETestFramework):
         sync_blocks(self.nodes)
         assert(len(self.nodes[0].getrawmempool()) == 0)
 
-        # Finally, verify that version 0 -> version 1 transactions
+        # Finally, verify that version 0 -> version 2 transactions
         # are non-standard
-        scriptPubKey = CScript([CScriptOp(OP_1), witness_hash])
+        scriptPubKey = CScript([CScriptOp(OP_2), witness_hash])
         tx2 = CTransaction()
         tx2.vin = [CTxIn(COutPoint(tx.sha256, 0), b"")]
         tx2.vout = [CTxOut(tx.vout[0].nValue-1000, scriptPubKey)]
@@ -1190,7 +1139,7 @@ class SegWitTest(UnitETestFramework):
         test_transaction_acceptance(self.nodes[0].rpc, self.test_node, tx3, with_witness=True, accepted=False)
         self.test_node.sync_with_ping()
         with mininode_lock:
-            assert(b"reserved for soft-fork upgrades" in self.test_node.last_message["reject"].reason)
+            assert_in(b"reserved for soft-fork upgrades", self.test_node.last_message["reject"].reason)
 
         # Building a block with the transaction must be valid, however.
         block = self.build_next_block()
@@ -1381,18 +1330,18 @@ class SegWitTest(UnitETestFramework):
 
         # Check that we can't have a scriptSig
         tx2.vin[0].scriptSig = CScript([signature, pubkey])
+        tx2.rehash()
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx, tx2])
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=False)
 
         # Move the signature to the witness.
-        block.vtx.pop()
         tx2.wit.vtxinwit.append(CTxInWitness())
         tx2.wit.vtxinwit[0].scriptWitness.stack = [signature, pubkey]
         tx2.vin[0].scriptSig = b""
         tx2.rehash()
 
-        self.update_witness_block_with_transactions(block, [tx2])
+        self.update_witness_block_with_transactions(block, [])
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
 
         temp_utxos.pop(0)
@@ -1624,52 +1573,11 @@ class SegWitTest(UnitETestFramework):
 
         # TODO: test p2sh sigop counting
 
-    def test_getblocktemplate_before_lockin(self):
-        self.log.info("Testing getblocktemplate setting of segwit versionbit (before lockin)")
-        # Node0 is segwit aware, node2 is not.
-        for node in [self.nodes[0], self.nodes[2]]:
-            gbt_results = node.getblocktemplate()
-            block_version = gbt_results['version']
-            # If we're not indicating segwit support, we will still be
-            # signalling for segwit activation.
-            assert_equal((block_version & (1 << VB_WITNESS_BIT) != 0), node == self.nodes[0])
-            # If we don't specify the segwit rule, then we won't get a default
-            # commitment.
-            assert('default_witness_commitment' not in gbt_results)
-
-        # Workaround:
-        # Can either change the tip, or change the mempool and wait 5 seconds
-        # to trigger a recomputation of getblocktemplate.
-        txid = int(self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 1), 16)
-        # Using mocktime lets us avoid sleep()
-        sync_mempools(self.nodes)
-        self.nodes[0].setmocktime(int(time.time())+10)
-        self.nodes[2].setmocktime(int(time.time())+10)
-
-        for node in [self.nodes[0], self.nodes[2]]:
-            gbt_results = node.getblocktemplate({"rules" : ["segwit"]})
-            block_version = gbt_results['version']
-            if node == self.nodes[2]:
-                # If this is a non-segwit node, we should still not get a witness
-                # commitment, nor a version bit signalling segwit.
-                assert_equal(block_version & (1 << VB_WITNESS_BIT), 0)
-                assert('default_witness_commitment' not in gbt_results)
-            else:
-                # For segwit-aware nodes, check the version bit and the witness
-                # commitment are correct.
-                assert(block_version & (1 << VB_WITNESS_BIT) != 0)
-                assert('default_witness_commitment' in gbt_results)
-                witness_commitment = gbt_results['default_witness_commitment']
-
-                # Check that default_witness_commitment is present.
-                witness_root = CBlock.get_merkle_root([ser_uint256(0),
-                                                       ser_uint256(txid)])
-                script = get_witness_script(witness_root, 0)
-                assert_equal(witness_commitment, bytes_to_hex_str(script))
-
-        # undo mocktime
-        self.nodes[0].setmocktime(0)
-        self.nodes[2].setmocktime(0)
+    def test_segwit_started(self):
+        # Nodes 0 and 1 are segwit aware, node 2 is not.
+        assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], 'started')
+        assert_equal(get_bip9_status(self.nodes[1], 'segwit')['status'], 'started')
+        assert('segwit' not in self.nodes[2].getblockchaininfo()['bip9_softforks'].keys())
 
     # Uncompressed pubkeys are no longer supported in default relay policy,
     # but (for now) are still valid in blocks.
@@ -1903,7 +1811,7 @@ class SegWitTest(UnitETestFramework):
         # Advance to segwit being 'started'
         self.advance_to_segwit_started()
         sync_blocks(self.nodes)
-        self.test_getblocktemplate_before_lockin()
+        self.test_segwit_started()
 
         sync_blocks(self.nodes)
 
@@ -1931,7 +1839,6 @@ class SegWitTest(UnitETestFramework):
         self.test_witness_commitments()
         self.test_block_malleability()
         self.test_witness_block_size()
-        self.test_submit_block()
         self.test_extra_witness_data()
         self.test_max_witness_push_length()
         self.test_max_witness_program_length()

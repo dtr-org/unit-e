@@ -31,6 +31,13 @@ from .util import (
     set_node_times,
     sync_blocks,
     sync_mempools,
+    connect_nodes,
+    wait_until,
+)
+from .messages import (
+    FromHex,
+    CTransaction,
+    TxType,
 )
 
 class TestStatus(Enum):
@@ -361,6 +368,42 @@ class UnitETestFramework():
         for group in node_groups:
             sync_blocks(group)
             sync_mempools(group)
+
+    @staticmethod
+    def wait_for_vote_and_disconnect(finalizer, node):
+        """
+        Wait until the finalizer votes on the node's tip
+        and disconnect the finalizer from the node.
+        """
+        def connected(addr):
+            for p in finalizer.getpeerinfo():
+                if p['addr'] == addr:
+                    return True
+            return False
+
+        def wait_for_new_vote(old_txs):
+            try:
+                wait_until(lambda: len(node.getrawmempool()) > len(old_txs), timeout=10)
+            except AssertionError as e:
+                msg = "{}\nERROR: finalizer did not vote for the tip={} during {} sec.".format(
+                    e, node.getblockcount(), 10)
+                raise AssertionError(msg)
+
+        ip_port = "127.0.0.1:" + str(p2p_port(node.index))
+        assert not connected(ip_port), 'finalizer must not be connected for the correctness of the test'
+
+        txs = node.getrawmempool()
+        connect_nodes(finalizer, node.index)
+        assert connected(ip_port)  # ensure that the right IP was used
+
+        sync_blocks([finalizer, node])
+        wait_for_new_vote(txs)
+        disconnect_nodes(finalizer, node.index)
+
+        new_txs = [tx for tx in node.getrawmempool() if tx not in txs]
+        assert_equal(len(new_txs), 1)
+        vote = FromHex(CTransaction(), node.getrawtransaction(new_txs[0]))
+        assert_equal(vote.get_type(), TxType.VOTE.name)
 
     def generate_sync(self, generator_node, nblocks=1):
         """

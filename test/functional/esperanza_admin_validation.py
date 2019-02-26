@@ -58,8 +58,9 @@ def set_type_to_admin(raw_tx):
 # accepted. Admin txs should also contain at least one valid command
 class AdminValidation(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 2
-        self.extra_args = [['-permissioning=1', '-proposing=0', '-debug=all', '-whitelist=127.0.0.1']] * self.num_nodes
+        self.num_nodes = 1
+        self.extra_args = [
+            ['-permissioning=1', '-debug=all', '-whitelist=127.0.0.1']]
         self.setup_clean_chain = True
 
     def send_via_mininode(self, cmds, address):

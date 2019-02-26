@@ -23,6 +23,14 @@ class ActiveChainAdapter final : public ActiveChain {
     return chainActive.Tip();
   }
 
+  const CBlockIndex *GetGenesis() const override {
+    return chainActive.Genesis();
+  }
+
+  bool Contains(const CBlockIndex &block_index) const override {
+    return chainActive.Contains(&block_index);
+  }
+
   blockchain::Height GetSize() const override {
     return static_cast<blockchain::Height>(chainActive.Height() + 1);
   }
@@ -45,7 +53,7 @@ class ActiveChainAdapter final : public ActiveChain {
     if (!block_index) {
       return nullptr;
     }
-    if (!chainActive.Contains(block_index)) {
+    if (!Contains(*block_index)) {
       // the block is not part of the active chain but in a fork.
       return nullptr;
     }

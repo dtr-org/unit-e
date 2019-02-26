@@ -29,8 +29,7 @@ class EmbargoManStar(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
-        self.extra_args = [['-proposing=1',
-                            '-debug=all',
+        self.extra_args = [['-debug=all',
                             '-whitelist=127.0.0.1',
                             '-embargotxs=1',
                             '-embargomin=%s' % EMBARGO_SECONDS,
