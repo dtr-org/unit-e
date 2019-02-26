@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNIT_E_BLOCKCHAIN_CUSTOM_H
-#define UNIT_E_BLOCKCHAIN_CUSTOM_H
+#ifndef UNIT_E_BLOCKCHAIN_CUSTOM_PARAMETERS_H
+#define UNIT_E_BLOCKCHAIN_CUSTOM_PARAMETERS_H
 
 #include <blockchain/blockchain_parameters.h>
 
@@ -17,7 +17,7 @@ namespace blockchain {
 class FailedToParseCustomParametersError : public std::runtime_error {
 
  public:
-  FailedToParseCustomParametersError(std::string&& what) : runtime_error(what) {}
+  explicit FailedToParseCustomParametersError(std::string&& what) : runtime_error(what) {}
 };
 
 //! \brief Read blockchain::Parameters from a UniValue json object.
@@ -34,4 +34,4 @@ blockchain::Parameters ReadCustomParametersFromJsonString(
 
 }  // namespace blockchain
 
-#endif  //UNIT_E_BLOCKCHAIN_CUSTOM_H
+#endif  //UNIT_E_BLOCKCHAIN_CUSTOM_PARAMETERS_H
