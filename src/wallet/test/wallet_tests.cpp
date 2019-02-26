@@ -690,10 +690,15 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     std::vector<COutput> coins;
 
     CKey our_key;
+    CKey our_second_key;
     our_key.MakeNewKey(/* compressed: */ true);
+    our_second_key.MakeNewKey(/* compressed: */ true);
+    CScript witness_script = GetScriptForMultisig(1, {our_key.GetPubKey(), our_second_key.GetPubKey()});
     {
         LOCK(pwalletMain->cs_wallet);
         pwalletMain->AddKey(our_key);
+        pwalletMain->AddKey(our_second_key);
+        pwalletMain->AddCScript(witness_script);
     }
 
     CKey their_key;
@@ -703,23 +708,30 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     // One coinbase has reached maturity
     BOOST_CHECK_EQUAL(1, coins.size());
 
-    AddTx(CRecipient {
-      CScript::CreateRemoteStakingScript(
-        ToByteVector(their_key.GetPubKey().GetID()),
-        ToByteVector(our_key.GetPubKey().GetSha256())
-      ), 1 * UNIT, false
+    AddTx(CRecipient{
+        CScript::CreateRemoteStakingKeyhashScript(
+            ToByteVector(their_key.GetPubKey().GetID()),
+            ToByteVector(our_key.GetPubKey().GetSha256())),
+        1 * UNIT, false
+    });
+
+    AddTx(CRecipient{
+        CScript::CreateRemoteStakingScripthashScript(
+            ToByteVector(their_key.GetPubKey().GetID()),
+            ToByteVector(Sha256(witness_script.begin(), witness_script.end()))),
+        1 * UNIT, false
     });
 
     pwalletMain->AvailableCoins(coins);
     // Two coinbase and one remote staking output
-    BOOST_CHECK_EQUAL(3, coins.size());
+    BOOST_CHECK_EQUAL(5, coins.size());
 
     CCoinControl coin_control;
     coin_control.m_ignore_remote_staked = true;
 
     pwalletMain->AvailableCoins(coins, true, &coin_control);
     // Remote staking output should be ignored
-    BOOST_CHECK_EQUAL(2, coins.size());
+    BOOST_CHECK_EQUAL(3, coins.size());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

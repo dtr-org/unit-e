@@ -433,7 +433,16 @@ private:
     int64_t m_value;
 };
 
-struct WitnessProgram;
+struct WitnessProgram
+{
+  int version;
+  std::vector<std::vector<unsigned char>> program;
+
+  bool IsPayToScriptHash() const;
+  bool IsPayToPubkeyHash() const;
+  bool IsRemoteStakingP2WPKH() const;
+  bool IsRemoteStakingP2WSH() const;
+};
 
 /**
  * We use a prevector for the script to reduce the considerable memory overhead
@@ -701,8 +710,10 @@ public:
     static CScript CreatePayVoteSlashScript(const CPubKey &pubkey);
     static CScript CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash);
     static CScript CreateUnspendableScript();
-    static CScript CreateRemoteStakingScript(const std::vector<unsigned char> &staking_key_hash,
-                                             const std::vector<unsigned char> &spending_key_hash);
+    static CScript CreateRemoteStakingKeyhashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                    const std::vector<unsigned char> &spending_key_hash);
+    static CScript CreateRemoteStakingScripthashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                       const std::vector<unsigned char> &spending_script_hash);
 
     bool IsPayToPublicKeyHash() const;
     bool IsPayToScriptHash() const;
@@ -745,16 +756,6 @@ public:
         CScriptBase::clear();
         shrink_to_fit();
     }
-};
-
-struct WitnessProgram
-{
-    int version;
-    std::vector<std::vector<unsigned char>> program;
-
-    bool IsPayToScriptHash() const;
-    bool IsPayToPubkeyHash() const;
-    bool IsRemoteStaking() const;
 };
 
 class CReserveScript

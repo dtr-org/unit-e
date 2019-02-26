@@ -207,7 +207,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         break;
     }
 
-    case TX_WITNESS_V1_REMOTE_STAKING:
+    case TX_WITNESS_V1_RS_KEYHASH:
     {
         if (sigversion != IsMineSigVersion::TOP) {
             return IsMineResult::INVALID;
@@ -219,6 +219,22 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
 
         ret = IsMineInner(keystore, GetScriptForDestination(spending_key_id), IsMineSigVersion::WITNESS_V0);
 
+        break;
+    }
+
+    case TX_WITNESS_V2_RS_SCRIPTHASH:
+    {
+        if (sigversion == IsMineSigVersion::WITNESS_V0 || sigversion == IsMineSigVersion::P2SH) {
+            // Remote staking P2WSH inside P2WSH or P2SH is invalid.
+            return IsMineResult::INVALID;
+        }
+        uint160 hash;
+        CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(hash.begin());
+        CScriptID scriptID = CScriptID(hash);
+        CScript subscript;
+        if (keystore.GetCScript(scriptID, subscript)) {
+            ret = IsMineInner(keystore, subscript, IsMineSigVersion::WITNESS_V0);
+        }
         break;
     }
     }
@@ -264,7 +280,8 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
     {
         case TX_PUBKEYHASH:
         case TX_WITNESS_V0_KEYHASH:
-        case TX_WITNESS_V1_REMOTE_STAKING: {
+        case TX_WITNESS_V1_RS_KEYHASH:
+        case TX_WITNESS_V2_RS_SCRIPTHASH: {
             CKeyID key_id = CKeyID(uint160(solutions[0]));
             CPubKey pubkey;
             if (keystore.GetPubKey(key_id, pubkey) && !pubkey.IsCompressed()) {
@@ -290,7 +307,7 @@ bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key)
         return false;
     }
 
-    if (which_type != TX_WITNESS_V1_REMOTE_STAKING) {
+    if (which_type != TX_WITNESS_V1_RS_KEYHASH && which_type != TX_WITNESS_V2_RS_SCRIPTHASH) {
         return false;
     }
 
@@ -309,10 +326,6 @@ bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key)
     }
 
     // The local node should be able to spend the coin
-    CKeyID spending_keyid = CKeyID(uint160(Ripemd160(solutions[1].begin(), solutions[1].end())));
-    if (keystore.HaveKey(spending_keyid) || keystore.HaveHardwareKey(spending_keyid)) {
-        return true;
-    }
-
-    return false;
+    IsMineResult mine = IsMineInner(keystore, script_pub_key, IsMineSigVersion::TOP);
+    return mine == IsMineResult::SPENDABLE || mine == IsMineResult::HW_DEVICE;
 }

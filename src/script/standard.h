@@ -64,7 +64,8 @@ enum txnouttype
     TX_NULL_DATA, //!< unspendable OP_RETURN script that carries data
     TX_WITNESS_V0_SCRIPTHASH,
     TX_WITNESS_V0_KEYHASH,
-    TX_WITNESS_V1_REMOTE_STAKING,
+    TX_WITNESS_V1_RS_KEYHASH, //!< UIP-15 Remote staking script with public key hash spending destination
+    TX_WITNESS_V2_RS_SCRIPTHASH, //!< UIP-25 Remote staking script with script hash spending destination
     TX_WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
     TX_PAYVOTESLASH,
 };

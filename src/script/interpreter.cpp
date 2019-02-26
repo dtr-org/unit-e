@@ -1453,7 +1453,7 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
     } else if (witnessProgram.version == 1) {
-        if (witnessProgram.IsRemoteStaking()) {
+        if (witnessProgram.IsRemoteStakingP2WPKH()) {
             // Both branches of remote staking script require two items in witness
             if (witness.stack.size() != 2) {
                 return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
@@ -1464,6 +1464,29 @@ static bool VerifyWitnessProgram(const CScriptWitness& witness, const WitnessPro
                 scriptPubKey << OP_DUP << OP_SHA256 << witnessProgram.program[1] << OP_EQUALVERIFY << OP_CHECKSIG;
             }
             stack = witness.stack;
+        } else {
+            return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
+        }
+    } else if (witnessProgram.version == 2) {
+        if (witnessProgram.IsRemoteStakingP2WSH()) {
+            if (checker.GetTxType() == +TxType::COINBASE) {
+                if (witness.stack.size() != 2) {
+                    return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+                }
+                scriptPubKey << OP_DUP << OP_HASH160 << witnessProgram.program[0] << OP_EQUALVERIFY << OP_CHECKSIG;
+                stack = witness.stack;
+            } else {
+                if (witness.stack.empty()) {
+                    return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WITNESS_EMPTY);
+                }
+                scriptPubKey = CScript(witness.stack.back().begin(), witness.stack.back().end());
+                stack = std::vector<std::vector<unsigned char>>(witness.stack.begin(), witness.stack.end() - 1);
+                uint256 hashScriptPubKey;
+                CSHA256().Write(&scriptPubKey[0], scriptPubKey.size()).Finalize(hashScriptPubKey.begin());
+                if (memcmp(hashScriptPubKey.begin(), witnessProgram.program[1].data(), 32) != 0) {
+                    return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_MISMATCH);
+                }
+            }
         } else {
             return set_error(serror, SCRIPT_ERR_WITNESS_PROGRAM_WRONG_LENGTH);
         }
@@ -1610,13 +1633,14 @@ bool VerifyScript(const CScript& scriptSig, const CScript& scriptPubKey, const C
     return set_success(serror);
 }
 
-size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitness& witness, int flags)
+size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitness& witness, int flags, TxType type)
 {
-    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStaking()) {
+    bool is_staking_rsp2wsh = type == +TxType::COINBASE && witprogram.IsRemoteStakingP2WSH();
+    if (witprogram.IsPayToPubkeyHash() || witprogram.IsRemoteStakingP2WPKH() || is_staking_rsp2wsh) {
         return 1;
     }
 
-    if (witprogram.IsPayToScriptHash() && witness.stack.size() > 0) {
+    if ((witprogram.IsPayToScriptHash() || witprogram.IsRemoteStakingP2WSH()) && !witness.stack.empty()) {
         CScript subscript(witness.stack.back().begin(), witness.stack.back().end());
         return subscript.GetSigOpCount(true);
     }
@@ -1625,7 +1649,8 @@ size_t static WitnessSigOps(const WitnessProgram &witprogram, const CScriptWitne
     return 0;
 }
 
-size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness, unsigned int flags)
+size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey, const CScriptWitness* witness,
+                          unsigned int flags, TxType type)
 {
     static const CScriptWitness witnessEmpty;
 
@@ -1636,7 +1661,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
 
     WitnessProgram witnessProgram;
     if (scriptPubKey.ExtractWitnessProgram(witnessProgram)) {
-        return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags);
+        return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags, type);
     }
 
     if (scriptPubKey.IsPayToScriptHash() && scriptSig.IsPushOnly()) {
@@ -1648,7 +1673,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
         }
         CScript subscript(data.begin(), data.end());
         if (subscript.ExtractWitnessProgram(witnessProgram)) {
-            return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags);
+            return WitnessSigOps(witnessProgram, witness ? *witness : witnessEmpty, flags, type);
         }
     }
 

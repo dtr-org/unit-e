@@ -121,14 +121,23 @@ BOOST_AUTO_TEST_CASE(script_standard_Solver_success)
     BOOST_CHECK_EQUAL(solutions.size(), 1);
     BOOST_CHECK(solutions[0] == ToByteVector(scriptHash));
 
-    // TX_WITNESS_V1_REMOTE_STAKING
+    // TX_WITNESS_V1_RS_KEYHASH
     s.clear();
     s << OP_1 << ToByteVector(pubkeys[0].GetID()) << ToByteVector(pubkeys[1].GetSha256());
     BOOST_CHECK(Solver(s, whichType, solutions));
-    BOOST_CHECK_EQUAL(whichType, TX_WITNESS_V1_REMOTE_STAKING);
+    BOOST_CHECK_EQUAL(whichType, TX_WITNESS_V1_RS_KEYHASH);
     BOOST_CHECK_EQUAL(solutions.size(), 2);
     BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
     BOOST_CHECK(solutions[1] == ToByteVector(pubkeys[1].GetSha256()));
+
+    // TX_WITNESS_V2_RS_SCRIPTHASH
+    s.clear();
+    s << OP_2 << ToByteVector(pubkeys[0].GetID()) << ToByteVector(scriptHash);
+    BOOST_CHECK(Solver(s, whichType, solutions));
+    BOOST_CHECK_EQUAL(whichType, TX_WITNESS_V2_RS_SCRIPTHASH);
+    BOOST_CHECK_EQUAL(solutions.size(), 2);
+    BOOST_CHECK(solutions[0] == ToByteVector(pubkeys[0].GetID()));
+    BOOST_CHECK(solutions[1] == ToByteVector(scriptHash));
 
     // TX_NONSTANDARD: invalid witness v1 program
     s.clear();
@@ -259,7 +268,7 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
     BOOST_CHECK(ExtractDestination(s, address));
     BOOST_CHECK(boost::get<WitnessV0ScriptHash>(&address) && *boost::get<WitnessV0ScriptHash>(&address) == scripthash);
 
-    // TX_WITNESS_V1_REMOTE_STAKING
+    // TX_WITNESS_V1_RS_KEYHASH
     s.clear();
     CKey key2;
     key2.MakeNewKey(true);
@@ -267,13 +276,19 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
     BOOST_CHECK(ExtractDestination(s, address));
     BOOST_CHECK(boost::get<WitnessV0KeyHash>(&address) && *boost::get<WitnessV0KeyHash>(&address) == keyhash);
 
+    // TX_WITNESS_V2_RS_SCRIPTHASH
+    s.clear();
+    s << OP_2 << ToByteVector(key2.GetPubKey().GetID()) << ToByteVector(scripthash);
+    BOOST_CHECK(ExtractDestination(s, address));
+    BOOST_CHECK(boost::get<WitnessV0ScriptHash>(&address) && *boost::get<WitnessV0ScriptHash>(&address) == scripthash);
+
     // TX_WITNESS with unknown version
     s.clear();
-    s << OP_2 << ToByteVector(pubkey);
+    s << OP_5 << ToByteVector(pubkey);
     BOOST_CHECK(ExtractDestination(s, address));
     WitnessUnknown unk;
     unk.length = 33;
-    unk.version = 2;
+    unk.version = 5;
     std::copy(pubkey.begin(), pubkey.end(), unk.program);
     BOOST_CHECK(boost::get<WitnessUnknown>(&address) && *boost::get<WitnessUnknown>(&address) == unk);
 }
@@ -749,7 +764,7 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
     }
 
-    // witness remote staking
+    // witness remote staking v1
     {
         CBasicKeyStore keystore;
         CBasicKeyStore keystore2;
@@ -777,7 +792,7 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         BOOST_CHECK(IsStakeableByMe(keystore, scriptPubKey));
     }
 
-    // witness remote staking with uncompressed public keys
+    // witness remote staking v1 with uncompressed public keys
     {
         CBasicKeyStore keystore;
 
@@ -797,7 +812,7 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
     }
 
-    // witness remote staking with hardware keys
+    // witness remote staking v1 with hardware keys
     {
         FakeHWKeyStore keystore;
 
@@ -808,6 +823,7 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         keystore.hw_keys.insert(pubkeys[0].GetID());
         result = IsMine(keystore, scriptPubKey);
         BOOST_CHECK_EQUAL(result, ISMINE_NO);
+        // We cannot stake using hardware keys
         BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
 
         // spending key is a hardware key
@@ -815,6 +831,61 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         keystore.hw_keys.insert(pubkeys[1].GetID());
         result = IsMine(keystore, scriptPubKey);
         BOOST_CHECK_EQUAL(result, ISMINE_HW_DEVICE);
+        BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
+    }
+
+    // witness remote staking v2 P2WSH
+    {
+        CBasicKeyStore keystore;
+        CBasicKeyStore keystore2;
+        keystore.AddKey(keys[0]);
+        keystore.AddKey(keys[1]);
+
+        CKey stakingKey;
+        stakingKey.MakeNewKey(true);
+        keystore2.AddKey(stakingKey);
+
+        CScript witnessScript;
+        witnessScript << OP_2 <<
+                      ToByteVector(pubkeys[0]) <<
+                      ToByteVector(pubkeys[1]) <<
+                      OP_2 << OP_CHECKMULTISIG;
+
+        uint256 scriptHash;
+        CSHA256().Write(&witnessScript[0], witnessScript.size())
+            .Finalize(scriptHash.begin());
+
+        scriptPubKey.clear();
+        scriptPubKey << OP_2 << ToByteVector(stakingKey.GetPubKey().GetID()) << ToByteVector(scriptHash);
+
+        // keystore has keys, but no witnessScript
+        result = IsMine(keystore, scriptPubKey);
+        BOOST_CHECK_EQUAL(result, ISMINE_NO);
+        BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
+
+        // keystore has keys and witnessScript
+        keystore.AddCScript(witnessScript);
+        result = IsMine(keystore, scriptPubKey);
+        BOOST_CHECK_EQUAL(result, ISMINE_SPENDABLE);
+        BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
+
+        // keystore2 has staking key
+        result = IsMine(keystore2, scriptPubKey);
+        BOOST_CHECK_EQUAL(result, ISMINE_NO);
+        BOOST_CHECK(IsStakeableByMe(keystore2, scriptPubKey));
+    }
+
+    // witness remote staking v1 with hardware keys
+    {
+        FakeHWKeyStore keystore;
+
+        scriptPubKey.clear();
+        scriptPubKey << OP_2 << ToByteVector(pubkeys[0].GetID()) << std::vector<unsigned char>(32);
+
+        // staking key is a hardware key
+        keystore.hw_keys.insert(pubkeys[0].GetID());
+        result = IsMine(keystore, scriptPubKey);
+        BOOST_CHECK_EQUAL(result, ISMINE_NO);
         BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
     }
 

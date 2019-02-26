@@ -700,6 +700,41 @@ BOOST_AUTO_TEST_CASE(test_remote_staking)
     CheckWithFlag(output2, input2, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
 }
 
+BOOST_AUTO_TEST_CASE(test_remote_staking_p2sh)
+{
+    CBasicKeyStore keystore1, keystore2;
+    CKey spending_key1, spending_key2, staking_key;
+    CPubKey staking_pubkey;
+    spending_key1.MakeNewKey(true);
+    spending_key2.MakeNewKey(true);
+    staking_key.MakeNewKey(true);
+    staking_pubkey = staking_key.GetPubKey();
+
+    CScript script_multi = GetScriptForMultisig(2, {spending_key1.GetPubKey(), spending_key2.GetPubKey()});
+    keystore1.AddKey(spending_key1);
+    keystore1.AddKey(spending_key2);
+    keystore1.AddCScript(script_multi);
+    keystore2.AddKeyPubKey(staking_key, staking_pubkey);
+
+    uint256 hash;
+    CSHA256().Write(&script_multi[0], script_multi.size()).Finalize(hash.begin());
+    CScript remote_staking_script;
+    remote_staking_script << OP_2 << ToByteVector(staking_pubkey.GetID()) << ToByteVector(hash);
+
+    CTransactionRef output1, output2;
+    CMutableTransaction input1, input2;
+
+    // A coinbase transaction has to be signed by the staking_key from keystore2
+    CreateCreditAndSpend(keystore1, remote_staking_script, output2, input2, false, TxType::COINBASE);
+    CreateCreditAndSpend(keystore2, remote_staking_script, output2, input2, true, TxType::COINBASE);
+    CheckWithFlag(output2, input2, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+
+    // A standard transaction has to be signed by the keys from keystore1
+    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::STANDARD);
+    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::STANDARD);
+    CheckWithFlag(output1, input1, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
+}
+
 BOOST_AUTO_TEST_CASE(test_IsStandard)
 {
     LOCK(cs_main);

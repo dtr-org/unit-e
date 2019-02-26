@@ -800,7 +800,7 @@ BOOST_AUTO_TEST_CASE(script_build)
 
     tests.push_back(TestBuilder(CScript() << ToByteVector(keys.pubkey0),
                                 "P2WPKH with future witness version", SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH |
-                                SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM, false, WitnessMode::PKH, 2
+                                SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM, false, WitnessMode::PKH, 4
                                ).PushWitSig(keys.key0).Push(keys.pubkey0).AsWit().ScriptError(SCRIPT_ERR_DISCOURAGE_UPGRADABLE_WITNESS_PROGRAM));
     {
         CScript witscript = CScript() << ToByteVector(keys.pubkey0);
@@ -1716,7 +1716,16 @@ BOOST_AUTO_TEST_CASE(witness_program)
     script.clear();
     script << OP_1 << hash_160 << hash_256;
     BOOST_CHECK(script.ExtractWitnessProgram(program));
-    BOOST_CHECK(program.IsRemoteStaking());
+    BOOST_CHECK(program.IsRemoteStakingP2WPKH());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
+                                  hash_160.begin(), hash_160.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),
+                                  hash_256.begin(), hash_256.end());
+
+    script.clear();
+    script << OP_2 << hash_160 << hash_256;
+    BOOST_CHECK(script.ExtractWitnessProgram(program));
+    BOOST_CHECK(program.IsRemoteStakingP2WSH());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[0].begin(), program.program[0].end(),
                                   hash_160.begin(), hash_160.end());
     BOOST_CHECK_EQUAL_COLLECTIONS(program.program[1].begin(), program.program[1].end(),

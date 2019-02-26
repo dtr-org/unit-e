@@ -151,6 +151,28 @@ const char* GetOpName(opcodetype opcode)
     }
 }
 
+bool WitnessProgram::IsPayToScriptHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 32;
+}
+
+bool WitnessProgram::IsPayToPubkeyHash() const
+{
+    return version == 0 && program.size() == 1 && program[0].size() == 20;
+}
+
+bool WitnessProgram::IsRemoteStakingP2WPKH() const
+{
+    return version == 1 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
+}
+
+bool WitnessProgram::IsRemoteStakingP2WSH() const
+{
+    return version == 2 && program.size() == 2 && program[0].size() == 20
+        && program[1].size() == 32;
+}
+
 unsigned int CScript::GetSigOpCount(bool fAccurate) const
 {
     unsigned int n = 0;
@@ -245,11 +267,18 @@ CScript CScript::CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHa
             << publicKeyHash << OP_EQUALVERIFY << OP_CHECKSIG;
 }
 
-CScript CScript::CreateRemoteStakingScript(const std::vector<unsigned char> &staking_key_hash,
-                                           const std::vector<unsigned char> &spending_key_hash) {
+CScript CScript::CreateRemoteStakingKeyhashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                  const std::vector<unsigned char> &spending_key_hash) {
     assert(staking_key_hash.size() == 20);
     assert(spending_key_hash.size() == 32);
     return CScript() << OP_1 << staking_key_hash << spending_key_hash;
+}
+
+CScript CScript::CreateRemoteStakingScripthashScript(const std::vector<unsigned char> &staking_key_hash,
+                                                     const std::vector<unsigned char> &spending_script_hash) {
+    assert(staking_key_hash.size() == 20);
+    assert(spending_script_hash.size() == 32);
+    return CScript() << OP_2 << staking_key_hash << spending_script_hash;
 }
 
 bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
@@ -612,20 +641,4 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     }
 
     return it == script.end();
-}
-
-bool WitnessProgram::IsPayToScriptHash() const
-{
-    return version == 0 && program.size() == 1 && program[0].size() == 32;
-}
-
-bool WitnessProgram::IsPayToPubkeyHash() const
-{
-    return version == 0 && program.size() == 1 && program[0].size() == 20;
-}
-
-bool WitnessProgram::IsRemoteStaking() const
-{
-    return version == 1 && program.size() == 2 && program[0].size() == 20
-        && program[1].size() == 32;
 }

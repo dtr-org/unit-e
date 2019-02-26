@@ -88,7 +88,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return false;
 
     CKeyID keyID;
-    CScript witnessscript;
+    CScript scriptForSigHash;
     switch (whichTypeRet)
     {
     case TX_NONSTANDARD:
@@ -123,22 +123,37 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return true;
 
     case TX_WITNESS_V0_SCRIPTHASH:
-        CRIPEMD160().Write(&vSolutions[0][0], vSolutions[0].size()).Finalize(h160.begin());
+        CRIPEMD160().Write(vSolutions[0].data(), vSolutions[0].size()).Finalize(h160.begin());
         if (provider.GetCScript(h160, scriptRet)) {
             ret.push_back(std::vector<unsigned char>(scriptRet.begin(), scriptRet.end()));
             return true;
         }
         return false;
 
-    case TX_WITNESS_V1_REMOTE_STAKING:
+    case TX_WITNESS_V1_RS_KEYHASH:
         if (creator.Checker().GetTxType() == +TxType::COINBASE) {
-            witnessscript << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
+            scriptForSigHash << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
             h160 = uint160(vSolutions[0]);
         } else {
             CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(h160.begin());
-            witnessscript << OP_DUP << OP_SHA256 << vSolutions[1] << OP_EQUALVERIFY << OP_CHECKSIG;
+            scriptForSigHash << OP_DUP << OP_SHA256 << vSolutions[1] << OP_EQUALVERIFY << OP_CHECKSIG;
         }
-        return SignWithPubKeyHash(provider, creator, witnessscript, h160, ret, SigVersion::WITNESS_V0);
+        return SignWithPubKeyHash(provider, creator, scriptForSigHash, h160, ret, SigVersion::WITNESS_V0);
+
+    case TX_WITNESS_V2_RS_SCRIPTHASH:
+        if (creator.Checker().GetTxType() == +TxType::COINBASE) {
+            scriptForSigHash << OP_DUP << OP_HASH160 << ToByteVector(vSolutions[0]) << OP_EQUALVERIFY << OP_CHECKSIG;
+            h160 = uint160(vSolutions[0]);
+            return SignWithPubKeyHash(provider, creator, scriptForSigHash, h160, ret, SigVersion::WITNESS_V0);
+        } else {
+            CRIPEMD160().Write(vSolutions[1].data(), vSolutions[1].size()).Finalize(h160.begin());
+            if (provider.GetCScript(h160, scriptRet)) {
+                ret.push_back(std::vector<unsigned char>(scriptRet.begin(), scriptRet.end()));
+                whichTypeRet = TX_WITNESS_V0_SCRIPTHASH;
+                return true;
+            }
+            return false;
+        }
 
     default:
         return false;
@@ -160,6 +175,17 @@ static CScript PushAll(const std::vector<valtype>& values)
     return result;
 }
 
+static bool CanBeNestedInP2SH(txnouttype type)
+{
+    return type != TX_SCRIPTHASH && type != TX_WITNESS_V1_RS_KEYHASH && type != TX_WITNESS_V2_RS_SCRIPTHASH
+        && type != TX_PAYVOTESLASH;
+}
+
+static bool CanBeNestedInP2WSH(txnouttype type)
+{
+    return CanBeNestedInP2SH(type) && type != TX_WITNESS_V0_SCRIPTHASH && type != TX_WITNESS_V0_KEYHASH;
+}
+
 bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreator& creator, const CScript& fromPubKey, SignatureData& sigdata, const CTransaction* tx)
 {
     CScript script = fromPubKey;
@@ -175,7 +201,8 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         // the final scriptSig is the signatures from that
         // and then the serialized subscript:
         script = subscript = CScript(result[0].begin(), result[0].end());
-        solved = solved && SignStep(provider, creator, script, result, whichType, SigVersion::BASE) && whichType != TX_SCRIPTHASH;
+        solved = solved && SignStep(provider, creator, script, result, whichType, SigVersion::BASE)
+            && CanBeNestedInP2SH(whichType);
         P2SH = true;
     }
 
@@ -189,11 +216,13 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
     } else if (solved && whichType == TX_WITNESS_V0_SCRIPTHASH) {
         CScript witnessscript(result[0].begin(), result[0].end());
         txnouttype subType;
-        solved = solved && SignStep(provider, creator, witnessscript, result, subType, SigVersion::WITNESS_V0) && subType != TX_SCRIPTHASH && subType != TX_WITNESS_V0_SCRIPTHASH && subType != TX_WITNESS_V0_KEYHASH;
+        solved = SignStep(provider, creator, witnessscript, result, subType, SigVersion::WITNESS_V0)
+            && CanBeNestedInP2WSH(subType);
         result.push_back(std::vector<unsigned char>(witnessscript.begin(), witnessscript.end()));
         sigdata.scriptWitness.stack = result;
         result.clear();
-    } else if (solved && whichType == TX_WITNESS_V1_REMOTE_STAKING) {
+    } else if (solved && (whichType == TX_WITNESS_V1_RS_KEYHASH ||
+                          whichType == TX_WITNESS_V2_RS_SCRIPTHASH)) {
         sigdata.scriptWitness.stack = result;
         result.clear();
     }
