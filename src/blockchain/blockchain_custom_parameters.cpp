@@ -88,6 +88,27 @@ ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
+    std::int32_t *value) {
+
+  std::int64_t intermediate_value;
+  const ReadResult intermediate_result = Read(parameters, json_object, key, &intermediate_value);
+  if (intermediate_result != ReadResult::value_read_successfully) {
+    return intermediate_result;
+  }
+  if (intermediate_value < std::numeric_limits<std::int32_t>::min()) {
+    return ReadResult::failed_to_read;
+  }
+  if (intermediate_value > std::numeric_limits<std::int32_t>::max()) {
+    return ReadResult::failed_to_read;
+  }
+  *value = static_cast<std::int32_t>(intermediate_value);
+  return ReadResult::value_read_successfully;
+}
+
+ReadResult Read(
+    const blockchain::Parameters &parameters,
+    const std::map<std::string, UniValue> &json_object,
+    const char *const key,
     std::string *value) {
   if (json_object.count(key) == 0) {
     return ReadResult::no_value_read;
@@ -204,24 +225,6 @@ ReadResult Read(
   return ReadResult::value_read_successfully;
 }
 
-template <typename T, typename Callable>
-bool Process(const blockchain::Parameters &parameters,
-             const std::map<std::string, UniValue> &obj,
-             const char *const key,
-             Callable &&handler) {
-  T value;
-  switch (Read(parameters, obj, key, &value)) {
-    case ReadResult::value_read_successfully:
-      handler(value);
-      return true;
-    case ReadResult::no_value_read:
-      return true;
-    case ReadResult::failed_to_read:
-      return false;
-  }
-  assert(false && "silence gcc warning");
-}
-
 ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
@@ -239,21 +242,65 @@ ReadResult Read(
   std::map<std::string, UniValue> obj;
   json_value.getObjMap(obj);
 
-  if (!Process<uint256>(parameters, obj, "difficulty", [&](const uint256 &diff) { builder.SetDifficulty(diff); }) ||
-      !Process<Time>(parameters, obj, "time", [&](const Time &time) { builder.SetTime(time); }) ||
-      !Process<std::uint32_t>(parameters, obj, "version", [&](const std::uint32_t &version) { builder.SetVersion(version); }) ||
-      !Process<std::vector<P2WPKH>>(parameters, obj, "p2wpkh_funds", [&](const std::vector<P2WPKH> &funds) {
-        for (const P2WPKH &p2wpkh : funds) {
-          builder.AddFundsForPayToPubKeyHash(p2wpkh.amount, p2wpkh.pub_key_hash);
-        }
-      }) ||
-      !Process<std::vector<P2WSH>>(parameters, obj, "p2wsh_funds", [&](const std::vector<P2WSH> &funds) {
-        for (const P2WSH &p2wsh : funds) {
-          builder.AddFundsForPayToScriptHash(p2wsh.amount, p2wsh.script_hash);
-        }
-      })) {
-    return ReadResult::failed_to_read;
+  decltype(value->block.nVersion) version;
+  switch (Read(parameters, obj, "version", &version)) {
+    case ReadResult::value_read_successfully:
+      builder.SetVersion(version);
+      break;
+    case ReadResult::no_value_read:
+      break;
+    case ReadResult::failed_to_read:
+      return ReadResult::failed_to_read;
   }
+
+  decltype(value->block.nTime) time;
+  switch (Read(parameters, obj, "time", &time)) {
+    case ReadResult::value_read_successfully:
+      builder.SetTime(time);
+      break;
+    case ReadResult::no_value_read:
+      break;
+    case ReadResult::failed_to_read:
+      return ReadResult::failed_to_read;
+  }
+
+  uint256 difficulty;
+  switch (Read(parameters, obj, "difficulty", &difficulty)) {
+    case ReadResult::value_read_successfully:
+      builder.SetDifficulty(difficulty);
+      break;
+    case ReadResult::no_value_read:
+      break;
+    case ReadResult::failed_to_read:
+      return ReadResult::failed_to_read;
+  }
+
+  std::vector<P2WPKH> p2wpkh_funds;
+  switch (Read(parameters, obj, "p2wpkh_funds", &p2wpkh_funds)) {
+    case ReadResult::value_read_successfully:
+      for (const P2WPKH &p2wpkh : p2wpkh_funds) {
+        builder.AddFundsForPayToPubKeyHash(p2wpkh.amount, p2wpkh.pub_key_hash);
+      }
+      break;
+    case ReadResult::no_value_read:
+      break;
+    case ReadResult::failed_to_read:
+      return ReadResult::failed_to_read;
+  }
+
+  std::vector<P2WSH> p2wsh_funds;
+  switch (Read(parameters, obj, "p2wsh_funds", &p2wsh_funds)) {
+    case ReadResult::value_read_successfully:
+      for (const P2WSH &p2wsh : p2wsh_funds) {
+        builder.AddFundsForPayToScriptHash(p2wsh.amount, p2wsh.script_hash);
+      }
+      break;
+    case ReadResult::no_value_read:
+      break;
+    case ReadResult::failed_to_read:
+      return ReadResult::failed_to_read;
+  }
+
   *value = GenesisBlock(builder.Build(parameters));
   return ReadResult::value_read_successfully;
 }

@@ -83,7 +83,7 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   return genesis_block;
 }
 
-GenesisBlockBuilder &GenesisBlockBuilder::SetVersion(const uint32_t version) {
+GenesisBlockBuilder &GenesisBlockBuilder::SetVersion(const std::int32_t version) {
   m_version = version;
   return *this;
 }
