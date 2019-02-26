@@ -17,14 +17,16 @@ struct P2WPKH {
   CAmount amount;
   std::string pub_key_hash;
 
-  P2WPKH(CAmount, const std::string &&);
+  P2WPKH() = default;
+  P2WPKH(CAmount, std::string &&);
 };
 
 struct P2WSH {
   CAmount amount;
   std::string script_hash;
 
-  P2WSH(CAmount, const std::string &&);
+  P2WSH() = default;
+  P2WSH(CAmount, std::string &&);
 };
 
 struct Funds {
@@ -41,7 +43,7 @@ class GenesisBlockBuilder {
 
  public:
   //! \brief Set the version number of the block.
-  GenesisBlockBuilder &SetVersion(uint32_t);
+  GenesisBlockBuilder &SetVersion(int32_t);
 
   //! \brief Set the 32-bit unix timestamp of the block.
   GenesisBlockBuilder &SetTime(blockchain::Time);
@@ -59,13 +61,13 @@ class GenesisBlockBuilder {
   GenesisBlockBuilder &AddFundsForPayToScriptHash(CAmount, const std::string &);
 
   //! \brief Adds a collection of funds to this block.
-  GenesisBlockBuilder &Add(const Funds &&);
+  GenesisBlockBuilder &Add(Funds &&);
 
   //! \brief Builds the genesis block using the given parameters.
   const CBlock Build(const Parameters &) const;
 
  private:
-  uint32_t m_version = 4;
+  std::int32_t m_version = 4;
   blockchain::Time m_time = 0;
   blockchain::Difficulty m_bits = 0x1d00ffff;
   std::vector<std::pair<CAmount, CTxDestination>> m_initial_funds;

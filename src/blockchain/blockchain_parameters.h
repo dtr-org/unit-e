@@ -21,20 +21,30 @@
 namespace blockchain {
 
 struct GenesisBlock {
-  const CBlock block;
-  const uint256 hash;
+  CBlock block;
+  uint256 hash;
 
-  explicit GenesisBlock(const CBlock &);
+  GenesisBlock() noexcept;
+  explicit GenesisBlock(const CBlock &) noexcept;
 };
 
+//! \brief The defining parameters of a unit-e blockchain network.
+//!
+//! This struct is supposed to be a "data class", that is to say, it contains
+//! only the values for these parameters, no behavior should be associated
+//! with it (i.e. no member functions should be defined for it).
+//!
+//! For the lack of a better name there is a different, proper class
+//! `blockchain::Behavior` that builds a facade on top of these
+//! `blockchain::Parameters` (and everything else which might be needed
+//! for working with these easily).
 struct Parameters {
 
   //! \brief a function to calculate the block reward.
   //!
   //! The reward function is a pure function that takes as inputs the parameters
   //! that are currently active and the height to propose at.
-
-  using RewardFunction = CAmount (*)(const Parameters &, Height);
+  using RewardFunction = std::function<CAmount(const Parameters &, Height)>;
 
   //! \brief a function to calculate the difficulty for a given block.
   //!
@@ -74,7 +84,7 @@ struct Parameters {
   //!
   //!   return bnNew.GetCompact();
   //! };
-  using DifficultyFunction = Difficulty (*)(const Parameters &, Height, ChainAccess &);
+  using DifficultyFunction = std::function<Difficulty(const Parameters &, Height, ChainAccess &)>;
 
   //! \brief a unique identifier for this network.
   //!
@@ -82,7 +92,7 @@ struct Parameters {
   std::string network_name;
 
   //! \brief The genesis block of this chain.
-  GenesisBlock const *genesis_block;
+  GenesisBlock genesis_block;
 
   //! \brief The usable staking timestamps
   //!
@@ -212,9 +222,9 @@ struct Parameters {
   //! \brief Default settings to use for this chain.
   Settings default_settings;
 
-  static const Parameters &MainNet() noexcept;
-  static const Parameters &TestNet() noexcept;
-  static const Parameters &RegTest() noexcept;
+  static Parameters MainNet() noexcept;
+  static Parameters TestNet() noexcept;
+  static Parameters RegTest() noexcept;
 };
 
 }  // namespace blockchain

@@ -83,8 +83,10 @@ UNITE_CORE_H = \
   better-enums/enum.h \
   better-enums/enum_set.h \
   blockchain/blockchain_behavior.h \
+  blockchain/blockchain_custom_parameters.h \
   blockchain/blockchain_genesis.h \
   blockchain/blockchain_interfaces.h \
+  blockchain/blockchain_rpc.h \
   blockchain/blockchain_parameters.h \
   blockchain/blockchain_types.h \
   blockdb.h \
@@ -282,6 +284,7 @@ libunite_server_a_SOURCES = \
   addrdb.cpp \
   addrman.cpp \
   bloom.cpp \
+  blockchain/blockchain_rpc.cpp \
   blockdb.cpp \
   blockencodings.cpp \
   chain.cpp \
@@ -493,6 +496,7 @@ libunite_common_a_SOURCES = \
   base58.cpp \
   bech32.cpp \
   blockchain/blockchain_behavior.cpp \
+  blockchain/blockchain_custom_parameters.cpp \
   blockchain/blockchain_genesis.cpp \
   blockchain/blockchain_parameters.cpp \
   blockchain/mainnet_funds.cpp \

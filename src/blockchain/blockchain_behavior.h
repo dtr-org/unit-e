@@ -29,7 +29,7 @@ namespace blockchain {
 class Behavior {
 
  private:
-  const Parameters &m_parameters;
+  const Parameters m_parameters;
 
  public:
   explicit Behavior(const Parameters &) noexcept;

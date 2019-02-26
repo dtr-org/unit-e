@@ -11,6 +11,7 @@
 #include <coins.h>
 #include <consensus/validation.h>
 #include <validation.h>
+#include <injector.h>
 #include <core_io.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
@@ -100,13 +101,13 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.push_back(Pair("version", blockindex->nVersion));
     result.push_back(Pair("versionHex", strprintf("%08x", blockindex->nVersion)));
     result.push_back(Pair("merkleroot", blockindex->hashMerkleRoot.GetHex()));
-    result.push_back(Pair("time", (int64_t)blockindex->nTime));
-    result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
+    result.push_back(Pair("time", ToUniValue(blockindex->nTime)));
+    result.push_back(Pair("mediantime", ToUniValue(blockindex->GetMedianTimePast())));
     result.push_back(Pair("nonce", (uint64_t)blockindex->nNonce));
     result.push_back(Pair("bits", strprintf("%08x", blockindex->nBits)));
-    result.push_back(Pair("difficulty", SanitizeDouble(GetDifficulty(blockindex))));
+    result.push_back(Pair("difficulty", ToUniValue(GetDifficulty(blockindex))));
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
-    result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
+    result.push_back(Pair("nTx", ToUniValue(blockindex->nTx)));
 
     if (blockindex->pprev)
         result.push_back(Pair("previousblockhash", blockindex->pprev->GetBlockHash().GetHex()));
@@ -147,10 +148,10 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     }
     result.push_back(Pair("tx", txs));
     result.push_back(Pair("time", block.GetBlockTime()));
-    result.push_back(Pair("mediantime", (int64_t)blockindex->GetMedianTimePast()));
-    result.push_back(Pair("nonce", (uint64_t)block.nNonce));
+    result.push_back(Pair("mediantime", blockindex->GetMedianTimePast()));
+    result.push_back(Pair("nonce", ToUniValue(block.nNonce)));
     result.push_back(Pair("bits", strprintf("%08x", block.nBits)));
-    result.push_back(Pair("difficulty", SanitizeDouble(GetDifficulty(blockindex))));
+    result.push_back(Pair("difficulty", ToUniValue(GetDifficulty(blockindex))));
     result.push_back(Pair("chainwork", blockindex->nChainWork.GetHex()));
     result.push_back(Pair("nTx", (uint64_t)blockindex->nTx));
 
@@ -371,7 +372,7 @@ UniValue getdifficulty(const JSONRPCRequest& request)
         );
 
     LOCK(cs_main);
-    return SanitizeDouble(GetDifficulty());
+    return ToUniValue(GetDifficulty());
 }
 
 std::string EntryDescriptionString()
@@ -452,6 +453,11 @@ UniValue mempoolToJSON(bool fVerbose)
 
         return a;
     }
+}
+
+UniValue getchainparams(const JSONRPCRequest& request)
+{
+    return GetComponent(BlockchainRPC)->getchainparams(request);
 }
 
 UniValue getrawmempool(const JSONRPCRequest& request)
@@ -1600,6 +1606,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
+    { "blockchain",         "getchainparams",         &getchainparams,         {} },
     { "blockchain",         "getchaintips",           &getchaintips,           {} },
     { "blockchain",         "getdifficulty",          &getdifficulty,          {} },
     { "blockchain",         "getmempoolancestors",    &getmempoolancestors,    {"txid","verbose"} },
@@ -1612,7 +1619,6 @@ static const CRPCCommand commands[] =
     { "blockchain",         "pruneblockchain",        &pruneblockchain,        {"height"} },
     { "blockchain",         "savemempool",            &savemempool,            {} },
     { "blockchain",         "verifychain",            &verifychain,            {"checklevel","nblocks"} },
-
     { "blockchain",         "preciousblock",          &preciousblock,          {"blockhash"} },
 
     /* Not shown in help */

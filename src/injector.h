@@ -9,6 +9,7 @@
 
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_parameters.h>
+#include <blockchain/blockchain_rpc.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
 #include <settings.h>
@@ -36,6 +37,9 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(Settings, ::Settings, Settings::New,
             ::ArgsManager,
+            blockchain::Behavior)
+
+  COMPONENT(BlockchainRPC, blockchain::BlockchainRPC, blockchain::BlockchainRPC::New,
             blockchain::Behavior)
 
   COMPONENT(Network, staking::Network, staking::Network::New)

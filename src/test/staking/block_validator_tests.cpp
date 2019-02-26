@@ -67,7 +67,7 @@ void CheckGenesisBlock(const blockchain::Parameters &parameters) {
   std::unique_ptr<blockchain::Behavior> chain_behaviour =
       blockchain::Behavior::NewFromParameters(parameters);
   const auto block_validator = staking::BlockValidator::New(chain_behaviour.get());
-  const auto validation_result = block_validator->CheckBlock(parameters.genesis_block->block, nullptr);
+  const auto validation_result = block_validator->CheckBlock(parameters.genesis_block.block, nullptr);
 
   BOOST_CHECK(static_cast<bool>(validation_result));
 }

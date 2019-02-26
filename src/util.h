@@ -25,6 +25,7 @@
 #include <exception>
 #include <map>
 #include <memory>
+#include <set>
 #include <stdint.h>
 #include <string>
 #include <vector>
@@ -418,6 +419,11 @@ std::string to_string(const Range<Tbegin, Tend> &r) {
 
 template <typename T>
 std::string to_string(const std::vector<T> &v) {
+    return util::to_string(range(v.begin(), v.end()));
+}
+
+template <typename T>
+std::string to_string(const std::set<T> &v) {
     return util::to_string(range(v.begin(), v.end()));
 }
 

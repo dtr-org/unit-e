@@ -4,6 +4,8 @@
 
 #include <blockchain/blockchain_behavior.h>
 
+#include <blockchain/blockchain_custom_parameters.h>
+
 namespace blockchain {
 
 Behavior::Behavior(const Parameters &parameters) noexcept
@@ -15,6 +17,9 @@ Difficulty Behavior::CalculateDifficulty(Height height, ChainAccess &chain) cons
 
 Time Behavior::CalculateProposingTimestamp(const std::int64_t timestamp_sec) const {
   auto blocktime = static_cast<std::uint32_t>(timestamp_sec);
+  if (m_parameters.block_stake_timestamp_interval_seconds == 0) {
+    return blocktime;
+  }
   blocktime = blocktime - (blocktime % m_parameters.block_stake_timestamp_interval_seconds);
   return blocktime;
 }
@@ -28,11 +33,11 @@ CAmount Behavior::CalculateBlockReward(const Height height) {
 }
 
 uint256 Behavior::GetGenesisBlockHash() const {
-  return m_parameters.genesis_block->hash;
+  return m_parameters.genesis_block.hash;
 }
 
 const CBlock &Behavior::GetGenesisBlock() const {
-  return m_parameters.genesis_block->block;
+  return m_parameters.genesis_block.block;
 }
 
 bool Behavior::IsGenesisBlockHash(const uint256 &hash) const {
@@ -102,13 +107,17 @@ const std::string &Behavior::GetBech32Prefix() const {
 }
 
 std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
-  if (args->GetBoolArg("-regtest", false)) {
+  if (args->IsArgSet("-customchainparams")) {
+    blockchain::Parameters custom_parameters = ReadCustomParametersFromJsonString(
+        args->GetArg("-customchainparams", "{}"),
+        blockchain::Parameters::RegTest());
+    return NewFromParameters(custom_parameters);
+  } else if (args->GetBoolArg("-regtest", false)) {
     return NewForNetwork(Network::regtest);
   } else if (args->GetBoolArg("-testnet", false)) {
     return NewForNetwork(Network::test);
-  } else {
-    return NewForNetwork(Network::main);
   }
+  return NewForNetwork(Network::main);
 }
 
 std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {
