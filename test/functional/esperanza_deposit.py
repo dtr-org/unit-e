@@ -40,7 +40,6 @@ class EsperanzaDepositTest(UnitETestFramework):
 
     def run_test(self):
         nodes = self.nodes
-
         validator = nodes[0]
 
         self.setup_stake_coins(*self.nodes)

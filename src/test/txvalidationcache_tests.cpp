@@ -384,6 +384,31 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         // Should get 2 script checks back -- caching is on a whole-transaction basis.
         BOOST_CHECK_EQUAL(scriptchecks.size(), 2);
     }
+
+    {
+      // Test a coinbase transaction
+      CMutableTransaction tx;
+
+      tx.SetVersion(1);
+      tx.SetType(TxType::COINBASE);
+      tx.vin.resize(2);
+      tx.vin[0] = CTxIn(uint256(), 0, CScript()); // meta input
+      tx.vin[1].prevout.hash = spend_tx.GetHash();
+      tx.vin[1].prevout.n = 0;
+      tx.vout.resize(1);
+      tx.vout[0].nValue = 22*EEES;
+      tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
+
+      {
+        LOCK(pwalletMain->GetWalletExtension().GetLock());
+        pwalletMain->GetWalletExtension().SignCoinbaseTransaction(tx);
+      }
+
+      CValidationState state;
+      PrecomputedTransactionData txdata(tx);
+
+      BOOST_CHECK(CheckInputs(tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS, true, true, txdata, nullptr));
+    }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

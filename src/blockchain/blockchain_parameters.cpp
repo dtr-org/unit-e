@@ -123,6 +123,7 @@ Parameters BuildRegTestParameters() {
   p.genesis_block = &genesisBlock;
 
   p.default_settings.node_is_proposer = false;
+  p.default_settings.stake_split_threshold = 5000 * UNIT;
 
   return p;
 }

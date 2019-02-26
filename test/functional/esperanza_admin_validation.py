@@ -6,7 +6,6 @@
 from test_framework.util import (assert_equal, Decimal, hex_str_to_bytes,
                                  bytes_to_hex_str)
 from test_framework.messages import CTransaction, msg_witness_tx, TxType
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin, AdminCommandType
 from test_framework.mininode import P2PInterface, network_thread_start
@@ -58,9 +57,11 @@ def set_type_to_admin(raw_tx):
 # accepted. Admin txs should also contain at least one valid command
 class AdminValidation(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 1
+        self.num_nodes = 2
         self.extra_args = [
-            ['-permissioning=1', '-debug=all', '-whitelist=127.0.0.1']]
+            ['-permissioning=1', '-debug=all', '-whitelist=127.0.0.1'],
+            ['-permissioning=1', '-debug=all', '-whitelist=127.0.0.1']
+        ]
         self.setup_clean_chain = True
 
     def send_via_mininode(self, cmds, address):
@@ -117,13 +118,10 @@ class AdminValidation(UnitETestFramework):
         self.admin.add_p2p_connection(self.reject_tracker)
         network_thread_start()
 
-        self.setup_stake_coins()
+        self.setup_stake_coins(self.generator, self.admin)
 
-        self.generator.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        self.admin.importmasterkey(regtest_mnemonics[1]['mnemonics'])
-
-        assert_equal(10000, self.generator.getbalance())
-        assert_equal(10000, self.admin.getbalance())
+        assert_equal(self.generator.initial_stake, self.generator.getbalance())
+        assert_equal(self.admin.initial_stake, self.admin.getbalance())
 
         # Exit IBD
         self.generate_sync(self.generator)

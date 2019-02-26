@@ -517,7 +517,7 @@ class UnitETestFramework():
             # starting from 2010 minutes in the past
 
             for peer in range(4):
-                self.nodes[peer].importmasterkey(regtest_mnemonics[-peer]['mnemonics'])
+                self.nodes[peer].importmasterkey(regtest_mnemonics[-(peer+1)]['mnemonics'])
 
             self.enable_mocktime()
             block_time = self.mocktime - (201 * 10 * 60)
