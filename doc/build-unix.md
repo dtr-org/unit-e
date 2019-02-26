@@ -43,9 +43,6 @@ Optional dependencies:
  ------------|------------------|----------------------
  miniupnpc   | UPnP Support     | Firewall-jumping support
  libdb4.8    | Berkeley DB      | Wallet storage (only needed when wallet enabled)
- qt          | GUI              | GUI toolkit (only needed when GUI enabled)
- protobuf    | Payments in GUI  | Data interchange format used for payment protocol (only needed when GUI enabled)
- libqrencode | QR codes in GUI  | Optional for generating QR codes (only needed when GUI enabled)
  univalue    | Utility          | JSON parsing and encoding (bundled version will be used unless --with-system-univalue passed to configure)
  libzmq3     | ZMQ notification | Optional, allows generating ZMQ notifications (requires ZMQ version >= 4.x)
  hidapi      | Hardware support | Optional, allows working with hardware wallets such as the Ledger Nano S.
@@ -109,29 +106,6 @@ hidapi (provides USB HID device support):
 
     sudo apt-get install libhidapi-dev
 
-Dependencies for the GUI: Ubuntu & Debian
------------------------------------------
-
-If you want to build Unit-e-Qt, make sure that the required packages for Qt development
-are installed. Either Qt 5 or Qt 4 are necessary to build the GUI.
-If both Qt 4 and Qt 5 are installed, Qt 5 will be used. Pass `--with-gui=qt4` to configure to choose Qt4.
-To build without GUI pass `--without-gui`.
-
-To build with Qt 5 (recommended) you need the following:
-
-    sudo apt-get install libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
-
-Alternatively, to build with Qt 4 you need the following:
-
-    sudo apt-get install libqt4-dev libprotobuf-dev protobuf-compiler
-
-libqrencode (optional) can be installed with:
-
-    sudo apt-get install libqrencode-dev
-
-Once these are installed, they will be found by configure and a unite-qt executable will be
-built by default.
-
 Dependency Build Instructions: Fedora
 -------------------------------------
 Build requirements:
@@ -141,14 +115,6 @@ Build requirements:
 Optional:
 
     sudo dnf install miniupnpc-devel
-
-To build with Qt 5 (recommended) you need the following:
-
-    sudo dnf install qt5-qttools-devel qt5-qtbase-devel protobuf-devel
-
-libqrencode (optional) can be installed with:
-
-    sudo dnf install qrencode-devel
 
 Notes
 -----

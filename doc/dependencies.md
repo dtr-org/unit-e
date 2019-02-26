@@ -22,10 +22,7 @@ These are the dependencies currently used by unit-e. You can find instructions f
 | MiniUPnPc | [2.0.20170509](http://miniupnp.free.fr/files) |  | No |  |  |
 | OpenSSL | [1.0.1k](https://www.openssl.org/source) |  | Yes |  |  |
 | PCRE |  |  |  |  | [Yes](https://github.com/dtr-org/unit-e/blob/master/depends/packages/qt.mk#L76) |
-| protobuf | [2.6.3](https://github.com/google/protobuf/releases) |  | No |  |  |
 | Python (tests) |  | [3.4](https://www.python.org/downloads) |  |  |  |
-| qrencode | [3.4.4](https://fukuchi.org/works/qrencode) |  | No |  |  |
-| Qt | [5.7.1](https://download.qt.io/official_releases/qt/) | 4.7+ | No |  |  |
 | XCB |  |  |  |  | [Yes](https://github.com/dtr-org/unit-e/blob/master/depends/packages/qt.mk#L94) (Linux only) |
 | xkbcommon |  |  |  |  | [Yes](https://github.com/dtr-org/unit-e/blob/master/depends/packages/qt.mk#L93) (Linux only) |
 | ZeroMQ | [4.2.2](https://github.com/zeromq/libzmq/releases) |  | No |  |  |
