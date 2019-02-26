@@ -151,8 +151,13 @@ ReadResult Read<P2WPKH>(
   if (Read(parameters, obj, "amount", &value->amount) != ReadResult::value_read_successfully) {
     return ReadResult::failed_to_read;
   }
-  std::string key_hash;
+  if (value->amount <= 0) {
+    return ReadResult::failed_to_read;
+  }
   if (Read(parameters, obj, "pub_key_hash", &value->pub_key_hash) != ReadResult::value_read_successfully) {
+    return ReadResult::failed_to_read;
+  }
+  if (value->pub_key_hash.size() != 40) {
     return ReadResult::failed_to_read;
   }
   return ReadResult::value_read_successfully;
@@ -179,8 +184,13 @@ ReadResult Read<P2WSH>(
   if (Read(parameters, obj, "amount", &value->amount) != ReadResult::value_read_successfully) {
     return ReadResult::failed_to_read;
   }
-  std::string key_hash;
+  if (value->amount <= 0) {
+    return ReadResult::failed_to_read;
+  }
   if (Read(parameters, obj, "script_hash", &value->script_hash) != ReadResult::value_read_successfully) {
+    return ReadResult::failed_to_read;
+  }
+  if (value->script_hash.size() != 64) {
     return ReadResult::failed_to_read;
   }
   return ReadResult::value_read_successfully;
