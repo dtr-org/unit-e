@@ -1090,9 +1090,9 @@ class SegWitTest(UnitETestFramework):
         witness_program = CScript([OP_TRUE])
         witness_hash = sha256(witness_program)
         assert_equal(len(self.nodes[1].getrawmempool()), 0)
-        # Do not check OP_1 (remote staking) here as it is a standard version
+        # Do not check OP_1 and OP_2 (remote staking) here as it is a standard version
         # and version 0 is enough to test spending standard transaction in a non-standard one
-        for version in list(range(OP_2, OP_16+1)) + [OP_0]:
+        for version in list(range(OP_3, OP_16+1)) + [OP_0]:
             count += 1
             # First try to spend to a future version segwit scriptPubKey.
             scriptPubKey = CScript([CScriptOp(version), witness_hash])
@@ -1108,9 +1108,9 @@ class SegWitTest(UnitETestFramework):
         sync_blocks(self.nodes)
         assert(len(self.nodes[0].getrawmempool()) == 0)
 
-        # Finally, verify that version 0 -> version 2 transactions
+        # Finally, verify that version 0 -> version 3 transactions
         # are non-standard
-        scriptPubKey = CScript([CScriptOp(OP_2), witness_hash])
+        scriptPubKey = CScript([CScriptOp(OP_3), witness_hash])
         tx2 = CTransaction()
         tx2.vin = [CTxIn(COutPoint(tx.sha256, 0), b"")]
         tx2.vout = [CTxOut(tx.vout[0].nValue-1000, scriptPubKey)]
