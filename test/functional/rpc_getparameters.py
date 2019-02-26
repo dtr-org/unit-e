@@ -3,7 +3,11 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-"""Test the getparameters RPC."""
+"""Test the getparameters RPC.
+
+Showcases how to pass chainparams to nodes and inject a new
+genesis block including funds (for testing purposes). Also
+checks that loading -customchainparams actually works."""
 
 from test_framework.test_framework import (UnitETestFramework)
 from test_framework.util import assert_equal
