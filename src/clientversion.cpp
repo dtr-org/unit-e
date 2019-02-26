@@ -8,9 +8,7 @@
 
 
 /**
- * Name of client reported in the 'version' message. Report the same name
- * for both united and unite-qt, to make it harder for attackers to
- * target servers or GUI users specifically.
+ * Name of client reported in the 'version' message.
  */
 const std::string CLIENT_NAME("Feuerland");
 
