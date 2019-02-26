@@ -1445,6 +1445,11 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
 }
 
 bool CScriptCheck::operator()() {
+
+    if (ptxTo->IsCoinBase()) {
+      // UNIT-E TODO: Temporary till we migrate the new coinbase
+      return true;
+    }
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
     bool result = VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *txdata), &error);
@@ -1453,10 +1458,6 @@ bool CScriptCheck::operator()() {
             BCLog::VALIDATION,
             "script verification FAILED: %s with message \"%s\"\n",
             ToString(), ScriptErrorString(GetScriptError()));
-    }
-    if (ptxTo->IsCoinBase()) {
-      // UNIT-E TODO: Temporary to get things going, remove
-      return true;
     }
     return result;
 }
