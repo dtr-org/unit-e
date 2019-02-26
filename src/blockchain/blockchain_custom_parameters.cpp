@@ -221,11 +221,11 @@ ReadResult Read(
   return ReadResult::value_read_successfully;
 }
 
-template <typename T>
+template <typename T, typename Callable>
 bool Process(const blockchain::Parameters &parameters,
              const std::map<std::string, UniValue> &obj,
              const char *const key,
-             std::function<void(const T &)> handler) {
+             Callable &&handler) {
   T value;
   switch (Read(parameters, obj, key, &value)) {
     case ReadResult::value_read_successfully:
@@ -256,24 +256,19 @@ ReadResult Read<GenesisBlock>(
   std::map<std::string, UniValue> obj;
   json_value.getObjMap(obj);
 
-  auto set_difficulty = [&](const uint256 &diff) { builder.SetDifficulty(diff); };
-  auto set_time = [&](const Time &time) { builder.SetTime(time); };
-  auto set_version = [&](const std::uint32_t &version) { builder.SetVersion(version); };
-  auto set_p2wpkh_funds = [&](const std::vector<P2WPKH> &funds) {
-    for (const P2WPKH &p2wpkh : funds) {
-      builder.AddFundsForPayToPubKeyHash(p2wpkh.amount, p2wpkh.pub_key_hash);
-    }
-  };
-  auto set_p2wsh_funds = [&](const std::vector<P2WSH> &funds) {
-    for (const P2WSH &p2wsh : funds) {
-      builder.AddFundsForPayToScriptHash(p2wsh.amount, p2wsh.script_hash);
-    }
-  };
-  if (!Process<uint256>(parameters, obj, "difficulty", set_difficulty) ||
-      !Process<Time>(parameters, obj, "time", set_time) ||
-      !Process<std::uint32_t>(parameters, obj, "version", set_version) ||
-      !Process<std::vector<P2WPKH>>(parameters, obj, "p2wpkh_funds", set_p2wpkh_funds) ||
-      !Process<std::vector<P2WSH>>(parameters, obj, "p2wsh_funds", set_p2wsh_funds)) {
+  if (!Process<uint256>(parameters, obj, "difficulty", [&](const uint256 &diff) { builder.SetDifficulty(diff); }) ||
+      !Process<Time>(parameters, obj, "time", [&](const Time &time) { builder.SetTime(time); }) ||
+      !Process<std::uint32_t>(parameters, obj, "version", [&](const std::uint32_t &version) { builder.SetVersion(version); }) ||
+      !Process<std::vector<P2WPKH>>(parameters, obj, "p2wpkh_funds", [&](const std::vector<P2WPKH> &funds) {
+        for (const P2WPKH &p2wpkh : funds) {
+          builder.AddFundsForPayToPubKeyHash(p2wpkh.amount, p2wpkh.pub_key_hash);
+        }
+      }) ||
+      !Process<std::vector<P2WSH>>(parameters, obj, "p2wsh_funds", [&](const std::vector<P2WSH> &funds) {
+        for (const P2WSH &p2wsh : funds) {
+          builder.AddFundsForPayToScriptHash(p2wsh.amount, p2wsh.script_hash);
+        }
+      })) {
     return ReadResult::failed_to_read;
   }
   *value = GenesisBlock(builder.Build(parameters));
@@ -282,24 +277,22 @@ ReadResult Read<GenesisBlock>(
 
 }  // namespace
 
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
+blockchain::Parameters ReadCustomParametersFromJson(
     const UniValue &json,
-    const blockchain::Parameters &base_parameters,
-    const std::function<void(const std::string &)> &report_error) {
+    const blockchain::Parameters &base_parameters) {
 
   if (!json.isObject()) {
-    return boost::none;
+    throw FailedToParseCustomParametersError("Not a JSON object.");
   }
   std::map<std::string, UniValue> json_object;
   json.getObjMap(json_object);
 
-  std::size_t error_count = 0;
   blockchain::Parameters parameters = base_parameters;
+  std::vector<std::string> errors;
 
 #define READ_PARAMETER(NAME)                                                                  \
   if (Read(parameters, json_object, #NAME, &parameters.NAME) == ReadResult::failed_to_read) { \
-    ++error_count;                                                                            \
-    report_error("Failed to read \"" #NAME "\"");                                             \
+    errors.emplace_back("Failed to read \"" #NAME "\"");                                      \
   }
   // using the READ_PARAMETER macro ensures that no typos create a mismatch
   // between the json key (a string) and the parameters key (a member).
@@ -329,37 +322,21 @@ boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
 
 #undef READ_PARAMETER
 
-  if (error_count > 0) {
-    return boost::none;
+  if (errors.size() > 0) {
+    throw FailedToParseCustomParametersError(util::to_string(errors));
   }
-
   return parameters;
 }
 
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
-    const UniValue &json,
-    const blockchain::Parameters &base_parameters) {
-
-  return ReadCustomParametersFromJson(json, base_parameters, [](const std::string &ignore) {});
-}
-
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJsonString(
+blockchain::Parameters ReadCustomParametersFromJsonString(
     const std::string &json_string,
-    const blockchain::Parameters &base_parameters,
-    const std::function<void(const std::string &)> &report_error) {
+    const blockchain::Parameters &base_parameters) {
 
   UniValue json;
   if (!json.read(json_string)) {
-    return boost::none;
+    throw FailedToParseCustomParametersError("Invalid JSON.");
   }
-  return ReadCustomParametersFromJson(json, base_parameters, report_error);
-}
-
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJsonString(
-    const std::string &json_string,
-    const blockchain::Parameters &base_parameters) {
-
-  return ReadCustomParametersFromJsonString(json_string, base_parameters, [](const std::string &ignore) {});
+  return ReadCustomParametersFromJson(json, base_parameters);
 }
 
 }  // namespace blockchain

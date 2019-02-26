@@ -14,35 +14,23 @@
 
 namespace blockchain {
 
+class FailedToParseCustomParametersError : public std::runtime_error {
+
+ public:
+  FailedToParseCustomParametersError(std::string&& what) : runtime_error(what) {}
+};
+
 //! \brief Read blockchain::Parameters from a UniValue json object.
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
+blockchain::Parameters ReadCustomParametersFromJson(
     const UniValue &json,
     const blockchain::Parameters &base_parameters  //!< base params to take values from
 );
 
-//! \brief Read blockchain::Parameters from a UniValue json object.
-//!
-//! Same as the 2-argument version but takes an error reporting function
-//! which will be called whenever an invalid value is found.
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJson(
-    const UniValue &json,
-    const blockchain::Parameters &base_parameters,  //!< base params to take values from
-    const std::function<void(const std::string &)> &report_error);
-
 //! \brief Read blockchain::Parameters from a JSON String.
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJsonString(
+blockchain::Parameters ReadCustomParametersFromJsonString(
     const std::string &json_string,
     const blockchain::Parameters &base_parameters  //!< base params to take values from
 );
-
-//! \brief Read blockchain::Parameters from a JSON String.
-//!
-//! Same as the 2-argument version but takes an error reporting function
-//! which will be called whenever an invalid value is found.
-boost::optional<blockchain::Parameters> ReadCustomParametersFromJsonString(
-    const std::string &json_string,
-    const blockchain::Parameters &base_parameters,  //!< base params to take values from
-    const std::function<void(const std::string &)> &report_error);
 
 }  // namespace blockchain
 

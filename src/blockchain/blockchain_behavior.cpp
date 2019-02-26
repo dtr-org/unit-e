@@ -108,17 +108,10 @@ const std::string &Behavior::GetBech32Prefix() const {
 
 std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
   if (args->IsArgSet("-customchainparams")) {
-    boost::optional<blockchain::Parameters> custom_parameters =
-        ReadCustomParametersFromJsonString(
-            args->GetArg("-customchainparams", "{}"),
-            blockchain::Parameters::RegTest(),
-            [](const std::string &error) {
-              LogPrintf("-customchainparams invalid: %s\n", error);
-            });
-    if (!custom_parameters) {
-      throw std::runtime_error("Failed to parse custom chain parameters!");
-    }
-    return NewFromParameters(*custom_parameters);
+    blockchain::Parameters custom_parameters = ReadCustomParametersFromJsonString(
+        args->GetArg("-customchainparams", "{}"),
+        blockchain::Parameters::RegTest());
+    return NewFromParameters(custom_parameters);
   } else if (args->GetBoolArg("-regtest", false)) {
     return NewForNetwork(Network::regtest);
   } else if (args->GetBoolArg("-testnet", false)) {
