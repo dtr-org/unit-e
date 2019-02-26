@@ -30,7 +30,7 @@ struct GenesisBlock {
 
 //! \brief The defining parameters of a unit-e blockchain network.
 //!
-//! This struct is supposed to be a "data class", that is it contains
+//! This struct is supposed to be a "data class", that is to say, it contains
 //! only the values for these parameters, no behavior should be associated
 //! with it (i.e. no member functions should be defined for it).
 //!

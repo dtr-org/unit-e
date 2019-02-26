@@ -104,7 +104,7 @@ GenesisBlockBuilder &GenesisBlockBuilder::SetDifficulty(const uint256 difficulty
 }
 
 GenesisBlockBuilder &GenesisBlockBuilder::AddFundsForPayToPubKeyHash(const CAmount amount,
-                                                                     const std::string &hexKey) {
+                                                                     const std::string& hexKey) {
   const std::vector<std::uint8_t> data = ParseHex(hexKey);
   const uint160 pubKeyHash(data);
   m_initial_funds.emplace_back(amount, WitnessV0KeyHash(pubKeyHash));
@@ -119,20 +119,20 @@ GenesisBlockBuilder &GenesisBlockBuilder::AddFundsForPayToScriptHash(const CAmou
   return *this;
 }
 
-GenesisBlockBuilder &GenesisBlockBuilder::Add(const Funds &&funds) {
+GenesisBlockBuilder &GenesisBlockBuilder::Add(Funds &&funds) {
   for (const auto &output : funds.destinations) {
     AddFundsForPayToPubKeyHash(output.amount, output.pub_key_hash);
   }
   return *this;
 }
 
-P2WPKH::P2WPKH(const CAmount amount, const std::string &&pubKeyHash)
+P2WPKH::P2WPKH(const CAmount amount, std::string &&pubKeyHash)
     : amount(amount), pub_key_hash(pubKeyHash) {
   assert(amount > 0);
   assert(pubKeyHash.size() == 40);
 }
 
-P2WSH::P2WSH(const CAmount amount, const std::string &&scriptHash)
+P2WSH::P2WSH(const CAmount amount, std::string &&scriptHash)
     : amount(amount), script_hash(scriptHash) {
   assert(amount > 0);
   assert(scriptHash.size() == 64);

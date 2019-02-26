@@ -27,18 +27,7 @@ enum class ReadResult {
   failed_to_read,
 };
 
-template <typename T>
 ReadResult Read(
-    const blockchain::Parameters &parameters,
-    const std::map<std::string, UniValue> &json_object,
-    const char *const key,
-    T *value) {
-  static_assert(std::is_void<T>::value, "unsupported type to Read()");
-  return ReadResult::failed_to_read;
-}
-
-template <>
-ReadResult Read<bool>(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -54,8 +43,7 @@ ReadResult Read<bool>(
   return ReadResult::value_read_successfully;
 }
 
-template <>
-ReadResult Read<std::int64_t>(
+ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -75,8 +63,7 @@ ReadResult Read<std::int64_t>(
   return ReadResult::value_read_successfully;
 }
 
-template <>
-ReadResult Read<std::uint32_t>(
+ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -97,8 +84,7 @@ ReadResult Read<std::uint32_t>(
   return ReadResult::value_read_successfully;
 }
 
-template <>
-ReadResult Read<std::string>(
+ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -114,8 +100,7 @@ ReadResult Read<std::string>(
   return ReadResult::value_read_successfully;
 }
 
-template <>
-ReadResult Read<uint256>(
+ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -130,8 +115,7 @@ ReadResult Read<uint256>(
   return ReadResult::value_read_successfully;
 }
 
-template <>
-ReadResult Read<P2WPKH>(
+ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -163,8 +147,7 @@ ReadResult Read<P2WPKH>(
   return ReadResult::value_read_successfully;
 }
 
-template <>
-ReadResult Read<P2WSH>(
+ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,
@@ -230,16 +213,16 @@ bool Process(const blockchain::Parameters &parameters,
   switch (Read(parameters, obj, key, &value)) {
     case ReadResult::value_read_successfully:
       handler(value);
+      return true;
     case ReadResult::no_value_read:
-      break;
+      return true;
     case ReadResult::failed_to_read:
       return false;
   }
-  return true;
+  assert(false && "silence gcc warning");
 }
 
-template <>
-ReadResult Read<GenesisBlock>(
+ReadResult Read(
     const blockchain::Parameters &parameters,
     const std::map<std::string, UniValue> &json_object,
     const char *const key,

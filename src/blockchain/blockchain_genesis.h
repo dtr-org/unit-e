@@ -18,7 +18,7 @@ struct P2WPKH {
   std::string pub_key_hash;
 
   P2WPKH() = default;
-  P2WPKH(CAmount, const std::string &&);
+  P2WPKH(CAmount, std::string &&);
 };
 
 struct P2WSH {
@@ -26,7 +26,7 @@ struct P2WSH {
   std::string script_hash;
 
   P2WSH() = default;
-  P2WSH(CAmount, const std::string &&);
+  P2WSH(CAmount, std::string &&);
 };
 
 struct Funds {
@@ -61,7 +61,7 @@ class GenesisBlockBuilder {
   GenesisBlockBuilder &AddFundsForPayToScriptHash(CAmount, const std::string &);
 
   //! \brief Adds a collection of funds to this block.
-  GenesisBlockBuilder &Add(const Funds &&);
+  GenesisBlockBuilder &Add(Funds &&);
 
   //! \brief Builds the genesis block using the given parameters.
   const CBlock Build(const Parameters &) const;
