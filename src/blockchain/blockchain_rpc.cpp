@@ -17,7 +17,7 @@ class BlockchainRPCImpl : public BlockchainRPC {
   BlockchainRPCImpl(Dependency<blockchain::Behavior> blockchain_behavior)
       : m_blockchain_behavior(blockchain_behavior) {}
 
-  UniValue getparameters(const JSONRPCRequest &request) const override {
+  UniValue getchainparams(const JSONRPCRequest &request) const override {
     UniValue parameters(UniValue::VOBJ);
 
 #define PUT_PARAMETER(NAME) \

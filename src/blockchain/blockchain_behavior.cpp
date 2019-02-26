@@ -116,9 +116,8 @@ std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
     return NewForNetwork(Network::regtest);
   } else if (args->GetBoolArg("-testnet", false)) {
     return NewForNetwork(Network::test);
-  } else {
-    return NewForNetwork(Network::main);
   }
+  return NewForNetwork(Network::main);
 }
 
 std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {

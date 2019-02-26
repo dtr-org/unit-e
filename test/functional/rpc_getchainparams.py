@@ -42,7 +42,7 @@ class GetParametersTest (UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test (self):
-        params = [self.nodes[i].getparameters() for i in range(0, self.num_nodes)]
+        params = [self.nodes[i].getchainparams() for i in range(0, self.num_nodes)]
 
         assert_equal(params[0]['block_time_seconds'], 24)
         assert_equal(params[0]['block_stake_timestamp_interval_seconds'], 48)

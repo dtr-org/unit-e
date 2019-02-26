@@ -455,9 +455,9 @@ UniValue mempoolToJSON(bool fVerbose)
     }
 }
 
-UniValue getparameters(const JSONRPCRequest& request)
+UniValue getchainparams(const JSONRPCRequest& request)
 {
-    return GetComponent(BlockchainRPC)->getparameters(request);
+    return GetComponent(BlockchainRPC)->getchainparams(request);
 }
 
 UniValue getrawmempool(const JSONRPCRequest& request)
@@ -1606,13 +1606,13 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
+    { "blockchain",         "getchainparams",         &getchainparams,         {} },
     { "blockchain",         "getchaintips",           &getchaintips,           {} },
     { "blockchain",         "getdifficulty",          &getdifficulty,          {} },
     { "blockchain",         "getmempoolancestors",    &getmempoolancestors,    {"txid","verbose"} },
     { "blockchain",         "getmempooldescendants",  &getmempooldescendants,  {"txid","verbose"} },
     { "blockchain",         "getmempoolentry",        &getmempoolentry,        {"txid"} },
     { "blockchain",         "getmempoolinfo",         &getmempoolinfo,         {} },
-    { "blockchain",         "getparameters",          &getparameters,          {} },
     { "blockchain",         "getrawmempool",          &getrawmempool,          {"verbose"} },
     { "blockchain",         "gettxout",               &gettxout,               {"txid","n","include_mempool"} },
     { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        {} },

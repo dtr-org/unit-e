@@ -18,7 +18,7 @@ namespace blockchain {
 class BlockchainRPC {
 
  public:
-  virtual UniValue getparameters(const JSONRPCRequest &request) const = 0;
+  virtual UniValue getchainparams(const JSONRPCRequest &request) const = 0;
 
   virtual ~BlockchainRPC() = default;
 
