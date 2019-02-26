@@ -23,10 +23,18 @@ enum isminetype
     ISMINE_ALL = ISMINE_WATCH_ONLY | ISMINE_SPENDABLE
 };
 
+struct ismineinfo
+{
+    txnouttype type;
+    txnouttype p2sh_type;
+    std::vector<std::vector<unsigned char>> solutions;
+    std::vector<std::vector<unsigned char>> p2sh_solutions;
+};
+
 /** used for bitflags of isminetype */
 typedef uint8_t isminefilter;
 
-isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey);
+isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey, ismineinfo* is_mine_info = nullptr);
 isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest);
 
 //! Check if we are able to use an output with given script_pub_key as a stake

@@ -132,6 +132,7 @@ UNITE_TESTS = \
 
 if ENABLE_WALLET
 UNITE_TESTS += \
+  test/blockchain/blockchain_behavior_tests.cpp \
   test/blockdiskstorage_tests.cpp \
   test/counting_semaphore_tests.cpp \
   test/esperanza/walletextension_tests.cpp \

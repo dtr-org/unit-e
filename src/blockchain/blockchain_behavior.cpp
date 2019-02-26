@@ -60,34 +60,112 @@ const Settings &Behavior::GetDefaultSettings() const {
   return m_parameters.default_settings;
 }
 
-boost::optional<CPubKey> Behavior::ExtractBlockSigningKey(const CBlock &block) const {
-  if (block.vtx.empty()) {
-    return boost::none;
+namespace {
+
+//! \brief Extract the staking key from a P2WPKH witness stack.
+//!
+//! As per https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh,
+//! a P2WPKH transaction looks like this:
+//!
+//!    witness:      <signature> <pubkey>
+//!    scriptSig:    (empty)
+//!    scriptPubKey: 0 <20-byte-key-hash>
+//!                  (0x0014{20-byte-key-hash})
+//!
+//! That is: The pubkey we're interested in is in stack[1]
+//! (stack[0] is the signature).
+std::vector<CPubKey> ExtractP2WPKHKeys(const std::vector<std::vector<unsigned char>> &witness_stack) {
+  if (witness_stack.size() != 2) {
+    return std::vector<CPubKey>{};
   }
-  const auto &coinbase_inputs = block.vtx[0]->vin;
-  if (coinbase_inputs.size() < 2) {
-    return boost::none;
-  }
-  const auto &witness_stack = coinbase_inputs[1].scriptWitness.stack;
-  if (witness_stack.size() < 2) {
-    return boost::none;
-  }
-  // As per https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh,
-  // a P2WPKH transaction looks like this:
-  //
-  //    witness:      <signature> <pubkey>
-  //    scriptSig:    (empty)
-  //    scriptPubKey: 0 <20-byte-key-hash>
-  //                  (0x0014{20-byte-key-hash})
-  //
-  // That is: The pubkey we're interested in is in stack[1]
-  // (stack[0] is the signature).
-  const auto &public_key_data = witness_stack[1];
+  const std::vector<unsigned char> &public_key_data = witness_stack[1];
   CPubKey public_key(public_key_data.begin(), public_key_data.end());
   if (!public_key.IsValid()) {
-    return boost::none;
+    return std::vector<CPubKey>{};
   }
-  return public_key;
+  return std::vector<CPubKey>{public_key};
+}
+
+//! \brief Extract the staking key from a P2WSH witness stack.
+//!
+//! As per https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wsh,
+//! a P2WSH transaction looks like this:
+//!
+//!    witness:      0 <signature1> <1 <pubkey1> <pubkey2> 2 CHECKMULTISIG>
+//!    scriptSig:    (empty)
+//!    scriptPubKey: 0 <32-byte-hash>
+//!                  (0x0020{32-byte-hash})
+//!
+//! The script is just an example and it is serialized. So we need to
+//! pop the script off the stack, deserializa it, and check what kind
+//! of script it is in order to extract the signing key.
+std::vector<CPubKey> ExtractP2WSHKeys(const std::vector<std::vector<unsigned char>> &witness_stack) {
+  if (witness_stack.size() != 3) {
+    return std::vector<CPubKey>{};
+  }
+  if (witness_stack[0].size() != 1 && witness_stack[0][0] != 0) {
+    return std::vector<CPubKey>{};
+  }
+  const std::vector<unsigned char> &script_data = witness_stack[2];
+  const CScript script(script_data.begin(), script_data.end());
+
+  txnouttype type;
+  std::vector<std::vector<unsigned char>> solutions;
+  if (Solver(script, type, solutions)) {
+    switch (type) {
+      case TX_PUBKEY: {
+        const CPubKey pub_key(solutions[0]);
+        return std::vector<CPubKey>{pub_key};
+      }
+      case TX_MULTISIG: {
+        std::vector<CPubKey> result;
+        // the first solution contains an OP_SMALLINTEGER with the number of signatures required
+        const auto num_signatures = static_cast<std::uint8_t>(solutions.front()[0]);
+        if (num_signatures != 1) {
+          // stake is signed by a single proposer only and the block carries a single
+          // signature of that proposer. 2-of-3 and similar multisig scenarios are not
+          // allowed for staking.
+          return std::vector<CPubKey>{};
+        }
+        // the last solution contains an OP_SMALLINTEGER with the number of pubkeys provided
+        const auto num_pubkeys = static_cast<std::uint8_t>(solutions.back()[0]);
+        if (num_pubkeys != solutions.size() - 2) {
+          // number of pubkeys provided does not match amount required.
+          return std::vector<CPubKey>{};
+        }
+        for (std::size_t i = 1; i < solutions.size() - 1; ++i) {
+          result.emplace_back(solutions[i]);
+        }
+        return result;
+      }
+      default:
+        return std::vector<CPubKey>{};
+    }
+  }
+  return std::vector<CPubKey>{};
+}
+
+}  // namespace
+
+std::vector<CPubKey> Behavior::ExtractBlockSigningKeys(const CTxIn &input) const {
+  const std::vector<std::vector<unsigned char>> &witness_stack = input.scriptWitness.stack;
+  std::vector<CPubKey> p2wpkh_keys = ExtractP2WPKHKeys(witness_stack);
+  if (p2wpkh_keys.size() == 1) {
+    // p2wpkh should yield one key only.
+    return p2wpkh_keys;
+  }
+  return ExtractP2WSHKeys(witness_stack);
+}
+
+std::vector<CPubKey> Behavior::ExtractBlockSigningKeys(const CBlock &block) const {
+  if (block.vtx.empty()) {
+    return std::vector<CPubKey>{};
+  }
+  const std::vector<CTxIn> &coinbase_inputs = block.vtx[0]->vin;
+  if (coinbase_inputs.size() < 2) {
+    return std::vector<CPubKey>{};
+  }
+  return ExtractBlockSigningKeys(coinbase_inputs[1]);
 }
 
 std::string Behavior::GetNetworkName() const {

@@ -68,7 +68,16 @@ class Behavior {
   bool IsStakeMature(blockchain::Depth) const;
 
   //! \brief extracts the pubkey stored in the staking transaction's witness program.
-  boost::optional<CPubKey> ExtractBlockSigningKey(const CBlock &) const;
+  //!
+  //! Convenience wrapper: Picks the staking input of the blocks coinbase transaction
+  //! and forwards the call to ExtractBlockSigningKeys(const TxIn &).
+  std::vector<CPubKey> ExtractBlockSigningKeys(const CBlock &) const;
+
+  //! \brief extracts the pubkeys stored in the staking inputs witness program.
+  //!
+  //! In case of P2WPKH this returns the one and only pubkey from the witness stack.
+  //! In case of a P2SH staking input it returns all the potential signing keys.
+  std::vector<CPubKey> ExtractBlockSigningKeys(const CTxIn &) const;
 
   //! \brief The name of this network as a standard string.
   std::string GetNetworkName() const;

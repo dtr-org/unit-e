@@ -38,22 +38,27 @@ class BlockBuilderImpl : public BlockBuilder {
   }
 
   bool SignBlock(CBlock &block, const staking::StakingWallet &wallet) const {
-    const boost::optional<CPubKey> pubkey = m_blockchain_behavior->ExtractBlockSigningKey(block);
-    if (!pubkey) {
-      Log("Could not extract staking key from block.");
+    const std::vector<CPubKey> keys = m_blockchain_behavior->ExtractBlockSigningKeys(block);
+    if (keys.empty()) {
+      Log("Could not extract staking key(s) from block.");
       return false;
     }
-    const auto key = wallet.GetKey(*pubkey);
-    if (!key) {
-      Log("No private key for public key.");
-      return false;
+    for (const CPubKey& pubkey : keys) {
+      const auto key = wallet.GetKey(pubkey);
+      if (!key) {
+        Log("No private key for public key.");
+        continue;
+      }
+      const uint256 block_hash = block.GetHash();
+      if (!key->Sign(block_hash, block.signature)) {
+        Log("Could not create block signature.");
+        continue;
+      }
+      Log("Created block signature.");
+      return true;
     }
-    const uint256 block_hash = block.GetHash();
-    if (!key->Sign(block_hash, block.signature)) {
-      Log("Could not create block signature.");
-      return false;
-    }
-    return true;
+    Log("Could not sign block, no key could be used for signing.");
+    return false;
   }
 
  public:

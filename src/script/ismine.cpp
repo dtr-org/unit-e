@@ -73,7 +73,7 @@ IsMineResult HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keys
     return IsMineResult::NO;
 }
 
-IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion)
+IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion, ismineinfo *is_mine_info = nullptr)
 {
     IsMineResult ret = IsMineResult::NO;
 
@@ -112,10 +112,11 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             // This also applies to the P2WSH case.
             break;
         }
-        ret = IsMineInner(keystore, GetScriptForDestination(CKeyID(uint160(vSolutions[0]))), IsMineSigVersion::WITNESS_V0);
+        ret = IsMineInner(keystore, GetScriptForDestination(CKeyID(uint160(vSolutions[0]))), IsMineSigVersion::WITNESS_V0, is_mine_info);
         break;
     }
     case TX_PUBKEYHASH:
+    {
         keyID = CKeyID(uint160(vSolutions[0]));
         if (!PermitsUncompressed(sigversion)) {
             CPubKey pubkey;
@@ -130,6 +131,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
             ret = IsMineResult::HW_DEVICE;
         }
         break;
+    }
     case TX_SCRIPTHASH:
     {
         if (sigversion != IsMineSigVersion::TOP) {
@@ -139,7 +141,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         CScriptID scriptID = CScriptID(uint160(vSolutions[0]));
         CScript subscript;
         if (keystore.GetCScript(scriptID, subscript)) {
-            ret = IsMineInner(keystore, subscript, IsMineSigVersion::P2SH);
+            ret = IsMineInner(keystore, subscript, IsMineSigVersion::P2SH, is_mine_info);
         }
         break;
     }
@@ -157,7 +159,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         CScriptID scriptID = CScriptID(hash);
         CScript subscript;
         if (keystore.GetCScript(scriptID, subscript)) {
-            ret = IsMineInner(keystore, subscript, IsMineSigVersion::WITNESS_V0);
+            ret = IsMineInner(keystore, subscript, IsMineSigVersion::WITNESS_V0, is_mine_info);
         }
         break;
     }
@@ -217,7 +219,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         CRIPEMD160().Write(&vSolutions[1][0], vSolutions[1].size()).Finalize(hash.begin());
         CKeyID spending_key_id = CKeyID(hash);
 
-        ret = IsMineInner(keystore, GetScriptForDestination(spending_key_id), IsMineSigVersion::WITNESS_V0);
+        ret = IsMineInner(keystore, GetScriptForDestination(spending_key_id), IsMineSigVersion::WITNESS_V0, is_mine_info);
 
         break;
     }
@@ -233,12 +235,25 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         CScriptID scriptID = CScriptID(hash);
         CScript subscript;
         if (keystore.GetCScript(scriptID, subscript)) {
-            ret = IsMineInner(keystore, subscript, IsMineSigVersion::WITNESS_V0);
+            ret = IsMineInner(keystore, subscript, IsMineSigVersion::WITNESS_V0, is_mine_info);
         }
         break;
     }
     }
 
+    if (is_mine_info) {
+        switch (sigversion) {
+            case IsMineSigVersion::TOP:
+                is_mine_info->type = whichType;
+                is_mine_info->solutions = std::move(vSolutions);
+                break;
+            case IsMineSigVersion::P2SH:
+            case IsMineSigVersion::WITNESS_V0:
+                is_mine_info->p2sh_type = whichType;
+                is_mine_info->p2sh_solutions = std::move(vSolutions);
+                break;
+        }
+    }
     if (ret == IsMineResult::NO && keystore.HaveWatchOnly(scriptPubKey)) {
         ret = IsMineResult::WATCH_ONLY;
     }
@@ -247,9 +262,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
 
 } // namespace
 
-isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
+isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey, ismineinfo* is_mine_info)
 {
-    switch (IsMineInner(keystore, scriptPubKey, IsMineSigVersion::TOP)) {
+    switch (IsMineInner(keystore, scriptPubKey, IsMineSigVersion::TOP, is_mine_info)) {
     case IsMineResult::INVALID:
     case IsMineResult::NO:
         return ISMINE_NO;
@@ -271,31 +286,48 @@ isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest)
 
 bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
 {
-    std::vector<valtype> solutions;
-    txnouttype which_type;
-    Solver(script_pub_key, which_type, solutions);
+    ismineinfo is_mine_info;
+    const isminetype is_mine = IsMine(keystore, script_pub_key, &is_mine_info);
 
     // UNIT-E TODO: Restrict to witness programs only once #212 is merged (fixes #48)
-    switch (which_type)
-    {
+    switch (is_mine_info.type) {
         case TX_PUBKEYHASH:
         case TX_WITNESS_V0_KEYHASH:
         case TX_WITNESS_V1_RS_KEYHASH:
         case TX_WITNESS_V2_RS_SCRIPTHASH: {
-            CKeyID key_id = CKeyID(uint160(solutions[0]));
+            CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
             CPubKey pubkey;
-            if (keystore.GetPubKey(key_id, pubkey) && !pubkey.IsCompressed()) {
+            if (!keystore.GetPubKey(key_id, pubkey)) {
                 return false;
             }
-
-            if (keystore.HaveKey(key_id)) {
-                return true;
+            if (!pubkey.IsCompressed()) {
+                return false;
             }
+            return true;
         }
+        case TX_WITNESS_V0_SCRIPTHASH:
+            if (is_mine == isminetype::ISMINE_NO) {
+              return false;
+            }
+            switch (is_mine_info.p2sh_type) {
+                case TX_PUBKEY:
+                    return true;
+                case TX_MULTISIG: {
+                    const auto num_signatures = static_cast<std::uint8_t>(is_mine_info.p2sh_solutions.front()[0]);
+                    if (num_signatures != 1) {
+                        // stake is signed by a single proposer only and the block carries a single
+                        // signature of that proposer. 2-of-3 and similar multisig scenarios are not
+                        // allowed for staking.
+                        return false;
+                    }
+                    return true;
+                }
+                default:
+                    return false;
+            }
         default:
             return false;
     }
-    return false;
 }
 
 bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key)
