@@ -719,6 +719,7 @@ public:
     bool IsPayToScriptHash() const;
     bool IsPayVoteSlashScript() const;
     bool IsPayToWitnessScriptHash() const;
+    bool IsPayToWitnessPublicKeyHash() const;
     bool IsWitnessProgram() const;
     bool ExtractWitnessProgram(WitnessProgram &witnessProgram) const;
     bool MatchPayToPublicKeyHash(size_t ofs) const;

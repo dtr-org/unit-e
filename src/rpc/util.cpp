@@ -67,7 +67,11 @@ CScript CreateMultisigRedeemscript(const int required, const std::vector<CPubKey
     return result;
 }
 
-UniValue SanitizeDouble(const double value) {
+UniValue ToUniValue(const std::uint32_t value) {
+    return UniValue(static_cast<std::int64_t>(value));
+}
+
+UniValue ToUniValue(const float value) {
     if (value > std::numeric_limits<decltype(value)>::max()) {
         return "+Inf";
     }
@@ -79,3 +83,50 @@ UniValue SanitizeDouble(const double value) {
     }
     return value;
 }
+
+UniValue ToUniValue(const double value) {
+    if (value > std::numeric_limits<decltype(value)>::max()) {
+        return "+Inf";
+    }
+    if (value < std::numeric_limits<decltype(value)>::min()) {
+        return "-Inf";
+    }
+    if (value != value) {
+        return "NaN";
+    }
+    return value;
+}
+
+UniValue ToUniValue(const uint256& hash) {
+    return UniValue(hash.GetHex());
+}
+
+UniValue ToUniValue(const blockchain::GenesisBlock& value) {
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("version", ToUniValue(value.block.nVersion));
+    result.pushKV("time", ToUniValue(value.block.nTime));
+    {
+        arith_uint256 difficulty;
+        difficulty.SetCompact(value.block.nBits);
+        result.pushKV("difficulty", ToUniValue(ArithToUint256(difficulty)));
+    }
+    const std::vector<CTxOut> &vout = value.block.vtx[0]->vout;
+    UniValue p2wpkh_funds(UniValue::VARR);
+    UniValue p2wsh_funds(UniValue::VARR);
+    for (const CTxOut &out : vout) {
+        if (out.scriptPubKey.IsPayToWitnessPublicKeyHash()) {
+            UniValue funds(UniValue::VOBJ);
+            funds.pushKV("amount", out.nValue);
+            funds.pushKV("pub_key_hash", HexStr(out.scriptPubKey.begin() + 2, out.scriptPubKey.begin() + 22));
+            p2wpkh_funds.push_back(funds);
+        } else if (out.scriptPubKey.IsPayToWitnessScriptHash()) {
+            UniValue funds(UniValue::VOBJ);
+            funds.pushKV("amount", out.nValue);
+            funds.pushKV("script_hash", HexStr(out.scriptPubKey.begin() + 2, out.scriptPubKey.begin() + 34));
+            p2wsh_funds.push_back(funds);
+        }
+    }
+    result.pushKV("p2wpkh_funds", p2wpkh_funds);
+    result.pushKV("p2wsh_funds", p2wsh_funds);
+    return result;
+};

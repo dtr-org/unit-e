@@ -256,7 +256,7 @@ ReadResult Read<GenesisBlock>(
   };
   auto set_p2wsh_funds = [&](const std::vector<P2WSH> &funds) {
     for (const P2WSH &p2wsh : funds) {
-      builder.AddFundsForPayToPubKeyHash(p2wsh.amount, p2wsh.script_hash);
+      builder.AddFundsForPayToScriptHash(p2wsh.amount, p2wsh.script_hash);
     }
   };
   if (!Process<uint256>(parameters, obj, "difficulty", set_difficulty) ||

@@ -6,6 +6,7 @@
 
 from enum import Enum
 import logging
+import json
 import optparse
 import os
 import pdb
@@ -82,6 +83,16 @@ class UnitETestFramework():
         self.set_test_params()
 
         assert hasattr(self, "num_nodes"), "Test must set self.num_nodes in set_test_params()"
+
+        if hasattr(self, "chainparams"):
+            if not hasattr(self, "extra_args"):
+                self.extra_args = []
+            for i in range(len(self.extra_args), self.num_nodes):
+                self.extra_args.append([])
+            for i in range(0, self.num_nodes):
+                if i < len(self.chainparams):
+                    json_value = json.dumps(self.chainparams[i])
+                    self.extra_args[i].append("-customchainparams=" + json_value)
 
     def main(self):
         """Main function. This should not be overridden by the subclass test scripts."""

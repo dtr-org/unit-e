@@ -351,6 +351,14 @@ bool CScript::IsPayToWitnessScriptHash() const
             (*this)[1] == 0x20);
 }
 
+bool CScript::IsPayToWitnessPublicKeyHash() const
+{
+    // Extra-fast test for pay-to-witness-script-hash CScripts:
+    return (this->size() == 22 &&
+            (*this)[0] == OP_0 &&
+            (*this)[1] == 0x14);
+}
+
 // A witness program is any valid CScript that consists of a 1-byte push opcode
 // followed by several data pushes between 2 and 40 bytes each.
 bool CScript::IsWitnessProgram() const

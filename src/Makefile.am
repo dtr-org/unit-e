@@ -86,6 +86,7 @@ UNITE_CORE_H = \
   blockchain/blockchain_custom_parameters.h \
   blockchain/blockchain_genesis.h \
   blockchain/blockchain_interfaces.h \
+  blockchain/blockchain_rpc.h \
   blockchain/blockchain_parameters.h \
   blockchain/blockchain_types.h \
   blockdb.h \
@@ -283,6 +284,7 @@ libunite_server_a_SOURCES = \
   addrdb.cpp \
   addrman.cpp \
   bloom.cpp \
+  blockchain/blockchain_rpc.cpp \
   blockdb.cpp \
   blockencodings.cpp \
   chain.cpp \
