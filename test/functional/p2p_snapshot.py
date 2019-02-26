@@ -36,7 +36,7 @@ from test_framework.mininode import (
     NODE_SNAPSHOT,
 )
 from test_framework.blocktools import (
-    msg_commits,
+    msg_headers,
     msg_witness_block,
     msg_getsnaphead,
     msg_snaphead,
@@ -47,7 +47,6 @@ from test_framework.blocktools import (
     Snapshot,
     UTXO,
     CBlockHeader,
-    HeaderAndCommits,
     CBlock,
     COutPoint,
     ser_vector,
@@ -60,8 +59,6 @@ from test_framework.util import (
     wait_until,
     bytes_to_hex_str,
     hex_str_to_bytes,
-    connect_nodes,
-    sync_blocks,
 )
 
 import math
@@ -81,14 +78,14 @@ class BaseNode(P2PInterface):
         self.headers = []
         self.parent_blocks = dict()  # blocks after the snapshot
 
-    def on_getcommits(self, message):
+    def on_getheaders(self, message):
         if len(self.headers) == 0:
             return
 
-        msg = msg_commits()
+        msg = msg_headers()
         msg.status = 1
         for h in self.headers:
-            msg.data.append(HeaderAndCommits(h))
+            msg.headers.append(h)
         self.send_message(msg)
 
     def on_getsnaphead(self, message):
@@ -113,7 +110,8 @@ class BaseNode(P2PInterface):
                 self.send_message(msg_witness_block(self.parent_blocks[i.hash]))
 
     def update_snapshot_header_from(self, node):
-        res = node.listsnapshots()[-1]  # take the latest
+        # take the latest finalized
+        res = next(s for s in reversed(node.listsnapshots()) if s['snapshot_finalized'])
         self.snapshot_header = SnapshotHeader(
             snapshot_hash=uint256_from_rev_hex(res['snapshot_hash']),
             block_hash=uint256_from_rev_hex(res['block_hash']),
@@ -283,8 +281,9 @@ class P2PSnapshotTest(UnitETestFramework):
         self.start_node(serving_node.index)
         self.start_node(syncing_node.index)
 
-        # generate 4 blocks to create the first snapshot
-        serving_node.generatetoaddress(5, serving_node.getnewaddress())
+        # generate 2 epochs + 1 block to create the first finalized snapshot
+        serving_node.generatetoaddress(4 + 5 + 1, serving_node.getnewaddress())
+        assert_equal(serving_node.getblockcount(), 10)
         wait_until(lambda: has_valid_snapshot(serving_node, 3), timeout=10)
 
         syncing_p2p = serving_node.add_p2p_connection(BaseNode())
@@ -336,7 +335,7 @@ class P2PSnapshotTest(UnitETestFramework):
             utxo_subsets=syncing_p2p.snapshot_data,
         )
         serving_p2p.send_message(msg_snapshot(snapshot))
-        wait_until(lambda: syncing_node.getblockcount() == 5, timeout=10)
+        wait_until(lambda: syncing_node.getblockcount() == 10, timeout=10)
         assert_equal(serving_node.gettxoutsetinfo(), syncing_node.gettxoutsetinfo())
 
         self.log.info('Snapshot was sent successfully')
@@ -363,8 +362,9 @@ class P2PSnapshotTest(UnitETestFramework):
         self.start_node(snap_node.index)
         self.start_node(node.index)
 
-        # generate 4 blocks to create the first snapshot
-        snap_node.generatetoaddress(5, snap_node.getnewaddress())
+        # generate 2 epochs + 1 block to create the first finalized snapshot
+        snap_node.generatetoaddress(4 + 5 + 1, snap_node.getnewaddress())
+        assert_equal(snap_node.getblockcount(), 10)
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
 
         # configure p2p to have snapshot header and parent block
@@ -461,8 +461,10 @@ class P2PSnapshotTest(UnitETestFramework):
         self.start_node(snap_node.index)
         self.start_node(node.index)
 
-        # create the first snapshot and store it in valid_p2p
-        snap_node.generatetoaddress(5, snap_node.getnewaddress())
+        # generate 2 epochs + 1 block to create the first finalized snapshot
+        # and store it in valid_p2p
+        snap_node.generatetoaddress(4 + 5 + 1, snap_node.getnewaddress())
+        assert_equal(snap_node.getblockcount(), 10)
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
 
         valid_p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
@@ -470,6 +472,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # create the second snapshot and store it in broken_p2p
         snap_node.generatetoaddress(5, snap_node.getnewaddress())
+        assert_equal(snap_node.getblockcount(), 15)
         wait_until(lambda: has_valid_snapshot(snap_node, 8), timeout=10)
 
         broken_p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
@@ -516,7 +519,7 @@ class P2PSnapshotTest(UnitETestFramework):
         valid_p2p.on_getsnapshot(valid_p2p.last_getsnapshot_message)
 
         # node requests parent block and finishes ISD
-        wait_until(lambda: node.getblockcount() == 10, timeout=20)
+        wait_until(lambda: node.getblockcount() == 15, timeout=20)
         node.disconnect_p2ps()
         assert_chainstate_equal(snap_node, node)
 
@@ -538,7 +541,8 @@ class P2PSnapshotTest(UnitETestFramework):
         self.start_node(sync_node.index)
 
         # add 2nd best snapshot to full_snap_p2p
-        snap_node.generatetoaddress(4, snap_node.getnewaddress())
+        snap_node.generatetoaddress(4 + 5 + 1, snap_node.getnewaddress())
+        assert_equal(snap_node.getblockcount(), 10)
         wait_until(lambda: has_valid_snapshot(snap_node, 3), timeout=10)
         full_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         no_snap_p2p = sync_node.add_p2p_connection(WaitNode())
@@ -547,6 +551,7 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # add the best snapshot to half_snap_p2p
         snap_node.generatetoaddress(5, snap_node.getnewaddress())
+        assert_equal(snap_node.getblockcount(), 15)
         wait_until(lambda: has_valid_snapshot(snap_node, 8), timeout=10)
         half_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         half_snap_p2p.update_snapshot_header_from(snap_node)

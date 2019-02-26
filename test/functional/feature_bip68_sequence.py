@@ -7,6 +7,7 @@
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.blocktools import *
+from test_framework.regtest_mnemonics import regtest_mnemonics
 
 SEQUENCE_LOCKTIME_DISABLE_FLAG = (1<<31)
 SEQUENCE_LOCKTIME_TYPE_FLAG = (1<<22) # this means use time (0 means height)
@@ -18,8 +19,8 @@ NOT_FINAL_ERROR = "64: non-BIP68-final"
 
 class BIP68Test(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 2
-        self.extra_args = [[], ["-acceptnonstdtxn=0"]]
+        self.num_nodes = 3
+        self.extra_args = [[], ["-acceptnonstdtxn=0"], ['-validating=1']]
 
     def run_test(self):
         self.nodes[0].add_p2p_connection(P2PInterface())
@@ -29,8 +30,20 @@ class BIP68Test(UnitETestFramework):
 
         self.relayfee = self.nodes[0].getnetworkinfo()["relayfee"]
 
+        # Add deposit to stop finalization as in this test
+        # we need to revert 11 blocks (2 epochs) via invalidateblock
+        # and node is not allowed to revert finalization
+        self.nodes[2].importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        self.restart_node(2)  # disconnect from other nodes
+        connect_nodes(self.nodes[2], 0)  # send deposit to one node only
+        self.nodes[0].generate(1)
+        addr = self.nodes[2].getnewaddress('', 'legacy')
+        txid = self.nodes[2].deposit(addr, 10000)
+        wait_until(lambda: txid in self.nodes[0].getrawmempool(), timeout=10)
+        self.stop_node(2)
+
         # Generate some coins
-        self.nodes[0].generate(110)
+        self.nodes[0].generate(109)
 
         self.log.info("Running test disable flag")
         self.test_disable_flag()
@@ -390,7 +403,7 @@ class BIP68Test(UnitETestFramework):
         assert_equal(get_bip9_status(self.nodes[0], 'csv')['status'], "locked_in")
         self.nodes[0].generate(1)
         assert_equal(get_bip9_status(self.nodes[0], 'csv')['status'], "active")
-        sync_blocks(self.nodes)
+        sync_blocks(self.nodes[:2])
 
     # Use self.nodes[1] to test that version 2 transactions are standard.
     def test_version2_relay(self):

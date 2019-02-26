@@ -222,6 +222,8 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetCurrentEpoch() const;
   uint32_t GetCurrentDynasty() const;
 
+  uint32_t GetFinalizationCheckpointHeight() const;
+
   uint64_t GetDepositSize(const uint160 &validatorAddress) const;
 
   const CBlockIndex *GetRecommendedTarget() const;
@@ -240,6 +242,9 @@ class FinalizationState : public FinalizationStateData {
 
   //! \brief Returns the height of the first block of the epoch.
   blockchain::Height GetEpochStartHeight(uint32_t epoch) const;
+
+  //! \brief Returns the height of the last block of the epoch.
+  blockchain::Height GetEpochCheckpointHeight(uint32_t epoch) const;
 
   static bool ValidateDepositAmount(CAmount amount);
 

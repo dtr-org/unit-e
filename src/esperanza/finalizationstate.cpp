@@ -854,6 +854,19 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
+uint32_t FinalizationState::GetFinalizationCheckpointHeight() const {
+  if (m_lastJustifiedEpoch == 0) {
+    // TODO: UNIT-E: see #570
+    // case when 0 means no finalization
+    return 0;
+  }
+
+  const uint32_t epoch = m_lastFinalizedEpoch + 1;
+  assert(GetCheckpoint(epoch).m_isJustified);
+
+  return GetEpochCheckpointHeight(epoch);
+}
+
 // UNIT-E TODO: get rid of this function
 FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
   if (block_index == nullptr) {
@@ -876,6 +889,10 @@ uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
 
 blockchain::Height FinalizationState::GetEpochStartHeight(uint32_t epoch) const {
   return epoch * m_settings.epoch_length;
+}
+
+blockchain::Height FinalizationState::GetEpochCheckpointHeight(uint32_t epoch) const {
+  return GetEpochStartHeight(epoch + 1) - 1;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {

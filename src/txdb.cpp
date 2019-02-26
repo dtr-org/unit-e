@@ -295,6 +295,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nTx            = diskindex.nTx;
                 pindexNew->commits        = std::move(diskindex.commits);
                 pindexNew->last_justified_epoch = diskindex.last_justified_epoch;
+                pindexNew->forking_before_active_finalization = diskindex.forking_before_active_finalization;
 
                 if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams))
                     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());

@@ -70,17 +70,20 @@ namespace {
     struct CBlockIndexWorkComparator
     {
         bool operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
-            // First sort by justification
-            bool pa_has_last_justified_epoch = static_cast<bool>(pa->last_justified_epoch);
-            bool pb_has_last_justified_epoch = static_cast<bool>(pb->last_justified_epoch);
+            // first check that no forks before finalization
+            if (!pa->forking_before_active_finalization && pb->forking_before_active_finalization) return false;
+            if (pa->forking_before_active_finalization && !pb->forking_before_active_finalization) return true;
+
+            // sort by justification
+            const bool pa_has_last_justified_epoch = static_cast<bool>(pa->last_justified_epoch);
+            const bool pb_has_last_justified_epoch = static_cast<bool>(pb->last_justified_epoch);
 
             if (pa_has_last_justified_epoch && pb_has_last_justified_epoch) {
               if (pa->last_justified_epoch.get() > pb->last_justified_epoch.get()) return false;
               if (pa->last_justified_epoch.get() < pb->last_justified_epoch.get()) return true;
             }
-
-            if (pa_has_last_justified_epoch && !pb_has_last_justified_epoch) return false;
-            if (!pa_has_last_justified_epoch && pb_has_last_justified_epoch) return true;
+            else if (pa_has_last_justified_epoch && !pb_has_last_justified_epoch) return false;
+            else if (!pa_has_last_justified_epoch && pb_has_last_justified_epoch) return true;
 
             // then sort by most total work, ...
             if (pa->nChainWork > pb->nChainWork) return false;
@@ -4573,18 +4576,85 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
     return nLoaded > 0;
 }
 
-void CChainState::UpdateLastJustifiedEpoch(CBlockIndex *block_index) {
-    esperanza::FinalizationState *fin_state = esperanza::FinalizationState::GetState(block_index);
-    assert(fin_state);
-
-    if (setBlockIndexCandidates.count(block_index) > 0) {
-      setBlockIndexCandidates.erase(block_index);
-      block_index->last_justified_epoch = fin_state->GetLastJustifiedEpoch();
-      setBlockIndexCandidates.insert(block_index);
-      return;
+bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
+    Dependency<finalization::StateRepository> state_repo = GetComponent(FinalizationStateRepository);
+    esperanza::FinalizationState *tip_state = state_repo->GetTipState();
+    assert(tip_state || chainActive.Height() == -1); // sanity check
+    if (!tip_state) {
+        // we are processing genesis block
+        return false;
     }
 
-    block_index->last_justified_epoch = fin_state->GetLastJustifiedEpoch();
+    bool has_finalization = tip_state->GetLastFinalizedEpoch() > 0;
+    if (!has_finalization) {
+        // UNIT-E: TODO: remove this once #570 is implemented
+        has_finalization = tip_state->GetLastJustifiedEpoch() == 1;
+    }
+    if (!has_finalization) {
+        // we don't have a single finalization yet
+        // so all the forks are allowed
+        return false;
+    }
+
+    if (block_index.pprev == chainActive.Tip()) {
+        // new block is built on top of the chainActive
+        // so can't fork finalization
+        return false;
+    }
+
+    const uint32_t checkpoint_height = tip_state->GetCheckpointHeightAfterFinalizedEpoch();
+    const CBlockIndex *checkpoint = chainActive[checkpoint_height];
+    assert(checkpoint);
+
+    const CBlockIndex *block_checkpoint = block_index.GetAncestor(checkpoint_height);
+    if (!block_checkpoint || block_checkpoint != checkpoint) {
+        // current fork doesn't contain the checkpoint on its path
+        // which means it either forks before finalization
+        // or this fork behind the last finalization
+        return true;
+    }
+
+    // we know that we have finalized epoch on this fork and
+    // it is at least justified. We need to check that it is also finalized
+    uint32_t justified_epoch = tip_state->GetLastFinalizedEpoch() + 1;
+    uint32_t next_checkpoint_height = tip_state->GetEpochCheckpointHeight(justified_epoch + 1);
+
+    // this block must have votes to justify the epoch
+    // which follows after the finalized one on chainActive
+    uint32_t height = std::min(next_checkpoint_height, static_cast<uint32_t>(block_index.nHeight));
+    const CBlockIndex *cp_fork = block_index.GetAncestor(height);
+    assert(cp_fork);
+    esperanza::FinalizationState *cp_fork_state = state_repo->Find(*cp_fork);
+    assert(cp_fork_state);
+
+    if (cp_fork_state->GetLastJustifiedEpoch() != justified_epoch) {
+        // this fork doesn't justify the expected epoch
+        return true;
+    }
+
+    // sanity check
+    assert(cp_fork_state->GetLastFinalizedEpoch() == tip_state->GetLastFinalizedEpoch());
+    return false;
+}
+
+void CChainState::UpdateLastJustifiedEpoch(CBlockIndex *block_index) {
+    assert(block_index != nullptr);
+
+    Dependency<finalization::StateRepository> repo = GetComponent(FinalizationStateRepository);
+    esperanza::FinalizationState *block_state = repo->Find(*block_index);
+    assert(block_state);
+
+    auto it = setBlockIndexCandidates.find(block_index);
+    if (it != setBlockIndexCandidates.end()) {
+        setBlockIndexCandidates.erase(it);
+        block_index->last_justified_epoch = block_state->GetLastJustifiedEpoch();
+        block_index->forking_before_active_finalization = IsForkingBeforeLastFinalization(*block_index);
+        setBlockIndexCandidates.insert(block_index);
+        return;
+    }
+
+    block_index->last_justified_epoch = block_state->GetLastJustifiedEpoch();
+    block_index->forking_before_active_finalization = IsForkingBeforeLastFinalization(*block_index);
 }
 
 void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)

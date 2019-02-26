@@ -234,7 +234,12 @@ public:
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
     boost::optional<std::vector<CTransactionRef>> commits;
 
+    //! last justified epoch counting from this block index
     boost::optional<uint32_t> last_justified_epoch;
+
+    //! keeps tracking if current CBlockIndex tries to fork
+    //! the chainActive before finalization
+    bool forking_before_active_finalization;
 
     void SetNull()
     {
@@ -259,6 +264,7 @@ public:
         nBits          = 0;
         nNonce         = 0;
         last_justified_epoch = boost::none;
+        forking_before_active_finalization = false;
 
         ResetCommits();
     }
@@ -450,7 +456,10 @@ public:
 
         // commits
         READWRITE(commits);
+
+        // support fork choice rules
         READWRITE(last_justified_epoch);
+        READWRITE(forking_before_active_finalization);
     }
 
     uint256 GetBlockHash() const
