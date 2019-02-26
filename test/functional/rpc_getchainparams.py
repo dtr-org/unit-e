@@ -20,7 +20,7 @@ class GetParametersTest (UnitETestFramework):
             ["-proposing=0"],
             ["-proposing=1"]
         ]
-        self.chainparams = [
+        self.customchainparams = [
             {"block_time_seconds": 24,
              "block_stake_timestamp_interval_seconds": 48,
              "genesis_block": {
