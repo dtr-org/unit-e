@@ -2,13 +2,10 @@
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
   FIND_CMD='find -E'
-  QT_PATH=$(brew info qt 2>/dev/null | head -n4 | tail -n1 | cut -f1 -d' ')
-  QT_CMAKE_PATH="${QT_PATH}/lib/cmake"
   OPENSSL_INCLUDE=/usr/local/opt/openssl/include
   OPENSSL_LIB=/usr/local/opt/openssl/lib
 else
   FIND_CMD='find'
-  QT_CMAKE_PATH=/usr/lib/x86_64-linux-gnu/cmake
   OPENSSL_INCLUDE=/usr/include/openssl
   OPENSSL_LIB=/usr/lib/x86_64-linux-gnu
 fi
@@ -28,12 +25,6 @@ echo "include_directories($OPENSSL_INCLUDE)"
 echo "link_directories($OPENSSL_LIB)"
 echo ""
 
-echo "set(CMAKE_PREFIX_PATH $QT_CMAKE_PATH)"
-echo ""
-echo "find_package(Qt5Core REQUIRED)"
-echo "find_package(Qt5Widgets REQUIRED)"
-echo ""
-
 echo "find_package(Boost COMPONENTS"
 echo "        system"
 echo "        filesystem"
@@ -41,7 +32,6 @@ echo "        unit_test_framework"
 echo "        REQUIRED)"
 echo ""
 
-echo 'include_directories(${Qt5Widgets_INCLUDE_DIRS})'
 echo 'include_directories(${Boost_INCLUDE_DIRS})'
 
 echo "include_directories(src)"
