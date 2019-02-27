@@ -17,7 +17,15 @@ namespace {
 
 struct Fixture {
 
-  blockchain::Parameters parameters = blockchain::Parameters::MainNet();
+  blockchain::Parameters parameters = [] () {
+    blockchain::Parameters p = blockchain::Parameters::MainNet();
+    p.difficulty_function = [](const blockchain::Parameters &p, blockchain::Height h,
+                               blockchain::ChainAccess &c) -> blockchain::Difficulty {
+      return 0x1d00ffff;
+    };
+    return p;
+  }();
+  
   std::unique_ptr<blockchain::Behavior> b =
       blockchain::Behavior::NewFromParameters(parameters);
 
@@ -107,11 +115,6 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   fixture.active_chain_mock.get_utxo = [&coins](const COutPoint &p) {
     const auto it = coins.find(p);
     return it == coins.end() ? boost::none : boost::make_optional(it->second);
-  };
-
-  fixture.parameters.difficulty_function = [](const blockchain::Parameters &p, blockchain::Height h,
-                                              blockchain::ChainAccess &c) -> blockchain::Difficulty {
-    return 0x1d000fff;
   };
 
   CMutableTransaction tx;
