@@ -105,8 +105,9 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   COutPoint input2_ref(stake_txid, 2);
   CTxIn input2(input2_ref, CScript());
 
-  const CScript script = CScript() << OP_1 << std::vector<uint8_t>(20) << std::vector<uint8_t>(32);
-  const CScript script2 = CScript() << OP_2 << std::vector<uint8_t>(20, 1) << std::vector<uint8_t>(32);
+  const CScript script = CScript::CreateRemoteStakingKeyhashScript(std::vector<uint8_t>(20), std::vector<uint8_t>(32));
+  const CScript script2 =
+      CScript::CreateRemoteStakingScripthashScript(std::vector<uint8_t>(20, 1), std::vector<uint8_t>(32));
   blockchain::Depth depth = fixture.parameters.stake_maturity + 10;
 
   std::map<COutPoint, staking::Coin> coins;
@@ -122,6 +123,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   tx.SetType(TxType::COINBASE);
 
   LOCK(fixture.active_chain_mock.GetLock());
+  // The same amount sent back to the RSP2WPKH script
   {
     const CTxOut out(UNIT, script);
     tx.vout = {out};
@@ -131,6 +133,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     BOOST_CHECK_MESSAGE(r, r.GetRejectionMessage());
   }
 
+  // The output amount is smaller than the input amount
   {
     const CTxOut out(UNIT - 1, script);
 
@@ -142,6 +145,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     BOOST_CHECK(r.errors.Contains(staking::BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT));
   }
 
+  // Two remote staking outputs with total amount greater than the input amount
   {
     const CTxOut out(UNIT - 10000, script);
     const CTxOut out2(10100, script);
@@ -154,6 +158,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   }
 
   tx.vin.push_back(input2);
+  // UTXO for the second input not found
   {
     const CTxOut out(3 * UNIT, script);
 
@@ -166,7 +171,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   }
 
   coins[input2_ref] = {input2_ref.hash, input2_ref.n, 2 * UNIT, script2, depth};
-
+  // Two different remote staking inputs and outputs with correct amounts
   {
     const CTxOut out(UNIT, script);
     const CTxOut out2(2 * UNIT, script2);
@@ -178,6 +183,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     BOOST_CHECK_MESSAGE(r, r.GetRejectionMessage());
   }
 
+  // Two different remote staking inputs and outputs with incorrect amounts
   {
     const CTxOut out(2 * UNIT, script);
     const CTxOut out2(UNIT, script2);
