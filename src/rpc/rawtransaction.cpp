@@ -888,12 +888,24 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
     // transaction to avoid rehashing.
     const CTransaction txConst(mtx);
     // Sign what we can:
-    for (unsigned int i = 0; i < mtx.vin.size(); i++) {
+
+    if (txConst.IsCoinBase()) {
+#ifdef ENABLE_WALLET
+      if (!pwallet->GetWalletExtension().SignCoinbaseTransaction(mtx)) {
+        for (unsigned int i = 1; i < mtx.vin.size(); ++i) {
+          TxInErrorToJSON(mtx.vin[i], vErrors, "Cannot sign the coinbase.");
+        }
+      }
+#else
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Signing coinbase is not supported without a wallet");
+#endif
+    } else {
+      for (unsigned int i = 0; i < mtx.vin.size(); i++) {
         CTxIn& txin = mtx.vin[i];
         const Coin& coin = view.AccessCoin(txin.prevout);
         if (coin.IsSpent()) {
-            TxInErrorToJSON(txin, vErrors, "Input not found or already spent");
-            continue;
+          TxInErrorToJSON(txin, vErrors, "Input not found or already spent");
+          continue;
         }
         const CScript& prevPubKey = coin.out.scriptPubKey;
         const CAmount& amount = coin.out.nValue;
@@ -901,32 +913,34 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
         SignatureData sigdata;
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
         if (!fHashSingle || (i < mtx.vout.size())) {
-            ProduceSignature(keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata, &txConst);
+          ProduceSignature(keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata, &txConst);
         }
 
         // Votes don't need to combine the sigdata and the scriptSig cause the
         // sigdata contains the vote already
         if (mtx.GetType() != +TxType::VOTE) {
-           sigdata = CombineSignatures(prevPubKey, TransactionSignatureChecker(&txConst, i, amount), sigdata, DataFromTransaction(mtx, i));
+          sigdata = CombineSignatures(prevPubKey, TransactionSignatureChecker(&txConst, i, amount), sigdata, DataFromTransaction(mtx, i));
         }
 
         UpdateTransaction(mtx, i, sigdata);
 
         // amount must be specified for valid segwit signature
         if (amount == MAX_MONEY && !txin.scriptWitness.IsNull()) {
-            throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Missing amount for %s", coin.out.ToString()));
+          throw JSONRPCError(RPC_TYPE_ERROR, strprintf("Missing amount for %s", coin.out.ToString()));
         }
 
         ScriptError serror = SCRIPT_ERR_OK;
         if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, amount), &serror)) {
-            if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {
-                // Unable to sign input and verification failed (possible attempt to partially sign).
-                TxInErrorToJSON(txin, vErrors, "Unable to sign input, invalid stack size (possibly missing key)");
-            } else {
-                TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
-            }
+          if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {
+            // Unable to sign input and verification failed (possible attempt to partially sign).
+            TxInErrorToJSON(txin, vErrors, "Unable to sign input, invalid stack size (possibly missing key)");
+          } else {
+            TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
+          }
         }
+      }
     }
+
     bool fComplete = vErrors.empty();
 
     UniValue result(UniValue::VOBJ);
