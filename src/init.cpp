@@ -355,8 +355,10 @@ void OnRPCStopped()
 
 std::string HelpMessage(HelpMessageMode mode)
 {
-    const auto defaultBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
-    const auto defaultChainParams = CreateChainParams(CBaseChainParams::TESTNET);
+    const auto testnetBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
+    const auto testnetChainParams = CreateChainParams(CBaseChainParams::TESTNET);
+    const auto &defaultBaseParams = testnetBaseParams;
+    const auto &defaultChainParams = testnetChainParams;
     const bool showDebug = gArgs.GetBoolArg("-help-debug", false);
     const p2p::EmbargoManParams defaultEmbargoManParams;
 

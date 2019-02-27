@@ -16,7 +16,7 @@ namespace {
 
 struct Fixture {
 
-  blockchain::Parameters parameters = blockchain::Parameters::MainNet();
+  blockchain::Parameters parameters = blockchain::Parameters::TestNet();
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::NewFromParameters(parameters);
 
   CBlockIndex tip;

@@ -45,75 +45,6 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
 }
 
 /**
- * Main network
- */
-
-class CMainParams : public CChainParams {
-public:
-    CMainParams(const blockchain::Parameters &params) : CChainParams(params) {
-        consensus.nSubsidyHalvingInterval = 210000;
-        consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 10 * 60;
-        consensus.fPowAllowMinDifficultyBlocks = false;
-        consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016
-        consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
-
-        // Deployment of BIP68, BIP112, and BIP113.
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = 1462060800; // May 1st, 2016
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = 1493596800; // May 1st, 2017
-
-        // Deployment of SegWit (BIP141, BIP143, and BIP147)
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = 1479168000; // November 15th, 2016.
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1510704000; // November 15th, 2017.
-
-        // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000f91c579d57cad4bc5278cc");
-
-        // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000000005214481d2d96f898e3d5416e43359c145944a909d242e0"); //506067
-
-        genesis = parameters.genesis_block.block;
-        consensus.hashGenesisBlock = genesis.GetHash();
-
-        // Note that of those which support the service bits prefix, most only support a subset of
-        // possible options.
-        // This is fine at runtime as we'll fall back to using them as a oneshot if they dont support the
-        // service bits we want, but we should get them updated to support all service bits wanted by any
-        // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("mainnet-seed.thirdhash.com");
-
-        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
-
-        fDefaultConsistencyChecks = false;
-        fRequireStandard = true;
-
-        chainTxData = ChainTxData{
-            // Data as of block 0000000000000000002d6cca6761c99b3c2e936f9a0e304b7c7651a993f461de (height 506081).
-            1516903077, // * UNIX timestamp of last known number of transactions
-            295363220,  // * total number of transactions between genesis and that timestamp
-                        //   (the tx=... number in the SetBestChain debug.log lines)
-            3.5         // * estimated number of transactions per second after that timestamp
-        };
-
-        finalization.epoch_length = 50;
-        finalization.min_deposit_size = 10000 * UNIT;
-        finalization.dynasty_logout_delay = 700;
-        finalization.withdrawal_epoch_delay = static_cast<int>(1.5e4);
-        finalization.slash_fraction_multiplier = 3;
-        finalization.bounty_fraction_denominator = 25;
-        finalization.base_interest_factor = ufp64::to_ufp64(7);
-        finalization.base_penalty_factor = ufp64::div_2uint(2, 10000000);
-    }
-};
-
-/**
  * Testnet (v3)
  */
 class CTestNetParams : public CChainParams {
@@ -252,9 +183,7 @@ const CChainParams &Params() {
 
 std::unique_ptr<CChainParams> CreateChainParams(Dependency<blockchain::Behavior> blockchain_behavior, const std::string& chain)
 {
-    if (chain == CBaseChainParams::MAIN)
-        return std::unique_ptr<CChainParams>(new CMainParams(blockchain_behavior->GetParameters()));
-    else if (chain == CBaseChainParams::TESTNET)
+    if (chain == CBaseChainParams::TESTNET)
         return std::unique_ptr<CChainParams>(new CTestNetParams(blockchain_behavior->GetParameters()));
     else if (chain == CBaseChainParams::REGTEST)
         return std::unique_ptr<CChainParams>(new CRegTestParams(blockchain_behavior->GetParameters()));
@@ -264,9 +193,7 @@ std::unique_ptr<CChainParams> CreateChainParams(Dependency<blockchain::Behavior>
 std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
 {
   std::unique_ptr<blockchain::Behavior> blockchain_behavior;
-  if (chain == CBaseChainParams::MAIN) {
-    blockchain_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::main);
-  } else if (chain == CBaseChainParams::TESTNET) {
+  if (chain == CBaseChainParams::TESTNET) {
     blockchain_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::test);
   } else if (chain == CBaseChainParams::REGTEST) {
     blockchain_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::regtest);

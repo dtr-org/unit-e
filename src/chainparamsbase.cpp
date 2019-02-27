@@ -11,7 +11,6 @@
 #include <assert.h>
 #include <memory>
 
-const std::string CBaseChainParams::MAIN = "main";
 const std::string CBaseChainParams::TESTNET = "test";
 const std::string CBaseChainParams::REGTEST = "regtest";
 
@@ -24,18 +23,6 @@ void AppendParamsHelpMessages(std::string& strUsage, bool debugHelp)
                                    "This is intended for regression testing tools and app development.");
     }
 }
-
-/**
- * Main network
- */
-class CBaseMainParams : public CBaseChainParams
-{
-public:
-    CBaseMainParams()
-    {
-        nRPCPort = 7181;
-    }
-};
 
 /**
  * Testnet (v3)
@@ -73,9 +60,7 @@ const CBaseChainParams& BaseParams()
 
 std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain)
 {
-    if (chain == CBaseChainParams::MAIN)
-        return std::unique_ptr<CBaseChainParams>(new CBaseMainParams());
-    else if (chain == CBaseChainParams::TESTNET)
+    if (chain == CBaseChainParams::TESTNET)
         return std::unique_ptr<CBaseChainParams>(new CBaseTestNetParams());
     else if (chain == CBaseChainParams::REGTEST)
         return std::unique_ptr<CBaseChainParams>(new CBaseRegTestParams());

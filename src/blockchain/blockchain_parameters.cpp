@@ -11,9 +11,8 @@
 
 namespace blockchain {
 
-Parameters Parameters::MainNet() noexcept {
+Parameters Parameters::Common() noexcept {
   Parameters p{};  // designated initializers would be so nice here
-  p.network_name = "main";
 
   p.block_stake_timestamp_interval_seconds = 16;
   p.block_time_seconds = 16;
@@ -69,7 +68,7 @@ Parameters Parameters::MainNet() noexcept {
 }
 
 Parameters Parameters::TestNet() noexcept {
-  Parameters p = Parameters::MainNet();
+  Parameters p = Parameters::Common();
   p.network_name = "test";
 
   p.relay_non_standard_transactions = true;
@@ -97,7 +96,7 @@ Parameters Parameters::TestNet() noexcept {
 }
 
 Parameters Parameters::RegTest() noexcept {
-  Parameters p = Parameters::MainNet();
+  Parameters p = Parameters::Common();
   p.network_name = "regtest";
 
   p.mine_blocks_on_demand = true;

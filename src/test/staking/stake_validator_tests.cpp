@@ -18,7 +18,7 @@ namespace {
 struct Fixture {
 
   blockchain::Parameters parameters = [] () {
-    blockchain::Parameters p = blockchain::Parameters::MainNet();
+    blockchain::Parameters p = blockchain::Parameters::TestNet();
     p.difficulty_function = [](const blockchain::Parameters &p, blockchain::Height h,
                                blockchain::ChainAccess &c) -> blockchain::Difficulty {
       return 0x1d00ffff;
