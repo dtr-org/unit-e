@@ -15,15 +15,6 @@
 #include <iblt_params.h>
 #include <serialize.h>
 
-template <typename T>
-std::vector<uint8_t> ToVec(T number) {
-  std::vector<uint8_t> v(sizeof(T));
-  for (size_t i = 0; i < sizeof(T); i++) {
-    v.at(i) = (number >> i * 8) & 0xff;
-  }
-  return v;
-}
-
 //! \brief Invertible Bloom Lookup Table implementation
 //!
 //! References:
@@ -72,8 +63,6 @@ class IBLT {
   bool Get(const TKey key, std::vector<uint8_t> &value_out) const {
     value_out.clear();
 
-    const std::vector<uint8_t> kvec = ToVec(key);
-
     const size_t buckets_per_hash = m_hash_table.size() / m_num_hashes;
     for (size_t i = 0; i < m_num_hashes; i++) {
       const size_t start_entry = i * buckets_per_hash;
@@ -81,7 +70,7 @@ class IBLT {
       // Although in theory seed might overflow here - we don't care.
       // It is seed after all
       const auto seed = static_cast<unsigned int>(i);
-      const unsigned int h = MurmurHash3(seed, kvec);
+      const unsigned int h = ComputeHash(seed, key);
       const size_t bucket = start_entry + (h % buckets_per_hash);
       const IBLTEntry &entry = m_hash_table.at(bucket);
 
@@ -255,7 +244,7 @@ class IBLT {
 
     bool IsPure() const {
       if (count == 1 || count == -1) {
-        const unsigned int check = MurmurHash3(N_HASHCHECK, ToVec(key_sum));
+        const unsigned int check = ComputeHash(N_HASHCHECK, key_sum);
         return key_check == check;
       }
       return false;
@@ -299,6 +288,13 @@ class IBLT {
   };
 
  private:
+  static unsigned int ComputeHash(unsigned int seed, const TKey &key) {
+    static_assert(std::is_integral<TKey>::value, "Only integral keys are supported");
+    const auto data_ptr = reinterpret_cast<const uint8_t *>(&key);
+
+    return MurmurHash3(seed, data_ptr, sizeof(key));
+  }
+
   static constexpr size_t N_HASHCHECK = 11;
 
   void Update(const int64_t count_delta,
@@ -307,9 +303,7 @@ class IBLT {
 
     assert(value.size() == ValueSize);
 
-    // UNIT-E TODO: this is very inefficient to allocate memory just to compute murmurhash!
-    const std::vector<uint8_t> kvec = ToVec(key);
-    const unsigned int key_check = MurmurHash3(N_HASHCHECK, kvec);
+    const unsigned int key_check = ComputeHash(N_HASHCHECK, key);
 
     const size_t buckets_per_hash = m_hash_table.size() / m_num_hashes;
     for (size_t i = 0; i < m_num_hashes; i++) {
@@ -318,7 +312,7 @@ class IBLT {
       // Although in theory seed might overflow here - we don't care.
       // It is seed after all
       const auto seed = static_cast<unsigned int>(i);
-      const unsigned int h = MurmurHash3(seed, kvec);
+      const unsigned int h = ComputeHash(seed, key);
       const size_t bucket = start_entry + (h % buckets_per_hash);
       IBLTEntry &entry = m_hash_table.at(bucket);
       entry.count += count_delta;
