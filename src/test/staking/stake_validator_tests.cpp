@@ -25,7 +25,7 @@ struct Fixture {
     };
     return p;
   }();
-  
+
   std::unique_ptr<blockchain::Behavior> b =
       blockchain::Behavior::NewFromParameters(parameters);
 
