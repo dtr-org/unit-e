@@ -16,7 +16,7 @@
 
 BOOST_FIXTURE_TEST_SUITE(iblt_tests, ReducedTestingSetup)
 
-using DefaultIBLT = IBLT<uint64_t, int32_t, 4>;
+using DefaultIBLT = IBLT<uint64_t, 4>;
 
 std::vector<uint8_t> PseudoRandomValue(const unsigned int n) {
   std::vector<uint8_t> result;

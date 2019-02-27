@@ -36,7 +36,7 @@ std::vector<uint8_t> ToVec(T number) {
   return v;
 }
 
-template <typename TKey, typename TCount, size_t ValueSize>
+template <typename TKey, size_t ValueSize>
 class IBLT {
  public:
   using TEntriesMap = std::map<TKey, std::vector<uint8_t>>;
@@ -103,7 +103,7 @@ class IBLT {
     }
 
     // Don't know if key is in table or not; "peel" the IBLT to try to find it
-    IBLT<TKey, TCount, ValueSize> peeled = *this;
+    IBLT<TKey, ValueSize> peeled = *this;
     size_t n_erased = 0;
     for (size_t i = 0; i < peeled.m_hash_table.size(); ++i) {
       const HashTableEntry &entry = peeled.m_hash_table[i];
@@ -137,7 +137,7 @@ class IBLT {
   //! \returns true if all entries could be decoded, false otherwise
   bool ListEntries(TEntriesMap &positive_out,
                    TEntriesMap &negative_out) const {
-    IBLT<TKey, TCount, ValueSize> peeled = *this;
+    IBLT<TKey, ValueSize> peeled = *this;
 
     size_t n_erased = 0;
     do {
@@ -170,12 +170,12 @@ class IBLT {
   }
 
   //! \brief Subtract two IBLTs
-  IBLT<TKey, TCount, ValueSize> operator-(const IBLT<TKey, TCount, ValueSize> &other) const {
+  IBLT<TKey, ValueSize> operator-(const IBLT<TKey, ValueSize> &other) const {
     // IBLT's must be same params/size:
     assert(m_hash_table.size() == other.m_hash_table.size());
     assert(m_num_hashes == other.m_num_hashes);
 
-    IBLT<TKey, TCount, ValueSize> result(*this);
+    IBLT<TKey, ValueSize> result(*this);
     for (size_t i = 0; i < m_hash_table.size(); ++i) {
       HashTableEntry &e1 = result.m_hash_table[i];
       const HashTableEntry &e2 = other.m_hash_table[i];
@@ -213,8 +213,8 @@ class IBLT {
   }
 
   //! \brief makes new empty IBLT instance with parameters equal to this
-  IBLT<TKey, TCount, ValueSize> CloneEmpty() const {
-    return IBLT<TKey, TCount, ValueSize>(m_hash_table.size(), m_num_hashes);
+  IBLT<TKey, ValueSize> CloneEmpty() const {
+    return IBLT<TKey, ValueSize>(m_hash_table.size(), m_num_hashes);
   }
 
   //! \brief checks if iblt parameters are within acceptable limits
@@ -247,7 +247,7 @@ class IBLT {
 
   class HashTableEntry {
    public:
-    TCount count = 0;
+    int64_t count = 0;
     TKey key_sum = 0;
     uint32_t key_check = 0;
     std::vector<uint8_t> value_sum;
@@ -282,7 +282,13 @@ class IBLT {
 
     template <typename Stream, typename Operation>
     void SerializationOp(Stream &s, Operation ser_action) {
-      READWRITE(count);
+      assert(count >= 0 && "Current IBLT implementation does not support negative values serialization");
+      auto unsigned_count = static_cast<uint64_t>(count);
+      READWRITE(COMPACTSIZE(unsigned_count));
+      if (ser_action.ForRead()) {
+        count = static_cast<int64_t>(unsigned_count);
+      }
+
       READWRITE(key_sum);
       READWRITE(key_check);
       if (ValueSize != 0) {
@@ -294,7 +300,7 @@ class IBLT {
  private:
   static constexpr size_t N_HASHCHECK = 11;
 
-  void Update(const TCount count_delta,
+  void Update(const int64_t count_delta,
               const TKey key,
               const std::vector<uint8_t> &value) {
 
