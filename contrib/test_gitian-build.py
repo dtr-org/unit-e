@@ -113,7 +113,7 @@ def test_codesign(mocker):
     mocker.patch("platform.system", return_value='Darwin')
     mocker.patch("pathlib.Path.mkdir")
     # glob has to return a generator, so ['...', '...'] is not enough
-    mocker.patch("pathlib.Path.glob", return_value=(f for f in ['unite-someversion-win32-setup-unsigned.exe', 'unite-someversion-win32-setup-unsigned.exe']))
+    mocker.patch("pathlib.Path.glob", return_value=(f for f in ['unit-e-someversion-win32-setup-unsigned.exe', 'unit-e-someversion-win32-setup-unsigned.exe']))
     mocker.patch("tempfile.TemporaryDirectory", return_value=TemporaryDirectoryMock("tmp"))
     mocker.patch("subprocess.check_call", side_effect=log.log_call)
 

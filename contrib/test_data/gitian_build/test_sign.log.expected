@@ -1,12 +1,12 @@
 Test: test_sign
 wget -N -P inputs https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-1.7.1.tar.gz  cwd=gitian-builder
 wget -N -P inputs https://bitcoincore.org/cfields/osslsigncode-Backports-to-1.7.1.patch  cwd=gitian-builder
-cp version-platform-sigs-path inputs/unite-win-signatures.tar.gz  cwd=gitian-builder
-cp inputs/unite-someversion-win-unsigned.tar.gz inputs/unite-win-unsigned.tar.gz  cwd=gitian-builder
+cp version-platform-sigs-path inputs/unit-e-win-signatures.tar.gz  cwd=gitian-builder
+cp inputs/unit-e-someversion-win-unsigned.tar.gz inputs/unit-e-win-unsigned.tar.gz  cwd=gitian-builder
 bin/gbuild -i --commit signature=master ../work/gitian-descriptors/gitian-win-signer.yml  cwd=gitian-builder
 bin/gsign -p gpg --signer somesigner --release someversion-win-signed --destination ../unit-e-sigs/ ../work/gitian-descriptors/gitian-win-signer.yml  cwd=gitian-builder
-mv build/out/unite-*win64-setup.exe ../unit-e-binaries/someversion  shell=True  cwd=gitian-builder
-mv build/out/unite-*win32-setup.exe ../unit-e-binaries/someversion  shell=True  cwd=gitian-builder
+mv build/out/unit-e-*win64-setup.exe ../unit-e-binaries/someversion  shell=True  cwd=gitian-builder
+mv build/out/unit-e-*win32-setup.exe ../unit-e-binaries/someversion  shell=True  cwd=gitian-builder
 git add someversion-win-signed/somesigner  cwd=unit-e-sigs
 git commit -a -m Add someversion signed binary sigs for somesigner  cwd=unit-e-sigs
 wget -N -P inputs https://downloads.sourceforge.net/project/osslsigncode/osslsigncode/osslsigncode-1.7.1.tar.gz  cwd=gitian-builder

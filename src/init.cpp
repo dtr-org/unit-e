@@ -563,23 +563,20 @@ std::string HelpMessage(HelpMessageMode mode)
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/unite/unite>";
-    const std::string URL_WEBSITE = "<https://bitcoincore.org>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/dtr-org/unit-e>";
+    const std::string URL_WEBSITE = "<https://unit-e.io>";
 
-    return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
+    return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2018, COPYRIGHT_YEAR) + " ") + "\n" +
            "\n" +
            strprintf(_("Please contribute if you find %s useful. "
-                       "Visit %s for further information about the software."),
+                       "Visit %s for further information about the software. "),
                PACKAGE_NAME, URL_WEBSITE) +
-           "\n" +
            strprintf(_("The source code is available from %s."),
-               URL_SOURCE_CODE) +
+               URL_SOURCE_CODE) + "\n" +
            "\n" +
-           "\n" +
-           _("This is experimental software.") + "\n" +
            strprintf(_("Distributed under the MIT software license, see the accompanying file %s or %s"), "COPYING", "<https://opensource.org/licenses/MIT>") + "\n" +
            "\n" +
-           strprintf(_("This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit %s and cryptographic software written by Eric Young and UPnP software written by Thomas Bernard."), "<https://www.openssl.org>") +
+           strprintf(_("This product includes software developed by the Bitcoin Core developers for use in Bitcoin Core %s, software developed by the OpenSSL Project for use in the OpenSSL Toolkit %s, cryptographic software written by Eric Young, and UPnP software written by Thomas Bernard."), "<https://bitcoincore.org>", "<https://www.openssl.org>") +
            "\n";
 }
 
