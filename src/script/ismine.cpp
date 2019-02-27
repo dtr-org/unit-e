@@ -217,7 +217,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         break;
     }
 
-    case TX_WITNESS_V1_RS_KEYHASH:
+    case TX_WITNESS_V1_REMOTESTAKE_KEYHASH:
     {
         if (sigversion != IsMineSigVersion::TOP) {
             return IsMineResult::INVALID;
@@ -232,7 +232,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         break;
     }
 
-    case TX_WITNESS_V2_RS_SCRIPTHASH:
+    case TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH:
     {
         if (sigversion == IsMineSigVersion::WITNESS_V0 || sigversion == IsMineSigVersion::P2SH) {
             // Remote staking P2WSH inside P2WSH or P2SH is invalid.
@@ -306,8 +306,8 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
     switch (is_mine_info.type) {
         case TX_PUBKEYHASH:
         case TX_WITNESS_V0_KEYHASH:
-        case TX_WITNESS_V1_RS_KEYHASH:
-        case TX_WITNESS_V2_RS_SCRIPTHASH: {
+        case TX_WITNESS_V1_REMOTESTAKE_KEYHASH:
+        case TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH: {
             CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
             CPubKey pubkey;
             if (!keystore.GetPubKey(key_id, pubkey)) {
@@ -350,7 +350,7 @@ bool IsStakedRemotely(const CKeyStore &keystore, const CScript &script_pub_key)
         return false;
     }
 
-    if (which_type != TX_WITNESS_V1_RS_KEYHASH && which_type != TX_WITNESS_V2_RS_SCRIPTHASH) {
+    if (which_type != TX_WITNESS_V1_REMOTESTAKE_KEYHASH && which_type != TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH) {
         return false;
     }
 
