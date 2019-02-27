@@ -323,6 +323,7 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
               return false;
             }
             switch (is_mine_info.p2sh_type) {
+                case TX_PUBKEYHASH:
                 case TX_PUBKEY:
                     return true;
                 case TX_MULTISIG: {

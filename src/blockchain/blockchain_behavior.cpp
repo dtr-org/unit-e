@@ -117,6 +117,13 @@ std::vector<CPubKey> ExtractP2WSHKeys(const std::vector<std::vector<unsigned cha
   std::vector<std::vector<unsigned char>> solutions;
   if (Solver(script, type, solutions)) {
     switch (type) {
+      case TX_PUBKEYHASH: {
+        if (witness_stack.size() < 2) {
+          return std::vector<CPubKey>{};
+        }
+        const CPubKey pub_key(witness_stack[1]);
+        return std::vector<CPubKey>{pub_key};
+      }
       case TX_PUBKEY: {
         const CPubKey pub_key(solutions[0]);
         return std::vector<CPubKey>{pub_key};
