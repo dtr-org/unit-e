@@ -1754,7 +1754,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
         // Check that all outputs are available and match the outputs in the
         // block itself exactly.
-        for (size_t o = tx.IsCoinBase() ? 1 : 0; o < tx.vout.size(); ++o) {
+        for (size_t o = 0; o < tx.vout.size(); ++o) {
             if (tx.vout[o].scriptPubKey.IsUnspendable()) {
                 continue;
             }
