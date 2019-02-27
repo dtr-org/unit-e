@@ -159,4 +159,65 @@ BOOST_AUTO_TEST_CASE(test_minus) {
   BOOST_CHECK(negative == expected_positive);
 }
 
+BOOST_AUTO_TEST_CASE(test_serialization) {
+  DefaultIBLT sender(2);
+  constexpr int16_t N_VALUES = std::numeric_limits<int16_t>::max();
+
+  // Creating super dense iblt to make it big
+  for (unsigned int i = 0; i < N_VALUES; i++) {
+    sender.Insert(i, PseudoRandomValue(i));
+  }
+
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  stream << sender;
+
+  // 1 byte for count
+  // +
+  // 15 entries, each 20 bytes:
+  // 8 bytes key, 3 bytes count, 4 bytes key check, 1 byte value len, 4 bytes value
+  // +
+  // another byte for hash functions number
+  // = 302
+  BOOST_CHECK_EQUAL(302, stream.size());
+
+  DefaultIBLT receiver = sender.CloneEmpty();
+  stream >> receiver;
+
+  std::vector<uint8_t> value;
+  // As in `test_overload`, all should fail
+  for (unsigned int i = 0; i < 5; i++) {
+    BOOST_CHECK(!receiver.Get(i, value));
+  }
+
+  // Erase all but first 5
+  for (unsigned int i = 5; i < N_VALUES; i++) {
+    receiver.Erase(i, PseudoRandomValue(i));
+  }
+
+  for (unsigned int i = 0; i < 5; i++) {
+    BOOST_CHECK(receiver.Get(i, value));
+    BOOST_CHECK_EQUAL(HexStr(value), HexStr(PseudoRandomValue(i)));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_invalid_serialization) {
+  DefaultIBLT iblt1(1);
+  DefaultIBLT iblt2(1);
+
+  BOOST_CHECK(iblt1.IsValid());
+  BOOST_CHECK(iblt2.IsValid());
+
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  stream << iblt1;
+  stream >> iblt1;
+
+  stream << iblt2;
+  // "Corrupt" num_hashes during transmission
+  *(stream.end() - 1) = 10;
+  stream >> iblt2;
+
+  BOOST_CHECK(iblt1.IsValid());
+  BOOST_CHECK(!iblt2.IsValid());
+}
+
 BOOST_AUTO_TEST_SUITE_END()
