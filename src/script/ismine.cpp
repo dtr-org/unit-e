@@ -42,6 +42,14 @@ enum class IsMineResult
     INVALID = 7,     //! Not spendable by anyone (uncompressed pubkey in segwit, P2SH inside P2SH or witness, witness inside witness)
 };
 
+struct IsMineInfo
+{
+  txnouttype type;
+  txnouttype p2sh_type;
+  std::vector<std::vector<unsigned char>> solutions;
+  std::vector<std::vector<unsigned char>> p2sh_solutions;
+};
+
 bool PermitsUncompressed(IsMineSigVersion sigversion)
 {
     return sigversion == IsMineSigVersion::TOP || sigversion == IsMineSigVersion::P2SH;
@@ -73,7 +81,7 @@ IsMineResult HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keys
     return IsMineResult::NO;
 }
 
-IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion, ismineinfo *is_mine_info = nullptr)
+IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion, IsMineInfo *is_mine_info = nullptr)
 {
     IsMineResult ret = IsMineResult::NO;
 
@@ -260,22 +268,26 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
     return ret;
 }
 
-} // namespace
-
-isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey, ismineinfo* is_mine_info)
-{
-    switch (IsMineInner(keystore, scriptPubKey, IsMineSigVersion::TOP, is_mine_info)) {
+isminetype IsMine(const CKeyStore &keystore, const CScript &scriptPubKey, IsMineInfo *is_mine_info) {
+  switch (IsMineInner(keystore, scriptPubKey, IsMineSigVersion::TOP, is_mine_info)) {
     case IsMineResult::INVALID:
     case IsMineResult::NO:
-        return ISMINE_NO;
+      return ISMINE_NO;
     case IsMineResult::WATCH_ONLY:
-        return ISMINE_WATCH_ONLY;
+      return ISMINE_WATCH_ONLY;
     case IsMineResult::SPENDABLE:
-        return ISMINE_SPENDABLE;
+      return ISMINE_SPENDABLE;
     case IsMineResult::HW_DEVICE:
-        return ISMINE_HW_DEVICE;
-    }
-    assert(false);
+      return ISMINE_HW_DEVICE;
+  }
+  assert(false);
+}
+
+} // namespace
+
+isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
+{
+  return IsMine(keystore, scriptPubKey, nullptr);
 }
 
 isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest)
@@ -286,7 +298,7 @@ isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest)
 
 bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
 {
-    ismineinfo is_mine_info;
+    IsMineInfo is_mine_info;
     const isminetype is_mine = IsMine(keystore, script_pub_key, &is_mine_info);
 
     // UNIT-E TODO: Restrict to witness programs only once #212 is merged (fixes #48)
@@ -314,13 +326,10 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
                     return true;
                 case TX_MULTISIG: {
                     const auto num_signatures = static_cast<std::uint8_t>(is_mine_info.p2sh_solutions.front()[0]);
-                    if (num_signatures != 1) {
-                        // stake is signed by a single proposer only and the block carries a single
-                        // signature of that proposer. 2-of-3 and similar multisig scenarios are not
-                        // allowed for staking.
-                        return false;
-                    }
-                    return true;
+                    // stake is signed by a single proposer only and the block carries a single
+                    // signature of that proposer. 2-of-3 and similar multisig scenarios are not
+                    // allowed for staking.
+                    return num_signatures == 1;
                 }
                 default:
                     return false;
