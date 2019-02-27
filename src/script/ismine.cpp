@@ -268,19 +268,20 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
     return ret;
 }
 
-isminetype IsMine(const CKeyStore &keystore, const CScript &scriptPubKey, IsMineInfo *is_mine_info) {
-  switch (IsMineInner(keystore, scriptPubKey, IsMineSigVersion::TOP, is_mine_info)) {
+isminetype IsMine(const CKeyStore &keystore, const CScript &scriptPubKey, IsMineInfo *is_mine_info)
+{
+    switch (IsMineInner(keystore, scriptPubKey, IsMineSigVersion::TOP, is_mine_info)) {
     case IsMineResult::INVALID:
     case IsMineResult::NO:
-      return ISMINE_NO;
+        return ISMINE_NO;
     case IsMineResult::WATCH_ONLY:
-      return ISMINE_WATCH_ONLY;
+        return ISMINE_WATCH_ONLY;
     case IsMineResult::SPENDABLE:
-      return ISMINE_SPENDABLE;
+        return ISMINE_SPENDABLE;
     case IsMineResult::HW_DEVICE:
-      return ISMINE_HW_DEVICE;
-  }
-  assert(false);
+        return ISMINE_HW_DEVICE;
+    }
+    assert(false);
 }
 
 } // namespace

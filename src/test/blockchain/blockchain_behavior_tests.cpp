@@ -58,8 +58,9 @@ class Fixture {
   }
 
   //! Create a P2WSH Transaction that wraps the given script.
-  const CTransaction GetP2WSHTransaction(const CScript inner_script) {
+  const CTransaction GetP2WSHTransaction(const CScript &inner_script) {
 
+    GetKeyStore().AddCScript(inner_script);
     uint256 inner_script_hash;
 
     CSHA256().Write(&inner_script[0], inner_script.size()).Finalize(inner_script_hash.begin());
@@ -92,7 +93,7 @@ class Fixture {
   //!
   //! Slightly more complicated than merely doing BOOST_CHECK_EQUAL as CPubKey
   //! needs to be serialized ToString() first.
-  void CheckExtractedKeys(const std::vector<CPubKey> extracted_pubkeys) {
+  void CheckExtractedKeys(const std::vector<CPubKey> &extracted_pubkeys) {
 
     std::vector<std::string> stringified_pubkeys(pubkeys.size());
     std::vector<std::string> stringified_extracted_pubkeys(extracted_pubkeys.size());
@@ -107,7 +108,6 @@ class Fixture {
   }
 
   void Check(const CScript &script) {
-    GetKeyStore().AddCScript(script);
 
     const CTransaction spending_tx = GetP2WSHTransaction(script);
     const std::vector<CPubKey> extracted_pubkeys =
@@ -155,7 +155,6 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_two_of_four) {
 
   // create a 2-of-4 multisig tx
   const CScript multisig_script = GetScriptForMultisig(2, fixture.GetPubKeys());
-  fixture.GetKeyStore().AddCScript(multisig_script);
 
   const CTransaction spending_tx = fixture.GetP2WSHTransaction(multisig_script);
   const std::vector<CPubKey> extracted_pubkeys =
