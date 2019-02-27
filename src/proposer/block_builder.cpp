@@ -43,7 +43,7 @@ class BlockBuilderImpl : public BlockBuilder {
       Log("Could not extract staking key(s) from block.");
       return false;
     }
-    for (const CPubKey& pubkey : keys) {
+    for (const CPubKey &pubkey : keys) {
       const auto key = wallet.GetKey(pubkey);
       if (!key) {
         Log("No private key for public key.");

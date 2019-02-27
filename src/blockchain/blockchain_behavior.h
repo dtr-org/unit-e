@@ -60,8 +60,10 @@ class Behavior {
   //! \brief Get the hash of the genesis block, cached.
   uint256 GetGenesisBlockHash() const;
 
+  //! \brief Checks whether the given block is the genesis block.
   bool IsGenesisBlock(const CBlock &) const;
 
+  //! \brief Checks whether the given block hash is the hash of the genesis block.
   bool IsGenesisBlockHash(const uint256 &) const;
 
   //! \brief Checks whether a piece of stake at the given depth is considered mature or not.

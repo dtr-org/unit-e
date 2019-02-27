@@ -96,19 +96,23 @@ std::vector<CPubKey> ExtractP2WPKHKeys(const std::vector<std::vector<unsigned ch
 //!    scriptPubKey: 0 <32-byte-hash>
 //!                  (0x0020{32-byte-hash})
 //!
+//! "0" in the first witness item is actually empty (each item in the
+//! stack is encoded using a var int and the data following, this item
+//! will be encoded using the var int 0 with no data following).
+//!
 //! The script is just an example and it is serialized. So we need to
 //! pop the script off the stack, deserializa it, and check what kind
 //! of script it is in order to extract the signing key.
 std::vector<CPubKey> ExtractP2WSHKeys(const std::vector<std::vector<unsigned char>> &witness_stack) {
-  if (witness_stack.size() != 3) {
-    return std::vector<CPubKey>{};
-  }
-  if (witness_stack[0].size() != 1 && witness_stack[0][0] != 0) {
-    return std::vector<CPubKey>{};
-  }
-  const std::vector<unsigned char> &script_data = witness_stack[2];
-  const CScript script(script_data.begin(), script_data.end());
 
+  if (witness_stack.empty()) {
+    return std::vector<CPubKey>{};
+  }
+  const std::vector<unsigned char> &script_data = witness_stack.back();
+  if (script_data.empty()) {
+    return std::vector<CPubKey>{};
+  }
+  const CScript script(script_data.begin(), script_data.end());
   txnouttype type;
   std::vector<std::vector<unsigned char>> solutions;
   if (Solver(script, type, solutions)) {
