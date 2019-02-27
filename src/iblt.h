@@ -84,7 +84,7 @@ class IBLT {
       const auto seed = static_cast<unsigned int>(i);
       const unsigned int h = MurmurHash3(seed, kvec);
       const size_t bucket = start_entry + (h % buckets_per_hash);
-      const IBLT::HashTableEntry &entry = m_hash_table.at(bucket);
+      const IBLT::IBLTEntry &entry = m_hash_table.at(bucket);
 
       if (entry.IsEmpty()) {
         // Definitely not in the table. Leave result empty, return true.
@@ -106,7 +106,7 @@ class IBLT {
     IBLT<TKey, ValueSize> peeled = *this;
     size_t n_erased = 0;
     for (size_t i = 0; i < peeled.m_hash_table.size(); ++i) {
-      const HashTableEntry &entry = peeled.m_hash_table[i];
+      const IBLTEntry &entry = peeled.m_hash_table[i];
       if (entry.IsPure()) {
         if (entry.key_sum == key) {
           // Found!
@@ -143,7 +143,7 @@ class IBLT {
     do {
       n_erased = 0;
       for (size_t i = 0; i < peeled.m_hash_table.size(); ++i) {
-        const HashTableEntry &entry = peeled.m_hash_table[i];
+        const IBLTEntry &entry = peeled.m_hash_table[i];
         if (entry.IsPure()) {
           if (entry.count == 1) {
             positive_out.emplace(entry.key_sum, entry.value_sum);
@@ -177,8 +177,8 @@ class IBLT {
 
     IBLT<TKey, ValueSize> result(*this);
     for (size_t i = 0; i < m_hash_table.size(); ++i) {
-      HashTableEntry &e1 = result.m_hash_table[i];
-      const HashTableEntry &e2 = other.m_hash_table[i];
+      IBLTEntry &e1 = result.m_hash_table[i];
+      const IBLTEntry &e2 = other.m_hash_table[i];
       e1.count -= e2.count;
       e1.key_sum ^= e2.key_sum;
       e1.key_check ^= e2.key_check;
@@ -205,7 +205,7 @@ class IBLT {
     assert(IsValid());
 
     size_t sum = 0;
-    for (const HashTableEntry &entry : m_hash_table) {
+    for (const IBLTEntry &entry : m_hash_table) {
       sum += llabs(entry.count);
     }
 
@@ -245,7 +245,7 @@ class IBLT {
     return entries_num;
   }
 
-  class HashTableEntry {
+  class IBLTEntry {
    public:
     int64_t count = 0;
     TKey key_sum = 0;
@@ -319,7 +319,7 @@ class IBLT {
       const auto seed = static_cast<unsigned int>(i);
       const unsigned int h = MurmurHash3(seed, kvec);
       const size_t bucket = start_entry + (h % buckets_per_hash);
-      IBLT::HashTableEntry &entry = m_hash_table.at(bucket);
+      IBLT::IBLTEntry &entry = m_hash_table.at(bucket);
       entry.count += count_delta;
       entry.key_sum ^= key;
       entry.key_check ^= key_check;
@@ -331,7 +331,7 @@ class IBLT {
     }
   }
 
-  std::vector<HashTableEntry> m_hash_table;
+  std::vector<IBLTEntry> m_hash_table;
   uint8_t m_num_hashes = 0;
 };
 
