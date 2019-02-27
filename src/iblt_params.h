@@ -12,6 +12,7 @@
 class IBLTParams {
  public:
   //! \brief Optimal iblt overhead
+  //!
   // If IBLT would contain N items, than it would require N * overhead entries
   // in its table to efficiently decode data
   const float overhead;

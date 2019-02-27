@@ -15,18 +15,6 @@
 #include <iblt_params.h>
 #include <serialize.h>
 
-//
-// Invertible Bloom Lookup Table implementation
-// References:
-//
-// "What's the Difference? Efficient Set Reconciliation
-// without Prior Context" by Eppstein, Goodrich, Uyeda and
-// Varghese
-//
-// "Invertible Bloom Lookup Tables" by Goodrich and
-// Mitzenmacher
-//
-
 template <typename T>
 std::vector<uint8_t> ToVec(T number) {
   std::vector<uint8_t> v(sizeof(T));
@@ -36,6 +24,16 @@ std::vector<uint8_t> ToVec(T number) {
   return v;
 }
 
+//! \brief Invertible Bloom Lookup Table implementation
+//!
+//! References:
+//!
+//! "What's the Difference? Efficient Set Reconciliation
+//! without Prior Context" by Eppstein, Goodrich, Uyeda and
+//! Varghese
+//!
+//! "Invertible Bloom Lookup Tables" by Goodrich and
+//! Mitzenmacher
 template <typename TKey, size_t ValueSize>
 class IBLT {
  public:
@@ -65,11 +63,12 @@ class IBLT {
     Update(-1, key, value);
   }
 
-  //! \brief try to get value from IBLT
-  //! \returns true if a result is definitely found or not
-  //! found. If not found, \param value_out will be empty.
-  //! \returns false if overloaded and we don't know whether or
-  //! not key is in the table.
+  //! \brief Tries to get a value from the IBLT
+  //!
+  //! \returns True if a result is definitely found or not
+  //! found. If not found, \p value_out will be empty.
+  //! returns false if overloaded and we don't know whether or
+  //! not key is in the table
   bool Get(const TKey key, std::vector<uint8_t> &value_out) const {
     value_out.clear();
 
@@ -130,11 +129,12 @@ class IBLT {
   }
 
   //! \brief Decodes IBLT entries
+  //!
   //! Adds entries to the given sets:
-  //! \param positive_out is all entries that were inserted
-  //! \param negative_out is all entries that were erased but never added (or if
+  //! \param positive_out All entries that were inserted
+  //! \param negative_out All entries that were erased but never added (or if
   //! the IBLT = A-B, all entries in B that are not in A)
-  //! \returns true if all entries could be decoded, false otherwise
+  //! \returns True if all entries could be decoded, false otherwise
   bool ListEntries(TEntriesMap &positive_out,
                    TEntriesMap &negative_out) const {
     IBLT<TKey, ValueSize> peeled = *this;
@@ -200,7 +200,7 @@ class IBLT {
     READWRITE(m_num_hashes);
   }
 
-  //! \brief returns how many items were inserted
+  //! \brief Returns how many items were inserted
   size_t Size() const {
     assert(IsValid());
 
@@ -212,13 +212,14 @@ class IBLT {
     return sum / m_num_hashes;
   }
 
-  //! \brief makes new empty IBLT instance with parameters equal to this
+  //! \brief Makes new empty IBLT instance with parameters equal to this
   IBLT<TKey, ValueSize> CloneEmpty() const {
     return IBLT<TKey, ValueSize>(m_hash_table.size(), m_num_hashes);
   }
 
-  //! \brief checks if iblt parameters are within acceptable limits
-  //! When we are creating new iblt - we can adjust those values to whatever we
+  //! \brief Checks if IBLT parameters are within acceptable limits
+  //!
+  //! When we are creating new IBLT - we can adjust those values to whatever we
   //! need, but if we receive them from network - they must meet these criteria
   bool IsValid() const {
     if (m_num_hashes == 0) {
@@ -228,7 +229,7 @@ class IBLT {
     return m_hash_table.size() % m_num_hashes == 0;
   }
 
-  //! \brief computes exact number of entries before creating IBLT
+  //! \brief Computes exact number of entries without creating an IBLT
   static size_t ComputeEntriesNum(size_t expected_items_count,
                                   boost::optional<IBLTParams> params = {}) {
     const IBLTParams iblt_params = params
