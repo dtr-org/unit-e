@@ -25,7 +25,7 @@ class TxnMallTest(UnitETestFramework):
         self.num_nodes = 4
 
     def add_options(self, parser):
-        parser.add_option("--mineblock", dest="mine_block", default=True, action="store_true",
+        parser.add_option("--mineblock", dest="mine_block", default=False, action="store_true",
                           help="Test double-spend of 1-confirmed transaction")
 
     def setup_network(self):
@@ -36,6 +36,7 @@ class TxnMallTest(UnitETestFramework):
 
     def run_test(self):
         starting_balance = self.nodes[0].getbalance("")
+        node1_starting_balance = self.nodes[1].getbalance("")
         change_address = self.nodes[0].getnewaddress()
 
         foo_fund = 1219
@@ -87,22 +88,25 @@ class TxnMallTest(UnitETestFramework):
         tx1 = self.nodes[0].gettransaction(txid1)
         tx2 = self.nodes[0].gettransaction(txid2)
 
-        assert_equal(tx1['amount'], -40)
-        assert_equal(tx2['amount'], -20)
-
-        # Node0's balance should be starting balance, plus 50UTE for another
-        # matured block, minus 40, minus 20, and minus transaction fees:
-        expected = starting_balance + tx1["amount"] + tx2["amount"]
-        if self.options.mine_block: expected += 25
-        assert_equal(self.nodes[0].getbalance("*"), expected)
-        assert_equal(self.nodes[0].getbalance(""), expected - foo_fund - bar_fund)
+        expected = starting_balance - foo_fund - bar_fund
+        if self.options.mine_block:
+            expected += 25
+            expected += tx1["amount"] + tx2["amount"]
+            # all of the fees are immediately mature
+            # if changing maturity, adjust this to include all of the fees
+            assert_equal(self.nodes[0].getbalance(""), expected)
+        else:
+            # tx1 and tx2 are also seen as spent until they are included in a block
+            expected += tx1['details'][0]['amount'] + tx1['details'][1]['amount'] + tx1['fee']
+            expected += tx2['details'][0]['amount'] + tx2['details'][1]['amount'] + tx2['fee']
+            expected += fund_foo_tx["fee"] + fund_bar_tx["fee"]
+            assert_equal(self.nodes[0].getbalance(""), expected)
+            assert_equal(self.nodes[1].getbalance(""), node1_starting_balance)
 
         # foo and bar accounts should be debited:
-        # UNIT-E TODO: they really should be debited
+        # UNIT-E TODO: they really should be debited, but since we sent raw transactions they are not
         assert_equal(self.nodes[0].getbalance("foo", 0), foo_fund)
         assert_equal(self.nodes[0].getbalance("bar", 0), bar_fund)
-        #assert_equal(self.nodes[0].getbalance("foo", 0), foo_fund+tx1["amount"]+tx1["fee"])
-        #assert_equal(self.nodes[0].getbalance("bar", 0), bar_fund+tx2["amount"]+tx2["fee"])
 
         if self.options.mine_block:
             assert_equal(tx1["confirmations"], 1)
