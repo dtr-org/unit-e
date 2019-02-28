@@ -7,6 +7,7 @@
 #include <consensus/merkle.h>
 #include <key.h>
 #include <pubkey.h>
+#include <staking/proof_of_stake.h>
 
 #include <numeric>
 
@@ -38,7 +39,7 @@ class BlockBuilderImpl : public BlockBuilder {
   }
 
   bool SignBlock(CBlock &block, const staking::StakingWallet &wallet) const {
-    const std::vector<CPubKey> keys = m_blockchain_behavior->ExtractBlockSigningKeys(block);
+    const std::vector<CPubKey> keys = staking::ExtractBlockSigningKeys(block);
     if (keys.empty()) {
       Log("Could not extract staking key(s) from block.");
       return false;

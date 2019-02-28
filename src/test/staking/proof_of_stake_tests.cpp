@@ -2,7 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <blockchain/blockchain_parameters.h>
+#include <staking/proof_of_stake.h>
+
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
@@ -42,16 +43,8 @@ class ExtractBlockSigningKeyFixture {
   //! public keys
   std::vector<CPubKey> pubkeys;
 
-  //! any parameters suffice, ExtractBlockSigningKeys does not depend on any
-  blockchain::Parameters parameters;
-
-  //! an instance of blockchain::Behavior for checking ExtractBlockSigningKeys
-  std::unique_ptr<blockchain::Behavior> blockchain_behavior =
-      blockchain::Behavior::NewFromParameters(parameters);
-
  public:
   CKeyStore &GetKeyStore() { return keystore; }
-  blockchain::Behavior &GetBlockchainBehavior() { return *blockchain_behavior; }
   const std::vector<CPubKey> &GetPubKeys() { return pubkeys; }
 
   //! Initiate a fixture that has NumKeys amount of keys prepared in its keystore.
@@ -142,15 +135,14 @@ class ExtractBlockSigningKeyFixture {
 
 }  // namespace
 
-BOOST_FIXTURE_TEST_SUITE(blockchain_behavior_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(proof_of_stake_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wpkh) {
   // a fixture with one key
   ExtractBlockSigningKeyFixture<1> fixture;
   const Txs txs = fixture.GetP2WPKHTransaction(fixture.GetPubKeys()[0]);
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
@@ -162,8 +154,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkey) {
   const CScript public_key_script = GetScriptForRawPubKey(fixture.GetPubKeys()[0]);
   const Txs txs = fixture.GetP2WSHTransaction(public_key_script);
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
@@ -175,8 +166,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkeyhash) {
   const CScript public_key_script = GetScriptForDestination(fixture.GetPubKeys()[0].GetID());
   const Txs txs = fixture.GetP2WSHTransaction(public_key_script);
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
@@ -188,8 +178,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_one) {
   const CScript multisig_script = GetScriptForMultisig(1, fixture.GetPubKeys());
   const Txs txs = fixture.GetP2WSHTransaction(multisig_script);
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
@@ -201,8 +190,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_four) {
   const CScript multisig_script = GetScriptForMultisig(1, fixture.GetPubKeys());
   const Txs txs = fixture.GetP2WSHTransaction(multisig_script);
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
@@ -218,8 +206,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_two_of_four) {
   const CScript multisig_script = GetScriptForMultisig(2, fixture.GetPubKeys());
   const Txs txs = fixture.GetP2WSHTransaction(multisig_script);
   BOOST_CHECK(!IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check that no pubkey was extracted
   BOOST_CHECK_EQUAL(extracted_pubkeys.size(), 0);
 }
@@ -232,17 +219,16 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wpkh_malformed) {
   CMutableTransaction mutable_spending_tx = CMutableTransaction(txs.spending_tx);
   mutable_spending_tx.vin[0].scriptWitness.stack[1].emplace_back('\x7a');
   const CTransaction spending_tx(mutable_spending_tx);
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(spending_tx.vin[0]);
   // check that no pubkey was extracted
   BOOST_CHECK_EQUAL(extracted_pubkeys.size(), 0);
 }
 
 template <unsigned int NumKeys>
-void MalformedP2WSHTestCase(const std::size_t expected_pubkeys, std::function<void(std::vector<unsigned char> &)> mutilator) {
-  // a fixture with two keys
+void MalformedP2WSHTestCase(std::function<void(std::vector<unsigned char> &)> mutilator) {
+  // a fixture with NumKeys keys
   ExtractBlockSigningKeyFixture<NumKeys> fixture;
-  // create a 1-of-2 multisig tx
+  // create a 1-of-NumKeys multisig tx
   const CScript multisig_script = GetScriptForMultisig(1, fixture.GetPubKeys());
   const Txs txs = fixture.GetP2WSHTransaction(multisig_script);
   // mutilate the witnessScript
@@ -252,16 +238,13 @@ void MalformedP2WSHTestCase(const std::size_t expected_pubkeys, std::function<vo
   mutilator(serialized_script);
   // seal the transaction with the mutilated script
   const CTransaction spending_tx(mutable_spending_tx);
-  // re-learn that script
-  fixture.GetKeyStore().AddCScript(CScript(serialized_script));
-  const std::vector<CPubKey> extracted_pubkeys =
-      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(spending_tx.vin[0]);
+  const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(spending_tx.vin[0]);
   // check that the expected number of pubkeys was extracted
-  BOOST_CHECK_EQUAL(extracted_pubkeys.size(), expected_pubkeys);
+  BOOST_CHECK_EQUAL(extracted_pubkeys.size(), 0);
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_malformed) {
-  MalformedP2WSHTestCase<2>(1, [](std::vector<unsigned char> &serialized_script) {
+  MalformedP2WSHTestCase<2>([](std::vector<unsigned char> &serialized_script) {
     // at serialized_script[1] the length of the pubkey (33) should be recorded
     BOOST_REQUIRE_EQUAL(serialized_script[1], 33);
     // increment the size indicator of the first pubkey
@@ -272,7 +255,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_malformed) {
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_witness_script_malformed_too_many_pubkeys) {
-  MalformedP2WSHTestCase<3>(0, [](std::vector<unsigned char> &serialized_script) {
+  MalformedP2WSHTestCase<3>([](std::vector<unsigned char> &serialized_script) {
     // the serialized script in stack[2] should have a 3 (encoded as OP_3) at the second index before the end:
     BOOST_REQUIRE_EQUAL(*(serialized_script.end() - 2), OP_3);
     // decrement the number of public keys that need to be provided
@@ -281,7 +264,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_witness_script_malformed_to
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_witness_script_malformed_too_few_pubkeys) {
-  MalformedP2WSHTestCase<3>(0, [](std::vector<unsigned char> &serialized_script) {
+  MalformedP2WSHTestCase<3>([](std::vector<unsigned char> &serialized_script) {
     // the serialized script in stack[2] should have a 3 (encoded as OP_3) at the second index before the end:
     BOOST_REQUIRE_EQUAL(*(serialized_script.end() - 2), OP_3);
     // increment the number of public keys that need to be provided
@@ -290,7 +273,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_witness_script_malformed_to
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_witness_script_malformed_missing_OP_CHECKMULTISIG) {
-  MalformedP2WSHTestCase<3>(0, [](std::vector<unsigned char> &serialized_script) {
+  MalformedP2WSHTestCase<3>([](std::vector<unsigned char> &serialized_script) {
     // remove OP_CHECKMULTISIG which is the last opcode in the script
     serialized_script.resize(serialized_script.size() - 1);
   });

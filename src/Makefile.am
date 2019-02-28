@@ -217,6 +217,7 @@ UNITE_CORE_H = \
   staking/block_validator.h \
   staking/coin.h \
   staking/network.h \
+  staking/proof_of_stake.h \
   staking/stake_validator.h \
   staking/stakingwallet.h \
   staking/transactionpicker.h \
@@ -341,6 +342,7 @@ libunite_server_a_SOURCES = \
   staking/block_validation_info.cpp \
   staking/block_validator.cpp \
   staking/network.cpp \
+  staking/proof_of_stake.cpp \
   staking/stake_validator.cpp \
   staking/validation_error.cpp \
   staking/validation_result.cpp \

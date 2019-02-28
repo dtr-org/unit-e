@@ -8,6 +8,7 @@
 #include <primitives/transaction.h>
 #include <pubkey.h>
 #include <script/script.h>
+#include <staking/proof_of_stake.h>
 #include <staking/validation_result.h>
 #include <streams.h>
 
@@ -120,7 +121,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
   void CheckBlockSignatureInternal(const CBlock &block, BlockValidationResult &result) const {
     const uint256 block_hash = block.GetHash();
 
-    const std::vector<CPubKey> keys = m_blockchain_behavior->ExtractBlockSigningKeys(block);
+    const std::vector<CPubKey> keys = staking::ExtractBlockSigningKeys(block);
     if (keys.empty()) {
       result.AddError(Error::INVALID_BLOCK_PUBLIC_KEY);
       return;
