@@ -153,6 +153,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
     { "stakeat", 0, "recipient" },
     { "stakeat", 2, "coincontrol" },
+
+    { "stop", 0, "wait" },
 };
 
 class CRPCConvertTable
