@@ -734,4 +734,49 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(3, coins.size());
 }
 
+BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
+{
+  // Make the first coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  auto height = chainActive.Height();
+  {
+    LOCK(cs_main);
+    auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+    BOOST_CHECK(first);
+    // Height is 101, COINBASE_MATURITY is 100, so we expect the coinbase to be mature
+    BOOST_CHECK_EQUAL(first->GetBlocksToMaturity(), 0);
+
+    auto next_to_first = pwalletMain->GetWalletTx(coinbaseTxns.at(1).GetHash());
+    BOOST_CHECK(next_to_first);
+    BOOST_CHECK_EQUAL(next_to_first->GetBlocksToMaturity(), 1);
+
+    auto middle = pwalletMain->GetWalletTx(coinbaseTxns.at(coinbaseTxns.size()/2).GetHash());
+    BOOST_CHECK(middle);
+    BOOST_CHECK_EQUAL(middle->GetBlocksToMaturity(), COINBASE_MATURITY - (height/2));
+
+    // Just another block has been created on top of the last coibase, so we expect
+    // it to need other COINBASE_MATURITY - 1 confirmations
+    auto last = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
+    BOOST_CHECK(last);
+    BOOST_CHECK_EQUAL(last->GetBlocksToMaturity(), COINBASE_MATURITY - 1);
+  }
+
+  // Create 10 more blocks
+  CBlock last_block;
+  for (int i = 0; i < 10; ++i) {
+    last_block = CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+  }
+
+  {
+    LOCK(cs_main);
+    CWalletTx last_generated_coinbase(pwalletMain.get(), last_block.vtx[0]);
+    BOOST_CHECK_EQUAL(last_generated_coinbase.GetBlocksToMaturity(), COINBASE_MATURITY + 1);
+
+    auto last_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
+    BOOST_CHECK(last_coinbase);
+    BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToMaturity(), COINBASE_MATURITY - 11);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
