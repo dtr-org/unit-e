@@ -115,7 +115,7 @@ Parameters Parameters::RegTest() noexcept {
 
   p.bech32_human_readable_prefix = "uert";
 
-  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(RegtestFunds()).Build(p));
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().SetTime(1296688602).SetBits(0x207fffff).Add(RegtestFunds()).Build(p));
 
   p.default_settings.node_is_proposer = false;
 
