@@ -79,8 +79,6 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000000000000005214481d2d96f898e3d5416e43359c145944a909d242e0"); //506067
 
-        nDefaultPort = 7182;
-
         genesis = parameters.genesis_block.block;
         consensus.hashGenesisBlock = genesis.GetHash();
 
@@ -149,8 +147,6 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000002e9e7b00e1f6dc5123a04aad68dd0f0968d8c7aa45f6640795c37b1"); //1135275
 
-        nDefaultPort = 17182;
-
         genesis = parameters.genesis_block.block;
         consensus.hashGenesisBlock = genesis.GetHash();
 
@@ -211,8 +207,6 @@ public:
 
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x00");
-
-        nDefaultPort = 17292;
 
         genesis = parameters.genesis_block.block;
         consensus.hashGenesisBlock = genesis.GetHash();
