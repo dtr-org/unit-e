@@ -26,13 +26,13 @@ struct Txs {
   CTransaction spending_tx;
 };
 
+//! just some value to use for transaction amounts
+constexpr CAmount some_amount = 10 * UNIT;
+
 template <unsigned int NumKeys>
 class ExtractBlockSigningKeyFixture {
 
  private:
-  //! just some value to use for transaction amounts
-  CAmount amount = 10 * UNIT;
-
   //! a simple keystore (a CWallet is a KeyStore)
   CBasicKeyStore keystore;
 
@@ -73,7 +73,7 @@ class ExtractBlockSigningKeyFixture {
     const CScript p2wpkh_script = GetScriptForDestination(destination);
 
     CMutableTransaction mutable_funding_tx;
-    mutable_funding_tx.vout.emplace_back(amount, p2wpkh_script);
+    mutable_funding_tx.vout.emplace_back(some_amount, p2wpkh_script);
 
     const CTransaction funding_tx(mutable_funding_tx);
     BOOST_CHECK_EQUAL(isminetype::ISMINE_SPENDABLE, IsMine(GetKeyStore(), funding_tx.vout[0].scriptPubKey));
@@ -83,7 +83,7 @@ class ExtractBlockSigningKeyFixture {
     CMutableTransaction mutable_spending_tx;
     const uint256 funding_tx_hash = funding_tx.GetHash();
     mutable_spending_tx.vin.emplace_back(funding_tx_hash, 0);
-    mutable_spending_tx.vout.emplace_back(amount, p2wpkh_script);
+    mutable_spending_tx.vout.emplace_back(some_amount, p2wpkh_script);
 
     BOOST_REQUIRE(SignSignature(GetKeyStore(), funding_tx, mutable_spending_tx, 0, SIGHASH_ALL));
 
@@ -103,7 +103,7 @@ class ExtractBlockSigningKeyFixture {
     GetKeyStore().AddCScript(p2wsh_script);
 
     CMutableTransaction mutable_funding_tx;
-    mutable_funding_tx.vout.emplace_back(amount, p2wsh_script);
+    mutable_funding_tx.vout.emplace_back(some_amount, p2wsh_script);
 
     const CTransaction funding_tx(mutable_funding_tx);
     BOOST_CHECK_EQUAL(isminetype::ISMINE_SPENDABLE, IsMine(GetKeyStore(), funding_tx.vout[0].scriptPubKey));
@@ -113,7 +113,7 @@ class ExtractBlockSigningKeyFixture {
     CMutableTransaction mutable_spending_tx;
     const uint256 funding_tx_hash = funding_tx.GetHash();
     mutable_spending_tx.vin.emplace_back(funding_tx_hash, 0);
-    mutable_spending_tx.vout.emplace_back(amount, p2wsh_script);
+    mutable_spending_tx.vout.emplace_back(some_amount, p2wsh_script);
 
     BOOST_CHECK(SignSignature(GetKeyStore(), funding_tx, mutable_spending_tx, 0, SIGHASH_ALL));
 
