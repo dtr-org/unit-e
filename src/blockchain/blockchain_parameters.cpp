@@ -15,7 +15,7 @@ Parameters Parameters::MainNet() noexcept {
   Parameters p{};  // designated initializers would be so nice here
   p.network_name = "main";
 
-  p.block_stake_timestamp_interval_seconds = 16;
+  p.block_stake_timestamp_interval_seconds = 4;
   p.block_time_seconds = 16;
   p.max_future_block_time_seconds = 2 * 60 * 60;
   p.relay_non_standard_transactions = false;

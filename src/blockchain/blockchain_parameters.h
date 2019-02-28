@@ -97,7 +97,7 @@ struct Parameters {
   //! \brief The usable staking timestamps
   //!
   //! The kernel protocol for Proof of Stake masks timestamps such that a proposer
-  //! can use the same stake only every blockStakeTimestampIntervalSeconds. That is:
+  //! can use the same stake only every block_stake_timestamp_interval_seconds. That is:
   //! The blocktime used to compute the kernel hash is always:
   //!
   //! kernel_hash_ingredient = current_time - (current_time % block_stake_timestamp_interval_seconds)
