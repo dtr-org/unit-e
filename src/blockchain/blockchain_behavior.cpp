@@ -101,7 +101,7 @@ std::vector<CPubKey> ExtractP2WPKHKeys(const std::vector<std::vector<unsigned ch
 //! will be encoded using the var int 0 with no data following).
 //!
 //! The script is just an example and it is serialized. So we need to
-//! pop the script off the stack, deserializa it, and check what kind
+//! pop the script off the stack, deserialize it, and check what kind
 //! of script it is in order to extract the signing key.
 std::vector<CPubKey> ExtractP2WSHKeys(const std::vector<std::vector<unsigned char>> &witness_stack) {
 
