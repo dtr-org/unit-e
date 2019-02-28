@@ -245,7 +245,7 @@ void MalformedP2WSHTestCase(std::size_t expected_pubkeys, std::function<void(std
   // create a 1-of-2 multisig tx
   const CScript multisig_script = GetScriptForMultisig(1, fixture.GetPubKeys());
   const Txs txs = fixture.GetP2WSHTransaction(multisig_script);
-  // mutilate the pubkyes in the witnessScript
+  // mutilate the witnessScript
   CMutableTransaction mutable_spending_tx = CMutableTransaction(txs.spending_tx);
   std::vector<unsigned char> &serialized_script = mutable_spending_tx.vin[0].scriptWitness.stack[2];
   // mutilate the script
