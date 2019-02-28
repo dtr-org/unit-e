@@ -229,8 +229,7 @@ UniValue help(const JSONRPCRequest& jsonRequest)
 
 UniValue stop(const JSONRPCRequest& jsonRequest)
 {
-    // Accept the deprecated and ignored 'detach' boolean argument
-    // Also accept the hidden 'wait' integer argument (milliseconds)
+    // Accept the hidden 'wait' integer argument (milliseconds)
     // For instance, 'stop 1000' makes the call wait 1 second before returning
     // to the client (intended for testing)
     if (jsonRequest.fHelp || jsonRequest.params.size() > 1)
