@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wpkh_malformed) {
 }
 
 template <unsigned int NumKeys>
-void MalformedP2WSHTestCase(std::size_t expected_pubkeys, std::function<void(std::vector<unsigned char> &)> mutilator) {
+void MalformedP2WSHTestCase(const std::size_t expected_pubkeys, std::function<void(std::vector<unsigned char> &)> mutilator) {
   // a fixture with two keys
   ExtractBlockSigningKeyFixture<NumKeys> fixture;
   // create a 1-of-2 multisig tx
@@ -248,7 +248,7 @@ void MalformedP2WSHTestCase(std::size_t expected_pubkeys, std::function<void(std
   // mutilate the witnessScript
   CMutableTransaction mutable_spending_tx = CMutableTransaction(txs.spending_tx);
   std::vector<unsigned char> &serialized_script = mutable_spending_tx.vin[0].scriptWitness.stack[2];
-  // mutilate the script
+  // let the mutilator mutilate the script
   mutilator(serialized_script);
   // seal the transaction with the mutilated script
   const CTransaction spending_tx(mutable_spending_tx);
