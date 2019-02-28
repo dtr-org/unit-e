@@ -30,6 +30,9 @@ template <unsigned int NumKeys>
 class Fixture {
 
  private:
+  //! just some value to use for transaction amounts
+  CAmount amount = 10 * UNIT;
+
   //! a simple keystore (a CWallet is a KeyStore)
   CBasicKeyStore keystore;
 
@@ -42,6 +45,7 @@ class Fixture {
   //! any parameters suffice, ExtractBlockSigningKeys does not depend on any
   blockchain::Parameters parameters;
 
+  //! an instance of blockchain::Behavior for checking ExtractBlockSigningKeys
   std::unique_ptr<blockchain::Behavior> blockchain_behavior =
       blockchain::Behavior::NewFromParameters(parameters);
 
@@ -62,6 +66,31 @@ class Fixture {
     }
   }
 
+  //! Create a P2WPKH Transaction.
+  const Txs GetP2WPKHTransaction(const CPubKey &pubkey) {
+
+    const CTxDestination destination = WitnessV0KeyHash(pubkey.GetID());
+    const CScript p2wpkh_script = GetScriptForDestination(destination);
+
+    CMutableTransaction mutable_funding_tx;
+    mutable_funding_tx.vout.emplace_back(amount, p2wpkh_script);
+
+    const CTransaction funding_tx(mutable_funding_tx);
+    BOOST_CHECK_EQUAL(isminetype::ISMINE_SPENDABLE, IsMine(GetKeyStore(), funding_tx.vout[0].scriptPubKey));
+    std::string error;
+    BOOST_CHECK(IsStandardTx(funding_tx, error, /* witnessEnabled= */ true));
+
+    CMutableTransaction mutable_spending_tx;
+    const uint256 funding_tx_hash = funding_tx.GetHash();
+    mutable_spending_tx.vin.emplace_back(funding_tx_hash, 0);
+    mutable_spending_tx.vout.emplace_back(amount, p2wpkh_script);
+
+    BOOST_REQUIRE(SignSignature(GetKeyStore(), funding_tx, mutable_spending_tx, 0, SIGHASH_ALL));
+
+    const CTransaction spending_tx(mutable_spending_tx);
+    return {funding_tx, spending_tx};
+  }
+
   //! Create a P2WSH Transaction that wraps the given script.
   const Txs GetP2WSHTransaction(const CScript &inner_script) {
 
@@ -70,28 +99,26 @@ class Fixture {
 
     CSHA256().Write(&inner_script[0], inner_script.size()).Finalize(inner_script_hash.begin());
     const CTxDestination destination = WitnessV0ScriptHash(inner_script_hash);
-    const CScript p2sh_script = GetScriptForDestination(destination);
-    GetKeyStore().AddCScript(p2sh_script);
-
-    const CAmount amount = 10 * UNIT;
+    const CScript p2wsh_script = GetScriptForDestination(destination);
+    GetKeyStore().AddCScript(p2wsh_script);
 
     CMutableTransaction mutable_funding_tx;
-    mutable_funding_tx.vout.emplace_back(amount, p2sh_script);
+    mutable_funding_tx.vout.emplace_back(amount, p2wsh_script);
 
     const CTransaction funding_tx(mutable_funding_tx);
-    BOOST_CHECK_EQUAL(IsMine(GetKeyStore(), funding_tx.vout[0].scriptPubKey), isminetype::ISMINE_SPENDABLE);
-    const uint256 funding_tx_hash = funding_tx.GetHash();
+    BOOST_CHECK_EQUAL(isminetype::ISMINE_SPENDABLE, IsMine(GetKeyStore(), funding_tx.vout[0].scriptPubKey));
     std::string error;
-    BOOST_CHECK(IsStandardTx(funding_tx, error, true));
+    BOOST_CHECK(IsStandardTx(funding_tx, error, /* witnessEnabled= */ true));
 
     CMutableTransaction mutable_spending_tx;
+    const uint256 funding_tx_hash = funding_tx.GetHash();
     mutable_spending_tx.vin.emplace_back(funding_tx_hash, 0);
-    mutable_spending_tx.vout.emplace_back(amount, p2sh_script);
+    mutable_spending_tx.vout.emplace_back(amount, p2wsh_script);
 
     BOOST_CHECK(SignSignature(GetKeyStore(), funding_tx, mutable_spending_tx, 0, SIGHASH_ALL));
 
     const CTransaction spending_tx(mutable_spending_tx);
-    return { funding_tx, spending_tx };
+    return {funding_tx, spending_tx};
   }
 
   //! Check extracted keys against the pubkeys in this fixture
@@ -117,6 +144,17 @@ class Fixture {
 
 BOOST_FIXTURE_TEST_SUITE(blockchain_behavior_tests, ReducedTestingSetup)
 
+BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2pkh_pubkey) {
+  // a fixture with one key
+  Fixture<1> fixture;
+  const Txs txs = fixture.GetP2WPKHTransaction(fixture.GetPubKeys()[0]);
+  BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
+  const std::vector<CPubKey> extracted_pubkeys =
+      fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
+  // check against all the keys in the fixture
+  fixture.CheckExtractedKeys(extracted_pubkeys);
+}
+
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkey) {
   // a fixture with one key
   Fixture<1> fixture;
@@ -126,7 +164,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkey) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys =
       fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
-
+  // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
 
@@ -139,7 +177,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkeyhash) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys =
       fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
-
+  // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
 
@@ -152,7 +190,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_one) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys =
       fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
-
+  // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
 
@@ -165,7 +203,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_four) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys =
       fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
-
+  // check against all the keys in the fixture
   fixture.CheckExtractedKeys(extracted_pubkeys);
 }
 
@@ -182,7 +220,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_two_of_four) {
   BOOST_CHECK(!IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys =
       fixture.GetBlockchainBehavior().ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
-
+  // check against all the keys in the fixture
   BOOST_CHECK_EQUAL(extracted_pubkeys.size(), 0);
 }
 
