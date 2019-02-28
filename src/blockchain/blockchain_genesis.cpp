@@ -26,7 +26,7 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinbaseTransaction() const {
   tx.SetType(TxType::COINBASE);
 
   const CScript script_sig = CScript() << CScriptNum::serialize(0)  // height
-                                      << ToByteVector(uint256());  // utxo set hash
+                                       << ToByteVector(uint256());  // utxo set hash
 
   tx.vin.resize(1);
   tx.vin[0].scriptSig = script_sig;
@@ -105,7 +105,7 @@ GenesisBlockBuilder &GenesisBlockBuilder::SetDifficulty(const uint256 difficulty
 }
 
 GenesisBlockBuilder &GenesisBlockBuilder::AddFundsForPayToPubKeyHash(const CAmount amount,
-                                                                     const std::string& hexKey) {
+                                                                     const std::string &hexKey) {
   const std::vector<std::uint8_t> data = ParseHex(hexKey);
   const uint160 pubKeyHash(data);
   m_initial_funds.emplace_back(amount, WitnessV0KeyHash(pubKeyHash));
