@@ -248,6 +248,7 @@ void MalformedP2WSHTestCase(std::size_t expected_pubkeys, std::function<void(std
   // mutilate the pubkyes in the witnessScript
   CMutableTransaction mutable_spending_tx = CMutableTransaction(txs.spending_tx);
   std::vector<unsigned char> &serialized_script = mutable_spending_tx.vin[0].scriptWitness.stack[2];
+  // mutilate the script
   mutilator(serialized_script);
   // seal the transaction with the mutilated script
   const CTransaction spending_tx(mutable_spending_tx);
