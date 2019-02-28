@@ -10,7 +10,6 @@
 #include <amount.h>
 #include <blockchain/blockchain_interfaces.h>
 #include <dependency.h>
-#include <pubkey.h>
 #include <util.h>
 
 #include <boost/optional.hpp>
@@ -60,15 +59,14 @@ class Behavior {
   //! \brief Get the hash of the genesis block, cached.
   uint256 GetGenesisBlockHash() const;
 
+  //! \brief Checks whether the given block is the genesis block.
   bool IsGenesisBlock(const CBlock &) const;
 
+  //! \brief Checks whether the given block hash is the hash of the genesis block.
   bool IsGenesisBlockHash(const uint256 &) const;
 
   //! \brief Checks whether a piece of stake at the given depth is considered mature or not.
   bool IsStakeMature(blockchain::Depth) const;
-
-  //! \brief extracts the pubkey stored in the staking transaction's witness program.
-  boost::optional<CPubKey> ExtractBlockSigningKey(const CBlock &) const;
 
   //! \brief The name of this network as a standard string.
   std::string GetNetworkName() const;

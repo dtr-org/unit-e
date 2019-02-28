@@ -60,36 +60,6 @@ const Settings &Behavior::GetDefaultSettings() const {
   return m_parameters.default_settings;
 }
 
-boost::optional<CPubKey> Behavior::ExtractBlockSigningKey(const CBlock &block) const {
-  if (block.vtx.empty()) {
-    return boost::none;
-  }
-  const auto &coinbase_inputs = block.vtx[0]->vin;
-  if (coinbase_inputs.size() < 2) {
-    return boost::none;
-  }
-  const auto &witness_stack = coinbase_inputs[1].scriptWitness.stack;
-  if (witness_stack.size() < 2) {
-    return boost::none;
-  }
-  // As per https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh,
-  // a P2WPKH transaction looks like this:
-  //
-  //    witness:      <signature> <pubkey>
-  //    scriptSig:    (empty)
-  //    scriptPubKey: 0 <20-byte-key-hash>
-  //                  (0x0014{20-byte-key-hash})
-  //
-  // That is: The pubkey we're interested in is in stack[1]
-  // (stack[0] is the signature).
-  const auto &public_key_data = witness_stack[1];
-  CPubKey public_key(public_key_data.begin(), public_key_data.end());
-  if (!public_key.IsValid()) {
-    return boost::none;
-  }
-  return public_key;
-}
-
 std::string Behavior::GetNetworkName() const {
   return std::string(m_parameters.network_name);
 }
