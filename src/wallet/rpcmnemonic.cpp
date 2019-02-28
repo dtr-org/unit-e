@@ -137,8 +137,10 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
       "master key from\n"
       "2. \"passphrase\" (string, optional) an optional passphrase to "
       "protect the key\n"
-      "3. \"rescan\" (bool, optional) an optional flag whether to rescan "
-      "the blockchain"
+      "3. \"rescan\" (bool, optional, default=true) an optional flag whether to rescan "
+      "the blockchain\n"
+      "4. \"brand_new\" (bool, optional, default=false) indicates that no transactions "
+      "in the blockchain have ever used this key"
       "\nExamples:\n" +
       HelpExampleCli("importmasterkey",
                      "\"next debate force grief bleak want truck prepare "
@@ -146,7 +148,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
       HelpExampleRpc("importmasterkey",
                      "\"next debate force grief bleak want truck prepare "
                      "theme lecture wear century rich grace someone\"");
-  if (request.fHelp || request.params.size() > 3 || request.params.empty()) {
+  if (request.fHelp || request.params.size() > 4 || request.params.empty()) {
     throw std::runtime_error(help);
   }
   CWallet *wallet = GetWalletForJSONRPCRequest(request);
@@ -159,6 +161,10 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   }
   if (shouldRescan && fPruneMode) {
     throw JSONRPCError(RPC_WALLET_ERROR, "Rescan is disabled in pruned mode");
+  }
+  bool brand_new = false;
+  if (request.params.size() > 3) {
+    brand_new = request.params[3].get_bool();
   }
   const std::string walletFileName = wallet->GetName();
   std::string mnemonic(request.params[0].get_str());
@@ -173,7 +179,7 @@ UniValue importmasterkey(const JSONRPCRequest &request) {
   {
     LOCK2(cs_main, wallet->cs_wallet);
 
-    if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, error)) {
+    if (!wallet->GetWalletExtension().SetMasterKeyFromSeed(seed, brand_new, error)) {
       throw std::runtime_error(error);
     }
 
@@ -252,7 +258,7 @@ static const CRPCCommand commands[] = {
 //  ---------------------  ------------------------  -----------------------  ------------------------------------------
     { "mnemonic",          "mnemonic",               &mnemonic,               {"subcommand", "mnemonic", "passphrase"}},
     { "hidden",            "listreservekeys",        &listreservekeys,        {}},
-    { "wallet",            "importmasterkey",        &importmasterkey,        {"seed", "passphrase", "rescan"}},
+    { "wallet",            "importmasterkey",        &importmasterkey,        {"seed", "passphrase", "rescan", "brand_new"}},
 };
 // clang-format on
 

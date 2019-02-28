@@ -207,6 +207,7 @@ bool WalletExtension::SignCoinbaseTransaction(CMutableTransaction &tx) {
 }
 
 bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
+                                           bool brand_new,
                                            std::string &error) {
   // Backup existing wallet before invalidating keypool
   BackupWallet();
@@ -217,6 +218,9 @@ bool WalletExtension::SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
     error = "setting master key failed";
     return false;
   }
+  // If there's a chance that the derived keys could have been used in the
+  // blockchain, set their key time to 1
+  RAIIMockTime timekeeper(1, !brand_new);
   if (!m_enclosing_wallet.NewKeyPool()) {
     error = "could not generate new keypool";
     return false;

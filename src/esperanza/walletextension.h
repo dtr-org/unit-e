@@ -107,6 +107,7 @@ class WalletExtension : public staking::StakingWallet {
   proposer::State &GetProposerState() override;
 
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
+                            bool brand_new,
                             std::string &error);
 
   //! \brief Creates a deposit transaction for the given address and amount.

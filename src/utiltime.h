@@ -30,4 +30,21 @@ void MilliSleep(int64_t n);
 std::string DateTimeStrFormat(const char* pszFormat, int64_t nTime);
 std::string DateTimeToString(const int64_t time, const char* pszFormat = "%Y-%m-%d %H:%M:%S");
 
+class RAIIMockTime {
+private:
+  int64_t m_prev_mock_time;
+
+public:
+  RAIIMockTime(int64_t mock_time, bool set_time) {
+    m_prev_mock_time = GetMockTime();
+    if (set_time) {
+      SetMockTime(mock_time);
+    }
+  }
+
+  ~RAIIMockTime() {
+    SetMockTime(m_prev_mock_time);
+  }
+};
+
 #endif // UNITE_UTILTIME_H
