@@ -83,7 +83,7 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName) : ReducedTest
 {
         blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(chainName.c_str())));
         UnitEInjector::Init();
-        SelectParams(chainName);
+        SelectParams(GetComponent(BlockchainBehavior), chainName);
 }
 
 fs::path BasicTestingSetup::SetDataDir(const std::string& name)

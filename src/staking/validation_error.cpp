@@ -132,7 +132,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
   }
-  assert(false && "silence gcc warnings");
+  assert(!"silence gcc warnings");
 }
 
 }  // namespace

@@ -151,5 +151,5 @@ bool CTransaction::IsFinalizationTransaction() const {
     case +TxType::COINBASE:
         return false;
     }
-    assert(false && "silence gcc warnings");
+    assert(!"silence gcc warnings");
 }

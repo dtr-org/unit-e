@@ -572,7 +572,7 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
     case +TxType::ADMIN:
         return BCLog::ADMIN;
     }
-    assert(false && "silence gcc warnings");
+    assert(!"silence gcc warnings");
 }
 
 static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
