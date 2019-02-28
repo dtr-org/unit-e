@@ -138,6 +138,7 @@ UNITE_CORE_H = \
   httpserver.h \
   iblt.h \
   iblt_params.h \
+  iblt_params.table \
   indirectmap.h \
   init.h \
   injector.h \
