@@ -2013,7 +2013,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CBlockUndo blockundo;
     bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
 
-    // UNIT-E: Workaround #421
+    // UNIT-E: Workaround #421 (we don't restore finalization state when reindex)
     bool has_finalization_tx = false;
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizationTransaction()) {
@@ -2554,17 +2554,23 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
     if (block_index == nullptr || block_index->pprev == nullptr) {
         return true;
     }
+
+    // Check that block is eligible to be connected.
     assert(block_index->nChainTx != 0);
+
     if (!block_index->IsValid()) {
         return error("Block %s is invalid", block_index->GetBlockHash().GetHex());
     }
+
     if (!block_index->pprev->IsValid()) {
         return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
     }
-    auto state_processor = GetComponent(FinalizationStateProcessor);
+
+    Dependency<finalization::StateProcessor> state_processor = GetComponent(FinalizationStateProcessor);
+
     bool ok = false;
     if (block != nullptr) {
-      ok = state_processor->ProcessNewTipCandidate(*block_index, *block);
+        ok = state_processor->ProcessNewTipCandidate(*block_index, *block);
     } else {
         LogPrintf("Read %s from the disk\n", block_index->GetBlockHash().GetHex());
         CBlock block;

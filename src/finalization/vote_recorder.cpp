@@ -131,8 +131,7 @@ std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
 
 CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
 
-bool RecordVote(const CTransaction &tx,
-                CValidationState &err_state) {
+bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
   assert(tx.IsVote());
 
   const auto *const fin_state = esperanza::FinalizationState::GetState();

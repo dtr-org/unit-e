@@ -854,9 +854,9 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
-uint32_t FinalizationState::GetFinalizationCheckpointHeight() const {
+uint32_t FinalizationState::GetCheckpointHeightAfterFinalizedEpoch() const {
   if (m_lastJustifiedEpoch == 0) {
-    // TODO: UNIT-E: see #570
+    // UNIT-E TODO: see #570
     // case when 0 means no finalization
     return 0;
   }
@@ -887,7 +887,7 @@ uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
   return blockHeight / GetEpochLength();
 }
 
-blockchain::Height FinalizationState::GetEpochStartHeight(uint32_t epoch) const {
+blockchain::Height FinalizationState::GetEpochStartHeight(const uint32_t epoch) const {
   return epoch * m_settings.epoch_length;
 }
 
@@ -1059,6 +1059,12 @@ uint64_t FinalizationState::GetDynastyDelta(uint32_t dynasty) {
 }
 
 Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
+  const auto it = m_checkpoints.find(epoch);
+  assert(it != m_checkpoints.end());
+  return it->second;
+}
+
+const Checkpoint &FinalizationState::GetCheckpoint(const uint32_t epoch) const {
   const auto it = m_checkpoints.find(epoch);
   assert(it != m_checkpoints.end());
   return it->second;

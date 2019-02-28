@@ -88,11 +88,13 @@ FinalizationState *RepositoryImpl::Create(const CBlockIndex &block_index,
   if (block_index.pprev == nullptr) {
     return nullptr;
   }
+
   const auto parent_state = Find(*block_index.pprev);
   if ((parent_state == nullptr) ||
       (parent_state != GetGenesisState() && parent_state->GetInitStatus() < required_parent_status)) {
     return nullptr;
   }
+
   const auto res = m_states.emplace(&block_index, FinalizationState(*parent_state));
   return &res.first->second;
 }
@@ -126,7 +128,11 @@ void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
   LogPrint(BCLog::FINALIZATION, "Trimming state repository for height < %d\n", height);
   LOCK(cs);
   for (auto it = m_states.begin(); it != m_states.end();) {
-    const auto index = it->first;
+    const CBlockIndex *index = it->first;
+    if (!m_active_chain->Contains(*index)) {
+      index = m_active_chain->FindForkOrigin(*index);
+      assert(index != nullptr);
+    }
     if (static_cast<blockchain::Height>(index->nHeight) < height) {
       it = m_states.erase(it);
     } else {

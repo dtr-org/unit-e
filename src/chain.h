@@ -392,15 +392,6 @@ public:
     void ResetCommits(const std::vector<CTransactionRef> &_commits) {
         commits = _commits;
     }
-
-    bool HasCommits() const {
-        return static_cast<bool>(commits);
-    }
-
-    const std::vector<CTransactionRef> &GetCommits() const {
-        assert(HasCommits());
-        return *commits;
-    }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);
@@ -510,7 +501,7 @@ public:
     }
     // UNIT-E: blockchain::Height compatible operator[].
     //         In a bright future we will get rid of operator[](int).
-    CBlockIndex *operator[](blockchain::Height h) const {
+    CBlockIndex *operator[](const blockchain::Height h) const {
         return (*this)[static_cast<int>(h)];
     }
 

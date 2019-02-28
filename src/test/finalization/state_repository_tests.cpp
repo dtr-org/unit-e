@@ -20,6 +20,19 @@ public:
 
   void Reset() {
     repo->Reset(Params().GetFinalization(), Params().GetAdminParams());
+    m_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
+      auto const it = this->m_block_heights.find(h);
+      if (it == this->m_block_heights.end()) {
+        return nullptr;
+      }
+      return it->second;
+    };
+    m_chain.find_fork_origin = [this](const CBlockIndex *index) {
+      while (index != nullptr && !m_chain.Contains(*index)) {
+        index = index->pprev;
+      }
+      return index;
+    };
   }
 
   CBlockIndex &CreateBlockIndex() {
@@ -30,6 +43,7 @@ public:
     index.phashBlock = &ins_res.first->first;
     index.pprev = m_chain.tip;
     m_chain.tip = &index;
+    m_block_heights[index.nHeight] = &index;
     return index;
   }
 
@@ -46,6 +60,7 @@ private:
 
   mocks::ActiveChainMock m_chain;
   std::map<uint256, CBlockIndex> m_block_indexes;
+  std::map<blockchain::Height, CBlockIndex *> m_block_heights; // m_block_index owns these block indexes
 };
 
 }
