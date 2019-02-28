@@ -1,6 +1,6 @@
 # Maintainers
 
-UnitE is an open, community-based project. It's open for
+Unit-e is an open, community-based project. It's open for
 [contributions](CONTRIBUTING.md).
 
 There is a team of maintainers who have write access to the repository, are
@@ -32,7 +32,7 @@ We do assume a model of shared ownership of the code. So other maintainers, peer
 reviewers, and contributors are encouraged to review and work on all parts of
 the code.
 
-The consensus implementation is at the core of UnitE. Changes to it can affect
+The consensus implementation is at the core of unit-e. Changes to it can affect
 the whole network so they need special review. The implementation consist of the
 code to run nodes in the different required roles as proposers, validators, or
 general nodes.
