@@ -19,16 +19,16 @@ Run the automated script found in [contrib/gitian-build.py](/contrib/gitian-buil
 Build output expected:
 
  - In the `unit-e-binaries/<version>` directory:
-   * source tarball `unite-<version>.tar.gz`
-   * linux 32- and 64-bit dist tarballs `unite-<version>-linux[32|64].tar.gz`
-   * windows 32- and 64-bit unsigned installers `unite-<version>-win[32|64]-setup-unsigned.exe`
-   * windows 32- and 64-bit unsigned dist zips `unite-<version>-win[32|64].zip`
-   * OS X unsigned installer `unite-<version>-osx-unsigned.dmg`
-   * OS X unsigned dist tarball `unite-<version>-osx64.tar.gz`
+   * source tarball `unit-e-<version>.tar.gz`
+   * linux 32- and 64-bit dist tarballs `unit-e-<version>-linux[32|64].tar.gz`
+   * windows 32- and 64-bit unsigned installers `unit-e-<version>-win[32|64]-setup-unsigned.exe`
+   * windows 32- and 64-bit unsigned dist zips `unit-e-<version>-win[32|64].zip`
+   * OS X unsigned installer `unit-e-<version>-osx-unsigned.dmg`
+   * OS X unsigned dist tarball `unit-e-<version>-osx64.tar.gz`
 
  - In the `unit-e-sigs` directory:
-   * gitian build result `<version>-<linux|{win|osx}-unsigned>/<signer>/unite-<linux|win|osx>-<version>-build.assert`
-   * build result signature `<version>-<linux|{win|osx}-unsigned>/<signer>/unite-<linux|win|osx>-<version>-build.assert.sig`
+   * gitian build result `<version>-<linux|{win|osx}-unsigned>/<signer>/unit-e-<linux|win|osx>-<version>-build.assert`
+   * build result signature `<version>-<linux|{win|osx}-unsigned>/<signer>/unit-e-<linux|win|osx>-<version>-build.assert.sig`
 
 The changes will be automatically commited. Push your results to the signatures repository.
 
@@ -37,14 +37,14 @@ The changes will be automatically commited. Push your results to the signatures 
 By default, Gitian will fetch source files as needed. To cache them ahead of time:
 
     pushd ./gitian-builder
-    make -C ../unite/depends download SOURCES_PATH=`pwd`/cache/common
+    make -C ../unit-e/depends download SOURCES_PATH=`pwd`/cache/common
     popd
 
 Only missing files will be fetched, so this is safe to re-run for each build.
 
 NOTE: Offline builds must use the `--url` flag to ensure Gitian fetches only from local URLs. For example:
 
-    ./unit-e/contrib/gitian-build.py --url file:///path/to/unite {rest of arguments}
+    ./unit-e/contrib/gitian-build.py --url file:///path/to/unit-e {rest of arguments}
 
 It is not possible to specify the path to local signatures repository.
 
@@ -70,10 +70,10 @@ The signatures will be commited in `unit-e-sigs/<version>-detached`. Push them t
 
 Wait for Windows/OS X detached signatures:
 - Once the Windows/OS X builds each have 3 matching signatures, they will be signed with their respective release keys.
-- Detached signatures will then be committed to the [unit-e-sigs](https://github.com/unite-core/unit-e-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
+- Detached signatures will then be committed to the [unit-e-sigs](https://github.com/dtr-org/unit-e-sigs) repository, which can be combined with the unsigned apps to create signed binaries.
 
 Create the signed Windows/OS X binary
 
 	./unit-e/contrib/gitian-build.py [--setup] [--build] --sign [--verify] [--os wm] --signer <signer> --version <version>
 
-The signatures for signed builds will be commited in `unit-e-sigs/<version>-[win|osx]-signed/<signer>`. Verify the signed binaries and push the signatures to the repository.
+The signatures for signed builds will be committed in `unit-e-sigs/<version>-[win|osx]-signed/<signer>`. Verify the signed binaries and push the signatures to the repository.
