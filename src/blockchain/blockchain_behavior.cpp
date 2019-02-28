@@ -80,7 +80,7 @@ std::vector<CPubKey> ExtractP2WPKHKeys(const std::vector<std::vector<unsigned ch
   }
   const std::vector<unsigned char> &public_key_data = witness_stack[1];
   CPubKey public_key(public_key_data.begin(), public_key_data.end());
-  if (!public_key.IsValid()) {
+  if (!public_key.IsFullyValid()) {
     return std::vector<CPubKey>{};
   }
   return std::vector<CPubKey>{public_key};
@@ -145,6 +145,10 @@ std::vector<CPubKey> ExtractP2WSHKeys(const std::vector<std::vector<unsigned cha
           return std::vector<CPubKey>{};
         }
         for (std::size_t i = 1; i < solutions.size() - 1; ++i) {
+          const CPubKey key(solutions[i]);
+          if (!key.IsFullyValid()) {
+            continue;
+          }
           result.emplace_back(solutions[i]);
         }
         return result;
