@@ -25,10 +25,11 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinbaseTransaction() const {
   tx.SetVersion(2);
   tx.SetType(TxType::COINBASE);
 
-  const CScript scriptSig = CScript() << CScriptNum::serialize(0)  // height
+  const CScript script_sig = CScript() << CScriptNum::serialize(0)  // height
                                       << ToByteVector(uint256());  // utxo set hash
 
-  tx.vin.emplace_back(uint256(), std::numeric_limits<decltype(tx.vin[0].prevout.n)>::max(), scriptSig);
+  tx.vin.resize(1);
+  tx.vin[0].scriptSig = script_sig;
 
   for (const auto &target : m_initial_funds) {
     const CAmount amount = target.first;
