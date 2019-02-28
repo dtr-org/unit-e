@@ -11,10 +11,6 @@ categories:
     color: '888888'
     description: 'Needs a design (possibly in a UIP) before it can be implemented'
     id: 1134722696
-  - name: has adr
-    color: 'aaaaaa'
-    description: ''
-    id: 1134741914
   - name: brainstorming
     color: 'cccccc'
     description: Needs input, ideas are welcome
