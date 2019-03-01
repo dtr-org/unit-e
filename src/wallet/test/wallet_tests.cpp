@@ -19,7 +19,6 @@
 
 #include <boost/test/unit_test.hpp>
 #include <univalue.h>
-#include <boost/lexical_cast.hpp>
 
 extern UniValue importmulti(const JSONRPCRequest& request);
 extern UniValue dumpwallet(const JSONRPCRequest& request);
