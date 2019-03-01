@@ -28,6 +28,7 @@
 #include <set>
 #include <stdint.h>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <boost/signals2/signal.hpp>
@@ -377,53 +378,38 @@ int64_t StrToEpoch(const std::string &input, bool fillMax = false);
 
 namespace util {
 
-inline const std::string &to_string(const std::string &str) {
-    return str;
-}
-
-inline std::string to_string(const uint256 v) {
-    return v.GetHex();
-}
-
-template <typename Tbegin, typename Tend>
-struct Range {
-    Tbegin begin;
-    Tend end;
-};
-
-template <typename Tbegin, typename Tend>
-Range<Tbegin, Tend> range(const Tbegin &begin, const Tend &end) {
-    return { begin, end };
+template <typename T>
+std::string to_string(
+    const typename std::enable_if<
+        std::is_same<std::string,
+                     decltype((static_cast<T *>(nullptr))->ToString())>::value,
+        T>::type &v) {
+  return v.ToString();
 }
 
 template <typename T>
 std::string to_string(const T &v) {
-    return std::to_string(v);
+  return std::to_string(v);
 }
 
-template <typename Tbegin, typename Tend>
-std::string to_string(const Range<Tbegin, Tend> &r) {
-    std::string res = "[";
-    auto it = r.begin;
-    if (it != r.end) {
-        res += util::to_string(*it);
-        for (++it; it != r.end; ++it) {
-            res += ", ";
-            res += util::to_string(*it);
-        }
+template <>
+std::string to_string<std::string>(const std::string &v) {
+  return v;
+}
+
+template <template <typename...> class C, typename T>
+std::string to_string(const C<T> &v) {
+  std::string res = "[";
+  auto it = v.begin();
+  if (it != v.end()) {
+    res += util::to_string<T>(*it);
+    for (++it; it != v.end(); ++it) {
+      res += ", ";
+      res += util::to_string<T>(*it);
     }
-    res += "]";
-    return res;
-}
-
-template <typename T>
-std::string to_string(const std::vector<T> &v) {
-    return util::to_string(range(v.begin(), v.end()));
-}
-
-template <typename T>
-std::string to_string(const std::set<T> &v) {
-    return util::to_string(range(v.begin(), v.end()));
+  }
+  res += "]";
+  return res;
 }
 
 } // util

@@ -785,4 +785,18 @@ BOOST_AUTO_TEST_CASE(test_to_string_with_one_element_vector) {
     BOOST_CHECK_EQUAL("[13]", str);
 }
 
+struct SomeStruct {
+  std::string value;
+
+  std::string ToString() const {
+    return value;
+  }
+};
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_container_of_things_that_have_a_ToString_member_function) {
+    const std::vector<SomeStruct> vec{{"hello"}, {"world"}};
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[hello, world]", str);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

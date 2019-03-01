@@ -10,6 +10,7 @@
 #include <hash.h>
 #include <serialize.h>
 #include <uint256.h>
+#include <utilstrencodings.h>
 
 #include <stdexcept>
 #include <vector>
@@ -161,6 +162,12 @@ public:
     uint256 GetSha256() const
     {
         return Sha256(vch, vch + size());
+    }
+
+    //! Get this key represented as a string of hexadecimal digits.
+    std::string ToString() const
+    {
+        return HexStr(*this);
     }
 
     /*
