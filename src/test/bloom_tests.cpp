@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(bloom_create_insert_serialize_with_tweak)
 
 BOOST_AUTO_TEST_CASE(bloom_create_insert_key)
 {
-    std::string strSecret = std::string("5Kg1gnAjaLfKiwhhPpGS3QfRg2m6awQvaj98JCZBZQ5SuS2F15C");
+    std::string strSecret = std::string("93SeGWzHAZjTh1Cz2AALv1DPKh7ok6x7vg15Npugu8pVgVAzKyk");
     CUnitESecret vchSecret;
     BOOST_CHECK(vchSecret.SetString(strSecret));
 
