@@ -4292,6 +4292,20 @@ void CMerkleTx::SetMerkleBranch(const CBlockIndex* pindex, int posInBlock)
     nIndex = posInBlock;
 }
 
+std::vector<int> CMerkleTx::GetBlocksToMaturities() const {
+
+  std::vector<int> result(tx->vout.size());
+  if (!IsCoinBase()) {
+    return result;
+  }
+
+  for (int i = 0; i < tx->vout.size(); ++i) {
+    const auto &out = tx->vout;
+    result[i] = std::max(0, (COINBASE_MATURITY+1) - GetDepthInMainChain());
+  }
+  return result;
+}
+
 int CMerkleTx::GetDepthInMainChain(const CBlockIndex* &pindexRet) const
 {
     if (hashUnset()) {

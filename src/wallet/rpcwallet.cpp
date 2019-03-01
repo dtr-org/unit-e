@@ -1689,7 +1689,7 @@ void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const std::s
                 {
                     if (wtx.GetDepthInMainChain() < 1)
                         entry.push_back(Pair("category", "orphan"));
-                    else if (wtx.GetBlocksToMaturity() > 0)
+                    else if (wtx.GetBlocksToMaturities().at(0) > 0)
                         entry.push_back(Pair("category", "immature"));
                     else
                         entry.push_back(Pair("category", "generate"));
