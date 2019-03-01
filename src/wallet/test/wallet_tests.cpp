@@ -867,7 +867,7 @@ BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup)
     BOOST_CHECK_EQUAL(balances.size(), 0);
   }
 
-  //Make one coinbase mature
+  // Make one coinbase mature
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
   {
@@ -881,7 +881,7 @@ BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup)
 
 BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
 
-  //Nothing is mature currenly so no balances
+  // Nothing is mature currenly so no balances
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
     auto all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
@@ -892,7 +892,7 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
     BOOST_CHECK_EQUAL(watchonly_balance, 0);
   }
 
-  //Make one coinbase mature
+  // Make one coinbase mature
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
   {
@@ -905,7 +905,7 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
     BOOST_CHECK_EQUAL(watchonly_balance, 0);
   }
 
-  //Now add a new watch-only key, craete a new coinbase and then make it mature
+  // Now add a new watch-only key, craete a new coinbase and then make it mature
   CKey watch_only_key;
   watch_only_key.MakeNewKey(true);
   auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
@@ -1035,7 +1035,7 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
 
 BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
 
-  //Nothing is mature currenly so no balances
+  // Nothing is mature currenly so no balances
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
     auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
@@ -1047,7 +1047,7 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
     BOOST_CHECK_EQUAL(watchonly_credit, 0);
   }
 
-  //Make one coinbase mature
+  // Make one coinbase mature
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
   {
@@ -1061,7 +1061,7 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
     BOOST_CHECK_EQUAL(watchonly_credit, 0);
   }
 
-  //Now add a new watch-only key, craete a new coinbase and then make it mature
+  // Now add a new watch-only key, craete a new coinbase and then make it mature
   CKey watch_only_key;
   watch_only_key.MakeNewKey(true);
   auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
