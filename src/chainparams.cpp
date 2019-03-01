@@ -234,7 +234,7 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
 
 class CMainParams : public CChainParams {
 public:
-    CMainParams() : CChainParams(blockchain::Parameters::MainNet()) {
+    CMainParams(const blockchain::Parameters &params) : CChainParams(params) {
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -306,7 +306,7 @@ public:
  */
 class CTestNetParams : public CChainParams {
 public:
-    CTestNetParams() : CChainParams(blockchain::Parameters::TestNet()) {
+    CTestNetParams(const blockchain::Parameters &params) : CChainParams(params) {
         consensus.nSubsidyHalvingInterval = 210000;
         consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -375,7 +375,7 @@ public:
  */
 class CRegTestParams : public CChainParams {
 public:
-    CRegTestParams() : CChainParams(blockchain::Parameters::RegTest()) {
+    CRegTestParams(const blockchain::Parameters& params) : CChainParams(params) {
         consensus.nSubsidyHalvingInterval = 150;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
@@ -446,21 +446,37 @@ const CChainParams &Params() {
     return *globalChainParams;
 }
 
-std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
+std::unique_ptr<CChainParams> CreateChainParams(Dependency<blockchain::Behavior> blockchain_behavior, const std::string& chain)
 {
     if (chain == CBaseChainParams::MAIN)
-        return std::unique_ptr<CChainParams>(new CMainParams());
+        return std::unique_ptr<CChainParams>(new CMainParams(blockchain_behavior->GetParameters()));
     else if (chain == CBaseChainParams::TESTNET)
-        return std::unique_ptr<CChainParams>(new CTestNetParams());
+        return std::unique_ptr<CChainParams>(new CTestNetParams(blockchain_behavior->GetParameters()));
     else if (chain == CBaseChainParams::REGTEST)
-        return std::unique_ptr<CChainParams>(new CRegTestParams());
+        return std::unique_ptr<CChainParams>(new CRegTestParams(blockchain_behavior->GetParameters()));
     throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
 }
 
-void SelectParams(const std::string& network)
+std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
+{
+  std::unique_ptr<blockchain::Behavior> blockchain_behavior;
+  if (chain == CBaseChainParams::MAIN) {
+    blockchain_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::main);
+  } else if (chain == CBaseChainParams::TESTNET) {
+    blockchain_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::test);
+  } else if (chain == CBaseChainParams::REGTEST) {
+    blockchain_behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::regtest);
+  }
+  if (!blockchain_behavior) {
+    throw std::runtime_error(strprintf("%s: Unknown chain %s.", __func__, chain));
+  }
+  return CreateChainParams(blockchain_behavior.get(), chain);
+}
+
+void SelectParams(Dependency<blockchain::Behavior> blockchain_behavior, const std::string& network)
 {
     SelectBaseParams(network);
-    globalChainParams = CreateChainParams(network);
+    globalChainParams = CreateChainParams(blockchain_behavior, network);
 }
 
 void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout)

@@ -88,7 +88,7 @@ class Behavior {
   static std::unique_ptr<Behavior> NewFromParameters(const Parameters &);
 
   //! \brief stopgap to replace global Params() accessor function
-  static void MakeGlobal(Dependency<::ArgsManager>);
+  static Dependency<blockchain::Behavior> MakeGlobal(Dependency<::ArgsManager>);
 
   //! \brief stopgap to replace global Params() accessor function
   static Behavior &GetGlobal();

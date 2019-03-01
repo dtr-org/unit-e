@@ -6,9 +6,11 @@
 #ifndef UNITE_CHAINPARAMS_H
 #define UNITE_CHAINPARAMS_H
 
+#include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_parameters.h>
 #include <chainparamsbase.h>
 #include <consensus/params.h>
+#include <dependency.h>
 #include <primitives/block.h>
 #include <protocol.h>
 #include <esperanza/adminparams.h>
@@ -67,7 +69,7 @@ public:
     const blockchain::Parameters parameters;
 
 protected:
-    explicit CChainParams(const blockchain::Parameters& _parameters) : parameters(_parameters) {}
+    explicit CChainParams(const blockchain::Parameters &parameters) : parameters(parameters) {}
 
     Consensus::Params consensus;
     esperanza::FinalizationParams finalization;
@@ -87,6 +89,7 @@ protected:
  * @returns a CChainParams* of the chosen chain.
  * @throws a std::runtime_error if the chain is not supported.
  */
+std::unique_ptr<CChainParams> CreateChainParams(Dependency<blockchain::Behavior>, const std::string& chain);
 std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain);
 
 /**
@@ -99,7 +102,7 @@ const CChainParams &Params();
  * Sets the params returned by Params() to those for the given BIP70 chain name.
  * @throws std::runtime_error when the chain is not supported.
  */
-void SelectParams(const std::string& chain);
+void SelectParams(Dependency<blockchain::Behavior>, const std::string& chain);
 
 /**
  * Allows modifying the Version Bits regtest parameters.

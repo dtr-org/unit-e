@@ -99,7 +99,7 @@ std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {
     case Network::regtest:
       return NewFromParameters(Parameters::RegTest());
   }
-  assert(false && "silence gcc warnings");
+  assert(!"silence gcc warnings");
 }
 
 std::unique_ptr<Behavior> Behavior::NewFromParameters(const Parameters &parameters) {
@@ -113,8 +113,9 @@ namespace {
 std::unique_ptr<Behavior> g_blockchain_behavior;
 }  // namespace
 
-void Behavior::MakeGlobal(Dependency<::ArgsManager> args) {
+Dependency<blockchain::Behavior> Behavior::MakeGlobal(Dependency<::ArgsManager> args) {
   SetGlobal(New(args));
+  return g_blockchain_behavior.get();
 }
 
 void Behavior::SetGlobal(std::unique_ptr<Behavior> &&behavior) {

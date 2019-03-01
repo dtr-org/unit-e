@@ -502,7 +502,7 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
     // TODO: UNIT-E: must not happen once the following issue is implemented:
     // https://github.com/dtr-org/unit-e/issues/570
     // for now only instant finalization is possible for the first epoch
-    assert(false && "recommended target must be set!");
+    assert(!"recommended target must be set!");
   }
 
   const uint32_t target_epoch = state.GetEpoch(*target);
