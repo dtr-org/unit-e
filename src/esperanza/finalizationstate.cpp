@@ -941,8 +941,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
       esperanza::Vote vote2;
       std::vector<unsigned char> voteSig1;
       std::vector<unsigned char> voteSig2;
-      CScript::ExtractVotesFromSlashSignature(tx->vin[0].scriptSig, vote1,
-                                              vote2, voteSig1, voteSig2);
+      assert(CScript::ExtractVotesFromSlashSignature(tx->vin[0].scriptSig, vote1,
+                                                     vote2, voteSig1, voteSig2));
 
       ProcessSlash(vote1, vote2);
       break;
