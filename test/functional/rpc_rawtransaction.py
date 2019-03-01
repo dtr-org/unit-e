@@ -13,6 +13,9 @@ Test the following RPCs:
 """
 
 from test_framework.test_framework import UnitETestFramework
+from test_framework.blocktools import (create_block, create_coinbase, get_tip_snapshot_meta, sign_transaction, add_witness_commitment)
+from test_framework.mininode import (P2PInterface, network_thread_start)
+from test_framework.messages import msg_witness_block
 from test_framework.util import *
 
 
@@ -46,6 +49,9 @@ class RawTransactionsTest(UnitETestFramework):
         connect_nodes_bi(self.nodes,0,2)
 
     def run_test(self):
+        self.nodes[0].add_p2p_connection(P2PInterface())
+        network_thread_start()
+        self.nodes[0].p2p.wait_for_verack()
 
         self.setup_stake_coins(self.nodes[0], self.nodes[2])
 
@@ -191,6 +197,36 @@ class RawTransactionsTest(UnitETestFramework):
         assert_equal(gottx['in_active_chain'], False)
         self.nodes[0].reconsiderblock(block1)
         assert_equal(self.nodes[0].getbestblockhash(), block2)
+
+        ##############################
+        # getrawtransaction coinbase #
+        ##############################
+
+        stake = self.nodes[0].listunspent()[0]
+        height = self.nodes[0].getblockcount()
+        tip = self.nodes[0].getbestblockhash()
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        coinbase = create_coinbase(height, stake, snapshot_meta.hash)
+        sign_transaction(self.nodes[0], coinbase)
+        coinbase.rehash()
+
+        block_time = self.nodes[0].getblockheader(tip)["mediantime"] + 1
+        block = create_block(int(tip, 16), coinbase, block_time)
+        block.nVersion = 3
+        add_witness_commitment(block)
+        block.solve()
+
+        self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
+        assert_equal(self.nodes[0].getbestblockhash(), block.hash)
+
+        coinbase_tx = self.nodes[0].getrawtransaction(coinbase.hash, True)
+
+        assert_equal(len(coinbase_tx['vin']), 2)
+        assert_equal(coinbase_tx['vin'][0], {'coinbase': coinbase.vin[0].scriptSig.hex()})
+        assert_equal(coinbase_tx['vin'][1]['txid'], stake['txid'])
+        assert_equal(coinbase_tx['vin'][1]['vout'], stake['vout'])
+        assert_equal(coinbase_tx['vin'][1]['scriptSig']['hex'], coinbase.vin[1].scriptSig.hex())
+        assert_equal(coinbase_tx['vin'][1]['sequence'], coinbase.vin[1].nSequence)
 
         #########################
         # RAW TX MULTISIG TESTS #
