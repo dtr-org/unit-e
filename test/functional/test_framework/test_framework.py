@@ -50,7 +50,8 @@ TEST_EXIT_PASSED = 0
 TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
-COINBASE_MATURITY = 100
+COINBASE_MATURITY = 100  # Should match the value from consensus.h
+STAKE_SPLIT_THRESHOLD = 1000  # Should match the value from blockchain_parameters.cpp
 
 # This parameter simulates the scenario that the node "never" reaches finalization.
 # The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
