@@ -1957,7 +1957,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
     CAmount credit = 0;
     if (filter & ISMINE_SPENDABLE) {
         // GetBalance can assume transactions in mapWallet won't change
-        if (fCreditCached) {
+        if (fCreditCached && !IsCoinBase()) {
             credit += nCreditCached;
         } else {
             nCreditCached = pwallet->GetMatureCredit(*this, ISMINE_SPENDABLE);
@@ -1966,7 +1966,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
         }
     }
     if (filter & ISMINE_WATCH_ONLY) {
-        if (fWatchCreditCached) {
+        if (fWatchCreditCached && !IsCoinBase()) {
             credit += nWatchCreditCached;
         } else {
             nWatchCreditCached = pwallet->GetMatureCredit(*this, ISMINE_WATCH_ONLY);
