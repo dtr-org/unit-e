@@ -1541,16 +1541,16 @@ bool CWallet::IsAllFromMe(const CTransaction& tx, const isminefilter& filter) co
     return true;
 }
 
-CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, const BalanceType& mature) const
+CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, const BalanceType& balance_filter) const
 {
   CAmount nCredit = 0;
   for (int i = 0; i < wtx.tx->vout.size(); ++i) {
     const CTxOut& txout = wtx.tx->vout[i];
-    if (mature == +BalanceType::MATURE) {
+    if (balance_filter == +BalanceType::MATURE) {
       if (wtx.IsCoinBase() && wtx.GetBlocksToMaturities().at(i) > 0) {
         continue;
       }
-    } else if (mature == +BalanceType::IMMATURE) {
+    } else if (balance_filter == +BalanceType::IMMATURE) {
       if (wtx.IsCoinBase() && wtx.GetBlocksToMaturities().at(i) == 0) {
         continue;
       }
