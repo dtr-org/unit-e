@@ -33,7 +33,8 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
 
   switch (state->GetInitStatus()) {
     case FinalizationState::NEW: {
-      return state->ProcessNewTip(block_index, block);
+      state->ProcessNewTip(block_index, block);
+      break;
     }
 
     case FinalizationState::FROM_COMMITS: {
@@ -43,9 +44,7 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
       const auto ancestor_state = m_repo->Find(*block_index.pprev);
       assert(ancestor_state != nullptr);
       FinalizationState new_state(*ancestor_state);
-      if (!new_state.ProcessNewTip(block_index, block)) {
-        return false;
-      }
+      new_state.ProcessNewTip(block_index, block);
       if (m_repo->Confirm(block_index, std::move(new_state), nullptr)) {
         // UNIT-E TODO: DoS commits sender.
         LogPrint(BCLog::FINALIZATION, "WARN: After processing the block_hash=%s height=%d, its finalization state differs from one given from commits. Overwrite it anyway.\n",
@@ -54,17 +53,17 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
         LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d confirmed\n",
                  block_index.GetBlockHash().GetHex(), block_index.nHeight);
       }
-      return true;
+      break;
     }
 
     case FinalizationState::COMPLETED: {
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been already processed\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
-      return true;
+      break;
     }
   }
 
-  assert(not("unreachable"));  // suppress gcc warning
+  return true;
 }
 
 bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index, blockchain::Height *out_height) {
@@ -137,23 +136,24 @@ bool ProcessorImpl::ProcessNewCommits(const CBlockIndex &block_index, const std:
 
   switch (state->GetInitStatus()) {
     case esperanza::FinalizationState::NEW: {
-      return state->ProcessNewCommits(block_index, txes);
+      state->ProcessNewCommits(block_index, txes);
+      break;
     }
 
     case esperanza::FinalizationState::FROM_COMMITS: {
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been already processed from commits\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
-      return true;
+      break;
     }
 
     case esperanza::FinalizationState::COMPLETED: {
       LogPrint(BCLog::FINALIZATION, "State for block_hash=%s height=%d has been already processed\n",
                block_index.GetBlockHash().GetHex(), block_index.nHeight);
-      return true;
+      break;
     }
   }
 
-  assert(not("unreachable"));  // suppress gcc warning
+  return true;
 }
 
 }  // namespace

@@ -969,18 +969,15 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
   }
 }
 
-bool FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
+void FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
                                       const CBlock &block) {
   LOCK(cs_esperanza);
   assert(m_status == NEW);
-  if (!ProcessNewCommits(block_index, block.vtx)) {
-    return false;
-  }
+  ProcessNewCommits(block_index, block.vtx);
   m_status = COMPLETED;
-  return true;
 }
 
-bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
+void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
                                           const std::vector<CTransactionRef> &txes) {
   LOCK(cs_esperanza);
   assert(m_status == NEW);
@@ -992,7 +989,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   // We can skip everything for the genesis block since it isn't suppose to
   // contain esperanza's transactions.
   if (block_index.nHeight == 0) {
-    return true;
+    return;
   }
 
   // This is the first block of a new epoch.
@@ -1024,7 +1021,6 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     }
   }
   m_status = FROM_COMMITS;
-  return true;
 }
 
 // Private accessors used to avoid map's operator[] potential side effects.
