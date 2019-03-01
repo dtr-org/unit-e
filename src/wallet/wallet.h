@@ -1063,6 +1063,8 @@ public:
     /** Returns whether all of the inputs match the filter */
     bool IsAllFromMe(const CTransaction& tx, const isminefilter& filter) const;
     CAmount GetCredit(const CWalletTx& wtx, const isminefilter& filter) const;
+    CAmount GetMatureCredit(const CWalletTx& wtx, const isminefilter& filter) const;
+    CAmount GetImmatureCredit(const CWalletTx& wtx, const isminefilter& filter) const;
     CAmount GetChange(const CTransaction& tx) const;
     void SetBestChain(const CBlockLocator& loc) override;
 

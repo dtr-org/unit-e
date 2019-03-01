@@ -1563,9 +1563,19 @@ CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, con
   return nCredit;
 }
 
+CAmount CWallet::GetMatureCredit(const CWalletTx& wtx, const isminefilter& filter) const
+{
+    return GetCredit(wtx, filter, BalanceType::MATURE);
+}
+
+CAmount CWallet::GetImmatureCredit(const CWalletTx& wtx, const isminefilter& filter) const
+{
+    return GetCredit(wtx, filter, BalanceType::IMMATURE);
+}
+
 CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter) const
 {
-  return GetCredit(wtx, filter, BalanceType::ALL);
+    return GetCredit(wtx, filter, BalanceType::ALL);
 }
 
 CAmount CWallet::GetChange(const CTransaction& tx) const
