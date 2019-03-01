@@ -976,6 +976,62 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
     BOOST_CHECK(last_coinbase);
     BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToMaturity(), COINBASE_MATURITY - 11);
   }
+
+  BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
+
+    //Nothing is mature currenly so no balances
+    {
+      LOCK2(cs_main, pwalletMain->cs_wallet);
+      auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+      auto all_credit = first->GetCredit(ISMINE_ALL);
+      auto spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
+      auto watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
+      BOOST_CHECK_EQUAL(all_credit, 0);
+      BOOST_CHECK_EQUAL(spendable_credit, 0);
+      BOOST_CHECK_EQUAL(watchonly_credit, 0);
+    }
+
+    //Make one coinbase mature
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+    {
+      LOCK2(cs_main, pwalletMain->cs_wallet);
+      auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+      auto all_credit = first->GetCredit(ISMINE_ALL);
+      auto spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
+      auto watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
+      BOOST_CHECK_EQUAL(all_credit, coinbaseTxns.back().GetValueOut());
+      BOOST_CHECK_EQUAL(spendable_credit, coinbaseTxns.back().GetValueOut());
+      BOOST_CHECK_EQUAL(watchonly_credit, 0);
+    }
+
+    //Now add a new watch-only key, craete a new coinbase and then make it mature
+    CKey watch_only_key;
+    watch_only_key.MakeNewKey(true);
+    auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
+
+    {
+      LOCK(pwalletMain->cs_wallet);
+      assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
+    }
+
+    auto watch_only_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey())).vtx[0];
+
+    for (int i = 0; i < COINBASE_MATURITY; ++i) {
+      CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+    }
+
+    {
+      LOCK2(cs_main, pwalletMain->cs_wallet);
+      auto watch_only = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
+      auto all_credit = watch_only->GetCredit(ISMINE_ALL);
+      auto spendable_credit = watch_only->GetCredit(ISMINE_SPENDABLE);
+      auto watchonly_credit = watch_only->GetCredit(ISMINE_WATCH_ONLY);
+      BOOST_CHECK_EQUAL(all_credit, watch_only_coinbase->GetValueOut());
+      BOOST_CHECK_EQUAL(spendable_credit, 0);
+      BOOST_CHECK_EQUAL(watchonly_credit, watch_only_coinbase->GetValueOut());
+    }
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
