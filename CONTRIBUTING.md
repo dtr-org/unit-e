@@ -1,7 +1,6 @@
-Contributing to UnitE Core
-============================
+# Contributing to unit-e
 
-The UnitE Core project operates an open contributor model where anyone is
+The unit-e project operates an open contributor model where anyone is
 welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
@@ -12,7 +11,7 @@ appointment of maintainers. Maintainers are part of the overall community and
 there is a path for contributors to become maintainers if they show to be
 capable and willing to take over this responsibility.
 
-The UnitE team is committed to fostering a welcoming and harassment-free
+The unit-e team is committed to fostering a welcoming and harassment-free
 environment. All participants are expected to adhere to our [code of
 conduct](CODE_OF_CONDUCT.md).
 
@@ -87,7 +86,7 @@ about Git.
 
 #### Sign your work
 
-UnitE has adopted the [Developer Certificate of Origin
+Unit-e has adopted the [Developer Certificate of Origin
 (DCO)](https://developercertificate.org/) (see
 [ADR-16](https://github.com/dtr-org/unit-e-docs/blob/master/adrs/2018-10-22-ADR-16-Adopt%20DCO.md)
 for details). That means if you submit a change you sign it off by adding a line
@@ -243,7 +242,7 @@ higher in terms of discussion and peer review requirements, keeping in mind that
 mistakes could be very costly to the wider community. This includes refactoring
 of consensus critical code.
 
-Patches that change UnitE consensus rules are considerably more involved than
+Patches that change unit-e consensus rules are considerably more involved than
 normal because they affect the entire ecosystem. They must be accompanied by a
 design document and a discussion will have preceded it, which should be
 referenced (for example the pull request which merged the design document).
@@ -277,11 +276,11 @@ adding too much effort or noise.
 
 #### Decision by maintainers
 
-The following applies to code changes to the UnitE Core project (and related
-projects such as libsecp256k1), and is not to be confused with overall UnitE
+The following applies to code changes to the unit-e project (and related
+projects such as libsecp256k1), and is not to be confused with overall Unit-e
 Network Protocol consensus changes.
 
-Whether and when a pull request is merged into UnitE Core rests with the project
+Whether and when a pull request is merged into unit-e rests with the project
 maintainers. A pull request needs approval of at least one maintainer to be
 merged. A maintainer can not approve a pull request they authored themselves.
 They need at least one other maintainer to approve the pull request. The list of
@@ -347,7 +346,7 @@ merging upstream code and the commits and authors should be kept as they are.
 Release Policy
 --------------
 
-The project leader is the release manager for each UnitE Core release.
+The project leader is the release manager for each unit-e release.
 
 
 License Policy

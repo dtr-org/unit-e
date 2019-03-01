@@ -1,5 +1,6 @@
-This is a system of building and caching dependencies necessary for building UnitE.
-There are several features that make it different from most similar systems:
+This is a system of building and caching dependencies necessary for building
+unit-e. There are several features that make it different from most similar
+systems:
 
 ### It is designed to be builder and host agnostic
 
