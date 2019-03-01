@@ -25,10 +25,11 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinbaseTransaction() const {
   tx.SetVersion(2);
   tx.SetType(TxType::COINBASE);
 
-  const CScript scriptSig = CScript() << CScriptNum::serialize(0)  // height
-                                      << ToByteVector(uint256());  // utxo set hash
+  const CScript script_sig = CScript() << CScriptNum::serialize(0)  // height
+                                       << ToByteVector(uint256());  // utxo set hash
 
-  tx.vin.emplace_back(uint256(), 0, scriptSig);
+  tx.vin.resize(1);
+  tx.vin[0].scriptSig = script_sig;
 
   for (const auto &target : m_initial_funds) {
     const CAmount amount = target.first;
@@ -65,7 +66,7 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   assert(genesis_block.vtx.size() == 1);
   assert(genesis_block.vtx[0]->vin.size() == 1);
   assert(genesis_block.vtx[0]->vin[0].prevout.hash == uint256());
-  assert(genesis_block.vtx[0]->vin[0].prevout.n == 0);
+  assert(genesis_block.vtx[0]->vin[0].prevout.n == std::numeric_limits<decltype(genesis_block.vtx[0]->vin[0].prevout.n)>::max());
   assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
 
   // UNIT-E: TODO: This will be enabled once we will have defined the initial funds allocation
@@ -104,7 +105,7 @@ GenesisBlockBuilder &GenesisBlockBuilder::SetDifficulty(const uint256 difficulty
 }
 
 GenesisBlockBuilder &GenesisBlockBuilder::AddFundsForPayToPubKeyHash(const CAmount amount,
-                                                                     const std::string& hexKey) {
+                                                                     const std::string &hexKey) {
   const std::vector<std::uint8_t> data = ParseHex(hexKey);
   const uint160 pubKeyHash(data);
   m_initial_funds.emplace_back(amount, WitnessV0KeyHash(pubKeyHash));

@@ -138,7 +138,7 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(res['transactions'], 201)
         assert_equal(res['height'], 200)
         assert_equal(res['txouts'], 305)
-        assert_equal(res['bogosize'], 22475),
+        assert_equal(res['bogosize'], 22160),
         assert_equal(res['bestblock'], node.getblockhash(200))
         size = res['disk_size']
         assert size > 6400
@@ -155,7 +155,7 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(res2['total_amount'], Decimal('1050000.00000000'))
         assert_equal(res2['height'], 0)
         assert_equal(res2['txouts'], 105)
-        assert_equal(res2['bogosize'], 7875),
+        assert_equal(res2['bogosize'], 7560),
         assert_equal(res2['bestblock'], node.getblockhash(0))
         assert_equal(len(res2['hash_serialized_2']), 64)
 
