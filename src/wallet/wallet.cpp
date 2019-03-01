@@ -1977,15 +1977,10 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
     return credit;
 }
 
-CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const
+CAmount CWalletTx::GetImmatureCredit() const
 {
     if (IsCoinBase() && IsInMainChain()) {
-        if (fUseCache && fImmatureCreditCached && !IsCoinBase()) {
-            return nImmatureCreditCached;
-        }
-        nImmatureCreditCached = pwallet->GetImmatureCredit(*this, ISMINE_SPENDABLE);
-        fImmatureCreditCached = true;
-        return nImmatureCreditCached;
+        return pwallet->GetImmatureCredit(*this, ISMINE_SPENDABLE);
     }
 
     return 0;
@@ -2019,15 +2014,10 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
     return nCredit;
 }
 
-CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool fUseCache) const
+CAmount CWalletTx::GetImmatureWatchOnlyCredit() const
 {
     if (IsCoinBase() && IsInMainChain()) {
-        if (fUseCache && fImmatureWatchCreditCached && !IsCoinBase()) {
-            return nImmatureWatchCreditCached;
-        }
-        nImmatureWatchCreditCached = pwallet->GetImmatureCredit(*this, ISMINE_WATCH_ONLY);
-        fImmatureWatchCreditCached = true;
-        return nImmatureWatchCreditCached;
+        return pwallet->GetImmatureCredit(*this, ISMINE_WATCH_ONLY);
     }
 
     return 0;

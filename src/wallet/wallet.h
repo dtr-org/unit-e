@@ -338,11 +338,9 @@ public:
     // memory only
     mutable bool fDebitCached;
     mutable bool fCreditCached;
-    mutable bool fImmatureCreditCached;
     mutable bool fAvailableCreditCached;
     mutable bool fWatchDebitCached;
     mutable bool fWatchCreditCached;
-    mutable bool fImmatureWatchCreditCached;
     mutable bool fAvailableWatchCreditCached;
     mutable bool fChangeCached;
     mutable bool fInMempool;
@@ -378,11 +376,9 @@ public:
         strFromAccount.clear();
         fDebitCached = false;
         fCreditCached = false;
-        fImmatureCreditCached = false;
         fAvailableCreditCached = false;
         fWatchDebitCached = false;
         fWatchCreditCached = false;
-        fImmatureWatchCreditCached = false;
         fAvailableWatchCreditCached = false;
         fChangeCached = false;
         fInMempool = false;
@@ -446,11 +442,9 @@ public:
     {
         fCreditCached = false;
         fAvailableCreditCached = false;
-        fImmatureCreditCached = false;
         fWatchDebitCached = false;
         fWatchCreditCached = false;
         fAvailableWatchCreditCached = false;
-        fImmatureWatchCreditCached = false;
         fDebitCached = false;
         fChangeCached = false;
     }
@@ -464,9 +458,9 @@ public:
     //! filter decides which addresses will count towards the debit
     CAmount GetDebit(const isminefilter& filter) const;
     CAmount GetCredit(const isminefilter& filter) const;
-    CAmount GetImmatureCredit(bool fUseCache=true) const;
+    CAmount GetImmatureCredit() const;
     CAmount GetAvailableCredit(bool fUseCache=true) const;
-    CAmount GetImmatureWatchOnlyCredit(const bool fUseCache=true) const;
+    CAmount GetImmatureWatchOnlyCredit() const;
     CAmount GetAvailableWatchOnlyCredit(const bool fUseCache=true) const;
     CAmount GetChange() const;
 
