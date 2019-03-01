@@ -1541,16 +1541,31 @@ bool CWallet::IsAllFromMe(const CTransaction& tx, const isminefilter& filter) co
     return true;
 }
 
-CAmount CWallet::GetCredit(const CTransaction& tx, const isminefilter& filter) const
+CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, const BalanceType& mature) const
 {
-    CAmount nCredit = 0;
-    for (const CTxOut& txout : tx.vout) {
-        nCredit += GetCredit(txout, filter);
-        if (!MoneyRange(nCredit)) {
-            throw std::runtime_error(std::string(__func__) + ": value out of range");
-        }
+  CAmount nCredit = 0;
+  for (int i = 0; i < wtx.tx->vout.size(); ++i) {
+    const CTxOut& txout = wtx.tx->vout[i];
+    if (mature == +BalanceType::MATURE) {
+      if (wtx.IsCoinBase() && wtx.GetBlocksToMaturities().at(i) > 0) {
+        continue;
+      }
+    } else if (mature == +BalanceType::IMMATURE) {
+      if (wtx.IsCoinBase() && wtx.GetBlocksToMaturities().at(i) == 0) {
+        continue;
+      }
     }
-    return nCredit;
+    nCredit += GetCredit(txout, filter);
+    if (!MoneyRange(nCredit)) {
+      throw std::runtime_error(std::string(__func__) + ": value out of range");
+    }
+  }
+  return nCredit;
+}
+
+CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter) const
+{
+  return GetCredit(wtx, filter, BalanceType::ALL);
 }
 
 CAmount CWallet::GetChange(const CTransaction& tx) const
@@ -1940,7 +1955,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
         if (fCreditCached) {
             credit += nCreditCached;
         } else {
-            nCreditCached = pwallet->GetCredit(*tx, ISMINE_SPENDABLE);
+            nCreditCached = pwallet->GetCredit(*this, ISMINE_SPENDABLE);
             fCreditCached = true;
             credit += nCreditCached;
         }
@@ -1949,7 +1964,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
         if (fWatchCreditCached) {
             credit += nWatchCreditCached;
         } else {
-            nWatchCreditCached = pwallet->GetCredit(*tx, ISMINE_WATCH_ONLY);
+            nWatchCreditCached = pwallet->GetCredit(*this, ISMINE_WATCH_ONLY);
             fWatchCreditCached = true;
             credit += nWatchCreditCached;
         }
@@ -1963,7 +1978,7 @@ CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const
         if (fUseCache && fImmatureCreditCached) {
             return nImmatureCreditCached;
         }
-        nImmatureCreditCached = pwallet->GetCredit(*tx, ISMINE_SPENDABLE);
+        nImmatureCreditCached = pwallet->GetCredit(*this, ISMINE_SPENDABLE);
         fImmatureCreditCached = true;
         return nImmatureCreditCached;
     }
@@ -2006,7 +2021,7 @@ CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool fUseCache) const
         if (fUseCache && fImmatureWatchCreditCached) {
             return nImmatureWatchCreditCached;
         }
-        nImmatureWatchCreditCached = pwallet->GetCredit(*tx, ISMINE_WATCH_ONLY);
+        nImmatureWatchCreditCached = pwallet->GetCredit(*this, ISMINE_WATCH_ONLY);
         fImmatureWatchCreditCached = true;
         return nImmatureWatchCreditCached;
     }

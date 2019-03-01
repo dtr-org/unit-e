@@ -668,6 +668,15 @@ private:
 
 
 class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
+
+BETTER_ENUM(
+    BalanceType,
+    uint8_t,
+    ALL = 0,
+    IMMATURE = 1,
+    MATURE = 2
+)
+
 /**
  * A CWallet is an extension of a keystore, which also maintains a set of transactions and balances,
  * and provides the ability to create new transactions.
@@ -763,6 +772,7 @@ private:
      */
     const CBlockIndex* m_last_block_processed;
 
+    CAmount GetCredit(const CWalletTx& wtx, const isminefilter& filter, const BalanceType& mature) const;
 public:
     /*
      * Main wallet lock.
@@ -1052,7 +1062,7 @@ public:
     CAmount GetDebit(const CTransaction& tx, const isminefilter& filter) const;
     /** Returns whether all of the inputs match the filter */
     bool IsAllFromMe(const CTransaction& tx, const isminefilter& filter) const;
-    CAmount GetCredit(const CTransaction& tx, const isminefilter& filter) const;
+    CAmount GetCredit(const CWalletTx& wtx, const isminefilter& filter) const;
     CAmount GetChange(const CTransaction& tx) const;
     void SetBestChain(const CBlockLocator& loc) override;
 
