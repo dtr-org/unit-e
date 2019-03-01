@@ -165,7 +165,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         txid = validator.deposit(payto, 10000)
         self.wait_for_transaction(txid, timeout=150)
 
-        node0.generatetoaddress(4, node0.getnewaddress())
+        node0.generatetoaddress(5, node0.getnewaddress())
         sync_blocks(self.nodes)
 
         # record relay time of the vote transaction to the outbound peer
