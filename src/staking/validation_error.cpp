@@ -115,6 +115,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("prev-blk-not-found", 10, 0);
       return err;
     }
+    case staking::BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT: {
+      static ValidationError err("bad-cb-rs-output");
+      return err;
+    }
     case staking::BlockValidationError::STAKE_IMMATURE: {
       static ValidationError err("bad-stake-immature");
       return err;
@@ -125,6 +129,10 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
     }
     case staking::BlockValidationError::STAKE_NOT_FOUND: {
       static ValidationError err("bad-stake-not-found");
+      return err;
+    }
+    case staking::BlockValidationError::TRANSACTION_INPUT_NOT_FOUND: {
+      static ValidationError err("bad-txns-inputs-missingorspent");
       return err;
     }
     case staking::BlockValidationError::WITNESS_MERKLE_ROOT_MISMATCH: {

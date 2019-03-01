@@ -442,6 +442,7 @@ struct WitnessProgram
   bool IsPayToPubkeyHash() const;
   bool IsRemoteStakingP2WPKH() const;
   bool IsRemoteStakingP2WSH() const;
+  bool IsRemoteStaking() const { return IsRemoteStakingP2WPKH() || IsRemoteStakingP2WSH(); }
 };
 
 /**
