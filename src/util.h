@@ -379,7 +379,7 @@ int64_t StrToEpoch(const std::string &input, bool fillMax = false);
 namespace util {
 
 template <typename T>
-std::string to_string(
+inline std::string to_string(
     const typename std::enable_if<
         std::is_same<std::string,
                      decltype((static_cast<T *>(nullptr))->ToString())>::value,
@@ -388,17 +388,17 @@ std::string to_string(
 }
 
 template <typename T>
-std::string to_string(const T &v) {
+inline std::string to_string(const T &v) {
   return std::to_string(v);
 }
 
 template <>
-std::string to_string<std::string>(const std::string &v) {
+inline std::string to_string<std::string>(const std::string &v) {
   return v;
 }
 
 template <template <typename...> class C, typename T>
-std::string to_string(const C<T> &v) {
+inline std::string to_string(const C<T> &v) {
   std::string res = "[";
   auto it = v.begin();
   if (it != v.end()) {
