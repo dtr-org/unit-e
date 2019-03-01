@@ -903,7 +903,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::VOTE: {
       Vote vote;
       std::vector<unsigned char> voteSig;
-      assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig));
+      const bool ok = CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig);
+      assert(ok);
       ProcessVote(vote);
       RegisterLastTx(vote.m_validatorAddress, tx);
       break;
@@ -912,7 +913,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::DEPOSIT: {
       uint160 validatorAddress = uint160();
 
-      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      const bool ok = ExtractValidatorAddress(*tx, validatorAddress);
+      assert(ok);
       ProcessDeposit(validatorAddress, tx->vout[0].nValue);
       RegisterLastTx(validatorAddress, tx);
       break;
@@ -921,7 +923,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::LOGOUT: {
       uint160 validatorAddress = uint160();
 
-      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      const bool ok = ExtractValidatorAddress(*tx, validatorAddress);
+      assert(ok);
       ProcessLogout(validatorAddress);
       RegisterLastTx(validatorAddress, tx);
       break;
@@ -930,7 +933,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::WITHDRAW: {
       uint160 validatorAddress = uint160();
 
-      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      const bool ok = ExtractValidatorAddress(*tx, validatorAddress);
+      assert(ok);
       ProcessWithdraw(validatorAddress);
       break;
     }
@@ -941,8 +945,9 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
       esperanza::Vote vote2;
       std::vector<unsigned char> voteSig1;
       std::vector<unsigned char> voteSig2;
-      assert(CScript::ExtractVotesFromSlashSignature(tx->vin[0].scriptSig, vote1,
-                                                     vote2, voteSig1, voteSig2));
+      const bool ok = CScript::ExtractVotesFromSlashSignature(
+          tx->vin[0].scriptSig, vote1, vote2, voteSig1, voteSig2);
+      assert(ok);
 
       ProcessSlash(vote1, vote2);
       break;
@@ -955,7 +960,9 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
         if (!MatchAdminCommand(output.scriptPubKey)) {
           continue;
         }
-        assert(DecodeAdminCommand(output.scriptPubKey, command));
+        const bool ok = DecodeAdminCommand(output.scriptPubKey, command);
+        assert(ok);
+
         commands.emplace_back(std::move(command));
       }
 
