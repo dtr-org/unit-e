@@ -15,6 +15,7 @@ from test_framework.util import assert_equal
 
 class GetParametersTest (UnitETestFramework):
     def set_test_params(self):
+        self.setup_clean_chain = True
         self.num_nodes = 4
         self.extra_args = [
             ["-proposing=0"],
@@ -34,12 +35,15 @@ class GetParametersTest (UnitETestFramework):
                  ]
              }},
             {"network_name": "qualityland"},
-            {"stake_maturity": 7,
-             "genesis_block": {
-                 "version": 19
-             }}
+            {"stake_maturity": 7}
         ]
-        self.setup_clean_chain = True
+
+    def setup_network(self):
+        # start nodes
+        self.setup_nodes()
+        # do nothing further (overridden method connects nodes, we don't want that)
+        # as they would discover their mismatching genesis blocks
+        pass
 
     def run_test (self):
         params = [self.nodes[i].getchainparams() for i in range(0, self.num_nodes)]
@@ -58,7 +62,6 @@ class GetParametersTest (UnitETestFramework):
         assert_equal(params[0]['genesis_block']['p2wsh_funds'][0]['script_hash'], '9d65e6fd035a643956361a3e5b2084cd8c10e07a5438c9ca1128017d4a02d185')
         assert_equal(params[1]['network_name'], "qualityland")
         assert_equal(params[2]['stake_maturity'], 7)
-        assert_equal(params[2]['genesis_block']['version'], 19)
 
 if __name__ == '__main__':
     GetParametersTest().main ()
