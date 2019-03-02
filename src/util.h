@@ -411,10 +411,9 @@ std::string stringify(
 template <typename T>
 std::string stringify(
     const typename std::enable_if<
-        std::is_same<std::string,
-                     decltype(stringify((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->first))>::value &&
-        std::is_same<std::string,
-                     decltype(stringify((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->second))>::value,
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     std::pair<decltype((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->first),
+                               decltype((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->second)>>::value,
         T>::type &v) {
     return tinyformat::format("(%s, %s)",
                               stringify<typename std::remove_reference<typename std::remove_const<decltype(v.first)>::type>::type>(v.first),
