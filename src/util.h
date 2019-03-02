@@ -379,37 +379,66 @@ int64_t StrToEpoch(const std::string &input, bool fillMax = false);
 namespace util {
 
 template <typename T>
-std::string to_string(
+std::string stringify(const T &v);
+
+template <typename T>
+std::string stringify(
     const typename std::enable_if<
         std::is_same<std::string,
-                     decltype((static_cast<T *>(nullptr))->ToString())>::value,
+                     decltype((static_cast<typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->ToString())>::value,
         T>::type &v) {
-  return v.ToString();
+    return v.ToString();
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<std::string,
+                     decltype(std::to_string(*static_cast<typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr)))>::value,
+        T>::type &v) {
+    return std::to_string(v);
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<std::string,
+                     typename std::remove_reference<typename std::remove_const<T>::type>::type>::value,
+        T>::type &v) {
+    return v;
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<std::string,
+                     decltype(stringify((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->first))>::value &&
+        std::is_same<std::string,
+                     decltype(stringify((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->second))>::value,
+        T>::type &v) {
+    return tinyformat::format("(%s, %s)",
+                              stringify<typename std::remove_reference<typename std::remove_const<decltype(v.first)>::type>::type>(v.first),
+                              stringify<typename std::remove_reference<typename std::remove_const<decltype(v.second)>::type>::type>(v.second));
+}
+
+template <typename T>
+std::string stringify(const T &v) {
+    std::string res = "[";
+    auto it = v.begin();
+    if (it != v.end()) {
+        res += stringify<typename std::remove_reference<typename std::remove_const<decltype(*it)>::type>::type>(*it);
+        for (++it; it != v.end(); ++it) {
+            res += ", ";
+            res += stringify<typename std::remove_reference<typename std::remove_const<decltype(*it)>::type>::type>(*it);
+        }
+    }
+    res += "]";
+    return res;
 }
 
 template <typename T>
 std::string to_string(const T &v) {
-  return std::to_string(v);
-}
-
-template <>
-inline std::string to_string<std::string>(const std::string &v) {
-  return v;
-}
-
-template <template <typename...> class C, typename T>
-std::string to_string(const C<T> &v) {
-  std::string res = "[";
-  auto it = v.begin();
-  if (it != v.end()) {
-    res += util::to_string<T>(*it);
-    for (++it; it != v.end(); ++it) {
-      res += ", ";
-      res += util::to_string<T>(*it);
-    }
-  }
-  res += "]";
-  return res;
+    return stringify<typename std::remove_reference<typename std::remove_const<T>::type>::type>(v);
 }
 
 } // util
