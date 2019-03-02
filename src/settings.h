@@ -40,6 +40,8 @@ struct Settings {
   //! require solving the Knapsack problem otherwise).
   CAmount stake_combine_maximum = 0;
 
+  std::uint16_t p2p_port = 7182;
+
   //! \brief the destination of the proposing reward.
   //
   //! If not set it will use the destination of the coin used for proposing the

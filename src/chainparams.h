@@ -48,7 +48,7 @@ public:
     const esperanza::AdminParams& GetAdminParams() const { return adminParams; }
     const snapshot::Params& GetSnapshotParams() const { return snapshotParams; }
     const CMessageHeader::MessageStartChars& MessageStart() const { return parameters.message_start_characters; }
-    int GetDefaultPort() const { return nDefaultPort; }
+    int GetDefaultPort() const { return parameters.default_settings.p2p_port; }
 
     const CBlock& GenesisBlock() const { return genesis; }
     /** Default value for -checkmempool and -checkblockindex argument */
@@ -75,7 +75,6 @@ protected:
     esperanza::FinalizationParams finalization;
     esperanza::AdminParams adminParams;
     snapshot::Params snapshotParams;
-    int nDefaultPort;
     std::vector<std::string> vSeeds;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
