@@ -212,7 +212,7 @@ void Shutdown()
     if (g_connman) g_connman->Stop();
 
     // stop all injected components, including proposer and validator
-    UnitEInjector::Destroy();
+    GetInjector().Stop();
 
     peerLogic.reset();
     g_connman.reset();
@@ -293,6 +293,7 @@ void Shutdown()
 #ifdef ENABLE_WALLET
     CloseWallets();
 #endif
+    UnitEInjector::Destroy();
     globalVerifyHandle.reset();
     ECC_Stop();
     LogPrintf("%s: done\n", __func__);
