@@ -785,4 +785,38 @@ BOOST_AUTO_TEST_CASE(test_to_string_with_one_element_vector) {
     BOOST_CHECK_EQUAL("[13]", str);
 }
 
+struct SomeStruct {
+  std::string value;
+
+  std::string ToString() const {
+    return value;
+  }
+
+  friend bool operator <(const SomeStruct &s1, const SomeStruct &s2) {
+    return s1.value < s2.value;
+  }
+};
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_container_of_things_that_have_a_ToString_member_function) {
+    const std::vector<SomeStruct> vec{{"hello"}, {"world"}};
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[hello, world]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_maps_and_nested_containers) {
+    std::map<std::uint16_t, std::vector<std::set<SomeStruct>>> map;
+    std::set<SomeStruct> set1;
+    set1.emplace(SomeStruct{"foo"});
+    set1.emplace(SomeStruct{"bar"});
+    std::set<SomeStruct> set2;
+    set2.emplace(SomeStruct{"qux"});
+    set2.emplace(SomeStruct{"quux"});
+    std::vector<std::set<SomeStruct>> vec{set1, set2};
+    map[19] = vec;
+    map[23] = vec;
+
+    const std::string str(util::to_string(map));
+    BOOST_CHECK_EQUAL("[(19, [[bar, foo], [quux, qux]]), (23, [[bar, foo], [quux, qux]])]", str);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

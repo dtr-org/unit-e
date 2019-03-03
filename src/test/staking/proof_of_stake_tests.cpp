@@ -113,24 +113,6 @@ class ExtractBlockSigningKeyFixture {
     const CTransaction spending_tx(mutable_spending_tx);
     return {funding_tx, spending_tx};
   }
-
-  //! Check extracted keys against the pubkeys in this fixture
-  //!
-  //! Slightly more complicated than merely doing BOOST_CHECK_EQUAL as CPubKey
-  //! needs to be serialized ToString() first.
-  void CheckExtractedKeys(const std::vector<CPubKey> &extracted_pubkeys) {
-
-    std::vector<std::string> stringified_pubkeys(pubkeys.size());
-    std::vector<std::string> stringified_extracted_pubkeys(extracted_pubkeys.size());
-
-    const auto pubkey_to_string = [](const CPubKey &key) { return key.GetID().ToString(); };
-    std::transform(pubkeys.begin(), pubkeys.end(),
-                   stringified_pubkeys.begin(), pubkey_to_string);
-    std::transform(extracted_pubkeys.begin(), extracted_pubkeys.end(),
-                   stringified_extracted_pubkeys.begin(), pubkey_to_string);
-
-    BOOST_CHECK_EQUAL(stringified_extracted_pubkeys, stringified_pubkeys);
-  }
 };
 
 }  // namespace
@@ -144,7 +126,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wpkh) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
-  fixture.CheckExtractedKeys(extracted_pubkeys);
+  BOOST_CHECK_EQUAL(extracted_pubkeys, fixture.GetPubKeys());
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkey) {
@@ -156,7 +138,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkey) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
-  fixture.CheckExtractedKeys(extracted_pubkeys);
+  BOOST_CHECK_EQUAL(extracted_pubkeys, fixture.GetPubKeys());
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkeyhash) {
@@ -168,7 +150,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_pubkeyhash) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
-  fixture.CheckExtractedKeys(extracted_pubkeys);
+  BOOST_CHECK_EQUAL(extracted_pubkeys, fixture.GetPubKeys());
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_one) {
@@ -180,7 +162,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_one) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
-  fixture.CheckExtractedKeys(extracted_pubkeys);
+  BOOST_CHECK_EQUAL(extracted_pubkeys, fixture.GetPubKeys());
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_four) {
@@ -192,7 +174,7 @@ BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_one_of_four) {
   BOOST_CHECK(IsStakeableByMe(fixture.GetKeyStore(), txs.funding_tx.vout[0].scriptPubKey));
   const std::vector<CPubKey> extracted_pubkeys = staking::ExtractBlockSigningKeys(txs.spending_tx.vin[0]);
   // check against all the keys in the fixture
-  fixture.CheckExtractedKeys(extracted_pubkeys);
+  BOOST_CHECK_EQUAL(extracted_pubkeys, fixture.GetPubKeys());
 }
 
 BOOST_AUTO_TEST_CASE(extract_block_signing_key_p2wsh_multisig_two_of_four) {
