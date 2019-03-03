@@ -536,6 +536,117 @@ BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
     BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), 50*UNIT);
 }
 
+BOOST_FIXTURE_TEST_CASE(get_immature_credit, TestChain100Setup)
+{
+  // Make the first coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+  {
+    LOCK(cs_main);
+    auto immature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
+    BOOST_CHECK_EQUAL(immature_coinbase->GetImmatureCredit(), immature_coinbase->tx->GetValueOut());
+
+    auto mature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+    BOOST_CHECK_EQUAL(mature_coinbase->GetImmatureCredit(), 0);
+  }
+
+  // Make the second coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  {
+    LOCK(cs_main);
+    auto immature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.at(2).GetHash());
+    BOOST_CHECK_EQUAL(immature_coinbase->GetImmatureCredit(), immature_coinbase->tx->GetValueOut());
+
+    auto mature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.at(1).GetHash());
+    BOOST_CHECK_EQUAL(mature_coinbase->GetImmatureCredit(), 0);
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(get_available_credit, TestChain100Setup)
+{
+  // Make the first coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+  {
+    LOCK(cs_main);
+    auto immature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
+    BOOST_CHECK_EQUAL(immature_coinbase->GetAvailableCredit(), 0);
+
+    auto mature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+    BOOST_CHECK_EQUAL(mature_coinbase->GetAvailableCredit(), mature_coinbase->tx->GetValueOut());
+  }
+
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  {
+    LOCK(cs_main);
+    auto immature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.at(2).GetHash());
+    BOOST_CHECK_EQUAL(immature_coinbase->GetAvailableCredit(), 0);
+
+    auto mature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.at(1).GetHash());
+    BOOST_CHECK_EQUAL(mature_coinbase->GetAvailableCredit(), immature_coinbase->tx->GetValueOut());
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(get_immature_watch_only_credit, TestChain100Setup)
+{
+  CKey watch_only_key;
+  watch_only_key.MakeNewKey(true);
+  auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
+  {
+    LOCK(pwalletMain->cs_wallet);
+    assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
+  }
+
+  auto immature_coinbase = CreateAndProcessBlock({}, watch_only_script).vtx[0];
+
+  {
+     LOCK(cs_main);
+     auto wallet_tx = pwalletMain->GetWalletTx(immature_coinbase->GetHash());
+     BOOST_CHECK_EQUAL(wallet_tx->GetImmatureWatchOnlyCredit(), immature_coinbase->GetValueOut());
+  }
+
+  // Make the coinbase watch-only mature
+  for (int i = 0; i < COINBASE_MATURITY; ++i) {
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+  }
+
+  {
+    LOCK(cs_main);
+    auto wallet_tx = pwalletMain->GetWalletTx(immature_coinbase->GetHash());
+    BOOST_CHECK_EQUAL(wallet_tx->GetImmatureWatchOnlyCredit(), 0);
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(get_available_watch_only_credit, TestChain100Setup)
+{
+  CKey watch_only_key;
+  watch_only_key.MakeNewKey(true);
+  auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
+  {
+    LOCK(pwalletMain->cs_wallet);
+    assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
+  }
+
+  auto watch_only_coinbase = CreateAndProcessBlock({}, watch_only_script).vtx[0];
+
+  {
+    LOCK(cs_main);
+    auto wallet_tx = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
+    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableWatchOnlyCredit(), 0);
+  }
+
+  // Make the coinbase watch-only mature
+  for (int i = 0; i < COINBASE_MATURITY; ++i) {
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+  }
+
+  {
+    LOCK(cs_main);
+    auto wallet_tx = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
+    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableWatchOnlyCredit(), watch_only_coinbase->GetValueOut());
+  }
+}
+
 static int64_t AddTx(CWallet& wallet, uint32_t lockTime, int64_t mockTime, int64_t blockTime)
 {
     CMutableTransaction tx;
@@ -683,6 +794,20 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 }
 
+BOOST_FIXTURE_TEST_CASE(AvailableCoins_coinbase_maturity, TestChain100Setup) {
+
+  std::vector<COutput> no_available;
+  pwalletMain->AvailableCoins(no_available);
+  BOOST_CHECK_EQUAL(no_available.size(), 0);
+
+  // Make one coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  std::vector<COutput> available;
+  pwalletMain->AvailableCoins(available);
+  BOOST_CHECK_EQUAL(available.size(), 1);
+}
+
 // Test that AvailableCoins follows coin control settings for
 // ignoring remotely staked coins.
 BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
@@ -734,6 +859,79 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(3, coins.size());
 }
 
+BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup) {
+
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto balances = pwalletMain->GetAddressBalances();
+    BOOST_CHECK_EQUAL(balances.size(), 0);
+  }
+
+  // Make one coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  {
+    auto coinbase_destination = GetDestinationForKey(coinbaseKey.GetPubKey(), OUTPUT_TYPE_LEGACY);
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto balances = pwalletMain->GetAddressBalances();
+    BOOST_CHECK_EQUAL(balances.size(), 1);
+    BOOST_CHECK_EQUAL(balances.at(coinbase_destination), coinbaseTxns.front().GetValueOut());
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
+
+  // Nothing is mature currenly so no balances
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
+    auto spendable_balance = pwalletMain->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
+    auto watchonly_balance = pwalletMain->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
+    BOOST_CHECK_EQUAL(all_balance, 0);
+    BOOST_CHECK_EQUAL(spendable_balance, 0);
+    BOOST_CHECK_EQUAL(watchonly_balance, 0);
+  }
+
+  // Make one coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
+    auto spendable_balance = pwalletMain->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
+    auto watchonly_balance = pwalletMain->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
+    BOOST_CHECK_EQUAL(all_balance, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(spendable_balance, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(watchonly_balance, 0);
+  }
+
+  // Now add a new watch-only key, craete a new coinbase and then make it mature
+  CKey watch_only_key;
+  watch_only_key.MakeNewKey(true);
+  auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
+
+  {
+    LOCK(pwalletMain->cs_wallet);
+    assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
+  }
+
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+
+  for (int i = 0; i < COINBASE_MATURITY; ++i) {
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+  }
+
+  {
+      LOCK2(cs_main, pwalletMain->cs_wallet);
+      auto all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
+      auto spendable_balance = pwalletMain->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
+      auto watchonly_balance = pwalletMain->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
+      BOOST_CHECK_EQUAL(all_balance, coinbaseTxns.back().GetValueOut() * 102);
+      BOOST_CHECK_EQUAL(spendable_balance, coinbaseTxns.back().GetValueOut() * 101);
+      BOOST_CHECK_EQUAL(watchonly_balance, coinbaseTxns.back().GetValueOut());
+  }
+}
+
 BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
 {
   // Make the first coinbase mature
@@ -776,6 +974,62 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
     auto last_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
     BOOST_CHECK(last_coinbase);
     BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToMaturity(), COINBASE_MATURITY - 11);
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
+
+  // Nothing is mature currenly so no balances
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+    auto all_credit = first->GetCredit(ISMINE_ALL);
+    auto spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
+    auto watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
+    BOOST_CHECK_EQUAL(all_credit, 0);
+    BOOST_CHECK_EQUAL(spendable_credit, 0);
+    BOOST_CHECK_EQUAL(watchonly_credit, 0);
+  }
+
+  // Make one coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+    auto all_credit = first->GetCredit(ISMINE_ALL);
+    auto spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
+    auto watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
+    BOOST_CHECK_EQUAL(all_credit, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(spendable_credit, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(watchonly_credit, 0);
+  }
+
+  // Now add a new watch-only key, craete a new coinbase and then make it mature
+  CKey watch_only_key;
+  watch_only_key.MakeNewKey(true);
+  auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
+
+  {
+    LOCK(pwalletMain->cs_wallet);
+    assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
+  }
+
+  auto watch_only_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey())).vtx[0];
+
+  for (int i = 0; i < COINBASE_MATURITY; ++i) {
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+  }
+
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto watch_only = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
+    auto all_credit = watch_only->GetCredit(ISMINE_ALL);
+    auto spendable_credit = watch_only->GetCredit(ISMINE_SPENDABLE);
+    auto watchonly_credit = watch_only->GetCredit(ISMINE_WATCH_ONLY);
+    BOOST_CHECK_EQUAL(all_credit, watch_only_coinbase->GetValueOut());
+    BOOST_CHECK_EQUAL(spendable_credit, 0);
+    BOOST_CHECK_EQUAL(watchonly_credit, watch_only_coinbase->GetValueOut());
   }
 }
 
