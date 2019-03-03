@@ -68,7 +68,6 @@ UNITE_TESTS = \
   test/finalization/state_processor_tests.cpp \
   test/finalization/state_repository_tests.cpp \
   test/finalization/vote_recorder_tests.cpp \
-  test/fixed_vector_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
   test/iblt_tests.cpp \
@@ -127,7 +126,6 @@ UNITE_TESTS = \
   test/trit_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
-  test/util_fun_tests.cpp \
   test/validation_tests.cpp \
   test/versionbits_tests.cpp
 

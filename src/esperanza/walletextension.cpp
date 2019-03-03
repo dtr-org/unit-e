@@ -17,7 +17,6 @@
 #include <scheduler.h>
 #include <script/standard.h>
 #include <util.h>
-#include <utilfun.h>
 #include <validation.h>
 #include <wallet/coincontrol.h>
 #include <wallet/fees.h>

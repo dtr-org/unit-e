@@ -132,7 +132,6 @@ UNITE_CORE_H = \
   finalization/state_processor.h \
   finalization/state_repository.h \
   finalization/vote_recorder.h \
-  fixed_vector.h \
   fs.h \
   httprpc.h \
   httpserver.h \
@@ -244,7 +243,6 @@ UNITE_CORE_H = \
   unilib/uninorms.h \
   unilib/utf8.h \
   util.h \
-  utilfun.h \
   utilmoneystr.h \
   utiltime.h \
   utiltypetags.h \
