@@ -903,7 +903,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::VOTE: {
       Vote vote;
       std::vector<unsigned char> voteSig;
-      assert(CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig));
+      const bool ok = CScript::ExtractVoteFromVoteSignature(tx->vin[0].scriptSig, vote, voteSig);
+      assert(ok);
       ProcessVote(vote);
       RegisterLastTx(vote.m_validatorAddress, tx);
       break;
@@ -912,7 +913,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::DEPOSIT: {
       uint160 validatorAddress = uint160();
 
-      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      const bool ok = ExtractValidatorAddress(*tx, validatorAddress);
+      assert(ok);
       ProcessDeposit(validatorAddress, tx->vout[0].nValue);
       RegisterLastTx(validatorAddress, tx);
       break;
@@ -921,7 +923,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::LOGOUT: {
       uint160 validatorAddress = uint160();
 
-      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      const bool ok = ExtractValidatorAddress(*tx, validatorAddress);
+      assert(ok);
       ProcessLogout(validatorAddress);
       RegisterLastTx(validatorAddress, tx);
       break;
@@ -930,7 +933,8 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     case TxType::WITHDRAW: {
       uint160 validatorAddress = uint160();
 
-      assert(ExtractValidatorAddress(*tx, validatorAddress));
+      const bool ok = ExtractValidatorAddress(*tx, validatorAddress);
+      assert(ok);
       ProcessWithdraw(validatorAddress);
       break;
     }
@@ -941,8 +945,9 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
       esperanza::Vote vote2;
       std::vector<unsigned char> voteSig1;
       std::vector<unsigned char> voteSig2;
-      CScript::ExtractVotesFromSlashSignature(tx->vin[0].scriptSig, vote1,
-                                              vote2, voteSig1, voteSig2);
+      const bool ok = CScript::ExtractVotesFromSlashSignature(
+          tx->vin[0].scriptSig, vote1, vote2, voteSig1, voteSig2);
+      assert(ok);
 
       ProcessSlash(vote1, vote2);
       break;
@@ -955,7 +960,9 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
         if (!MatchAdminCommand(output.scriptPubKey)) {
           continue;
         }
-        assert(DecodeAdminCommand(output.scriptPubKey, command));
+        const bool ok = DecodeAdminCommand(output.scriptPubKey, command);
+        assert(ok);
+
         commands.emplace_back(std::move(command));
       }
 
@@ -969,18 +976,15 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
   }
 }
 
-bool FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
+void FinalizationState::ProcessNewTip(const CBlockIndex &block_index,
                                       const CBlock &block) {
   LOCK(cs_esperanza);
   assert(m_status == NEW);
-  if (!ProcessNewCommits(block_index, block.vtx)) {
-    return false;
-  }
+  ProcessNewCommits(block_index, block.vtx);
   m_status = COMPLETED;
-  return true;
 }
 
-bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
+void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
                                           const std::vector<CTransactionRef> &txes) {
   LOCK(cs_esperanza);
   assert(m_status == NEW);
@@ -992,7 +996,7 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   // We can skip everything for the genesis block since it isn't suppose to
   // contain esperanza's transactions.
   if (block_index.nHeight == 0) {
-    return true;
+    return;
   }
 
   // This is the first block of a new epoch.
@@ -1024,7 +1028,6 @@ bool FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     }
   }
   m_status = FROM_COMMITS;
-  return true;
 }
 
 // Private accessors used to avoid map's operator[] potential side effects.

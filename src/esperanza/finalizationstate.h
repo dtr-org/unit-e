@@ -247,8 +247,8 @@ class FinalizationState : public FinalizationStateData {
   //! \param block_ndex
   //! \param block
   //! \return
-  bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block);
-  bool ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes);
+  void ProcessNewTip(const CBlockIndex &block_index, const CBlock &block);
+  void ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes);
 
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
