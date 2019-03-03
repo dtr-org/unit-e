@@ -174,11 +174,32 @@ class AlreadyInitializedError : public InjectionError {
   }
 };
 
+struct ComponentError {
+  std::type_index component;
+  std::string what;
+  ComponentError(const std::type_index &component, const char *what)
+      : component(component), what(what) {}
+};
+
+class StoppingComponentsError : public InjectionError {
+ private:
+  std::vector<ComponentError> errors;
+
+ public:
+  explicit StoppingComponentsError(std::vector<ComponentError> &&errors)
+      : errors(std::move(errors)) {}
+  std::string ErrorMessage() const override {
+    return tfm::format("Failed to stop %d components.", errors.size());
+  }
+  const std::vector<ComponentError> &GetErrors() { return errors; }
+};
+
 template <typename I>
 class Injector {
 
  private:
   std::atomic_flag m_initialized = ATOMIC_FLAG_INIT;
+  std::atomic_flag m_stopped = ATOMIC_FLAG_INIT;
 
  protected:
   // `I` is not available in derived classes, a using declaration makes it
@@ -199,6 +220,8 @@ class Injector {
     Method m_initializer;
     //! \brief function pointer that knows how to delete the component.
     Method m_deleter;
+    //! \brief function pointer that knows how to stop the component.
+    Method m_stopper;
     void *m_instance = nullptr;
   };
 
@@ -225,6 +248,28 @@ class Injector {
   };
 
   template <typename T>
+  struct Stopper {
+
+   private:
+    template <typename U>
+    static void StopInternal(typename std::enable_if<std::is_same<void,
+                                                                  decltype(static_cast<U *>(nullptr)->Stop())>::value,
+                                                     I>::type *injector) {
+      std::type_index type_index(typeid(U));
+      U *i = static_cast<U *>(injector->m_components[type_index].m_instance);
+      i->Stop();
+    }
+
+    template <typename U>
+    static void StopInternal(void *) {}
+
+   public:
+    static void Stop(I *injector) {
+      StopInternal<T>(injector);
+    }
+  };
+
+  template <typename T>
   struct Registrator {
     template <typename... Deps>
     static Dependency<T> Register(I *injector, const std::string &name,
@@ -234,6 +279,7 @@ class Injector {
       component.m_name = name;
       component.m_dependencies = InjectorUtil::TypeInfo<Deps...>();
       component.m_initializer = init;
+      component.m_stopper = &Stopper<T>::Stop;
       component.m_deleter = &Deleter<T>::Delete;
       injector->m_components[typeIndex] = std::move(component);
       return nullptr;
@@ -270,17 +316,9 @@ class Injector {
     };
   };
 
-  virtual ~Injector() {
-    if (!m_initialized.test_and_set()) {
-      // nothing to be done, was never initialized.
-      return;
-    }
-    for (const std::type_index &componentType : m_destructionOrder) {
-      if (m_components[componentType].m_deleter) {
-        m_components[componentType].m_deleter(static_cast<I *>(this));
-      }
-    }
-  };
+  Injector() {
+    m_stopped.test_and_set();
+  }
 
  private:
   void InitializeDependency(const std::type_index &componentType) {
@@ -348,7 +386,46 @@ class Injector {
     }
     std::reverse(initializationOrder.begin(), initializationOrder.end());
     m_destructionOrder = std::move(initializationOrder);
+    m_stopped.clear();
   }
+
+  void Stop() {
+    if (m_stopped.test_and_set()) {
+      // already stopped
+      return;
+    }
+    std::vector<ComponentError> errors;
+    for (const std::type_index &component_type : m_destructionOrder) {
+      if (m_components[component_type].m_stopper) {
+        try {
+          m_components[component_type].m_stopper(static_cast<I *>(this));
+        } catch (std::runtime_error &err) {
+          errors.emplace_back(component_type, err.what());
+        }
+      }
+    }
+    if (!errors.empty()) {
+      throw StoppingComponentsError(std::move(errors));
+    }
+  }
+
+ protected:
+  virtual ~Injector() {
+    if (!m_initialized.test_and_set()) {
+      // nothing to be done, was never initialized.
+      return;
+    }
+    try {
+      Stop();
+    } catch (StoppingComponentsError &) {
+      // see https://stackoverflow.com/a/130123/471478
+    }
+    for (const std::type_index &componentType : m_destructionOrder) {
+      if (m_components[componentType].m_deleter) {
+        m_components[componentType].m_deleter(static_cast<I *>(this));
+      }
+    }
+  };
 };
 
 #endif  // UNIT_E_DEPENDENCY_INJECTOR_H
