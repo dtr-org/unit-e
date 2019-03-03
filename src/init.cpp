@@ -1313,7 +1313,7 @@ bool AppInitMain()
         }
     }
 
-    auto state_repository = GetComponent(FinalizationStateRepository);
+    auto state_repository = GetComponent<finalization::StateRepository>();
     state_repository->Reset(chainparams.GetFinalization(),
                             chainparams.GetAdminParams());
     finalization::VoteRecorder::Init();
@@ -1902,8 +1902,8 @@ bool AppInitMain()
     // ********************************************************* Step 13: start proposer
 
 #ifdef ENABLE_WALLET
-    GetComponent(Proposer)->Start();
-    SetProposerRPC(GetComponent(ProposerRPC));
+    GetComponent<proposer::Proposer>()->Start();
+    SetProposerRPC(GetComponent<proposer::ProposerRPC>());
 #endif
 
     LogPrintf("Started up.\n");

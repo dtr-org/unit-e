@@ -114,6 +114,10 @@ class UnitEInjector : public Injector<UnitEInjector> {
 //! necessary evil to interface legacy code with the component based design.
 UnitEInjector &GetInjector();
 
-#define GetComponent(NAME) (GetInjector().Get##NAME())
+template <typename T>
+Dependency<T> GetComponent() {
+  // the passed nullptr merely serves to select the right getter
+  return GetInjector().Get(static_cast<Dependency<T>>(nullptr));
+}
 
 #endif  // UNIT_E_INJECTOR_H

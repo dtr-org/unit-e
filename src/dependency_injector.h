@@ -117,26 +117,27 @@ struct Invoker<> {
 
 }  // namespace InjectorUtil
 
-#define COMPONENT(NAME, TYPE, FACTORY, ...)                                 \
- private:                                                                   \
-  static void Init##NAME(InjectorType *injector) {                          \
-    injector->m_component_##NAME = ComponentInitializer<TYPE>::             \
-      Managed<__VA_ARGS__>::Init(injector, FACTORY);                        \
-  }                                                                         \
-  static Dependency<TYPE> Register##NAME(InjectorType *injector) {          \
-    return Registrator<TYPE>::Register<__VA_ARGS__>(injector, #NAME,        \
-                                                    &Init##NAME);           \
-  }                                                                         \
-  Dependency<TYPE> m_component_##NAME = Register##NAME(this);               \
-                                                                            \
- public:                                                                    \
+#define COMPONENT(NAME, TYPE, FACTORY, ...)                          \
+ private:                                                            \
+  static void Init##NAME(InjectorType *injector) {                   \
+    injector->m_component_##NAME = ComponentInitializer<TYPE>::      \
+        Managed<__VA_ARGS__>::Init(injector, FACTORY);               \
+  }                                                                  \
+  static Dependency<TYPE> Register##NAME(InjectorType *injector) {   \
+    return Registrator<TYPE>::Register<__VA_ARGS__>(injector, #NAME, \
+                                                    &Init##NAME);    \
+  }                                                                  \
+  Dependency<TYPE> m_component_##NAME = Register##NAME(this);        \
+                                                                     \
+ public:                                                             \
+  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }  \
   Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
 
 #define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                        \
  private:                                                               \
   static void Init##NAME(InjectorType *injector) {                      \
     injector->m_component_##NAME = ComponentInitializer<TYPE>::         \
-      Unmanaged::Init(injector, POINTER);                               \
+        Unmanaged::Init(injector, POINTER);                             \
   }                                                                     \
   static Dependency<TYPE> Register##NAME(InjectorType *injector) {      \
     return Registrator<TYPE>::Register<>(injector, #NAME, &Init##NAME); \
@@ -144,6 +145,7 @@ struct Invoker<> {
   Dependency<TYPE> m_component_##NAME = Register##NAME(this);           \
                                                                         \
  public:                                                                \
+  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }     \
   Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
 
 class InjectionError {
@@ -260,7 +262,8 @@ class Injector {
         const auto dependencies = GatherDependencies(injector, component);
         std::unique_ptr<ComponentType> *returnTypeDeductionHint = nullptr;
         auto ptr = InjectorUtil::Invoker<Args...>::
-          Invoke(returnTypeDeductionHint, f, dependencies, 0).release();
+                       Invoke(returnTypeDeductionHint, f, dependencies, 0)
+                           .release();
         component.m_instance = ptr;
         return ptr;
       }
