@@ -12,18 +12,18 @@ inline uint32_t ROTL32(uint32_t x, int8_t r)
     return (x << r) | (x >> (32 - r));
 }
 
-unsigned int MurmurHash3(unsigned int nHashSeed, const std::vector<unsigned char>& vDataToHash)
+unsigned int MurmurHash3(const unsigned int nHashSeed, const unsigned char * const vDataToHash, const size_t nDataSize)
 {
     // The following is MurmurHash3 (x86_32), see http://code.google.com/p/smhasher/source/browse/trunk/MurmurHash3.cpp
     uint32_t h1 = nHashSeed;
     const uint32_t c1 = 0xcc9e2d51;
     const uint32_t c2 = 0x1b873593;
 
-    const int nblocks = vDataToHash.size() / 4;
+    const int nblocks = nDataSize / 4;
 
     //----------
     // body
-    const uint8_t* blocks = vDataToHash.data();
+    const uint8_t* blocks = vDataToHash;
 
     for (int i = 0; i < nblocks; ++i) {
         uint32_t k1 = ReadLE32(blocks + i*4);
@@ -39,11 +39,11 @@ unsigned int MurmurHash3(unsigned int nHashSeed, const std::vector<unsigned char
 
     //----------
     // tail
-    const uint8_t* tail = vDataToHash.data() + nblocks * 4;
+    const uint8_t* tail = vDataToHash + nblocks * 4;
 
     uint32_t k1 = 0;
 
-    switch (vDataToHash.size() & 3) {
+    switch (nDataSize & 3) {
         case 3:
             k1 ^= tail[2] << 16;
         case 2:
@@ -58,7 +58,7 @@ unsigned int MurmurHash3(unsigned int nHashSeed, const std::vector<unsigned char
 
     //----------
     // finalization
-    h1 ^= vDataToHash.size();
+    h1 ^= nDataSize;
     h1 ^= h1 >> 16;
     h1 *= 0x85ebca6b;
     h1 ^= h1 >> 13;
@@ -66,6 +66,11 @@ unsigned int MurmurHash3(unsigned int nHashSeed, const std::vector<unsigned char
     h1 ^= h1 >> 16;
 
     return h1;
+}
+
+unsigned int MurmurHash3(unsigned int nHashSeed, const std::vector<unsigned char>& vDataToHash)
+{
+    return MurmurHash3(nHashSeed, vDataToHash.data(), vDataToHash.size());
 }
 
 void BIP32Hash(const ChainCode &chainCode, unsigned int nChild, unsigned char header, const unsigned char data[32], unsigned char output[64])

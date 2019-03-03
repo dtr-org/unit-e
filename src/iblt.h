@@ -15,28 +15,17 @@
 #include <iblt_params.h>
 #include <serialize.h>
 
-//
-// Invertible Bloom Lookup Table implementation
-// References:
-//
-// "What's the Difference? Efficient Set Reconciliation
-// without Prior Context" by Eppstein, Goodrich, Uyeda and
-// Varghese
-//
-// "Invertible Bloom Lookup Tables" by Goodrich and
-// Mitzenmacher
-//
-
-template <typename T>
-std::vector<uint8_t> ToVec(T number) {
-  std::vector<uint8_t> v(sizeof(T));
-  for (size_t i = 0; i < sizeof(T); i++) {
-    v.at(i) = (number >> i * 8) & 0xff;
-  }
-  return v;
-}
-
-template <typename TKey, typename TCount, size_t ValueSize>
+//! \brief Invertible Bloom Lookup Table implementation
+//!
+//! References:
+//!
+//! "What's the Difference? Efficient Set Reconciliation
+//! without Prior Context" by Eppstein, Goodrich, Uyeda and
+//! Varghese
+//!
+//! "Invertible Bloom Lookup Tables" by Goodrich and
+//! Mitzenmacher
+template <typename TKey, size_t ValueSize>
 class IBLT {
  public:
   using TEntriesMap = std::map<TKey, std::vector<uint8_t>>;
@@ -65,15 +54,14 @@ class IBLT {
     Update(-1, key, value);
   }
 
-  //! \brief try to get value from IBLT
-  //! \returns true if a result is definitely found or not
-  //! found. If not found, \param value_out will be empty.
-  //! \returns false if overloaded and we don't know whether or
-  //! not key is in the table.
+  //! \brief Tries to get a value from the IBLT
+  //!
+  //! \returns True if a result is definitely found or not
+  //! found. If not found, \p value_out will be empty.
+  //! returns false if overloaded and we don't know whether or
+  //! not key is in the table
   bool Get(const TKey key, std::vector<uint8_t> &value_out) const {
     value_out.clear();
-
-    const std::vector<uint8_t> kvec = ToVec(key);
 
     const size_t buckets_per_hash = m_hash_table.size() / m_num_hashes;
     for (size_t i = 0; i < m_num_hashes; i++) {
@@ -82,9 +70,9 @@ class IBLT {
       // Although in theory seed might overflow here - we don't care.
       // It is seed after all
       const auto seed = static_cast<unsigned int>(i);
-      const unsigned int h = MurmurHash3(seed, kvec);
+      const unsigned int h = ComputeHash(seed, key);
       const size_t bucket = start_entry + (h % buckets_per_hash);
-      const IBLT::HashTableEntry &entry = m_hash_table.at(bucket);
+      const IBLTEntry &entry = m_hash_table.at(bucket);
 
       if (entry.IsEmpty()) {
         // Definitely not in the table. Leave result empty, return true.
@@ -103,17 +91,17 @@ class IBLT {
     }
 
     // Don't know if key is in table or not; "peel" the IBLT to try to find it
-    IBLT<TKey, TCount, ValueSize> peeled = *this;
-    size_t n_erased = 0;
+    IBLT<TKey, ValueSize> peeled = *this;
+    bool erased = false;
     for (size_t i = 0; i < peeled.m_hash_table.size(); ++i) {
-      const HashTableEntry &entry = peeled.m_hash_table[i];
+      const IBLTEntry &entry = peeled.m_hash_table[i];
       if (entry.IsPure()) {
         if (entry.key_sum == key) {
           // Found!
           value_out = entry.value_sum;
           return true;
         }
-        ++n_erased;
+        erased = true;
 
         // Need a copy because `Update` will reiterate table and might change
         // our entry because it is a reference
@@ -122,7 +110,7 @@ class IBLT {
       }
     }
 
-    if (n_erased > 0) {
+    if (erased) {
       // Recurse with smaller IBLT
       return peeled.Get(key, value_out);
     }
@@ -130,20 +118,21 @@ class IBLT {
   }
 
   //! \brief Decodes IBLT entries
+  //!
   //! Adds entries to the given sets:
-  //! \param positive_out is all entries that were inserted
-  //! \param negative_out is all entries that were erased but never added (or if
+  //! \param positive_out All entries that were inserted
+  //! \param negative_out All entries that were erased but never added (or if
   //! the IBLT = A-B, all entries in B that are not in A)
-  //! \returns true if all entries could be decoded, false otherwise
+  //! \returns True if all entries could be decoded, false otherwise
   bool ListEntries(TEntriesMap &positive_out,
                    TEntriesMap &negative_out) const {
-    IBLT<TKey, TCount, ValueSize> peeled = *this;
+    IBLT<TKey, ValueSize> peeled = *this;
 
-    size_t n_erased = 0;
+    bool erased;
     do {
-      n_erased = 0;
+      erased = false;
       for (size_t i = 0; i < peeled.m_hash_table.size(); ++i) {
-        const HashTableEntry &entry = peeled.m_hash_table[i];
+        const IBLTEntry &entry = peeled.m_hash_table[i];
         if (entry.IsPure()) {
           if (entry.count == 1) {
             positive_out.emplace(entry.key_sum, entry.value_sum);
@@ -154,10 +143,10 @@ class IBLT {
           // is a reference
           const std::vector<uint8_t> copy = entry.value_sum;
           peeled.Update(-entry.count, entry.key_sum, copy);
-          ++n_erased;
+          erased = true;
         }
       }
-    } while (n_erased > 0);
+    } while (erased);
 
     // If any buckets for one of the hash functions is not empty,
     // then we didn't peel them all:
@@ -170,15 +159,15 @@ class IBLT {
   }
 
   //! \brief Subtract two IBLTs
-  IBLT<TKey, TCount, ValueSize> operator-(const IBLT<TKey, TCount, ValueSize> &other) const {
+  IBLT<TKey, ValueSize> operator-(const IBLT<TKey, ValueSize> &other) const {
     // IBLT's must be same params/size:
     assert(m_hash_table.size() == other.m_hash_table.size());
     assert(m_num_hashes == other.m_num_hashes);
 
-    IBLT<TKey, TCount, ValueSize> result(*this);
+    IBLT<TKey, ValueSize> result(*this);
     for (size_t i = 0; i < m_hash_table.size(); ++i) {
-      HashTableEntry &e1 = result.m_hash_table[i];
-      const HashTableEntry &e2 = other.m_hash_table[i];
+      IBLTEntry &e1 = result.m_hash_table[i];
+      const IBLTEntry &e2 = other.m_hash_table[i];
       e1.count -= e2.count;
       e1.key_sum ^= e2.key_sum;
       e1.key_check ^= e2.key_check;
@@ -200,25 +189,26 @@ class IBLT {
     READWRITE(m_num_hashes);
   }
 
-  //! \brief returns how many items were inserted
+  //! \brief Returns how many items were inserted
   size_t Size() const {
     assert(IsValid());
 
     size_t sum = 0;
-    for (const HashTableEntry &entry : m_hash_table) {
+    for (const IBLTEntry &entry : m_hash_table) {
       sum += llabs(entry.count);
     }
 
     return sum / m_num_hashes;
   }
 
-  //! \brief makes new empty IBLT instance with parameters equal to this
-  IBLT<TKey, TCount, ValueSize> CloneEmpty() const {
-    return IBLT<TKey, TCount, ValueSize>(m_hash_table.size(), m_num_hashes);
+  //! \brief Makes new empty IBLT instance with parameters equal to this
+  IBLT<TKey, ValueSize> CloneEmpty() const {
+    return IBLT<TKey, ValueSize>(m_hash_table.size(), m_num_hashes);
   }
 
-  //! \brief checks if iblt parameters are within acceptable limits
-  //! When we are creating new iblt - we can adjust those values to whatever we
+  //! \brief Checks if IBLT parameters are within acceptable limits
+  //!
+  //! When we are creating new IBLT - we can adjust those values to whatever we
   //! need, but if we receive them from network - they must meet these criteria
   bool IsValid() const {
     if (m_num_hashes == 0) {
@@ -228,7 +218,7 @@ class IBLT {
     return m_hash_table.size() % m_num_hashes == 0;
   }
 
-  //! \brief computes exact number of entries before creating IBLT
+  //! \brief Computes exact number of entries without creating an IBLT
   static size_t ComputeEntriesNum(size_t expected_items_count,
                                   boost::optional<IBLTParams> params = {}) {
     const IBLTParams iblt_params = params
@@ -245,16 +235,16 @@ class IBLT {
     return entries_num;
   }
 
-  class HashTableEntry {
+  class IBLTEntry {
    public:
-    TCount count = 0;
+    int64_t count = 0;
     TKey key_sum = 0;
     uint32_t key_check = 0;
     std::vector<uint8_t> value_sum;
 
     bool IsPure() const {
       if (count == 1 || count == -1) {
-        const unsigned int check = MurmurHash3(N_HASHCHECK, ToVec(key_sum));
+        const unsigned int check = ComputeHash(N_HASHCHECK, key_sum);
         return key_check == check;
       }
       return false;
@@ -282,7 +272,13 @@ class IBLT {
 
     template <typename Stream, typename Operation>
     void SerializationOp(Stream &s, Operation ser_action) {
-      READWRITE(count);
+      assert(count >= 0 && "Current IBLT implementation does not support negative values serialization");
+      auto unsigned_count = static_cast<uint64_t>(count);
+      READWRITE(COMPACTSIZE(unsigned_count));
+      if (ser_action.ForRead()) {
+        count = static_cast<int64_t>(unsigned_count);
+      }
+
       READWRITE(key_sum);
       READWRITE(key_check);
       if (ValueSize != 0) {
@@ -292,17 +288,22 @@ class IBLT {
   };
 
  private:
+  static unsigned int ComputeHash(unsigned int seed, const TKey &key) {
+    static_assert(std::is_integral<TKey>::value, "Only integral keys are supported");
+    const auto data_ptr = reinterpret_cast<const uint8_t *>(&key);
+
+    return MurmurHash3(seed, data_ptr, sizeof(key));
+  }
+
   static constexpr size_t N_HASHCHECK = 11;
 
-  void Update(const TCount count_delta,
+  void Update(const int64_t count_delta,
               const TKey key,
               const std::vector<uint8_t> &value) {
 
     assert(value.size() == ValueSize);
 
-    // UNIT-E TODO: this is very inefficient to allocate memory just to compute murmurhash!
-    const std::vector<uint8_t> kvec = ToVec(key);
-    const unsigned int key_check = MurmurHash3(N_HASHCHECK, kvec);
+    const unsigned int key_check = ComputeHash(N_HASHCHECK, key);
 
     const size_t buckets_per_hash = m_hash_table.size() / m_num_hashes;
     for (size_t i = 0; i < m_num_hashes; i++) {
@@ -311,9 +312,9 @@ class IBLT {
       // Although in theory seed might overflow here - we don't care.
       // It is seed after all
       const auto seed = static_cast<unsigned int>(i);
-      const unsigned int h = MurmurHash3(seed, kvec);
+      const unsigned int h = ComputeHash(seed, key);
       const size_t bucket = start_entry + (h % buckets_per_hash);
-      IBLT::HashTableEntry &entry = m_hash_table.at(bucket);
+      IBLTEntry &entry = m_hash_table.at(bucket);
       entry.count += count_delta;
       entry.key_sum ^= key;
       entry.key_check ^= key_check;
@@ -325,7 +326,7 @@ class IBLT {
     }
   }
 
-  std::vector<HashTableEntry> m_hash_table;
+  std::vector<IBLTEntry> m_hash_table;
   uint8_t m_num_hashes = 0;
 };
 
