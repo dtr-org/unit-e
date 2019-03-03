@@ -77,7 +77,12 @@ const std::string &Behavior::GetBech32Prefix() const {
 }
 
 std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
-  if (args->IsArgSet("-customchainparams")) {
+  if (args->IsArgSet("-customchainparamsfile")) {
+    blockchain::Parameters custom_parameters = ReadCustomParametersFromFile(
+        args->GetArg("-customchainparamsfile", ""),
+        blockchain::Parameters::RegTest());
+    return NewFromParameters(custom_parameters);
+  } else if (args->IsArgSet("-customchainparams")) {
     blockchain::Parameters custom_parameters = ReadCustomParametersFromJsonString(
         args->GetArg("-customchainparams", "{}"),
         blockchain::Parameters::RegTest());

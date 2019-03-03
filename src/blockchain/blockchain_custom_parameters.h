@@ -32,6 +32,12 @@ blockchain::Parameters ReadCustomParametersFromJsonString(
     const blockchain::Parameters &base_parameters  //!< base params to take values from
 );
 
+//! \brief Read blockchain::Parameters from a JSON String.
+blockchain::Parameters ReadCustomParametersFromFile(
+    const std::string &filepath,
+    const blockchain::Parameters &base_parameters  //!< base params to take values from
+);
+
 }  // namespace blockchain
 
 #endif  //UNIT_E_BLOCKCHAIN_CUSTOM_PARAMETERS_H

@@ -369,4 +369,13 @@ blockchain::Parameters ReadCustomParametersFromJsonString(
   return ReadCustomParametersFromJson(json, base_parameters);
 }
 
+blockchain::Parameters ReadCustomParametersFromFile(
+    const std::string &filepath,
+    const blockchain::Parameters &base_parameters) {
+  std::ifstream t(filepath);
+  std::stringstream buffer;
+  buffer << t.rdbuf();
+  return ReadCustomParametersFromJsonString(buffer.str(), base_parameters);
+}
+
 }  // namespace blockchain

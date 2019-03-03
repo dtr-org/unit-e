@@ -449,6 +449,8 @@ std::string HelpMessage(HelpMessageMode mode)
                                    _("Pass a configuration for the esperanza protocol in JSON format (default: empty)"));
         strUsage += HelpMessageOpt("-customchainparams=<config>",
                                    _("Pass custom chain parameters in JSON format. This put the node in regtest mode. (default: empty)"));
+        strUsage += HelpMessageOpt("-customchainparamsfile=<filepath>",
+                                   _("Load custom chain parameters from a JSON file. This put the node in regtest mode. (default: empty)"));
     }
 #ifdef USE_UPNP
 #if USE_UPNP
