@@ -24,6 +24,7 @@ class ProposerStub : public Proposer {
  public:
   void Wake() override {}
   void Start() override {}
+  void Stop() override {}
 };
 
 class ProposerImpl : public Proposer {
@@ -39,7 +40,11 @@ class ProposerImpl : public Proposer {
   Dependency<proposer::Logic> m_proposer_logic;
 
   std::thread m_thread;
-  std::atomic_flag m_started = ATOMIC_FLAG_INIT;
+  enum {
+    INITIALIZED,
+    STARTED,
+    STOPPED
+  } m_state = INITIALIZED;
   std::atomic_bool m_interrupted;
   Waiter m_waiter;
 
@@ -156,15 +161,16 @@ class ProposerImpl : public Proposer {
   }
 
   void Start() override {
-    if (m_started.test_and_set()) {
+    if (m_state != INITIALIZED) {
       LogPrint(BCLog::PROPOSING, "Proposer already started, not starting again.\n");
       return;
     }
     m_thread = std::thread(&ProposerImpl::Run, this);
+    m_state = STARTED;
   }
 
-  ~ProposerImpl() override {
-    if (!m_started.test_and_set()) {
+  void Stop() override {
+    if (m_state != STARTED) {
       LogPrint(BCLog::PROPOSING, "Proposer not started, nothing to stop.\n");
       return;
     }
@@ -172,7 +178,12 @@ class ProposerImpl : public Proposer {
     m_interrupted = true;
     Wake();
     m_thread.join();
+    m_state = STOPPED;
     LogPrint(BCLog::PROPOSING, "Proposer stopped.\n");
+  }
+
+  ~ProposerImpl() override {
+    Stop();
   };
 };
 
