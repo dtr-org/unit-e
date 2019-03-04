@@ -125,23 +125,17 @@ struct Invoker<> {
           Initializer<TYPE>::Managed<__VA_ARGS__>::Init(injector, FACTORY); \
         });                                                                 \
   }();                                                                      \
-  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }         \
-                                                                            \
- public:                                                                    \
-  Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
+  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }
 
-#define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                    \
- private:                                                           \
-  Dependency<TYPE> m_component_##NAME = [this] {                    \
-    return Registrator<TYPE>::Register<>(                           \
-        this, #NAME, [](InjectorType *injector) -> void {           \
-          Initializer<TYPE>::Unmanaged::Init(injector, POINTER);    \
-        });                                                         \
-  }();                                                              \
-  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; } \
-                                                                    \
- public:                                                            \
-  Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
+#define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                 \
+ private:                                                        \
+  Dependency<TYPE> m_component_##NAME = [this] {                 \
+    return Registrator<TYPE>::Register<>(                        \
+        this, #NAME, [](InjectorType *injector) -> void {        \
+          Initializer<TYPE>::Unmanaged::Init(injector, POINTER); \
+        });                                                      \
+  }();                                                           \
+  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }
 
 class InjectionError {
  public:
