@@ -258,11 +258,70 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     s << tx.nLockTime;
 }
 
+template <typename T>
+class TransactionBase
+{
+public:
+
+    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
+    uint16_t GetVersion() const {
+        return static_cast<uint16_t>(static_cast<const T *>(this)->nVersion);
+    }
+
+    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
+    TxType GetType() const {
+        return TxType::_from_index_unchecked(static_cast<const T *>(this)->nVersion >> 16);
+    }
+
+    bool IsCoinBase() const {
+        return GetType() == +TxType::COINBASE;
+    }
+
+    bool IsDeposit() const {
+        return GetType() == +TxType::DEPOSIT;
+    }
+
+    bool IsVote() const {
+        return GetType() == +TxType::VOTE;
+    }
+
+    bool IsLogout() const {
+        return GetType() == +TxType::LOGOUT;
+    }
+
+    bool IsSlash() const {
+        return GetType() == +TxType::SLASH;
+    }
+
+    bool IsWithdraw() const {
+        return GetType() == +TxType::WITHDRAW;
+    }
+
+    bool IsAdmin() const {
+        return GetType() == +TxType::ADMIN;
+    }
+
+    bool IsFinalizationTransaction() const {
+        switch (+GetType()) {
+            case TxType::DEPOSIT:
+            case TxType::VOTE:
+            case TxType::LOGOUT:
+            case TxType::SLASH:
+            case TxType::WITHDRAW:
+            case TxType::ADMIN:
+                return true;
+            case TxType::STANDARD:
+            case TxType::COINBASE:
+                return false;
+        }
+        assert(!"silence gcc warnings");
+    }
+};
 
 /** The basic transaction that is broadcasted on the network and contained in
  * blocks.  A transaction can contain multiple inputs and outputs.
  */
-class CTransaction
+class CTransaction : public TransactionBase<CTransaction>
 {
 public:
     // Default transaction version.
@@ -340,43 +399,6 @@ public:
      */
     unsigned int GetTotalSize() const;
 
-    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
-    uint16_t GetVersion() const;
-
-    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
-    TxType GetType() const;
-
-    bool IsCoinBase() const
-    {
-        return GetType() == +TxType::COINBASE;
-    }
-
-    bool IsVote() const {
-        return GetType() == +TxType::VOTE;
-    }
-
-    bool IsLogout() const {
-        return GetType() == +TxType::LOGOUT;
-    }
-
-    bool IsDeposit() const {
-        return GetType() == +TxType::DEPOSIT;
-    }
-
-    bool IsWithdraw() const {
-        return GetType() == +TxType::WITHDRAW;
-    }
-
-    bool IsSlash() const {
-        return GetType() == +TxType::SLASH;
-    }
-
-    bool IsAdmin() const {
-        return GetType() == +TxType::ADMIN;
-    }
-
-    bool IsFinalizationTransaction() const;
-
     friend bool operator==(const CTransaction& a, const CTransaction& b)
     {
         return a.hash == b.hash;
@@ -401,7 +423,7 @@ public:
 };
 
 /** A mutable version of CTransaction. */
-struct CMutableTransaction
+struct CMutableTransaction : public TransactionBase<CMutableTransaction>
 {
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
@@ -427,13 +449,7 @@ struct CMutableTransaction
         Unserialize(s);
     }
 
-    //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
-    uint16_t GetVersion() const;
-
     void SetVersion(uint16_t version);
-
-    //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
-    TxType GetType() const;
 
     void SetType(TxType type);
 
