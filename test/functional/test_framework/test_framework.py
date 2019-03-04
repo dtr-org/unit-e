@@ -49,7 +49,7 @@ TEST_EXIT_PASSED = 0
 TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
-COINBASE_MATURITY = 100
+COINBASE_MATURITY = 0
 
 # This parameter simulates the scenario that the node "never" reaches finalization.
 # The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
