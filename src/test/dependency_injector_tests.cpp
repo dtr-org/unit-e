@@ -144,7 +144,7 @@ struct C {
   }
   ~C() { this->a->log->push_back("~C"); }
   void Stop() { this->a->log->push_back("C::Stop()"); }
-  static std::unique_ptr<C> Make(Dependency<A> a, Dependency<W> b) {
+  static std::unique_ptr<C> Make(Dependency<A> a, Dependency<B> b) {
     return MakeUnique<C>(a, b);
   }
 };
