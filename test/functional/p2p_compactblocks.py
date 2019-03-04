@@ -108,7 +108,7 @@ class CompactBlocksTest(UnitETestFramework):
         self.num_nodes = 2
         # This test was written assuming SegWit is activated using BIP9 at height 432 (3x confirmation window).
         # TODO: Rewrite this test to support SegWit being always active.
-        self.extra_args = [["-vbparams=segwit:0:0"], ["-vbparams=segwit:0:999999999999", "-txindex", "-deprecatedrpc=addwitnessaddress"]]
+        self.extra_args = [["-vbparams=segwit:0:0", "-stakesplitthreshold=1000000000"], ["-vbparams=segwit:0:999999999999", "-txindex", "-deprecatedrpc=addwitnessaddress", "-stakesplitthreshold=1000000000"]]
         self.utxos = []
 
     def build_block_on_tip(self, node, segwit=False):
@@ -117,7 +117,8 @@ class CompactBlocksTest(UnitETestFramework):
         mtp = node.getblockheader(tip)['mediantime']
 
         meta = get_tip_snapshot_meta(node)
-        block = create_block(int(tip, 16), create_coinbase(height + 1, meta.hash), mtp + 1)
+        stake = node.listunspent()[0]
+        block = create_block(int(tip, 16), create_coinbase(height + 1, stake, meta.hash), mtp + 1)
         block.nVersion = 4
         if segwit:
             add_witness_commitment(block)
@@ -126,6 +127,8 @@ class CompactBlocksTest(UnitETestFramework):
 
     # Create 10 more anyone-can-spend utxo's for testing.
     def make_utxos(self):
+        # Initial stake split
+        self.nodes[0].generate(1)
         # Doesn't matter which node we use, just use node0.
         block = self.build_block_on_tip(self.nodes[0])
         self.test_node.send_and_ping(msg_block(block))
@@ -271,11 +274,10 @@ class CompactBlocksTest(UnitETestFramework):
         num_transactions = 25
         address = node.getnewaddress()
         if use_witness_address:
-            # Want at least one segwit spend, so move all funds to
-            # a witness address.
+            # Want at least one segwit spend, so move some funds to a witness address.
             address = node.addwitnessaddress(address)
-            value_to_send = node.getbalance()
-            node.sendtoaddress(address, satoshi_round(value_to_send-Decimal(0.1)))
+            value_to_send = 100
+            node.sendtoaddress(address, value_to_send)
             node.generate(1)
 
         segwit_tx_generated = False
@@ -817,6 +819,8 @@ class CompactBlocksTest(UnitETestFramework):
         network_thread_start()
 
         self.test_node.wait_for_verack()
+
+        self.setup_stake_coins(*self.nodes)
 
         # We will need UTXOs to construct transactions in later tests.
         self.make_utxos()
