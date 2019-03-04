@@ -19,9 +19,12 @@ from test_framework.blocktools import (
     create_coinbase,
     get_tip_snapshot_meta,
     calc_snapshot_hash,
+    sign_transaction,
     UTXO,
     COutPoint,
+    CTxOut,
 )
+from test_framework.messages import UNIT
 from test_framework.mininode import (
     CInv,
     P2PInterface,
@@ -35,6 +38,7 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     connect_nodes,
+    hex_str_to_bytes,
     wait_until,
 )
 
@@ -175,14 +179,17 @@ class ExampleTest(UnitETestFramework):
         self.tip = int(self.nodes[0].getbestblockhash(), 16)
         self.block_time = self.nodes[0].getblock(self.nodes[0].getbestblockhash())['time'] + 1
 
-        height = 2
+        height = self.nodes[0].getblockcount()
 
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        for i in range(10):
+        stakes = self.nodes[0].listunspent()
+        for stake in stakes:
             # Use the mininode and blocktools functionality to manually build a block
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
-            coinbase = create_coinbase(height, snapshot_meta.hash)
+            txout = self.nodes[0].gettxout(stake['txid'], stake['vout'])
+            coinbase = create_coinbase(height, stake, snapshot_meta.hash)
+
             block = create_block(self.tip, coinbase, self.block_time)
             block.solve()
             block_message = msg_block(block)
@@ -191,12 +198,15 @@ class ExampleTest(UnitETestFramework):
             self.tip = block.sha256
             blocks.append(self.tip)
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
+            input = UTXO(height - txout['confirmations'] + 1, txout['coinbase'],
+                         COutPoint(int(stake['txid'], 16), stake['vout']),
+                         CTxOut(int(stake['amount'] * UNIT), hex_str_to_bytes(stake['scriptPubKey'])))
+            output = UTXO(height + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height + 1, [input], [output])
             height += 1
 
-        self.log.info("Wait for node1 to reach current tip (height 11) using RPC")
-        self.nodes[1].waitforblockheight(11)
+        self.log.info("Wait for node1 to reach current tip (height %d) using RPC" % height)
+        self.nodes[1].waitforblockheight(height)
 
         self.log.info("Connect node2 and node1")
         connect_nodes(self.nodes[1], 2)
