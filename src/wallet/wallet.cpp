@@ -1957,8 +1957,10 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
     CAmount credit = 0;
     if (filter & ISMINE_SPENDABLE) {
         // GetBalance can assume transactions in mapWallet won't change
-        if (fCreditCached && !IsCoinBase()) {
+        if (fCreditCached) {
             credit += nCreditCached;
+        } else if (GetBlocksToRewardMaturity() > 0) {
+            credit += pwallet->GetMatureCredit(*this, ISMINE_SPENDABLE);
         } else {
             nCreditCached = pwallet->GetMatureCredit(*this, ISMINE_SPENDABLE);
             fCreditCached = true;
@@ -1966,8 +1968,10 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
         }
     }
     if (filter & ISMINE_WATCH_ONLY) {
-        if (fWatchCreditCached && !IsCoinBase()) {
+        if (fWatchCreditCached) {
             credit += nWatchCreditCached;
+        } else if (GetBlocksToRewardMaturity() > 0) {
+            credit += pwallet->GetMatureCredit(*this, ISMINE_WATCH_ONLY);
         } else {
             nWatchCreditCached = pwallet->GetMatureCredit(*this, ISMINE_WATCH_ONLY);
             fWatchCreditCached = true;
@@ -1991,7 +1995,7 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
     if (pwallet == nullptr) {
         return 0;
     }
-    if (fUseCache && fAvailableCreditCached && !IsCoinBase()) {
+    if (fUseCache && fAvailableCreditCached) {
         return nAvailableCreditCached;
     }
     CAmount nCredit = 0;
@@ -2009,8 +2013,10 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache) const
         }
     }
 
-    nAvailableCreditCached = nCredit;
-    fAvailableCreditCached = true;
+    if (GetBlocksToRewardMaturity() == 0) {
+        fAvailableCreditCached = true;
+        nAvailableCreditCached = nCredit;
+    }
     return nCredit;
 }
 
@@ -2030,7 +2036,7 @@ CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool fUseCache) const
     }
 
     // Must wait until coinbase is safely deep enough in the chain before valuing it
-    if (fUseCache && fAvailableWatchCreditCached && !IsCoinBase()) {
+    if (fUseCache && fAvailableWatchCreditCached) {
         return nAvailableWatchCreditCached;
     }
     CAmount nCredit = 0;
@@ -2048,8 +2054,11 @@ CAmount CWalletTx::GetAvailableWatchOnlyCredit(const bool fUseCache) const
         }
     }
 
-    nAvailableWatchCreditCached = nCredit;
-    fAvailableWatchCreditCached = true;
+    if (GetBlocksToRewardMaturity() == 0) {
+        fAvailableWatchCreditCached = true;
+        nAvailableWatchCreditCached = nCredit;
+    }
+
     return nCredit;
 }
 

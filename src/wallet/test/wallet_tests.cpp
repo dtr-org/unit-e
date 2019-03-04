@@ -973,7 +973,7 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
 
     auto last_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
     BOOST_CHECK(last_coinbase);
-    BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToRewardMaturity(), COINBASE_MATURITY - 1);
+    BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToRewardMaturity(), COINBASE_MATURITY - 11);
   }
 }
 
@@ -1005,7 +1005,7 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
     BOOST_CHECK_EQUAL(watchonly_credit, 0);
   }
 
-  // Now add a new watch-only key, craete a new coinbase and then make it mature
+  // Now add a new watch-only key, create a new coinbase and then make it mature
   CKey watch_only_key;
   watch_only_key.MakeNewKey(true);
   auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
@@ -1030,6 +1030,116 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
     BOOST_CHECK_EQUAL(all_credit, watch_only_coinbase->GetValueOut());
     BOOST_CHECK_EQUAL(spendable_credit, 0);
     BOOST_CHECK_EQUAL(watchonly_credit, watch_only_coinbase->GetValueOut());
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_cache, TestChain100Setup) {
+
+
+  // Nothing is mature currenly so nothing should be cached
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+    auto available_credit = first->GetAvailableCredit(true);
+    auto all_credit = first->GetCredit(ISMINE_ALL);
+    BOOST_CHECK_EQUAL(all_credit, 0);
+    BOOST_CHECK_EQUAL(first->fCreditCached, false);
+    BOOST_CHECK_EQUAL(first->nCreditCached, 0);
+    BOOST_CHECK_EQUAL(first->fAvailableCreditCached, false);
+    BOOST_CHECK_EQUAL(first->nAvailableCreditCached, 0);
+    BOOST_CHECK_EQUAL(available_credit, 0);
+  }
+
+  // Make one coinbase mature
+  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
+
+    // Since we didn't call GetBalance or GetAvailableCredit yet, nothing should be cached
+    BOOST_CHECK_EQUAL(first->fCreditCached, false);
+    BOOST_CHECK_EQUAL(first->nCreditCached, 0);
+    BOOST_CHECK_EQUAL(first->fAvailableCreditCached, false);
+    BOOST_CHECK_EQUAL(first->nAvailableCreditCached, 0);
+
+    auto all_credit = first->GetCredit(ISMINE_ALL);
+    auto available_credit = first->GetAvailableCredit(true);
+    BOOST_CHECK_EQUAL(all_credit, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(available_credit, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(first->fCreditCached, true);
+    BOOST_CHECK_EQUAL(first->nCreditCached, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(first->fAvailableCreditCached, true);
+    BOOST_CHECK_EQUAL(first->nAvailableCreditCached, coinbaseTxns.back().GetValueOut());
+
+    // Calling the second time should result in the same (cached) values
+    BOOST_CHECK_EQUAL(all_credit, first->GetCredit(ISMINE_ALL));
+    BOOST_CHECK_EQUAL(available_credit, first->GetAvailableCredit(true));
+
+    // Change the cached values to verify that they are the ones used
+    first->nCreditCached = all_credit - 5 * UNIT;
+    first->nAvailableCreditCached = all_credit - 7 * UNIT;
+    BOOST_CHECK_EQUAL(all_credit - 5 * UNIT, first->GetCredit(ISMINE_ALL));
+    BOOST_CHECK_EQUAL(available_credit - 7 * UNIT, first->GetAvailableCredit(true));
+
+    // Verify that the amounts will be recalculated properly
+    first->fCreditCached = false;
+    first->fAvailableCreditCached = false;
+    BOOST_CHECK_EQUAL(all_credit, first->GetCredit(ISMINE_ALL));
+    BOOST_CHECK_EQUAL(available_credit, first->GetAvailableCredit(true));
+  }
+
+  // Now add a new watch-only key, create a new coinbase and then make it mature
+  CKey watch_only_key;
+  watch_only_key.MakeNewKey(true);
+  auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
+
+  {
+    LOCK(pwalletMain->cs_wallet);
+    assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
+  }
+
+  auto watch_only_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey())).vtx[0];
+
+  for (int i = 0; i < COINBASE_MATURITY; ++i) {
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+  }
+
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    auto watch_only = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
+
+    BOOST_CHECK_EQUAL(watch_only->fWatchCreditCached, false);
+    BOOST_CHECK_EQUAL(watch_only->nWatchCreditCached, 0);
+    BOOST_CHECK_EQUAL(watch_only->fAvailableWatchCreditCached, false);
+    BOOST_CHECK_EQUAL(watch_only->nAvailableWatchCreditCached, 0);
+
+    auto watch_only_credit = watch_only->GetCredit(ISMINE_WATCH_ONLY);
+    auto available_watch_only_credit = watch_only->GetAvailableWatchOnlyCredit(true);
+
+    BOOST_CHECK_EQUAL(watch_only_credit, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(available_watch_only_credit, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(watch_only->fWatchCreditCached, true);
+    BOOST_CHECK_EQUAL(watch_only->nWatchCreditCached, coinbaseTxns.back().GetValueOut());
+    BOOST_CHECK_EQUAL(watch_only->fAvailableWatchCreditCached, true);
+    BOOST_CHECK_EQUAL(watch_only->nAvailableWatchCreditCached, coinbaseTxns.back().GetValueOut());
+
+    // Calling the second time should result in the same (cached) values
+    BOOST_CHECK_EQUAL(watch_only_credit, watch_only->GetCredit(ISMINE_WATCH_ONLY));
+    BOOST_CHECK_EQUAL(available_watch_only_credit, watch_only->GetAvailableWatchOnlyCredit(true));
+
+    // Verify cache is used
+    watch_only->nWatchCreditCached = watch_only_credit - 1 * UNIT;
+    watch_only->nAvailableWatchCreditCached = available_watch_only_credit - 2 * UNIT;
+    BOOST_CHECK_EQUAL(watch_only_credit - 1 * UNIT, watch_only->GetCredit(ISMINE_WATCH_ONLY));
+    BOOST_CHECK_EQUAL(available_watch_only_credit - 2 * UNIT, watch_only->GetAvailableWatchOnlyCredit(true));
+
+    // Verify that the amounts will be recalculated properly
+    watch_only->fWatchCreditCached = false;
+    watch_only->fAvailableWatchCreditCached = false;
+    BOOST_CHECK_EQUAL(watch_only_credit, watch_only->GetCredit(ISMINE_WATCH_ONLY));
+    BOOST_CHECK_EQUAL(available_watch_only_credit, watch_only->GetAvailableWatchOnlyCredit(true));
   }
 }
 
