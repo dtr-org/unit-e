@@ -317,6 +317,15 @@ public:
         assert(!"silence gcc warnings");
     }
 
+    bool HasWitness() const {
+        for (size_t i = 0; i < GetDerived()->vin.size(); i++) {
+            if (!GetDerived()->vin[i].scriptWitness.IsNull()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 private:
     inline const T *GetDerived() const {
         return static_cast<const T *>(this);
@@ -416,16 +425,6 @@ public:
     }
 
     std::string ToString() const;
-
-    bool HasWitness() const
-    {
-        for (size_t i = 0; i < vin.size(); i++) {
-            if (!vin[i].scriptWitness.IsNull()) {
-                return true;
-            }
-        }
-        return false;
-    }
 };
 
 /** A mutable version of CTransaction. */
@@ -467,16 +466,6 @@ struct CMutableTransaction : public TransactionBase<CMutableTransaction>
     friend bool operator==(const CMutableTransaction& a, const CMutableTransaction& b)
     {
         return a.GetHash() == b.GetHash();
-    }
-
-    bool HasWitness() const
-    {
-        for (size_t i = 0; i < vin.size(); i++) {
-            if (!vin[i].scriptWitness.IsNull()) {
-                return true;
-            }
-        }
-        return false;
     }
 };
 
