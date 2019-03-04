@@ -113,6 +113,9 @@ class UnitEInjector : public Injector<UnitEInjector> {
 //! necessary evil to interface legacy code with the component based design.
 UnitEInjector &GetInjector();
 
-#define GetComponent(NAME) (GetInjector().Get##NAME())
+template <typename T>
+Dependency<T> GetComponent() {
+  return GetInjector().Get<T>();
+}
 
 #endif  // UNIT_E_INJECTOR_H

@@ -2499,7 +2499,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
-    GetComponent(FinalizationStateProcessor)->ProcessNewTip(*pindexNew, blockConnecting);
+    GetComponent<finalization::StateProcessor>()->ProcessNewTip(*pindexNew, blockConnecting);
 
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
@@ -3294,7 +3294,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
     // the each-16-seconds-rule. This call is bypassed by marking it successful.
     info.MarkCheckBlockHeaderSuccessfull();
     const staking::BlockValidationResult result =
-        GetComponent(BlockValidator)->ContextualCheckBlockHeader(block, *pindexPrev, nAdjustedTime, &info);
+        GetComponent<staking::BlockValidator>()->ContextualCheckBlockHeader(block, *pindexPrev, nAdjustedTime, &info);
     return staking::CheckResult(result, state);
 }
 
@@ -3972,8 +3972,8 @@ bool LoadChainTip(const CChainParams& chainparams)
 
     g_chainstate.PruneBlockIndexCandidates();
 
-    auto state_repository = GetComponent(FinalizationStateRepository);
-    auto state_processor = GetComponent(FinalizationStateProcessor);
+    auto state_repository = GetComponent<finalization::StateRepository>();
+    auto state_processor = GetComponent<finalization::StateProcessor>();
     state_repository->RestoreFromDisk(chainparams, state_processor);
 
     LogPrintf("Loaded best chain: hashBestChain=%s height=%d date=%s progress=%f\n",
@@ -4258,8 +4258,8 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         }
     }
 
-    auto state_repository = GetComponent(FinalizationStateRepository);
-    auto state_processor = GetComponent(FinalizationStateProcessor);
+    auto state_repository = GetComponent<finalization::StateRepository>();
+    auto state_processor = GetComponent<finalization::StateProcessor>();
     if (chainActive.Tip() != nullptr) {
         // We can't prune block index candidates based on our tip if we have
         // no tip due to chainActive being empty!

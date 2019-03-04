@@ -27,6 +27,14 @@ struct ToString<std::type_index> {
   std::string operator()(const std::type_index &thing) { return thing.name(); }
 };
 
+namespace std {
+template <typename Os>
+Os &operator<<(Os &os, std::type_index type_index) {
+  os << type_index.name();
+  return os;
+}
+}
+
 template <typename T>
 std::string vec2str(std::vector<T> vec) {
   ToString<T> toString;
@@ -262,6 +270,20 @@ BOOST_AUTO_TEST_CASE(injector) {
   tj.Initialize();
   Dependency<TestNS::C> c = tj.GetC();
   BOOST_CHECK_EQUAL(c->Foo(), "A+X");
+}
+
+BOOST_AUTO_TEST_CASE(get_component) {
+  TestInjector inj;
+  inj.Initialize();
+  Dependency<TestNS::C> c = inj.Get<TestNS::C>();
+  BOOST_CHECK_EQUAL(c->Foo(), "A+X");
+  try {
+    inj.Get<int>();
+  } catch (const UnknownComponentError &e) {
+    BOOST_CHECK_EQUAL(e.type_index, std::type_index(typeid(int)));
+    return;
+  }
+  BOOST_CHECK(not("Unreachable"));
 }
 
 BOOST_AUTO_TEST_CASE(initialize_all_components) {

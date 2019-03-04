@@ -83,7 +83,7 @@ BasicTestingSetup::BasicTestingSetup(const std::string& chainName) : ReducedTest
 {
         blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(chainName.c_str())));
         UnitEInjector::Init();
-        SelectParams(GetComponent(BlockchainBehavior), chainName);
+        SelectParams(GetComponent<blockchain::Behavior>(), chainName);
 }
 
 fs::path BasicTestingSetup::SetDataDir(const std::string& name)
@@ -116,7 +116,7 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         threadGroup.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
 
-        auto state_repository = GetComponent(FinalizationStateRepository);
+        auto state_repository = GetComponent<finalization::StateRepository>();
         state_repository->Reset(chainparams.GetFinalization(),
                                 chainparams.GetAdminParams());
 

@@ -457,7 +457,7 @@ UniValue mempoolToJSON(bool fVerbose)
 
 UniValue getchainparams(const JSONRPCRequest& request)
 {
-    return GetComponent(BlockchainRPC)->getchainparams(request);
+    return GetComponent<blockchain::BlockchainRPC>()->getchainparams(request);
 }
 
 UniValue getrawmempool(const JSONRPCRequest& request)

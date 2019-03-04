@@ -181,6 +181,14 @@ class AlreadyInitializedError : public InjectionError {
   }
 };
 
+class UnknownComponentError : public std::runtime_error {
+public:
+  std::type_index type_index;
+  UnknownComponentError(std::type_index type_index)
+    : type_index(type_index),
+      std::runtime_error(strprintf("Unknown component %s\n", type_index.name())) { }
+};
+
 template <typename I>
 class Injector {
 
@@ -354,6 +362,16 @@ class Injector {
     }
     std::reverse(initializationOrder.begin(), initializationOrder.end());
     m_destructionOrder = std::move(initializationOrder);
+  }
+
+  template<typename T>
+  Dependency<T> Get() {
+    const std::type_index type_index(typeid(T));
+    const auto it = m_components.find(type_index);
+    if (it == m_components.end()) {
+      throw UnknownComponentError(type_index);
+    }
+    return reinterpret_cast<T*>(it->second.m_instance);
   }
 };
 
