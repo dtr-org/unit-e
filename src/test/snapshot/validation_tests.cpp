@@ -31,6 +31,7 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
   {
     // missing snapshot hash
     CMutableTransaction mtx;
+    mtx.SetType(TxType::COINBASE);
     CBlockIndex idx;
     idx.nHeight = 100;
     CTxIn in;
@@ -58,6 +59,7 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
     BOOST_CHECK(pcoinsdbview->BatchWrite(map, uint256S("aa"), hash1));
 
     CMutableTransaction mtx;
+    mtx.SetType(TxType::COINBASE);
     CTxIn in;
 
     uint256 h = snapshot::SnapshotHash().GetHash(prevBlock.stake_modifier,
@@ -87,6 +89,7 @@ BOOST_AUTO_TEST_CASE(validate_candidate_block_tx) {
                                     ArithToUint256(prevBlock.nChainWork));
 
     CMutableTransaction mtx;
+    mtx.SetType(TxType::COINBASE);
     CTxIn in;
     std::vector<uint8_t> data(hash.begin(), hash.end());
     in.scriptSig << block.nHeight << data << OP_0;

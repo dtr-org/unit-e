@@ -27,6 +27,7 @@ static CBlock BuildBlockTestCase() {
     tx.vin[0].scriptSig.resize(10);
     tx.vout.resize(1);
     tx.vout[0].nValue = 42;
+    tx.SetType(TxType::COINBASE);
 
     block.vtx.resize(3);
     block.vtx[0] = MakeTransactionRef(tx);
@@ -34,6 +35,7 @@ static CBlock BuildBlockTestCase() {
     block.hashPrevBlock = InsecureRand256();
     block.nBits = 0x207fffff;
 
+    tx.SetType(TxType::STANDARD);
     tx.vin[0].prevout.hash = InsecureRand256();
     tx.vin[0].prevout.n = 0;
     block.vtx[1] = MakeTransactionRef(tx);
@@ -284,6 +286,7 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     coinbase.vin[0].scriptSig.resize(10);
     coinbase.vout.resize(1);
     coinbase.vout[0].nValue = 42;
+    coinbase.SetType(TxType::COINBASE);
 
     CBlock block;
     block.vtx.resize(1);
