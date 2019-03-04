@@ -29,11 +29,13 @@ class EmbargoManStar(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
-        self.extra_args = [['-debug=all',
-                            '-whitelist=127.0.0.1',
-                            '-embargotxs=1',
-                            '-embargomin=%s' % EMBARGO_SECONDS,
-                            '-embargoavgadd=0']] * self.num_nodes
+        common_args = ['-debug=all',
+                       '-whitelist=127.0.0.1',
+                       '-embargotxs=1',
+                       '-embargomin=%s' % EMBARGO_SECONDS,
+                       '-embargoavgadd=0']
+
+        self.extra_args = [common_args + ["-stakesplitthreshold=1000000000"]] + [common_args] * 3
         self.setup_clean_chain = True
 
     def setup_network(self):
