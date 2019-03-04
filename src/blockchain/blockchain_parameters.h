@@ -222,8 +222,7 @@ struct Parameters {
   //! \brief Default settings to use for this chain.
   Settings default_settings;
 
-  static Parameters Common() noexcept;
-  static Parameters MainNet() noexcept = delete;
+  static Parameters Base() noexcept;
   static Parameters TestNet() noexcept;
   static Parameters RegTest() noexcept;
 };
