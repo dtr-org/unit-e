@@ -10,14 +10,12 @@ Test finalization RPCs:
 
 from test_framework.test_framework import UnitETestFramework
 from test_framework.regtest_mnemonics import regtest_mnemonics
-from test_framework.admin import Admin
 from test_framework.util import (
     assert_equal,
     connect_nodes,
     disconnect_nodes,
-    wait_until,
-    sync_blocks,
 )
+
 
 class RpcFinalizationTest(UnitETestFramework):
     def set_test_params(self):
@@ -68,6 +66,7 @@ class RpcFinalizationTest(UnitETestFramework):
         disconnect_nodes(node, finalizer.index)
 
         # test state of last checkpoint
+        # e0
         node.generatetoaddress(3, node.getnewaddress())
         assert_equal(node.getblockcount(), 4)
         state = node.getfinalizationstate()
@@ -78,9 +77,11 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
         self.log.info('finalization state includes new validators')
 
-        # test instant finalization 1
-        node.generatetoaddress(1, node.getnewaddress())
-        assert_equal(node.getblockcount(), 5)
+        # test instant justification 1
+        # J
+        # e0 - e1
+        node.generatetoaddress(5, node.getnewaddress())
+        assert_equal(node.getblockcount(), 9)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 1)
         assert_equal(state['currentDynasty'], 0)
@@ -89,10 +90,11 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
         self.log.info('instant finalization 1 is correct')
 
-        # test instant finalization 2
-        node.generatetoaddress(4, node.getnewaddress())
-        node.generatetoaddress(1, node.getnewaddress())
-        assert_equal(node.getblockcount(), 10)
+        # test instant justification 2
+        # F    J
+        # e0 - e1 - e2
+        node.generatetoaddress(5, node.getnewaddress())
+        assert_equal(node.getblockcount(), 14)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 2)
         assert_equal(state['currentDynasty'], 0)
@@ -101,9 +103,11 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
         self.log.info('instant finalization 2 is correct')
 
-        # test instant finalization 3
+        # test instant justification 3
+        # F    F    J
+        # e0 - e1 - e2 - e3
         node.generatetoaddress(5, node.getnewaddress())
-        assert_equal(node.getblockcount(), 15)
+        assert_equal(node.getblockcount(), 19)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 3)
         assert_equal(state['currentDynasty'], 1)
@@ -112,9 +116,11 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
         self.log.info('instant finalization 3 is correct')
 
-        # test instant finalization 4
+        # test instant justification 4
+        # F    F    F    J
+        # e0 - e1 - e2 - e3 - e4
         node.generatetoaddress(5, node.getnewaddress())
-        assert_equal(node.getblockcount(), 20)
+        assert_equal(node.getblockcount(), 24)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 4)
         assert_equal(state['currentDynasty'], 2)
@@ -123,9 +129,11 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
         self.log.info('instant finalization 4 is correct')
 
-        # test instant finalization 5 (must be last one)
+        # test instant justification 5 (must be last one)
+        # F    F    F    F    J
+        # e0 - e1 - e2 - e3 - e4 - e5
         node.generatetoaddress(5, node.getnewaddress())
-        assert_equal(node.getblockcount(), 25)
+        assert_equal(node.getblockcount(), 29)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 5)
         assert_equal(state['currentDynasty'], 3)
@@ -135,8 +143,10 @@ class RpcFinalizationTest(UnitETestFramework):
         self.log.info('instant finalization 5 is correct')
 
         # no justification
+        # F    F    F    F    J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6
         node.generatetoaddress(5, node.getnewaddress())
-        assert_equal(node.getblockcount(), 30)
+        assert_equal(node.getblockcount(), 34)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 6)
         assert_equal(state['currentDynasty'], 4)
@@ -145,8 +155,10 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
 
         # no justification
+        # F    F    F    F    J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7
         node.generatetoaddress(5, node.getnewaddress())
-        assert_equal(node.getblockcount(), 35)
+        assert_equal(node.getblockcount(), 39)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 7)
         assert_equal(state['currentDynasty'], 4)
@@ -155,7 +167,9 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
 
         # no justification
-        node.generatetoaddress(5, node.getnewaddress())
+        # F    F    F    F    J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8[40]
+        node.generatetoaddress(1, node.getnewaddress())
         assert_equal(node.getblockcount(), 40)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 8)
@@ -166,10 +180,10 @@ class RpcFinalizationTest(UnitETestFramework):
         self.log.info('finalization state without justification is correct')
 
         # create first justification
-        connect_nodes(node, finalizer.index)
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=15)
+        # F    F    F    F    J              J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8[40, 41]
+        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
         node.generatetoaddress(1, node.getnewaddress())
-        disconnect_nodes(node, finalizer.index)
 
         assert_equal(node.getblockcount(), 41)
         state = node.getfinalizationstate()
@@ -181,6 +195,8 @@ class RpcFinalizationTest(UnitETestFramework):
         self.log.info('finalization state after justification is correct')
 
         # skip 1 justification
+        # F    F    F    F    J              J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10[50]
         node.generatetoaddress(9, node.getnewaddress())
         assert_equal(node.getblockcount(), 50)
         state = node.getfinalizationstate()
@@ -192,8 +208,9 @@ class RpcFinalizationTest(UnitETestFramework):
         self.log.info('finalization state without justification is correct')
 
         # create finalization
-        connect_nodes(node, finalizer.index)
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=15)
+        # F    F    F    F    J              J         J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10[50, 51]
+        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
         node.generatetoaddress(1, node.getnewaddress())
         assert_equal(node.getblockcount(), 51)
         state = node.getfinalizationstate()
@@ -203,10 +220,11 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['lastJustifiedEpoch'], 9)
         assert_equal(state['validators'], 1)
 
+        # F    F    F    F    J              J         F    J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11[55, 56]
         node.generatetoaddress(4, node.getnewaddress())
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=15)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=node)
         node.generatetoaddress(1, node.getnewaddress())
-        disconnect_nodes(node, finalizer.index)
         assert_equal(node.getblockcount(), 56)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 11)
@@ -216,6 +234,8 @@ class RpcFinalizationTest(UnitETestFramework):
         assert_equal(state['validators'], 1)
         self.log.info('finalization state after finalization is correct')
 
+        # F    F    F    F    J              J         F    J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12[60]
         node.generatetoaddress(4, node.getnewaddress())
         assert_equal(node.getblockcount(), 60)
         state = node.getfinalizationstate()
