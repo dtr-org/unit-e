@@ -371,7 +371,7 @@ class Injector {
     if (it == m_components.end()) {
       throw UnknownComponentError(type_index);
     }
-    return reinterpret_cast<T*>(it->second.m_instance);
+    return static_cast<T*>(it->second.m_instance);
   }
 };
 
