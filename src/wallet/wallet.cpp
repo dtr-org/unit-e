@@ -1547,7 +1547,7 @@ CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, con
   for (int i = 0; i < wtx.tx->vout.size(); ++i) {
     const CTxOut& txout = wtx.tx->vout[i];
     if (balance_filter == +BalanceType::MATURE) {
-      if (wtx.IsCoinBase() && i == 0 &&wtx.GetBlocksToRewardMaturity() > 0) {
+      if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() > 0) {
         continue;
       }
     } else if (balance_filter == +BalanceType::IMMATURE) {
@@ -2392,11 +2392,12 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             }
             if (nDepth < nMinDepth || nDepth > nMaxDepth) {
                 continue;
-                }
-            for (unsigned int i = 0; i < pcoin->tx->vout.size(); i++) {
-                if (pcoin->IsCoinBase() && i == 0 && pcoin->GetBlocksToRewardMaturity() > 0) {
-                  continue;
-                }
+            }
+            int skip_reward = false;
+            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
+              skip_reward = true;
+            }
+            for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
                 if (pcoin->tx->vout[i].nValue < nMinimumAmount || pcoin->tx->vout[i].nValue > nMaximumAmount) {
                     continue;
                 }
@@ -3659,10 +3660,12 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
             if (nDepth < (pcoin->IsFromMe(ISMINE_ALL) ? 0 : 1)) {
                 continue;
             }
-            for (unsigned int i = 0; i < pcoin->tx->vout.size(); i++) {
-                if (pcoin->IsCoinBase() && i == 0 && pcoin->GetBlocksToRewardMaturity() > 0) {
-                  continue;
-                }
+
+            int skip_reward = false;
+            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
+                skip_reward = true;
+            }
+            for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
                 CTxDestination addr;
                 if (!IsMine(pcoin->tx->vout[i])) {
                     continue;
