@@ -167,7 +167,8 @@ class CommitsTest(UnitETestFramework):
                 block_time = prev.nTime + 1
             height = prev.height + 1 if prev else 1
             snapshot_hash = 0
-            coinbase = create_coinbase(height, snapshot_hash, coinbase_pubkey)
+            stake = self.nodes[0].listunspent()[0]
+            coinbase = create_coinbase(height, stake, snapshot_hash, coinbase_pubkey)
             coinbase.rehash()
             b = create_block(block_base_hash, coinbase, block_time)
             b.solve()
