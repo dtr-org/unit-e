@@ -35,6 +35,10 @@ class CBlockIndex;
 //! in the usual mode (e.g., compact block) it's started from 2.
 //!
 
+namespace staking {
+class ActiveChain;
+};
+
 namespace finalization {
 
 class StateRepository;
@@ -73,7 +77,8 @@ class StateProcessor {
   virtual bool ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) = 0;
 
   virtual ~StateProcessor() = default;
-  static std::unique_ptr<StateProcessor> New(Dependency<finalization::StateRepository> repo);
+  static std::unique_ptr<StateProcessor> New(Dependency<finalization::StateRepository> repo,
+                                             Dependency<staking::ActiveChain> active_chain);
 };
 
 }  // namespace finalization

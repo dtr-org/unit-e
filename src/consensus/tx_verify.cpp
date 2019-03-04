@@ -205,25 +205,8 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
                 return errState.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
     }
 
-    if (tx.IsVote()) {
-      const esperanza::FinalizationState *state = esperanza::FinalizationState::GetState();
-
-      esperanza::Vote vote;
-      std::vector<unsigned char> voteSig;
-
-      if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
-        return errState.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
-      }
-      const esperanza::Result res = state->ValidateVote(vote);
-
-      if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
-          res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
-        finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig);
-      }
-
-      if (res != +esperanza::Result::SUCCESS) {
-        return errState.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
-      }
+    if (tx.IsVote() && !finalization::RecordVote(tx, errState)) {
+        return false;
     }
 
     return true;

@@ -222,6 +222,9 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetCurrentEpoch() const;
   uint32_t GetCurrentDynasty() const;
 
+  //! \brief Returns the height of checkpoint next to last finalized checkpoint. It must be justified.
+  uint32_t GetCheckpointHeightAfterFinalizedEpoch() const;
+
   uint64_t GetDepositSize(const uint160 &validatorAddress) const;
 
   const CBlockIndex *GetRecommendedTarget() const;
@@ -238,9 +241,15 @@ class FinalizationState : public FinalizationStateData {
   uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
   uint32_t GetEpoch(blockchain::Height blockHeight) const;
 
+  //! \brief Returns the height of the first block of the epoch.
+  blockchain::Height GetEpochStartHeight(uint32_t epoch) const;
+
+  //! \brief Returns the height of the last block of the epoch.
+  blockchain::Height GetEpochCheckpointHeight(uint32_t epoch) const;
+
   static bool ValidateDepositAmount(CAmount amount);
 
-  //! \brief Processes the next chain tip passed.
+  //! \brief Processes the next chain (active or alternative) tip passed.
   //!
   //! This method encapsulates all the logic necessary to make the finalization
   //! state progress by one block.
@@ -297,6 +306,7 @@ class FinalizationState : public FinalizationStateData {
   ufp64::ufp64_t GetDepositScaleFactor(uint32_t epoch) const;
   uint64_t GetTotalSlashed(uint32_t epoch) const;
   Checkpoint &GetCheckpoint(uint32_t epoch);
+  const Checkpoint &GetCheckpoint(uint32_t epoch) const;
   uint64_t GetDynastyDelta(uint32_t dynasty);
   void RegisterLastTx(uint160 &validatorAddress, CTransactionRef tx);
   void ProcessNewCommit(const CTransactionRef &tx);
@@ -311,7 +321,6 @@ class FinalizationState : public FinalizationStateData {
   void OnBlock(blockchain::Height blockHeight);
 };
 
-inline uint32_t GetEpochLength() { return FinalizationState::GetState()->GetEpochLength(); }
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
 inline uint32_t GetEpoch(blockchain::Height blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
 

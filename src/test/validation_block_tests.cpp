@@ -149,6 +149,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     esperanza::FinalizationParams fin_params = params.GetFinalization();
     fin_params.epoch_length = 999999;
     GetComponent(FinalizationStateRepository)->Reset(fin_params, params.GetAdminParams());
+    GetComponent(FinalizationStateRepository)->ResetToTip(*chainActive.Tip());
 
     BlockData genesisData;
     {

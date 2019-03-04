@@ -339,6 +339,8 @@ class P2PInterface(P2PConnection):
     def on_snaphead(self, message): pass
     def on_getsnapshot(self, message): pass
     def on_snapshot(self, message): pass
+    def on_getcommits(self, message): pass
+    def on_commits(self, message): pass
 
     def on_inv(self, message):
         want = msg_getdata()

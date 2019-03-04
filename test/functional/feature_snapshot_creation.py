@@ -88,7 +88,7 @@ class SnapshotCreationTest(UnitETestFramework):
         assert(has_valid_snapshot_for_height(node, 13) is False)
         assert(node.getblocksnapshot(node.getblockhash(18))['snapshot_finalized'])
         assert(node.getblocksnapshot(node.getblockhash(23))['snapshot_finalized'])
-        assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'] is False)  # will be finalized
+        assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'])
         assert(node.getblocksnapshot(node.getblockhash(33))['snapshot_finalized'] is False)  # will be finalized
         assert(node.getblocksnapshot(node.getblockhash(38))['snapshot_finalized'] is False)  # will be finalized
 

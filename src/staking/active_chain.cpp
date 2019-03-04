@@ -31,6 +31,10 @@ class ActiveChainAdapter final : public ActiveChain {
     return chainActive.Contains(&block_index);
   }
 
+  const CBlockIndex *FindForkOrigin(const CBlockIndex &fork) const override {
+    return chainActive.FindFork(&fork);
+  }
+
   blockchain::Height GetSize() const override {
     return static_cast<blockchain::Height>(chainActive.Height() + 1);
   }

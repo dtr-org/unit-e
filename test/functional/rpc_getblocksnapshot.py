@@ -24,8 +24,11 @@ from test_framework.util import (
 
 class RpcGetBlockSnapshotTest(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 2
+        self.num_nodes = 3
         self.setup_clean_chain = True
+
+    def setup_network(self):
+        self.setup_nodes()
 
     def run_test(self):
         def wait_for_deleted_snapshot(node, height):
@@ -74,6 +77,7 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
                     res['snapshot_finalized'] == True,
                     len(res['snapshot_hash']) == 64,
                     len(res['stake_modifier']) == 64,
+                    len(res['chain_work']) == 64,
                 ])
             wait_until(check)
 
@@ -101,24 +105,44 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
                     res['block_height'] == height,
                     res['snapshot_finalized'] == False,
                     len(res['snapshot_hash']) == 64,
-                    len(res['stake_modifier']) == 64
+                    len(res['stake_modifier']) == 64,
+                    len(res['chain_work']) == 64,
                 ])
             wait_until(check)
 
         # generate two forks that are available for node0
-        # 0 ... 5 ... 10 ... 25
+        # 0 ... 7 ... 10 ... 29 node2
         #       \
-        #         ... 10
-        node0 = self.nodes[0]
-        node1 = self.nodes[1]
-        node0.generatetoaddress(5, node0.getnewaddress())
+        #         ... 8 node1
+        node0 = self.nodes[0]  # test node that switches between forks
+        node1 = self.nodes[1]  # shorter chain
+        node2 = self.nodes[2]  # longer chain
+
+        node0.generatetoaddress(7, node0.getnewaddress())
         connect_nodes(node1, node0.index)
+        connect_nodes(node2, node0.index)
         sync_blocks([node0, node1])
-        forked_block_hash = node1.generatetoaddress(1, node1.getnewaddress())[0]
-        node1.generatetoaddress(4, node1.getnewaddress())
-        sync_blocks([node0, node1])
+        sync_blocks([node0, node2])
+
         disconnect_nodes(node1, node0.index)
-        node0.generatetoaddress(20, node0.getnewaddress())
+        disconnect_nodes(node2, node0.index)
+
+        # generated shorter fork
+        forked_block_hash = node1.generatetoaddress(1, node1.getnewaddress())[0]
+        connect_nodes(node0, node1.index)
+        sync_blocks([node0, node1])
+        disconnect_nodes(node0, node1.index)
+        assert_equal(node0.getblockcount(), 8)
+        assert_equal(node0.getblockhash(node0.getblockcount()), forked_block_hash)
+
+        # generate longer fork
+        node2.generatetoaddress(22, node2.getnewaddress())
+        connect_nodes(node0, node2.index)
+        sync_blocks([node0, node2])
+        disconnect_nodes(node0, node2.index)
+
+        # make sure the node generated snapshots up to expected height
+        wait_until(lambda: 'valid' in node0.getblocksnapshot(node0.getblockhash(28)), timeout=10)
 
         wait_for_deleted_snapshot(node0, height=3)  # actually deleted
         wait_for_deleted_snapshot(node0, height=4)  # wasn't created
@@ -126,10 +150,7 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
         wait_for_valid_non_finalized(node0, height=28)
 
         res = node0.getblocksnapshot(forked_block_hash)
-        assert_equal(res['valid'], False)
-        assert_equal(res['snapshot_deleted'], True)
-        assert_equal(res['block_hash'], forked_block_hash)
-        assert_equal(len(res['snapshot_hash']), 64)
+        assert_equal(res['error'], "can't retrieve snapshot hash of the fork")
 
 
 if __name__ == '__main__':

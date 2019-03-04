@@ -13,6 +13,8 @@
 #include <map>
 #include <memory>
 
+class CValidationState;
+
 namespace esperanza {
 class FinalizationState;
 }
@@ -57,6 +59,8 @@ class VoteRecorder : private boost::noncopyable {
   static void Reset();
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
+
+bool RecordVote(const CTransaction &tx, CValidationState &err_state);
 
 }  // namespace finalization
 

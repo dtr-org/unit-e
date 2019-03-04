@@ -9,7 +9,6 @@
 #include <esperanza/vote.h>
 #include <injector.h>
 #include <script/ismine.h>
-#include <snapshot/creator.h>
 #include <tinyformat.h>
 #include <ufp64.h>
 #include <util.h>
@@ -855,6 +854,20 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
   return m_currentDynasty;
 }
 
+uint32_t FinalizationState::GetCheckpointHeightAfterFinalizedEpoch() const {
+  if (m_lastJustifiedEpoch == 0) {
+    // UNIT-E TODO: see #570
+    // case when 0 means no finalization
+    return 0;
+  }
+
+  const uint32_t epoch = m_lastFinalizedEpoch + 1;
+  assert(GetCheckpoint(epoch).m_isJustified);
+
+  return GetEpochCheckpointHeight(epoch);
+}
+
+// UNIT-E TODO: get rid of this function
 FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
   if (block_index == nullptr) {
     return GetComponent(FinalizationStateRepository)->GetTipState();
@@ -872,6 +885,14 @@ uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
 
 uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
   return blockHeight / GetEpochLength();
+}
+
+blockchain::Height FinalizationState::GetEpochStartHeight(const uint32_t epoch) const {
+  return epoch * m_settings.epoch_length;
+}
+
+blockchain::Height FinalizationState::GetEpochCheckpointHeight(uint32_t epoch) const {
+  return GetEpochStartHeight(epoch + 1) - 1;
 }
 
 std::vector<Validator> FinalizationState::GetValidators() const {
@@ -1018,14 +1039,6 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
 
     m_recommendedTarget = &block_index;
     m_expectedSourceEpoch = m_lastJustifiedEpoch;
-
-    // mark snapshots finalized up to the last finalized block
-    blockchain::Height height = (m_lastFinalizedEpoch + 1) * m_settings.epoch_length - 1;
-    if (height == static_cast<blockchain::Height>(block_index.nHeight)) {  // instant confirmation
-      snapshot::Creator::FinalizeSnapshots(&block_index);
-    } else {
-      snapshot::Creator::FinalizeSnapshots(chainActive[height]);
-    }
   }
   m_status = FROM_COMMITS;
 }
@@ -1049,6 +1062,12 @@ uint64_t FinalizationState::GetDynastyDelta(uint32_t dynasty) {
 }
 
 Checkpoint &FinalizationState::GetCheckpoint(uint32_t epoch) {
+  const auto it = m_checkpoints.find(epoch);
+  assert(it != m_checkpoints.end());
+  return it->second;
+}
+
+const Checkpoint &FinalizationState::GetCheckpoint(const uint32_t epoch) const {
   const auto it = m_checkpoints.find(epoch);
   assert(it != m_checkpoints.end());
   return it->second;

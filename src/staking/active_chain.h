@@ -64,6 +64,11 @@ class ActiveChain : public blockchain::ChainAccess {
   //! \brief returns whether chain contains a block index
   virtual bool Contains(const CBlockIndex &) const = 0;
 
+  //! \brief returns most common index between fork and the active chain
+  //!
+  //! It's what activeChain.FindFork does.
+  virtual const CBlockIndex *FindForkOrigin(const CBlockIndex &fork) const = 0;
+
   // defined in blockchain::ChainAccess
   const CBlockIndex *AtDepth(blockchain::Depth) override = 0;
 

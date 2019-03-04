@@ -59,7 +59,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::ActiveChain)
 
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
-            finalization::StateRepository)
+            finalization::StateRepository,
+            staking::ActiveChain)
 
 #ifdef ENABLE_WALLET
 

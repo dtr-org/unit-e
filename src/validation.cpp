@@ -70,7 +70,22 @@ namespace {
     struct CBlockIndexWorkComparator
     {
         bool operator()(const CBlockIndex *pa, const CBlockIndex *pb) const {
-            // First sort by most total work, ...
+            // first check that no forks before finalization
+            if (!pa->forking_before_active_finalization && pb->forking_before_active_finalization) return false;
+            if (pa->forking_before_active_finalization && !pb->forking_before_active_finalization) return true;
+
+            // sort by justification
+            const bool pa_has_last_justified_epoch = static_cast<bool>(pa->last_justified_epoch);
+            const bool pb_has_last_justified_epoch = static_cast<bool>(pb->last_justified_epoch);
+
+            if (pa_has_last_justified_epoch && pb_has_last_justified_epoch) {
+              if (pa->last_justified_epoch.get() > pb->last_justified_epoch.get()) return false;
+              if (pa->last_justified_epoch.get() < pb->last_justified_epoch.get()) return true;
+            }
+            else if (pa_has_last_justified_epoch && !pb_has_last_justified_epoch) return false;
+            else if (!pa_has_last_justified_epoch && pb_has_last_justified_epoch) return true;
+
+            // then sort by most total work, ...
             if (pa->nChainWork > pb->nChainWork) return false;
             if (pa->nChainWork < pb->nChainWork) return true;
 
@@ -205,9 +220,11 @@ private:
     void InvalidBlockFound(CBlockIndex *pindex, const CValidationState &state);
     CBlockIndex* FindMostWorkChain();
     bool ReceivedBlockTransactions(const CBlock &block, CValidationState& state, CBlockIndex *pindexNew, const CDiskBlockPos& pos, const Consensus::Params& consensusParams);
-
+    bool ProcessFinalizationState(const Consensus::Params &params, CBlockIndex *block_index, const CBlock *block);
 
     bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params);
+
+    void UpdateLastJustifiedEpoch(CBlockIndex *block_index);
 } g_chainstate;
 
 
@@ -577,14 +594,10 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
 
 static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
                                           const Consensus::Params &params,
-                                          const esperanza::FinalizationState *fin_state = nullptr) {
-    if (fin_state == nullptr) {
-        fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
-    }
-    assert(fin_state != nullptr);
+                                          const esperanza::FinalizationState &fin_state) {
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::ContextualCheckFinalizationTx(tx, err_state, params, *fin_state)) {
+    if (!esperanza::ContextualCheckFinalizationTx(tx, err_state, params, fin_state)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
@@ -593,17 +606,11 @@ static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationSta
 }
 
 static bool ContextualCheckBlockFinalizationTxes(const CBlock &block, CValidationState &err_state,
-                                                 const CBlockIndex *prev_index,
-                                                 const Consensus::Params &params) {
-    esperanza::FinalizationState *fin_state = nullptr;
+                                                 const Consensus::Params &params,
+                                                 const esperanza::FinalizationState &fin_state) {
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizationTransaction()) {
-            if (fin_state == nullptr) {
-                assert(prev_index != nullptr);
-                fin_state = esperanza::FinalizationState::GetState(prev_index);
-                assert(fin_state != nullptr);
-            }
-            if (!ContextualCheckFinalizationTx(*tx, err_state, params, fin_state)) {
+            if (!::ContextualCheckFinalizationTx(*tx, err_state, params, fin_state)) {
                 return false;
             }
         }
@@ -668,7 +675,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
-    if (tx.IsFinalizationTransaction() && !ContextualCheckFinalizationTx(tx, state, chainparams.GetConsensus())) {
+    const auto *fin_state = esperanza::FinalizationState::GetState();
+    assert(fin_state != nullptr);
+    if (tx.IsFinalizationTransaction() &&
+        !::ContextualCheckFinalizationTx(tx, state, chainparams.GetConsensus(), *fin_state)) {
         return false; // state already filled by ContextualCheckFinalizationTx
     }
 
@@ -2001,6 +2011,19 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     LogPrint(BCLog::BENCH, "    - Fork checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime2 - nTime1), nTimeForks * MICRO, nTimeForks * MILLI / nBlocksTotal);
 
     CBlockUndo blockundo;
+    bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
+
+    // UNIT-E: Workaround #421 (we don't restore finalization state when reindex)
+    bool has_finalization_tx = false;
+    for (const auto &tx : block.vtx) {
+        if (tx->IsFinalizationTransaction()) {
+            has_finalization_tx = true;
+            break;
+        }
+    }
+
+    const auto *fin_state = esperanza::FinalizationState::GetState(pindex->pprev);
+    assert(fin_state != nullptr || isGenesisBlock || !has_finalization_tx);
 
     // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
     // deadlock between threads.
@@ -2012,7 +2035,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // unite-proposer or unite-http (when creating new block)
     // - lock mempool.cs in BlockAssembler::CreateNewBlock()
     // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
-    if (!ContextualCheckBlockFinalizationTxes(block, state, pindex->pprev, chainparams.GetConsensus())) {
+    if (!isGenesisBlock &&
+        has_finalization_tx &&
+        !ContextualCheckBlockFinalizationTxes(block, state, chainparams.GetConsensus(), *fin_state)) {
         return false;
     }
 
@@ -2102,7 +2127,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
-    bool isGenesisBlock = block.GetHash() == chainparams.GetConsensus().hashGenesisBlock;
     if (!isGenesisBlock) {
         CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
         if (block.vtx[0]->GetValueOut() > blockReward)
@@ -2499,7 +2523,10 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
 
-    GetComponent(FinalizationStateProcessor)->ProcessNewTip(*pindexNew, blockConnecting);
+    if (!GetComponent(FinalizationStateProcessor)->ProcessNewTip(*pindexNew, blockConnecting)) {
+      return state.DoS(100, error("esperanza::ProcessNewTip failed"), REJECT_INVALID, "bad-finalization");
+    }
+    UpdateLastJustifiedEpoch(pindexNew);
 
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
@@ -2519,6 +2546,44 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     LogPrint(BCLog::BENCH, "- Connect block: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime6 - nTime1) * MILLI, nTimeTotal * MICRO, nTimeTotal * MILLI / nBlocksTotal);
 
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
+    return true;
+}
+
+bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlockIndex *block_index, const CBlock *block) {
+    // `ReceivedBlockTransactions()` is responsible to call this function for blocks in a correct order.
+    if (block_index == nullptr || block_index->pprev == nullptr) {
+        return true;
+    }
+
+    // Check that block is eligible to be connected.
+    assert(block_index->nChainTx != 0);
+
+    if (!block_index->IsValid()) {
+        return error("Block %s is invalid", block_index->GetBlockHash().GetHex());
+    }
+
+    if (!block_index->pprev->IsValid()) {
+        return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
+    }
+
+    Dependency<finalization::StateProcessor> state_processor = GetComponent(FinalizationStateProcessor);
+
+    bool ok = false;
+    if (block != nullptr) {
+        ok = state_processor->ProcessNewTipCandidate(*block_index, *block);
+    } else {
+        LogPrintf("Read %s from the disk\n", block_index->GetBlockHash().GetHex());
+        CBlock block;
+        if (!ReadBlockFromDisk(block, block_index, params)) {
+            return error("Cannot read from the disk");
+        }
+        ok = state_processor->ProcessNewTipCandidate(*block_index, block);
+    }
+    if (ok) {
+        UpdateLastJustifiedEpoch(block_index);
+    } else {
+        return error("finalization::cache::ProcessNewTip failed");
+    }
     return true;
 }
 
@@ -3003,6 +3068,9 @@ bool CChainState::ReceivedBlockTransactions(const CBlock &block, CValidationStat
                 LOCK(cs_nBlockSequenceId);
                 pindex->nSequenceId = nBlockSequenceId++;
             }
+
+            ProcessFinalizationState(consensusParams, pindex, pindex == pindexNew ? &block : nullptr);
+
             if (chainActive.Tip() == nullptr || !setBlockIndexCandidates.value_comp()(pindex, chainActive.Tip())) {
                 setBlockIndexCandidates.insert(pindex);
             }
@@ -3425,7 +3493,18 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
                 }
             }
         }
+
+        const auto *fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
+        assert(fin_state != nullptr);
+        const CBlockIndex *most_common_index = chainActive.FindFork(pindexPrev);
+        assert(most_common_index != nullptr);
+        if (fin_state->GetEpoch(most_common_index->nHeight) < fin_state->GetLastFinalizedEpoch()) {
+            return state.DoS(10,
+                             error("%s: %s came from previous dynasty", __func__, hash.ToString()),
+                             REJECT_INVALID, "bad-fork-dynasty");
+        }
     }
+
     if (pindex == nullptr)
         pindex = AddToBlockIndex(block);
 
@@ -3438,8 +3517,8 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
 }
 
 bool AcceptBlockHeader(const CBlockHeader &header, CValidationState &state, const CChainParams &chainparams, CBlockIndex **ppindex) {
-  LOCK(cs_main);
-  return g_chainstate.AcceptBlockHeader(header, state, chainparams, ppindex);
+    LOCK(cs_main);
+    return g_chainstate.AcceptBlockHeader(header, state, chainparams, ppindex);
 }
 
 // Exposed wrapper for AcceptBlockHeader
@@ -3566,7 +3645,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
 bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock)
 {
-
     AssertLockNotHeld(cs_main);
 
     {
@@ -4502,6 +4580,87 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
     if (nLoaded > 0)
         LogPrintf("Loaded %i blocks from external file in %dms\n", nLoaded, GetTimeMillis() - nStart);
     return nLoaded > 0;
+}
+
+bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
+    Dependency<finalization::StateRepository> state_repo = GetComponent(FinalizationStateRepository);
+    esperanza::FinalizationState *tip_state = state_repo->GetTipState();
+    assert(tip_state || chainActive.Height() == -1); // sanity check
+    if (!tip_state) {
+        // we are processing genesis block
+        return false;
+    }
+
+    bool has_finalization = tip_state->GetLastFinalizedEpoch() > 0;
+    if (!has_finalization) {
+        // UNIT-E: TODO: remove this once #570 is implemented
+        has_finalization = tip_state->GetLastJustifiedEpoch() == 1;
+    }
+    if (!has_finalization) {
+        // we don't have a single finalization yet
+        // so all the forks are allowed
+        return false;
+    }
+
+    if (block_index.pprev == chainActive.Tip()) {
+        // new block is built on top of the chainActive
+        // so can't fork finalization
+        return false;
+    }
+
+    const uint32_t checkpoint_height = tip_state->GetCheckpointHeightAfterFinalizedEpoch();
+    const CBlockIndex *checkpoint = chainActive[checkpoint_height];
+    assert(checkpoint);
+
+    const CBlockIndex *block_checkpoint = block_index.GetAncestor(checkpoint_height);
+    if (!block_checkpoint || block_checkpoint != checkpoint) {
+        // current fork doesn't contain the checkpoint on its path
+        // which means it either forks before finalization
+        // or this fork behind the last finalization
+        return true;
+    }
+
+    // we know that we have finalized epoch on this fork and
+    // it is at least justified. We need to check that it is also finalized
+    uint32_t justified_epoch = tip_state->GetLastFinalizedEpoch() + 1;
+    uint32_t next_checkpoint_height = tip_state->GetEpochCheckpointHeight(justified_epoch + 1);
+
+    // this block must have votes to justify the epoch
+    // which follows after the finalized one on chainActive
+    uint32_t height = std::min(next_checkpoint_height, static_cast<uint32_t>(block_index.nHeight));
+    const CBlockIndex *cp_fork = block_index.GetAncestor(height);
+    assert(cp_fork);
+    esperanza::FinalizationState *cp_fork_state = state_repo->Find(*cp_fork);
+    assert(cp_fork_state);
+
+    if (cp_fork_state->GetLastJustifiedEpoch() != justified_epoch) {
+        // this fork doesn't justify the expected epoch
+        return true;
+    }
+
+    // sanity check
+    assert(cp_fork_state->GetLastFinalizedEpoch() == tip_state->GetLastFinalizedEpoch());
+    return false;
+}
+
+void CChainState::UpdateLastJustifiedEpoch(CBlockIndex *block_index) {
+    assert(block_index != nullptr);
+
+    Dependency<finalization::StateRepository> repo = GetComponent(FinalizationStateRepository);
+    esperanza::FinalizationState *block_state = repo->Find(*block_index);
+    assert(block_state);
+
+    auto it = setBlockIndexCandidates.find(block_index);
+    if (it != setBlockIndexCandidates.end()) {
+        setBlockIndexCandidates.erase(it);
+        block_index->last_justified_epoch = block_state->GetLastJustifiedEpoch();
+        block_index->forking_before_active_finalization = IsForkingBeforeLastFinalization(*block_index);
+        setBlockIndexCandidates.insert(block_index);
+        return;
+    }
+
+    block_index->last_justified_epoch = block_state->GetLastJustifiedEpoch();
+    block_index->forking_before_active_finalization = IsForkingBeforeLastFinalization(*block_index);
 }
 
 void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)

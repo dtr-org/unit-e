@@ -18,14 +18,16 @@ class Fixture {
 
   Fixture()
     : m_repo(finalization::StateRepository::New(&m_chain)),
-      m_proc(finalization::StateProcessor::New(m_repo.get())) {
+      m_proc(finalization::StateProcessor::New(m_repo.get(), &m_chain)) {
     m_finalization_params = Params().GetFinalization();
     m_finalization_params.epoch_length = epoch_length;
     m_admin_params = Params().GetAdminParams();
     m_repo->Reset(m_finalization_params, m_admin_params);
     m_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
-      BOOST_REQUIRE(it != this->m_block_heights.end());
+      if (it == this->m_block_heights.end()) {
+        return nullptr;
+      }
       return it->second;
     };
   }
@@ -50,12 +52,12 @@ class Fixture {
     return m_proc->ProcessNewTipCandidate(block_index, CBlock());
   }
 
-  bool ProcessNewTip(const CBlockIndex &block_index) {
+  bool ProcessNewTip(CBlockIndex &block_index) {
     return m_proc->ProcessNewTip(block_index, CBlock());
   }
 
   void AddBlock() {
-    const auto &block_index = CreateBlockIndex();
+    auto &block_index = CreateBlockIndex();
     const bool process_res = ProcessNewTip(block_index);
     BOOST_REQUIRE(process_res);
   }
@@ -99,18 +101,15 @@ BOOST_AUTO_TEST_CASE(trimming) {
   Fixture fixture;
   BOOST_REQUIRE(fixture.epoch_length == 5);
 
-  // Generate first epoch
-  fixture.AddBlocks(5);
+  // Generate first two epochs
+  fixture.AddBlocks(10);
 
   // Check, all states presented in the repository
-  BOOST_CHECK(fixture.GetState(0) != nullptr);
-  BOOST_CHECK(fixture.GetState(1) != nullptr);
-  BOOST_CHECK(fixture.GetState(2) != nullptr);
-  BOOST_CHECK(fixture.GetState(3) != nullptr);
-  BOOST_CHECK(fixture.GetState(4) != nullptr);
-
+  for (blockchain::Height i = 0; i < 10; ++i) {
+    BOOST_CHECK(fixture.GetState(i) != nullptr);
+  }
   // Check, states are different
-  for (blockchain::Height h1 = 0; h1 < 5; ++h1) {
+  for (blockchain::Height h1 = 0; h1 < 10; ++h1) {
     for (blockchain::Height h2 = 0; h2 <= h1; ++h2) {
       const auto lhs = fixture.GetState(h1);
       const auto rhs = fixture.GetState(h2);
@@ -120,7 +119,7 @@ BOOST_AUTO_TEST_CASE(trimming) {
     }
   }
 
-  // Generate one more block, trigger finalization of previous epoch
+  // Generate one more block, trigger finalization of the first epoch
   fixture.AddBlocks(1);
 
   // Now epoch 1 is finalized, check old states disappear from the repository
@@ -128,30 +127,49 @@ BOOST_AUTO_TEST_CASE(trimming) {
   BOOST_CHECK(fixture.GetState(1) == nullptr);
   BOOST_CHECK(fixture.GetState(2) == nullptr);
   BOOST_CHECK(fixture.GetState(3) == nullptr);
-  BOOST_CHECK(fixture.GetState(4) != nullptr);  // finalized checkpoint
-  BOOST_CHECK(fixture.GetState(5) != nullptr);  // first block of new epoch
+  BOOST_CHECK(fixture.GetState(4) == nullptr);  // finalized checkpoint
+  BOOST_CHECK(fixture.GetState(5) == nullptr);
+  BOOST_CHECK(fixture.GetState(6) == nullptr);
+  BOOST_CHECK(fixture.GetState(7) == nullptr);
+  BOOST_CHECK(fixture.GetState(8) == nullptr);
+  BOOST_CHECK(fixture.GetState(9) != nullptr); // justified checkpoint
+  BOOST_CHECK(fixture.GetState(10) != nullptr); // next epoch
 
   // Complete current epoch
   fixture.AddBlocks(4);
 
   // Check, new states are in the repository
-  BOOST_CHECK(fixture.GetState(4) != nullptr);
-  BOOST_CHECK(fixture.GetState(5) != nullptr);
-  BOOST_CHECK(fixture.GetState(9) != nullptr);
-
-  // Generate next epoch. We haven't reached finalization yet.
-  fixture.AddBlocks(5);
-  BOOST_CHECK(fixture.GetState(4) != nullptr);
-  BOOST_CHECK(fixture.GetState(5) != nullptr);
-  BOOST_CHECK(fixture.GetState(9) != nullptr);
-
-  // Generate one more block, trigger finalization of the first epoch
-  fixture.AddBlocks(1);
-
-  BOOST_CHECK(fixture.GetState(4) == nullptr);
-  BOOST_CHECK(fixture.GetState(8) == nullptr);
   BOOST_CHECK(fixture.GetState(9) != nullptr);
   BOOST_CHECK(fixture.GetState(10) != nullptr);
+  BOOST_CHECK(fixture.GetState(11) != nullptr);
+  BOOST_CHECK(fixture.GetState(12) != nullptr);
+  BOOST_CHECK(fixture.GetState(13) != nullptr);
+  BOOST_CHECK(fixture.GetState(14) != nullptr);
+
+  // Generate next epoch.
+  // Now epoch 1 must be finalized and repository trimmed until the last justification height
+  fixture.AddBlocks(5);
+  BOOST_CHECK(fixture.GetState(9) == nullptr);
+  BOOST_CHECK(fixture.GetState(10) == nullptr);
+  BOOST_CHECK(fixture.GetState(11) == nullptr);
+  BOOST_CHECK(fixture.GetState(12) == nullptr);
+  BOOST_CHECK(fixture.GetState(13) == nullptr);
+  BOOST_CHECK(fixture.GetState(14) != nullptr);
+  BOOST_CHECK(fixture.GetState(15) != nullptr);
+  BOOST_CHECK(fixture.GetState(16) != nullptr);
+  BOOST_CHECK(fixture.GetState(17) != nullptr);
+  BOOST_CHECK(fixture.GetState(18) != nullptr);
+  BOOST_CHECK(fixture.GetState(19) != nullptr);
+
+  // Generate one more block, trigger finalization of the epoch 2.
+  fixture.AddBlocks(1);
+  BOOST_CHECK(fixture.GetState(14) == nullptr);
+  BOOST_CHECK(fixture.GetState(15) == nullptr);
+  BOOST_CHECK(fixture.GetState(16) == nullptr);
+  BOOST_CHECK(fixture.GetState(17) == nullptr);
+  BOOST_CHECK(fixture.GetState(18) == nullptr);
+  BOOST_CHECK(fixture.GetState(19) != nullptr);
+  BOOST_CHECK(fixture.GetState(20) != nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(states_workflow) {
@@ -159,10 +177,10 @@ BOOST_AUTO_TEST_CASE(states_workflow) {
   BOOST_REQUIRE(fixture.epoch_length == 5);
 
   // Generate first epoch
-  fixture.AddBlocks(5);
+  fixture.AddBlocks(10);
 
   bool ok = false;
-  const auto &block_index = fixture.CreateBlockIndex();
+  auto &block_index = fixture.CreateBlockIndex();
 
   // Process state from commits. It't not confirmed yet, finalization shouldn't happen.
   ok = fixture.ProcessNewCommits(block_index);
@@ -171,7 +189,7 @@ BOOST_AUTO_TEST_CASE(states_workflow) {
   BOOST_CHECK(fixture.GetState(1) != nullptr);
 
   // Process the same state from the block, it must be confirmed now. As it's not yet considered as
-  // a prt of the main chain, finalization shouldn't happen.
+  // a part of the main chain, finalization shouldn't happen.
   ok = fixture.ProcessNewTipCandidate(block_index);
   BOOST_REQUIRE(ok);
   BOOST_CHECK(fixture.GetState(block_index)->GetInitStatus() == esperanza::FinalizationState::COMPLETED);
@@ -185,8 +203,8 @@ BOOST_AUTO_TEST_CASE(states_workflow) {
   BOOST_CHECK(fixture.GetState(1) == nullptr);
 
   // Generate two more indexes
-  const auto &b1 = fixture.CreateBlockIndex();
-  const auto &b2 = fixture.CreateBlockIndex();
+  auto &b1 = fixture.CreateBlockIndex();
+  auto &b2 = fixture.CreateBlockIndex();
 
   // Try to process new state for b2. This should fail due to we haven't processed state for b1 yet.
   ok = fixture.ProcessNewCommits(b2);
