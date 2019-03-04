@@ -69,12 +69,12 @@ BOOST_AUTO_TEST_CASE(GetSigOpCount)
  */
 ScriptError VerifyWithFlag(const CTransaction& output, const CMutableTransaction& input, int flags)
 {
-  ScriptError error;
-  CTransaction inputi(input);
-  bool ret = VerifyScript(inputi.vin[0].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output.vout[0].nValue), &error);
-  BOOST_CHECK((ret == true) == (error == SCRIPT_ERR_OK));
+    ScriptError error;
+    CTransaction inputi(input);
+    bool ret = VerifyScript(inputi.vin[0].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output.vout[0].nValue), &error);
+    BOOST_CHECK((ret == true) == (error == SCRIPT_ERR_OK));
 
-  return error;
+    return error;
 }
 
 /**
