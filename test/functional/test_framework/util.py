@@ -373,7 +373,7 @@ def connect_nodes_bi(nodes, a, b):
     connect_nodes(nodes[a], b)
     connect_nodes(nodes[b], a)
 
-def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
+def sync_blocks(rpc_connections, *, wait=1, timeout=150, height=None):
     """
     Wait until everybody has the same tip.
 
@@ -403,7 +403,7 @@ def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
     raise AssertionError("Block sync to height {} timed out:{}".format(
                          maxheight, "".join("\n  {!r}".format(tip) for tip in tips)))
 
-def sync_chain(rpc_connections, *, wait=1, timeout=60):
+def sync_chain(rpc_connections, *, wait=1, timeout=150):
     """
     Wait until everybody has the same best block
     """
