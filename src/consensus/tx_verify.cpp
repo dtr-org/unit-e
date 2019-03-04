@@ -126,11 +126,8 @@ unsigned int GetLegacySigOpCount(const CTransaction& tx)
 
 unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& inputs)
 {
-    if (tx.IsCoinBase())
-        return 0;
-
     unsigned int nSigOps = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); i++)
+    for (unsigned int i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); i++)
     {
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
@@ -145,14 +142,11 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 {
     int64_t nSigOps = GetLegacySigOpCount(tx) * WITNESS_SCALE_FACTOR;
 
-    if (tx.IsCoinBase())
-        return nSigOps;
-
     if (flags & SCRIPT_VERIFY_P2SH) {
         nSigOps += GetP2SHSigOpCount(tx, inputs) * WITNESS_SCALE_FACTOR;
     }
 
-    for (unsigned int i = 0; i < tx.vin.size(); i++)
+    for (unsigned int i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); i++)
     {
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
@@ -201,12 +195,10 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return errState.DoS(100, false, REJECT_INVALID, "bad-cb-length");
     }
-    else
-    {
-        for (const auto& txin : tx.vin)
-            if (txin.prevout.IsNull())
-                return errState.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
-    }
+
+    for (size_t i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); ++i)
+        if (tx.vin[i].prevout.IsNull())
+            return errState.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
 
     if (tx.IsVote()) {
       const esperanza::FinalizationState *state = esperanza::FinalizationState::GetState();

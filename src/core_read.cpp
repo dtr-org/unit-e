@@ -91,11 +91,9 @@ CScript ParseScript(const std::string& s)
 bool CheckTxScriptsSanity(const CMutableTransaction& tx)
 {
     // Check input scripts for non-coinbase txs
-    if (!CTransaction(tx).IsCoinBase()) {
-        for (unsigned int i = 0; i < tx.vin.size(); i++) {
-            if (!tx.vin[i].scriptSig.HasValidOps() || tx.vin[i].scriptSig.size() > MAX_SCRIPT_SIZE) {
-                return false;
-            }
+    for (unsigned int i = (CTransaction(tx).IsCoinBase() ? 1 : 0); i < tx.vin.size(); i++) {
+        if (!tx.vin[i].scriptSig.HasValidOps() || tx.vin[i].scriptSig.size() > MAX_SCRIPT_SIZE) {
+            return false;
         }
     }
     // Check output scripts
