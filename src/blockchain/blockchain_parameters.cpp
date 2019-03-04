@@ -62,8 +62,6 @@ Parameters Parameters::Base() noexcept {
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
 
-  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(MainnetFunds()).Build(p));
-
   return p;
 }
 
