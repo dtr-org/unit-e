@@ -65,14 +65,19 @@ BOOST_AUTO_TEST_CASE(GetSigOpCount)
 
 /**
  * Verifies script execution of the zeroth scriptPubKey of tx output and
- * zeroth scriptSig and witness of tx input.
+ * zeroth scriptSig and witness of tx input (or first it input tx is coinbase tx).
  */
 ScriptError VerifyWithFlag(const CTransaction& output, const CMutableTransaction& input, int flags)
 {
     ScriptError error;
-    CTransaction inputi(input);
-    bool ret = VerifyScript(inputi.vin[0].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output.vout[0].nValue), &error);
-    BOOST_CHECK((ret == true) == (error == SCRIPT_ERR_OK));
+    const CTransaction inputi(input);
+    const std::size_t input_ix = inputi.IsCoinBase() ? 1 : 0;
+    const CScript &script_sig = inputi.vin[input_ix].scriptSig;
+    const CScript &script_pubkey = output.vout[0].scriptPubKey;
+    const CScriptWitness *script_witness = &inputi.vin[input_ix].scriptWitness;
+    const TransactionSignatureChecker checker(&inputi, input_ix, output.vout[0].nValue);
+    const bool ret = VerifyScript(script_sig, script_pubkey, script_witness, flags, checker, &error);
+    BOOST_CHECK(ret == (error == SCRIPT_ERR_OK));
 
     return error;
 }
@@ -137,6 +142,7 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 0);
         // creationTx contains two signature operations in its scriptPubKey, but legacy counting
         // is not accurate.
+//        creationTx.SetType(TxType::COINBASE);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(creationTx), coins, flags), MAX_PUBKEYS_PER_MULTISIG * WITNESS_SCALE_FACTOR);
         // Sanity check: script verification fails because of an invalid signature.
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
@@ -239,7 +245,17 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
 
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
+
         // No signature operations if we don't verify the witness.
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
+
+        // The number of signature operations for RSP2PKH does not depend on the type of the transaction
+        spendingTx.SetType(TxType::COINBASE);
+        // push the coinbase meta input
+        spendingTx.vin.insert(spendingTx.vin.begin(), CTxIn());
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
+        // No signature operations if we don't verify the witness (coinbase version)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
@@ -259,6 +275,16 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
+
+        // The number of signature operations for RSP2PKH in a coinbase transaction always equals one
+        scriptWitness.stack.pop_back();
+        BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
+        // make spending tx a coinbase transaction
+        spendingTx.SetType(TxType::COINBASE);
+        // push the coinbase meta input
+        spendingTx.vin.insert(spendingTx.vin.begin(), CTxIn());
+        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
+        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
 }
 
