@@ -19,6 +19,6 @@ WalletExtensionDeps::WalletExtensionDeps() noexcept
     : settings(SharedSettings()) {}
 
 WalletExtensionDeps::WalletExtensionDeps(const UnitEInjector &injector) noexcept
-    : settings(injector.GetSettings()) {}
+    : settings(injector.Get<Settings>()) {}
 
 }  // namespace esperanza

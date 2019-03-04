@@ -69,6 +69,12 @@ class TestInjector : public Injector<TestInjector> {
   COMPONENT(A, TestNS::A, TestNS::A::Make)
   COMPONENT(X, TestNS::X, TestNS::X::Make)
   COMPONENT(C, TestNS::C, TestNS::C::Make, TestNS::A, TestNS::X)
+ public:
+  template <typename T>
+  Dependency<T> Get() const {
+    // the passed nullptr merely serves to select the right getter
+    return Get(static_cast<T *>(nullptr));
+  }
 };
 
 class CircularInjector : public Injector<CircularInjector> {
@@ -80,6 +86,12 @@ class CircularInjector : public Injector<CircularInjector> {
   }
   COMPONENT(A, TestNS::A, MakeA, TestNS::C)
   COMPONENT(C, TestNS::C, MakeC, TestNS::A)
+ public:
+  template <typename T>
+  Dependency<T> Get() const {
+    // the passed nullptr merely serves to select the right getter
+    return Get(static_cast<T *>(nullptr));
+  }
 };
 
 class IncompleteInjector : public Injector<IncompleteInjector> {
@@ -87,6 +99,12 @@ class IncompleteInjector : public Injector<IncompleteInjector> {
     return nullptr;
   }
   COMPONENT(A, TestNS::A, MakeA, TestNS::C)
+ public:
+  template <typename T>
+  Dependency<T> Get() const {
+    // the passed nullptr merely serves to select the right getter
+    return Get(static_cast<T *>(nullptr));
+  }
 };
 
 struct ComplexThing {
@@ -112,31 +130,31 @@ struct A {
     return ptr;
   }
 };
-struct W {
+struct B {
   Dependency<A> a;
-  W(Dependency<A> a) : a(a) { this->a->log->push_back("B"); }
-  ~W() { this->a->log->push_back("~B"); }
-  static std::unique_ptr<W> Make(Dependency<A> a) { return MakeUnique<W>(a); }
+  B(Dependency<A> a) : a(a) { this->a->log->push_back("B"); }
+  ~B() { this->a->log->push_back("~B"); }
+  static std::unique_ptr<B> Make(Dependency<A> a) { return MakeUnique<B>(a); }
 };
-struct M {
+struct C {
   Dependency<A> a;
-  Dependency<W> b;
-  M(Dependency<A> a, Dependency<W> b) : a(a), b(b) {
+  Dependency<B> b;
+  C(Dependency<A> a, Dependency<B> b) : a(a), b(b) {
     this->a->log->push_back("C");
   }
-  ~M() { this->a->log->push_back("~C"); }
-  static std::unique_ptr<M> Make(Dependency<A> a, Dependency<W> b) {
-    return MakeUnique<M>(a, b);
+  ~C() { this->a->log->push_back("~C"); }
+  static std::unique_ptr<C> Make(Dependency<A> a, Dependency<B> b) {
+    return MakeUnique<C>(a, b);
   }
 };
 struct D {
   Dependency<A> a;
-  Dependency<M> c;
-  D(Dependency<A> a, Dependency<M> c) : a(a), c(c) {
+  Dependency<C> c;
+  D(Dependency<A> a, Dependency<C> c) : a(a), c(c) {
     this->a->log->push_back("D");
   }
   ~D() { this->a->log->push_back("~D"); }
-  static std::unique_ptr<D> Make(Dependency<A> a, Dependency<M> c) {
+  static std::unique_ptr<D> Make(Dependency<A> a, Dependency<C> c) {
     return MakeUnique<D>(a, c);
   }
 };
@@ -153,15 +171,27 @@ struct Q {
 namespace {
 
 class Inj : public Injector<Inj> {
-  COMPONENT(B, InjTestNS::W, InjTestNS::W::Make, InjTestNS::A)
-  COMPONENT(D, InjTestNS::D, InjTestNS::D::Make, InjTestNS::A, InjTestNS::M)
+  COMPONENT(B, InjTestNS::B, InjTestNS::B::Make, InjTestNS::A)
+  COMPONENT(D, InjTestNS::D, InjTestNS::D::Make, InjTestNS::A, InjTestNS::C)
   COMPONENT(A, InjTestNS::A, InjTestNS::A::Make)
-  COMPONENT(C, InjTestNS::M, InjTestNS::M::Make, InjTestNS::A, InjTestNS::W)
+  COMPONENT(C, InjTestNS::C, InjTestNS::C::Make, InjTestNS::A, InjTestNS::B)
+ public:
+  template <typename T>
+  Dependency<T> Get() const {
+    // the passed nullptr merely serves to select the right getter
+    return Get(static_cast<T *>(nullptr));
+  }
 };
 
 class UnmanagedInj : public Injector<UnmanagedInj> {
   UNMANAGED_COMPONENT(One, ComplexThing, global_ptr.get())
   COMPONENT(Two, InjTestNS::Q, InjTestNS::Q::Make, ComplexThing)
+ public:
+  template <typename T>
+  Dependency<T> Get() const {
+    // the passed nullptr merely serves to select the right getter
+    return Get(static_cast<T *>(nullptr));
+  }
 };
 
 }  // namespace
@@ -260,30 +290,30 @@ BOOST_AUTO_TEST_CASE(invoker) {
 BOOST_AUTO_TEST_CASE(injector) {
   TestInjector tj;
   tj.Initialize();
-  Dependency<TestNS::C> c = tj.GetC();
+  Dependency<TestNS::C> c = tj.Get<TestNS::C>();
   BOOST_CHECK_EQUAL(c->Foo(), "A+X");
 }
 
 BOOST_AUTO_TEST_CASE(initialize_all_components) {
   Inj inj;
-  BOOST_CHECK(inj.GetA() == nullptr);
-  BOOST_CHECK(inj.GetB() == nullptr);
-  BOOST_CHECK(inj.GetC() == nullptr);
-  BOOST_CHECK(inj.GetD() == nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::A>() == nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::B>() == nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::C>() == nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::D>() == nullptr);
   inj.Initialize();
-  BOOST_CHECK(inj.GetA() != nullptr);
-  BOOST_CHECK(inj.GetB() != nullptr);
-  BOOST_CHECK(inj.GetC() != nullptr);
-  BOOST_CHECK(inj.GetD() != nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::A>() != nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::B>() != nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::C>() != nullptr);
+  BOOST_CHECK(inj.Get<InjTestNS::D>() != nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(initialize_all_dependencies) {
   Inj inj;
   inj.Initialize();
-  auto a = inj.GetA();
-  auto b = inj.GetB();
-  auto c = inj.GetC();
-  auto d = inj.GetD();
+  auto a = inj.Get<InjTestNS::A>();
+  auto b = inj.Get<InjTestNS::B>();
+  auto c = inj.Get<InjTestNS::C>();
+  auto d = inj.Get<InjTestNS::D>();
   BOOST_CHECK(a != nullptr);
   BOOST_CHECK(b != nullptr);
   BOOST_CHECK(c != nullptr);
@@ -299,8 +329,8 @@ BOOST_AUTO_TEST_CASE(do_not_tear_down_unmanaged_dependencies) {
   {
     UnmanagedInj inj;
     inj.Initialize();
-    auto one = inj.GetOne();
-    auto two = inj.GetTwo();
+    auto one = inj.Get<ComplexThing>();
+    auto two = inj.Get<InjTestNS::Q>();
     BOOST_CHECK(one != nullptr);
     BOOST_CHECK(two != nullptr);
     BOOST_CHECK_EQUAL(two->complex_thing, one);
@@ -315,7 +345,7 @@ BOOST_AUTO_TEST_CASE(initialization_and_destruction_order) {
   {
     Inj inj;
     inj.Initialize();
-    log = inj.GetA()->log;
+    log = inj.Get<InjTestNS::A>()->log;
   }
   BOOST_CHECK_EQUAL(vec2str(*log), "A;B;C;D;~D;~C;~B;~A;");
 }
