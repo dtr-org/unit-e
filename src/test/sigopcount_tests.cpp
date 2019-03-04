@@ -65,17 +65,16 @@ BOOST_AUTO_TEST_CASE(GetSigOpCount)
 
 /**
  * Verifies script execution of the zeroth scriptPubKey of tx output and
- * zeroth scriptSig and witness of tx input (or first it input tx is coinbase tx).
+ * zeroth scriptSig and witness of tx input.
  */
 ScriptError VerifyWithFlag(const CTransaction& output, const CMutableTransaction& input, int flags)
 {
-    ScriptError error;
-    CTransaction inputi(input);
-    std::size_t input_ix = input.GetType() == +TxType::COINBASE ? 1 : 0;
-    bool ret = VerifyScript(inputi.vin[input_ix].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[input_ix].scriptWitness, flags, TransactionSignatureChecker(&inputi, input_ix, output.vout[0].nValue), &error);
-    BOOST_CHECK(ret == (error == SCRIPT_ERR_OK));
+  ScriptError error;
+  CTransaction inputi(input);
+  bool ret = VerifyScript(inputi.vin[0].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output.vout[0].nValue), &error);
+  BOOST_CHECK((ret == true) == (error == SCRIPT_ERR_OK));
 
-    return error;
+  return error;
 }
 
 /**
@@ -138,7 +137,6 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 0);
         // creationTx contains two signature operations in its scriptPubKey, but legacy counting
         // is not accurate.
-//        creationTx.SetType(TxType::COINBASE);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(creationTx), coins, flags), MAX_PUBKEYS_PER_MULTISIG * WITNESS_SCALE_FACTOR);
         // Sanity check: script verification fails because of an invalid signature.
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
