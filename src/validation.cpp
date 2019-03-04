@@ -2566,7 +2566,7 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
         return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
     }
 
-    Dependency<finalization::StateProcessor> state_processor = GetComponent(FinalizationStateProcessor);
+    auto state_processor = GetComponent<finalization::StateProcessor>();
 
     bool ok = false;
     if (block != nullptr) {
@@ -4583,7 +4583,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
 }
 
 bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
-    Dependency<finalization::StateRepository> state_repo = GetComponent(FinalizationStateRepository);
+    auto state_repo = GetComponent<finalization::StateRepository>();
     esperanza::FinalizationState *tip_state = state_repo->GetTipState();
     assert(tip_state || chainActive.Height() == -1); // sanity check
     if (!tip_state) {
@@ -4646,7 +4646,7 @@ bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
 void CChainState::UpdateLastJustifiedEpoch(CBlockIndex *block_index) {
     assert(block_index != nullptr);
 
-    Dependency<finalization::StateRepository> repo = GetComponent(FinalizationStateRepository);
+    auto repo = GetComponent<finalization::StateRepository>();
     esperanza::FinalizationState *block_state = repo->Find(*block_index);
     assert(block_state);
 

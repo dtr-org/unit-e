@@ -128,9 +128,9 @@ struct Invoker<> {
                                                     &Init##NAME);    \
   }                                                                  \
   Dependency<TYPE> m_component_##NAME = Register##NAME(this);        \
+  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }  \
                                                                      \
  public:                                                             \
-  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }  \
   Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
 
 #define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                        \
@@ -143,9 +143,9 @@ struct Invoker<> {
     return Registrator<TYPE>::Register<>(injector, #NAME, &Init##NAME); \
   }                                                                     \
   Dependency<TYPE> m_component_##NAME = Register##NAME(this);           \
+  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }     \
                                                                         \
  public:                                                                \
-  Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }     \
   Dependency<TYPE> Get##NAME() const { return m_component_##NAME; }
 
 class InjectionError {

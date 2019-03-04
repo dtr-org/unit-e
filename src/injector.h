@@ -96,11 +96,18 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
 #endif
 
+ public:
   //! \brief Initializes a globally available instance of the injector.
   static void Init();
 
   //! \brief Destructs the injector and all components managed by it.
   static void Destroy();
+
+  template <typename T>
+  Dependency<T> Get() const {
+    // the passed nullptr merely serves to select the right getter
+    return Get(static_cast<T *>(nullptr));
+  }
 };
 
 //! \brief Retrieves the globally available instance of the injector.
@@ -116,8 +123,7 @@ UnitEInjector &GetInjector();
 
 template <typename T>
 Dependency<T> GetComponent() {
-  // the passed nullptr merely serves to select the right getter
-  return GetInjector().Get(static_cast<Dependency<T>>(nullptr));
+  return GetInjector().Get<T>();
 }
 
 #endif  // UNIT_E_INJECTOR_H
