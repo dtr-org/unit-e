@@ -299,6 +299,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
         // 19/20 txs add a new transaction
         if (randiter % 20 < 19) {
             CMutableTransaction tx;
+            tx.SetType(TxType::STANDARD);
             tx.vin.resize(1);
             tx.vout.resize(1);
             tx.vout[0].nValue = i; //Keep txs unique unless intended to duplicate
@@ -308,6 +309,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
             // 2/20 times create a new coinbase
             if (randiter % 20 < 2 || coinbase_coins.size() < 10) {
+                tx.SetType(TxType::COINBASE);
                 // 1/10 of those times create a duplicate coinbase
                 if (InsecureRandRange(10) == 0 && coinbase_coins.size()) {
                     auto utxod = FindRandomFrom(coinbase_coins);

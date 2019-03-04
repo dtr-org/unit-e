@@ -84,7 +84,8 @@ ScriptError VerifyWithFlag(const CTransaction& output, const CMutableTransaction
  */
 void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CMutableTransaction& creationTx, const CScript& scriptPubKey, const CScript& scriptSig, const CScriptWitness& witness)
 {
-    creationTx.nVersion = 1;
+    creationTx.SetVersion(1);
+    creationTx.SetType(TxType::COINBASE);
     creationTx.vin.resize(1);
     creationTx.vin[0].prevout.SetNull();
     creationTx.vin[0].scriptSig = CScript();
@@ -177,7 +178,7 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
 
         // The witness of a coinbase transaction is not taken into account.
-        spendingTx.vin[0].prevout.SetNull();
+        spendingTx.SetType(TxType::COINBASE);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 0);
     }
 
@@ -241,11 +242,6 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         // No signature operations if we don't verify the witness.
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
-
-        // The number of signature operations for RSP2PKH does not depend on the type of the transaction
-        spendingTx.SetType(TxType::COINBASE);
-        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
-        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
 
     // Remote staking P2WSH witness program
@@ -263,13 +259,6 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
-
-        // The number of signature operations for RSP2PKH in a coinbase transaction always equals one
-        scriptWitness.stack.pop_back();
-        BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        spendingTx.SetType(TxType::COINBASE);
-        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
-        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
 }
 
