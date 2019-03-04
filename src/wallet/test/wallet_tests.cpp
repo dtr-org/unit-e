@@ -943,21 +943,21 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
     auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
     BOOST_CHECK(first);
     // Height is 101, COINBASE_MATURITY is 100, so we expect the coinbase to be mature
-    BOOST_CHECK_EQUAL(first->GetBlocksToMaturity(), 0);
+    BOOST_CHECK_EQUAL(first->GetBlocksToRewardMaturity(), 0);
 
     auto next_to_first = pwalletMain->GetWalletTx(coinbaseTxns.at(1).GetHash());
     BOOST_CHECK(next_to_first);
-    BOOST_CHECK_EQUAL(next_to_first->GetBlocksToMaturity(), 1);
+    BOOST_CHECK_EQUAL(next_to_first->GetBlocksToRewardMaturity(), 1);
 
     auto middle = pwalletMain->GetWalletTx(coinbaseTxns.at(coinbaseTxns.size()/2).GetHash());
     BOOST_CHECK(middle);
-    BOOST_CHECK_EQUAL(middle->GetBlocksToMaturity(), COINBASE_MATURITY - (height/2));
+    BOOST_CHECK_EQUAL(middle->GetBlocksToRewardMaturity(), COINBASE_MATURITY - (height/2));
 
     // Just another block has been created on top of the last coibase, so we expect
     // it to need other COINBASE_MATURITY - 1 confirmations
     auto last = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
     BOOST_CHECK(last);
-    BOOST_CHECK_EQUAL(last->GetBlocksToMaturity(), COINBASE_MATURITY - 1);
+    BOOST_CHECK_EQUAL(last->GetBlocksToRewardMaturity(), COINBASE_MATURITY - 1);
   }
 
   // Create 10 more blocks
@@ -969,67 +969,11 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
   {
     LOCK(cs_main);
     CWalletTx last_generated_coinbase(pwalletMain.get(), last_block.vtx[0]);
-    BOOST_CHECK_EQUAL(last_generated_coinbase.GetBlocksToMaturity(), COINBASE_MATURITY + 1);
+    BOOST_CHECK_EQUAL(last_generated_coinbase.GetBlocksToRewardMaturity(), COINBASE_MATURITY + 1);
 
     auto last_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
     BOOST_CHECK(last_coinbase);
-    BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToMaturity(), COINBASE_MATURITY - 1);
-  }
-}
-
-BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
-
-  // Nothing is mature currenly so no balances
-  {
-    LOCK2(cs_main, pwalletMain->cs_wallet);
-    auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
-    auto all_credit = first->GetCredit(ISMINE_ALL);
-    auto spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
-    auto watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
-    BOOST_CHECK_EQUAL(all_credit, 0);
-    BOOST_CHECK_EQUAL(spendable_credit, 0);
-    BOOST_CHECK_EQUAL(watchonly_credit, 0);
-  }
-
-  // Make one coinbase mature
-  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
-
-  {
-    LOCK2(cs_main, pwalletMain->cs_wallet);
-    auto first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
-    auto all_credit = first->GetCredit(ISMINE_ALL);
-    auto spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
-    auto watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
-    BOOST_CHECK_EQUAL(all_credit, coinbaseTxns.back().GetValueOut());
-    BOOST_CHECK_EQUAL(spendable_credit, coinbaseTxns.back().GetValueOut());
-    BOOST_CHECK_EQUAL(watchonly_credit, 0);
-  }
-
-  // Now add a new watch-only key, craete a new coinbase and then make it mature
-  CKey watch_only_key;
-  watch_only_key.MakeNewKey(true);
-  auto watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
-
-  {
-    LOCK(pwalletMain->cs_wallet);
-    assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
-  }
-
-  auto watch_only_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey())).vtx[0];
-
-  for (int i = 0; i < COINBASE_MATURITY; ++i) {
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
-  }
-
-  {
-    LOCK2(cs_main, pwalletMain->cs_wallet);
-    auto watch_only = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
-    auto all_credit = watch_only->GetCredit(ISMINE_ALL);
-    auto spendable_credit = watch_only->GetCredit(ISMINE_SPENDABLE);
-    auto watchonly_credit = watch_only->GetCredit(ISMINE_WATCH_ONLY);
-    BOOST_CHECK_EQUAL(all_credit, watch_only_coinbase->GetValueOut());
-    BOOST_CHECK_EQUAL(spendable_credit, 0);
-    BOOST_CHECK_EQUAL(watchonly_credit, watch_only_coinbase->GetValueOut());
+    BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToRewardMaturity(), COINBASE_MATURITY - 1);
   }
 }
 
