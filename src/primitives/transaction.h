@@ -265,12 +265,12 @@ public:
 
     //! Returns the version of this transaction (considers only the two lower bytes of nVersion).
     uint16_t GetVersion() const {
-        return static_cast<uint16_t>(static_cast<const T *>(this)->nVersion);
+        return static_cast<uint16_t>(GetDerived()->nVersion);
     }
 
     //! Returns the transaction type (TxType) of this transaction (stored in the two upper bytes of the nVersion field).
     TxType GetType() const {
-        return TxType::_from_index_unchecked(static_cast<const T *>(this)->nVersion >> 16);
+        return TxType::_from_index_unchecked(GetDerived()->nVersion >> 16);
     }
 
     bool IsCoinBase() const {
@@ -316,6 +316,12 @@ public:
         }
         assert(!"silence gcc warnings");
     }
+
+private:
+    inline const T *GetDerived() const {
+        return static_cast<const T *>(this);
+    }
+
 };
 
 /** The basic transaction that is broadcasted on the network and contained in
