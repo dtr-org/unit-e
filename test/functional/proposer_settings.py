@@ -17,6 +17,8 @@ class ProposerSettingsTest(UnitETestFramework):
 
     def run_test(self):
 
+        self.setup_stake_coins(*self.nodes)
+
         # If we pass -proposing=0 then the node should not propose
         status = self.nodes[0].proposerstatus()['wallets']
         assert_equal(status[0]['status'], 'NOT_PROPOSING')
