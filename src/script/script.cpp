@@ -7,7 +7,6 @@
 
 #include <tinyformat.h>
 #include <utilstrencodings.h>
-#include <util.h>
 
 const char* GetOpName(opcodetype opcode)
 {
@@ -650,16 +649,4 @@ bool CScript::ExtractAdminKeysFromWitness(const CScriptWitness &witness,
     }
 
     return it == script.end();
-}
-
-std::string CScript::ToString()
-{
-    opcodetype opcode;
-    std::vector<unsigned char> data;
-    std::vector<std::string> result;
-    for (auto it = begin(); GetOp(it, opcode, data);) {
-        result.emplace_back(GetOpName(opcode));
-        result.emplace_back(HexStr(data));
-    }
-    return util::to_string(result);
 }
