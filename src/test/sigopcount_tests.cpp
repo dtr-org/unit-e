@@ -245,15 +245,6 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         // No signature operations if we don't verify the witness.
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
-
-        // The number of signature operations for RSP2PKH does not depend on the type of the transaction
-        spendingTx.SetType(TxType::COINBASE);
-        // push the coinbase meta input
-        spendingTx.vin.insert(spendingTx.vin.begin(), CTxIn());
-        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
-        // No signature operations if we don't verify the witness (coinbase version)
-        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
-        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
 
     // Remote staking P2WSH witness program
@@ -271,16 +262,6 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
-
-        // The number of signature operations for RSP2PKH in a coinbase transaction always equals one
-        scriptWitness.stack.pop_back();
-        BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        // make spending tx a coinbase transaction
-        spendingTx.SetType(TxType::COINBASE);
-        // push the coinbase meta input
-        spendingTx.vin.insert(spendingTx.vin.begin(), CTxIn());
-        BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 1);
-        BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_EQUALVERIFY);
     }
 }
 
