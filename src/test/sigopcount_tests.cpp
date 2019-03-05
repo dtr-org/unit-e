@@ -65,13 +65,14 @@ BOOST_AUTO_TEST_CASE(GetSigOpCount)
 
 /**
  * Verifies script execution of the zeroth scriptPubKey of tx output and
- * zeroth scriptSig and witness of tx input (or first it input tx is coinbase tx).
+ * zeroth scriptSig and witness of tx input (or first if input tx is coinbase tx).
  */
 ScriptError VerifyWithFlag(const CTransaction& output, const CMutableTransaction& input, int flags)
 {
     ScriptError error;
     const CTransaction inputi(input);
     const std::size_t input_ix = inputi.IsCoinBase() ? 1 : 0;
+    BOOST_REQUIRE(inputi.vin.size() > input_ix);
     const CScript &script_sig = inputi.vin[input_ix].scriptSig;
     const CScript &script_pubkey = output.vout[0].scriptPubKey;
     const CScriptWitness *script_witness = &inputi.vin[input_ix].scriptWitness;
@@ -276,7 +277,7 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
 
-        // The number of signature operations for RSP2PKH in a coinbase transaction always equals one
+        // The number of signature operations for RSP2SH in a coinbase transaction always equals one
         scriptWitness.stack.pop_back();
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
         // make spending tx a coinbase transaction
