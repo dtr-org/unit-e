@@ -9,20 +9,8 @@ Test p2p commits messaging.
     2. CommitsTest.commits_test: send commits to the node and check its state
 """
 
-from test_framework.messages import (
-    msg_getcommits,
-    msg_commits,
-    CommitsLocator,
-    HeaderAndCommits,
-)
-from test_framework.mininode import network_thread_start, P2PInterface
 from test_framework.test_framework import UnitETestFramework
 from test_framework.key import CECKey
-from test_framework.util import (
-    assert_equal,
-    wait_until,
-)
-import time
 from test_framework.blocktools import *
 
 class P2P(P2PInterface):
@@ -58,14 +46,14 @@ class CommitsTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0])
+
         for n in self.nodes:
             n.add_p2p_connection(P2P())
         network_thread_start()
         for n in self.nodes:
             n.p2p.wait_for_verack()
-
-        self.setup_stake_coins(*self.nodes)
-
         self.getcommits_test(self.nodes[0])
         self.commits_test(self.nodes[1])
 
@@ -181,7 +169,6 @@ class CommitsTest(UnitETestFramework):
             snapshot_hash = 0
             stake = self.nodes[0].listunspent()[0]
             coinbase = create_coinbase(height, stake, snapshot_hash, coinbase_pubkey)
-            sign_transaction(self.nodes[0], coinbase)
             coinbase.rehash()
             b = create_block(block_base_hash, coinbase, block_time)
             b.solve()

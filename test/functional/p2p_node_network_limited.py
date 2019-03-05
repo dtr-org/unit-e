@@ -30,6 +30,14 @@ class NodeNetworkLimitedTest(UnitETestFramework):
         self.extra_args = [['-prune=550', '-createsnapshot=0']]
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], rescan=False)
+
+        genesis = self.nodes[0].getblock(self.nodes[0].getbestblockhash())
+        funding_txid = genesis['tx'][0]
+        genesis_tx_hex = self.nodes[0].getrawtransaction(funding_txid)
+        fund_proof = self.nodes[0].gettxoutproof([funding_txid])
+        self.nodes[0].importprunedfunds(genesis_tx_hex, fund_proof)
+
         node = self.nodes[0].add_p2p_connection(P2PIgnoreInv())
         NetworkThread().start()
         node.wait_for_verack()
