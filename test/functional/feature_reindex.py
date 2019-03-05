@@ -28,6 +28,7 @@ class ReindexTest(UnitETestFramework):
         self.log.info("Success")
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
         self.reindex(False)
         self.reindex(True)
         self.reindex(False)
