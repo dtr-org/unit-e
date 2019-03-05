@@ -386,7 +386,3 @@ You can use that to add a proper license header when you are creating new files.
 If you are incorporating code from other sources make sure that its license
 allows that, keep license headers and attributions, and add a reference to its
 original source.
-
-The file `contrib/debian/copyright` contains a full list of licenses used in
-Unit-e and to which files they apply. This is used for Debian packaging but also
-can serve as a general machine-readable form of license information.

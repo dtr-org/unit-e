@@ -43,9 +43,6 @@ This allows for running united without having to do any manual configuration.
 `conf`, `pid`, and `wallet` accept relative paths which are interpreted as
 relative to the data directory. `wallet` *only* supports relative paths.
 
-For an example configuration file that describes the configuration settings,
-see `contrib/debian/examples/unite.conf`.
-
 Paths
 ---------------------------------
 
