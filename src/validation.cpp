@@ -1432,7 +1432,9 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
 
 void MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
     txundo.vprevout.reserve(tx.vin.size());
-    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
+
+    // We skip undo data for the meta input, this means that the undo data will be off by one
+    for (std::size_t i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); ++i) {
         const CTxIn &txin = tx.vin[i];
         txundo.vprevout.emplace_back();
         bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
@@ -1731,11 +1733,16 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             return DISCONNECT_FAILED;
         }
 
-        for (size_t j = tx.IsCoinBase() ? 1 : 0; j < tx.vin.size(); ++j) {
+        for (size_t j = (tx.IsCoinBase() ? 1 : 0); j < tx.vin.size(); ++j) {
             const COutPoint &out = tx.vin[j].prevout;
             const auto res = static_cast<DisconnectResult>(ApplyTxInUndo(
-                std::move(txundo.vprevout[j]), view, out
+                //In case we are retrieving undo data for the coinbase then the data is off by one cause
+                //we didn't save any entry for the meta input
+                std::move(txundo.vprevout[(tx.IsCoinBase() ? j-1 : j)]), view, out
             ));
+            if (res == DISCONNECT_UNCLEAN) {
+                LogPrintf("ERROR: Unclean disconnect of  txid=%s  ix=%d\n", tx.GetHash().GetHex(), j);
+            }
             if (res == DISCONNECT_FAILED) {
                 return DISCONNECT_FAILED;
             }

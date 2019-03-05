@@ -705,10 +705,10 @@ void CWallet::AddToSpends(const uint256& wtxid)
     auto it = mapWallet.find(wtxid);
     assert(it != mapWallet.end());
     CWalletTx& thisTx = it->second;
-    if (thisTx.IsCoinBase()) { // Coinbases don't spend anything!
-        return;
-    }
-    for (const CTxIn& txin : thisTx.tx->vin) {
+
+    // Skip meta input
+    for (int i = thisTx.IsCoinBase() ? 1 : 0; i < thisTx.tx->vin.size(); ++i) {
+        const CTxIn& txin = thisTx.tx->vin[i];
         AddToSpends(txin.prevout, wtxid);
     }
 }
