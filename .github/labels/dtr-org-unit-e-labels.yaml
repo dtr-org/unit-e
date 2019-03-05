@@ -152,3 +152,8 @@ categories:
     color: a0f324
     description: Good for newcomers
     id: 954312758
+  labels:
+  - name: up for grabs
+    color: a0f324
+    description: Abandoned pull requests that welcome some love
+    id: upforgrabs
