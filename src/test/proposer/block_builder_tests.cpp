@@ -22,7 +22,7 @@ struct Fixture {
   std::unique_ptr<::ArgsManager> args_manager;
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::New(args_manager.get());
   std::unique_ptr<::Settings> settings;
-  blockchain::Parameters parameters = blockchain::Parameters::MainNet();
+  blockchain::Parameters parameters = blockchain::Parameters::TestNet();
 
   uint256 snapshot_hash = uint256();
 

@@ -500,7 +500,6 @@ libunite_common_a_SOURCES = \
   blockchain/blockchain_custom_parameters.cpp \
   blockchain/blockchain_genesis.cpp \
   blockchain/blockchain_parameters.cpp \
-  blockchain/mainnet_funds.cpp \
   blockchain/testnet_funds.cpp \
   blockchain/regtest_funds.cpp \
   chainparams.cpp \

@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
   FinalizationState *esperanza = FinalizationState::GetState();
 
-  const auto &params = CreateChainParams(CBaseChainParams::MAIN)->GetFinalization();
+  const auto &params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
   const auto min_deposit = params.min_deposit_size;
   const auto epoch_length = params.epoch_length;
 

@@ -11,31 +11,18 @@
 #include <assert.h>
 #include <memory>
 
-const std::string CBaseChainParams::MAIN = "main";
 const std::string CBaseChainParams::TESTNET = "test";
 const std::string CBaseChainParams::REGTEST = "regtest";
 
 void AppendParamsHelpMessages(std::string& strUsage, bool debugHelp)
 {
     strUsage += HelpMessageGroup(_("Chain selection options:"));
-    strUsage += HelpMessageOpt("-testnet", _("Use the test chain"));
+    strUsage += HelpMessageOpt("-testnet", _("Use the test chain (default: 1)"));
     if (debugHelp) {
         strUsage += HelpMessageOpt("-regtest", "Enter regression test mode, which uses a special chain in which blocks can be solved instantly. "
                                    "This is intended for regression testing tools and app development.");
     }
 }
-
-/**
- * Main network
- */
-class CBaseMainParams : public CBaseChainParams
-{
-public:
-    CBaseMainParams()
-    {
-        nRPCPort = 7181;
-    }
-};
 
 /**
  * Testnet (v3)
@@ -73,9 +60,7 @@ const CBaseChainParams& BaseParams()
 
 std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain)
 {
-    if (chain == CBaseChainParams::MAIN)
-        return std::unique_ptr<CBaseChainParams>(new CBaseMainParams());
-    else if (chain == CBaseChainParams::TESTNET)
+    if (chain == CBaseChainParams::TESTNET)
         return std::unique_ptr<CBaseChainParams>(new CBaseTestNetParams());
     else if (chain == CBaseChainParams::REGTEST)
         return std::unique_ptr<CBaseChainParams>(new CBaseRegTestParams());
@@ -91,13 +76,8 @@ void SelectBaseParams(const std::string& chain)
 std::string ChainNameFromCommandLine()
 {
     bool fRegTest = gArgs.GetBoolArg("-regtest", false);
-    bool fTestNet = gArgs.GetBoolArg("-testnet", false);
 
-    if (fTestNet && fRegTest)
-        throw std::runtime_error("Invalid combination of -regtest and -testnet.");
     if (fRegTest)
         return CBaseChainParams::REGTEST;
-    if (fTestNet)
-        return CBaseChainParams::TESTNET;
-    return CBaseChainParams::MAIN;
+    return CBaseChainParams::TESTNET;
 }

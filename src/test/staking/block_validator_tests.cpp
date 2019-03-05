@@ -16,7 +16,7 @@
 namespace {
 
 std::unique_ptr<blockchain::Behavior> b =
-    blockchain::Behavior::NewFromParameters(blockchain::Parameters::MainNet());
+    blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
 
 //! \brief creates a minimal block that passes validation without looking at the chain
 CBlock MinimalBlock() {
@@ -322,10 +322,6 @@ BOOST_AUTO_TEST_CASE(check_mismatching_height) {
     BOOST_CHECK(!static_cast<bool>(validation_result));
     BOOST_CHECK(block_validation_info.GetContextualCheckBlockStatus().IsFalse());
   }
-}
-
-BOOST_AUTO_TEST_CASE(genesis_block_mainnet) {
-  CheckGenesisBlock(blockchain::Parameters::MainNet());
 }
 
 BOOST_AUTO_TEST_CASE(genesis_block_testnet) {

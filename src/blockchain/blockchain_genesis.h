@@ -34,7 +34,6 @@ struct Funds {
   std::vector<P2WPKH> destinations;
 };
 
-Funds MainnetFunds();
 Funds TestnetFunds();
 Funds RegtestFunds();
 

@@ -77,6 +77,7 @@ const std::string &Behavior::GetBech32Prefix() const {
 }
 
 std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
+  // We assume that the args were sanitized by InitParameterInteraction
   if (args->IsArgSet("-customchainparamsfile")) {
     blockchain::Parameters custom_parameters = ReadCustomParametersFromFile(
         args->GetArg("-customchainparamsfile", ""),
@@ -89,16 +90,12 @@ std::unique_ptr<Behavior> Behavior::New(Dependency<::ArgsManager> args) {
     return NewFromParameters(custom_parameters);
   } else if (args->GetBoolArg("-regtest", false)) {
     return NewForNetwork(Network::regtest);
-  } else if (args->GetBoolArg("-testnet", false)) {
-    return NewForNetwork(Network::test);
   }
-  return NewForNetwork(Network::main);
+  return NewForNetwork(Network::test);
 }
 
 std::unique_ptr<Behavior> Behavior::NewForNetwork(Network network) {
   switch (network) {
-    case Network::main:
-      return NewFromParameters(Parameters::MainNet());
     case Network::test:
       return NewFromParameters(Parameters::TestNet());
     case Network::regtest:

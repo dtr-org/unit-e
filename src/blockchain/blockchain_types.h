@@ -26,7 +26,6 @@ using Time = std::uint32_t;
 BETTER_ENUM(
     Network,
     std::uint8_t,
-    main = 0,
     test = 1,
     regtest = 2
 )

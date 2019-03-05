@@ -55,7 +55,7 @@ static inline void InsecureNewKey(CKey &key, bool fCompressed) {
 struct ReducedTestingSetup {
     ECCVerifyHandle globalVerifyHandle;
 
-    explicit ReducedTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
+    explicit ReducedTestingSetup(const std::string& chainName = CBaseChainParams::TESTNET);
     ~ReducedTestingSetup();
 };
 
@@ -65,7 +65,7 @@ struct ReducedTestingSetup {
 struct BasicTestingSetup : public ReducedTestingSetup {
     ECCVerifyHandle globalVerifyHandle;
 
-    explicit BasicTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
+    explicit BasicTestingSetup(const std::string& chainName = CBaseChainParams::TESTNET);
     ~BasicTestingSetup();
 
   // todo: remove after merging https://github.com/bitcoin/bitcoin/commit/d3dae3ddf9fa95d652dfdf44bb496617513644a2
@@ -91,7 +91,7 @@ struct TestingSetup: public BasicTestingSetup {
     CScheduler scheduler;
     std::unique_ptr<PeerLogicValidation> peerLogic;
 
-    explicit TestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
+    explicit TestingSetup(const std::string& chainName = CBaseChainParams::TESTNET);
     ~TestingSetup();
 };
 
