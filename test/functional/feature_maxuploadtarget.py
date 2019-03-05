@@ -38,6 +38,8 @@ class MaxUploadTest(UnitETestFramework):
         self.utxo_cache = []
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
+
         # Before we connect anything, we first set the time on the node
         # to be in the past, otherwise things break because the CNode
         # time counters can't be reset backward after initialization
