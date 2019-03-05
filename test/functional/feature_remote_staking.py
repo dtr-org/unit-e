@@ -5,7 +5,7 @@
 from test_framework.mininode import sha256
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.script import CScript, OP_2, hash160
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, STAKE_SPLIT_THRESHOLD
 from test_framework.util import assert_equal, assert_greater_than, bytes_to_hex_str, hex_str_to_bytes, wait_until
 
 
@@ -43,6 +43,9 @@ class RemoteStakingTest(UnitETestFramework):
         alice, bob = self.nodes
         alice.importmasterkey(regtest_mnemonics[0]['mnemonics'])
 
+        alice.generate(1)
+        assert_equal(len(alice.listunspent()), regtest_mnemonics[0]['balance'] / STAKE_SPLIT_THRESHOLD)
+
         alices_addr = alice.getnewaddress()
 
         # 'legacy': we need the PK hash, not a script hash
@@ -70,8 +73,8 @@ class RemoteStakingTest(UnitETestFramework):
             return ps['wallets'][0]['stakeable_balance'] == 2
         wait_until(bob_is_staking_the_new_coin, timeout=10)
 
-        # Change output, and the balance staked remotely
-        assert_equal(len(alice.listunspent()), 3)
+        # Change outputs for both staked coins, and the balance staked remotely
+        assert_equal(len(alice.listunspent()), 2 + (regtest_mnemonics[0]['balance'] / STAKE_SPLIT_THRESHOLD))
 
 
 if __name__ == '__main__':
