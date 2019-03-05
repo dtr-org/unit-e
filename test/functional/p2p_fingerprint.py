@@ -13,9 +13,10 @@ import time
 from test_framework.blocktools import (
     create_block,
     create_coinbase,
+    sign_coinbase,
     sign_transaction,
     get_tip_snapshot_meta,
-    calc_snapshot_hash,
+    update_snapshot_with_tx,
 )
 from test_framework.mininode import (
     P2PInterface,
@@ -24,10 +25,6 @@ from test_framework.mininode import (
 )
 from test_framework.messages import (
     CInv,
-    CTxOut,
-    UTXO,
-    UNIT,
-    COutPoint,
     msg_headers,
     msg_block,
     msg_getdata,
@@ -38,35 +35,27 @@ from test_framework.script import CScript
 from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import (
     assert_equal,
-    hex_str_to_bytes,
+    get_unspent_coins,
 )
 
 class P2PFingerprintTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
-        self.extra_args = [[DISABLE_FINALIZATION]]
+        self.extra_args = [[DISABLE_FINALIZATION, '-stakesplitthreshold=1000000000']]
 
     # Build a chain of blocks on top of given one
     def build_chain(self, nblocks, prev_hash, prev_height, prev_median_time, unspent_outputs, snapshot_meta):
         blocks = []
         for i in range(nblocks):
-            staking_coin = unspent_outputs[i]
-            coinbase = create_coinbase(prev_height + 1, staking_coin, snapshot_meta.hash)
-            sign_transaction(self.nodes[0], coinbase)
-            coinbase.rehash()
-
+            coinbase = sign_coinbase(self.nodes[0], create_coinbase(prev_height + 1, unspent_outputs[i], snapshot_meta.hash))
             block_time = prev_median_time + 1
             block = create_block(int(prev_hash, 16), coinbase, block_time)
             block.solve()
             blocks.append(block)
             prev_hash = block.hash
 
-            coinbase_tx_out = CTxOut(int(staking_coin['amount'])*UNIT, CScript(hex_str_to_bytes(staking_coin['scriptPubKey'])))
-            coinbase_input = UTXO(prev_height + 1 - staking_coin['confirmations'] - i, True, coinbase.vin[1].prevout, coinbase_tx_out)
-            coinbase_output = UTXO(prev_height + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, prev_height + 1, [coinbase_input], [coinbase_output])
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, prev_height + 1, coinbase)
             prev_height += 1
             prev_median_time = block_time
         return blocks
@@ -114,14 +103,16 @@ class P2PFingerprintTest(UnitETestFramework):
         # Generating a chain of 10 blocks
         block_hashes = self.nodes[0].generate(nblocks=8)
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        unspent_outputs = self.nodes[0].listunspent()
+        unspent_outputs = get_unspent_coins(self.nodes[0], 7) # 7 as node will generate 2 blocks and we want 5 more
         block_hashes += self.nodes[0].generate(nblocks=2)
+
 
         # Create longer chain starting 2 blocks before current tip
         height = len(block_hashes) - 2
         block_hash = block_hashes[height - 1]
         block_time = self.nodes[0].getblockheader(block_hash)["mediantime"] + 1
-        new_blocks = self.build_chain(5, block_hash, height, block_time, unspent_outputs, snapshot_meta)
+        # Don't use stake spent on generate(2), as we want to be able to ask the node for txout
+        new_blocks = self.build_chain(5, block_hash, height, block_time, unspent_outputs[2:], snapshot_meta)
 
         # Force reorg to a longer chain
         node0.send_message(msg_headers(new_blocks))
