@@ -38,16 +38,18 @@ class TxnMallTest(UnitETestFramework):
         disconnect_nodes(self.nodes[2], 1)
 
     def run_test(self):
-        # All nodes should start with 1,250 UTE:
         starting_balance = self.nodes[0].getbalance("")
+        node1_starting_balance = self.nodes[1].getbalance("")
+        change_address = self.nodes[0].getnewaddress()
 
-        for i in range(4):
-            assert_equal(self.nodes[i].getbalance(), starting_balance)
-            self.nodes[i].getnewaddress("")  # bug workaround, coins generated assigned to first getnewaddress!
-
-        foo_fund = 1119
+        foo_fund = 1219
         bar_fund = 29
-        doublespend_amount = 1140
+        doublespend_amount = 1240
+        tx_fee = Decimal('-.02')
+
+        foo_fund = 1219
+        bar_fund = 29
+        doublespend_amount = 1240
         tx_fee = Decimal('-.02')
 
         # Assign coins to foo and bar accounts:
@@ -136,16 +138,16 @@ class TxnMallTest(UnitETestFramework):
         assert_equal(tx2["confirmations"], -2)
 
         # Node0's total balance should be starting balance, plus 100UTE for
-        # two more matured blocks (COINBASE_MATURITY deep), minus 1140 for the double-spend,
+        # two more matured blocks (COINBASE_MATURITY deep), minus 1240 for the double-spend,
         # plus fees (which are negative):
         expected = starting_balance + 100 - doublespend_amount + fund_foo_tx["fee"] + fund_bar_tx["fee"] + tx_fee
         assert_equal(self.nodes[0].getbalance(), expected)
-        assert_equal(self.nodes[0].getbalance("*", 0), expected)
+        assert_equal(self.nodes[0].getbalance("*"), expected)
 
         # Final "" balance is the node's total balance minus funds sent to "foo" and "bar"
         assert_equal(self.nodes[0].getbalance("foo"), foo_fund)
         assert_equal(self.nodes[0].getbalance("bar"), bar_fund)
-        assert_equal(self.nodes[0].getbalance("", 0), expected - foo_fund - bar_fund)
+        assert_equal(self.nodes[0].getbalance(""), expected - foo_fund - bar_fund)
 
         # Node1's "from0" account balance should be just the doublespend:
         assert_equal(self.nodes[1].getbalance("from0"), doublespend_amount)

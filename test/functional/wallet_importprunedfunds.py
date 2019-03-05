@@ -13,6 +13,7 @@ class ImportPrunedFundsTest(UnitETestFramework):
 
     def run_test(self):
         self.log.info("Mining blocks...")
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].generate(101)
 
         self.sync_all()

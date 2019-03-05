@@ -27,6 +27,8 @@ class ZapWalletTXesTest (UnitETestFramework):
         self.num_nodes = 2
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
         self.log.info("Mining blocks...")
         self.nodes[0].generate(1)
         self.sync_all()
