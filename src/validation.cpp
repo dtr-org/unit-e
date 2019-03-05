@@ -2047,7 +2047,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::vector<int> prevheights;
     CAmount nFees = 0;
     int nInputs = 0;
-    int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size());
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
@@ -2067,6 +2066,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         AddCoins(view, tx, pindex->nHeight);
     }
 
+    int64_t nSigOpsCost = 0;
     CAmount coinbase_in = 0;
     for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2090,24 +2090,25 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                              REJECT_INVALID, "bad-txns-nonfinal");
         }
 
+        // GetTransactionSigOpCost counts 3 types of sigops:
+        // * legacy (always)
+        // * p2sh (when P2SH enabled in flags and excludes coinbase)
+        // * witness (when witness enabled in flags and excludes coinbase)
+        nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
+        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+          LogPrintf("too many sigops:  txid=%s  cost=%d\n", tx.GetHash().GetHex(), nSigOpsCost);
+          return state.DoS(100, error("ConnectBlock(): too many sigops"),
+                           REJECT_INVALID, "bad-blk-sigops");
+        }
+
         if (tx.IsCoinBase()) {
           coinbase_in += value_in;
         } else {
-            // GetTransactionSigOpCost counts 3 types of sigops:
-            // * legacy (always)
-            // * p2sh (when P2SH enabled in flags and excludes coinbase)
-            // * witness (when witness enabled in flags and excludes coinbase)
-            nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-              if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
-                LogPrintf("too many sigops:  txid=%s  cost=%d\n", tx.GetHash().GetHex(), nSigOpsCost);
-                return state.DoS(100, error("ConnectBlock(): too many sigops"),
-                                 REJECT_INVALID, "bad-blk-sigops");
-              }
-            nFees += txfee;
-            if (!MoneyRange(nFees)) {
-                return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
-                                 REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
-            }
+          nFees += txfee;
+          if (!MoneyRange(nFees)) {
+            return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
+                             REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
+          }
         }
 
         // Don't cache results if we're actually connecting blocks (still
