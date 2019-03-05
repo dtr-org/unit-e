@@ -57,14 +57,6 @@ std::string CTxOut::ToString() const
 CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}
 CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime) {}
 
-uint16_t CMutableTransaction::GetVersion() const {
-  return static_cast<uint16_t>(nVersion);
-}
-
-TxType CMutableTransaction::GetType() const {
-  return TxType::_from_index(nVersion >> 16);
-}
-
 void CMutableTransaction::SetType(TxType type) {
   nVersion = (nVersion & 0x0000FFFF) | (static_cast<uint16_t>(type) << 16);
 }
@@ -95,14 +87,6 @@ uint256 CTransaction::GetWitnessHash() const
 CTransaction::CTransaction() : vin(), vout(), nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), hash() {}
 CTransaction::CTransaction(const CMutableTransaction &tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
 CTransaction::CTransaction(CMutableTransaction &&tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
-
-uint16_t CTransaction::GetVersion() const {
-  return static_cast<uint16_t>(nVersion);
-}
-
-TxType CTransaction::GetType() const {
-  return TxType::_from_index_unchecked(nVersion >> 16);
-}
 
 CAmount CTransaction::GetValueOut() const
 {
@@ -138,18 +122,3 @@ std::string CTransaction::ToString() const
     return str;
 }
 
-bool CTransaction::IsFinalizationTransaction() const {
-    switch (GetType()) {
-    case +TxType::DEPOSIT:
-    case +TxType::VOTE:
-    case +TxType::LOGOUT:
-    case +TxType::SLASH:
-    case +TxType::WITHDRAW:
-    case +TxType::ADMIN:
-        return true;
-    case +TxType::STANDARD:
-    case +TxType::COINBASE:
-        return false;
-    }
-    assert(!"silence gcc warnings");
-}
