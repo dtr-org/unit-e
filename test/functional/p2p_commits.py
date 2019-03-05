@@ -63,6 +63,9 @@ class CommitsTest(UnitETestFramework):
         network_thread_start()
         for n in self.nodes:
             n.p2p.wait_for_verack()
+
+        self.setup_stake_coins(*self.nodes)
+
         self.getcommits_test(self.nodes[0])
         self.commits_test(self.nodes[1])
 
@@ -176,7 +179,9 @@ class CommitsTest(UnitETestFramework):
                 block_time = prev.nTime + 1
             height = prev.height + 1 if prev else 1
             snapshot_hash = 0
-            coinbase = create_coinbase(height, snapshot_hash, coinbase_pubkey)
+            stake = self.nodes[0].listunspent()[0]
+            coinbase = create_coinbase(height, stake, snapshot_hash, coinbase_pubkey)
+            sign_transaction(self.nodes[0], coinbase)
             coinbase.rehash()
             b = create_block(block_base_hash, coinbase, block_time)
             b.solve()
