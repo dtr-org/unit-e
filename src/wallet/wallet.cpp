@@ -2294,10 +2294,6 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
         // treat change outputs specially, as part of the amount debited.
         CAmount debit = wtx.GetDebit(filter);
         const bool outgoing = debit > 0;
-        int start_index = 0;
-        if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity() > 0) {
-          start_index = 1;
-        }
         for (std::size_t i = 0; i < wtx.tx->vout.size(); ++i) {
             const CTxOut& out = wtx.tx->vout[i];
             if (outgoing && IsChange(out) && !wtx.tx->IsCoinBase()) {
