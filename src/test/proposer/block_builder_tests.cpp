@@ -267,14 +267,14 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
   const staking::BlockValidationResult is_valid = validator->CheckBlock(*block, nullptr);
   BOOST_CHECK(static_cast<bool>(is_valid));
 
-  const CTxOut stake_out = block->vtx[0]->vout[0];
+  const CTxOut stake_out = block->vtx[0]->vout[1];
   BOOST_CHECK_EQUAL(f.eligible_coin.utxo.GetAmount(), stake_out.nValue);
 
-  const CAmount to_address_reward = block->vtx[0]->vout[1].nValue;
+  const CAmount to_address_reward = block->vtx[0]->vout[0].nValue;
   BOOST_CHECK_EQUAL(to_address_reward, f.eligible_coin.reward + fees);
 
   CTxDestination reward_dest;
-  ExtractDestination(block->vtx[0]->vout[1].scriptPubKey, reward_dest);
+  ExtractDestination(block->vtx[0]->vout[0].scriptPubKey, reward_dest);
   BOOST_CHECK(expected_reward_dest == reward_dest);
 }
 

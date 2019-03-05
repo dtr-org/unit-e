@@ -71,6 +71,7 @@ BlockData Block(const BlockData &prevData)
     std::vector<uint8_t> snapshotHash = prevData.hash.GetHashVector(prevData.block_index);
     txCoinbase.vin[0].scriptSig = CScript() << (prevData.height + 1) << snapshotHash << OP_0;
     txCoinbase.vin[0].scriptWitness.SetNull();
+    txCoinbase.vin[1].scriptWitness.SetNull();
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
 
     snapshot::SnapshotHash newHash(prevData.hash.GetData());

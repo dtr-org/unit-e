@@ -104,7 +104,9 @@ class TestNode():
         # unclean shutdown), it will get overwritten anyway by united, and
         # potentially interfere with our attempt to authenticate
         delete_cookie_file(self.datadir)
-        self.process = subprocess.Popen(self.args + extra_args, stderr=stderr, *args, **kwargs)
+        command = self.args + extra_args
+        self.log.info("Running command: %s" % ' '.join(command))
+        self.process = subprocess.Popen(command, stderr=stderr, *args, **kwargs)
         self.running = True
         self.log.debug("united started, waiting for RPC to come up")
 
