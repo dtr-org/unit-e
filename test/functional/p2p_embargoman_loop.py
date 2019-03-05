@@ -12,7 +12,6 @@ for example rebroadcast source transaction
 """
 
 from test_framework.util import connect_nodes, connect_nodes_bi
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.mininode import P2PInterface, network_thread_start
 import time
@@ -47,7 +46,7 @@ class EmbargoManLoop(UnitETestFramework):
     def run_test(self):
         start_time = time.perf_counter()
 
-        self.nodes[0].importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        self.setup_stake_coins(self.nodes[0])
 
         for node in self.nodes:
             node.add_p2p_connection(InvRecorder())
