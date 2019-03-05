@@ -267,7 +267,7 @@ public:
     int GetDepthInMainChain(const CBlockIndex* &pindexRet) const;
     int GetDepthInMainChain() const { const CBlockIndex *pindexRet; return GetDepthInMainChain(pindexRet); }
     bool IsInMainChain() const { const CBlockIndex *pindexRet; return GetDepthInMainChain(pindexRet) > 0; }
-    int GetBlocksToMaturity() const;
+    int GetBlocksToRewardMaturity() const;
     bool hashUnset() const { return (hashBlock.IsNull() || hashBlock == ABANDON_HASH); }
     bool isAbandoned() const { return (hashBlock == ABANDON_HASH); }
     void setAbandoned() { hashBlock = ABANDON_HASH; }
@@ -338,21 +338,17 @@ public:
     // memory only
     mutable bool fDebitCached;
     mutable bool fCreditCached;
-    mutable bool fImmatureCreditCached;
     mutable bool fAvailableCreditCached;
     mutable bool fWatchDebitCached;
     mutable bool fWatchCreditCached;
-    mutable bool fImmatureWatchCreditCached;
     mutable bool fAvailableWatchCreditCached;
     mutable bool fChangeCached;
     mutable bool fInMempool;
     mutable CAmount nDebitCached;
     mutable CAmount nCreditCached;
-    mutable CAmount nImmatureCreditCached;
     mutable CAmount nAvailableCreditCached;
     mutable CAmount nWatchDebitCached;
     mutable CAmount nWatchCreditCached;
-    mutable CAmount nImmatureWatchCreditCached;
     mutable CAmount nAvailableWatchCreditCached;
     mutable CAmount nChangeCached;
 
@@ -378,22 +374,18 @@ public:
         strFromAccount.clear();
         fDebitCached = false;
         fCreditCached = false;
-        fImmatureCreditCached = false;
         fAvailableCreditCached = false;
         fWatchDebitCached = false;
         fWatchCreditCached = false;
-        fImmatureWatchCreditCached = false;
         fAvailableWatchCreditCached = false;
         fChangeCached = false;
         fInMempool = false;
         nDebitCached = 0;
         nCreditCached = 0;
-        nImmatureCreditCached = 0;
         nAvailableCreditCached = 0;
         nWatchDebitCached = 0;
         nWatchCreditCached = 0;
         nAvailableWatchCreditCached = 0;
-        nImmatureWatchCreditCached = 0;
         nChangeCached = 0;
         nOrderPos = -1;
     }
@@ -446,11 +438,9 @@ public:
     {
         fCreditCached = false;
         fAvailableCreditCached = false;
-        fImmatureCreditCached = false;
         fWatchDebitCached = false;
         fWatchCreditCached = false;
         fAvailableWatchCreditCached = false;
-        fImmatureWatchCreditCached = false;
         fDebitCached = false;
         fChangeCached = false;
     }
@@ -464,9 +454,9 @@ public:
     //! filter decides which addresses will count towards the debit
     CAmount GetDebit(const isminefilter& filter) const;
     CAmount GetCredit(const isminefilter& filter) const;
-    CAmount GetImmatureCredit(bool fUseCache=true) const;
+    CAmount GetImmatureCredit() const;
     CAmount GetAvailableCredit(bool fUseCache=true) const;
-    CAmount GetImmatureWatchOnlyCredit(const bool fUseCache=true) const;
+    CAmount GetImmatureWatchOnlyCredit() const;
     CAmount GetAvailableWatchOnlyCredit(const bool fUseCache=true) const;
     CAmount GetChange() const;
 
@@ -667,6 +657,15 @@ private:
 
 
 class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
+
+BETTER_ENUM(
+    BalanceType,
+    uint8_t,
+    ALL = 0,
+    IMMATURE = 1,
+    MATURE = 2
+)
+
 /**
  * A CWallet is an extension of a keystore, which also maintains a set of transactions and balances,
  * and provides the ability to create new transactions.
@@ -762,6 +761,7 @@ private:
      */
     const CBlockIndex* m_last_block_processed;
 
+    CAmount GetCredit(const CWalletTx& wtx, const isminefilter& filter, const BalanceType& mature) const;
 public:
     /*
      * Main wallet lock.
@@ -1051,7 +1051,9 @@ public:
     CAmount GetDebit(const CTransaction& tx, const isminefilter& filter) const;
     /** Returns whether all of the inputs match the filter */
     bool IsAllFromMe(const CTransaction& tx, const isminefilter& filter) const;
-    CAmount GetCredit(const CTransaction& tx, const isminefilter& filter) const;
+    CAmount GetCredit(const CWalletTx& wtx, const isminefilter& filter) const;
+    CAmount GetMatureCredit(const CWalletTx& wtx, const isminefilter& filter) const;
+    CAmount GetImmatureCredit(const CWalletTx& wtx, const isminefilter& filter) const;
     CAmount GetChange(const CTransaction& tx) const;
     void SetBestChain(const CBlockLocator& loc) override;
 
