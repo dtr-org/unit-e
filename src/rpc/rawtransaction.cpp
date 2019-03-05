@@ -888,7 +888,19 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
     // transaction to avoid rehashing.
     const CTransaction txConst(mtx);
     // Sign what we can:
-    for (unsigned int i = 0; i < mtx.vin.size(); i++) {
+
+    if (txConst.IsCoinBase()) {
+#ifdef ENABLE_WALLET
+      if (!pwallet->GetWalletExtension().SignCoinbaseTransaction(mtx)) {
+        for (unsigned int i = 1; i < mtx.vin.size(); ++i) {
+          TxInErrorToJSON(mtx.vin[i], vErrors, "Cannot sign the coinbase.");
+        }
+      }
+#else
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Signing coinbase is not supported without a wallet");
+#endif
+    } else {
+      for (unsigned int i = 0; i < mtx.vin.size(); i++) {
         CTxIn& txin = mtx.vin[i];
         const Coin& coin = view.AccessCoin(txin.prevout);
         if (coin.IsSpent()) {
@@ -926,7 +938,9 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
                 TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
             }
         }
+      }
     }
+
     bool fComplete = vErrors.empty();
 
     UniValue result(UniValue::VOBJ);

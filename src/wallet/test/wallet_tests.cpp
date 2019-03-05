@@ -411,7 +411,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     // after.
     {
         CWallet wallet;
-        vpwallets.clear(); // Remove default wallet
+        vpwallets.clear(); // Remove the wallet used to create the chain
         vpwallets.insert(vpwallets.begin(), &wallet);
         UniValue keys;
         keys.setArray();
@@ -470,8 +470,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     coinbaseTxns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
 
     LOCK(cs_main);
-    vpwallets.clear(); // Remove default wallet
-
+    vpwallets.clear(); // Remove the wallet used to create the chain
     // Import key into wallet and call dumpwallet to create backup file.
     {
         CWallet wallet;
@@ -575,6 +574,7 @@ BOOST_FIXTURE_TEST_CASE(get_available_credit, TestChain100Setup)
     BOOST_CHECK_EQUAL(mature_coinbase->GetAvailableCredit(), mature_coinbase->tx->GetValueOut());
   }
 
+  // Make the second coinbase mature
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
   {
@@ -635,12 +635,13 @@ BOOST_FIXTURE_TEST_CASE(get_available_watch_only_credit, TestChain100Setup)
     BOOST_CHECK_EQUAL(wallet_tx->GetAvailableWatchOnlyCredit(), 0);
   }
 
-  // Make the coinbase watch-only mature
+  // Make the coinbase watch-only mature mining using the rewards just made mature
   for (int i = 0; i < COINBASE_MATURITY; ++i) {
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
   }
 
   {
+    // The initial stake of 10000 * UNIT also beacame watch-only cause we proposed with a watch-only script
     LOCK(cs_main);
     const CWalletTx *wallet_tx = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
     BOOST_CHECK_EQUAL(wallet_tx->GetAvailableWatchOnlyCredit(), watch_only_coinbase->GetValueOut());
@@ -721,7 +722,7 @@ class ListCoinsTestingSetup : public TestChain100Setup
 public:
     ListCoinsTestingSetup()
     {
-        CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+        CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
     }
 
     CWalletTx& AddTx(CRecipient recipient)
@@ -740,7 +741,7 @@ public:
             LOCK(pwalletMain->cs_wallet);
             blocktx = CMutableTransaction(*pwalletMain->mapWallet.at(wtx.GetHash()).tx);
         }
-        CreateAndProcessBlock({CMutableTransaction(blocktx)}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+        CreateAndProcessBlock({CMutableTransaction(blocktx)}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
         LOCK(pwalletMain->cs_wallet);
         auto it = pwalletMain->mapWallet.find(wtx.GetHash());
         BOOST_CHECK(it != pwalletMain->mapWallet.end());
@@ -753,32 +754,35 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
 {
     std::string coinbaseAddress = coinbaseKey.GetPubKey().GetID().ToString();
 
-    // Confirm ListCoins initially returns 1 coin grouped under coinbaseKey
+    // Confirm ListCoins initially returns 2 coins grouped under coinbaseKey
     // address.
     std::map<CTxDestination, std::vector<COutput>> list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
-    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
+    BOOST_CHECK_EQUAL(boost::get<WitnessV0KeyHash>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2); // Mature reward + inital stake
 
-    // Check initial balance from one mature coinbase transaction.
-    BOOST_CHECK_EQUAL(50 * UNIT, pwalletMain->GetAvailableBalance());
+    // Check initial balance from one mature coinbase transaction + the initial funds.
+    BOOST_CHECK_EQUAL(10050 * UNIT, pwalletMain->GetAvailableBalance());
+
+    // Make another block reward mature so we can spend it for a transaction
+    CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
 
     // Add a transaction creating a change address, and confirm ListCoins still
-    // returns the coin associated with the change address underneath the
+    // returns the coins associated with the change address underneath the
     // coinbaseKey pubkey, even though the change address has a different
     // pubkey.
-    AddTx(CRecipient{GetScriptForRawPubKey({}), 1 * UNIT, false /* subtract fee */});
+    AddTx(CRecipient{GetScriptForDestination(WitnessV0KeyHash()), 1 * UNIT, false /* subtract fee */});
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
-    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
+    BOOST_CHECK_EQUAL(boost::get<WitnessV0KeyHash>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 4); // stake + change + 2 mature rewards
 
-    // Lock both coins. Confirm number of available coins drops to 0.
+    // Lock all coins. Confirm number of available coins drops to 0.
     std::vector<COutput> available;
     pwalletMain->AvailableCoins(available);
-    BOOST_CHECK_EQUAL(available.size(), 2);
+    BOOST_CHECK_EQUAL(available.size(), 4);
     for (const auto& group : list) {
         for (const auto& coin : group.second) {
           LOCK(pwalletMain->cs_wallet);
@@ -793,22 +797,24 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
     BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
-    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
-    BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
+    BOOST_CHECK_EQUAL(boost::get<WitnessV0KeyHash>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(list.begin()->second.size(), 4);
 }
 
 BOOST_FIXTURE_TEST_CASE(AvailableCoins_coinbase_maturity, TestChain100Setup) {
 
-  std::vector<COutput> no_available;
-  pwalletMain->AvailableCoins(no_available);
-  BOOST_CHECK_EQUAL(no_available.size(), 0);
+  std::vector<COutput> stake_available;
+  pwalletMain->AvailableCoins(stake_available);
+  BOOST_CHECK_EQUAL(stake_available.size(), 1);
+  BOOST_CHECK_EQUAL(stake_available[0].tx->tx->vout[stake_available[0].i].nValue, 10000 * UNIT);
 
   // Make one coinbase mature
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
   std::vector<COutput> available;
   pwalletMain->AvailableCoins(available);
-  BOOST_CHECK_EQUAL(available.size(), 1);
+  // Stake + block reward are now available
+  BOOST_CHECK_EQUAL(available.size(), 2);
 }
 
 // Test that AvailableCoins follows coin control settings for
@@ -833,8 +839,8 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     their_key.MakeNewKey(true);
 
     pwalletMain->AvailableCoins(coins);
-    // One coinbase has reached maturity
-    BOOST_CHECK_EQUAL(1, coins.size());
+    // One coinbase has reached maturity + the stake
+    BOOST_CHECK_EQUAL(2, coins.size());
 
     AddTx(CRecipient{
         CScript::CreateRemoteStakingKeyhashScript(
@@ -851,15 +857,15 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup)
     });
 
     pwalletMain->AvailableCoins(coins);
-    // Two coinbase and one remote staking output
-    BOOST_CHECK_EQUAL(5, coins.size());
+    // Two coinbase and one remote staking output and the initial stake
+    BOOST_CHECK_EQUAL(6, coins.size());
 
     CCoinControl coin_control;
     coin_control.m_ignore_remote_staked = true;
 
     pwalletMain->AvailableCoins(coins, true, &coin_control);
     // Remote staking output should be ignored
-    BOOST_CHECK_EQUAL(3, coins.size());
+    BOOST_CHECK_EQUAL(4, coins.size());
 }
 
 BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup) {
@@ -898,6 +904,7 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
   // Make one coinbase mature
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
+  // Now we should have the same balance as before plus the newly mature coinbase
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
     const CAmount all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
@@ -918,13 +925,22 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
     assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
   }
 
-  CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+  // Make one more coinbase mature so we can use it to mine after we spent our
+  // last output for creating the watch-only block
+  CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
 
-  for (int i = 0; i < COINBASE_MATURITY; ++i) {
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+  auto watch_only_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey())).vtx[0];
+
+  for (int i = 0; i < COINBASE_MATURITY + 1; ++i) {
+    CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
   }
 
+  // As per mature outputs we should have 103 blocks worth of rewards
+  // - 1 reward used to stake the watch-only + the initial stake + the
+  // watch-only stake and reward
   {
+      const CAmount coinbase_reward = coinbaseTxns.back().vout[0].nValue;
+      const CAmount watch_only_reward = watch_only_coinbase->vout[0].nValue;
       LOCK2(cs_main, pwalletMain->cs_wallet);
       const CAmount all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
       const CAmount spendable_balance = pwalletMain->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
@@ -982,7 +998,7 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
 
 BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
 
-  // Nothing is mature currenly so no balances
+  // Nothing is mature currenly so no balances (except the initial stake)
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
     const CWalletTx *const first = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());
@@ -995,7 +1011,7 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
   }
 
   // Make one coinbase mature
-  CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+  CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
 
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
@@ -1018,10 +1034,14 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
     assert(pwalletMain->AddWatchOnly(watch_only_script, 0));
   }
 
+  // Make one more coinbase mature so we can use it to mine after we spent our
+  // last output for creating the watch-only block
+  CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
+
   CTransactionRef watch_only_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey())).vtx[0];
 
   for (int i = 0; i < COINBASE_MATURITY; ++i) {
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(watch_only_key.GetPubKey()));
+    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
   }
 
   {

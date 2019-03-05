@@ -36,7 +36,10 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     // validated going into the memory pool does not allow
     // double-spends in blocks to pass validation when they should not.
 
-    CScript scriptPubKey = CScript() <<  ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+    CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+
+    // Make a coinbase mature so we have something to spend
+    auto last_coinbase = CreateAndProcessBlock({}, scriptPubKey).vtx[0];
 
     // Create a double-spend of mature coinbase txn:
     std::vector<CMutableTransaction> spends;
@@ -45,8 +48,8 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     {
         spends[i].nVersion = 1;
         spends[i].vin.resize(1);
-        spends[i].vin[0].prevout.hash = coinbaseTxns[0].GetHash();
-        spends[i].vin[0].prevout.n = 0;
+        spends[i].vin[0].prevout.hash = last_coinbase->GetHash();
+        spends[i].vin[0].prevout.n = 1;
         spends[i].vout.resize(1);
         spends[i].vout[0].nValue = 11*EEES;
         spends[i].vout[0].scriptPubKey = scriptPubKey;
@@ -56,7 +59,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
         uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, SIGHASH_ALL, 0, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
-        spends[i].vin[0].scriptSig << vchSig;
+        spends[i].vin[0].scriptSig = CScript() << vchSig;
     }
 
     CBlock block;
@@ -148,14 +151,13 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         InitScriptExecutionCache();
     }
 
-    CScript p2pk_scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
-    CScript p2sh_scriptPubKey = GetScriptForDestination(CScriptID(p2pk_scriptPubKey));
     CScript p2pkh_scriptPubKey = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
+    CScript p2sh_scriptPubKey = GetScriptForDestination(CScriptID(p2pkh_scriptPubKey));
     CScript p2wpkh_scriptPubKey = GetScriptForWitness(p2pkh_scriptPubKey);
 
-    CBasicKeyStore keystore;
-    keystore.AddKey(coinbaseKey);
-    keystore.AddCScript(p2pk_scriptPubKey);
+    auto p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey).vtx[0];
+
+    pwalletMain->AddCScript(p2pkh_scriptPubKey);
 
     // flags to test: SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY, SCRIPT_VERIFY_CHECKSEQUENCE_VERIFY, SCRIPT_VERIFY_NULLDUMMY, uncompressed pubkey thing
 
@@ -165,8 +167,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     dersig_invalid_tx.nVersion = 1;
     dersig_invalid_tx.vin.resize(1);
-    dersig_invalid_tx.vin[0].prevout.hash = coinbaseTxns[0].GetHash();
-    dersig_invalid_tx.vin[0].prevout.n = 0;
+    dersig_invalid_tx.vin[0].prevout.hash = p2pkh_coinbase->GetHash();
+    dersig_invalid_tx.vin[0].prevout.n = 1;
     dersig_invalid_tx.vout.resize(4);
     dersig_invalid_tx.vout[0].nValue = 11*EEES;
     dersig_invalid_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;
@@ -180,11 +182,11 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Sign, with a non-DER signature
     {
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(p2pk_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        uint256 hash = SignatureHash(p2pkh_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, coinbaseTxns.back().vout[0].nValue, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char) 0); // padding byte makes this non-DER
         vchSig.push_back((unsigned char)SIGHASH_ALL);
-        dersig_invalid_tx.vin[0].scriptSig << vchSig;
+        dersig_invalid_tx.vin[0].scriptSig = CScript() << vchSig << ToByteVector(coinbaseKey.GetPubKey());
     }
 
     // Test the invalidity of a transaction not signed using strict DER
@@ -212,8 +214,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     spend_tx.nVersion = 1;
     spend_tx.vin.resize(1);
-    spend_tx.vin[0].prevout.hash = coinbaseTxns[0].GetHash();
-    spend_tx.vin[0].prevout.n = 0;
+    spend_tx.vin[0].prevout.hash = p2pkh_coinbase->GetHash();
+    spend_tx.vin[0].prevout.n = 1;
     spend_tx.vout.resize(4);
     spend_tx.vout[0].nValue = 11*EEES;
     spend_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;
@@ -227,17 +229,17 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Sign, with a DER signature
     {
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(p2pk_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        uint256 hash = SignatureHash(p2pkh_scriptPubKey, dersig_invalid_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
-        spend_tx.vin[0].scriptSig << vchSig;
+        spend_tx.vin[0].scriptSig = CScript() << vchSig << ToByteVector(coinbaseKey.GetPubKey());
     }
 
     // And if we produce a block with this tx, it should be valid,
     // even though there's no cache entry.
     CBlock block;
 
-    block = CreateAndProcessBlock({spend_tx}, p2pk_scriptPubKey);
+    block = CreateAndProcessBlock({spend_tx}, p2pkh_scriptPubKey);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() == block.GetHash());
     BOOST_CHECK(pcoinsTip->GetBestBlock() == block.GetHash());
 
@@ -253,8 +255,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         invalid_under_p2sh_tx.vin[0].prevout.n = 0;
         invalid_under_p2sh_tx.vout.resize(1);
         invalid_under_p2sh_tx.vout[0].nValue = 11*EEES;
-        invalid_under_p2sh_tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
-        std::vector<unsigned char> vchSig2(p2pk_scriptPubKey.begin(), p2pk_scriptPubKey.end());
+        invalid_under_p2sh_tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
+        std::vector<unsigned char> vchSig2(p2pkh_scriptPubKey.begin(), p2pkh_scriptPubKey.end());
         invalid_under_p2sh_tx.vin[0].scriptSig << vchSig2;
 
         ValidateCheckInputsForAllFlags(invalid_under_p2sh_tx, SCRIPT_VERIFY_P2SH, true);
@@ -271,7 +273,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         invalid_with_cltv_tx.vin[0].nSequence = 0;
         invalid_with_cltv_tx.vout.resize(1);
         invalid_with_cltv_tx.vout[0].nValue = 11*EEES;
-        invalid_with_cltv_tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
+        invalid_with_cltv_tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
 
         // Sign
         std::vector<unsigned char> vchSig;
@@ -299,7 +301,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         invalid_with_csv_tx.vin[0].nSequence = 100;
         invalid_with_csv_tx.vout.resize(1);
         invalid_with_csv_tx.vout[0].nValue = 11*EEES;
-        invalid_with_csv_tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
+        invalid_with_csv_tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
 
         // Sign
         std::vector<unsigned char> vchSig;
@@ -329,11 +331,11 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         valid_with_witness_tx.vin[0].prevout.n = 1;
         valid_with_witness_tx.vout.resize(1);
         valid_with_witness_tx.vout[0].nValue = 11*EEES;
-        valid_with_witness_tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
+        valid_with_witness_tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
 
         // Sign
         SignatureData sigdata;
-        ProduceSignature(keystore, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, 11*EEES, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
+        ProduceSignature(*pwalletMain, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, 11*EEES, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
         UpdateTransaction(valid_with_witness_tx, 0, sigdata);
 
         // This should be valid under all script flags.
@@ -356,12 +358,12 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         tx.vin[1].prevout.n = 1;
         tx.vout.resize(1);
         tx.vout[0].nValue = 22*EEES;
-        tx.vout[0].scriptPubKey = p2pk_scriptPubKey;
+        tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
 
         // Sign
         for (int i=0; i<2; ++i) {
             SignatureData sigdata;
-            ProduceSignature(keystore, MutableTransactionSignatureCreator(&tx, i, 11*EEES, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
+            ProduceSignature(*pwalletMain, MutableTransactionSignatureCreator(&tx, i, 11*EEES, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
             UpdateTransaction(tx, i, sigdata);
         }
 
@@ -384,6 +386,31 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         BOOST_CHECK(CheckInputs(tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS, true, true, txdata, &scriptchecks));
         // Should get 2 script checks back -- caching is on a whole-transaction basis.
         BOOST_CHECK_EQUAL(scriptchecks.size(), 2);
+    }
+
+    {
+      // Test a coinbase transaction
+      CMutableTransaction tx;
+
+      tx.SetVersion(1);
+      tx.SetType(TxType::COINBASE);
+      tx.vin.resize(2);
+      tx.vin[0] = CTxIn(uint256(), 0, CScript()); // meta input
+      tx.vin[1].prevout.hash = spend_tx.GetHash();
+      tx.vin[1].prevout.n = 0;
+      tx.vout.resize(1);
+      tx.vout[0].nValue = 22*EEES;
+      tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
+
+      {
+        LOCK(pwalletMain->GetWalletExtension().GetLock());
+        pwalletMain->GetWalletExtension().SignCoinbaseTransaction(tx);
+      }
+
+      CValidationState state;
+      PrecomputedTransactionData txdata(tx);
+
+      BOOST_CHECK(CheckInputs(tx, state, pcoinsTip.get(), true, SCRIPT_VERIFY_P2SH | SCRIPT_VERIFY_WITNESS, true, true, txdata, nullptr));
     }
 }
 
