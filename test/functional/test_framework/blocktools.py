@@ -121,6 +121,13 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None):
     coinbase.calc_sha256()
     return coinbase
 
+# Convenience wrapper
+# Returns the signed coinbase
+def sign_coinbase(node, coinbase):
+    sign_transaction(node, coinbase)
+    coinbase.rehash()
+    return coinbase
+
 # Create a transaction.
 # If the scriptPubKey is not specified, make it anyone-can-spend.
 def create_transaction(prevtx, n, sig, value, scriptPubKey=CScript()):
@@ -213,3 +220,30 @@ def calc_snapshot_hash(node, snapshot_data, stake_modifier, height, inputs, outp
         snapshot_data
     )
     return SnapshotMeta(res)
+
+
+def update_snapshot_with_tx(node, snapshot_data, stake_modifier, height, tx):
+    """
+    Returns updated snapshot for a single tx (if need arises, change it to a list of txses)
+    """
+
+    is_coinbase = tx.get_type() == 'COINBASE'
+    vin_start = 1 if is_coinbase else 0
+
+    node_height = node.getblockcount()
+
+    inputs = []
+    outputs = []
+
+    for i in range(vin_start, len(tx.vin)):
+        tx_in = tx.vin[i]
+        prevout = node.gettxout(hex(tx_in.prevout.hash), tx_in.prevout.n)
+        ctx_out = CTxOut(int(prevout['value']*UNIT), CScript(hex_str_to_bytes(prevout['scriptPubKey']['hex'])))
+        utxo = UTXO(node_height + 1 - prevout['confirmations'], prevout['coinbase'], tx_in.prevout, ctx_out)
+        inputs.append(utxo)
+
+    for i, tx_out in enumerate(tx.vout):
+        utxo = UTXO(height, is_coinbase, COutPoint(tx.sha256, i), tx_out)
+        outputs.append(utxo)
+
+    return calc_snapshot_hash(node, snapshot_data, stake_modifier, height, inputs, outputs)

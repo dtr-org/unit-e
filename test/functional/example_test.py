@@ -18,11 +18,9 @@ from test_framework.blocktools import (
     create_block,
     create_coinbase,
     get_tip_snapshot_meta,
-    calc_snapshot_hash,
     sign_transaction,
-    UTXO,
-    COutPoint,
-    CTxOut,
+    update_snapshot_with_tx,
+    sign_coinbase,
 )
 from test_framework.messages import UNIT
 from test_framework.mininode import (
@@ -188,9 +186,9 @@ class ExampleTest(UnitETestFramework):
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
             txout = self.nodes[0].gettxout(stake['txid'], stake['vout'])
-            coinbase = create_coinbase(height, stake, snapshot_meta.hash)
-
+            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, snapshot_meta.hash))
             block = create_block(self.tip, coinbase, self.block_time)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height + 1, coinbase)
             block.solve()
             block_message = msg_block(block)
             # Send message is used to send a P2P message to the node over our P2PInterface
@@ -198,11 +196,6 @@ class ExampleTest(UnitETestFramework):
             self.tip = block.sha256
             blocks.append(self.tip)
             self.block_time += 1
-            input = UTXO(height - txout['confirmations'] + 1, txout['coinbase'],
-                         COutPoint(int(stake['txid'], 16), stake['vout']),
-                         CTxOut(int(stake['amount'] * UNIT), hex_str_to_bytes(stake['scriptPubKey'])))
-            output = UTXO(height + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height + 1, [input], [output])
             height += 1
 
         self.log.info("Wait for node1 to reach current tip (height %d) using RPC" % height)

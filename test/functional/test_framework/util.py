@@ -450,6 +450,15 @@ def sync_mempools(rpc_connections, *, wait=1, timeout=150, flush_scheduler=True)
     raise AssertionError("Mempool sync failed:%s" % "".join(
         ["\nNode %d: %s" % entry for entry in mempools.items()]))
 
+def get_unspent_coins(node, n_coins):
+    """
+    Wrapper for listing coins to use for staking.
+    """
+    unspent_outputs = node.listunspent()
+    assert(len(unspent_outputs) >= n_coins)
+    # return from the from to avoid problems on reorg
+    return unspent_outputs[:n_coins]
+
 def check_finalization(node, expected):
     state = node.getfinalizationstate()
     for key in expected:
