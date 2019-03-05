@@ -10,8 +10,6 @@ if uploadtarget has been reached.
 if uploadtarget has been reached.
 * Verify that the upload counters are reset after 24 hours.
 """
-from collections import defaultdict
-import time
 
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
@@ -45,6 +43,8 @@ class MaxUploadTest(UnitETestFramework):
         # time counters can't be reset backward after initialization
         old_time = int(time.time() - 2*60*60*24*7)
         self.nodes[0].setmocktime(old_time)
+
+        self.setup_stake_coins(self.nodes[0])
 
         # Generate some old blocks
         self.nodes[0].generate(130)
