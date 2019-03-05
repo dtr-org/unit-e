@@ -31,6 +31,8 @@ class NotificationsTest(UnitETestFramework):
         super().setup_network()
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
+
         self.log.info("test -blocknotify")
         block_count = 10
         blocks = self.nodes[1].generate(block_count)
@@ -43,11 +45,12 @@ class NotificationsTest(UnitETestFramework):
 
         self.log.info("test -walletnotify")
         # wait at most 10 seconds for expected number of files before reading the content
-        wait_until(lambda: len(os.listdir(self.walletnotify_dir)) == block_count, timeout=10)
+        # The transaction count should include the one in the genesis block
+        wait_until(lambda: len(os.listdir(self.walletnotify_dir)) == block_count + 1, timeout=10)
 
         # directory content should equal the generated transaction hashes
         txids_rpc = list(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", block_count)))
-        assert_equal(sorted(txids_rpc), sorted(os.listdir(self.walletnotify_dir)))
+        assert_equal(len(set(os.listdir(self.walletnotify_dir)).difference(txids_rpc)), 1)
         for tx_file in os.listdir(self.walletnotify_dir):
             os.remove(os.path.join(self.walletnotify_dir, tx_file))
 
@@ -56,11 +59,11 @@ class NotificationsTest(UnitETestFramework):
         self.restart_node(1)
         connect_nodes_bi(self.nodes, 0, 1)
 
-        wait_until(lambda: len(os.listdir(self.walletnotify_dir)) == block_count, timeout=10)
+        wait_until(lambda: len(os.listdir(self.walletnotify_dir)) == block_count + 1, timeout=10)
 
         # directory content should equal the generated transaction hashes
         txids_rpc = list(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", block_count)))
-        assert_equal(sorted(txids_rpc), sorted(os.listdir(self.walletnotify_dir)))
+        assert_equal(len(set(os.listdir(self.walletnotify_dir)).difference(txids_rpc)), 1)
 
         # Mine another 41 up-version blocks. -alertnotify should trigger on the 51st.
         self.log.info("test -alertnotify")
