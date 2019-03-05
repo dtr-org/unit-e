@@ -15,7 +15,6 @@ other nodes have this transaction until embargo timeout
 """
 
 from test_framework.util import connect_nodes, assert_equal
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 import time
 
@@ -45,7 +44,7 @@ class EmbargoManStar(UnitETestFramework):
             connect_nodes(self.nodes[0], node)
 
     def run_test(self):
-        self.nodes[0].importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        self.setup_stake_coins(self.nodes[0])
 
         # Exit IBD
         self.generate_sync(self.nodes[0])
