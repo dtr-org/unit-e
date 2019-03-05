@@ -45,11 +45,11 @@ WalletTestingSetup::~WalletTestingSetup()
 
 TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::REGTEST)
 {
+
   CUnitESecret vchSecret;
   bool fGood = vchSecret.SetString("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
   assert(fGood);
   coinbaseKey = vchSecret.GetKey();
-
   {
     LOCK(pwalletMain->cs_wallet);
     assert(pwalletMain->AddKey(coinbaseKey));
@@ -61,11 +61,11 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
 
   // Generate a 100-block chain:
   GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0
-  CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
+  CScript script_pubkey = GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID()));
   for (int i = 0; i < COINBASE_MATURITY; i++)
   {
     std::vector<CMutableTransaction> noTxns;
-    CBlock b = CreateAndProcessBlock(noTxns, scriptPubKey);
+    CBlock b = CreateAndProcessBlock(noTxns, script_pubkey);
     coinbaseTxns.push_back(*b.vtx[0]);
   }
 }
@@ -78,8 +78,9 @@ CBlock
 TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey, bool *processed)
 {
   const CChainParams& chainparams = Params();
-  std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey);
+  std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey, true);
   CBlock& block = pblocktemplate->block;
+  bool malleated;
 
   // Replace mempool-selected txns with just coinbase plus passed-in txns:
   block.vtx.resize(1);
@@ -102,7 +103,6 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   bool duplicate_transactions = false;
   block.hashMerkleRoot = BlockMerkleRoot(block, &duplicate_transactions);
   block.hash_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
-
 
   while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 

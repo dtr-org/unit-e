@@ -7,6 +7,8 @@ namespace blockchain {
 
 Funds RegtestFunds() {
     return Funds{
+        P2WPKH(10000 * UNIT, "eb83dd51b5daa0d4af62256adf283abb3485a355"), // Ignored because is immature
+        P2WPKH(10000 * UNIT, "f920777dfcc391b6deb9635a363856d1ccfe9c15"), // Output for TestChain100Setup
         P2WPKH(10000 * UNIT, "33a471b2c4d3f45b9ab4707455f7d2e917af5a6e"),
         P2WPKH(10000 * UNIT, "7eac29a2e24c161e2d18d8d1249a6327d18d390f"),
         P2WPKH(10000 * UNIT, "caca901140bf287eff2af36edeb48503cec4eb9f"),
@@ -111,7 +113,6 @@ Funds RegtestFunds() {
         P2WPKH(10000 * UNIT, "5d26cda16533ab790e85fb70d1ee52a31fab9edc"),
         P2WPKH(10000 * UNIT, "fecce82e4f1dbd6e5f381683d471508c13c5220c"),
         P2WPKH(10000 * UNIT, "a935dce8c9a88652388dbdd1f3786772515cdc6f"),
-        P2WPKH(10000 * UNIT, "eb83dd51b5daa0d4af62256adf283abb3485a355"),
     };
 }
 

@@ -69,10 +69,10 @@ public:
     //! assumed to be mature.
     //!
     //! \param spendheight The height at which the TxOut is tried to be spent.
-    bool IsImmatureCoinBase(int spendheight) const {
-        if (!IsCoinBase()) {
-            // can't be immature, immaturity is a term that applies to coinbase
-            // transactions only.
+    bool IsImmatureCoinBase(int prevout_index, int spendheight) const {
+        if (!IsCoinBase() || prevout_index > 0) {
+            // Only the first output of a coinbase (containing rewards and fees
+            // can be considered immature
             return false;
         }
         if (nHeight <= COINBASE_MATURITY) {

@@ -59,6 +59,14 @@ def update_uncommited_block_structures(block, nonce=0):
 def should_add_witness_commitment(block):
     return not all(tx.wit.is_null() for tx in block.vtx)
 
+def sign_transaction(node, tx):
+    signresult = node.signrawtransaction(bytes_to_hex_str(tx.serialize()))
+    tx = CTransaction()
+    f = BytesIO(hex_str_to_bytes(signresult['hex']))
+    tx.deserialize(f)
+    return tx
+
+
 # According to BIP141, blocks with witness rules active must commit to the
 # hash of all in-block transactions including witness.
 def add_witness_commitment(block, nonce=0):
@@ -95,15 +103,16 @@ def serialize_script_num(value):
 # Create a coinbase transaction, assuming no miner fees.
 # If pubkey is passed in, the coinbase output will be a P2PK output;
 # otherwise an anyone-can-spend output.
-def create_coinbase(height, snapshot_hash, pubkey = None):
+def create_coinbase(height, stake, snapshot_hash, pubkey = None):
+    stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
     coinbase.set_type(TxType.COINBASE)
     script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash)])
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
+    coinbase.vin.append(CTxIn(outpoint=stake_in, nSequence=0xffffffff))
     coinbaseoutput = CTxOut()
-    coinbaseoutput.nValue = 50 * UNIT
     halvings = int(height/150) # regtest
-    coinbaseoutput.nValue >>= halvings
+    coinbaseoutput.nValue = ((50 * UNIT) >> halvings) + (int(stake['amount'] * UNIT))
     if (pubkey != None):
         coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
     else:
