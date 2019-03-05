@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 0);
         // creationTx contains two signature operations in its scriptPubKey, but legacy counting
         // is not accurate.
-//        creationTx.SetType(TxType::COINBASE);
+        creationTx.SetType(TxType::COINBASE);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(creationTx), coins, flags), MAX_PUBKEYS_PER_MULTISIG * WITNESS_SCALE_FACTOR);
         // Sanity check: script verification fails because of an invalid signature.
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);
