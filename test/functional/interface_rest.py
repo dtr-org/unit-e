@@ -58,14 +58,19 @@ class RESTTest (UnitETestFramework):
         url = urllib.parse.urlparse(self.nodes[0].url)
         self.log.info("Mining blocks...")
 
-        self.nodes[0].generate(1)
+        blockhash = self.nodes[0].generate(1)[0]
         self.sync_all()
         self.nodes[2].generate(100)
         self.sync_all()
 
         assert_equal(self.nodes[0].getbalance(), self.nodes[0].initial_stake + 50)
 
-        txid = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
+        # Send specific output (#0)
+        coinbase_tx = self.nodes[0].getblock(blockhash)['tx'][0]
+        txid = self.nodes[0].sendtypeto(
+            '', '', [{'address': self.nodes[1].getnewaddress(), 'amount': 0.1}],
+            '', '', False, {'inputs': [{'tx': coinbase_tx, 'n': 0}]}
+        )
         self.sync_all()
         self.nodes[2].generate(1)
         self.sync_all()
