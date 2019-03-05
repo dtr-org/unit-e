@@ -1034,8 +1034,6 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
 }
 
 BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_cache, TestChain100Setup) {
-
-
   // Nothing is mature currenly so nothing should be cached
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);

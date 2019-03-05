@@ -1543,24 +1543,24 @@ bool CWallet::IsAllFromMe(const CTransaction& tx, const isminefilter& filter) co
 
 CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, const BalanceType& balance_filter) const
 {
-  CAmount nCredit = 0;
-  for (int i = 0; i < wtx.tx->vout.size(); ++i) {
-    const CTxOut& txout = wtx.tx->vout[i];
-    if (balance_filter == +BalanceType::MATURE) {
-      if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() > 0) {
-        continue;
-      }
-    } else if (balance_filter == +BalanceType::IMMATURE) {
-      if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() == 0) {
-        continue;
-      }
+    CAmount nCredit = 0;
+    for (int i = 0; i < wtx.tx->vout.size(); ++i) {
+        const CTxOut& txout = wtx.tx->vout[i];
+        if (balance_filter == +BalanceType::MATURE) {
+            if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() > 0) {
+              continue;
+            }
+        } else if (balance_filter == +BalanceType::IMMATURE) {
+            if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() == 0) {
+              continue;
+            }
+        }
+        nCredit += GetCredit(txout, filter);
+        if (!MoneyRange(nCredit)) {
+            throw std::runtime_error(std::string(__func__) + ": value out of range");
+        }
     }
-    nCredit += GetCredit(txout, filter);
-    if (!MoneyRange(nCredit)) {
-      throw std::runtime_error(std::string(__func__) + ": value out of range");
-    }
-  }
-  return nCredit;
+    return nCredit;
 }
 
 CAmount CWallet::GetMatureCredit(const CWalletTx& wtx, const isminefilter& filter) const
@@ -1571,11 +1571,6 @@ CAmount CWallet::GetMatureCredit(const CWalletTx& wtx, const isminefilter& filte
 CAmount CWallet::GetImmatureCredit(const CWalletTx& wtx, const isminefilter& filter) const
 {
     return GetCredit(wtx, filter, BalanceType::IMMATURE);
-}
-
-CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter) const
-{
-    return GetCredit(wtx, filter, BalanceType::ALL);
 }
 
 CAmount CWallet::GetChange(const CTransaction& tx) const
