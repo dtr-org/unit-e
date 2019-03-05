@@ -44,6 +44,9 @@ class WalletHDTest(UnitETestFramework):
         self.nodes[1].backupwallet(tmpdir + "/hd.bak")
         #self.nodes[1].dumpwallet(tmpdir + "/hd.dump")
 
+        # Setup the initial funds for the node
+        self.setup_stake_coins(self.nodes[0])
+
         # Derive some HD addresses and remember the last
         # Also send funds to each add
         self.nodes[0].generate(101)
