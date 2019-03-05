@@ -320,15 +320,28 @@ class BIP68Test(UnitETestFramework):
         # tx3 to be removed.
         tip = int(self.nodes[0].getblockhash(self.nodes[0].getblockcount()-1), 16)
         height = self.nodes[0].getblockcount()
+        # Let's get the available stake that is not already used
+        avail_stake = [x for x in self.nodes[0].listunspent() if x['txid'] != tx1.hash]
         for i in range(2):
-            coinbase = create_coinbase(height, tip_snapshot_meta.hash)
+            stake = avail_stake.pop()
+            txout = self.nodes[0].gettxout(stake['txid'], stake['vout'])
+
+            coinbase = create_coinbase(height, stake, tip_snapshot_meta.hash)
+            sign_transaction(self.nodes[0], coinbase)
+            coinbase.rehash()
+
             block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3
             block.rehash()
             block.solve()
             tip = block.sha256
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, 0, height + i, [], [utxo])
+
+            input = UTXO(height - txout['confirmations'] + 1, txout['coinbase'],
+                         COutPoint(int(stake['txid'], 16), stake['vout']),
+                         CTxOut(int(stake['amount'] * UNIT), hex_str_to_bytes(stake['scriptPubKey'])))
+            output = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, 0, height, [input],
+                                                   [output])
 
             height += 1
             self.nodes[0].p2p.send_and_ping(msg_block(block))
@@ -383,7 +396,12 @@ class BIP68Test(UnitETestFramework):
         # Make a block that violates bip68; ensure that the tip updates
         tip = int(self.nodes[0].getbestblockhash(), 16)
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(tip, create_coinbase(self.nodes[0].getblockcount()+1, snapshot_hash))
+
+        coinbase = create_coinbase(self.nodes[0].getblockcount()+1, self.nodes[0].listunspent()[0], snapshot_hash)
+        sign_transaction(self.nodes[0], coinbase)
+        coinbase.rehash()
+
+        block = create_block(tip, coinbase)
         block.nVersion = 3
         block.vtx.extend([tx1, tx2, tx3])
         block.ensure_ltor()

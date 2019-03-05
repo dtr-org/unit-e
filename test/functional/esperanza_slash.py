@@ -55,6 +55,9 @@ class EsperanzaSlashTest(UnitETestFramework):
         fork1 = self.nodes[0]
         fork2 = self.nodes[1]
 
+        fork1.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        fork2.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+
         finalizer1 = self.nodes[2]
         finalizer2 = self.nodes[3]
 
@@ -67,8 +70,8 @@ class EsperanzaSlashTest(UnitETestFramework):
         sync_blocks([fork1, fork2, finalizer1, finalizer2])
 
         # clone finalizer
-        finalizer1.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        finalizer2.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        finalizer2.importmasterkey(regtest_mnemonics[2]['mnemonics'])
+        finalizer1.importmasterkey(regtest_mnemonics[2]['mnemonics'])
 
         disconnect_nodes(fork1, finalizer2.index)
         addr = finalizer1.getnewaddress('', 'legacy')
