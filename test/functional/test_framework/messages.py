@@ -838,7 +838,7 @@ class HeaderAndShortIDs():
         return [ key0, key1 ]
 
     # Version 2 compact blocks use wtxid in shortids (rather than txid)
-    def initialize_from_block(self, block, prefill = [], add_genesis=True, nonce=0, use_witness = False):
+    def initialize_from_block(self, block, prefill = [], add_genesis=True, nonce=0, use_witness = True):
         self.header = CBlockHeader(block)
         self.nonce = nonce
         if add_genesis:

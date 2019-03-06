@@ -646,16 +646,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (tx.IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "coinbase");
 
-    //UNIT-E: remove this when we are ready to accept only witness transactions
-    // Reject transactions with witness before segregated witness activates (override with -prematurewitness)
-    bool witnessEnabled = IsWitnessEnabled(chainActive.Tip(), chainparams.GetConsensus());
-    if (!gArgs.GetBoolArg("-prematurewitness", false) && tx.HasWitness() && !witnessEnabled) {
-        return state.DoS(0, false, REJECT_NONSTANDARD, "no-witness-yet", true);
-    }
-
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
-    if (fRequireStandard && !IsStandardTx(tx, reason, witnessEnabled))
+    if (fRequireStandard && !IsStandardTx(tx, reason))
         return state.DoS(0, false, REJECT_NONSTANDARD, reason);
 
     // Do not work on transactions that are too small.
@@ -1905,15 +1898,13 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
     // Enforce CHECKLOCKTIMEVERIFY (BIP65) rule
     flags |= SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY;
 
+    // Enforcing WITNESS rules
+    flags |= SCRIPT_VERIFY_WITNESS;
+    flags |= SCRIPT_VERIFY_NULLDUMMY;
+
     // Start enforcing BIP68 (sequence locks) and BIP112 (CHECKSEQUENCEVERIFY) using versionbits logic.
     if (VersionBitsState(pindex->pprev, consensusparams, Consensus::DEPLOYMENT_CSV, versionbitscache) == ThresholdState::ACTIVE) {
         flags |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
-    }
-
-    // Start enforcing WITNESS rules using versionbits logic.
-    if (IsWitnessEnabled(pindex->pprev, consensusparams)) {
-        flags |= SCRIPT_VERIFY_WITNESS;
-        flags |= SCRIPT_VERIFY_NULLDUMMY;
     }
 
     return flags;
@@ -3048,9 +3039,7 @@ bool CChainState::ReceivedBlockTransactions(const CBlock &block, CValidationStat
     pindexNew->nDataPos = pos.nPos;
     pindexNew->nUndoPos = 0;
     pindexNew->nStatus |= BLOCK_HAVE_DATA;
-    if (IsWitnessEnabled(pindexNew->pprev, consensusParams)) {
-        pindexNew->nStatus |= BLOCK_OPT_WITNESS;
-    }
+    pindexNew->nStatus |= BLOCK_OPT_WITNESS;
     pindexNew->RaiseValidity(BLOCK_VALID_TRANSACTIONS);
     setDirtyBlockIndex.insert(pindexNew);
 
@@ -3280,12 +3269,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     return true;
 }
 
-bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
-{
-    LOCK(cs_main);
-    return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == ThresholdState::ACTIVE);
-}
-
 // Compute at which vout of the block's coinbase transaction the witness
 // commitment occurs, or -1 if not found.
 static int GetWitnessCommitmentIndex(const CBlock& block)
@@ -3305,7 +3288,7 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
 {
     int commitpos = GetWitnessCommitmentIndex(block);
     static const std::vector<unsigned char> nonce(32, 0x00);
-    if (commitpos != -1 && IsWitnessEnabled(pindexPrev, consensusParams) && !block.vtx[0]->HasWitness()) {
+    if (commitpos != -1 && !block.vtx[0]->HasWitness()) {
         CMutableTransaction tx(*block.vtx[0]);
         tx.vin[0].scriptWitness.stack.resize(1);
         tx.vin[0].scriptWitness.stack[0] = nonce;
@@ -3318,25 +3301,23 @@ std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBloc
     std::vector<unsigned char> commitment;
     int commitpos = GetWitnessCommitmentIndex(block);
     std::vector<unsigned char> ret(32, 0x00);
-    if (consensusParams.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout != 0) {
-        if (commitpos == -1) {
-            uint256 witnessroot = BlockWitnessMerkleRoot(block, nullptr);
-            CHash256().Write(witnessroot.begin(), 32).Write(ret.data(), 32).Finalize(witnessroot.begin());
-            CTxOut out;
-            out.nValue = 0;
-            out.scriptPubKey.resize(38);
-            out.scriptPubKey[0] = OP_RETURN;
-            out.scriptPubKey[1] = 0x24;
-            out.scriptPubKey[2] = 0xaa;
-            out.scriptPubKey[3] = 0x21;
-            out.scriptPubKey[4] = 0xa9;
-            out.scriptPubKey[5] = 0xed;
-            memcpy(&out.scriptPubKey[6], witnessroot.begin(), 32);
-            commitment = std::vector<unsigned char>(out.scriptPubKey.begin(), out.scriptPubKey.end());
-            CMutableTransaction tx(*block.vtx[0]);
-            tx.vout.push_back(out);
-            block.vtx[0] = MakeTransactionRef(std::move(tx));
-        }
+    if (commitpos == -1) {
+        uint256 witnessroot = BlockWitnessMerkleRoot(block, nullptr);
+        CHash256().Write(witnessroot.begin(), 32).Write(ret.data(), 32).Finalize(witnessroot.begin());
+        CTxOut out;
+        out.nValue = 0;
+        out.scriptPubKey.resize(38);
+        out.scriptPubKey[0] = OP_RETURN;
+        out.scriptPubKey[1] = 0x24;
+        out.scriptPubKey[2] = 0xaa;
+        out.scriptPubKey[3] = 0x21;
+        out.scriptPubKey[4] = 0xa9;
+        out.scriptPubKey[5] = 0xed;
+        memcpy(&out.scriptPubKey[6], witnessroot.begin(), 32);
+        commitment = std::vector<unsigned char>(out.scriptPubKey.begin(), out.scriptPubKey.end());
+        CMutableTransaction tx(*block.vtx[0]);
+        tx.vout.push_back(out);
+        block.vtx[0] = MakeTransactionRef(std::move(tx));
     }
     UpdateUncommittedBlockStructures(block, pindexPrev, consensusParams);
     return commitment;
@@ -3404,29 +3385,22 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
     // * There must be at least one output whose scriptPubKey is a single 36-byte push, the first 4 bytes of which are
     //   {0xaa, 0x21, 0xa9, 0xed}, and the following 32 bytes are SHA256^2(witness root, witness nonce). In case there are
     //   multiple, the last one is used.
-    bool fHaveWitness = false;
-    if (VersionBitsState(pindexPrev, consensusParams, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == ThresholdState::ACTIVE) {
-        int commitpos = GetWitnessCommitmentIndex(block);
-        if (commitpos != -1) {
-            bool malleated = false;
-            uint256 hashWitness = BlockWitnessMerkleRoot(block, &malleated);
-            // The malleation check is ignored; as the transaction tree itself
-            // already does not permit it, it is impossible to trigger in the
-            // witness tree.
-            if (block.vtx[0]->vin[0].scriptWitness.stack.size() != 1 || block.vtx[0]->vin[0].scriptWitness.stack[0].size() != 32) {
-                return state.DoS(100, false, REJECT_INVALID, "bad-witness-nonce-size", true, strprintf("%s : invalid witness nonce size", __func__));
-            }
-            CHash256().Write(hashWitness.begin(), 32).Write(&block.vtx[0]->vin[0].scriptWitness.stack[0][0], 32).Finalize(hashWitness.begin());
-            if (memcmp(hashWitness.begin(), &block.vtx[0]->vout[commitpos].scriptPubKey[6], 32)) {
-                return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true, strprintf("%s : witness merkle commitment mismatch", __func__));
-            }
-            fHaveWitness = true;
+    int commitpos = GetWitnessCommitmentIndex(block);
+    if (commitpos != -1) {
+        bool malleated = false;
+        uint256 hashWitness = BlockWitnessMerkleRoot(block, &malleated);
+        // The malleation check is ignored; as the transaction tree itself
+        // already does not permit it, it is impossible to trigger in the
+        // witness tree.
+        if (block.vtx[0]->vin[0].scriptWitness.stack.size() != 1 || block.vtx[0]->vin[0].scriptWitness.stack[0].size() != 32) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-witness-nonce-size", true, strprintf("%s : invalid witness nonce size", __func__));
         }
-    }
-
-    // No witness data is allowed in blocks that don't commit to witness data, as this would otherwise leave room for spam
-    if (!fHaveWitness) {
-      for (const auto& tx : block.vtx) {
+        CHash256().Write(hashWitness.begin(), 32).Write(&block.vtx[0]->vin[0].scriptWitness.stack[0][0], 32).Finalize(hashWitness.begin());
+        if (memcmp(hashWitness.begin(), &block.vtx[0]->vout[commitpos].scriptPubKey[6], 32)) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true, strprintf("%s : witness merkle commitment mismatch", __func__));
+        }
+    } else {
+        for (const auto& tx : block.vtx) {
             if (tx->HasWitness()) {
                 return state.DoS(100, false, REJECT_INVALID, "unexpected-witness", true, strprintf("%s : unexpected witness data found", __func__));
             }
@@ -4269,7 +4243,7 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
 
     int nHeight = 1;
     while (nHeight <= chainActive.Height()) {
-        if (IsWitnessEnabled(chainActive[nHeight - 1], params.GetConsensus()) && !(chainActive[nHeight]->nStatus & BLOCK_OPT_WITNESS)) {
+        if (!(chainActive[nHeight]->nStatus & BLOCK_OPT_WITNESS)) {
             break;
         }
         nHeight++;
@@ -4306,7 +4280,7 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         // this block or some successor doesn't HAVE_DATA, so we were unable to
         // rewind all the way.  Blocks remaining on chainActive at this point
         // must not have their validity reduced.
-        if (IsWitnessEnabled(pindexIter->pprev, params.GetConsensus()) && !(pindexIter->nStatus & BLOCK_OPT_WITNESS) && !chainActive.Contains(pindexIter)) {
+        if (!(pindexIter->nStatus & BLOCK_OPT_WITNESS) && !chainActive.Contains(pindexIter)) {
             // Reduce validity
             pindexIter->nStatus = std::min<unsigned int>(pindexIter->nStatus & BLOCK_VALID_MASK, BLOCK_VALID_TREE) | (pindexIter->nStatus & ~BLOCK_VALID_MASK);
             // Remove have-data flags.

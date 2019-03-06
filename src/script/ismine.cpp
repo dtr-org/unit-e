@@ -116,8 +116,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         if (sigversion == IsMineSigVersion::TOP && !keystore.HaveCScript(CScriptID(CScript() << OP_0 << vSolutions[0]))) {
             // We do not support bare witness outputs unless the P2SH version of it would be
-            // acceptable as well. This protects against matching before segwit activates.
-            // This also applies to the P2WSH case.
+            // acceptable as well. This also applies to the P2WSH case.
             break;
         }
         ret = IsMineInner(keystore, GetScriptForDestination(CKeyID(uint160(vSolutions[0]))), IsMineSigVersion::WITNESS_V0, is_mine_info);
