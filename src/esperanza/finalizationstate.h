@@ -231,7 +231,7 @@ class FinalizationState : public FinalizationStateData {
 
   Vote GetRecommendedVote(const uint160 &validatorAddress) const;
 
-  std::vector<Validator> GetValidators() const;
+  std::vector<Validator> GetActiveFinalizers() const;
   const Validator *GetValidator(const uint160 &validatorAddress) const;
 
   //! \brief Returns the finalization state for the given block.

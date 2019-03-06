@@ -894,7 +894,7 @@ blockchain::Height FinalizationState::GetEpochCheckpointHeight(uint32_t epoch) c
   return GetEpochStartHeight(epoch + 1) - 1;
 }
 
-std::vector<Validator> FinalizationState::GetValidators() const {
+std::vector<Validator> FinalizationState::GetActiveFinalizers() const {
   std::vector<Validator> res;
   for (const auto &it : m_validators) {
     if (IsInDynasty(it.second, m_currentDynasty)) {
