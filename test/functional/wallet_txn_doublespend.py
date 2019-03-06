@@ -25,6 +25,7 @@ def create_and_sign_tx(node, inputs, outputs):
 class TxnMallTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
+        self.extra_args = [['-maxtipage=1000000000']] * self.num_nodes
 
     def add_options(self, parser):
         parser.add_option("--mineblock", dest="mine_block", default=False, action="store_true",
