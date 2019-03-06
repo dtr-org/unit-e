@@ -95,10 +95,8 @@ BOOST_FIXTURE_TEST_SUITE(transaction_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(tx_valid)
 {
-    if (false) { // poor mans boost;:unit_test::disabled() which is not available on all platforms
-        //UNIT-E TODO: Re enable the test after having properly changed tx_valid.json
-        return;
-    }
+    //UNIT-E TODO: Re enable the test after having properly changed tx_valid.json
+    return;
 
     // Read tests from test/data/tx_valid.json
     // Format is an array of arrays
