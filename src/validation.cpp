@@ -959,7 +959,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                             maxDescendantsToVisit));
             }
 
-            for (unsigned int j = 0; j < tx.vin.size(); j++)
+            for (std::size_t j = 0; j < tx.vin.size(); j++)
             {
                 // We don't want to accept replacements that require low
                 // feerate junk to be mined first. Ideally we'd keep track of
@@ -1538,7 +1538,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 return true;
             }
 
-            for (unsigned int i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
+            for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
                 const COutPoint &prevout = tx.vin[i].prevout;
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
@@ -1727,8 +1727,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         CTxUndo &txundo = blockUndo.vtxundo[i];
 
         if (txundo.vprevout.size() + (tx.IsCoinBase() ? 1 : 0) != tx.vin.size()) {
-            LogPrintf("inconsistent undo data: coinbase=%s, prevout=%d, vin=%d\n",
-                tx.IsCoinBase() ? "yes" : "no", txundo.vprevout.size(), tx.vin.size());
             error("DisconnectBlock(): transaction and undo data inconsistent");
             return DISCONNECT_FAILED;
         }
@@ -2101,7 +2099,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (!tx.IsCoinBase()) {
           nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
           if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
-            LogPrintf("too many sigops:  txid=%s  cost=%d\n", tx.GetHash().GetHex(), nSigOpsCost);
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
           }
@@ -3230,7 +3227,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // First transaction must be coinbase, the rest must not be
     if (block.vtx.empty() || !block.vtx[0]->IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "first tx is not coinbase");
-    for (unsigned int i = 1; i < block.vtx.size(); i++)
+    for (std::size_t i = 1; i < block.vtx.size(); i++)
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
@@ -3275,7 +3272,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         nSigOps += GetLegacySigOpCount(*tx);
     }
     if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST) {
-        LogPrintf("too many block sigops:  block=%s  cost=%d\n", block.GetHash().GetHex(), nSigOps * WITNESS_SCALE_FACTOR);
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
     }
 
