@@ -707,7 +707,7 @@ void CWallet::AddToSpends(const uint256& wtxid)
     CWalletTx& thisTx = it->second;
 
     // Skip meta input
-    for (int i = thisTx.IsCoinBase() ? 1 : 0; i < thisTx.tx->vin.size(); ++i) {
+    for (std::size_t i = thisTx.IsCoinBase() ? 1 : 0; i < thisTx.tx->vin.size(); ++i) {
         const CTxIn& txin = thisTx.tx->vin[i];
         AddToSpends(txin.prevout, wtxid);
     }
