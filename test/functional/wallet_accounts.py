@@ -13,24 +13,32 @@ RPCs tested are:
     - move (with account arguments)
 """
 
-from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.util import assert_equal, assert_greater_than_or_equal, sync_mempools, sync_blocks
+
+import time
 
 class WalletAccountsTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 1
-        self.extra_args = [[]]
+        self.num_nodes = 2
+        self.extra_args = [[], []]
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[1])
+
         node = self.nodes[0]
-        # Check that there's no UTXO on any of the nodes
+        # Check that there's just the initial stake
         assert_equal(len(node.listunspent()), 0)
 
-        # Note each time we call generate, all generated coins go into
-        # the same address, so we call twice to get two addresses w/50 each
-        node.generate(1)
-        node.generate(101)
+        # Leave IBD
+        self.nodes[1].generate(1)
+        self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 50)
+        self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 50)
+        self.nodes[1].generate(1)
+        self.sync_all()
+
+        # The first node now has two addresses w/50 each
         assert_equal(node.getbalance(), 100)
 
         # there should be 2 address groups
@@ -42,7 +50,7 @@ class WalletAccountsTest(UnitETestFramework):
         linked_addresses = set()
         for address_group in address_groups:
             assert_equal(len(address_group), 1)
-            assert_equal(len(address_group[0]), 2)
+            assert_greater_than_or_equal(len(address_group[0]), 2)
             assert_equal(address_group[0][1], 50)
             linked_addresses.add(address_group[0][0])
 
@@ -66,12 +74,15 @@ class WalletAccountsTest(UnitETestFramework):
         assert_equal(set([a[0] for a in address_groups[0]]), linked_addresses)
         assert_equal([a[1] for a in address_groups[0]], [0, 0])
 
-        node.generate(1)
+        sync_mempools(self.nodes)
+        for i in range(10):
+            self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress('', 'legacy'), 50)
+            self.nodes[1].generate(1)
+        sync_blocks(self.nodes)
 
         # we want to reset so that the "" account has what's expected.
         # otherwise we're off by exactly the fee amount as that's mined
         # and matures in the next 100 blocks
-        node.sendfrom("", common_address, fee)
         amount_to_send = 1.0
 
         # Create accounts and make sure subsequent account API calls
@@ -90,6 +101,7 @@ class WalletAccountsTest(UnitETestFramework):
 
         # Check the amounts received.
         node.generate(1)
+
         for account in accounts:
             assert_equal(
                 node.getreceivedbyaddress(account.addresses[0]), amount_to_send)
@@ -99,19 +111,23 @@ class WalletAccountsTest(UnitETestFramework):
         for i, account in enumerate(accounts):
             to_account = accounts[(i+1) % len(accounts)]
             node.sendfrom(account.name, to_account.receive_address, amount_to_send)
+
         node.generate(1)
+
         for account in accounts:
             account.add_receive_address(node.getaccountaddress(account.name))
             account.verify(node)
             assert_equal(node.getreceivedbyaccount(account.name), 2)
             node.move(account.name, "", node.getbalance(account.name))
             account.verify(node)
-        node.generate(101)
-        expected_account_balances = {"": 5200}
+
+        node.generate(COINBASE_MATURITY)
+
+        expected_account_balances = {"": 600}
         for account in accounts:
             expected_account_balances[account.name] = 0
         assert_equal(node.listaccounts(), expected_account_balances)
-        assert_equal(node.getbalance(""), 5200)
+        assert_equal(node.getbalance(""), 600 + COINBASE_MATURITY * 50)
 
         # Check that setaccount can assign an account to a new unused address.
         for account in accounts:
