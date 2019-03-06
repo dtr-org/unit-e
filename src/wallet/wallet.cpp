@@ -1547,14 +1547,12 @@ CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, con
     CAmount nCredit = 0;
     for (std::size_t i = 0; i < wtx.tx->vout.size(); ++i) {
         const CTxOut& txout = wtx.tx->vout[i];
-        if (balance_filter == +BalanceType::MATURE) {
-            if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() > 0) {
-              continue;
-            }
-        } else if (balance_filter == +BalanceType::IMMATURE) {
-            if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() == 0) {
-              continue;
-            }
+
+        bool is_immature = wtx.IsCoinBase() && i == 0 &&wtx.GetBlocksToRewardMaturity() > 0;
+        if (balance_filter == +BalanceType::MATURE && is_immature) {
+            continue;
+        } else if (balance_filter == +BalanceType::IMMATURE && !is_immature) {
+            continue;
         }
         nCredit += GetCredit(txout, filter);
         if (!MoneyRange(nCredit)) {
@@ -1953,7 +1951,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
     CAmount credit = 0;
     if (filter & ISMINE_SPENDABLE) {
         // GetBalance can assume transactions in mapWallet won't change
-        if (fCreditCached && !IsCoinBase()) {
+        if (fCreditCached) {
             credit += nCreditCached;
         } else if (GetBlocksToRewardMaturity() > 0) {
             credit += pwallet->GetMatureCredit(*this, ISMINE_SPENDABLE);
@@ -1964,7 +1962,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
         }
     }
     if (filter & ISMINE_WATCH_ONLY) {
-        if (fWatchCreditCached && !IsCoinBase()) {
+        if (fWatchCreditCached) {
             credit += nWatchCreditCached;
         } else if (GetBlocksToRewardMaturity() > 0) {
             credit += pwallet->GetMatureCredit(*this, ISMINE_WATCH_ONLY);
@@ -2294,7 +2292,11 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
         // treat change outputs specially, as part of the amount debited.
         CAmount debit = wtx.GetDebit(filter);
         const bool outgoing = debit > 0;
-        for (std::size_t i = 0; i < wtx.tx->vout.size(); ++i) {
+        std::size_t start_index = 0;
+        if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity() > 0) {
+          start_index = 1;
+        }
+        for (std::size_t i = start_index; i < wtx.tx->vout.size(); ++i) {
             const CTxOut& out = wtx.tx->vout[i];
             if (outgoing && IsChange(out) && !wtx.tx->IsCoinBase()) {
                 debit -= out.nValue;
