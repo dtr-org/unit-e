@@ -73,13 +73,15 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
 
         finalizer1.importmasterkey(regtest_mnemonics[0]['mnemonics'])
         finalizer2.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        node.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        fork.importmasterkey(regtest_mnemonics[2]['mnemonics'])
 
         connect_nodes(node, fork.index)
         connect_nodes(node, finalizer1.index)
         connect_nodes(node, finalizer2.index)
 
         # leave IBD
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork, finalizer1])
 
         # create deposit
@@ -90,11 +92,11 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         txid2 = finalizer2.deposit(payto, 10000)
         assert_equal(txid1, txid2)
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         disconnect_nodes(node, finalizer1.index)
 
         # leave instant justification
-        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress())
+        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork])
         assert_equal(node.getblockcount(), 29)
         check_finalization(node, {'currentDynasty': 3,
@@ -109,10 +111,10 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #    |                J
         #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
         disconnect_nodes(node, fork.index)
-        fork.generatetoaddress(5 + 5 + 1, fork.getnewaddress())
+        fork.generatetoaddress(5 + 5 + 1, fork.getnewaddress('', 'bech32'))
         connect_nodes(fork, finalizer2.index)
         wait_until(lambda: len(fork.getrawmempool()) > 0, timeout=10)
-        fork.generatetoaddress(1, fork.getnewaddress())
+        fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
         disconnect_nodes(fork, finalizer2.index)
         assert_equal(fork.getblockcount(), 41)
         check_finalization(fork, {'currentDynasty': 4,
@@ -128,9 +130,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
         connect_nodes(node, finalizer1.index)
 
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 34)
         check_finalization(node, {'currentDynasty': 4,
                                   'currentEpoch': 6,
@@ -142,9 +144,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #    |
         #    |                J
         #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 39)
         check_finalization(node, {'currentDynasty': 5,
                                   'currentEpoch': 7,
@@ -194,13 +196,15 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
 
         finalizer1.importmasterkey(regtest_mnemonics[0]['mnemonics'])
         finalizer2.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        node.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        fork.importmasterkey(regtest_mnemonics[2]['mnemonics'])
 
         connect_nodes(node, fork.index)
         connect_nodes(node, finalizer1.index)
         connect_nodes(node, finalizer2.index)
 
         # leave IBD
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork, finalizer1])
 
         # create deposit
@@ -211,13 +215,13 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         txid2 = finalizer2.deposit(payto, 10000)
         assert_equal(txid1, txid2)
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         disconnect_nodes(node, finalizer1.index)
 
         # leave instant justification
         #   F        F        F        F        J
         # [ e0 ] - [ e1 ] - [ e2 ] - [ e3 ] - [ e4 ] - [ e5 ]
-        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress())
+        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork])
         assert_equal(node.getblockcount(), 29)
         check_finalization(node, {'currentDynasty': 3,
@@ -230,9 +234,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #       F        J
         # ... [ e4 ] - [ e5 ] - [ e6 ] node, fork
         connect_nodes(node, finalizer1.index)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork])
         assert_equal(node.getblockcount(), 34)
         check_finalization(node, {'currentDynasty': 4,
@@ -247,7 +251,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #                          |
         #                         .. ] - [ e7 ] - [ e8 ] fork
         disconnect_nodes(node, fork.index)
-        fork.generatetoaddress(5 + 5, fork.getnewaddress())
+        fork.generatetoaddress(5 + 5, fork.getnewaddress('', 'bech32'))
         assert_equal(fork.getblockcount(), 44)
         check_finalization(fork, {'currentDynasty': 5,
                                   'currentEpoch': 8,
@@ -261,9 +265,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #                          |                J
         #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
         connect_nodes(fork, finalizer2.index)
-        fork.generatetoaddress(1, fork.getnewaddress())
+        fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
         wait_until(lambda: len(fork.getrawmempool()) > 0, timeout=10)
-        fork.generatetoaddress(4, fork.getnewaddress())
+        fork.generatetoaddress(4, fork.getnewaddress('', 'bech32'))
         assert_equal(fork.getblockcount(), 49)
         check_finalization(fork, {'currentDynasty': 5,
                                   'currentEpoch': 9,
@@ -277,9 +281,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #                          |
         #                          |                J
         #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 36)
         check_finalization(node, {'currentDynasty': 5,
                                   'currentEpoch': 7,
