@@ -68,9 +68,9 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
 
     def run_test(self):
         def create_justification(fork, finalizer, after_blocks):
-            fork.generatetoaddress(after_blocks - 1, fork.getnewaddress())
+            fork.generatetoaddress(after_blocks - 1, fork.getnewaddress('', 'bech32'))
             self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork)
-            fork.generatetoaddress(1, fork.getnewaddress())
+            fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
             assert_equal(len(fork.getrawmempool()), 0)
 
         def sync_node_to_fork(node, fork):
@@ -99,6 +99,8 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         node.importmasterkey(regtest_mnemonics[0]['mnemonics'])
         finalizer1.importmasterkey(regtest_mnemonics[1]['mnemonics'])
         finalizer2.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        fork1.importmasterkey(regtest_mnemonics[2]['mnemonics'])
+        fork2.importmasterkey(regtest_mnemonics[2]['mnemonics'])
 
         # create network topology
         connect_nodes(node, fork1.index)
@@ -107,7 +109,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         connect_nodes(finalizer2, fork2.index)
 
         # leave IBD
-        node.generatetoaddress(2, node.getnewaddress())
+        node.generatetoaddress(2, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork1, fork2, finalizer1, finalizer2])
 
         payto = finalizer1.getnewaddress('', 'legacy')
@@ -123,7 +125,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
 
         self.wait_for_transaction(txid1, timeout=150)
 
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork1, fork2])
 
         disconnect_nodes(node, fork1.index)
@@ -137,7 +139,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 node
         #                            \
         #                             fork2
-        node.generatetoaddress(26, node.getnewaddress())
+        node.generatetoaddress(26, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 29)
         check_finalization(node, {'currentDynasty': 3,
                                   'currentEpoch': 5,
@@ -293,7 +295,7 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
                                    'lastJustifiedEpoch': 10,
                                    'lastFinalizedEpoch': 9})
 
-        fork2.generatetoaddress(3, fork2.getnewaddress())
+        fork2.generatetoaddress(3, fork2.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 61)
         check_finalization(fork2, {'currentDynasty': 6,
                                    'currentEpoch': 12,
