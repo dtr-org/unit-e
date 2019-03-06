@@ -209,7 +209,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
     return true;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
+bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, int nSpendHeight, CAmount& txfee)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -245,10 +245,21 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         // The reward output is by definition in the zeroth output. The reward
         // consists of newly minted money (the block reward) and the fees accumulated
         // from the transactions.
+        if (tx.vout.empty()) {
+          return state.DoS(100, false, REJECT_INVALID, "bad-cb-no-reward", false,
+                           strprintf("coinbase without a reward txout"));
+        }
         const CTxOut &reward_out = tx.vout[0];
         const CAmount reward = reward_out.nValue;
-        if (nValueIn + reward != value_out) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-burns-stake", false,
+        if (nValueIn + reward < value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-much", false,
+                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
+                                       FormatMoney(nValueIn),
+                                       FormatMoney(reward),
+                                       FormatMoney(value_out)));
+        }
+        if (nValueIn + reward > value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-little", false,
                              strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
                                        FormatMoney(nValueIn),
                                        FormatMoney(reward),
