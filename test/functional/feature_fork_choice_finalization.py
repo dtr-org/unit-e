@@ -19,7 +19,6 @@ from test_framework.util import (
     wait_until,
     JSONRPCException,
 )
-from test_framework.regtest_mnemonics import regtest_mnemonics
 
 
 class ForkChoiceFinalizationTest(UnitETestFramework):
@@ -75,15 +74,14 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         node2 = self.nodes[2]
         validator = self.nodes[3]
 
-        node0.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        validator.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.setup_stake_coins(node0, node1, node2, validator)
 
         connect_nodes(node0, node1.index)
         connect_nodes(node0, node2.index)
         connect_nodes(node0, validator.index)
 
         # leave IBD
-        node0.generatetoaddress(1, node0.getnewaddress())
+        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
         sync_blocks([node0, node1, node2, validator])
 
         payto = validator.getnewaddress('', 'legacy')
@@ -97,7 +95,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
 
         # 0 ... 4 ... 9 ... 14 ... 19 ... 24 ... 29 - 30
         #       F     F     F      J                  tip
-        node0.generatetoaddress(29, node0.getnewaddress())
+        node0.generatetoaddress(29, node0.getnewaddress('', 'bech32'))
         assert_equal(node0.getblockcount(), 30)
         check_finalization(node0, {'currentDynasty': 4,
                                    'currentEpoch': 6,
@@ -115,7 +113,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         # 30 node1
         #   \
         #    - b31 node0, node2
-        b31 = node2.generatetoaddress(1, node2.getnewaddress())[-1]
+        b31 = node2.generatetoaddress(1, node2.getnewaddress('', 'bech32'))[-1]
         connect_sync_disconnect(node0, node2, b31)
         assert_equal(node0.getblockcount(), 31)
 
@@ -128,7 +126,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         connect_nodes(node1, validator.index)
         sync_blocks([node1, validator])
         wait_until(lambda: len(node1.getrawmempool()) > 0, timeout=150)
-        b32 = node1.generatetoaddress(2, node1.getnewaddress())[-1]
+        b32 = node1.generatetoaddress(2, node1.getnewaddress('', 'bech32'))[-1]
         sync_blocks([node1, validator])
         disconnect_nodes(node1, validator.index)
         connect_sync_disconnect(node0, node1, b32)
@@ -140,7 +138,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         # 30
         #   \
         #    - 31 - 32 - 33 - b34
-        b34 = node2.generatetoaddress(3, node2.getnewaddress())[-1]
+        b34 = node2.generatetoaddress(3, node2.getnewaddress('', 'bech32'))[-1]
         assert_equal(node2.getblockcount(), 34)
         assert_equal(node0.getblockcount(), 32)
         connect_nodes(node0, node2.index)
@@ -164,22 +162,23 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         fork3 = self.nodes[6]
         finalizer = self.nodes[7]
 
+        self.setup_stake_coins(fork1, fork2, fork3, finalizer)
+
         connect_nodes(fork1, fork2.index)
         connect_nodes(fork1, fork3.index)
         connect_nodes(fork1, finalizer.index)
 
         # leave IBD
-        fork1.generatetoaddress(1, fork1.getnewaddress())
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         sync_blocks([fork1, fork2, finalizer])
 
         # add deposit
-        finalizer.importmasterkey(regtest_mnemonics[0]['mnemonics'])
         payto = finalizer.getnewaddress('', 'legacy')
         txid = finalizer.deposit(payto, 10000)
         wait_until(lambda: self.have_tx_in_mempool([fork1, fork2], txid))
 
         # leave instant justification
-        fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, fork1.getnewaddress())
+        fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 25)
         check_finalization(fork1, {'currentDynasty': 3,
                                    'currentEpoch': 5,
@@ -188,7 +187,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
                                    'validators': 1})
 
         wait_until(lambda: len(fork1.getrawmempool()) == 1, timeout=10)
-        fork1.generatetoaddress(4, fork1.getnewaddress())
+        fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 29)
         check_finalization(fork1, {'currentDynasty': 3,
                                    'currentEpoch': 5,
@@ -198,9 +197,9 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         # justify epoch=5
         # J
         # e5 - e6 fork1, fork2, fork3
-        fork1.generatetoaddress(1, fork1.getnewaddress())
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         wait_until(lambda: len(fork1.getrawmempool()) == 1, timeout=10)
-        fork1.generatetoaddress(4, fork1.getnewaddress())
+        fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 34)
         check_finalization(fork1, {'currentDynasty': 4,
                                    'currentEpoch': 6,
@@ -215,7 +214,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         #                        - 36, 37] fork2
         sync_blocks([fork1, fork3])
         disconnect_nodes(fork1, fork3.index)
-        fork1.generatetoaddress(1, fork1.getnewaddress())
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         sync_blocks([fork1, fork2])
 
         for fork in [fork1, fork2]:
@@ -230,14 +229,14 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         vote = fork1.getrawtransaction(fork1.getrawmempool()[0])
 
         for fork in [fork1, fork2]:
-            fork.generatetoaddress(1, fork.getnewaddress())
+            fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
             assert_equal(fork.getblockcount(), 36)
             check_finalization(fork, {'currentDynasty': 5,
                                       'currentEpoch': 7,
                                       'lastJustifiedEpoch': 6,
                                       'lastFinalizedEpoch': 5})
 
-        b37 = fork2.generatetoaddress(1, fork2.getnewaddress())[0]
+        b37 = fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))[0]
 
         # test that fork1 switches to the heaviest fork
         #             fork3
@@ -264,10 +263,10 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         #                       \
         #                        - 36, 37] fork2, fork1
         assert_equal(fork3.getblockcount(), 34)
-        fork3.generatetoaddress(4, fork3.getnewaddress())
+        fork3.generatetoaddress(4, fork3.getnewaddress('', 'bech32'))
         fork3.sendrawtransaction(vote)
         wait_until(lambda: len(fork3.getrawmempool()) == 1, timeout=10)
-        b39 = fork3.generatetoaddress(1, fork3.getnewaddress())[0]
+        b39 = fork3.generatetoaddress(1, fork3.getnewaddress('', 'bech32'))[0]
         assert_equal(fork3.getblockcount(), 39)
 
         connect_nodes(fork1, fork3.index)
