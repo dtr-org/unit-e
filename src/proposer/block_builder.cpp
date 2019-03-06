@@ -119,9 +119,9 @@ class BlockBuilderImpl : public BlockBuilder {
     // then there is no reward at all. The reward output will nevertheless
     // be added with an amount of zero.
     const CScript reward_script = m_settings->reward_destination && reward > 0
-        ? GetScriptForDestination(*m_settings->reward_destination)
-        : eligible_coin.utxo.script_pubkey;
-      tx.vout.emplace_back(reward, reward_script);
+                                      ? GetScriptForDestination(*m_settings->reward_destination)
+                                      : eligible_coin.utxo.script_pubkey;
+    tx.vout.emplace_back(reward, reward_script);
 
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && combined_total > threshold) {

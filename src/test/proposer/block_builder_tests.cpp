@@ -207,7 +207,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
   };
 
   // eligible_coin.amount=100, threshold=10, reward=50 -> 10x10 (reward is separate)
-  split_amount_test(10, 11); // 10 + 1
+  split_amount_test(10, 11);  // 10 + 1
 
   // no piece bigger than 70
   split_amount_test(70, 3);
