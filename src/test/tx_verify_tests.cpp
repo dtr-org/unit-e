@@ -13,7 +13,7 @@
 
 #include <algorithm>
 
-BOOST_FIXTURE_TEST_SUITE(tx_verify_tests, ReducedTestingSetup)
+BOOST_AUTO_TEST_SUITE(tx_verify_tests)
 
 BOOST_AUTO_TEST_CASE(check_tx_inputs_no_haz_coins) {
 
