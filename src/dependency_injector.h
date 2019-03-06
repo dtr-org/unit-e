@@ -139,39 +139,82 @@ struct Invoker<> {
   }();                                                               \
   Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }
 
-class InjectionError {
+class InjectionError : public std::exception {
  public:
-  virtual std::string ErrorMessage() const = 0;
-  virtual ~InjectionError() = default;
+  ~InjectionError() override = default;
 };
 
 class UnregisteredDependenciesError : public InjectionError {
+ private:
+  mutable std::string m_error_message;
+
  public:
   std::vector<std::pair<std::string, std::type_index>> m_missingDependencies;
   explicit UnregisteredDependenciesError(
       std::vector<std::pair<std::string, std::type_index>>
           &&missingDependencies)
       : m_missingDependencies(std::move(missingDependencies)){};
-  std::string ErrorMessage() const override {
-    std::ostringstream s;
-    for (const auto &missingDependency : m_missingDependencies) {
-      tfm::format(s, "%s requires %s, but that is not a known component\n",
-                  missingDependency.first, missingDependency.second.name());
+  const char *what() const noexcept override {
+    if (m_error_message.empty()) {
+      std::ostringstream s;
+      for (const auto &missingDependency : m_missingDependencies) {
+        tfm::format(s, "%s requires %s, but that is not a known component\n",
+                    missingDependency.first, missingDependency.second.name());
+      }
+      m_error_message = s.str();
     }
-    return s.str();
+    return m_error_message.c_str();
   }
 };
 
 class CircularDependenciesError : public InjectionError {
-  std::string ErrorMessage() const override {
+  const char *what() const noexcept override {
     return "circular dependencies detected";
   }
 };
 
 class AlreadyInitializedError : public InjectionError {
-  std::string ErrorMessage() const override {
+  const char *what() const noexcept override {
     return "injector is already initialized (an attempt was made to re-initialize it)";
   }
+};
+
+struct ComponentError {
+  std::type_index component;
+  std::string what;
+  ComponentError(const std::type_index &component, const char *what)
+      : component(component), what(what) {}
+};
+
+class DependencyInitializationError : public InjectionError {
+ private:
+  std::type_index m_component;
+  std::string m_error_message;
+
+ public:
+  DependencyInitializationError(const std::type_index &component, const char *what)
+      : m_component(component), m_error_message(what) {}
+
+  const char *what() const noexcept override {
+    return m_error_message.c_str();
+  }
+};
+
+class StoppingComponentsError : public InjectionError {
+ private:
+  std::vector<ComponentError> m_errors;
+  mutable std::string m_error_message;
+
+ public:
+  explicit StoppingComponentsError(std::vector<ComponentError> &&errors)
+      : m_errors(std::move(errors)) {}
+  const char *what() const noexcept override {
+    if (m_error_message.empty()) {
+      m_error_message = tfm::format("Failed to stop %d components.", m_errors.size());
+    }
+    return m_error_message.c_str();
+  }
+  const std::vector<ComponentError> &GetErrors() { return m_errors; }
 };
 
 template <typename I>
@@ -179,6 +222,7 @@ class Injector {
 
  private:
   std::atomic_flag m_initialized = ATOMIC_FLAG_INIT;
+  std::atomic_flag m_stopped = ATOMIC_FLAG_INIT;
 
  protected:
   // `I` is not available in derived classes, a using declaration makes it
@@ -199,6 +243,8 @@ class Injector {
     Method m_initializer;
     //! \brief function pointer that knows how to delete the component.
     Method m_deleter;
+    //! \brief function pointer that knows how to stop the component.
+    Method m_stopper;
     void *m_instance = nullptr;
   };
 
@@ -225,6 +271,28 @@ class Injector {
   };
 
   template <typename T>
+  struct Stopper {
+
+   private:
+    template <typename U>
+    static void StopInternal(typename std::enable_if<std::is_same<void,
+                                                                  decltype(static_cast<U *>(nullptr)->Stop())>::value,
+                                                     I>::type *injector) {
+      std::type_index type_index(typeid(U));
+      U *i = static_cast<U *>(injector->m_components[type_index].m_instance);
+      i->Stop();
+    }
+
+    template <typename U>
+    static void StopInternal(void *) {}
+
+   public:
+    static void Stop(I *injector) {
+      StopInternal<T>(injector);
+    }
+  };
+
+  template <typename T>
   struct Registrator {
     template <typename... Deps>
     static Dependency<T> Register(I *injector, const std::string &name,
@@ -234,6 +302,7 @@ class Injector {
       component.m_name = name;
       component.m_dependencies = InjectorUtil::TypeInfo<Deps...>();
       component.m_initializer = init;
+      component.m_stopper = &Stopper<T>::Stop;
       component.m_deleter = &Deleter<T>::Delete;
       injector->m_components[typeIndex] = std::move(component);
       return nullptr;
@@ -270,30 +339,11 @@ class Injector {
     };
   };
 
-  virtual ~Injector() {
-    if (!m_initialized.test_and_set()) {
-      // nothing to be done, was never initialized.
-      return;
-    }
-    for (const std::type_index &componentType : m_destructionOrder) {
-      if (m_components[componentType].m_deleter) {
-        m_components[componentType].m_deleter(static_cast<I *>(this));
-      }
-    }
-  };
-
- private:
-  void InitializeDependency(const std::type_index &componentType) {
-    Component &component = m_components[componentType];
-    try {
-      component.m_initializer(static_cast<I *>(this));
-    } catch (...) {
-      throw std::runtime_error(
-          tfm::format("error initializing dependency %s of type %s",
-                      component.m_name, componentType.name()));
-    }
+  Injector() {
+    m_stopped.test_and_set();
   }
 
+ private:
   void CheckDependencies() const {
     std::vector<std::pair<std::string, std::type_index>> missingComponents;
     for (const auto &component : m_components) {
@@ -344,11 +394,55 @@ class Injector {
     std::vector<std::type_index> initializationOrder =
         DetermineInitializationOrder();
     for (const std::type_index &componentType : initializationOrder) {
-      InitializeDependency(componentType);
+      Component &component = m_components[componentType];
+      try {
+        component.m_initializer(static_cast<I *>(this));
+      } catch (std::exception &err) {
+        throw DependencyInitializationError(componentType, err.what());
+      }
     }
     std::reverse(initializationOrder.begin(), initializationOrder.end());
     m_destructionOrder = std::move(initializationOrder);
+    m_stopped.clear();
   }
+
+  void Stop() {
+    if (m_stopped.test_and_set()) {
+      // already stopped
+      return;
+    }
+    std::vector<ComponentError> errors;
+    for (const std::type_index &component_type : m_destructionOrder) {
+      if (m_components[component_type].m_stopper) {
+        try {
+          m_components[component_type].m_stopper(static_cast<I *>(this));
+        } catch (std::exception &err) {
+          errors.emplace_back(component_type, err.what());
+        }
+      }
+    }
+    if (!errors.empty()) {
+      throw StoppingComponentsError(std::move(errors));
+    }
+  }
+
+ protected:
+  virtual ~Injector() {
+    if (!m_initialized.test_and_set()) {
+      // nothing to be done, was never initialized.
+      return;
+    }
+    try {
+      Stop();
+    } catch (StoppingComponentsError &) {
+      // see https://stackoverflow.com/a/130123/471478
+    }
+    for (const std::type_index &componentType : m_destructionOrder) {
+      if (m_components[componentType].m_deleter) {
+        m_components[componentType].m_deleter(static_cast<I *>(this));
+      }
+    }
+  };
 };
 
 #endif  // UNIT_E_DEPENDENCY_INJECTOR_H

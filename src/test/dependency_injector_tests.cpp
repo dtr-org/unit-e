@@ -143,6 +143,7 @@ struct C {
     this->a->log->push_back("C");
   }
   ~C() { this->a->log->push_back("~C"); }
+  void Stop() { this->a->log->push_back("C::Stop()"); }
   static std::unique_ptr<C> Make(Dependency<A> a, Dependency<B> b) {
     return MakeUnique<C>(a, b);
   }
@@ -347,7 +348,7 @@ BOOST_AUTO_TEST_CASE(initialization_and_destruction_order) {
     inj.Initialize();
     log = inj.Get<InjTestNS::A>()->log;
   }
-  BOOST_CHECK_EQUAL(vec2str(*log), "A;B;C;D;~D;~C;~B;~A;");
+  BOOST_CHECK_EQUAL(vec2str(*log), "A;B;C;D;C::Stop();~D;~C;~B;~A;");
 }
 
 BOOST_AUTO_TEST_CASE(incomplete_dependencies) {
