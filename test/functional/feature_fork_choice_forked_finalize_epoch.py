@@ -9,20 +9,20 @@ on another fork
 
 Scenario 1: fork after finalized checkpoint
 Node shouldn't switch to the fork, even if it has longer justified channel
-because epoch=4 is not finalized for that fork
+because epoch=5 is not finalized for that fork
   F        J
-[ e4 ] - [ e5 ] - [ e6 ] node
+[ e5 ] - [ e6 ] - [ e7 ] node
    |
    |                J
-   ..] - [ e5 ] - [ e6 ] - [ e7 ] fork
+   ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
 
 Scenario 2: fork after justified checkpoint
-Node shouldn't switch to the fork because its epoch=4 is not finalized
+Node shouldn't switch to the fork because its epoch=5 is not finalized
       F        F        J
-... [ e3 ] - [ e4 ] - [ e5 ] - [ e6 ] node
+... [ e4 ] - [ e5 ] - [ e6 ] - [ e7 ] node
                          |
                          |                J
-                        .. ] - [ e6 ] - [ e7 ] - [ e8 ] fork
+                        .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
 
 """
 from test_framework.test_framework import UnitETestFramework
@@ -93,53 +93,40 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         disconnect_nodes(node, finalizer1.index)
 
         # leave instant justification
-        node.generatetoaddress(2 + 5 + 5 + 5 + 5, node.getnewaddress())
+        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress())
         sync_blocks([node, fork])
-        assert_equal(node.getblockcount(), 24)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 2)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 3)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 2)
+        assert_equal(node.getblockcount(), 29)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 3)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 5)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 4)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 3)
+        assert_equal(node.getfinalizationstate()['validators'], 1)
 
         # create longer justified fork
-        # [ e4 ] node
+        # [ e5 ] node
         #    |
         #    |                J
-        #    ..] - [ e5 ] - [ e6 ] - [ e7 ] fork
+        #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
         disconnect_nodes(node, fork.index)
         fork.generatetoaddress(5 + 5 + 1, fork.getnewaddress())
         connect_nodes(fork, finalizer2.index)
         wait_until(lambda: len(fork.getrawmempool()) > 0, timeout=10)
         fork.generatetoaddress(1, fork.getnewaddress())
         disconnect_nodes(fork, finalizer2.index)
-        assert_equal(fork.getblockcount(), 36)
+        assert_equal(fork.getblockcount(), 41)
         assert_equal(fork.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork.getfinalizationstate()['currentEpoch'], 7)
-        assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(fork.getfinalizationstate()['currentEpoch'], 8)
+        assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 7)
         assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 3)
 
         # create finalization
         #   J
-        # [ e4 ] - [ e5 ] node
+        # [ e5 ] - [ e6 ] node
         #    |
         #    |                J
-        #    ..] - [ e5 ] - [ e6 ] - [ e7 ] fork
+        #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
         connect_nodes(node, finalizer1.index)
 
-        node.generatetoaddress(1, node.getnewaddress())
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(4, node.getnewaddress())
-        assert_equal(node.getblockcount(), 29)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 3)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 5)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 4)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 3)
-
-        #   F        J
-        # [ e4 ] - [ e5 ] - [ e6 ] node
-        #    |
-        #    |                J
-        #    ..] - [ e5 ] - [ e6 ] - [ e7 ] fork
         node.generatetoaddress(1, node.getnewaddress())
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
         node.generatetoaddress(4, node.getnewaddress())
@@ -148,6 +135,20 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         assert_equal(node.getfinalizationstate()['currentEpoch'], 6)
         assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
         assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
+
+        #   F        J
+        # [ e5 ] - [ e6 ] - [ e7 ] node
+        #    |
+        #    |                J
+        #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
+        node.generatetoaddress(1, node.getnewaddress())
+        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
+        node.generatetoaddress(4, node.getnewaddress())
+        assert_equal(node.getblockcount(), 39)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
         disconnect_nodes(node, finalizer1.index)
 
@@ -155,22 +156,22 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         connect_nodes(node, fork.index)
         time.sleep(5)  # give enough time to decide
 
-        assert_equal(node.getblockcount(), 34)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 6)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
+        assert_equal(node.getblockcount(), 39)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
         # TODO: UNIT-E: check that slash transaction was created
         # related issue: #680 #652 #686
 
         # test that node has valid state after restart
         self.restart_node(node.index)
-        assert_equal(node.getblockcount(), 34)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 6)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
+        assert_equal(node.getblockcount(), 39)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
         # cleanup
         self.stop_node(node.index)
@@ -213,90 +214,97 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         disconnect_nodes(node, finalizer1.index)
 
         # leave instant justification
-        #   F        F        F        J
-        # [ e0 ] - [ e1 ] - [ e2 ] - [ e3 ] - [ e4 ]
-        node.generatetoaddress(2 + 5 + 5 + 5 + 5, node.getnewaddress())
-        sync_blocks([node, fork])
-        assert_equal(node.getblockcount(), 24)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 2)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 3)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 2)
-
-        # justify epoch that will be finalized
-        #       F        J
-        # ... [ e3 ] - [ e4 ] - [ e5 ] node, fork
-        connect_nodes(node, finalizer1.index)
-        node.generatetoaddress(1, node.getnewaddress())
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(4, node.getnewaddress())
+        #   F        F        F        F        J
+        # [ e0 ] - [ e1 ] - [ e2 ] - [ e3 ] - [ e4 ] - [ e5 ]
+        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress())
         sync_blocks([node, fork])
         assert_equal(node.getblockcount(), 29)
         assert_equal(node.getfinalizationstate()['currentDynasty'], 3)
         assert_equal(node.getfinalizationstate()['currentEpoch'], 5)
         assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 4)
         assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 3)
+        assert_equal(node.getfinalizationstate()['validators'], 1)
 
-        # create longer justified fork
+        # justify epoch that will be finalized
         #       F        J
-        # ... [ e3 ] - [ e4 ] - [ e5 ] node
-        #                          |
-        #                          |                J
-        #                         .. ] - [ e6 ] - [ e7 ] - [ e8 ] fork
-        disconnect_nodes(node, fork.index)
-        fork.generatetoaddress(5 + 5, fork.getnewaddress())
-        assert_equal(fork.getblockcount(), 39)
-        assert_equal(fork.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork.getfinalizationstate()['currentEpoch'], 7)
-        assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 4)
-        assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 3)
-
-        connect_nodes(fork, finalizer2.index)
-        fork.generatetoaddress(1, fork.getnewaddress())
-        wait_until(lambda: len(fork.getrawmempool()) > 0, timeout=10)
-        fork.generatetoaddress(4, fork.getnewaddress())
-        assert_equal(fork.getblockcount(), 44)
-        assert_equal(fork.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork.getfinalizationstate()['currentEpoch'], 8)
-        assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 7)
-        assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 3)
-        disconnect_nodes(fork, finalizer2.index)
-
-        # finalize epoch=4 on node
-        #       F        F        J
-        # ... [ e3 ] - [ e4 ] - [ e5 ] - [ e6 ] node
-        #                          |
-        #                          |                J
-        #                         .. ] - [ e6 ] - [ e7 ] - [ e8 ] fork
+        # ... [ e4 ] - [ e5 ] - [ e6 ] node, fork
+        connect_nodes(node, finalizer1.index)
         node.generatetoaddress(1, node.getnewaddress())
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
-        node.generatetoaddress(1, node.getnewaddress())
-        assert_equal(node.getblockcount(), 31)
+        node.generatetoaddress(4, node.getnewaddress())
+        sync_blocks([node, fork])
+        assert_equal(node.getblockcount(), 34)
         assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
         assert_equal(node.getfinalizationstate()['currentEpoch'], 6)
         assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
         assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
+
+        # create fork that will be longer justified
+        #       F        J
+        # ... [ e4 ] - [ e5 ] - [ e6 ] node
+        #                          |
+        #                          |
+        #                         .. ] - [ e7 ] - [ e8 ] fork
+        disconnect_nodes(node, fork.index)
+        fork.generatetoaddress(5 + 5, fork.getnewaddress())
+        assert_equal(fork.getblockcount(), 44)
+        assert_equal(fork.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(fork.getfinalizationstate()['currentEpoch'], 8)
+        assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 4)
+
+        # create longer justification
+        #       F        J
+        # ... [ e4 ] - [ e5 ] - [ e6 ] node
+        #                          |
+        #                          |                J
+        #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
+        connect_nodes(fork, finalizer2.index)
+        fork.generatetoaddress(1, fork.getnewaddress())
+        wait_until(lambda: len(fork.getrawmempool()) > 0, timeout=10)
+        fork.generatetoaddress(4, fork.getnewaddress())
+        assert_equal(fork.getblockcount(), 49)
+        assert_equal(fork.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(fork.getfinalizationstate()['currentEpoch'], 9)
+        assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 8)
+        assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 4)
+        disconnect_nodes(fork, finalizer2.index)
+
+        # finalize epoch=5 on node
+        #       F        F        J
+        # ... [ e4 ] - [ e5 ] - [ e6 ] - [ e7 ] node
+        #                          |
+        #                          |                J
+        #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
+        node.generatetoaddress(1, node.getnewaddress())
+        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
+        node.generatetoaddress(1, node.getnewaddress())
+        assert_equal(node.getblockcount(), 36)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 5)
         disconnect_nodes(node, finalizer1.index)
 
         # node shouldn't switch to fork as it's finalization is behind
         connect_nodes(node, fork.index)
         time.sleep(5)
-        assert_equal(node.getblockcount(), 31)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 6)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
+        assert_equal(node.getblockcount(), 36)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
         # TODO: UNIT-E: check that slash transaction was created
         # related issue: #680 #652 #686
 
         # test that node has valid state after restart
         self.restart_node(node.index)
-        assert_equal(node.getblockcount(), 31)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 6)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
+        assert_equal(node.getblockcount(), 36)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
         # cleanup
         self.stop_node(node.index)

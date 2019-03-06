@@ -66,9 +66,9 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         assert_equal(validator.getvalidatorinfo()["validator_status"], "WAITING_DEPOSIT_FINALIZATION")
 
-        # the validator will be ready to operate in epoch 3
+        # the validator will be ready to operate in epoch 4
         # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
-        for n in range(0, 29):
+        for n in range(0, 39):
             self.generate_block(nodes[(n % 3) + 1])
 
         resp = validator.getvalidatorinfo()

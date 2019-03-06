@@ -177,26 +177,15 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         txid = finalizer.deposit(payto, 10000)
         wait_until(lambda: self.have_tx_in_mempool([fork1, fork2], txid))
 
-        # leave instant finalization
-        fork1.generatetoaddress(3 + 5 + 5 + 5 + 1, fork1.getnewaddress())
-        assert_equal(fork1.getblockcount(), 20)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 2)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 4)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 3)
-        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 2)
+        # leave instant justification
+        fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, fork1.getnewaddress())
+        assert_equal(fork1.getblockcount(), 25)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 3)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 5)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 4)
+        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 3)
+        assert_equal(fork1.getfinalizationstate()['validators'], 1)
 
-        wait_until(lambda: len(fork1.getrawmempool()) == 1, timeout=10)
-        fork1.generatetoaddress(4, fork1.getnewaddress())
-        assert_equal(fork1.getblockcount(), 24)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 2)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 4)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 3)
-        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 2)
-
-        # create justified epoch=4
-        # J
-        # e4 - e5 fork1, fork2, fork3
-        fork1.generatetoaddress(1, fork1.getnewaddress())
         wait_until(lambda: len(fork1.getrawmempool()) == 1, timeout=10)
         fork1.generatetoaddress(4, fork1.getnewaddress())
         assert_equal(fork1.getblockcount(), 29)
@@ -205,12 +194,24 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 4)
         assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 3)
 
+        # justify epoch=5
+        # J
+        # e5 - e6 fork1, fork2, fork3
+        fork1.generatetoaddress(1, fork1.getnewaddress())
+        wait_until(lambda: len(fork1.getrawmempool()) == 1, timeout=10)
+        fork1.generatetoaddress(4, fork1.getnewaddress())
+        assert_equal(fork1.getblockcount(), 34)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 6)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 4)
+
         # create two forks at epoch=6 that use the same votes to justify epoch=5
         #             fork3
         # F     J     |
-        # e4 - e5[.., 29] - e6[30, 31] fork1
+        # e5 - e6[.., 34] - e7[35, 36] fork1
         #                       \
-        #                        - 31, 32] fork2
+        #                        - 36, 37] fork2
         sync_blocks([fork1, fork3])
         disconnect_nodes(fork1, fork3.index)
         fork1.generatetoaddress(1, fork1.getnewaddress())
@@ -218,65 +219,65 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
 
         for fork in [fork1, fork2]:
             wait_until(lambda: len(fork.getrawmempool()) == 1, timeout=10)
-            assert_equal(fork.getblockcount(), 30)
-            assert_equal(fork.getfinalizationstate()['currentDynasty'], 4)
-            assert_equal(fork.getfinalizationstate()['currentEpoch'], 6)
-            assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 4)
-            assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 3)
+            assert_equal(fork.getblockcount(), 35)
+            assert_equal(fork.getfinalizationstate()['currentDynasty'], 5)
+            assert_equal(fork.getfinalizationstate()['currentEpoch'], 7)
+            assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 5)
+            assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         disconnect_nodes(fork1, fork2.index)
         vote = fork1.getrawtransaction(fork1.getrawmempool()[0])
 
         for fork in [fork1, fork2]:
             fork.generatetoaddress(1, fork.getnewaddress())
-            assert_equal(fork.getblockcount(), 31)
-            assert_equal(fork.getfinalizationstate()['currentDynasty'], 4)
-            assert_equal(fork.getfinalizationstate()['currentEpoch'], 6)
-            assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 5)
-            assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 4)
+            assert_equal(fork.getblockcount(), 36)
+            assert_equal(fork.getfinalizationstate()['currentDynasty'], 5)
+            assert_equal(fork.getfinalizationstate()['currentEpoch'], 7)
+            assert_equal(fork.getfinalizationstate()['lastJustifiedEpoch'], 6)
+            assert_equal(fork.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
-        b32 = fork2.generatetoaddress(1, fork2.getnewaddress())[0]
+        b37 = fork2.generatetoaddress(1, fork2.getnewaddress())[0]
 
         # test that fork1 switches to the heaviest fork
         #             fork3
         # F     J     |
-        # e4 - e5[.., 29] - e6[30, 31] fork1
+        # e5 - e6[.., 34] - e7[35, 36] fork1
         #                       \
-        #                        - 31, 32] fork2, fork1
+        #                        - 36, 37] fork2, fork1
         connect_nodes(fork1, fork2.index)
-        fork1.waitforblock(b32)
+        fork1.waitforblock(b37)
 
-        assert_equal(fork1.getblockcount(), 32)
-        assert_equal(fork1.getblockhash(32), b32)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 6)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 5)
-        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 4)
+        assert_equal(fork1.getblockcount(), 37)
+        assert_equal(fork1.getblockhash(37), b37)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
         disconnect_nodes(fork1, fork2.index)
 
         # test that fork1 switches to the heaviest fork
-        #                 - e6[30, 31, 32, 33, 34] fork3, fork1
+        #                 - e7[35, 36, 37, 38, 39] fork3, fork1
         # F     J       /
-        # e4 - e5[.., 29] - e6[30, 31]
+        # e5 - e6[.., 34] - e7[35, 36]
         #                       \
-        #                        - 31, 32] fork2, fork1
-        assert_equal(fork3.getblockcount(), 29)
+        #                        - 36, 37] fork2, fork1
+        assert_equal(fork3.getblockcount(), 34)
         fork3.generatetoaddress(4, fork3.getnewaddress())
         fork3.sendrawtransaction(vote)
         wait_until(lambda: len(fork3.getrawmempool()) == 1, timeout=10)
-        b34 = fork3.generatetoaddress(1, fork3.getnewaddress())[0]
-        assert_equal(fork3.getblockcount(), 34)
+        b39 = fork3.generatetoaddress(1, fork3.getnewaddress())[0]
+        assert_equal(fork3.getblockcount(), 39)
 
         connect_nodes(fork1, fork3.index)
-        fork1.waitforblock(b34)
+        fork1.waitforblock(b39)
 
-        assert_equal(fork1.getblockcount(), 34)
-        assert_equal(fork1.getblockhash(34), b34)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 6)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 5)
-        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 4)
+        assert_equal(fork1.getblockcount(), 39)
+        assert_equal(fork1.getblockhash(39), b39)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 7)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 5)
 
         self.stop_node(fork1.index)
         self.stop_node(fork2.index)

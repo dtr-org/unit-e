@@ -68,10 +68,16 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
   vote = {validatorAddress, targetHash, 1, 2};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
 
-  // e4/d2 - try to vote and succeed
+  // e4/d1 - try to vote but fail because too early
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
                     +Result::SUCCESS);
   vote = {validatorAddress, targetHash, 2, 3};
+  BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
+
+  // e5/d2 - try to vote and succeed
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
+                    +Result::SUCCESS);
+  vote = {validatorAddress, targetHash, 3, 4};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
 }
 

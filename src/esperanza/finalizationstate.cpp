@@ -98,6 +98,9 @@ bool FinalizationState::operator!=(const FinalizationState &other) const {
 
 Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
+
+  IncrementDynasty();
+
   const auto newEpoch = GetEpoch(blockHeight);
 
   if (newEpoch != m_currentEpoch + 1) {
@@ -143,17 +146,13 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
     m_rewardFactor = 0;
   }
 
-  IncrementDynasty();
-
   LogPrint(BCLog::FINALIZATION,
-           "%s: Epoch=%d initialized. The current dynasty=%d.\n",
-           __func__, newEpoch, m_currentDynasty);
-
-  if (m_lastJustifiedEpoch < m_currentEpoch - 1) {
-    LogPrint(BCLog::FINALIZATION,
-             "%s: Epoch=%d was not justified. last_justified_epoch=%d last_finalized_epoch=%d.\n",
-             __func__, m_currentEpoch - 1, m_lastJustifiedEpoch, m_lastFinalizedEpoch);
-  }
+           "%s: new_epoch=%d current_dynasty=%d last_justified_epoch=%d last_finalized_epoch=%d\n",
+           __func__,
+           newEpoch,
+           m_currentDynasty,
+           m_lastJustifiedEpoch,
+           m_lastFinalizedEpoch);
 
   return success();
 }
@@ -176,11 +175,11 @@ void FinalizationState::InstaJustify() {
 }
 
 void FinalizationState::IncrementDynasty() {
-  // finalized epoch is m_currentEpoch - 3 because:
-  // finalized (0) - justified (1) - votes to justify (2) - current epoch (3)
-  // TODO: UNIT-E: remove "m_currentEpoch > 2" when we delete instant finalization
+  // finalized epoch is m_currentEpoch - 2 because:
+  // finalized (0) - justified (1) - votes to justify (2)
+  // TODO: UNIT-E: remove "m_currentEpoch >= 2" when we delete instant finalization
   // and start epoch from 1 #570, #572
-  if (m_currentEpoch > 2 && GetCheckpoint(m_currentEpoch - 3).m_isFinalized) {
+  if (m_currentEpoch >= 2 && GetCheckpoint(m_currentEpoch - 2).m_isFinalized) {
 
     m_currentDynasty += 1;
     m_prevDynDeposits = m_curDynDeposits;
@@ -417,7 +416,7 @@ void FinalizationState::ProcessDeposit(const uint160 &validatorAddress,
                                        CAmount depositValue) {
   LOCK(cs_esperanza);
 
-  uint32_t startDynasty = m_currentDynasty + 2;
+  uint32_t startDynasty = m_currentDynasty + 3;
   uint64_t scaledDeposit = ufp64::div_to_uint(static_cast<uint64_t>(depositValue),
                                               GetDepositScaleFactor(m_currentEpoch));
 
@@ -898,7 +897,9 @@ blockchain::Height FinalizationState::GetEpochCheckpointHeight(uint32_t epoch) c
 std::vector<Validator> FinalizationState::GetValidators() const {
   std::vector<Validator> res;
   for (const auto &it : m_validators) {
-    res.push_back(it.second);
+    if (IsInDynasty(it.second, m_currentDynasty)) {
+      res.push_back(it.second);
+    }
   }
   return res;
 }

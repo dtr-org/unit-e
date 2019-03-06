@@ -66,12 +66,12 @@ def setup_deposit(self, nodes):
         deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx)
 
-    # the validator will be ready to operate in epoch 3
+    # the validator will be ready to operate in epoch 4
     # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
-    for n in range(0, 29):
+    for n in range(0, 39):
         generate_block(nodes[0])
 
-    assert_equal(nodes[0].getblockchaininfo()['blocks'], 30)
+    assert_equal(nodes[0].getblockchaininfo()['blocks'], 40)
 
 
 def generate_block(node):
@@ -124,7 +124,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 8):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 38)
+        assert_equal(p0.getblockchaininfo()['blocks'], 48)
         sync_blocks([p0, p1, v])
 
         # Rearrange connection like p0 -> p1 xxx v so the validator
@@ -148,7 +148,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 10):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 50)
+        assert_equal(p0.getblockchaininfo()['blocks'], 60)
 
         # now we disconnect v again so it will not vote in the epoch just created
         # since that would interfere with the test.
@@ -165,7 +165,7 @@ class ExpiredVoteTest(UnitETestFramework):
         generate_block(p1)
         sync_blocks([p0, p1])
 
-        assert_equal(p1.getblockchaininfo()['blocks'], 51)
+        assert_equal(p1.getblockchaininfo()['blocks'], 61)
 
 
 if __name__ == '__main__':
