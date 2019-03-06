@@ -84,6 +84,8 @@ class WalletImportmasterkeyTest(UnitETestFramework):
         normal_node = self.nodes[3]
         pruned_node = self.nodes[4]
 
+        self.setup_stake_coins(proposer)
+
         # generate a bunch of blocks to allow for pruning
         connect_nodes(proposer, 0)
         connect_nodes(proposer, 1)
