@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.util import (assert_equal, Decimal, hex_str_to_bytes,
-                                 bytes_to_hex_str)
+                                 bytes_to_hex_str, connect_nodes)
 from test_framework.messages import CTransaction, msg_witness_tx, TxType
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin, AdminCommandType
@@ -21,6 +21,9 @@ class TestNode(P2PInterface):
         txid = "%064x" % message.data
         reason = "%s" % message.reason
         self.reject_map[txid] = reason
+
+    def on_inv(self, message):
+        pass
 
 
 def create_tx(cmds, node, txid, vout, address, change_amount):
@@ -63,6 +66,10 @@ class AdminValidation(UnitETestFramework):
             ['-permissioning=1', '-debug=all', '-whitelist=127.0.0.1']
         ]
         self.setup_clean_chain = True
+
+    def setup_network(self):
+        self.setup_nodes()
+        connect_nodes(self.nodes[0], 1)
 
     def send_via_mininode(self, cmds, address):
         funds_tx = self.admin.sendtoaddress(address, Decimal("1"))
