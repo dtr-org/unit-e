@@ -959,7 +959,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                             maxDescendantsToVisit));
             }
 
-            for (unsigned int j = 0; j < tx.vin.size(); j++)
+            for (std::size_t j = 0; j < tx.vin.size(); j++)
             {
                 // We don't want to accept replacements that require low
                 // feerate junk to be mined first. Ideally we'd keep track of
@@ -1431,12 +1431,11 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
 }
 
 void MarkCoinAsSpent(const CTransaction &tx, CCoinsViewCache &inputs, CTxUndo &txundo) {
-    if (tx.IsCoinBase()) {
-        return;
-    }
-
     txundo.vprevout.reserve(tx.vin.size());
-    for (const CTxIn &txin : tx.vin) {
+
+    // We skip undo data for the meta input, this means that the undo data will be off by one
+    for (std::size_t i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); ++i) {
+        const CTxIn &txin = tx.vin[i];
         txundo.vprevout.emplace_back();
         bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
         assert(is_spent);
@@ -1515,8 +1514,6 @@ void InitScriptExecutionCache() {
  */
 bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks)
 {
-    if (!tx.IsCoinBase())
-    {
         if (pvChecks)
             pvChecks->reserve(tx.vin.size());
 
@@ -1541,7 +1538,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 return true;
             }
 
-            for (unsigned int i = 0; i < tx.vin.size(); i++) {
+            for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
                 const COutPoint &prevout = tx.vin[i].prevout;
                 const Coin& coin = inputs.AccessCoin(prevout);
                 assert(!coin.IsSpent());
@@ -1587,7 +1584,6 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                 scriptExecutionCache.insert(hashCacheEntry);
             }
         }
-    }
 
     return true;
 }
@@ -1720,26 +1716,31 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    if (blockUndo.vtxundo.size() + 1 != block.vtx.size()) {
+    if (blockUndo.vtxundo.size() != block.vtx.size()) {
         error("DisconnectBlock(): block and undo data inconsistent");
         return DISCONNECT_FAILED;
     }
 
     // First, restore inputs
-    for (size_t i = 1; i < block.vtx.size(); ++i) {
+    for (size_t i = 0; i < block.vtx.size(); ++i) {
         const CTransaction &tx = *(block.vtx[i]);
-        CTxUndo &txundo = blockUndo.vtxundo[i - 1];
+        CTxUndo &txundo = blockUndo.vtxundo[i];
 
-        if (txundo.vprevout.size() != tx.vin.size()) {
+        if (txundo.vprevout.size() + (tx.IsCoinBase() ? 1 : 0) != tx.vin.size()) {
             error("DisconnectBlock(): transaction and undo data inconsistent");
             return DISCONNECT_FAILED;
         }
 
-        for (size_t j = 0; j < tx.vin.size(); ++j) {
+        for (size_t j = (tx.IsCoinBase() ? 1 : 0); j < tx.vin.size(); ++j) {
             const COutPoint &out = tx.vin[j].prevout;
             const auto res = static_cast<DisconnectResult>(ApplyTxInUndo(
-                std::move(txundo.vprevout[j]), view, out
+                //In case we are retrieving undo data for the coinbase then the data is off by one cause
+                //we didn't save any entry for the meta input
+                std::move(txundo.vprevout[(tx.IsCoinBase() ? j-1 : j)]), view, out
             ));
+            if (res == DISCONNECT_UNCLEAN) {
+                LogPrintf("ERROR: Unclean disconnect of  txid=%s  ix=%d\n", tx.GetHash().GetHex(), j);
+            }
             if (res == DISCONNECT_FAILED) {
                 return DISCONNECT_FAILED;
             }
@@ -2047,7 +2048,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
-    blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    blockundo.vtxundo.reserve(block.vtx.size());
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
 
@@ -2063,18 +2064,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         nInputs += tx.vin.size();
 
         txdata.emplace_back(tx);
-        if (tx.IsCoinBase()) {
-            nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        }
-
         AddCoins(view, tx, pindex->nHeight);
     }
 
     for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
-        if (tx.IsCoinBase()) {
-            continue;
-        }
 
         CAmount txfee = 0;
         if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
@@ -2099,14 +2093,17 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
         nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST)
-            return state.DoS(100, error("ConnectBlock(): too many sigops"),
-                             REJECT_INVALID, "bad-blk-sigops");
+        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+          return state.DoS(100, error("ConnectBlock(): too many sigops"),
+                           REJECT_INVALID, "bad-blk-sigops");
+        }
 
-        nFees += txfee;
-        if (!MoneyRange(nFees)) {
+        if (!tx.IsCoinBase()) {
+          nFees += txfee;
+          if (!MoneyRange(nFees)) {
             return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
                              REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
+          }
         }
 
         // Don't cache results if we're actually connecting blocks (still
@@ -2120,7 +2117,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         control.Add(vChecks);
 
-        blockundo.vtxundo.emplace_back(CTxUndo());
+        blockundo.vtxundo.emplace_back();
         MarkCoinAsSpent(tx, view, blockundo.vtxundo.back());
     }
 
@@ -3227,7 +3224,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // First transaction must be coinbase, the rest must not be
     if (block.vtx.empty() || !block.vtx[0]->IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "first tx is not coinbase");
-    for (unsigned int i = 1; i < block.vtx.size(); i++)
+    for (std::size_t i = 1; i < block.vtx.size(); i++)
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
 
@@ -3271,8 +3268,9 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     {
         nSigOps += GetLegacySigOpCount(*tx);
     }
-    if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
+    if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST) {
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
+    }
 
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;

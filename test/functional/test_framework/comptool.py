@@ -262,7 +262,7 @@ class TestManager():
                         logger.error('Block rejected with %s instead of expected %s: %064x' % (c.block_reject_map[blockhash], outcome, blockhash))
                         return False
                 elif ((c.bestblockhash == blockhash) != outcome):
-                    logger.error('%s was expected to %s %s', c.bestblockhash, "equal" if outcome else "not equal", blockhash)
+                    logger.error('%s was expected to %s %s', hex(c.bestblockhash), "equal" if outcome else "not equal", hex(blockhash))
                     return False
             return True
 
