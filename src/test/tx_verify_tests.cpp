@@ -85,7 +85,10 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_does_not_access_coinbase_meta_input) {
   CAmount fees;
 
   Consensus::CheckTxInputs(tx, validation_state, utxos, 2, fees);
+  // check vin[0] was not tried to be retrieved from coins view
   BOOST_CHECK(std::find(coins_accessed.begin(), coins_accessed.end(), meta_input.prevout) == coins_accessed.end());
+  // check vin[1] was tried to be retrieved from coins view
+  BOOST_CHECK(std::find(coins_accessed.begin(), coins_accessed.end(), staking_input.prevout) != coins_accessed.end());
 }
 
 BOOST_AUTO_TEST_CASE(check_tx_inputs_rejects_coinbase_that_spends_too_little) {
