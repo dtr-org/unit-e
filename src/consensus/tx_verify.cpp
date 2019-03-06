@@ -257,6 +257,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
           return state.DoS(100, false, REJECT_INVALID, "bad-cb-no-reward", false,
                            strprintf("coinbase without a reward txout"));
         }
+#ifdef MUMBOJUMBO
         const CTxOut &reward_out = tx.vout[0];
         const CAmount reward = reward_out.nValue;
         if (nValueIn + reward < value_out) {
@@ -273,6 +274,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
                                        FormatMoney(reward),
                                        FormatMoney(value_out)));
         }
+#endif
     } else if (!tx.IsCoinBase()) {
         // All other transactions have to spend no more then their inputs. If they spend
         // less, the change is counted towards the fees which are included in the reward
