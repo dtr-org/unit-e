@@ -128,6 +128,35 @@ def sign_coinbase(node, coinbase):
     coinbase.rehash()
     return coinbase
 
+
+def generate(node, n, preserve_utxos=[]):
+    """ Generate n blocks on the node, making sure not to touch the utxos specified.
+
+    :param preserve_utxos: an iterable of either dicts {'txid': ..., 'vout': ...}
+    """
+    preserve_utxos = set((x['txid'], x['vout']) for x in preserve_utxos)
+
+    snapshot_meta = get_tip_snapshot_meta(node)
+    height = node.getblockcount()
+    tip = int(node.getbestblockhash(), 16)
+    block_time = node.getblock(hex(tip))['time'] + 1
+    txouts = []
+
+    for _ in range(n):
+        if not txouts:
+            txouts = [x for x in node.listunspent()
+                      if (x['txid'], x['vout']) not in preserve_utxos]
+        stake = txouts.pop()
+        coinbase = sign_coinbase(node, create_coinbase(height, stake, snapshot_meta.hash))
+        block = create_block(tip, coinbase, block_time)
+        snapshot_meta = update_snapshot_with_tx(node, snapshot_meta.data, 0, height + 1, coinbase)
+        block.solve()
+        node.p2p.send_message(msg_block(block))
+        tip = block.sha256
+        block_time += 1
+        height += 1
+
+
 # Create a transaction.
 # If the scriptPubKey is not specified, make it anyone-can-spend.
 def create_transaction(prevtx, n, sig, value, scriptPubKey=CScript()):
