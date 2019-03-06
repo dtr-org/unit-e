@@ -2064,10 +2064,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         nInputs += tx.vin.size();
 
         txdata.emplace_back(tx);
-        if (tx.IsCoinBase()) {
-            nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        }
-
         AddCoins(view, tx, pindex->nHeight);
     }
 
@@ -2096,12 +2092,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * legacy (always)
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
+        nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
+        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+          return state.DoS(100, error("ConnectBlock(): too many sigops"),
+                           REJECT_INVALID, "bad-blk-sigops");
+        }
+
         if (!tx.IsCoinBase()) {
-          nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-          if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
-            return state.DoS(100, error("ConnectBlock(): too many sigops"),
-                             REJECT_INVALID, "bad-blk-sigops");
-          }
           nFees += txfee;
           if (!MoneyRange(nFees)) {
             return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
