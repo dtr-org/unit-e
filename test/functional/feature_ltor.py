@@ -241,6 +241,7 @@ class LTORTest(UnitETestFramework):
             hashprev=hashprev,
             coinbase=create_coinbase(
                 height=sync_height + 1,
+                stake=node0.listunspent()[0],
                 snapshot_hash=snapshot_hash
             ),
             nTime=block_time
