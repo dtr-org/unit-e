@@ -38,6 +38,8 @@ class BumpFeeTest(UnitETestFramework):
                            for i in range(self.num_nodes)]
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         peer_node, rbf_node = self.nodes
 
         # Encrypt wallet for test_locked_wallet_fails test
@@ -54,14 +56,14 @@ class BumpFeeTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, 0, 1)
         self.sync_all()
 
-        rbf_node_address = rbf_node.getnewaddress()
+        rbf_node_address = rbf_node.getnewaddress('', 'legacy')
 
         # fund rbf node with 10 coins of 0.001 btc (100,000 satoshis)
         self.log.info("Mining blocks...")
-        peer_node.generate(110)
+        peer_node.generate(116)
         self.sync_all()
         for i in range(25):
-            peer_node.sendtoaddress(rbf_node_address, 0.001)
+            txid = peer_node.sendtoaddress(rbf_node_address, 0.001)
         self.sync_all()
         peer_node.generate(1)
         self.sync_all()
@@ -304,7 +306,9 @@ def submit_block_with_tx(node, tx):
     height = node.getblockcount() + 1
     block_time = node.getblockheader(tip)["mediantime"] + 1
     snapshot_hash = blocktools.get_tip_snapshot_meta(node).hash
-    block = blocktools.create_block(int(tip, 16), blocktools.create_coinbase(height, snapshot_hash), block_time)
+    stake = node.listunspent()[0]
+    coinbase = blocktools.sign_coinbase(node, blocktools.create_coinbase(height, stake, snapshot_hash))
+    block = blocktools.create_block(int(tip, 16), coinbase, block_time)
     block.vtx.append(ctx)
     blocktools.add_witness_commitment(block)
     block.solve()
