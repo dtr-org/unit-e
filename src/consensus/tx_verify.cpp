@@ -243,7 +243,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     const CAmount value_out = tx.GetValueOut();
-    if (tx.IsCoinBase()) {
+    // UNIT-E TODO: To distinguish bitcoin coinbase and unit-e coinbase check for staking input
+    if (tx.IsCoinBase() && tx.vin.size() >= 2) {
         // The coinbase transaction should spend exactly its inputs and the reward.
         // The reward output is by definition in the zeroth output. The reward
         // consists of newly minted money (the block reward) and the fees accumulated
@@ -268,7 +269,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
                                        FormatMoney(reward),
                                        FormatMoney(value_out)));
         }
-    } else {
+    } else if (!tx.IsCoinBase()) {
         // All other transactions have to spend no more then their inputs. If they spend
         // less, the change is counted towards the fees which are included in the reward
         // of the coinbase transaction.
