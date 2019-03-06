@@ -112,24 +112,25 @@ class BlockBuilderImpl : public BlockBuilder {
     }
 
     const CAmount reward = fees + eligible_coin.reward;
-    const CAmount spend = m_settings->reward_destination ? combined_total : (combined_total + reward);
-
-    const CAmount threshold = m_settings->stake_split_threshold;
-    if (threshold > 0 && spend > threshold) {
-      const std::vector<CAmount> pieces = SplitAmount(spend, threshold);
-      for (const CAmount amount : pieces) {
-        tx.vout.emplace_back(amount, eligible_coin.utxo.script_pubkey);
-      }
-    } else {
-      tx.vout.emplace_back(spend, eligible_coin.utxo.script_pubkey);
-    }
 
     // Send fees and block reward to the reward_address set, if one is
     // configured. If an empty block is proposed and there's no block reward
     // (which happens after the finite supply limit is reached)
-    // then there is no reward at all.
-    if (m_settings->reward_destination && reward > 0) {
-      tx.vout.emplace_back(reward, GetScriptForDestination(*m_settings->reward_destination));
+    // then there is no reward at all. The reward output will nevertheless
+    // be added with an amount of zero.
+    const CScript reward_script = m_settings->reward_destination && reward > 0
+        ? GetScriptForDestination(*m_settings->reward_destination)
+        : eligible_coin.utxo.script_pubkey;
+      tx.vout.emplace_back(reward, reward_script);
+
+    const CAmount threshold = m_settings->stake_split_threshold;
+    if (threshold > 0 && combined_total > threshold) {
+      const std::vector<CAmount> pieces = SplitAmount(combined_total, threshold);
+      for (const CAmount amount : pieces) {
+        tx.vout.emplace_back(amount, eligible_coin.utxo.script_pubkey);
+      }
+    } else {
+      tx.vout.emplace_back(combined_total, eligible_coin.utxo.script_pubkey);
     }
 
     assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),
