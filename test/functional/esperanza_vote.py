@@ -27,7 +27,7 @@ class EsperanzaVoteTest(UnitETestFramework):
             '-whitelist=127.0.0.1',
             esperanza_config,
         ]
-        proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', esperanza_config]
+        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', esperanza_config]
 
         self.extra_args = [proposer_node_params,
                            finalizer_node_params,
@@ -40,8 +40,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
-        for node in self.nodes:
-            node.importmasterkey(regtest_mnemonics[node.index]['mnemonics'])
+        self.setup_stake_coins(*self.nodes)
         assert all(n.getbalance() == 10000 for n in self.nodes)
 
         # create topology where arrows denote non-persistent connection
@@ -58,7 +57,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         connect_nodes(finalizer3, node0.index)
 
         # leave IBD
-        node0.generatetoaddress(1, node0.getnewaddress())
+        node0.generatetoaddress(1, node0.getnewaddress("", "legacy"))
         sync_blocks(self.nodes)
 
         # leave instant finalization
@@ -81,7 +80,7 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         # move tip to the height when deposits are finalized
         # complete epoch + 4 epochs + 1 block of new epoch
-        node0.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, node0.getnewaddress())
+        node0.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, node0.getnewaddress("", "legacy"))
         assert_equal(node0.getblockcount(), 25)
         assert_equal(node0.getfinalizationstate()['currentEpoch'], 5)
         assert_equal(node0.getfinalizationstate()['currentDynasty'], 3)
