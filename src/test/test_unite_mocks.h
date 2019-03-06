@@ -5,6 +5,7 @@
 #ifndef UNIT_E_TEST_UNITE_MOCKS_H
 #define UNIT_E_TEST_UNITE_MOCKS_H
 
+#include <coins.h>
 #include <staking/active_chain.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
@@ -101,7 +102,7 @@ class ActiveChainMock : public staking::ActiveChain {
   };
 
   //! Function to find most common block index
-  std::function<const CBlockIndex*(const CBlockIndex *)> find_fork_origin = [](const CBlockIndex *) {
+  std::function<const CBlockIndex *(const CBlockIndex *)> find_fork_origin = [](const CBlockIndex *) {
     return nullptr;
   };
 
@@ -185,13 +186,41 @@ class StakeValidatorMock : public staking::StakeValidator {
   uint256 ComputeKernelHash(const CBlockIndex *blockindex, const staking::Coin &coin, blockchain::Time time) const override {
     return computekernelfunc(blockindex, coin, time);
   }
-  staking::BlockValidationResult CheckStake(const CBlock &, staking::BlockValidationInfo*) const override {
+  staking::BlockValidationResult CheckStake(const CBlock &, staking::BlockValidationInfo *) const override {
     return staking::BlockValidationResult();
   }
   uint256 ComputeStakeModifier(const CBlockIndex *, const uint256 &) const override { return uint256(); }
   bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
   void RememberPieceOfStake(const COutPoint &) override {}
   void ForgetPieceOfStake(const COutPoint &) override {}
+};
+
+class CoinsViewMock : public AccessibleCoinsView {
+
+ public:
+  Coin default_coin;
+  bool default_have_inputs = true;
+
+  mutable std::atomic<std::uint32_t> invocations_AccessCoins{0};
+  mutable std::atomic<std::uint32_t> invocations_HaveInputs{0};
+
+  mutable std::function<const Coin &(const COutPoint &)> access_coin = [this](const COutPoint &op) -> const Coin & {
+    return default_coin;
+  };
+
+  mutable std::function<bool(const CTransaction &)> have_inputs = [this](const CTransaction &tx) -> bool {
+    return default_have_inputs;
+  };
+
+  const Coin &AccessCoin(const COutPoint &output) const override {
+    ++invocations_AccessCoins;
+    return access_coin(output);
+  }
+
+  bool HaveInputs(const CTransaction &tx) const override {
+    ++invocations_HaveInputs;
+    return have_inputs(tx);
+  }
 };
 
 }  // namespace mocks

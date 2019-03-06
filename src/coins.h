@@ -242,9 +242,18 @@ public:
     size_t EstimateSize() const override;
 };
 
+class AccessibleCoinsView
+{
+public:
+    virtual const Coin& AccessCoin(const COutPoint &output) const = 0;
+
+    virtual bool HaveInputs(const CTransaction& tx) const = 0;
+
+    ~AccessibleCoinsView() = default;
+};
 
 /** CCoinsView that adds a memory cache for transactions to another CCoinsView */
-class CCoinsViewCache : public CCoinsViewBacked
+class CCoinsViewCache : public CCoinsViewBacked, public AccessibleCoinsView
 {
 protected:
     /**
@@ -294,7 +303,7 @@ public:
      * on! To be safe, best to not hold the returned reference through any other
      * calls to this cache.
      */
-    const Coin& AccessCoin(const COutPoint &output) const;
+    const Coin& AccessCoin(const COutPoint &output) const override;
 
     /**
      * Add a coin. Set potential_overwrite to true if a non-pruned version may
@@ -346,7 +355,7 @@ public:
     CAmount GetValueIn(const CTransaction& tx) const;
 
     //! Check whether all prevouts of the transaction are present in the UTXO set represented by this view
-    bool HaveInputs(const CTransaction& tx) const;
+    bool HaveInputs(const CTransaction& tx) const override;
 
 private:
     CCoinsMap::iterator FetchCoin(const COutPoint &outpoint) const;

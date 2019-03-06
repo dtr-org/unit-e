@@ -197,7 +197,8 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     const std::vector<CTxOut> &outputs = coinbase->vout;
     BOOST_CHECK_EQUAL(outputs.size(), expected_outputs);
 
-    auto minmax = std::minmax_element(outputs.begin(), outputs.end(), [](const CTxOut &left, const CTxOut &right) {
+    // start at outputs.begin() + 1 to skip reward output which is not subject to stake splitting (it's not stake)
+    auto minmax = std::minmax_element(outputs.begin() + 1, outputs.end(), [](const CTxOut &left, const CTxOut &right) {
       return left.nValue < right.nValue;
     });
     // check that outputs differ no more than one in size (this avoids dust)
@@ -205,8 +206,8 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     BOOST_CHECK(static_cast<bool>(is_valid));
   };
 
-  // eligible_coin.amount=100, reward=50, outsum=150 -> 10x15
-  split_amount_test(10, 15);
+  // eligible_coin.amount=100, threshold=10, reward=50 -> 10x10 (reward is separate)
+  split_amount_test(10, 11);  // 10 + 1
 
   // no piece bigger than 70
   split_amount_test(70, 3);

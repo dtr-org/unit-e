@@ -209,7 +209,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
     return true;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
+bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, int nSpendHeight, CAmount& txfee)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -218,7 +218,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
         assert(!coin.IsSpent());
@@ -240,9 +240,41 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     const CAmount value_out = tx.GetValueOut();
-    if (nValueIn < value_out) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
-            strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
+    if (tx.IsCoinBase()) {
+        // The coinbase transaction should spend exactly its inputs and the reward.
+        // The reward output is by definition in the zeroth output. The reward
+        // consists of newly minted money (the block reward) and the fees accumulated
+        // from the transactions.
+        if (tx.vout.empty()) {
+          return state.DoS(100, false, REJECT_INVALID, "bad-cb-no-reward", false,
+                           strprintf("coinbase without a reward txout"));
+        }
+        const CTxOut &reward_out = tx.vout[0];
+        const CAmount reward = reward_out.nValue;
+        if (nValueIn + reward < value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-much", false,
+                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
+                                       FormatMoney(nValueIn),
+                                       FormatMoney(reward),
+                                       FormatMoney(value_out)));
+        }
+        if (nValueIn + reward > value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-little", false,
+                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
+                                       FormatMoney(nValueIn),
+                                       FormatMoney(reward),
+                                       FormatMoney(value_out)));
+        }
+    } else {
+        // All other transactions have to spend no more then their inputs. If they spend
+        // less, the change is counted towards the fees which are included in the reward
+        // of the coinbase transaction.
+        if (nValueIn < value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
+                             strprintf("value in (%s) < value out (%s)",
+                                       FormatMoney(nValueIn),
+                                       FormatMoney(value_out)));
+        }
     }
 
     // Tally transaction fees

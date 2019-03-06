@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <vector>
 
+class AccessibleCoinsView;
 class CBlockIndex;
 class CCoinsViewCache;
 class CTransaction;
@@ -27,7 +28,7 @@ namespace Consensus {
  * @param[out] txfee Set to the transaction fee if successful.
  * Preconditions: tx.IsCoinBase() is false.
  */
-bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee);
+bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, int nSpendHeight, CAmount& txfee);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */
