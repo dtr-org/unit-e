@@ -59,13 +59,13 @@ def update_uncommited_block_structures(block, nonce=0):
 def should_add_witness_commitment(block):
     return not all(tx.wit.is_null() for tx in block.vtx)
 
+
 def sign_transaction(node, tx):
     signresult = node.signrawtransaction(bytes_to_hex_str(tx.serialize()))
     tx = CTransaction()
     f = BytesIO(hex_str_to_bytes(signresult['hex']))
     tx.deserialize(f)
     return tx
-
 
 # According to BIP141, blocks with witness rules active must commit to the
 # hash of all in-block transactions including witness.
