@@ -111,13 +111,16 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, CWallet *wallet)
 {
     //TODO UNIT-E: Remove this as soon as we move to the new proposing logic
-    //Get the wallet that is used to retrieve the stakable coins
-    auto wallets = GetComponent<proposer::MultiWallet>()->GetWallets();
-    assert(!wallets.empty());
-    CWallet *wallet = wallets[0];
+    // Get the wallet that is used to retrieve the stakable coins.
+    // If a wallet is not explicitly provided, stake on the first one available.
+    if (!wallet) {
+        auto wallets = GetComponent<proposer::MultiWallet>()->GetWallets();
+        assert(!wallets.empty());
+        wallet = wallets[0];
+    }
 
     int64_t nTimeStart = GetTimeMicros();
 
