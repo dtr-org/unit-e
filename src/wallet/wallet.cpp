@@ -1053,6 +1053,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
         // wallet.  Store the new version of the transaction with the witness,
         // as the stripped-version must be invalid.
         // TODO: Store all versions of the transaction, instead of just one.
+        // UNIT-E TODO: this should never happen
         if (wtxIn.tx->HasWitness() && !wtx.tx->HasWitness()) {
             wtx.SetTx(wtxIn.tx);
             fUpdated = true;

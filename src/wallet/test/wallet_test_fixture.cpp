@@ -7,6 +7,7 @@
 #include <rpc/server.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
+#include <consensus/merkle.h>
 
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
     : WalletTestingSetup([](Settings& s){}, chainName) {}
@@ -44,12 +45,10 @@ WalletTestingSetup::~WalletTestingSetup()
 
 TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::REGTEST)
 {
-  // CreateAndProcessBlock() does not support building SegWit blocks, so don't activate in these tests.
-  // TODO: fix the code to support SegWit blocks.
-  UpdateVersionBitsParameters(Consensus::DEPLOYMENT_SEGWIT, 0, Consensus::BIP9Deployment::NO_TIMEOUT);
-
-  // Generate a 100-block chain:
-  coinbaseKey.MakeNewKey(true);
+  CUnitESecret vchSecret;
+  bool fGood = vchSecret.SetString("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
+  assert(fGood);
+  coinbaseKey = vchSecret.GetKey();
 
   {
     LOCK(pwalletMain->cs_wallet);
@@ -61,6 +60,7 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
   pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
 
   // Generate a 100-block chain:
+  GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0
   CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
   for (int i = 0; i < COINBASE_MATURITY; i++)
   {
@@ -92,6 +92,18 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
   }
 
+  //Regenerate the witness commitment cause we possibly changed the txs included
+  CMutableTransaction tx(*block.vtx[0]);
+  tx.vout.resize(tx.vout.size() -1);
+  block.vtx[0] = MakeTransactionRef(std::move(tx));
+  GenerateCoinbaseCommitment(block, chainActive.Tip(), Params().GetConsensus());
+
+  //Regenerate the merkle roots cause we possibly changed the txs included
+  bool duplicate_transactions = false;
+  block.hashMerkleRoot = BlockMerkleRoot(block, &duplicate_transactions);
+  block.hash_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
+
+
   while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 
   std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
@@ -101,7 +113,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     *processed = was_processed;
   }
 
-  SyncWithValidationInterfaceQueue(); // To preven Wallet::ConnectBlock from running concurrently
+  SyncWithValidationInterfaceQueue(); // To prevent Wallet::ConnectBlock from running concurrently
 
   CBlock result = block;
   return result;

@@ -757,6 +757,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     // address.
     std::map<CTxDestination, std::vector<COutput>> list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
+    BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
 
@@ -770,6 +771,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     AddTx(CRecipient{GetScriptForRawPubKey({}), 1 * UNIT, false /* subtract fee */});
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
+    BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 
@@ -790,6 +792,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     // being locked.
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
+    BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
     BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 }

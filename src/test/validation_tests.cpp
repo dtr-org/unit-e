@@ -251,26 +251,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {
 
   CBlockIndex prev;
 
-  // Test unexpected witness
-  {
-    CBlock block;
-    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-    CMutableTransaction coinbase(*block.vtx[0]);
-
-    CScriptWitness scriptWitness;
-    scriptWitness.stack.push_back(ToByteVector(GetRandHash()));
-
-    coinbase.vin[0].scriptWitness = scriptWitness;
-    block.vtx[0] = MakeTransactionRef(coinbase);
-
-    CValidationState state;
-    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
-
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "unexpected-witness");
-  }
-
   auto consensus_params = Params().GetConsensus();
-  consensus_params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;  //Activate segwit
 
   // Test bad witness nonce empty
   {

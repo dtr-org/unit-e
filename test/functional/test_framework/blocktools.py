@@ -56,6 +56,9 @@ def update_uncommited_block_structures(block, nonce=0):
     block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(nonce)]
 
 
+def should_add_witness_commitment(block):
+    return not all(tx.wit.is_null() for tx in block.vtx)
+
 # According to BIP141, blocks with witness rules active must commit to the
 # hash of all in-block transactions including witness.
 def add_witness_commitment(block, nonce=0):

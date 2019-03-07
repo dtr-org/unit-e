@@ -71,7 +71,7 @@ class ExtractBlockSigningKeyFixture {
     const CTransaction funding_tx(mutable_funding_tx);
     BOOST_CHECK_EQUAL(isminetype::ISMINE_SPENDABLE, IsMine(GetKeyStore(), funding_tx.vout[0].scriptPubKey));
     std::string error;
-    BOOST_CHECK(IsStandardTx(funding_tx, error, /* witnessEnabled= */ true));
+    BOOST_CHECK(IsStandardTx(funding_tx, error));
 
     CMutableTransaction mutable_spending_tx;
     const uint256 funding_tx_hash = funding_tx.GetHash();
@@ -101,7 +101,7 @@ class ExtractBlockSigningKeyFixture {
     const CTransaction funding_tx(mutable_funding_tx);
     BOOST_CHECK_EQUAL(isminetype::ISMINE_SPENDABLE, IsMine(GetKeyStore(), funding_tx.vout[0].scriptPubKey));
     std::string error;
-    BOOST_CHECK(IsStandardTx(funding_tx, error, /* witnessEnabled= */ true));
+    BOOST_CHECK(IsStandardTx(funding_tx, error));
 
     CMutableTransaction mutable_spending_tx;
     const uint256 funding_tx_hash = funding_tx.GetHash();
