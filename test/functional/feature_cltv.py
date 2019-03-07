@@ -64,6 +64,7 @@ class BIP65Test(UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].add_p2p_connection(P2PInterface())
 
         network_thread_start()
@@ -91,7 +92,10 @@ class BIP65Test(UnitETestFramework):
         tip = self.nodes[0].getbestblockhash()
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(int(tip, 16), create_coinbase(1, snapshot_hash), block_time)
+        best_block = self.nodes[0].getblock(tip)
+        prev_coinbase = best_block['tx'][0]
+        stake = {'txid': prev_coinbase, 'vout': 2, 'amount': 50}
+        block = create_block(int(tip, 16), create_coinbase(1, stake, snapshot_hash), block_time)
         block.nVersion = 4
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
