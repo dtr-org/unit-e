@@ -99,7 +99,7 @@ public:
 class CBlockUndo
 {
 public:
-    std::vector<CTxUndo> vtxundo; // for all but the coinbase
+    std::vector<CTxUndo> vtxundo;
 
     ADD_SERIALIZE_METHODS;
 
