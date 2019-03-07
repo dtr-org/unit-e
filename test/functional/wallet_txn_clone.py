@@ -29,8 +29,7 @@ class TxnMallTest(UnitETestFramework):
         else:
             output_type="legacy"
 
-        # All nodes should start with 1,250 UTE:
-        starting_balance = 1250
+        starting_balance = 11250
         for i in range(4):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
             self.nodes[i].getnewaddress("")  # bug workaround, coins generated assigned to first getnewaddress!
