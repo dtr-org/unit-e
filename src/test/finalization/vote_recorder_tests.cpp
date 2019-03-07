@@ -101,6 +101,7 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
   state->InitializeEpoch(100);
   state->InitializeEpoch(150);
   state->InitializeEpoch(200);
+  state->InitializeEpoch(250);
 
   esperanza::Vote vote1{validatorAddress, GetRandHash(), 5, 10};
   esperanza::Vote vote2{validatorAddress, GetRandHash(), 7, 10};
@@ -133,6 +134,7 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
   state->InitializeEpoch(100);
   state->InitializeEpoch(150);
   state->InitializeEpoch(200);
+  state->InitializeEpoch(250);
 
   esperanza::Vote outerVote{validatorAddress, GetRandHash(), 1, 10};
   esperanza::Vote innerVote{validatorAddress, GetRandHash(), 2, 9};
@@ -164,6 +166,7 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
   state->InitializeEpoch(100);
   state->InitializeEpoch(150);
   state->InitializeEpoch(200);
+  state->InitializeEpoch(250);
 
   esperanza::Vote outerVote{validatorAddress, GetRandHash(), 1, 10};
   esperanza::Vote innerVote{validatorAddress, GetRandHash(), 2, 9};

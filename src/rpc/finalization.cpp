@@ -38,7 +38,7 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
   obj.pushKV("currentDynasty", (uint64_t) finalizationState.GetCurrentDynasty());
   obj.pushKV("lastFinalizedEpoch", (uint64_t) finalizationState.GetLastFinalizedEpoch());
   obj.pushKV("lastJustifiedEpoch", (uint64_t) finalizationState.GetLastJustifiedEpoch());
-  obj.pushKV("validators", (uint64_t) finalizationState.GetValidators().size());
+  obj.pushKV("validators", (uint64_t) finalizationState.GetActiveFinalizers().size());
 
   return obj;
 }

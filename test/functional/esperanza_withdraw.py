@@ -57,9 +57,9 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # wait for transaction to propagate
         self.wait_for_transaction(deposit_tx, 30)
 
-        # the validator will be ready to operate in epoch 3 and start voting on that checkpoint at height 39
+        # the validator will be ready to operate in epoch 4 and start voting on that checkpoint at height 49
         # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
-        for n in range(0, 39):
+        for n in range(0, 49):
             self.generate_block(nodes[(n % 3) + 1])
 
         # ensure vote is created and included in the next block
@@ -69,7 +69,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         self.sync_all()
         assert_equal(len(validator.getrawmempool()), 0)
 
-        assert_equal(validator.getblockchaininfo()['blocks'], 41)
+        assert_equal(validator.getblockchaininfo()['blocks'], 51)
 
         resp = validator.getvalidatorinfo()
         assert resp["enabled"]

@@ -83,6 +83,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
+                    +Result::SUCCESS);
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -91,7 +93,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(&block_index);
 
-  for (uint32_t i = 4; i < 8; ++i) {
+  for (uint32_t i = 5; i < 8; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
@@ -122,6 +124,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
+                    +Result::SUCCESS);
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -130,7 +134,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(&block_index);
 
-  uint32_t i = 4;
+  uint32_t i = 5;
   for (; i < 8; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
@@ -169,6 +173,8 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
+                    +Result::SUCCESS);
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -177,7 +183,7 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(&block_index);
 
-  for (uint32_t i = 4; i < 8; ++i) {
+  for (uint32_t i = 5; i < 8; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
@@ -213,6 +219,8 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
                     +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
                     +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
+                    +Result::SUCCESS);
 
   // For simplicity we keep the targetHash constant since it does not
   // affect the state.
@@ -221,7 +229,7 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(&block_index);
 
-  for (uint32_t i = 4; i < 8; ++i) {
+  for (uint32_t i = 5; i < 8; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 

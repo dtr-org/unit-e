@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(process_deposit_tx) {
   BOOST_CHECK(it != validators.end());
 
   Validator validator = it->second;
-  BOOST_CHECK_EQUAL(validator.m_startDynasty, 2);  // assuming we start from 0
+  BOOST_CHECK_EQUAL(validator.m_startDynasty, 3);  // assuming we start from 0
   BOOST_CHECK(validator.m_deposit > 0);
   BOOST_CHECK_EQUAL(it->first.GetHex(), validatorAddress.GetHex());
 }

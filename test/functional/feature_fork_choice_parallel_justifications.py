@@ -130,18 +130,18 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         disconnect_nodes(finalizer1, fork1.index)
         disconnect_nodes(finalizer2, fork2.index)
 
-        # create common 4 epochs to leave instant finalization
-        #                        fork1
-        # F    F    F    J      /
-        # e0 - e1 - e2 - e3 - e4 node
-        #                       \
-        #                        fork2
-        node.generatetoaddress(21, node.getnewaddress())
-        assert_equal(node.getblockcount(), 24)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 4)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 2)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 2)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 3)
+        # create common 5 epochs to leave instant finalization
+        #                             fork1
+        # F    F    F    F    J      /
+        # e0 - e1 - e2 - e3 - e4 - e5 node
+        #                            \
+        #                             fork2
+        node.generatetoaddress(26, node.getnewaddress())
+        assert_equal(node.getblockcount(), 29)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 3)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 5)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 4)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 3)
         assert_equal(node.getfinalizationstate()['validators'], 1)
 
         connect_nodes(node, fork1.index)
@@ -153,83 +153,92 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         # create fist justified epoch on fork1
         # node must follow this fork
         #
-        #                        - e5 fork1, node
-        # F    F    F    J    * /
-        # e0 - e1 - e2 - e3 - e4
-        #                       \
-        #                        fork2
-        # e3 is finalized for fork1
-        # e4 is justified for fork1
+        #                             - e6 fork1, node
+        # F    F    F    F    J    * /
+        # e0 - e1 - e2 - e3 - e4 - e5
+        #                            \
+        #                             fork2
+        # e4 is finalized for fork1
+        # e5 is justified for fork1
         create_justification(fork=fork1, finalizer=finalizer1, after_blocks=2)
-        assert_equal(fork1.getblockcount(), 26)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 5)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 3)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 4)
+        assert_equal(fork1.getblockcount(), 31)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 6)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         sync_node_to_fork(node, fork1)
 
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 5)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 3)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 4)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         self.log.info('node successfully switched to the justified fork')
 
         # create longer justified epoch on fork2
         # node must switch ("zig") to this fork
         #
-        #                        - e5 fork1
-        # F    F    F    J    * /
-        # e0 - e1 - e2 - e3 - e4
-        #                       \       J
-        #                        - e5 - e6 - e7 fork2, node
-        # e3 is finalized for fork1
-        # e4 is justified for fork1
-        create_justification(fork=fork2, finalizer=finalizer2, after_blocks=12)
-        assert_equal(fork2.getblockcount(), 36)
-        assert_equal(fork2.getfinalizationstate()['currentEpoch'], 7)
+        #                             - e6 fork1
+        # F    F    F    F    F    J /
+        # e0 - e1 - e2 - e3 - e4 - e5
+        #                            \       J
+        #                             - e6 - e7 - e8 fork2, node
+        create_justification(fork=fork2, finalizer=finalizer2, after_blocks=2)
+        assert_equal(fork2.getblockcount(), 31)
         assert_equal(fork2.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(fork2.getfinalizationstate()['currentEpoch'], 6)
+        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 5)
+        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 4)
+
+        create_justification(fork=fork2, finalizer=finalizer2, after_blocks=10)
+        assert_equal(fork2.getblockcount(), 41)
+        assert_equal(fork2.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(fork2.getfinalizationstate()['currentEpoch'], 8)
+        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 7)
+        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         sync_node_to_fork(node, fork2)
 
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 7)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 6)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 8)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         self.log.info('node successfully switched to the longest justified fork')
 
         # create longer justified epoch on the previous fork1
         # node must switch ("zag") to this fork
-        #                                    J
-        #                        - e5 - e6 - e7 - e8 fork1, node
-        # F    F    F    J    * /
-        # e0 - e1 - e2 - e3 - e4
-        #                       \       J
-        #                        - e5 - e6 - e7 fork2
-        # e3 is finalized for fork1
-        # e4 is justified for fork1
+        #                                         J
+        #                             - e6 - e7 - e8 - e9 fork1, node
+        # F    F    F    F    F    J /
+        # e0 - e1 - e2 - e3 - e4 - e5
+        #                            \       J
+        #                             - e6 - e7 - e8 fork2
         create_justification(fork=fork1, finalizer=finalizer1, after_blocks=16)
-        assert_equal(fork1.getblockcount(), 42)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 8)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 7)
+        assert_equal(fork1.getblockcount(), 47)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 9)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 8)
+        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         sync_node_to_fork(node, fork1)
 
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 8)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 7)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 9)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 8)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         self.log.info('node successfully switched back to the longest justified fork')
 
         # test that re-org before finalization is not possible
-        # node's view:
-        #                                    J              J
-        #                        - e5 - e6 - e7 - e8 - e9 - e10 - e11 (tip)
-        # F    F    F    F    J /
-        # e0 - e1 - e2 - e3 - e4
-        #                       \       J
-        #                        - e5 - e6 - e7
+        #                                         J               J*
+        #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[60, 61] fork1
+        # F    F    F    F    F    J /                                      |
+        # e0 - e1 - e2 - e3 - e4 - e5                                       60] node
+        #                            \       J
+        #                             - e6 - e7 - e8 fork2
+        # e11 is not justified for node
         known_fork1_height = fork1.getblockcount()
         assert_equal(node.getblockcount(), known_fork1_height)
 
@@ -237,11 +246,11 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         assert_equal(node.getblockhash(known_fork1_height), known_fork1_hash)
         create_justification(fork=fork1, finalizer=finalizer1, after_blocks=14)
 
-        assert_equal(fork1.getblockcount(), 56)
-        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 11)
-        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 10)
-        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 3)
+        assert_equal(fork1.getblockcount(), 61)
+        assert_equal(fork1.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(fork1.getfinalizationstate()['currentEpoch'], 12)
+        assert_equal(fork1.getfinalizationstate()['lastJustifiedEpoch'], 11)
+        assert_equal(fork1.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         attacker = node.add_p2p_connection(BaseNode())
         network_thread_start()
@@ -256,58 +265,64 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
             node_blocks += 1
             wait_until(lambda: node.getblockcount() == node_blocks, timeout=15)
 
-        assert_equal(node.getblockcount(), 55)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 11)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 7)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 3)
+        assert_equal(node.getblockcount(), 60)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 12)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 8)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
         # create finalization
-        # node's view:
-        #                                    J              J
-        #                        - e5 - e6 - e7 - e8 - e9 - e10 - e11
-        # F    F    F    F    J /
-        # e0 - e1 - e2 - e3 - e4
-        #                       \       J         F    J
-        #                        - e5 - e6 - e7 - e8 - e9 - e10 - e11 (tip)
+        #                                         J               J
+        #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[60, 61] fork1
+        # F    F    F    F    F    J /                                      |
+        # e0 - e1 - e2 - e3 - e4 - e5                                       60] node
+        #                            \       J         F    J
+        #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[60, 61] fork2
         create_justification(fork=fork2, finalizer=finalizer2, after_blocks=11)
-        assert_equal(fork2.getblockcount(), 47)
-        assert_equal(fork2.getfinalizationstate()['currentDynasty'], 4)
-        assert_equal(fork2.getfinalizationstate()['currentEpoch'], 9)
-        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 8)
-        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 3)
-
-        create_justification(fork=fork2, finalizer=finalizer2, after_blocks=6)
-        assert_equal(fork2.getblockcount(), 53)
-        assert_equal(fork2.getfinalizationstate()['currentDynasty'], 4)
+        assert_equal(fork2.getblockcount(), 52)
+        assert_equal(fork2.getfinalizationstate()['currentDynasty'], 5)
         assert_equal(fork2.getfinalizationstate()['currentEpoch'], 10)
         assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 9)
-        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 8)
+        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 4)
 
-        fork2.generatetoaddress(3, fork2.getnewaddress())
-        assert_equal(fork2.getblockcount(), 56)
+        create_justification(fork=fork2, finalizer=finalizer2, after_blocks=6)
+        assert_equal(fork2.getblockcount(), 58)
         assert_equal(fork2.getfinalizationstate()['currentDynasty'], 5)
         assert_equal(fork2.getfinalizationstate()['currentEpoch'], 11)
-        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 9)
-        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 8)
+        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 10)
+        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 9)
 
-        tip = fork2.getblockhash(56)
+        fork2.generatetoaddress(3, fork2.getnewaddress())
+        assert_equal(fork2.getblockcount(), 61)
+        assert_equal(fork2.getfinalizationstate()['currentDynasty'], 6)
+        assert_equal(fork2.getfinalizationstate()['currentEpoch'], 12)
+        assert_equal(fork2.getfinalizationstate()['lastJustifiedEpoch'], 10)
+        assert_equal(fork2.getfinalizationstate()['lastFinalizedEpoch'], 9)
+
+        # node follows longer finalization
+        #                                         J               J
+        #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[60, 61] fork1
+        # F    F    F    F    F    J /
+        # e0 - e1 - e2 - e3 - e4 - e5
+        #                            \       J         F    J
+        #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[60, 61] fork2, node
+        tip = fork2.getblockhash(61)
         sync_node_to_fork(node, fork2)
 
-        assert_equal(node.getblockcount(), 56)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 11)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 9)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 8)
+        assert_equal(node.getblockcount(), 61)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 6)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 12)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 10)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 9)
 
         # send block with surrounded vote that justifies longer fork
         # node's view:
-        #                          J         J              J
-        #                        - e5 - e6 - e7 - e8 - e9 - e10 - e11
-        #                       /
-        # e0 - e1 - e2 - e3 - e4
-        #                       \       J         F    J
-        #                        - e5 - e6 - e7 - e8 - e9 - e10 - e11 (must stay here)
+        #                                         J               J
+        #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[60, 61] fork1
+        # F    F    F    F    F    J /
+        # e0 - e1 - e2 - e3 - e4 - e5
+        #                            \       J         F    J
+        #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[60, 61] fork2, node
 
         block_hash = fork1.getblockhash(fork1.getblockcount())
         block = FromHex(CBlock(), fork1.getblock(block_hash, 0))
@@ -316,12 +331,12 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
 
         # node should't re-org to malicious fork
         wait_for_reject(attacker, b'bad-fork-dynasty', block.sha256)
-        assert_equal(node.getblockcount(), 56)
-        assert_equal(node.getblockhash(56), tip)
-        assert_equal(node.getfinalizationstate()['currentEpoch'], 11)
-        assert_equal(node.getfinalizationstate()['currentDynasty'], 5)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 9)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 8)
+        assert_equal(node.getblockcount(), 61)
+        assert_equal(node.getblockhash(61), tip)
+        assert_equal(node.getfinalizationstate()['currentDynasty'], 6)
+        assert_equal(node.getfinalizationstate()['currentEpoch'], 12)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 10)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 9)
 
         self.log.info('node did not re-org before finalization')
 
