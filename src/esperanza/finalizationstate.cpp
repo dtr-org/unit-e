@@ -146,9 +146,15 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
     m_rewardFactor = 0;
   }
 
+  std::string log_msg;
+  if (m_currentEpoch >= 2 && m_lastJustifiedEpoch != m_currentEpoch - 2) {
+    log_msg = " epoch=" + std::to_string(m_currentEpoch - 2) + " was not justified.";
+  }
+
   LogPrint(BCLog::FINALIZATION,
-           "%s: new_epoch=%d current_dynasty=%d last_justified_epoch=%d last_finalized_epoch=%d\n",
+           "%s:%s new_epoch=%d current_dynasty=%d last_justified_epoch=%d last_finalized_epoch=%d\n",
            __func__,
+           log_msg,
            newEpoch,
            m_currentDynasty,
            m_lastJustifiedEpoch,
