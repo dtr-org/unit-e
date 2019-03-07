@@ -7,6 +7,7 @@
 
 #include <amount.h>
 #include <blockchain/blockchain_types.h>
+#include <script/script.h>
 #include <uint256.h>
 
 namespace staking {
@@ -17,7 +18,7 @@ struct Coin {
   uint256 txid;
 
   //! The index of the output in the transaction referred to by txid.
-  uint32_t index;
+  std::uint32_t index;
 
   //! The amount of the index-th output in the referenced transaction.
   CAmount amount;
@@ -48,7 +49,42 @@ struct Coin {
   //! the height of B (having the staking output) is 1, which is 4 minus 3.
   //! The depth of genesis is always the size (not the height) of the chain.
   blockchain::Depth depth;
+
+  Coin() = default;
+  Coin(const uint256 &txid, std::uint32_t index, CAmount amount, const CScript &script_pubkey, blockchain::Depth depth);
+
+  bool operator==(const Coin &other) const {
+    return txid == other.txid && index == other.index;
+  }
+
+  std::string ToString() const;
 };
+
+struct CoinByAmountComparator {
+  inline bool operator()(const Coin &left, const Coin &right) const {
+    if (left.amount > right.amount) {
+      return true;
+    }
+    if (left.amount < right.amount) {
+      return false;
+    }
+    if (left.depth > right.depth) {
+      return true;
+    }
+    if (left.depth < right.depth) {
+      return false;
+    }
+    if (left.txid < right.txid) {
+      return true;
+    }
+    if (left.txid != right.txid) {
+      return false;
+    }
+    return left.index < right.index;
+  }
+};
+
+using CoinSet = std::set<Coin, CoinByAmountComparator>;
 
 }  // namespace staking
 

@@ -130,7 +130,6 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
       1250,                // amount
       prev_script_pubkey,  // scriptpubkey
       230                  // depth
-
   };
   staking::Coin coin3{
       tx3ref->GetHash(),   // txid
@@ -148,7 +147,10 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
       0x1d00ffff   // difficulty = 1
   };
 
-  std::vector<staking::Coin> coins{coin1, coin2, coin3};
+  staking::CoinSet coins;
+  coins.insert(coin1);
+  coins.insert(coin2);
+  coins.insert(coin3);
 
   // BuildCoinbaseTransaction() will also sign it
   CTransactionRef coinbase_transaction =

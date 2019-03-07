@@ -72,7 +72,7 @@ class BlockBuilderImpl : public BlockBuilder {
   const CTransactionRef BuildCoinbaseTransaction(
       const uint256 &snapshot_hash,
       const EligibleCoin &eligible_coin,
-      const std::vector<staking::Coin> &coins,
+      const staking::CoinSet &coins,
       const CAmount fees,
       staking::StakingWallet &wallet) const override {
     CMutableTransaction tx;
@@ -154,7 +154,7 @@ class BlockBuilderImpl : public BlockBuilder {
       const CBlockIndex &prev_block,
       const uint256 &snapshot_hash,
       const EligibleCoin &coin,
-      const std::vector<staking::Coin> &coins,
+      const staking::CoinSet &coins,
       const std::vector<CTransactionRef> &txs,
       const CAmount fees,
       staking::StakingWallet &wallet) const override {
