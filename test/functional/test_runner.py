@@ -180,6 +180,7 @@ BASE_SCRIPTS= [
     'rpc_getblocksnapshot.py',
     'rpc_validator.py',
     'rpc_finalization.py',
+    'feature_snapshot.py',
     'p2p_snapshot.py',
     'feature_snapshot_creation.py',
     'feature_fork_choice_finalization.py',
@@ -210,9 +211,7 @@ USBDEVICE_SCRIPTS = [
     'wallet_hwsign.py',
 ]
 
-DISABLED_SCRIPTS = [
-    'feature_snapshot.py',
-]
+DISABLED_SCRIPTS = []
 
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
 ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS + USBDEVICE_SCRIPTS
