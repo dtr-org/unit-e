@@ -12,6 +12,7 @@
 #include <consensus/validation.h>
 #include <hash.h>
 #include <init.h>
+#include <injector.h>
 #include <validation.h>
 #include <merkleblock.h>
 #include <netmessagemaker.h>
@@ -31,7 +32,6 @@
 #include <utilstrencodings.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
-#include <finalization/p2p.h>
 
 #include <memory>
 
@@ -2830,19 +2830,24 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     }
 
     else if (strCommand == NetMsgType::GETCOMMITS) {
-        finalization::p2p::CommitsLocator locator;
+        p2p::FinalizerCommitsLocator locator;
         vRecv >> locator;
+
         LogPrint(BCLog::NET, "received: %s\n", locator.ToString());
-        return finalization::p2p::ProcessGetCommits(pfrom, locator, msgMaker, chainparams);
+
+        GetComponent<p2p::FinalizerCommitsHandler>()->OnGetCommits(*pfrom, locator, chainparams.GetConsensus());
     }
 
     else if (strCommand == NetMsgType::COMMITS) {
-        finalization::p2p::CommitsResponse commits;
+        p2p::FinalizerCommitsResponse commits;
         vRecv >> commits;
-        LogPrint(BCLog::NET, "received: %d headers+commits, satus=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
+
+        LogPrint(BCLog::NET, "received: %d headers+commits, status=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
+
         CValidationState validation_state;
         uint256 failed_block;
-        bool ok = finalization::p2p::ProcessNewCommits(commits, chainparams, validation_state, &failed_block);
+
+        const bool ok = GetComponent<p2p::FinalizerCommitsHandler>()->OnCommits(*pfrom, commits, chainparams, validation_state, &failed_block);
         if (ok) {
             return true;
         }
