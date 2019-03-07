@@ -137,10 +137,12 @@ class TxnMallTest(UnitETestFramework):
         assert_equal(tx1["confirmations"], -2)
         assert_equal(tx2["confirmations"], -2)
 
-        # Node0's total balance should be starting balance, plus 100UTE for
-        # two more matured blocks (COINBASE_MATURITY deep), minus 1240 for the double-spend,
+        self.nodes[0].generate(1)
+
+        # Node0's total balance should be starting balance, plus 150UTE for
+        # three more matured blocks (COINBASE_MATURITY deep), minus 1240 for the double-spend,
         # plus fees (which are negative):
-        expected = starting_balance + 100 - doublespend_amount + fund_foo_tx["fee"] + fund_bar_tx["fee"] + tx_fee
+        expected = starting_balance + 150 - doublespend_amount + fund_foo_tx["fee"] + fund_bar_tx["fee"] + tx_fee
         assert_equal(self.nodes[0].getbalance(), expected)
         assert_equal(self.nodes[0].getbalance("*"), expected)
 
