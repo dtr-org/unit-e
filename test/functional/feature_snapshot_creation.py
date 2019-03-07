@@ -52,10 +52,10 @@ class SnapshotCreationTest(UnitETestFramework):
         validator.importmasterkey(regtest_mnemonics[0]['mnemonics'])
         node.importmasterkey(regtest_mnemonics[1]['mnemonics'])
 
-        node.generatetoaddress(1, node.getnewaddress())  # IBD
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))  # IBD
 
         # test 1. node generates snapshots with the expected interval
-        node.generatetoaddress(23, node.getnewaddress())
+        node.generatetoaddress(23, node.getnewaddress('', 'bech32'))
         wait_until(lambda: len(node.listsnapshots()) == 5)
         assert(has_valid_snapshot_for_height(node, 3))
         assert(has_valid_snapshot_for_height(node, 8))
@@ -64,7 +64,7 @@ class SnapshotCreationTest(UnitETestFramework):
         assert(has_valid_snapshot_for_height(node, 23))
 
         # test 2. node keeps up to 5 snapshots
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_valid_snapshot_for_height(node, 28), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
         assert(has_valid_snapshot_for_height(node, 3) is False)
@@ -78,7 +78,7 @@ class SnapshotCreationTest(UnitETestFramework):
         txid = validator.deposit(payto, 10000)
         self.wait_for_transaction(txid, 10)
 
-        node.generatetoaddress(10, node.getnewaddress())
+        node.generatetoaddress(10, node.getnewaddress('', 'bech32'))
         sync_blocks([node, validator])
         self.stop_node(validator.index)
 
@@ -93,7 +93,7 @@ class SnapshotCreationTest(UnitETestFramework):
         assert(node.getblocksnapshot(node.getblockhash(38))['snapshot_finalized'] is False)  # will be finalized
 
         # test 3. node keeps at least 2 finalized snapshots
-        node.generatetoaddress(10, node.getnewaddress())
+        node.generatetoaddress(10, node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_valid_snapshot_for_height(node, 48), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
         assert(has_valid_snapshot_for_height(node, 18) is False)
@@ -104,7 +104,7 @@ class SnapshotCreationTest(UnitETestFramework):
         assert(node.getblocksnapshot(node.getblockhash(43))['snapshot_finalized'] is False)
         assert(node.getblocksnapshot(node.getblockhash(48))['snapshot_finalized'] is False)
 
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_valid_snapshot_for_height(node, 53), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
         assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'])
@@ -113,7 +113,7 @@ class SnapshotCreationTest(UnitETestFramework):
         assert(node.getblocksnapshot(node.getblockhash(43))['snapshot_finalized'] is False)
         assert(node.getblocksnapshot(node.getblockhash(48))['snapshot_finalized'] is False)
 
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_valid_snapshot_for_height(node, 58), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
         assert(node.getblocksnapshot(node.getblockhash(28))['snapshot_finalized'])
