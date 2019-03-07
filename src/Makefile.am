@@ -128,7 +128,6 @@ UNITE_CORE_H = \
   esperanza/walletextension_deps.h \
   esperanza/walletstate.h \
   extkey.h \
-  finalization/p2p.h \
   finalization/state_processor.h \
   finalization/state_repository.h \
   finalization/vote_recorder.h \
@@ -165,6 +164,9 @@ UNITE_CORE_H = \
   noui.h \
   p2p/embargoman.h \
   p2p/embargoman_init.h \
+  p2p/finalizer_commits.h \
+  p2p/finalizer_commits_impl.h \
+  p2p/finalizer_commits_types.h \
   policy/feerate.h \
   policy/fees.h \
   policy/policy.h \
@@ -295,7 +297,6 @@ libunite_server_a_SOURCES = \
   esperanza/checks.cpp \
   esperanza/finalizationstate.cpp \
   esperanza/validator.cpp \
-  finalization/p2p.cpp \
   finalization/state_processor.cpp \
   finalization/state_repository.cpp \
   finalization/vote_recorder.cpp \
@@ -311,6 +312,9 @@ libunite_server_a_SOURCES = \
   noui.cpp \
   p2p/embargoman.cpp \
   p2p/embargoman_init.cpp \
+  p2p/finalizer_commits.cpp \
+  p2p/finalizer_commits_impl.cpp \
+  p2p/finalizer_commits_types.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \

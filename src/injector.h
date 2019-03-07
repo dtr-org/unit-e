@@ -12,6 +12,7 @@
 #include <blockchain/blockchain_rpc.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
+#include <p2p/finalizer_commits.h>
 #include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/block_validator.h>
@@ -61,6 +62,11 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
             finalization::StateRepository,
             staking::ActiveChain)
+
+  COMPONENT(FinalizerCommits, p2p::FinalizerCommits, p2p::FinalizerCommits::New,
+            staking::ActiveChain,
+            finalization::StateRepository,
+            finalization::StateProcessor)
 
 #ifdef ENABLE_WALLET
 
