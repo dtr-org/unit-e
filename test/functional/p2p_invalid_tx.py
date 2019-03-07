@@ -63,7 +63,7 @@ class InvalidTxRequestTest(ComparisonTestFramework):
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(100):
             prev_coinbase = coinbase
-            stake = {'txid': prev_coinbase.hash, 'vout': 0, 'amount': prev_coinbase.vout[0].nValue/UNIT}
+            stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
             coinbase = create_coinbase(height, stake, snapshot_meta.hash)
             block = create_block(self.tip, coinbase, self.block_time)
             block.solve()
@@ -71,7 +71,7 @@ class InvalidTxRequestTest(ComparisonTestFramework):
             self.block_time += 1
             test.blocks_and_transactions.append([block, True])
 
-            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[0])
+            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
             output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
