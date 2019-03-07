@@ -31,6 +31,7 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_no_haz_coins) {
   BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-txns-inputs-missingorspent");
 }
 
+#ifdef MUMBOJUMBO
 BOOST_AUTO_TEST_CASE(check_tx_inputs_no_reward) {
 
   const CTxIn meta_input;
@@ -57,6 +58,7 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_no_reward) {
   BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
   BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-no-reward");
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(check_tx_inputs_does_not_access_coinbase_meta_input) {
 
