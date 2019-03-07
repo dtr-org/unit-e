@@ -89,6 +89,8 @@ class SnapshotTest(UnitETestFramework):
         isd_node = self.nodes[2]
         rework_node = self.nodes[3]
 
+        self.setup_stake_coins(full_node, rework_node)
+
         # generate 2 epochs to create the snapshot which will be finalized
         # one block after
         #               s0      s1
@@ -96,7 +98,7 @@ class SnapshotTest(UnitETestFramework):
         # | isd_node
         # | rework_node
         # | blank_node
-        full_node.generatetoaddress(4 + 5, full_node.getnewaddress())
+        full_node.generatetoaddress(4 + 5, full_node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_snapshot(full_node, 3), timeout=3)
         assert_equal(full_node.getblockcount(), 9)
 
@@ -108,7 +110,7 @@ class SnapshotTest(UnitETestFramework):
         connect_nodes(rework_node, full_node.index)
         sync_blocks([rework_node, full_node])
         disconnect_nodes(rework_node, full_node.index)
-        rework_node.generatetoaddress(6, rework_node.getnewaddress())
+        rework_node.generatetoaddress(6, rework_node.getnewaddress('', 'bech32'))
         assert_equal(rework_node.getblockcount(), 15)
 
         # generate 1 more block creates new epoch and instantly finalizes the previous one
@@ -117,7 +119,7 @@ class SnapshotTest(UnitETestFramework):
         # G------------(h=3)...(h=8)-(h=9)-(h=10) full_node, blank_node
         # | isd_node                   \
         #                               -------------------(h=15) rework_node
-        full_node.generatetoaddress(1, full_node.getnewaddress())
+        full_node.generatetoaddress(1, full_node.getnewaddress('', 'bech32'))
         assert_equal(full_node.getblockcount(), 10)
         wait_until(lambda: has_finalized_snapshot(full_node, height=3), timeout=5)
         wait_until(lambda: has_snapshot(full_node, height=8), timeout=5)
@@ -161,8 +163,15 @@ class SnapshotTest(UnitETestFramework):
         #                              \     \
         #                               \     -(h=11) isd_node
         #                                -------------------(h=15) rework_node
-        isd_node.generatetoaddress(1, isd_node.getnewaddress())
-        assert_equal(isd_node.getblockcount(), 11)
+
+        # UNITE TODO: Restore back
+        # This check was disabled after PoS was introduced:
+        # isd_node can not generate block, because it does not have any money
+        # => can not stake. And we can not importmasterkey because it is
+        # forbidden in prune mode
+
+        # isd_node.generatetoaddress(1, isd_node.getnewaddress('', 'bech32'))
+        # assert_equal(isd_node.getblockcount(), 11)
 
         # test that reorg one epoch after finalization is possible
         #               s0      s1
@@ -182,7 +191,9 @@ class SnapshotTest(UnitETestFramework):
         full_node = self.nodes[4]
         sync_node = self.nodes[5]
 
-        full_node.generatetoaddress(5, full_node.getnewaddress())
+        self.setup_stake_coins(full_node)
+
+        full_node.generatetoaddress(5, full_node.getnewaddress('', 'bech32'))
         wait_until(lambda: len(full_node.listsnapshots()) == 1, timeout=10)
         for res in full_node.listsnapshots():
             full_node.deletesnapshot(res['snapshot_hash'])
