@@ -3,11 +3,15 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.util import json
-from test_framework.util import assert_equal
-from test_framework.util import JSONRPCException
+from test_framework.util import (
+    json,
+    assert_equal,
+    JSONRPCException,
+    wait_until,
+)
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
+
 
 class EsperanzaDepositTest(UnitETestFramework):
 
@@ -59,21 +63,20 @@ class EsperanzaDepositTest(UnitETestFramework):
         # wait for transaction to propagate
         self.wait_for_transaction(txid, 60)
 
-        assert_equal(validator.getvalidatorinfo()["validator_status"], "WAITING_DEPOSIT_CONFIRMATION")
+        wait_until(lambda: validator.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_CONFIRMATION', timeout=5)
 
         # mine a block to allow the deposit to get included
         self.generate_sync(nodes[2])
 
-        assert_equal(validator.getvalidatorinfo()["validator_status"], "WAITING_DEPOSIT_FINALIZATION")
+        wait_until(lambda: validator.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION', timeout=5)
 
         # the validator will be ready to operate in epoch 4
         # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
         for n in range(0, 39):
             self.generate_block(nodes[(n % 3) + 1])
 
-        resp = validator.getvalidatorinfo()
-        assert resp["enabled"]
-        assert_equal(resp["validator_status"], "IS_VALIDATING")
+        wait_until(lambda: validator.getvalidatorinfo()['enabled'] == 1, timeout=5)
+        assert_equal(validator.getvalidatorinfo()['validator_status'], 'IS_VALIDATING')
 
     def generate_block(self, node):
         i = 0
@@ -87,6 +90,7 @@ class EsperanzaDepositTest(UnitETestFramework):
                 i += 1
                 print("error generating block:", exp.error)
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
+
 
 if __name__ == '__main__':
     EsperanzaDepositTest().main()
