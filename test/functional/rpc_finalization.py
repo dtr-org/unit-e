@@ -60,7 +60,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # leave IBD
         connect_nodes(node, finalizer1.index)
         connect_nodes(node, finalizer2.index)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         sync_blocks([node, finalizer1, finalizer2])
         disconnect_nodes(node, finalizer1.index)
         disconnect_nodes(node, finalizer2.index)
@@ -78,7 +78,7 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # test state of last checkpoint
         # e0
-        node.generatetoaddress(3, node.getnewaddress())
+        node.generatetoaddress(3, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 4)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 0)
@@ -91,7 +91,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 1
         # J
         # e0 - e1
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 9)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 1)
@@ -104,7 +104,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 2
         # F    J
         # e0 - e1 - e2
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 14)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 2)
@@ -117,7 +117,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 3
         # F    F    J
         # e0 - e1 - e2 - e3
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 19)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 3)
@@ -130,7 +130,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 4
         # F    F    F    J
         # e0 - e1 - e2 - e3 - e4
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 24)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 4)
@@ -143,7 +143,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # test instant justification 5 (must be last one)
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 29)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 5)
@@ -156,7 +156,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # no justification
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6
-        node.generatetoaddress(5, node.getnewaddress())
+        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 34)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 6)
@@ -168,7 +168,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # no justification
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7[35]
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 35)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 7)
@@ -182,7 +182,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # F    F    F    F    J         J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7[35, 36]
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
 
         assert_equal(node.getblockcount(), 36)
         state = node.getfinalizationstate()
@@ -196,7 +196,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # skip 1 justification
         # F    F    F    J              J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9[45]
-        node.generatetoaddress(9, node.getnewaddress())
+        node.generatetoaddress(9, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 45)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 9)
@@ -210,7 +210,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # F    F    F    J              J         J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9[45, 46]
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 46)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 9)
@@ -221,9 +221,9 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    J              J         F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10[50, 51]
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 51)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 10)
@@ -234,7 +234,7 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    J              J         F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10
-        node.generatetoaddress(3, node.getnewaddress())
+        node.generatetoaddress(3, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 54)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 10)
@@ -247,7 +247,7 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J              J    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11[55]
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 55)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 11)
@@ -263,7 +263,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # F    F    F    F    J              J    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 59)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 11)
@@ -274,9 +274,9 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J              J    F    F    F     J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 64)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 12)
@@ -287,9 +287,9 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J              J    F    F    F     F     J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12 - e13
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 69)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 13)
@@ -300,7 +300,7 @@ class RpcFinalizationTest(UnitETestFramework):
 
         # F    F    F    F    J              J    F    F    F     F     J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12 - e13 - e14[70]
-        node.generatetoaddress(1, node.getnewaddress())
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 70)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 14)
@@ -314,7 +314,7 @@ class RpcFinalizationTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12 - e13 - e14
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node)
-        node.generatetoaddress(4, node.getnewaddress())
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 74)
         state = node.getfinalizationstate()
         assert_equal(state['currentEpoch'], 14)
