@@ -104,25 +104,37 @@ def serialize_script_num(value):
 # If pubkey is passed in, the coinbase outputs will be P2PK outputs;
 # otherwise anyone-can-spend outputs. The first output is the reward,
 # which is not spendable for COINBASE_MATURITY blocks.
-def create_coinbase(height, stake, snapshot_hash, pubkey = None):
+def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
     coinbase.set_type(TxType.COINBASE)
     script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash)])
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
     coinbase.vin.append(CTxIn(outpoint=stake_in, nSequence=0xffffffff))
-    rewardoutput = CTxOut()
-    coinbaseoutput = CTxOut()
     halvings = int(height/150) # regtest
-    rewardoutput.nValue = (50 * UNIT) >> halvings
-    coinbaseoutput.nValue = int(stake['amount'] * UNIT)
+
+    output_script = None
     if (pubkey != None):
-        rewardoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
-        coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
+        output_script = CScript([pubkey, OP_CHECKSIG])
     else:
-        rewardoutput.scriptPubKey = CScript([OP_TRUE])
-        coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
-    coinbase.vout = [ rewardoutput, coinbaseoutput ]
+        output_script = CScript([OP_TRUE])
+
+    rewardoutput = CTxOut()
+    rewardoutput.nValue = (50 * UNIT) >> halvings
+    rewardoutput.scriptPubKey = output_script
+
+    outputs = []
+
+    piece_value = int(stake['amount'] * UNIT / n_pieces)
+    for _ in range(n_pieces):
+        output = CTxOut()
+        output.nValue = piece_value
+        output.scriptPubKey = output_script
+        outputs.append(output)
+
+    rewardoutput.nValue += int(stake['amount'] * UNIT) - piece_value * n_pieces
+
+    coinbase.vout = [ rewardoutput ] + outputs
     coinbase.calc_sha256()
     return coinbase
 
