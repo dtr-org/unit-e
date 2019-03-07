@@ -30,7 +30,7 @@ snapshot::SnapshotHash CCoinsViewBacked::GetSnapshotHash() const { return base->
 std::vector<uint256> CCoinsViewBacked::GetHeadBlocks() const { return base->GetHeadBlocks(); }
 void CCoinsViewBacked::SetBackend(CCoinsView &viewIn) { base = &viewIn; }
 bool CCoinsViewBacked::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) { return base->BatchWrite(mapCoins, hashBlock, snapshotHash); }
-void CCoinsViewBacked::ClearCoins() {}
+void CCoinsViewBacked::ClearCoins() { base->ClearCoins(); }
 CCoinsViewCursor *CCoinsViewBacked::Cursor() const { return base->Cursor(); }
 size_t CCoinsViewBacked::EstimateSize() const { return base->EstimateSize(); }
 

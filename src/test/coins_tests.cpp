@@ -95,7 +95,7 @@ public:
 
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(coins_tests, ReducedTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(coins_tests, BasicTestingSetup)
 
 static const unsigned int NUM_SIMULATION_ITERATIONS = 40000;
 
@@ -855,6 +855,38 @@ BOOST_AUTO_TEST_CASE(ccoins_write)
             for (char parent_flags : parent_value == ABSENT ? ABSENT_FLAGS : FLAGS)
                 for (char child_flags : child_value == ABSENT ? ABSENT_FLAGS : CLEAN_FLAGS)
                     CheckWriteCoins(parent_value, child_value, parent_value, parent_flags, child_flags, parent_flags);
+}
+
+BOOST_AUTO_TEST_CASE(ccoins_view_cache_clear_coins)
+{
+    SetDataDir("ccoins_view_cache_clear_coins");
+    fs::remove_all(GetDataDir());
+
+    auto view_db = MakeUnique<CCoinsViewDB>(0, false, true);
+    auto view_backend = MakeUnique<CCoinsViewCache>(view_db.get());  // extra layer
+    auto view_cache = MakeUnique<CCoinsViewCache>(view_backend.get());
+
+    CCoinsMap coins;
+    for (size_t i = 0; i < 5; ++i) {
+      COutPoint point(uint256S("aa"), i);
+      Coin coin(CTxOut(1, CScript()), 1, false);
+      CCoinsCacheEntry entry(std::move(coin));
+      entry.flags |= CCoinsCacheEntry::DIRTY;
+      coins.emplace(point, std::move(entry));
+    }
+    view_db->BatchWrite(coins, uint256S("aa"), snapshot::SnapshotHash());
+
+    size_t total = 0;
+    std::unique_ptr<CCoinsViewCursor> cursor(view_db->Cursor());
+    while (cursor->Valid()) {
+      ++total;
+      cursor->Next();
+    }
+    BOOST_CHECK_EQUAL(total, 5); // sanity check
+
+    view_cache->ClearCoins();
+    std::unique_ptr<CCoinsViewCursor> empty_cursor(view_db->Cursor());
+    BOOST_CHECK(!empty_cursor->Valid());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

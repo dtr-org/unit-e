@@ -452,16 +452,20 @@ bool CCoinsViewDB::GetSnapshotIndex(snapshot::SnapshotIndex &snapshotIndexOut) {
 }
 
 void CCoinsViewDB::ClearCoins() {
-    int total = 0;
+    size_t total = 0;
     std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
     while (cursor->Valid()) {
         COutPoint key;
         if (cursor->GetKey(key)) {
-            db.Erase(key);
+            CoinEntry entry(&key);
+            db.Erase(entry);
             ++total;
         }
         cursor->Next();
     }
+
+    std::unique_ptr<CCoinsViewCursor> empty_cursor(Cursor());
+    assert(!empty_cursor->Valid() && "chainstate must have 0 coins");
 
     LogPrint(BCLog::COINDB, "%s: deleted %i keys in the DB\n", __func__, total);
 }
