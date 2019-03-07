@@ -45,7 +45,6 @@ WalletTestingSetup::~WalletTestingSetup()
 
 TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::REGTEST)
 {
-
   CUnitESecret vchSecret;
   bool fGood = vchSecret.SetString("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
   assert(fGood);
