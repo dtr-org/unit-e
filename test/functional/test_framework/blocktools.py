@@ -101,8 +101,9 @@ def serialize_script_num(value):
 
 
 # Create a coinbase transaction, assuming no miner fees.
-# If pubkey is passed in, the coinbase output will be a P2PK output;
-# otherwise an anyone-can-spend output.
+# If pubkey is passed in, the coinbase outputs will be P2PK outputs;
+# otherwise anyone-can-spend outputs. The first output is the reward,
+# which is not spendable for COINBASE_MATURITY blocks.
 def create_coinbase(height, stake, snapshot_hash, pubkey = None):
     stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
@@ -110,16 +111,21 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None):
     script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash)])
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
     coinbase.vin.append(CTxIn(outpoint=stake_in, nSequence=0xffffffff))
+    rewardoutput = CTxOut()
     coinbaseoutput = CTxOut()
     halvings = int(height/150) # regtest
-    coinbaseoutput.nValue = ((50 * UNIT) >> halvings) + (int(stake['amount'] * UNIT))
+    rewardoutput.nValue = (50 * UNIT) >> halvings
+    coinbaseoutput.nValue = int(stake['amount'] * UNIT)
     if (pubkey != None):
+        rewardoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
         coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
     else:
+        rewardoutput.scriptPubKey = CScript([OP_TRUE])
         coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
-    coinbase.vout = [ coinbaseoutput ]
+    coinbase.vout = [ rewardoutput, coinbaseoutput ]
     coinbase.calc_sha256()
     return coinbase
+
 
 # Convenience wrapper
 # Returns the signed coinbase

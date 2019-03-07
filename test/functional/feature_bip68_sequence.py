@@ -339,9 +339,10 @@ class BIP68Test(UnitETestFramework):
             input = UTXO(height - txout['confirmations'] + 1, txout['coinbase'],
                          COutPoint(int(stake['txid'], 16), stake['vout']),
                          CTxOut(int(stake['amount'] * UNIT), hex_str_to_bytes(stake['scriptPubKey'])))
-            output = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            reward_output = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            stake_output = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
             tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, 0, height, [input],
-                                                   [output])
+                                                   [reward_output, stake_output])
 
             height += 1
             self.nodes[0].p2p.send_and_ping(msg_block(block))
