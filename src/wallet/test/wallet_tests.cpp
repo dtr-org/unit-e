@@ -757,8 +757,8 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     // address.
     std::map<CTxDestination, std::vector<COutput>> list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
-    BOOST_CHECK_EQUAL(list.begin()->first.which(), 4); // P2WPKH
-    BOOST_CHECK_EQUAL(boost::get<WitnessV0KeyHash>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
+    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 1);
 
     // Check initial balance from one mature coinbase transaction.
@@ -771,8 +771,8 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     AddTx(CRecipient{GetScriptForRawPubKey({}), 1 * UNIT, false /* subtract fee */});
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
-    BOOST_CHECK_EQUAL(list.begin()->first.which(), 4); // P2WPKH
-    BOOST_CHECK_EQUAL(boost::get<WitnessV0KeyHash>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
+    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 
     // Lock both coins. Confirm number of available coins drops to 0.
@@ -792,8 +792,8 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     // being locked.
     list = pwalletMain->ListCoins();
     BOOST_CHECK_EQUAL(list.size(), 1);
-    BOOST_CHECK_EQUAL(list.begin()->first.which(), 4); // P2WPKH
-    BOOST_CHECK_EQUAL(boost::get<WitnessV0KeyHash>(list.begin()->first).ToString(), coinbaseAddress);
+    BOOST_CHECK_EQUAL(list.begin()->first.which(), 1);
+    BOOST_CHECK_EQUAL(boost::get<CKeyID>(list.begin()->first).ToString(), coinbaseAddress);
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2);
 }
 
@@ -874,7 +874,7 @@ BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup)
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
   {
-    const CTxDestination coinbase_destination = GetDestinationForKey(coinbaseKey.GetPubKey(), OUTPUT_TYPE_BECH32);
+    const CTxDestination coinbase_destination = GetDestinationForKey(coinbaseKey.GetPubKey(), OUTPUT_TYPE_LEGACY);
     LOCK2(cs_main, pwalletMain->cs_wallet);
     const std::map<CTxDestination, CAmount> balances = pwalletMain->GetAddressBalances();
     BOOST_CHECK_EQUAL(balances.size(), 1);

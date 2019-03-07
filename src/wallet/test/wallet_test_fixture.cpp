@@ -61,11 +61,11 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
 
   // Generate a 100-block chain:
   GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0
-  CScript script_pubkey = GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID()));
+  CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
   for (int i = 0; i < COINBASE_MATURITY; i++)
   {
     std::vector<CMutableTransaction> noTxns;
-    CBlock b = CreateAndProcessBlock(noTxns, script_pubkey);
+    CBlock b = CreateAndProcessBlock(noTxns, scriptPubKey);
     coinbaseTxns.push_back(*b.vtx[0]);
   }
 }
