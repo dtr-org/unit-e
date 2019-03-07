@@ -253,11 +253,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         // The reward output is by definition in the zeroth output. The reward
         // consists of newly minted money (the block reward) and the fees accumulated
         // from the transactions.
+#ifdef MUMBOJUMBO
         if (tx.vout.empty()) {
           return state.DoS(100, false, REJECT_INVALID, "bad-cb-no-reward", false,
                            strprintf("coinbase without a reward txout"));
         }
-#ifdef MUMBOJUMBO
         const CTxOut &reward_out = tx.vout[0];
         const CAmount reward = reward_out.nValue;
         if (nValueIn + reward < value_out) {
