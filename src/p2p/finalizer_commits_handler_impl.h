@@ -2,7 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <p2p/finalizer_commits.h>
+#ifndef UNITE_P2P_FINALIZER_COMMITS_HANDLER_IMPL
+#define UNITE_P2P_FINALIZER_COMMITS_HANDLER_IMPL
+
+#include <p2p/finalizer_commits_handler.h>
 
 #include <chain.h>
 
@@ -15,13 +18,12 @@ using FinalizationState = esperanza::FinalizationState;
 }
 
 namespace p2p {
-namespace impl {
 
-class FinalizerCommits : public ::p2p::FinalizerCommits {
+class FinalizerCommitsHandlerImpl : public ::p2p::FinalizerCommitsHandler {
  public:
-  FinalizerCommits(Dependency<staking::ActiveChain> active_chain,
-                   Dependency<finalization::StateRepository> repo,
-                   Dependency<finalization::StateProcessor> proc)
+  FinalizerCommitsHandlerImpl(Dependency<staking::ActiveChain> active_chain,
+                              Dependency<finalization::StateRepository> repo,
+                              Dependency<finalization::StateProcessor> proc)
       : m_active_chain(active_chain),
         m_repo(repo),
         m_proc(proc) {}
@@ -44,25 +46,12 @@ class FinalizerCommits : public ::p2p::FinalizerCommits {
   HeaderAndFinalizerCommits FindHeaderAndFinalizerCommits(
       const CBlockIndex &index, const Consensus::Params &params) const;
 
-  //! \brief Returns wheter test is an ancestor of the head.
-  //!
-  //! Optimized for a case of serial invocations on `test` indexes with continuously growing height.
-  static bool IsSameFork(const CBlockIndex *head, const CBlockIndex *test, const CBlockIndex *&prev);
-
  private:
   Dependency<staking::ActiveChain> m_active_chain;
   Dependency<finalization::StateRepository> m_repo;
   Dependency<finalization::StateProcessor> m_proc;
-
-  struct HeightComparator {
-    bool operator()(const CBlockIndex *a, const CBlockIndex *b) const {
-      return a->nHeight < b->nHeight;
-    }
-  };
-
-  std::map<NodeId, std::multiset<const CBlockIndex *, HeightComparator>> m_wait_list;
-  std::map<NodeId, std::list<const CBlockIndex *>> m_to_download;
 };
 
-}  // namespace impl
 }  // namespace p2p
+
+#endif

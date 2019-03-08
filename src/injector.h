@@ -12,7 +12,7 @@
 #include <blockchain/blockchain_rpc.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
-#include <p2p/finalizer_commits.h>
+#include <p2p/finalizer_commits_handler.h>
 #include <settings.h>
 #include <staking/active_chain.h>
 #include <staking/block_validator.h>
@@ -63,7 +63,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             finalization::StateRepository,
             staking::ActiveChain)
 
-  COMPONENT(FinalizerCommits, p2p::FinalizerCommits, p2p::FinalizerCommits::New,
+  COMPONENT(FinalizerCommitsHandler, p2p::FinalizerCommitsHandler, p2p::FinalizerCommitsHandler::New,
             staking::ActiveChain,
             finalization::StateRepository,
             finalization::StateProcessor)

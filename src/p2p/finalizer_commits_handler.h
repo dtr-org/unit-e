@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef UNITE_P2P_FINALIZER_COMMITS
-#define UNITE_P2P_FINALIZER_COMMITS
+#ifndef UNITE_P2P_FINALIZER_COMMITS_HANDLER
+#define UNITE_P2P_FINALIZER_COMMITS_HANDLER
 
 #include <consensus/params.h>
 #include <dependency.h>
@@ -28,11 +28,11 @@ class ActiveChain;
 
 namespace p2p {
 
-class FinalizerCommits {
+class FinalizerCommitsHandler {
  public:
   //! \brief Process getcommits message
   virtual void OnGetCommits(
-      CNode &from, const FinalizerCommitsLocator &locator, const Consensus::Params &params) const = 0;
+      CNode &node, const FinalizerCommitsLocator &locator, const Consensus::Params &params) const = 0;
 
   //! \brief Process commits message
   virtual bool OnCommits(
@@ -42,9 +42,9 @@ class FinalizerCommits {
       CValidationState &err_state,
       uint256 *failed_block_out) = 0;
 
-  virtual ~FinalizerCommits() = default;
+  virtual ~FinalizerCommitsHandler() = default;
 
-  static std::unique_ptr<FinalizerCommits> New(
+  static std::unique_ptr<FinalizerCommitsHandler> New(
       Dependency<staking::ActiveChain>,
       Dependency<finalization::StateRepository>,
       Dependency<finalization::StateProcessor>);

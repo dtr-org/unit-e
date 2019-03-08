@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <p2p/finalizer_commits_impl.h>
+#include <p2p/finalizer_commits_handler_impl.h>
 
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
@@ -17,7 +17,7 @@
 
 namespace p2p {
 
-const CBlockIndex *impl::FinalizerCommits::FindMostRecentStart(
+const CBlockIndex *FinalizerCommitsHandlerImpl::FindMostRecentStart(
     const FinalizerCommitsLocator &locator) const {
 
   AssertLockHeld(m_active_chain->GetLock());
@@ -54,7 +54,7 @@ const CBlockIndex *impl::FinalizerCommits::FindMostRecentStart(
   return best_index;
 }
 
-const CBlockIndex *impl::FinalizerCommits::FindStop(const FinalizerCommitsLocator &locator) const {
+const CBlockIndex *FinalizerCommitsHandlerImpl::FindStop(const FinalizerCommitsLocator &locator) const {
   AssertLockHeld(m_active_chain->GetLock());
 
   if (locator.stop.IsNull()) {
@@ -70,7 +70,7 @@ const CBlockIndex *impl::FinalizerCommits::FindStop(const FinalizerCommitsLocato
   return result;
 }
 
-HeaderAndFinalizerCommits impl::FinalizerCommits::FindHeaderAndFinalizerCommits(
+HeaderAndFinalizerCommits FinalizerCommitsHandlerImpl::FindHeaderAndFinalizerCommits(
     const CBlockIndex &index, const Consensus::Params &params) const {
 
   HeaderAndFinalizerCommits hc(index.GetBlockHeader());
@@ -99,7 +99,7 @@ HeaderAndFinalizerCommits impl::FinalizerCommits::FindHeaderAndFinalizerCommits(
   return hc;
 }
 
-void impl::FinalizerCommits::OnGetCommits(
+void FinalizerCommitsHandlerImpl::OnGetCommits(
     CNode &node, const FinalizerCommitsLocator &locator, const Consensus::Params &params) const {
 
   LOCK(m_active_chain->GetLock());
@@ -135,7 +135,7 @@ void impl::FinalizerCommits::OnGetCommits(
   PushMessage(node, NetMsgType::COMMITS, response);
 }
 
-bool impl::FinalizerCommits::OnCommits(
+bool FinalizerCommitsHandlerImpl::OnCommits(
     CNode &node,
     const FinalizerCommitsResponse &msg,
     const CChainParams &chainparams,

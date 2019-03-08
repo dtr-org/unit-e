@@ -2835,7 +2835,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         LogPrint(BCLog::NET, "received: %s\n", locator.ToString());
 
-        GetComponent<p2p::FinalizerCommits>()->OnGetCommits(*pfrom, locator, chainparams.GetConsensus());
+        GetComponent<p2p::FinalizerCommitsHandler>()->OnGetCommits(*pfrom, locator, chainparams.GetConsensus());
     }
 
     else if (strCommand == NetMsgType::COMMITS) {
@@ -2847,7 +2847,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         CValidationState validation_state;
         uint256 failed_block;
 
-        const bool ok = GetComponent<p2p::FinalizerCommits>()->OnCommits(*pfrom, commits, chainparams, validation_state, &failed_block);
+        const bool ok = GetComponent<p2p::FinalizerCommitsHandler>()->OnCommits(*pfrom, commits, chainparams, validation_state, &failed_block);
         if (ok) {
             return true;
         }

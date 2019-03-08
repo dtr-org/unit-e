@@ -164,8 +164,8 @@ UNITE_CORE_H = \
   noui.h \
   p2p/embargoman.h \
   p2p/embargoman_init.h \
-  p2p/finalizer_commits.h \
-  p2p/finalizer_commits_impl.h \
+  p2p/finalizer_commits_handler.h \
+  p2p/finalizer_commits_handler_impl.h \
   p2p/finalizer_commits_types.h \
   policy/feerate.h \
   policy/fees.h \
@@ -312,8 +312,8 @@ libunite_server_a_SOURCES = \
   noui.cpp \
   p2p/embargoman.cpp \
   p2p/embargoman_init.cpp \
-  p2p/finalizer_commits.cpp \
-  p2p/finalizer_commits_impl.cpp \
+  p2p/finalizer_commits_handler.cpp \
+  p2p/finalizer_commits_handler_impl.cpp \
   p2p/finalizer_commits_types.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
