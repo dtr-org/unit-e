@@ -43,10 +43,10 @@ class FinalizerCommitsHandlerImpl : public ::p2p::FinalizerCommitsHandler {
 
   const CBlockIndex *FindStop(const FinalizerCommitsLocator &locator) const;
 
+ private:
   HeaderAndFinalizerCommits FindHeaderAndFinalizerCommits(
       const CBlockIndex &index, const Consensus::Params &params) const;
 
- private:
   Dependency<staking::ActiveChain> m_active_chain;
   Dependency<finalization::StateRepository> m_repo;
   Dependency<finalization::StateProcessor> m_proc;
