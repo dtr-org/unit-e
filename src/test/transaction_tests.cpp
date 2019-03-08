@@ -348,7 +348,7 @@ BOOST_AUTO_TEST_CASE(test_Get)
 }
 
 void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outscript, CTransactionRef& output,
-                          CMutableTransaction& input, bool success = true, TxType inputType = TxType::STANDARD)
+                          CMutableTransaction& input, bool success = true, TxType inputType = TxType::REGULAR)
 {
     CMutableTransaction outputm;
     outputm.nVersion = 1;
@@ -693,8 +693,8 @@ BOOST_AUTO_TEST_CASE(test_remote_staking)
     CMutableTransaction input1, input2;
 
     // A standard transaction has to be signed by the spending_key from keystore1
-    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::STANDARD);
-    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::STANDARD);
+    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::REGULAR);
+    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::REGULAR);
     CheckWithFlag(output1, input1, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
 
     // A coinbase transaction has to be signed by the staking_key from keystore2
@@ -733,8 +733,8 @@ BOOST_AUTO_TEST_CASE(test_remote_staking_p2sh)
     CheckWithFlag(output2, input2, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
 
     // A standard transaction has to be signed by the keys from keystore1
-    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::STANDARD);
-    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::STANDARD);
+    CreateCreditAndSpend(keystore2, remote_staking_script, output1, input1, false, TxType::REGULAR);
+    CreateCreditAndSpend(keystore1, remote_staking_script, output1, input1, true, TxType::REGULAR);
     CheckWithFlag(output1, input1, SCRIPT_VERIFY_WITNESS | SCRIPT_VERIFY_P2SH, true);
 }
 

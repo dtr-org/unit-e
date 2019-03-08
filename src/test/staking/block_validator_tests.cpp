@@ -47,7 +47,7 @@ CBlock MinimalBlock() {
   }
   {
     CMutableTransaction tx;
-    tx.SetType(TxType::STANDARD);
+    tx.SetType(TxType::REGULAR);
     block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
   }
 
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(check_first_transaction_not_a_coinbase_transaction) {
   const auto block_validator = staking::BlockValidator::New(b.get());
 
   CMutableTransaction tx;
-  tx.SetType(TxType::STANDARD);
+  tx.SetType(TxType::REGULAR);
 
   CBlock block;
   block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(check_coinbase_other_than_first) {
   CBlock block;
   {
     CMutableTransaction tx;
-    tx.SetType(TxType::STANDARD);
+    tx.SetType(TxType::REGULAR);
     block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
   }
   {

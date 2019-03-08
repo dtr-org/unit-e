@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(GetTxSigOpCost)
         scriptWitness.stack.emplace_back(witnessScript.begin(), witnessScript.end());
 
         BuildTxs(spendingTx, coins, creationTx, scriptPubKey, scriptSig, scriptWitness);
-        spendingTx.SetType(TxType::STANDARD);
+        spendingTx.SetType(TxType::REGULAR);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags), 2);
         BOOST_CHECK_EQUAL(GetTransactionSigOpCost(CTransaction(spendingTx), coins, flags & ~SCRIPT_VERIFY_WITNESS), 0);
         BOOST_CHECK_EQUAL(VerifyWithFlag(creationTx, spendingTx, flags), SCRIPT_ERR_CHECKMULTISIGVERIFY);

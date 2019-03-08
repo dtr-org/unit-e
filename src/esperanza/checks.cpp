@@ -17,7 +17,7 @@ namespace esperanza {
 bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
                                    const Consensus::Params &params, const FinalizationState &fin_state) {
   switch (tx.GetType()) {
-    case +TxType::STANDARD:
+    case +TxType::REGULAR:
     case +TxType::COINBASE:
       assert(not("Shouldn't be called on non-finalization transaction"));
     case +TxType::DEPOSIT:
@@ -38,7 +38,7 @@ bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err
 
 bool CheckFinalizationTx(const CTransaction &tx, CValidationState &err_state) {
   switch (tx.GetType()) {
-    case +TxType::STANDARD:
+    case +TxType::REGULAR:
     case +TxType::COINBASE:
       assert(not("Shouldn't be called on non-finalization transaction"));
     case +TxType::DEPOSIT:

@@ -273,6 +273,10 @@ public:
         return TxType::_from_index_unchecked(GetDerived()->nVersion >> 16);
     }
 
+    bool IsRegular() const {
+        return GetType() == +TxType::REGULAR;
+    }
+
     bool IsCoinBase() const {
         return GetType() == +TxType::COINBASE;
     }
@@ -310,7 +314,7 @@ public:
             case TxType::WITHDRAW:
             case TxType::ADMIN:
                 return true;
-            case TxType::STANDARD:
+            case TxType::REGULAR:
             case TxType::COINBASE:
                 return false;
         }

@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_p2pkh_fails) {
   InsecureNewKey(k, true);
 
   CMutableTransaction tx;
-  tx.SetType(TxType::STANDARD);
+  tx.SetType(TxType::REGULAR);
   tx.vin.resize(1);
   tx.vout.resize(1);
   CTransaction prevTx(tx);

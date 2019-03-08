@@ -999,7 +999,7 @@ void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
     }
 
     case TxType::COINBASE:
-    case TxType::STANDARD:
+    case TxType::REGULAR:
       break;
   }
 }

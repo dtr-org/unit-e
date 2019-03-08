@@ -103,5 +103,5 @@ CTransaction CreateP2PKHTx(const CTransaction &spendableTx,
       ToByteVector(spendableKey.GetPubKey().GetID()));
 
   return CreateBaseTransaction(spendableTx, spendableKey, amount,
-                               TxType::STANDARD, scriptPubKey);
+                               TxType::REGULAR, scriptPubKey);
 }
