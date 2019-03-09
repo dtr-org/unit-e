@@ -87,7 +87,7 @@ HeaderAndFinalizerCommits FinalizerCommitsHandlerImpl::FindHeaderAndFinalizerCom
 
   CBlock block;
   if (!ReadBlockFromDisk(block, &index, params)) {
-    assert(not("Cannot load block from the disk"));
+    assert(not("Cannot load block from disk"));
   }
 
   for (const auto &tx : block.vtx) {
