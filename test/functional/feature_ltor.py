@@ -94,6 +94,7 @@ class LTORTest(UnitETestFramework):
         block.vtx.extend(sorted(txns, key=lambda _tx: _tx.hash, reverse=True))
 
         block.hashMerkleRoot = block.calc_merkle_root()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         yield TestInstance(

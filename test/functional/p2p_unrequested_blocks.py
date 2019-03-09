@@ -289,6 +289,7 @@ class AcceptBlockTest(UnitETestFramework):
         # block_291 spends a coinbase below maturity!
         block_291.vtx.append(create_transaction(block_290f.vtx[0], 0, b"42", 1))
         block_291.hashMerkleRoot = block_291.calc_merkle_root()
+        block_291.hash_witness_merkle_root = block_291.calc_witness_merkle_root()
         block_291.solve()
         utxo1 = UTXO(290, True, COutPoint(coinbase290f.sha256, 0), coinbase290f.vout[0])
         utxo2 = UTXO(291, False, COutPoint(block_291.vtx[-1].sha256, 1), block_291.vtx[-1].vout[0])

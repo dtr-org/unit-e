@@ -36,6 +36,7 @@ def create_block(hashprev, coinbase, nTime=None):
     block.nBits = 0x207fffff # Will break after a difficulty adjustment...
     block.vtx.append(coinbase)
     block.hashMerkleRoot = block.calc_merkle_root()
+    block.hash_witness_merkle_root = block.calc_witness_merkle_root()
     block.calc_sha256()
     return block
 
@@ -56,9 +57,6 @@ def update_uncommited_block_structures(block, nonce=0):
     block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(nonce)]
 
 
-def should_add_witness_commitment(block):
-    return not all(tx.wit.is_null() for tx in block.vtx)
-
 # According to BIP141, blocks with witness rules active must commit to the
 # hash of all in-block transactions including witness.
 def add_witness_commitment(block, nonce=0):
@@ -73,6 +71,7 @@ def add_witness_commitment(block, nonce=0):
     block.vtx[0].vout.append(CTxOut(0, get_witness_script(witness_root, witness_nonce)))
     block.vtx[0].rehash()
     block.hashMerkleRoot = block.calc_merkle_root()
+    block.hash_witness_merkle_root = block.calc_witness_merkle_root()
     block.rehash()
 
 

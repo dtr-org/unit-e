@@ -306,7 +306,8 @@ def submit_block_with_tx(node, tx):
     snapshot_hash = blocktools.get_tip_snapshot_meta(node).hash
     block = blocktools.create_block(int(tip, 16), blocktools.create_coinbase(height, snapshot_hash), block_time)
     block.vtx.append(ctx)
-    blocktools.add_witness_commitment(block)
+    block.hashMerkleRoot = block.calc_merkle_root()
+    block.hash_witness_merkle_root = block.calc_witness_merkle_root()
     block.solve()
     node.p2p.send_and_ping(msg_witness_block(block))
     assert_equal(node.getbestblockhash(), block.hash)

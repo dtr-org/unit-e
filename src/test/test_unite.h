@@ -126,8 +126,6 @@ struct TestMemPoolEntryHelper
     TestMemPoolEntryHelper &SigOpsCost(unsigned int _sigopsCost) { sigOpCost = _sigopsCost; return *this; }
 };
 
-CBlock getBlock13b8a();
-
 //! utility function to set the global network parameters
 void SelectNetwork(const std::string& network_name);
 

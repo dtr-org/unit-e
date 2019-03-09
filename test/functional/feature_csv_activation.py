@@ -141,7 +141,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         block.vtx.extend(txs)
         block.ensure_ltor()
         block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
         utxo = UTXO(self.tipheight + 1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
         self.tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], self.tip_snapshot_meta.data, 0, self.tipheight + 1, [], [utxo])

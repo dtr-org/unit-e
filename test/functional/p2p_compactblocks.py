@@ -10,7 +10,7 @@ Version 1 compact blocks are non-segwit and they are not supported
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, update_uncommited_block_structures, should_add_witness_commitment
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
@@ -119,11 +119,8 @@ class CompactBlocksTest(UnitETestFramework):
             block.vtx.extend(txs)
             block.ensure_ltor()
 
-        if should_add_witness_commitment(block):
-            add_witness_commitment(block)
-        else:
-            block.hashMerkleRoot = block.calc_merkle_root()
-            block.rehash()
+        block.hashMerkleRoot = block.calc_merkle_root()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         return block
@@ -443,6 +440,7 @@ class CompactBlocksTest(UnitETestFramework):
         block = TransactionsChainBlock(block)
         block.ensure_ltor()
         block.hashMerkleRoot = block.calc_merkle_root()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         return block
@@ -570,6 +568,8 @@ class CompactBlocksTest(UnitETestFramework):
         assert_equal(test_node.last_message["getdata"].inv[0].hash, block.sha256)
 
         # Deliver the block
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
+        block.solve()
         test_node.send_and_ping(msg_witness_block(block))
         assert_equal(int(node.getbestblockhash(), 16), block.sha256)
 
@@ -678,9 +678,9 @@ class CompactBlocksTest(UnitETestFramework):
 
         [l.clear_block_announcement() for l in listeners]
 
-        # msg won't be serialized with witness, but this block has no witnesses
-        # anyway. TODO: repeat this test with witness tx's to a segwit node.
-        node.p2p.send_and_ping(msg_block(block))
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
+        block.solve()
+        node.p2p.send_and_ping(msg_witness_block(block))
 
         for l in listeners:
             wait_until(lambda: l.received_block_announcement(), timeout=30, lock=mininode_lock)
@@ -700,7 +700,8 @@ class CompactBlocksTest(UnitETestFramework):
         del block.vtx[3]
 
         # Include the witness commitment, but drop the coinbase witness
-        add_witness_commitment(block)
+        block.hashMerkleRoot = block.calc_merkle_root()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.vtx[0].wit.vtxinwit = []
         block.solve()
 
@@ -732,6 +733,8 @@ class CompactBlocksTest(UnitETestFramework):
         def announce_cmpct_block(node, peer):
             utxo = self.utxos.pop(0)
             block = self.build_block_with_transactions(node, utxo, 5)
+            block.hash_witness_merkle_root = block.calc_witness_merkle_root()
+            block.solve()
 
             cmpct_block = HeaderAndShortIDs()
             cmpct_block.initialize_from_block(block)
@@ -754,19 +757,6 @@ class CompactBlocksTest(UnitETestFramework):
         assert_equal(int(node.getbestblockhash(), 16), block.sha256)
 
         self.utxos.append([block.unspent_tx.sha256, 0, block.unspent_tx.vout[0].nValue])
-
-        # Now test that delivering an invalid compact block won't break relay
-
-        block, cmpct_block = announce_cmpct_block(node, stalling_peer)
-        for tx in block.vtx[1:]:
-            delivery_peer.send_message(msg_tx(tx))
-        delivery_peer.sync_with_ping()
-
-        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit = [ CTxInWitness() ]
-        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(0)]
-
-        delivery_peer.send_and_ping(msg_cmpctblock(cmpct_block.to_p2p()))
-        assert(int(node.getbestblockhash(), 16) != block.sha256)
 
         msg = msg_blocktxn()
         msg.block_transactions.blockhash = block.sha256

@@ -175,6 +175,8 @@ class FullBlockTest(ComparisonTestFramework):
             self.sign_tx(tx, spend.tx, spend.n)
             self.add_transactions_to_block(block, [tx])
             block.hashMerkleRoot = block.calc_merkle_root()
+            block.hash_witness_merkle_root = block.calc_witness_merkle_root()
+            block.hash
         if solve:
             block.ensure_ltor()
             block.solve()
@@ -222,6 +224,7 @@ class FullBlockTest(ComparisonTestFramework):
             old_sha256 = block.sha256
             self.add_transactions_to_block(block, new_transactions)
             block.hashMerkleRoot = block.calc_merkle_root()
+            block.hash_witness_merkle_root = block.calc_witness_merkle_root()
             block.solve()
             # Update the internal state just like in next_block
             self.tip = block
@@ -747,6 +750,7 @@ class FullBlockTest(ComparisonTestFramework):
         b44.vtx.append(coinbase)
         b44.ensure_ltor()
         b44.hashMerkleRoot = b44.calc_merkle_root()
+        b44.hash_witness_merkle_root = b44.calc_witness_merkle_root()
         b44.solve()
         self.tip = b44
         self.block_heights[b44.sha256] = height
@@ -763,6 +767,7 @@ class FullBlockTest(ComparisonTestFramework):
         b45.nBits = 0x207fffff
         b45.vtx.append(non_coinbase)
         b45.hashMerkleRoot = b45.calc_merkle_root()
+        b45.hash_witness_merkle_root = b45.calc_witness_merkle_root()
         b45.calc_sha256()
         b45.solve()
         self.block_heights[b45.sha256] = self.block_heights[self.tip.sha256]+1

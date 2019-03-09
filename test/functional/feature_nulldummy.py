@@ -13,7 +13,7 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.messages import msg_witness_block
 from test_framework.mininode import CTransaction, network_thread_start, P2PInterface
-from test_framework.blocktools import create_coinbase, create_block, should_add_witness_commitment, add_witness_commitment, get_tip_snapshot_meta
+from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta
 from test_framework.script import CScript
 from io import BytesIO
 import time
@@ -109,12 +109,8 @@ class NULLDUMMYTest(UnitETestFramework):
 
         block.ensure_ltor()
 
-        if should_add_witness_commitment(block):
-            add_witness_commitment(block)
-        else:
-            block.hashMerkleRoot = block.calc_merkle_root()
-            block.rehash()
-
+        block.hashMerkleRoot = block.calc_merkle_root()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         node.p2p.send_and_ping(msg_witness_block(block))

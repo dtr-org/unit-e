@@ -92,7 +92,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block2.vtx.extend([tx1, tx2])
         block2.ensure_ltor()
         block2.hashMerkleRoot = block2.calc_merkle_root()
-        block2.rehash()
+        block2.hash_witness_merkle_root = block2.calc_witness_merkle_root()
         block2.solve()
         orig_hash = block2.sha256
         block2_orig = copy.deepcopy(block2)
@@ -100,6 +100,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         # Mutate block 2
         block2.vtx.append(block2.vtx[-1])
         assert_equal(block2.hashMerkleRoot, block2.calc_merkle_root())
+        assert_equal(block2.hash_witness_merkle_root, block2.calc_witness_merkle_root())
         assert_equal(orig_hash, block2.rehash())
         assert(block2_orig.vtx != block2.vtx)
 
@@ -114,7 +115,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block2_dup.vtx[2].rehash()
         block2_dup.ensure_ltor()
         block2_dup.hashMerkleRoot = block2_dup.calc_merkle_root()
-        block2_dup.rehash()
+        block2_dup.hash_witness_merkle_root = block2_dup.calc_witness_merkle_root()
         block2_dup.solve()
         yield TestInstance([[block2_dup, RejectResult(16, b'bad-txns-inputs-duplicate')], [block2_orig, True]])
         height += 1
@@ -129,7 +130,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block3.vtx[0].sha256=None
         block3.vtx[0].calc_sha256()
         block3.hashMerkleRoot = block3.calc_merkle_root()
-        block3.rehash()
+        block3.hash_witness_merkle_root = block3.calc_witness_merkle_root()
         block3.solve()
 
         yield TestInstance([[block3, RejectResult(16, b'bad-cb-amount')]])
