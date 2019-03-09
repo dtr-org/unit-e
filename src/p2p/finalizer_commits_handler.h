@@ -28,6 +28,7 @@ class ActiveChain;
 
 namespace p2p {
 
+//! \brief Handler of finalizer commits-related p2p messages.
 class FinalizerCommitsHandler {
  public:
   //! \brief Process getcommits message
