@@ -98,6 +98,7 @@ class BIP65Test(UnitETestFramework):
         block.nVersion = 4
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))
@@ -120,6 +121,7 @@ class BIP65Test(UnitETestFramework):
         block.vtx.pop(1)
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))

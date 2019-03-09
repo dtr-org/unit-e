@@ -87,7 +87,7 @@ class BIP66Test(UnitETestFramework):
         block.nVersion = 3
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))
@@ -113,7 +113,7 @@ class BIP66Test(UnitETestFramework):
         block.vtx[1] = create_transaction(self.nodes[0],
                 self.coinbase_blocks[0], self.nodeaddress, 1.0)
         block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))

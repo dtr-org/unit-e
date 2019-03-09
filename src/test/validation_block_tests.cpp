@@ -89,6 +89,7 @@ BlockData Block(const BlockData &prevData)
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
 {
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    pblock->hash_witness_merkle_root = BlockWitnessMerkleRoot(*pblock);
 
     while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
         ++(pblock->nNonce);

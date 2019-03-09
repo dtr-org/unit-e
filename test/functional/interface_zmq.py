@@ -108,7 +108,7 @@ class ZMQTest (UnitETestFramework):
 
             # Should receive the generated raw block.
             block = self.rawblock.receive()
-            assert_equal(genhashes[x], bytes_to_hex_str(hash256(block[:80])))
+            assert_equal(genhashes[x], bytes_to_hex_str(hash256(block[:112])))
 
         self.log.info("Wait for tx from second node")
         payment_txid = self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 1.0)

@@ -147,7 +147,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         block.vtx.extend(txs)
         block.ensure_ltor()
         block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.hash_witness_merkle_root = block.calc_witness_merkle_root()
         block.solve()
 
         self.tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.tip_snapshot_meta.data, 0, self.tipheight + 1, coinbase)
