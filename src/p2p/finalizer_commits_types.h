@@ -33,12 +33,12 @@ struct FinalizerCommitsLocator {
   std::string ToString() const;
 };
 
-//! \brief Represents an element of "commits" message.
-//!
-//! "header" is a header of the block.
-//! "commits" is finalizer commits contained in the corresponding block.
+//! \brief A combination of block header and finalizer commits, but not a full block.
 struct HeaderAndFinalizerCommits {
+  //! \brief The header part of the block.
   CBlockHeader header;
+
+  //! \brief The finalizer commits.
   std::vector<CTransactionRef> commits;
 
   HeaderAndFinalizerCommits() = default;
