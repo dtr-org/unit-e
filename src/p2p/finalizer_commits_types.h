@@ -66,7 +66,7 @@ struct FinalizerCommitsResponse {
     TipReached = 1,
     LengthExceeded = 2,
   };
-  Status status = Status::StopOrFinReached;
+  Status status = Status::StopOrFinalizationReached;
   std::vector<HeaderAndFinalizerCommits> data;
 
   ADD_SERIALIZE_METHODS
