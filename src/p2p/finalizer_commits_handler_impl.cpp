@@ -150,7 +150,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
   };
 
   for (const auto &d : msg.data) {
-    // UNIT-E: Check commits merkle root after it is added
+    // UNIT-E TODO: Check commits merkle root after it is added
     for (const auto &c : d.commits) {
       if (!c->IsFinalizationTransaction()) {
         return err(100, "bad-non-commit", d.header.GetHash());
@@ -172,21 +172,21 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
     }
 
     new_index->ResetCommits(d.commits);
-    // UNIT-E: Validate commits transactions and reconstruct finalization state
+    // UNIT-E TODO: Validate commits transactions and reconstruct finalization state
   }
 
   // UNIT-E: Implement in two further steps: full-sync and PUSH
   switch (msg.status) {
-    case FinalizerCommitsResponse::Status::StopOrFinReached:
-      // UNIT-E: Request next bulk
+    case FinalizerCommitsResponse::Status::StopOrFinalizationReached:
+      // UNIT-E TODO: Request next bulk
       break;
     case FinalizerCommitsResponse::Status::TipReached:
-      // UNIT-E: Trigger fork choice if reconstructed finalization state is better than current one
+      // UNIT-E TODO: Trigger fork choice if reconstructed finalization state is better than current one
       break;
     case FinalizerCommitsResponse::Status::LengthExceeded:
       // UNIT-E TODO: Just remove the assertion after LengthExceeded is implemented.
       assert(not("not implemented"));
-      // UNIT-E: Wait the next message
+      // Just wait the next message to come
       break;
   }
   return true;

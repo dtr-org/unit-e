@@ -62,7 +62,7 @@ struct HeaderAndFinalizerCommits {
 //! 2 - message length exceeded
 struct FinalizerCommitsResponse {
   enum class Status : uint8_t {
-    StopOrFinReached = 0,
+    StopOrFinalizationReached = 0,
     TipReached = 1,
     LengthExceeded = 2,
   };
