@@ -14,7 +14,7 @@
 #include <util.h>
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(iblt_tests, ReducedTestingSetup)
+BOOST_AUTO_TEST_SUITE(iblt_tests)
 
 using DefaultIBLT = IBLT<uint64_t, 4>;
 

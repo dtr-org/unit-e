@@ -12,7 +12,7 @@
 
 #define SKIPLIST_LENGTH 300000
 
-BOOST_FIXTURE_TEST_SUITE(skiplist_tests, ReducedTestingSetup)
+BOOST_AUTO_TEST_SUITE(skiplist_tests)
 
 BOOST_AUTO_TEST_CASE(skiplist_test)
 {
