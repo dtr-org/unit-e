@@ -117,16 +117,15 @@ bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_stat
   }
 }
 
-bool IsVoteExpired(const CTransaction &tx) {
+bool IsVoteExpired(const CTransaction &tx, const FinalizationState &fin_state) {
 
   assert(tx.IsVote());
 
   Vote vote;
   std::vector<unsigned char> vote_sig;
   assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, vote_sig));
-  const FinalizationState *state = FinalizationState::GetState();
 
-  return vote.m_target_epoch < state->GetCurrentEpoch() - 1;
+  return vote.m_target_epoch < fin_state.GetCurrentEpoch() - 1;
 }
 
 bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,

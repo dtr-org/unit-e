@@ -9,6 +9,7 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
+#include <injector.h>
 #include <validation.h>
 #include <policy/policy.h>
 #include <policy/fees.h>
@@ -941,11 +942,14 @@ int CTxMemPool::ExpireVotes() {
   LOCK(cs);
   auto it = mempool.mapTx.get<ancestor_score>().begin();
 
+  finalization::FinalizationState *fin_state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(fin_state != nullptr);
+
   setEntries toremove;
   while (it != mapTx.get<ancestor_score>().end()) {
 
     if (it->GetTx().IsVote()) {
-      if (esperanza::IsVoteExpired(it->GetTx())) {
+      if (esperanza::IsVoteExpired(it->GetTx(), *fin_state)) {
           toremove.insert(mapTx.project<0>(it));
       }
     }

@@ -102,7 +102,7 @@ FinalizationState *RepositoryImpl::Find(const CBlockIndex &block_index) {
 
 FinalizationState *RepositoryImpl::Create(const CBlockIndex &block_index,
                                           FinalizationState::InitStatus required_parent_status) {
-  AssertLockHeld(cs);
+  LOCK(cs);
   if (block_index.pprev == nullptr) {
     return nullptr;
   }
@@ -145,8 +145,8 @@ void RepositoryImpl::ResetToTip(const CBlockIndex &block_index) {
 }
 
 void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
-  LogPrint(BCLog::FINALIZATION, "Trimming state repository for height < %d\n", height);
   LOCK(cs);
+  LogPrint(BCLog::FINALIZATION, "Trimming state repository for height < %d\n", height);
   for (auto it = m_states.begin(); it != m_states.end();) {
     const CBlockIndex *index = it->first;
     if (!m_active_chain->Contains(*index)) {
@@ -172,6 +172,7 @@ bool RepositoryImpl::Confirm(const CBlockIndex &block_index,
   assert(new_state.GetInitStatus() == esperanza::FinalizationState::COMPLETED);
 
   LOCK(cs);
+
   const auto it = m_states.find(&block_index);
   assert(it != m_states.end());
   const auto &old_state = it->second;

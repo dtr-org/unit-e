@@ -4,6 +4,7 @@
 
 #include <chainparams.h>
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <rpc/safemode.h>
 #include <rpc/server.h>
 #include <ufp64.h>
@@ -31,14 +32,17 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
 
   ObserveSafeMode();
 
-  esperanza::FinalizationState &finalizationState = *esperanza::FinalizationState::GetState();
+  const finalization::FinalizationState *fin_state =
+    GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(fin_state !=nullptr);
+
   UniValue obj(UniValue::VOBJ);
 
-  obj.pushKV("currentEpoch", (uint64_t) finalizationState.GetCurrentEpoch());
-  obj.pushKV("currentDynasty", (uint64_t) finalizationState.GetCurrentDynasty());
-  obj.pushKV("lastFinalizedEpoch", (uint64_t) finalizationState.GetLastFinalizedEpoch());
-  obj.pushKV("lastJustifiedEpoch", (uint64_t) finalizationState.GetLastJustifiedEpoch());
-  obj.pushKV("validators", (uint64_t) finalizationState.GetActiveFinalizers().size());
+  obj.pushKV("currentEpoch", (uint64_t) fin_state->GetCurrentEpoch());
+  obj.pushKV("currentDynasty", (uint64_t) fin_state->GetCurrentDynasty());
+  obj.pushKV("lastFinalizedEpoch", (uint64_t) fin_state->GetLastFinalizedEpoch());
+  obj.pushKV("lastJustifiedEpoch", (uint64_t) fin_state->GetLastJustifiedEpoch());
+  obj.pushKV("validators", (uint64_t) fin_state->GetActiveFinalizers().size());
 
   return obj;
 }

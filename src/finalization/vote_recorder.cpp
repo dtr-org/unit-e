@@ -6,10 +6,13 @@
 
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <util.h>
 #include <validationinterface.h>
 
 namespace finalization {
+
+using FinalizationState = esperanza::FinalizationState;
 
 CCriticalSection VoteRecorder::cs_recorder;
 std::shared_ptr<VoteRecorder> VoteRecorder::g_voteRecorder;
@@ -19,7 +22,8 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
 
   LOCK(cs_recorder);
 
-  esperanza::FinalizationState *state = esperanza::FinalizationState::GetState();
+  const FinalizationState *state = GetComponent<StateRepository>()->GetTipState();
+  assert(state != nullptr);
 
   // Check if the vote comes from a validator
   if (!state->GetValidator(vote.m_validator_address)) {
@@ -134,7 +138,7 @@ CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
 bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
   assert(tx.IsVote());
 
-  const auto *const fin_state = esperanza::FinalizationState::GetState();
+  const FinalizationState *fin_state = GetComponent<StateRepository>()->GetTipState();
   assert(fin_state != nullptr);
 
   esperanza::Vote vote;

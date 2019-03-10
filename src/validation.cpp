@@ -662,7 +662,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
-    const auto *fin_state = esperanza::FinalizationState::GetState();
+    const finalization::FinalizationState *fin_state =
+        GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state != nullptr);
     if (tx.IsFinalizerCommit() &&
         !::ContextualCheckFinalizerCommit(tx,
@@ -2007,7 +2008,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
     }
 
-    const auto *fin_state = esperanza::FinalizationState::GetState(pindex->pprev);
+    const finalization::FinalizationState *fin_state = nullptr;
+    if (pindex->pprev != nullptr) {
+        fin_state = GetComponent<finalization::StateRepository>()->Find(*pindex->pprev);
+    }
     assert(fin_state != nullptr || isGenesisBlock || !has_finalization_tx);
 
     // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
@@ -3399,8 +3403,10 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
             }
         }
 
-        const auto *fin_state = esperanza::FinalizationState::GetState(chainActive.Tip());
+        const finalization::FinalizationState *fin_state =
+            GetComponent<finalization::StateRepository>()->GetTipState();
         assert(fin_state != nullptr);
+
         const CBlockIndex *most_common_index = chainActive.FindFork(pindexPrev);
         assert(most_common_index != nullptr);
         if (fin_state->GetEpoch(most_common_index->nHeight) < fin_state->GetLastFinalizedEpoch()) {
