@@ -28,10 +28,9 @@ class WalletAccountsTest(UnitETestFramework):
         self.setup_stake_coins(self.nodes[1])
 
         node = self.nodes[0]
-        # Check that there's just the initial stake
+        # Check that there's no UTXO on node 0
         assert_equal(len(node.listunspent()), 0)
 
-        # Leave IBD
         self.nodes[1].generate(1)
         self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 50)
         self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 50)
@@ -127,7 +126,7 @@ class WalletAccountsTest(UnitETestFramework):
         for account in accounts:
             expected_account_balances[account.name] = 0
         assert_equal(node.listaccounts(), expected_account_balances)
-        assert_equal(node.getbalance(""), 600 + COINBASE_MATURITY * 50)
+        assert_equal(node.getbalance(''), expected_account_balances[''])
 
         # Check that setaccount can assign an account to a new unused address.
         for account in accounts:
