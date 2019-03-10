@@ -234,9 +234,6 @@ class FinalizationState : public FinalizationStateData {
   std::vector<Validator> GetActiveFinalizers() const;
   const Validator *GetValidator(const uint160 &validatorAddress) const;
 
-  //! \brief Returns the finalization state for the given block.
-  static FinalizationState *GetState(const CBlockIndex *block = nullptr);
-
   uint32_t GetEpochLength() const;
   uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
   uint32_t GetEpoch(blockchain::Height blockHeight) const;
@@ -247,7 +244,7 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Returns the height of the last block of the epoch.
   blockchain::Height GetEpochCheckpointHeight(uint32_t epoch) const;
 
-  static bool ValidateDepositAmount(CAmount amount);
+  bool ValidateDepositAmount(CAmount amount) const;
 
   //! \brief Processes the next chain (active or alternative) tip passed.
   //!
@@ -320,9 +317,6 @@ class FinalizationState : public FinalizationStateData {
  private:
   void OnBlock(blockchain::Height blockHeight);
 };
-
-inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
-inline uint32_t GetEpoch(blockchain::Height blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
 
 }  // namespace esperanza
 

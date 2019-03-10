@@ -17,6 +17,8 @@ class RepositoryImpl final : public StateRepository {
   explicit RepositoryImpl(Dependency<staking::ActiveChain> active_chain)
       : m_active_chain(active_chain) {}
 
+  CCriticalSection &GetLock() const override;
+
   FinalizationState *GetTipState() override;
   FinalizationState *Find(const CBlockIndex &block_index) override;
   FinalizationState *FindOrCreate(const CBlockIndex &block_index,
@@ -71,7 +73,7 @@ FinalizationState *RepositoryImpl::GetTipState() {
 }
 
 FinalizationState *RepositoryImpl::Find(const CBlockIndex &block_index) {
-  LOCK(cs);
+  AssertLockHeld(cs);
   if (block_index.nHeight == 0) {
     return GetGenesisState();
   }
@@ -101,7 +103,7 @@ FinalizationState *RepositoryImpl::Create(const CBlockIndex &block_index,
 
 FinalizationState *RepositoryImpl::FindOrCreate(const CBlockIndex &block_index,
                                                 FinalizationState::InitStatus required_parent_status) {
-  LOCK(cs);
+  AssertLockHeld(cs);
   if (const auto state = Find(block_index)) {
     return state;
   }
@@ -111,7 +113,7 @@ FinalizationState *RepositoryImpl::FindOrCreate(const CBlockIndex &block_index,
 void RepositoryImpl::Reset(const esperanza::FinalizationParams &params,
                            const esperanza::AdminParams &admin_params) {
   LogPrint(BCLog::FINALIZATION, "Completely reset state repository\n");
-  LOCK(cs);
+  AssertLockHeld(cs);
   m_states.clear();
   m_genesis_state.reset(new FinalizationState(params, admin_params));
   m_finalization_params = &params;
@@ -125,8 +127,8 @@ void RepositoryImpl::ResetToTip(const CBlockIndex &block_index) {
 }
 
 void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
+  AssertLockHeld(cs);
   LogPrint(BCLog::FINALIZATION, "Trimming state repository for height < %d\n", height);
-  LOCK(cs);
   for (auto it = m_states.begin(); it != m_states.end();) {
     const CBlockIndex *index = it->first;
     if (!m_active_chain->Contains(*index)) {
@@ -142,16 +144,17 @@ void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
 }
 
 FinalizationState *RepositoryImpl::GetGenesisState() const {
-  LOCK(cs);
+  AssertLockHeld(cs);
   return m_genesis_state.get();
 }
 
 bool RepositoryImpl::Confirm(const CBlockIndex &block_index,
                              FinalizationState &&new_state,
                              FinalizationState **state_out) {
+  AssertLockHeld(cs);
+
   assert(new_state.GetInitStatus() == esperanza::FinalizationState::COMPLETED);
 
-  LOCK(cs);
   const auto it = m_states.find(&block_index);
   assert(it != m_states.end());
   const auto &old_state = it->second;
@@ -208,6 +211,10 @@ void RepositoryImpl::RestoreFromDisk(const CChainParams &chainparams,
 
 bool RepositoryImpl::Restoring() const {
   return m_restoring;
+}
+
+CCriticalSection &RepositoryImpl::GetLock() const {
+  return cs;
 }
 
 }  // namespace

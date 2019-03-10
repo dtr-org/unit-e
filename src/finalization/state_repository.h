@@ -40,6 +40,9 @@ using FinalizationState = esperanza::FinalizationState;
 
 class StateRepository {
  public:
+  //! Return the mutex that protect the repository.
+  virtual CCriticalSection &GetLock() const = 0;
+
   //! Return the finalization state of the current active chain tip.
   virtual FinalizationState *GetTipState() = 0;
 

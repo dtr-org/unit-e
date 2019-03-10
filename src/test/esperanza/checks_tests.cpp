@@ -4,6 +4,7 @@
 
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <keystore.h>
 #include <random.h>
 #include <script/script.h>
@@ -20,8 +21,10 @@ using namespace esperanza;
 BOOST_FIXTURE_TEST_SUITE(finalization_checks_tests, TestingSetup)
 
 BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
+  // This test changes tip's finalization state and inderectly checks it via IsVoteExpired().
 
-  FinalizationState *esperanza = FinalizationState::GetState();
+  FinalizationState *esperanza = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(esperanza != nullptr);
 
   const auto &params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
   const auto min_deposit = params.min_deposit_size;
@@ -76,8 +79,11 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
   Consensus::Params params = Params().GetConsensus();
   CValidationState err_state;
   BOOST_CHECK(CheckFinalizationTx(invalidVote, err_state) == false);
-  const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
-  BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, params, fin_state) == false);
+
+  const FinalizationState *fin_state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(fin_state != nullptr);
+
+  BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, params, *fin_state) == false);
 
   BOOST_CHECK_EQUAL("bad-vote-data-format", err_state.GetRejectReason());
 }

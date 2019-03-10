@@ -18,6 +18,7 @@
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <hash.h>
 #include <validation.h>
 #include <net.h>
@@ -194,14 +195,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
 void BlockAssembler::AddMandatoryTxs()
 {
-    const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
+    const finalization::FinalizationState *fin_state =
+        GetComponent<finalization::StateRepository>()->GetTipState();
+    assert(fin_state !=nullptr);
+
     auto mi = mempool.mapTx.get<ancestor_score>().begin();
     for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {
 
         if (mi->GetTx().IsVote()) {
             CValidationState state;
             //Check again in case the vote became invalid in the meanwhile (different target now)
-            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, chainparams.GetConsensus(), fin_state)) {
+            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, chainparams.GetConsensus(), *fin_state)) {
                 AddToBlock(mempool.mapTx.project<0>(mi));
                 LogPrint(BCLog::FINALIZATION,
                          "%s: Add vote with id %s to a new block.\n",

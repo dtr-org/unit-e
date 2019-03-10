@@ -11,6 +11,7 @@
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
@@ -424,7 +425,9 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 
   // Calculate how much we have left of the initial withdraw
   const CAmount initialDeposit = prevTx->vout[0].nValue;
-  esperanza::FinalizationState *state = esperanza::FinalizationState::GetState();
+
+  esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
 
   CAmount currentDeposit = 0;
 
@@ -629,7 +632,9 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   scriptSig << std::vector<unsigned char>(vote2Script.begin(), vote2Script.end());
   const CScript burnScript = CScript::CreateUnspendableScript();
 
-  FinalizationState *state = FinalizationState::GetState();
+  esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
+
   uint160 validatorAddress = vote1.vote.m_validatorAddress;
   const uint256 txHash = state->GetLastTxHash(validatorAddress);
 
@@ -716,7 +721,7 @@ void WalletExtension::BlockConnected(
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         // In case we are logged out, stop validating.
-        FinalizationState *state = FinalizationState::GetState();
+        esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
         assert(state);
 
         uint32_t currentDynasty = state->GetCurrentDynasty();
@@ -729,7 +734,7 @@ void WalletExtension::BlockConnected(
         break;
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
-        FinalizationState *state = FinalizationState::GetState();
+        esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
         assert(state);
 
         // TODO: UNIT-E: remove "state->GetCurrentEpoch() > 2" when we delete instant finalization
@@ -793,9 +798,13 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
           return false;
         }
 
+        esperanza::FinalizationState *fin_state =
+            GetComponent<finalization::StateRepository>()->GetTipState();
+        assert(fin_state != nullptr);
+
         state.m_validatorAddress = validatorAddress;
         state.m_lastEsperanzaTx = ptx;
-        state.m_depositEpoch = esperanza::GetEpoch(*pIndex);
+        state.m_depositEpoch = fin_state->GetEpoch(*pIndex);
 
       } else {
         LogPrint(BCLog::FINALIZATION,
@@ -816,10 +825,12 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
       if (state.m_phase == expectedPhase) {
 
-        auto finalizationState = esperanza::FinalizationState::GetState(pIndex);
+        esperanza::FinalizationState *fin_state =
+            GetComponent<finalization::StateRepository>()->GetTipState();
+        assert(fin_state != nullptr);
 
         const esperanza::Validator *validator =
-            finalizationState->GetValidator(state.m_validatorAddress);
+            fin_state->GetValidator(state.m_validatorAddress);
 
         state.m_endDynasty = validator->m_endDynasty;
         state.m_lastEsperanzaTx = ptx;

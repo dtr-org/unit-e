@@ -6,6 +6,7 @@
 
 #include <esperanza/finalizationstate.h>
 #include <esperanza/validatorstate.h>
+#include <injector.h>
 #include <rpc/server.h>
 #include <rpc/safemode.h>
 #include <wallet/rpcwallet.h>
@@ -57,7 +58,11 @@ UniValue deposit(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
   }
 
-  if (!esperanza::FinalizationState::ValidateDepositAmount(amount)) {
+  const finalization::FinalizationState *state =
+    GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
+
+  if (!state->ValidateDepositAmount(amount)) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
   }
 

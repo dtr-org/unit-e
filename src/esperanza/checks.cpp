@@ -7,6 +7,7 @@
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
 #include <finalization/vote_recorder.h>
+#include <injector.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <util.h>
@@ -122,7 +123,9 @@ bool IsVoteExpired(const CTransaction &tx) {
   Vote vote;
   std::vector<unsigned char> vote_sig;
   assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, vote_sig));
-  const FinalizationState *state = FinalizationState::GetState();
+
+  const FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
 
   return vote.m_targetEpoch < state->GetCurrentEpoch() - 1;
 }
