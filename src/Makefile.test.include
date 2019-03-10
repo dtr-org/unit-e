@@ -127,6 +127,7 @@ UNITE_TESTS = \
   test/transaction_tests.cpp \
   test/trit_tests.cpp \
   test/tx_verify_tests.cpp \
+  test/ufp64_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
   test/validation_tests.cpp \
