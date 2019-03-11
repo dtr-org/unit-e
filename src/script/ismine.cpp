@@ -283,6 +283,15 @@ isminetype IsMine(const CKeyStore &keystore, const CScript &scriptPubKey, IsMine
     assert(false);
 }
 
+//! \brief Checks whether a given isminetype implies ISMINE_SPENDABLE.
+//!
+//! ISMINE_SPENDABLE is part of a bitfield:
+//! ISMINE_HWDEVICE and ISMINE_ALL both imply ISMINE_SPENDABLE.
+bool IsSpendable(const isminetype is_mine)
+{
+  return (is_mine & isminetype::ISMINE_SPENDABLE) != 0;
+}
+
 } // namespace
 
 isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
@@ -304,7 +313,20 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
     // UNIT-E TODO: Restrict to witness programs only once #212 is merged (fixes #48)
     switch (is_mine_info.type) {
         case TX_PUBKEYHASH:
-        case TX_WITNESS_V0_KEYHASH:
+        case TX_WITNESS_V0_KEYHASH: {
+            if (!IsSpendable(is_mine)) {
+                return false;
+            }
+            CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
+            CPubKey pubkey;
+            if (!keystore.GetPubKey(key_id, pubkey)) {
+                return false;
+            }
+            if (!pubkey.IsCompressed()) {
+                return false;
+            }
+            return true;
+        }
         case TX_WITNESS_V1_REMOTESTAKE_KEYHASH:
         case TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH: {
             CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
@@ -318,8 +340,8 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
             return true;
         }
         case TX_WITNESS_V0_SCRIPTHASH:
-            if (is_mine == isminetype::ISMINE_NO) {
-              return false;
+            if (!IsSpendable(is_mine)) {
+                return false;
             }
             switch (is_mine_info.p2sh_type) {
                 case TX_PUBKEYHASH:
