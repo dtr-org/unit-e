@@ -450,6 +450,11 @@ def sync_mempools(rpc_connections, *, wait=1, timeout=150, flush_scheduler=True)
     raise AssertionError("Mempool sync failed:%s" % "".join(
         ["\nNode %d: %s" % entry for entry in mempools.items()]))
 
+def check_finalization(node, expected):
+    state = node.getfinalizationstate()
+    for key in expected:
+        assert_equal(state[key], expected[key])
+
 # Transaction/Block functions
 #############################
 
