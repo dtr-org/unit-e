@@ -28,6 +28,7 @@ class RawTransactionsTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, 0, 3)
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], self.nodes[1], self.nodes[2])
         min_relay_tx_fee = self.nodes[0].getnetworkinfo()['relayfee']
         # This test is not meant to test fee estimation and we'd like
         # to be sure all txs are sent at a consistent desired feerate
