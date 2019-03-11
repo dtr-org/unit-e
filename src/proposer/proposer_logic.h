@@ -30,7 +30,7 @@ class Logic {
   //!
   //! The actual proposer component can then proceed and assemble a block and
   //! broadcast it into the network.
-  virtual boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<staking::Coin> &) = 0;
+  virtual boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &) = 0;
 
   virtual ~Logic() = default;
 

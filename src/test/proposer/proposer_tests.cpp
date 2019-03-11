@@ -107,14 +107,14 @@ struct Fixture {
     const CTransactionRef BuildCoinbaseTransaction(
         const uint256 &,
         const proposer::EligibleCoin &,
-        const std::vector<staking::Coin> &,
+        const staking::CoinSet &,
         CAmount,
         staking::StakingWallet &) const override { return nullptr; };
     std::shared_ptr<const CBlock> BuildBlock(
         const CBlockIndex &,
         const uint256 &,
         const proposer::EligibleCoin &,
-        const std::vector<staking::Coin> &,
+        const staking::CoinSet &,
         const std::vector<CTransactionRef> &,
         const CAmount,
         staking::StakingWallet &) const override { return nullptr; }
@@ -122,7 +122,7 @@ struct Fixture {
 
   class ProposerLogicMock : public proposer::Logic {
    public:
-    boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<staking::Coin> &) override { return boost::none; }
+    boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &) override { return boost::none; }
   };
 
   NetworkMock network_mock;

@@ -95,7 +95,7 @@ class WalletExtension : public staking::StakingWallet {
   virtual CAmount GetRemoteStakingBalance() const;
 
   // defined in staking::StakingWallet
-  std::vector<staking::Coin> GetStakeableCoins() const override;
+  staking::CoinSet GetStakeableCoins() const override;
 
   // defined in staking::StakingWallet
   boost::optional<CKey> GetKey(const CPubKey &) const override;

@@ -51,7 +51,7 @@ struct Fixture {
     CCriticalSection &GetLock() const override { return lock; }
     CAmount GetReserveBalance() const override { return 0; }
     CAmount GetStakeableBalance() const override { return 1000; }
-    std::vector<staking::Coin> GetStakeableCoins() const override { return std::vector<staking::Coin>(); }
+    staking::CoinSet GetStakeableCoins() const override { return staking::CoinSet(); }
     proposer::State &GetProposerState() override { return state; }
     boost::optional<CKey> GetKey(const CPubKey &) const override { return key; }
     bool SignCoinbaseTransaction(CMutableTransaction &tx) override { return signfunc(tx); }
@@ -129,7 +129,9 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   coin2.amount = 20;
   coin2.depth = 5;
 
-  std::vector<staking::Coin> coins{coin1, coin2};
+  staking::CoinSet coins;
+  coins.insert(coin1);
+  coins.insert(coin2);
   std::vector<CTransactionRef> transactions;
   CAmount fees(0);
 
@@ -175,7 +177,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     uint256 snapshot_hash;
     proposer::EligibleCoin eligible_coin;
 
-    std::vector<staking::Coin> coins;  // no other coins
+    staking::CoinSet coins;  // no other coins
     std::vector<CTransactionRef> transactions;
     CAmount fees(0);
 
@@ -234,7 +236,8 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
     return ix;
   }();
 
-  std::vector<staking::Coin> coins{f.eligible_coin.utxo};
+  staking::CoinSet coins;
+  coins.insert(f.eligible_coin.utxo);
   std::vector<CTransactionRef> transactions;
   CAmount fees(5);
 

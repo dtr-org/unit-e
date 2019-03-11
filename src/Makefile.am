@@ -340,6 +340,7 @@ libunite_server_a_SOURCES = \
   staking/active_chain.cpp \
   staking/block_validation_info.cpp \
   staking/block_validator.cpp \
+  staking/coin.cpp \
   staking/network.cpp \
   staking/proof_of_stake.cpp \
   staking/stake_validator.cpp \

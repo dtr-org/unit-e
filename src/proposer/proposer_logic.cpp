@@ -41,7 +41,7 @@ class LogicImpl final : public Logic {
   //
   // The part of actually proposing (`propose(block)`) is left up to the caller
   // of this function (the `Proposer`, see proposer.cpp).
-  boost::optional<proposer::EligibleCoin> TryPropose(const std::vector<staking::Coin> &eligible_utxos) override {
+  boost::optional<proposer::EligibleCoin> TryPropose(const staking::CoinSet &eligible_coins) override {
     AssertLockHeld(m_active_chain->GetLock());
 
     const CBlockIndex *current_tip =
@@ -58,7 +58,7 @@ class LogicImpl final : public Logic {
     const blockchain::Difficulty target_difficulty =
         m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
 
-    for (const auto &coin : eligible_utxos) {
+    for (const staking::Coin &coin : eligible_coins) {
       const uint256 kernel_hash = m_stake_validator->ComputeKernelHash(current_tip, coin, target_time);
       if (m_stake_validator->CheckKernel(coin.amount, kernel_hash, target_difficulty)) {
         const CAmount reward = m_blockchain_behavior->CalculateBlockReward(

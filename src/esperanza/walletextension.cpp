@@ -84,14 +84,14 @@ CAmount WalletExtension::GetStakeableBalance() const {
   return total_amount;
 }
 
-std::vector<staking::Coin> WalletExtension::GetStakeableCoins() const {
-  std::vector<staking::Coin> coins;
+staking::CoinSet WalletExtension::GetStakeableCoins() const {
+  staking::CoinSet coins;
   ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
-    coins.emplace_back(staking::Coin{tx->tx->GetHash(),
-                                     outIx,
-                                     tx->tx->vout[outIx].nValue,
-                                     tx->tx->vout[outIx].scriptPubKey,
-                                     depth});
+    coins.emplace(tx->tx->GetHash(),
+                  outIx,
+                  tx->tx->vout[outIx].nValue,
+                  tx->tx->vout[outIx].scriptPubKey,
+                  depth);
   });
   return coins;
 }

@@ -93,13 +93,12 @@ class ActiveChainAdapter final : public ActiveChain {
     if (coin.IsSpent()) {
       return boost::none;
     }
-    Coin result_coin;
-    result_coin.txid = outPoint.hash;
-    result_coin.index = outPoint.n;
-    result_coin.amount = coin.out.nValue;
-    result_coin.script_pubkey = coin.out.scriptPubKey;
-    result_coin.depth = GetDepth(coin.nHeight);
-    return result_coin;
+    return Coin(
+        outPoint.hash,
+        outPoint.n,
+        coin.out.nValue,
+        coin.out.scriptPubKey,
+        GetDepth(coin.nHeight));
   }
 };
 

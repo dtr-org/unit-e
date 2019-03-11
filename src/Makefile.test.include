@@ -115,6 +115,7 @@ UNITE_TESTS = \
   test/snapshot/snapshot_index_tests.cpp \
   test/snapshot/state_tests.cpp \
   test/snapshot/validation_tests.cpp \
+  test/staking/coin_tests.cpp \
   test/staking/proof_of_stake_tests.cpp \
   test/streams_tests.cpp \
   test/test_unite.h \

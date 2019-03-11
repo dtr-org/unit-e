@@ -91,15 +91,15 @@ class ProposerImpl : public Proposer {
         std::shared_ptr<const CBlock> block;
         {
           LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
-          const auto &tip = *m_active_chain->GetTip();
-          const auto &coins = wallet_ext.GetStakeableCoins();
+          const CBlockIndex &tip = *m_active_chain->GetTip();
+          const staking::CoinSet coins = wallet_ext.GetStakeableCoins();
           if (coins.empty()) {
             LogPrint(BCLog::PROPOSING, "Not proposing, not enough balance (wallet=%s)\n", wallet_name);
             wallet_ext.GetProposerState().m_status = Status::NOT_PROPOSING_NOT_ENOUGH_BALANCE;
             continue;
           }
           wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
-          const auto &winning_ticket = m_proposer_logic->TryPropose(coins);
+          const boost::optional<EligibleCoin> &winning_ticket = m_proposer_logic->TryPropose(coins);
           if (!winning_ticket) {
             LogPrint(BCLog::PROPOSING, "Not proposing this time (wallet=%s)\n", wallet_name);
             continue;
