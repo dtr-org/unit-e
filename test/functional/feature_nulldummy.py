@@ -41,6 +41,8 @@ class NULLDUMMYTest(UnitETestFramework):
         self.extra_args = [['-whitelist=127.0.0.1', '-addresstype=legacy', "-deprecatedrpc=addwitnessaddress"]]
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         self.address = self.nodes[0].getnewaddress()
         self.ms_address = self.nodes[0].addmultisigaddress(1,[self.address])['address']
         self.wit_address = self.nodes[0].addwitnessaddress(self.address)
