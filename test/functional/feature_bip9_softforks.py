@@ -37,6 +37,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         self.test = TestManager(self, self.options.tmpdir)
         self.test.add_all_connections(self.nodes)
         network_thread_start()
+        self.setup_stake_coins(self.nodes[0])
         self.test.run()
 
     def create_transaction(self, node, coinbase, to_address, amount):
