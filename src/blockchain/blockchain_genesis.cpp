@@ -61,9 +61,6 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   // explicitly set signature to null (there's no stake and no public key which could sign)
   genesis_block.signature.clear();
 
-  // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
-  // genesis_block.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis_block);
-
   assert(genesis_block.vtx.size() == 1);
   assert(genesis_block.vtx[0]->vin.size() == 1);
   assert(genesis_block.vtx[0]->vin[0].prevout.hash == uint256());
@@ -71,7 +68,6 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
 
   assert(genesis_block.hashMerkleRoot == genesis_block.vtx[0]->GetHash());
-//  assert(genesis_block.hashWitnessMerkleRoot == genesis_block.hashMerkleRoot);
 
   return genesis_block;
 }
