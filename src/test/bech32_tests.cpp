@@ -7,7 +7,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(bech32_tests, ReducedTestingSetup)
+BOOST_AUTO_TEST_SUITE(bech32_tests)
 
 bool CaseInsensitiveEqual(const std::string &s1, const std::string &s2)
 {

@@ -4,13 +4,13 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_log.hpp>
-#include <test/test_bitcoin.h>
+
 #include <ufp64.h>
 #include <util.h>
 
 using namespace ufp64;
 
-BOOST_FIXTURE_TEST_SUITE(ufp64_tests, BasicTestingSetup)
+BOOST_AUTO_TEST_SUITE(ufp64_tests)
 
 BOOST_AUTO_TEST_CASE(to_str_test)
 {

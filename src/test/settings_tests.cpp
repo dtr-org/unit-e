@@ -10,7 +10,7 @@
 #include <test/test_unite_mocks.h>
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(settings_tests, ReducedTestingSetup)
+BOOST_AUTO_TEST_SUITE(settings_tests)
 
 BOOST_AUTO_TEST_CASE(pick_settings_test) {
 
