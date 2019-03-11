@@ -46,8 +46,6 @@ class MaxUploadTest(UnitETestFramework):
         old_time = int(time.time() - 2*60*60*24*7)
         self.nodes[0].setmocktime(old_time)
 
-        self.setup_stake_coins(self.nodes[0])
-
         # Generate some old blocks
         self.nodes[0].generate(130)
 
