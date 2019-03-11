@@ -124,7 +124,11 @@ bool IsVoteExpired(const CTransaction &tx) {
   std::vector<unsigned char> vote_sig;
   assert(CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, vote_sig));
 
-  const FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+
+  LOCK(repo->GetLock());
+
+  const FinalizationState *state = repo->GetTipState();
   assert(state != nullptr);
 
   return vote.m_targetEpoch < state->GetCurrentEpoch() - 1;

@@ -22,7 +22,10 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
 
   LOCK(cs_recorder);
 
-  const FinalizationState *state = GetComponent<StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  const FinalizationState *state = repo->GetTipState();
   assert(state != nullptr);
 
   // Check if the vote comes from a validator
@@ -138,7 +141,10 @@ CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
 bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
   assert(tx.IsVote());
 
-  const FinalizationState *fin_state = GetComponent<StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  const FinalizationState *fin_state = repo->GetTipState();
   assert(fin_state != nullptr);
 
   esperanza::Vote vote;

@@ -127,7 +127,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
-    LOCK2(cs_main, mempool.cs);
+    finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+
+    LOCK(cs_main);
+    LOCK(repo->GetLock());
+    LOCK(mempool.cs);
+
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
@@ -195,9 +200,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
 void BlockAssembler::AddMandatoryTxs()
 {
-    const finalization::FinalizationState *fin_state =
-        GetComponent<finalization::StateRepository>()->GetTipState();
-    assert(fin_state !=nullptr);
+    finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+
+    const finalization::FinalizationState *fin_state = repo->GetTipState();
+    assert(fin_state != nullptr);
 
     auto mi = mempool.mapTx.get<ancestor_score>().begin();
     for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {

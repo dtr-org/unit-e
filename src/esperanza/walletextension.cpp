@@ -425,19 +425,23 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 
   // Calculate how much we have left of the initial withdraw
   const CAmount initialDeposit = prevTx->vout[0].nValue;
-
-  esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
-  assert(state != nullptr);
-
   CAmount currentDeposit = 0;
 
-  const esperanza::Result res = state->CalculateWithdrawAmount(
-      validator.m_validatorAddress, currentDeposit);
+  {
+    finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+    LOCK(repo->GetLock());
 
-  if (res != +Result::SUCCESS) {
-    LogPrint(BCLog::FINALIZATION, "%s: Cannot calculate withdraw amount: %s.\n",
-             __func__, res._to_string());
-    return false;
+    esperanza::FinalizationState *state = repo->GetTipState();
+    assert(state != nullptr);
+
+    const esperanza::Result res = state->CalculateWithdrawAmount(
+        validator.m_validatorAddress, currentDeposit);
+
+    if (res != +Result::SUCCESS) {
+      LogPrint(BCLog::FINALIZATION, "%s: Cannot calculate withdraw amount: %s.\n",
+               __func__, res._to_string());
+      return false;
+    }
   }
 
   const CAmount toWithdraw = std::min(currentDeposit, initialDeposit);
@@ -632,11 +636,18 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   scriptSig << std::vector<unsigned char>(vote2Script.begin(), vote2Script.end());
   const CScript burnScript = CScript::CreateUnspendableScript();
 
-  esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
-  assert(state != nullptr);
+  uint256 txHash;
+  uint160 validatorAddress;
+  {
+    finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+    LOCK(repo->GetLock());
 
-  uint160 validatorAddress = vote1.vote.m_validatorAddress;
-  const uint256 txHash = state->GetLastTxHash(validatorAddress);
+    esperanza::FinalizationState *state = repo->GetTipState();
+    assert(state != nullptr);
+
+    validatorAddress = vote1.vote.m_validatorAddress;
+    txHash = state->GetLastTxHash(validatorAddress);
+  }
 
   CTransactionRef lastSlashableTx;
   uint256 blockHash;
@@ -721,7 +732,10 @@ void WalletExtension::BlockConnected(
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         // In case we are logged out, stop validating.
-        esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+
+        finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+        LOCK(repo->GetLock());
+        esperanza::FinalizationState *state = repo->GetTipState();
         assert(state);
 
         uint32_t currentDynasty = state->GetCurrentDynasty();
@@ -734,7 +748,10 @@ void WalletExtension::BlockConnected(
         break;
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
-        esperanza::FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+        finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+        LOCK(repo->GetLock());
+
+        esperanza::FinalizationState *state = repo->GetTipState();
         assert(state);
 
         // TODO: UNIT-E: remove "state->GetCurrentEpoch() > 2" when we delete instant finalization
@@ -798,8 +815,10 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
           return false;
         }
 
-        esperanza::FinalizationState *fin_state =
-            GetComponent<finalization::StateRepository>()->GetTipState();
+        finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+        LOCK(repo->GetLock());
+
+        esperanza::FinalizationState *fin_state = repo->GetTipState();
         assert(fin_state != nullptr);
 
         state.m_validatorAddress = validatorAddress;
@@ -825,8 +844,10 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
       if (state.m_phase == expectedPhase) {
 
-        esperanza::FinalizationState *fin_state =
-            GetComponent<finalization::StateRepository>()->GetTipState();
+        finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+        LOCK(repo->GetLock());
+
+        esperanza::FinalizationState *fin_state = repo->GetTipState();
         assert(fin_state != nullptr);
 
         const esperanza::Validator *validator =

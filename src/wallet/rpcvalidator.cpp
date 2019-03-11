@@ -58,12 +58,17 @@ UniValue deposit(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
   }
 
-  const finalization::FinalizationState *state =
-    GetComponent<finalization::StateRepository>()->GetTipState();
-  assert(state != nullptr);
+  {
+    finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+    LOCK(repo->GetLock());
 
-  if (!state->ValidateDepositAmount(amount)) {
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
+    const finalization::FinalizationState *state =
+      GetComponent<finalization::StateRepository>()->GetTipState();
+    assert(state != nullptr);
+
+    if (!state->ValidateDepositAmount(amount)) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
+    }
   }
 
   CWalletTx tx;

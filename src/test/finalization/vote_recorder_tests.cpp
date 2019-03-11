@@ -41,7 +41,10 @@ BOOST_AUTO_TEST_CASE(record_votes) {
 
   // This test changes tip's finalization state and inderectly checks it via RecordVote().
 
-  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  FinalizationState *state = repo->GetTipState();
   assert(state != nullptr);
 
   SlashListener listener;
@@ -95,7 +98,10 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
 
   // This test changes tip's finalization state and inderectly checks it via RecordVote().
 
-  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  FinalizationState *state = repo->GetTipState();
   assert(state != nullptr);
 
   SlashListener listener;
@@ -131,7 +137,10 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
   // This test changes tip's finalization state and inderectly checks it via RecordVote().
 
-  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  FinalizationState *state = repo->GetTipState();
   assert(state != nullptr);
 
   SlashListener listener;
@@ -166,7 +175,10 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
 
   // This test changes tip's finalization state and inderectly checks it via RecordVote().
 
-  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  FinalizationState *state = repo->GetTipState();
   assert(state != nullptr);
 
   SlashListener listener;

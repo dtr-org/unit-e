@@ -32,8 +32,10 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
 
   ObserveSafeMode();
 
-  const finalization::FinalizationState *fin_state =
-    GetComponent<finalization::StateRepository>()->GetTipState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  const finalization::FinalizationState *fin_state = repo->GetTipState();
   assert(fin_state !=nullptr);
 
   UniValue obj(UniValue::VOBJ);

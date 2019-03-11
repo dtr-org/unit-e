@@ -28,6 +28,9 @@ class ProcessorImpl final : public StateProcessor {
 };
 
 bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block) {
+
+  AssertLockHeld(m_repo->GetLock());
+
   const auto state = m_repo->FindOrCreate(block_index, FinalizationState::COMPLETED);
   if (state == nullptr) {
     LogPrint(BCLog::FINALIZATION, "ERROR: Cannot find or create finalization state for %s\n",
@@ -71,9 +74,13 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
 }
 
 bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index, blockchain::Height *out_height) {
+
+  AssertLockHeld(m_repo->GetLock());
+
   if (block_index.pprev == nullptr) {
     return false;
   }
+
   const auto *prev_state = m_repo->Find(*block_index.pprev);
   const auto *new_state = m_repo->Find(block_index);
   if (prev_state == nullptr || new_state == nullptr) {
@@ -103,18 +110,22 @@ bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index, blockch
 }
 
 bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) {
+  LOCK(m_repo->GetLock());
+
+  const uint32_t epoch_length = m_repo->GetFinalizationParams().epoch_length;
+
   LogPrint(BCLog::FINALIZATION, "Process tip block_hash=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
   if (!ProcessNewTipWorker(block_index, block)) {
     return false;
   }
-  const uint32_t epoch_length = m_repo->GetFinalizationParams().epoch_length;
   if (block_index.nHeight > 0 && !m_repo->Restoring() &&
       (block_index.nHeight + 2) % epoch_length == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
     // The last epoch block will contain the snapshot hash pointing to this snapshot.
     snapshot::Creator::GenerateOrSkip(m_repo->GetTipState()->GetCurrentEpoch());
   }
+
   blockchain::Height finalization_height = 0;
   if (FinalizationHappened(block_index, &finalization_height)) {
     // We remove all the states until the `last finalized epoch + 1` epoch.
@@ -126,12 +137,16 @@ bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &
 }
 
 bool ProcessorImpl::ProcessNewTipCandidate(const CBlockIndex &block_index, const CBlock &block) {
+  LOCK(m_repo->GetLock());
+
   LogPrint(BCLog::FINALIZATION, "Process candidate tip block_hash=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
   return ProcessNewTipWorker(block_index, block);
 }
 
 bool ProcessorImpl::ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes) {
+  LOCK(m_repo->GetLock());
+
   LogPrint(BCLog::FINALIZATION, "Process commits block_hash=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
 

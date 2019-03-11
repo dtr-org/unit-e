@@ -76,6 +76,10 @@ class Fixture {
     return m_repo->Find(block_index);
   }
 
+  CCriticalSection &GetRepoLock() {
+    return m_repo->GetLock();
+  }
+
  private:
   blockchain::Height FindNextHeight() {
     if (m_chain.tip == nullptr) {
@@ -99,6 +103,9 @@ BOOST_FIXTURE_TEST_SUITE(state_processor_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(trimming) {
   Fixture fixture;
+
+  LOCK(fixture.GetRepoLock());
+
   BOOST_REQUIRE(fixture.epoch_length == 5);
 
   // Generate first two epochs
@@ -174,6 +181,9 @@ BOOST_AUTO_TEST_CASE(trimming) {
 
 BOOST_AUTO_TEST_CASE(states_workflow) {
   Fixture fixture;
+
+  LOCK(fixture.GetRepoLock());
+
   BOOST_REQUIRE(fixture.epoch_length == 5);
 
   // Generate first epoch

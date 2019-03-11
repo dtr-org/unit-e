@@ -112,8 +112,8 @@ FinalizationState *RepositoryImpl::FindOrCreate(const CBlockIndex &block_index,
 
 void RepositoryImpl::Reset(const esperanza::FinalizationParams &params,
                            const esperanza::AdminParams &admin_params) {
+  LOCK(cs);
   LogPrint(BCLog::FINALIZATION, "Completely reset state repository\n");
-  AssertLockHeld(cs);
   m_states.clear();
   m_genesis_state.reset(new FinalizationState(params, admin_params));
   m_finalization_params = &params;
@@ -122,7 +122,10 @@ void RepositoryImpl::Reset(const esperanza::FinalizationParams &params,
 
 void RepositoryImpl::ResetToTip(const CBlockIndex &block_index) {
   LOCK(cs);
-  Reset(*m_finalization_params, *m_admin_params);
+  m_states.clear();
+  m_genesis_state.reset(new FinalizationState(*m_finalization_params, *m_admin_params));
+  LogPrint(BCLog::FINALIZATION, "Reset state repository to block_hash=%s height=%db\n",
+           block_index.GetBlockHash().GetHex(), block_index.nHeight);
   m_states.emplace(&block_index, FinalizationState(*GetGenesisState(), FinalizationState::COMPLETED));
 }
 

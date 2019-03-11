@@ -6,6 +6,7 @@
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
 #include <finalization/p2p.h>
+#include <injector.h>
 #include <net.h>
 #include <netmessagemaker.h>
 #include <validation.h>
@@ -19,7 +20,12 @@ std::string CommitsLocator::ToString() const {
 
 namespace {
 const CBlockIndex *FindMostRecentStart(const CChain &chain, const CommitsLocator &locator) {
-  const auto *const state = esperanza::FinalizationState::GetState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+
+  const finalization::FinalizationState *state = repo->GetTipState();
+  assert(state != nullptr);
+
   const CBlockIndex *last = nullptr;
   for (const uint256 &h : locator.start) {
     const auto it = mapBlockIndex.find(h);
@@ -88,7 +94,9 @@ bool ProcessGetCommits(CNode *node, const CommitsLocator &locator, const CNetMsg
     return error("%s: cannot find start point in locator: %s", __func__, locator.ToString());
   }
   const CBlockIndex *const stop = FindStop(locator);
-  const auto *const state = esperanza::FinalizationState::GetState();
+  finalization::StateRepository *repo = GetComponent<finalization::StateRepository>();
+  LOCK(repo->GetLock());
+  const auto *const state = repo->GetTipState();
   CommitsResponse r;
   do {
     pindex = chainActive.Next(pindex);

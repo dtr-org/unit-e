@@ -71,6 +71,9 @@ using S = esperanza::FinalizationState::InitStatus;
 
 BOOST_AUTO_TEST_CASE(basic_checks) {
   Fixture fixture;
+
+  LOCK(fixture.repo->GetLock());
+
   const auto &b0 = fixture.CreateBlockIndex();
   const auto &b1 = fixture.CreateBlockIndex();
   const auto &b2 = fixture.CreateBlockIndex();
