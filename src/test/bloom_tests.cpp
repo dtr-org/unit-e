@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(bloom_esperanza_inserts_on_update)
 
 BOOST_AUTO_TEST_CASE(merkle_block_1)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     CBlock block; // UNIT-E TODO: Used to be getBlock13b8a()
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_1)
 
 BOOST_AUTO_TEST_CASE(merkle_block_with_esperanza)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     // Two normal transactions and three deposits
@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_with_esperanza)
 
 BOOST_AUTO_TEST_CASE(merkle_block_2)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     // Random real block (000000005a4ded781e667e06ceefafb71410b511fe0d5adc3e5a27ecbec34ae6)
@@ -411,7 +411,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2)
 
 BOOST_AUTO_TEST_CASE(merkle_block_2_with_update_none)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     // Random real block (000000005a4ded781e667e06ceefafb71410b511fe0d5adc3e5a27ecbec34ae6)
@@ -469,7 +469,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2_with_update_none)
 
 BOOST_AUTO_TEST_CASE(merkle_block_3_and_serialize)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     // Random real block (000000000000dab0130bbcc991d3d7ae6b81aa6f50a798888dfe62337458dc45)
@@ -514,7 +514,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_3_and_serialize)
 
 BOOST_AUTO_TEST_CASE(merkle_block_4)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     // Random real block (000000000000b731f2eef9e8c63173adfb07e41bd53eb0ef0a6b720d6cb6dea4)
@@ -566,7 +566,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_4)
 
 BOOST_AUTO_TEST_CASE(merkle_block_4_test_p2pubkey_only)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     // Random real block (000000000000b731f2eef9e8c63173adfb07e41bd53eb0ef0a6b720d6cb6dea4)
@@ -590,12 +590,12 @@ BOOST_AUTO_TEST_CASE(merkle_block_4_test_p2pubkey_only)
     // We should match the generation outpoint
     BOOST_CHECK(filter.contains(COutPoint(uint256S("0x147caa76786596590baa4e98f5d9f48b86c7765e489f7a6ff3360fe5c674360b"), 0)));
     // ... but not the 4th transaction's output (its not pay-2-pubkey)
-//    BOOST_CHECK(!filter.contains(COutPoint(uint256S("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"), 0)));
+    BOOST_CHECK(!filter.contains(COutPoint(uint256S("0x02981fa052f0481dbc5868f4fc2166035a10f27a03cfd2de67326471df5bc041"), 0)));
 }
 
 BOOST_AUTO_TEST_CASE(merkle_block_4_test_update_none)
 {
-    // UNIT-E TODO: Re-enable test
+    // UNIT-E TODO: Re-enable test - https://github.com/dtr-org/unit-e/issues/758
     return;
 
     // Random real block (000000000000b731f2eef9e8c63173adfb07e41bd53eb0ef0a6b720d6cb6dea4)
