@@ -102,6 +102,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         test = TestManager(self, self.options.tmpdir)
         test.add_all_connections(self.nodes)
         network_thread_start()
+        self.setup_stake_coins(self.nodes[0])
         test.run()
 
     def send_generic_input_tx(self, node, coinbases):
