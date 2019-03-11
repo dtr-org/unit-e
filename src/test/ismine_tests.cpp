@@ -1,0 +1,195 @@
+// Copyright (c) 2019 The Unit-e developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+#include <script/ismine.h>
+
+#include <key.h>
+#include <keystore.h>
+#include <pubkey.h>
+
+#include <test/test_unite.h>
+#include <boost/test/unit_test.hpp>
+
+#include <array>
+
+
+BOOST_FIXTURE_TEST_SUITE(ismine_tests, ReducedTestingSetup)
+
+bool IsSpendable(isminetype is_mine) {
+  return (is_mine & isminetype::ISMINE_SPENDABLE) != 0;
+}
+
+bool IsWatchOnly(isminetype is_mine) {
+  return (is_mine & isminetype::ISMINE_WATCH_ONLY) != 0;
+}
+
+BOOST_AUTO_TEST_CASE(is_stakeable_by_me_p2wpkh) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  keystore.AddKey(key);
+
+  const CTxDestination destination = WitnessV0KeyHash(key.GetPubKey().GetID());
+  const CScript p2wpkh = GetScriptForDestination(destination);
+
+  BOOST_CHECK(IsSpendable(IsMine(keystore, p2wpkh)));
+  BOOST_CHECK(IsStakeableByMe(keystore, p2wpkh));
+}
+
+BOOST_AUTO_TEST_CASE(is_not_stakeable_by_me_p2wpkh) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  // do not add key to the keystore
+
+  const CTxDestination destination = WitnessV0KeyHash(key.GetPubKey().GetID());
+  const CScript p2wpkh = GetScriptForDestination(destination);
+
+  BOOST_CHECK(!IsSpendable(IsMine(keystore, p2wpkh)));
+  BOOST_CHECK(!IsStakeableByMe(keystore, p2wpkh));
+}
+
+BOOST_AUTO_TEST_CASE(is_stakeable_by_me_p2wsh_pubkey) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  BOOST_CHECK(keystore.AddKey(key));
+
+  const CScript script = GetScriptForRawPubKey(key.GetPubKey());
+  uint256 script_hash;
+  CSHA256().Write(&script[0], script.size()).Finalize(script_hash.begin());
+
+  keystore.AddCScript(script);
+
+  const CTxDestination destination = WitnessV0ScriptHash(script_hash);
+  const CScript p2wsh_script = GetScriptForDestination(destination);
+
+  keystore.AddCScript(p2wsh_script);
+
+  BOOST_CHECK(IsSpendable(IsMine(keystore, p2wsh_script)));
+  BOOST_CHECK(IsStakeableByMe(keystore, p2wsh_script));
+}
+
+BOOST_AUTO_TEST_CASE(is_not_stakeable_by_me_p2wsh_pubkey_watchonly) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  // do not add key to the keystore
+
+  const CScript script = GetScriptForRawPubKey(key.GetPubKey());
+  uint256 script_hash;
+  CSHA256().Write(&script[0], script.size()).Finalize(script_hash.begin());
+
+  BOOST_CHECK(keystore.AddWatchOnly(script));
+
+  const CTxDestination destination = WitnessV0ScriptHash(script_hash);
+  const CScript p2wsh_script = GetScriptForDestination(destination);
+
+  BOOST_CHECK(keystore.AddWatchOnly(p2wsh_script));
+
+  const isminetype is_mine = IsMine(keystore, p2wsh_script);
+  BOOST_CHECK(!IsSpendable(is_mine));
+  BOOST_CHECK(IsWatchOnly(is_mine));
+  BOOST_CHECK(!IsStakeableByMe(keystore, p2wsh_script));
+}
+
+BOOST_AUTO_TEST_CASE(is_not_stakeable_by_me_p2wsh_pubkey_unknown) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  // do not add key to the keystore
+
+  const CScript script = GetScriptForRawPubKey(key.GetPubKey());
+  uint256 script_hash;
+  CSHA256().Write(&script[0], script.size()).Finalize(script_hash.begin());
+
+  const CTxDestination destination = WitnessV0ScriptHash(script_hash);
+  const CScript p2wsh_script = GetScriptForDestination(destination);
+
+  const isminetype is_mine = IsMine(keystore, p2wsh_script);
+  BOOST_CHECK(!IsSpendable(is_mine));
+  BOOST_CHECK(!IsWatchOnly(is_mine));
+  BOOST_CHECK(!IsStakeableByMe(keystore, p2wsh_script));
+}
+
+BOOST_AUTO_TEST_CASE(is_stakeable_by_me_p2wsh_pubkeyhash) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  BOOST_CHECK(keystore.AddKey(key));
+
+  const CScript script = GetScriptForDestination(key.GetPubKey().GetID());
+  uint256 script_hash;
+  CSHA256().Write(&script[0], script.size()).Finalize(script_hash.begin());
+
+  BOOST_CHECK(keystore.AddCScript(script));
+
+  const CTxDestination destination = WitnessV0ScriptHash(script_hash);
+  const CScript p2wsh_script = GetScriptForDestination(destination);
+
+  BOOST_CHECK(keystore.AddCScript(p2wsh_script));
+
+  BOOST_CHECK(IsSpendable(IsMine(keystore, p2wsh_script)));
+  BOOST_CHECK(IsStakeableByMe(keystore, p2wsh_script));
+}
+
+BOOST_AUTO_TEST_CASE(is_not_stakeable_by_me_p2wsh_pubkeyhash_watchonly) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  // do not add key to the keystore
+
+  const CScript script = GetScriptForDestination(key.GetPubKey().GetID());
+  uint256 script_hash;
+  CSHA256().Write(&script[0], script.size()).Finalize(script_hash.begin());
+
+  BOOST_CHECK(keystore.AddWatchOnly(script));
+
+  const CTxDestination destination = WitnessV0ScriptHash(script_hash);
+  const CScript p2wsh_script = GetScriptForDestination(destination);
+
+  BOOST_CHECK(keystore.AddWatchOnly(p2wsh_script));
+
+  const isminetype is_mine = IsMine(keystore, p2wsh_script);
+  BOOST_CHECK(!IsSpendable(is_mine));
+  BOOST_CHECK(IsWatchOnly(is_mine));
+  BOOST_CHECK(!IsStakeableByMe(keystore, p2wsh_script));
+}
+
+BOOST_AUTO_TEST_CASE(is_not_stakeable_by_me_p2wsh_pubkeyhash_unknown) {
+
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+  // do not add key to the keystore
+
+  const CScript script = GetScriptForDestination(key.GetPubKey().GetID());
+  uint256 script_hash;
+  CSHA256().Write(&script[0], script.size()).Finalize(script_hash.begin());
+
+  const CTxDestination destination = WitnessV0ScriptHash(script_hash);
+  const CScript p2wsh_script = GetScriptForDestination(destination);
+
+  const isminetype is_mine = IsMine(keystore, p2wsh_script);
+  BOOST_CHECK(!IsSpendable(is_mine));
+  BOOST_CHECK(!IsWatchOnly(is_mine));
+  BOOST_CHECK(!IsStakeableByMe(keystore, p2wsh_script));
+}
+
+BOOST_AUTO_TEST_SUITE_END()
