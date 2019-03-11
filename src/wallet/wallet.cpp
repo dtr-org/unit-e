@@ -3242,7 +3242,7 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CCon
                 // TODO: if we expect the failure to be long term or permanent, instead delete wtx from the wallet and return failure.
             } else {
                 bool embargoed = false;
-                if (wtx.tx->GetType() == +TxType::STANDARD && connman->embargoman) {
+                if (wtx.tx->GetType() == +TxType::REGULAR && connman->embargoman) {
                     embargoed =
                         connman->embargoman->SendTransactionAndEmbargo(*wtx.tx);
                 }

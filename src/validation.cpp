@@ -577,7 +577,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
 
 static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
     switch (tx.GetType()) {
-    case +TxType::STANDARD:
+    case +TxType::REGULAR:
     case +TxType::COINBASE:
         return BCLog::VALIDATION;
     case +TxType::DEPOSIT:

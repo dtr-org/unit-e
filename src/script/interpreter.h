@@ -154,7 +154,7 @@ public:
     }
 
     virtual TxType GetTxType() const {
-        return TxType::STANDARD;
+        return TxType::REGULAR;
     }
 
     virtual ~BaseSignatureChecker() {}

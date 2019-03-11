@@ -140,7 +140,7 @@ bool IsFinalizationTransaction(const CTransaction &tx)
         case TxType::SLASH:
         case TxType::ADMIN:
             return true;
-        case TxType::STANDARD:
+        case TxType::REGULAR:
         case TxType::COINBASE:
         case TxType::WITHDRAW:
             return false;

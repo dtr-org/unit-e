@@ -76,6 +76,23 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType)
 
 bool IsStandardTx(const CTransaction& tx, std::string& reason)
 {
+    // unit-e has a notion of "regular" transactions which are partitioned into
+    // "standard" and "non-standard" transactions (in contrast to bitcoin where
+    // every transaction is a "regular" transaction). Beyond "regular transactions
+    // unit-e features a wealth of other transaction types ("non-regular") such as
+    // finalization transactions. Also coinbase transactions are distinguished
+    // using the transaction type (See TxType and CTransaction::GetType).
+    //
+    // The notion of "standard" or "non-standard" does not apply to non-regular
+    // transactions, yet there is a bit of code which relies on the notion of
+    // "is standard". Thus we extend that definition and declare all non-regular
+    // transactions to be standard, such that policy actions such as "do not
+    // relay non-standard transactions" will never apply to non-regular transactions
+    // (all of which should always be relayed).
+    if (!tx.IsRegular()) {
+        return true;
+    }
+
     if (tx.nVersion > CTransaction::MAX_STANDARD_VERSION || tx.nVersion < 1) {
         reason = "version";
         return false;
