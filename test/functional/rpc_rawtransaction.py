@@ -46,6 +46,7 @@ class RawTransactionsTest(UnitETestFramework):
         connect_nodes_bi(self.nodes,0,2)
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], self.nodes[2])
 
         #prepare some coins for multiple *rawtransaction commands
         self.nodes[2].generate(1)
@@ -258,9 +259,11 @@ class RawTransactionsTest(UnitETestFramework):
 
         rawTxSigned = self.nodes[2].signrawtransaction(rawTx, inputs)
         assert_equal(rawTxSigned['complete'], True) #node2 can sign the tx compl., own two of three keys
-        self.nodes[2].sendrawtransaction(rawTxSigned['hex'])
+        txToLock = self.nodes[2].sendrawtransaction(rawTxSigned['hex'])
         rawTx = self.nodes[0].decoderawtransaction(rawTxSigned['hex'])
         self.sync_all()
+        # This UTXO is needed later and should not be spent
+        self.nodes[0].lockunspent(False, [{"txid": txToLock, "vout": 0}])
         self.nodes[0].generate(1)
         self.sync_all()
         assert_equal(self.nodes[0].getbalance(), bal+Decimal('50.00000000')+Decimal('2.19000000')) #block reward + tx
