@@ -186,7 +186,6 @@ class FullBlockTest(ComparisonTestFramework):
             self.add_transactions_to_block(block, [tx])
             block.hashMerkleRoot = block.calc_merkle_root()
             block.hash_witness_merkle_root = block.calc_witness_merkle_root()
-            block.hash
         if solve:
             block.ensure_ltor()
             block.solve()
