@@ -58,6 +58,7 @@ BASE_SCRIPTS= [
     'wallet_hd.py',
     'wallet_backup.py',
     # vv Tests less than 5m vv
+    'feature_no_esperanza_tx_relay_delay.py',
     'feature_maxuploadtarget.py',
     'mempool_packages.py',
     'feature_block.py',
@@ -184,7 +185,6 @@ BASE_SCRIPTS= [
     'feature_fork_choice_finalization.py',
     'feature_fork_choice_parallel_justifications.py',
     'feature_fork_choice_forked_finalize_epoch.py',
-    'feature_no_esperanza_tx_relay_delay.py',
     'example_test.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
@@ -197,7 +197,6 @@ EXTENDED_SCRIPTS = [
     'feature_dbcrash.py',
     # vv Tests less than 20m vv
     # vv Tests less than 5m vv
-    'feature_no_esperanza_tx_relay_delay.py',
     # vv Tests less than 2m vv
     # vv Tests less than 60s vv
     'rpc_bind.py',
