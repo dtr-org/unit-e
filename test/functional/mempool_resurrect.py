@@ -25,7 +25,8 @@ class MempoolCoinbaseTest(UnitETestFramework):
         for block_id in first_3_blocks:
             node.lockunspent(False, [{"txid": node.getblock(block_id)['tx'][0], "vout": 0}])
 
-        first_3_blocks = node.generate(101)
+        # Make the first 3 coinbase mature now
+        node.generate(101)
 
         node0_address = node.getnewaddress("", "bech32")
         # Spend block 1/2/3's coinbase transactions
