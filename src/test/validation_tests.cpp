@@ -256,8 +256,7 @@ BOOST_AUTO_TEST_CASE(checkblock_witness_merkle_root) {
   CMutableTransaction coinbase(*block.vtx[0]);
   block.vtx[0] = MakeTransactionRef(coinbase);
 
-  bool mutated;
-  block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
+  block.hashMerkleRoot = BlockMerkleRoot(block);
   block.hash_witness_merkle_root = GetRandHash();
 
   CValidationState state;
