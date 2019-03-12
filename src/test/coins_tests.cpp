@@ -69,6 +69,12 @@ public:
             hashBestBlock_ = hashBlock;
         return true;
     }
+
+    bool clear_coins_called = false;
+
+    void ClearCoins() override {
+      clear_coins_called = true;
+    }
 };
 
 class CCoinsViewCacheTest : public CCoinsViewCache
@@ -855,6 +861,14 @@ BOOST_AUTO_TEST_CASE(ccoins_write)
             for (char parent_flags : parent_value == ABSENT ? ABSENT_FLAGS : FLAGS)
                 for (char child_flags : child_value == ABSENT ? ABSENT_FLAGS : CLEAN_FLAGS)
                     CheckWriteCoins(parent_value, child_value, parent_value, parent_flags, child_flags, parent_flags);
+}
+
+BOOST_AUTO_TEST_CASE(ccoins_clear) {
+  CCoinsViewTest base;
+  CCoinsViewCache cache1(&base);
+  CCoinsViewCache cache2(&cache1);
+  cache2.ClearCoins();
+  BOOST_CHECK(base.clear_coins_called);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
