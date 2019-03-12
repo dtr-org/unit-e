@@ -540,8 +540,8 @@ def create_confirmed_utxos(fee, node, count):
         to_generate -= 25
     utxos = node.listunspent()
     iterations = count - len(utxos)
-    addr1 = node.getnewaddress()
-    addr2 = node.getnewaddress()
+    addr1 = node.getnewaddress("", "bech32")
+    addr2 = node.getnewaddress("", "bech32")
     if iterations <= 0:
         return utxos
     for i in range(iterations):
