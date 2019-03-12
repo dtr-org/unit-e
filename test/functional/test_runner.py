@@ -135,6 +135,7 @@ BASE_SCRIPTS= [
     'feature_logging.py',
     'rpc_preciousblock.py',
     'esperanza_finalizationstate.py',
+    'finalization_state_restoration.py',
     'interface_zmq.py',
     'wallet_txn_doublespend.py --mineblock',
     'wallet_txn_clone.py',

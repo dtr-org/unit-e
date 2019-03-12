@@ -862,11 +862,11 @@ uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
 }
 
 blockchain::Height FinalizationState::GetEpochStartHeight(const uint32_t epoch) const {
-  return epoch * m_settings.epoch_length;
+  return m_settings.GetEpochStartHeight(epoch);
 }
 
-blockchain::Height FinalizationState::GetEpochCheckpointHeight(uint32_t epoch) const {
-  return GetEpochStartHeight(epoch + 1) - 1;
+blockchain::Height FinalizationState::GetEpochCheckpointHeight(const uint32_t epoch) const {
+  return m_settings.GetEpochCheckpointHeight(epoch);
 }
 
 std::vector<Validator> FinalizationState::GetActiveFinalizers() const {

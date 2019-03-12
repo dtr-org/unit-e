@@ -54,6 +54,8 @@ class FinalizationStateSpy : public FinalizationState {
     return m_settings.bounty_fraction_denominator;
   }
 
+  void shuffle();
+
   using FinalizationState::GetCurrentDynasty;
   using FinalizationState::GetDepositSize;
   using FinalizationState::InitializeEpoch;

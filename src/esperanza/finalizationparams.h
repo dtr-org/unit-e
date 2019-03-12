@@ -6,6 +6,7 @@
 #define UNITE_FINALIZATIONPARAMS_H
 
 #include <amount.h>
+#include <blockchain/blockchain_types.h>
 #include <stdint.h>
 #include <ufp64.h>
 
@@ -33,6 +34,14 @@ struct FinalizationParams {
   ufp64::ufp64_t base_interest_factor;
 
   ufp64::ufp64_t base_penalty_factor;
+
+  blockchain::Height GetEpochStartHeight(const uint32_t epoch) const {
+    return epoch * epoch_length;
+  }
+
+  blockchain::Height GetEpochCheckpointHeight(const uint32_t epoch) const {
+    return GetEpochStartHeight(epoch + 1) - 1;
+  }
 
   // UNIT-E: move this once we have a argManager util that parses parameters
   // passed to the node at startup

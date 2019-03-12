@@ -42,6 +42,12 @@ struct Settings {
 
   std::uint16_t p2p_port = 7182;
 
+  //! \brief Path to the base data dir (e.g. ~/user/.unite).
+  fs::path base_data_dir = GetDefaultDataDir();
+
+  //! \brief Path to the data dir (e.g. ~/user/.unite/regtest).
+  fs::path data_dir = GetDefaultDataDir();
+
   //! \brief the destination of the proposing reward.
   //
   //! If not set it will use the destination of the coin used for proposing the

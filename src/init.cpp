@@ -44,6 +44,7 @@
 #include <snapshot/initialization.h>
 #include <snapshot/rpc_processing.h>
 #include <snapshot/creator.h>
+#include <snapshot/state.h>
 #include <timedata.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -1659,6 +1660,18 @@ bool AppInitMain()
                     }
                 }
 
+                // UNIT-E TODO: Snapshot must start working once we can trust commits
+                // (commits merkle root added to the header and FROM_COMMITS is dropped).
+                // Check #836 for details.
+                if (!snapshot::IsISDEnabled()) {
+                    LOCK(cs_main);
+                    auto state_repository = GetComponent<finalization::StateRepository>();
+                    auto state_processor = GetComponent<finalization::StateProcessor>();
+                    state_repository->RestoreFromDisk(state_processor);
+                } else if (chainActive.Tip() != nullptr) {
+                    state_repository->ResetToTip(*chainActive.Tip());
+                }
+
                 if (!is_coinsview_empty) {
                     uiInterface.InitMessage(_("Verifying blocks..."));
                     if (fHavePruned && gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS) > MIN_BLOCKS_TO_KEEP) {
@@ -1684,6 +1697,7 @@ bool AppInitMain()
                         break;
                     }
                 }
+
             } catch (const std::exception& e) {
                 LogPrintf("%s\n", e.what());
                 strLoadError = _("Error opening block database");

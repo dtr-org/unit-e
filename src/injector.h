@@ -10,11 +10,13 @@
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_parameters.h>
 #include <blockchain/blockchain_rpc.h>
+#include <finalization/state_db.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
 #include <p2p/finalizer_commits_handler.h>
 #include <settings.h>
 #include <staking/active_chain.h>
+#include <staking/block_index_map.h>
 #include <staking/block_validator.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
@@ -45,6 +47,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(Network, staking::Network, staking::Network::New)
 
+  COMPONENT(BlockIndexMap, staking::BlockIndexMap, staking::BlockIndexMap::New)
+
   COMPONENT(ActiveChain, staking::ActiveChain, staking::ActiveChain::New)
 
   COMPONENT(StakeValidator, staking::StakeValidator, staking::StakeValidator::New,
@@ -56,8 +60,11 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(BlockDB, ::BlockDB, BlockDB::New)
 
+  COMPONENT(FinalizationStateDB, finalization::StateDB, finalization::StateDB::New,
+            Settings, staking::BlockIndexMap, staking::ActiveChain)
+
   COMPONENT(FinalizationStateRepository, finalization::StateRepository, finalization::StateRepository::New,
-            staking::ActiveChain)
+            staking::BlockIndexMap, staking::ActiveChain, finalization::StateDB, BlockDB)
 
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
             finalization::StateRepository,

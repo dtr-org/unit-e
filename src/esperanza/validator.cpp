@@ -4,6 +4,7 @@
 
 #include <esperanza/validator.h>
 #include <stdint.h>
+#include <util.h>
 
 namespace esperanza {
 
@@ -33,6 +34,25 @@ bool Validator::operator==(const Validator &other) const {
          m_is_slashed == other.m_is_slashed &&
          m_deposits_at_logout == other.m_deposits_at_logout &&
          m_last_transaction_hash == other.m_last_transaction_hash;
+}
+
+std::string Validator::ToString() const {
+  return strprintf(
+      "Validator{"
+      "m_validator_address=%s "
+      "m_deposit=%d "
+      "m_start_dynasty=%d "
+      "m_end_dynasty=%d "
+      "m_is_slashed=%d "
+      "m_deposits_at_logout=%d "
+      "m_last_transaction_hash=%s}",
+      util::to_string(m_validator_address),
+      m_deposit,
+      m_start_dynasty,
+      m_end_dynasty,
+      m_is_slashed,
+      m_deposits_at_logout,
+      util::to_string(m_last_transaction_hash));
 }
 
 }  // namespace esperanza

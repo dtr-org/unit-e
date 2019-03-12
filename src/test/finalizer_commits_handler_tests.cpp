@@ -44,7 +44,8 @@ public:
   FinalizationState *Find(const CBlockIndex &) override { return &state; }
   FinalizationState *FindOrCreate(const CBlockIndex &, FinalizationState::InitStatus) override { return &state; }
   bool Confirm(const CBlockIndex &, FinalizationState &&, FinalizationState **) override { return false; }
-  void RestoreFromDisk(const CChainParams &, Dependency<finalization::StateProcessor>) override { }
+  bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
+  bool SaveToDisk() override { return false; }
   bool Restoring() const override { return false; }
   void ResetToTip(const CBlockIndex &) override { }
   void TrimUntilHeight(const blockchain::Height) override { }
@@ -80,12 +81,6 @@ class Fixture {
         return nullptr;
       }
       return it->second;
-    };
-    active_chain.find_fork_origin = [this](const CBlockIndex *index) -> const CBlockIndex * {
-      while (index != nullptr && !active_chain.Contains(*index)) {
-        index = index->pprev;
-      }
-      return index;
     };
     active_chain.get_block_index = [this](const uint256 &hash) -> CBlockIndex * {
       const auto it = m_block_indexes.find(hash);

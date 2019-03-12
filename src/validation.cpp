@@ -2246,6 +2246,9 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
                 if (!pblocktree->WriteBatchSync(vFiles, nLastBlockFile, vBlocks)) {
                     return AbortNode(state, "Failed to write to block index database");
                 }
+                if (!GetComponent<finalization::StateRepository>()->SaveToDisk()) {
+                    return AbortNode(state, "Failed to write to finalization state database");
+                }
             }
             // Finally remove any pruned files
             if (fFlushForPrune)
@@ -3954,10 +3957,6 @@ bool LoadChainTip(const CChainParams& chainparams)
 
     g_chainstate.PruneBlockIndexCandidates();
 
-    auto state_repository = GetComponent<finalization::StateRepository>();
-    auto state_processor = GetComponent<finalization::StateProcessor>();
-    state_repository->RestoreFromDisk(chainparams, state_processor);
-
     LogPrintf("Loaded best chain: hashBestChain=%s height=%d date=%s progress=%f\n",
         chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(),
         DateTimeStrFormat("%Y-%m-%d %H:%M:%S", chainActive.Tip()->GetBlockTime()),
@@ -4240,22 +4239,12 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         }
     }
 
-    auto state_repository = GetComponent<finalization::StateRepository>();
-    auto state_processor = GetComponent<finalization::StateProcessor>();
     if (chainActive.Tip() != nullptr) {
         // We can't prune block index candidates based on our tip if we have
         // no tip due to chainActive being empty!
         PruneBlockIndexCandidates();
-
         CheckBlockIndex(params.GetConsensus());
-
-        if (esperanza::FinalizationState::GetState(chainActive.Tip()) == nullptr) {
-            state_repository->RestoreFromDisk(params, state_processor);
-        }
-    } else {
-       state_repository->Reset(params.GetFinalization(), params.GetAdminParams());
     }
-
     return true;
 }
 

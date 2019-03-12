@@ -49,7 +49,7 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
       assert(ancestor_state != nullptr);
       FinalizationState new_state(*ancestor_state);
       new_state.ProcessNewTip(block_index, block);
-      if (m_repo->Confirm(block_index, std::move(new_state), nullptr)) {
+      if (!m_repo->Confirm(block_index, std::move(new_state), nullptr)) {
         // UNIT-E TODO: DoS commits sender.
         LogPrint(BCLog::FINALIZATION, "WARN: After processing the block_hash=%s height=%d, its finalization state differs from one given from commits. Overwrite it anyway.\n",
                  block_index.GetBlockHash().GetHex(), block_index.nHeight);

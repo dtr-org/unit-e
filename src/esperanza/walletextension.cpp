@@ -505,6 +505,7 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
 
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
+  ValidatorStateWatchWriter validator_writer(*this);
 
   const uint32_t dynasty = state.GetCurrentDynasty();
 
@@ -737,6 +738,7 @@ void WalletExtension::BlockConnected(
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
 
     assert(validatorState);
+    ValidatorStateWatchWriter validator_writer(*this);
 
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {

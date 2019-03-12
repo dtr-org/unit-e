@@ -5,6 +5,7 @@
 #include <serialize.h>
 #include <streams.h>
 #include <hash.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 
 #include <stdint.h>
@@ -12,7 +13,14 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/optional/optional_io.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(serialize_tests, ReducedTestingSetup)
+namespace esperanza {
+static std::ostream &operator<<(std::ostream &os, const FinalizationState &f) {
+  os << f.ToString();
+  return os;
+}
+}
+
+BOOST_AUTO_TEST_SUITE(serialize_tests)
 
 class CSerializeMethodsTestSingle
 {
@@ -399,6 +407,18 @@ BOOST_AUTO_TEST_CASE(boost_optional)
     BOOST_CHECK_EQUAL(v, v3);
 
     BOOST_CHECK(ss.empty());
+}
+
+BOOST_AUTO_TEST_CASE(finalization_state) {
+  for (size_t i = 0; i < 10; ++i) {
+    FinalizationStateSpy original;
+    original.shuffle();
+    CDataStream ss(SER_DISK, PROTOCOL_VERSION);
+    ss << original;
+    FinalizationStateSpy restored;
+    ss >> restored;
+    BOOST_CHECK_EQUAL(restored, original);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

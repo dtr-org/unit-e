@@ -129,6 +129,7 @@ UNITE_CORE_H = \
   esperanza/walletextension_deps.h \
   esperanza/walletstate.h \
   extkey.h \
+  finalization/state_db.h \
   finalization/state_processor.h \
   finalization/state_repository.h \
   finalization/vote_recorder.h \
@@ -216,6 +217,7 @@ UNITE_CORE_H = \
   snapshot/snapshot_validation.h \
   snapshot/state.h \
   staking/active_chain.h \
+  staking/block_index_map.h \
   staking/block_validation_info.h \
   staking/block_validator.h \
   staking/coin.h \
@@ -299,6 +301,7 @@ libunite_server_a_SOURCES = \
   esperanza/finalizationstate.cpp \
   esperanza/finalizationstate_data.cpp \
   esperanza/validator.cpp \
+  finalization/state_db.cpp \
   finalization/state_processor.cpp \
   finalization/state_repository.cpp \
   finalization/vote_recorder.cpp \
@@ -344,6 +347,7 @@ libunite_server_a_SOURCES = \
   snapshot/snapshot_validation.cpp \
   snapshot/state.cpp \
   staking/active_chain.cpp \
+  staking/block_index_map.cpp \
   staking/block_validation_info.cpp \
   staking/block_validator.cpp \
   staking/coin.cpp \

@@ -224,6 +224,19 @@ class FinalizationState : public FinalizationStateData {
  protected:
   const FinalizationParams &m_settings;
   InitStatus m_status = NEW;
+
+ public:
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(static_cast<FinalizationStateData &>(*this));
+    int status = static_cast<int>(m_status);
+    READWRITE(status);
+    if (ser_action.ForRead()) {
+      m_status = static_cast<InitStatus>(status);
+    }
+  }
 };
 
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }

@@ -93,6 +93,7 @@ Parameters Parameters::TestNet() noexcept {
   p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
 
   p.default_settings.p2p_port = 17182;
+  p.data_dir_suffix = "testnet3";
 
   return p;
 }
@@ -123,6 +124,7 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.node_is_proposer = false;
   p.default_settings.stake_split_threshold = 1000 * UNIT;
   p.default_settings.p2p_port = 17292;
+  p.data_dir_suffix = "regtest";
 
   return p;
 }
