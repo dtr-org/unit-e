@@ -66,7 +66,7 @@ jobs:
       env: >-
         HOST=arm-linux-gnueabihf
         PACKAGES="g++-arm-linux-gnueabihf python3-pip"
-        DEP_OPTS="NO_QT=1 NO_USB=1"
+        DEP_OPTS="NO_USB=1"
         CHECK_DOC=1
         GOAL="install"
         UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports --with-gui=no"
@@ -76,7 +76,6 @@ jobs:
       env: >-
         HOST=i686-w64-mingw32
         DPKG_ADD_ARCH="i386"
-        DEP_OPTS="NO_QT=1"
         PACKAGES="python3 nsis g++-mingw-w64-i686 wine1.6"
         RUN_TESTS=true
         GOAL="install"
@@ -100,7 +99,6 @@ jobs:
         HOST=i686-pc-linux-gnu
         DPKG_ADD_ARCH="i386"
         PACKAGES="g++-multilib python3-zmq libudev-dev:i386"
-        DEP_OPTS="NO_QT=1"
         RUN_TESTS=true
         GOAL="install"
         UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++ --with-gui=no --enable-usbdevice"
@@ -112,7 +110,6 @@ jobs:
       env: >-
         HOST=x86_64-w64-mingw32
         DPKG_ADD_ARCH="i386"
-        DEP_OPTS="NO_QT=1"
         PACKAGES="python3 nsis g++-mingw-w64-x86-64 wine1.6"
         RUN_TESTS=true
         GOAL="install"
@@ -123,7 +120,7 @@ jobs:
       env: >-
         HOST=x86_64-unknown-linux-gnu
         PACKAGES="python3-zmq protobuf-compiler libdbus-1-dev libharfbuzz-dev libudev-dev"
-        DEP_OPTS="NO_QT=1 NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
+        DEP_OPTS="NO_UPNP=1 DEBUG=1 ALLOW_HOST_PACKAGES=1"
         RUN_TESTS=true
         GOAL="install"
         UNITE_CONFIG="--enable-zmq --enable-glibc-back-compat --enable-reduce-exports CPPFLAGS=-DDEBUG_LOCKORDER --with-gui=no --enable-usbdevice"
@@ -133,7 +130,7 @@ jobs:
       env: >-
         HOST=x86_64-unknown-linux-gnu
         PACKAGES="python3"
-        DEP_OPTS="NO_WALLET=1 NO_QT=1 NO_USB=1"
+        DEP_OPTS="NO_WALLET=1 NO_USB=1"
         RUN_TESTS=true
         GOAL="install"
         UNITE_CONFIG="--enable-glibc-back-compat --enable-reduce-exports --with-gui=no"
@@ -143,7 +140,6 @@ jobs:
       env: >-
         HOST=x86_64-apple-darwin11
         PACKAGES="cmake imagemagick libcap-dev librsvg2-bin libz-dev libbz2-dev libtiff-tools python-dev"
-        DEP_OPTS="NO_QT=1"
         UNITE_CONFIG="--enable-reduce-exports --enable-werror --with-gui=no --enable-usbdevice"
         OSX_SDK=10.11
         GOAL="install"

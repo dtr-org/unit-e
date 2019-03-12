@@ -13,7 +13,7 @@ Construct a linear, no-fork, best version of the blockchain.
 
 ### [Qos](/contrib/qos) ###
 
-A Linux bash script that will set up traffic control (tc) to limit the outgoing bandwidth for connections to the Unit-e network. This means one can have an always-on united instance running, and another local united/unite-qt instance which connects to this node and receives blocks from it.
+A Linux bash script that will set up traffic control (tc) to limit the outgoing bandwidth for connections to the Unit-e network. This means one can have an always-on united instance running, and another local united instance which connects to this node and receives blocks from it.
 
 ### [Seeds](/contrib/seeds) ###
 Utility to generate the pnSeed[] array that is compiled into the client.
@@ -27,9 +27,6 @@ see the [Gitian building instructions](/doc/gitian-building.md).
 
 ### [Gitian-keys](/contrib/gitian-keys)
 PGP keys used for signing unit-e [Gitian release](/doc/release-process.md) results.
-
-### [MacDeploy](/contrib/macdeploy) ###
-Scripts and notes for Mac builds.
 
 ### [Gitian-build](/contrib/gitian-build.py) ###
 Script for running full Gitian builds.

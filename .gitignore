@@ -7,7 +7,6 @@ src/unite-cli
 src/unite-tx
 src/test/test_unite
 src/test/test_unite_fuzzy
-src/qt/test/test_unite-qt
 
 # autoreconf
 Makefile.in
@@ -34,21 +33,8 @@ src/config/unite-config.h
 src/config/unite-config.h.in
 src/config/stamp-h1
 share/setup.nsi
-share/qt/Info.plist
 
 src/univalue/gen
-
-src/qt/*.moc
-src/qt/moc_*.cpp
-src/qt/forms/ui_*.h
-
-src/qt/test/moc*.cpp
-
-src/qt/unite-qt.config
-src/qt/unite-qt.creator
-src/qt/unite-qt.creator.user
-src/qt/unite-qt.files
-src/qt/unite-qt.includes
 
 .deps
 .dirstamp
@@ -77,19 +63,11 @@ src/qt/unite-qt.includes
 *.lo
 *.la
 
-# Compilation and Qt preprocessor part
-*.qm
+# Compilation
 Makefile
-unite-qt
-UnitE-Qt.app
-background.tiff*
 
 # Unit-tests
 Makefile.test
-unite-qt_test
-
-# Resources cpp
-qrc_*.cpp
 
 # Mac specific
 .DS_Store
