@@ -859,10 +859,7 @@ BOOST_AUTO_TEST_CASE(ccoins_write)
 
 BOOST_AUTO_TEST_CASE(ccoins_view_cache_clear_coins)
 {
-    SetDataDir("ccoins_view_cache_clear_coins");
-    fs::remove_all(GetDataDir());
-
-    auto view_db = MakeUnique<CCoinsViewDB>(0, false, true);
+    auto view_db = MakeUnique<CCoinsViewDB>(0, true, true);
     auto view_backend = MakeUnique<CCoinsViewCache>(view_db.get());  // extra layer
     auto view_cache = MakeUnique<CCoinsViewCache>(view_backend.get());
 
