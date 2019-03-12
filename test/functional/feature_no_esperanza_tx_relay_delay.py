@@ -81,11 +81,12 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             generate_node.generatetoaddress(1, generate_node.getnewaddress())
 
             # ensure all nodes are synced before recording the delay
-            self.sync_all()
+            sync_blocks([generate_node, record_from, record_to], timeout=10)
+            sync_mempools([generate_node, record_from, record_to], timeout=10)
             assert_equal(len(new_votes_in_mempool(record_from)), 0)
 
             generate_node.generatetoaddress(1, generate_node.getnewaddress())
-            wait_until(lambda: len(new_votes_in_mempool(record_from)) > 0, timeout=150)
+            wait_until(lambda: len(new_votes_in_mempool(record_from)) > 0, timeout=10)
 
             now = time.perf_counter()
 
@@ -96,7 +97,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
                     vote_tx_ids.add(vote_tx)
                     break
             assert vote_tx is not None
-            sync_mempools([record_from, record_to], wait=0.05, timeout=150)
+            sync_mempools([record_from, record_to], wait=0.05, timeout=10)
             delay = time.perf_counter() - now
 
             # sanity check: tx we measured is a vote tx
@@ -117,7 +118,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
         # leave IBD
         node3.generatetoaddress(1, node3.getnewaddress())
-        sync_blocks(self.nodes)
+        sync_blocks(self.nodes, timeout=10)
 
         # create network topology where arrows denote the connection direction:
         #    node3 ←→ validator
@@ -163,10 +164,12 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         # disable instant finalization
         payto = validator.getnewaddress('', 'legacy')
         txid = validator.deposit(payto, 10000)
-        self.wait_for_transaction(txid, timeout=150)
+        self.wait_for_transaction(txid, timeout=10)
 
-        node0.generatetoaddress(5, node0.getnewaddress())
-        sync_blocks(self.nodes)
+        node0.generatetoaddress(7, node0.getnewaddress())
+        assert_equal(node0.getblockcount(), 8)
+        assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)
+        sync_blocks(self.nodes, timeout=10)
 
         # record relay time of the vote transaction to the outbound peer
         outbound_vote_delays = []

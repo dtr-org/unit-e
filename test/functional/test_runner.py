@@ -58,6 +58,7 @@ BASE_SCRIPTS= [
     'wallet_hd.py',
     'wallet_backup.py',
     # vv Tests less than 5m vv
+    'feature_no_esperanza_tx_relay_delay.py',
     'feature_maxuploadtarget.py',
     'mempool_packages.py',
     'feature_block.py',
@@ -196,7 +197,6 @@ EXTENDED_SCRIPTS = [
     'feature_dbcrash.py',
     # vv Tests less than 20m vv
     # vv Tests less than 5m vv
-    'feature_no_esperanza_tx_relay_delay.py',
     # vv Tests less than 2m vv
     # vv Tests less than 60s vv
     'rpc_bind.py',
