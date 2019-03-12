@@ -184,6 +184,7 @@ BASE_SCRIPTS= [
     'feature_fork_choice_finalization.py',
     'feature_fork_choice_parallel_justifications.py',
     'feature_fork_choice_forked_finalize_epoch.py',
+    'feature_no_esperanza_tx_relay_delay.py',
     'example_test.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
