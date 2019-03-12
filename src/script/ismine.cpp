@@ -319,25 +319,16 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
             }
             CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
             CPubKey pubkey;
-            if (!keystore.GetPubKey(key_id, pubkey)) {
-                return false;
-            }
-            if (!pubkey.IsCompressed()) {
-                return false;
-            }
-            return true;
+            return keystore.GetPubKey(key_id, pubkey) && pubkey.IsCompressed();
         }
         case TX_WITNESS_V1_REMOTESTAKE_KEYHASH:
         case TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH: {
             CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
+            if (!keystore.HaveKey(key_id)) {
+                return false;
+            }
             CPubKey pubkey;
-            if (!keystore.GetPubKey(key_id, pubkey)) {
-                return false;
-            }
-            if (!pubkey.IsCompressed()) {
-                return false;
-            }
-            return true;
+            return keystore.GetPubKey(key_id, pubkey) && pubkey.IsCompressed();
         }
         case TX_WITNESS_V0_SCRIPTHASH:
             if (!IsSpendable(is_mine)) {
