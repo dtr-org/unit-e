@@ -555,6 +555,21 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         BOOST_CHECK(IsStakeableByMe(keystore, scriptPubKey));
     }
 
+    // P2WPKH with hardware key
+    {
+        FakeHWKeyStore keystore;
+        keystore.hw_keys.insert(pubkeys[0].GetID());
+
+        scriptPubKey.clear();
+        scriptPubKey << OP_0 << ToByteVector(pubkeys[0].GetID());
+
+        keystore.AddCScript(scriptPubKey);
+        result = IsMine(keystore, scriptPubKey);
+        BOOST_CHECK_EQUAL(result, ISMINE_HW_DEVICE);
+        // We cannot stake using hardware keys
+        BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
+    }
+
     // P2WPKH uncompressed
     {
         CBasicKeyStore keystore;
@@ -698,6 +713,26 @@ BOOST_AUTO_TEST_CASE(script_standard_IsMine)
         keystore.AddCScript(scriptPubKey);
         result = IsMine(keystore, scriptPubKey);
         BOOST_CHECK_EQUAL(result, ISMINE_NO);
+    }
+
+    // P2WSH multisig with hardware keys
+    {
+        FakeHWKeyStore keystore;
+        keystore.hw_keys.insert(pubkeys[0].GetID());
+        keystore.hw_keys.insert(pubkeys[1].GetID());
+
+        const CScript witnessScript = GetScriptForMultisig(1, {pubkeys[0], pubkeys[1]});
+
+        const uint256 scriptHash = Sha256(witnessScript.begin(), witnessScript.end());
+        scriptPubKey = GetScriptForDestination(WitnessV0ScriptHash(scriptHash));
+
+        keystore.AddCScript(witnessScript);
+        keystore.AddCScript(scriptPubKey);
+
+        result = IsMine(keystore, scriptPubKey);
+        BOOST_CHECK_EQUAL(result, ISMINE_HW_DEVICE);
+        // We cannot stake using hardware keys
+        BOOST_CHECK(!IsStakeableByMe(keystore, scriptPubKey));
     }
 
     // P2WSH multisig wrapped in P2SH
