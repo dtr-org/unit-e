@@ -192,4 +192,28 @@ BOOST_AUTO_TEST_CASE(is_not_stakeable_by_me_p2wsh_pubkeyhash_unknown) {
   BOOST_CHECK(!IsStakeableByMe(keystore, p2wsh_script));
 }
 
+BOOST_AUTO_TEST_CASE(is_stakeable_by_me_remote_staking_watchonly) {
+  CBasicKeyStore keystore;
+
+  CKey key;
+  key.MakeNewKey(true);
+
+  const CScript script = GetScriptForRawPubKey(key.GetPubKey());
+  // keystore.AddWatchOnly adds not only the script but also the public key
+  BOOST_CHECK(keystore.AddWatchOnly(script));
+
+  const auto staking_key_hash = ToByteVector(key.GetPubKey().GetID());
+  const std::vector<unsigned char> dummy_hash(32, 1);
+  const CScript rsp2wpkh = CScript::CreateRemoteStakingKeyhashScript(staking_key_hash, dummy_hash);
+
+  BOOST_CHECK(!IsSpendable(IsMine(keystore, rsp2wpkh)));
+  // keystore has only the staking public key but not the private key
+  BOOST_CHECK(!IsStakeableByMe(keystore, rsp2wpkh));
+
+  const CScript rsp2wsh = CScript::CreateRemoteStakingScripthashScript(staking_key_hash, dummy_hash);
+
+  BOOST_CHECK(!IsSpendable(IsMine(keystore, rsp2wsh)));
+  BOOST_CHECK(!IsStakeableByMe(keystore, rsp2wsh));
+}
+
 BOOST_AUTO_TEST_SUITE_END()
