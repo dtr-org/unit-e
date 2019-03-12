@@ -62,6 +62,9 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       if (!IsStakeableByMe(m_enclosing_wallet, coin.scriptPubKey) || coin.nValue <= 0) {
         continue;
       }
+      if (m_enclosing_wallet.IsLockedCoin(txId, outix)) {
+        continue;
+      }
 
       f(tx, std::uint32_t(outix), depth);
     }
