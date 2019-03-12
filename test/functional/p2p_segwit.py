@@ -52,7 +52,11 @@ def test_witness_block(rpc, p2p, block, accepted, with_witness=True):
     else:
         p2p.send_message(msg_block(block))
     p2p.sync_with_ping()
-    assert_equal(rpc.getbestblockhash() == block.hash, accepted)
+    bestblockhash = rpc.getbestblockhash()
+    if accepted:
+        assert_equal(bestblockhash, block.hash)
+    else:
+        assert_not_equal(bestblockhash, block.hash)
 
 class TestNode(P2PInterface):
     def __init__(self):
