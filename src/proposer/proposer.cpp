@@ -105,8 +105,8 @@ class ProposerImpl : public Proposer {
             continue;
           }
           const EligibleCoin &coin = winning_ticket.get();
-          LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, tx=%s, ix=%s)\n",
-                   wallet_name, coin.utxo.txid.GetHex(), std::to_string(coin.utxo.index));
+          LogPrint(BCLog::PROPOSING, "Proposing... (wallet=%s, coin=%s)\n",
+                   wallet_name, util::to_string(coin.utxo));
           staking::TransactionPicker::PickTransactionsParameters parameters{};
           staking::TransactionPicker::PickTransactionsResult result =
               m_transaction_picker->PickTransactions(parameters);

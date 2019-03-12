@@ -116,28 +116,16 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
     pwalletMain->LoadToWallet(walletTx3);
   }
 
+  const CBlockIndex block = [] {
+    CBlockIndex index;
+    index.nHeight = 230;
+    return index;
+  }();
+
   CScript prev_script_pubkey = CScript::CreateP2PKHScript(ToByteVector(pubkey.GetID()));
-  staking::Coin coin1{
-      tx1ref->GetHash(),   // txid
-      0,                   // index
-      100,                 // amount
-      prev_script_pubkey,  // scriptpubkey
-      230                  // depth
-  };
-  staking::Coin coin2{
-      tx2ref->GetHash(),   // txid
-      0,                   // index
-      1250,                // amount
-      prev_script_pubkey,  // scriptpubkey
-      230                  // depth
-  };
-  staking::Coin coin3{
-      tx3ref->GetHash(),   // txid
-      0,                   // index
-      125,                 // amount
-      prev_script_pubkey,  // scriptpubkey
-      230                  // depth
-  };
+  staking::Coin coin1(&block, {tx1ref->GetHash(), 0}, {100, prev_script_pubkey});
+  staking::Coin coin2(&block, {tx2ref->GetHash(), 0}, {1250, prev_script_pubkey});
+  staking::Coin coin3(&block, {tx3ref->GetHash(), 0}, {125, prev_script_pubkey});
   proposer::EligibleCoin eligible_coin{
       coin2,       // coin used as stake
       uint256(),   // kernel hash

@@ -70,10 +70,10 @@ class ActiveChain : public blockchain::ChainAccess {
   virtual const CBlockIndex *FindForkOrigin(const CBlockIndex &fork) const = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtDepth(blockchain::Depth) override = 0;
+  const CBlockIndex *AtDepth(blockchain::Depth) const override = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtHeight(blockchain::Height) override = 0;
+  const CBlockIndex *AtHeight(blockchain::Height) const override = 0;
 
   //! \brief compute the current respective depth for the given height.
   virtual blockchain::Depth GetDepth(blockchain::Height) const = 0;
@@ -112,10 +112,16 @@ class ActiveChain : public blockchain::ChainAccess {
 
   //! \brief Retrieve a UTXO from the currently active chain.
   //!
+  //! The returned coin is guaranteed to represent an _unspent_ tx output
+  //! at the point of time where this function is invoked.
+  //!
   //! Requires the lock obtained from `GetLock()` to be held.
   virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &) const = 0;
 
   //! \brief Shorthand for `GetUTXO({ txid, index })`.
+  //!
+  //! The returned coin is guaranteed to represent an _unspent_ tx output
+  //! at the point of time where this function is invoked.
   //!
   //! Requires the lock obtained from `GetLock()` to be held.
   virtual boost::optional<staking::Coin> GetUTXO(const uint256 &txid, const std::uint32_t index) const {

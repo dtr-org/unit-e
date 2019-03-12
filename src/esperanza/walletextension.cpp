@@ -48,25 +48,24 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
     const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
-    const int depth_in_mainchain = tx->GetDepthInMainChain();  // requires cs_main
-    if (depth_in_mainchain < 1) {
-      // requires at least one confirmation
+    const CBlockIndex *containing_block;
+    tx->GetDepthInMainChain(containing_block);  // requires cs_main
+    if (!containing_block) {
+      // transaction is not included in a block
       continue;
     }
-    const auto depth = static_cast<blockchain::Depth>(depth_in_mainchain);
-    for (std::size_t outix = 0; outix < coins.size(); ++outix) {
-      if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(outix))) {
+    for (std::size_t out_index = 0; out_index < coins.size(); ++out_index) {
+      if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {
         continue;
       }
-      const CTxOut &coin = coins[outix];
-      if (!IsStakeableByMe(m_enclosing_wallet, coin.scriptPubKey) || coin.nValue <= 0) {
+      if (m_enclosing_wallet.IsLockedCoin(txId, out_index)) {
         continue;
       }
-      if (m_enclosing_wallet.IsLockedCoin(txId, outix)) {
+      const CTxOut &coin = coins[out_index];
+      if (coin.nValue <= 0 || !IsStakeableByMe(m_enclosing_wallet, coin.scriptPubKey)) {
         continue;
       }
-
-      f(tx, std::uint32_t(outix), depth);
+      f(tx, std::uint32_t(out_index), containing_block);
     }
   }
 }
@@ -81,20 +80,17 @@ CAmount WalletExtension::GetReserveBalance() const {
 
 CAmount WalletExtension::GetStakeableBalance() const {
   CAmount total_amount = 0;
-  ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
-    total_amount += tx->tx->vout[outIx].nValue;
+  ForEachStakeableCoin([&](const CWalletTx *const tx, const std::uint32_t out_index, const CBlockIndex *containing_block) {
+    total_amount += tx->tx->vout[out_index].nValue;
   });
   return total_amount;
 }
 
 staking::CoinSet WalletExtension::GetStakeableCoins() const {
   staking::CoinSet coins;
-  ForEachStakeableCoin([&](const CWalletTx *tx, std::uint32_t outIx, blockchain::Depth depth) {
-    coins.emplace(tx->tx->GetHash(),
-                  outIx,
-                  tx->tx->vout[outIx].nValue,
-                  tx->tx->vout[outIx].scriptPubKey,
-                  depth);
+  ForEachStakeableCoin([&](const CWalletTx *const tx, const std::uint32_t out_index, const CBlockIndex *containing_block) {
+    COutPoint out_point(tx->tx->GetHash(), out_index);
+    coins.emplace(containing_block, out_point, tx->tx->vout[out_index]);
   });
   return coins;
 }

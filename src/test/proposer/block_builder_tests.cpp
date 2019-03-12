@@ -24,21 +24,23 @@ struct Fixture {
   std::unique_ptr<::Settings> settings;
   blockchain::Parameters parameters = blockchain::Parameters::TestNet();
 
-  uint256 snapshot_hash = uint256();
+  uint256 snapshot_hash = uint256::zero;
 
-  proposer::EligibleCoin eligible_coin = [&] {
-    proposer::EligibleCoin coin;
-    coin.utxo.txid = uint256();
-    coin.utxo.index = 0;
-    coin.utxo.amount = 100;
-    coin.utxo.script_pubkey = GetScriptForDestination(CKeyID());
-    coin.utxo.depth = 3;
-    coin.kernel_hash = uint256();
-    coin.reward = 50;
-    coin.target_height = 18;
-    coin.target_time = behavior->CalculateProposingTimestampAfter(4711);
-    return coin;
+  const CBlockIndex block = [] {
+    CBlockIndex index;
+    index.nHeight = 3;
+    return index;
   }();
+
+  const uint256 txid;
+
+  const proposer::EligibleCoin eligible_coin{
+      staking::Coin(&block, {txid, 0}, {100, GetScriptForDestination(CKeyID())}),
+      uint256(),
+      CAmount(50),
+      blockchain::Height(18),
+      behavior->CalculateProposingTimestampAfter(4711),
+      blockchain::Difficulty(0x20FF00)};
 
   class Wallet : public staking::StakingWallet {
     mutable CCriticalSection lock;
@@ -107,8 +109,8 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
   auto validator = f.MakeBlockValidator();
   auto builder = f.MakeBlockBuilder();
 
-  uint256 block_hash = uint256();
-  CBlockIndex current_tip = [&] {
+  const uint256 block_hash = uint256::zero;
+  const CBlockIndex current_tip = [&] {
     CBlockIndex ix;
     ix.phashBlock = &block_hash;
     ix.pprev = nullptr;
@@ -117,17 +119,20 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
     return ix;
   }();
 
-  staking::Coin coin1;
-  coin1.txid = uint256();
-  coin1.index = 0;
-  coin1.amount = 70;
-  coin1.depth = 3;
+  const CBlockIndex block1 = [&] {
+    CBlockIndex index;
+    index.nHeight = current_tip.nHeight - 3;
+    return index;
+  }();
 
-  staking::Coin coin2;
-  coin2.txid = uint256();
-  coin2.index = 0;
-  coin2.amount = 20;
-  coin2.depth = 5;
+  const CBlockIndex block2 = [&] {
+    CBlockIndex index;
+    index.nHeight = current_tip.nHeight - 5;
+    return index;
+  }();
+
+  const staking::Coin coin1(&block1, {uint256::zero, 0}, {70, CScript()});
+  const staking::Coin coin2(&block2, {uint256::zero, 0}, {20, CScript()});
 
   staking::CoinSet coins;
   coins.insert(coin1);
@@ -164,8 +169,8 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();
     std::unique_ptr<proposer::BlockBuilder> builder = f.MakeBlockBuilder();
 
-    uint256 block_hash = uint256();
-    CBlockIndex current_tip = [&] {
+    const uint256 block_hash = uint256::zero;
+    const CBlockIndex current_tip = [&] {
       CBlockIndex ix;
       ix.phashBlock = &block_hash;
       ix.pprev = nullptr;
@@ -175,7 +180,14 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     }();
 
     uint256 snapshot_hash;
-    proposer::EligibleCoin eligible_coin;
+    const staking::Coin utxo(&current_tip, {uint256(), 0}, {43, CScript()});
+    const proposer::EligibleCoin eligible_coin{
+        utxo,
+        uint256(),
+        CAmount(50),
+        blockchain::Height(current_tip.nHeight + 1),
+        blockchain::Time(16161616),
+        blockchain::Difficulty(0x20ff00)};
 
     staking::CoinSet coins;  // no other coins
     std::vector<CTransactionRef> transactions;
@@ -256,7 +268,7 @@ BOOST_AUTO_TEST_CASE(check_reward_destination) {
   BOOST_CHECK(static_cast<bool>(is_valid));
 
   const CTxOut stake_out = block->vtx[0]->vout[0];
-  BOOST_CHECK_EQUAL(f.eligible_coin.utxo.amount, stake_out.nValue);
+  BOOST_CHECK_EQUAL(f.eligible_coin.utxo.GetAmount(), stake_out.nValue);
 
   const CAmount to_address_reward = block->vtx[0]->vout[1].nValue;
   BOOST_CHECK_EQUAL(to_address_reward, f.eligible_coin.reward + fees);

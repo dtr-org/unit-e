@@ -18,12 +18,24 @@ struct Fixture {
 
   const CScript script;
 
+  const CBlockIndex block1 = [] {
+    CBlockIndex i;
+    i.nHeight = 1849301;
+    return i;
+  }();
+
+  const CBlockIndex block2 = [&] {
+    CBlockIndex i;
+    i.nHeight = block1.nHeight - 1; // older than block1
+    return i;
+  }();
+
   const std::array<staking::Coin, 5> coins{
-      {staking::Coin(txids[0], 0, 10000, script, 1849301),
-       staking::Coin(txids[0], 1, 10001, script, 1849301),
-       staking::Coin(txids[0], 2, 10000, script, 1849302),
-       staking::Coin(txids[0], 3, 10000, script, 1849301),
-       staking::Coin(txids[1], 3, 10000, script, 1849301)}};
+      {staking::Coin(&block1, {txids[0], 0}, {10000, script}),
+       staking::Coin(&block1, {txids[0], 1}, {10001, script}),
+       staking::Coin(&block2, {txids[0], 2}, {10000, script}),
+       staking::Coin(&block1, {txids[0], 3}, {10000, script}),
+       staking::Coin(&block1, {txids[1], 3}, {10000, script})}};
 };
 
 BOOST_FIXTURE_TEST_CASE(comparator_tests, Fixture) {
@@ -58,12 +70,12 @@ BOOST_FIXTURE_TEST_CASE(coinset_tests, Fixture) {
     resulting_order.emplace_back(coin);
   }
   BOOST_CHECK_EQUAL(resulting_order, expected_order);
-  CAmount prev_amount = resulting_order[0].amount;
+  CAmount prev_amount = resulting_order[0].GetAmount();
 
   // check that the coins are sorted by amount, descending
   for (const staking::Coin &coin : resulting_order) {
-    BOOST_CHECK_GE(prev_amount, coin.amount);
-    prev_amount = coin.amount;
+    BOOST_CHECK_GE(prev_amount, coin.GetAmount());
+    prev_amount = coin.GetAmount();
   }
 }
 
