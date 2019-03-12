@@ -125,7 +125,7 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
 
     outputs = []
 
-    piece_value = int(stake['amount'] * UNIT / n_pieces)
+    piece_value = int(stake['amount'] * UNIT / n_pieces) if n_pieces else 0
     for _ in range(n_pieces):
         output = CTxOut()
         output.nValue = piece_value

@@ -557,7 +557,7 @@ class CTransaction():
         return True
 
     def is_coin_base(self):
-        return len(self.vin) == 1 and self.vin[0].prevout.is_null()
+        return TxType(self.nVersion >> 16) == TxType.COINBASE
 
     def __repr__(self):
         return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
