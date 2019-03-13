@@ -500,15 +500,7 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
     return;
   }
 
-  const CBlockIndex *target = state.GetRecommendedTarget();
-  if (!target) {
-    // TODO: UNIT-E: must not happen once the following issue is implemented:
-    // https://github.com/dtr-org/unit-e/issues/570
-    // for now only instant finalization is possible for the first epoch
-    assert(!"recommended target must be set!");
-  }
-
-  const uint32_t target_epoch = state.GetEpoch(*target);
+  const uint32_t target_epoch = state.GetRecommendedTargetEpoch();
   if (state.GetCurrentEpoch() != target_epoch + 1) {
     // not the right time to vote
     return;

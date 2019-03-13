@@ -135,7 +135,7 @@ class FinalizationState : public FinalizationStateData {
 
   uint64_t GetDepositSize(const uint160 &validatorAddress) const;
 
-  const CBlockIndex *GetRecommendedTarget() const;
+  uint32_t GetRecommendedTargetEpoch() const;
 
   Vote GetRecommendedVote(const uint160 &validatorAddress) const;
 

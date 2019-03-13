@@ -232,19 +232,17 @@ uint64_t FinalizationState::GetDepositSize(const uint160 &validatorAddress) cons
   }
 }
 
-const CBlockIndex *FinalizationState::GetRecommendedTarget() const {
-  return m_recommendedTarget;
+uint32_t FinalizationState::GetRecommendedTargetEpoch() const {
+  return m_recommendedTargetEpoch;
 }
 
 Vote FinalizationState::GetRecommendedVote(const uint160 &validatorAddress) const {
   LOCK(cs_esperanza);
 
-  assert(m_recommendedTarget && "m_recommendedTarget must be set!");
-
   Vote vote;
   vote.m_validatorAddress = validatorAddress;
-  vote.m_targetHash = m_recommendedTarget->GetBlockHash();
-  vote.m_targetEpoch = GetEpoch(*m_recommendedTarget);
+  vote.m_targetHash = m_recommendedTargetHash;
+  vote.m_targetEpoch = m_recommendedTargetEpoch;
   vote.m_sourceEpoch = m_expectedSourceEpoch;
 
   LogPrint(BCLog::FINALIZATION,
@@ -329,12 +327,12 @@ Result FinalizationState::IsVotable(const Validator &validator,
                 __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
-  if (targetHash != m_recommendedTarget->GetBlockHash()) {
+  if (targetHash != m_recommendedTargetHash) {
     return fail(Result::VOTE_WRONG_TARGET_HASH,
                 "%s: validator=%s is voting for target=%s instead of the "
                 "recommended_target=%s.\n",
                 __func__, validatorAddress.GetHex(), targetHash.GetHex(),
-                m_recommendedTarget->GetBlockHash().GetHex());
+                m_recommendedTargetHash.GetHex());
   }
 
   if (targetEpoch != m_currentEpoch - 1) {
@@ -1019,7 +1017,8 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
         "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
         __func__, block_hash.GetHex());
 
-    m_recommendedTarget = &block_index;
+    m_recommendedTargetHash = block_index.GetBlockHash();
+    m_recommendedTargetEpoch = GetEpoch(block_index);
     m_expectedSourceEpoch = m_lastJustifiedEpoch;
   }
   m_status = FROM_COMMITS;

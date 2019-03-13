@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);

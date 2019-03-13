@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(get_recommended_vote) {
   CBlockIndex target;
   target.phashBlock = &target_hash;
   target.nHeight = 7 * spy.EpochLength();
-  spy.SetRecommendedTarget(&target);
+  spy.SetRecommendedTarget(target);
   spy.SetExpectedSourceEpoch(3);
 
   Vote res = spy.GetRecommendedVote(validator_address);

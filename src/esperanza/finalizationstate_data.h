@@ -86,7 +86,8 @@ class FinalizationStateData {
   uint32_t m_lastJustifiedEpoch = 0;
 
   // Last checkpoint
-  const CBlockIndex *m_recommendedTarget = nullptr;
+  uint256 m_recommendedTargetHash = uint256();
+  uint32_t m_recommendedTargetEpoch = 0;
 
   ufp64::ufp64_t m_lastVoterRescale = 0;
 

@@ -29,8 +29,9 @@ class FinalizationStateSpy : public FinalizationState {
   std::map<uint32_t, Checkpoint> &Checkpoints() {
     return const_cast<std::map<uint32_t, Checkpoint> &>(m_checkpoints);
   }
-  void SetRecommendedTarget(CBlockIndex *block_index) {
-    m_recommendedTarget = block_index;
+  void SetRecommendedTarget(const CBlockIndex &block_index) {
+    m_recommendedTargetHash = block_index.GetBlockHash();
+    m_recommendedTargetEpoch = GetEpoch(block_index);
   }
   void SetExpectedSourceEpoch(uint32_t epoch) {
     m_expectedSourceEpoch = epoch;

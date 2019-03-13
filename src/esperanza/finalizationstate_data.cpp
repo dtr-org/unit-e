@@ -20,7 +20,8 @@ bool FinalizationStateData::operator==(const FinalizationStateData &other) const
          m_expectedSourceEpoch == other.m_expectedSourceEpoch &&
          m_lastFinalizedEpoch == other.m_lastFinalizedEpoch &&
          m_lastJustifiedEpoch == other.m_lastJustifiedEpoch &&
-         m_recommendedTarget == other.m_recommendedTarget &&
+         m_recommendedTargetHash == other.m_recommendedTargetHash &&
+         m_recommendedTargetEpoch == other.m_recommendedTargetEpoch &&
          m_lastVoterRescale == other.m_lastVoterRescale &&
          m_lastNonVoterRescale == other.m_lastNonVoterRescale &&
          m_rewardFactor == other.m_rewardFactor &&

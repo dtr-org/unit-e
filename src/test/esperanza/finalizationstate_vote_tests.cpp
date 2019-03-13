@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
   block_index.nHeight = 0;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
   uint256 old_target_hash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &old_target_hash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   uint256 targetHash = GetRandHash();
 
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -268,7 +268,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1),
                     +Result::SUCCESS);
@@ -309,7 +309,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1),
                     +Result::SUCCESS);
@@ -344,7 +344,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
 
   targetHash = GetRandHash();
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
   vote = {validatorAddress_2, targetHash, 5, 6};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
