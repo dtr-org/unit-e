@@ -941,7 +941,6 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
   // watch-only stake and reward
   {
       auto coinbase_reward = coinbaseTxns.back().vout[0].nValue;
-      auto watch_only_reward = watch_only_coinbase->vout[0].nValue;
       LOCK2(cs_main, pwalletMain->cs_wallet);
       const CAmount all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
       const CAmount spendable_balance = pwalletMain->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
