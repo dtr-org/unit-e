@@ -63,6 +63,10 @@ class MaxUploadTest(UnitETestFramework):
 
         # Test logic begins here
 
+        # Let's keep a utxo for mining and we lock the rest
+        self.utxo_cache = self.nodes[0].listunspent()[1:]
+        self.nodes[0].lockunspent(False, [{"txid": out['txid'], "vout": out['vout']} for out in self.utxo_cache])
+
         # Now mine a big block
         mine_large_block(self.nodes[0], self.utxo_cache)
 
