@@ -86,7 +86,7 @@ class MultiWalletTest(UnitETestFramework):
         assert_equal(set(node.listwallets()), {"w4", "w5"})
         w5 = wallet("w5")
         w5_info = w5.getwalletinfo()
-        assert_equal(w5_info['immature_balance'], 50 if COINBASE_MATURITY > 0 else 0)
+        assert_equal(w5_info['immature_balance'], 50)
 
         competing_wallet_dir = os.path.join(self.options.tmpdir, 'competing_walletdir')
         os.mkdir(competing_wallet_dir)
@@ -112,7 +112,7 @@ class MultiWalletTest(UnitETestFramework):
 
         # check w1 wallet balance
         w1_info = w1.getwalletinfo()
-        assert_equal(w1_info['immature_balance'], 50 if COINBASE_MATURITY > 0 else 0)
+        assert_equal(w1_info['immature_balance'], 50)
         w1_name = w1_info['walletname']
         assert_equal(w1_name, "w1")
 
