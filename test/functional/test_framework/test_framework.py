@@ -522,7 +522,7 @@ class UnitETestFramework():
             # Note: To preserve compatibility with older versions of
             # initialize_chain, only 4 nodes will generate coins.
             #
-            # We need to initalize also nodes wallets with some genesis funds
+            # We need to initialize also nodes' wallets with some genesis funds
             # and we use the last 4 addresses in the genesis to do so.
             #
             # Blocks are created with timestamps 10 minutes apart
