@@ -31,7 +31,6 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_no_haz_coins) {
   BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-txns-inputs-missingorspent");
 }
 
-#ifdef MUMBOJUMBO
 BOOST_AUTO_TEST_CASE(check_tx_inputs_no_reward) {
 
   const CTxIn meta_input;
@@ -58,7 +57,6 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_no_reward) {
   BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
   BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-no-reward");
 }
-#endif
 
 BOOST_AUTO_TEST_CASE(check_tx_inputs_does_not_access_coinbase_meta_input) {
 
@@ -93,7 +91,6 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_does_not_access_coinbase_meta_input) {
   BOOST_CHECK(std::find(coins_accessed.begin(), coins_accessed.end(), staking_input.prevout) != coins_accessed.end());
 }
 
-#ifdef MUMBOJUMBO
 BOOST_AUTO_TEST_CASE(check_tx_inputs_rejects_coinbase_that_spends_too_little) {
 
   const CTxIn meta_input;
@@ -157,6 +154,5 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_rejects_coinbase_that_spends_too_much) {
   BOOST_CHECK_EQUAL(validation_state.GetRejectCode(), REJECT_INVALID);
   BOOST_CHECK_EQUAL(validation_state.GetRejectReason(), "bad-cb-spends-too-much");
 }
-#endif
 
 BOOST_AUTO_TEST_SUITE_END()

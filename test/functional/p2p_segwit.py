@@ -242,12 +242,12 @@ class SegWitTest(UnitETestFramework):
         test_witness_block(self.nodes[0].rpc, self.test_node, block_3, accepted=False)
 
         # Add a different commitment with different nonce, but in the
-        # right location, and with some funds burned(!).
+        # right location, and with funds moved around.
         # This should succeed (nValue shouldn't affect finding the
         # witness commitment).
         add_witness_commitment(block_3, nonce=0)
-        block_3.vtx[0].vout[0].nValue -= 1
-        block_3.vtx[0].vout[-1].nValue += 1
+        block_3.vtx[0].vout[1].nValue -= 1
+        block_3.vtx[0].vout[2].nValue += 1
         block_3.vtx[0].rehash()
         block_3.hashMerkleRoot = block_3.calc_merkle_root()
         block_3.rehash()
