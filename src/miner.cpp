@@ -183,9 +183,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     bool success = false;
     CValidationState state;
+    staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
     for (auto &coin : stakeable_coins) {
       proposer::EligibleCoin eligible_coin = {
-          staking::Coin(GetComponent<staking::ActiveChain>()->GetBlockIndex(coin.GetTransactionId()),
+          staking::Coin(active_chain->GetBlockIndex(coin.GetTransactionId()),
               COutPoint(coin.GetTransactionId(), coin.GetOutputIndex()),
               CTxOut(coin.GetAmount(), scriptPubKeyIn)),
           GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
