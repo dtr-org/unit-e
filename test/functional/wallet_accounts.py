@@ -98,7 +98,6 @@ class WalletAccountsTest(UnitETestFramework):
 
         # Check the amounts received.
         node.generate(1)
-
         for account in accounts:
             assert_equal(
                 node.getreceivedbyaddress(account.addresses[0]), amount_to_send)
@@ -108,18 +107,14 @@ class WalletAccountsTest(UnitETestFramework):
         for i, account in enumerate(accounts):
             to_account = accounts[(i+1) % len(accounts)]
             node.sendfrom(account.name, to_account.receive_address, amount_to_send)
-
         node.generate(1)
-
         for account in accounts:
             account.add_receive_address(node.getaccountaddress(account.name))
             account.verify(node)
             assert_equal(node.getreceivedbyaccount(account.name), 2)
             node.move(account.name, "", node.getbalance(account.name))
             account.verify(node)
-
         node.generate(COINBASE_MATURITY)
-
         expected_account_balances = {"": 600}
         for account in accounts:
             expected_account_balances[account.name] = 0

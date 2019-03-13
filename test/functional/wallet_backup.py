@@ -54,8 +54,7 @@ class WalletBackupTest(UnitETestFramework):
     def one_send(self, from_node, to_address):
         if (randint(1,2) == 1):
             amount = Decimal(randint(1,10)) / Decimal(10)
-            tx_id = self.nodes[from_node].sendtoaddress(to_address, amount)
-            self.nodes[from_node].decoderawtransaction(self.nodes[from_node].getrawtransaction(tx_id))
+            self.nodes[from_node].sendtoaddress(to_address, amount)
 
     def do_one_round(self):
         a0 = self.nodes[0].getnewaddress()
@@ -96,7 +95,6 @@ class WalletBackupTest(UnitETestFramework):
         os.remove(self.options.tmpdir + "/node2/regtest/wallets/wallet.dat")
 
     def run_test(self):
-
         self.setup_stake_coins(*self.nodes)
 
         self.log.info("Generating initial blockchain")
