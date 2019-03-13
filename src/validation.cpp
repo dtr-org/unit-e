@@ -3282,12 +3282,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         // already does not permit it, it is impossible to trigger in the
         // witness tree.
         if (block.hash_witness_merkle_root != hash_witness) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true, strprintf("%s : witness merkle commitment mismatch", __func__));
+            return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true, strprintf("%s: witness merkle root mismatch", __func__));
         }
     }
 
     if (GetBlockWeight(block) > MAX_BLOCK_WEIGHT) {
-      return state.DoS(100, false, REJECT_INVALID, "bad-blk-weight", false, strprintf("%s : weight limit failed", __func__));
+      return state.DoS(100, false, REJECT_INVALID, "bad-blk-weight", false, strprintf("%s: weight limit failed", __func__));
     }
 
     if (fCheckPOW && fCheckMerkleRoot)
