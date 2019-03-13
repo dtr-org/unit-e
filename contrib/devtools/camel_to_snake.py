@@ -20,12 +20,14 @@ def kill_camels(line):
     result = ''
     # finite state machine or alike
     have_m = False
-    have_delimiter = False
+    have_delimiter = True
     have_full_prefix = False
-    for c in line:
+    for idx, c in enumerate(line):
         if have_full_prefix and (c.isalpha() or c.isdigit() or c == '_'):
-            if (c.isupper() and result[-1:] != '_'):
-                result += '_' + c.lower()
+            if c.isupper():
+                if result[-1:] != '_' and not line[idx-1].isupper():
+                    result += '_'
+                result += c.lower()
             else:
                 result += c
         else:
@@ -45,12 +47,6 @@ def kill_camels(line):
                 have_m = False
     return result
 
-def last_minute_check():
-    assert(kill_camels('1 a m_a m_A m_aBcD') == '1 a m_a m_A m_a_bc_d')
-    assert(kill_camels('1+m_aBC\nm_aBc m_   m_aBCD') == '1+m_a_b_c\nm_a_bc m_   m_a_b_c_d')
-    assert(kill_camels('m_Abc+m_aBc-maBC') == 'm_Abc+m_a_bc-maBC')
-    assert(kill_camels('object.m_aBc.m_value = pointer->m_aBcDd') == 'object.m_a_bc.m_value = pointer->m_a_bc_dd')
-
 def main(argv):
     if (len(argv) < 2):
         print('Usage: {0} <filename>\n'
@@ -67,5 +63,4 @@ def main(argv):
             f.write(line)
 
 if __name__ == '__main__':
-    last_minute_check()
     main(sys.argv)
