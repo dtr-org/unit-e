@@ -120,18 +120,10 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     else:
         output_script = CScript([OP_TRUE])
 
-    rewardoutput = CTxOut()
-    rewardoutput.nValue = (50 * UNIT) >> halvings
-    rewardoutput.scriptPubKey = output_script
-
-    outputs = []
+    rewardoutput = CTxOut((50 * UNIT) >> halvings, output_script)
 
     piece_value = int(stake['amount'] * UNIT / n_pieces)
-    for _ in range(n_pieces):
-        output = CTxOut()
-        output.nValue = piece_value
-        output.scriptPubKey = output_script
-        outputs.append(output)
+    outputs = [CTxOut(piece_value, output_script) for _ in range(n_pieces)]
 
     # Add the remainder to the first stake output
     # Do not add it to reward, as the reward output has to be exactly block reward + fees
