@@ -5,10 +5,7 @@
 # Run tests with `pytest`, requires `pytest-mock` to be installed.
 
 
-from unittest.mock import call
 from pytest import raises
-
-import os
 
 from pathlib import Path
 
