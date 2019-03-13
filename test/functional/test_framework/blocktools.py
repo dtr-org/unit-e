@@ -105,6 +105,7 @@ def serialize_script_num(value):
 # otherwise anyone-can-spend outputs. The first output is the reward,
 # which is not spendable for COINBASE_MATURITY blocks.
 def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
+    assert(n_pieces > 0)
     stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
     coinbase.set_type(TxType.COINBASE)
@@ -125,14 +126,16 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
 
     outputs = []
 
-    piece_value = int(stake['amount'] * UNIT / n_pieces) if n_pieces else 0
+    piece_value = int(stake['amount'] * UNIT / n_pieces)
     for _ in range(n_pieces):
         output = CTxOut()
         output.nValue = piece_value
         output.scriptPubKey = output_script
         outputs.append(output)
 
-    rewardoutput.nValue += int(stake['amount'] * UNIT) - piece_value * n_pieces
+    # Add the remainder to the first stake output
+    # Do not add it to reward, as the reward output has to be exactly block reward + fees
+    outputs[0].nValue += int(stake['amount'] * UNIT) - piece_value * n_pieces
 
     coinbase.vout = [ rewardoutput ] + outputs
     coinbase.calc_sha256()

@@ -11,7 +11,7 @@ Test that the CHECKLOCKTIMEVERIFY soft-fork activates at (regtest) block height
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import *
-from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta
+from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta
 from test_framework.script import CScript, OP_1NEGATE, OP_CHECKLOCKTIMEVERIFY, OP_DROP, CScriptNum
 from io import BytesIO
 
@@ -93,9 +93,9 @@ class BIP65Test(UnitETestFramework):
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
         best_block = self.nodes[0].getblock(tip)
-        prev_coinbase = best_block['tx'][0]
-        stake = {'txid': prev_coinbase, 'vout': 2, 'amount': 50}
-        block = create_block(int(tip, 16), create_coinbase(1, stake, snapshot_hash), block_time)
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(1, coin, snapshot_hash))
+        block = create_block(int(tip, 16), coinbase, block_time)
         block.nVersion = 4
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()

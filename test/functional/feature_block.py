@@ -270,6 +270,9 @@ class FullBlockTest(ComparisonTestFramework):
             cur_meta = self.block_snapshot_meta[block.sha256]
             assert_equal(tip_meta.hash, cur_meta.hash)
 
+        def out_value(idx):
+            return out[idx].tx.vout[out[idx].n].nValue
+
         # shorthand for functions
         block = self.next_block
         create_tx = self.create_tx
@@ -408,17 +411,17 @@ class FullBlockTest(ComparisonTestFramework):
         #                      \-> b3 (1) -> b4 (2)
 
         # Test that a block with a lot of checksigs is okay
-        lots_of_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS - 1))
+        lots_of_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS - 2))
         tip(13)
-        block(15, get_staking_coin(), spend=out[5], script=lots_of_checksigs, coinbase_pieces=0)
+        block(15, get_staking_coin(), spend=out[5], script=lots_of_checksigs)
         yield accepted(test_name="accept MAX_BLOCK_SIGOPS - 2")
         save_spendable_output()
         comp_snapshot_hash(15)
 
 
         # Test that a block with too many checksigs is rejected
-        too_many_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS))
-        block(16, get_staking_coin(), spend=out[6], script=too_many_checksigs, coinbase_pieces=0)
+        too_many_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS - 1))
+        block(16, get_staking_coin(), spend=out[6], script=too_many_checksigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(15)
 
@@ -479,7 +482,7 @@ class FullBlockTest(ComparisonTestFramework):
         #                                                                           \-> b24 (6) -> b25 (7)
         #                      \-> b3 (1) -> b4 (2)
         tip(20)
-        b23 = block(23, get_staking_coin(), spend=out[6], coinbase_pieces=0)
+        b23 = block(23, get_staking_coin(), spend=out[6])
         tx = CTransaction()
         script_length = MAX_BLOCK_BASE_SIZE - len(b23.serialize()) - 69
         script_output = CScript([b'\x00' * script_length])
@@ -494,7 +497,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         # Make the next block one byte bigger and check that it fails
         tip(15)
-        b24 = block(24, get_staking_coin(), spend=out[6], coinbase_pieces=0)
+        b24 = block(24, get_staking_coin(), spend=out[6])
         script_length = MAX_BLOCK_BASE_SIZE - len(b24.serialize()) - 69
         script_output = CScript([b'\x00' * (script_length+1)])
         tx.vout = [CTxOut(0, script_output)]
@@ -561,16 +564,16 @@ class FullBlockTest(ComparisonTestFramework):
         #
 
         # MULTISIG: each op code counts as 20 sigops.  To create the edge case, pack another 19 sigops at the end.
-        lots_of_multisigs = CScript([OP_CHECKMULTISIG] * ((MAX_BLOCK_SIGOPS-1) // 20) + [OP_CHECKSIG] * 19)
-        b31 = block(31, get_staking_coin(), spend=out[8], script=lots_of_multisigs, coinbase_pieces=0)
+        lots_of_multisigs = CScript([OP_CHECKMULTISIG] * ((MAX_BLOCK_SIGOPS-1) // 20) + [OP_CHECKSIG] * 18)
+        b31 = block(31, get_staking_coin(), spend=out[8], script=lots_of_multisigs)
         assert_equal(get_legacy_sigopcount_block(b31), MAX_BLOCK_SIGOPS)
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(31)
 
         # this goes over the limit because the coinbase has one sigop
-        too_many_multisigs = CScript([OP_CHECKMULTISIG] * (MAX_BLOCK_SIGOPS // 20))
-        b32 = block(32, get_staking_coin(), spend=out[9], script=too_many_multisigs, coinbase_pieces=0)
+        too_many_multisigs = CScript([OP_CHECKMULTISIG] * ((MAX_BLOCK_SIGOPS-1) // 20) + [OP_CHECKSIG] * 19)
+        b32 = block(32, get_staking_coin(), spend=out[9], script=too_many_multisigs)
         assert_equal(get_legacy_sigopcount_block(b32), MAX_BLOCK_SIGOPS + 1)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(31)
@@ -579,13 +582,13 @@ class FullBlockTest(ComparisonTestFramework):
         # CHECKMULTISIGVERIFY
         tip(31)
         lots_of_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS-1) // 20) + [OP_CHECKSIG] * 18)
-        block(33, get_staking_coin(), spend=out[9], script=lots_of_multisigs, coinbase_pieces=0)
+        block(33, get_staking_coin(), spend=out[9], script=lots_of_multisigs)
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(33)
 
-        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * (MAX_BLOCK_SIGOPS // 20))
-        block(34, get_staking_coin(), spend=out[10], script=too_many_multisigs, coinbase_pieces=0)
+        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS-1) // 20)+ [OP_CHECKSIG] * 19)
+        block(34, get_staking_coin(), spend=out[10], script=too_many_multisigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(33)
 
@@ -652,7 +655,7 @@ class FullBlockTest(ComparisonTestFramework):
         # This must be signed because it is spending a coinbase
         spend = out[11]
         tx = create_tx(spend.tx, spend.n, 1, p2sh_script)
-        tx.vout.append(CTxOut(spend.tx.vout[spend.n].nValue - 1, CScript([OP_TRUE])))
+        tx.vout.append(CTxOut(out_value(11) - 1, CScript([OP_TRUE])))
         self.sign_tx(tx, spend.tx, spend.n)
         tx.rehash()
         b39 = update_block(39, [tx])
@@ -981,7 +984,7 @@ class FullBlockTest(ComparisonTestFramework):
         # tx with output value > input value out of range
         tip(57)
         b59 = block(59, get_staking_coin())
-        tx = create_and_sign_tx(out[17].tx, out[17].n, out[17].tx.vout[out[17].n].nValue + 1)
+        tx = create_and_sign_tx(out[17].tx, out[17].n, out_value(17) + 1)
         b59 = update_block(59, [tx])
         yield rejected(RejectResult(16, b'bad-txns-in-belowout'))
         comp_snapshot_hash("57p2")
@@ -1082,7 +1085,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(64)
         block(65, get_staking_coin())
-        tx1 = create_and_sign_tx(out[19].tx, out[19].n, out[19].tx.vout[out[19].n].nValue)
+        tx1 = create_and_sign_tx(out[19].tx, out[19].n, out_value(19))
         tx2 = create_and_sign_tx(tx1, 0, 0)
         update_block(65, [tx1, tx2])
         yield accepted()
@@ -1105,7 +1108,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(65)
         block(67, get_staking_coin())
-        tx1 = create_and_sign_tx(out[20].tx, out[20].n, out[20].tx.vout[out[20].n].nValue)
+        tx1 = create_and_sign_tx(out[20].tx, out[20].n, out_value(20))
         tx2 = create_and_sign_tx(tx1, 0, 1)
         tx3 = create_and_sign_tx(tx1, 0, 2)
         update_block(67, [tx1, tx2, tx3])
@@ -1126,14 +1129,14 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(65)
         block(68, get_staking_coin(), additional_coinbase_value=10)
-        tx = create_and_sign_tx(out[20].tx, out[20].n, out[20].tx.vout[out[20].n].nValue-9)
+        tx = create_and_sign_tx(out[20].tx, out[20].n, out_value(20)-9)
         update_block(68, [tx])
         yield rejected(RejectResult(16, b'bad-cb-amount'))
         comp_snapshot_hash(65)
 
         tip(65)
         b69 = block(69, get_staking_coin(), additional_coinbase_value=10)
-        tx = create_and_sign_tx(out[20].tx, out[20].n, out[20].tx.vout[out[20].n].nValue-10)
+        tx = create_and_sign_tx(out[20].tx, out[20].n, out_value(20)-10)
         update_block(69, [tx])
         yield accepted()
         save_spendable_output()
@@ -1206,8 +1209,8 @@ class FullBlockTest(ComparisonTestFramework):
         #       bytearray[20,526]       : OP_CHECKSIG (this puts us over the limit)
         #
         tip(72)
-        b73 = block(73, get_staking_coin(), coinbase_pieces=0)
-        size = MAX_BLOCK_SIGOPS - 1 + MAX_SCRIPT_ELEMENT_SIZE + 1 + 5 + 1
+        b73 = block(73, get_staking_coin())
+        size = MAX_BLOCK_SIGOPS - 2 + MAX_SCRIPT_ELEMENT_SIZE + 1 + 5 + 1
         a = bytearray([OP_CHECKSIG] * size)
         a[MAX_BLOCK_SIGOPS - 1] = int("4e",16) # OP_PUSHDATA4
 
@@ -1236,28 +1239,28 @@ class FullBlockTest(ComparisonTestFramework):
         #
         #
         tip(72)
-        b74 = block(74, get_staking_coin(), coinbase_pieces=0)
-        size = MAX_BLOCK_SIGOPS - 1 + MAX_SCRIPT_ELEMENT_SIZE + 42 # total = 20,561
+        b74 = block(74, get_staking_coin())
+        size = MAX_BLOCK_SIGOPS - 2 + MAX_SCRIPT_ELEMENT_SIZE + 42 # total = 20,560
         a = bytearray([OP_CHECKSIG] * size)
-        a[MAX_BLOCK_SIGOPS] = 0x4e
-        a[MAX_BLOCK_SIGOPS+1] = 0xfe
+        a[MAX_BLOCK_SIGOPS-1] = 0x4e
+        a[MAX_BLOCK_SIGOPS] = 0xfe
+        a[MAX_BLOCK_SIGOPS+1] = 0xff
         a[MAX_BLOCK_SIGOPS+2] = 0xff
         a[MAX_BLOCK_SIGOPS+3] = 0xff
-        a[MAX_BLOCK_SIGOPS+4] = 0xff
         tx = create_and_sign_tx(out[22].tx, out[22].n, 1, CScript(a))
         b74 = update_block(74, [tx])
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(72)
 
         tip(72)
-        b75 = block(75, get_staking_coin(), coinbase_pieces=0)
-        size = MAX_BLOCK_SIGOPS - 1 + MAX_SCRIPT_ELEMENT_SIZE + 42
+        b75 = block(75, get_staking_coin())
+        size = MAX_BLOCK_SIGOPS - 2 + MAX_SCRIPT_ELEMENT_SIZE + 42
         a = bytearray([OP_CHECKSIG] * size)
-        a[MAX_BLOCK_SIGOPS-1] = 0x4e
+        a[MAX_BLOCK_SIGOPS-2] = 0x4e
+        a[MAX_BLOCK_SIGOPS-1] = 0xff
         a[MAX_BLOCK_SIGOPS] = 0xff
         a[MAX_BLOCK_SIGOPS+1] = 0xff
         a[MAX_BLOCK_SIGOPS+2] = 0xff
-        a[MAX_BLOCK_SIGOPS+3] = 0xff
         tx = create_and_sign_tx(out[22].tx, out[22].n, 1, CScript(a))
         b75 = update_block(75, [tx])
         yield accepted()
@@ -1266,10 +1269,10 @@ class FullBlockTest(ComparisonTestFramework):
 
         # Check that if we push an element filled with CHECKSIGs, they are not counted
         tip(75)
-        b76 = block(76, get_staking_coin(), coinbase_pieces=0)
-        size = MAX_BLOCK_SIGOPS - 1 + MAX_SCRIPT_ELEMENT_SIZE + 1 + 5
+        b76 = block(76, get_staking_coin())
+        size = MAX_BLOCK_SIGOPS - 2 + MAX_SCRIPT_ELEMENT_SIZE + 1 + 5
         a = bytearray([OP_CHECKSIG] * size)
-        a[MAX_BLOCK_SIGOPS-1] = 0x4e # PUSHDATA4, but leave the following bytes as just checksigs
+        a[MAX_BLOCK_SIGOPS-2] = 0x4e # PUSHDATA4, but leave the following bytes as just checksigs
         tx = create_and_sign_tx(out[23].tx, out[23].n, 1, CScript(a))
         b76 = update_block(76, [tx])
         yield accepted()
@@ -1347,7 +1350,7 @@ class FullBlockTest(ComparisonTestFramework):
         block(83, get_staking_coin())
         op_codes = [OP_IF, OP_INVALIDOPCODE, OP_ELSE, OP_TRUE, OP_ENDIF]
         script = CScript(op_codes)
-        tx1 = create_and_sign_tx(out[28].tx, out[28].n, out[28].tx.vout[out[28].n].nValue, script)
+        tx1 = create_and_sign_tx(out[28].tx, out[28].n, out_value(28), script)
 
         tx2 = create_and_sign_tx(tx1, 0, 0, CScript([OP_TRUE]))
         tx2.vin[0].scriptSig = CScript([OP_FALSE])
