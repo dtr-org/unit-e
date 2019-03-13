@@ -63,7 +63,7 @@ class BumpFeeTest(UnitETestFramework):
         peer_node.generate(116)
         self.sync_all()
         for i in range(25):
-            txid = peer_node.sendtoaddress(rbf_node_address, 0.001)
+            peer_node.sendtoaddress(rbf_node_address, 0.001)
         self.sync_all()
         peer_node.generate(1)
         self.sync_all()
