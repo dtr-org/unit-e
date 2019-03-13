@@ -293,4 +293,42 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
+
+  const auto pwallet = pwalletMain.get();
+  const auto &wallet_ext = pwallet->GetWalletExtension();
+
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    BOOST_CHECK_EQUAL(wallet_ext.GetStakeableCoins().size(), 0);
+  }
+
+  // Create a stakable coinbase
+  CScript coinbase_script = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
+  const CTransactionRef stakeable = CreateAndProcessBlock({}, coinbase_script).vtx[0];
+
+  // Check that a coin can be selected
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+    staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
+    BOOST_REQUIRE_EQUAL(stakeable_coins.size(), 1);  // The just created stakeable tx
+
+    BOOST_CHECK_EQUAL(stakeable->GetHash(), stakeable_coins.begin()->txid);
+    BOOST_CHECK_EQUAL(0, stakeable_coins.begin()->index);
+  }
+
+  // Make sure locked coins are not selected
+  {
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
+    BOOST_CHECK_EQUAL(stakeable_coins.size(), 1);
+
+    pwallet->LockCoin(COutPoint(stakeable->GetHash(), 0));
+
+    stakeable_coins = wallet_ext.GetStakeableCoins();
+    BOOST_CHECK_EQUAL(stakeable_coins.size(), 0);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
