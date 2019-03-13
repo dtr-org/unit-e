@@ -102,12 +102,14 @@ class StakeValidatorImpl : public StakeValidator {
     const COutPoint staking_out_point = staking_input.prevout;
     const boost::optional<staking::Coin> stake = m_active_chain->GetUTXO(staking_out_point);
     if (!stake) {
+      LogPrint(BCLog::VALIDATION, "Could not find coin for outpoint=%s\n", util::to_string(staking_out_point));
       result.errors += BlockValidationError::STAKE_NOT_FOUND;
       return result;
     }
     const blockchain::Height height = stake->GetHeight();
     const blockchain::Depth depth = m_active_chain->GetDepth(height);
     if (!m_blockchain_behavior->IsStakeMature(depth)) {
+      LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s depth=%d\n", depth);
       result.errors += BlockValidationError::STAKE_IMMATURE;
       return result;
     }
@@ -118,6 +120,8 @@ class StakeValidatorImpl : public StakeValidator {
     const blockchain::Difficulty target_difficulty =
         m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
     if (!CheckKernel(stake->GetAmount(), kernel_hash, target_difficulty)) {
+      LogPrint(BCLog::VALIDATION, "Kernel hash does not meet target coin=%s kernel=%s target=%d\n",
+               util::to_string(*stake), util::to_string(kernel_hash), target_difficulty);
       result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
       return result;
     }
