@@ -23,35 +23,35 @@ class Coin {
 
  public:
   Coin(const CBlockIndex *containing_block, const COutPoint &out_point, const CTxOut &tx_out)
-      : containing_block(containing_block), out_point(out_point), tx_out(tx_out) {}
+      : m_containing_block(containing_block), m_out_point(out_point), m_tx_out(tx_out) {}
 
   //! \brief The hash of the block containing the staked coin.
-  const uint256 &GetBlockHash() const { return *containing_block->phashBlock; }
+  const uint256 &GetBlockHash() const { return *m_containing_block->phashBlock; }
 
   //! \brief The time of the block containing the staked coin.
-  blockchain::Time GetBlockTime() const { return containing_block->nTime; };
+  blockchain::Time GetBlockTime() const { return m_containing_block->nTime; };
 
   //! \brief The amount of stake.
-  CAmount GetAmount() const { return tx_out.nValue; };
+  CAmount GetAmount() const { return m_tx_out.nValue; };
 
   //! \brief The height at which this coin is included in a block.
-  blockchain::Height GetHeight() const { return static_cast<blockchain::Height>(containing_block->nHeight); }
+  blockchain::Height GetHeight() const { return static_cast<blockchain::Height>(m_containing_block->nHeight); }
 
   //! \brief The id of the transaction which spends this piece of stake.
   //!
   //! This is the same as `GetOutPoint().hash`.
-  const uint256 &GetTransactionId() const { return out_point.hash; }
+  const uint256 &GetTransactionId() const { return m_out_point.hash; }
 
   //! \brief The index of the spending output.
   //!
   //! This is the same as `GetOutPoint().n`
-  std::uint32_t GetOutputIndex() const { return out_point.n; }
+  std::uint32_t GetOutputIndex() const { return m_out_point.n; }
 
   //! \brief The outpoint of the staking output (txid and out index).
-  const COutPoint &GetOutPoint() const { return out_point; }
+  const COutPoint &GetOutPoint() const { return m_out_point; }
 
   //! \brief The locking script of the coin.
-  const CScript &GetScriptPubKey() const { return tx_out.scriptPubKey; }
+  const CScript &GetScriptPubKey() const { return m_tx_out.scriptPubKey; }
 
   bool operator==(const Coin &other) const {
     return GetOutPoint() == other.GetOutPoint();
@@ -65,13 +65,13 @@ class Coin {
 
  private:
   //! The index entry of the block that contains this coin.
-  const CBlockIndex *containing_block;
+  const CBlockIndex *const m_containing_block;
 
   //! The outpoint which spends this stake.
-  const COutPoint out_point;
+  const COutPoint m_out_point;
 
   //! The actual CTxOut that spends this stake - featuring amount and locking script.
-  CTxOut tx_out;
+  const CTxOut m_tx_out;
 };
 
 //! \brief A comparator that compares coins by amount.
