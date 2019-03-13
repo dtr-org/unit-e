@@ -33,14 +33,13 @@ class FinalizationStateData {
    * A quick comment on the types chosen to represent the various class members:
    * uint32_t - is enough to represent any epoch (even with one epoch a second
    * it would last ~136 yrs)
-   * uint64_t - is enough to represent any amount of UNIT-E coins
    * (total_supply=(e * 10^17) and log2(total_supply)=~58 )
    * ufp64_t - is a way to represent a decimal number with integer part up to
    * 10E9 and decimal part with precision of 10E-8. Using this type is safe as
    * long as the above conditions are met. For example multiplications between
-   * ufp64t and uint64_t are for example safe since for the intermediate step a
-   * bigger int type is used, but if the result is not representable by 32 bits
-   * then the final value will overflow.
+   * ufp64t and uint64_t are safe since for the intermediate step a bigger int
+   * type is used, but if the result is not representable by 32 bits then the
+   * final value will overflow.
    */
 
   // Map of epoch number to checkpoint
@@ -56,13 +55,13 @@ class FinalizationStateData {
   std::map<uint160, Validator> m_validators;
 
   // Map of the dynasty number with the delta in deposits with the previous one
-  std::map<uint32_t, uint64_t> m_dynasty_deltas;
+  std::map<uint32_t, CAmount> m_dynasty_deltas;
 
   // Map of the epoch number with the deposit scale factor
   std::map<uint32_t, ufp64::ufp64_t> m_deposit_scale_factor;
 
   // Map of the epoch number with the running total of deposits slashed
-  std::map<uint32_t, uint64_t> m_total_slashed;
+  std::map<uint32_t, CAmount> m_total_slashed;
 
   // The current epoch number
   uint32_t m_current_epoch = 0;
@@ -71,10 +70,10 @@ class FinalizationStateData {
   uint32_t m_current_dynasty = 0;
 
   // Total scaled deposits in the current dynasty
-  uint64_t m_cur_dyn_deposits = 0;
+  CAmount m_cur_dyn_deposits = 0;
 
   // Total scaled deposits in the previous dynasty
-  uint64_t m_prev_dyn_deposits = 0;
+  CAmount m_prev_dyn_deposits = 0;
 
   // Expected epoch of the vote source
   uint32_t m_expected_source_epoch = 0;

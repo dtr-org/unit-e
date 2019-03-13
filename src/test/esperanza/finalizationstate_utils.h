@@ -21,8 +21,8 @@ class FinalizationStateSpy : public FinalizationState {
   FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
   FinalizationStateSpy(const FinalizationStateSpy &parent) : FinalizationState(parent) {}
 
-  uint64_t *CurDynDeposits() { return &m_cur_dyn_deposits; }
-  uint64_t *PrevDynDeposits() { return &m_prev_dyn_deposits; }
+  CAmount *CurDynDeposits() { return &m_cur_dyn_deposits; }
+  CAmount *PrevDynDeposits() { return &m_prev_dyn_deposits; }
   uint64_t *RewardFactor() { return &m_reward_factor; }
   std::map<uint160, Validator> &Validators() { return m_validators; }
   std::map<uint160, Validator> *pValidators() { return &m_validators; }
