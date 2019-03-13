@@ -46,8 +46,7 @@ class RpcFinalizationTest(UnitETestFramework):
         finalizer1 = self.nodes[1]
         finalizer2 = self.nodes[2]
 
-        finalizer1.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        finalizer2.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.setup_stake_coins(node, finalizer1, finalizer2)
 
         # initial setup
         state = node.getfinalizationstate()
