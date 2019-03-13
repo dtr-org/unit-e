@@ -304,6 +304,8 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
         case TX_PUBKEYHASH:
         case TX_WITNESS_V0_KEYHASH: {
             if (is_mine != ISMINE_SPENDABLE) {
+                // Non-remote-staking scripts can be used as stake only if they
+                // are spendable without hardware wallets
                 return false;
             }
             CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
@@ -321,6 +323,8 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
         }
         case TX_WITNESS_V0_SCRIPTHASH:
             if (is_mine != ISMINE_SPENDABLE) {
+                // Non-remote-staking scripts can be used as stake only if they
+                // are spendable without hardware wallets
                 return false;
             }
             switch (is_mine_info.p2sh_type) {
