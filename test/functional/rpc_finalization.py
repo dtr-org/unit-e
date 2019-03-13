@@ -9,7 +9,6 @@ Test finalization RPCs:
 """
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.util import (
     assert_equal,
     connect_nodes,

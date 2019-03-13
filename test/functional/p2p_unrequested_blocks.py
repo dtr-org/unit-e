@@ -66,7 +66,6 @@ from test_framework.blocktools import (
     COutPoint,
 )
 from test_framework.script import (CScript, CTxOut)
-from copy import deepcopy
 
 class UTXOManager:
     def __init__(self, node, snapshot_meta):

@@ -49,7 +49,6 @@ from test_framework.mininode import ToHex, CTransaction, network_thread_start
 from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta, update_snapshot_with_tx
 from test_framework.comptool import TestInstance, TestManager
 from test_framework.script import *
-from test_framework.messages import UNIT
 from io import BytesIO
 import time
 

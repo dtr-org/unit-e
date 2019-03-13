@@ -18,11 +18,9 @@ from test_framework.blocktools import (
     create_block,
     create_coinbase,
     get_tip_snapshot_meta,
-    sign_transaction,
     update_snapshot_with_tx,
     sign_coinbase,
 )
-from test_framework.messages import UNIT
 from test_framework.mininode import (
     CInv,
     P2PInterface,
@@ -36,7 +34,6 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     connect_nodes,
-    hex_str_to_bytes,
     wait_until,
 )
 

@@ -10,7 +10,7 @@ Version 1 compact blocks are non-segwit and they are not supported
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, update_uncommited_block_structures, should_add_witness_commitment
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, should_add_witness_commitment
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
