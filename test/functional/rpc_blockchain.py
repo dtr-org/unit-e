@@ -144,9 +144,7 @@ class BlockchainTest(UnitETestFramework):
 
         assert_equal(res['total_amount'], Decimal('1068725.00000000'))
 
-        # each coinbase transaction has two UTXOs out, the stake and the reward
-        # some of these are consumed completely which is why not all 200 coinbase transactions show up
-        assert_equal(res['transactions'], 156)
+        assert_equal(res['transactions'], 201)
         assert_equal(res['height'], 200)
 
         # - there is 106 initial UTXOs in regtest funds
