@@ -126,7 +126,7 @@ class UnitETestFramework():
 
         PortSeed.n = self.options.port_seed
 
-        os.environ['PATH'] = self.options.srcdir + ":" + self.options.srcdir + "/qt:" + os.environ['PATH']
+        os.environ['PATH'] = self.options.srcdir + ":" + os.environ['PATH']
 
         check_json_precision()
 

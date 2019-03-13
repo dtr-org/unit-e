@@ -24,8 +24,6 @@ make
 make install # optional
 ```
 
-This will build unite-qt as well if the dependencies are met.
-
 Dependencies
 ---------------------
 
@@ -258,7 +256,7 @@ Then, install the toolchain and curl:
 To build executables for ARM:
 
     cd depends
-    make HOST=arm-linux-gnueabihf NO_QT=1
+    make HOST=arm-linux-gnueabihf
     cd ..
     ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++
     make

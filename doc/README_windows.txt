@@ -11,7 +11,7 @@ with each other, with the help of a P2P network to check for double-spending.
 
 Setup
 -----
-Unpack the files into a directory and run unite-qt.exe.
+Unpack the files into a directory and run united
 
 unit-e is the original Unit-e client and it builds the backbone of the network.
 However, it downloads and stores the entire history of Unit-e transactions;
