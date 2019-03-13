@@ -12,7 +12,6 @@ from test_framework.util import (
     connect_nodes,
     disconnect_nodes,
 )
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 
 

@@ -9,9 +9,8 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.messages import msg_block, msg_witness_block
 from test_framework.util import *
 from test_framework.script import *
-from test_framework.blocktools import create_block, create_coinbase, sign_coinbase, get_tip_snapshot_meta, add_witness_commitment, get_witness_script, WITNESS_COMMITMENT_HEADER
+from test_framework.blocktools import create_block, create_coinbase, sign_coinbase, get_tip_snapshot_meta, add_witness_commitment, WITNESS_COMMITMENT_HEADER
 from test_framework.key import CECKey, CPubKey
-import time
 import random
 from binascii import hexlify
 
