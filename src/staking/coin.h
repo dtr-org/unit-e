@@ -58,7 +58,7 @@ class Coin {
   }
 
   bool operator!=(const Coin &other) const {
-    return GetOutPoint() != other.GetOutPoint();
+    return !(*this == other);
   }
 
   std::string ToString() const;
