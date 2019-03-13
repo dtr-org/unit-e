@@ -79,7 +79,6 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   const CChainParams& chainparams = Params();
   std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey, true);
   CBlock& block = pblocktemplate->block;
-  bool malleated;
 
   // Replace mempool-selected txns with just coinbase plus passed-in txns:
   block.vtx.resize(1);
