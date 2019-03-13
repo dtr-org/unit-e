@@ -47,56 +47,56 @@ class FinalizationStateData {
   std::map<uint32_t, Checkpoint> m_checkpoints;
 
   // Map of epoch number to dynasty number
-  std::map<uint32_t, uint32_t> m_epochToDynasty;
+  std::map<uint32_t, uint32_t> m_epoch_to_dynasty;
 
   // Map of dynasty number to the starting epoch number
-  std::map<uint32_t, uint32_t> m_dynastyStartEpoch;
+  std::map<uint32_t, uint32_t> m_dynasty_start_epoch;
 
   // List of validators
   std::map<uint160, Validator> m_validators;
 
   // Map of the dynasty number with the delta in deposits with the previous one
-  std::map<uint32_t, uint64_t> m_dynastyDeltas;
+  std::map<uint32_t, uint64_t> m_dynasty_deltas;
 
   // Map of the epoch number with the deposit scale factor
-  std::map<uint32_t, ufp64::ufp64_t> m_depositScaleFactor;
+  std::map<uint32_t, ufp64::ufp64_t> m_deposit_scale_factor;
 
   // Map of the epoch number with the running total of deposits slashed
-  std::map<uint32_t, uint64_t> m_totalSlashed;
+  std::map<uint32_t, uint64_t> m_total_slashed;
 
   // The current epoch number
-  uint32_t m_currentEpoch = 0;
+  uint32_t m_current_epoch = 0;
 
   // The current dynasy number
-  uint32_t m_currentDynasty = 0;
+  uint32_t m_current_dynasty = 0;
 
   // Total scaled deposits in the current dynasty
-  uint64_t m_curDynDeposits = 0;
+  uint64_t m_cur_dyn_deposits = 0;
 
   // Total scaled deposits in the previous dynasty
-  uint64_t m_prevDynDeposits = 0;
+  uint64_t m_prev_dyn_deposits = 0;
 
   // Expected epoch of the vote source
-  uint32_t m_expectedSourceEpoch = 0;
+  uint32_t m_expected_source_epoch = 0;
 
   // Number of the last finalized epoch
-  uint32_t m_lastFinalizedEpoch = 0;
+  uint32_t m_last_finalized_epoch = 0;
 
   // Number of the last justified epoch
-  uint32_t m_lastJustifiedEpoch = 0;
+  uint32_t m_last_justified_epoch = 0;
 
   // Last checkpoint
-  uint256 m_recommendedTargetHash = uint256();
-  uint32_t m_recommendedTargetEpoch = 0;
+  uint256 m_recommended_target_hash = uint256();
+  uint32_t m_recommended_target_epoch = 0;
 
-  ufp64::ufp64_t m_lastVoterRescale = 0;
+  ufp64::ufp64_t m_last_voter_rescale = 0;
 
-  ufp64::ufp64_t m_lastNonVoterRescale = 0;
+  ufp64::ufp64_t m_last_non_voter_rescale = 0;
 
   // Reward for voting as fraction of deposit size
-  ufp64::ufp64_t m_rewardFactor = 0;
+  ufp64::ufp64_t m_reward_factor = 0;
 
-  AdminState m_adminState;
+  AdminState m_admin_state;
 };
 
 }  // namespace esperanza

@@ -7,71 +7,71 @@
 namespace esperanza {
 
 AdminState::AdminState(const AdminParams &adminParams)
-    : m_adminParams(adminParams),
-      m_permissioningIsActive(!adminParams.m_blockToAdminKeys.empty()) {}
+    : m_admin_params(adminParams),
+      m_permissioning_is_active(!adminParams.m_block_to_admin_keys.empty()) {}
 
 void AdminState::OnBlock(blockchain::Height blockHeight) {
-  if (!m_permissioningIsActive) {
+  if (!m_permissioning_is_active) {
     return;
   }
 
-  const auto adminIt = m_adminParams.m_blockToAdminKeys.find(blockHeight);
-  if (adminIt != m_adminParams.m_blockToAdminKeys.end()) {
+  const auto adminIt = m_admin_params.m_block_to_admin_keys.find(blockHeight);
+  if (adminIt != m_admin_params.m_block_to_admin_keys.end()) {
     ResetAdmin(adminIt->second);
   }
 
-  const auto whiteListIt = m_adminParams.m_blockToWhiteList.find(blockHeight);
-  if (whiteListIt != m_adminParams.m_blockToWhiteList.end()) {
-    m_whiteList.clear();
+  const auto whiteListIt = m_admin_params.m_block_to_white_list.find(blockHeight);
+  if (whiteListIt != m_admin_params.m_block_to_white_list.end()) {
+    m_white_list.clear();
     for (auto const &entry : whiteListIt->second) {
-      m_whiteList.insert(entry);
+      m_white_list.insert(entry);
     }
   }
 }
 
 bool AdminState::IsAdminAuthorized(const AdminKeySet &keys) const {
-  if (!m_permissioningIsActive) {
+  if (!m_permissioning_is_active) {
     return false;
   }
 
-  return keys == m_adminPubKeys;
+  return keys == m_admin_pub_keys;
 }
 
 bool AdminState::IsValidatorAuthorized(const uint160 &validatorAddress) const {
-  if (!m_permissioningIsActive) {
+  if (!m_permissioning_is_active) {
     return true;
   }
 
-  const auto it = m_whiteList.find(validatorAddress);
-  return it != m_whiteList.end();
+  const auto it = m_white_list.find(validatorAddress);
+  return it != m_white_list.end();
 }
 
 void AdminState::ResetAdmin(const AdminKeySet &newKeys) {
-  m_adminPubKeys = newKeys;
+  m_admin_pub_keys = newKeys;
 }
 
 void AdminState::AddValidator(const uint160 &validatorAddress) {
-  m_whiteList.insert(validatorAddress);
+  m_white_list.insert(validatorAddress);
 }
 
 void AdminState::RemoveValidator(const uint160 &validatorAddress) {
-  m_whiteList.erase(validatorAddress);
+  m_white_list.erase(validatorAddress);
 }
 
-void AdminState::EndPermissioning() { m_permissioningIsActive = false; }
+void AdminState::EndPermissioning() { m_permissioning_is_active = false; }
 
 bool AdminState::IsPermissioningActive() const {
-  return m_permissioningIsActive;
+  return m_permissioning_is_active;
 }
 
 const AdminParams &AdminState::GetParams() const {
-  return m_adminParams;
+  return m_admin_params;
 }
 
 bool AdminState::operator==(const AdminState &other) const {
-  return m_adminPubKeys == other.m_adminPubKeys &&
-         m_whiteList == other.m_whiteList &&
-         m_permissioningIsActive == other.m_permissioningIsActive;
+  return m_admin_pub_keys == other.m_admin_pub_keys &&
+         m_white_list == other.m_white_list &&
+         m_permissioning_is_active == other.m_permissioning_is_active;
 }
 
 }  // namespace esperanza

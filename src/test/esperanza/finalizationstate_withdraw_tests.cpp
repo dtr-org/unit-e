@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
+    if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
       Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
+    if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
       Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);

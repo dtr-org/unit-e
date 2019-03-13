@@ -513,10 +513,10 @@ bool CScript::DecodeVote(const CScript &script, esperanza::Vote &voteOut, std::v
       return false;
     }
 
-    voteOut.m_validatorAddress = validatorAddress;
-    voteOut.m_targetHash = targetHash;
-    voteOut.m_sourceEpoch = sourceEpoch;
-    voteOut.m_targetEpoch = targetEpoch;
+    voteOut.m_validator_address = validatorAddress;
+    voteOut.m_target_hash = targetHash;
+    voteOut.m_source_epoch = sourceEpoch;
+    voteOut.m_target_epoch = targetEpoch;
 
     return it == script.end();
 }
@@ -527,10 +527,10 @@ CScript CScript::EncodeVote(const esperanza::Vote &data,
     assert(!voteSig.empty());
 
     return CScript() << voteSig
-                     << ToByteVector(data.m_validatorAddress)
-                     << ToByteVector(data.m_targetHash)
-                     << CScriptNum::serialize(data.m_sourceEpoch)
-                     << CScriptNum::serialize(data.m_targetEpoch);
+                     << ToByteVector(data.m_validator_address)
+                     << ToByteVector(data.m_target_hash)
+                     << CScriptNum::serialize(data.m_source_epoch)
+                     << CScriptNum::serialize(data.m_target_epoch);
 }
 
 bool CScript::ExtractVoteFromWitness(const CScriptWitness &witness,

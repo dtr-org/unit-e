@@ -17,19 +17,19 @@ namespace esperanza {
 class Vote {
 
  public:
-  uint160 m_validatorAddress;
+  uint160 m_validator_address;
 
-  uint256 m_targetHash;
+  uint256 m_target_hash;
 
-  uint32_t m_sourceEpoch;
+  uint32_t m_source_epoch;
 
-  uint32_t m_targetEpoch;
+  uint32_t m_target_epoch;
 
   bool operator==(const Vote &rhs) const {
-    return this->m_validatorAddress == rhs.m_validatorAddress &&
-           this->m_targetHash == rhs.m_targetHash &&
-           this->m_sourceEpoch == rhs.m_sourceEpoch &&
-           this->m_targetEpoch == rhs.m_targetEpoch;
+    return this->m_validator_address == rhs.m_validator_address &&
+           this->m_target_hash == rhs.m_target_hash &&
+           this->m_source_epoch == rhs.m_source_epoch &&
+           this->m_target_epoch == rhs.m_target_epoch;
   }
 
   static bool CreateSignature(CKeyStore *keystore, const Vote &vote,

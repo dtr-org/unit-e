@@ -102,11 +102,11 @@ UniValue withdraw(const JSONRPCRequest &request)
   }
 
   esperanza::ValidatorState &validator = extWallet.validatorState.get();
-  if(validator.m_lastEsperanzaTx == nullptr) {
+  if(validator.m_last_esperanza_tx == nullptr) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
   }
 
-  if(validator.m_lastEsperanzaTx->IsWithdraw()) {
+  if(validator.m_last_esperanza_tx->IsWithdraw()) {
     throw JSONRPCError(RPC_INVALID_PARAMETER, "Already withdrawn.");
   }
 

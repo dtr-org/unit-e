@@ -64,10 +64,10 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   std::vector<unsigned char> extractedVoteSig;
   BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(sigdata.scriptSig, signedVote, extractedVoteSig));
 
-  BOOST_CHECK_EQUAL(vote.m_validatorAddress.GetHex(), signedVote.m_validatorAddress.GetHex());
-  BOOST_CHECK_EQUAL(vote.m_targetHash, signedVote.m_targetHash);
-  BOOST_CHECK_EQUAL(vote.m_sourceEpoch, signedVote.m_sourceEpoch);
-  BOOST_CHECK_EQUAL(vote.m_targetEpoch, signedVote.m_targetEpoch);
+  BOOST_CHECK_EQUAL(vote.m_validator_address.GetHex(), signedVote.m_validator_address.GetHex());
+  BOOST_CHECK_EQUAL(vote.m_target_hash, signedVote.m_target_hash);
+  BOOST_CHECK_EQUAL(vote.m_source_epoch, signedVote.m_source_epoch);
+  BOOST_CHECK_EQUAL(vote.m_target_epoch, signedVote.m_target_epoch);
 }
 
 BOOST_AUTO_TEST_CASE(producesignature_logout) {

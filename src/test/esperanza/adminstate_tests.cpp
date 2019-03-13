@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(reset_admin_soft) {
   const auto set1 = MakeKeySet();
 
   esperanza::AdminParams params;
-  params.m_blockToAdminKeys.emplace(0, set0);
+  params.m_block_to_admin_keys.emplace(0, set0);
 
   esperanza::AdminState state(params);
   state.OnBlock(0);
@@ -54,8 +54,8 @@ BOOST_AUTO_TEST_CASE(reset_admin_hard) {
   const auto set1 = MakeKeySet();
 
   esperanza::AdminParams params;
-  params.m_blockToAdminKeys.emplace(0, set0);
-  params.m_blockToAdminKeys.emplace(42, set1);
+  params.m_block_to_admin_keys.emplace(0, set0);
+  params.m_block_to_admin_keys.emplace(42, set1);
 
   esperanza::AdminState state(params);
   state.OnBlock(0);
@@ -81,7 +81,7 @@ BOOST_AUTO_TEST_CASE(reset_admin_hard) {
 
 BOOST_AUTO_TEST_CASE(change_white_list_soft) {
   esperanza::AdminParams params;
-  params.m_blockToAdminKeys.emplace(0, MakeKeySet());
+  params.m_block_to_admin_keys.emplace(0, MakeKeySet());
   esperanza::AdminState state(params);
 
   const auto validator = RandValidatorAddr();
@@ -99,16 +99,16 @@ BOOST_AUTO_TEST_CASE(change_white_list_soft) {
 
 BOOST_AUTO_TEST_CASE(change_white_list_hard) {
   esperanza::AdminParams params = {};
-  params.m_blockToAdminKeys.emplace(0, MakeKeySet());
+  params.m_block_to_admin_keys.emplace(0, MakeKeySet());
 
   const auto validator1 = RandValidatorAddr();
   const auto validator2 = RandValidatorAddr();
 
-  params.m_blockToWhiteList[0] = {};
-  params.m_blockToWhiteList[1] = {validator1};
-  params.m_blockToWhiteList[2] = {validator1, validator2};
-  params.m_blockToWhiteList[3] = {validator2};
-  params.m_blockToWhiteList[4] = {};
+  params.m_block_to_white_list[0] = {};
+  params.m_block_to_white_list[1] = {validator1};
+  params.m_block_to_white_list[2] = {validator1, validator2};
+  params.m_block_to_white_list[3] = {validator2};
+  params.m_block_to_white_list[4] = {};
 
   esperanza::AdminState state(params);
 
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(change_white_list_hard) {
 
 BOOST_AUTO_TEST_CASE(end_permissioning) {
   esperanza::AdminParams params;
-  params.m_blockToAdminKeys.emplace(0, MakeKeySet());
+  params.m_block_to_admin_keys.emplace(0, MakeKeySet());
   esperanza::AdminState state(params);
 
   const auto validator = RandValidatorAddr();

@@ -1502,10 +1502,10 @@ BOOST_AUTO_TEST_CASE(encode_decode_vote_data)
     esperanza::Vote decodedVote;
     BOOST_CHECK(CScript::DecodeVote(s, decodedVote, extractedVoteSig));
 
-    BOOST_CHECK_EQUAL(decodedVote.m_validatorAddress.GetHex(), validatorAddress);
-    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_targetHash), targetHash);
-    BOOST_CHECK_EQUAL(decodedVote.m_sourceEpoch, sourceHeight);
-    BOOST_CHECK_EQUAL(decodedVote.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_validator_address.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_target_hash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_source_epoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_target_epoch, targetHeight);
     BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
                       HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
@@ -1598,10 +1598,10 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_scriptsig)
     esperanza::Vote decodedVote;
     BOOST_CHECK(CScript::ExtractVoteFromVoteSignature(s, decodedVote, extractedVoteSig));
 
-    BOOST_CHECK_EQUAL(decodedVote.m_validatorAddress.GetHex(), validatorAddress);
-    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_targetHash), targetHash);
-    BOOST_CHECK_EQUAL(decodedVote.m_sourceEpoch, sourceHeight);
-    BOOST_CHECK_EQUAL(decodedVote.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_validator_address.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_target_hash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_source_epoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_target_epoch, targetHeight);
     BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
                       HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
@@ -1632,10 +1632,10 @@ BOOST_AUTO_TEST_CASE(extract_vote_data_from_witness)
     esperanza::Vote decodedVote;
     BOOST_CHECK(CScript::ExtractVoteFromWitness(s, decodedVote, extractedVoteSig));
 
-    BOOST_CHECK_EQUAL(decodedVote.m_validatorAddress.GetHex(), validatorAddress);
-    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_targetHash), targetHash);
-    BOOST_CHECK_EQUAL(decodedVote.m_sourceEpoch, sourceHeight);
-    BOOST_CHECK_EQUAL(decodedVote.m_targetEpoch, targetHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_validator_address.GetHex(), validatorAddress);
+    BOOST_CHECK_EQUAL(HexStr(decodedVote.m_target_hash), targetHash);
+    BOOST_CHECK_EQUAL(decodedVote.m_source_epoch, sourceHeight);
+    BOOST_CHECK_EQUAL(decodedVote.m_target_epoch, targetHeight);
     BOOST_CHECK_EQUAL(HexStr(voteSig.begin(), voteSig.end()),
                       HexStr(extractedVoteSig.begin(), extractedVoteSig.end()));
 }
@@ -1925,17 +1925,17 @@ BOOST_AUTO_TEST_CASE(extract_votes_from_vote_signature)
   std::vector<unsigned char> extractedVote2Sig;
   BOOST_CHECK(CScript::ExtractVotesFromSlashSignature(scriptSig, extractedVote1, extractedVote2, extractedVote1Sig, extractedVote2Sig));
 
-  BOOST_CHECK_EQUAL(HexStr(extractedVote1.m_validatorAddress), validatorAddress);
-  BOOST_CHECK_EQUAL(extractedVote1.m_targetHash, vote1TargetHash);
-  BOOST_CHECK_EQUAL(extractedVote1.m_sourceEpoch, sourceHeight);
-  BOOST_CHECK_EQUAL(extractedVote1.m_targetEpoch, targetHeight);
-  BOOST_CHECK_EQUAL(extractedVote1.m_targetEpoch, targetHeight);
+  BOOST_CHECK_EQUAL(HexStr(extractedVote1.m_validator_address), validatorAddress);
+  BOOST_CHECK_EQUAL(extractedVote1.m_target_hash, vote1TargetHash);
+  BOOST_CHECK_EQUAL(extractedVote1.m_source_epoch, sourceHeight);
+  BOOST_CHECK_EQUAL(extractedVote1.m_target_epoch, targetHeight);
+  BOOST_CHECK_EQUAL(extractedVote1.m_target_epoch, targetHeight);
   BOOST_CHECK_EQUAL(HexStr(vote1Sig), HexStr(extractedVote1Sig));
 
-  BOOST_CHECK_EQUAL(HexStr(extractedVote2.m_validatorAddress), validatorAddress);
-  BOOST_CHECK_EQUAL(extractedVote2.m_targetHash, vote2TargetHash);
-  BOOST_CHECK_EQUAL(extractedVote2.m_sourceEpoch, sourceHeight);
-  BOOST_CHECK_EQUAL(extractedVote2.m_targetEpoch, targetHeight);
+  BOOST_CHECK_EQUAL(HexStr(extractedVote2.m_validator_address), validatorAddress);
+  BOOST_CHECK_EQUAL(extractedVote2.m_target_hash, vote2TargetHash);
+  BOOST_CHECK_EQUAL(extractedVote2.m_source_epoch, sourceHeight);
+  BOOST_CHECK_EQUAL(extractedVote2.m_target_epoch, targetHeight);
   BOOST_CHECK_EQUAL(HexStr(vote2Sig), HexStr(extractedVote2Sig));
 }
 BOOST_AUTO_TEST_SUITE_END()

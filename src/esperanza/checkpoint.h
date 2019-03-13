@@ -17,17 +17,17 @@ class Checkpoint {
  public:
   Checkpoint();
 
-  bool m_isJustified;
-  bool m_isFinalized;
+  bool m_is_justified;
+  bool m_is_finalized;
 
-  uint64_t m_curDynastyDeposits;
-  uint64_t m_prevDynastyDeposits;
+  uint64_t m_cur_dynasty_deposits;
+  uint64_t m_prev_dynasty_deposits;
 
-  std::map<uint32_t, uint64_t> m_curDynastyVotes;
-  std::map<uint32_t, uint64_t> m_prevDynastyVotes;
+  std::map<uint32_t, uint64_t> m_cur_dynasty_votes;
+  std::map<uint32_t, uint64_t> m_prev_dynasty_votes;
 
   // Set of validatorAddresses for validators that voted that checkpoint
-  std::set<uint160> m_voteSet;
+  std::set<uint160> m_vote_set;
 
   uint64_t GetCurDynastyVotes(uint32_t epoch);
   uint64_t GetPrevDynastyVotes(uint32_t epoch);

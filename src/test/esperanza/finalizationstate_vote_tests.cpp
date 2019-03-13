@@ -292,8 +292,8 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isJustified, false);
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isFinalized, false);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_is_justified, false);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_is_finalized, false);
 }
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
@@ -336,8 +336,8 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
 
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isJustified, true);
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isFinalized, false);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_is_justified, true);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_is_finalized, false);
 
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(7 * spy.EpochLength()),
                     +Result::SUCCESS);
@@ -349,8 +349,8 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
 
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_isJustified, true);
-  BOOST_CHECK_EQUAL(spy.Checkpoints()[4].m_isFinalized, true);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_is_justified, true);
+  BOOST_CHECK_EQUAL(spy.Checkpoints()[4].m_is_finalized, true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

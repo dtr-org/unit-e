@@ -89,10 +89,10 @@ BOOST_AUTO_TEST_CASE(get_recommended_vote) {
 
   Vote res = spy.GetRecommendedVote(validator_address);
 
-  BOOST_CHECK_EQUAL(res.m_validatorAddress.GetHex(), validator_address.GetHex());
-  BOOST_CHECK_EQUAL(res.m_sourceEpoch, 3);
-  BOOST_CHECK_EQUAL(res.m_targetEpoch, 7);
-  BOOST_CHECK_EQUAL(res.m_targetHash, target_hash);
+  BOOST_CHECK_EQUAL(res.m_validator_address.GetHex(), validator_address.GetHex());
+  BOOST_CHECK_EQUAL(res.m_source_epoch, 3);
+  BOOST_CHECK_EQUAL(res.m_target_epoch, 7);
+  BOOST_CHECK_EQUAL(res.m_target_hash, target_hash);
 }
 
 BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
