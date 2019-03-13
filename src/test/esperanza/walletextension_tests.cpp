@@ -304,22 +304,17 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
   }
 
   // Create a stakable coinbase
-  CScript coinbase_script = CScript::CreateP2PKHScript(ToByteVector(coinbaseKey.GetPubKey().GetID()));
+  CScript coinbase_script = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
   const CTransactionRef stakeable = CreateAndProcessBlock({}, coinbase_script).vtx[0];
 
   // Check that a coin can be selected
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
     staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
-    BOOST_CHECK_EQUAL(stakeable_coins.size(), 1);  // The just created stakeable tx
+    BOOST_REQUIRE_EQUAL(stakeable_coins.size(), 1);  // The just created stakeable tx
 
-    bool found = false;
-    for (const auto &coin : stakeable_coins) {
-      if (coin.txid == stakeable->GetHash()) {
-        found = true;
-      }
-    }
-    BOOST_CHECK(found);
+    BOOST_CHECK_EQUAL(stakeable->GetHash(), stakeable_coins.begin()->txid);
+    BOOST_CHECK_EQUAL(0, stakeable_coins.begin()->index);
   }
 
   // Make sure locked coins are not selected
