@@ -3,8 +3,14 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.util import (assert_equal, Decimal, hex_str_to_bytes,
-                                 bytes_to_hex_str, connect_nodes)
+from test_framework.util import (
+    assert_equal,
+    bytes_to_hex_str,
+    connect_nodes,
+    Decimal,
+    hex_str_to_bytes,
+    sync_mempools,
+)
 from test_framework.messages import CTransaction, msg_witness_tx, TxType
 from test_framework.test_framework import UnitETestFramework
 from test_framework.admin import Admin, AdminCommandType
@@ -207,6 +213,10 @@ class AdminValidation(UnitETestFramework):
 
         self.accepts([reset_admin_cmd], admin_address)
 
+        # Since we're sending the transactions to one node and generating
+        # blocks on a different one, we need to sync their mempools
+        sync_mempools(self.nodes)
+
         # Admin commands have no power until included into block
         self.generate_sync(self.generator)
 
@@ -219,6 +229,9 @@ class AdminValidation(UnitETestFramework):
                                                       "p2sh-segwit")["address"]
 
         self.accepts([end_permissioning_cmd], admin_address)
+
+        sync_mempools(self.nodes)
+
         self.generate_sync(self.generator)  # to actually execute above command
 
         self.rejects([end_permissioning_cmd],
