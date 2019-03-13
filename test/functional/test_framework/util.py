@@ -617,9 +617,10 @@ def mine_large_block(node, utxos=None):
     num = 14
     txouts = gen_return_txouts()
     utxos = utxos if utxos is not None else []
-    if len(utxos) < num:
-        utxos.clear()
-        utxos.extend(node.listunspent())
+
+    # We must pass enough transactions
+    assert len(utxos) >= num
+
     fee = 100 * node.getnetworkinfo()["relayfee"]
     create_lots_of_big_transactions(node, txouts, utxos, num, fee=fee)
     node.generate(1)
