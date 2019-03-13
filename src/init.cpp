@@ -1366,7 +1366,7 @@ bool AppInitMain()
     GetMainSignals().RegisterWithMempoolSignals(mempool);
 
     /* Register RPC commands regardless of -server setting so they will be
-     * available in the GUI RPC console even if external calls are disabled.
+     * available in unite-cli even if external calls are disabled.
      */
     RegisterAllCoreRPCCommands(tableRPC);
     RegisterFinalizationRPCCommands(tableRPC);
@@ -1714,7 +1714,7 @@ bool AppInitMain()
     }
 
     // As LoadBlockIndex can take several minutes, it's possible the user
-    // requested to kill the GUI during the last operation. If so, exit.
+    // requested to kill the process during the last operation. If so, exit.
     // As the program has not fully started yet, Shutdown() is possibly overkill.
     if (fRequestShutdown) {
         LogPrintf("Shutdown requested. Exiting.\n");

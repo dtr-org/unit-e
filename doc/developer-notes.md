@@ -283,11 +283,6 @@ pay attention to for reviewers of unit-e code.
 General unit-e
 ----------------------
 
-- New features should be exposed on RPC first, then can be made available in the GUI
-
-  - *Rationale*: RPC allows for better automatic testing. The test suite for
-    the GUI is very limited
-
 - Make sure pull requests pass Travis CI before merging
 
   - *Rationale*: Makes sure that they pass thorough testing, and that the tester will keep passing
@@ -494,15 +489,6 @@ namespace {
     searches a fixed list of include directories without taking location of the
     source file into account. This allows quoted includes to stand out more when
     the location of the source file actually is relevant.
-
-GUI
------
-
-- Do not display or manipulate dialogs in model code (classes `*Model`)
-
-  - *Rationale*: Model classes pass through events and data from the core, they
-    should not interact with the user. That's where View classes come in. The converse also
-    holds: try to not directly access core data structures from Views.
 
 Subtrees
 ----------
@@ -728,9 +714,8 @@ A few guidelines for introducing and reviewing new RPC interfaces:
 - Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams`
   in `rpc/parameter_conversion.cpp`.
 
-  - *Rationale*: `unite-cli` and the GUI debug console use this table to determine how to
-    convert a plaintext command line to JSON. If the types don't match, the method can be unusable
-    from there.
+  - *Rationale*: `unite-cli` uses this table to determine how to convert a plaintext command
+    line to JSON. If the types don't match, the method can be unusable from there.
 
 - A RPC method must either be a wallet method or a non-wallet method. Do not
   introduce new methods such as `signrawtransaction` that differ in behavior

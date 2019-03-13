@@ -231,7 +231,7 @@ This example lists the steps necessary to setup and build a command line only, n
     git clone https://github.com/dtr-org/unit-e
     cd unit-e
     ./autogen.sh
-    ./configure --disable-wallet --without-gui --without-miniupnpc
+    ./configure --disable-wallet --without-miniupnpc
     make check
 
 Note:

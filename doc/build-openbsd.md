@@ -4,8 +4,6 @@ OpenBSD build guide
 
 This guide describes how to build united and command-line utilities on OpenBSD.
 
-OpenBSD is most commonly used as a server OS, so this guide does not contain instructions for building the GUI.
-
 Preparation
 -------------
 
@@ -63,13 +61,13 @@ Make sure `BDB_PREFIX` is set to the appropriate path from the above steps.
 
 To configure with wallet:
 ```bash
-./configure --with-gui=no CC=cc CXX=c++ \
+./configure CC=cc CXX=c++ \
     BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include"
 ```
 
 To configure without wallet:
 ```bash
-./configure --disable-wallet --with-gui=no CC=cc CXX=c++
+./configure --disable-wallet CC=cc CXX=c++
 ```
 
 Build and run the tests:

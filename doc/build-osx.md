@@ -44,9 +44,7 @@ Build unit-e
 
 2.  Build unit-e:
 
-    Configure and build the headless unite binaries.
-
-    You can disable the GUI build by passing `--without-gui` to configure.
+    Configure and build the unite binaries.
 
         ./autogen.sh
         ./configure

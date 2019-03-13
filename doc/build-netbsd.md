@@ -4,8 +4,6 @@ NetBSD build guide
 
 This guide describes how to build united and command-line utilities on NetBSD.
 
-This guide does not contain instructions for building the GUI.
-
 Preparation
 -------------
 

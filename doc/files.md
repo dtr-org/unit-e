@@ -19,4 +19,3 @@ its log. Run it with `united -printtoconsole` to see the log on the console.
 * wallets/wallet.dat: personal wallet (BDB) with keys and transactions
 * .cookie: session RPC authentication cookie (written at start when cookie authentication is used, deleted on shutdown)
 * onion_private_key: cached Tor hidden service private key for `-listenonion`
-* guisettings.ini.bak: backup of former GUI settings after `-resetguisettings` is used
