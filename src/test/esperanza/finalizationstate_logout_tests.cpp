@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -98,7 +98,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
   std::map<uint160, Validator> validators = spy.Validators();
   Validator validator = validators.find(validatorAddress)->second;
-  BOOST_CHECK_EQUAL(703, validator.m_endDynasty);
+  BOOST_CHECK_EQUAL(703, validator.m_end_dynasty);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

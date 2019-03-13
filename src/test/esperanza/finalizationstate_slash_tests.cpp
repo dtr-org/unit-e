@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_same_vote) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   for (uint32_t i = 5; i < 8; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   uint32_t i = 5;
   for (; i < 8; ++i) {
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   for (uint32_t i = 5; i < 8; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   for (uint32_t i = 5; i < 8; ++i) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),

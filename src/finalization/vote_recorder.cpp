@@ -22,7 +22,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   esperanza::FinalizationState *state = esperanza::FinalizationState::GetState();
 
   // Check if the vote comes from a validator
-  if (!state->GetValidator(vote.m_validatorAddress)) {
+  if (!state->GetValidator(vote.m_validator_address)) {
     return;
   }
 
@@ -31,13 +31,13 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   VoteRecord voteRecord{vote, voteSig};
 
   // Record the vote
-  const auto validatorIt = voteRecords.find(vote.m_validatorAddress);
+  const auto validatorIt = voteRecords.find(vote.m_validator_address);
   if (validatorIt != voteRecords.end()) {
-    validatorIt->second.emplace(vote.m_targetEpoch, voteRecord);
+    validatorIt->second.emplace(vote.m_target_epoch, voteRecord);
   } else {
     std::map<uint32_t, VoteRecord> newMap;
-    newMap.emplace(vote.m_targetEpoch, voteRecord);
-    voteRecords.emplace(vote.m_validatorAddress, std::move(newMap));
+    newMap.emplace(vote.m_target_epoch, voteRecord);
+    voteRecords.emplace(vote.m_validator_address, std::move(newMap));
   }
 
   if (offendingVote) {
@@ -61,7 +61,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
 
 boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vote &vote) {
 
-  const auto cacheIt = voteCache.find(vote.m_validatorAddress);
+  const auto cacheIt = voteCache.find(vote.m_validator_address);
   if (cacheIt != voteCache.end()) {
     if (cacheIt->second.vote == vote) {
       // Result was cached
@@ -70,27 +70,27 @@ boost::optional<VoteRecord> VoteRecorder::FindOffendingVote(const esperanza::Vot
   }
 
   esperanza::Vote slashCandidate;
-  const auto validatorIt = voteRecords.find(vote.m_validatorAddress);
+  const auto validatorIt = voteRecords.find(vote.m_validator_address);
   if (validatorIt != voteRecords.end()) {
 
     const auto &voteMap = validatorIt->second;
 
     // Check for double votes
-    const auto recordIt = voteMap.find(vote.m_targetEpoch);
+    const auto recordIt = voteMap.find(vote.m_target_epoch);
     if (recordIt != voteMap.end()) {
-      if (recordIt->second.vote.m_targetHash != vote.m_targetHash) {
+      if (recordIt->second.vote.m_target_hash != vote.m_target_hash) {
         return recordIt->second;
       }
     }
 
     // Check for a surrounding vote
-    for (auto it = voteMap.lower_bound(vote.m_sourceEpoch); it != voteMap.end(); ++it) {
+    for (auto it = voteMap.lower_bound(vote.m_source_epoch); it != voteMap.end(); ++it) {
       const VoteRecord &record = it->second;
-      if (record.vote.m_sourceEpoch < vote.m_targetEpoch) {
-        if ((record.vote.m_sourceEpoch > vote.m_sourceEpoch &&
-             record.vote.m_targetEpoch < vote.m_targetEpoch) ||
-            (record.vote.m_sourceEpoch < vote.m_sourceEpoch &&
-             record.vote.m_targetEpoch > vote.m_targetEpoch)) {
+      if (record.vote.m_source_epoch < vote.m_target_epoch) {
+        if ((record.vote.m_source_epoch > vote.m_source_epoch &&
+             record.vote.m_target_epoch < vote.m_target_epoch) ||
+            (record.vote.m_source_epoch < vote.m_source_epoch &&
+             record.vote.m_target_epoch > vote.m_target_epoch)) {
           return record;
         }
       }

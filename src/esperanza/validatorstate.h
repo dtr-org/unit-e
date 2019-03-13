@@ -30,25 +30,25 @@ struct ValidatorState {
   typedef _Phase Phase;
 
   ValidatorState()
-      : m_validatorAddress(),
-        m_lastEsperanzaTx(nullptr),
-        m_voteMap(),
-        m_lastSourceEpoch(0),
-        m_lastTargetEpoch(0),
-        m_depositEpoch(std::numeric_limits<uint32_t>::max()),
-        m_endDynasty(std::numeric_limits<uint32_t>::max()),
-        m_startDynasty(std::numeric_limits<uint32_t>::max()) {}
+      : m_validator_address(),
+        m_last_esperanza_tx(nullptr),
+        m_vote_map(),
+        m_last_source_epoch(0),
+        m_last_target_epoch(0),
+        m_deposit_epoch(std::numeric_limits<uint32_t>::max()),
+        m_end_dynasty(std::numeric_limits<uint32_t>::max()),
+        m_start_dynasty(std::numeric_limits<uint32_t>::max()) {}
 
   Phase m_phase = Phase::NOT_VALIDATING;
-  uint160 m_validatorAddress = uint160S("0");
-  CTransactionRef m_lastEsperanzaTx = nullptr;
-  std::map<uint32_t, Vote> m_voteMap;
+  uint160 m_validator_address = uint160S("0");
+  CTransactionRef m_last_esperanza_tx = nullptr;
+  std::map<uint32_t, Vote> m_vote_map;
 
-  uint32_t m_lastSourceEpoch;
-  uint32_t m_lastTargetEpoch;
-  uint32_t m_depositEpoch;
-  uint32_t m_endDynasty;
-  uint32_t m_startDynasty;
+  uint32_t m_last_source_epoch;
+  uint32_t m_last_target_epoch;
+  uint32_t m_deposit_epoch;
+  uint32_t m_end_dynasty;
+  uint32_t m_start_dynasty;
 };
 
 }  // namespace esperanza

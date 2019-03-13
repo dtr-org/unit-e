@@ -23,10 +23,10 @@ namespace esperanza {
 //! - Current administrator keys
 //! - Whether permissioing era is over
 class AdminState {
-  AdminKeySet m_adminPubKeys;
-  std::set<uint160> m_whiteList;
-  const AdminParams &m_adminParams;
-  bool m_permissioningIsActive;
+  AdminKeySet m_admin_pub_keys;
+  std::set<uint160> m_white_list;
+  const AdminParams &m_admin_params;
+  bool m_permissioning_is_active;
 
  public:
   explicit AdminState(const AdminParams &adminParams);

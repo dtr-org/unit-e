@@ -8,31 +8,31 @@
 namespace esperanza {
 
 Validator::Validator()
-    : m_validatorAddress(),
+    : m_validator_address(),
       m_deposit(0),
-      m_startDynasty(0),
-      m_endDynasty(DEFAULT_END_DYNASTY),
-      m_isSlashed(false),
-      m_depositsAtLogout(0) {}
+      m_start_dynasty(0),
+      m_end_dynasty(DEFAULT_END_DYNASTY),
+      m_is_slashed(false),
+      m_deposits_at_logout(0) {}
 
 Validator::Validator(uint64_t deposit, uint32_t startDynasty,
                      uint160 validatorAddress)
-    : m_validatorAddress(validatorAddress),
+    : m_validator_address(validatorAddress),
       m_deposit(deposit),
-      m_startDynasty(startDynasty),
-      m_endDynasty(DEFAULT_END_DYNASTY),
-      m_isSlashed(false),
-      m_depositsAtLogout(0),
-      m_lastTransactionHash(uint256()) {}
+      m_start_dynasty(startDynasty),
+      m_end_dynasty(DEFAULT_END_DYNASTY),
+      m_is_slashed(false),
+      m_deposits_at_logout(0),
+      m_last_transaction_hash(uint256()) {}
 
 bool Validator::operator==(const Validator &other) const {
-  return m_validatorAddress == other.m_validatorAddress &&
+  return m_validator_address == other.m_validator_address &&
          m_deposit == other.m_deposit &&
-         m_startDynasty == other.m_startDynasty &&
-         m_endDynasty == other.m_endDynasty &&
-         m_isSlashed == other.m_isSlashed &&
-         m_depositsAtLogout == other.m_depositsAtLogout &&
-         m_lastTransactionHash == other.m_lastTransactionHash;
+         m_start_dynasty == other.m_start_dynasty &&
+         m_end_dynasty == other.m_end_dynasty &&
+         m_is_slashed == other.m_is_slashed &&
+         m_deposits_at_logout == other.m_deposits_at_logout &&
+         m_last_transaction_hash == other.m_last_transaction_hash;
 }
 
 }  // namespace esperanza

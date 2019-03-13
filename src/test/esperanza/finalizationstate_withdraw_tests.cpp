@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   // e0/d0 - create a deposit
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
+    if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
       Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   uint256 targetHash = GetRandHash();
   CBlockIndex block_index;
   block_index.phashBlock = &targetHash;
-  spy.SetRecommendedTarget(&block_index);
+  spy.SetRecommendedTarget(block_index);
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
                     +Result::SUCCESS);
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
     BOOST_CHECK_EQUAL(spy.InitializeEpoch(i * spy.EpochLength()),
                       +Result::SUCCESS);
 
-    if (spy.GetCurrentDynasty() < validator->m_endDynasty) {
+    if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
       Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);

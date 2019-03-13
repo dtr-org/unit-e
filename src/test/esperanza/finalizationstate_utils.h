@@ -21,19 +21,20 @@ class FinalizationStateSpy : public FinalizationState {
   FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
   FinalizationStateSpy(const FinalizationStateSpy &parent) : FinalizationState(parent) {}
 
-  uint64_t *CurDynDeposits() { return &m_curDynDeposits; }
-  uint64_t *PrevDynDeposits() { return &m_prevDynDeposits; }
-  uint64_t *RewardFactor() { return &m_rewardFactor; }
+  CAmount *CurDynDeposits() { return &m_cur_dyn_deposits; }
+  CAmount *PrevDynDeposits() { return &m_prev_dyn_deposits; }
+  uint64_t *RewardFactor() { return &m_reward_factor; }
   std::map<uint160, Validator> &Validators() { return m_validators; }
   std::map<uint160, Validator> *pValidators() { return &m_validators; }
   std::map<uint32_t, Checkpoint> &Checkpoints() {
     return const_cast<std::map<uint32_t, Checkpoint> &>(m_checkpoints);
   }
-  void SetRecommendedTarget(CBlockIndex *block_index) {
-    m_recommendedTarget = block_index;
+  void SetRecommendedTarget(const CBlockIndex &block_index) {
+    m_recommended_target_hash = block_index.GetBlockHash();
+    m_recommended_target_epoch = GetEpoch(block_index);
   }
   void SetExpectedSourceEpoch(uint32_t epoch) {
-    m_expectedSourceEpoch = epoch;
+    m_expected_source_epoch = epoch;
   }
 
   uint32_t EpochLength() const { return m_settings.epoch_length; }

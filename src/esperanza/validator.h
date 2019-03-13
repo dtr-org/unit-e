@@ -19,13 +19,13 @@ class Validator {
   Validator(uint64_t deposit, uint32_t startDynasty, uint160 validatorAddress);
   bool operator==(const Validator &other) const;
 
-  uint160 m_validatorAddress;
+  uint160 m_validator_address;
   uint64_t m_deposit;
-  uint32_t m_startDynasty;
-  uint32_t m_endDynasty;
-  bool m_isSlashed;
-  uint64_t m_depositsAtLogout;
-  uint256 m_lastTransactionHash;
+  uint32_t m_start_dynasty;
+  uint32_t m_end_dynasty;
+  bool m_is_slashed;
+  uint64_t m_deposits_at_logout;
+  uint256 m_last_transaction_hash;
 };
 
 }  // namespace esperanza
