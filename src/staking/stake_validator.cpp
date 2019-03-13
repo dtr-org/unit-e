@@ -54,7 +54,7 @@ class StakeValidatorImpl : public StakeValidator {
     return Hash(s.begin(), s.end());
   }
 
-  //! \brief Computes the sake modifier which is used to make the next kernel unpredictable.
+  //! \brief Computes the stake modifier which is used to make the next kernel unpredictable.
   //!
   //! The stake modifier relies on the transaction hash of the coin staked and
   //! the stake modifier of the previous block.

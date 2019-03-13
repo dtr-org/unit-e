@@ -21,7 +21,7 @@ namespace staking {
 class Coin {
 
  public:
-  Coin::Coin(const CBlockIndex *containing_block, const COutPoint &out_point, const CTxOut &tx_out)
+  Coin(const CBlockIndex *containing_block, const COutPoint &out_point, const CTxOut &tx_out)
       : containing_block(containing_block), out_point(out_point), tx_out(tx_out) {}
 
   //! \brief The hash of the block containing the staked coin.
