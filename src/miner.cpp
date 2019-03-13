@@ -185,7 +185,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CValidationState state;
     for (auto &coin : stakeable_coins) {
       proposer::EligibleCoin eligible_coin = {
-          staking::Coin(coin.txid, coin.index, coin.amount, scriptPubKeyIn, coin.depth),
+          staking::Coin(GetComponent<staking::ActiveChain>()->GetBlockIndex(coin.GetTransactionId()),
+              COutPoint(coin.GetTransactionId(), coin.GetOutputIndex()),
+              CTxOut(coin.GetAmount(), scriptPubKeyIn)),
           GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
           GetBlockSubsidy(nHeight, chainparams.GetConsensus()),
           0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
