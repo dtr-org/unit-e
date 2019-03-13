@@ -12,7 +12,7 @@
 namespace staking {
 
 std::string Coin::ToString() const {
-  return tfm::format("Coin(txid=%s,index=%d,amount=%d,height=%d)",
+  return tfm::format("Coin(txid=%s index=%d amount=%d height=%d)",
                      util::to_string(GetTransactionId()), GetOutputIndex(), GetAmount(), GetHeight());
 }
 
