@@ -109,7 +109,7 @@ class StakeValidatorImpl : public StakeValidator {
     const blockchain::Height height = stake->GetHeight();
     const blockchain::Depth depth = m_active_chain->GetDepth(height);
     if (!m_blockchain_behavior->IsStakeMature(depth)) {
-      LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s depth=%d\n", depth);
+      LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s depth=%d\n", util::to_string(*stake), depth);
       result.errors += BlockValidationError::STAKE_IMMATURE;
       return result;
     }
