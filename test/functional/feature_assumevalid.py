@@ -32,7 +32,6 @@ Start three nodes:
 import time
 
 from test_framework.blocktools import (
-    add_witness_commitment,
     calc_snapshot_hash,
     create_block,
     create_coinbase,
@@ -42,13 +41,11 @@ from test_framework.blocktools import (
 )
 from test_framework.key import CECKey
 from test_framework.mininode import (CBlockHeader,
-                                     CBlock,
                                      COutPoint,
                                      CTransaction,
                                      CTxIn,
                                      CTxOut,
                                      UTXO,
-                                     UNIT,
                                      network_thread_join,
                                      network_thread_start,
                                      P2PInterface,
@@ -56,9 +53,8 @@ from test_framework.mininode import (CBlockHeader,
                                      msg_headers)
 from test_framework.script import (CScript, OP_TRUE)
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, get_unspent_coins, hex_str_to_bytes, connect_nodes_bi
+from test_framework.util import assert_equal, connect_nodes_bi
 from test_framework.regtest_mnemonics import regtest_mnemonics
-from test_framework.messages import FromHex
 
 class BaseNode(P2PInterface):
     def send_header_for_blocks(self, new_blocks):

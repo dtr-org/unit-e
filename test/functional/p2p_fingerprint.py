@@ -14,7 +14,6 @@ from test_framework.blocktools import (
     create_block,
     create_coinbase,
     sign_coinbase,
-    sign_transaction,
     get_tip_snapshot_meta,
     update_snapshot_with_tx,
 )
@@ -30,7 +29,6 @@ from test_framework.messages import (
     msg_getdata,
     msg_getheaders,
 )
-from test_framework.script import CScript
 
 from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import (

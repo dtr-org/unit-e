@@ -16,8 +16,6 @@ RPCs tested are:
 from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
 from test_framework.util import assert_equal, assert_greater_than_or_equal, sync_mempools, sync_blocks
 
-import time
-
 class WalletAccountsTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
