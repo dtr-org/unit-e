@@ -57,11 +57,11 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
     }
 
     bool skip_reward = tx->IsCoinBase() && tx->GetBlocksToRewardMaturity() > 0;
-    for (std::size_t out_index = skip_reward ? 0 : 1; out_index < coins.size(); ++out_index) {
+    for (std::size_t out_index = skip_reward ? 1 : 0; out_index < coins.size(); ++out_index) {
       if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {
         continue;
       }
-      if (!view.HaveCoin(COutPoint(txId, static_cast<unsigned int>(outix)))) {
+      if (!view.HaveCoin(COutPoint(txId, static_cast<unsigned int>(out_index)))) {
         continue;
       }
       if (m_enclosing_wallet.IsLockedCoin(txId, out_index)) {
