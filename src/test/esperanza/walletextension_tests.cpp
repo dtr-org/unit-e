@@ -301,8 +301,8 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
     staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
     BOOST_REQUIRE_EQUAL(stakeable_coins.size(), 1);  // The just created stakeable tx
 
-    BOOST_CHECK_EQUAL(stakeable->GetHash(), stakeable_coins.begin()->txid);
-    BOOST_CHECK_EQUAL(0, stakeable_coins.begin()->index);
+    BOOST_CHECK_EQUAL(stakeable->GetHash(), stakeable_coins.begin()->GetTransactionId());
+    BOOST_CHECK_EQUAL(0, stakeable_coins.begin()->GetOutputIndex());
   }
 
   // Make sure locked coins are not selected
