@@ -103,8 +103,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         if (keystore.HaveKey(keyID)) {
             ret = IsMineResult::SPENDABLE;
-        }
-        if (keystore.HaveHardwareKey(keyID)) {
+        } else if (keystore.HaveHardwareKey(keyID)) {
             ret = IsMineResult::HW_DEVICE;
         }
         break;
@@ -133,8 +132,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         if (keystore.HaveKey(keyID)) {
             ret = IsMineResult::SPENDABLE;
-        }
-        if (keystore.HaveHardwareKey(keyID)) {
+        } else if (keystore.HaveHardwareKey(keyID)) {
             ret = IsMineResult::HW_DEVICE;
         }
         break;
@@ -283,15 +281,6 @@ isminetype IsMine(const CKeyStore &keystore, const CScript &scriptPubKey, IsMine
     assert(false);
 }
 
-//! \brief Checks whether a given isminetype implies ISMINE_SPENDABLE.
-//!
-//! ISMINE_SPENDABLE is part of a bitfield:
-//! ISMINE_HWDEVICE and ISMINE_ALL both imply ISMINE_SPENDABLE.
-bool IsSpendable(const isminetype is_mine)
-{
-  return (is_mine & isminetype::ISMINE_SPENDABLE) != 0;
-}
-
 } // namespace
 
 isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
@@ -314,7 +303,9 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
     switch (is_mine_info.type) {
         case TX_PUBKEYHASH:
         case TX_WITNESS_V0_KEYHASH: {
-            if (!IsSpendable(is_mine)) {
+            if (is_mine != ISMINE_SPENDABLE) {
+                // Non-remote-staking scripts can be used as stake only if they
+                // are spendable without hardware wallets
                 return false;
             }
             CKeyID key_id = CKeyID(uint160(is_mine_info.solutions[0]));
@@ -331,7 +322,9 @@ bool IsStakeableByMe(const CKeyStore &keystore, const CScript &script_pub_key)
             return keystore.GetPubKey(key_id, pubkey) && pubkey.IsCompressed();
         }
         case TX_WITNESS_V0_SCRIPTHASH:
-            if (!IsSpendable(is_mine)) {
+            if (is_mine != ISMINE_SPENDABLE) {
+                // Non-remote-staking scripts can be used as stake only if they
+                // are spendable without hardware wallets
                 return false;
             }
             switch (is_mine_info.p2sh_type) {
