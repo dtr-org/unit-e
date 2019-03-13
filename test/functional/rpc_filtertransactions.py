@@ -166,11 +166,15 @@ class FilterTransactionsTest(UnitETestFramework):
         ]
 
         for sort_by, order in sortings:
-            ro = self.nodes[0].filtertransactions({"sort": sort_by})
+            ro = self.nodes[0].filtertransactions({"sort": sort_by, "count": 0})
             prev = None
             for t in ro:
                 if "address" not in t and "address" in t["outputs"][0]:
                     t["address"] = t["outputs"][0]["address"]
+                elif "address" not in t:
+                    # UNIT-E TODO: check if transactions without addresses make sense
+                    # https://github.com/dtr-org/unit-e/issues/779
+                    t["address"] = ""
                 if t["amount"] < 0:
                     t["amount"] = -t["amount"]
                 if prev is not None:
