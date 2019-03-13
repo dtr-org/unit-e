@@ -46,7 +46,7 @@ bip112tx_special - test negative argument to OP_CSV
 from test_framework.test_framework import ComparisonTestFramework
 from test_framework.util import *
 from test_framework.mininode import ToHex, CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta, calc_snapshot_hash, UTXO, COutPoint
+from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta, update_snapshot_with_tx
 from test_framework.comptool import TestInstance, TestManager
 from test_framework.script import *
 from test_framework.messages import UNIT
@@ -151,12 +151,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         block.rehash()
         block.solve()
 
-        node_height = self.nodes[0].getblockcount()
-        stake_txout = self.nodes[0].gettxout(coin['txid'], coin['vout'])
-        ctx_out = CTxOut(int(stake_txout['value']*UNIT), CScript(hex_str_to_bytes(stake_txout['scriptPubKey']['hex'])))
-        inputs = [UTXO(node_height + 1 - stake_txout['confirmations'], stake_txout['coinbase'], coinbase.vin[1].prevout, ctx_out)]
-        outputs = [UTXO(self.tipheight + 1, True, COutPoint(coinbase.sha256, i), coinbase.vout[i]) for i in range(len(coinbase.vout))]
-        self.tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], self.tip_snapshot_meta.data, 0, self.tipheight + 1, inputs, outputs)
+        self.tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.tip_snapshot_meta.data, 0, self.tipheight + 1, coinbase)
         return block
 
     def create_bip68txs(self, bip68inputs, txversion, locktime_delta = 0):
