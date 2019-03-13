@@ -37,19 +37,19 @@ class StakeValidatorImpl : public StakeValidator {
   //! In case one is not eligible to propose: The cards are being reshuffled every so often,
   //! which is why the "current time" (the block time of the block to propose) is part of the
   //! computation for the kernel hash.
-  uint256 ComputeKernelHash(const uint256 &previous_blocks_stake_modifier,
+  uint256 ComputeKernelHash(const uint256 &previous_block_stake_modifier,
                             const blockchain::Time stake_block_time,
                             const uint256 &stake_txid,
                             const std::uint32_t stake_out_index,
-                            const blockchain::Time block_time) const {
+                            const blockchain::Time target_block_time) const {
 
     ::CDataStream s(SER_GETHASH, 0);
 
-    s << previous_blocks_stake_modifier;
+    s << previous_block_stake_modifier;
     s << stake_block_time;
     s << stake_txid;
     s << stake_out_index;
-    s << block_time;
+    s << target_block_time;
 
     return Hash(s.begin(), s.end());
   }
@@ -191,7 +191,7 @@ class StakeValidatorImpl : public StakeValidator {
 
   uint256 ComputeKernelHash(const CBlockIndex *previous_block,
                             const staking::Coin &coin,
-                            const blockchain::Time block_time) const override {
+                            const blockchain::Time target_block_time) const override {
     if (!previous_block) {
       // The genesis block does not have a preceding block. It also does not
       // reference any stake. Its kernel hash is simply 0. This has the nice
@@ -203,7 +203,7 @@ class StakeValidatorImpl : public StakeValidator {
         coin.GetBlockTime(),
         coin.GetTransactionId(),
         coin.GetOutputIndex(),
-        block_time);
+        target_block_time);
   }
 
   bool CheckKernel(const CAmount stake_amount,
