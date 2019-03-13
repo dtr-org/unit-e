@@ -181,7 +181,7 @@ class StakeValidatorImpl : public StakeValidator {
       return uint256::zero;
     }
     return ComputeStakeModifier(
-        stake.GetTransactionHash(),
+        stake.GetTransactionId(),
         previous_block->stake_modifier);
   }
 
@@ -197,7 +197,7 @@ class StakeValidatorImpl : public StakeValidator {
     return ComputeKernelHash(
         previous_block->stake_modifier,
         coin.GetBlockTime(),
-        coin.GetTransactionHash(),
+        coin.GetTransactionId(),
         coin.GetOutputIndex(),
         block_time);
   }

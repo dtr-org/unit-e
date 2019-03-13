@@ -67,16 +67,16 @@ BOOST_AUTO_TEST_CASE(propose) {
     return kernel == k2;
   };
   f.stake_validator_mock.computekernelfunc = [&](const CBlockIndex *, const staking::Coin &coin, blockchain::Time) {
-    if (coin.GetTransactionHash() == t1) {
+    if (coin.GetTransactionId() == t1) {
       return k1;
     }
-    if (coin.GetTransactionHash() == t2) {
+    if (coin.GetTransactionId() == t2) {
       return k2;
     }
-    if (coin.GetTransactionHash() == t3) {
+    if (coin.GetTransactionId() == t3) {
       return k3;
     }
-    return coin.GetTransactionHash();
+    return coin.GetTransactionId();
   };
   const boost::optional<proposer::EligibleCoin> coin = [&] {
     LOCK(f.active_chain_mock.GetLock());
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(propose) {
   BOOST_REQUIRE(static_cast<bool>(coin));
   const proposer::EligibleCoin eligible_coin = *coin;
   BOOST_CHECK_EQUAL(eligible_coin.kernel_hash, k2);
-  BOOST_CHECK_EQUAL(eligible_coin.utxo.GetTransactionHash(), t2);
+  BOOST_CHECK_EQUAL(eligible_coin.utxo.GetTransactionId(), t2);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

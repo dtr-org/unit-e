@@ -93,7 +93,7 @@ class BlockBuilderImpl : public BlockBuilder {
 
     // add combined stake - we already include the eligible coin and its amount.
     CAmount combined_total = eligible_coin.utxo.GetAmount();
-    for (const Coin &coin : coins) {
+    for (const staking::Coin &coin : coins) {
       if (coin == eligible_coin.utxo) {
         // if it's the staking coin we already included it in tx.vin so we
         // can skip here. It is already included in combined_total.

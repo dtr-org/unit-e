@@ -14,7 +14,7 @@ std::string EligibleCoin::ToString() const {
   return tfm::format(
       "tx=%s, index=%d, amount=%d, height=%d, kernel=%d, "
       "target_height=%d, target_time=%d, target_difficulty=%d",
-      util::to_string(utxo.GetTransactionHash()),
+      util::to_string(utxo.GetTransactionId()),
       utxo.GetOutputIndex(),
       utxo.GetAmount(),
       utxo.GetHeight(),

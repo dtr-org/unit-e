@@ -7,6 +7,7 @@
 
 #include <amount.h>
 #include <blockchain/blockchain_types.h>
+#include <chain.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
 #include <uint256.h>
@@ -38,12 +39,12 @@ class Coin {
 
   //! \brief The id of the transaction which spends this piece of stake.
   //!
-  //! This is the same as `GetOutPoint.hash`.
-  const uint256 &GetTransactionHash() const { return out_point.hash; }
+  //! This is the same as `GetOutPoint().hash`.
+  const uint256 &GetTransactionId() const { return out_point.hash; }
 
   //! \brief The index of the spending output.
   //!
-  //! This is the same as `GetOutPoint.n`
+  //! This is the same as `GetOutPoint().n`
   std::uint32_t GetOutputIndex() const { return out_point.n; }
 
   //! \brief The outpoint of the staking output (txid and out index).
@@ -104,10 +105,10 @@ struct CoinByAmountComparator {
     if (left.GetHeight() > right.GetHeight()) {
       return false;
     }
-    if (left.GetTransactionHash() < right.GetTransactionHash()) {
+    if (left.GetTransactionId() < right.GetTransactionId()) {
       return true;
     }
-    if (left.GetTransactionHash() != right.GetTransactionHash()) {
+    if (left.GetTransactionId() != right.GetTransactionId()) {
       return false;
     }
     return left.GetOutputIndex() < right.GetOutputIndex();
