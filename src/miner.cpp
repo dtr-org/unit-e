@@ -173,7 +173,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
     // Create coinbase transaction.
-    std::vector<staking::Coin> stakeable_coins;
+    staking::CoinSet stakeable_coins;
     {
       stakeable_coins = wallet->GetWalletExtension().GetStakeableCoins();
       if(stakeable_coins.empty()) {
@@ -184,9 +184,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     bool success = false;
     CValidationState state;
     for (auto &coin : stakeable_coins) {
-      coin.script_pubkey = scriptPubKeyIn; //Inject scriptpubkey
       proposer::EligibleCoin eligible_coin = {
-          coin,
+          staking::Coin(coin.txid, coin.index, coin.amount, scriptPubKeyIn, coin.depth),
           GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
           GetBlockSubsidy(nHeight, chainparams.GetConsensus()),
           0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
@@ -194,7 +193,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
           0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
       };
 
-      auto coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, std::vector<staking::Coin>(), nFees, wallet->GetWalletExtension());
+      auto coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension());
       pblocktemplate->block.vtx[0] = coinbase;
       GenerateCoinbaseCommitment(pblocktemplate->block, chainActive.Tip(), Params().GetConsensus());
 

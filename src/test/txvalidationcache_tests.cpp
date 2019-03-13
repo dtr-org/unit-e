@@ -239,6 +239,12 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // even though there's no cache entry.
     CBlock block;
 
+    // Lock the coin so it cannot be used for staking
+    {
+        LOCK(pwalletMain->cs_wallet);
+        pwalletMain->LockCoin(COutPoint(p2pkh_coinbase->GetHash(), 1));
+    }
+
     block = CreateAndProcessBlock({spend_tx}, p2pkh_scriptPubKey);
     BOOST_CHECK(chainActive.Tip()->GetBlockHash() == block.GetHash());
     BOOST_CHECK(pcoinsTip->GetBestBlock() == block.GetHash());
