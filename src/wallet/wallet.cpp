@@ -2397,10 +2397,8 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             if (nDepth < nMinDepth || nDepth > nMaxDepth) {
                 continue;
             }
-            int skip_reward = false;
-            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
-              skip_reward = true;
-            }
+
+            bool skip_reward = pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0;
             for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
                 if (pcoin->tx->vout[i].nValue < nMinimumAmount || pcoin->tx->vout[i].nValue > nMaximumAmount) {
                     continue;
@@ -3665,10 +3663,7 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
                 continue;
             }
 
-            int skip_reward = false;
-            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
-                skip_reward = true;
-            }
+            bool skip_reward = pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0;
             for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
                 CTxDestination addr;
                 if (!IsMine(pcoin->tx->vout[i])) {
