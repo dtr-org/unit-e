@@ -89,17 +89,17 @@ class BlockBuilderImpl : public BlockBuilder {
     }
 
     // add stake
-    tx.vin.emplace_back(eligible_coin.utxo.txid, eligible_coin.utxo.index);
+    tx.vin.emplace_back(eligible_coin.utxo.GetOutPoint());
 
     // add combined stake - we already include the eligible coin and its amount.
-    CAmount combined_total = eligible_coin.utxo.amount;
-    for (const auto &coin : coins) {
-      if (coin.txid == eligible_coin.utxo.txid && coin.index == eligible_coin.utxo.index) {
+    CAmount combined_total = eligible_coin.utxo.GetAmount();
+    for (const staking::Coin &coin : coins) {
+      if (coin == eligible_coin.utxo) {
         // if it's the staking coin we already included it in tx.vin so we
         // can skip here. It is already included in combined_total.
         continue;
       }
-      const CAmount new_total = combined_total + coin.amount;
+      const CAmount new_total = combined_total + coin.GetAmount();
       if (m_settings->stake_combine_maximum > 0 && new_total > m_settings->stake_combine_maximum) {
         // stake combination does not break here, but it continues here. This
         // way the order of the coins does not matter. If there is another coin
@@ -108,7 +108,7 @@ class BlockBuilderImpl : public BlockBuilder {
         continue;
       }
       combined_total = new_total;
-      tx.vin.emplace_back(coin.txid, coin.index);
+      tx.vin.emplace_back(coin.GetOutPoint());
     }
 
     const CAmount reward = fees + eligible_coin.reward;
@@ -120,17 +120,17 @@ class BlockBuilderImpl : public BlockBuilder {
     // be added with an amount of zero.
     const CScript reward_script = m_settings->reward_destination && reward > 0
                                       ? GetScriptForDestination(*m_settings->reward_destination)
-                                      : eligible_coin.utxo.script_pubkey;
+                                      : eligible_coin.utxo.GetScriptPubKey();
     tx.vout.emplace_back(reward, reward_script);
 
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && combined_total > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(combined_total, threshold);
       for (const CAmount amount : pieces) {
-        tx.vout.emplace_back(amount, eligible_coin.utxo.script_pubkey);
+        tx.vout.emplace_back(amount, eligible_coin.utxo.GetScriptPubKey());
       }
     } else {
-      tx.vout.emplace_back(combined_total, eligible_coin.utxo.script_pubkey);
+      tx.vout.emplace_back(combined_total, eligible_coin.utxo.GetScriptPubKey());
     }
 
     assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),

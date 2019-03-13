@@ -134,15 +134,15 @@ class ActiveChainMock : public staking::ActiveChain {
     ++invocations_FindForkOrigin;
     return find_fork_origin(&block_index);
   }
-  const CBlockIndex *AtDepth(blockchain::Depth depth) override {
+  const CBlockIndex *AtDepth(blockchain::Depth depth) const override {
     ++invocations_AtDepth;
     return block_at_depth(depth);
   }
-  const CBlockIndex *AtHeight(blockchain::Height height) override {
+  const CBlockIndex *AtHeight(blockchain::Height height) const override {
     ++invocations_AtHeight;
     return block_at_height(height);
   }
-  blockchain::Depth GetDepth(const blockchain::Height) const override {
+  blockchain::Depth GetDepth(const blockchain::Height height) const override {
     ++invocations_GetDepth;
     return GetHeight() - height + 1;
   }
@@ -189,7 +189,7 @@ class StakeValidatorMock : public staking::StakeValidator {
   staking::BlockValidationResult CheckStake(const CBlock &, staking::BlockValidationInfo *) const override {
     return staking::BlockValidationResult();
   }
-  uint256 ComputeStakeModifier(const CBlockIndex *, const uint256 &) const override { return uint256(); }
+  uint256 ComputeStakeModifier(const CBlockIndex *, const staking::Coin &) const override { return uint256(); }
   bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
   void RememberPieceOfStake(const COutPoint &) override {}
   void ForgetPieceOfStake(const COutPoint &) override {}

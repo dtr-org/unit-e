@@ -54,8 +54,8 @@ class StakeValidator {
   //! to compute the kernel hash of a block that references this block as
   //! previous block.
   virtual uint256 ComputeStakeModifier(
-      const CBlockIndex *,  //!< [in] The previous block
-      const uint256 &       //!< [in] The kernel hash of this block
+      const CBlockIndex *,   //!< [in] The previous block.
+      const staking::Coin &  //!< [in] The staked coin.
       ) const = 0;
 
   //! \brief Checks the stake of a block and remote staking outputs in the coinbase transaction.

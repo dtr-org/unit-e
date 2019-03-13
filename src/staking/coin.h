@@ -7,80 +7,111 @@
 
 #include <amount.h>
 #include <blockchain/blockchain_types.h>
+#include <chain.h>
+#include <primitives/transaction.h>
 #include <script/script.h>
 #include <uint256.h>
+
+class CBlockIndex;
 
 namespace staking {
 
 //! \brief A coin that is potentially stakeable.
-struct Coin {
-  //! The id of the transaction this coin is referring to.
-  uint256 txid;
+//!
+//! A coin is basically a reference to a CTxOut of a transaction in a block.
+class Coin {
 
-  //! The index of the output in the transaction referred to by txid.
-  std::uint32_t index;
+ public:
+  Coin(const CBlockIndex *containing_block, const COutPoint &out_point, const CTxOut &tx_out)
+      : m_containing_block(containing_block), m_out_point(out_point), m_tx_out(tx_out) {}
 
-  //! The amount of the index-th output in the referenced transaction.
-  CAmount amount;
+  //! \brief The hash of the block containing the staked coin.
+  const uint256 &GetBlockHash() const { return *m_containing_block->phashBlock; }
 
-  //! The destination script of this coin.
-  CScript script_pubkey;
+  //! \brief The time of the block containing the staked coin.
+  blockchain::Time GetBlockTime() const { return m_containing_block->nTime; };
 
-  //! The depth of the piece of stake that is used as Proof-of-Stake in the
-  //! newly proposed block. This depth is relative to the currently active
-  //! chain's height. The depth of the tip of the chain is one by definition.
-  //! Depth zero does not exist.
-  //! This has the nice property that the actual height of the stake is
-  //!   target_height - depth
-  //! To illustrate:
-  //!   A --> B --> C --> D   ~~> E
-  //! where
-  //!   A is the genesis block
-  //!   B is the block with the staking output
-  //!   D is the current tip
-  //!   E is the block to be proposed
-  //! The stake in B is at depth 3 with respect to D, a transaction in D
-  //! is at depth 1 (by definition the tip is depth=1). The heights are:
-  //!   h(A)=0, h(B)=1, h(C)=2, h(D)=3, h(E)=4
-  //! The depths with respect to the current tip D are:
-  //!   d(A)=4, d(B)=3, d(C)=2, d(D)=1
-  //! E does not have a depth yet as it is not part of a chain. So the height
-  //! of the current chain is 3 (it's size is 4), the target_height is 4, and
-  //! the height of B (having the staking output) is 1, which is 4 minus 3.
-  //! The depth of genesis is always the size (not the height) of the chain.
-  blockchain::Depth depth;
+  //! \brief The amount of stake.
+  CAmount GetAmount() const { return m_tx_out.nValue; };
 
-  Coin() = default;
-  Coin(const uint256 &txid, std::uint32_t index, CAmount amount, const CScript &script_pubkey, blockchain::Depth depth);
+  //! \brief The height at which this coin is included in a block.
+  blockchain::Height GetHeight() const { return static_cast<blockchain::Height>(m_containing_block->nHeight); }
+
+  //! \brief The id of the transaction which spends this piece of stake.
+  //!
+  //! This is the same as `GetOutPoint().hash`.
+  const uint256 &GetTransactionId() const { return m_out_point.hash; }
+
+  //! \brief The index of the spending output.
+  //!
+  //! This is the same as `GetOutPoint().n`
+  std::uint32_t GetOutputIndex() const { return m_out_point.n; }
+
+  //! \brief The outpoint of the staking output (txid and out index).
+  const COutPoint &GetOutPoint() const { return m_out_point; }
+
+  //! \brief The locking script of the coin.
+  const CScript &GetScriptPubKey() const { return m_tx_out.scriptPubKey; }
 
   bool operator==(const Coin &other) const {
-    return txid == other.txid && index == other.index;
+    return GetOutPoint() == other.GetOutPoint();
+  }
+
+  bool operator!=(const Coin &other) const {
+    return !(*this == other);
   }
 
   std::string ToString() const;
+
+ private:
+  //! The index entry of the block that contains this coin.
+  const CBlockIndex *const m_containing_block;
+
+  //! The outpoint which spends this stake.
+  const COutPoint m_out_point;
+
+  //! The actual CTxOut that spends this stake - featuring amount and locking script.
+  const CTxOut m_tx_out;
 };
 
+//! \brief A comparator that compares coins by amount.
+//!
+//! Compares coins by their properties in the following order:
+//! - Amount, descending (bigger coins first)
+//! - Height, ascending (older coins first)
+//! - TransactionHash, ascending
+//! - OutputIndex, ascending
+//!
+//! This is not an intrinsic compare function on Coin as this
+//! is in no way how coins would be sorted in the general case.
+//! While the properties Amount and Height should always be the
+//! same for two coins for which the OutPoint is the same, a user
+//! of this class might not follow this rule (for example in tests)
+//! in which case `==` and `!=` might differ from `<`. In other words:
+//! A proper `<` on Coin would take into account only the properties
+//! which `==` and `!=` take into account, but this comparator takes
+//! into account more properties.
 struct CoinByAmountComparator {
-  inline bool operator()(const Coin &left, const Coin &right) const {
-    if (left.amount > right.amount) {
+  bool operator()(const Coin &left, const Coin &right) const {
+    if (left.GetAmount() > right.GetAmount()) {
       return true;
     }
-    if (left.amount < right.amount) {
+    if (left.GetAmount() < right.GetAmount()) {
       return false;
     }
-    if (left.depth > right.depth) {
+    if (left.GetHeight() < right.GetHeight()) {
       return true;
     }
-    if (left.depth < right.depth) {
+    if (left.GetHeight() > right.GetHeight()) {
       return false;
     }
-    if (left.txid < right.txid) {
+    if (left.GetTransactionId() < right.GetTransactionId()) {
       return true;
     }
-    if (left.txid != right.txid) {
+    if (left.GetTransactionId() != right.GetTransactionId()) {
       return false;
     }
-    return left.index < right.index;
+    return left.GetOutputIndex() < right.GetOutputIndex();
   }
 };
 

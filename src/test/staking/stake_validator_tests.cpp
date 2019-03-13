@@ -110,8 +110,19 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
       CScript::CreateRemoteStakingScripthashScript(std::vector<uint8_t>(20, 1), std::vector<uint8_t>(32));
   blockchain::Depth depth = fixture.parameters.stake_maturity + 10;
 
+  fixture.active_chain_mock.height = 1000;
+
+  const CBlockIndex block_index = [&]{
+    CBlockIndex index;
+    index.nHeight = fixture.active_chain_mock.height - depth;
+    index.nTime = block.nTime;
+    return index;
+  }();
+
+  const CAmount amount = 10000 * UNIT;
+
   std::map<COutPoint, staking::Coin> coins;
-  coins[stake_ref] = {stake_ref.hash, stake_ref.n, UNIT, script, depth};
+  coins.emplace(stake_ref, staking::Coin(&block_index, stake_ref, CTxOut{ amount, script}));
 
   fixture.active_chain_mock.get_utxo = [&coins](const COutPoint &p) {
     const auto it = coins.find(p);
@@ -125,7 +136,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   LOCK(fixture.active_chain_mock.GetLock());
   // The same amount sent back to the RSP2WPKH script
   {
-    const CTxOut out(UNIT, script);
+    const CTxOut out(amount, script);
     tx.vout = {out};
     block.vtx = {MakeTransactionRef(tx)};
 
@@ -135,7 +146,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
 
   // The output amount is smaller than the input amount
   {
-    const CTxOut out(UNIT - 1, script);
+    const CTxOut out(amount - 1, script);
 
     tx.vout = {out};
     block.vtx = {MakeTransactionRef(tx)};
@@ -147,7 +158,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
 
   // Two remote staking outputs with total amount greater than the input amount
   {
-    const CTxOut out(UNIT - 10000, script);
+    const CTxOut out(amount - 10000, script);
     const CTxOut out2(10100, script);
 
     tx.vout = {out, out2};
@@ -170,11 +181,12 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     BOOST_CHECK(r.errors.Contains(staking::BlockValidationError::TRANSACTION_INPUT_NOT_FOUND));
   }
 
-  coins[input2_ref] = {input2_ref.hash, input2_ref.n, 2 * UNIT, script2, depth};
+  coins.emplace(input2_ref, staking::Coin(&block_index, input2_ref, CTxOut{ 2 * UNIT, script2 }));
+
   // Two different remote staking inputs and outputs with correct amounts
   {
-    const CTxOut out(UNIT, script);
-    const CTxOut out2(2 * UNIT, script2);
+    const CTxOut out(amount, script);
+    const CTxOut out2(2 * amount, script2);
 
     tx.vout = {out, out2};
     block.vtx = {MakeTransactionRef(tx)};

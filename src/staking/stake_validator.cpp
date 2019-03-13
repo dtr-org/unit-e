@@ -32,25 +32,39 @@ class StakeValidatorImpl : public StakeValidator {
   //! contents which is why detection of duplicate stake is crucial).
   //!
   //! At the same time the kernel hash must not be easily predictable, which is why some entropy
-  //! is added: The "stake modifier" is a value taken from a previous block, and the "entropy time"
-  //! is the block time of that block.
+  //! is added: The "stake modifier" is a value taken from a previous block.
   //!
   //! In case one is not eligible to propose: The cards are being reshuffled every so often,
   //! which is why the "current time" (the block time of the block to propose) is part of the
   //! computation for the kernel hash.
-  uint256 ComputeKernelHash(const uint256 &stake_modifier,
-                            const blockchain::Time entropy_time,
+  uint256 ComputeKernelHash(const uint256 &previous_block_stake_modifier,
+                            const blockchain::Time stake_block_time,
                             const uint256 &stake_txid,
-                            const std::uint32_t stake_index,
-                            const blockchain::Time current_time) const {
+                            const std::uint32_t stake_out_index,
+                            const blockchain::Time target_block_time) const {
 
     ::CDataStream s(SER_GETHASH, 0);
 
-    s << stake_modifier;
-    s << entropy_time;
+    s << previous_block_stake_modifier;
+    s << stake_block_time;
     s << stake_txid;
-    s << stake_index;
-    s << current_time;
+    s << stake_out_index;
+    s << target_block_time;
+
+    return Hash(s.begin(), s.end());
+  }
+
+  //! \brief Computes the stake modifier which is used to make the next kernel unpredictable.
+  //!
+  //! The stake modifier relies on the transaction hash of the coin staked and
+  //! the stake modifier of the previous block.
+  uint256 ComputeStakeModifier(const uint256 &stake_transaction_hash,
+                               const uint256 &previous_blocks_stake_modifier) const {
+
+    ::CDataStream s(SER_GETHASH, 0);
+
+    s << stake_transaction_hash;
+    s << previous_blocks_stake_modifier;
 
     return Hash(s.begin(), s.end());
   }
@@ -63,6 +77,7 @@ class StakeValidatorImpl : public StakeValidator {
   //! chain is rolled back using undo data and at every point a check of stake
   //! should be possible.
   BlockValidationResult CheckStakeInternal(const CBlockIndex &previous_block, const CBlock &block) const {
+    AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
 
     if (block.vtx.empty()) {
@@ -74,6 +89,11 @@ class StakeValidatorImpl : public StakeValidator {
       result.errors += BlockValidationError::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION;
       return result;
     }
+    // a valid coinbase transaction has a "meta" input at vin[0] and a staking
+    // input at vin[1]. It may have more inputs which are combined in the coinbase
+    // transaction, but only vin[1] determines the eligibility of the block. This
+    // is necessary as a combination of coins would depend on the selection of these
+    // coins and the system could be gamed by degrading it into a Proof-of-Work setting.
     if (coinbase_tx->vin.size() < 2) {
       result.errors += BlockValidationError::NO_STAKING_INPUT;
       return result;
@@ -82,10 +102,14 @@ class StakeValidatorImpl : public StakeValidator {
     const COutPoint staking_out_point = staking_input.prevout;
     const boost::optional<staking::Coin> stake = m_active_chain->GetUTXO(staking_out_point);
     if (!stake) {
+      LogPrint(BCLog::VALIDATION, "Could not find coin for outpoint=%s\n", util::to_string(staking_out_point));
       result.errors += BlockValidationError::STAKE_NOT_FOUND;
       return result;
     }
-    if (!m_blockchain_behavior->IsStakeMature(stake->depth)) {
+    const blockchain::Height height = stake->GetHeight();
+    const blockchain::Depth depth = m_active_chain->GetDepth(height);
+    if (!m_blockchain_behavior->IsStakeMature(depth)) {
+      LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s depth=%d\n", util::to_string(*stake), depth);
       result.errors += BlockValidationError::STAKE_IMMATURE;
       return result;
     }
@@ -95,7 +119,9 @@ class StakeValidatorImpl : public StakeValidator {
     const blockchain::Height target_height = static_cast<blockchain::Height>(previous_block.nHeight) + 1;
     const blockchain::Difficulty target_difficulty =
         m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
-    if (!CheckKernel(stake->amount, kernel_hash, target_difficulty)) {
+    if (!CheckKernel(stake->GetAmount(), kernel_hash, target_difficulty)) {
+      LogPrint(BCLog::VALIDATION, "Kernel hash does not meet target coin=%s kernel=%s target=%d\n",
+               util::to_string(*stake), util::to_string(kernel_hash), target_difficulty);
       result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
       return result;
     }
@@ -109,7 +135,7 @@ class StakeValidatorImpl : public StakeValidator {
   //! If a coinbase transaction contains an input with a remote-staking
   //! scriptPubKey then at least the same amount MUST be sent back to the same
   //! scriptPubKey.
-  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef coinbase_tx) const {
+  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef &coinbase_tx) const {
     BlockValidationResult result;
     std::map<CScript, CAmount> remote_staking_amounts;
     for (std::size_t i = 1; i < coinbase_tx->vin.size(); ++i) {
@@ -120,8 +146,8 @@ class StakeValidatorImpl : public StakeValidator {
         return result;
       }
       WitnessProgram wp;
-      if (utxo->script_pubkey.ExtractWitnessProgram(wp) && wp.IsRemoteStaking()) {
-        remote_staking_amounts[utxo->script_pubkey] += utxo->amount;
+      if (utxo->GetScriptPubKey().ExtractWitnessProgram(wp) && wp.IsRemoteStaking()) {
+        remote_staking_amounts[utxo->GetScriptPubKey()] += utxo->GetAmount();
       }
     }
     for (const auto &out : coinbase_tx->vout) {
@@ -151,37 +177,33 @@ class StakeValidatorImpl : public StakeValidator {
   }
 
   uint256 ComputeStakeModifier(const CBlockIndex *previous_block,
-                               const uint256 &kernel_hash) const override {
+                               const staking::Coin &stake) const override {
 
     if (!previous_block) {
       // The genesis block does not have a preceding block.
       // Its stake modifier is simply 0.
-      return uint256();
+      return uint256::zero;
     }
-
-    ::CDataStream s(SER_GETHASH, 0);
-
-    s << kernel_hash;
-    s << previous_block->stake_modifier;
-
-    return Hash(s.begin(), s.end());
+    return ComputeStakeModifier(
+        stake.GetTransactionId(),
+        previous_block->stake_modifier);
   }
 
   uint256 ComputeKernelHash(const CBlockIndex *previous_block,
                             const staking::Coin &coin,
-                            const blockchain::Time time) const override {
+                            const blockchain::Time target_block_time) const override {
     if (!previous_block) {
       // The genesis block does not have a preceding block. It also does not
       // reference any stake. Its kernel hash is simply 0. This has the nice
       // property of meeting any target difficulty.
-      return uint256();
+      return uint256::zero;
     }
     return ComputeKernelHash(
         previous_block->stake_modifier,
-        previous_block->nTime,
-        coin.txid,
-        coin.index,
-        time);
+        coin.GetBlockTime(),
+        coin.GetTransactionId(),
+        coin.GetOutputIndex(),
+        target_block_time);
   }
 
   bool CheckKernel(const CAmount stake_amount,

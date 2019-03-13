@@ -43,11 +43,11 @@ class ActiveChainAdapter final : public ActiveChain {
     return static_cast<blockchain::Height>(chainActive.Height());
   }
 
-  const CBlockIndex *AtDepth(const blockchain::Depth depth) override {
+  const CBlockIndex *AtDepth(const blockchain::Depth depth) const override {
     return AtHeight(GetSize() - depth);
   }
 
-  const CBlockIndex *AtHeight(const blockchain::Height height) override {
+  const CBlockIndex *AtHeight(const blockchain::Height height) const override {
     return chainActive[height];
   }
 
@@ -87,18 +87,17 @@ class ActiveChainAdapter final : public ActiveChain {
     return ::GetInitialBlockDownloadStatus();
   }
 
-  boost::optional<Coin> GetUTXO(const COutPoint &outPoint) const override {
+  boost::optional<Coin> GetUTXO(const COutPoint &out_point) const override {
     AssertLockHeld(GetLock());
-    const ::Coin &coin = pcoinsTip->AccessCoin(outPoint);
+    const ::Coin &coin = pcoinsTip->AccessCoin(out_point);
     if (coin.IsSpent()) {
       return boost::none;
     }
-    return Coin(
-        outPoint.hash,
-        outPoint.n,
-        coin.out.nValue,
-        coin.out.scriptPubKey,
-        GetDepth(coin.nHeight));
+    const CBlockIndex *const block = AtHeight(coin.nHeight);
+    if (!block) {
+      return boost::none;
+    }
+    return Coin(block, out_point, coin.out);
   }
 };
 

@@ -4,19 +4,21 @@
 
 #include <proposer/eligible_coin.h>
 
+#include <util.h>
+
 #include <tinyformat.h>
 
 namespace proposer {
 
 std::string EligibleCoin::ToString() const {
   return tfm::format(
-      "tx=%s, index=%d, amount=%d, depth=%d, kernel=%d, "
+      "tx=%s, index=%d, amount=%d, height=%d, kernel=%d, "
       "target_height=%d, target_time=%d, target_difficulty=%d",
-      utxo.txid.GetHex(),
-      utxo.index,
-      utxo.amount,
-      utxo.depth,
-      kernel_hash.GetHex(),
+      util::to_string(utxo.GetTransactionId()),
+      utxo.GetOutputIndex(),
+      utxo.GetAmount(),
+      utxo.GetHeight(),
+      util::to_string(kernel_hash),
       target_height,
       target_time,
       target_difficulty);
