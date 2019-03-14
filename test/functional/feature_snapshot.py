@@ -5,6 +5,7 @@
 """
 Test Initial Snapshot Download
 """
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
@@ -164,14 +165,19 @@ class SnapshotTest(UnitETestFramework):
         #                               \     -(h=11) isd_node
         #                                -------------------(h=15) rework_node
 
-        # UNITE TODO: Restore back
-        # This check was disabled after PoS was introduced:
-        # isd_node can not generate block, because it does not have any money
-        # => can not stake. And we can not importmasterkey because it is
-        # forbidden in prune mode
 
-        # isd_node.generatetoaddress(1, isd_node.getnewaddress('', 'bech32'))
-        # assert_equal(isd_node.getblockcount(), 11)
+        # Import funds for the node in pruning mode
+        isd_node.importmasterkey(regtest_mnemonics[5]['mnemonics'], "", False)
+        isd_node.initial_stake = regtest_mnemonics[5]['balance']
+
+        genesis = isd_node.getblock(isd_node.getblockhash(0))
+        funding_txid = genesis['tx'][0]
+        genesis_tx_hex = isd_node.getrawtransaction(funding_txid)
+        fund_proof = isd_node.gettxoutproof([funding_txid])
+        isd_node.importprunedfunds(genesis_tx_hex, fund_proof)
+
+        isd_node.generatetoaddress(1, isd_node.getnewaddress('', 'bech32'))
+        assert_equal(isd_node.getblockcount(), 11)
 
         # test that reorg one epoch after finalization is possible
         #               s0      s1
