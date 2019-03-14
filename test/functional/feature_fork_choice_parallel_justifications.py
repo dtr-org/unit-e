@@ -110,6 +110,9 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         node.generatetoaddress(2, node.getnewaddress())
         sync_blocks([node, fork1, fork2, finalizer1, finalizer2])
 
+        # Do not let finalizer2 to see deposit from finalizer1
+        disconnect_nodes(node, fork2.index)
+
         payto = finalizer1.getnewaddress('', 'legacy')
         txid1 = finalizer1.deposit(payto, 10000)
         finalizer2.setaccount(payto, '')
@@ -120,6 +123,9 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
             print(tx1)
             print(tx2)
             assert_equal(txid1, txid2)
+
+        # Connect back
+        connect_nodes(node, fork2.index)
 
         self.wait_for_transaction(txid1, timeout=150)
 
