@@ -20,12 +20,6 @@ Dependencies
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
-If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG
-
-    brew install librsvg
-
-NOTE: Building with Qt4 is still supported, however, could result in a broken UI. Building with Qt5 is recommended.
-
 Berkeley DB
 -----------
 It is recommended to use Berkeley DB 4.8. If you have to build it yourself,
@@ -50,9 +44,7 @@ Build unit-e
 
 2.  Build unit-e:
 
-    Configure and build the headless unite binaries as well as the GUI (if Qt is found).
-
-    You can disable the GUI build by passing `--without-gui` to configure.
+    Configure and build the unite binaries.
 
         ./autogen.sh
         ./configure
@@ -90,7 +82,7 @@ Other commands:
     ./src/unite-cli --help # Outputs a list of command-line options.
     ./src/unite-cli help # Outputs a list of RPC commands when the daemon is running.
 
-Using Qt Creator as IDE
+Using Qt Creator as IDE (untested)
 ------------------------
 You can use Qt Creator as an IDE, for unite development.
 Download and install the community edition of [Qt Creator](https://www.qt.io/download/).
@@ -99,7 +91,7 @@ Uncheck everything except Qt Creator during the installation process.
 1. Make sure you installed everything through Homebrew mentioned above
 2. Do a proper ./configure --enable-debug
 3. In Qt Creator do "New Project" -> Import Project -> Import Existing Project
-4. Enter "unite-qt" as project name, enter src/qt as location
+4. Enter "unit-e" as project name, enter src as location
 5. Leave the file selection as it is
 6. Confirm the "summary page"
 7. In the "Projects" tab select "Manage Kits..."
@@ -111,5 +103,3 @@ Notes
 -----
 
 * Tested on OS X 10.8 through 10.13 on 64-bit Intel processors only.
-
-* Building with downloaded Qt binaries is not officially supported. See the notes in [#7714](https://github.com/bitcoin/bitcoin/issues/7714)

@@ -24,8 +24,6 @@ make
 make install # optional
 ```
 
-This will build unite-qt as well if the dependencies are met.
-
 Dependencies
 ---------------------
 
@@ -233,7 +231,7 @@ This example lists the steps necessary to setup and build a command line only, n
     git clone https://github.com/dtr-org/unit-e
     cd unit-e
     ./autogen.sh
-    ./configure --disable-wallet --without-gui --without-miniupnpc
+    ./configure --disable-wallet --without-miniupnpc
     make check
 
 Note:
@@ -258,7 +256,7 @@ Then, install the toolchain and curl:
 To build executables for ARM:
 
     cd depends
-    make HOST=arm-linux-gnueabihf NO_QT=1
+    make HOST=arm-linux-gnueabihf
     cd ..
     ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++
     make

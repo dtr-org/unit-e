@@ -41,12 +41,6 @@ WINDOWS_PACKAGING = $(top_srcdir)/share/pixmaps/unite.ico \
   $(top_srcdir)/share/pixmaps/nsis-wizard.bmp \
   $(top_srcdir)/doc/README_windows.txt
 
-OSX_PACKAGING = $(OSX_DEPLOY_SCRIPT) $(OSX_FANCY_PLIST) $(OSX_INSTALLER_ICONS) \
-  $(top_srcdir)/contrib/macdeploy/$(OSX_BACKGROUND_SVG) \
-  $(OSX_DSSTORE_GEN) \
-  $(top_srcdir)/contrib/macdeploy/detached-sig-apply.sh \
-  $(top_srcdir)/contrib/macdeploy/detached-sig-create.sh
-
 COVERAGE_INFO = baseline.info \
   test_unite_filtered.info total_coverage.info \
   baseline_filtered.info functional_test.info functional_test_filtered.info \

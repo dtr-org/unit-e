@@ -16,7 +16,6 @@ import os
 
 EXCLUDE = [
     # auto generated:
-    'src/qt/unitestrings.cpp',
     'src/chainparamsseeds.h',
     # other external copyrights:
     'src/tinyformat.h',
@@ -37,8 +36,6 @@ EXCLUDE_DIRS = [
     "src/secp256k1/",
     "src/univalue/",
     "src/leveldb/",
-    # translation files for Qt client
-    "src/qt/locale/"
 ]
 
 def applies_to_file(filename):

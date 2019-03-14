@@ -394,7 +394,7 @@ case $host in
          dnl in expected paths because they may conflict with system files. Ask
          dnl Homebrew where each one is located, then adjust paths accordingly.
          dnl It's safe to add these paths even if the functionality is disabled by
-         dnl the user (--without-wallet or --without-gui for example).
+         dnl the user (--without-wallet for example).
 
          openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
          bdb_prefix=`$BREW --prefix berkeley-db4 2>/dev/null`
@@ -1211,7 +1211,6 @@ AC_SUBST(COPYRIGHT_HOLDERS, "_COPYRIGHT_HOLDERS")
 AC_SUBST(COPYRIGHT_HOLDERS_SUBSTITUTION, "_COPYRIGHT_HOLDERS_SUBSTITUTION")
 AC_SUBST(COPYRIGHT_HOLDERS_FINAL, "_COPYRIGHT_HOLDERS_FINAL")
 AC_SUBST(UNITE_DAEMON_NAME)
-AC_SUBST(UNITE_GUI_NAME)
 AC_SUBST(UNITE_CLI_NAME)
 AC_SUBST(UNITE_TX_NAME)
 
