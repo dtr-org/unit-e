@@ -20,7 +20,7 @@ from test_framework.util import (
     connect_nodes,
     disconnect_nodes,
     check_finalization,
-    JSONRPCException,
+    assert_raises_rpc_error,
     assert_equal,
     wait_until,
 )
@@ -43,13 +43,6 @@ class EsperanzaSlashTest(UnitETestFramework):
         self.setup_nodes()
 
     def test_double_votes(self):
-        def sendrawtransaction(node, tx):
-            try:
-                node.sendrawtransaction(tx)
-                return ''
-            except JSONRPCException as e:
-                return str(e)
-
         def corrupt_script(script, n_byte):
             script = bytearray(script)
             script[n_byte] = 1 if script[n_byte] == 0 else 0
@@ -120,7 +113,7 @@ class EsperanzaSlashTest(UnitETestFramework):
 
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
-        assert_equal(sendrawtransaction(fork2, v1), 'transaction already in block chain (-27)')
+        assert_raises_rpc_error(-27, 'transaction already in block chain', fork2.sendrawtransaction, v1)
         assert_equal(len(fork2.getrawmempool()), 0)
         fork2.generatetoaddress(3, fork2.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 34)
@@ -154,7 +147,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         # corrupt signature of the vote
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=2)
 
-        assert_equal(sendrawtransaction(fork2, ToHex(tx_v2a)), '16: bad-vote-signature (-26)')
+        assert_raises_rpc_error(-26, 'bad-vote-signature', fork2.sendrawtransaction, ToHex(tx_v2a))
         assert_equal(len(fork2.getrawmempool()), 0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
         time.sleep(10)  # slash transactions are processed every 10 sec. UNIT-E TODO: remove once optimized
@@ -185,7 +178,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         # but keep the correct vote signature
         tx_v2a = FromHex(CTransaction(), v2a)
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=77)
-        assert_equal(sendrawtransaction(fork2, ToHex(tx_v2a)), '16: bad-vote-invalid-state (-26)')
+        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork2.sendrawtransaction, ToHex(tx_v2a))
         wait_until(lambda: len(fork2.getrawmempool()) == 1, timeout=20)
         s1_hash = fork2.getrawmempool()[0]
         s1 = FromHex(CTransaction(), fork2.getrawtransaction(s1_hash))
