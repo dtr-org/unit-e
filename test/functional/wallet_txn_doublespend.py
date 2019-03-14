@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the wallet accounts properly when there is a double-spend conflict."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 
 
@@ -89,7 +89,7 @@ class TxnMallTest(UnitETestFramework):
         # Node0's balance should be starting balance, plus 50UTE for another
         # matured block, minus what was sent to node1, and minus transaction fees:
         expected = starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"]
-        if self.options.mine_block: expected += 50
+        if self.options.mine_block: expected += PROPOSER_REWARD
         expected += tx1["amount"] + tx1["fee"]
         expected += tx2["amount"] + tx2["fee"]
         assert_equal(self.nodes[0].getbalance(), expected)
@@ -136,7 +136,7 @@ class TxnMallTest(UnitETestFramework):
         # Node0's total balance should be starting balance, plus 150UTE for
         # three more matured blocks (COINBASE_MATURITY deep), minus 1240 for the double-spend,
         # plus fees (which are negative):
-        expected = starting_balance + 150 - doublespend_amount + fund_foo_tx["fee"] + fund_bar_tx["fee"] + tx_fee
+        expected = starting_balance + 3 * PROPOSER_REWARD - doublespend_amount + fund_foo_tx["fee"] + fund_bar_tx["fee"] + tx_fee
         assert_equal(self.nodes[0].getbalance(), expected)
         assert_equal(self.nodes[0].getbalance("*"), expected)
 

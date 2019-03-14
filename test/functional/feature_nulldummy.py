@@ -9,7 +9,7 @@ Connect to a single node.
 [Policy/Consensus] Check that the new NULLDUMMY rules are enforced
 """
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 from test_framework.messages import msg_witness_block
 from test_framework.mininode import CTransaction, network_thread_start, P2PInterface
@@ -62,23 +62,23 @@ class NULLDUMMYTest(UnitETestFramework):
         self.lastblockheight = self.nodes[0].getblockcount()
         self.lastblocktime = int(time.time()) + 2
 
-        ms_tx = self.create_transaction(self.nodes[0], coinbase_txid[0], self.ms_address, 49)
+        ms_tx = self.create_transaction(self.nodes[0], coinbase_txid[0], self.ms_address, PROPOSER_REWARD - 1)
         ms_txid = self.nodes[0].sendrawtransaction(bytes_to_hex_str(ms_tx.serialize_with_witness()), True)
 
-        wit_ms_tx = self.create_transaction(self.nodes[0], coinbase_txid[1], self.wit_ms_address, 49)
+        wit_ms_tx = self.create_transaction(self.nodes[0], coinbase_txid[1], self.wit_ms_address, PROPOSER_REWARD - 1)
         wit_ms_txid = self.nodes[0].sendrawtransaction(bytes_to_hex_str(wit_ms_tx.serialize_with_witness()), True)
 
         self.send_block(self.nodes[0], [ms_tx, wit_ms_tx], True)
 
         self.log.info("Test 1: Non-NULLDUMMY base multisig transaction is invalid")
-        test1tx = self.create_transaction(self.nodes[0], ms_txid, self.address, 48)
+        test1tx = self.create_transaction(self.nodes[0], ms_txid, self.address, PROPOSER_REWARD - 2)
         test3txs=[CTransaction(test1tx)]
         trueDummy(test1tx)
         assert_raises_rpc_error(-26, NULLDUMMY_ERROR, self.nodes[0].sendrawtransaction, bytes_to_hex_str(test1tx.serialize_with_witness()), True)
         self.send_block(self.nodes[0], [test1tx])
 
         self.log.info("Test 2: Non-NULLDUMMY P2WSH multisig transaction invalid")
-        test2tx = self.create_transaction(self.nodes[0], wit_ms_txid, self.wit_address, 48)
+        test2tx = self.create_transaction(self.nodes[0], wit_ms_txid, self.wit_address, PROPOSER_REWARD - 2)
         test3txs.append(CTransaction(test2tx))
         test2tx.wit.vtxinwit[0].scriptWitness.stack[0] = b'\x01'
         assert_raises_rpc_error(-26, NULLDUMMY_ERROR, self.nodes[0].sendrawtransaction, bytes_to_hex_str(test2tx.serialize_with_witness()), True)

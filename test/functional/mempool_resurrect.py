@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test resurrection of mined transactions when the blockchain is re-organized."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 
 # Create one-input, one-output, no-fee transaction:
@@ -41,13 +41,13 @@ class MempoolCoinbaseTest(UnitETestFramework):
 
         b = [ node.getblockhash(n) for n in range(1, 4) ]
         coinbase_txids = [ node.getblock(h)['tx'][0] for h in b ]
-        spends1_raw = [ create_tx(node, txid, node0_address, 49.99) for txid in coinbase_txids ]
+        spends1_raw = [ create_tx(node, txid, node0_address, PROPOSER_REWARD - Decimal('0.01')) for txid in coinbase_txids ]
         spends1_id = [ node.sendrawtransaction(tx) for tx in spends1_raw ]
 
         blocks = []
         blocks.extend(node.generate(1))
 
-        spends2_raw = [ create_tx(node, txid, node0_address, 49.98) for txid in spends1_id ]
+        spends2_raw = [ create_tx(node, txid, node0_address, PROPOSER_REWARD - Decimal('0.02')) for txid in spends1_id ]
         spends2_id = [ node.sendrawtransaction(tx) for tx in spends2_raw ]
 
         blocks.extend(node.generate(1))

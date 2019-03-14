@@ -328,7 +328,7 @@ class CTxIn():
 
 class CTxOut():
     def __init__(self, nValue=0, scriptPubKey=b""):
-        self.nValue = nValue
+        self.nValue = int(nValue)
         self.scriptPubKey = scriptPubKey
 
     def deserialize(self, f):

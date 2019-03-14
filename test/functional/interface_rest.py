@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the REST API."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 from struct import *
 from io import BytesIO
@@ -63,7 +63,7 @@ class RESTTest (UnitETestFramework):
         self.nodes[2].generate(100)
         self.sync_all()
 
-        assert_equal(self.nodes[0].getbalance(), self.nodes[0].initial_stake + 50)
+        assert_equal(self.nodes[0].getbalance(), self.nodes[0].initial_stake + PROPOSER_REWARD)
 
         txid = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
         self.sync_all()

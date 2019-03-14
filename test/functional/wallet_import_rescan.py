@@ -142,7 +142,7 @@ class ImportRescanTest(UnitETestFramework):
             variant.label = "label {} {}".format(i, variant)
             variant.address = self.nodes[1].validateaddress(self.nodes[1].getnewaddress(variant.label))
             variant.key = self.nodes[1].dumpprivkey(variant.address["address"])
-            variant.initial_amount = 10 - (i + 1) / 4.0
+            variant.initial_amount = 1 - (i + 1) / 64.0
             variant.initial_txid = self.nodes[0].sendtoaddress(variant.address["address"], variant.initial_amount)
 
         # Generate a block containing the initial transactions, then another
@@ -172,7 +172,7 @@ class ImportRescanTest(UnitETestFramework):
 
         # Create new transactions sending to each address.
         for i, variant in enumerate(IMPORT_VARIANTS):
-            variant.sent_amount = 10 - (2 * i + 1) / 8.0
+            variant.sent_amount = 1 - (2 * i + 1) / 128.0
             variant.sent_txid = self.nodes[0].sendtoaddress(variant.address["address"], variant.sent_amount)
 
         # Generate a block containing the new transactions.

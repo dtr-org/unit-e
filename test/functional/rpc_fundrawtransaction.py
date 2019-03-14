@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the fundrawtransaction RPC."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 
 
@@ -49,7 +49,7 @@ class RawTransactionsTest(UnitETestFramework):
         self.sync_all()
 
         # ensure that setting changePosition in fundraw with an exact match is handled properly
-        rawmatch = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():50})
+        rawmatch = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():PROPOSER_REWARD})
         rawmatch = self.nodes[2].fundrawtransaction(rawmatch, {"changePosition":1, "subtractFeeFromOutputs":[0]})
         assert_equal(rawmatch["changepos"], -1)
 
@@ -349,7 +349,7 @@ class RawTransactionsTest(UnitETestFramework):
         ############################################################
         #compare fee of a standard pubkeyhash transaction with multiple outputs
         inputs = []
-        outputs = {self.nodes[1].getnewaddress():1.1,self.nodes[1].getnewaddress():1.2,self.nodes[1].getnewaddress():0.1,self.nodes[1].getnewaddress():1.3,self.nodes[1].getnewaddress():0.2,self.nodes[1].getnewaddress():0.3}
+        outputs = {self.nodes[1].getnewaddress():1.1,self.nodes[1].getnewaddress():0.2,self.nodes[1].getnewaddress():0.1,self.nodes[1].getnewaddress():0.3,self.nodes[1].getnewaddress():0.2,self.nodes[1].getnewaddress():0.3}
         rawtx = self.nodes[0].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[0].fundrawtransaction(rawtx)
         #create same transaction over sendtoaddress
@@ -507,7 +507,7 @@ class RawTransactionsTest(UnitETestFramework):
         self.sync_all()
 
         # make sure funds are received at node1
-        assert_equal(oldBalance+Decimal('51.10000000'), self.nodes[0].getbalance())
+        assert_equal(oldBalance + PROPOSER_REWARD + Decimal('1.10000000'), self.nodes[0].getbalance())
 
 
         ###############################################
@@ -567,7 +567,7 @@ class RawTransactionsTest(UnitETestFramework):
         self.sync_all()
         self.nodes[0].generate(1)
         self.sync_all()
-        assert_equal(oldBalance+Decimal('50.19000000'), self.nodes[0].getbalance()) #0.19+block reward
+        assert_equal(oldBalance + PROPOSER_REWARD + Decimal('0.19000000'), self.nodes[0].getbalance()) #0.19+block reward
 
         #####################################################
         # test fundrawtransaction with OP_RETURN and no vin #
