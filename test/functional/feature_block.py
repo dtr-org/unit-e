@@ -458,7 +458,7 @@ class FullBlockTest(ComparisonTestFramework):
         # UNIT-E: The first 100 blocks are by definition mature such that the system can
         # be bootstrapped. At this point in the test the blocks do not have an adequate height
         # yet as that we could not spend a transaction. Thus we changed from
-        # rejected(RejectResult(16, b'bad-txns-premature-spend-of-coinbase')) to accepted() here.
+        # rejected(RejectResult(16, b'bad-txns-premature-spend-of-coinbase-reward')) to accepted() here.
         yield accepted(test_name="spend coinbase transaction from the first COINBASE_MATURITY blocks")
         comp_snapshot_hash(20)
 
