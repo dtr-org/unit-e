@@ -205,7 +205,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
                 return errState.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
     }
 
-    switch (+tx.GetType()) {
+    switch (tx.GetType()) {
         case TxType::DEPOSIT:
         case TxType::VOTE:
         case TxType::LOGOUT:
