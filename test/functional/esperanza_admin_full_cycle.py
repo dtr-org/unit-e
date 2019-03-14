@@ -118,9 +118,6 @@ class AdminFullCycle(UnitETestFramework):
 
         self.setup_stake_coins(*self.nodes)
 
-        for node in self.nodes:
-            assert_equal(node.initial_stake, node.getbalance())
-
         # Exit IBD
         self.generate_sync(self.nodes[0])
 
