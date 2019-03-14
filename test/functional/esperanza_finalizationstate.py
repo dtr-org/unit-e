@@ -53,7 +53,7 @@ def test_setup(test, proposers, validators):
     test.setup_clean_chain = True
 
 
-def setup_deposit(self, proser, validators):
+def setup_deposit(self, proposer, validators):
 
     for i, n in enumerate(validators):
         n.new_address = n.getnewaddress("", "legacy")
@@ -67,9 +67,9 @@ def setup_deposit(self, proser, validators):
     # the validator will be ready to operate in epoch 4
     # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
     for n in range(0, 39):
-        generate_block(proser)
+        generate_block(proposer)
 
-    assert_equal(proser.getblockchaininfo()['blocks'], 40)
+    assert_equal(proposer.getblockchaininfo()['blocks'], 40)
 
 
 def generate_block(node):
