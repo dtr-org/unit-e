@@ -183,8 +183,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     bool success = false;
     CValidationState state;
-    staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
-    for (auto &coin : stakeable_coins) {
+    const staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
+    for (const staking::Coin &coin : stakeable_coins) {
       proposer::EligibleCoin eligible_coin = {
           staking::Coin(active_chain->GetBlockIndex(coin.GetTransactionId()),
               COutPoint(coin.GetTransactionId(), coin.GetOutputIndex()),
@@ -200,7 +200,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
       pblocktemplate->block.vtx[0] = coinbase;
       GenerateCoinbaseCommitment(pblocktemplate->block, chainActive.Tip(), Params().GetConsensus());
 
-      LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
+      LogPrintf("%s: block weight=%u txs=%u fees=%ld sigops=%d\n", __func__, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
       // Fill in header
       pblock->hashPrevBlock  = pindexPrev->GetBlockHash();

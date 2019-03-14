@@ -900,7 +900,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Signing coinbase is not supported without a wallet");
 #endif
     } else {
-      for (unsigned int i = 0; i < mtx.vin.size(); i++) {
+      for (unsigned int i = 0; i < mtx.vin.size(); ++i) {
         CTxIn& txin = mtx.vin[i];
         const Coin& coin = view.AccessCoin(txin.prevout);
         if (coin.IsSpent()) {
