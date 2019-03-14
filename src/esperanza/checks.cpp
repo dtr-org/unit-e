@@ -76,9 +76,9 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!IsVoteOrDepositOrLogoutScript(tx.vout[0].scriptPubKey)) {
     return err_state.DoS(10, false, REJECT_INVALID,
-                         "bad-deposit-vout-script-invalid-payvoteslash");
+                         "bad-deposit-vout-script");
   }
 
   std::vector<std::vector<unsigned char>> solutions;
@@ -136,9 +136,9 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!IsVoteOrDepositOrLogoutScript(tx.vout[0].scriptPubKey)) {
     return err_state.DoS(10, false, REJECT_INVALID,
-                         "bad-logout-vout-script-invalid-payvoteslash");
+                         "bad-logout-vout-script");
   }
 
   std::vector<std::vector<unsigned char>> solutions;
@@ -279,9 +279,8 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
-                         "bad-vote-vout-script-invalid-payvoteslash");
+  if (!IsVoteOrDepositOrLogoutScript(tx.vout[0].scriptPubKey)) {
+    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-vout-script");
   }
 
   static thread_local Vote vote_tmp;
@@ -317,6 +316,10 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   Vote vote;
   std::vector<unsigned char> vote_sig;
   if (!CheckVoteTx(tx, err_state, &vote, &vote_sig)) {
+    return false;
+  }
+
+  if (!finalization::RecordVote(tx, err_state)) {
     return false;
   }
 

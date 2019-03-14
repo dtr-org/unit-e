@@ -205,8 +205,19 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
                 return errState.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
     }
 
-    if (tx.IsVote() && !finalization::RecordVote(tx, errState)) {
-        return false;
+    switch (+tx.GetType()) {
+        case TxType::DEPOSIT:
+        case TxType::VOTE:
+        case TxType::LOGOUT:
+            if (!IsVoteOrDepositOrLogoutScript(tx.vout[0].scriptPubKey)) {
+                return errState.DoS(100, false, REJECT_INVALID, "bad-txns-vout-script");
+            }
+        case TxType::REGULAR:
+        case TxType::SLASH:
+        case TxType::COINBASE:
+        case TxType::WITHDRAW:
+        case TxType::ADMIN:
+            break;
     }
 
     return true;
