@@ -61,7 +61,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         connect_nodes(fork1, finalizer2.index)
 
         # leave IBD
-        fork1.generatetoaddress(1, fork1.getnewaddress())
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         sync_blocks([fork1, fork2, finalizer1, finalizer2])
 
         # clone finalizer
@@ -78,7 +78,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         assert_equal(txid1, txid2)
         connect_nodes(fork1, finalizer2.index)
 
-        fork1.generatetoaddress(1, fork1.getnewaddress())
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         sync_blocks([fork1, fork2, finalizer1, finalizer2])
         disconnect_nodes(fork1, finalizer1.index)
         disconnect_nodes(fork1, finalizer2.index)
@@ -86,7 +86,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         # pass instant finalization
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[30] fork1, fork2
-        fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 5, fork1.getnewaddress())
+        fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 5, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 30)
         check_finalization(fork1, {'currentEpoch': 6,
                                    'lastJustifiedEpoch': 4,
@@ -106,7 +106,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         #                                    - e6[31, 32, 33, 34] fork2
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         v1 = fork1.getrawtransaction(fork1.getrawmempool()[0])
-        fork1.generatetoaddress(4, fork1.getnewaddress())
+        fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 34)
         check_finalization(fork1, {'currentEpoch': 6,
                                    'lastJustifiedEpoch': 5,
@@ -114,10 +114,10 @@ class EsperanzaSlashTest(UnitETestFramework):
                                    'validators': 1})
 
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
-        fork2.generatetoaddress(1, fork2.getnewaddress())
+        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         assert_equal(sendrawtransaction(fork2, v1), 'transaction already in block chain (-27)')
         assert_equal(len(fork2.getrawmempool()), 0)
-        fork2.generatetoaddress(3, fork2.getnewaddress())
+        fork2.generatetoaddress(3, fork2.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 34)
         check_finalization(fork2, {'currentEpoch': 6,
                                    'lastJustifiedEpoch': 5,
@@ -133,17 +133,17 @@ class EsperanzaSlashTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[30]
         #                                   \  v1          v2b
         #                                    - e6 - e7[35, 36] fork2
-        fork1.generatetoaddress(1, fork1.getnewaddress())
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         v2a = fork1.getrawtransaction(fork1.getrawmempool()[0])
-        fork1.generatetoaddress(1, fork1.getnewaddress())
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 36)
         check_finalization(fork1, {'currentEpoch': 7,
                                    'lastJustifiedEpoch': 6,
                                    'lastFinalizedEpoch': 5,
                                    'validators': 1})
 
-        fork2.generatetoaddress(1, fork2.getnewaddress())
+        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         tx_v2a = FromHex(CTransaction(), v2a)
 
         # corrupt signature but that it passes general CheckTransaction
@@ -161,7 +161,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         tx_v2b = FromHex(CTransaction(), v2b)
         assert_equal(tx_v2b.get_type(), 'VOTE')
 
-        fork2.generatetoaddress(1, fork2.getnewaddress())
+        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
         assert_equal(fork2.getblockcount(), 36)
         check_finalization(fork2, {'currentEpoch': 7,
@@ -185,7 +185,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         s1 = FromHex(CTransaction(), fork2.getrawtransaction(s1_hash))
         assert_equal(s1.get_type(), 'SLASH')
 
-        b37 = fork2.generatetoaddress(1, fork2.getnewaddress())[0]
+        b37 = fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))[0]
         block = FromHex(CBlock(), fork2.getblock(b37, 0))
         assert_equal(len(block.vtx), 2)
         block.vtx[1].rehash()
