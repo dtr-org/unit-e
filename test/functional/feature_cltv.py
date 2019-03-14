@@ -92,7 +92,6 @@ class BIP65Test(UnitETestFramework):
         tip = self.nodes[0].getbestblockhash()
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        best_block = self.nodes[0].getblock(tip)
         coin = get_unspent_coins(self.nodes[0], 1)[0]
         coinbase = sign_coinbase(self.nodes[0], create_coinbase(1, coin, snapshot_hash))
         block = create_block(int(tip, 16), coinbase, block_time)

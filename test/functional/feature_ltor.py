@@ -18,6 +18,7 @@ from test_framework.authproxy import JSONRPCException
 from test_framework.blocktools import (
     SnapshotMeta,
     create_block,
+    sign_coinbase,
     create_coinbase,
     create_transaction
 )
@@ -239,11 +240,11 @@ class LTORTest(UnitETestFramework):
 
         block = create_block(
             hashprev=hashprev,
-            coinbase=create_coinbase(
+            coinbase=sign_coinbase(self.nodes[0], create_coinbase(
                 height=sync_height + 1,
                 stake=node0.listunspent()[0],
                 snapshot_hash=snapshot_hash
-            ),
+            )),
             nTime=block_time
         )
         block.solve()
