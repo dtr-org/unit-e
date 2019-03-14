@@ -10,7 +10,7 @@
 #include <consensus/validation.h>
 
 namespace block_bench {
-#include <bench/data/block413567.raw.h>
+#include <bench/data/test_block.raw.h>
 } // namespace block_bench
 
 // These are the two major time-sinks which happen after we have fully received
@@ -19,8 +19,8 @@ namespace block_bench {
 
 static void DeserializeBlockTest(benchmark::State& state)
 {
-    CDataStream stream((const char*)block_bench::block413567,
-            (const char*)&block_bench::block413567[sizeof(block_bench::block413567)],
+    CDataStream stream((const char*)block_bench::test_block,
+            (const char*)&block_bench::test_block[sizeof(block_bench::test_block)],
             SER_NETWORK, PROTOCOL_VERSION);
     char a = '\0';
     stream.write(&a, 1); // Prevent compaction
@@ -28,24 +28,25 @@ static void DeserializeBlockTest(benchmark::State& state)
     while (state.KeepRunning()) {
         CBlock block;
         stream >> block;
-        assert(stream.Rewind(sizeof(block_bench::block413567)));
+        assert(stream.Rewind(sizeof(block_bench::test_block)));
     }
 }
 
 static void DeserializeAndCheckBlockTest(benchmark::State& state)
 {
-    CDataStream stream((const char*)block_bench::block413567,
-            (const char*)&block_bench::block413567[sizeof(block_bench::block413567)],
+    // UNIT-E TODO: This is a synthetic block, it makes sense to change it to a real block later on.
+    CDataStream stream((const char*)block_bench::test_block,
+            (const char*)&block_bench::test_block[sizeof(block_bench::test_block)],
             SER_NETWORK, PROTOCOL_VERSION);
     char a = '\0';
     stream.write(&a, 1); // Prevent compaction
 
-    const auto chainParams = CreateChainParams(CBaseChainParams::TESTNET);
+    const auto chainParams = CreateChainParams(CBaseChainParams::REGTEST);
 
     while (state.KeepRunning()) {
         CBlock block; // Note that CBlock caches its checked state, so we need to recreate it here
         stream >> block;
-        assert(stream.Rewind(sizeof(block_bench::block413567)));
+        assert(stream.Rewind(sizeof(block_bench::test_block)));
 
         CValidationState validationState;
         assert(CheckBlock(block, validationState, chainParams->GetConsensus()));
