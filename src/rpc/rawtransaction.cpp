@@ -891,11 +891,11 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
 
     if (txConst.IsCoinBase()) {
 #ifdef ENABLE_WALLET
-      if (!pwallet->GetWalletExtension().SignCoinbaseTransaction(mtx)) {
-        for (unsigned int i = 1; i < mtx.vin.size(); ++i) {
-          TxInErrorToJSON(mtx.vin[i], vErrors, "Cannot sign the coinbase.");
+        if (!pwallet->GetWalletExtension().SignCoinbaseTransaction(mtx)) {
+            for (unsigned int i = 1; i < mtx.vin.size(); ++i) {
+                TxInErrorToJSON(mtx.vin[i], vErrors, "Cannot sign the coinbase.");
+            }
         }
-      }
 #else
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Signing coinbase is not supported without a wallet");
 #endif
