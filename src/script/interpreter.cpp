@@ -1680,7 +1680,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     return 0;
 }
 
-bool IsVoteOrDepositOrLogoutScript(const CScript &script)
+bool IsPayVoteSlashScript(const CScript &script)
 {
     return script.IsPayVoteSlashScript();
 }

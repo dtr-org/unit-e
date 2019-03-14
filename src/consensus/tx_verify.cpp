@@ -209,7 +209,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
         case TxType::DEPOSIT:
         case TxType::VOTE:
         case TxType::LOGOUT:
-            if (!IsVoteOrDepositOrLogoutScript(tx.vout[0].scriptPubKey)) {
+            if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
                 return errState.DoS(100, false, REJECT_INVALID, "bad-txns-vout-script");
             }
         case TxType::REGULAR:
