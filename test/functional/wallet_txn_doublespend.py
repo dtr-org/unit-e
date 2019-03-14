@@ -39,13 +39,7 @@ class TxnMallTest(UnitETestFramework):
 
     def run_test(self):
         starting_balance = self.nodes[0].getbalance("")
-        node1_starting_balance = self.nodes[1].getbalance("")
         change_address = self.nodes[0].getnewaddress()
-
-        foo_fund = 1219
-        bar_fund = 29
-        doublespend_amount = 1240
-        tx_fee = Decimal('-.02')
 
         foo_fund = 1219
         bar_fund = 29
@@ -154,6 +148,6 @@ class TxnMallTest(UnitETestFramework):
         # Node1's "from0" account balance should be just the doublespend:
         assert_equal(self.nodes[1].getbalance("from0"), doublespend_amount)
 
+
 if __name__ == '__main__':
     TxnMallTest().main()
-
