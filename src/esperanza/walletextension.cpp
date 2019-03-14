@@ -61,7 +61,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {
         continue;
       }
-      if (!view.HaveCoin(COutPoint(txId, static_cast<unsigned int>(out_index)))) {
+      if (!view.HaveCoin(COutPoint(txId, static_cast<uint32_t>(out_index)))) {
         continue;
       }
       if (m_enclosing_wallet.IsLockedCoin(txId, out_index)) {

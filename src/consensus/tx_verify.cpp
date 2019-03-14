@@ -237,12 +237,10 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         const Coin& coin = inputs.AccessCoin(prevout);
         assert(!coin.IsSpent());
 
-        // If prev is coinbase, check that it's matured
-        // UNIT-E: Extracted immaturity logic
-        // https://github.com/dtr-org/unit-e/issues/132
-        if (coin.IsImmatureCoinBase(prevout.n, nSpendHeight)) {
+        // If prev is coinbase, check that the reward is mature
+        if (coin.IsImmatureCoinBaseReward(prevout.n, nSpendHeight)) {
             return state.Invalid(false,
-                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase",
+                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase-reward",
                 strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
         }
 
