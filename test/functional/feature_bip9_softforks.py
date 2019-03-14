@@ -23,9 +23,11 @@ import itertools
 from test_framework.test_framework import ComparisonTestFramework
 from test_framework.util import *
 from test_framework.mininode import CTransaction, network_thread_start
-from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta, update_snapshot_with_tx
+from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta, \
+    update_snapshot_with_tx
 from test_framework.comptool import TestInstance, TestManager
 from test_framework.script import CScript, OP_1NEGATE, OP_CHECKSEQUENCEVERIFY, OP_DROP
+
 
 class BIP9SoftForksTest(ComparisonTestFramework):
     def set_test_params(self):
@@ -40,7 +42,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         self.test.run()
 
     def create_transaction(self, node, coin, to_address, amount):
-        outputs = { to_address : amount }
+        outputs = {to_address: amount}
         rawtx = node.createrawtransaction([coin], outputs)
         tx = CTransaction()
         f = BytesIO(hex_str_to_bytes(rawtx))
@@ -55,7 +57,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         tx.deserialize(f)
         return tx
 
-    def generate_blocks(self, coins, number, version, test_blocks = []):
+    def generate_blocks(self, coins, number, version, test_blocks=[]):
         for i in range(number):
             coin = coins.pop()
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(self.height, coin, self.snapshot_meta.hash))
@@ -107,8 +109,8 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 1-A
         # check stats after max number of "signalling not" blocks such that LOCKED_IN still possible this period
         coins = get_unspent_coins(self.nodes[0], 46)
-        test_blocks = self.generate_blocks(coins, 36, 4, test_blocks) # 0x00000004 (signalling not)
-        test_blocks = self.generate_blocks(coins, 10, activated_version) # 0x20000001 (signalling ready)
+        test_blocks = self.generate_blocks(coins, 36, 4, test_blocks)  # 0x00000004 (signalling not)
+        test_blocks = self.generate_blocks(coins, 10, activated_version)  # 0x20000001 (signalling ready)
         yield TestInstance(test_blocks, sync_every_block=False)
 
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 46)
@@ -117,7 +119,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
 
         # Test 1-B
         # check stats after one additional "signalling not" block --  LOCKED_IN no longer possible this period
-        test_blocks = self.generate_blocks([tip_coin()], 1, 4, test_blocks) # 0x00000004 (signalling not)
+        test_blocks = self.generate_blocks([tip_coin()], 1, 4, test_blocks)  # 0x00000004 (signalling not)
         yield TestInstance(test_blocks, sync_every_block=False)
 
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 47)
@@ -127,7 +129,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Test 1-C
         # finish period with "ready" blocks, but soft fork will still fail to advance to LOCKED_IN
         coins = get_unspent_coins(self.nodes[0], 97)
-        test_blocks = self.generate_blocks(coins, 97, activated_version) # 0x20000001 (signalling ready)
+        test_blocks = self.generate_blocks(coins, 97, activated_version)  # 0x20000001 (signalling ready)
         yield TestInstance(test_blocks, sync_every_block=False)
 
         assert_equal(self.get_bip9_status(bipName)['statistics']['elapsed'], 0)
@@ -139,10 +141,10 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Fail to achieve LOCKED_IN 100 out of 144 signal bit 1
         # using a variety of bits to simulate multiple parallel softforks
         coins = get_unspent_coins(self.nodes[0], 144)
-        test_blocks = self.generate_blocks(coins, 50, activated_version) # 0x20000001 (signalling ready)
-        test_blocks = self.generate_blocks(coins, 20, 4, test_blocks) # 0x00000004 (signalling not)
-        test_blocks = self.generate_blocks(coins, 50, activated_version, test_blocks) # 0x20000101 (signalling ready)
-        test_blocks = self.generate_blocks(coins, 24, 4, test_blocks) # 0x20010000 (signalling not)
+        test_blocks = self.generate_blocks(coins, 50, activated_version)  # 0x20000001 (signalling ready)
+        test_blocks = self.generate_blocks(coins, 20, 4, test_blocks)  # 0x00000004 (signalling not)
+        test_blocks = self.generate_blocks(coins, 50, activated_version, test_blocks)  # 0x20000101 (signalling ready)
+        test_blocks = self.generate_blocks(coins, 24, 4, test_blocks)  # 0x20010000 (signalling not)
         yield TestInstance(test_blocks, sync_every_block=False)
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'started')
@@ -154,10 +156,10 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # 108 out of 144 signal bit 1 to achieve LOCKED_IN
         # using a variety of bits to simulate multiple parallel softforks
         coins = get_unspent_coins(self.nodes[0], 143)
-        test_blocks = self.generate_blocks(coins, 57, activated_version) # 0x20000001 (signalling ready)
-        test_blocks = self.generate_blocks(coins, 26, 4, test_blocks) # 0x00000004 (signalling not)
-        test_blocks = self.generate_blocks(coins, 50, activated_version, test_blocks) # 0x20000101 (signalling ready)
-        test_blocks = self.generate_blocks(coins, 10, 4, test_blocks) # 0x20010000 (signalling not)
+        test_blocks = self.generate_blocks(coins, 57, activated_version)  # 0x20000001 (signalling ready)
+        test_blocks = self.generate_blocks(coins, 26, 4, test_blocks)  # 0x00000004 (signalling not)
+        test_blocks = self.generate_blocks(coins, 50, activated_version, test_blocks)  # 0x20000101 (signalling ready)
+        test_blocks = self.generate_blocks(coins, 10, 4, test_blocks)  # 0x20010000 (signalling not)
         yield TestInstance(test_blocks, sync_every_block=False)
 
         # check counting stats and "possible" flag before last block of this period achieves LOCKED_IN...
@@ -167,7 +169,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         assert_equal(self.get_bip9_status(bipName)['status'], 'started')
 
         # ...continue with Test 3
-        test_blocks = self.generate_blocks([tip_coin()], 1, activated_version) # 0x20000001 (signalling ready)
+        test_blocks = self.generate_blocks([tip_coin()], 1, activated_version)  # 0x20000001 (signalling ready)
         yield TestInstance(test_blocks, sync_every_block=False)
 
         assert_equal(self.get_bip9_status(bipName)['status'], 'locked_in')
@@ -186,7 +188,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Check that the new rule is enforced
         coins = get_unspent_coins(self.nodes[0], 2)
         spendtx = self.create_transaction(self.nodes[0],
-                coins[0], self.nodeaddress, 1.0)
+                                          coins[0], self.nodeaddress, 1.0)
         invalidate(spendtx)
         spendtx = self.sign_transaction(self.nodes[0], spendtx)
         spendtx.rehash()
@@ -214,7 +216,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Check that the new sequence lock rules are enforced
         coins = get_unspent_coins(self.nodes[0], 2)
         spendtx = self.create_transaction(self.nodes[0],
-                coins.pop(), self.nodeaddress, 1.0)
+                                          coins.pop(), self.nodeaddress, 1.0)
         invalidate(spendtx)
         spendtx = self.sign_transaction(self.nodes[0], spendtx)
         spendtx.rehash()
@@ -272,6 +274,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         # Disable Sequence lock, Activate nLockTime
         tx.vin[0].nSequence = 0x90FFFFFF
         tx.nLockTime = self.last_block_time
+
 
 if __name__ == '__main__':
     BIP9SoftForksTest().main()

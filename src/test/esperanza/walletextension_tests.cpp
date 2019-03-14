@@ -304,7 +304,7 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
     BOOST_REQUIRE_EQUAL(stakeable_coins.size(), 2);  // The just created stakeable tx + initial reward
 
     bool found = false;
-    for (auto &coin : stakeable_coins) {
+    for (const staking : Coin &coin : stakeable_coins) {
       if (stakeable.GetHash() == coin.GetTransactionId() && coin.GetOutputIndex() == 0) {
         found = true;
         break;

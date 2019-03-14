@@ -1765,7 +1765,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             bool is_spent = view.SpendCoin(out, &coin);
 
             if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
-                LogPrintf("ERROR: Transaction output mismatch: ix=%d, is_spent=%d,tx_vout=%s, coin_out=%s, height=%d, coin_height=%d, tx.IsCoinBase=%d, coin.IsCoinBase=%d\n",
+                LogPrintf("ERROR: Transaction output mismatch: idx=%d is_spent=%d tx_vout=%s coin_out=%s height=%d coin_height=%d tx.IsCoinBase=%d coin.IsCoinBase=%d\n",
                     o, is_spent, tx.vout[o].ToString(), coin.out.ToString(), pindex->nHeight, coin.nHeight, tx.IsCoinBase(), coin.fCoinBase);
                 fClean = false; // Transaction output mismatch
             }

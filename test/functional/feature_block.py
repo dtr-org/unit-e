@@ -229,7 +229,7 @@ class FullBlockTest(ComparisonTestFramework):
         # get a spendable output as staking coin
         def get_staking_coin():
             coin = get_spendable_output()
-            return {'txid': coin.tx.hash, 'vout': coin.n, 'amount': coin.tx.vout[coin.n].nValue/UNIT}
+            return {'txid': coin.tx.hash, 'vout': coin.n, 'amount': coin.tx.vout[coin.n].nValue / UNIT}
 
         # returns a test case that asserts that the current tip was accepted
         def accepted(test_name = ""):
@@ -564,7 +564,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
 
         # MULTISIG: each op code counts as 20 sigops.  To create the edge case, pack another 19 sigops at the end.
-        lots_of_multisigs = CScript([OP_CHECKMULTISIG] * ((MAX_BLOCK_SIGOPS-1) // 20) + [OP_CHECKSIG] * 18)
+        lots_of_multisigs = CScript([OP_CHECKMULTISIG] * ((MAX_BLOCK_SIGOPS - 1) // 20) + [OP_CHECKSIG] * 18)
         b31 = block(31, get_staking_coin(), spend=out[8], script=lots_of_multisigs)
         assert_equal(get_legacy_sigopcount_block(b31), MAX_BLOCK_SIGOPS)
         yield accepted()
@@ -572,7 +572,7 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(31)
 
         # this goes over the limit because the coinbase has one sigop
-        too_many_multisigs = CScript([OP_CHECKMULTISIG] * ((MAX_BLOCK_SIGOPS-1) // 20) + [OP_CHECKSIG] * 19)
+        too_many_multisigs = CScript([OP_CHECKMULTISIG] * ((MAX_BLOCK_SIGOPS - 1) // 20) + [OP_CHECKSIG] * 19)
         b32 = block(32, get_staking_coin(), spend=out[9], script=too_many_multisigs)
         assert_equal(get_legacy_sigopcount_block(b32), MAX_BLOCK_SIGOPS + 1)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
@@ -581,13 +581,13 @@ class FullBlockTest(ComparisonTestFramework):
 
         # CHECKMULTISIGVERIFY
         tip(31)
-        lots_of_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS-1) // 20) + [OP_CHECKSIG] * 18)
+        lots_of_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS - 1) // 20) + [OP_CHECKSIG] * 18)
         block(33, get_staking_coin(), spend=out[9], script=lots_of_multisigs)
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(33)
 
-        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS-1) // 20)+ [OP_CHECKSIG] * 19)
+        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS - 1) // 20)+ [OP_CHECKSIG] * 19)
         block(34, get_staking_coin(), spend=out[10], script=too_many_multisigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(33)
@@ -1449,7 +1449,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         test2 = TestInstance(sync_every_block=False)
         for i in range(89, LARGE_REORG_SIZE + 89):
-            block("alt"+str(i), get_staking_coin())
+            block("alt" + str(i), get_staking_coin())
             save_spendable_output()
             test2.blocks_and_transactions.append([self.tip, False])
         yield test2
