@@ -10,7 +10,7 @@ class UsbDeviceCryptoTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 2
         self.setup_clean_chain = True
-        self.extra_args = [['-stakesplitthreshold=1000000000']] * 2
+        self.extra_args = [[], ['-stakesplitthreshold=1000000000']]
 
     def run_test(self):
         hw_node, other_node = self.nodes
