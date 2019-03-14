@@ -51,11 +51,9 @@ class EsperanzaSlashTest(UnitETestFramework):
                 return str(e)
 
         def corrupt_script(script, n_byte):
-            old = script
-            script = old[:n_byte]
-            script += b'1' if bytes(old[n_byte]) == b'0' else b'0'
-            script += old[int(n_byte + 1):]
-            return script
+            script = bytearray(script)
+            script[n_byte] = 1 if script[n_byte] == 0 else 0
+            return bytes(script)
 
         fork1 = self.nodes[0]
         fork2 = self.nodes[1]
