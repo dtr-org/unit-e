@@ -4,8 +4,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
 EsperanzaSlashTest checks:
-1. double vote with invalid signature is ignored
-2. valid double vote creates slash transaction
+1. double vote with invalid vote signature is ignored
+2. double vote with valid vote signature but invalid tx signature creates slash transaction
 """
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
@@ -49,6 +49,13 @@ class EsperanzaSlashTest(UnitETestFramework):
                 return ''
             except JSONRPCException as e:
                 return str(e)
+
+        def corrupt_script(script, n_byte):
+            old = script
+            script = old[:n_byte]
+            script += b'1' if bytes(old[n_byte]) == b'0' else b'0'
+            script += old[int(n_byte + 1):]
+            return script
 
         fork1 = self.nodes[0]
         fork2 = self.nodes[1]
@@ -125,7 +132,7 @@ class EsperanzaSlashTest(UnitETestFramework):
                                    'validators': 1})
         self.log.info('same vote on two forks was accepted')
 
-        # test that double-vote with invalid signature is ignored
+        # test that double-vote with invalid vote signature is ignored
         # and doesn't cause slashing
         #                                      v1          v2a
         #                                    - e6 - e7[35, 36] fork1
@@ -146,11 +153,8 @@ class EsperanzaSlashTest(UnitETestFramework):
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         tx_v2a = FromHex(CTransaction(), v2a)
 
-        # corrupt signature but that it passes general CheckTransaction
-        script = tx_v2a.vout[0].scriptPubKey
-        tx_v2a.vout[0].scriptPubKey = script[:2]
-        tx_v2a.vout[0].scriptPubKey += b'1' if bytes(script[2]) == b'0' else b'0'
-        tx_v2a.vout[0].scriptPubKey += script[3:]
+        # corrupt signature of the vote
+        tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=2)
 
         assert_equal(sendrawtransaction(fork2, ToHex(tx_v2a)), '16: bad-vote-signature (-26)')
         assert_equal(len(fork2.getrawmempool()), 0)
@@ -170,15 +174,19 @@ class EsperanzaSlashTest(UnitETestFramework):
                                    'validators': 1})
         self.log.info('double-vote with invalid signature is ignored')
 
-        # test that valid double-vote creates slash tx
-        # and slash tx is included in the next block
+        # test that valid double-vote but with invalid tx signature
+        # creates slash tx it is included in the next block
         #                                      v1          v2a
         #                                    - e6 - e7[35, 36] fork1
         # F    F    F    F    F    F    J   /
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[30]
         #                                   \  v1          v2b s1
         #                                    - e6 - e7[35, 36, 37] fork2
+
+        # corrupt signature of the whole transaction
+        # but keep the correct vote signature
         tx_v2a = FromHex(CTransaction(), v2a)
+        tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=77)
         assert_equal(sendrawtransaction(fork2, ToHex(tx_v2a)), '16: bad-vote-invalid-state (-26)')
         wait_until(lambda: len(fork2.getrawmempool()) == 1, timeout=20)
         s1_hash = fork2.getrawmempool()[0]
