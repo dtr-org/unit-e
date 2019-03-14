@@ -48,6 +48,10 @@ class EsperanzaSlashTest(UnitETestFramework):
             script[n_byte] = 1 if script[n_byte] == 0 else 0
             return bytes(script)
 
+        # initial topology where arrows denote the direction of connections
+        # finalizer2 ← fork1 → finalizer1
+        #                ↓  ︎
+        #              fork2
         fork1 = self.nodes[0]
         fork2 = self.nodes[1]
 
@@ -91,6 +95,10 @@ class EsperanzaSlashTest(UnitETestFramework):
                                    'lastFinalizedEpoch': 3,
                                    'validators': 1})
 
+        # change topology where forks are not connected
+        # finalizer1 → fork1
+        #
+        # finalizer2 → fork2
         sync_blocks([fork1, fork2])
         disconnect_nodes(fork1, fork2.index)
 
