@@ -39,7 +39,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
     CScript scriptPubKey = CScript() << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG;
 
     // Make a coinbase mature so we have something to spend
-    auto last_coinbase = CreateAndProcessBlock({}, scriptPubKey).vtx[0];
+    const CTransactionRef last_coinbase = CreateAndProcessBlock({}, scriptPubKey).vtx[0];
 
     // Create a double-spend of mature coinbase txn:
     std::vector<CMutableTransaction> spends;
@@ -155,7 +155,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     CScript p2sh_scriptPubKey = GetScriptForDestination(CScriptID(p2pkh_scriptPubKey));
     CScript p2wpkh_scriptPubKey = GetScriptForWitness(p2pkh_scriptPubKey);
 
-    auto p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey).vtx[0];
+    const CTranssactionRef p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey).vtx[0];
 
     pwalletMain->AddCScript(p2pkh_scriptPubKey);
 
