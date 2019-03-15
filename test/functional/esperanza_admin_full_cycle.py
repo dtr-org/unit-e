@@ -4,8 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import (json, connect_nodes_bi, assert_equal,
-                                 assert_raises_rpc_error)
+from test_framework.util import json, connect_nodes_bi, assert_raises_rpc_error
 from test_framework.admin import Admin
 
 MIN_DEPOSIT_SIZE = 1000
