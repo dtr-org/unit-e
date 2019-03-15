@@ -223,7 +223,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
     return true;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, int nSpendHeight, CAmount& txfee, CAmount *value_in)
+bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, const int nSpendHeight, CAmount& txfee, CAmount *inputs_amount)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -251,8 +251,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
-    if (value_in) {
-        *value_in = nValueIn;
+    if (inputs_amount) {
+        *inputs_amount = nValueIn;
     }
 
     const CAmount value_out = tx.GetValueOut();
