@@ -55,138 +55,138 @@ TEST_EXIT_SKIPPED = 77
 BASE_SCRIPTS= [
     # Scripts that are run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
-    'wallet_hd.py',
-    'wallet_backup.py',
+    'wallet_backup.py',  # 118s
+    'feature_fee_estimation.py',  # 529s
+    'feature_block.py',  # 641s
     # vv Tests less than 5m vv
-    'feature_no_esperanza_tx_relay_delay.py',
-    'feature_maxuploadtarget.py',
-    'mempool_packages.py',
-    'feature_block.py',
-    'rpc_fundrawtransaction.py',
-    'p2p_compactblocks.py',
-    'feature_segwit.py',
-    'feature_fee_estimation.py',
-    'esperanza_withdraw.py',
+    'feature_maxuploadtarget.py',  # 125s
+    'feature_bip9_softforks.py',  # 187s
     # vv Tests less than 2m vv
-    'feature_bip68_sequence.py',
-    'wallet_basic.py',
-    'wallet_accounts.py',
-    'p2p_segwit.py',
-    'p2p_embargoman_star.py',
-    'esperanza_admin_full_cycle.py',
-    'p2p_timeouts.py',
-    'wallet_dump.py',
-    'esperanza_vote.py',
-    'p2p_embargoman_probing.py',
-    'rpc_listtransactions.py',
-    'proposer_balance.py',
-    'p2p_embargoman_loop.py',
+    'feature_no_esperanza_tx_relay_delay.py',  # 78s
+    'feature_bip68_sequence.py',  # 78 s
+    'wallet_basic.py',  # 35s
+    'p2p_segwit.py',  # 126s
+    'p2p_embargoman_star.py',  # 49s
+    'p2p_timeouts.py',  # 63s
+    'wallet_dump.py',  # 12s
+    'proposer_balance.py',  # 81s
+    'wallet_multiwallet.py --usecli',  # 158s
     # vv Tests less than 60s vv
-    'feature_bip9_softforks.py',
-    'p2p_feefilter.py',
-    'p2p_sendheaders.py',
-    'wallet_zapwallettxes.py',
-    'esperanza_expired_vote_conflict.py',
-    'wallet_importmulti.py',
-    'wallet_bumpfee.py',
-    'mempool_limit.py',
-    'rpc_txoutproof.py',
-    'wallet_listreceivedby.py',
-    'wallet_abandonconflict.py',
-    'feature_csv_activation.py',
-    'rpc_rawtransaction.py',
-    'wallet_address_types.py',
-    'feature_reindex.py',
+    'rpc_fundrawtransaction.py',  # 40s
+    'wallet_hd.py',  # 39s
+    'rpc_listtransactions.py',  # 20s
+    'p2p_embargoman_probing.py',  # 23s
+    'p2p_embargoman_loop.py',  # 23s
+    'esperanza_admin_full_cycle.py',  # 36s
+    'p2p_feefilter.py',  # 29s
+    'p2p_sendheaders.py',  # 15s
+    'wallet_zapwallettxes.py',  # 6s
+    'esperanza_expired_vote_conflict.py',  # 25s
+    'wallet_importmulti.py',  # 8s
+    'wallet_bumpfee.py',  # 13s
+    'rpc_txoutproof.py',  # 5s
+    'wallet_listreceivedby.py',  # 8s
+    'wallet_abandonconflict.py',  # 9s
+    'feature_csv_activation.py',  # 24s
+    'rpc_rawtransaction.py',  # 24s
+    'wallet_address_types.py',  # 77s
+    'p2p_snapshot.py',  # 17s
+    'feature_assumevalid.py',  # 35s
     # vv Tests less than 30s vv
-    'feature_ltor.py',
-    'feature_assumevalid.py',
-    'wallet_keypool_topup.py',
-    'interface_zmq.py',
-    'interface_unite_cli.py',
-    'esperanza_slash.py',
-    'mempool_resurrect.py',
-    'wallet_txn_doublespend.py --mineblock',
-    'wallet_txn_clone.py',
-    'wallet_txn_clone.py --segwit',
-    'rpc_getchaintips.py',
-    'interface_rest.py',
-    'mempool_spend_coinbase.py',
-    'mempool_reorg.py',
-    'mempool_persist.py',
-    'wallet_multiwallet.py',
-    'wallet_multiwallet.py --usecli',
-    'interface_http.py',
-    'rpc_users.py',
-    'feature_proxy.py',
-    'rpc_signrawtransaction.py',
-    'p2p_disconnect_ban.py',
-    'rpc_decodescript.py',
-    'rpc_blockchain.py',
-    'rpc_deprecated.py',
-    'wallet_disable.py',
-    'rpc_net.py',
-    'wallet_keypool.py',
-    'p2p_mempool.py',
-    'esperanza_deposit.py',
-    'esperanza_finalizationstate.py',
-    'esperanza_logout.py',
-    'mining_prioritisetransaction.py',
-    'p2p_invalid_block.py',
-    'p2p_invalid_tx.py',
+    'wallet_accounts.py',  # 8s
+    'p2p_compactblocks.py',  # 26s
+    'mempool_packages.py',  # 9s
+    'mempool_limit.py',  # 10s
+    'feature_segwit.py',  # 19s
+    'feature_fork_choice_forked_finalize_epoch.py',  # 19s
+    'feature_ltor.py',  # 8s
+    'feature_reindex.py',  # 4s
+    'wallet_keypool_topup.py',  # 8s
+    'interface_zmq.py',  # 3s
+    'interface_unite_cli.py',  # 1s
+    'esperanza_slash.py',  # 21s
+    'mempool_resurrect.py',  # 1s
+    'wallet_txn_doublespend.py --mineblock',  # 3s
+    'wallet_txn_clone.py',  # 3s
+    'wallet_txn_clone.py --segwit',  # 3s
+    'rpc_getchaintips.py',  # 4s
+    'interface_rest.py',  # 10s
+    'mempool_spend_coinbase.py',  # 1s
+    'mempool_reorg.py',  # 4s
+    'mempool_persist.py',  # 10 s
+    'wallet_multiwallet.py',  # 9s
+    'interface_http.py',  # 1s
+    'rpc_users.py',  # 3s
+    'feature_proxy.py',  # 2s
+    'rpc_signrawtransaction.py',  # 1s
+    'p2p_disconnect_ban.py',  # 2s
+    'rpc_decodescript.py',  # 1s
+    'rpc_blockchain.py',  # 7s
+    'rpc_deprecated.py',  # 1s
+    'wallet_disable.py',  # 0s
+    'rpc_net.py',  # 1s
+    'wallet_keypool.py',  # 5s
+    'p2p_mempool.py',  # 1s
+    'esperanza_deposit.py',  # 4s
+    'esperanza_finalizationstate.py',  # 3s
+    'esperanza_logout.py',  # 7s
+    'esperanza_vote.py',  # 4s
+    'mining_prioritisetransaction.py',  # 11s
+    'p2p_invalid_block.py',  # 3s
+    'p2p_invalid_tx.py',  # 3s
+    'feature_versionbits_warning.py',  # 7s
+    'rpc_preciousblock.py',  # 3s
+    'wallet_importprunedfunds.py',  # 2s
+    'rpc_signmessage.py',  # 1s
+    'feature_spend_genesis.py',  # 2s
+    'rpc_filtertransactions.py',  # 7s
+    'feature_nulldummy.py',  # 1s
+    'rpc_sendtypeto.py',  # 3s
+    'wallet_import_rescan.py',  # 1s
+    'rpc_named_arguments.py',  # 1s
+    'rpc_addressbook.py',  # 1s
+    'wallet_listsinceblock.py',  # 4s
+    'p2p_leak.py',  # 6s
+    'wallet_encryption.py',  # 7s
+    'feature_dersig.py',  # 1s
+    'feature_cltv.py',  # 1s
+    'rpc_uptime.py',  # 1s
+    'wallet_txn_doublespend.py',  # 3s
+    'wallet_txn_clone.py --mineblock',  # 3s
+    'feature_notifications.py',  # 3s
+    'feature_remote_staking.py',  # 1s
+    'rpc_invalidateblock.py',  # 6s
+    'feature_rbf.py',  # 7s
+    'wallet_resendwallettransactions.py',  # 1s
+    'wallet_mnemonicinfo.py',  # 1s
+    'wallet_mnemonicnew.py',  # 1s
+    'wallet_importmasterkey.py',  # 1s
+    'esperanza_admin_validation.py',  # 3s
+    'p2p_commits.py',  # 8s
+    'proposer_multiwallet.py',  # 1s
+    'proposer_stakeable_balance.py',  # 3s
+    'proposer_settings.py',  # 17s
+    'feature_minchainwork.py',  # 4s
+    'p2p_fingerprint.py',  # 7s
+    'feature_uacomment.py',  # 2s
+    'rpc_runstringcommand.py',  # 2s
+    'esperanza_withdraw.py',  # 19s
+    'p2p_unrequested_blocks.py',  # 4s
+    'feature_logging.py',  # 3s
+    'p2p_node_network_limited.py',  # 2s
+    'rpc_getchainparams.py',  # 1s
+    'feature_config_args.py',  # 2s
+    'feature_help.py',  # 0s
+    'rpc_calcsnapshothash.py',  # 1s
+    'rpc_getblocksnapshot.py',  # 2s
+    'rpc_validator.py',  # 1s
+    'rpc_finalization.py',  # 4s
+    'feature_snapshot.py',  # 9s
+    'feature_snapshot_creation.py',  # 2s
+    'feature_fork_choice_finalization.py',  # 6s
+    'feature_fork_choice_parallel_justifications.py',  # 6s
+    'example_test.py',  # 1s
     'p2p_invalid_stake.py',
-    'feature_versionbits_warning.py',
-    'rpc_preciousblock.py',
-    'wallet_importprunedfunds.py',
-    'rpc_signmessage.py',
-    'feature_spend_genesis.py',
-    'rpc_filtertransactions.py',
-    'feature_nulldummy.py',
-    'rpc_sendtypeto.py',
-    'wallet_import_rescan.py',
-    'rpc_named_arguments.py',
-    'rpc_addressbook.py',
-    'wallet_listsinceblock.py',
-    'p2p_leak.py',
-    'wallet_encryption.py',
-    'feature_dersig.py',
-    'feature_cltv.py',
-    'rpc_uptime.py',
-    'wallet_txn_doublespend.py',
-    'wallet_txn_clone.py --mineblock',
-    'feature_notifications.py',
-    'feature_remote_staking.py',
-    'rpc_invalidateblock.py',
-    'feature_rbf.py',
-    'wallet_resendwallettransactions.py',
-    'wallet_mnemonicinfo.py',
-    'wallet_mnemonicnew.py',
-    'wallet_importmasterkey.py',
-    'esperanza_admin_validation.py',
-    'p2p_commits.py',
-    'proposer_multiwallet.py',
-    'proposer_stakeable_balance.py',
-    'proposer_settings.py',
-    'feature_minchainwork.py',
-    'p2p_fingerprint.py',
-    'feature_uacomment.py',
-    'rpc_runstringcommand.py',
-    'p2p_unrequested_blocks.py',
-    'feature_logging.py',
-    'p2p_node_network_limited.py',
-    'rpc_getchainparams.py',
-    'feature_config_args.py',
-    'feature_help.py',
-    'rpc_calcsnapshothash.py',
-    'rpc_getblocksnapshot.py',
-    'rpc_validator.py',
-    'rpc_finalization.py',
-    'feature_snapshot.py',
-    'p2p_snapshot.py',
-    'feature_snapshot_creation.py',
-    'feature_fork_choice_finalization.py',
-    'feature_fork_choice_parallel_justifications.py',
-    'feature_fork_choice_forked_finalize_epoch.py',
-    'example_test.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
 ]
@@ -207,8 +207,8 @@ EXTENDED_SCRIPTS = [
 USBDEVICE_SCRIPTS = [
     # These tests are enabled or disabled based on the ENABLE_USBDEVICE
     # flag in configure.ini
-    'wallet_hwquery.py',
-    'wallet_hwsign.py',
+    'wallet_hwquery.py',  # 1s
+    'wallet_hwsign.py',  # 1s
 ]
 
 DISABLED_SCRIPTS = []
