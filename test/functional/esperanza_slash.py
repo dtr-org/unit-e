@@ -2,163 +2,207 @@
 # Copyright (c) 2018-2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-
-from test_framework.blocktools import *
-from test_framework.util import *
+"""
+EsperanzaSlashTest checks:
+1. double vote with invalid vote signature is ignored
+2. double vote with valid vote signature but invalid tx signature creates slash transaction
+"""
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.mininode import CTransaction
-from test_framework.address import *
-from test_framework.key import CECKey
-
-
-class Vote:
-
-    def __init__(self, validator_address, target_hash, source_epoch, target_epoch):
-        self.validator_address = validator_address
-        self.target_hash = target_hash
-        self.source_epoch = source_epoch
-        self.target_epoch = target_epoch
-
-    def serialize(self, signature):
-        return CScript([
-            signature,
-            base58check_to_bytes(self.validator_address),
-            hex_str_to_bytes(self.target_hash)[::-1],
-            struct.pack("<I", self.source_epoch),
-            struct.pack("<I", self.target_epoch)])
-
-    def get_hash(self):
-        ss = bytes()
-        ss += base58check_to_bytes(self.validator_address)
-        ss += hex_str_to_bytes(self.target_hash)[::-1]
-        ss += struct.pack("<I", self.source_epoch)
-        ss += struct.pack("<I", self.target_epoch)
-        return hash256(ss)
+from test_framework.blocktools import (
+    CBlock,
+    CTransaction,
+    FromHex,
+    ToHex,
+)
+from test_framework.util import (
+    sync_blocks,
+    connect_nodes,
+    disconnect_nodes,
+    check_finalization,
+    assert_raises_rpc_error,
+    assert_equal,
+    wait_until,
+)
+import time
 
 
 class EsperanzaSlashTest(UnitETestFramework):
 
     def set_test_params(self):
-        self.num_nodes = 2
-
-        params_data = {
-            'epochLength': 10,
-            'minDepositSize': 1500,
-        }
-        json_params = json.dumps(params_data)
-
-        validator_node_params = [
-            '-validating=1',
-            '-debug=all',
-            '-whitelist=127.0.0.1',
-            '-esperanzaconfig=' + json_params
+        self.num_nodes = 4
+        self.extra_args = [
+            [],
+            [],
+            ['-validating=1'],
+            ['-validating=1'],
         ]
-        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', '-esperanzaconfig=' + json_params]
-
-        self.extra_args = [proposer_node_params,
-                           validator_node_params,
-                           ]
         self.setup_clean_chain = True
 
+    def setup_network(self):
+        self.setup_nodes()
+
+    def test_double_votes(self):
+        def corrupt_script(script, n_byte):
+            script = bytearray(script)
+            script[n_byte] = 1 if script[n_byte] == 0 else 0
+            return bytes(script)
+
+        # initial topology where arrows denote the direction of connections
+        # finalizer2 ← fork1 → finalizer1
+        #                ↓  ︎
+        #              fork2
+        fork1 = self.nodes[0]
+        fork2 = self.nodes[1]
+
+        finalizer1 = self.nodes[2]
+        finalizer2 = self.nodes[3]
+
+        connect_nodes(fork1, fork2.index)
+        connect_nodes(fork1, finalizer1.index)
+        connect_nodes(fork1, finalizer2.index)
+
+        # leave IBD
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        sync_blocks([fork1, fork2, finalizer1, finalizer2])
+
+        # clone finalizer
+        finalizer1.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        finalizer2.importmasterkey(regtest_mnemonics[0]['mnemonics'])
+
+        disconnect_nodes(fork1, finalizer2.index)
+        addr = finalizer1.getnewaddress('', 'legacy')
+        txid1 = finalizer1.deposit(addr, 10000)
+        wait_until(lambda: txid1 in fork1.getrawmempool())
+
+        finalizer2.setaccount(addr, '')
+        txid2 = finalizer2.deposit(addr, 10000)
+        assert_equal(txid1, txid2)
+        connect_nodes(fork1, finalizer2.index)
+
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        sync_blocks([fork1, fork2, finalizer1, finalizer2])
+        disconnect_nodes(fork1, finalizer1.index)
+        disconnect_nodes(fork1, finalizer2.index)
+
+        # pass instant finalization
+        # F    F    F    F    J
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6[30] fork1, fork2
+        fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 5, fork1.getnewaddress('', 'bech32'))
+        assert_equal(fork1.getblockcount(), 30)
+        check_finalization(fork1, {'currentEpoch': 6,
+                                   'lastJustifiedEpoch': 4,
+                                   'lastFinalizedEpoch': 3,
+                                   'validators': 1})
+
+        # change topology where forks are not connected
+        # finalizer1 → fork1
+        #
+        # finalizer2 → fork2
+        sync_blocks([fork1, fork2])
+        disconnect_nodes(fork1, fork2.index)
+
+        # test that same vote included on different forks
+        # doesn't create a slash transaction
+        #                                         v1
+        #                                    - e6[31, 32, 33, 34] fork1
+        # F    F    F    F    F    J        /
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6[30]
+        #                                   \     v1
+        #                                    - e6[31, 32, 33, 34] fork2
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
+        v1 = fork1.getrawtransaction(fork1.getrawmempool()[0])
+        fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
+        assert_equal(fork1.getblockcount(), 34)
+        check_finalization(fork1, {'currentEpoch': 6,
+                                   'lastJustifiedEpoch': 5,
+                                   'lastFinalizedEpoch': 4,
+                                   'validators': 1})
+
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
+        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
+        assert_raises_rpc_error(-27, 'transaction already in block chain', fork2.sendrawtransaction, v1)
+        assert_equal(len(fork2.getrawmempool()), 0)
+        fork2.generatetoaddress(3, fork2.getnewaddress('', 'bech32'))
+        assert_equal(fork2.getblockcount(), 34)
+        check_finalization(fork2, {'currentEpoch': 6,
+                                   'lastJustifiedEpoch': 5,
+                                   'lastFinalizedEpoch': 4,
+                                   'validators': 1})
+        self.log.info('same vote on two forks was accepted')
+
+        # test that double-vote with invalid vote signature is ignored
+        # and doesn't cause slashing
+        #                                      v1          v2a
+        #                                    - e6 - e7[35, 36] fork1
+        # F    F    F    F    F    F    J   /
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6[30]
+        #                                   \  v1          v2b
+        #                                    - e6 - e7[35, 36] fork2
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
+        v2a = fork1.getrawtransaction(fork1.getrawmempool()[0])
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        assert_equal(fork1.getblockcount(), 36)
+        check_finalization(fork1, {'currentEpoch': 7,
+                                   'lastJustifiedEpoch': 6,
+                                   'lastFinalizedEpoch': 5,
+                                   'validators': 1})
+
+        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
+        tx_v2a = FromHex(CTransaction(), v2a)
+
+        # corrupt the 1st byte of vote signature
+        # see schema in CScript::MatchPayVoteSlashScript
+        tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=2)
+
+        assert_raises_rpc_error(-26, 'bad-vote-signature', fork2.sendrawtransaction, ToHex(tx_v2a))
+        assert_equal(len(fork2.getrawmempool()), 0)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
+        time.sleep(10)  # slash transactions are processed every 10 sec. UNIT-E TODO: remove once optimized
+        assert_equal(len(fork2.getrawmempool()), 1)
+        v2b = fork2.getrawtransaction(fork2.getrawmempool()[0])
+        tx_v2b = FromHex(CTransaction(), v2b)
+        assert_equal(tx_v2b.get_type(), 'VOTE')
+
+        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
+        assert_equal(len(fork2.getrawmempool()), 0)
+        assert_equal(fork2.getblockcount(), 36)
+        check_finalization(fork2, {'currentEpoch': 7,
+                                   'lastJustifiedEpoch': 6,
+                                   'lastFinalizedEpoch': 5,
+                                   'validators': 1})
+        self.log.info('double-vote with invalid signature is ignored')
+
+        # test that valid double-vote but with invalid tx signature
+        # creates slash tx it is included in the next block
+        #                                      v1          v2a
+        #                                    - e6 - e7[35, 36] fork1
+        # F    F    F    F    F    F    J   /
+        # e0 - e1 - e2 - e3 - e4 - e5 - e6[30]
+        #                                   \  v1          v2b s1
+        #                                    - e6 - e7[35, 36, 37] fork2
+
+        # corrupt the 1st byte of transaction signature
+        # but keep the correct vote signature
+        # see schema in CScript::MatchPayVoteSlashScript
+        tx_v2a = FromHex(CTransaction(), v2a)
+        tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=77)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork2.sendrawtransaction, ToHex(tx_v2a))
+        wait_until(lambda: len(fork2.getrawmempool()) == 1, timeout=20)
+        s1_hash = fork2.getrawmempool()[0]
+        s1 = FromHex(CTransaction(), fork2.getrawtransaction(s1_hash))
+        assert_equal(s1.get_type(), 'SLASH')
+
+        b37 = fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))[0]
+        block = FromHex(CBlock(), fork2.getblock(b37, 0))
+        assert_equal(len(block.vtx), 2)
+        block.vtx[1].rehash()
+        assert_equal(block.vtx[1].hash, s1_hash)
+        self.log.info('slash tx for double-vote was successfully created')
+
     def run_test(self):
-        nodes = self.nodes
-        self.proposer = nodes[0]
-        self.validator = nodes[1]
-        proposer = self.proposer
-        validator = self.validator
-
-        self.proposer.add_p2p_connection(P2PInterface())
-
-        network_thread_start()
-
-        # wait_for_verack ensures that the P2P connection is fully up.
-        proposer.p2p.wait_for_verack()
-
-        proposer.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        validator.importmasterkey(regtest_mnemonics[1]['mnemonics'])
-
-        assert (validator.getbalance() == 10000)
-
-        self.validator_address = validator.getnewaddress("", "legacy")
-        self.validator_privkey = validator.dumpprivkey(self.validator_address)
-
-        # generate the first epoch
-        for n in range(0, 10):
-            self.generate_block(proposer)
-
-        self.deposit_amount = 1500
-        self.deposit_id = validator.deposit(self.validator_address, self.deposit_amount)
-
-        # generate 4 more epochs
-        for n in range(0, 40):
-            self.generate_block(proposer)
-
-        self.wait_for_transaction(self.deposit_id, 30)
-
-        # cast double vote
-        target_hash = self.validator.getblockhash(2 * 10 - 1)
-        deposit_tx = self.validator.getrawtransaction(self.deposit_id, 1)
-        self.send_vote(deposit_tx, 1, 2, target_hash)
-
-        others_fork_hash = '1230456000000000000000000000000000000000000000000000000000000321'
-        self.send_vote(deposit_tx, 1, 2, others_fork_hash)
-
-        # wait for slash transaction in mempool
-        wait_until(self.wait_for_slash, timeout=15)
-
-        # the mempool should have size 1 since the vote already sent should have been removed cause is a conflict
-        assert_equal(len(proposer.getrawmempool()), 1)
-        slash_tx_id = proposer.getrawmempool()[0]
-
-        # mine one more block
-        block_hash = self.generate_block(proposer)
-
-        # check that the slash transaction has been mined
-        assert (slash_tx_id in proposer.getblock(block_hash[0])['tx'])
-
-    def send_vote(self, prev_tx, source, target, target_hash):
-
-        vote_data = Vote(self.validator_address, target_hash, int(source), int(target))
-        key = CECKey()
-        key.set_secretbytes(base58_to_bytes(self.validator_privkey)[:-4])
-        vote_sig = key.sign(vote_data.get_hash())
-
-        tx = CTransaction()
-        tx.set_type(TxType.VOTE)
-        tx.vin.append(CTxIn(COutPoint(int(prev_tx['txid'], 16), 0), vote_data.serialize(vote_sig)))
-        tx.vout.append(CTxOut(int(prev_tx['vout'][0]['value'] * UNIT),
-                              hex_str_to_bytes(prev_tx['vout'][0]['scriptPubKey']['hex'])))
-
-        signresult = self.validator.signrawtransaction(ToHex(tx))['hex']
-        f = BytesIO(hex_str_to_bytes(signresult))
-        tx.deserialize(f)
-
-        self.proposer.p2p.send_and_ping(msg_tx(tx))
-
-    def generate_block(self, node):
-        i = 0
-        # It is rare but possible that a block was valid at the moment of creation but
-        # invalid at submission. This is to account for those cases.
-        while i < 5:
-            try:
-                return self.generate_sync(node)
-            except JSONRPCException as exp:
-                i += 1
-                print("error generating block:", exp.error)
-        raise AssertionError("Node" + str(node.index) + " cannot generate block")
-
-    def wait_for_slash(self):
-        for tx_id in self.proposer.getrawmempool():
-            try:
-                raw_tx = self.proposer.getrawtransaction(tx_id)
-            except JSONRPCException:  # in case the transaction we are looking for is already gone from the mempool
-                continue
-
-            if raw_tx:
-                tx = self.proposer.decoderawtransaction(raw_tx)
-                if tx['txtype'] == 5:
-                    return True
+        self.test_double_votes()
 
 
 if __name__ == '__main__':

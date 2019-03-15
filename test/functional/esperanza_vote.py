@@ -58,7 +58,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         connect_nodes(finalizer3, node0.index)
 
         # leave IBD
-        node0.generatetoaddress(1, node0.getnewaddress())
+        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
         sync_blocks(self.nodes)
 
         # leave instant finalization
@@ -81,7 +81,7 @@ class EsperanzaVoteTest(UnitETestFramework):
 
         # move tip to the height when deposits are finalized
         # complete epoch + 4 epochs + 1 block of new epoch
-        node0.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, node0.getnewaddress())
+        node0.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, node0.getnewaddress('', 'bech32'))
         assert_equal(node0.getblockcount(), 25)
         assert_equal(node0.getfinalizationstate()['currentEpoch'], 5)
         assert_equal(node0.getfinalizationstate()['currentDynasty'], 3)
@@ -101,7 +101,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         # Once it's resolved, the bellow test must be uncommented
         #
         # # test that finalizers vote after processing checkpoint
-        # node0.generatetoaddress(4, node0.getnewaddress())
+        # node0.generatetoaddress(4, node0.getnewaddress('', 'bech32'))
         # assert_equal(node0.getblockcount(), 24)
         # assert_equal(len(node0.getrawmempool()), 0)
         # assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)
