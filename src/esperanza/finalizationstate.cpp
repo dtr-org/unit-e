@@ -74,36 +74,39 @@ bool FinalizationState::operator!=(const FinalizationState &other) const {
 Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
 
-  IncrementDynasty();
-
-  const auto newEpoch = GetEpoch(blockHeight);
-
-  if (newEpoch != m_current_epoch + 1) {
-    return fail(Result::INIT_WRONG_EPOCH,
-                "%s: Next epoch should be %d but %d was passed.\n", __func__,
-                m_current_epoch + 1, newEpoch);
+  if (blockHeight % m_settings.epoch_length != 1) {
+    return fail(Result::INIT_WRONG_HEIGHT,
+                "%s: ERROR: block_height=%d is not the first block of new epoch\n",
+                __func__, blockHeight);
   }
 
-  LogPrint(BCLog::FINALIZATION, "%s: New epoch found, this epoch is the %d.\n",
-           __func__, newEpoch);
+  IncrementDynasty();
+
+  const uint32_t new_epoch = GetEpoch(blockHeight);
+
+  if (new_epoch != m_current_epoch + 1) {
+    return fail(Result::INIT_WRONG_EPOCH,
+                "%s: ERROR: new_epoch must be %d but %d was passed\n",
+                __func__, m_current_epoch + 1, new_epoch);
+  }
+
+  LogPrint(BCLog::FINALIZATION, "%s: new_epoch=%d height=%d\n",
+           __func__, new_epoch, blockHeight);
 
   Checkpoint cp = Checkpoint();
   cp.m_cur_dynasty_deposits = GetTotalCurDynDeposits();
   cp.m_prev_dynasty_deposits = GetTotalPrevDynDeposits();
-  m_checkpoints[newEpoch] = cp;
+  m_checkpoints[new_epoch] = cp;
 
-  m_current_epoch = newEpoch;
-
-  LogPrint(BCLog::FINALIZATION, "%s: Epoch block found at height %d.\n",
-           __func__, blockHeight);
+  m_current_epoch = new_epoch;
 
   m_last_voter_rescale = ufp64::add_uint(GetCollectiveRewardFactor(), 1);
 
   m_last_non_voter_rescale = ufp64::div(m_last_voter_rescale, (ufp64::add_uint(m_reward_factor, 1)));
 
-  m_deposit_scale_factor[newEpoch] = ufp64::mul(m_last_non_voter_rescale, GetDepositScaleFactor(newEpoch - 1));
+  m_deposit_scale_factor[new_epoch] = ufp64::mul(m_last_non_voter_rescale, GetDepositScaleFactor(new_epoch - 1));
 
-  m_total_slashed[newEpoch] = GetTotalSlashed(newEpoch - 1);
+  m_total_slashed[new_epoch] = GetTotalSlashed(new_epoch - 1);
 
   if (DepositExists()) {
     ufp64::ufp64_t interestBase = ufp64::div(m_settings.base_interest_factor, GetSqrtOfTotalDeposits());
@@ -130,7 +133,7 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
            "%s:%s new_epoch=%d current_dynasty=%d last_justified_epoch=%d last_finalized_epoch=%d\n",
            __func__,
            log_msg,
-           newEpoch,
+           new_epoch,
            m_current_dynasty,
            m_last_justified_epoch,
            m_last_finalized_epoch);
@@ -158,8 +161,6 @@ void FinalizationState::InstaJustify() {
 void FinalizationState::IncrementDynasty() {
   // finalized epoch is m_current_epoch - 2 because:
   // finalized (0) - justified (1) - votes to justify (2)
-  // TODO: UNIT-E: remove "m_current_epoch >= 2" when we delete instant finalization
-  // and start epoch from 1 #570, #572
   if (m_current_epoch >= 2 && GetCheckpoint(m_current_epoch - 2).m_is_finalized) {
 
     m_current_dynasty += 1;
@@ -167,9 +168,9 @@ void FinalizationState::IncrementDynasty() {
     m_cur_dyn_deposits += GetDynastyDelta(m_current_dynasty);
     m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch;
 
-    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d.\n", __func__,
+    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d\n", __func__,
              m_current_dynasty);
-    // UNIT-E: we can clear old checkpoints (up to lastFinalizedEpoch - 1)
+    // UNIT-E: we can clear old checkpoints (up to m_last_finalized_epoch - 1)
   }
   m_epoch_to_dynasty[m_current_epoch] = m_current_dynasty;
 }
@@ -829,15 +830,7 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
 }
 
 uint32_t FinalizationState::GetCheckpointHeightAfterFinalizedEpoch() const {
-  if (m_last_justified_epoch == 0) {
-    // UNIT-E TODO: see #570
-    // case when 0 means no finalization
-    return 0;
-  }
-
   const uint32_t epoch = m_last_finalized_epoch + 1;
-  assert(GetCheckpoint(epoch).m_is_justified);
-
   return GetEpochCheckpointHeight(epoch);
 }
 
@@ -857,8 +850,12 @@ uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
   return GetEpoch(blockIndex.nHeight);
 }
 
-uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
-  return blockHeight / GetEpochLength();
+uint32_t FinalizationState::GetEpoch(const blockchain::Height block_height) const {
+  uint32_t epoch = block_height / m_settings.epoch_length;
+  if (block_height % m_settings.epoch_length != 0) {
+    ++epoch;
+  }
+  return epoch;
 }
 
 blockchain::Height FinalizationState::GetEpochStartHeight(const uint32_t epoch) const {
@@ -987,14 +984,8 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   assert(m_status == NEW);
   uint256 block_hash = block_index.GetBlockHash();
 
-  // We can skip everything for the genesis block since it isn't suppose to
-  // contain esperanza's transactions.
-  if (block_index.nHeight == 0) {
-    return;
-  }
-
   // This is the first block of a new epoch.
-  if (block_index.nHeight % m_settings.epoch_length == 0) {
+  if (block_index.nHeight % m_settings.epoch_length == 1) {
     InitializeEpoch(block_index.nHeight);
   }
 
@@ -1002,13 +993,11 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     ProcessNewCommit(tx);
   }
 
-  // This is the last block for the current epoch and it represent it, so we
-  // update the targetHash.
-  if (block_index.nHeight % m_settings.epoch_length == m_settings.epoch_length - 1) {
-    LogPrint(
-        BCLog::FINALIZATION,
-        "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
-        __func__, block_hash.GetHex());
+  // This is the last block for the current epoch and it represents it
+  if (block_index.nHeight % m_settings.epoch_length == 0) {
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Last block of the epoch, new m_recommended_target_hash=%s\n",
+             __func__, block_hash.GetHex());
 
     m_recommended_target_hash = block_index.GetBlockHash();
     m_recommended_target_epoch = GetEpoch(block_index);
@@ -1060,15 +1049,7 @@ uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
 }
 
 bool FinalizationState::IsCheckpoint(blockchain::Height blockHeight) const {
-  return (blockHeight + 1) % m_settings.epoch_length == 0;
-}
-
-bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) const {
-  if (!IsCheckpoint(blockHeight)) {
-    return false;
-  }
-  auto const it = m_checkpoints.find(GetEpoch(blockHeight));
-  return it != m_checkpoints.end() && it->second.m_is_justified;
+  return blockHeight % m_settings.epoch_length == 0;
 }
 
 bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) const {

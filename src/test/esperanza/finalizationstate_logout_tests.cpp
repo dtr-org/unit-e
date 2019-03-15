@@ -17,88 +17,79 @@ BOOST_AUTO_TEST_CASE(validate_logout_not_a_validator) {
 BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
 
   FinalizationStateSpy spy;
-  uint160 validatorAddress = RandValidatorAddr();
-  CAmount depositSize = spy.MinDepositSize();
+  uint160 validator_address = RandValidatorAddr();
+  CAmount deposit_size = spy.MinDepositSize();
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress),
-                    +Result::LOGOUT_NOT_A_VALIDATOR);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size), +Result::SUCCESS);
+  spy.ProcessDeposit(validator_address, deposit_size);
+
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(validator_address), +Result::LOGOUT_NOT_A_VALIDATOR);
 }
 
 BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
 
   FinalizationStateSpy spy;
-  uint160 validatorAddress = RandValidatorAddr();
-  CAmount depositSize = spy.MinDepositSize();
+  uint160 validator_address = RandValidatorAddr();
+  CAmount deposit_size = spy.MinDepositSize();
 
-  // For simplicity we keep the targetHash constant since it does not
+  // For simplicity we keep the target_hash constant since it does not
   // affect the state.
-  uint256 targetHash = GetRandHash();
+  uint256 target_hash = GetRandHash();
   CBlockIndex block_index;
-  block_index.phashBlock = &targetHash;
+  block_index.phashBlock = &target_hash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size), +Result::SUCCESS);
+  spy.ProcessDeposit(validator_address, deposit_size);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
-  spy.ProcessLogout(validatorAddress);
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(validator_address), +Result::SUCCESS);
+  spy.ProcessLogout(validator_address);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(7 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 6 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 7 * spy.EpochLength()), +Result::SUCCESS);
 
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress),
-                    +Result::LOGOUT_ALREADY_DONE);
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(validator_address), +Result::LOGOUT_ALREADY_DONE);
 }
 
 BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
   FinalizationStateSpy spy;
-  uint160 validatorAddress = RandValidatorAddr();
-  CAmount depositSize = spy.MinDepositSize();
+  uint160 validator_address = RandValidatorAddr();
+  CAmount deposit_size = spy.MinDepositSize();
 
-  // For simplicity we keep the targetHash constant since it does not
+  // For simplicity we keep the target_hash constant since it does not
   // affect the state.
-  uint256 targetHash = GetRandHash();
+  uint256 target_hash = GetRandHash();
   CBlockIndex block_index;
-  block_index.phashBlock = &targetHash;
+  block_index.phashBlock = &target_hash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                     +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
+  spy.ProcessDeposit(validator_address, deposit_size);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
-  spy.ProcessLogout(validatorAddress);
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(validator_address), +Result::SUCCESS);
+  spy.ProcessLogout(validator_address);
 
   std::map<uint160, Validator> validators = spy.Validators();
-  Validator validator = validators.find(validatorAddress)->second;
-  BOOST_CHECK_EQUAL(703, validator.m_end_dynasty);
+  Validator validator = validators.find(validator_address)->second;
+  BOOST_CHECK_EQUAL(704, validator.m_end_dynasty);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -44,44 +44,46 @@ BOOST_AUTO_TEST_CASE(record_votes) {
   RegisterValidationInterface(&listener);
   auto recorder = VoteRecorder::GetVoteRecorder();
 
-  uint160 validatorAddress = RandValidatorAddr();
-  state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
+  uint160 validator_address = RandValidatorAddr();
+  state->ProcessDeposit(validator_address, 1000000);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
   // Test one single vote is added
-  esperanza::Vote vote{validatorAddress, GetRandHash(), 1, 2};
+  esperanza::Vote vote{validator_address, GetRandHash(), 1, 2};
   recorder->RecordVote(vote, ToByteVector(GetRandHash()));
   BOOST_CHECK(!listener.slashingDetected);
   BOOST_CHECK_EQUAL(vote.GetHash(),
-                    recorder->GetVote(validatorAddress, 2)->vote.GetHash());
+                    recorder->GetVote(validator_address, 2)->vote.GetHash());
 
   // Test that a second vote does not replace the first
-  esperanza::Vote vote2{validatorAddress, GetRandHash(), 2, 3};
+  esperanza::Vote vote2{validator_address, GetRandHash(), 2, 3};
   recorder->RecordVote(vote2, ToByteVector(GetRandHash()));
   BOOST_CHECK(!listener.slashingDetected);
   BOOST_CHECK_EQUAL(vote2.GetHash(),
-                    recorder->GetVote(validatorAddress, 3)->vote.GetHash());
+                    recorder->GetVote(validator_address, 3)->vote.GetHash());
 
   // Test that the same vote could be registered multiple times
   recorder->RecordVote(vote2, ToByteVector(GetRandHash()));
   BOOST_CHECK(!listener.slashingDetected);
   BOOST_CHECK_EQUAL(vote2.GetHash(),
-                    recorder->GetVote(validatorAddress, 3)->vote.GetHash());
+                    recorder->GetVote(validator_address, 3)->vote.GetHash());
 
   // Test that almost surrounding votes are not detected as slashable
-  esperanza::Vote outerVote{validatorAddress, GetRandHash(), 3, 10};
-  esperanza::Vote innerVote{validatorAddress, GetRandHash(), 3, 9};
+  esperanza::Vote outer_vote{validator_address, GetRandHash(), 3, 10};
+  esperanza::Vote inner_vote{validator_address, GetRandHash(), 3, 9};
 
-  recorder->RecordVote(outerVote, ToByteVector(GetRandHash()));
-  BOOST_CHECK_EQUAL(outerVote.GetHash(),
-                    recorder->GetVote(validatorAddress, 10)->vote.GetHash());
+  recorder->RecordVote(outer_vote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(outer_vote.GetHash(),
+                    recorder->GetVote(validator_address, 10)->vote.GetHash());
   BOOST_CHECK(!listener.slashingDetected);
 
-  recorder->RecordVote(innerVote, ToByteVector(GetRandHash()));
-  BOOST_CHECK_EQUAL(innerVote.GetHash(),
-                    recorder->GetVote(validatorAddress, 9)->vote.GetHash());
+  recorder->RecordVote(inner_vote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(inner_vote.GetHash(),
+                    recorder->GetVote(validator_address, 9)->vote.GetHash());
   BOOST_CHECK(!listener.slashingDetected);
 
   UnregisterValidationInterface(&listener);
@@ -95,26 +97,26 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
   RegisterValidationInterface(&listener);
   auto recorder = VoteRecorder::GetVoteRecorder();
 
-  uint160 validatorAddress = RandValidatorAddr();
-  state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
-  state->InitializeEpoch(200);
-  state->InitializeEpoch(250);
+  uint160 validator_address = RandValidatorAddr();
+  state->ProcessDeposit(validator_address, 1000000);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
-  esperanza::Vote vote1{validatorAddress, GetRandHash(), 5, 10};
-  esperanza::Vote vote2{validatorAddress, GetRandHash(), 7, 10};
+  esperanza::Vote vote1{validator_address, GetRandHash(), 5, 10};
+  esperanza::Vote vote2{validator_address, GetRandHash(), 7, 10};
 
   recorder->RecordVote(vote1, ToByteVector(GetRandHash()));
   BOOST_CHECK(!listener.slashingDetected);
   BOOST_CHECK_EQUAL(vote1.GetHash(),
-                    recorder->GetVote(validatorAddress, 10)->vote.GetHash());
+                    recorder->GetVote(validator_address, 10)->vote.GetHash());
 
   recorder->RecordVote(vote2, ToByteVector(GetRandHash()));
   // Duplicate votes are not inserted
   BOOST_CHECK_EQUAL(vote1.GetHash(),
-                    recorder->GetVote(validatorAddress, 10)->vote.GetHash());
+                    recorder->GetVote(validator_address, 10)->vote.GetHash());
   BOOST_CHECK(listener.slashingDetected);
 
   UnregisterValidationInterface(&listener);
@@ -128,25 +130,25 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
   RegisterValidationInterface(&listener);
   auto recorder = VoteRecorder::GetVoteRecorder();
 
-  uint160 validatorAddress = RandValidatorAddr();
-  state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
-  state->InitializeEpoch(200);
-  state->InitializeEpoch(250);
+  uint160 validator_address = RandValidatorAddr();
+  state->ProcessDeposit(validator_address, 1000000);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
-  esperanza::Vote outerVote{validatorAddress, GetRandHash(), 1, 10};
-  esperanza::Vote innerVote{validatorAddress, GetRandHash(), 2, 9};
+  esperanza::Vote outer_vote{validator_address, GetRandHash(), 1, 10};
+  esperanza::Vote inner_vote{validator_address, GetRandHash(), 2, 9};
 
-  recorder->RecordVote(outerVote, ToByteVector(GetRandHash()));
-  BOOST_CHECK_EQUAL(outerVote.GetHash(),
-                    recorder->GetVote(validatorAddress, 10)->vote.GetHash());
+  recorder->RecordVote(outer_vote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(outer_vote.GetHash(),
+                    recorder->GetVote(validator_address, 10)->vote.GetHash());
   BOOST_CHECK(!listener.slashingDetected);
 
-  recorder->RecordVote(innerVote, ToByteVector(GetRandHash()));
-  BOOST_CHECK_EQUAL(innerVote.GetHash(),
-                    recorder->GetVote(validatorAddress, 9)->vote.GetHash());
+  recorder->RecordVote(inner_vote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(inner_vote.GetHash(),
+                    recorder->GetVote(validator_address, 9)->vote.GetHash());
   BOOST_CHECK(listener.slashingDetected);
 
   UnregisterValidationInterface(&listener);
@@ -160,25 +162,25 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
   RegisterValidationInterface(&listener);
   auto recorder = VoteRecorder::GetVoteRecorder();
 
-  uint160 validatorAddress = RandValidatorAddr();
-  state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
-  state->InitializeEpoch(200);
-  state->InitializeEpoch(250);
+  uint160 validator_address = RandValidatorAddr();
+  state->ProcessDeposit(validator_address, 1000000);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
-  esperanza::Vote outerVote{validatorAddress, GetRandHash(), 1, 10};
-  esperanza::Vote innerVote{validatorAddress, GetRandHash(), 2, 9};
+  esperanza::Vote outer_vote{validator_address, GetRandHash(), 1, 10};
+  esperanza::Vote inner_vote{validator_address, GetRandHash(), 2, 9};
 
-  recorder->RecordVote(innerVote, ToByteVector(GetRandHash()));
-  BOOST_CHECK_EQUAL(innerVote.GetHash(),
-                    recorder->GetVote(validatorAddress, 9)->vote.GetHash());
+  recorder->RecordVote(inner_vote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(inner_vote.GetHash(),
+                    recorder->GetVote(validator_address, 9)->vote.GetHash());
   BOOST_CHECK(!listener.slashingDetected);
 
-  recorder->RecordVote(outerVote, ToByteVector(GetRandHash()));
-  BOOST_CHECK_EQUAL(outerVote.GetHash(),
-                    recorder->GetVote(validatorAddress, 10)->vote.GetHash());
+  recorder->RecordVote(outer_vote, ToByteVector(GetRandHash()));
+  BOOST_CHECK_EQUAL(outer_vote.GetHash(),
+                    recorder->GetVote(validator_address, 10)->vote.GetHash());
   BOOST_CHECK(listener.slashingDetected);
 
   UnregisterValidationInterface(&listener);

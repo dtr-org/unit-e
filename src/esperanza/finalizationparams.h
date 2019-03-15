@@ -18,7 +18,7 @@ struct FinalizationParams {
 
   FinalizationParams();
 
-  //! Number of blocks between epochs
+  //! Number of blocks in one epoch
   uint32_t epoch_length;
 
   CAmount min_deposit_size;
@@ -36,11 +36,16 @@ struct FinalizationParams {
   ufp64::ufp64_t base_penalty_factor;
 
   blockchain::Height GetEpochStartHeight(const uint32_t epoch) const {
-    return epoch * epoch_length;
+    // epoch=0 contains only genesis
+    if (epoch == 0) {
+      return 0;
+    }
+
+    return GetEpochCheckpointHeight(epoch - 1) + 1;
   }
 
   blockchain::Height GetEpochCheckpointHeight(const uint32_t epoch) const {
-    return GetEpochStartHeight(epoch + 1) - 1;
+    return epoch * epoch_length;
   }
 
   // UNIT-E: move this once we have a argManager util that parses parameters

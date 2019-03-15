@@ -121,10 +121,10 @@ class ExpiredVoteTest(UnitETestFramework):
         sync_blocks([p0, p1, v])
 
         # get to up to block 148, just one before the new checkpoint
-        for n in range(0, 8):
+        for n in range(0, 9):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 48)
+        assert_equal(p0.getblockchaininfo()['blocks'], 49)
         sync_blocks([p0, p1, v])
 
         # Rearrange connection like p0 -> p1 xxx v so the validator
@@ -148,7 +148,7 @@ class ExpiredVoteTest(UnitETestFramework):
         for n in range(0, 10):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 60)
+        assert_equal(p0.getblockchaininfo()['blocks'], 61)
 
         # now we disconnect v again so it will not vote in the epoch just created
         # since that would interfere with the test.
@@ -165,7 +165,7 @@ class ExpiredVoteTest(UnitETestFramework):
         generate_block(p1)
         sync_blocks([p0, p1])
 
-        assert_equal(p1.getblockchaininfo()['blocks'], 61)
+        assert_equal(p1.getblockchaininfo()['blocks'], 62)
 
 
 if __name__ == '__main__':

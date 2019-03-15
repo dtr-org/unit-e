@@ -101,6 +101,9 @@ BOOST_AUTO_TEST_CASE(trimming) {
   Fixture fixture;
   BOOST_REQUIRE(fixture.epoch_length == 5);
 
+  // Add genesis
+  fixture.AddBlocks(1);
+
   // Generate first two epochs
   fixture.AddBlocks(10);
 
@@ -127,54 +130,58 @@ BOOST_AUTO_TEST_CASE(trimming) {
   BOOST_CHECK(fixture.GetState(1) == nullptr);
   BOOST_CHECK(fixture.GetState(2) == nullptr);
   BOOST_CHECK(fixture.GetState(3) == nullptr);
-  BOOST_CHECK(fixture.GetState(4) == nullptr);  // finalized checkpoint
-  BOOST_CHECK(fixture.GetState(5) == nullptr);
+  BOOST_CHECK(fixture.GetState(4) == nullptr);
+  BOOST_CHECK(fixture.GetState(5) == nullptr);  // finalized checkpoint
   BOOST_CHECK(fixture.GetState(6) == nullptr);
   BOOST_CHECK(fixture.GetState(7) == nullptr);
   BOOST_CHECK(fixture.GetState(8) == nullptr);
-  BOOST_CHECK(fixture.GetState(9) != nullptr);   // justified checkpoint
-  BOOST_CHECK(fixture.GetState(10) != nullptr);  // next epoch
+  BOOST_CHECK(fixture.GetState(9) == nullptr);
+  BOOST_CHECK(fixture.GetState(10) != nullptr);  // justified checkpoint
+  BOOST_CHECK(fixture.GetState(11) != nullptr);  // next epoch
 
   // Complete current epoch
   fixture.AddBlocks(4);
 
   // Check, new states are in the repository
-  BOOST_CHECK(fixture.GetState(9) != nullptr);
   BOOST_CHECK(fixture.GetState(10) != nullptr);
   BOOST_CHECK(fixture.GetState(11) != nullptr);
   BOOST_CHECK(fixture.GetState(12) != nullptr);
   BOOST_CHECK(fixture.GetState(13) != nullptr);
   BOOST_CHECK(fixture.GetState(14) != nullptr);
+  BOOST_CHECK(fixture.GetState(15) != nullptr);
 
   // Generate next epoch.
   // Now epoch 1 must be finalized and repository trimmed until the last justification height
   fixture.AddBlocks(5);
-  BOOST_CHECK(fixture.GetState(9) == nullptr);
   BOOST_CHECK(fixture.GetState(10) == nullptr);
   BOOST_CHECK(fixture.GetState(11) == nullptr);
   BOOST_CHECK(fixture.GetState(12) == nullptr);
   BOOST_CHECK(fixture.GetState(13) == nullptr);
-  BOOST_CHECK(fixture.GetState(14) != nullptr);
+  BOOST_CHECK(fixture.GetState(14) == nullptr);
   BOOST_CHECK(fixture.GetState(15) != nullptr);
   BOOST_CHECK(fixture.GetState(16) != nullptr);
   BOOST_CHECK(fixture.GetState(17) != nullptr);
   BOOST_CHECK(fixture.GetState(18) != nullptr);
   BOOST_CHECK(fixture.GetState(19) != nullptr);
+  BOOST_CHECK(fixture.GetState(20) != nullptr);
 
   // Generate one more block, trigger finalization of the epoch 2.
   fixture.AddBlocks(1);
-  BOOST_CHECK(fixture.GetState(14) == nullptr);
   BOOST_CHECK(fixture.GetState(15) == nullptr);
   BOOST_CHECK(fixture.GetState(16) == nullptr);
   BOOST_CHECK(fixture.GetState(17) == nullptr);
   BOOST_CHECK(fixture.GetState(18) == nullptr);
-  BOOST_CHECK(fixture.GetState(19) != nullptr);
+  BOOST_CHECK(fixture.GetState(19) == nullptr);
   BOOST_CHECK(fixture.GetState(20) != nullptr);
+  BOOST_CHECK(fixture.GetState(21) != nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(states_workflow) {
   Fixture fixture;
   BOOST_REQUIRE(fixture.epoch_length == 5);
+
+  // Add genesis
+  fixture.AddBlocks(1);
 
   // Generate first epoch
   fixture.AddBlocks(10);

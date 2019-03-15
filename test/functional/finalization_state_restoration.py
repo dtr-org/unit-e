@@ -18,11 +18,12 @@ from test_framework.util import (
     wait_until,
 )
 
+
 def generate_block(node):
     node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
 
-def setup_deposit(self, proposer, validators):
 
+def setup_deposit(self, proposer, validators):
     for _, n in enumerate(validators):
         n.new_address = n.getnewaddress("", "legacy")
         assert_equal(n.getbalance(), 10000)
@@ -35,6 +36,7 @@ def setup_deposit(self, proposer, validators):
         generate_block(proposer)
 
     assert_equal(proposer.getblockcount(), 20)
+
 
 class FinalizatoinStateRestoration(UnitETestFramework):
     def set_test_params(self):
@@ -59,13 +61,13 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         setup_deposit(self, p, [v])
 
         self.log.info("Generate few epochs")
-        for _ in range(16):
+        for _ in range(11):
             generate_block(p)
         sync_blocks([p, v])
         sync_mempools([p, v])
-        generate_block(p) # be sure vote is included
+        generate_block(p)  # be sure vote is included
         sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 37)
+        assert_equal(p.getblockcount(), 32)
 
         assert_finalizationstate(p, {'currentEpoch': 7,
                                      'lastJustifiedEpoch': 6,
@@ -77,14 +79,14 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         self.start_node(p.index)
 
         # wait proposer operates
-        wait_until(lambda: p.getblockcount() == 37, timeout=5)
+        wait_until(lambda: p.getblockcount() == 32, timeout=5)
         # check it doesn't have peers -- i.e., loaded data from disk
         assert_equal(p.getpeerinfo(), [])
 
         self.log.info("Generate few epochs more")
         for _ in range(10):
             generate_block(p)
-        assert_equal(p.getblockcount(), 47)
+        assert_equal(p.getblockcount(), 42)
 
         # it is not connected to validator so that finalization shouldn't move
         assert_finalizationstate(p, {'currentEpoch': 9,
@@ -95,9 +97,9 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         connect_nodes(p, v.index)
         sync_blocks([p, v])
         sync_mempools([p, v])
-        generate_block(p) # be sure vote is included
+        generate_block(p)  # be sure vote is included
         sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 48)
+        assert_equal(p.getblockcount(), 43)
 
         assert_finalizationstate(p, {'currentEpoch': 9,
                                      'lastJustifiedEpoch': 8,
@@ -108,9 +110,9 @@ class FinalizatoinStateRestoration(UnitETestFramework):
             generate_block(p)
         sync_blocks([p, v])
         sync_mempools([p, v])
-        generate_block(p) # be sure vote is included
+        generate_block(p)  # be sure vote is included
         sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 58)
+        assert_equal(p.getblockcount(), 53)
 
         assert_finalizationstate(p, {'currentEpoch': 11,
                                      'lastJustifiedEpoch': 10,
@@ -123,7 +125,7 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         self.start_node(v.index)
 
         # wait validator operates
-        wait_until(lambda: v.getblockcount() == 58, timeout=5)
+        wait_until(lambda: v.getblockcount() == 53, timeout=5)
         # check it doesn't have peers -- i.e., loaded data from disk
         assert_equal(v.getpeerinfo(), [])
 
@@ -133,9 +135,9 @@ class FinalizatoinStateRestoration(UnitETestFramework):
             generate_block(p)
         sync_blocks([p, v])
         sync_mempools([p, v])
-        generate_block(p) # be sure vote is included
+        generate_block(p)  # be sure vote is included
         sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 118)
+        assert_equal(p.getblockcount(), 113)
 
         assert_finalizationstate(p, {'currentEpoch': 23,
                                      'lastJustifiedEpoch': 22,

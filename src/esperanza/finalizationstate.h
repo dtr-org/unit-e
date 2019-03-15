@@ -19,6 +19,7 @@ BETTER_ENUM(
   Result,
   uint8_t,
   SUCCESS,
+  INIT_WRONG_HEIGHT,
   INIT_WRONG_EPOCH,
   INIT_INVALID_REWARD,
   DEPOSIT_INSUFFICIENT,
@@ -147,7 +148,7 @@ class FinalizationState : public FinalizationStateData {
 
   uint32_t GetEpochLength() const;
   uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
-  uint32_t GetEpoch(blockchain::Height blockHeight) const;
+  uint32_t GetEpoch(blockchain::Height block_height) const;
 
   //! \brief Returns the height of the first block of the epoch.
   blockchain::Height GetEpochStartHeight(uint32_t epoch) const;
@@ -172,9 +173,6 @@ class FinalizationState : public FinalizationStateData {
 
   //! \brief Returns whether block on height blockHeight is checkpoint
   bool IsCheckpoint(blockchain::Height blockHeight) const;
-
-  //! \brief Returns whether block on height blockHeight is justified checkpoint
-  bool IsJustifiedCheckpoint(blockchain::Height blockHeight) const;
 
   //! \brief Returns whether block on height blockHeight is finalized checkpoint
   bool IsFinalizedCheckpoint(blockchain::Height blockHeight) const;

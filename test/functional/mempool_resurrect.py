@@ -26,7 +26,12 @@ class MempoolCoinbaseTest(UnitETestFramework):
             node.lockunspent(False, [{"txid": node.getblock(block_id)['tx'][0], "vout": 0}])
 
         # Make the first 3 coinbase mature now
-        node.generate(101)
+        node.generate(102)
+        assert_equal(node.getblockcount(), 105)
+        assert_finalizationstate(node, {'currentDynasty': 19,
+                                        'currentEpoch': 21,
+                                        'lastJustifiedEpoch': 20,
+                                        'lastFinalizedEpoch': 19})
 
         node0_address = node.getnewaddress("", "bech32")
         # Spend block 1/2/3's coinbase transactions
