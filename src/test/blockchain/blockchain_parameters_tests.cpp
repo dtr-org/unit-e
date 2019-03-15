@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(reward_function_test) {
 
   auto test_reward = [params](int period) -> CAmount {
 
-      const CAmount base_reward = 0;
+      CAmount base_reward = 0;
 
       if(period < params.reward_schedule.size()) {
         base_reward = static_cast<uint64_t>(params.reward_schedule[period]);

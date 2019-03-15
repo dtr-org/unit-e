@@ -34,7 +34,7 @@ Parameters Parameters::Base() noexcept {
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
     const uint64_t period = h / p.period_blocks;
 
-    const CAmount base_reward = 0;
+    CAmount base_reward = 0;
 
     if (period < p.reward_schedule.size()) {
       base_reward = static_cast<uint64_t>(p.reward_schedule[period]);
