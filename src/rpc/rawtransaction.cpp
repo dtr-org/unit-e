@@ -892,7 +892,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
     if (txConst.IsCoinBase()) {
 #ifdef ENABLE_WALLET
         if (!pwallet->GetWalletExtension().SignCoinbaseTransaction(mtx)) {
-            for (unsigned int i = 1; i < mtx.vin.size(); ++i) {
+            for (std::size_t i = 1; i < mtx.vin.size(); ++i) {
                 TxInErrorToJSON(mtx.vin[i], vErrors, "Cannot sign the coinbase.");
             }
         }

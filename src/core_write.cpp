@@ -176,7 +176,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
         vin.push_back(in);
     }
 
-    for (unsigned int i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); i++) {
+    for (std::size_t i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); ++i) {
         const CTxIn& txin = tx.vin[i];
         UniValue in(UniValue::VOBJ);
         in.pushKV("txid", txin.prevout.hash.GetHex());

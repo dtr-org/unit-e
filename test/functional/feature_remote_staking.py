@@ -74,7 +74,7 @@ class RemoteStakingTest(UnitETestFramework):
         wait_until(bob_is_staking_the_new_coin, timeout=10)
 
         # Change outputs for both staked coins, and the balance staked remotely
-        assert_equal(len(alice.listunspent()), 2 + (regtest_mnemonics[0]['balance'] / STAKE_SPLIT_THRESHOLD))
+        assert_equal(len(alice.listunspent()), 2 + (regtest_mnemonics[0]['balance'] // STAKE_SPLIT_THRESHOLD))
 
 
 if __name__ == '__main__':

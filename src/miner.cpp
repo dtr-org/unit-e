@@ -173,12 +173,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
     // Create coinbase transaction.
-    staking::CoinSet stakeable_coins;
-    {
-      stakeable_coins = wallet->GetWalletExtension().GetStakeableCoins();
-      if(stakeable_coins.empty()) {
-        throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
-      }
+    const staking::CoinSet &stakeable_coins = wallet->GetWalletExtension().GetStakeableCoins();
+    if(stakeable_coins.empty()) {
+      throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
     }
 
     bool success = false;
@@ -196,7 +193,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
           0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
       };
 
-      auto coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension());
+      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension());
       pblocktemplate->block.vtx[0] = coinbase;
       GenerateCoinbaseCommitment(pblocktemplate->block, chainActive.Tip(), Params().GetConsensus());
 
