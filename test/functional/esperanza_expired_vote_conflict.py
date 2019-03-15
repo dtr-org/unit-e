@@ -29,7 +29,7 @@ class ExpiredVoteConflict(UnitETestFramework):
         })
 
         self.extra_args = [
-            ['-debug=all', '-whitelist=127.0.0.1','-par=-10',
+            ['-debug=all', '-whitelist=127.0.0.1',
              '-esperanzaconfig=' + finalization_params],
 
             ['-validating=1', '-debug=all',
