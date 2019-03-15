@@ -78,7 +78,9 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         return info['bip9_softforks'][key]
 
     def test_BIP(self, bipName, activated_version, invalidate, invalidatePostSignature, bitno):
-        tip_coin = lambda: get_unspent_coins(self.nodes[0], 1)[0]
+
+        def tip_coin():
+            return get_unspent_coins(self.nodes[0], 1)[0]
 
         self.setup_stake_coins(self.nodes[0])
         assert_equal(self.get_bip9_status(bipName)['status'], 'defined')

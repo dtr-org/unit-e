@@ -212,7 +212,8 @@ class BIP68_112_113Test(ComparisonTestFramework):
 
     def get_tests(self):
         # Convenience wrapper
-        tip_coin = lambda: get_unspent_coins(self.nodes[0], 1)[0]
+        def tip_coin():
+            return get_unspent_coins(self.nodes[0], 1)[0]
 
         long_past_time = int(time.time()) - 600 * 1000 # enough to build up to 1000 blocks 10 minutes apart without worrying about getting into the future
         self.nodes[0].setmocktime(long_past_time - 100) # enough so that the generated blocks will still all be before long_past_time
