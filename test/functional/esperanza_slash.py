@@ -152,17 +152,20 @@ class EsperanzaSlashTest(UnitETestFramework):
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         tx_v2a = FromHex(CTransaction(), v2a)
 
-        # corrupt signature of the vote
+        # corrupt the 1st byte of vote signature
+        # see schema in CScript::MatchPayVoteSlashScript
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=2)
 
         assert_raises_rpc_error(-26, 'bad-vote-signature', fork2.sendrawtransaction, ToHex(tx_v2a))
         assert_equal(len(fork2.getrawmempool()), 0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
-        time.sleep(10)  # slash transactions are processed every 10 sec. UNIT-E TODO: remove once optimized
+        time.sleep(11)  # slash transactions are processed every 10 sec. UNIT-E TODO: remove once optimized
         assert_equal(len(fork2.getrawmempool()), 1)
         v2b = fork2.getrawtransaction(fork2.getrawmempool()[0])
         tx_v2b = FromHex(CTransaction(), v2b)
         assert_equal(tx_v2b.get_type(), 'VOTE')
+
+        assert_equal(True, False)
 
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
@@ -182,8 +185,9 @@ class EsperanzaSlashTest(UnitETestFramework):
         #                                   \  v1          v2b s1
         #                                    - e6 - e7[35, 36, 37] fork2
 
-        # corrupt signature of the whole transaction
+        # corrupt the 1st byte of transaction signature
         # but keep the correct vote signature
+        # see schema in CScript::MatchPayVoteSlashScript
         tx_v2a = FromHex(CTransaction(), v2a)
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=77)
         assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork2.sendrawtransaction, ToHex(tx_v2a))
