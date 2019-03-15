@@ -56,7 +56,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       continue;
     }
 
-    bool skip_reward = tx->IsCoinBase() && tx->GetBlocksToRewardMaturity() > 0;
+    const bool skip_reward = tx->IsCoinBase() && tx->GetBlocksToRewardMaturity() > 0;
     for (std::size_t out_index = skip_reward ? 1 : 0; out_index < coins.size(); ++out_index) {
       if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {
         continue;

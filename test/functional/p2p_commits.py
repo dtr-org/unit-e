@@ -8,10 +8,25 @@ Test p2p commits messaging.
     1. CommitsTest.getcommits_test: generate blocks on the node and test getcommits behavior
     2. CommitsTest.commits_test: send commits to the node and check its state
 """
-
+from test_framework.blocktools import (
+    create_coinbase,
+    create_block,
+    CBlockHeader
+)
 from test_framework.test_framework import UnitETestFramework
 from test_framework.key import CECKey
-from test_framework.blocktools import *
+from test_framework.messages import (
+    msg_getcommits,
+    msg_commits,
+    CommitsLocator,
+    HeaderAndCommits,
+)
+from test_framework.util import (
+    assert_equal,
+    wait_until,
+)
+import time
+from test_framework.mininode import network_thread_start, P2PInterface
 
 class P2P(P2PInterface):
     def __init__(self):
