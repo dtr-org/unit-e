@@ -137,7 +137,7 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
 # Convenience wrapper
 # Returns the signed coinbase
 def sign_coinbase(node, coinbase):
-    sign_transaction(node, coinbase)
+    coinbase = sign_transaction(node, coinbase)
     coinbase.rehash()
     return coinbase
 

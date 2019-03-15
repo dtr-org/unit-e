@@ -388,7 +388,7 @@ class BIP68Test(UnitETestFramework):
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
 
         coinbase = create_coinbase(self.nodes[0].getblockcount()+1, self.nodes[0].listunspent()[0], snapshot_hash)
-        sign_transaction(self.nodes[0], coinbase)
+        coinbase = sign_transaction(self.nodes[0], coinbase)
         coinbase.rehash()
 
         block = create_block(tip, coinbase)

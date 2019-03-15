@@ -27,7 +27,7 @@ def build_block_on_tip(node, staking_coin):
     snapshot_meta = get_tip_snapshot_meta(node)
 
     coinbase = create_coinbase(height + 1, staking_coin, snapshot_meta.hash)
-    sign_transaction(node, coinbase)
+    coinbase = sign_transaction(node, coinbase)
     coinbase.rehash()
     block = create_block(int(tip['hash'], 16), coinbase, tip["mediantime"] + 1)
     block.solve()
