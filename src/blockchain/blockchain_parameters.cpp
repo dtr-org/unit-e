@@ -30,14 +30,13 @@ Parameters Parameters::Base() noexcept {
   p.immediate_reward_fraction = ufp64::div_2uint(1, 10);
   p.period_blocks = 19710000;
   p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
-  assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount()) * p.period_blocks);
+  assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount(0)) * p.period_blocks);
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
-
     const uint64_t period = h / p.period_blocks;
 
-    uint64_t base_reward = 0;
+    const CAmount base_reward = 0;
 
-    if(period < p.reward_schedule.size()) {
+    if (period < p.reward_schedule.size()) {
       base_reward = static_cast<uint64_t>(p.reward_schedule[period]);
     }
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
