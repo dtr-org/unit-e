@@ -159,13 +159,11 @@ class EsperanzaSlashTest(UnitETestFramework):
         assert_raises_rpc_error(-26, 'bad-vote-signature', fork2.sendrawtransaction, ToHex(tx_v2a))
         assert_equal(len(fork2.getrawmempool()), 0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
-        time.sleep(11)  # slash transactions are processed every 10 sec. UNIT-E TODO: remove once optimized
+        time.sleep(10)  # slash transactions are processed every 10 sec. UNIT-E TODO: remove once optimized
         assert_equal(len(fork2.getrawmempool()), 1)
         v2b = fork2.getrawtransaction(fork2.getrawmempool()[0])
         tx_v2b = FromHex(CTransaction(), v2b)
         assert_equal(tx_v2b.get_type(), 'VOTE')
-
-        assert_equal(True, False)
 
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
