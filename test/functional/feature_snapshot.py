@@ -165,7 +165,6 @@ class SnapshotTest(UnitETestFramework):
         #                               \     -(h=11) isd_node
         #                                -------------------(h=15) rework_node
 
-
         # Import funds for the node in pruning mode
         isd_node.importmasterkey(regtest_mnemonics[5]['mnemonics'], "", False)
         isd_node.initial_stake = regtest_mnemonics[5]['balance']
