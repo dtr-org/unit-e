@@ -101,7 +101,7 @@ class P2PFingerprintTest(UnitETestFramework):
         # Generating a chain of 10 blocks
         block_hashes = self.nodes[0].generate(nblocks=8)
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        unspent_outputs = get_unspent_coins(self.nodes[0], 7) # 7 as node will generate 2 blocks and we want 5 more
+        unspent_outputs = get_unspent_coins(self.nodes[0], 5, lock=True)
         block_hashes += self.nodes[0].generate(nblocks=2)
 
 
@@ -109,8 +109,7 @@ class P2PFingerprintTest(UnitETestFramework):
         height = len(block_hashes) - 2
         block_hash = block_hashes[height - 1]
         block_time = self.nodes[0].getblockheader(block_hash)["mediantime"] + 1
-        # Don't use stake spent on generate(2), as we want to be able to ask the node for txout
-        new_blocks = self.build_chain(5, block_hash, height, block_time, unspent_outputs[2:], snapshot_meta)
+        new_blocks = self.build_chain(5, block_hash, height, block_time, unspent_outputs, snapshot_meta)
 
         # Force reorg to a longer chain
         node0.send_message(msg_headers(new_blocks))
