@@ -25,6 +25,8 @@ class MerkleBlockTest(UnitETestFramework):
         self.sync_all()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         self.log.info("Mining blocks...")
         self.nodes[0].generate(105)
         self.sync_all()
@@ -34,10 +36,9 @@ class MerkleBlockTest(UnitETestFramework):
         assert_equal(self.nodes[1].getbalance(), 0)
         assert_equal(self.nodes[2].getbalance(), 0)
 
-        node0utxos = self.nodes[0].listunspent(1)
-        tx1 = self.nodes[0].createrawtransaction([node0utxos.pop()], {self.nodes[1].getnewaddress(): 49.99})
+        tx1 = self.nodes[0].createrawtransaction([self.find_utxo_with_amount(self.nodes[0], 50)], {self.nodes[1].getnewaddress(): 49.99})
         txid1 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransaction(tx1)["hex"])
-        tx2 = self.nodes[0].createrawtransaction([node0utxos.pop()], {self.nodes[1].getnewaddress(): 49.99})
+        tx2 = self.nodes[0].createrawtransaction([self.find_utxo_with_amount(self.nodes[0], 50)], {self.nodes[1].getnewaddress(): 49.99})
         txid2 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransaction(tx2)["hex"])
         # This will raise an exception because the transaction is not yet in a block
         assert_raises_rpc_error(-5, "Transaction not yet in block", self.nodes[0].gettxoutproof, [txid1])
@@ -101,6 +102,15 @@ class MerkleBlockTest(UnitETestFramework):
 
         # TODO: try more variants, eg transactions at different depths, and
         # verify that the proofs are invalid
+
+    @staticmethod
+    def find_utxo_with_amount(node, desired_amount):
+        for utxo in node.listunspent(1):
+            if utxo['amount'] == desired_amount:
+                return utxo
+
+        raise AssertionError("Utxo with %d coins is not found" % desired_amount)
+
 
 if __name__ == '__main__':
     MerkleBlockTest().main()

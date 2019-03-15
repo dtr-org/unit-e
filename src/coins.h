@@ -58,21 +58,18 @@ public:
         return fCoinBase;
     }
 
-    //! \brief checks if this represents an immature coinbase transaction
+    //! \brief checks if this transaction is a coinbase and the reward is still immature
     //!
-    //! UNIT-E: coinbase transactions have to mature, i.e. they have to be
+    //! Coinbase rewards have to mature in order to be spendable, i.e. they have to be
     //! COINBASE_MATURITY blocks deep in the blockchain (that is: COINBASE_MATURITY
-    //! blocks have to be included in the chain afterwards). This is problematic
-    //! in a Proof-of-Stake context as it does not allow for anything to be spent
-    //! within the first COINBASE_MATURITY blocks of the chain – therefore preventing
-    //! staking. Hence anything in the first COINBASE_MATURITY number of blocks is
-    //! assumed to be mature.
+    //! blocks have to be included in the chain afterwards).
     //!
-    //! \param spendheight The height at which the TxOut is tried to be spent.
-    bool IsImmatureCoinBase(int spendheight) const {
-        if (!IsCoinBase()) {
-            // can't be immature, immaturity is a term that applies to coinbase
-            // transactions only.
+    //! \param spend_height The height at which the TxOut is tried to be spent.
+    //! \param prevout_index The output index
+    bool IsImmatureCoinBaseReward(const uint32_t prevout_index, const int spend_height) const {
+        if (!IsCoinBase() || prevout_index > 0) {
+            // Only the first output of a coinbase (containing rewards and fees
+            // can be considered immature
             return false;
         }
         if (nHeight <= COINBASE_MATURITY) {
@@ -86,7 +83,7 @@ public:
         // otherwise it depends: Are there less then COINBASE_MATURITY blocks
         // in between the coinbase and the block in which that coinbases'
         // txout is tried to be spent? If so, it's immature.
-        return spendheight - nHeight < COINBASE_MATURITY;
+        return spend_height - nHeight < COINBASE_MATURITY;
     }
 
     template<typename Stream>

@@ -1448,6 +1448,11 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
 }
 
 bool CScriptCheck::operator()() {
+
+    if (ptxTo->IsCoinBase()) {
+      // UNIT-E TODO: Temporary till we migrate the new coinbase
+      return true;
+    }
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
     bool result = VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *txdata), &error);
@@ -1672,7 +1677,9 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
 {
     bool fClean = true;
 
-    if (view.HaveCoin(out)) fClean = false; // overwriting transaction output
+    if (view.HaveCoin(out)) {
+      fClean = false; // overwriting transaction output
+    }
 
     if (undo.nHeight == 0) {
         // Missing undo metadata (height and coinbase). Older versions included this
@@ -1758,6 +1765,8 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             bool is_spent = view.SpendCoin(out, &coin);
 
             if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
+                LogPrintf("ERROR: Transaction output mismatch: idx=%d is_spent=%d tx_vout=%s coin_out=%s height=%d coin_height=%d tx.IsCoinBase=%d coin.IsCoinBase=%d\n",
+                    o, is_spent, tx.vout[o].ToString(), coin.out.ToString(), pindex->nHeight, coin.nHeight, tx.IsCoinBase(), coin.fCoinBase);
                 fClean = false; // Transaction output mismatch
             }
         }
@@ -2038,7 +2047,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::vector<int> prevheights;
     CAmount nFees = 0;
     int nInputs = 0;
-    int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size());
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
@@ -2058,11 +2066,14 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         AddCoins(view, tx, pindex->nHeight);
     }
 
+    int64_t nSigOpsCost = 0;
+    CAmount coinbase_in = 0;
     for (size_t i = 0; i < block.vtx.size(); i++) {
         const CTransaction &tx = *(block.vtx[i]);
 
         CAmount txfee = 0;
-        if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee)) {
+        CAmount value_in = 0;
+        if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee, &value_in)) {
             return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
         }
 
@@ -2085,11 +2096,14 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * witness (when witness enabled in flags and excludes coinbase)
         nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
         if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+          LogPrintf("too many sigops:  txid=%s  cost=%d\n", tx.GetHash().GetHex(), nSigOpsCost);
           return state.DoS(100, error("ConnectBlock(): too many sigops"),
                            REJECT_INVALID, "bad-blk-sigops");
         }
 
-        if (!tx.IsCoinBase()) {
+        if (tx.IsCoinBase()) {
+          coinbase_in += value_in;
+        } else {
           nFees += txfee;
           if (!MoneyRange(nFees)) {
             return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
@@ -2117,7 +2131,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     if (!isGenesisBlock) {
         CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
-        if (block.vtx[0]->GetValueOut() > blockReward)
+        if (block.vtx[0]->GetValueOut() - coinbase_in > blockReward)
           return state.DoS(100,
                          error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
                                block.vtx[0]->GetValueOut(), blockReward),
@@ -3286,7 +3300,7 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
 {
     int commitpos = GetWitnessCommitmentIndex(block);
     static const std::vector<unsigned char> nonce(32, 0x00);
-    if (commitpos != -1 && !block.vtx[0]->HasWitness()) {
+    if (commitpos != -1) {
         CMutableTransaction tx(*block.vtx[0]);
         tx.vin[0].scriptWitness.stack.resize(1);
         tx.vin[0].scriptWitness.stack[0] = nonce;

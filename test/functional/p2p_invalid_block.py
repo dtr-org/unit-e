@@ -37,6 +37,8 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         test.run()
 
     def get_tests(self):
+        self.setup_stake_coins(self.nodes[0])
+
         if self.tip is None:
             self.tip = int("0x" + self.nodes[0].getbestblockhash(), 0)
         self.block_time = int(time.time())+1
@@ -46,7 +48,9 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         '''
         height = 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(self.tip, create_coinbase(height, snapshot_hash), self.block_time)
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash, n_pieces=10))
+        block = create_block(self.tip, coinbase, self.block_time)
         self.block_time += 1
         block.solve()
         # Save the coinbase for later
@@ -61,15 +65,19 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         test = TestInstance(sync_every_block=False)
         for i in range(100):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
+            prev_coinbase = coinbase
+            stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
+            coinbase = create_coinbase(height, stake, snapshot_meta.hash)
             block = create_block(self.tip, coinbase, self.block_time)
             block.solve()
             self.tip = block.sha256
             self.block_time += 1
             test.blocks_and_transactions.append([block, True])
 
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
+            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
+            output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
 
             height += 1
         yield test
@@ -81,12 +89,15 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         coinbase, spend of that spend).  Duplicate the 3rd transaction to
         leave merkle root and blockheader unchanged but invalidate the block.
         '''
+        prev_coinbase = coinbase
+        stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        block2 = create_block(self.tip, create_coinbase(height, snapshot_meta.hash), self.block_time)
+        coinbase = create_coinbase(height, stake, snapshot_meta.hash)
+        block2 = create_block(self.tip, coinbase, self.block_time)
         self.block_time += 1
 
         # b'0x51' is OP_TRUE
-        tx1 = create_transaction(self.block1.vtx[0], 0, b'\x51', 50 * UNIT)
+        tx1 = create_transaction(self.block1.vtx[0], 2, b'\x51', 50 * UNIT)
         tx2 = create_transaction(tx1, 0, b'\x51', 50 * UNIT)
 
         block2.vtx.extend([tx1, tx2])
@@ -122,8 +133,10 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         '''
         Make sure that a totally screwed up block is not valid.
         '''
+        prev_coinbase = coinbase
+        stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        block3 = create_block(self.tip, create_coinbase(height, snapshot_meta.hash), self.block_time)
+        block3 = create_block(self.tip, create_coinbase(height, stake, snapshot_meta.hash), self.block_time)
         self.block_time += 1
         block3.vtx[0].vout[0].nValue = 100 * UNIT # Too high!
         block3.vtx[0].sha256=None

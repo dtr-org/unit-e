@@ -223,7 +223,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
     return true;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, int nSpendHeight, CAmount& txfee)
+bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, const int nSpendHeight, CAmount& txfee, CAmount *inputs_amount)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -237,12 +237,10 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         const Coin& coin = inputs.AccessCoin(prevout);
         assert(!coin.IsSpent());
 
-        // If prev is coinbase, check that it's matured
-        // UNIT-E: Extracted immaturity logic
-        // https://github.com/dtr-org/unit-e/issues/132
-        if (coin.IsImmatureCoinBase(nSpendHeight)) {
+        // If prev is coinbase, check that the reward is mature
+        if (coin.IsImmatureCoinBaseReward(prevout.n, nSpendHeight)) {
             return state.Invalid(false,
-                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase",
+                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase-reward",
                 strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
         }
 
@@ -251,6 +249,10 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputvalues-outofrange");
         }
+    }
+
+    if (inputs_amount) {
+        *inputs_amount = nValueIn;
     }
 
     const CAmount value_out = tx.GetValueOut();

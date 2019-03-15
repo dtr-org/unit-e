@@ -52,6 +52,9 @@ class RESTTest (UnitETestFramework):
         connect_nodes_bi(self.nodes, 0, 2)
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         url = urllib.parse.urlparse(self.nodes[0].url)
         self.log.info("Mining blocks...")
 
@@ -60,7 +63,7 @@ class RESTTest (UnitETestFramework):
         self.nodes[2].generate(100)
         self.sync_all()
 
-        assert_equal(self.nodes[0].getbalance(), 50)
+        assert_equal(self.nodes[0].getbalance(), self.nodes[0].initial_stake + 50)
 
         txid = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
         self.sync_all()
@@ -68,7 +71,7 @@ class RESTTest (UnitETestFramework):
         self.sync_all()
         bb_hash = self.nodes[0].getbestblockhash()
 
-        assert_equal(self.nodes[1].getbalance(), Decimal("0.1")) #balance now should be 0.1 on node 1
+        assert_equal(self.nodes[1].getbalance(), self.nodes[1].initial_stake + Decimal("0.1")) #balance now should be 0.1 on node 1 ( + the initial stake)
 
         # load the latest 0.1 tx over the REST API
         json_string = http_get_call(url.hostname, url.port, '/rest/tx/'+txid+self.FORMAT_SEPARATOR+"json")

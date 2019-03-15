@@ -131,6 +131,8 @@ class ImportRescanTest(UnitETestFramework):
             connect_nodes(self.nodes[i], 0)
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
         sync_blocks(self.nodes)
 

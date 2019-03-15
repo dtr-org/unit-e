@@ -10,8 +10,8 @@ soft-forks, and test that warning alerts are generated.
 import os
 import re
 
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, calc_snapshot_hash, UTXO
-from test_framework.messages import msg_block, COutPoint
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta
+from test_framework.messages import msg_block
 from test_framework.mininode import P2PInterface, network_thread_start, mininode_lock
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import wait_until
@@ -36,7 +36,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         # Open and close to create zero-length file
         with open(self.alert_filename, 'w', encoding='utf8'):
             pass
-        self.extra_args = [["-alertnotify=echo %s >> \"" + self.alert_filename + "\""]]
+        self.extra_args = [["-alertnotify=echo %s >> \"" + self.alert_filename + "\"", "-stakesplitthreshold=2500000000"]]
         self.setup_nodes()
 
     def send_blocks_with_version(self, peer, numblocks, version):
@@ -48,16 +48,18 @@ class VersionBitsWarningTest(UnitETestFramework):
 
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for _ in range(numblocks):
-            coinbase = create_coinbase(height + 1, snapshot_meta.hash)
+            stake = self.nodes[0].listunspent()[0]
+            coinbase = create_coinbase(height + 1, stake, snapshot_meta.hash)
             block = create_block(tip, coinbase, block_time)
             block.nVersion = version
             block.solve()
             peer.send_message(msg_block(block))
+            self.nodes[0].waitforblockheight(height+1, 10000)
             block_time += 1
             height += 1
             tip = block.sha256
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
+
+            snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         peer.sync_with_ping()
 
@@ -69,6 +71,8 @@ class VersionBitsWarningTest(UnitETestFramework):
     def run_test(self):
         # Handy alias
         node = self.nodes[0]
+        self.setup_stake_coins(node)
+
         node.add_p2p_connection(P2PInterface())
         network_thread_start()
         node.p2p.wait_for_verack()

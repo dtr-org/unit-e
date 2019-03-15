@@ -60,7 +60,7 @@ class ProposerBalanceTest(UnitETestFramework):
             coinstake_tx_id = block_info['tx'][0]
             coinstake_tx_info = nodes[node_idx].gettransaction(coinstake_tx_id)
 
-            created_money += coinstake_tx_info['details'][0]['amount']
+            created_money += coinstake_tx_info['details'][0]['fee']
             assert_equal(
                 created_money,
                 nodes[node_idx].gettxoutsetinfo()['total_amount']
@@ -97,7 +97,7 @@ class ProposerBalanceTest(UnitETestFramework):
             ]
 
             coinstake_tx_info = transactions[0]
-            created_money += coinstake_tx_info['details'][0]['amount']
+            created_money += coinstake_tx_info['details'][0]['fee']
 
             # We want to subtract the fees because are not created money
             for tx in transactions[1:]:

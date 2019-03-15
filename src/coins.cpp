@@ -305,7 +305,7 @@ unsigned int CCoinsViewCache::GetCacheSize() const {
 CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 {
     CAmount nResult = 0;
-    for (unsigned int i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); i++) {
+    for (std::size_t i = (tx.IsCoinBase() ? 1 : 0); i < tx.vin.size(); ++i) {
         nResult += AccessCoin(tx.vin[i].prevout).out.nValue;
     }
     return nResult;

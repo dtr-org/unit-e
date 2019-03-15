@@ -12,7 +12,6 @@ from test_framework.util import (
     connect_nodes,
     disconnect_nodes,
 )
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -27,7 +26,7 @@ class EsperanzaVoteTest(UnitETestFramework):
             '-whitelist=127.0.0.1',
             esperanza_config,
         ]
-        proposer_node_params = ['-proposing=0', '-debug=all', '-whitelist=127.0.0.1', esperanza_config]
+        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', esperanza_config]
 
         self.extra_args = [proposer_node_params,
                            finalizer_node_params,
@@ -40,8 +39,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
-        for node in self.nodes:
-            node.importmasterkey(regtest_mnemonics[node.index]['mnemonics'])
+        self.setup_stake_coins(*self.nodes)
         assert all(n.getbalance() == 10000 for n in self.nodes)
 
         # create topology where arrows denote non-persistent connection

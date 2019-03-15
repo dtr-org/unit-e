@@ -30,9 +30,9 @@ def getutxo(txid):
     utxo["txid"] = txid
     return utxo
 
-def find_unspent(node, min_value):
+def find_unspent(node, value):
     for utxo in node.listunspent():
-        if utxo['amount'] >= min_value:
+        if utxo['amount'] == value:
             return utxo
 
 class SegWitTest(UnitETestFramework):
@@ -70,6 +70,9 @@ class SegWitTest(UnitETestFramework):
         sync_blocks(self.nodes)
 
     def run_test(self):
+
+        self.setup_stake_coins(self.nodes[0])
+
         self.nodes[0].generate(170)  # Mine blocks to generate enough mature balance
 
         self.log.info("Verify sending to p2sh-embedded and native segwit addresses")
@@ -458,8 +461,11 @@ class SegWitTest(UnitETestFramework):
         assert_equal(v1_decoded['vout'][0]['scriptPubKey']['addresses'][0], v1_addr)
         assert_equal(v1_decoded['vout'][0]['scriptPubKey']['hex'], "55020305")
 
-        # Check that spendable outputs are really spendable
-        self.create_and_mine_tx_from_txids(spendable_txid)
+        # Check that spendable outputs are really spendable if not already spent for coinbases
+        set_unspent = set([d['txid'] for d in self.nodes[0].listunspent()])
+        still_unspent = set(spendable_txid) - set_unspent
+        if still_unspent:
+            self.create_and_mine_tx_from_txids(still_unspent)
 
         # import all the private keys so solvable addresses become spendable
         self.nodes[0].importprivkey("cPiM8Ub4heR9NBYmgVzJQiUH1if44GSBGiqaeJySuL2BKxubvgwb")

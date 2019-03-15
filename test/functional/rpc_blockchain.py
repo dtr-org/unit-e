@@ -39,7 +39,15 @@ class BlockchainTest(UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
-        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress())
+        self.setup_stake_coins(self.nodes[0], rescan=False)
+
+        genesis = self.nodes[0].getblock(self.nodes[0].getbestblockhash())
+        funding_txid = genesis['tx'][0]
+        genesis_tx_hex = self.nodes[0].getrawtransaction(funding_txid)
+        fund_proof = self.nodes[0].gettxoutproof([funding_txid])
+        self.nodes[0].importprunedfunds(genesis_tx_hex, fund_proof)
+
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress('', 'bech32'))
 
         self._test_getblockchaininfo()
         self._test_getchaintxstats()
@@ -134,11 +142,17 @@ class BlockchainTest(UnitETestFramework):
         node = self.nodes[0]
         res = node.gettxoutsetinfo()
 
-        assert_equal(res['total_amount'], Decimal('1058725.00000000'))
+        assert_equal(res['total_amount'], Decimal('1068725.00000000'))
+
         assert_equal(res['transactions'], 201)
         assert_equal(res['height'], 200)
-        assert_equal(res['txouts'], 305)
-        assert_equal(res['bogosize'], 22160),
+
+        # - there is 106 initial UTXOs in regtest funds
+        # - each of the 200 blocks creates a reward UTXO
+        # - the first staking splits the initial 10000 into 10x1000 (106-1+10, an additional 9)
+        # 200 + 106 + 9 = 315
+        assert_equal(res['txouts'], 315)
+        assert_equal(res['bogosize'], 22680),
         assert_equal(res['bestblock'], node.getblockhash(200))
         size = res['disk_size']
         assert size > 6400
@@ -152,10 +166,10 @@ class BlockchainTest(UnitETestFramework):
 
         res2 = node.gettxoutsetinfo()
         assert_equal(res2['transactions'], 1)
-        assert_equal(res2['total_amount'], Decimal('1050000.00000000'))
+        assert_equal(res2['total_amount'], Decimal('1060000.00000000'))
         assert_equal(res2['height'], 0)
-        assert_equal(res2['txouts'], 105)
-        assert_equal(res2['bogosize'], 7560),
+        assert_equal(res2['txouts'], 106)
+        assert_equal(res2['bogosize'], 7632),
         assert_equal(res2['bestblock'], node.getblockhash(0))
         assert_equal(len(res2['hash_serialized_2']), 64)
 

@@ -10,7 +10,7 @@ Version 1 compact blocks are non-segwit and they are not supported
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, update_uncommited_block_structures, should_add_witness_commitment
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, should_add_witness_commitment
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
@@ -113,7 +113,8 @@ class CompactBlocksTest(UnitETestFramework):
         mtp = node.getblockheader(tip)['mediantime']
 
         meta = get_tip_snapshot_meta(node)
-        block = create_block(int(tip, 16), create_coinbase(height + 1, meta.hash), mtp + 1)
+        coin = get_unspent_coins(node, 1)[0]
+        block = create_block(int(tip, 16), create_coinbase(height + 1, coin, meta.hash), mtp + 1)
         block.nVersion = 4
         if txs:
             block.vtx.extend(txs)
@@ -270,21 +271,30 @@ class CompactBlocksTest(UnitETestFramework):
         node.generate(101)
         num_transactions = 25
         address = node.getnewaddress()
+        segwit_tx_generated = False
         if use_witness_address:
-            # Want at least one segwit spend, so move all funds to
+            # Want at least one segwit spend, so move some funds to
             # a witness address.
             address = node.addwitnessaddress(address)
-            value_to_send = node.getbalance()
-            node.sendtoaddress(address, satoshi_round(value_to_send-Decimal(0.1)))
+            value_to_send = 1000
+            segwit_txid = node.sendtoaddress(address, satoshi_round(value_to_send))
+            segwit_tx = node.getrawtransaction(segwit_txid, 1)
+            vout = next(filter(lambda vout: int(vout['value']) == 1000, segwit_tx['vout']))
+
             node.generate(1)
 
-        segwit_tx_generated = False
-        for i in range(num_transactions):
-            txid = node.sendtoaddress(address, 0.1)
-            hex_tx = node.gettransaction(txid)["hex"]
-            tx = FromHex(CTransaction(), hex_tx)
-            if not tx.wit.is_null():
+            segwit_spend_txid = node.sendtypeto(
+                '', '', [{'address': address, 'amount': 0.1}], '', '', False,
+                {'inputs': [{'tx': segwit_txid, 'n': vout['n']}]}
+            )
+            segwit_spend_tx = node.gettransaction(segwit_spend_txid)
+            segwit_spend = FromHex(CTransaction(), segwit_spend_tx["hex"])
+            if not segwit_spend.wit.is_null():
                 segwit_tx_generated = True
+            num_transactions -= 1
+
+        for i in range(num_transactions):
+            node.sendtoaddress(address, 0.1)
 
         if use_witness_address:
             assert(segwit_tx_generated) # check that our test is not broken
@@ -783,6 +793,11 @@ class CompactBlocksTest(UnitETestFramework):
         network_thread_start()
 
         self.test_node.wait_for_verack()
+
+        self.setup_stake_coins(*self.nodes)
+
+        # Split genesis funds to be able to create outputs later on
+        self.nodes[0].generate(1)
 
         # We will need UTXOs to construct transactions in later tests.
         self.make_utxos()

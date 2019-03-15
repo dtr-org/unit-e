@@ -159,6 +159,8 @@ class AddressTypeTest(UnitETestFramework):
         self.test_address(node_sender, change_addresses[0], multisig=False, typ=expected_type)
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[5])
+
         # Mine 101 blocks on node5 to bring nodes out of IBD and make sure that
         # no coinbases are maturing for the nodes-under-test during the test
         self.nodes[5].generate(101)

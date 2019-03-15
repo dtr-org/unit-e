@@ -1547,14 +1547,12 @@ CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, con
     CAmount nCredit = 0;
     for (std::size_t i = 0; i < wtx.tx->vout.size(); ++i) {
         const CTxOut& txout = wtx.tx->vout[i];
-        if (balance_filter == +BalanceType::MATURE) {
-            if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() > 0) {
-              continue;
-            }
-        } else if (balance_filter == +BalanceType::IMMATURE) {
-            if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() == 0) {
-              continue;
-            }
+
+        const bool is_immature = wtx.IsCoinBase() && i == 0 &&wtx.GetBlocksToRewardMaturity() > 0;
+        if (balance_filter == +BalanceType::MATURE && is_immature) {
+            continue;
+        } else if (balance_filter == +BalanceType::IMMATURE && !is_immature) {
+            continue;
         }
         nCredit += GetCredit(txout, filter);
         if (!MoneyRange(nCredit)) {
@@ -2294,12 +2292,13 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
         // treat change outputs specially, as part of the amount debited.
         CAmount debit = wtx.GetDebit(filter);
         const bool outgoing = debit > 0;
-        for (std::size_t i = 0; i < wtx.tx->vout.size(); ++i) {
+        std::size_t start_index = 0;
+        if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity() > 0) {
+          start_index = 1;
+        }
+        for (std::size_t i = start_index; i < wtx.tx->vout.size(); ++i) {
             const CTxOut& out = wtx.tx->vout[i];
-            if (wtx.IsCoinBase() && i == 0 && wtx.GetBlocksToRewardMaturity() > 0) {
-              continue;
-            }
-            if (outgoing && IsChange(out)) {
+            if (outgoing && IsChange(out) && !wtx.tx->IsCoinBase()) {
                 debit -= out.nValue;
             } else if (IsMine(out) & filter && depth >= minDepth && (!account || *account == GetAccountName(out.scriptPubKey))) {
                 balance += out.nValue;
@@ -2398,10 +2397,8 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             if (nDepth < nMinDepth || nDepth > nMaxDepth) {
                 continue;
             }
-            int skip_reward = false;
-            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
-              skip_reward = true;
-            }
+
+            const bool skip_reward = pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0;
             for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
                 if (pcoin->tx->vout[i].nValue < nMinimumAmount || pcoin->tx->vout[i].nValue > nMaximumAmount) {
                     continue;
@@ -3666,10 +3663,7 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
                 continue;
             }
 
-            int skip_reward = false;
-            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
-                skip_reward = true;
-            }
+            const bool skip_reward = pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0;
             for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
                 CTxDestination addr;
                 if (!IsMine(pcoin->tx->vout[i])) {
@@ -3866,7 +3860,7 @@ void CWallet::GetScriptForMining(std::shared_ptr<CReserveScript> &script)
         return;
     }
     script = rKey;
-    script->reserveScript = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
+    script->reserveScript = CScript::CreateP2PKHScript(ToByteVector(pubkey.GetID()));
 }
 
 void CWallet::LockCoin(const COutPoint& output)

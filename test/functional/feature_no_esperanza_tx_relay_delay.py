@@ -10,7 +10,6 @@ FeatureNoEsperanzaTxRelayDelayTest does the following:
 """
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.util import (
     assert_equal,
     sync_mempools,
@@ -68,7 +67,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             return [txid for txid in mempool if txid not in vote_tx_ids]
 
         def calc_tx_relay_delay(generate_node, record_from, record_to):
-            txid = generate_node.sendtoaddress(generate_node.getnewaddress(), 1)
+            txid = generate_node.sendtoaddress(generate_node.getnewaddress('', 'bech32'), 1)
             wait_until(lambda: has_tx_in_mempool(record_from, txid), timeout=150)
 
             now = time.perf_counter()
@@ -78,14 +77,14 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         def calc_vote_relay_delay(generate_node, record_from, record_to):
             # UNIT-E TODO: node can't vote when it processed the checkpoint
             # so we create one extra block to pass that. See https://github.com/dtr-org/unit-e/issues/643
-            generate_node.generatetoaddress(1, generate_node.getnewaddress())
+            generate_node.generatetoaddress(1, generate_node.getnewaddress('', 'bech32'))
 
             # ensure all nodes are synced before recording the delay
             sync_blocks([generate_node, record_from, record_to], timeout=10)
             sync_mempools([generate_node, record_from, record_to], timeout=10)
             assert_equal(len(new_votes_in_mempool(record_from)), 0)
 
-            generate_node.generatetoaddress(1, generate_node.getnewaddress())
+            generate_node.generatetoaddress(1, generate_node.getnewaddress('', 'bech32'))
             wait_until(lambda: len(new_votes_in_mempool(record_from)) > 0, timeout=10)
 
             now = time.perf_counter()
@@ -113,11 +112,10 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
         validator = self.nodes[4]
 
-        node3.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        validator.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.setup_stake_coins(node0, node3, validator)
 
         # leave IBD
-        node3.generatetoaddress(1, node3.getnewaddress())
+        node3.generatetoaddress(1, node3.getnewaddress('', 'bech32'))
         sync_blocks(self.nodes, timeout=10)
 
         # create network topology where arrows denote the connection direction:
@@ -166,7 +164,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         txid = validator.deposit(payto, 10000)
         self.wait_for_transaction(txid, timeout=10)
 
-        node0.generatetoaddress(7, node0.getnewaddress())
+        node0.generatetoaddress(7, node0.getnewaddress('', 'bech32'))
         assert_equal(node0.getblockcount(), 8)
         assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)
         sync_blocks(self.nodes, timeout=10)

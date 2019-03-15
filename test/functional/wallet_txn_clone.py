@@ -7,6 +7,21 @@
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 
+
+def find_vout(node, txid, amount):
+    utxos = node.listunspent(0)
+    return [x for x in utxos if x['txid'] == txid and x['amount'] == amount][0]['vout']
+
+
+def lock_all_utxos_except(node, txid, vout):
+    utxos = node.listunspent(0)
+    node.lockunspent(False, [{'txid': x['txid'], 'vout': x['vout']} for x in utxos
+                             if x['txid'] != txid or x['vout'] != vout])
+
+def unlock_all_utxos(node):
+    node.lockunspent(True)
+
+
 class TxnMallTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
@@ -29,8 +44,7 @@ class TxnMallTest(UnitETestFramework):
         else:
             output_type="legacy"
 
-        # All nodes should start with 1,250 UTE:
-        starting_balance = 1250
+        starting_balance = 11250
         for i in range(4):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
             self.nodes[i].getnewaddress("")  # bug workaround, coins generated assigned to first getnewaddress!
@@ -52,12 +66,22 @@ class TxnMallTest(UnitETestFramework):
         # Coins are sent to node1_address
         node1_address = self.nodes[1].getnewaddress("from0")
 
+        node0_utxos = self.nodes[0].listunspent(0)
+        fund_foo_vout = find_vout(self.nodes[0], fund_foo_txid, 1219)
+        fund_bar_vout = find_vout(self.nodes[0], fund_bar_txid, 29)
+
         # Send tx1, and another transaction tx2 that won't be cloned
+        lock_all_utxos_except(self.nodes[0], fund_foo_txid, fund_foo_vout)
         txid1 = self.nodes[0].sendfrom("foo", node1_address, 40, 0)
+        unlock_all_utxos(self.nodes[0])
+
+        lock_all_utxos_except(self.nodes[0], fund_bar_txid, fund_bar_vout)
         txid2 = self.nodes[0].sendfrom("bar", node1_address, 20, 0)
+        unlock_all_utxos(self.nodes[0])
 
         # Construct a clone of tx1, to be malleated
         rawtx1 = self.nodes[0].getrawtransaction(txid1,1)
+        assert_equal(rawtx1['vin'][0]['txid'], fund_foo_txid)
         clone_inputs = [{"txid":rawtx1["vin"][0]["txid"],"vout":rawtx1["vin"][0]["vout"]}]
         clone_outputs = {rawtx1["vout"][0]["scriptPubKey"]["addresses"][0]:rawtx1["vout"][0]["value"],
                          rawtx1["vout"][1]["scriptPubKey"]["addresses"][0]:rawtx1["vout"][1]["value"]}

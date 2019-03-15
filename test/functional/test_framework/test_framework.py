@@ -17,6 +17,7 @@ import time
 
 from .authproxy import JSONRPCException
 from . import coverage
+from .regtest_mnemonics import regtest_mnemonics
 from .test_node import TestNode
 from .util import (
     MAX_NODES,
@@ -49,7 +50,8 @@ TEST_EXIT_PASSED = 0
 TEST_EXIT_FAILED = 1
 TEST_EXIT_SKIPPED = 77
 
-COINBASE_MATURITY = 100
+COINBASE_MATURITY = 100  # Should match the value from consensus.h
+STAKE_SPLIT_THRESHOLD = 1000  # Should match the value from blockchain_parameters.cpp
 
 # This parameter simulates the scenario that the node "never" reaches finalization.
 # The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
@@ -231,6 +233,11 @@ class UnitETestFramework():
             extra_args = self.extra_args
         self.add_nodes(self.num_nodes, extra_args)
         self.start_nodes()
+
+    def setup_stake_coins(self, *args, rescan=True):
+        for i, node in enumerate(args):
+            node.importmasterkey(regtest_mnemonics[i+2]['mnemonics'], "", rescan)
+            node.initial_stake = regtest_mnemonics[i+2]['balance']
 
     def run_test(self):
         """Tests must override this method to define test logic"""
@@ -515,8 +522,15 @@ class UnitETestFramework():
             # Note: To preserve compatibility with older versions of
             # initialize_chain, only 4 nodes will generate coins.
             #
-            # blocks are created with timestamps 10 minutes apart
+            # We need to initialize also nodes' wallets with some genesis funds
+            # and we use the last 4 addresses in the genesis to do so.
+            #
+            # Blocks are created with timestamps 10 minutes apart
             # starting from 2010 minutes in the past
+
+            for peer in range(4):
+                self.nodes[peer].importmasterkey(regtest_mnemonics[-(peer+1)]['mnemonics'])
+
             self.enable_mocktime()
             block_time = self.mocktime - (201 * 10 * 60)
             for i in range(2):

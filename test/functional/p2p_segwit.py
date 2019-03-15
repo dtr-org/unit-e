@@ -9,9 +9,8 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.messages import msg_block, msg_witness_block
 from test_framework.util import *
 from test_framework.script import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, get_witness_script, WITNESS_COMMITMENT_HEADER
+from test_framework.blocktools import create_block, create_coinbase, sign_coinbase, get_tip_snapshot_meta, add_witness_commitment, WITNESS_COMMITMENT_HEADER
 from test_framework.key import CECKey, CPubKey
-import time
 import random
 from binascii import hexlify
 
@@ -129,7 +128,9 @@ class SegWitTest(UnitETestFramework):
         height = self.nodes[0].getblockcount() + 1
         block_time = self.nodes[0].getblockheader(tip)["mediantime"] + 1
         meta = get_tip_snapshot_meta(self.nodes[0])
-        block = create_block(int(tip, 16), create_coinbase(height, meta.hash), block_time)
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, meta.hash))
+        block = create_block(int(tip, 16), coinbase, block_time)
         block.nVersion = nVersion
         block.rehash()
         return block
@@ -240,16 +241,16 @@ class SegWitTest(UnitETestFramework):
         test_witness_block(self.nodes[0].rpc, self.test_node, block_3, accepted=False)
 
         # Add a different commitment with different nonce, but in the
-        # right location, and with some funds burned(!).
+        # right location, and with funds moved around.
         # This should succeed (nValue shouldn't affect finding the
         # witness commitment).
         add_witness_commitment(block_3, nonce=0)
-        block_3.vtx[0].vout[0].nValue -= 1
-        block_3.vtx[0].vout[-1].nValue += 1
+        block_3.vtx[0].vout[1].nValue -= 1
+        block_3.vtx[0].vout[2].nValue += 1
         block_3.vtx[0].rehash()
         block_3.hashMerkleRoot = block_3.calc_merkle_root()
         block_3.rehash()
-        assert(len(block_3.vtx[0].vout) == 4) # 3 OP_returns
+        assert_equal(len(block_3.vtx[0].vout), 5) # 3 OP_returns + reward + stake
         block_3.solve()
         test_witness_block(self.nodes[0].rpc, self.test_node, block_3, accepted=True)
 
@@ -332,8 +333,9 @@ class SegWitTest(UnitETestFramework):
         child_tx.rehash()
         self.update_witness_block_with_transactions(block, [parent_tx, child_tx])
 
-        vsize = get_virtual_size(block)
-        additional_bytes = (MAX_BLOCK_BASE_SIZE - vsize)*4
+        # Calculate exact additional bytes (get_virtual_size would round it)
+        additional_bytes = 4 * MAX_BLOCK_BASE_SIZE - (3 * len(block.serialize(with_witness=False)) + len(block.serialize(with_witness=True)))
+
         i = 0
         while additional_bytes > 0:
             # Add some more bytes to each input until we hit MAX_BLOCK_BASE_SIZE+1
@@ -359,7 +361,7 @@ class SegWitTest(UnitETestFramework):
         block.vtx[0].vout.pop()
         add_witness_commitment(block)
         block.solve()
-        assert(get_virtual_size(block) == MAX_BLOCK_BASE_SIZE)
+        assert_equal(get_virtual_size(block), MAX_BLOCK_BASE_SIZE)
 
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
 
@@ -1508,6 +1510,11 @@ class SegWitTest(UnitETestFramework):
         self.std_node = self.nodes[1].add_p2p_connection(TestNode(), services=NODE_NETWORK|NODE_WITNESS)
 
         network_thread_start()
+
+        self.setup_stake_coins(*self.nodes)
+
+        # Split genesis funds to be able to create outputs later on
+        self.nodes[0].generate(1)
 
         # Keep a place to store utxo's that can be used in later tests
         self.utxo = []

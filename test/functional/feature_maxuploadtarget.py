@@ -10,8 +10,6 @@ if uploadtarget has been reached.
 if uploadtarget has been reached.
 * Verify that the upload counters are reset after 24 hours.
 """
-from collections import defaultdict
-import time
 
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
@@ -40,6 +38,8 @@ class MaxUploadTest(UnitETestFramework):
         self.utxo_cache = []
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
+
         # Before we connect anything, we first set the time on the node
         # to be in the past, otherwise things break because the CNode
         # time counters can't be reset backward after initialization
@@ -62,6 +62,10 @@ class MaxUploadTest(UnitETestFramework):
             p2pc.wait_for_verack()
 
         # Test logic begins here
+
+        # Let's keep a utxo for proposing and we lock the rest
+        self.utxo_cache = self.nodes[0].listunspent()[1:]
+        self.nodes[0].lockunspent(False, [{"txid": out['txid'], "vout": out['vout']} for out in self.utxo_cache])
 
         # Now mine a big block
         mine_large_block(self.nodes[0], self.utxo_cache)

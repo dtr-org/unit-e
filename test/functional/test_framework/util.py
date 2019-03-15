@@ -450,6 +450,17 @@ def sync_mempools(rpc_connections, *, wait=1, timeout=150, flush_scheduler=True)
     raise AssertionError("Mempool sync failed:%s" % "".join(
         ["\nNode %d: %s" % entry for entry in mempools.items()]))
 
+def get_unspent_coins(node, n_coins, lock=False):
+    """
+    Wrapper for listing coins to use for staking.
+    """
+    unspent_outputs = node.listunspent()
+    assert(len(unspent_outputs) >= n_coins)
+    # return from the from to avoid problems on reorg
+    if lock:
+        node.lockunspent(False, [{'txid': tx['txid'], 'vout': tx['vout']} for tx in unspent_outputs[:n_coins]])
+    return unspent_outputs[:n_coins]
+
 def check_finalization(node, expected):
     state = node.getfinalizationstate()
     for key in expected:
@@ -531,8 +542,8 @@ def create_confirmed_utxos(fee, node, count):
         to_generate -= 25
     utxos = node.listunspent()
     iterations = count - len(utxos)
-    addr1 = node.getnewaddress()
-    addr2 = node.getnewaddress()
+    addr1 = node.getnewaddress("", "bech32")
+    addr2 = node.getnewaddress("", "bech32")
     if iterations <= 0:
         return utxos
     for i in range(iterations):
@@ -608,9 +619,10 @@ def mine_large_block(node, utxos=None):
     num = 14
     txouts = gen_return_txouts()
     utxos = utxos if utxos is not None else []
-    if len(utxos) < num:
-        utxos.clear()
-        utxos.extend(node.listunspent())
+
+    # We must pass enough transactions
+    assert len(utxos) >= num
+
     fee = 100 * node.getnetworkinfo()["relayfee"]
     create_lots_of_big_transactions(node, txouts, utxos, num, fee=fee)
     node.generate(1)

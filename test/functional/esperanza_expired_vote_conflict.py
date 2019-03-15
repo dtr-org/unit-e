@@ -3,7 +3,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 from test_framework.mininode import P2PInterface, network_thread_start
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import json, sync_blocks, assert_equal, wait_until
 import os.path
@@ -51,8 +50,7 @@ class ExpiredVoteConflict(UnitETestFramework):
         proposer = self.proposer
         validator = self.validator
 
-        proposer.importmasterkey(regtest_mnemonics[0]['mnemonics'])
-        validator.importmasterkey(regtest_mnemonics[1]['mnemonics'])
+        self.setup_stake_coins(proposer, validator)
 
         relay = MiniRelay()
         relay.relay_txs = True

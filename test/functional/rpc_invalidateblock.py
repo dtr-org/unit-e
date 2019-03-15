@@ -17,6 +17,9 @@ class InvalidateTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         self.log.info("Make sure we repopulate setBlockIndexCandidates after InvalidateBlock:")
         self.log.info("Mine 4 blocks on Node 0")
         self.nodes[0].generate(4)

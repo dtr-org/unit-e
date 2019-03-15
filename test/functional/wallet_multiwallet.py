@@ -9,8 +9,10 @@ Verify that a united node can load multiple wallet files
 import os
 import shutil
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
 from test_framework.util import assert_equal, assert_raises_rpc_error
+from test_framework.regtest_mnemonics import regtest_mnemonics
+
 
 class MultiWalletTest(UnitETestFramework):
     def set_test_params(self):
@@ -72,9 +74,10 @@ class MultiWalletTest(UnitETestFramework):
         # if wallets/ doesn't exist, datadir should be the default wallet dir
         wallet_dir2 = data_dir('walletdir')
         os.rename(wallet_dir(), wallet_dir2)
-        self.start_node(0, ['-wallet=w4', '-wallet=w5'])
+        self.start_node(0, ['-wallet=w4', '-wallet=w5', '-rescan'])
         assert_equal(set(node.listwallets()), {"w4", "w5"})
         w5 = wallet("w5")
+        w5.importmasterkey(regtest_mnemonics[5]['mnemonics'])
         w5.generate(1)
 
         # now if wallets/ exists again, but the rootdir is specified as the walletdir, w4 and w5 should still be loaded
@@ -98,6 +101,7 @@ class MultiWalletTest(UnitETestFramework):
         w4 = wallet("w")
         wallet_bad = wallet("bad")
 
+        w1.importmasterkey(regtest_mnemonics[1]['mnemonics'])
         w1.generate(1)
 
         # accessing invalid wallet fails
@@ -125,7 +129,7 @@ class MultiWalletTest(UnitETestFramework):
         assert_equal(w4_name, "w")
 
         w1.generate(101)
-        assert_equal(w1.getbalance(), 100)
+        assert_equal(w1.getbalance(), (102 - COINBASE_MATURITY) * 50 + regtest_mnemonics[1]['balance'])
         assert_equal(w2.getbalance(), 0)
         assert_equal(w3.getbalance(), 0)
         assert_equal(w4.getbalance(), 0)

@@ -44,6 +44,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
   AssertLockHeld(cs_main);
   AssertLockHeld(m_enclosing_wallet.cs_wallet);  // access to mapWallet
 
+  CCoinsViewCache view(pcoinsTip.get());  // requires cs_main
   for (const auto &it : m_enclosing_wallet.mapWallet) {
     const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
@@ -54,8 +55,13 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       // transaction is not included in a block
       continue;
     }
-    for (std::size_t out_index = 0; out_index < coins.size(); ++out_index) {
+
+    const bool skip_reward = tx->IsCoinBase() && tx->GetBlocksToRewardMaturity() > 0;
+    for (std::size_t out_index = skip_reward ? 1 : 0; out_index < coins.size(); ++out_index) {
       if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {
+        continue;
+      }
+      if (!view.HaveCoin(COutPoint(txId, static_cast<uint32_t>(out_index)))) {
         continue;
       }
       if (m_enclosing_wallet.IsLockedCoin(txId, out_index)) {

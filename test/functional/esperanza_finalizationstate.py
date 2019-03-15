@@ -10,7 +10,6 @@ from test_framework.util import JSONRPCException
 from test_framework.util import connect_nodes_bi
 from test_framework.util import disconnect_nodes
 from test_framework.util import wait_until
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 
 block_time = 1
@@ -54,24 +53,23 @@ def test_setup(test, proposers, validators):
     test.setup_clean_chain = True
 
 
-def setup_deposit(self, nodes):
+def setup_deposit(self, proposer, validators):
 
-    for i, n in enumerate(nodes):
-        n.importmasterkey(regtest_mnemonics[i]['mnemonics'])
+    for i, n in enumerate(validators):
         n.new_address = n.getnewaddress("", "legacy")
 
         assert_equal(n.getbalance(), 10000)
 
-    for n in nodes:
+    for n in validators:
         deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx)
 
     # the validator will be ready to operate in epoch 4
     # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
     for n in range(0, 39):
-        generate_block(nodes[0])
+        generate_block(proposer)
 
-    assert_equal(nodes[0].getblockchaininfo()['blocks'], 40)
+    assert_equal(proposer.getblockchaininfo()['blocks'], 40)
 
 
 def generate_block(node):
@@ -114,10 +112,12 @@ class ExpiredVoteTest(UnitETestFramework):
         p1 = self.nodes[1]
         v = self.nodes[2]
 
+        self.setup_stake_coins(p0, p1, v)
+
         # Leave IBD
         self.generate_sync(p0)
 
-        setup_deposit(self, [v])
+        setup_deposit(self, p0, [v])
         sync_blocks([p0, p1, v])
 
         # get to up to block 148, just one before the new checkpoint

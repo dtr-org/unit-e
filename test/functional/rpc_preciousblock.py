@@ -51,6 +51,8 @@ class PreciousTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], self.nodes[1], self.nodes[2])
+
         for i in range(self.num_nodes):
             self.nodes[i].add_p2p_connection(P2PInterface())
         network_thread_start()

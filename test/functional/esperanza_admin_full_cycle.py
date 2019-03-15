@@ -3,10 +3,8 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import (json, connect_nodes_bi, assert_equal,
-                                 assert_raises_rpc_error)
+from test_framework.util import json, connect_nodes_bi, assert_raises_rpc_error
 from test_framework.admin import Admin
 
 MIN_DEPOSIT_SIZE = 1000
@@ -92,7 +90,7 @@ class AdminFullCycle(UnitETestFramework):
         }
         json_params = json.dumps(params_data)
 
-        proposer_settings = ['-permissioning=1', '-proposing=1', '-debug=all',
+        proposer_settings = ['-permissioning=1', '-debug=all',
                              '-whitelist=127.0.0.1',
                              '-esperanzaconfig=' + json_params]
         validator_settings = ['-permissioning=1', '-validating=1', '-debug=all',
@@ -116,9 +114,8 @@ class AdminFullCycle(UnitETestFramework):
                 connect_nodes_bi(self.nodes, i, j)
 
     def run_test(self):
-        for i, node in enumerate(self.nodes):
-            node.importmasterkey(regtest_mnemonics[i]['mnemonics'])
-            assert_equal(10000, node.getbalance())
+
+        self.setup_stake_coins(*self.nodes)
 
         # Exit IBD
         self.generate_sync(self.nodes[0])

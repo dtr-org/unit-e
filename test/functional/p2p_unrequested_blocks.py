@@ -52,11 +52,12 @@ Node1 is unused in tests 3-7:
 """
 
 from test_framework.mininode import *
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
 from test_framework.util import *
 import time
 from test_framework.blocktools import (
     create_block,
+    sign_coinbase,
     create_coinbase,
     create_transaction,
     get_tip_snapshot_meta,
@@ -64,6 +65,53 @@ from test_framework.blocktools import (
     UTXO,
     COutPoint,
 )
+from test_framework.script import (CScript, CTxOut)
+
+class UTXOManager:
+    def __init__(self, node, snapshot_meta):
+        self.node = node
+        self.snapshot_meta = snapshot_meta
+        self.available_outputs = []
+        self.spent_outputs = []
+        self.current_inputs = []
+        self.current_outputs = []
+
+    def process(self, tx, height):
+        is_coinbase = tx.vin[0].prevout.hash == 0
+
+        start_index = 1 if is_coinbase else 0
+        for tx_in in tx.vin[start_index:]:
+            outpoints_equal = lambda coin: coin.outpoint.hash == tx_in.prevout.hash and coin.outpoint.n == tx_in.prevout.n
+            prevout_utxo = next(filter(outpoints_equal, self.available_outputs+self.spent_outputs))
+            self.current_inputs.append(UTXO(prevout_utxo.height, prevout_utxo.isCoinBase, prevout_utxo.outpoint, prevout_utxo.txOut))
+
+        self.current_outputs.extend([UTXO(height, is_coinbase, COutPoint(tx.sha256, i), tx.vout[i]) for i in range(len(tx.vout))])
+
+    def get_spendable_utxo(self, height):
+        for utxo in self.available_outputs:
+            if utxo.outpoint.n != 0 or height - utxo.height > COINBASE_MATURITY:
+                return utxo
+        raise RuntimeError("No spendable coins")
+
+    def get_coinbase(self, height, **kwargs):
+        snapshot_hash = self.get_hash(height-1)
+        utxo = self.get_spendable_utxo(height)
+        self.available_outputs.remove(utxo)
+        self.spent_outputs.append(utxo)
+        coin = {'txid': hex(utxo.outpoint.hash), 'vout': utxo.outpoint.n, 'amount': utxo.txOut.nValue/UNIT}
+        return sign_coinbase(self.node, create_coinbase(height, coin, snapshot_hash, **kwargs))
+
+    def get_hash(self, height):
+        if self.current_inputs or self.current_outputs:
+            self.snapshot_meta = calc_snapshot_hash(self.node, self.snapshot_meta.data, 0, height, self.current_inputs, self.current_outputs)
+            for output in self.current_inputs:
+                if output in self.available_outputs:
+                    self.available_outputs.remove(output)
+                    self.spent_outputs.append(output)
+            self.available_outputs.extend(self.current_outputs)
+            self.current_inputs = []
+            self.current_outputs = []
+        return self.snapshot_meta.hash
 
 class AcceptBlockTest(UnitETestFramework):
     def add_options(self, parser):
@@ -85,6 +133,8 @@ class AcceptBlockTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
+
         # Setup the p2p connections and start up the network thread.
         # test_node connects to node0 (not whitelisted)
         test_node = self.nodes[0].add_p2p_connection(P2PInterface())
@@ -98,6 +148,11 @@ class AcceptBlockTest(UnitETestFramework):
         min_work_node.wait_for_verack()
 
         fork_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        utxo_manager = UTXOManager(self.nodes[0], fork_snapshot_meta)
+        genesis_coin = get_unspent_coins(self.nodes[0], 1)[0]
+        genesis_txout = CTxOut(int(genesis_coin['amount']*UNIT), CScript(hex_str_to_bytes(genesis_coin['scriptPubKey'])))
+        genesis_utxo = [UTXO(0, True, COutPoint(int(genesis_coin['txid'], 16), genesis_coin['vout']), genesis_txout)]
+        utxo_manager.available_outputs = genesis_utxo
 
         # 1. Have nodes mine a block (leave IBD)
         [ n.generate(1) for n in self.nodes ]
@@ -108,8 +163,10 @@ class AcceptBlockTest(UnitETestFramework):
         # This should be accepted by node0
         blocks_h2 = []  # the height 2 blocks on each node's chain
         block_time = int(time.time()) + 1
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
         for i in range(2):
-            blocks_h2.append(create_block(tips[i], create_coinbase(2, tip_snapshot_meta.hash), block_time))
+            coinbase = sign_coinbase(self.nodes[0], create_coinbase(2, coin, tip_snapshot_meta.hash))
+            blocks_h2.append(create_block(tips[i], coinbase, block_time))
             blocks_h2[i].solve()
             block_time += 1
         test_node.send_message(msg_block(blocks_h2[0]))
@@ -122,13 +179,12 @@ class AcceptBlockTest(UnitETestFramework):
         self.log.info("First height 2 block accepted by node0; correctly rejected by node1")
 
         # 3. Send another block that builds on genesis.
-        coinbase = create_coinbase(1, fork_snapshot_meta.hash)
+        coinbase = utxo_manager.get_coinbase(1, n_pieces=300)
         block_h1f = create_block(int("0x" + self.nodes[0].getblockhash(0), 0), coinbase, block_time)
         block_time += 1
         block_h1f.solve()
         test_node.send_message(msg_block(block_h1f))
-        utxo = UTXO(1, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, 1, [], [utxo])
+        utxo_manager.process(coinbase, 1)
 
         test_node.sync_with_ping()
         tip_entry_found = False
@@ -140,13 +196,13 @@ class AcceptBlockTest(UnitETestFramework):
         assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, block_h1f.hash)
 
         # 4. Send another two block that build on the fork.
-        coinbase = create_coinbase(2, fork_snapshot_meta.hash)
+        coinbase = utxo_manager.get_coinbase(2)
         block_h2f = create_block(block_h1f.sha256, coinbase, block_time)
         block_time += 1
         block_h2f.solve()
         test_node.send_message(msg_block(block_h2f))
-        utxo = UTXO(2, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, 2, [], [utxo])
+
+        utxo_manager.process(coinbase, 2)
 
         test_node.sync_with_ping()
         # Since the earlier block was not processed by node, the new block
@@ -163,12 +219,11 @@ class AcceptBlockTest(UnitETestFramework):
         self.log.info("Second height 2 block accepted, but not reorg'ed to")
 
         # 4b. Now send another block that builds on the forking chain.
-        coinbase = create_coinbase(3, fork_snapshot_meta.hash)
+        coinbase = utxo_manager.get_coinbase(3)
         block_h3 = create_block(block_h2f.sha256, coinbase, block_h2f.nTime+1)
         block_h3.solve()
         test_node.send_message(msg_block(block_h3))
-        utxo = UTXO(3, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, 3, [], [utxo])
+        utxo_manager.process(coinbase, 3)
 
         test_node.sync_with_ping()
         # Since the earlier block was not processed by node, the new block
@@ -189,17 +244,13 @@ class AcceptBlockTest(UnitETestFramework):
         # the last (height-too-high) on node (as long as its not missing any headers)
         tip = block_h3
         all_blocks = []
-        all_snapshots = []
-        for i in range(288):
-            height = i+4
-            coinbase = create_coinbase(height, fork_snapshot_meta.hash)
+        for height in range(4, 292):
+            coinbase = utxo_manager.get_coinbase(height)
             next_block = create_block(tip.sha256, coinbase, tip.nTime+1)
             next_block.solve()
             all_blocks.append(next_block)
             tip = next_block
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, height, [], [utxo])
-            all_snapshots.append(fork_snapshot_meta)
+            utxo_manager.process(coinbase, height)
 
         # Now send the block at height 5 and check that it wasn't accepted (missing header)
         test_node.send_message(msg_block(all_blocks[1]))
@@ -274,57 +325,60 @@ class AcceptBlockTest(UnitETestFramework):
 
         # 8. Create a chain which is invalid at a height longer than the
         # current chain, but which has more blocks on top of that
-        coinbase = create_coinbase(289, all_snapshots[284].hash)
-        block_289f = create_block(all_blocks[284].sha256, coinbase, all_blocks[284].nTime+1)
-        block_289f.solve()
-        utxo = UTXO(289, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], all_snapshots[284].data, 0, 289, [], [utxo])
-        coinbase290f = create_coinbase(290, fork_snapshot_meta.hash)
-        block_290f = create_block(block_289f.sha256, coinbase290f, block_289f.nTime+1)
-        block_290f.solve()
-        utxo = UTXO(290, True, COutPoint(coinbase290f.sha256, 0), coinbase290f.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, 290, [], [utxo])
-        coinbase = create_coinbase(291, fork_snapshot_meta.hash)
-        block_291 = create_block(block_290f.sha256, coinbase, block_290f.nTime+1)
-        # block_291 spends a coinbase below maturity!
-        block_291.vtx.append(create_transaction(block_290f.vtx[0], 0, b"42", 1))
-        block_291.hashMerkleRoot = block_291.calc_merkle_root()
-        block_291.solve()
-        utxo1 = UTXO(290, True, COutPoint(coinbase290f.sha256, 0), coinbase290f.vout[0])
-        utxo2 = UTXO(291, False, COutPoint(block_291.vtx[-1].sha256, 1), block_291.vtx[-1].vout[0])
-        utxo3 = UTXO(291, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, 291, [], [utxo3])
-        coinbase = create_coinbase(292, fork_snapshot_meta.hash)
-        block_292 = create_block(block_291.sha256, coinbase, block_291.nTime+1)
-        block_292.solve()
-        utxo = UTXO(292, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        fork_snapshot_meta = calc_snapshot_hash(self.nodes[0], fork_snapshot_meta.data, 0, 292, [], [utxo3])
+
+        # Reset utxo managers to current state
+        utxo_fork_manager = UTXOManager(self.nodes[0], get_tip_snapshot_meta(self.nodes[0]))
+        utxo_fork_manager.available_outputs = utxo_manager.available_outputs
+        utxo_manager = UTXOManager(self.nodes[0], get_tip_snapshot_meta(self.nodes[0]))
+        utxo_manager.available_outputs = utxo_fork_manager.available_outputs
+
+        # Create one block on top of the valid chain
+        coinbase = utxo_manager.get_coinbase(291)
+        valid_block = create_block(all_blocks[286].sha256, coinbase, all_blocks[286].nTime+1)
+        valid_block.solve()
+        test_node.send_and_ping(msg_block(valid_block))
+        assert_equal(self.nodes[0].getblockcount(), 291)
+
+        # Create three blocks on a fork, but make the second one invalid
+        coinbase = utxo_fork_manager.get_coinbase(291)
+        block_291f = create_block(all_blocks[286].sha256, coinbase, all_blocks[286].nTime+1)
+        block_291f.solve()
+        utxo_fork_manager.process(coinbase, 291)
+        coinbase = utxo_fork_manager.get_coinbase(292)
+        block_292f = create_block(block_291f.sha256, coinbase, block_291f.nTime+1)
+        # block_292f spends a coinbase below maturity!
+        block_292f.vtx.append(create_transaction(block_291f.vtx[0], 0, b"42", 1))
+        block_292f.hashMerkleRoot = block_292f.calc_merkle_root()
+        block_292f.solve()
+        utxo_fork_manager.process(coinbase, 292)
+        utxo_fork_manager.process(block_292f.vtx[1], 292)
+        coinbase = utxo_fork_manager.get_coinbase(293)
+        block_293f = create_block(block_292f.sha256, coinbase, block_292f.nTime+1)
+        block_293f.solve()
+        utxo_fork_manager.process(coinbase, 293)
 
         # Now send all the headers on the chain and enough blocks to trigger reorg
         headers_message = msg_headers()
-        headers_message.headers.append(CBlockHeader(block_289f))
-        headers_message.headers.append(CBlockHeader(block_290f))
-        headers_message.headers.append(CBlockHeader(block_291))
-        headers_message.headers.append(CBlockHeader(block_292))
+        headers_message.headers.append(CBlockHeader(block_291f))
+        headers_message.headers.append(CBlockHeader(block_292f))
+        headers_message.headers.append(CBlockHeader(block_293f))
         test_node.send_message(headers_message)
 
         test_node.sync_with_ping()
         tip_entry_found = False
         for x in self.nodes[0].getchaintips():
-            if x['hash'] == block_292.hash:
+            if x['hash'] == block_293f.hash:
                 assert_equal(x['status'], "headers-only")
                 tip_entry_found = True
         assert(tip_entry_found)
-        assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, block_292.hash)
+        assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, block_293f.hash)
 
-        test_node.send_message(msg_block(block_289f))
-        test_node.send_message(msg_block(block_290f))
+        test_node.send_message(msg_block(block_291f))
 
         test_node.sync_with_ping()
-        self.nodes[0].getblock(block_289f.hash)
-        self.nodes[0].getblock(block_290f.hash)
+        self.nodes[0].getblock(block_291f.hash)
 
-        test_node.send_message(msg_block(block_291))
+        test_node.send_message(msg_block(block_292f))
 
         # At this point we've sent an obviously-bogus block, wait for full processing
         # without assuming whether we will be disconnected or not
@@ -342,15 +396,16 @@ class AcceptBlockTest(UnitETestFramework):
             test_node.wait_for_verack()
 
         # We should have failed reorg and switched back to 290 (but have block 291)
-        assert_equal(self.nodes[0].getblockcount(), 290)
-        assert_equal(self.nodes[0].getbestblockhash(), all_blocks[286].hash)
-        assert_equal(self.nodes[0].getblock(block_291.hash)["confirmations"], -1)
+        assert_equal(self.nodes[0].getblockcount(), 291)
+        assert_equal(self.nodes[0].getbestblockhash(), valid_block.hash)
+        assert_equal(self.nodes[0].getblock(block_292f.hash)["confirmations"], -1)
 
         # Now send a new header on the invalid chain, indicating we're forked off, and expect to get disconnected
-        block_293 = create_block(block_292.sha256, create_coinbase(293, fork_snapshot_meta.hash), block_292.nTime+1)
-        block_293.solve()
+        coinbase = utxo_fork_manager.get_coinbase(294)
+        block_294f = create_block(block_293f.sha256, coinbase, block_293f.nTime+1)
+        block_294f.solve()
         headers_message = msg_headers()
-        headers_message.headers.append(CBlockHeader(block_293))
+        headers_message.headers.append(CBlockHeader(block_294f))
         test_node.send_message(headers_message)
         test_node.wait_for_disconnect()
 

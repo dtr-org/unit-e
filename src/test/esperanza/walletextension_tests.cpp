@@ -288,34 +288,45 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
 
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
-    BOOST_CHECK_EQUAL(wallet_ext.GetStakeableCoins().size(), 0);
+    BOOST_CHECK_EQUAL(wallet_ext.GetStakeableCoins().size(), 1);
   }
 
-  // Create a stakable coinbase
+  // Make the first coinbase mature
   CScript coinbase_script = GetScriptForDestination(coinbaseKey.GetPubKey().GetID());
-  const CTransactionRef stakeable = CreateAndProcessBlock({}, coinbase_script).vtx[0];
+  CreateAndProcessBlock({}, coinbase_script);
+
+  CTransaction &stakeable = coinbaseTxns.front();
 
   // Check that a coin can be selected
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
     staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
-    BOOST_REQUIRE_EQUAL(stakeable_coins.size(), 1);  // The just created stakeable tx
+    BOOST_REQUIRE_EQUAL(stakeable_coins.size(), 2);  // The just created stakeable tx + initial reward
 
-    BOOST_CHECK_EQUAL(stakeable->GetHash(), stakeable_coins.begin()->GetTransactionId());
-    BOOST_CHECK_EQUAL(0, stakeable_coins.begin()->GetOutputIndex());
+    bool found = false;
+    for (const staking::Coin &coin : stakeable_coins) {
+      if (stakeable.GetHash() == coin.GetTransactionId() && coin.GetOutputIndex() == 0) {
+        found = true;
+        break;
+      }
+    }
+    BOOST_CHECK(found);
   }
 
   // Make sure locked coins are not selected
   {
     LOCK2(cs_main, pwalletMain->cs_wallet);
-
     staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
-    BOOST_CHECK_EQUAL(stakeable_coins.size(), 1);
+    BOOST_CHECK_EQUAL(stakeable_coins.size(), 2);  // The just created stakeable tx + initial reward
 
-    pwallet->LockCoin(COutPoint(stakeable->GetHash(), 0));
+    pwallet->LockCoin(COutPoint(stakeable.GetHash(), 0));
 
     stakeable_coins = wallet_ext.GetStakeableCoins();
-    BOOST_CHECK_EQUAL(stakeable_coins.size(), 0);
+    BOOST_CHECK_EQUAL(stakeable_coins.size(), 1);
+
+    // Make sure we select the other coin in the coinbase
+    BOOST_CHECK(stakeable_coins.begin()->GetTransactionId() != stakeable.GetHash());
+    BOOST_CHECK(stakeable_coins.begin()->GetOutputIndex() != 0);
   }
 }
 

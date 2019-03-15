@@ -10,7 +10,7 @@ Test that the DERSIG soft-fork activates at (regtest) height 1251.
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.mininode import *
-from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta
+from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta
 from test_framework.script import CScript
 from io import BytesIO
 
@@ -52,6 +52,7 @@ class BIP66Test(UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].add_p2p_connection(P2PInterface())
 
         network_thread_start()
@@ -80,7 +81,9 @@ class BIP66Test(UnitETestFramework):
         tip = self.nodes[0].getbestblockhash()
         block_time = self.nodes[0].getblockheader(tip)['mediantime'] + 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(int(tip, 16), create_coinbase(1, snapshot_hash), block_time)
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(1, coin, snapshot_hash))
+        block = create_block(int(tip, 16), coinbase, block_time)
         block.nVersion = 3
         block.vtx.append(spendtx)
         block.hashMerkleRoot = block.calc_merkle_root()
@@ -101,7 +104,8 @@ class BIP66Test(UnitETestFramework):
             assert_equal(self.nodes[0].p2p.last_message["reject"].data, block.sha256)
             if self.nodes[0].p2p.last_message["reject"].code == REJECT_INVALID:
                 # Generic rejection when a block is invalid
-                assert_equal(self.nodes[0].p2p.last_message["reject"].reason, b'block-validation-failed')
+                reject_reason = self.nodes[0].p2p.last_message["reject"].reason
+                assert_equal(reject_reason, b'block-validation-failed')
             else:
                 assert b'Non-canonical DER signature' in self.nodes[0].p2p.last_message["reject"].reason
 

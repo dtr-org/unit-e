@@ -6,6 +6,9 @@
 
 from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import assert_equal, assert_array_result, assert_raises_rpc_error
+from test_framework.blocktools import generate
+from test_framework.mininode import P2PInterface, network_thread_start
+
 
 class ListSinceBlockTest (UnitETestFramework):
     def set_test_params(self):
@@ -14,6 +17,11 @@ class ListSinceBlockTest (UnitETestFramework):
         self.setup_clean_chain = True
 
     def run_test(self):
+        p2p = self.nodes[2].add_p2p_connection(P2PInterface())
+        network_thread_start()
+        p2p.wait_for_verack()
+
+        self.setup_stake_coins(self.nodes[1], self.nodes[2])
         self.nodes[2].generate(101)
         self.sync_all()
 
@@ -243,7 +251,7 @@ class ListSinceBlockTest (UnitETestFramework):
         txid1 = self.nodes[1].sendrawtransaction(signedtx)
 
         # generate bb1-bb2 on right side
-        self.nodes[2].generate(2)
+        generate(self.nodes[2], 2, preserve_utxos=utxoDicts)
 
         # send from nodes[2]; this will end up in bb3
         txid2 = self.nodes[2].sendrawtransaction(signedtx)

@@ -41,6 +41,8 @@ class NULLDUMMYTest(UnitETestFramework):
         self.extra_args = [['-whitelist=127.0.0.1', '-addresstype=legacy', "-deprecatedrpc=addwitnessaddress"]]
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         self.address = self.nodes[0].getnewaddress()
         self.ms_address = self.nodes[0].addmultisigaddress(1,[self.address])['address']
         self.wit_address = self.nodes[0].addwitnessaddress(self.address)
@@ -101,7 +103,8 @@ class NULLDUMMYTest(UnitETestFramework):
 
     def send_block(self, node, txs, accept = False):
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(self.tip, create_coinbase(self.lastblockheight + 1, snapshot_hash), self.lastblocktime + 1)
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        block = create_block(self.tip, create_coinbase(self.lastblockheight + 1, coin, snapshot_hash), self.lastblocktime + 1)
         block.nVersion = 4
         for tx in txs:
             tx.rehash()

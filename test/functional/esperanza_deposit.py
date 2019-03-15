@@ -9,7 +9,6 @@ from test_framework.util import (
     JSONRPCException,
     wait_until,
 )
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -48,17 +47,16 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         validator = nodes[0]
 
-        for i in range(self.num_nodes):
-            nodes[i].importmasterkey(regtest_mnemonics[i]['mnemonics'])
+        self.setup_stake_coins(*self.nodes)
 
         payto = validator.getnewaddress("", "legacy")
 
-        assert_equal(validator.getbalance(), 10000)
+        assert_equal(validator.getbalance(), validator.initial_stake)
 
         # Leave IBD
         self.generate_sync(nodes[1])
 
-        txid = validator.deposit(payto, 10000)
+        txid = validator.deposit(payto, 1500)
 
         # wait for transaction to propagate
         self.wait_for_transaction(txid, 60)

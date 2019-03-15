@@ -117,6 +117,7 @@ Parameters Parameters::RegTest() noexcept {
   p.genesis_block = GenesisBlock(GenesisBlockBuilder().SetTime(1296688602).SetBits(0x207fffff).Add(RegtestFunds()).Build(p));
 
   p.default_settings.node_is_proposer = false;
+  p.default_settings.stake_split_threshold = 1000 * UNIT;
   p.default_settings.p2p_port = 17292;
 
   return p;

@@ -10,6 +10,7 @@ In this test we connect to one node over p2p, and test tx requests.
 from test_framework.test_framework import ComparisonTestFramework
 from test_framework.comptool import TestManager, TestInstance, RejectResult
 from test_framework.blocktools import *
+from test_framework.util import get_unspent_coins
 import time
 
 
@@ -32,6 +33,8 @@ class InvalidTxRequestTest(ComparisonTestFramework):
         test.run()
 
     def get_tests(self):
+        self.setup_stake_coins(self.nodes[0])
+
         if self.tip is None:
             self.tip = int("0x" + self.nodes[0].getbestblockhash(), 0)
         self.block_time = int(time.time())+1
@@ -41,7 +44,10 @@ class InvalidTxRequestTest(ComparisonTestFramework):
         '''
         height = 1
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
-        block = create_block(self.tip, create_coinbase(height, snapshot_hash), self.block_time)
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash))
+        block = create_block(self.tip, coinbase, self.block_time)
+
         self.block_time += 1
         block.solve()
         # Save the coinbase for later
@@ -56,21 +62,26 @@ class InvalidTxRequestTest(ComparisonTestFramework):
         test = TestInstance(sync_every_block=False)
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(100):
-            coinbase = create_coinbase(height, snapshot_meta.hash)
+            prev_coinbase = coinbase
+            stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
+            coinbase = create_coinbase(height, stake, snapshot_meta.hash)
             block = create_block(self.tip, coinbase, self.block_time)
             block.solve()
             self.tip = block.sha256
             self.block_time += 1
             test.blocks_and_transactions.append([block, True])
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [], [utxo])
+
+            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
+            output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
             height += 1
         yield test
 
         # b'\x64' is OP_NOTIF
         # Transaction will be rejected with code 16 (REJECT_INVALID)
-        tx1 = create_transaction(self.block1.vtx[0], 0, b'\x64' * 35, 50 * UNIT - 12000)
-        yield TestInstance([[tx1, RejectResult(16, b'mandatory-script-verify-flag-failed')]])
+        tx1 = create_transaction(coinbase, 1, b'\x64' * 35, 50 * UNIT - 12000)
+        yield TestInstance([[tx1, RejectResult(16, b'mandatory-script-verify-flag-failed')]], sync_every_tx=True)
 
         # TODO: test further transactions...
 
