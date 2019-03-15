@@ -324,25 +324,14 @@ class BIP68Test(UnitETestFramework):
         avail_stake = [x for x in self.nodes[0].listunspent() if x['txid'] != tx1.hash]
         for i in range(2):
             stake = avail_stake.pop()
-            txout = self.nodes[0].gettxout(stake['txid'], stake['vout'])
-
-            coinbase = create_coinbase(height, stake, tip_snapshot_meta.hash)
-            sign_transaction(self.nodes[0], coinbase)
-            coinbase.rehash()
-
+            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
             block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3
             block.rehash()
             block.solve()
             tip = block.sha256
 
-            input = UTXO(height - txout['confirmations'] + 1, txout['coinbase'],
-                         COutPoint(int(stake['txid'], 16), stake['vout']),
-                         CTxOut(int(stake['amount'] * UNIT), hex_str_to_bytes(stake['scriptPubKey'])))
-            reward_output = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            stake_output = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
-            tip_snapshot_meta = calc_snapshot_hash(self.nodes[0], tip_snapshot_meta.data, 0, height, [input],
-                                                   [reward_output, stake_output])
+            tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], tip_snapshot_meta.data, 0, height, coinbase)
 
             height += 1
             self.nodes[0].p2p.send_and_ping(msg_block(block))
