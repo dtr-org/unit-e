@@ -269,7 +269,7 @@ def update_snapshot_with_tx(node, snapshot_data, stake_modifier, height, tx):
     Returns updated snapshot for a single tx (if need arises, change it to a list of txses)
     """
 
-    is_coinbase = tx.get_type() == 'COINBASE'
+    is_coinbase = tx.get_type() == TxType.COINBASE.name
     vin_start = 1 if is_coinbase else 0
 
     node_height = node.getblockcount()
