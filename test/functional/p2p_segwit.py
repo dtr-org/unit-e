@@ -182,114 +182,6 @@ class SegWitTest(UnitETestFramework):
         self.nodes[0].generate(1)
 
 
-    def test_witness_commitments(self):
-        self.log.info("Testing witness commitments")
-
-        # First try a correct witness commitment.
-        block = self.build_next_block()
-        add_witness_commitment(block)
-        block.solve()
-
-        # Test the test -- witness serialization should be different
-        assert(msg_witness_block(block).serialize() != msg_block(block).serialize())
-
-        # This empty block should be valid.
-        test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
-
-        # Try to tweak the nonce
-        block_2 = self.build_next_block()
-        add_witness_commitment(block_2, nonce=28)
-        block_2.solve()
-
-        # The commitment should have changed!
-        assert(block_2.vtx[0].vout[-1] != block.vtx[0].vout[-1])
-
-        # This should also be valid.
-        test_witness_block(self.nodes[0].rpc, self.test_node, block_2, accepted=True)
-
-        # Now test commitments with actual transactions
-        assert (len(self.utxo) > 0)
-        tx = CTransaction()
-        tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
-
-        # Let's construct a witness program
-        witness_program = CScript([OP_TRUE])
-        witness_hash = sha256(witness_program)
-        scriptPubKey = CScript([OP_0, witness_hash])
-        tx.vout.append(CTxOut(self.utxo[0].nValue-1000, scriptPubKey))
-        tx.rehash()
-
-        # tx2 will spend tx1, and send back to a regular anyone-can-spend address
-        tx2 = CTransaction()
-        tx2.vin.append(CTxIn(COutPoint(tx.sha256, 0), b""))
-        tx2.vout.append(CTxOut(tx.vout[0].nValue-1000, witness_program))
-        tx2.wit.vtxinwit.append(CTxInWitness())
-        tx2.wit.vtxinwit[0].scriptWitness.stack = [witness_program]
-        tx2.rehash()
-
-        block_3 = self.build_next_block()
-        self.update_witness_block_with_transactions(block_3, [tx, tx2], nonce=1)
-        # Add an extra OP_RETURN output that matches the witness commitment template,
-        # even though it has extra data after the incorrect commitment.
-        # This block should fail.
-        block_3.vtx[0].vout.append(CTxOut(0, CScript([OP_RETURN, WITNESS_COMMITMENT_HEADER + ser_uint256(2), 10])))
-        block_3.vtx[0].rehash()
-        block_3.hashMerkleRoot = block_3.calc_merkle_root()
-        block_3.rehash()
-        block_3.solve()
-
-        test_witness_block(self.nodes[0].rpc, self.test_node, block_3, accepted=False)
-
-        # Add a different commitment with different nonce, but in the
-        # right location, and with funds moved around.
-        # This should succeed (nValue shouldn't affect finding the
-        # witness commitment).
-        add_witness_commitment(block_3, nonce=0)
-        block_3.vtx[0].vout[1].nValue -= 1
-        block_3.vtx[0].vout[2].nValue += 1
-        block_3.vtx[0].rehash()
-        block_3.hashMerkleRoot = block_3.calc_merkle_root()
-        block_3.rehash()
-        assert_equal(len(block_3.vtx[0].vout), 5) # 3 OP_returns + reward + stake
-        block_3.solve()
-        test_witness_block(self.nodes[0].rpc, self.test_node, block_3, accepted=True)
-
-        # Finally test that a block with no witness transactions can
-        # omit the commitment.
-        block_4 = self.build_next_block()
-        tx3 = CTransaction()
-        tx3.vin.append(CTxIn(COutPoint(tx2.sha256, 0), b""))
-        tx3.vout.append(CTxOut(tx.vout[0].nValue-1000, witness_program))
-        tx3.rehash()
-        block_4.vtx.append(tx3)
-        block_4.hashMerkleRoot = block_4.calc_merkle_root()
-        block_4.solve()
-        test_witness_block(self.nodes[0].rpc, self.test_node, block_4, with_witness=False, accepted=True)
-
-        # Update available utxo's for use in later test.
-        self.utxo.pop(0)
-        self.utxo.append(UTXO(tx3.sha256, 0, tx3.vout[0].nValue))
-
-
-    def test_block_malleability(self):
-        self.log.info("Testing witness block malleability")
-
-        # Now make sure that malleating the witness nonce doesn't
-        # result in a block permanently marked bad.
-        block = self.build_next_block()
-        add_witness_commitment(block)
-        block.solve()
-
-        # Change the nonce -- should not cause the block to be permanently
-        # failed
-        block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ ser_uint256(1) ]
-        test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=False)
-
-        # Changing the witness nonce doesn't change the block hash
-        block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ ser_uint256(0) ]
-        test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
-
-
     def test_witness_block_size(self):
         self.log.info("Testing witness block size limit")
         # TODO: Test that non-witness carrying blocks can't exceed 1MB
@@ -1529,8 +1421,6 @@ class SegWitTest(UnitETestFramework):
 
         # Test P2SH witness handling
         self.test_p2sh_witness()
-        self.test_witness_commitments()
-        self.test_block_malleability()
         self.test_witness_block_size()
         self.test_extra_witness_data()
         self.test_max_witness_push_length()
