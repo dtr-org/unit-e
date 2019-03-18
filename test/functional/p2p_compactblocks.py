@@ -768,11 +768,11 @@ class CompactBlocksTest(UnitETestFramework):
             delivery_peer.send_message(msg_tx(tx))
         delivery_peer.sync_with_ping()
 
-        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit = [ CTxInWitness() ]
-        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(0)]
+        # mutilate the merkle root to make the block invalid
+        cmpct_block.header.hashMerkleRoot += 1
 
         delivery_peer.send_and_ping(msg_cmpctblock(cmpct_block.to_p2p()))
-        assert(int(node.getbestblockhash(), 16) != block.sha256)
+        assert_not_equal(int(node.getbestblockhash(), 16), block.sha256)
 
         msg = msg_blocktxn()
         msg.block_transactions.blockhash = block.sha256
