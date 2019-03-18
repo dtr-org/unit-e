@@ -310,7 +310,7 @@ def submit_block_with_tx(node, tx):
     coinbase = blocktools.sign_coinbase(node, blocktools.create_coinbase(height, stake, snapshot_hash))
     block = blocktools.create_block(int(tip, 16), coinbase, block_time)
     block.vtx.append(ctx)
-    blocktools.add_witness_commitment(block)
+    block.compute_merkle_trees()
     block.solve()
     node.p2p.send_and_ping(msg_witness_block(block))
     assert_equal(node.getbestblockhash(), block.hash)

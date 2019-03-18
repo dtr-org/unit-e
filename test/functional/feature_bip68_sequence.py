@@ -395,7 +395,7 @@ class BIP68Test(UnitETestFramework):
         block.nVersion = 3
         block.vtx.extend([tx1, tx2, tx3])
         block.ensure_ltor()
-        add_witness_commitment(block)
+        block.compute_merkle_trees()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
