@@ -18,7 +18,7 @@
 namespace p2p {
 
 namespace {
-bool CompareFinalizerCommits(
+bool FinalizerCommitsEqual(
     const std::vector<CTransactionRef> &a, const std::vector<CTransactionRef> &b) {
 
   if (a.size() != b.size()) {
@@ -327,7 +327,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       }
 
       if (new_index->HasCommits()) {
-        if (!CompareFinalizerCommits(new_index->GetCommits(), d.commits)) {
+        if (!FinalizerCommitsEqual(new_index->GetCommits(), d.commits)) {
           // This should be almost impossible with commits merkle root validation, check it just in case
           assert(not("not implemented"));
         }
