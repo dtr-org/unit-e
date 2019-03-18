@@ -687,6 +687,10 @@ class CBlock(CBlockHeader):
 
         return self.get_merkle_root(hashes)
 
+    def compute_merkle_trees(self):
+        self.hashMerkleRoot = self.calc_merkle_root()
+        self.hash_witness_merkle_root = self.calc_witness_merkle_root()
+
     def is_valid(self):
         self.calc_sha256()
         target = uint256_from_compact(self.nBits)
