@@ -156,33 +156,35 @@ class FilterTransactionsTest(UnitETestFramework):
         assert_raises_rpc_error(-8, "Invalid category", self.nodes[0].filtertransactions, {"category": "invalid"})
 
     def test_sort(self):
+        def extract(*args):
+            def f(object):
+                for arg in args:
+                    if callable(arg):
+                        object = arg(object)
+                    elif arg in object:
+                        object = object[arg]
+                    else:
+                        return ""
+                return object
+            return f
+
         sortings = [
-            ("time", "desc"),
-            ("address", "asc"),
-            ("category", "asc"),
-            ("amount", "desc"),
-            ("confirmations", "desc"),
-            ("txid", "asc")
+            ("time", "desc", extract("time")),
+            ("address", "asc", extract("outputs", 0, "address")),
+            ("category", "asc", extract("category")),
+            ("amount", "desc", extract("amount", float, abs)),
+            ("confirmations", "desc", extract("confirmations")),
+            ("txid", "asc", extract("txid"))
         ]
 
-        for sort_by, order in sortings:
-            ro = self.nodes[0].filtertransactions({"sort": sort_by, "count": 0})
-            prev = None
-            for t in ro:
-                if "address" not in t and "address" in t["outputs"][0]:
-                    t["address"] = t["outputs"][0]["address"]
-                elif "address" not in t:
-                    # UNIT-E TODO: check if transactions without addresses make sense
-                    # https://github.com/dtr-org/unit-e/issues/779
-                    t["address"] = ""
-                if t["amount"] < 0:
-                    t["amount"] = -t["amount"]
-                if prev is not None:
-                    if order == "asc":
-                        assert_greater_than_or_equal(t[sort_by], prev[sort_by])
-                    else:
-                        assert_greater_than_or_equal(prev[sort_by], t[sort_by])
-                prev = t
+        for (sort_by, order, extract) in sortings:
+            txs = self.nodes[0].filtertransactions({"sort": sort_by, "count": 0})
+
+            tx_properties = list(map(extract, txs))
+            if order == 'desc':
+                tx_properties.reverse()
+
+            assert_equal(tx_properties, sorted(tx_properties))
 
         # invalid sort
         assert_raises_rpc_error(-8, "Invalid sort", self.nodes[0].filtertransactions, {"sort": "invalid"})
