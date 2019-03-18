@@ -16,6 +16,7 @@ Parameters Parameters::Base() noexcept {
 
   p.block_stake_timestamp_interval_seconds = 4;
   p.block_time_seconds = 16;
+  p.difficulty_adjustment_window = 128;
   p.max_future_block_time_seconds = 2 * 60 * 60;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
@@ -42,9 +43,22 @@ Parameters Parameters::Base() noexcept {
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
   };
   p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
-    // UNIT-E: Does not adjust difficulty for now
-    const auto tip = chain.AtDepth(1);
-    return tip->nBits;
+    if (h <= p.difficulty_adjustment_window) {
+      return p.genesis_block.block.nBits;
+    }
+
+    const auto window_end = chain.AtHeight(h - 1);
+    const auto window_start = chain.AtHeight(h - 2);
+
+    int32_t time_diff_over_window = window_end->nTime - window_start->nTime;
+
+    arith_uint256 next_target;
+    next_target.SetCompact(window_end->nBits);
+
+    next_target *= ((p.difficulty_adjustment_window - 1) * p.block_time_seconds + time_diff_over_window + time_diff_over_window);
+    next_target /= ((p.difficulty_adjustment_window + 1) * p.block_time_seconds);
+
+    return next_target.GetCompact();
   };
 
   // The message start string is designed to be unlikely to occur in normal data.

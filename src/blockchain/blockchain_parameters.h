@@ -108,6 +108,9 @@ struct Parameters {
   //! \brief frequency of blocks (a block time of 37 secs is one block every 37 secs)
   std::uint32_t block_time_seconds;
 
+  //! \brief number of blocks taken into account when calculating difficulty adjustment
+  std::uint32_t difficulty_adjustment_window;
+
   //! \brief maximum time drift that a block is allowed to have with respect to the current time.
   std::uint32_t max_future_block_time_seconds;
 
