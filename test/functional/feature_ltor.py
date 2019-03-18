@@ -94,7 +94,7 @@ class LTORTest(UnitETestFramework):
         # We ensure that the transactions are NOT sorted in the correct order
         block.vtx.extend(sorted(txns, key=lambda _tx: _tx.hash, reverse=True))
 
-        block.hashMerkleRoot = block.calc_merkle_root()
+        block.compute_merkle_trees()
         block.solve()
 
         yield TestInstance(

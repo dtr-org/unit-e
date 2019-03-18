@@ -632,8 +632,8 @@ class CBlockHeader():
         return self.sha256
 
     def __repr__(self):
-        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x)" \
-            % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,
+        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x hash_witness_merkle_root=%064x nTime=%s nBits=%08x nNonce=%08x)" \
+            % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
                time.ctime(self.nTime), self.nBits, self.nNonce)
 
 

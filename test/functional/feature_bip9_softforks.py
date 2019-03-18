@@ -63,7 +63,6 @@ class BIP9SoftForksTest(ComparisonTestFramework):
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(self.height, coin, self.snapshot_meta.hash))
             block = create_block(self.tip, coinbase, self.last_block_time + 1)
             block.nVersion = version
-            block.rehash()
             block.solve()
             test_blocks.append([block, True])
             self.last_block_time += 1
@@ -200,8 +199,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         block = create_block(self.tip, coinbase, self.last_block_time + 1)
         block.nVersion = activated_version
         block.vtx.append(spendtx)
-        block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.compute_merkle_trees()
         block.solve()
 
         self.last_block_time += 1
@@ -229,8 +227,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         block = create_block(self.tip, coinbase, self.last_block_time + 1)
         block.nVersion = 5
         block.vtx.append(spendtx)
-        block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.compute_merkle_trees()
         block.solve()
         self.last_block_time += 1
         yield TestInstance([[block, False]])

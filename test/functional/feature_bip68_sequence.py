@@ -327,7 +327,6 @@ class BIP68Test(UnitETestFramework):
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
             block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3
-            block.rehash()
             block.solve()
             tip = block.sha256
 

@@ -97,7 +97,7 @@ class BIP65Test(UnitETestFramework):
         block = create_block(int(tip, 16), coinbase, block_time)
         block.nVersion = 4
         block.vtx.append(spendtx)
-        block.hashMerkleRoot = block.calc_merkle_root()
+        block.compute_merkle_trees()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))
@@ -119,7 +119,7 @@ class BIP65Test(UnitETestFramework):
 
         block.vtx.pop(1)
         block.vtx.append(spendtx)
-        block.hashMerkleRoot = block.calc_merkle_root()
+        block.compute_merkle_trees()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))

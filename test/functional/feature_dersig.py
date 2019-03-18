@@ -86,8 +86,7 @@ class BIP66Test(UnitETestFramework):
         block = create_block(int(tip, 16), coinbase, block_time)
         block.nVersion = 3
         block.vtx.append(spendtx)
-        block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.compute_merkle_trees()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))
@@ -112,8 +111,7 @@ class BIP66Test(UnitETestFramework):
         self.log.info("Test that a version 3 block with a DERSIG-compliant transaction is accepted")
         block.vtx[1] = create_transaction(self.nodes[0],
                 self.coinbase_blocks[0], self.nodeaddress, 1.0)
-        block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
+        block.compute_merkle_trees()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_block(block))

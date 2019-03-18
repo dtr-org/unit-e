@@ -112,8 +112,6 @@ class NULLDUMMYTest(UnitETestFramework):
 
         block.ensure_ltor()
         block.compute_merkle_trees()
-        block.rehash()
-
         block.solve()
 
         node.p2p.send_and_ping(msg_witness_block(block))

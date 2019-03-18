@@ -102,7 +102,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
 
         block2.vtx.extend([tx1, tx2])
         block2.ensure_ltor()
-        block2.hashMerkleRoot = block2.calc_merkle_root()
+        block2.compute_merkle_trees()
         block2.rehash()
         block2.solve()
         orig_hash = block2.sha256
@@ -124,8 +124,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block2_dup.vtx[2].vin.append(block2_dup.vtx[2].vin[0])
         block2_dup.vtx[2].rehash()
         block2_dup.ensure_ltor()
-        block2_dup.hashMerkleRoot = block2_dup.calc_merkle_root()
-        block2_dup.rehash()
+        block2_dup.compute_merkle_trees()
         block2_dup.solve()
         yield TestInstance([[block2_dup, RejectResult(16, b'bad-txns-inputs-duplicate')], [block2_orig, True]])
         height += 1
@@ -141,8 +140,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block3.vtx[0].vout[0].nValue = 100 * UNIT # Too high!
         block3.vtx[0].sha256=None
         block3.vtx[0].calc_sha256()
-        block3.hashMerkleRoot = block3.calc_merkle_root()
-        block3.rehash()
+        block3.compute_merkle_trees()
         block3.solve()
 
         yield TestInstance([[block3, RejectResult(16, b'bad-cb-amount')]])

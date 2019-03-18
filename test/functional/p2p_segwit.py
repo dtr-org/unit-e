@@ -132,7 +132,6 @@ class SegWitTest(UnitETestFramework):
         coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, meta.hash))
         block = create_block(int(tip, 16), coinbase, block_time)
         block.nVersion = nVersion
-        block.rehash()
         return block
 
     # Adds list of transactions to block, adds witness commitment, then solves.

@@ -36,7 +36,7 @@ def create_block(hashprev, coinbase, nTime=None):
     block.hashPrevBlock = hashprev
     block.nBits = 0x207fffff # Will break after a difficulty adjustment...
     block.vtx.append(coinbase)
-    block.hashMerkleRoot = block.calc_merkle_root()
+    block.compute_merkle_trees()
     block.calc_sha256()
     return block
 

@@ -36,7 +36,7 @@ class CBrokenBlock(CBlock):
 
     def initialize(self, base_block):
         self.vtx = copy.deepcopy(base_block.vtx)
-        self.hashMerkleRoot = self.calc_merkle_root()
+        self.compute_merkle_trees()
 
     def serialize(self, with_witness=False):
         r = b""
@@ -184,7 +184,7 @@ class FullBlockTest(ComparisonTestFramework):
             tx = create_transaction(spend.tx, spend.n, b"", 1, script)  # spend 1 satoshi
             self.sign_tx(tx, spend.tx, spend.n)
             self.add_transactions_to_block(block, [tx])
-            block.hashMerkleRoot = block.calc_merkle_root()
+            block.compute_merkle_trees()
         if solve:
             block.ensure_ltor()
             block.solve()
@@ -251,7 +251,7 @@ class FullBlockTest(ComparisonTestFramework):
             block = self.blocks[block_number]
             old_sha256 = block.sha256
             self.add_transactions_to_block(block, new_transactions)
-            block.hashMerkleRoot = block.calc_merkle_root()
+            block.compute_merkle_trees()
             block.solve()
             # Update the internal state just like in next_block
             self.tip = block
@@ -773,7 +773,7 @@ class FullBlockTest(ComparisonTestFramework):
         b44.nBits = 0x207fffff
         b44.vtx.append(coinbase)
         b44.ensure_ltor()
-        b44.hashMerkleRoot = b44.calc_merkle_root()
+        b44.compute_merkle_trees()
         b44.solve()
         self.tip = b44
         self.block_heights[b44.sha256] = height
@@ -789,7 +789,7 @@ class FullBlockTest(ComparisonTestFramework):
         b45.hashPrevBlock = self.tip.sha256
         b45.nBits = 0x207fffff
         b45.vtx.append(non_coinbase)
-        b45.hashMerkleRoot = b45.calc_merkle_root()
+        b45.compute_merkle_trees()
         b45.calc_sha256()
         b45.solve()
         self.block_heights[b45.sha256] = self.block_heights[self.tip.sha256]+1
