@@ -375,7 +375,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     CBlockIndex* const nullBlock = nullptr;
     CBlockIndex* oldTip = chainActive.Tip();
     GetBlockFileInfo(oldTip->GetBlockPos().nFile)->nSize = MAX_BLOCKFILE_SIZE;
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+    CTransactionRef new_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0];
     CBlockIndex* newTip = chainActive.Tip();
 
     LOCK(cs_main);
@@ -388,7 +388,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(nullBlock, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), coinbaseTxns.back().vout[0].nValue * 2);
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), coinbaseTxns.back().vout[0].nValue + new_coinbase->vout[0].nValue);
     }
 
     // Prune the older block file.
