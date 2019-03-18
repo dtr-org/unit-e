@@ -166,8 +166,7 @@ struct Parameters {
   //! \brief The base block reward for each period.
   std::vector<CAmount> reward_schedule;
 
-  //! The reward associated with this coin, not including fees, that is  awarded
-  //! immediately for proposing a block.
+  //! \brief The reward immediately given upon block proposal.
   ufp64::ufp64_t immediate_reward_fraction;
 
   //! \brief The period size in blocks.
