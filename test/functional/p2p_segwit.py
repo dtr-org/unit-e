@@ -337,7 +337,7 @@ class SegWitTest(UnitETestFramework):
         additional_bytes = 4 * MAX_BLOCK_BASE_SIZE - (3 * len(block.serialize(with_witness=False)) + len(block.serialize(with_witness=True)))
 
         i = 0
-        while additional_bytes > 0:
+        while additional_bytes >= 0:
             # Add some more bytes to each input until we hit MAX_BLOCK_BASE_SIZE+1
             extra_bytes = min(additional_bytes+1, 55)
             child_tx.wit.vtxinwit[int(i/(2*NUM_DROPS))].scriptWitness.stack[i%(2*NUM_DROPS)] = b'a'*(195+extra_bytes)
