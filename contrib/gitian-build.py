@@ -286,7 +286,7 @@ def codesign(args):
         print('\nCommitting '+args.version+' Detached Sigs\n')
         subprocess.check_call(['git', 'add', Path(args.version + '-detached', 'unit-e-win-signatures.tar.gz')], cwd='unit-e-sigs')
         subprocess.check_call(['git', 'commit', '-a', '-m', 'Add '+args.version+' detached signatures by '+args.signer], cwd='unit-e-sigs')
-        
+
 
 
 def sign(args):
