@@ -18,6 +18,9 @@ class FinalizationStateSpy : public FinalizationState {
   const FinalizationParams params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
 
  public:
+  FinalizationStateSpy(const FinalizationParams &_params,
+                       const AdminParams &adminParams) : FinalizationState(_params, adminParams),
+                                                         params(_params) {}
   FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
   FinalizationStateSpy(const FinalizationParams &_params) : FinalizationState(_params, AdminParams()),
                                                             params(_params) {}
@@ -62,5 +65,7 @@ class FinalizationStateSpy : public FinalizationState {
 };
 
 uint160 RandValidatorAddr();
+CPubKey MakePubKey();
+esperanza::AdminKeySet MakeKeySet();
 
 #endif  //UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H

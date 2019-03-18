@@ -9,18 +9,21 @@
 #ifndef UNIT_E_TESTS_ESPERANZA_FINALIZATION_UTILS_H
 #define UNIT_E_TESTS_ESPERANZA_FINALIZATION_UTILS_H
 
-CTransaction CreateVoteTx(esperanza::Vote &vote, const CKey &spendableKey);
+CTransaction CreateVoteTx(const esperanza::Vote &vote, const CKey &spendable_key);
 
-CTransaction CreateDepositTx(const CTransaction &spendableTx,
-                             const CKey &spendableKey, CAmount amount);
+CTransaction CreateVoteTx(const CTransaction &spendable_tx, const CKey &spendable_key,
+                          const esperanza::Vote &vote, const std::vector<unsigned char> &vote_sig);
 
-CTransaction CreateLogoutTx(const CTransaction &spendableTx,
-                            const CKey &spendableKey, CAmount amount);
+CTransaction CreateDepositTx(const CTransaction &spendable_tx,
+                             const CKey &spendable_key, CAmount amount);
 
-CTransaction CreateWithdrawTx(const CTransaction &spendableTx,
-                              const CKey &spendableKey, CAmount amount);
+CTransaction CreateLogoutTx(const CTransaction &spendable_tx,
+                            const CKey &spendable_key, CAmount amount);
 
-CTransaction CreateP2PKHTx(const CTransaction &spendableTx,
-                           const CKey &spendableKey, CAmount amount);
+CTransaction CreateWithdrawTx(const CTransaction &spendable_tx,
+                              const CKey &spendable_key, CAmount amount);
+
+CTransaction CreateP2PKHTx(const CTransaction &spendable_tx,
+                           const CKey &spendable_key, CAmount amount);
 
 #endif  // UNIT_E_TESTS_ESPERANZA_FINALIZATION_UTILS_H

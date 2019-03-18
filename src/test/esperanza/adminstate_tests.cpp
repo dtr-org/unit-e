@@ -11,16 +11,6 @@
 
 BOOST_FIXTURE_TEST_SUITE(adminstate_tests, ReducedTestingSetup)
 
-CPubKey MakePubKey() {
-  CKey key;
-  key.MakeNewKey(true);
-  return key.GetPubKey();
-}
-
-esperanza::AdminKeySet MakeKeySet() {
-  return {{MakePubKey(), MakePubKey(), MakePubKey()}};
-}
-
 BOOST_AUTO_TEST_CASE(empty_params_mean_no_admin) {
   esperanza::AdminParams emptyParams;
   esperanza::AdminState state(emptyParams);

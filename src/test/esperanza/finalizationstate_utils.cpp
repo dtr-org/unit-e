@@ -9,3 +9,13 @@ uint160 RandValidatorAddr() {
   key.MakeNewKey(true);
   return key.GetPubKey().GetID();
 }
+
+CPubKey MakePubKey() {
+  CKey key;
+  key.MakeNewKey(true);
+  return key.GetPubKey();
+}
+
+esperanza::AdminKeySet MakeKeySet() {
+  return {{MakePubKey(), MakePubKey(), MakePubKey()}};
+}
