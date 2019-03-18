@@ -253,53 +253,20 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {
 
   auto consensus_params = Params().GetConsensus();
 
-  // Test bad witness nonce empty
-  {
-    CBlock block;
-    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-    GenerateCoinbaseCommitment(block, &prev, consensus_params);
-    CMutableTransaction coinbase(*block.vtx[0]);
-    coinbase.vin[0].scriptWitness.stack.clear();
-    block.vtx[0] = MakeTransactionRef(coinbase);
-
-    CValidationState state;
-    ContextualCheckBlock(block, state, consensus_params, &prev);
-
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-nonce-size");
-  }
-
-  // Test bad witness wrong size (> 32 bytes)
-  {
-    CBlock block;
-    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-    GenerateCoinbaseCommitment(block, &prev, consensus_params);
-    CMutableTransaction coinbase(*block.vtx[0]);
-    std::vector<unsigned char> too_long(33);
-    auto &stack = coinbase.vin[0].scriptWitness.stack;
-    stack.insert(stack.begin(), too_long);
-    block.vtx[0] = MakeTransactionRef(coinbase);
-
-    CValidationState state;
-    ContextualCheckBlock(block, state, consensus_params, &prev);
-
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-nonce-size");
-  }
-
   //bad witness merkle not matching
-  {
-    CBlock block;
-    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-    GenerateCoinbaseCommitment(block, &prev, consensus_params);
-    CMutableTransaction coinbase(*block.vtx[0]);
-    auto coinbase_script_pubkey = coinbase.vout[1].scriptPubKey;
-    coinbase.vout[1].scriptPubKey = CScript(coinbase_script_pubkey.begin(), coinbase_script_pubkey.begin() + 6) << ToByteVector(GetRandHash());
-    block.vtx[0] = MakeTransactionRef(coinbase);
-
-    CValidationState state;
-    ContextualCheckBlock(block, state, consensus_params, &prev);
-
-    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
-  }
+//  {
+//    CBlock block;
+//    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+//    CMutableTransaction coinbase(*block.vtx[0]);
+//    auto coinbase_script_pubkey = coinbase.vout[1].scriptPubKey;
+//    coinbase.vout[1].scriptPubKey = CScript(coinbase_script_pubkey.begin(), coinbase_script_pubkey.begin() + 6) << ToByteVector(GetRandHash());
+//    block.vtx[0] = MakeTransactionRef(coinbase);
+//
+//    CValidationState state;
+//    ContextualCheckBlock(block, state, consensus_params, &prev);
+//
+//    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
+//  }
 }
 
 BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {

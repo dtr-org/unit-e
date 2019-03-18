@@ -179,25 +179,7 @@ class BlockBuilderImpl : public BlockBuilder {
     // add remaining transactions
     new_block->vtx.insert(new_block->vtx.end(), txs.begin(), txs.end());
 
-    // create tx merkle root
-    {
-      bool duplicate_transactions = false;
-      new_block->hashMerkleRoot = BlockMerkleRoot(*new_block, &duplicate_transactions);
-      if (duplicate_transactions) {
-        Log("Duplicate transactions detected while constructing merkle tree.");
-        return nullptr;
-      }
-    }
-
-    // create witness merkle root
-    {
-      bool duplicate_transactions = false;
-      new_block->hash_witness_merkle_root = BlockWitnessMerkleRoot(*new_block, &duplicate_transactions);
-      if (duplicate_transactions) {
-        Log("Duplicate transactions detected while constructing witness merkle tree.");
-        return nullptr;
-      }
-    }
+    new_block->ComputeMerkleTrees();
 
     if (!SignBlock(*new_block, wallet)) {
       Log("Failed to sign block.");

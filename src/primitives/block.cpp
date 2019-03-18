@@ -6,6 +6,7 @@
 #include <primitives/block.h>
 
 #include <hash.h>
+#include <consensus/merkle.h>
 #include <tinyformat.h>
 #include <utilstrencodings.h>
 #include <crypto/common.h>
@@ -13,6 +14,14 @@
 uint256 CBlockHeader::GetHash() const
 {
     return SerializeHash(*this);
+}
+
+void CBlock::ComputeMerkleTrees() {
+    bool mutated = false;
+    hashMerkleRoot = BlockMerkleRoot(*this, &mutated);
+    assert(!mutated && "merkle tree contained duplicates");
+    hash_witness_merkle_root = BlockWitnessMerkleRoot(*this, &mutated);
+    assert(!mutated && "witness merkle tree contained duplicates");
 }
 
 std::string CBlock::ToString() const

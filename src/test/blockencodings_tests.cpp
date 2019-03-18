@@ -49,9 +49,8 @@ static CBlock BuildBlockTestCase() {
 
     ltor::SortTransactions(block.vtx);
 
-    bool mutated;
-    block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
-    assert(!mutated);
+    block.ComputeMerkleTrees();
+
     while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus())) ++block.nNonce;
     return block;
 }

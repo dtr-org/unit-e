@@ -81,7 +81,12 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   CBlock& block = pblocktemplate->block;
 
   // Replace mempool-selected txns with just coinbase plus passed-in txns:
-  block.vtx.resize(1);
+  CMutableTransaction coinbase_tx = CMutableTransaction(*block.vtx[0]);
+  block.vtx.clear();
+  CTxOut stake_returned = coinbase_tx.vout[0];
+  stake_returned.nValue = 10000 * UNIT;
+  coinbase_tx.vout.emplace_back(stake_returned);
+  block.vtx.emplace_back(MakeTransactionRef(coinbase_tx));
   for (const CMutableTransaction& tx : txns)
     block.vtx.push_back(MakeTransactionRef(tx));
   // IncrementExtraNonce creates a valid coinbase and merkleRoot
@@ -95,12 +100,9 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   CMutableTransaction tx(*block.vtx[0]);
   tx.vout.resize(tx.vout.size() -1);
   block.vtx[0] = MakeTransactionRef(std::move(tx));
-  GenerateCoinbaseCommitment(block, chainActive.Tip(), Params().GetConsensus());
 
   //Regenerate the merkle roots cause we possibly changed the txs included
-  bool duplicate_transactions = false;
-  block.hashMerkleRoot = BlockMerkleRoot(block, &duplicate_transactions);
-  block.hash_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
+  block.ComputeMerkleTrees();
 
   while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 
