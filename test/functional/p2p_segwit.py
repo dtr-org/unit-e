@@ -46,12 +46,13 @@ def test_witness_block(rpc, p2p, block, accepted, with_witness=True):
 
     - Submit the block over the p2p interface
     - use the getbestblockhash rpc to check for acceptance."""
-    if with_witness:
-        p2p.send_message(msg_witness_block(block))
-    else:
-        p2p.send_message(msg_block(block))
+    p2p.send_message(msg_witness_block(block))
     p2p.sync_with_ping()
-    assert_equal(rpc.getbestblockhash() == block.hash, accepted)
+
+    if accepted:
+        assert_equal(rpc.getbestblockhash(), block.hash)
+    else:
+        assert_not_equal(rpc.getbestblockhash(), block.hash)
 
 class TestNode(P2PInterface):
     def __init__(self):
@@ -135,13 +136,14 @@ class SegWitTest(UnitETestFramework):
         return block
 
     # Adds list of transactions to block, adds witness commitment, then solves.
-    def update_witness_block_with_transactions(self, block, tx_list, nonce=0):
+    def update_witness_block_with_transactions(self, block, tx_list):
         assert(all(tx.hash is not None for tx in tx_list))
         block.vtx.extend(tx_list)
+        for tx in block.vtx:
+            tx.rehash()
         block.ensure_ltor()
         block.compute_merkle_trees()
         block.solve()
-        return
 
     ''' Individual tests '''
     def test_witness_services(self):
@@ -235,11 +237,10 @@ class SegWitTest(UnitETestFramework):
             additional_bytes -= extra_bytes
             i += 1
 
-        block.vtx[0].vout.pop()  # Remove old commitment
         block.compute_merkle_trees()
         block.solve()
-        vsize = get_virtual_size(block)
-        assert_equal(vsize, MAX_BLOCK_BASE_SIZE + 1)
+        segwit_size = 3 * len(block.serialize(with_witness=False)) + len(block.serialize(with_witness=True))
+        assert_equal(segwit_size, (4 * MAX_BLOCK_BASE_SIZE) + 1)
         # Make sure that our test case would exceed the old max-network-message
         # limit
         assert(len(block.serialize(True)) > 2*1024*1024)
@@ -249,7 +250,6 @@ class SegWitTest(UnitETestFramework):
         # Now resize the second transaction to make the block fit.
         cur_length = len(child_tx.wit.vtxinwit[0].scriptWitness.stack[0])
         child_tx.wit.vtxinwit[0].scriptWitness.stack[0] = b'a'*(cur_length-1)
-        block.vtx[0].vout.pop()
         block.compute_merkle_trees()
         block.solve()
         assert_equal(get_virtual_size(block), MAX_BLOCK_BASE_SIZE)
@@ -634,9 +634,6 @@ class SegWitTest(UnitETestFramework):
         # getdata respects the requested type.
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [])
-        # This gives us a witness commitment.
-        assert(len(block.vtx[0].wit.vtxinwit) == 1)
-        assert(len(block.vtx[0].wit.vtxinwit[0].scriptWitness.stack) == 1)
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
         # Now try to retrieve it...
         rpc_block = self.nodes[0].getblock(block.hash, False)
@@ -1420,16 +1417,16 @@ class SegWitTest(UnitETestFramework):
 
         # Test P2SH witness handling
         self.test_p2sh_witness()
-        # self.test_witness_block_size()
+        self.test_witness_block_size()
         self.test_extra_witness_data()
         self.test_max_witness_push_length()
         self.test_max_witness_program_length()
         self.test_witness_input_length()
-        # self.test_block_relay()
+        self.test_block_relay()
         self.test_tx_relay()
         self.test_standardness_v0()
         self.test_segwit_versions()
-        # self.test_premature_coinbase_witness_spend()
+        self.test_premature_coinbase_witness_spend()
         self.test_uncompressed_pubkey()
         self.test_signature_version_1()
         self.test_non_standard_witness()

@@ -247,28 +247,6 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(contextualcheckblock_witness) {
-
-  CBlockIndex prev;
-
-  auto consensus_params = Params().GetConsensus();
-
-  //bad witness merkle not matching
-//  {
-//    CBlock block;
-//    block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-//    CMutableTransaction coinbase(*block.vtx[0]);
-//    auto coinbase_script_pubkey = coinbase.vout[1].scriptPubKey;
-//    coinbase.vout[1].scriptPubKey = CScript(coinbase_script_pubkey.begin(), coinbase_script_pubkey.begin() + 6) << ToByteVector(GetRandHash());
-//    block.vtx[0] = MakeTransactionRef(coinbase);
-//
-//    CValidationState state;
-//    ContextualCheckBlock(block, state, consensus_params, &prev);
-//
-//    BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
-//  }
-}
-
 BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
 
   CBlockIndex prev;
