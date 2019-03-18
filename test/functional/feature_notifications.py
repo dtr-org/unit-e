@@ -35,7 +35,7 @@ class NotificationsTest(UnitETestFramework):
 
         self.log.info("test -blocknotify")
         block_count = 10
-        blocks = self.nodes[1].generate(block_count)
+        blocks = self.nodes[1].generatetoaddress(block_count, self.nodes[1].getnewaddress('', 'bech32'))
 
         # wait at most 10 seconds for expected number of files before reading the content
         wait_until(lambda: len(os.listdir(self.blocknotify_dir)) == block_count, timeout=10)
@@ -49,8 +49,8 @@ class NotificationsTest(UnitETestFramework):
         wait_until(lambda: len(os.listdir(self.walletnotify_dir)) == block_count + 1, timeout=10)
 
         # directory content should equal the generated transaction hashes
-        txids_rpc = list(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", block_count)))
-        assert_equal(len(set(os.listdir(self.walletnotify_dir)).difference(txids_rpc)), 1)
+        txids_rpc = set(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", 100)))
+        assert_equal(set(os.listdir(self.walletnotify_dir)), txids_rpc)
         for tx_file in os.listdir(self.walletnotify_dir):
             os.remove(os.path.join(self.walletnotify_dir, tx_file))
 
@@ -62,8 +62,8 @@ class NotificationsTest(UnitETestFramework):
         wait_until(lambda: len(os.listdir(self.walletnotify_dir)) == block_count + 1, timeout=10)
 
         # directory content should equal the generated transaction hashes
-        txids_rpc = list(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", block_count)))
-        assert_equal(len(set(os.listdir(self.walletnotify_dir)).difference(txids_rpc)), 1)
+        txids_rpc = set(map(lambda t: t['txid'], self.nodes[1].listtransactions("*", 100)))
+        assert_equal(set(os.listdir(self.walletnotify_dir)), txids_rpc)
 
         # Mine another 41 up-version blocks. -alertnotify should trigger on the 51st.
         self.log.info("test -alertnotify")
