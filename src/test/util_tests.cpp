@@ -819,4 +819,62 @@ BOOST_AUTO_TEST_CASE(test_to_string_with_maps_and_nested_containers) {
     BOOST_CHECK_EQUAL("[(19, [[bar, foo], [quux, qux]]), (23, [[bar, foo], [quux, qux]])]", str);
 }
 
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_pointers) {
+    const int a = 3;
+    const int b = 7;
+    std::vector<const int *> vec;
+    vec.emplace_back(&a);
+    vec.emplace_back(&b);
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[3, 7]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_pointers_to_things_that_have_a_ToString_member_function) {
+    const SomeStruct a{"foo"};
+    const SomeStruct b{"bar"};
+    std::vector<const SomeStruct *> vec;
+    vec.emplace_back(&a);
+    vec.emplace_back(&b);
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[foo, bar]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_unique_pointers) {
+    std::vector<std::unique_ptr<const int>> vec;
+    vec.emplace_back(new int(3));
+    vec.emplace_back(new int(7));
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[3, 7]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_unique_pointers_to_things_that_have_a_ToString_member_function) {
+    std::vector<std::unique_ptr<const SomeStruct>> vec;
+    vec.emplace_back(new SomeStruct{"foo"});
+    vec.emplace_back(new SomeStruct{"bar"});
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[foo, bar]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_shared_pointers) {
+    std::vector<std::shared_ptr<const int>> vec;
+    vec.emplace_back(new int(3));
+    vec.emplace_back(new int(7));
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[3, 7]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_shared_pointers_to_things_that_have_a_ToString_member_function) {
+    std::vector<std::shared_ptr<const SomeStruct>> vec;
+    vec.emplace_back(new SomeStruct{"foo"});
+    vec.emplace_back(new SomeStruct{"bar"});
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[foo, bar]", str);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

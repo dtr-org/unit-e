@@ -421,6 +421,33 @@ std::string stringify(
 }
 
 template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     typename std::shared_ptr<const typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>>::value,
+        T>::type &v) {
+    return stringify<typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>(*v);
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     typename std::unique_ptr<const typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>>::value,
+        T>::type &v) {
+    return stringify<typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>(*v);
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     typename std::add_pointer<const typename std::remove_pointer<typename std::remove_reference<typename std::remove_const<T>::type>::type>::type>::type>::value,
+        T>::type &v) {
+    return stringify<typename std::remove_pointer<typename std::remove_reference<typename std::remove_const<T>::type>::type>::type>(*v);
+}
+
+template <typename T>
 std::string stringify(const T &v) {
     std::string res = "[";
     auto it = v.begin();
