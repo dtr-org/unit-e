@@ -434,7 +434,6 @@ class WalletTest(UnitETestFramework):
 
         # Exercise listsinceblock with the last two blocks
         coinbase_tx_1 = self.nodes[1].listsinceblock(blocks[0])
-        self.log.info(coinbase_tx_1)
         assert_equal(coinbase_tx_1["lastblock"], blocks[1])
         transactions = set(map(lambda x: x["txid"], coinbase_tx_1["transactions"]))
         assert_equal(len(transactions), 1)
