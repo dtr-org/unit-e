@@ -43,6 +43,7 @@ FinalizationState::FinalizationState(const finalization::Params &params)
   m_deposit_scale_factor[0] = BASE_DEPOSIT_SCALE_FACTOR;
   m_total_slashed[0] = 0;
   m_dynasty_deltas[0] = 0;
+  m_dynasty_start_epoch[0] = 0;
 
   Checkpoint cp = Checkpoint();
   cp.m_is_justified = true;

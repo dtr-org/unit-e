@@ -162,6 +162,7 @@ UNITE_TESTS += \
   test/mnemonic_tests.cpp \
   test/proposer/blockassembleradapter_tests.cpp \
   test/proposer/block_builder_tests.cpp \
+  test/proposer/finalization_reward_logic_tests.cpp \
   test/proposer/proposer_logic_tests.cpp \
   test/proposer/proposer_tests.cpp \
   test/rpc_util_tests.cpp \

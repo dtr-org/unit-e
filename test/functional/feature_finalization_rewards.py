@@ -55,6 +55,7 @@ class FinalizationRewardsTest(UnitETestFramework):
         payto = finalizer1.getnewaddress('', 'legacy')
         txid = finalizer1.deposit(payto, 10000)
         wait_until(lambda: txid in node.getrawmempool())
+        payto = finalizer2.getnewaddress('', 'legacy')
         txid = finalizer2.deposit(payto, 10000)
         wait_until(lambda: txid in node.getrawmempool())
 
@@ -66,6 +67,7 @@ class FinalizationRewardsTest(UnitETestFramework):
         node.generatetoaddress(27, proposer_address1)
         node.generatetoaddress(12, proposer_address2)
 
+        print(node.getfinalizationstate())
         # Check the reward output count in the first coinbase of an epoch
         block_hash = node.getbestblockhash()
         epoch_first_block = node.getblock(block_hash)
@@ -73,8 +75,9 @@ class FinalizationRewardsTest(UnitETestFramework):
             epoch_first_block['tx'][0], True, block_hash)
         assert_equal(len(epoch_first_cb['vout']), CB_DEFAULT_OUTPUTS + 5)
 
+        print(epoch_first_cb)
         addresses = sum((x['scriptPubKey']['addresses']
-                         for x in epoch_first_cb[CB_DEFAULT_OUTPUTS:]), [])
+                         for x in epoch_first_cb['vout'][1:-CB_DEFAULT_OUTPUTS+1]), [])
         assert_equal(addresses[0:4], [proposer_address1] * 4)
         assert_equal(addresses[4:], [proposer_address2])
 

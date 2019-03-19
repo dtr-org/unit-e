@@ -179,8 +179,11 @@ struct Parameters {
   //! \brief The base block reward
   CAmount reward;
 
-  //! \brief The reward immediately given upon block proposal.
+  //! \brief The fraction of the reward immediately given upon block proposal.
   ufp64::ufp64_t immediate_reward_fraction;
+
+  //! \brief The fraction of the reward given to the proposers after finalization.
+  ufp64::ufp64_t finalization_reward_fraction;
 
   //! \brief The function calculating the reward for a newly proposed block.
   //!
