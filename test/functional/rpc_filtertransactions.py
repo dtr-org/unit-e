@@ -156,35 +156,27 @@ class FilterTransactionsTest(UnitETestFramework):
         assert_raises_rpc_error(-8, "Invalid category", self.nodes[0].filtertransactions, {"category": "invalid"})
 
     def test_sort(self):
-        def extract(*args):
-            def f(object):
-                for arg in args:
-                    if callable(arg):
-                        object = arg(object)
-                    elif arg in object:
-                        object = object[arg]
-                    else:
-                        return ""
-                return object
-            return f
-
         sortings = [
-            ("time", "desc", extract("time")),
-            ("address", "asc", extract("outputs", 0, "address")),
-            ("category", "asc", extract("category")),
-            ("amount", "desc", extract("amount", float, abs)),
-            ("confirmations", "desc", extract("confirmations")),
-            ("txid", "asc", extract("txid"))
+            ("time", "desc"),
+            ("category", "asc"),
+            ("confirmations", "desc"),
+            ("txid", "asc")
         ]
 
-        for (sort_by, order, extract) in sortings:
+        for sort_by, order in sortings:
             txs = self.nodes[0].filtertransactions({"sort": sort_by, "count": 0})
+            tx_properties = [t[sort_by] for t in txs]
+            assert_equal(tx_properties, sorted(tx_properties, reverse=(order == 'desc')))
 
-            tx_properties = list(map(extract, txs))
-            if order == 'desc':
-                tx_properties.reverse()
+        txs = self.nodes[0].filtertransactions({'sort': 'address', 'count': 0})
+        # TODO UNIT-E: filtertransactions should show outputs of coinbase transactions
+        # https://github.com/dtr-org/unit-e/issues/779
+        tx_properties = [(t['outputs'] or [{}])[0].get('address', '') for t in txs]
+        assert_equal(tx_properties, sorted(tx_properties))
 
-            assert_equal(tx_properties, sorted(tx_properties))
+        txs = self.nodes[0].filtertransactions({'sort': 'amount', 'count': 0})
+        tx_properties = [abs(t['amount']) for t in txs]
+        assert_equal(tx_properties, sorted(tx_properties, reverse=True))
 
         # invalid sort
         assert_raises_rpc_error(-8, "Invalid sort", self.nodes[0].filtertransactions, {"sort": "invalid"})
