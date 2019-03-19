@@ -11,7 +11,7 @@
 
 /**
  * CBaseChainParams defines the base parameters (shared between unite-cli and united)
- * of a given instance of the UnitE system.
+ * of a given instance of the Unit-e system.
  */
 class CBaseChainParams
 {

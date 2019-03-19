@@ -1052,7 +1052,7 @@ TINYFORMAT_FOREACH_ARGNUM(TINYFORMAT_MAKE_FORMAT_FUNCS)
 
 #endif
 
-// Added for UnitE Core
+// Added for unit-e
 template<typename... Args>
 std::string format(const std::string &fmt, const Args&... args)
 {

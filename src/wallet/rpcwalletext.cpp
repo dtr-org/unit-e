@@ -49,7 +49,7 @@ static CRecipient ParseOutputArgument(const UniValue &output, bool allow_script 
     CTxDestination dest = DecodeDestination(address);
 
     if (!IsValidDestination(dest)) {
-      throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid UnitE address");
+      throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Unit-e address");
     }
     scriptPubKey = GetScriptForDestination(dest);
   }
@@ -80,7 +80,7 @@ static CCoinControl ParseCoinControlArgument(const UniValue &uvCoinControl) {
 
     if (!IsValidDestination(dest)) {
       throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
-                         "changeAddress must be a valid unite address");
+                         "changeAddress must be a valid Unit-e address");
     }
 
     coinControl.destChange = dest;
@@ -163,13 +163,13 @@ UniValue sendtypeto(const JSONRPCRequest &request) {
     throw std::runtime_error(
         "sendtypeto \"typein\" \"typeout\" [{address: , amount: , narr: , "
         "subfee:},...] (\"comment\" \"comment-to\" test_fee coin_control)\n"
-        "\nSend UnitE to multiple outputs.\n" +
+        "\nSend Unit-e to multiple outputs.\n" +
         HelpRequiringPassphrase(pwallet) +
         "\nArguments:\n"
         "1. \"typein\"          (string, required) \n"
         "2. \"typeout\"         (string, required) \n"
         "3. outputs           (json, required) Array of output objects\n"
-        "    3.1 \"address\"    (string, required) The UnitE address to send "
+        "    3.1 \"address\"    (string, required) The Unit-e address to send "
         "to.\n"
         "    3.2 \"amount\"     (numeric or string, required) The amount in " +
         CURRENCY_UNIT +
@@ -326,7 +326,7 @@ constexpr const char* STAKEAT_HELP = "stakeat recipient test_fee coin_control\n"
 "by the current node.\n%s\n"
 "Argument:\n"
 "1. recipient         (json, required)\n"
-"    1.1 \"address\"    (string, required) The UnitE address to send to.\n"
+"    1.1 \"address\"    (string, required) The Unit-e address to send to.\n"
 "    1.2 \"amount\"     (numeric or string, required) The amount in %s "
 "to send, e.g. 0.1\n"
 "    1.3 \"subfee\"     (boolean, optional, default=false) Deduct the fee "

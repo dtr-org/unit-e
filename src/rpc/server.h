@@ -137,7 +137,7 @@ public:
 };
 
 /**
- * UnitE RPC command dispatcher.
+ * Unit-e RPC command dispatcher.
  */
 class CRPCTable
 {

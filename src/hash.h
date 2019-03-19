@@ -17,7 +17,7 @@
 
 typedef uint256 ChainCode;
 
-/** A hasher class for UnitE's 256-bit hash (double SHA-256). */
+/** A hasher class for Unit-e's 256-bit hash (double SHA-256). */
 class CHash256 {
 private:
     CSHA256 sha;
@@ -41,7 +41,7 @@ public:
     }
 };
 
-/** A hasher class for UnitE's 160-bit hash (SHA-256 + RIPEMD-160). */
+/** A hasher class for Unit-e's 160-bit hash (SHA-256 + RIPEMD-160). */
 class CHash160 {
 private:
     CSHA256 sha;

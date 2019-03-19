@@ -375,7 +375,7 @@ UniValue manageaddressbook(const JSONRPCRequest &request) {
 
   CTxDestination dest = DecodeDestination(address);
   if (!IsValidDestination(dest)) {
-    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid UnitE address");
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Unit-e address");
   }
 
   if (action == "add") {

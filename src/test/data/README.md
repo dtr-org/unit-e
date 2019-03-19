@@ -1,7 +1,7 @@
 Description
 ------------
 
-This directory contains data-driven tests for various aspects of UnitE.
+This directory contains data-driven tests for various aspects of Unit-e.
 
 License
 --------
