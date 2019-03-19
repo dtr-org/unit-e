@@ -9,7 +9,7 @@ Verify that a united node can load multiple wallet files
 import os
 import shutil
 
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
 from test_framework.util import assert_equal, assert_raises_rpc_error
 from test_framework.regtest_mnemonics import regtest_mnemonics
 
@@ -86,7 +86,7 @@ class MultiWalletTest(UnitETestFramework):
         assert_equal(set(node.listwallets()), {"w4", "w5"})
         w5 = wallet("w5")
         w5_info = w5.getwalletinfo()
-        assert_equal(w5_info['immature_balance'], 50)
+        assert_equal(w5_info['immature_balance'], PROPOSER_REWARD)
 
         competing_wallet_dir = os.path.join(self.options.tmpdir, 'competing_walletdir')
         os.mkdir(competing_wallet_dir)
@@ -112,7 +112,7 @@ class MultiWalletTest(UnitETestFramework):
 
         # check w1 wallet balance
         w1_info = w1.getwalletinfo()
-        assert_equal(w1_info['immature_balance'], 50)
+        assert_equal(w1_info['immature_balance'], PROPOSER_REWARD)
         w1_name = w1_info['walletname']
         assert_equal(w1_name, "w1")
 
@@ -129,7 +129,7 @@ class MultiWalletTest(UnitETestFramework):
         assert_equal(w4_name, "w")
 
         w1.generate(101)
-        assert_equal(w1.getbalance(), (102 - COINBASE_MATURITY) * 50 + regtest_mnemonics[1]['balance'])
+        assert_equal(w1.getbalance(), (102 - COINBASE_MATURITY) * PROPOSER_REWARD + regtest_mnemonics[1]['balance'])
         assert_equal(w2.getbalance(), 0)
         assert_equal(w3.getbalance(), 0)
         assert_equal(w4.getbalance(), 0)

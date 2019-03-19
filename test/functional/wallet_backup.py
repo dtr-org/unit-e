@@ -33,8 +33,9 @@ and confirm again balances are correct.
 from random import randint
 import shutil
 
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
 from test_framework.util import *
+
 
 class WalletBackupTest(UnitETestFramework):
     def set_test_params(self):
@@ -107,10 +108,10 @@ class WalletBackupTest(UnitETestFramework):
         self.nodes[3].generate(100)
         sync_blocks(self.nodes)
 
-        assert_equal(self.nodes[0].getbalance(), 50 + self.nodes[0].initial_stake)
-        assert_equal(self.nodes[1].getbalance(), 50 + self.nodes[1].initial_stake)
-        assert_equal(self.nodes[2].getbalance(), 50 + self.nodes[2].initial_stake)
-        assert_equal(self.nodes[3].getbalance(), 50 * (100 - COINBASE_MATURITY) + self.nodes[3].initial_stake)
+        assert_equal(self.nodes[0].getbalance(), PROPOSER_REWARD + self.nodes[0].initial_stake)
+        assert_equal(self.nodes[1].getbalance(), PROPOSER_REWARD + self.nodes[1].initial_stake)
+        assert_equal(self.nodes[2].getbalance(), PROPOSER_REWARD + self.nodes[2].initial_stake)
+        assert_equal(self.nodes[3].getbalance(), PROPOSER_REWARD * (100 - COINBASE_MATURITY) + self.nodes[3].initial_stake)
 
         self.log.info("Creating transactions")
         # Five rounds of sending each other transactions.
@@ -142,8 +143,7 @@ class WalletBackupTest(UnitETestFramework):
 
         # At this point, there are 214 blocks (103 for setup, then 10 rounds, then 101.)
         mature_blocks = (214 - COINBASE_MATURITY)
-        # regtest reward halving happens at 150 blocks (genesis + 149)
-        total_reward = 50 * min(mature_blocks, 149) + 25 * max(0, mature_blocks - 149)
+        total_reward = PROPOSER_REWARD * mature_blocks
         assert_equal(total, total_reward + (4 * self.nodes[0].initial_stake))
 
         ##

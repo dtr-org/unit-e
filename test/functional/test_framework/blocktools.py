@@ -23,6 +23,7 @@ from .script import (
     hash160,
 )
 from .util import assert_equal
+from .test_framework import PROPOSER_REWARD
 
 # Create a block (with regtest difficulty)
 def create_block(hashprev, coinbase, nTime=None):
@@ -112,7 +113,6 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash)])
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
     coinbase.vin.append(CTxIn(outpoint=stake_in, nSequence=0xffffffff))
-    halvings = int(height/150) # regtest
 
     output_script = None
     if (pubkey != None):
@@ -120,7 +120,7 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     else:
         output_script = CScript([OP_TRUE])
 
-    rewardoutput = CTxOut((50 * UNIT) >> halvings, output_script)
+    rewardoutput = CTxOut(int(PROPOSER_REWARD * UNIT), output_script)
 
     piece_value = int(stake['amount'] * UNIT / n_pieces)
     outputs = [CTxOut(piece_value, output_script) for _ in range(n_pieces)]

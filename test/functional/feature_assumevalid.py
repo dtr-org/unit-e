@@ -52,7 +52,7 @@ from test_framework.mininode import (CBlockHeader,
                                      msg_block,
                                      msg_headers)
 from test_framework.script import (CScript, OP_TRUE)
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import assert_equal, connect_nodes_bi
 from test_framework.regtest_mnemonics import regtest_mnemonics
 
@@ -180,7 +180,7 @@ class AssumeValidTest(UnitETestFramework):
         # Create a transaction spending the coinbase output with an invalid (null) signature
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.block1.vtx[0].sha256, 0), scriptSig=b""))
-        tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE])))
+        tx.vout.append(CTxOut((PROPOSER_REWARD - 1) * 100000000, CScript([OP_TRUE])))
         tx.calc_sha256()
 
         coin = self.get_coin_to_stake()

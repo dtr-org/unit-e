@@ -187,7 +187,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
               COutPoint(coin.GetTransactionId(), coin.GetOutputIndex()),
               CTxOut(coin.GetAmount(), scriptPubKeyIn)),
           GetRandHash(), //TODO UNIT-E: At the moment is not used, since we still have PoW here
-          GetBlockSubsidy(nHeight, chainparams.GetConsensus()),
+          GetComponent<blockchain::Behavior>()->CalculateBlockReward(nHeight),
           0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
           0, //TODO UNIT-E: At the moment is not used, since we still have PoW here
           0 //TODO UNIT-E: At the moment is not used, since we still have PoW here

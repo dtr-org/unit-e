@@ -13,7 +13,7 @@ RPCs tested are:
     - move (with account arguments)
 """
 
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
 from test_framework.util import assert_equal, assert_greater_than_or_equal, sync_mempools, sync_blocks
 
 class WalletAccountsTest(UnitETestFramework):
@@ -115,7 +115,7 @@ class WalletAccountsTest(UnitETestFramework):
             node.move(account.name, "", node.getbalance(account.name))
             account.verify(node)
         node.generate(COINBASE_MATURITY)
-        expected_account_balances = {"": 600}
+        expected_account_balances = {"": 500 + 2 * PROPOSER_REWARD}
         for account in accounts:
             expected_account_balances[account.name] = 0
         assert_equal(node.listaccounts(), expected_account_balances)

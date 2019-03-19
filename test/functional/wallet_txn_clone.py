@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the wallet accounts properly when there are cloned transactions with malleated scriptsigs."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 
 
@@ -44,7 +44,7 @@ class TxnMallTest(UnitETestFramework):
         else:
             output_type="legacy"
 
-        starting_balance = 11250
+        starting_balance = 10000 + 25 * PROPOSER_REWARD
         for i in range(4):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
             self.nodes[i].getnewaddress("")  # bug workaround, coins generated assigned to first getnewaddress!
@@ -113,10 +113,10 @@ class TxnMallTest(UnitETestFramework):
         tx1 = self.nodes[0].gettransaction(txid1)
         tx2 = self.nodes[0].gettransaction(txid2)
 
-        # Node0's balance should be starting balance, plus 50UTE for another
+        # Node0's balance should be starting balance, plus the proposer reward for another
         # matured block, minus tx1 and tx2 amounts, and minus transaction fees:
         expected = starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"]
-        if self.options.mine_block: expected += 50
+        if self.options.mine_block: expected += PROPOSER_REWARD
         expected += tx1["amount"] + tx1["fee"]
         expected += tx2["amount"] + tx2["fee"]
         assert_equal(self.nodes[0].getbalance(), expected)
@@ -161,11 +161,11 @@ class TxnMallTest(UnitETestFramework):
         assert_equal(tx1_clone["confirmations"], 2)
         assert_equal(tx2["confirmations"], 1)
 
-        # Check node0's total balance; should be same as before the clone, + 100 UTE for 2 matured,
+        # Check node0's total balance; should be same as before the clone, + the reward for 2 matured blocks,
         # less possible orphaned matured subsidy
-        expected += 100
+        expected += 2 * PROPOSER_REWARD
         if (self.options.mine_block):
-            expected -= 50
+            expected -= PROPOSER_REWARD
         assert_equal(self.nodes[0].getbalance(), expected)
         assert_equal(self.nodes[0].getbalance("*", 0), expected)
 
@@ -180,7 +180,7 @@ class TxnMallTest(UnitETestFramework):
                                                                 + fund_foo_tx["fee"]
                                                                 -   29
                                                                 + fund_bar_tx["fee"]
-                                                                +  100)
+                                                                +  (2 * PROPOSER_REWARD))
 
         # Node1's "from0" account balance
         assert_equal(self.nodes[1].getbalance("from0", 0), -(tx1["amount"] + tx2["amount"]))

@@ -375,7 +375,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     CBlockIndex* const nullBlock = nullptr;
     CBlockIndex* oldTip = chainActive.Tip();
     GetBlockFileInfo(oldTip->GetBlockPos().nFile)->nSize = MAX_BLOCKFILE_SIZE;
-    CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
+    CTransactionRef new_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0];
     CBlockIndex* newTip = chainActive.Tip();
 
     LOCK(cs_main);
@@ -388,7 +388,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(nullBlock, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 100 * UNIT);
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), coinbaseTxns.back().vout[0].nValue + new_coinbase->vout[0].nValue);
     }
 
     // Prune the older block file.
@@ -403,7 +403,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(oldTip, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), 50 * UNIT);
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), coinbaseTxns.back().vout[0].nValue);
     }
 
     // Verify importmulti RPC returns failure for a key whose creation time is
@@ -532,7 +532,7 @@ BOOST_FIXTURE_TEST_CASE(coin_mark_dirty_immature_credit, TestChain100Setup)
     // credit amount is calculated.
     wtx.MarkDirty();
     wallet.AddKeyPubKey(coinbaseKey, coinbaseKey.GetPubKey());
-    BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), 50*UNIT);
+    BOOST_CHECK_EQUAL(wtx.GetImmatureCredit(), wtx.tx->vout[0].nValue);
 }
 
 BOOST_FIXTURE_TEST_CASE(get_immature_credit, TestChain100Setup)
@@ -764,7 +764,7 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
     BOOST_CHECK_EQUAL(list.begin()->second.size(), 2); // Mature reward + inital stake
 
     // Check initial balance from one mature coinbase transaction + the initial funds.
-    BOOST_CHECK_EQUAL(10050 * UNIT, pwalletMain->GetAvailableBalance());
+    BOOST_CHECK_EQUAL(10000 * UNIT + coinbaseTxns.back().vout[0].nValue, pwalletMain->GetAvailableBalance());
 
     // Make another block reward mature so we can spend it for a transaction
     CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));

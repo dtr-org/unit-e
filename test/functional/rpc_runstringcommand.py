@@ -27,17 +27,25 @@ class RunstringcommandTest(UnitETestFramework):
         assert_raises_rpc_error(-8, 'Parameters must all be strings',
                                 self.nodes[0].runstringcommand, 'generate', 'w1', 101)
 
-        self.nodes[0].runstringcommand('importmasterkey', 'w1', regtest_mnemonics[0]['mnemonics'])
-        self.nodes[0].initial_stake = regtest_mnemonics[0]['balance']
-
-        resp = self.nodes[0].runstringcommand('generate', 'w1', '101')
-        assert_equal(101, len(resp))
-
-        assert_equal(self.nodes[0].initial_stake + Decimal(50), self.nodes[0].runstringcommand('getbalance', 'w1'))
-        assert_equal(Decimal(0), self.nodes[0].runstringcommand('getbalance', 'w2'))
-
         # Default wallet
         assert_equal(Decimal(0), self.nodes[1].runstringcommand('getbalance', ''))
+
+        # Explicitly specified wallet
+        self.nodes[0].runstringcommand('importmasterkey', 'w1', regtest_mnemonics[0]['mnemonics'])
+        self.nodes[0].initial_balance = regtest_mnemonics[0]['balance']
+
+        self.nodes[0].runstringcommand(
+            'sendtoaddress',
+            'w1',
+            self.nodes[1].getnewaddress(),
+            '10',   # amount
+            '',     # comment
+            '',     # comment_to
+            'true'  # subtractfeefromamount
+        )
+
+        assert_equal(self.nodes[0].initial_balance - Decimal(10), self.nodes[0].runstringcommand('getbalance', 'w1'))
+        assert_equal(Decimal(0), self.nodes[0].runstringcommand('getbalance', 'w2'))
 
 
 if __name__ == '__main__':

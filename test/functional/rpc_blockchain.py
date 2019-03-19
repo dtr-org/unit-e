@@ -142,7 +142,7 @@ class BlockchainTest(UnitETestFramework):
         node = self.nodes[0]
         res = node.gettxoutsetinfo()
 
-        assert_equal(res['total_amount'], Decimal('1068725.00000000'))
+        assert_equal(res['total_amount'], Decimal('1060750.00000000'))
 
         assert_equal(res['transactions'], 201)
         assert_equal(res['height'], 200)

@@ -4,10 +4,13 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test gettxoutproof and verifytxoutproof RPCs."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 from test_framework.mininode import FromHex, ToHex
 from test_framework.messages import CMerkleBlock
+
+from decimal import Decimal
+
 
 class MerkleBlockTest(UnitETestFramework):
     def set_test_params(self):
@@ -36,9 +39,15 @@ class MerkleBlockTest(UnitETestFramework):
         assert_equal(self.nodes[1].getbalance(), 0)
         assert_equal(self.nodes[2].getbalance(), 0)
 
-        tx1 = self.nodes[0].createrawtransaction([self.find_utxo_with_amount(self.nodes[0], 50)], {self.nodes[1].getnewaddress(): 49.99})
+        tx1 = self.nodes[0].createrawtransaction(
+            [self.find_utxo_with_amount(self.nodes[0], PROPOSER_REWARD)],
+            {self.nodes[1].getnewaddress(): PROPOSER_REWARD - Decimal('0.01')}
+        )
         txid1 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransaction(tx1)["hex"])
-        tx2 = self.nodes[0].createrawtransaction([self.find_utxo_with_amount(self.nodes[0], 50)], {self.nodes[1].getnewaddress(): 49.99})
+        tx2 = self.nodes[0].createrawtransaction(
+            [self.find_utxo_with_amount(self.nodes[0], PROPOSER_REWARD)],
+            {self.nodes[1].getnewaddress(): PROPOSER_REWARD - Decimal('0.01')}
+        )
         txid2 = self.nodes[0].sendrawtransaction(self.nodes[0].signrawtransaction(tx2)["hex"])
         # This will raise an exception because the transaction is not yet in a block
         assert_raises_rpc_error(-5, "Transaction not yet in block", self.nodes[0].gettxoutproof, [txid1])
@@ -57,7 +66,7 @@ class MerkleBlockTest(UnitETestFramework):
         assert_equal(self.nodes[2].verifytxoutproof(self.nodes[2].gettxoutproof([txid1, txid2], blockhash)), txlist)
 
         txin_spent = self.nodes[1].listunspent(1).pop()
-        tx3 = self.nodes[1].createrawtransaction([txin_spent], {self.nodes[0].getnewaddress(): 49.98})
+        tx3 = self.nodes[1].createrawtransaction([txin_spent], {self.nodes[0].getnewaddress(): PROPOSER_REWARD - Decimal('0.02')})
         txid3 = self.nodes[0].sendrawtransaction(self.nodes[1].signrawtransaction(tx3)["hex"])
         self.nodes[0].generate(1)
         self.sync_all()

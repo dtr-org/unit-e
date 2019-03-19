@@ -6,6 +6,7 @@
 from test_framework.test_framework import (
     UnitETestFramework,
     COINBASE_MATURITY,
+    PROPOSER_REWARD,
     STAKE_SPLIT_THRESHOLD,
 )
 from test_framework.util import *
@@ -62,8 +63,8 @@ class WalletTest(UnitETestFramework):
 
         walletinfo = self.nodes[0].getwalletinfo()
 
-        immature_balance0 = 50 if COINBASE_MATURITY > 0 else 0
-        balance0 += 50 - immature_balance0
+        immature_balance0 = PROPOSER_REWARD if COINBASE_MATURITY > 0 else 0
+        balance0 += PROPOSER_REWARD - immature_balance0
         assert_equal(walletinfo['immature_balance'], immature_balance0)
         assert_equal(walletinfo['balance'], balance0)
 
@@ -71,8 +72,8 @@ class WalletTest(UnitETestFramework):
         self.nodes[1].generate(COINBASE_MATURITY + 1)
         self.sync_all([self.nodes[0:3]])
 
-        balance0 += 50
-        balance1 += 50
+        balance0 += PROPOSER_REWARD
+        balance1 += PROPOSER_REWARD
 
         assert_equal(self.nodes[0].getbalance(), balance0)
         assert_equal(self.nodes[1].getbalance(), balance1)
@@ -100,14 +101,14 @@ class WalletTest(UnitETestFramework):
         memory_before = self.nodes[0].getmemoryinfo()
         mempool_txid = send_specific_output(
             self.nodes[0], confirmed_txid, confirmed_index,
-            to=self.nodes[2].getnewaddress(), amount=10
+            to=self.nodes[2].getnewaddress(), amount=1
         )
         send_specific_output(self.nodes[0], utxos[1]['txid'], utxos[1]['vout'],
-                             to=self.nodes[2].getnewaddress(), amount=11)
+                             to=self.nodes[2].getnewaddress(), amount=Decimal('1.1'))
         memory_after = self.nodes[0].getmemoryinfo()
         assert(memory_before['locked']['used'] + 64 <= memory_after['locked']['used'])
-        balance0 -= 21
-        balance2 += 21
+        balance0 -= Decimal('2.1')
+        balance2 += Decimal('2.1')
 
         self.log.info("test gettxout (second part)")
         # utxo spent in mempool should be visible if you exclude mempool
@@ -126,7 +127,7 @@ class WalletTest(UnitETestFramework):
         # but 10 will go to node2 and the rest will go to node0
         tx = self.nodes[0].gettransaction(mempool_txid)
         # tx['fee'] is negative
-        assert_equal(set([txout1['value'], txout2['value']]), set([10, node0_txout_value - 10 + tx['fee']]))
+        assert_equal(set([txout1['value'], txout2['value']]), set([1, node0_txout_value - 1 + tx['fee']]))
         walletinfo = self.nodes[0].getwalletinfo()
         assert_equal(walletinfo['immature_balance'], 0)
 
@@ -155,7 +156,7 @@ class WalletTest(UnitETestFramework):
         # Have node1 generate some blocks (so node0 can recover the fee)
         self.nodes[1].generate(COINBASE_MATURITY)
         self.sync_all([self.nodes[0:3]])
-        balance0 += 50
+        balance0 += PROPOSER_REWARD
 
         # node0 should end up with 100 btc in block rewards plus fees, but
         # minus the 21 plus fees sent to node2
@@ -175,10 +176,10 @@ class WalletTest(UnitETestFramework):
             inputs = []
             outputs = {}
             inputs.append({ "txid" : utxo["txid"], "vout" : utxo["vout"]})
-            outputs[self.nodes[2].getnewaddress("from1")] = utxo["amount"] - 3
+            outputs[self.nodes[2].getnewaddress("from1")] = utxo["amount"] - Decimal('0.3')
             raw_tx = self.nodes[0].createrawtransaction(inputs, outputs)
             txns_to_send.append(self.nodes[0].signrawtransaction(raw_tx))
-            node2_from1 += utxo["amount"] - 3
+            node2_from1 += utxo["amount"] - Decimal('0.3')
         balance2 += node2_from1
         balance0 = 0
 

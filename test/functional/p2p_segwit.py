@@ -5,7 +5,7 @@
 """Test segwit transactions and blocks on P2P network."""
 
 from test_framework.mininode import *
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.messages import msg_block, msg_witness_block
 from test_framework.util import *
 from test_framework.script import *
@@ -167,7 +167,7 @@ class SegWitTest(UnitETestFramework):
         # Create a transaction that spends the coinbase
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(txid, 0), b""))
-        tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
+        tx.vout.append(CTxOut((PROPOSER_REWARD - 1) * UNIT, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
         tx.calc_sha256()
 
         # Check that serializing it with or without witness is the same
@@ -178,7 +178,7 @@ class SegWitTest(UnitETestFramework):
         self.test_node.sync_with_ping() # make sure the tx was processed
         assert(tx.hash in self.nodes[0].getrawmempool())
         # Save this transaction for later
-        self.utxo.append(UTXO(tx.sha256, 0, 49*100000000))
+        self.utxo.append(UTXO(tx.sha256, 0, (PROPOSER_REWARD - 1) * UNIT))
         self.nodes[0].generate(1)
 
 

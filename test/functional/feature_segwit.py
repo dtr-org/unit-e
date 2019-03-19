@@ -12,7 +12,7 @@ from test_framework.address import (
     script_to_p2wsh,
 )
 from test_framework.blocktools import witness_script, send_to_witness
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 from test_framework.mininode import sha256, CTransaction, CTxIn, COutPoint, CTxOut, UNIT, ToHex, FromHex
 from test_framework.address import script_to_p2sh, key_to_p2pkh
@@ -50,22 +50,22 @@ class SegWitTest(UnitETestFramework):
         self.sync_all()
 
     def success_mine(self, node, txid, sign, redeem_script=""):
-        send_to_witness(1, node, getutxo(txid), self.pubkey[0], False, Decimal("49.998"), sign, redeem_script)
+        send_to_witness(1, node, getutxo(txid), self.pubkey[0], False, PROPOSER_REWARD - Decimal("0.002"), sign, redeem_script)
         block = node.generate(1)
         assert_equal(len(node.getblock(block[0])["tx"]), 2)
         sync_blocks(self.nodes)
 
     def skip_mine(self, node, txid, sign, redeem_script=""):
-        send_to_witness(1, node, getutxo(txid), self.pubkey[0], False, Decimal("49.998"), sign, redeem_script)
+        send_to_witness(1, node, getutxo(txid), self.pubkey[0], False, PROPOSER_REWARD - Decimal("0.002"), sign, redeem_script)
         block = node.generate(1)
         assert_equal(len(node.getblock(block[0])["tx"]), 1)
         sync_blocks(self.nodes)
 
     def fail_accept(self, node, error_msg, txid, sign, redeem_script=""):
-        assert_raises_rpc_error(-26, error_msg, send_to_witness, 1, node, getutxo(txid), self.pubkey[0], False, Decimal("49.998"), sign, redeem_script)
+        assert_raises_rpc_error(-26, error_msg, send_to_witness, 1, node, getutxo(txid), self.pubkey[0], False, PROPOSER_REWARD - Decimal("0.002"), sign, redeem_script)
 
     def fail_mine(self, node, txid, sign, redeem_script=""):
-        send_to_witness(1, node, getutxo(txid), self.pubkey[0], False, Decimal("49.998"), sign, redeem_script)
+        send_to_witness(1, node, getutxo(txid), self.pubkey[0], False, PROPOSER_REWARD - Decimal("0.002"), sign, redeem_script)
         assert_raises_rpc_error(-1, "CreateNewBlock: TestBlockValidity failed", node.generate, 1)
         sync_blocks(self.nodes)
 
@@ -103,16 +103,16 @@ class SegWitTest(UnitETestFramework):
         for i in range(5):
             for n in range(3):
                 for v in range(2):
-                    wit_ids[n][v].append(send_to_witness(v, self.nodes[0], find_unspent(self.nodes[0], 50), self.pubkey[n], False, Decimal("49.999")))
-                    p2sh_ids[n][v].append(send_to_witness(v, self.nodes[0], find_unspent(self.nodes[0], 50), self.pubkey[n], True, Decimal("49.999")))
+                    wit_ids[n][v].append(send_to_witness(v, self.nodes[0], find_unspent(self.nodes[0], PROPOSER_REWARD), self.pubkey[n], False, PROPOSER_REWARD - Decimal("0.001")))
+                    p2sh_ids[n][v].append(send_to_witness(v, self.nodes[0], find_unspent(self.nodes[0], PROPOSER_REWARD), self.pubkey[n], True, PROPOSER_REWARD - Decimal("0.001")))
 
         self.nodes[0].generate(1)
         sync_blocks(self.nodes)
 
         # Make sure all nodes recognize the transactions as theirs
-        assert_equal(self.nodes[0].getbalance(), balance_presetup - 60*50 + 20*Decimal("49.999") + 50)
-        assert_equal(self.nodes[1].getbalance(), 20*Decimal("49.999"))
-        assert_equal(self.nodes[2].getbalance(), 20*Decimal("49.999"))
+        assert_equal(self.nodes[0].getbalance(), balance_presetup - 60 * PROPOSER_REWARD + 20 * (PROPOSER_REWARD - Decimal("0.001")) + PROPOSER_REWARD)
+        assert_equal(self.nodes[1].getbalance(), 20 * (PROPOSER_REWARD - Decimal("0.001")))
+        assert_equal(self.nodes[2].getbalance(), 20 * (PROPOSER_REWARD - Decimal("0.001")))
 
         self.log.info("Verify witness txs without witness data are invalid")
         self.fail_mine(self.nodes[2], wit_ids[NODE_2][WIT_V0][2], False)
@@ -139,7 +139,7 @@ class SegWitTest(UnitETestFramework):
         #                      tx2 (segwit input, paying to a non-segwit output) ->
         #                      tx3 (non-segwit input, paying to a non-segwit output).
         # tx1 is allowed to appear in the block, but no others.
-        txid1 = send_to_witness(1, self.nodes[0], find_unspent(self.nodes[0], 50), self.pubkey[0], False, Decimal("49.996"))
+        txid1 = send_to_witness(1, self.nodes[0], find_unspent(self.nodes[0], PROPOSER_REWARD), self.pubkey[0], False, PROPOSER_REWARD - Decimal("0.004"))
         hex_tx = self.nodes[0].gettransaction(txid)['hex']
         tx = FromHex(CTransaction(), hex_tx)
         assert(tx.wit.is_null()) # This should not be a segwit input
@@ -148,7 +148,7 @@ class SegWitTest(UnitETestFramework):
         # Now create tx2, which will spend from txid1.
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(int(txid1, 16), 0), b''))
-        tx.vout.append(CTxOut(int(49.99 * UNIT), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
+        tx.vout.append(CTxOut(int((PROPOSER_REWARD - Decimal('0.01')) * UNIT), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
         tx2_hex = self.nodes[0].signrawtransaction(ToHex(tx))['hex']
         txid2 = self.nodes[0].sendrawtransaction(tx2_hex)
         tx = FromHex(CTransaction(), tx2_hex)
@@ -157,7 +157,7 @@ class SegWitTest(UnitETestFramework):
         # Now create tx3, which will spend from txid2
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(int(txid2, 16), 0), b""))
-        tx.vout.append(CTxOut(int(49.95 * UNIT), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))  # Huge fee
+        tx.vout.append(CTxOut(int((PROPOSER_REWARD - Decimal('0.05')) * UNIT), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))  # Huge fee
         tx.calc_sha256()
         txid3 = self.nodes[0].sendrawtransaction(ToHex(tx))
         assert(tx.wit.is_null())
@@ -500,11 +500,11 @@ class SegWitTest(UnitETestFramework):
             assert_equal(self.nodes[1].listtransactions("*", 1, 0, True)[0]["txid"], txid)
 
     def mine_and_test_listunspent(self, script_list, ismine):
-        utxo = find_unspent(self.nodes[0], 50)
+        utxo = find_unspent(self.nodes[0], PROPOSER_REWARD)
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(int('0x'+utxo['txid'],0), utxo['vout'])))
         for i in script_list:
-            tx.vout.append(CTxOut(10000000, i))
+            tx.vout.append(CTxOut(1000000, i))
         tx.rehash()
         signresults = self.nodes[0].signrawtransaction(bytes_to_hex_str(tx.serialize_without_witness()))['hex']
         txid = self.nodes[0].sendrawtransaction(signresults, True)
