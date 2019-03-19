@@ -180,6 +180,10 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Returns whether block on height blockHeight is finalized checkpoint
   bool IsFinalizedCheckpoint(blockchain::Height blockHeight) const;
 
+  bool MustPayFinalizationRewardsAt(blockchain::Height block_height) const;
+
+  std::pair<blockchain::Height, std::vector<CAmount>> CalculateFinalizationRewardsAt(blockchain::Height block_height) const;
+
   //! \brief Returns the current initalization status
   InitStatus GetInitStatus() const;
 
