@@ -23,11 +23,10 @@ class RpcFinalizationTest(UnitETestFramework):
         self.num_nodes = 3
         self.setup_clean_chain = True
 
-        esperanza_config = '-esperanzaconfig={"epochLength":5}'
         self.extra_args = [
-            [esperanza_config],
-            [esperanza_config, '-validating=1'],
-            [esperanza_config, '-validating=1'],
+            [],
+            ['-validating=1'],
+            ['-validating=1'],
         ]
 
     def setup_network(self):

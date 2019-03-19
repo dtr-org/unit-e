@@ -19,20 +19,12 @@ class EsperanzaVoteTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
-        esperanza_config = '-esperanzaconfig={"epochLength":5,"minDepositSize":1500}'
-        finalizer_node_params = [
-            '-validating=1',
-            '-debug=all',
-            '-whitelist=127.0.0.1',
-            esperanza_config,
+        self.extra_args = [
+            [],
+            ['-validating=1'],
+            ['-validating=1'],
+            ['-validating=1'],
         ]
-        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', esperanza_config]
-
-        self.extra_args = [proposer_node_params,
-                           finalizer_node_params,
-                           finalizer_node_params,
-                           finalizer_node_params,
-                           ]
         self.setup_clean_chain = True
 
     def setup_network(self):

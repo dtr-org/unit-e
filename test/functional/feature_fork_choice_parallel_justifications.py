@@ -54,13 +54,12 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         self.num_nodes = 5
         self.setup_clean_chain = True
 
-        esperanza_config = '-esperanzaconfig={"epochLength":5}'
         self.extra_args = [
-            ['-proposing=0', esperanza_config],
-            ['-proposing=0', esperanza_config],
-            ['-proposing=0', esperanza_config],
-            ['-proposing=0', esperanza_config, '-validating=1'],
-            ['-proposing=0', esperanza_config, '-validating=1'],
+            ['-proposing=0', ],
+            ['-proposing=0', ],
+            ['-proposing=0', ],
+            ['-proposing=0', '-validating=1'],
+            ['-proposing=0', '-validating=1'],
         ]
 
     def setup_network(self):

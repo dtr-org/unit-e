@@ -24,13 +24,8 @@ class SnapshotCreationTest(UnitETestFramework):
         self.setup_clean_chain = True
 
         self.extra_args = [
-            [
-                '-validating=1',
-                '-esperanzaconfig={"epochLength":5}',
-            ],
-            [
-                '-esperanzaconfig={"epochLength":5}',
-            ],
+            ['-validating=1'],
+            [],
         ]
         self.num_nodes = len(self.extra_args)
 

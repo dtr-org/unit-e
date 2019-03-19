@@ -26,19 +26,18 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         self.num_nodes = 8
         self.setup_clean_chain = True
 
-        esperanza_config = '-esperanzaconfig={"epochLength":5}'
         self.extra_args = [
             # test_justification_over_chain_work
-            [esperanza_config],
-            [esperanza_config],
-            [esperanza_config],
-            [esperanza_config, '-validating=1'],
+            [],
+            [],
+            [],
+            ['-validating=1'],
 
             # test_longer_justification
-            [esperanza_config],
-            [esperanza_config],
-            [esperanza_config],
-            [esperanza_config, '-validating=1'],
+            [],
+            [],
+            [],
+            ['-validating=1'],
         ]
 
     def setup_network(self):
