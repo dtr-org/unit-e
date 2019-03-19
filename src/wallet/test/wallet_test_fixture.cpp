@@ -81,9 +81,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   CBlock& block = pblocktemplate->block;
 
   // Replace mempool-selected txns with just coinbase plus passed-in txns:
-  CMutableTransaction coinbase_tx = CMutableTransaction(*block.vtx[0]);
-  block.vtx.clear();
-  block.vtx.emplace_back(MakeTransactionRef(coinbase_tx));
+  block.vtx.resize(1);
   for (const CMutableTransaction& tx : txns)
     block.vtx.push_back(MakeTransactionRef(tx));
   // IncrementExtraNonce creates a valid coinbase and merkleRoot
@@ -92,8 +90,7 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     LOCK(cs_main);
     IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
   }
-
-  //Regenerate the merkle roots cause we possibly changed the txs included
+  // Regenerate the merkle roots cause we possibly changed the txs included
   block.ComputeMerkleTrees();
 
   while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
