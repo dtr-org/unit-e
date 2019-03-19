@@ -1,0 +1,9 @@
+# Configuration for clonemachine (https://github.com/dtr-org/clonemachine)
+
+appropriated_files:
+- contrib/gitian-build.py
+- contrib/gitian-keys/keys.txt
+- doc/gitian-building.md
+
+removed_files:
+- contrib/gitian-descriptors/gitian-osx-signer.yml
