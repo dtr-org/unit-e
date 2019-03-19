@@ -183,6 +183,15 @@ def assert_array_result(object_array, to_match, expected, should_not_find=False)
     if num_matched > 0 and should_not_find:
         raise AssertionError("Objects were found %s" % (str(to_match)))
 
+
+def assert_finalizationstate(node, expected):
+    state = node.getfinalizationstate()
+    for key in expected:
+        a = state[key]
+        b = expected[key]
+        if a != b:
+            raise AssertionError("%s: not(%s == %s)" % (str(key), str(a), str(b)))
+
 # Utility functions
 ###################
 
@@ -461,10 +470,6 @@ def get_unspent_coins(node, n_coins, lock=False):
         node.lockunspent(False, [{'txid': tx['txid'], 'vout': tx['vout']} for tx in unspent_outputs[:n_coins]])
     return unspent_outputs[:n_coins]
 
-def check_finalization(node, expected):
-    state = node.getfinalizationstate()
-    for key in expected:
-        assert_equal(state[key], expected[key])
 
 # Transaction/Block functions
 #############################
