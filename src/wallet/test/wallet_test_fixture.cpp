@@ -83,10 +83,6 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   // Replace mempool-selected txns with just coinbase plus passed-in txns:
   CMutableTransaction coinbase_tx = CMutableTransaction(*block.vtx[0]);
   block.vtx.clear();
-  CTxOut stake_returned;
-  stake_returned.scriptPubKey = coinbase_tx.vout[0].scriptPubKey;
-  stake_returned.nValue = 10000 * UNIT;
-  coinbase_tx.vout.emplace_back(stake_returned);
   block.vtx.emplace_back(MakeTransactionRef(coinbase_tx));
   for (const CMutableTransaction& tx : txns)
     block.vtx.push_back(MakeTransactionRef(tx));
@@ -96,11 +92,6 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     LOCK(cs_main);
     IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
   }
-
-  //Regenerate the witness commitment cause we possibly changed the txs included
-  CMutableTransaction tx(*block.vtx[0]);
-  tx.vout.resize(tx.vout.size() -1);
-  block.vtx[0] = MakeTransactionRef(std::move(tx));
 
   //Regenerate the merkle roots cause we possibly changed the txs included
   block.ComputeMerkleTrees();
