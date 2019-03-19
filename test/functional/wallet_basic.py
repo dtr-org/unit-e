@@ -392,7 +392,7 @@ class WalletTest(UnitETestFramework):
 
         # check if wallet or blockchain maintenance changes the balance
         self.sync_all([self.nodes[0:3]])
-        blocks = self.nodes[1].generate(2)
+        blocks = self.nodes[1].generatetoaddress(2, self.nodes[1].getnewaddress('', 'bech32'))
         self.sync_all([self.nodes[0:3]])
         balance_nodes = [self.nodes[i].getbalance() for i in range(3)]
         block_count = self.nodes[1].getblockcount()
@@ -435,7 +435,8 @@ class WalletTest(UnitETestFramework):
         # Exercise listsinceblock with the last two blocks
         coinbase_tx_1 = self.nodes[1].listsinceblock(blocks[0])
         assert_equal(coinbase_tx_1["lastblock"], blocks[1])
-        assert_equal(len(coinbase_tx_1["transactions"]), 1)
+        transactions = set(map(lambda x: x["txid"], coinbase_tx_1["transactions"]))
+        assert_equal(len(transactions), 1)
         assert_equal(coinbase_tx_1["transactions"][0]["blockhash"], blocks[1])
         assert_equal(len(self.nodes[1].listsinceblock(blocks[1])["transactions"]), 0)
 

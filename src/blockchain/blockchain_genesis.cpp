@@ -26,7 +26,7 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinbaseTransaction() const {
   tx.SetType(TxType::COINBASE);
 
   const CScript script_sig = CScript() << CScriptNum::serialize(0)  // height
-                                       << ToByteVector(uint256());  // utxo set hash
+                                       << ToByteVector(uint256::zero);  // utxo set hash
 
   tx.vin.resize(1);
   tx.vin[0].scriptSig = script_sig;
@@ -54,32 +54,21 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   CTransactionRef coinbase_transaction = BuildCoinbaseTransaction();
   genesis_block.vtx.push_back(coinbase_transaction);
 
-  genesis_block.hashPrevBlock = uint256();
-  genesis_block.hashMerkleRoot = BlockMerkleRoot(genesis_block);
+  genesis_block.hashPrevBlock = uint256::zero;
+  genesis_block.ComputeMerkleTrees();
 
   // explicitly set signature to null (there's no stake and no public key which could sign)
   genesis_block.signature.clear();
 
-  // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
-  // genesis_block.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis_block);
-
   assert(genesis_block.vtx.size() == 1);
   assert(genesis_block.vtx[0]->vin.size() == 1);
-  assert(genesis_block.vtx[0]->vin[0].prevout.hash == uint256());
+  assert(genesis_block.vtx[0]->vin[0].prevout.hash == uint256::zero);
   assert(genesis_block.vtx[0]->vin[0].prevout.n == std::numeric_limits<decltype(genesis_block.vtx[0]->vin[0].prevout.n)>::max());
   assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
 
-  // UNIT-E: TODO: This will be enabled once we will have defined the initial funds allocation
-  //  CAmount initial_funds_amount = 0;
-  //  for(const auto& out : m_initial_funds) {
-  //    initial_funds_amount += out.first;
-  //  }
-  //  assert(initial_funds_amount == parameters.initial_supply);
-
+  // the genesis block contains only one transaction, the coinbase transaction
+  // the merkle root should therefore be the hash of that transaction only.
   assert(genesis_block.hashMerkleRoot == genesis_block.vtx[0]->GetHash());
-
-  // UNIT-E: TODO: This will be enabled once we merge the proposer/segwit pull request
-  // assert(genesis_block.hashWitnessMerkleRoot == genesis_block.hashMerkleRoot);
 
   return genesis_block;
 }

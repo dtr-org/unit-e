@@ -188,7 +188,7 @@ class AssumeValidTest(UnitETestFramework):
         block102 = create_block(self.tip, coinbase, self.block_time)
         self.block_time += 1
         block102.vtx.extend([tx])
-        block102.hashMerkleRoot = block102.calc_merkle_root()
+        block102.compute_merkle_trees()
         block102.rehash()
         block102.solve()
         self.blocks.append(block102)

@@ -207,30 +207,30 @@ class RESTTest (UnitETestFramework):
         # check binary format
         response = http_get_call(url.hostname, url.port, '/rest/block/'+bb_hash+self.FORMAT_SEPARATOR+"bin", True)
         assert_equal(response.status, 200)
-        assert_greater_than(int(response.getheader('content-length')), 80)
+        assert_greater_than(int(response.getheader('content-length')), 112)
         response_str = response.read()
 
         # compare with block header
         response_header = http_get_call(url.hostname, url.port, '/rest/headers/1/'+bb_hash+self.FORMAT_SEPARATOR+"bin", True)
         assert_equal(response_header.status, 200)
-        assert_equal(int(response_header.getheader('content-length')), 80)
+        assert_equal(int(response_header.getheader('content-length')), 112)
         response_header_str = response_header.read()
-        assert_equal(response_str[0:80], response_header_str)
+        assert_equal(response_str[0:112], response_header_str)
 
         # check block hex format
         response_hex = http_get_call(url.hostname, url.port, '/rest/block/'+bb_hash+self.FORMAT_SEPARATOR+"hex", True)
         assert_equal(response_hex.status, 200)
-        assert_greater_than(int(response_hex.getheader('content-length')), 160)
+        assert_greater_than(int(response_hex.getheader('content-length')), 224)
         response_hex_str = response_hex.read()
-        assert_equal(encode(response_str, "hex_codec")[0:160], response_hex_str[0:160])
+        assert_equal(encode(response_str, "hex_codec")[0:224], response_hex_str[0:224])
 
         # compare with hex block header
         response_header_hex = http_get_call(url.hostname, url.port, '/rest/headers/1/'+bb_hash+self.FORMAT_SEPARATOR+"hex", True)
         assert_equal(response_header_hex.status, 200)
-        assert_greater_than(int(response_header_hex.getheader('content-length')), 160)
+        assert_greater_than(int(response_header_hex.getheader('content-length')), 224)
         response_header_hex_str = response_header_hex.read()
-        assert_equal(response_hex_str[0:160], response_header_hex_str[0:160])
-        assert_equal(encode(response_header_str, "hex_codec")[0:160], response_header_hex_str[0:160])
+        assert_equal(response_hex_str[0:224], response_header_hex_str[0:224])
+        assert_equal(encode(response_header_str, "hex_codec")[0:224], response_header_hex_str[0:224])
 
         # check json format
         block_json_string = http_get_call(url.hostname, url.port, '/rest/block/'+bb_hash+self.FORMAT_SEPARATOR+'json')

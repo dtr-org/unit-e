@@ -90,17 +90,8 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     LOCK(cs_main);
     IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
   }
-
-  //Regenerate the witness commitment cause we possibly changed the txs included
-  CMutableTransaction tx(*block.vtx[0]);
-  tx.vout.resize(tx.vout.size() -1);
-  block.vtx[0] = MakeTransactionRef(std::move(tx));
-  GenerateCoinbaseCommitment(block, chainActive.Tip(), Params().GetConsensus());
-
-  //Regenerate the merkle roots cause we possibly changed the txs included
-  bool duplicate_transactions = false;
-  block.hashMerkleRoot = BlockMerkleRoot(block, &duplicate_transactions);
-  block.hash_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
+  // Regenerate the merkle roots cause we possibly changed the txs included
+  block.ComputeMerkleTrees();
 
   while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 

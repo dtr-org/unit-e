@@ -28,7 +28,6 @@ struct CBlockTemplate
     CBlock block;
     std::vector<CAmount> vTxFees;
     std::vector<int64_t> vTxSigOpsCost;
-    std::vector<unsigned char> vchCoinbaseCommitment;
 };
 
 // Container for tracking updates to ancestor feerate as we include (parent)

@@ -4,7 +4,9 @@
 
 #include <merkleblock.h>
 #include <uint256.h>
+
 #include <test/test_unite.h>
+#include <test/test_unite_block_fixture.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -15,10 +17,8 @@ BOOST_AUTO_TEST_SUITE(merkleblock_tests)
  * Create a CMerkleBlock using a list of txids which will be found in the
  * given block.
  */
-BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_found)
+BOOST_FIXTURE_TEST_CASE(merkleblock_construct_from_txids_found, RealBlockFixture)
 {
-    CBlock block = getBlock13b8a();
-
     std::set<uint256> txids;
 
     // Last txn in block.
@@ -56,10 +56,8 @@ BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_found)
  * Create a CMerkleBlock using a list of txids which will not be found in the
  * given block.
  */
-BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_not_found)
+BOOST_FIXTURE_TEST_CASE(merkleblock_construct_from_txids_not_found, RealBlockFixture)
 {
-    CBlock block = getBlock13b8a();
-
     std::set<uint256> txids2;
     txids2.insert(uint256S("0xc0ffee00003bafa802c8aa084379aa98d9fcd632ddc2ed9782b586ec87451f20"));
     CMerkleBlock merkleBlock(block, txids2);

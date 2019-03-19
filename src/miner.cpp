@@ -174,7 +174,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Create coinbase transaction.
     const staking::CoinSet &stakeable_coins = wallet->GetWalletExtension().GetStakeableCoins();
-    if(stakeable_coins.empty()) {
+    if (stakeable_coins.empty()) {
       throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
     }
 
@@ -195,7 +195,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
       const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension());
       pblocktemplate->block.vtx[0] = coinbase;
-      GenerateCoinbaseCommitment(pblocktemplate->block, chainActive.Tip(), Params().GetConsensus());
 
       LogPrintf("%s: block weight=%u txs=%u fees=%ld sigops=%d\n", __func__, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
@@ -516,5 +515,5 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    pblock->ComputeMerkleTrees();
 }

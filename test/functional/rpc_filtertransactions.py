@@ -158,31 +158,25 @@ class FilterTransactionsTest(UnitETestFramework):
     def test_sort(self):
         sortings = [
             ("time", "desc"),
-            ("address", "asc"),
             ("category", "asc"),
-            ("amount", "desc"),
             ("confirmations", "desc"),
             ("txid", "asc")
         ]
 
         for sort_by, order in sortings:
-            ro = self.nodes[0].filtertransactions({"sort": sort_by, "count": 0})
-            prev = None
-            for t in ro:
-                if "address" not in t and "address" in t["outputs"][0]:
-                    t["address"] = t["outputs"][0]["address"]
-                elif "address" not in t:
-                    # UNIT-E TODO: check if transactions without addresses make sense
-                    # https://github.com/dtr-org/unit-e/issues/779
-                    t["address"] = ""
-                if t["amount"] < 0:
-                    t["amount"] = -t["amount"]
-                if prev is not None:
-                    if order == "asc":
-                        assert_greater_than_or_equal(t[sort_by], prev[sort_by])
-                    else:
-                        assert_greater_than_or_equal(prev[sort_by], t[sort_by])
-                prev = t
+            txs = self.nodes[0].filtertransactions({"sort": sort_by, "count": 0})
+            tx_properties = [t[sort_by] for t in txs]
+            assert_equal(tx_properties, sorted(tx_properties, reverse=(order == 'desc')))
+
+        txs = self.nodes[0].filtertransactions({'sort': 'address', 'count': 0})
+        # TODO UNIT-E: filtertransactions should show outputs of coinbase transactions
+        # https://github.com/dtr-org/unit-e/issues/779
+        tx_properties = [(t['outputs'] or [{}])[0].get('address', '') for t in txs]
+        assert_equal(tx_properties, sorted(tx_properties))
+
+        txs = self.nodes[0].filtertransactions({'sort': 'amount', 'count': 0})
+        tx_properties = [abs(t['amount']) for t in txs]
+        assert_equal(tx_properties, sorted(tx_properties, reverse=True))
 
         # invalid sort
         assert_raises_rpc_error(-8, "Invalid sort", self.nodes[0].filtertransactions, {"sort": "invalid"})

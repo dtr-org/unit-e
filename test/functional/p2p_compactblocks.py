@@ -10,7 +10,7 @@ Version 1 compact blocks are non-segwit and they are not supported
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, add_witness_commitment, should_add_witness_commitment
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
@@ -120,11 +120,7 @@ class CompactBlocksTest(UnitETestFramework):
             block.vtx.extend(txs)
             block.ensure_ltor()
 
-        if should_add_witness_commitment(block):
-            add_witness_commitment(block)
-        else:
-            block.hashMerkleRoot = block.calc_merkle_root()
-            block.rehash()
+        block.compute_merkle_trees()
         block.solve()
 
         return block
@@ -452,7 +448,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         block = TransactionsChainBlock(block)
         block.ensure_ltor()
-        block.hashMerkleRoot = block.calc_merkle_root()
+        block.compute_merkle_trees()
         block.solve()
 
         return block
@@ -710,8 +706,8 @@ class CompactBlocksTest(UnitETestFramework):
         del block.vtx[3]
 
         # Include the witness commitment, but drop the coinbase witness
-        add_witness_commitment(block)
         block.vtx[0].wit.vtxinwit = []
+        block.compute_merkle_trees()
         block.solve()
 
         # Now send the compact block with all transactions prefilled, and
@@ -772,11 +768,11 @@ class CompactBlocksTest(UnitETestFramework):
             delivery_peer.send_message(msg_tx(tx))
         delivery_peer.sync_with_ping()
 
-        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit = [ CTxInWitness() ]
-        cmpct_block.prefilled_txn[0].tx.wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(0)]
+        # mutilate the merkle root to make the block invalid
+        cmpct_block.header.hashMerkleRoot += 1
 
         delivery_peer.send_and_ping(msg_cmpctblock(cmpct_block.to_p2p()))
-        assert(int(node.getbestblockhash(), 16) != block.sha256)
+        assert_not_equal(int(node.getbestblockhash(), 16), block.sha256)
 
         msg = msg_blocktxn()
         msg.block_transactions.blockhash = block.sha256
@@ -851,7 +847,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         self.log.info("Testing handling of invalid compact blocks...")
         # UNIT-E TODO: Once non-segwit blocks are considered invalid, add a test that
-        # non-segwith compact block is rejected
+        # non-segwit compact block is rejected
         self.test_invalid_tx_in_compactblock(self.nodes[0], self.test_node)
         self.test_invalid_tx_in_compactblock(self.nodes[1], self.segwit_node)
 

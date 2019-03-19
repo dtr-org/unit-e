@@ -348,7 +348,7 @@ class AcceptBlockTest(UnitETestFramework):
         block_292f = create_block(block_291f.sha256, coinbase, block_291f.nTime+1)
         # block_292f spends a coinbase below maturity!
         block_292f.vtx.append(create_transaction(block_291f.vtx[0], 0, b"42", 1))
-        block_292f.hashMerkleRoot = block_292f.calc_merkle_root()
+        block_292f.compute_merkle_trees()
         block_292f.solve()
         utxo_fork_manager.process(coinbase, 292)
         utxo_fork_manager.process(block_292f.vtx[1], 292)

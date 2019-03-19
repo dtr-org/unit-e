@@ -327,7 +327,6 @@ class BIP68Test(UnitETestFramework):
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
             block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3
-            block.rehash()
             block.solve()
             tip = block.sha256
 
@@ -395,7 +394,7 @@ class BIP68Test(UnitETestFramework):
         block.nVersion = 3
         block.vtx.extend([tx1, tx2, tx3])
         block.ensure_ltor()
-        add_witness_commitment(block)
+        block.compute_merkle_trees()
         block.solve()
 
         self.nodes[0].p2p.send_and_ping(msg_witness_block(block))

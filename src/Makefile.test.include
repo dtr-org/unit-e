@@ -122,6 +122,8 @@ UNITE_TESTS = \
   test/streams_tests.cpp \
   test/test_unite.h \
   test/test_unite.cpp \
+  test/test_unite_block_fixture.h \
+  test/test_unite_block_fixture.cpp \
   test/test_unite_main.cpp \
   test/test_unite_mocks.h \
   test/timedata_tests.cpp \
