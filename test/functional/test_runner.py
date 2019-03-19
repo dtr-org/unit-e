@@ -182,6 +182,7 @@ BASE_SCRIPTS= [
     'rpc_net.py',
     'p2p_mempool.py',
     'rpc_signmessage.py',
+    'feature_finalization_rewards.py',
     'feature_nulldummy.py',
     'wallet_import_rescan.py',
     'rpc_named_arguments.py',
