@@ -160,6 +160,7 @@ BASE_SCRIPTS= [
     'interface_unite_cli.py',
     'mempool_resurrect.py',
     'mempool_spend_coinbase.py',
+    'p2p_invalid_stake.py',
     'interface_http.py',
     'rpc_signrawtransaction.py',
     'rpc_decodescript.py',
