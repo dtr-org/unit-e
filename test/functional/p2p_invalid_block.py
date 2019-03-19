@@ -52,6 +52,8 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash, n_pieces=10))
         block = create_block(self.tip, coinbase, self.block_time)
         self.block_time += 1
+        block.ensure_ltor()
+        block.compute_merkle_trees()
         block.solve()
         # Save the coinbase for later
         self.block1 = block
@@ -103,7 +105,6 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block2.vtx.extend([tx1, tx2])
         block2.ensure_ltor()
         block2.compute_merkle_trees()
-        block2.rehash()
         block2.solve()
         orig_hash = block2.sha256
         block2_orig = copy.deepcopy(block2)

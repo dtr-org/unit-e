@@ -94,7 +94,7 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     outputs[0].nValue += int(stake['amount'] * UNIT) - piece_value * n_pieces
 
     coinbase.vout = [ rewardoutput ] + outputs
-    coinbase.calc_sha256()
+    coinbase.rehash()
     return coinbase
 
 

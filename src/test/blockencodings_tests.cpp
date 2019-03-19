@@ -295,8 +295,7 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     block.nBits = 0x207fffff;
 
     bool mutated;
-    block.hashMerkleRoot = BlockMerkleRoot(block, &mutated);
-    assert(!mutated);
+    block.ComputeMerkleTrees();
     while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus())) ++block.nNonce;
 
     // Test simple header round-trip with only coinbase

@@ -3262,6 +3262,14 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-sigops", false, "out-of-bounds SigOpCount");
     }
 
+    if (fCheckMerkleRoot) {
+        const uint256 hash_witness_merkle_root = BlockWitnessMerkleRoot(block);
+        if (block.hash_witness_merkle_root != hash_witness_merkle_root) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true,
+                             strprintf("%s: witness merkle commitment mismatch", __func__));
+        }
+    }
+
     if (fCheckPOW && fCheckMerkleRoot)
         block.fChecked = true;
 
