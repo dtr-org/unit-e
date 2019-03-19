@@ -161,6 +161,7 @@ BASE_SCRIPTS= [
     'wallet_mnemonicinfo.py',
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
+    'feature_finalization_rewards.py',
     'esperanza_admin_validation.py',
     'p2p_commits.py',
     'proposer_multiwallet.py',
