@@ -83,7 +83,8 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   // Replace mempool-selected txns with just coinbase plus passed-in txns:
   CMutableTransaction coinbase_tx = CMutableTransaction(*block.vtx[0]);
   block.vtx.clear();
-  CTxOut stake_returned = coinbase_tx.vout[0];
+  CTxOut stake_returned;
+  stake_returned.scriptPubKey = coinbase_tx.vout[0].scriptPubKey;
   stake_returned.nValue = 10000 * UNIT;
   coinbase_tx.vout.emplace_back(stake_returned);
   block.vtx.emplace_back(MakeTransactionRef(coinbase_tx));
