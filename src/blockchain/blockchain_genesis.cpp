@@ -66,7 +66,7 @@ const CBlock GenesisBlockBuilder::Build(const Parameters &parameters) const {
   assert(genesis_block.vtx[0]->vin[0].prevout.n == std::numeric_limits<decltype(genesis_block.vtx[0]->vin[0].prevout.n)>::max());
   assert(genesis_block.vtx[0]->vout.size() == m_initial_funds.size());
 
-  // the gensis block contains only one transaction, the coinbase transaction
+  // the genesis block contains only one transaction, the coinbase transaction
   // the merkle root should therefore be the hash of that transaction only.
   assert(genesis_block.hashMerkleRoot == genesis_block.vtx[0]->GetHash());
 
