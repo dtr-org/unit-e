@@ -103,7 +103,7 @@ class FinalizationRewardsTest(UnitETestFramework):
 
         connect_nodes(node, finalizer2.index)
         # 0 .. 4 .. 9 .. 14 .. 19 .. 24 .. 29 .. 34 .. 39 .. 44 .. 49 .. 54 45
-        #      F    F    F     F     F     F     J            F     J      tip
+        #      F    F    F     F     F     F     f     f     F     J        tip
         node.generatetoaddress(10, node.getnewaddress('', 'bech32'))
 
         # Check that, if the dynasty is several epochs long, we get the right
