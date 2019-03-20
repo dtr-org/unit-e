@@ -219,6 +219,7 @@ public:
     int32_t nVersion;
     uint256 hashMerkleRoot;
     uint256 hash_witness_merkle_root;
+    uint256 hash_finalizer_commits_merkle_root;
     blockchain::Time nTime;
     blockchain::Difficulty nBits;
     uint32_t nNonce;
@@ -262,6 +263,7 @@ public:
         nVersion       = 0;
         hashMerkleRoot = uint256::zero;
         hash_witness_merkle_root = uint256::zero;
+        hash_finalizer_commits_merkle_root = uint256::zero;
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
@@ -283,6 +285,7 @@ public:
         nVersion       = block.nVersion;
         hashMerkleRoot = block.hashMerkleRoot;
         hash_witness_merkle_root = block.hash_witness_merkle_root;
+        hash_finalizer_commits_merkle_root = block.hash_finalizer_commits_merkle_root;
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
@@ -314,6 +317,7 @@ public:
             block.hashPrevBlock = pprev->GetBlockHash();
         block.hashMerkleRoot = hashMerkleRoot;
         block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;

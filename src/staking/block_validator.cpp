@@ -193,8 +193,8 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     bool duplicate_transactions;
 
     // check merkle root
-    const uint256 expected_merkle_root = BlockMerkleRoot(block, &duplicate_transactions);
-    if (block.hashMerkleRoot != expected_merkle_root) {
+    const uint256 merkle_root1 = BlockMerkleRoot(block, &duplicate_transactions);
+    if (block.hashMerkleRoot != merkle_root1) {
       result.AddError(Error::MERKLE_ROOT_MISMATCH);
     }
     if (duplicate_transactions) {
@@ -202,16 +202,24 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       // Apparently an alternative construction of the merkle tree avoids this
       // issue completely _and_ results in faster merkle tree construction, see
       // BIP 98 https://github.com/bitcoin/bips/blob/master/bip-0098.mediawiki
-      result.AddError(Error::DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE);
+      result.AddError(Error::MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
     // check witness merkle root
-    const uint256 expected_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
-    if (block.hash_witness_merkle_root != expected_witness_merkle_root) {
+    const uint256 merkle_root2 = BlockWitnessMerkleRoot(block, &duplicate_transactions);
+    if (block.hash_witness_merkle_root != merkle_root2) {
       result.AddError(Error::WITNESS_MERKLE_ROOT_MISMATCH);
     }
     if (duplicate_transactions) {
-      result.AddError(Error::DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE);
+      result.AddError(Error::WITNESS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
+    }
+
+    const uint256 merkle_root3 = BlockFinalizerCommitsMerkleRoot(block, &duplicate_transactions);
+    if (block.hash_finalizer_commits_merkle_root != merkle_root3) {
+      result.AddError(Error::FINALIZER_COMMITS_MERKLE_ROOT_MISMATCH);
+    }
+    if (duplicate_transactions) {
+      result.AddError(Error::FINALIZER_COMMITS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
     // check proposer signature

@@ -469,6 +469,17 @@ class CTransaction():
     def get_type(self):
         return TxType(self.nVersion >> 16).name
 
+    def is_finalizer_commit(self):
+        name = self.get_type()
+        if (name == TxType.VOTE.name or
+            name == TxType.ADMIN.name or
+            name == TxType.DEPOSIT.name or
+            name == TxType.LOGOUT.name or
+            name == TxType.SLASH.name or
+            name == TxType.WITHDRAW.name):
+            return True
+        return False
+
     def deserialize(self, f):
         self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.vin = deser_vector(f, CTxIn)
@@ -565,6 +576,7 @@ class CBlockHeader():
             self.hashPrevBlock = header.hashPrevBlock
             self.hashMerkleRoot = header.hashMerkleRoot
             self.hash_witness_merkle_root = header.hash_witness_merkle_root
+            self.hash_finalizer_commits_merkle_root = header.hash_finalizer_commits_merkle_root
             self.nTime = header.nTime
             self.nBits = header.nBits
             self.nNonce = header.nNonce
@@ -577,6 +589,7 @@ class CBlockHeader():
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
         self.hash_witness_merkle_root = 0
+        self.hash_finalizer_commits_merkle_root = 0
         self.nTime = 0
         self.nBits = 0
         self.nNonce = 0
@@ -588,6 +601,7 @@ class CBlockHeader():
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
         self.hash_witness_merkle_root = deser_uint256(f)
+        self.hash_finalizer_commits_merkle_root = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
         self.nBits = struct.unpack("<I", f.read(4))[0]
         self.nNonce = struct.unpack("<I", f.read(4))[0]
@@ -600,6 +614,7 @@ class CBlockHeader():
         r += ser_uint256(self.hashPrevBlock)
         r += ser_uint256(self.hashMerkleRoot)
         r += ser_uint256(self.hash_witness_merkle_root)
+        r += ser_uint256(self.hash_finalizer_commits_merkle_root)
         r += struct.pack("<I", self.nTime)
         r += struct.pack("<I", self.nBits)
         r += struct.pack("<I", self.nNonce)
@@ -612,6 +627,7 @@ class CBlockHeader():
             r += ser_uint256(self.hashPrevBlock)
             r += ser_uint256(self.hashMerkleRoot)
             r += ser_uint256(self.hash_witness_merkle_root)
+            r += ser_uint256(self.hash_finalizer_commits_merkle_root)
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
@@ -624,9 +640,16 @@ class CBlockHeader():
         return self.sha256
 
     def __repr__(self):
-        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x hash_witness_merkle_root=%064x nTime=%s nBits=%08x nNonce=%08x)" \
+        return ("CBlockHeader(nVersion=%i "
+                "hashPrevBlock=%064x "
+                "hashMerkleRoot=%064x "
+                "hash_witness_merkle_root=%064x "
+                "hash_finalizer_commits_merkle_root=%064x "
+                "nTime=%s "
+                "nBits=%08x "
+                "nNonce=%08x)") \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
-               time.ctime(self.nTime), self.nBits, self.nNonce)
+               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits, self.nNonce)
 
 
 class CBlock(CBlockHeader):
@@ -653,6 +676,8 @@ class CBlock(CBlockHeader):
     # Calculate the merkle root given a vector of transaction hashes
     @classmethod
     def get_merkle_root(cls, hashes):
+        if len(hashes) == 0:
+            return 0
         while len(hashes) > 1:
             newhashes = []
             for i in range(0, len(hashes), 2):
@@ -679,9 +704,18 @@ class CBlock(CBlockHeader):
 
         return self.get_merkle_root(hashes)
 
+    def calc_finalizer_commits_merkle_root(self):
+        hashes = []
+        for tx in self.vtx:
+            if tx.is_finalizer_commit():
+                tx.calc_sha256()
+                hashes.append(ser_uint256(tx.sha256))
+        return self.get_merkle_root(hashes)
+
     def compute_merkle_trees(self):
         self.hashMerkleRoot = self.calc_merkle_root()
         self.hash_witness_merkle_root = self.calc_witness_merkle_root()
+        self.hash_finalizer_commits_merkle_root = self.calc_finalizer_commits_merkle_root()
 
     def is_valid(self):
         self.calc_sha256()
@@ -694,6 +728,8 @@ class CBlock(CBlockHeader):
         if self.calc_merkle_root() != self.hashMerkleRoot:
             return False
         if self.calc_witness_merkle_root() != self.hash_witness_merkle_root:
+            return False
+        if self.calc_finalizer_commits_merkle_root() != self.hash_finalizer_commits_merkle_root:
             return False
         return True
 
@@ -712,9 +748,17 @@ class CBlock(CBlockHeader):
         self.vtx = [self.vtx[0]] + sorted(self.vtx[1:], key=lambda _tx: _tx.hash)
 
     def __repr__(self):
-        return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x hash_witness_merkle_root=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
+        return ("CBlock(nVersion=%i "
+                "hashPrevBlock=%064x "
+                "hashMerkleRoot=%064x "
+                "hash_witness_merkle_root=%064x "
+                "hash_finalizer_commits_merkle_root=%064x "
+                "nTime=%s "
+                "nBits=%08x "
+                "nNonce=%08x "
+                "vtx=%s)") \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
-               time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
+               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
 
 
 class PrefilledTransaction():
