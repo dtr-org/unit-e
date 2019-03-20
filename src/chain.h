@@ -233,7 +233,7 @@ public:
     uint256 stake_modifier;
 
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
-    boost::optional<std::vector<CTransactionRef>> commits;
+    mutable boost::optional<std::vector<CTransactionRef>> commits;
 
     //! last justified epoch counting from this block index
     boost::optional<uint32_t> last_justified_epoch;
@@ -268,7 +268,7 @@ public:
         last_justified_epoch = boost::none;
         forking_before_active_finalization = false;
 
-        ResetCommits();
+        commits.reset();
     }
 
     CBlockIndex()
@@ -388,14 +388,6 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
-
-    void ResetCommits() {
-        commits.reset();
-    }
-
-    void ResetCommits(const std::vector<CTransactionRef> &_commits) {
-        commits = _commits;
-    }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);

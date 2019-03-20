@@ -84,6 +84,7 @@ struct Fixture {
     const CBlockIndex *GetGenesis() const override { return nullptr; }
     bool Contains(const CBlockIndex &) const override { return false; }
     const CBlockIndex *FindForkOrigin(const CBlockIndex &) const override { return nullptr; }
+    const CBlockIndex *GetNext(const CBlockIndex &) const override { return nullptr; }
     const CBlockIndex *AtDepth(blockchain::Depth depth) const override { return nullptr; }
     const CBlockIndex *AtHeight(blockchain::Height height) const override { return nullptr; }
     blockchain::Depth GetDepth(const blockchain::Height) const override { return 0; }

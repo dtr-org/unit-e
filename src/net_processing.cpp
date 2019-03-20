@@ -12,6 +12,7 @@
 #include <consensus/validation.h>
 #include <hash.h>
 #include <init.h>
+#include <injector.h>
 #include <validation.h>
 #include <merkleblock.h>
 #include <netmessagemaker.h>
@@ -31,7 +32,6 @@
 #include <utilstrencodings.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
-#include <finalization/p2p.h>
 
 #include <memory>
 
@@ -381,6 +381,8 @@ void ProcessBlockAvailability(NodeId nodeid) {
     }
 }
 
+} // namespace
+
 /** Update tracking information about which blocks a peer is assumed to have. */
 void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash) {
     CNodeState *state = State(nodeid);
@@ -398,6 +400,8 @@ void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash) {
         state->hashLastUnknownBlock = hash;
     }
 }
+
+namespace {
 
 void MaybeSetPeerAsAnnouncingHeaderAndIDs(NodeId nodeid, CConnman* connman) {
     AssertLockHeld(cs_main);
@@ -463,11 +467,16 @@ void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vector<con
     if (count == 0)
         return;
 
+    vBlocks.reserve(vBlocks.size() + count);
+
+    if (GetComponent<p2p::FinalizerCommitsHandler>()->FindNextBlocksToDownload(nodeid, count, vBlocks)) {
+        return;
+    }
+
     if (snapshot::FindNextBlocksToDownload(nodeid, vBlocks)) {
         return;
     }
 
-    vBlocks.reserve(vBlocks.size() + count);
     CNodeState *state = State(nodeid);
     assert(state != nullptr);
 
@@ -608,6 +617,8 @@ void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTim
         assert(g_outbound_peers_with_protect_from_disconnect == 0);
     }
     LogPrint(BCLog::NET, "Cleared nodestate for peer=%d\n", nodeid);
+
+    GetComponent<p2p::FinalizerCommitsHandler>()->OnDisconnect(nodeid);
 }
 
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats) {
@@ -2830,22 +2841,28 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     }
 
     else if (strCommand == NetMsgType::GETCOMMITS) {
-        finalization::p2p::CommitsLocator locator;
+        p2p::FinalizerCommitsLocator locator;
         vRecv >> locator;
+
         LogPrint(BCLog::NET, "received: %s\n", locator.ToString());
-        return finalization::p2p::ProcessGetCommits(pfrom, locator, msgMaker, chainparams);
+
+        GetComponent<p2p::FinalizerCommitsHandler>()->OnGetCommits(*pfrom, locator, chainparams.GetConsensus());
     }
 
     else if (strCommand == NetMsgType::COMMITS) {
-        finalization::p2p::CommitsResponse commits;
+        p2p::FinalizerCommitsResponse commits;
         vRecv >> commits;
-        LogPrint(BCLog::NET, "received: %d headers+commits, satus=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
+
+        LogPrint(BCLog::NET, "received: %d headers+commits, status=%d\n", commits.data.size(), static_cast<uint8_t>(commits.status));
+
         CValidationState validation_state;
         uint256 failed_block;
-        bool ok = finalization::p2p::ProcessNewCommits(commits, chainparams, validation_state, &failed_block);
+
+        const bool ok = GetComponent<p2p::FinalizerCommitsHandler>()->OnCommits(*pfrom, commits, chainparams, validation_state, &failed_block);
         if (ok) {
             return true;
         }
+
         int dos;
         if (validation_state.IsInvalid(dos)) {
             Misbehaving(pfrom->GetId(), dos);
@@ -3255,8 +3272,11 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
             pindexBestHeader = chainActive.Tip();
         bool fFetch = state.fPreferredDownload || (nPreferredDownload == 0 && !pto->fClient && !pto->fOneShot); // Download if this is a nice peer, or we have no nice peers and this one might do.
         if (!state.fSyncStarted && !pto->fClient && !fImporting && !fReindex) {
+            const auto *fin_state = GetComponent<finalization::StateRepository>()->GetTipState();
+            assert(fin_state != nullptr);
             // Only actively request headers from a single peer, unless we're close to today.
-            if ((nSyncStarted == 0 && fFetch) || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - 24 * 60 * 60) {
+            if (((nSyncStarted == 0 && fFetch) || pindexBestHeader->GetBlockTime() > GetAdjustedTime() - 24 * 60 * 60) &&
+                (fin_state->GetEpoch(pto->nStartingHeight) >= fin_state->GetLastFinalizedEpoch())) {
                 state.fSyncStarted = true;
                 state.nHeadersSyncTimeout = GetTimeMicros() + HEADERS_DOWNLOAD_TIMEOUT_BASE + HEADERS_DOWNLOAD_TIMEOUT_PER_HEADER * (GetAdjustedTime() - pindexBestHeader->GetBlockTime())/(consensusParams.nPowTargetSpacing);
                 nSyncStarted++;
@@ -3270,8 +3290,13 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                    got back an empty response.  */
                 if (pindexStart->pprev)
                     pindexStart = pindexStart->pprev;
-                LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
-                connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexStart), uint256()));
+                if (snapshot::IsISDEnabled()) {
+                    LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
+                    connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexStart), uint256()));
+                } else {
+                    LogPrint(BCLog::NET, "initial getcommits (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
+                    connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETCOMMITS, GetComponent<p2p::FinalizerCommitsHandler>()->GetFinalizerCommitsLocator(*pindexStart, nullptr)));
+                }
             }
         }
 

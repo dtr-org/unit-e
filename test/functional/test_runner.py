@@ -105,6 +105,7 @@ BASE_SCRIPTS= [
     'wallet_importmulti.py',
     'wallet_accounts.py',
     'wallet_listreceivedby.py',
+    'feature_commits_forkchoice.py',
     'feature_ltor.py',
     'wallet_keypool_topup.py',
     'p2p_commits.py',

@@ -9,6 +9,7 @@
 #include <net.h>
 #include <validationinterface.h>
 #include <consensus/params.h>
+#include <netmessagemaker.h>
 
 /** Default for -maxorphantx, maximum number of orphan transactions kept in memory */
 static const unsigned int DEFAULT_MAX_ORPHAN_TRANSACTIONS = 100;
@@ -82,5 +83,13 @@ struct CNodeStateStats {
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
 /** Increase a node's misbehavior score. */
 void Misbehaving(NodeId nodeid, int howmuch);
+
+void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash);
+
+template <typename... Args>
+void PushMessage(CNode &to, const std::string &command, Args&&... args) {
+  const CNetMsgMaker msg_maker(to.GetSendVersion());
+  g_connman->PushMessage(&to, msg_maker.Make(command, std::forward<Args>(args)...));
+}
 
 #endif // UNITE_NET_PROCESSING_H
