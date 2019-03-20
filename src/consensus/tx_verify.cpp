@@ -225,6 +225,13 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
 
 bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, const int nSpendHeight, CAmount& txfee, CAmount *inputs_amount)
 {
+    if (nSpendHeight == 0) {
+        // the genesis block does not have any inputs and does not spend anything.
+        // it does create the initial stake in thes system though and would fail
+        // validation with bad-cb-spends-too-much.
+        return true;
+    }
+
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-missingorspent", false,
