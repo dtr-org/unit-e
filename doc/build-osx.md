@@ -38,17 +38,17 @@ from the root of the repository.
 
 **Note**: You only need Berkeley DB if the wallet is enabled (see the section *Disable-Wallet mode* below).
 
-Build Bitcoin Core
+Build unit-e
 ------------------------
 
-1. Clone the Bitcoin Core source code and cd into `bitcoin`
+1. Clone the unit-e source code and cd into `bitcoin`
 
         git clone https://github.com/bitcoin/bitcoin
         cd bitcoin
 
-2.  Build Bitcoin Core:
+2.  Build unit-e:
 
-    Configure and build the headless Bitcoin Core binaries as well as the GUI (if Qt is found).
+    Configure and build the headless unit-e binaries as well as the GUI (if Qt is found).
 
     You can disable the GUI build by passing `--without-gui` to configure.
 
@@ -67,7 +67,7 @@ Build Bitcoin Core
 Running
 -------
 
-Bitcoin Core is now available at `./src/bitcoind`
+unit-e is now available at `./src/bitcoind`
 
 Before running, it's recommended that you create an RPC configuration file.
 
