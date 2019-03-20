@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_KEYSTORE_H
-#define BITCOIN_KEYSTORE_H
+#ifndef UNITE_KEYSTORE_H
+#define UNITE_KEYSTORE_H
 
 #include <key.h>
 #include <pubkey.h>
@@ -26,7 +26,7 @@ public:
     virtual bool HaveKey(const CKeyID &address) const =0;
     virtual std::set<CKeyID> GetKeys() const =0;
 
-    //! Support for BIP 0013 : see https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki
+    //! Support for BIP 0013 : see https://github.com/unite/bips/blob/master/bip-0013.mediawiki
     virtual bool AddCScript(const CScript& redeemScript) =0;
     virtual bool HaveCScript(const CScriptID &hash) const =0;
     virtual std::set<CScriptID> GetCScripts() const =0;
@@ -80,4 +80,4 @@ CKeyID GetKeyForDestination(const CKeyStore& store, const CTxDestination& dest);
 /** Checks if a CKey is in the given CKeyStore compressed or otherwise*/
 bool HaveKey(const CKeyStore& store, const CKey& key);
 
-#endif // BITCOIN_KEYSTORE_H
+#endif // UNITE_KEYSTORE_H

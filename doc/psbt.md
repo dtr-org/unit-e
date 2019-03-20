@@ -1,8 +1,8 @@
 # PSBT Howto for unit-e
 
-Since unit-e 0.17, an RPC interface exists for Partially Signed Bitcoin
+Since unit-e 0.17, an RPC interface exists for Partially Signed Unit-e
 Transactions (PSBTs, as specified in
-[BIP 174](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki)).
+[BIP 174](https://github.com/unite/bips/blob/master/bip-0174.mediawiki)).
 
 This document describes the overall workflow for producing signed transactions
 through the use of PSBT, and the specific RPC commands used in typical
@@ -10,7 +10,7 @@ scenarios.
 
 ## PSBT in general
 
-PSBT is an interchange format for Bitcoin transactions that are not fully signed
+PSBT is an interchange format for Unit-e transactions that are not fully signed
 yet, together with relevant metadata to help entities work towards signing it.
 It is intended to simplify workflows where multiple parties need to cooperate to
 produce a transaction. Examples include hardware wallets, multisig setups, and
@@ -18,7 +18,7 @@ produce a transaction. Examples include hardware wallets, multisig setups, and
 
 ### Overall workflow
 
-Overall, the construction of a fully signed Bitcoin transaction goes through the
+Overall, the construction of a fully signed Unit-e transaction goes through the
 following steps:
 
 - A **Creator** proposes a particular transaction to be created. They construct
@@ -32,7 +32,7 @@ following steps:
   partial signature for the inputs for which they have relevant key(s).
 - A **Finalizer** is run for each input to convert the partial signatures and
   possibly script information into a final `scriptSig` and/or `scriptWitness`.
-- An **Extractor** produces a valid Bitcoin transaction (in network format)
+- An **Extractor** produces a valid Unit-e transaction (in network format)
   from a PSBT for which all inputs are finalized.
 
 Generally, each of the above (excluding Creator and Extractor) will simply
@@ -85,7 +85,7 @@ Alice, Bob, and Carol want to create a 2-of-3 multisig address. They're all usin
 unit-e. We assume their wallets only contain the multisig funds. In case
 they also have a personal wallet, this can be accomplished through the
 multiwallet feature - possibly resulting in a need to add `-rpcwallet=name` to
-the command line in case `bitcoin-cli` is used.
+the command line in case `unite-cli` is used.
 
 Setup:
 - All three call `getnewaddress` to create a new address; call these addresses
