@@ -41,8 +41,8 @@ struct HeaderAndFinalizerCommits {
   //! \brief The finalizer commits.
   std::vector<CTransactionRef> commits;
 
-  HeaderAndFinalizerCommits() = default;
-  HeaderAndFinalizerCommits(const CBlockHeader &header) : header(header) {}
+  explicit HeaderAndFinalizerCommits() = default;
+  explicit HeaderAndFinalizerCommits(const CBlockHeader &header) : header(header) {}
 
   ADD_SERIALIZE_METHODS
   template <typename Stream, typename Operation>

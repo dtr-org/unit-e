@@ -52,11 +52,12 @@ public:
   const esperanza::AdminParams &GetAdminParams() const override { return m_admin_params; }
   void Reset(const esperanza::FinalizationParams &, const esperanza::AdminParams &) override { }
 
-  FinalizationStateSpy state;
-
 private:
   esperanza::FinalizationParams m_params;
   esperanza::AdminParams m_admin_params;
+
+public:
+    FinalizationStateSpy state;
 };
 
 class Fixture {
@@ -173,25 +174,8 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
     BOOST_CHECK_EQUAL(locator.stop, uint256());
   }
 
-  // Check that locator doesn't include index that isn't present on the active chain
-  // and has no common block with it.
-  {
-    uint256 hash;
-    CBlockIndex index;
-    index.phashBlock = &hash;
-    index.nHeight = 1;
-    const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(index, nullptr);
-    const std::vector<uint256> expected_start = {
-      chain.AtHeight(0)->GetBlockHash(),
-      chain.AtHeight(3)->GetBlockHash(),
-    };
-    BOOST_CHECK_EQUAL(locator.start, expected_start);
-    BOOST_CHECK_EQUAL(locator.stop, uint256());
-  }
-
   // Check that locator includes index that isn't present on the active chain
-  // and has common block with it.
+  // but has common block with it.
   {
     uint256 hash = uint256S("42");
     CBlockIndex index;
@@ -333,6 +317,10 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   }
 
   // Build a fork after finalization
+  //           F
+  // 0 .. 4 .. 9 .. 11 12 ..    -- main chain
+  //                  \
+  //                   12 .. 17 -- fork
   std::map<blockchain::Height, uint256> fork_hashes;
   std::map<blockchain::Height, CBlockIndex> fork;
 
@@ -359,6 +347,11 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   }
 
   // Move finalization to checkpoint 14
+  // Build a fork after finalization
+  //                          F
+  // 0 .. 4 .. 9 .. 11 12 .. 14 ..    -- main chain
+  //                  \
+  //                   12 .. 14 .. 17 -- fork
   state.SetLastFinalizedEpoch(2);
   BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 2);
 

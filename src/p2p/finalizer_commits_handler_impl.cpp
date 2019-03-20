@@ -4,11 +4,13 @@
 
 #include <p2p/finalizer_commits_handler_impl.h>
 
+#include <chainparams.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
+#include <finalization/vote_recorder.h>
 #include <net_processing.h>
 #include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
@@ -59,6 +61,7 @@ const CBlockIndex &FinalizerCommitsHandlerImpl::FindLastFinalizedCheckpoint(
 
   const uint32_t epoch = fin_state.GetLastFinalizedEpoch();
 
+  // Workaround 0th epoch finalization. #570
   if (epoch == 0) {
     return *m_active_chain->GetGenesis();
   }
@@ -66,8 +69,13 @@ const CBlockIndex &FinalizerCommitsHandlerImpl::FindLastFinalizedCheckpoint(
   return GetCheckpointIndex(epoch, fin_state);
 }
 
+//! With no finalization we can reach limit of the network message just by constructing locator.
+//! - 256 because of locator.start.
+//! - 1024 for message header overhead, vector encoding overhead, and just in case.
+constexpr size_t LOCATOR_START_LIMIT = MAX_PROTOCOL_MESSAGE_LENGTH / 256 - 256 - 1024;
+
 FinalizerCommitsLocator FinalizerCommitsHandlerImpl::GetFinalizerCommitsLocator(
-    const CBlockIndex &_start, const CBlockIndex *const stop) const {
+    const CBlockIndex &start, const CBlockIndex *const stop) const {
 
   LOCK(m_active_chain->GetLock());
 
@@ -80,33 +88,32 @@ FinalizerCommitsLocator FinalizerCommitsHandlerImpl::GetFinalizerCommitsLocator(
   const finalization::FinalizationState *const fin_state = m_repo->GetTipState();
   assert(fin_state != nullptr);
 
-  const CBlockIndex *const fork_origin = m_active_chain->FindForkOrigin(_start);
+  const CBlockIndex *const fork_origin = m_active_chain->FindForkOrigin(start);
   const CBlockIndex &last_finalized_index = FindLastFinalizedCheckpoint(*fin_state);
-  const uint32_t last_finalized_epoch = fin_state->GetLastFinalizedEpoch();
 
-  const CBlockIndex *start = &_start;
-  if (fork_origin == nullptr || fork_origin->nHeight < last_finalized_index.nHeight) {
-    start = m_active_chain->GetTip();
+  assert(fork_origin != nullptr);
+
+  const CBlockIndex *start_ptr = &start;
+  if (fork_origin->nHeight < last_finalized_index.nHeight) {
+    start_ptr = m_active_chain->GetTip();
   }
 
-  assert(start != nullptr);
+  assert(start_ptr != nullptr);
 
-  const uint32_t start_epoch = fin_state->GetEpoch(*start);
+  const uint32_t start_epoch = fin_state->GetEpoch(*start_ptr);
 
   const blockchain::Height last_checkpoint_height =
       (start_epoch > 0
            ? fin_state->GetEpochCheckpointHeight(start_epoch - 1)
            : 0);
 
-  if (start->nHeight > last_checkpoint_height && start != &last_finalized_index) {
-    locator.start.push_back(start->GetBlockHash());
+  if (start_ptr->nHeight > last_checkpoint_height && start_ptr != &last_finalized_index) {
+    locator.start.push_back(start_ptr->GetBlockHash());
   }
 
-  assert(last_checkpoint_height == 0 || fin_state->IsCheckpoint(last_checkpoint_height));
-
-  const CBlockIndex *walk = start;
+  const CBlockIndex *walk = start_ptr;
   for (blockchain::Height height = last_checkpoint_height;
-       height > last_finalized_index.nHeight;
+       height > last_finalized_index.nHeight && locator.start.size() < LOCATOR_START_LIMIT;
        height -= std::min(height, fin_state->GetEpochLength())) {
 
     walk = walk->GetAncestor(height);
@@ -142,7 +149,7 @@ const CBlockIndex *FinalizerCommitsHandlerImpl::FindMostRecentStart(
     if (best_index == nullptr) {
       if (index != m_active_chain->GetGenesis()) {
         if (!fin_state->IsFinalizedCheckpoint(index->nHeight)) {
-          LogPrint(BCLog::NET, "First header in getcommits (block_hash=%s, height=%d) must be finalized checkpoint. Apprently, peer has better chain.\n",
+          LogPrint(BCLog::NET, "First header in getcommits (block_hash=%s height=%d) must be finalized checkpoint. Apparently, peer has better chain.\n",
                    index->GetBlockHash().GetHex(), index->nHeight);
           return nullptr;
         }
@@ -179,8 +186,8 @@ boost::optional<HeaderAndFinalizerCommits> FinalizerCommitsHandlerImpl::FindHead
     const CBlockIndex &index, const Consensus::Params &params) const {
 
   HeaderAndFinalizerCommits hc(index.GetBlockHeader());
-  if (index.HasCommits()) {
-    hc.commits = index.commits.get();
+  if (index.commits) {
+    hc.commits = *index.commits;
     return hc;
   }
 
@@ -244,10 +251,15 @@ void FinalizerCommitsHandlerImpl::OnGetCommits(
     const size_t response_size = GetSerializeSize(response_copy, SER_NETWORK, PROTOCOL_VERSION);
     if (response_size >= MAX_PROTOCOL_MESSAGE_LENGTH) {
       response.status = FinalizerCommitsResponse::Status::LengthExceeded;
-      break;
+      LogPrint(BCLog::NET, "Send %d headers+commits, status = %d\n",
+               response.data.size(), static_cast<uint8_t>(response.status));
+      PushMessage(node, NetMsgType::COMMITS, std::move(response));
+      // Stakoverflow driven development is here!
+      // https://stackoverflow.com/questions/7027523
+      response = FinalizerCommitsResponse();
+    } else {
+      response = std::move(response_copy);
     }
-
-    response = std::move(response_copy);
 
   } while (walk != stop && !fin_state->IsFinalizedCheckpoint(walk->nHeight));
 
@@ -258,7 +270,7 @@ void FinalizerCommitsHandlerImpl::OnGetCommits(
   LogPrint(BCLog::NET, "Send %d headers+commits, status = %d\n",
            response.data.size(), static_cast<uint8_t>(response.status));
 
-  PushMessage(node, NetMsgType::COMMITS, response);
+  PushMessage(node, NetMsgType::COMMITS, std::move(response));
 }
 
 bool FinalizerCommitsHandlerImpl::IsSameFork(
@@ -284,19 +296,24 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
     CValidationState &err_state,
     uint256 *failed_block_out) {
 
-  const auto err = [&](int code, const std::string &str, const uint256 &block) {
+  const auto err = [&](int dos, const std::string &str, const uint256 &block) {
     if (failed_block_out != nullptr) {
       *failed_block_out = block;
     }
-    return err_state.DoS(code, false, REJECT_INVALID, str);
+    return err_state.DoS(dos, false, REJECT_INVALID, str);
   };
 
-  for (const auto &d : msg.data) {
+  if (msg.data.empty()) {
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-commits-empty");
+  }
+
+  for (const HeaderAndFinalizerCommits &d : msg.data) {
     // UNIT-E TODO: Check commits merkle root after it is added
     for (const auto &c : d.commits) {
       if (!c->IsFinalizationTransaction()) {
         return err(100, "bad-non-commit", d.header.GetHash());
       }
+      // Make simplest checks which doesn't depend on the context.
       if (!(CheckTransaction(*c, err_state) && esperanza::CheckFinalizationTx(*c, err_state))) {
         return false;
       }
@@ -309,7 +326,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
   {
     LOCK(m_active_chain->GetLock());
 
-    for (const auto &d : msg.data) {
+    for (const HeaderAndFinalizerCommits &d : msg.data) {
 
       CBlockIndex *new_index = nullptr;
       if (!AcceptBlockHeader(d.header, err_state, chainparams, &new_index)) {
@@ -318,16 +335,39 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
       assert(new_index != nullptr);
 
-      if (!new_index->IsValid(BLOCK_VALID_TREE)) {
-        return err(100, "bad-block-index", d.header.GetHash());
-      }
-
       if (last_index != nullptr && new_index->pprev != last_index) {
         return err(100, "bad-block-ordering", d.header.GetHash());
       }
 
-      if (new_index->HasCommits()) {
-        if (!FinalizerCommitsEqual(new_index->GetCommits(), d.commits)) {
+      // UNIT-E TODO: Store finalizer transactions somewhere.
+      // We cannot perform ContextualCheck now as it relies on GetTransaction which effectively
+      // loads prev transaction from the disk. During commits exchange we do not have such data
+      // on the disk.
+      // So, now just record the votes. ContextualCheck would be performed later after block
+      // arrives.
+
+      for (const auto &c : d.commits) {
+        if (c->IsVote()) {
+          if (!finalization::RecordVote(*c, err_state)) {
+            return false;
+          }
+        }
+      }
+
+      // // Make contextual check of the commits.
+      // if (new_index->pprev != nullptr) {
+      //   if (auto *fin_state = m_repo->Find(*new_index->pprev)) {
+      //     for (const auto &c : d.commits) {
+      //       if (!esperanza::ContextualCheckFinalizationTx(
+      //             *c, err_state, chainparams.GetConsensus(), *fin_state)) {
+      //         return false;
+      //       }
+      //     }
+      //   }
+      // }
+
+      if (new_index->commits) {
+        if (!FinalizerCommitsEqual(*new_index->commits, d.commits)) {
           // This should be almost impossible with commits merkle root validation, check it just in case
           assert(not("not implemented"));
         }
@@ -345,25 +385,28 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
     }
   }
 
-  if (last_index != nullptr) {
-    UpdateBlockAvailability(node.GetId(), last_index->GetBlockHash());
-  }
+  // At this point we must either:
+  // * process commits and find last_index;
+  // * return if one of the commits is broken;
+  // * return if we receive empty commits set.
+  assert(last_index != nullptr);
+
+  UpdateBlockAvailability(node.GetId(), last_index->GetBlockHash());
 
   blockchain::Height download_until = 0;
 
-  if (last_index != nullptr) {
-    const finalization::FinalizationState *tip_state = m_repo->GetTipState();
-    const finalization::FinalizationState *index_state = m_repo->Find(*last_index);
-    assert(tip_state != nullptr);
-    assert(index_state != nullptr);
+  const finalization::FinalizationState *tip_state = m_repo->GetTipState();
+  const finalization::FinalizationState *index_state = m_repo->Find(*last_index);
+  assert(tip_state != nullptr);
+  assert(index_state != nullptr);
 
-    const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
-    const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
+  const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
+  const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
 
-    if (index_epoch > tip_epoch) {
-      download_until = index_state->GetEpochCheckpointHeight(index_epoch);
-      LogPrint(BCLog::NET, "Commits sync reached finalization, mark blocks <= %d to download\n", download_until);
-    }
+  if (index_epoch > tip_epoch) {
+    download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
+    LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
+             index_epoch, download_until);
   }
 
   switch (msg.status) {
@@ -373,11 +416,9 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       break;
 
     case FinalizerCommitsResponse::Status::TipReached:
-      if (last_index != nullptr) {
-        LogPrint(BCLog::NET, "Commits sync finished after processing header=%s, height=%d\n",
-                 last_index->GetBlockHash().GetHex(), last_index->nHeight);
-        download_until = last_index->nHeight;
-      }
+      LogPrint(BCLog::NET, "Commits sync finished after processing header=%s, height=%d\n",
+               last_index->GetBlockHash().GetHex(), last_index->nHeight);
+      download_until = last_index->nHeight;
       break;
 
     case FinalizerCommitsResponse::Status::LengthExceeded:
@@ -385,14 +426,14 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       break;
   }
 
+  LOCK(cs);
+
   auto &wait_list = m_wait_list[node.GetId()];
   wait_list.insert(to_append.begin(), to_append.end());
 
   if (download_until > 0) {
 
-    assert(last_index != nullptr);
-
-    auto &to_download = m_to_download[node.GetId()];
+    auto &to_download = m_blocks_to_download[node.GetId()];
     const CBlockIndex *prev = nullptr;
 
     for (auto it = wait_list.begin(); it != wait_list.end();) {
@@ -419,23 +460,26 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 }
 
 void FinalizerCommitsHandlerImpl::OnDisconnect(const NodeId nodeid) {
+  LOCK(cs);
   m_wait_list.erase(nodeid);
-  m_to_download.erase(nodeid);
+  m_blocks_to_download.erase(nodeid);
 }
 
 bool FinalizerCommitsHandlerImpl::FindNextBlocksToDownload(
     const NodeId nodeid, const size_t count, std::vector<const CBlockIndex *> &blocks_out) {
 
+  LOCK(cs);
+
   if (count == 0) {
     return false;
   }
 
-  auto const it = m_to_download.find(nodeid);
-  if (it == m_to_download.end()) {
+  auto const it = m_blocks_to_download.find(nodeid);
+  if (it == m_blocks_to_download.end()) {
     return false;
   }
 
-  auto &to_download = it->second;
+  std::list<const CBlockIndex *> &to_download = it->second;
   if (to_download.empty()) {
     return false;
   }

@@ -230,11 +230,6 @@ class FinalizationState : public FinalizationStateData {
 };
 
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
-inline uint32_t GetEpoch(blockchain::Height blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
-inline blockchain::Height GetEpochStartHeight(uint32_t epoch) { return FinalizationState::GetState()->GetEpochStartHeight(epoch); }
-inline uint32_t GetLastFinalizedEpoch() { return FinalizationState::GetState()->GetLastFinalizedEpoch(); }
-inline uint32_t GetCurrentEpoch() { return FinalizationState::GetState()->GetCurrentEpoch(); }
-inline bool IsCheckpoint(blockchain::Height block_height) { return FinalizationState::GetState()->IsCheckpoint(block_height); };
 
 }  // namespace esperanza
 

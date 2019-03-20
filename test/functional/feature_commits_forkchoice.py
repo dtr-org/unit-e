@@ -15,25 +15,14 @@ from test_framework.util import (
     json,
     assert_equal,
     check_finalization,
-    connect_nodes_bi,
+    connect_nodes,
     disconnect_nodes,
     sync_blocks,
     sync_chain,
-    wait_until,
 )
 
 def generate_block(node):
-    i = 0
-    # It is rare but possible that a block was valid at the moment of creation but
-    # invalid at submission. This is to account for those cases.
-    while i < 5:
-        try:
-            node.generate(1)
-            return
-        except JSONRPCException as exp:
-            i += 1
-            print("error generating block:", exp.error)
-    raise AssertionError("Node" + str(node.index) + " cannot generate block")
+    node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
 
 def setup_deposit(self, proposer, validators):
 
@@ -51,50 +40,18 @@ def setup_deposit(self, proposer, validators):
     for n in range(0, 39):
         generate_block(proposer)
 
-    assert_equal(proposer.getblockchaininfo()['blocks'], 40)
-
-def test_setup(test, proposers, validators):
-
-    test.num_nodes = validators + proposers
-    test.extra_args = []
-
-    params_data = {
-        'epochLength': 10,
-        'minDepositSize': 1500,
-    }
-
-    json_params = json.dumps(params_data)
-
-    proposer_node_params = [
-        '-proposing=0',
-        '-debug=all',
-        '-whitelist=127.0.0.1',
-        '-connect=0',
-        '-listen=1',
-        '-esperanzaconfig=' + json_params
-    ]
-
-    validator_node_params = [
-        '-validating=1',
-        '-proposing=0',
-        '-whitelist=127.0.0.1',
-        '-debug=all',
-        '-connect=0',
-        '-listen=1',
-        '-esperanzaconfig=' + json_params
-    ]
-
-    for _ in range(proposers):
-        test.extra_args.append(proposer_node_params)
-
-    for _ in range(validators):
-        test.extra_args.append(validator_node_params)
-
-    test.setup_clean_chain = True
+    assert_equal(proposer.getblockcount(), 40)
 
 class FinalizationForkChoice(UnitETestFramework):
     def set_test_params(self):
-        test_setup(self, 3, 1)
+        self.num_nodes = 4
+        self.extra_args = [
+            ['-esperanzaconfig={"epochLength": 10, "minDepositSize": 1500}'],
+            ['-esperanzaconfig={"epochLength": 10, "minDepositSize": 1500}'],
+            ['-esperanzaconfig={"epochLength": 10, "minDepositSize": 1500}'],
+            ['-esperanzaconfig={"epochLength": 10, "minDepositSize": 1500}', '-validating=1'],
+        ]
+        self.setup_clean_chain = True
 
     def setup_network(self):
         self.setup_nodes()
@@ -104,10 +61,10 @@ class FinalizationForkChoice(UnitETestFramework):
         # p0: v0, p1
         # p1: v0, p0
         # p2: v0
-        connect_nodes_bi(self.nodes, p0.index, p1.index)
-        connect_nodes_bi(self.nodes, p0.index, v0.index)
-        connect_nodes_bi(self.nodes, p1.index, v0.index)
-        connect_nodes_bi(self.nodes, p2.index, v0.index)
+        connect_nodes(p0, p1.index)
+        connect_nodes(p0, v0.index)
+        connect_nodes(p1, v0.index)
+        connect_nodes(p2, v0.index)
 
     def run_test(self):
         p0, p1, p2, v0 = self.nodes
@@ -126,7 +83,7 @@ class FinalizationForkChoice(UnitETestFramework):
         for _ in range(18):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 58)
+        assert_equal(p0.getblockcount(), 58)
         sync_blocks([p0, p1, p2, v0])
 
         check_finalization(p0, {'currentEpoch': 5,
@@ -149,20 +106,27 @@ class FinalizationForkChoice(UnitETestFramework):
         disconnect_nodes(p2, v0.index)
 
         # generate long chain in p0 but don't justify it
+        #  F     J
+        # 39 .. 49 .. 98    -- p0
         for _ in range(40):
             generate_block(p0)
 
-        assert_equal(p0.getblockchaininfo()['blocks'], 98)
+        assert_equal(p0.getblockcount(), 98)
         check_finalization(p0, {'currentEpoch': 9,
                                 'lastJustifiedEpoch': 4,
                                 'lastFinalizedEpoch': 3})
 
         # generate short chain in p1 and justify it
+        #  F     J
+        # 39 .. 49 .. 58 .. .. .. .. .. .. 98    -- p0
+        #               \
+        #                59 .. 69 .. 78          -- p1
+        #                 F     J
         for _ in range(20):
             generate_block(p1)
         sync_blocks([p1, v0])
 
-        assert_equal(p1.getblockchaininfo()['blocks'], 78)
+        assert_equal(p1.getblockcount(), 78)
         check_finalization(p1, {'currentEpoch': 7,
                                 'lastJustifiedEpoch': 6,
                                 'lastFinalizedEpoch': 5})
@@ -174,12 +138,12 @@ class FinalizationForkChoice(UnitETestFramework):
         # p1: v0, p2
         # p2: p0, p1
         self.log.info("Test fresh node sync")
-        connect_nodes_bi(self.nodes, p2.index, p0.index)
-        connect_nodes_bi(self.nodes, p2.index, p1.index)
+        connect_nodes(p2, p0.index)
+        connect_nodes(p2, p1.index)
 
         sync_chain([p1, p2])
-        assert_equal(p1.getblockchaininfo()['blocks'], 78)
-        assert_equal(p2.getblockchaininfo()['blocks'], 78)
+        assert_equal(p1.getblockcount(), 78)
+        assert_equal(p2.getblockcount(), 78)
 
         check_finalization(p1, {'currentEpoch': 7,
                                 'lastJustifiedEpoch': 6,
@@ -194,28 +158,28 @@ class FinalizationForkChoice(UnitETestFramework):
         # p1: v0, p0, p2
         # p2: p0, p1
         self.log.info("Test longest node reverts to justified")
-        connect_nodes_bi(self.nodes, p0.index, p1.index)
+        connect_nodes(p0, p1.index)
         sync_chain([p0, p1])
 
         # check if p0 accepted shortest in terms of blocks but longest justified chain
-        assert_equal(p0.getblockchaininfo()['blocks'], 78)
-        assert_equal(p1.getblockchaininfo()['blocks'], 78)
-        assert_equal(v0.getblockchaininfo()['blocks'], 78)
+        assert_equal(p0.getblockcount(), 78)
+        assert_equal(p1.getblockcount(), 78)
+        assert_equal(v0.getblockcount(), 78)
 
-        # generfeaate more blocks to make sure they're processed
+        # generate more blocks to make sure they're processed
         self.log.info("Test all nodes continue to work as usual")
         for _ in range(30):
             generate_block(p0)
         sync_chain([p0, p1, p2, v0])
-        assert_equal(p0.getblockchaininfo()['blocks'], 108)
+        assert_equal(p0.getblockcount(), 108)
         for _ in range(30):
             generate_block(p1)
         sync_chain([p0, p1, p2, v0])
-        assert_equal(p1.getblockchaininfo()['blocks'], 138)
+        assert_equal(p1.getblockcount(), 138)
         for _ in range(30):
             generate_block(p2)
         sync_chain([p0, p1, p2, v0])
-        assert_equal(p2.getblockchaininfo()['blocks'], 168)
+        assert_equal(p2.getblockcount(), 168)
 
         # disconnect all nodes
         # v0:
@@ -233,19 +197,19 @@ class FinalizationForkChoice(UnitETestFramework):
             generate_block(p1)
         for _ in range(30):
             generate_block(p2)
-        assert_equal(p0.getblockchaininfo()['blocks'], 178)
-        assert_equal(p1.getblockchaininfo()['blocks'], 188)
-        assert_equal(p2.getblockchaininfo()['blocks'], 198)
+        assert_equal(p0.getblockcount(), 178)
+        assert_equal(p1.getblockcount(), 188)
+        assert_equal(p2.getblockcount(), 198)
 
         # connect validator back to p1
         # v0: p1
         # p0: p1
         # p1: v0, p0, p2
         # p2: p1
-        connect_nodes_bi(self.nodes, p1.index, v0.index)
+        connect_nodes(p1, v0.index)
         sync_blocks([p1, v0])
-        connect_nodes_bi(self.nodes, p1.index, p0.index)
-        connect_nodes_bi(self.nodes, p1.index, p2.index)
+        connect_nodes(p1, p0.index)
+        connect_nodes(p1, p2.index)
         sync_chain([p0, p1, p2, v0])
 
 

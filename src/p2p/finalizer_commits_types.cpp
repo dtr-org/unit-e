@@ -6,5 +6,5 @@
 #include <util.h>
 
 std::string p2p::FinalizerCommitsLocator::ToString() const {
-  return strprintf("Locator(start=%s, stop=%s)", util::to_string(start), stop.GetHex());
+  return strprintf("Locator(start=%s stop=%s)", util::to_string(start), stop.GetHex());
 }

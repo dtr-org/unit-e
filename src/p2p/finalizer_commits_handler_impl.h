@@ -90,8 +90,9 @@ class FinalizerCommitsHandlerImpl : public FinalizerCommitsHandler {
     }
   };
 
+  mutable CCriticalSection cs;
   std::map<NodeId, std::multiset<const CBlockIndex *, HeightComparator>> m_wait_list;
-  std::map<NodeId, std::list<const CBlockIndex *>> m_to_download;
+  std::map<NodeId, std::list<const CBlockIndex *>> m_blocks_to_download;
 };
 
 }  // namespace p2p

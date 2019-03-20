@@ -268,7 +268,7 @@ public:
         last_justified_epoch = boost::none;
         forking_before_active_finalization = false;
 
-        ResetCommits();
+        commits.reset();
     }
 
     CBlockIndex()
@@ -388,19 +388,6 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
-
-    void ResetCommits() {
-        commits.reset();
-    }
-
-    bool HasCommits() const {
-        return static_cast<bool>(commits);
-    }
-
-    const std::vector<CTransactionRef> &GetCommits() const {
-        assert(HasCommits());
-        return *commits;
-    }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);
