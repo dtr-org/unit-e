@@ -20,183 +20,192 @@ void SortTxs(CBlock &block, bool reverse = false) {
 }
 }  // namespace
 
-BOOST_AUTO_TEST_SUITE(validation_tests)
+BOOST_FIXTURE_TEST_SUITE(validation_tests, TestingSetup)
 
-struct Fixture : public TestingSetup {
+CMutableTransaction CreateTx() {
+
+  CMutableTransaction mut_tx;
+
+  CBasicKeyStore keystore;
+  CKey k;
+  InsecureNewKey(k, true);
+  keystore.AddKey(k);
+
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
+  mut_tx.vin.emplace_back(GetRandHash(), 0);
+
+  CTxOut out(100 * UNIT, CScript::CreateP2PKHScript(std::vector<unsigned char>(20)));
+  mut_tx.vout.push_back(out);
+  mut_tx.vout.push_back(out);
+  mut_tx.vout.push_back(out);
+  mut_tx.vout.push_back(out);
+
+  // Sign
+  std::vector<unsigned char> vchSig(20);
+  uint256 hash = SignatureHash(CScript(), mut_tx, 0,
+                               SIGHASH_ALL, 0, SigVersion::BASE);
+
+  BOOST_CHECK(k.Sign(hash, vchSig));
+  vchSig.push_back((unsigned char)SIGHASH_ALL);
+
+  mut_tx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
+                                      << ToByteVector(k.GetPubKey());
+
+  return mut_tx;
+}
+
+CMutableTransaction CreateCoinbase() {
+  CMutableTransaction coinbase_tx;
+  coinbase_tx.SetType(TxType::COINBASE);
+  coinbase_tx.vin.resize(1);
+  coinbase_tx.vin[0].prevout.SetNull();
+  coinbase_tx.vout.resize(1);
+  coinbase_tx.vout[0].scriptPubKey = CScript();
+  coinbase_tx.vout[0].nValue = 0;
+  coinbase_tx.vin[0].scriptSig = CScript() << CScriptNum::serialize(0) << ToByteVector(GetRandHash());
+  return coinbase_tx;
+}
+
+BOOST_AUTO_TEST_CASE(checkblock_empty) {
+
   CBlock block;
-  CBlockIndex prev;
+  assert(block.vtx.empty());
+
   CValidationState state;
-  Consensus::Params consensus_params;
+  CheckBlock(block, state, Params().GetConsensus(), false, false);
 
-  CMutableTransaction CreateTx() {
-    CMutableTransaction mut_tx;
-    CBasicKeyStore keystore;
-    CKey k;
-    InsecureNewKey(k, true);
-    keystore.AddKey(k);
-
-    mut_tx.vin.emplace_back(GetRandHash(), 0);
-    mut_tx.vin.emplace_back(GetRandHash(), 0);
-    mut_tx.vin.emplace_back(GetRandHash(), 0);
-    mut_tx.vin.emplace_back(GetRandHash(), 0);
-
-    CTxOut out(100 * UNIT, CScript::CreateP2PKHScript(std::vector<unsigned char>(20)));
-    mut_tx.vout.push_back(out);
-    mut_tx.vout.push_back(out);
-    mut_tx.vout.push_back(out);
-    mut_tx.vout.push_back(out);
-
-    // Sign
-    std::vector<unsigned char> vchSig(20);
-    uint256 hash = SignatureHash(CScript(), mut_tx, 0,
-                                 SIGHASH_ALL, 0, SigVersion::BASE);
-
-    BOOST_CHECK(k.Sign(hash, vchSig));
-    vchSig.push_back((unsigned char)SIGHASH_ALL);
-
-    mut_tx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
-                                        << ToByteVector(k.GetPubKey());
-
-    return mut_tx;
-  }
-
-  CMutableTransaction CreateCoinbase() {
-    CMutableTransaction coinbase_tx;
-    coinbase_tx.SetType(TxType::COINBASE);
-    coinbase_tx.vin.resize(1);
-    coinbase_tx.vin[0].prevout.SetNull();
-    coinbase_tx.vout.resize(1);
-    coinbase_tx.vout[0].scriptPubKey = CScript();
-    coinbase_tx.vout[0].nValue = 0;
-    coinbase_tx.vin[0].scriptSig = CScript() << CScriptNum::serialize(0) << ToByteVector(GetRandHash());
-    return coinbase_tx;
-  }
-};
-
-BOOST_FIXTURE_TEST_CASE(checkblock_empty, Fixture) {
-
-  CheckBlock(block, state, consensus_params, false, false);
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_too_many_transactions, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_too_many_transactions) {
 
-  const std::int64_t tx_weight = GetTransactionWeight(CTransaction(CreateTx()));
+  auto tx_weight = GetTransactionWeight(CTransaction(CreateTx()));
 
+  CBlock block;
   for (int i = 0; i <= (MAX_BLOCK_WEIGHT / tx_weight * WITNESS_SCALE_FACTOR) + 1; ++i) {
     block.vtx.push_back(MakeTransactionRef(CreateTx()));
   }
-  CheckBlock(block, state, consensus_params, false, false);
+
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, false);
+
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_coinbase_missing, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_coinbase_missing) {
 
+  CBlock block;
   block.vtx.push_back(MakeTransactionRef(CTransaction(CreateTx())));
 
-  CheckBlock(block, state, consensus_params, false, false);
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-missing");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_duplicate_coinbase, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_duplicate_coinbase) {
 
+  CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
   block.vtx.push_back(MakeTransactionRef(CTransaction(CreateTx())));
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
-  CheckBlock(block, state, consensus_params, false, false);
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-multiple");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_too_many_sigs, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_too_many_sigs) {
 
+  CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
-  CMutableTransaction tx = CreateTx();
-  CScript many_checksigs;
+  auto tx = CreateTx();
+  auto many_checsigs = CScript();
   for (int i = 0; i < (MAX_BLOCK_SIGOPS_COST / WITNESS_SCALE_FACTOR) + 1; ++i) {
-    many_checksigs = many_checksigs << OP_CHECKSIG;
+    many_checsigs = many_checsigs << OP_CHECKSIG;
   }
 
-  tx.vout[0].scriptPubKey = many_checksigs;
+  tx.vout[0].scriptPubKey = many_checsigs;
   block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
 
-  CheckBlock(block, state, consensus_params, false, false);
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-sigops");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_merkle_root, Fixture) {
-
+BOOST_AUTO_TEST_CASE(checkblock_merkle_root) {
+  CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-  block.ComputeMerkleTrees();
+
   block.hashMerkleRoot = GetRandHash();
 
-  CheckBlock(block, state, consensus_params, false, true);
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txnmrklroot");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_merkle_root_mutated, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_merkle_root_mutated) {
 
+  CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
   auto tx = CTransaction(CreateTx());
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
   block.vtx.push_back(MakeTransactionRef(tx));
   block.vtx.push_back(MakeTransactionRef(tx));
 
-  block.hashMerkleRoot = BlockMerkleRoot(block);
+  bool ignored;
+  block.hashMerkleRoot = BlockMerkleRoot(block, &ignored);
 
-  CheckBlock(block, state, consensus_params, false, true);
-
-  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
-}
-
-BOOST_FIXTURE_TEST_CASE(checkblock_duplicates_tx, Fixture) {
-
-  block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-
-  CMutableTransaction tx = CreateTx();
-  block.vtx.push_back(MakeTransactionRef(tx));
-  block.vtx.push_back(MakeTransactionRef(tx));
-
-  CheckBlock(block, state, consensus_params, false, false);
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_witness_merkle_match, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_duplicates_tx) {
 
+  CBlockIndex prev;
+  CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
-  block.ComputeMerkleTrees();
-  block.hash_witness_merkle_root = GetRandHash();
 
-  CheckBlock(block, state, consensus_params, false, true);
-  CheckBlock(block, state, consensus_params, false, false);
+  auto tx = CreateTx();
+  block.vtx.push_back(MakeTransactionRef(tx));
+  block.vtx.push_back(MakeTransactionRef(tx));
 
-  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, false);
+
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
 
-BOOST_FIXTURE_TEST_CASE(checkblock_tx_order, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_tx_order) {
 
+  CBlockIndex prev;
+  CBlock block;
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
   block.vtx.push_back(MakeTransactionRef(CreateTx()));
   SortTxs(block, true);
 
-  CheckBlock(block, state, consensus_params, false, false);
+  CValidationState state;
+  CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-ordering");
 }
 
-BOOST_FIXTURE_TEST_CASE(contextualcheckblock_is_final_tx, Fixture) {
+BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
 
+  CBlockIndex prev;
   prev.nTime = 100000;
   prev.nHeight = 10;
 
-  CMutableTransaction final_tx = CreateTx();
+  auto final_tx = CreateTx();
   final_tx.nLockTime = 0;
   final_tx.vin.resize(1);
   final_tx.vin[0].nSequence = CTxIn::SEQUENCE_FINAL;
@@ -214,7 +223,7 @@ BOOST_FIXTURE_TEST_CASE(contextualcheckblock_is_final_tx, Fixture) {
     SortTxs(block);
 
     CValidationState state;
-    ContextualCheckBlock(block, state, consensus_params, &prev);
+    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
   }
@@ -232,26 +241,47 @@ BOOST_FIXTURE_TEST_CASE(contextualcheckblock_is_final_tx, Fixture) {
     SortTxs(block);
 
     CValidationState state;
-    ContextualCheckBlock(block, state, consensus_params, &prev);
+    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
   }
 }
 
-BOOST_FIXTURE_TEST_CASE(contextualcheckblock_block_weight, Fixture) {
+BOOST_AUTO_TEST_CASE(checkblock_witness) {
 
+  CBlockIndex prev;
+
+  auto consensus_params = Params().GetConsensus();
+
+  //bad witness merkle not matching
+  CBlock block;
+  block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
+  block.ComputeMerkleTrees();
+  block.hash_witness_merkle_root = GetRandHash();
+
+  CValidationState state;
+  CheckBlock(block, state, consensus_params, false, true);
+
+  BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
+}
+
+BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
+
+  CBlockIndex prev;
+  CBlock block;
   for (int i = 0; i < 5000; ++i) {
     block.vtx.push_back(MakeTransactionRef(CreateTx()));
     block.vtx.push_back(MakeTransactionRef(CreateTx()));
   }
   SortTxs(block);
 
-  ContextualCheckBlock(block, state, consensus_params, &prev);
+  CValidationState state;
+  ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-weight");
 }
 
-BOOST_FIXTURE_TEST_CASE(contextualcheckblockheader_time, Fixture) {
+BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
 
   // Block time is too far in the past
   int64_t adjusted_time = 151230;
@@ -269,14 +299,14 @@ BOOST_FIXTURE_TEST_CASE(contextualcheckblockheader_time, Fixture) {
     prev_2.pprev = &prev_1;
 
     CBlock block;
-    block.nTime = 2001;  // 1 unit more than the median
+    block.nTime = 2001; // 1 unit more than the median
 
     prev_2.phashBlock = &block.hashPrevBlock;
 
     CValidationState state;
     BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
 
-    block.nTime = 1999;  // 1 unit less than the median
+    block.nTime = 1999; // 1 unit less than the median
     ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time);
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-old");
   }
