@@ -124,14 +124,6 @@ class BlockBuilderImpl : public BlockBuilder {
                                       : eligible_coin.utxo.GetScriptPubKey();
     tx.vout.emplace_back(reward, reward_script);
 
-    // TODO: inject state repository
-    auto fin_state = GetComponent<finalization::StateRepository>()->GetTipState();
-    auto rewards = fin_state->CalculateFinalizationRewardsAt(eligible_coin.target_height);
-    auto start_heigh = rewards.first;
-    for (auto fin_reward : rewards.second) {
-      tx.vout.emplace_back(fin_reward, CScript());
-    }
-
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && combined_total > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(combined_total, threshold);

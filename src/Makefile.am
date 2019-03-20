@@ -181,6 +181,7 @@ UNITE_CORE_H = \
   policy/policy.h \
   policy/rbf.h \
   proposer/block_builder.h \
+  proposer/finalization_reward_logic.h \
   proposer/eligible_coin.h \
   proposer/multiwallet.h \
   proposer/proposer.h \
@@ -404,6 +405,7 @@ libunite_wallet_a_SOURCES = \
   key/mnemonic/mnemonic.cpp \
   miner.cpp \
   proposer/block_builder.cpp \
+  proposer/finalization_reward_logic.cpp \
   proposer/eligible_coin.cpp \
   proposer/multiwallet.cpp \
   proposer/proposer.cpp \
