@@ -271,7 +271,7 @@ CTxDestination DecodeDestination(const std::string& str, const blockchain::Behav
     std::vector<unsigned char> data;
     uint160 hash;
     if (DecodeBase58Check(str, data)) {
-        // base58-encoded UnitE addresses.
+        // base58-encoded Unit-e addresses.
         // Public-key-hash-addresses have version 0 (or 111 testnet).
         // The data vector contains RIPEMD160(SHA256(pubkey)), where pubkey is the serialized public key.
         const std::vector<unsigned char>& pubkey_prefix = params.GetBase58Prefix(blockchain::Base58Type::PUBKEY_ADDRESS);

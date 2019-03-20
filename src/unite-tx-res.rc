@@ -16,8 +16,8 @@ BEGIN
     BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
-            VALUE "CompanyName",        "UnitE"
-            VALUE "FileDescription",    "unite-tx (CLI UnitE transaction editor utility)"
+            VALUE "CompanyName",        "Unit-e"
+            VALUE "FileDescription",    "unite-tx (CLI Unit-e transaction editor utility)"
             VALUE "FileVersion",        VER_FILEVERSION_STR
             VALUE "InternalName",       "unite-tx"
             VALUE "LegalCopyright",     COPYRIGHT_STR

@@ -1,6 +1,6 @@
 ### TestGen ###
 
-Utilities to generate test vectors for the data-driven UnitE tests.
+Utilities to generate test vectors for the data-driven Unit-e tests.
 
 Usage:
 

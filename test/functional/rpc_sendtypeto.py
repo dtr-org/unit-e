@@ -16,7 +16,7 @@ class SendtypetoTest(UnitETestFramework):
         assert_raises_rpc_error(-3, 'Not an array', self.nodes[0].sendtypeto, 'unite', 'unite', 'out')
 
         outputs = [{'address': 'foo', 'amount': 1}]
-        assert_raises_rpc_error(-5, 'Invalid UnitE address', self.nodes[0].sendtypeto, 'unite', 'unite', outputs)
+        assert_raises_rpc_error(-5, 'Invalid Unit-e address', self.nodes[0].sendtypeto, 'unite', 'unite', outputs)
 
         outputs = [{'address': '2NBYu3St3rtzJb8AzvraXnXCUxEuCs23eZo', 'amount': self.nodes[0].getbalance() + 1}]
         assert_raises_rpc_error(-6, 'Insufficient funds', self.nodes[0].sendtypeto, 'unite', 'unite', outputs)

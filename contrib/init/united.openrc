@@ -18,8 +18,8 @@ UNITED_BIN=${UNITED_BIN:-/usr/bin/united}
 UNITED_NICE=${UNITED_NICE:-${NICELEVEL:-0}}
 UNITED_OPTS="${UNITED_OPTS:-${UNITE_OPTS}}"
 
-name="UnitE Core Daemon"
-description="UnitE cryptocurrency P2P network daemon"
+name="unit-e Daemon"
+description="Unit-e cryptocurrency P2P network daemon"
 
 command="/usr/bin/united"
 command_args="-pid=\"${UNITED_PIDFILE}\" \
@@ -84,7 +84,7 @@ checkconfig()
 		eerror "It is recommended that you also set alertnotify so you are "
 		eerror "notified of problems:"
 		eerror ""
-		eerror "ie: alertnotify=echo %%s | mail -s \"UnitE Alert\"" \
+		eerror "ie: alertnotify=echo %%s | mail -s \"Unit-e Alert\"" \
 			"admin@foo.com"
 		eerror ""
 		return 1

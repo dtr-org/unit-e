@@ -11,8 +11,8 @@
 //! \brief The type of a transaction (see CTransaction)
 //!
 //! In Bitcoin transactions have versions and are always of the same type. In
-//! UnitE transactions have a version and a type as transactions can be one of
-//! different types. UnitE distinguishes different types of transactions for
+//! Unit-e transactions have a version and a type as transactions can be one of
+//! different types. Unit-e distinguishes different types of transactions for
 //! implementing Proof-of-Stake.
 // clang-format off
 BETTER_ENUM(

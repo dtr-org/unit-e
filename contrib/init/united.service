@@ -8,7 +8,7 @@
 # /etc/unite/unite.conf
 
 [Unit]
-Description=UnitE daemon
+Description=Unit-e daemon
 After=network.target
 
 [Service]

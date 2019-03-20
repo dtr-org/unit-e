@@ -74,7 +74,7 @@ if BUILD_UNITE_UTILS
 endif
 
 .PHONY: FORCE check-symbols check-security
-# unite core #
+# unit-e #
 UNITE_CORE_H = \
   addrdb.h \
   addrman.h \
