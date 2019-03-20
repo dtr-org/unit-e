@@ -1,76 +1,101 @@
-unit-e integration/staging tree
-=====================================
+<img src="unit-e-logo.png" align="right">
 
-[![Build Status](https://travis-ci.org/unite/unite.svg?branch=master)](https://travis-ci.org/unite/unite)
+# unit-e
 
-https://bitcoincore.org
+[![Build Status](https://travis-ci.com/dtr-org/unit-e.svg?token=bm5dxUvwqj2MkNmT6JSA&branch=master)](https://travis-ci.com/dtr-org/unit-e)
 
-What is Unit-e?
-----------------
+The unit-e client is the first implementation of a client for the Unit-e
+cryptocurrency network protocol.
 
-Unit-e is an experimental digital currency that enables instant payments to
-anyone, anywhere in the world. Unit-e uses peer-to-peer technology to operate
-with no central authority: managing transactions and issuing money are carried
-out collectively by the network. unit-e is the name of open source
-software which enables the use of this currency.
+## What is Unit-e?
 
-For more information, as well as an immediately useable, binary version of
-the unit-e software, see https://bitcoincore.org/en/download/, or read the
-[original whitepaper](https://bitcoincore.org/unite.pdf).
+[Unit-e](https://dtr.org/unit-e) is a new cryptocurrency, providing a scalable
+and decentralized monetary and payment network based on current scientific
+research. It is the first project supported by the [Distributed Technology
+Research foundation (DTR)](https://dtr.org). Its design is backed by the
+[research](https://dtr.org/research/) DTR is funding, delivering the scalable
+performance needed to enter mainstream use.
 
-License
--------
+## The unit-e client
 
-unit-e is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/licenses/MIT.
+This repository hosts the implementation of the first Unit-e client: `unit-e`,
+also known as the "Feuerland" client. It is based on the [Bitcoin
+Core](https://github.com/bitcoin/bitcoin) code base as upstream and adds
+features such as:
 
-Development Process
--------------------
+* Replace Proof of Work by [Proof of Stake with on-chain block
+  finalization](https://github.com/dtr-org/unit-e-docs/blob/master/specs/spec_v1.0.md)
+  and [remote staking](https://github.com/dtr-org/uips/blob/master/UIP-0015.md).
+* Native SegWit support
+* Reduced bandwidth, storage, and time to sync of initial blockchain download by
+  [UTXO snapshots](https://github.com/dtr-org/uips/blob/master/UIP-0011.md)
+* Enhanced privacy through Dandelion Lite
+* Optimized block propagation through Graphene
+* [Canonical transaction
+  ordering](https://github.com/dtr-org/uips/blob/master/UIP-0024.md)
+* Hardware wallet support
 
-The `master` branch is regularly built and tested, but is not guaranteed to be
-completely stable. [Tags](https://github.com/unite/unite/tags) are created
-regularly to indicate new official, stable release versions of unit-e.
+We regularly merge upstream changes into the unit-e code base and also strive to
+contribute back changes which are relevant for upstream. The last upstream sync
+was done with the [0.16](https://github.com/bitcoin/bitcoin/tree/0.16) version,
+plus some changes cherry-picked from later development branches.
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
+The client is in a pre-testnet development phase. With the [launch of the
+testnet](https://github.com/dtr-org/unit-e/milestone/11) we will start a regular
+cadence of releases.
 
-Testing
--------
+## Running from source
 
-Testing and code review is the bottleneck for development; we get more pull
-requests than we can review and test on short notice. Please be patient and help out by testing
-other people's pull requests, and remember this is a security-critical project where any mistake might cost people
-lots of money.
+To run unit-e from sources you will need to check it out from this GitHub
+repository, compile it, and launch the resulting binary. This currently is the
+only supported way of running it. Detailed instructions for a variety of
+platforms can be found in the
+[docs](https://github.com/dtr-org/unit-e/tree/master/doc) directory.
 
-### Automated Testing
+## Development
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled in configure) with: `make check`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+Development takes place on the `master` branch. All code changes go through
+peer-reviewed and tested pull requests. We aim for meeting high standards as an
+open source project and a collaborative community project. The contribution
+workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-There are also [regression and integration tests](/test), written
-in Python, that are run automatically on the build server.
-These tests can be run (if the [test dependencies](/test) are installed) with: `test/functional/test_runner.py`
+The Unit-e team is committed to fostering a welcoming and harassment-free
+environment. All participants are expected to adhere to our [code of
+conduct](CODE_OF_CONDUCT.md).
 
-The Travis CI system makes sure that every pull request is built for Windows, Linux, and macOS, and that unit/sanity tests are run automatically.
+## Testing
 
-### Manual Quality Assurance (QA) Testing
+We strive to keep the unit-e code base fully tested and covered by automated
+tests.
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
+Unit tests can be compiled and run with: `make check`. Further details on
+running and extending unit tests can be found in
+[src/test/README.md](src/test/README.md).
 
-Translations
-------------
+There are also [functional tests](test), including regression and integration
+tests. They are written in Python and most of them are also run as part of
+automated continuous integration. These tests can be run locally with
+`test/functional/test_runner.py`.
 
-Changes to translations as well as new translations can be submitted to
-[unit-e's Transifex page](https://www.transifex.com/projects/p/unite/).
+Unit and functional tests are [run on
+Travis](https://travis-ci.com/dtr-org/unit-e) as part of our continuous
+integration system. This tests the master branch and all pull requests. It makes
+sure that code is checked, built and tested for Windows, Linux, and OS X
+automatically before it gets merged into master.
 
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
+Any additional testing, automated or manual, is very welcome. If you encounter
+any issues or run into bugs please report them as
+[issues](https://github.com/dtr-org/unit-e/issues).
 
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+## Related repositories
 
-Translators should also subscribe to the [mailing list](https://groups.google.com/forum/#!forum/unite-translators).
+* [Unit-e improvement proposals (UIPs)](https://github.com/dtr-org/uips)
+* [Desktop wallet](https://github.com/dtr-org/unit-e-desktop)
+* [Documentation](https://github.com/dtr-org/docs.unit-e.io)
+* [Decision records and project-level
+  information](https://github.com/dtr-org/unit-e-docs)
+
+## License
+
+unit-e is released under the terms of the MIT license. See [COPYING](COPYING)
+for more information or see https://opensource.org/licenses/MIT.
