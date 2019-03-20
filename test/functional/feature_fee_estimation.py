@@ -6,7 +6,7 @@
 from decimal import Decimal
 import random
 
-from test_framework.messages import CTransaction, CTxIn, CTxOut, COutPoint, ToHex, COIN
+from test_framework.messages import CTransaction, CTxIn, CTxOut, COutPoint, ToHex, UNIT
 from test_framework.script import CScript, OP_1, OP_DROP, OP_2, OP_HASH160, OP_EQUAL, hash160, OP_TRUE
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
@@ -59,8 +59,8 @@ def small_txpuzzle_randfee(from_node, conflist, unconflist, amount, min_fee, fee
             tx.vin.append(CTxIn(COutPoint(int(t["txid"], 16), t["vout"]), b""))
         if total_in <= amount + fee:
             raise RuntimeError("Insufficient funds: need %d, have %d" % (amount + fee, total_in))
-    tx.vout.append(CTxOut(int((total_in - amount - fee) * COIN), P2SH_1))
-    tx.vout.append(CTxOut(int(amount * COIN), P2SH_2))
+    tx.vout.append(CTxOut(int((total_in - amount - fee) * UNIT), P2SH_1))
+    tx.vout.append(CTxOut(int(amount * UNIT), P2SH_2))
     # These transactions don't need to be signed, but we still have to insert
     # the ScriptSig that will satisfy the ScriptPubKey.
     for inp in tx.vin:
@@ -85,8 +85,8 @@ def split_inputs(from_node, txins, txouts, initial_split=False):
 
     half_change = satoshi_round(prevtxout["amount"] / 2)
     rem_change = prevtxout["amount"] - half_change - Decimal("0.00001000")
-    tx.vout.append(CTxOut(int(half_change * COIN), P2SH_1))
-    tx.vout.append(CTxOut(int(rem_change * COIN), P2SH_2))
+    tx.vout.append(CTxOut(int(half_change * UNIT), P2SH_1))
+    tx.vout.append(CTxOut(int(rem_change * UNIT), P2SH_2))
 
     # If this is the initial split we actually need to sign the transaction
     # Otherwise we just need to insert the proper ScriptSig

@@ -12,7 +12,7 @@ from .address import (
 )
 from .messages import (
     CBlock,
-    COIN,
+    UNIT,
     COutPoint,
     CTransaction,
     CTxIn,
@@ -107,7 +107,7 @@ def create_coinbase(height, pubkey=None):
     coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff),
                         ser_string(serialize_script_num(height)), 0xffffffff))
     coinbaseoutput = CTxOut()
-    coinbaseoutput.nValue = 50 * COIN
+    coinbaseoutput.nValue = 50 * UNIT
     halvings = int(height / 150)  # regtest
     coinbaseoutput.nValue >>= halvings
     if (pubkey is not None):
