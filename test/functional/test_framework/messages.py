@@ -701,6 +701,8 @@ class CBlock(CBlockHeader):
                 return False
         if self.calc_merkle_root() != self.hashMerkleRoot:
             return False
+        if self.calc_witness_merkle_root() != self.hash_witness_merkle_root:
+            return False
         return True
 
     def solve(self):

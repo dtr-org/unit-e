@@ -205,6 +205,7 @@ class BlockchainTest(UnitETestFramework):
         assert_is_hash_string(header['hash'])
         assert_is_hash_string(header['previousblockhash'])
         assert_is_hash_string(header['merkleroot'])
+        assert_is_hash_string(header['witnessmerkleroot'])
         assert_is_hash_string(header['bits'], length=None)
         assert isinstance(header['time'], int)
         assert isinstance(header['mediantime'], int)
