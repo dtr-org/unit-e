@@ -478,7 +478,12 @@ class CTransaction():
             name == TxType.SLASH.name or
             name == TxType.WITHDRAW.name):
             return True
-        return False
+
+        if (name == TxType.COINBASE.name or
+            name == TxType.REGULAR.name):
+            return False
+
+        assert False, ('unknown type: %s' % name)
 
     def deserialize(self, f):
         self.nVersion = struct.unpack("<i", f.read(4))[0]
