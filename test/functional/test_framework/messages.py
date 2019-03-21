@@ -615,16 +615,17 @@ class CBlockHeader():
 
     def calc_sha256(self):
         if self.sha256 is None:
-            r = b""
-            r += struct.pack("<i", self.nVersion)
-            r += ser_uint256(self.hashPrevBlock)
-            r += ser_uint256(self.hashMerkleRoot)
-            r += ser_uint256(self.hash_witness_merkle_root)
-            r += struct.pack("<I", self.nTime)
-            r += struct.pack("<I", self.nBits)
-            r += struct.pack("<I", self.nNonce)
-            self.sha256 = uint256_from_str(hash256(r))
-            self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
+            r_hash = hash256(
+                struct.pack("<i", self.nVersion) +
+                ser_uint256(self.hashPrevBlock) +
+                ser_uint256(self.hashMerkleRoot) +
+                ser_uint256(self.hash_witness_merkle_root) +
+                struct.pack("<I", self.nTime) +
+                struct.pack("<I", self.nBits) +
+                struct.pack("<I", self.nNonce)
+            )
+            self.sha256 = uint256_from_str(r_hash)
+            self.hash = encode(r_hash[::-1], 'hex_codec').decode('ascii')
 
     def rehash(self):
         self.sha256 = None
