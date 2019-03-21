@@ -83,10 +83,10 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
 
   std::vector<std::vector<unsigned char>> solutions;
   txnouttype type_ret;
-  if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
-                         "bad-deposit-script-not-solvable");
-  }
+  const bool ok = Solver(tx.vout[0].scriptPubKey, type_ret, solutions);
+
+  // Solver must return True value on PayVoteSlash type script.
+  assert(ok);
 
   if (!CheckValidatorAddress(tx, validator_address_out)) {
     return err_state.DoS(10, false, REJECT_INVALID,
@@ -449,6 +449,12 @@ bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,
     keys_out = &keys_tmp;
   }
 
+  // stack is expected to look like:
+  // empty
+  // signature
+  // ...
+  // signature
+  // <OP_N> <PubKey> ... <PubKey> <OP_M> <OP_CHECKMULTISIG>
   if (witness.stack.size() != ADMIN_MULTISIG_SIGNATURES + 2 ||
       !CScript::ExtractAdminKeysFromWitness(witness, *keys_out) ||
       keys_out->size() != ADMIN_MULTISIG_KEYS) {
