@@ -107,7 +107,7 @@ class Graphene(UnitETestFramework):
         half_balance = balance * Decimal("0.5")
 
         address = self.nodes[0].getnewaddress()
-        
+
         # If we have an UTXO with 51% of our balance,
         # 50% balance UTXO can be created only as a child of it =>
         # we are 100% sure that child is indeed a child
