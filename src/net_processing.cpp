@@ -312,6 +312,7 @@ bool MarkBlockAsReceived(const uint256& hash) {
         state->vBlocksInFlight.erase(itInFlight->second.second);
         state->nBlocksInFlight--;
         state->nStallingSince = 0;
+        GetComponent<p2p::GrapheneReceiver>()->OnBlockReceived(itInFlight->second.first, itInFlight->first);
         mapBlocksInFlight.erase(itInFlight);
         return true;
     }
@@ -1451,10 +1452,12 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
                             pindexLast->GetBlockHash().ToString(), pindexLast->nHeight);
                 }
 
-                GetComponent<p2p::GrapheneReceiver>()->BeforeBlocksRequested(*pfrom,
-                                                                      vGetData,
-                                                                      *pindexLast,
-                                                                      mapBlocksInFlight.size());
+                // This function might modify vGetData if it is going to request something as graphene
+                GetComponent<p2p::GrapheneReceiver>()->RequestAsGrapheneWhatPossible(
+                    *pfrom,
+                    &vGetData,
+                    *pindexLast,
+                    mapBlocksInFlight.size());
 
                 if (vGetData.size() > 0) {
                     if (nodestate->fSupportsDesiredCmpctVersion && vGetData.size() == 1 && nodestate->nBlocksInFlight == 1 && pindexLast->pprev->IsValid(BLOCK_VALID_CHAIN)) {

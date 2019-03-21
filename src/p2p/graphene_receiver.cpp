@@ -22,35 +22,34 @@ GrapheneReceiver::GrapheneReceiver(const bool enabled,
     : m_enabled(enabled),
       m_txpool(txpool) {}
 
-void GrapheneReceiver::BeforeBlocksRequested(CNode &from,
-                                             std::vector<CInv> &invs,
-                                             const CBlockIndex &last_inv_block_index,
-                                             const size_t blocks_in_flight) {
+void GrapheneReceiver::RequestAsGrapheneWhatPossible(CNode &from,
+                                                     std::vector<CInv> *invs_in_out,
+                                                     const CBlockIndex &last_inv_block_index,
+                                                     const size_t blocks_in_flight) {
+  AssertLockHeld(cs_main);
 
   if (!m_enabled) {
     return;
   }
 
+  assert(invs_in_out);
+
   // Copying similar logic from compact block
   // This also technically means that we can request only one graphene block at a time
-  if (invs.size() != 1 ||
+  if (invs_in_out->size() != 1 ||
       blocks_in_flight != 1 ||
       !last_inv_block_index.pprev->IsValid(BLOCK_VALID_CHAIN)) {
     return;
   }
 
-  const uint256 &block_hash = invs.front().hash;
-  invs.erase(invs.begin());
+  const uint256 block_hash = invs_in_out->front().hash;
+  invs_in_out->erase(invs_in_out->begin());
 
-  {
-    LOCK(m_cs);
+  // Want to be consistent with global state
+  assert(m_graphene_blocks_in_flight.empty());
 
-    if (!m_graphene_blocks_in_flight.empty()) {
-      LogPrintf("WARN: graphene blocks in flight state is out of sync with global blocks in flight");
-      m_graphene_blocks_in_flight.clear();
-    }
-    m_graphene_blocks_in_flight.emplace(block_hash, BlockReceiveState(block_hash, from.GetId()));
-  }
+  const auto key = std::make_pair(block_hash, from.GetId());
+  m_graphene_blocks_in_flight.emplace(key, nullptr);
 
   GrapheneBlockRequest request(block_hash, m_txpool->GetTxCount());
 
@@ -63,7 +62,7 @@ void GrapheneReceiver::BeforeBlocksRequested(CNode &from,
 void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
                                                const GrapheneBlock &graphene_block) {
 
-  const auto block_hash = graphene_block.header.GetHash();
+  const uint256 block_hash = graphene_block.header.GetHash();
 
   if (!m_enabled) {
     LogPrint(BCLog::NET, "Graphene block %s sent in violation of protocol, peer %d\n",
@@ -72,45 +71,15 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
     return;
   }
 
-  if (!graphene_block.iblt.IsValid()) {
-    LogPrint(BCLog::NET, "Iblt in graphene block %s is invalid, peer %d\n", block_hash.GetHex(), from.GetId());
-
-    Misbehaving(from.GetId(), 100);
-    MarkBlockNotInFlight(from, block_hash);
-    return;
-  }
-
-  const size_t txs_in_block = graphene_block.iblt.Size();
-
-  if (txs_in_block > MAX_TRANSACTIONS_IN_GRAPHENE_BLOCK) {
-    LogPrint(BCLog::NET, "Too many transactions(%d) in a graphene block %s from peer %d\n",
-             txs_in_block, block_hash.GetHex(), from.GetId());
-    Misbehaving(from.GetId(), 100);
-    MarkBlockNotInFlight(from, block_hash);
-    return;
-  }
-
-  CValidationState val_state;
-
-  if (!AcceptBlockHeader(graphene_block.header, val_state, Params(), nullptr)) {
-    LogPrint(BCLog::NET, "Received invalid graphene block %s from peer %d\n",
-             block_hash.GetHex(), from.GetId());
-
-    int dos_score;
-    if (val_state.IsInvalid(dos_score)) {
-      Misbehaving(from.GetId(), dos_score);
-    }
-
-    MarkBlockNotInFlight(from, block_hash);
-    return;
-  }
-
   std::unique_ptr<GrapheneBlockReconstructor> reconstructor;
 
   {
-    LOCK(m_cs);
+    LOCK(cs_main);
 
-    if (!IsInFlight(block_hash, from.GetId())) {
+    const auto key = std::make_pair(block_hash, from.GetId());
+    const auto it = m_graphene_blocks_in_flight.find(key);
+
+    if (it == m_graphene_blocks_in_flight.end()) {
       // Graphene blocks are parametrized with receiver tx pool size,
       // If we haven't requested this block => we never sent this size => we have
       // very high chance this incoming block won't decode. Don't want to spend
@@ -122,12 +91,24 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
       return;
     }
 
-    const auto it = m_graphene_blocks_in_flight.find(block_hash);
+    if (!graphene_block.iblt.IsValid()) {
+      LogPrint(BCLog::NET, "Iblt in graphene block %s is invalid, peer %d\n", block_hash.GetHex(), from.GetId());
 
-    if (it->second.reconstructor) {
-      LogPrint(BCLog::NET, "Received graphene block %s from peer %d, but graphene tx was expected\n",
+      Misbehaving(from.GetId(), 100);
+      MarkBlockNotInFlight(from, block_hash);
+      return;
+    }
+
+    CValidationState val_state;
+    if (!AcceptBlockHeader(graphene_block.header, val_state, Params(), nullptr)) {
+      LogPrint(BCLog::NET, "Received invalid graphene block %s from peer %d\n",
                block_hash.GetHex(), from.GetId());
-      Misbehaving(from.GetId(), 20);
+
+      int dos_score;
+      if (val_state.IsInvalid(dos_score)) {
+        Misbehaving(from.GetId(), dos_score);
+      }
+
       MarkBlockNotInFlight(from, block_hash);
       return;
     }
@@ -137,7 +118,7 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
 
     reconstructor = MakeUnique<GrapheneBlockReconstructor>(graphene_block, *m_txpool);
 
-    const auto reconstructor_state = reconstructor->GetState();
+    const GrapheneDecodeState reconstructor_state = reconstructor->GetState();
 
     switch (reconstructor_state) {
       case GrapheneDecodeState::HAS_ALL_TXS: {
@@ -157,7 +138,7 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
                  block_hash.GetHex(), request.missing_tx_short_hashes.size());
 
         PushMessage(from, NetMsgType::GETGRAPHENETX, std::move(request));
-        it->second.reconstructor = std::move(reconstructor);
+        it->second = std::move(reconstructor);
         return;
       }
     }
@@ -168,30 +149,27 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
 
 void GrapheneReceiver::ReconstructAndSubmitBlock(CNode &from,
                                                  const GrapheneBlockReconstructor &reconstructor) {
-  // Might cause a deadlock otherwise
-  AssertLockNotHeld(m_cs);
 
   const uint256 block_hash = reconstructor.GetBlockHash();
   CBlock block = reconstructor.ReconstructLTOR();
 
   if (CheckMerkleRoot(block)) {
-    LogPrint(BCLog::NET, "Graphene block %s is valid. Submitting\n",
-             block_hash.GetHex());
-
-    MarkBlockNotInFlight(from, block_hash);
+    LogPrint(BCLog::NET, "Graphene block %s is valid. Submitting\n", block_hash.GetHex());
 
     {
       LOCK(cs_main);
+      MarkBlockNotInFlight(from, block_hash);
       // This map is used ProcessNewBlock and its descendants to determine
       // source of block and to ban it if block is invalid
       mapBlockSource.emplace(block_hash, std::make_pair(from.GetId(), true));
     }
 
-    ProcessNewBlock(Params(), std::make_shared<CBlock>(std::move(block)), true, nullptr);
-
-    {
+    bool new_block = false;
+    ProcessNewBlock(Params(), std::make_shared<CBlock>(std::move(block)), true, &new_block);
+    if (new_block) {
+      from.nLastBlockTime = GetTime();
+    } else {
       LOCK(cs_main);
-      // ProcessNewBlock might exit before mapBlockSource is cleaned
       mapBlockSource.erase(block_hash);
     }
   } else {
@@ -201,50 +179,38 @@ void GrapheneReceiver::ReconstructAndSubmitBlock(CNode &from,
   }
 }
 
-void GrapheneReceiver::OnGrapheneTxReceived(CNode &from,
-                                            const GrapheneTx &graphene_tx) {
+void GrapheneReceiver::OnGrapheneTxReceived(CNode &from, const GrapheneTx &graphene_tx) {
 
   const uint256 &block_hash = graphene_tx.block_hash;
-
-  if (block_hash.IsNull() || graphene_tx.txs.empty()) {
-    LogPrint(BCLog::NET, "Received incorrect graphene tx from peer %d\n", from.GetId());
-    Misbehaving(from.GetId(), 100);
-    return;
-  }
-
   std::unique_ptr<GrapheneBlockReconstructor> reconstructor;
 
   {
-    LOCK(m_cs);
+    LOCK(cs_main);
 
-    if (!IsInFlight(block_hash, from.GetId())) {
+    const auto key = std::make_pair(block_hash, from.GetId());
+    const auto it = m_graphene_blocks_in_flight.find(key);
+
+    if (it == m_graphene_blocks_in_flight.end()) {
       LogPrint(BCLog::NET, "Peer %d sent us graphene block transactions for block we weren't expecting(%s)\n",
                from.GetId(), block_hash.GetHex());
-
-      Misbehaving(from.GetId(), 20);
-
       return;
     }
 
-    const auto it = m_graphene_blocks_in_flight.find(block_hash);
-    BlockReceiveState &state = it->second;
+    reconstructor = std::move(it->second);
+
+    if (reconstructor == nullptr) {
+      LogPrint(BCLog::NET, "Peer %d sent us graphene block transactions for block %s too early\n",
+               from.GetId(), block_hash.GetHex());
+      MarkBlockNotInFlight(from, block_hash);
+      return;
+    }
 
     LogPrint(BCLog::NET, "Received graphene tx for block %s, peer %d\n",
              block_hash.GetHex(), from.GetId());
 
-    if (graphene_tx.txs.size() > state.reconstructor->GetMissingShortTxHashes().size()) {
-      LogPrint(BCLog::NET, "Peer %d sent us too many graphene txs for block %s\n",
-               from.GetId(), block_hash.GetHex());
+    reconstructor->AddMissingTxs(graphene_tx.txs);
 
-      Misbehaving(from.GetId(), 20);
-      return;
-    }
-
-    state.reconstructor->AddMissingTxs(graphene_tx.txs);
-
-    if (state.reconstructor->GetState() == +GrapheneDecodeState::HAS_ALL_TXS) {
-      reconstructor = std::move(state.reconstructor);
-    } else {
+    if (reconstructor->GetState() != +GrapheneDecodeState::HAS_ALL_TXS) {
       LogPrint(BCLog::NET, "Can not reconstruct graphene block %s. Requesting fallback, peer %d\n",
                block_hash.GetHex(), from.GetId());
       RequestFallbackBlock(from, block_hash);
@@ -253,19 +219,17 @@ void GrapheneReceiver::OnGrapheneTxReceived(CNode &from,
     }
   }
 
-  if (reconstructor) {
-    ReconstructAndSubmitBlock(from, *reconstructor);
-  }
+  ReconstructAndSubmitBlock(from, *reconstructor);
 }
 
 void GrapheneReceiver::RequestFallbackBlock(CNode &from, const uint256 &block_hash) {
-  {
-    LOCK(m_cs);
+  AssertLockHeld(cs_main);
 
-    assert(IsInFlight(block_hash, from.GetId()));
+  const auto key = std::make_pair(block_hash, from.GetId());
+  const auto it = m_graphene_blocks_in_flight.find(key);
 
-    m_graphene_blocks_in_flight.erase(block_hash);
-  }
+  assert(it != m_graphene_blocks_in_flight.end());
+  m_graphene_blocks_in_flight.erase(it);
 
   std::vector<CInv> invs{CInv(MSG_CMPCT_BLOCK, block_hash)};
   PushMessage(from, NetMsgType::GETDATA, invs);
@@ -279,11 +243,11 @@ bool GrapheneReceiver::CheckMerkleRoot(const CBlock &block) {
 }
 
 void GrapheneReceiver::OnDisconnected(const NodeId node) {
-  LOCK(m_cs);
+  AssertLockHeld(cs_main);
 
   // We expect to not have many such blocks (in fact currently one), so linear scan is acceptable
   for (auto it = m_graphene_blocks_in_flight.begin(); it != m_graphene_blocks_in_flight.end();) {
-    if (it->second.sender == node) {
+    if (it->first.second == node) {
       it = m_graphene_blocks_in_flight.erase(it++);
     } else {
       ++it;
@@ -291,35 +255,31 @@ void GrapheneReceiver::OnDisconnected(const NodeId node) {
   }
 }
 
-void GrapheneReceiver::MarkBlockNotInFlight(const CNode &from,
-                                            const uint256 &block_hash) {
-  LOCK2(cs_main, m_cs);
-
-  if (!IsInFlight(block_hash, from.GetId())) {
-    return;
-  }
-  m_graphene_blocks_in_flight.erase(block_hash);
-
-  // This is bitcoin housekeeping, if we won't properly update it, bitcoin might
-  // not download compact blocks for example
-  MarkBlockAsReceived(block_hash);
-}
-
-bool GrapheneReceiver::IsInFlight(const uint256 &block_hash, const NodeId sender) {
-  LOCK(m_cs);
-
-  const auto it = m_graphene_blocks_in_flight.find(block_hash);
-  if (it == m_graphene_blocks_in_flight.end()) {
-    return false;
-  }
-
-  return it->second.sender == sender;
-}
-
 std::unique_ptr<GrapheneReceiver> GrapheneReceiver::New(Dependency<::ArgsManager> args,
                                                         Dependency<::TxPool> txpool) {
   const bool enabled = args->GetBoolArg("-graphene", true);
   return MakeUnique<GrapheneReceiver>(enabled, txpool);
+}
+
+void GrapheneReceiver::MarkBlockNotInFlight(const CNode &from, const uint256 &block_hash) {
+  AssertLockHeld(cs_main);
+
+  const auto key = std::make_pair(block_hash, from.GetId());
+  const auto it = m_graphene_blocks_in_flight.find(key);
+
+  if (it == m_graphene_blocks_in_flight.end()) {
+    return;
+  }
+
+  m_graphene_blocks_in_flight.erase(it);
+  MarkBlockAsReceived(block_hash);
+}
+
+void GrapheneReceiver::OnBlockReceived(NodeId node, const uint256 &block_hash) {
+  AssertLockHeld(cs_main);
+
+  const auto key = std::make_pair(block_hash, node);
+  m_graphene_blocks_in_flight.erase(key);
 }
 
 }  // namespace p2p

@@ -33,7 +33,9 @@ from test_framework.messages import (
     GrapheneIbltEntryDummy,
     msg_graphenblock,
     GrapheneBlockRequest,
-    msg_getgraphene
+    msg_getgraphene,
+    msg_graphenetx,
+    GrapheneTx
 )
 from test_framework.util import wait_until, assert_equal
 from decimal import Decimal
@@ -63,6 +65,7 @@ class GrapheneActive(UnitETestFramework):
         self.nodes[0].p2p.wait_for_verack()
 
         self.test_reply_block_on_getgraphene()
+        self.test_sending_unexpected_block_tx()
         self.test_non_decodable_iblt()
         self.test_request_deep_blocks()
 
@@ -89,6 +92,25 @@ class GrapheneActive(UnitETestFramework):
         p2p.send_message(msg_block(block))
 
         self.nodes[0].waitforblockheight(count_before + 1)
+
+    def test_sending_unexpected_block_tx(self):
+        self.log.info("Testing sending unanounced block tx")
+        count_before = self.nodes[0].getblockcount()
+        p2p = self.nodes[0].p2p
+        block = self.create_block()
+        block_hash = block.sha256
+        p2p.send_and_ping(msg_graphenetx(GrapheneTx(block_hash, [])))
+
+        self.log.info("Testing sending block tx after headers")
+        p2p.send_message(msg_headers([block]))
+        p2p.wait_for_getgraphene(block.hash)
+
+        p2p.send_and_ping(msg_graphenetx(GrapheneTx(block_hash, [])))
+
+        # It is quite hard to check effects of this check and this particular
+        # check might not be enough. Nevertheless the main intent of this test
+        # is to check that node is not crashing
+        assert_equal(count_before, self.nodes[0].getblockcount())
 
     def test_reply_block_on_getgraphene(self):
         self.log.info("Testing reply block on getgraphene")

@@ -14,9 +14,6 @@
 
 namespace p2p {
 
-constexpr size_t MAX_TRANSACTIONS_IN_GRAPHENE_BLOCK =
-    MAX_BLOCK_WEIGHT / MIN_SERIALIZABLE_TRANSACTION_WEIGHT;
-
 // Do not use brute-force optimization if receiver mempool exceeds this value
 constexpr size_t GRAPHENE_TOO_BIG_TXPOOL = 10000000;
 
