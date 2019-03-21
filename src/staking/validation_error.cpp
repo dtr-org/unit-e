@@ -68,7 +68,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::FINALIZER_COMMITS_MERKLE_ROOT_MISMATCH: {
-      static ValidationError err("bad-fincommits-merkleroot");
+      static ValidationError err("bad-finalizercommits-merkleroot");
       return err;
     }
     case staking::BlockValidationError::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION: {
