@@ -12,7 +12,6 @@
 
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
-    json,
     assert_equal,
     check_finalization,
     connect_nodes,
