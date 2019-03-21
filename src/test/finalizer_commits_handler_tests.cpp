@@ -368,6 +368,8 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   }
 }
 
+const CBlockIndex *nullindex = nullptr;
+
 BOOST_AUTO_TEST_CASE(find_most_recent_start) {
   Fixture fixture;
 
@@ -394,7 +396,7 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
           chain.AtHeight(3)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   {
@@ -424,7 +426,7 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
           chain.AtHeight(13)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   {
@@ -492,7 +494,7 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
           fork[19].GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   {
@@ -508,7 +510,7 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
           chain.AtHeight(19)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   state.SetLastFinalizedEpoch(3); // block 19
@@ -525,14 +527,14 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
           chain.AtHeight(18)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
           chain.AtHeight(20)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   {
@@ -547,7 +549,7 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
           fork[19].GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 }
 
@@ -566,13 +568,13 @@ BOOST_AUTO_TEST_CASE(find_stop) {
   {
     const CBlockIndex *result = commits.FindStop(Locator{
         {}, uint256()});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   {
     const CBlockIndex *result = commits.FindStop(Locator{
         {}, uint256S("12345")});
-    BOOST_CHECK_EQUAL(result, nullptr);
+    BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   for (blockchain::Height h = 1; h < 5; ++h) {
