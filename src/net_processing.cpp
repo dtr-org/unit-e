@@ -3526,7 +3526,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                     bool send = fSendTrickle;
                     if (!send) {
                         CTransactionRef tx = mempool.get(*it);
-                        send = tx && tx->IsFinalizationTransaction();
+                        send = tx && tx->IsFinalizerTx();
                     }
                     if (send) {
                         vInvTx.push_back(it);

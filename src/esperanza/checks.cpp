@@ -14,8 +14,10 @@
 
 namespace esperanza {
 
-bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
-                                   const Consensus::Params &params, const FinalizationState &fin_state) {
+bool ContextualCheckFinalizerTx(const CTransaction &tx,
+                                CValidationState &err_state,
+                                const Consensus::Params &params,
+                                const FinalizationState &fin_state) {
   switch (tx.GetType()) {
     case +TxType::REGULAR:
     case +TxType::COINBASE:
@@ -36,7 +38,7 @@ bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err
   return false;
 }
 
-bool CheckFinalizationTx(const CTransaction &tx, CValidationState &err_state) {
+bool CheckFinalizerTx(const CTransaction &tx, CValidationState &err_state) {
   switch (tx.GetType()) {
     case +TxType::REGULAR:
     case +TxType::COINBASE:

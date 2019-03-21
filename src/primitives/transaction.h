@@ -305,7 +305,7 @@ public:
         return GetType() == +TxType::ADMIN;
     }
 
-    bool IsFinalizationTransaction() const {
+    bool IsFinalizerTx() const {
         switch (+GetType()) {
             case TxType::DEPOSIT:
             case TxType::VOTE:
