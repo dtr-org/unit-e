@@ -10,7 +10,7 @@ Version 1 compact blocks are non-segwit and they are not supported
 from test_framework.mininode import *
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta
+from test_framework.blocktools import create_block, sign_coinbase, create_coinbase, get_tip_snapshot_meta
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
@@ -114,7 +114,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         meta = get_tip_snapshot_meta(node)
         coin = get_unspent_coins(node, 1)[0]
-        block = create_block(int(tip, 16), create_coinbase(height + 1, coin, meta.hash), mtp + 1)
+        block = create_block(int(tip, 16), sign_coinbase(node, create_coinbase(height + 1, coin, meta.hash)), mtp + 1)
         block.nVersion = 4
         if txs:
             block.vtx.extend(txs)

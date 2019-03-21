@@ -195,7 +195,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
         spendtx.rehash()
         invalidatePostSignature(spendtx)
         spendtx.rehash()
-        coinbase = create_coinbase(self.height, coins[1], self.snapshot_meta.hash)
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(self.height, coins[1], self.snapshot_meta.hash))
         block = create_block(self.tip, coinbase, self.last_block_time + 1)
         block.nVersion = activated_version
         block.vtx.append(spendtx)
