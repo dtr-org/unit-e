@@ -19,7 +19,7 @@ from test_framework.util import (
     sync_blocks,
     connect_nodes,
     disconnect_nodes,
-    check_finalization,
+    assert_finalizationstate,
     assert_raises_rpc_error,
     assert_equal,
     wait_until,
@@ -93,10 +93,10 @@ class EsperanzaSlashTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[30] fork1, fork2
         fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 5, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 30)
-        check_finalization(fork1, {'currentEpoch': 6,
-                                   'lastJustifiedEpoch': 4,
-                                   'lastFinalizedEpoch': 3,
-                                   'validators': 1})
+        assert_finalizationstate(fork1, {'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 3,
+                                         'validators': 1})
 
         # change topology where forks are not connected
         # finalizer1 → fork1
@@ -117,10 +117,10 @@ class EsperanzaSlashTest(UnitETestFramework):
         v1 = fork1.getrawtransaction(fork1.getrawmempool()[0])
         fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 34)
-        check_finalization(fork1, {'currentEpoch': 6,
-                                   'lastJustifiedEpoch': 5,
-                                   'lastFinalizedEpoch': 4,
-                                   'validators': 1})
+        assert_finalizationstate(fork1, {'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 5,
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
 
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
@@ -128,10 +128,10 @@ class EsperanzaSlashTest(UnitETestFramework):
         assert_equal(len(fork2.getrawmempool()), 0)
         fork2.generatetoaddress(3, fork2.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 34)
-        check_finalization(fork2, {'currentEpoch': 6,
-                                   'lastJustifiedEpoch': 5,
-                                   'lastFinalizedEpoch': 4,
-                                   'validators': 1})
+        assert_finalizationstate(fork2, {'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 5,
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
         self.log.info('same vote on two forks was accepted')
 
         # test that double-vote with invalid vote signature is ignored
@@ -147,10 +147,10 @@ class EsperanzaSlashTest(UnitETestFramework):
         v2a = fork1.getrawtransaction(fork1.getrawmempool()[0])
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 36)
-        check_finalization(fork1, {'currentEpoch': 7,
-                                   'lastJustifiedEpoch': 6,
-                                   'lastFinalizedEpoch': 5,
-                                   'validators': 1})
+        assert_finalizationstate(fork1, {'currentEpoch': 7,
+                                         'lastJustifiedEpoch': 6,
+                                         'lastFinalizedEpoch': 5,
+                                         'validators': 1})
 
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         tx_v2a = FromHex(CTransaction(), v2a)
@@ -171,10 +171,10 @@ class EsperanzaSlashTest(UnitETestFramework):
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
         assert_equal(fork2.getblockcount(), 36)
-        check_finalization(fork2, {'currentEpoch': 7,
-                                   'lastJustifiedEpoch': 6,
-                                   'lastFinalizedEpoch': 5,
-                                   'validators': 1})
+        assert_finalizationstate(fork2, {'currentEpoch': 7,
+                                         'lastJustifiedEpoch': 6,
+                                         'lastFinalizedEpoch': 5,
+                                         'validators': 1})
         self.log.info('double-vote with invalid signature is ignored')
 
         # test that valid double-vote but with invalid tx signature
