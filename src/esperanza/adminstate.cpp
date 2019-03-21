@@ -6,26 +6,17 @@
 
 namespace esperanza {
 
-AdminState::AdminState(const AdminParams &adminParams)
-    : m_admin_params(adminParams),
-      m_permissioning_is_active(!adminParams.m_block_to_admin_keys.empty()) {}
-
-void AdminState::OnBlock(blockchain::Height blockHeight) {
-  if (!m_permissioning_is_active) {
-    return;
-  }
-
-  const auto adminIt = m_admin_params.m_block_to_admin_keys.find(blockHeight);
-  if (adminIt != m_admin_params.m_block_to_admin_keys.end()) {
-    ResetAdmin(adminIt->second);
-  }
-
-  const auto whiteListIt = m_admin_params.m_block_to_white_list.find(blockHeight);
-  if (whiteListIt != m_admin_params.m_block_to_white_list.end()) {
-    m_white_list.clear();
-    for (auto const &entry : whiteListIt->second) {
-      m_white_list.insert(entry);
+AdminState::AdminState(const AdminParams &params)
+    : m_white_list(params.white_list.begin(), params.white_list.end()) {
+  if (params.admin_keys) {
+    m_permissioning_is_active = true;
+    m_admin_pub_keys = params.admin_keys.get();
+    for (const CPubKey &key : m_admin_pub_keys) {
+      assert(key.IsFullyValid());
     }
+  } else {
+    m_permissioning_is_active = false;
+    assert(m_white_list.empty());
   }
 }
 
@@ -62,10 +53,6 @@ void AdminState::EndPermissioning() { m_permissioning_is_active = false; }
 
 bool AdminState::IsPermissioningActive() const {
   return m_permissioning_is_active;
-}
-
-const AdminParams &AdminState::GetParams() const {
-  return m_admin_params;
 }
 
 bool AdminState::operator==(const AdminState &other) const {

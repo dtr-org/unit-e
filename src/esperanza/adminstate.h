@@ -25,13 +25,11 @@ namespace esperanza {
 class AdminState {
   AdminKeySet m_admin_pub_keys;
   std::set<uint160> m_white_list;
-  const AdminParams &m_admin_params;
   bool m_permissioning_is_active;
 
  public:
-  explicit AdminState(const AdminParams &adminParams);
+  explicit AdminState(const AdminParams &params);
 
-  void OnBlock(blockchain::Height blockHeight);
   bool IsAdminAuthorized(const AdminKeySet &keys) const;
   bool IsValidatorAuthorized(const uint160 &validatorAddress) const;
   void ResetAdmin(const AdminKeySet &newKeys);
@@ -39,7 +37,6 @@ class AdminState {
   void RemoveValidator(const uint160 &validatorAddress);
   void EndPermissioning();
   bool IsPermissioningActive() const;
-  const AdminParams &GetParams() const;
   bool operator==(const AdminState &other) const;
 };
 

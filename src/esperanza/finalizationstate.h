@@ -224,9 +224,6 @@ class FinalizationState : public FinalizationStateData {
  protected:
   const FinalizationParams &m_settings;
   InitStatus m_status = NEW;
-
- private:
-  void OnBlock(blockchain::Height blockHeight);
 };
 
 inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
