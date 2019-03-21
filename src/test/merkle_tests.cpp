@@ -238,8 +238,7 @@ BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
   for (const TestCase &tc : test_cases) {
     CBlock block;
     block.vtx = tc.txs;
-    bool mutated;
-    uint256 hash = BlockFinalizerCommitsMerkleRoot(block, &mutated);
+    uint256 hash = BlockFinalizerCommitsMerkleRoot(block);
     BOOST_CHECK_MESSAGE(tc.merkle_root == hash, tc.test_name);
   }
 }
