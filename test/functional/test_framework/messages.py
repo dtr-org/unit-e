@@ -48,7 +48,7 @@ NODE_SNAPSHOT = (1 << 15)
 
 # Serialization/deserialization tools
 def sha256(s):
-    return hashlib.new('sha256', s).digest()
+    return hashlib.sha256(s).digest()
 
 def ripemd160(s):
     return hashlib.new('ripemd160', s).digest()
@@ -57,7 +57,6 @@ def hash256(s):
     return sha256(sha256(s))
 
 def ser_compact_size(l):
-    r = b""
     if l < 253:
         r = struct.pack("B", l)
     elif l < 0x10000:
@@ -94,19 +93,11 @@ def deser_uint256(f):
 
 
 def ser_uint256(u):
-    rs = b""
-    for i in range(8):
-        rs += struct.pack("<I", u & 0xFFFFFFFF)
-        u >>= 32
-    return rs
+    return int(u).to_bytes(32, 'little')
 
 
 def uint256_from_str(s):
-    r = 0
-    t = struct.unpack("<IIIIIIII", s[:32])
-    for i in range(8):
-        r += t[i] << (i * 32)
-    return r
+    return int.from_bytes(s[:32], 'little')
 
 
 def uint256_from_compact(c):
