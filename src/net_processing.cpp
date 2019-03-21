@@ -1178,6 +1178,14 @@ void static ProcessGetBlockData(CNode* pfrom, const Consensus::Params& consensus
     }
 }
 
+bool IsBlockInv(const CInv &inv) {
+    return inv.type == MSG_BLOCK ||
+           inv.type == MSG_FILTERED_BLOCK ||
+           inv.type == MSG_CMPCT_BLOCK ||
+           inv.type == MSG_WITNESS_BLOCK ||
+           inv.type == MSG_GRAPHENE_BLOCK;
+}
+
 void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParams, CConnman* connman, const std::atomic<bool>& interruptMsgProc)
 {
     AssertLockNotHeld(cs_main);
@@ -1224,7 +1232,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
 
     if (it != pfrom->vRecvGetData.end() && !pfrom->fPauseSend) {
         const CInv &inv = *it;
-        if (inv.type == MSG_BLOCK || inv.type == MSG_FILTERED_BLOCK || inv.type == MSG_CMPCT_BLOCK || inv.type == MSG_WITNESS_BLOCK || inv.type == MSG_GRAPHENE_BLOCK) {
+        if (IsBlockInv(inv)) {
             it++;
             ProcessGetBlockData(pfrom, consensusParams, inv, connman, interruptMsgProc);
         }

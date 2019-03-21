@@ -19,8 +19,8 @@
 namespace p2p {
 
 boost::optional<GrapheneBlock> CreateGrapheneBlock(const CBlock &block,
-                                                   uint64_t sender_tx_count_wo_block,
-                                                   uint64_t receiver_tx_count,
+                                                   size_t sender_tx_count_wo_block,
+                                                   size_t receiver_tx_count,
                                                    FastRandomContext &random);
 
 // clang-format off
@@ -58,17 +58,17 @@ class GrapheneBlockReconstructor {
 
 struct GrapheneBlockParams {
   GrapheneBlockParams(size_t expected_symmetric_difference,
-                      uint32_t bloom_entries_num,
+                      size_t bloom_entries_num,
                       double bloom_filter_fpr);
 
   const size_t expected_symmetric_difference;
-  const unsigned int bloom_entries_num;
+  const size_t bloom_entries_num;
   const double bloom_filter_fpr;
 };
 
-GrapheneBlockParams OptimizeGrapheneBlockParams(uint32_t block_txs,
-                                                uint64_t all_sender_txs,
-                                                uint64_t all_receiver_txs);
+GrapheneBlockParams OptimizeGrapheneBlockParams(const size_t block_txs,
+                                                const size_t all_sender_txs,
+                                                const size_t all_receiver_txs);
 
 }  // namespace p2p
 

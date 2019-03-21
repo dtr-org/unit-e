@@ -19,7 +19,7 @@
 #define LN2 0.6931471805599453094172321214581765680755001343602552
 
 //! \brief Computes size of bloom filter entries in bytes
-unsigned int CBloomFilter::ComputeEntriesSize(size_t n_elements, double fpr) {
+size_t CBloomFilter::ComputeEntriesSize(size_t n_elements, double fpr) {
     /**
      * The ideal size for a bloom filter with a given number of elements and false positive rate is:
      * - n_elements * log(fpr) / ln(2)^2
@@ -30,7 +30,7 @@ unsigned int CBloomFilter::ComputeEntriesSize(size_t n_elements, double fpr) {
     return n_entries / 8;
 }
 
-CBloomFilter::CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweakIn, unsigned char nFlagsIn, unsigned int max_filter_size_bytes, unsigned int max_hash_funcs) :
+CBloomFilter::CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweakIn, unsigned char nFlagsIn, size_t max_filter_size_bytes, size_t max_hash_funcs) :
 
     // We ignore filter parameters which will create a bloom filter larger than the protocol limits
     vData(std::min(ComputeEntriesSize(nElements, nFPRate), max_filter_size_bytes)),
@@ -41,7 +41,7 @@ CBloomFilter::CBloomFilter(const unsigned int nElements, const double nFPRate, c
      */
     isFull(false),
     isEmpty(true),
-    nHashFuncs(std::min((unsigned int)(vData.size() * 8 / nElements * LN2), max_hash_funcs)),
+    nHashFuncs(std::min((size_t)(vData.size() * 8 / nElements * LN2), max_hash_funcs)),
     nTweak(nTweakIn),
     nFlags(nFlagsIn)
 {

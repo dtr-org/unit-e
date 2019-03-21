@@ -28,6 +28,9 @@ constexpr size_t GRAPHENE_TOO_BIG_TXPOOL = 10000000;
 constexpr size_t MIN_TRANSACTIONS_IN_GRAPHENE_BLOCK = 44;
 
 using GrapheneShortHash = uint64_t;
+struct GrapheneFullHash : uint256 {
+  explicit GrapheneFullHash(const uint256 &hash) : uint256(hash) {}
+};
 using GrapheneIblt = IBLT<GrapheneShortHash, 0>;
 
 template <typename T>

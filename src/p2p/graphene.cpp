@@ -16,8 +16,8 @@
 namespace p2p {
 
 boost::optional<GrapheneBlock> CreateGrapheneBlock(const CBlock &block,
-                                                   const uint64_t sender_tx_count_wo_block,
-                                                   const uint64_t receiver_tx_count,
+                                                   size_t sender_tx_count_wo_block,
+                                                   size_t receiver_tx_count,
                                                    FastRandomContext &random) {
   assert(!block.vtx.empty());
 
@@ -31,8 +31,7 @@ boost::optional<GrapheneBlock> CreateGrapheneBlock(const CBlock &block,
   // prefill strategies are possible
   prefilled_transactions.emplace_back(coinbase);
 
-  const auto non_prefilled_count =
-      static_cast<uint32_t>(block.vtx.size() - prefilled_transactions.size());
+  const size_t non_prefilled_count = block.vtx.size() - prefilled_transactions.size();
 
   const GrapheneBlockParams params =
       OptimizeGrapheneBlockParams(non_prefilled_count,
@@ -43,8 +42,8 @@ boost::optional<GrapheneBlock> CreateGrapheneBlock(const CBlock &block,
   // and maximum hash functions. This is undesirable with graphene because it
   // ruins FPR guarantees. We accept bloom filters of any size/complexity unless
   // they allow us to create relatively small graphene blocks
-  const unsigned int max_filter_size_bytes = std::numeric_limits<unsigned int>::max();
-  const unsigned int max_hash_funcs = std::numeric_limits<unsigned int>::max();
+  const size_t max_filter_size_bytes = std::numeric_limits<size_t>::max();
+  const size_t max_hash_funcs = std::numeric_limits<size_t>::max();
 
   CBloomFilter bloom_filter(params.bloom_entries_num, params.bloom_filter_fpr,
                             random.rand32(), BLOOM_UPDATE_ALL, max_filter_size_bytes,
@@ -99,7 +98,7 @@ GrapheneBlockReconstructor::GrapheneBlockReconstructor(const GrapheneBlock &grap
         continue;
       }
 
-      auto emplace_result = candidates.emplace(short_hash, tx);
+      const auto emplace_result = candidates.emplace(short_hash, tx);
       if (!emplace_result.second) {
 
         const auto already_stored_hash = emplace_result.first->second->GetHash();
@@ -118,7 +117,7 @@ GrapheneBlockReconstructor::GrapheneBlockReconstructor(const GrapheneBlock &grap
     return;
   }
 
-  const auto iblt_diff = graphene_block.iblt - receiver_iblt;
+  const GrapheneIblt iblt_diff = graphene_block.iblt - receiver_iblt;
 
   GrapheneIblt::TEntriesMap only_sender_has;
   GrapheneIblt::TEntriesMap only_receiver_has;
@@ -210,23 +209,23 @@ uint256 GrapheneBlockReconstructor::GetBlockHash() const {
 }
 
 //! \brief Computes false positive rate for bloom filter
-double ComputeFpr(const size_t symmetric_diff, const size_t receiver_excess) {
+static double ComputeFpr(const size_t symmetric_diff, const size_t receiver_excess) {
   constexpr double MAX_FPR = 0.999;
   if (receiver_excess == 0) {
     return MAX_FPR;
   }
 
-  double fpr = static_cast<double>(symmetric_diff) / receiver_excess;
+  const double fpr = static_cast<double>(symmetric_diff) / receiver_excess;
   if (fpr > MAX_FPR) {
-    fpr = MAX_FPR;
+    return MAX_FPR;
   }
 
   return fpr;
 }
 
-size_t BruteForceSymDif(const uint64_t all_receiver_txs,
-                        const uint64_t receiver_excess,
-                        const uint32_t bloom_entries) {
+static size_t BruteForceSymDif(const size_t all_receiver_txs,
+                               const size_t receiver_excess,
+                               const size_t bloom_entries) {
   FUNCTION_STOPWATCH();
 
   size_t min_achieved_size = std::numeric_limits<size_t>::max();
@@ -236,7 +235,7 @@ size_t BruteForceSymDif(const uint64_t all_receiver_txs,
       GetSerializeSize(GrapheneIblt::IBLTEntry(), SER_NETWORK, PROTOCOL_VERSION);
 
   for (size_t sym_diff = best_sym_diff; sym_diff <= all_receiver_txs; ++sym_diff) {
-    double fpr = ComputeFpr(sym_diff, receiver_excess);
+    const double fpr = ComputeFpr(sym_diff, receiver_excess);
 
     const size_t bloom_size = CBloomFilter::ComputeEntriesSize(bloom_entries, fpr);
     const size_t iblt_entries = GrapheneIblt::ComputeNumberOfEntries(sym_diff);
@@ -252,9 +251,9 @@ size_t BruteForceSymDif(const uint64_t all_receiver_txs,
   return best_sym_diff;
 }
 
-GrapheneBlockParams OptimizeGrapheneBlockParams(const uint32_t block_txs,
-                                                const uint64_t all_sender_txs,
-                                                const uint64_t all_receiver_txs) {
+GrapheneBlockParams OptimizeGrapheneBlockParams(const size_t block_txs,
+                                                const size_t all_sender_txs,
+                                                const size_t all_receiver_txs) {
   // This function uses some heuristics to determine optimal graphene block
   // parameters, you can find some explanations here
   // https://gist.github.com/bissias/561151fef0b98f6e4d8813a08aefe349
@@ -262,39 +261,40 @@ GrapheneBlockParams OptimizeGrapheneBlockParams(const uint32_t block_txs,
   // All sender txs should include block txs
   assert(all_sender_txs >= block_txs);
 
-  uint64_t receiver_excess = 0;
+  size_t receiver_excess = 0;
   if (all_receiver_txs > block_txs) {
     receiver_excess = all_receiver_txs - block_txs;
   }
-  uint64_t sender_excess = all_sender_txs - block_txs;
+  const size_t sender_excess = all_sender_txs - block_txs;
 
   receiver_excess = std::max(receiver_excess, sender_excess);
   receiver_excess = std::min(receiver_excess, all_receiver_txs);
   receiver_excess = std::max<decltype(receiver_excess)>(receiver_excess, 1);
 
-  uint64_t missing = 1;
+  size_t missing = 1;
   if (block_txs > (all_receiver_txs - receiver_excess)) {
     missing = block_txs - (all_receiver_txs - receiver_excess);
   }
 
-  uint64_t sym_diff = missing;
+  size_t sym_diff = missing;
 
-  const uint32_t bloom_entries = std::max<uint32_t>(1, block_txs);
+  const size_t bloom_entries = std::max<size_t>(1, block_txs);
 
   if (sym_diff <= all_receiver_txs + missing && all_receiver_txs < GRAPHENE_TOO_BIG_TXPOOL) {
     sym_diff = BruteForceSymDif(all_receiver_txs, receiver_excess, bloom_entries);
   }
 
-  double fpr = ComputeFpr(sym_diff, receiver_excess);
+  const double fpr = ComputeFpr(sym_diff, receiver_excess);
 
   sym_diff += missing;
 
   return GrapheneBlockParams(sym_diff, bloom_entries, fpr);
 }
 
-GrapheneBlockParams::GrapheneBlockParams(const size_t expected_symmetric_difference,
-                                         const uint32_t bloom_entries_num,
-                                         const double bloom_filter_fpr)
+GrapheneBlockParams::GrapheneBlockParams(
+    const size_t expected_symmetric_difference,
+    const size_t bloom_entries_num,
+    const double bloom_filter_fpr)
     : expected_symmetric_difference(expected_symmetric_difference),
       bloom_entries_num(bloom_entries_num),
       bloom_filter_fpr(bloom_filter_fpr) {}

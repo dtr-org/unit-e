@@ -15,8 +15,7 @@
 
 namespace p2p {
 
-class GrapheneBlockRequest {
- public:
+struct GrapheneBlockRequest {
   uint256 requested_block_hash;
   uint64_t requester_mempool_count;
 
@@ -36,8 +35,7 @@ class GrapheneBlockRequest {
   }
 };
 
-class GrapheneBlock {
- public:
+struct GrapheneBlock {
   CBlockHeader header;
   uint64_t nonce;
   CBloomFilter bloom_filter;
@@ -68,8 +66,7 @@ class GrapheneBlock {
   }
 };
 
-class GrapheneTxRequest {
- public:
+struct GrapheneTxRequest {
   uint256 block_hash;
   std::set<GrapheneShortHash> missing_tx_short_hashes;
 
@@ -89,8 +86,7 @@ class GrapheneTxRequest {
   }
 };
 
-class GrapheneTx {
- public:
+struct GrapheneTx {
   uint256 block_hash;
   std::vector<CTransactionRef> txs;
 

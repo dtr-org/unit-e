@@ -69,7 +69,7 @@ public:
      * It should generally always be a random value (and is largely only exposed for unit testing)
      * nFlags can be MATCH_ESPERANZA_TRANSACTIONS and one of the BLOOM_UPDATE_* enums (not _MASK)
      */
-    CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweak, unsigned char nFlagsIn, unsigned int max_filter_size_bytes = MAX_BLOOM_FILTER_SIZE, unsigned int max_hash_funcs = MAX_HASH_FUNCS);
+    CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweak, unsigned char nFlagsIn, size_t max_filter_size_bytes = MAX_BLOOM_FILTER_SIZE, size_t max_hash_funcs = MAX_HASH_FUNCS);
     CBloomFilter() : isFull(true), isEmpty(false), nHashFuncs(0), nTweak(0), nFlags(0) {}
 
     ADD_SERIALIZE_METHODS;
@@ -103,7 +103,7 @@ public:
     //! Checks for empty and full filters to avoid wasting cpu
     void UpdateEmptyFull();
 
-    static unsigned int ComputeEntriesSize(size_t n_elements, double fpr);
+    static size_t ComputeEntriesSize(size_t n_elements, double fpr);
 };
 
 /**

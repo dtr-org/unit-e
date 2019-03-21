@@ -62,7 +62,7 @@ bool GrapheneSender::SendBlock(CNode &to, const CBlock &block, const CBlockIndex
   receiver_info.last_requested_hash = block.GetHash();
   receiver_info.requested_tx = false;
 
-  LogPrint(BCLog::NET, "Constructing graphene block %s for peer=%d, txpool size=%d\n",
+  LogPrint(BCLog::NET, "Constructing graphene block %s for peer %d, txpool size %d\n",
            block.GetHash().GetHex(), to.GetId(), receiver_info.tx_pool_count);
 
   // Graphene block might not be constructed if we think it is improbable for
@@ -99,7 +99,7 @@ bool GrapheneSender::SendBlock(CNode &to, const CBlock &block, const CBlockIndex
     }
   }
 
-  LogPrint(BCLog::NET, "Sending graphene block %s to peer=%d\n",
+  LogPrint(BCLog::NET, "Sending graphene block %s to peer %d\n",
            block.GetHash().GetHex(), to.GetId());
 
   PushMessage(to, NetMsgType::GRAPHENEBLOCK, std::move(graphene_block));
@@ -110,7 +110,7 @@ void GrapheneSender::OnGrapheneTxRequestReceived(CNode &from,
                                                  const GrapheneTxRequest &request) {
 
   if (request.block_hash.IsNull() || request.missing_tx_short_hashes.empty()) {
-    LogPrint(BCLog::NET, "Received incorrect graphene tx request from peer=%d\n", from.GetId());
+    LogPrint(BCLog::NET, "Received incorrect graphene tx request from peer %d\n", from.GetId());
     Misbehaving(from.GetId(), 100);
     return;
   }
