@@ -193,8 +193,8 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     bool duplicate_transactions;
 
     // check merkle root
-    const uint256 merkle_root1 = BlockMerkleRoot(block, &duplicate_transactions);
-    if (block.hashMerkleRoot != merkle_root1) {
+    const uint256 expected_merkle_root = BlockMerkleRoot(block, &duplicate_transactions);
+    if (block.hashMerkleRoot != expected_merkle_root) {
       result.AddError(Error::MERKLE_ROOT_MISMATCH);
     }
     if (duplicate_transactions) {
@@ -206,20 +206,16 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     }
 
     // check witness merkle root
-    const uint256 merkle_root2 = BlockWitnessMerkleRoot(block, &duplicate_transactions);
-    if (block.hash_witness_merkle_root != merkle_root2) {
+    const uint256 expected_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
+    if (block.hash_witness_merkle_root != expected_witness_merkle_root) {
       result.AddError(Error::WITNESS_MERKLE_ROOT_MISMATCH);
     }
     if (duplicate_transactions) {
       result.AddError(Error::WITNESS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
-    const uint256 merkle_root3 = BlockFinalizerCommitsMerkleRoot(block, &duplicate_transactions);
-    if (block.hash_finalizer_commits_merkle_root != merkle_root3) {
+    if (block.hash_finalizer_commits_merkle_root != BlockFinalizerCommitsMerkleRoot(block)) {
       result.AddError(Error::FINALIZER_COMMITS_MERKLE_ROOT_MISMATCH);
-    }
-    if (duplicate_transactions) {
-      result.AddError(Error::FINALIZER_COMMITS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
     // check proposer signature

@@ -67,10 +67,6 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-witness-merkle-match");
       return err;
     }
-    case staking::BlockValidationError::FINALIZER_COMMITS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS: {
-      static ValidationError err("bad-fincommits-duplicate");
-      return err;
-    }
     case staking::BlockValidationError::FINALIZER_COMMITS_MERKLE_ROOT_MISMATCH: {
       static ValidationError err("bad-fincommits-merkleroot");
       return err;

@@ -442,6 +442,7 @@ public:
         READWRITE(hashPrev);
         READWRITE(hashMerkleRoot);
         READWRITE(hash_witness_merkle_root);
+        READWRITE(hash_finalizer_commits_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
@@ -461,6 +462,7 @@ public:
         block.hashPrevBlock   = hashPrev;
         block.hashMerkleRoot  = hashMerkleRoot;
         block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;

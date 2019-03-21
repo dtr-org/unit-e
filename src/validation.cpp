@@ -3207,14 +3207,9 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (mutated)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-duplicate", true, "duplicate transaction");
 
-        uint256 merkle_root = BlockFinalizerCommitsMerkleRoot(block, &mutated);
+        uint256 merkle_root = BlockFinalizerCommitsMerkleRoot(block);
         if (block.hash_finalizer_commits_merkle_root != merkle_root) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-fincommits-merkleroot", true, "hash_finalizer_commits_merkle_root mismatch");
-        }
-
-        // see CVE-2012-2459
-        if (mutated) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-fincommits-duplicate", true, "duplicate finalizer commits");
+            return state.DoS(100, false, REJECT_INVALID, "bad-finalizercommits-merkleroot", true, "hash_finalizer_commits_merkle_root mismatch");
         }
     }
 

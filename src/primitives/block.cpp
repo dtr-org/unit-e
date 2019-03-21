@@ -20,8 +20,7 @@ void CBlock::ComputeMerkleTrees() {
     bool mutated = false;
     hashMerkleRoot = BlockMerkleRoot(*this, &mutated);
     assert(!mutated && "merkle tree contained duplicates");
-    hash_finalizer_commits_merkle_root = BlockFinalizerCommitsMerkleRoot(*this, &mutated);
-    assert(!mutated && "finalizer commits merkle tree contained duplicates");
+    hash_finalizer_commits_merkle_root = BlockFinalizerCommitsMerkleRoot(*this);
     hash_witness_merkle_root = BlockWitnessMerkleRoot(*this, &mutated);
     assert(!mutated && "witness merkle tree contained duplicates");
 }

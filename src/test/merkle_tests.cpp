@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(merkle_test_single_leaf)
 
 BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
 {
-  using tx_list = std::vector<CTransactionRef>;
+  using tranactions = std::vector<CTransactionRef>;
 
   auto make_tx = [](uint16_t version, TxType t) {
     CMutableTransaction tx;
@@ -151,88 +151,70 @@ BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
     return MakeTransactionRef(tx);
   };
 
-  auto compute_merkle = [](tx_list txs) {
+  auto compute_merkle = [](const tranactions &txs) {
     std::vector<uint256> hashes;
     for (const CTransactionRef& tx : txs) {
       hashes.emplace_back(tx->GetHash());
     }
 
-    uint256 hash = ComputeMerkleRoot(hashes);
+    const uint256 hash = ComputeMerkleRoot(hashes);
     BOOST_CHECK(hash != uint256::zero); // sanity check
     return hash;
   };
 
   struct TestCase{
     std::string test_name; // error message
-    tx_list txs;           // provided tx list
+    tranactions txs;       // provided tx list
     uint256 merkle_root;   // expected merkle root
-    bool has_duplicates;   // track duplicates
   };
 
   std::vector<TestCase> test_cases{
     TestCase{
       "empty tx list",
-      tx_list{},
+      tranactions{},
       uint256::zero,
-      false,
     },
     TestCase{
       "tx list without finalier commits",
-      tx_list{
+      tranactions{
         make_tx(1, TxType::COINBASE),
         make_tx(2, TxType::REGULAR),
       },
       uint256::zero,
-      false,
     },
     TestCase{
       "duplicate non finalized commits are ignored",
-      tx_list{
+      tranactions{
         make_tx(1, TxType::COINBASE),
         make_tx(1, TxType::COINBASE),
         make_tx(2, TxType::REGULAR),
         make_tx(2, TxType::REGULAR),
       },
       uint256::zero,
-      false,
     },
     TestCase{
       "list with one Vote tx",
-      tx_list{
+      tranactions{
         make_tx(1, TxType::VOTE),
       },
-      compute_merkle(tx_list{
+      compute_merkle(tranactions{
         make_tx(1, TxType::VOTE),
       }),
-      false,
     },
     TestCase{
       "multiple regular txs with one Vote tx",
-      tx_list{
+      tranactions{
         make_tx(1, TxType::REGULAR),
         make_tx(2, TxType::VOTE),
         make_tx(3, TxType::REGULAR),
       },
-      compute_merkle(tx_list{
+      compute_merkle(tranactions{
         make_tx(2, TxType::VOTE),
       }),
-      false,
-    },
-    TestCase{
-      "duplicate Vote txs",
-      tx_list{
-        make_tx(1, TxType::VOTE),
-        make_tx(1, TxType::VOTE),
-      },
-      compute_merkle(tx_list{
-        make_tx(1, TxType::VOTE),
-        make_tx(1, TxType::VOTE),
-      }),
-      true,
     },
     TestCase{
       "all tx types",
-      tx_list{
+      tranactions{
         make_tx(0, TxType::COINBASE),
         make_tx(1, TxType::VOTE),
         make_tx(2, TxType::ADMIN),
@@ -242,7 +224,7 @@ BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
         make_tx(6, TxType::DEPOSIT),
         make_tx(7, TxType::REGULAR),
       },
-      compute_merkle(tx_list{
+      compute_merkle(tranactions{
         make_tx(1, TxType::VOTE),
         make_tx(2, TxType::ADMIN),
         make_tx(3, TxType::WITHDRAW),
@@ -250,7 +232,6 @@ BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
         make_tx(5, TxType::SLASH),
         make_tx(6, TxType::DEPOSIT),
       }),
-      false,
     }
   };
 
@@ -260,7 +241,6 @@ BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
     bool mutated;
     uint256 hash = BlockFinalizerCommitsMerkleRoot(block, &mutated);
     BOOST_CHECK_MESSAGE(tc.merkle_root == hash, tc.test_name);
-    BOOST_CHECK_MESSAGE(tc.has_duplicates == mutated, tc.test_name);
   }
 }
 
