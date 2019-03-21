@@ -155,6 +155,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "stakeat", 2, "coincontrol" },
 
     { "stop", 0, "wait" },
+
+    { "importmasterkey", 2, "rescan" },
+    { "importmasterkey", 3, "brand_new" },
 };
 
 class CRPCConvertTable
