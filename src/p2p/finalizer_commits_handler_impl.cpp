@@ -107,13 +107,13 @@ FinalizerCommitsLocator FinalizerCommitsHandlerImpl::GetFinalizerCommitsLocator(
            ? fin_state->GetEpochCheckpointHeight(start_epoch - 1)
            : 0);
 
-  if (start_ptr->nHeight > last_checkpoint_height && start_ptr != &last_finalized_index) {
+  if (static_cast<blockchain::Height>(start_ptr->nHeight) > last_checkpoint_height && start_ptr != &last_finalized_index) {
     locator.start.push_back(start_ptr->GetBlockHash());
   }
 
   const CBlockIndex *walk = start_ptr;
   for (blockchain::Height height = last_checkpoint_height;
-       height > last_finalized_index.nHeight && locator.start.size() < LOCATOR_START_LIMIT;
+       height > static_cast<blockchain::Height>(last_finalized_index.nHeight) && locator.start.size() < LOCATOR_START_LIMIT;
        height -= std::min(height, fin_state->GetEpochLength())) {
 
     walk = walk->GetAncestor(height);
@@ -441,7 +441,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
       assert(index != nullptr);
 
-      if (index->nHeight > download_until) {
+      if (static_cast<blockchain::Height>(index->nHeight) > download_until) {
         break;
       }
 
