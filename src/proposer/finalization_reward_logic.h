@@ -18,7 +18,7 @@ namespace proposer {
 class FinalizationRewardLogic {
 
  public:
-  virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex *) = 0;
+  virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &) = 0;
 
   virtual ~FinalizationRewardLogic() = default;
 
