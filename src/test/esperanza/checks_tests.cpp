@@ -170,37 +170,14 @@ BOOST_AUTO_TEST_CASE(ContextualCheckAdminTx_test) {
   }
 
   {
-    // Check authorization
     AdminKeySet key_set = MakeKeySet();
     CTransaction tx = CreateAdminTx(key_set);
 
     AdminParams admin_params;
-    admin_params.m_block_to_admin_keys.emplace(0, key_set);
+    admin_params.admin_keys = key_set;
 
     FinalizationStateSpy spy(FinalizationParams{}, admin_params);
     CValidationState err_state;
-
-    bool ok = ContextualCheckAdminTx(tx, err_state, spy);
-    BOOST_CHECK(!ok);
-    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "admin-not-authorized");
-  }
-
-  {
-    AdminKeySet key_set = MakeKeySet();
-    CTransaction tx = CreateAdminTx(key_set);
-
-    AdminParams admin_params;
-    admin_params.m_block_to_admin_keys.emplace(0, key_set);
-
-    FinalizationStateSpy spy(FinalizationParams{}, admin_params);
-    CValidationState err_state;
-
-    // Save admin key set in FinalizationState
-    CBlockIndex bi = CBlockIndex();
-    const uint256 block_hash = GetRandHash();
-    bi.nHeight = 0;
-    bi.phashBlock = &block_hash;
-    spy.ProcessNewCommits(bi, {});
 
     bool ok = ContextualCheckAdminTx(tx, err_state, spy);
     BOOST_CHECK(ok);
