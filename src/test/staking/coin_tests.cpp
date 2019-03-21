@@ -26,7 +26,7 @@ struct Fixture {
 
   const CBlockIndex block2 = [&] {
     CBlockIndex i;
-    i.nHeight = block1.nHeight - 1; // older than block1
+    i.nHeight = block1.nHeight - 1;  // older than block1
     return i;
   }();
 

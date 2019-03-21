@@ -2,9 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <finalization/state_repository.h>
-#include <esperanza/finalizationstate.h>
 #include <esperanza/adminparams.h>
+#include <esperanza/finalizationstate.h>
+#include <finalization/state_repository.h>
 #include <test/test_unite.h>
 #include <test/test_unite_mocks.h>
 
@@ -13,7 +13,7 @@
 namespace {
 
 class Fixture {
-public:
+ public:
   Fixture() : repo(finalization::StateRepository::New(&m_chain)) {
     Reset();
   }
@@ -49,7 +49,7 @@ public:
 
   std::unique_ptr<finalization::StateRepository> repo;
 
-private:
+ private:
   blockchain::Height FindNextHeight() {
     if (m_chain.tip == nullptr) {
       return 0;
@@ -60,10 +60,10 @@ private:
 
   mocks::ActiveChainMock m_chain;
   std::map<uint256, CBlockIndex> m_block_indexes;
-  std::map<blockchain::Height, CBlockIndex *> m_block_heights; // m_block_index owns these block indexes
+  std::map<blockchain::Height, CBlockIndex *> m_block_heights;  // m_block_index owns these block indexes
 };
 
-}
+}  // namespace
 
 BOOST_FIXTURE_TEST_SUITE(state_repository_tests, BasicTestingSetup)
 
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
   const auto &b3 = fixture.CreateBlockIndex();
   const auto &b4 = fixture.CreateBlockIndex();
 
-  BOOST_CHECK(fixture.repo->Find(b0) != nullptr); // we have a state for genesis block
+  BOOST_CHECK(fixture.repo->Find(b0) != nullptr);  // we have a state for genesis block
   BOOST_CHECK(fixture.repo->Find(b1) == nullptr);
   BOOST_CHECK(fixture.repo->Find(b2) == nullptr);
 
@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
 
   // Trim the repository
   fixture.repo->TrimUntilHeight(3);
-  BOOST_CHECK(fixture.repo->Find(b0) != nullptr); // genesis
+  BOOST_CHECK(fixture.repo->Find(b0) != nullptr);  // genesis
   BOOST_CHECK(fixture.repo->Find(b1) == nullptr);
   BOOST_CHECK(fixture.repo->Find(b2) == nullptr);
   BOOST_CHECK(fixture.repo->Find(b3) != nullptr);
@@ -139,7 +139,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
 
   // Reset repo completely.
   fixture.Reset();
-  BOOST_CHECK(fixture.repo->Find(b0) != nullptr); // genesis
+  BOOST_CHECK(fixture.repo->Find(b0) != nullptr);  // genesis
   BOOST_CHECK(fixture.repo->Find(b3) == nullptr);
   BOOST_CHECK(fixture.repo->Find(b4) == nullptr);
 
@@ -150,6 +150,5 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
   BOOST_REQUIRE(state4 != nullptr);
   BOOST_CHECK(state4->GetInitStatus() == S::COMPLETED);
 }
-
 
 BOOST_AUTO_TEST_SUITE_END()

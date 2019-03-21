@@ -7,8 +7,8 @@
 
 #include <amount.h>
 
-#include <uint256.h>
 #include <better-enums/enum.h>
+#include <uint256.h>
 
 #include <cstdint>
 

@@ -17,7 +17,7 @@ namespace {
 
 struct Fixture {
 
-  blockchain::Parameters parameters = [] () {
+  blockchain::Parameters parameters = []() {
     blockchain::Parameters p = blockchain::Parameters::TestNet();
     p.difficulty_function = [](const blockchain::Parameters &p, blockchain::Height h,
                                blockchain::ChainAccess &c) -> blockchain::Difficulty {
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
 
   fixture.active_chain_mock.height = 1000;
 
-  const CBlockIndex block_index = [&]{
+  const CBlockIndex block_index = [&] {
     CBlockIndex index;
     index.nHeight = fixture.active_chain_mock.height - depth;
     index.nTime = block.nTime;
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   const CAmount amount = 10000 * UNIT;
 
   std::map<COutPoint, staking::Coin> coins;
-  coins.emplace(stake_ref, staking::Coin(&block_index, stake_ref, CTxOut{ amount, script}));
+  coins.emplace(stake_ref, staking::Coin(&block_index, stake_ref, CTxOut{amount, script}));
 
   fixture.active_chain_mock.get_utxo = [&coins](const COutPoint &p) {
     const auto it = coins.find(p);
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
     BOOST_CHECK(r.errors.Contains(staking::BlockValidationError::TRANSACTION_INPUT_NOT_FOUND));
   }
 
-  coins.emplace(input2_ref, staking::Coin(&block_index, input2_ref, CTxOut{ 2 * UNIT, script2 }));
+  coins.emplace(input2_ref, staking::Coin(&block_index, input2_ref, CTxOut{2 * UNIT, script2}));
 
   // Two different remote staking inputs and outputs with correct amounts
   {

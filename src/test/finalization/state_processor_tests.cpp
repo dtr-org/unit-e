@@ -2,10 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <esperanza/adminparams.h>
+#include <esperanza/finalizationstate.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
-#include <esperanza/finalizationstate.h>
-#include <esperanza/adminparams.h>
 #include <test/test_unite.h>
 #include <test/test_unite_mocks.h>
 
@@ -17,8 +17,8 @@ class Fixture {
   static constexpr blockchain::Height epoch_length = 5;
 
   Fixture()
-    : m_repo(finalization::StateRepository::New(&m_chain)),
-      m_proc(finalization::StateProcessor::New(m_repo.get(), &m_chain)) {
+      : m_repo(finalization::StateRepository::New(&m_chain)),
+        m_proc(finalization::StateProcessor::New(m_repo.get(), &m_chain)) {
     m_finalization_params = Params().GetFinalization();
     m_finalization_params.epoch_length = epoch_length;
     m_admin_params = Params().GetAdminParams();
@@ -88,7 +88,7 @@ class Fixture {
   esperanza::FinalizationParams m_finalization_params;
   esperanza::AdminParams m_admin_params;
   std::map<uint256, CBlockIndex> m_block_indexes;
-  std::map<blockchain::Height, CBlockIndex *> m_block_heights; // m_block_index owns these block indexes
+  std::map<blockchain::Height, CBlockIndex *> m_block_heights;  // m_block_index owns these block indexes
   mocks::ActiveChainMock m_chain;
   std::unique_ptr<finalization::StateRepository> m_repo;
   std::unique_ptr<finalization::StateProcessor> m_proc;
@@ -132,8 +132,8 @@ BOOST_AUTO_TEST_CASE(trimming) {
   BOOST_CHECK(fixture.GetState(6) == nullptr);
   BOOST_CHECK(fixture.GetState(7) == nullptr);
   BOOST_CHECK(fixture.GetState(8) == nullptr);
-  BOOST_CHECK(fixture.GetState(9) != nullptr); // justified checkpoint
-  BOOST_CHECK(fixture.GetState(10) != nullptr); // next epoch
+  BOOST_CHECK(fixture.GetState(9) != nullptr);   // justified checkpoint
+  BOOST_CHECK(fixture.GetState(10) != nullptr);  // next epoch
 
   // Complete current epoch
   fixture.AddBlocks(4);

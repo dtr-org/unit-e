@@ -2,13 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <blockchain/blockchain_behavior.h>
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
-#include <blockchain/blockchain_behavior.h>
 
 template <class T, std::size_t N>
-constexpr std::size_t size(const T (&array)[N]) noexcept
-{
+constexpr std::size_t size(const T (&array)[N]) noexcept {
   return N;
 }
 
@@ -18,21 +17,21 @@ BOOST_AUTO_TEST_CASE(creation_test) {
   ArgsManager args;
 
   {
-    const char* const params[] = {"united"};
+    const char *const params[] = {"united"};
     args.ParseParameters(size(params), params);
     const auto b = blockchain::Behavior::New(&args);
     BOOST_CHECK_EQUAL(b->GetNetworkName(), "test");
   }
 
   {
-    const char* const params[] = {"united", "-regtest"};
+    const char *const params[] = {"united", "-regtest"};
     args.ParseParameters(size(params), params);
     const auto b = blockchain::Behavior::New(&args);
     BOOST_CHECK_EQUAL(b->GetNetworkName(), "regtest");
   }
 
   {
-    const char* const params[] = {"united", "-regtest=0"};
+    const char *const params[] = {"united", "-regtest=0"};
     args.ParseParameters(size(params), params);
     const auto b = blockchain::Behavior::New(&args);
     BOOST_CHECK_EQUAL(b->GetNetworkName(), "test");
