@@ -132,11 +132,11 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         sync_blocks([node1, validator])
         disconnect_nodes(node1, validator.index)
         connect_sync_disconnect(node0, node1, b32)
-        check_finalization(node0, {'currentDynasty': 4,
-                                   'currentEpoch': 6,
-                                   'lastJustifiedEpoch': 5,
-                                   'lastFinalizedEpoch': 4,
-                                   'validators': 1})
+        assert_finalizationstate(node0, {'currentDynasty': 4,
+                                         'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 5,
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
         self.log.info('node successfully switched to longest justified fork')
 
         # generate longer but not justified fork. node0 shouldn't switch
