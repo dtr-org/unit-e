@@ -83,10 +83,10 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
 
   std::vector<std::vector<unsigned char>> solutions;
   txnouttype type_ret;
-  const bool ok = Solver(tx.vout[0].scriptPubKey, type_ret, solutions);
-
-  // Solver must return True value on PayVoteSlash type script.
-  assert(ok);
+  if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
+    return err_state.DoS(10, false, REJECT_INVALID,
+                         "bad-deposit-script-not-solvable");
+  }
 
   if (!CheckValidatorAddress(tx, validator_address_out)) {
     return err_state.DoS(10, false, REJECT_INVALID,
