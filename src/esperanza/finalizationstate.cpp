@@ -666,10 +666,6 @@ bool FinalizationState::IsPermissioningActive() const {
   return m_admin_state.IsPermissioningActive();
 }
 
-void FinalizationState::OnBlock(blockchain::Height blockHeight) {
-  m_admin_state.OnBlock(blockHeight);
-}
-
 Result FinalizationState::ValidateAdminKeys(const AdminKeySet &adminKeys) const {
   LOCK(cs_esperanza);
 
@@ -990,9 +986,6 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   LOCK(cs_esperanza);
   assert(m_status == NEW);
   uint256 block_hash = block_index.GetBlockHash();
-
-  // Used to apply hardcoded parameters for a given block
-  OnBlock(block_index.nHeight);
 
   // We can skip everything for the genesis block since it isn't suppose to
   // contain esperanza's transactions.
