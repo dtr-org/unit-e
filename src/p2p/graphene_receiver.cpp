@@ -125,8 +125,7 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
                block_hash.GetHex());
       RequestFallbackBlock(from, block_hash);
       return;
-    }
-    else if (reconstructor_state == +GrapheneDecodeState::NEED_MORE_TXS) {
+    } else if (reconstructor_state == +GrapheneDecodeState::NEED_MORE_TXS) {
       GrapheneTxRequest request(block_hash, reconstructor->GetMissingShortTxHashes());
 
       LogPrint(BCLog::NET, "Graphene block %s reconstructed, but %d transactions are missing\n",
