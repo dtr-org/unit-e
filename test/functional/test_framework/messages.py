@@ -57,6 +57,7 @@ def hash256(s):
     return sha256(sha256(s))
 
 def ser_compact_size(l):
+    r = b""
     if l < 253:
         r = struct.pack("B", l)
     elif l < 0x10000:
