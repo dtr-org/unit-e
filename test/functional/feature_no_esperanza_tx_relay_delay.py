@@ -15,6 +15,7 @@ from test_framework.util import (
     sync_mempools,
     connect_nodes,
     connect_nodes_bi,
+    disconnect_nodes,
     sync_blocks,
     wait_until,
     JSONRPCException,
@@ -41,9 +42,12 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             [esperanza_config],
             [esperanza_config],
             [esperanza_config],
-            [esperanza_config],
+            [esperanza_config, '-stakesplitthreshold=5000000000'],
             [esperanza_config, '-validating=1'],
         ]
+
+    def setup_network(self):
+        self.setup_nodes()
 
     def run_test(self):
         # used to de-duplicate tx ids
@@ -74,7 +78,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             wait_until(lambda: has_tx_in_mempool(record_to, txid), timeout=150)
             return time.perf_counter() - now
 
-        def calc_vote_relay_delay(generate_node, record_from, record_to):
+        def calc_vote_relay_delay(generate_node, record_from, record_to, finalizer):
             # UNIT-E TODO: node can't vote when it processed the checkpoint
             # so we create one extra block to pass that. See https://github.com/dtr-org/unit-e/issues/643
             generate_node.generatetoaddress(1, generate_node.getnewaddress('', 'bech32'))
@@ -84,7 +88,12 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             sync_mempools([generate_node, record_from, record_to], timeout=10)
             assert_equal(len(new_votes_in_mempool(record_from)), 0)
 
+            # ensure that record_from node receives the block earlier than the vote
+            disconnect_nodes(generate_node, finalizer.index)
             generate_node.generatetoaddress(1, generate_node.getnewaddress('', 'bech32'))
+            sync_blocks([generate_node, record_from], timeout=10)
+            connect_nodes(generate_node, finalizer.index)
+
             wait_until(lambda: len(new_votes_in_mempool(record_from)) > 0, timeout=10)
 
             now = time.perf_counter()
@@ -110,32 +119,25 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         node2 = self.nodes[2]
         node3 = self.nodes[3]
 
-        validator = self.nodes[4]
+        finalizer = self.nodes[4]
 
-        self.setup_stake_coins(node0, node3, validator)
+        self.setup_stake_coins(node3, finalizer)
+
+        # create network topology where arrows denote the connection direction:
+        #         node3 → finalizer
+        #          ↓↑
+        # node0 → node1 → node2
+        connect_nodes(node0, node1.index)
+        connect_nodes(node1, node2.index)
+        connect_nodes(node3, finalizer.index)
+
+        connect_nodes_bi(self.nodes, node3.index, node1.index)
+
+        self.log.info('Topology of the network is configured')
 
         # leave IBD
         node3.generatetoaddress(1, node3.getnewaddress('', 'bech32'))
         sync_blocks(self.nodes, timeout=10)
-
-        # create network topology where arrows denote the connection direction:
-        #    node3 ←→ validator
-        #         ↖↘ ↙↗
-        # node0 → node1 → node2
-        self.restart_node(node0.index)
-        self.restart_node(node1.index)
-        self.restart_node(node2.index)
-        self.restart_node(node3.index)
-        self.restart_node(validator.index)
-
-        connect_nodes(node0, node1.index)
-        connect_nodes(node1, node2.index)
-
-        connect_nodes_bi(self.nodes, node3.index, node1.index)
-        connect_nodes_bi(self.nodes, node3.index, validator.index)
-        connect_nodes_bi(self.nodes, node1.index, validator.index)
-
-        self.log.info('Topology of the network is configured')
 
         # record relay time of the standard transaction to the outbound peer
         outbound_delays = []
@@ -160,19 +162,19 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         sync_mempools(self.nodes)
 
         # disable instant finalization
-        payto = validator.getnewaddress('', 'legacy')
-        txid = validator.deposit(payto, 10000)
+        payto = finalizer.getnewaddress('', 'legacy')
+        txid = finalizer.deposit(payto, 10000)
         self.wait_for_transaction(txid, timeout=10)
 
-        node0.generatetoaddress(7, node0.getnewaddress('', 'bech32'))
-        assert_equal(node0.getblockcount(), 8)
-        assert_equal(node0.getfinalizationstate()['currentEpoch'], 4)
+        node3.generatetoaddress(7, node3.getnewaddress('', 'bech32'))
+        assert_equal(node3.getblockcount(), 8)
+        assert_equal(node3.getfinalizationstate()['currentEpoch'], 4)
         sync_blocks(self.nodes, timeout=10)
 
         # record relay time of the vote transaction to the outbound peer
         outbound_vote_delays = []
         for i in range(TEST_SAMPLES):
-            delay = calc_vote_relay_delay(generate_node=node3, record_from=node1, record_to=node2)
+            delay = calc_vote_relay_delay(generate_node=node3, record_from=node1, record_to=node2, finalizer=finalizer)
             outbound_vote_delays.append(delay)
 
         self.log.info('Test outbound vote relay %d times. mean: %0.3f sec, median: %0.3f sec',
@@ -181,7 +183,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         # record relay time of the vote transaction to the inbound peer
         inbound_vote_delays = []
         for i in range(TEST_SAMPLES):
-            delay = calc_vote_relay_delay(generate_node=node3, record_from=node1, record_to=node0)
+            delay = calc_vote_relay_delay(generate_node=node3, record_from=node1, record_to=node0, finalizer=finalizer)
             inbound_vote_delays.append(delay)
 
         self.log.info('Test inbound vote relay %d times. mean: %0.3f sec, median: %0.3f sec',
