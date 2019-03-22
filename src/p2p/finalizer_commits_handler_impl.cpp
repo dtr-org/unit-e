@@ -354,18 +354,6 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
         }
       }
 
-      // // Make contextual check of the commits.
-      // if (new_index->pprev != nullptr) {
-      //   if (auto *fin_state = m_repo->Find(*new_index->pprev)) {
-      //     for (const auto &c : d.commits) {
-      //       if (!esperanza::ContextualCheckFinalizationTx(
-      //             *c, err_state, chainparams.GetConsensus(), *fin_state)) {
-      //         return false;
-      //       }
-      //     }
-      //   }
-      // }
-
       if (new_index->commits) {
         if (!FinalizerCommitsEqual(*new_index->commits, d.commits)) {
           // This should be almost impossible with commits merkle root validation, check it just in case
