@@ -169,7 +169,7 @@ uint256 BlockFinalizerCommitsMerkleRoot(const CBlock& block, bool* mutated)
 {
     std::vector<uint256> leaves;
     for (const CTransactionRef &tx : block.vtx) {
-        if (tx->IsFinalizationTransaction()) {
+        if (tx->IsFinalizerCommit()) {
             leaves.emplace_back(tx->GetHash());
         }
     }
