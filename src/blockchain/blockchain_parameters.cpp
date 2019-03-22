@@ -28,6 +28,7 @@ Parameters Parameters::Base() noexcept {
   p.initial_supply = 150000000000000000;
   p.reward_schedule = {3750000000, 1700000000, 550000000, 150000000, 31000000};
   p.immediate_reward_fraction = ufp64::div_2uint(1, 10);
+  p.finalization_reward_fraction = ufp64::div_2uint(4, 10);
   p.period_blocks = 19710000;
   p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
   assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount(0)) * p.period_blocks);

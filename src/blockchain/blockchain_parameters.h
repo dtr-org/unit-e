@@ -166,8 +166,11 @@ struct Parameters {
   //! \brief The base block reward for each period.
   std::vector<CAmount> reward_schedule;
 
-  //! \brief The reward immediately given upon block proposal.
+  //! \brief The fraction of the reward immediately given upon block proposal.
   ufp64::ufp64_t immediate_reward_fraction;
+
+  //! \brief The fraction of the reward given to the proposers after finalization.
+  ufp64::ufp64_t finalization_reward_fraction;
 
   //! \brief The period size in blocks.
   std::uint32_t period_blocks;

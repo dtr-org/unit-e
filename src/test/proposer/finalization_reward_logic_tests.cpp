@@ -106,6 +106,11 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
   // We must pay out the rewards at the first block of an epoch, i.e. when the current tip is a checkpoint block
   std::vector<std::pair<CScript, CAmount>> rewards = logic->GetFinalizationRewards(blocks[0]);
   BOOST_CHECK_EQUAL(rewards.size(), fin_state.GetEpochLength());
+  for (std::size_t i = 0; i < rewards.size(); ++i) {
+    auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(1) + i);
+    auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
+    BOOST_CHECK_EQUAL(rewards[i].second, r);
+  }
 
   fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(2));
   BOOST_CHECK_EQUAL(fin_state.GetLastFinalizedEpoch(), 0);
@@ -117,13 +122,14 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
     BOOST_CHECK_EQUAL(rewards.size(), 0);
   }
 
-  fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(3));
-  BOOST_CHECK_EQUAL(fin_state.GetLastFinalizedEpoch(), 1);
-  BOOST_CHECK_EQUAL(fin_state.GetCurrentEpoch(), 3);
   f.AddState(&blocks.back(), fin_state);
-
   rewards = logic->GetFinalizationRewards(blocks.back());
   BOOST_CHECK_EQUAL(rewards.size(), fin_state.GetEpochLength());
+  for (std::size_t i = 0; i < rewards.size(); ++i) {
+    auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(2) + i);
+    auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
+    BOOST_CHECK_EQUAL(rewards[i].second, r);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

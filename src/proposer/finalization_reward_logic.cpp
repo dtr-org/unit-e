@@ -30,7 +30,7 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
     std::vector<std::pair<CScript, CAmount>> result;
     result.reserve(fin_state->GetEpochLength());
     for (auto h = fin_state->GetEpochStartHeight(fin_state->GetCurrentEpoch()); h <= prev_height; ++h) {
-      result.emplace_back(CScript(), 0);
+      result.emplace_back(CScript(), m_blockchain_behavior->CalculateFinalizationReward(h));
     }
     assert(result.size() == fin_state->GetEpochLength());
     return result;
