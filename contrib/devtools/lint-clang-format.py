@@ -40,7 +40,7 @@ def checkandupdate(filename, replace = False, addtogit = False):
           print(filename, "has been formatted")
     else:
       print(filename, "is not formatted")
-      diff = difflib.unified_diff(formatted, unformatted)
+      diff = difflib.unified_diff(unformatted, formatted)
       print(''.join(diff))
   return isformatted
 
