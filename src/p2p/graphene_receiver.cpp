@@ -120,27 +120,21 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
 
     const GrapheneDecodeState reconstructor_state = reconstructor->GetState();
 
-    switch (reconstructor_state) {
-      case GrapheneDecodeState::HAS_ALL_TXS: {
-        // Will be handled below, as soon as we release critical section
-        break;
-      }
-      case GrapheneDecodeState::CANT_DECODE_IBLT: {
-        LogPrint(BCLog::NET, "Unable to decode iblt in graphene block %s\n",
-                 block_hash.GetHex());
-        RequestFallbackBlock(from, block_hash);
-        return;
-      }
-      case GrapheneDecodeState::NEED_MORE_TXS: {
-        GrapheneTxRequest request(block_hash, reconstructor->GetMissingShortTxHashes());
+    if (reconstructor_state == +GrapheneDecodeState::CANT_DECODE_IBLT) {
+      LogPrint(BCLog::NET, "Unable to decode iblt in graphene block %s\n",
+               block_hash.GetHex());
+      RequestFallbackBlock(from, block_hash);
+      return;
+    }
+    else if (reconstructor_state == +GrapheneDecodeState::NEED_MORE_TXS) {
+      GrapheneTxRequest request(block_hash, reconstructor->GetMissingShortTxHashes());
 
-        LogPrint(BCLog::NET, "Graphene block %s reconstructed, but %d transactions are missing\n",
-                 block_hash.GetHex(), request.missing_tx_short_hashes.size());
+      LogPrint(BCLog::NET, "Graphene block %s reconstructed, but %d transactions are missing\n",
+               block_hash.GetHex(), request.missing_tx_short_hashes.size());
 
-        PushMessage(from, NetMsgType::GETGRAPHENETX, std::move(request));
-        it->second = std::move(reconstructor);
-        return;
-      }
+      PushMessage(from, NetMsgType::GETGRAPHENETX, std::move(request));
+      it->second = std::move(reconstructor);
+      return;
     }
   }
 
@@ -248,7 +242,7 @@ void GrapheneReceiver::OnDisconnected(const NodeId node) {
   // We expect to not have many such blocks (in fact currently one), so linear scan is acceptable
   for (auto it = m_graphene_blocks_in_flight.begin(); it != m_graphene_blocks_in_flight.end();) {
     if (it->first.second == node) {
-      it = m_graphene_blocks_in_flight.erase(it++);
+      it = m_graphene_blocks_in_flight.erase(it);
     } else {
       ++it;
     }

@@ -45,7 +45,7 @@ class MempoolMock : public ::TxPool {
     return txs.size();
   }
 
-  virtual std::vector<CTransactionRef> GetTxs() const override {
+  std::vector<CTransactionRef> GetTxs() const override {
     return txs;
   }
 
@@ -54,11 +54,16 @@ class MempoolMock : public ::TxPool {
 
 void AssertBlocksEqual(const CBlock &expected,
                        const CBlock &actual) {
-  // TODO: check headers
-  BOOST_CHECK_EQUAL(expected.vtx.size(), actual.vtx.size());
+
+  const CBlockHeader expected_header = expected.GetBlockHeader();
+  const CBlockHeader actual_header = actual.GetBlockHeader();
+
+  BOOST_CHECK_EQUAL(actual_header.GetHash(), expected_header.GetHash());
+
+  BOOST_CHECK_EQUAL(actual.vtx.size(), expected.vtx.size());
 
   for (size_t i = 0; i < expected.vtx.size(); ++i) {
-    BOOST_CHECK_EQUAL(expected.vtx[i]->GetHash(), actual.vtx[i]->GetHash());
+    BOOST_CHECK_EQUAL(actual.vtx[i]->GetHash(), expected.vtx[i]->GetHash());
   }
 }
 
@@ -66,10 +71,12 @@ void AssertReconstructsBack(const CBlock &original,
                             const MempoolMock &sender_mempool,
                             const MempoolMock &receiver_mempool) {
 
-  const p2p::GrapheneBlock graphene =
+  const auto maybe_graphene =
       p2p::CreateGrapheneBlock(original, sender_mempool.GetTxCount(),
-                               receiver_mempool.GetTxCount(), random)
-          .get();
+                               receiver_mempool.GetTxCount(), random);
+
+  BOOST_REQUIRE(maybe_graphene);
+  const p2p::GrapheneBlock graphene = maybe_graphene.get();
 
   p2p::GrapheneBlockReconstructor reconstructor(graphene, receiver_mempool);
 
@@ -161,10 +168,13 @@ BOOST_AUTO_TEST_CASE(thousands_of_txs) {
 
   assert(block.vtx.size() == (SENDER_TXS + COMMON_TXS) + 1);
 
-  const p2p::GrapheneBlock graphene =
+  const auto maybe_graphene =
       p2p::CreateGrapheneBlock(block, SENDER_TXS, receiver_mempool.GetTxCount(),
-                               random)
-          .get();
+                               random);
+
+  BOOST_REQUIRE(maybe_graphene);
+
+  const p2p::GrapheneBlock graphene = maybe_graphene.get();
 
   p2p::GrapheneBlockReconstructor reconstructor(graphene, receiver_mempool);
 
@@ -250,13 +260,11 @@ BOOST_AUTO_TEST_CASE(decode_rate) {
 
       if (r.GetState() != +p2p::GrapheneDecodeState::CANT_DECODE_IBLT) {
         ++successes;
-      }
-      else {
+      } else {
         // If graphene failed for some reason - we will have to send compact
         graphene_size += cmpct_size;
       }
-    }
-    else {
+    } else {
       // If graphene failed for some reason - we will have to send compact
       graphene_size = cmpct_size;
     }
