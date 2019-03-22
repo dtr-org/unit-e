@@ -201,7 +201,7 @@ boost::optional<HeaderAndFinalizerCommits> FinalizerCommitsHandlerImpl::FindHead
   }
 
   for (const auto &tx : block.vtx) {
-    if (tx->IsFinalizationTransaction()) {
+    if (tx->IsFinalizerCommit()) {
       hc.commits.push_back(tx);
     }
   }
@@ -310,11 +310,11 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
   for (const HeaderAndFinalizerCommits &d : msg.data) {
     // UNIT-E TODO: Check commits merkle root after it is added
     for (const auto &c : d.commits) {
-      if (!c->IsFinalizationTransaction()) {
+      if (!c->IsFinalizerCommit()) {
         return err(100, "bad-non-commit", d.header.GetHash());
       }
       // Make simplest checks which doesn't depend on the context.
-      if (!(CheckTransaction(*c, err_state) && esperanza::CheckFinalizationTx(*c, err_state))) {
+      if (!(CheckTransaction(*c, err_state) && esperanza::CheckFinalizerCommit(*c, err_state))) {
         return false;
       }
     }

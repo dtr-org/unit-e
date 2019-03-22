@@ -592,12 +592,12 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
     assert(!"silence gcc warnings");
 }
 
-static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
+static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationState &err_state,
                                           const Consensus::Params &params,
                                           const esperanza::FinalizationState &fin_state) {
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::ContextualCheckFinalizationTx(tx, err_state, params, fin_state)) {
+    if (!esperanza::ContextualCheckFinalizerCommit(tx, err_state, params, fin_state)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
@@ -605,12 +605,13 @@ static bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationSta
     return true;
 }
 
-static bool ContextualCheckBlockFinalizationTxes(const CBlock &block, CValidationState &err_state,
-                                                 const Consensus::Params &params,
-                                                 const esperanza::FinalizationState &fin_state) {
+static bool ContextualCheckBlockFinalizerCommits(const CBlock &block,
+                                              CValidationState &err_state,
+                                              const Consensus::Params &params,
+                                              const esperanza::FinalizationState &fin_state) {
     for (const auto &tx : block.vtx) {
-        if (tx->IsFinalizationTransaction()) {
-            if (!::ContextualCheckFinalizationTx(*tx, err_state, params, fin_state)) {
+        if (tx->IsFinalizerCommit()) {
+            if (!::ContextualCheckFinalizerCommit(*tx, err_state, params, fin_state)) {
                 return false;
             }
         }
@@ -670,9 +671,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
     const auto *fin_state = esperanza::FinalizationState::GetState();
     assert(fin_state != nullptr);
-    if (tx.IsFinalizationTransaction() &&
-        !::ContextualCheckFinalizationTx(tx, state, chainparams.GetConsensus(), *fin_state)) {
-        return false; // state already filled by ContextualCheckFinalizationTx
+    if (tx.IsFinalizerCommit() &&
+        !::ContextualCheckFinalizerCommit(tx,
+                                      state,
+                                      chainparams.GetConsensus(),
+                                      *fin_state)) {
+        return false; // state already filled by ContextualCheckFinalizerTx
     }
 
     // Check for conflicts with in-memory transactions
@@ -2004,7 +2008,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // UNIT-E: Workaround #421 (we don't restore finalization state when reindex)
     bool has_finalization_tx = false;
     for (const auto &tx : block.vtx) {
-        if (tx->IsFinalizationTransaction()) {
+        if (tx->IsFinalizerCommit()) {
             has_finalization_tx = true;
             break;
         }
@@ -2018,14 +2022,17 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     //
     // unite-msghand (when accepting new block and connecting it):
     // - lock pqueue->ControlMutex in ConnectBlock() -> CCheckQueueControl()
-    // - lock mempool.cs in ConnectBlock() -> CheckFinalizationTx() -> GetTransaction() -> mempool.get()
+    // - lock mempool.cs in ConnectBlock() -> CheckFinalizerTx() -> GetTransaction() -> mempool.get()
     //
     // unite-proposer or unite-http (when creating new block)
     // - lock mempool.cs in BlockAssembler::CreateNewBlock()
     // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
     if (!isGenesisBlock &&
         has_finalization_tx &&
-        !ContextualCheckBlockFinalizationTxes(block, state, chainparams.GetConsensus(), *fin_state)) {
+        !ContextualCheckBlockFinalizerCommits(block,
+                                           state,
+                                           chainparams.GetConsensus(),
+                                           *fin_state)) {
         return false;
     }
 
@@ -3325,7 +3332,7 @@ bool ContextualCheckBlock(const CBlock& block, CValidationState& state, const Co
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
         }
-        if (tx->IsFinalizationTransaction() && !esperanza::CheckFinalizationTx(*tx, state)) {
+        if (tx->IsFinalizerCommit() && !esperanza::CheckFinalizerCommit(*tx, state)) {
             return false;
         }
     }

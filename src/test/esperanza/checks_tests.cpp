@@ -894,7 +894,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
   CTransaction invalidVote(mutedTx);
   Consensus::Params params = Params().GetConsensus();
   CValidationState err_state;
-  BOOST_CHECK(CheckFinalizationTx(invalidVote, err_state) == false);
+  BOOST_CHECK(CheckFinalizerCommit(invalidVote, err_state) == false);
   const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
   BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, params, fin_state) == false);
 

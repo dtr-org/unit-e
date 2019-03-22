@@ -30,11 +30,13 @@ bool IsVoteExpired(const CTransaction &tx);
 //! checks it tests transaction is consistent with its input and finalization state.
 
 //! \brief Generalized finalization transaction check. Asserts on non-finalization transactions.
-bool CheckFinalizationTx(const CTransaction &tx, CValidationState &err_state);
+bool CheckFinalizerCommit(const CTransaction &tx, CValidationState &err_state);
 
 //! \brief Generalized finalization transaction contextual check. Asserts on non-finalization transactions.
-bool ContextualCheckFinalizationTx(const CTransaction &tx, CValidationState &err_state,
-                                   const Consensus::Params &params, const FinalizationState &fin_state);
+bool ContextualCheckFinalizerCommit(const CTransaction &tx,
+                                    CValidationState &err_state,
+                                    const Consensus::Params &params,
+                                    const FinalizationState &fin_state);
 
 bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
                     uint160 *validator_address_out);
