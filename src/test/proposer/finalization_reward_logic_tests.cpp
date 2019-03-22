@@ -91,37 +91,39 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
   Fixture f;
   auto logic = f.GetFinalizationRewardLogic();
   auto fin_state = finalization::FinalizationState(f.fin_params, f.admin_params);
+
+  // TODO UNIT-E: test that we don't pay rewards at the block 1 once https://github.com/dtr-org/unit-e/pull/809 is merged
+
   fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(1));
   BOOST_CHECK_EQUAL(fin_state.GetLastFinalizedEpoch(), 0);
+  BOOST_CHECK_EQUAL(fin_state.GetCurrentEpoch(), 1);
 
   auto start_height = fin_state.GetEpochCheckpointHeight(1);
   std::vector<CBlockIndex> blocks = GenerateBlockIndices(start_height, fin_state.GetEpochLength() + 1);
 
+  f.AddState(&blocks[0], fin_state);
+
+  // We must pay out the rewards at the first block of an epoch, i.e. when the current tip is a checkpoint block
+  std::vector<std::pair<CScript, CAmount>> rewards = logic->GetFinalizationRewards(blocks[0]);
+  BOOST_CHECK_EQUAL(rewards.size(), fin_state.GetEpochLength());
+
   fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(2));
   BOOST_CHECK_EQUAL(fin_state.GetLastFinalizedEpoch(), 0);
-  // Checkpoint of the second epoch
-  f.AddState(&blocks.front(), fin_state);
+  BOOST_CHECK_EQUAL(fin_state.GetCurrentEpoch(), 2);
+
+  for (std::size_t i = 1; i < blocks.size() - 1; ++i) {
+    f.AddState(&blocks[i], fin_state);
+    rewards = logic->GetFinalizationRewards(blocks[i]);
+    BOOST_CHECK_EQUAL(rewards.size(), 0);
+  }
 
   fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(3));
   BOOST_CHECK_EQUAL(fin_state.GetLastFinalizedEpoch(), 1);
-  // Block before checkpoint
-  f.AddState(&blocks[blocks.size() - 2], fin_state);
-  // Checkpoint of the third epoch
+  BOOST_CHECK_EQUAL(fin_state.GetCurrentEpoch(), 3);
   f.AddState(&blocks.back(), fin_state);
 
-  // If provided block index does not correspond to a checkpoint than there must be no rewards
-  std::vector<std::pair<CScript, CAmount>> rewards = logic->GetFinalizationRewards(blocks[blocks.size() - 2]);
-  BOOST_CHECK_EQUAL(rewards.size(), 0);
-
   rewards = logic->GetFinalizationRewards(blocks.back());
-  BOOST_CHECK_EQUAL(rewards.size(), fin_state.GetEpochLength() * 2);
-
-  blockchain::Height h = 1;
-  for (const auto &p : rewards) {
-    CAmount a = p.second;
-    BOOST_CHECK_EQUAL(a, f.behavior->CalculateBlockReward(h) * 9);
-    h += 1;
-  }
+  BOOST_CHECK_EQUAL(rewards.size(), fin_state.GetEpochLength());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
