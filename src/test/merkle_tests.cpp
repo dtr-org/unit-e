@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
   };
 
   struct TestCase{
-    std::string test_name; // error message
+    std::string test_name;
     tranactions txs;       // provided tx list
     uint256 merkle_root;   // expected merkle root
   };
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
       uint256::zero,
     },
     TestCase{
-      "tx list without finalier commits",
+      "tx list without finalizer commits",
       tranactions{
         make_tx(1, TxType::COINBASE),
         make_tx(2, TxType::REGULAR),
