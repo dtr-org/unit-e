@@ -104,7 +104,7 @@ class CompactBlocksTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [["-graphene=0"], ["-txindex", "-deprecatedrpc=addwitnessaddress"]]
+        self.extra_args = [["-graphene=0"], ["-txindex", "-deprecatedrpc=addwitnessaddress", "-graphene=0"]]
         self.utxos = []
 
     def build_block_on_tip(self, node, txs=[]):
