@@ -5,6 +5,7 @@
 
 import subprocess
 import sys
+import difflib
 
 import shared.lib
 
@@ -39,6 +40,8 @@ def checkandupdate(filename, replace = False, addtogit = False):
           print(filename, "has been formatted")
     else:
       print(filename, "is not formatted")
+      diff = difflib.unified_diff(formatted, unformatted)
+      print(''.join(diff))
   return isformatted
 
 def help(argv):
