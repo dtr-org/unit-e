@@ -387,6 +387,24 @@ class P2PInterface(P2PConnection):
         test_function = lambda: self.last_message.get("getdata")
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
+    def wait_for_block_request(self, block_hash, timeout=60):
+        def test_function():
+            getdata = self.last_message.get("getdata", None)
+            getgraphene = self.last_message.get("getgraphene", None)
+
+            if getdata:
+                for inv in getdata.inv:
+                    if inv.hash == block_hash:
+                        return True
+
+            if getgraphene:
+                if getgraphene.request.requested_block_hash == block_hash:
+                    return True
+
+            return False
+
+        wait_until(test_function, timeout=timeout, lock=mininode_lock)
+
     def wait_for_getheaders(self, timeout=60):
         test_function = lambda: self.last_message.get("getheaders")
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
