@@ -15,7 +15,7 @@ namespace p2p {
 class GrapheneHasher {
  public:
   GrapheneHasher(const CBlockHeader &header, uint64_t nonce);
-  GrapheneShortHash GetShortHash(const uint256 &full_hash) const;
+  GrapheneShortHash GetShortHash(const GrapheneFullHash &full_hash) const;
   GrapheneShortHash GetShortHash(const CTransaction &tx) const;
   GrapheneFullHash GetFullHash(const CTransaction &tx) const;
 

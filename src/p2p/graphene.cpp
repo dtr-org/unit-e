@@ -58,7 +58,7 @@ boost::optional<GrapheneBlock> CreateGrapheneBlock(const CBlock &block,
 
   for (size_t i = 1; i < block.vtx.size(); ++i) {
     const CTransactionRef &tx = block.vtx[i];
-    const uint256 full_hash = hasher.GetFullHash(*tx);
+    const GrapheneFullHash full_hash = hasher.GetFullHash(*tx);
     const GrapheneShortHash short_hash = hasher.GetShortHash(full_hash);
 
     if (!short_hash_cache.emplace(short_hash).second) {
@@ -91,7 +91,7 @@ GrapheneBlockReconstructor::GrapheneBlockReconstructor(const GrapheneBlock &grap
 
     const std::vector<CTransactionRef> txs = tx_pool.GetTxs();
     for (const CTransactionRef &tx : txs) {
-      const uint256 full_hash = m_hasher.GetFullHash(*tx);
+      const GrapheneFullHash full_hash = m_hasher.GetFullHash(*tx);
       const GrapheneShortHash short_hash = m_hasher.GetShortHash(full_hash);
 
       if (!graphene_block.bloom_filter.contains(full_hash)) {

@@ -66,9 +66,9 @@ struct GrapheneBlockParams {
   const double bloom_filter_fpr;
 };
 
-GrapheneBlockParams OptimizeGrapheneBlockParams(const size_t block_txs,
-                                                const size_t all_sender_txs,
-                                                const size_t all_receiver_txs);
+GrapheneBlockParams OptimizeGrapheneBlockParams(size_t block_txs,
+                                                size_t all_sender_txs,
+                                                size_t all_receiver_txs);
 
 }  // namespace p2p
 

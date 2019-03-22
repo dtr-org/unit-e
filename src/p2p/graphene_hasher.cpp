@@ -18,7 +18,7 @@ GrapheneHasher::GrapheneHasher(const CBlockHeader &header,
   m_k1 = shorttxidhash.GetUint64(1);
 }
 
-GrapheneShortHash GrapheneHasher::GetShortHash(const uint256 &full_hash) const {
+GrapheneShortHash GrapheneHasher::GetShortHash(const GrapheneFullHash &full_hash) const {
   const auto short_hash = SipHashUint256(m_k0, m_k1, full_hash);
 
   static_assert(std::is_same<decltype(short_hash), const GrapheneShortHash>::value,

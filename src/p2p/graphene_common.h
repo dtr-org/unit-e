@@ -30,12 +30,6 @@ struct GrapheneFullHash : uint256 {
 };
 using GrapheneIblt = IBLT<GrapheneShortHash, 0>;
 
-template <typename T>
-void PushMessage(CNode &to, const char *message, T &&data) {
-  const CNetMsgMaker msg_maker(to.GetSendVersion());
-  g_connman->PushMessage(&to, msg_maker.Make(message, std::forward<T>(data)));
-}
-
 }  // namespace p2p
 
 #endif  //UNITE_P2P_GRAPHENE_COMMON_H
