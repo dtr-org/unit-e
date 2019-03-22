@@ -5,6 +5,7 @@
 #ifndef UNITE_UTIL_SCOPE_STOPWATCH_H
 #define UNITE_UTIL_SCOPE_STOPWATCH_H
 
+#include <boost/preprocessor/cat.hpp>
 #include <chrono>
 
 #include <util.h>
@@ -38,8 +39,8 @@ class ScopeStopwatch {
 
 }  // namespace util
 
-#define FUNCTION_STOPWATCH() util::ScopeStopwatch __stopwatch##__func__(__func__)
+#define FUNCTION_STOPWATCH() util::ScopeStopwatch BOOST_PP_CAT(__stopwatch, __LINE__)(__func__)
 
-#define SCOPE_STOPWATCH(scope_name) util::ScopeStopwatch __stopwatch##__func__##__LINE__(scope_name)
+#define SCOPE_STOPWATCH(scope_name) util::ScopeStopwatch BOOST_PP_CAT(__stopwatch, __LINE__)(scope_name)
 
 #endif  //UNITE_UTIL_SCOPE_STOPWATCH_H
