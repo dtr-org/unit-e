@@ -1454,10 +1454,10 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
 
                 // This function might modify vGetData if it is going to request something as graphene
                 GetComponent<p2p::GrapheneReceiver>()->RequestAsGrapheneWhatPossible(
-                    *pfrom,
-                    &vGetData,
-                    *pindexLast,
-                    mapBlocksInFlight.size());
+                  *pfrom,
+                  *pindexLast,
+                  mapBlocksInFlight.size(),
+                  &vGetData);
 
                 if (vGetData.size() > 0) {
                     if (nodestate->fSupportsDesiredCmpctVersion && vGetData.size() == 1 && nodestate->nBlocksInFlight == 1 && pindexLast->pprev->IsValid(BLOCK_VALID_CHAIN)) {

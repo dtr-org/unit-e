@@ -52,8 +52,8 @@ class MempoolMock : public ::TxPool {
   std::vector<CTransactionRef> txs;
 };
 
-void AssertBlocksEqual(const CBlock &expected,
-                       const CBlock &actual) {
+void CheckBlocksEqual(const CBlock &expected,
+                      const CBlock &actual) {
 
   const CBlockHeader expected_header = expected.GetBlockHeader();
   const CBlockHeader actual_header = actual.GetBlockHeader();
@@ -67,9 +67,9 @@ void AssertBlocksEqual(const CBlock &expected,
   }
 }
 
-void AssertReconstructsBack(const CBlock &original,
-                            const MempoolMock &sender_mempool,
-                            const MempoolMock &receiver_mempool) {
+void CheckReconstructsBack(const CBlock &original,
+                           const MempoolMock &sender_mempool,
+                           const MempoolMock &receiver_mempool) {
 
   const auto maybe_graphene =
       p2p::CreateGrapheneBlock(original, sender_mempool.GetTxCount(),
@@ -82,7 +82,7 @@ void AssertReconstructsBack(const CBlock &original,
 
   CBlock reconstructed = reconstructor.ReconstructLTOR();
 
-  AssertBlocksEqual(original, reconstructed);
+  CheckBlocksEqual(original, reconstructed);
 }
 
 BOOST_AUTO_TEST_CASE(coinbase_only) {
@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(coinbase_only) {
   MempoolMock sender_mempool;
   MempoolMock receiver_mempool;
 
-  AssertReconstructsBack(block, sender_mempool, receiver_mempool);
+  CheckReconstructsBack(block, sender_mempool, receiver_mempool);
 }
 
 BOOST_AUTO_TEST_CASE(exact_mempools) {
@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(exact_mempools) {
   MempoolMock receiver_mempool;
   receiver_mempool.txs = {tx1, tx2};
 
-  AssertReconstructsBack(block, sender_mempool, receiver_mempool);
+  CheckReconstructsBack(block, sender_mempool, receiver_mempool);
 }
 
 BOOST_AUTO_TEST_CASE(different_mempools_but_the_same_size) {
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(different_mempools_but_the_same_size) {
   MempoolMock receiver_mempool;
   receiver_mempool.txs = {tx1, tx2, tx3};
 
-  AssertReconstructsBack(block, sender_mempool, receiver_mempool);
+  CheckReconstructsBack(block, sender_mempool, receiver_mempool);
 }
 
 BOOST_AUTO_TEST_CASE(thousands_of_txs) {
@@ -166,7 +166,7 @@ BOOST_AUTO_TEST_CASE(thousands_of_txs) {
 
   ltor::SortTransactions(block.vtx);
 
-  assert(block.vtx.size() == (SENDER_TXS + COMMON_TXS) + 1);
+  BOOST_REQUIRE(block.vtx.size() == (SENDER_TXS + COMMON_TXS) + 1);
 
   const auto maybe_graphene =
       p2p::CreateGrapheneBlock(block, SENDER_TXS, receiver_mempool.GetTxCount(),
@@ -181,22 +181,22 @@ BOOST_AUTO_TEST_CASE(thousands_of_txs) {
   BOOST_CHECK_EQUAL(reconstructor.GetState(), +p2p::GrapheneDecodeState::NEED_MORE_TXS);
 
   p2p::GrapheneHasher hasher(graphene.header, graphene.nonce);
-  std::set<uint64_t> should_be_missing;
+  std::set<uint64_t> must_be_missing;
   for (const auto &tx : sender_only_txs) {
-    should_be_missing.emplace(hasher.GetShortHash(*tx));
+    must_be_missing.emplace(hasher.GetShortHash(*tx));
   }
 
-  BOOST_CHECK(should_be_missing == reconstructor.GetMissingShortTxHashes());
+  BOOST_CHECK(must_be_missing == reconstructor.GetMissingShortTxHashes());
 
   reconstructor.AddMissingTxs(sender_only_txs);
   BOOST_CHECK_EQUAL(reconstructor.GetState(), +p2p::GrapheneDecodeState::HAS_ALL_TXS);
   CBlock reconstructed = reconstructor.ReconstructLTOR();
 
-  AssertBlocksEqual(block, reconstructed);
+  CheckBlocksEqual(block, reconstructed);
 }
 
 size_t RandRange(size_t min_incl, size_t max_incl) {
-  assert(min_incl <= max_incl);
+  BOOST_REQUIRE(min_incl <= max_incl);
   return random.randrange(max_incl - min_incl + 1) + min_incl;
 }
 

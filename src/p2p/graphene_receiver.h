@@ -31,9 +31,9 @@ class GrapheneReceiver {
   //! This function checks invs that are being requested and if conditions for
   //! graphene met - sends corresponding graphene requests, removing corresponding invs
   void RequestAsGrapheneWhatPossible(CNode &from,
-                                     std::vector<CInv> *invs_in_out,
                                      const CBlockIndex &last_inv_block_index,
-                                     size_t blocks_in_flight);
+                                     const size_t blocks_in_flight,
+                                     std::vector<CInv> *invs_in_out);
 
   void OnGrapheneBlockReceived(CNode &from,
                                const GrapheneBlock &graphene_block);

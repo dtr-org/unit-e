@@ -22,10 +22,11 @@ GrapheneReceiver::GrapheneReceiver(const bool enabled,
     : m_enabled(enabled),
       m_txpool(txpool) {}
 
-void GrapheneReceiver::RequestAsGrapheneWhatPossible(CNode &from,
-                                                     std::vector<CInv> *invs_in_out,
-                                                     const CBlockIndex &last_inv_block_index,
-                                                     const size_t blocks_in_flight) {
+void GrapheneReceiver::RequestAsGrapheneWhatPossible(
+    CNode &from,
+    const CBlockIndex &last_inv_block_index,
+    const size_t blocks_in_flight,
+    std::vector<CInv> *invs_in_out) {
   AssertLockHeld(cs_main);
 
   if (!m_enabled) {
@@ -43,7 +44,7 @@ void GrapheneReceiver::RequestAsGrapheneWhatPossible(CNode &from,
   }
 
   const uint256 block_hash = invs_in_out->front().hash;
-  invs_in_out->erase(invs_in_out->begin());
+  invs_in_out->clear();
 
   // Want to be consistent with global state
   assert(m_graphene_blocks_in_flight.empty());
