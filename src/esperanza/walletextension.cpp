@@ -21,14 +21,19 @@
 #include <wallet/coincontrol.h>
 #include <wallet/fees.h>
 #include <wallet/wallet.h>
-
-#include <boost/filesystem.hpp>
+#include <wallet/walletdb.h>
 
 #include <cstdint>
 
 namespace esperanza {
 
 CCriticalSection cs_pendingSlashing;
+
+WalletExtension::ValidatorStateWatchWriter::~ValidatorStateWatchWriter() {
+  if (m_state != m_initial_state) {
+    m_wallet.WriteValidatorStateToFile();
+  }
+}
 
 WalletExtension::WalletExtension(const WalletExtensionDeps &dependencies,
                                  ::CWallet &enclosing_wallet)
@@ -243,15 +248,21 @@ bool WalletExtension::BackupWallet() {
   return m_enclosing_wallet.BackupWallet(backup_path.string());
 }
 
-// UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
   if (m_dependencies.settings->node_is_validator && !m_dependencies.settings->node_is_proposer) {
     LogPrint(BCLog::FINALIZATION, "%s: -validating is enabled for wallet %s.\n",
              __func__, m_enclosing_wallet.GetName());
 
     validatorState = ValidatorState();
+    CWalletDB(*m_enclosing_wallet.dbw).ReadValidatorState(*validatorState);
     nIsValidatorEnabled = true;
   }
+}
+
+void WalletExtension::WriteValidatorStateToFile() {
+  assert(validatorState);
+  LogPrintf("Save validator state\n");
+  CWalletDB(*m_enclosing_wallet.dbw).WriteValidatorState(*validatorState);
 }
 
 bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
@@ -259,6 +270,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
 
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
+  ValidatorStateWatchWriter validator_writer(*this);
 
   CCoinControl coinControl;
   CAmount nFeeRet;
@@ -494,6 +506,7 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
 
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
+  ValidatorStateWatchWriter validator_writer(*this);
 
   const uint32_t dynasty = state.GetCurrentDynasty();
 
@@ -709,6 +722,7 @@ void WalletExtension::BlockConnected(
   if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
 
     assert(validatorState);
+    ValidatorStateWatchWriter validator_writer(*this);
 
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
@@ -718,6 +732,7 @@ void WalletExtension::BlockConnected(
 
         uint32_t currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.get().m_end_dynasty) {
+          LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynast=%d reached\n", validatorState.get().m_end_dynasty);
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
         } else {
           VoteIfNeeded(*state);
@@ -763,6 +778,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
   if (pIndex == nullptr) {
     return true;
   }
+
+  ValidatorStateWatchWriter validator_writer(*this);
 
   switch (tx.GetType()) {
 

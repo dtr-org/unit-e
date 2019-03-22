@@ -158,6 +158,7 @@ BASE_SCRIPTS= [
     'feature_config_args.py',
     'rpc_getblocksnapshot.py',
     'feature_snapshot_creation.py',
+    'feature_finalizer.py',
     'interface_unite_cli.py',
     'mempool_resurrect.py',
     'mempool_spend_coinbase.py',
