@@ -13,7 +13,7 @@ from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import *
 from test_framework.messages import msg_witness_block
 from test_framework.mininode import CTransaction, network_thread_start, P2PInterface
-from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta
+from test_framework.blocktools import create_coinbase, create_block, get_tip_snapshot_meta, sign_coinbase
 from test_framework.script import CScript
 from io import BytesIO
 import time
@@ -105,6 +105,7 @@ class NULLDUMMYTest(UnitETestFramework):
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
         coin = get_unspent_coins(self.nodes[0], 1)[0]
         block = create_block(self.tip, create_coinbase(self.lastblockheight + 1, coin, snapshot_hash), self.lastblocktime + 1)
+        block.vtx[0] = sign_coinbase(self.nodes[0], block.vtx[0])
         block.nVersion = 4
         for tx in txs:
             tx.rehash()
