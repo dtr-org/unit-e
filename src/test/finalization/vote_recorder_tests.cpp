@@ -2,12 +2,12 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <boost/test/unit_test.hpp>
-#include <boost/test/unit_test_log.hpp>
 #include <finalization/vote_recorder.h>
 #include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 #include <validationinterface.h>
+#include <boost/test/unit_test.hpp>
+#include <boost/test/unit_test_log.hpp>
 
 BOOST_FIXTURE_TEST_SUITE(vote_recorder_tests, TestingSetup)
 
@@ -15,10 +15,10 @@ using namespace finalization;
 
 class SlashListener : public CValidationInterface {
 
-public:
+ public:
   bool slashingDetected = false;
 
-protected:
+ protected:
   void SlashingConditionDetected(const finalization::VoteRecord &,
                                  const finalization::VoteRecord &) override {
     slashingDetected = true;

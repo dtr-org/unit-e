@@ -46,10 +46,10 @@ BETTER_ENUM(
 )
 // clang-format on
 
-const std::string& GetRejectionMessageFor(BlockValidationError);
+const std::string &GetRejectionMessageFor(BlockValidationError);
 
-bool CheckResult(const BlockValidationResult& result, CValidationState &state);
+bool CheckResult(const BlockValidationResult &result, CValidationState &state);
 
-}
+}  // namespace staking
 
-#endif //UNIT_E_VALIDATION_ERROR_H
+#endif  //UNIT_E_VALIDATION_ERROR_H

@@ -25,7 +25,7 @@ const CTransactionRef GenesisBlockBuilder::BuildCoinbaseTransaction() const {
   tx.SetVersion(2);
   tx.SetType(TxType::COINBASE);
 
-  const CScript script_sig = CScript() << CScriptNum::serialize(0)  // height
+  const CScript script_sig = CScript() << CScriptNum::serialize(0)      // height
                                        << ToByteVector(uint256::zero);  // utxo set hash
 
   tx.vin.resize(1);

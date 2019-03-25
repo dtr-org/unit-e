@@ -15,9 +15,9 @@
 #include <uint256.h>
 
 #include <better-enums/enum.h>
+#include <ufp64.h>
 #include <cstdint>
 #include <type_traits>
-#include <ufp64.h>
 
 namespace blockchain {
 

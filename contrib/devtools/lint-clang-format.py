@@ -5,6 +5,7 @@
 
 import subprocess
 import sys
+import difflib
 
 import shared.lib
 
@@ -39,6 +40,8 @@ def checkandupdate(filename, replace = False, addtogit = False):
           print(filename, "has been formatted")
     else:
       print(filename, "is not formatted")
+      diff = difflib.unified_diff(unformatted, formatted)
+      print(''.join(diff))
   return isformatted
 
 def help(argv):
@@ -59,16 +62,21 @@ def main(argv):
   autogitadd = autoformat and "--git-add" in argv
   iscurrentcommit = "--check-commit" in argv
   dirs = [
-    "src/finalization",
+    "src/blockchain",
     "src/esperanza",
+    "src/finalization",
     "src/key",
     "src/p2p",
     "src/proposer",
     "src/snapshot",
+    "src/staking",
+    "src/usbdevice",
+    "src/test/blockchain",
     "src/test/esperanza",
+    "src/test/finalization",
     "src/test/proposer",
     "src/test/snapshot",
-    "src/usbdevice",
+    "src/test/staking",
   ]
   violations = []
   for dir in dirs:

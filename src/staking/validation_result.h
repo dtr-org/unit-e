@@ -1,10 +1,10 @@
 #ifndef UNIT_E_STAKING_VALIDATION_RESULT_H
 #define UNIT_E_STAKING_VALIDATION_RESULT_H
 
+#include <better-enums/enum_set.h>
 #include <blockchain/blockchain_types.h>
 #include <staking/validation_error.h>
 #include <uint256.h>
-#include <better-enums/enum_set.h>
 
 #include <boost/optional.hpp>
 
@@ -30,6 +30,6 @@ class BlockValidationResult {
   std::string GetRejectionMessage() const;
 };
 
-}
+}  // namespace staking
 
-#endif //UNIT_E_VALIDATION_RESULT_H
+#endif  //UNIT_E_VALIDATION_RESULT_H

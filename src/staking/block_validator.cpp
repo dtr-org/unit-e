@@ -126,7 +126,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       result.AddError(Error::INVALID_BLOCK_PUBLIC_KEY);
       return;
     }
-    for (const CPubKey& pubkey : keys) {
+    for (const CPubKey &pubkey : keys) {
       if (pubkey.Verify(block_hash, block.signature)) {
         return;
       }

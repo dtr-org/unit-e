@@ -100,5 +100,4 @@ std::vector<CPubKey> ExtractBlockSigningKeys(const CBlock &block) {
   return ExtractBlockSigningKeys(coinbase_inputs[1]);
 }
 
-
-}
+}  // namespace staking

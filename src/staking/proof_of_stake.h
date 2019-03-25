@@ -58,6 +58,6 @@ std::vector<CPubKey> ExtractBlockSigningKeys(const CTxIn &);
 //! and forwards the call to ExtractBlockSigningKeys(const TxIn &).
 std::vector<CPubKey> ExtractBlockSigningKeys(const CBlock &);
 
-}
+}  // namespace staking
 
-#endif //UNIT_E_STAKING_PROOF_OF_STAKE_H
+#endif  //UNIT_E_STAKING_PROOF_OF_STAKE_H
