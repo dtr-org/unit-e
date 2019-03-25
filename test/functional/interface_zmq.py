@@ -7,7 +7,7 @@ import configparser
 import os
 import struct
 
-from test_framework.test_framework import UnitETestFramework, SkipTest
+from test_framework.test_framework import UnitETestFramework, SkipTest, BLOCK_HEADER_LENGTH
 from test_framework.mininode import CTransaction
 from test_framework.util import (assert_equal,
                                  bytes_to_hex_str,
@@ -108,7 +108,7 @@ class ZMQTest (UnitETestFramework):
 
             # Should receive the generated raw block.
             block = self.rawblock.receive()
-            assert_equal(genhashes[x], bytes_to_hex_str(hash256(block[:112])))
+            assert_equal(genhashes[x], bytes_to_hex_str(hash256(block[:BLOCK_HEADER_LENGTH])))  # skip the header
 
         self.log.info("Wait for tx from second node")
         payment_txid = self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 1.0)
