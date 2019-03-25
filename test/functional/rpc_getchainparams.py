@@ -58,7 +58,7 @@ class GetParametersTest (UnitETestFramework):
         assert_equal(params[0]['genesis_block']['p2wpkh_funds'][2]['amount'], 2000 * UNIT)
         assert_equal(params[0]['genesis_block']['p2wpkh_funds'][2]['pub_key_hash'], 'b99b83c1cea07c27a743d0440b698a7d59f88e08')
         assert_equal(len(params[0]['genesis_block']['p2wsh_funds']), 1)
-        assert_equal(params[0]['genesis_block']['p2wsh_funds'][0]['amount'], 25000 * UNIT)
+        assert_equal(params[0]['genesis_block']['p2wsh_funds'][0]['amount'], 2500 * UNIT)
         assert_equal(params[0]['genesis_block']['p2wsh_funds'][0]['script_hash'], '9d65e6fd035a643956361a3e5b2084cd8c10e07a5438c9ca1128017d4a02d185')
         assert_equal(params[1]['network_name'], "qualityland")
         assert_equal(params[2]['stake_maturity'], 7)

@@ -37,7 +37,7 @@ class RpcFinalizationTest(UnitETestFramework):
         def create_deposit(finalizer, node):
             connect_nodes(finalizer, node.index)
             payto = finalizer.getnewaddress('', 'legacy')
-            txid = finalizer.deposit(payto, 10000)
+            txid = finalizer.deposit(payto, 1500)
             wait_until(lambda: txid in node.getrawmempool())
             disconnect_nodes(finalizer, node.index)
 
