@@ -112,8 +112,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
         disconnect_nodes(node, fork.index)
         fork.generatetoaddress(5 + 5 + 1, fork.getnewaddress('', 'bech32'))
-        connect_nodes(fork, finalizer2.index)
-        wait_until(lambda: len(fork.getrawmempool()) > 0, timeout=10)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork)
         fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
         disconnect_nodes(fork, finalizer2.index)
         assert_equal(fork.getblockcount(), 41)
@@ -128,10 +127,8 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #    |
         #    |                J
         #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
-        connect_nodes(node, finalizer1.index)
-
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 34)
         assert_finalizationstate(node, {'currentDynasty': 4,
@@ -145,15 +142,13 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #    |                J
         #    ..] - [ e6 ] - [ e7 ] - [ e8 ] fork
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 39)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,
                                         'lastFinalizedEpoch': 5})
-
-        disconnect_nodes(node, finalizer1.index)
 
         # test that longer justification doesn't trigger re-org before finalization
         connect_nodes(node, fork.index)
@@ -235,7 +230,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         # ... [ e4 ] - [ e5 ] - [ e6 ] node, fork
         connect_nodes(node, finalizer1.index)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork])
         assert_equal(node.getblockcount(), 34)
@@ -264,9 +259,8 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #                          |
         #                          |                J
         #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
-        connect_nodes(fork, finalizer2.index)
         fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
-        wait_until(lambda: len(fork.getrawmempool()) > 0, timeout=10)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork)
         fork.generatetoaddress(4, fork.getnewaddress('', 'bech32'))
         assert_equal(fork.getblockcount(), 49)
         assert_finalizationstate(fork, {'currentDynasty': 5,
@@ -282,14 +276,13 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #                          |                J
         #                         .. ] - [ e7 ] - [ e8 ] - [ e9 ] fork
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 36)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,
                                         'lastFinalizedEpoch': 5})
-        disconnect_nodes(node, finalizer1.index)
 
         # node shouldn't switch to fork as it's finalization is behind
         connect_nodes(node, fork.index)
