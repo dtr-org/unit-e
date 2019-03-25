@@ -5,8 +5,8 @@
 #ifndef UNITE_STAKING_BLOCK_INDEX_MAP
 #define UNITE_STAKING_BLOCK_INDEX_MAP
 
-#include <memory>
 #include <sync.h>
+#include <memory>
 
 class CBlockIndex;
 class uint256;
@@ -18,7 +18,7 @@ namespace staking {
 //! Wrapper on mapBlockIndex.
 
 class BlockIndexMap {
-public:
+ public:
   //! \brief Returns the mutex that protects map.
   virtual CCriticalSection &GetLock() const = 0;
 
@@ -32,6 +32,6 @@ public:
   static std::unique_ptr<BlockIndexMap> New();
 };
 
-}
+}  // namespace staking
 
 #endif

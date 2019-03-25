@@ -2,27 +2,27 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <boost/test/unit_test.hpp>
 #include <test/esperanza/finalizationstate_utils.h>
-#include <test/test_unite_mocks.h>
 #include <test/test_unite.h>
+#include <test/test_unite_mocks.h>
+#include <boost/test/unit_test.hpp>
 
 namespace esperanza {
 static std::ostream &operator<<(std::ostream &os, const FinalizationState &f) {
   os << f.ToString();
   return os;
 }
-}
+}  // namespace esperanza
 
 namespace util {
-template<>
+template <>
 std::string stringify(const CBlockIndex *const &index) {
   if (index == nullptr) {
     return "null";
   }
   return stringify<uint256>(index->GetBlockHash());
 }
-}
+}  // namespace util
 
 BOOST_AUTO_TEST_SUITE(state_db_tests)
 
@@ -37,11 +37,11 @@ BOOST_AUTO_TEST_CASE(leveldb_rand) {
   esperanza::AdminParams admin_params;
 
   std::unique_ptr<finalization::StateDB> db =
-    finalization::StateDB::NewFromParams(params, &settings, &block_index_map, &active_chain);
+      finalization::StateDB::NewFromParams(params, &settings, &block_index_map, &active_chain);
 
   LOCK(block_index_map.GetLock());
 
-  std::map<const CBlockIndex*, esperanza::FinalizationState> original;
+  std::map<const CBlockIndex *, esperanza::FinalizationState> original;
   for (size_t i = 0; i < 100; ++i) {
     CBlockIndex *block_index = block_index_map.Insert(GetRandHash());
     FinalizationStateSpy state;
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(leveldb_rand) {
 
   db->Save(original);
 
-  std::map<const CBlockIndex*, esperanza::FinalizationState> restored;
+  std::map<const CBlockIndex *, esperanza::FinalizationState> restored;
   bool const result = db->Load(finalization_params, admin_params, &restored);
 
   BOOST_CHECK(result);
@@ -60,9 +60,9 @@ BOOST_AUTO_TEST_CASE(leveldb_rand) {
 }
 
 class ActiveChainTest : public mocks::ActiveChainMock {
-public:
+ public:
   ActiveChainTest() {
-    this->block_at_height = [this](blockchain::Height const h) -> CBlockIndex* {
+    this->block_at_height = [this](blockchain::Height const h) -> CBlockIndex * {
       const auto it = m_block_heights.find(h);
       return it != m_block_heights.end() ? it->second : nullptr;
     };
@@ -73,8 +73,8 @@ public:
     m_block_heights[index.nHeight] = &index;
   }
 
-private:
-  std::map<blockchain::Height, CBlockIndex*> m_block_heights;
+ private:
+  std::map<blockchain::Height, CBlockIndex *> m_block_heights;
 };
 
 BOOST_AUTO_TEST_CASE(load_best_states) {
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   esperanza::AdminParams admin_params;
 
   std::unique_ptr<finalization::StateDB> db =
-    finalization::StateDB::NewFromParams(params, &settings, &block_index_map, &active_chain);
+      finalization::StateDB::NewFromParams(params, &settings, &block_index_map, &active_chain);
 
   LOCK(block_index_map.GetLock());
   LOCK(active_chain.GetLock());
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   };
 
   // Generate active chain
-  std::map<const CBlockIndex*, esperanza::FinalizationState> original;
+  std::map<const CBlockIndex *, esperanza::FinalizationState> original;
   for (size_t i = 0; i < 100; ++i) {
     CBlockIndex *block_index = generate(active_chain.tip, true);
     FinalizationStateSpy state;
@@ -174,7 +174,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
   // States for fork 2 must be loaded (100 items).
   // States for fork 1 must be ignored.
   {
-    std::map<const CBlockIndex*, esperanza::FinalizationState> restored;
+    std::map<const CBlockIndex *, esperanza::FinalizationState> restored;
     db->LoadStatesHigherThan(59, finalization_params, admin_params, &restored);
     BOOST_CHECK_EQUAL(restored.size(), 140);
 

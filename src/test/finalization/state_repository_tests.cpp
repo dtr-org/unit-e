@@ -2,10 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <esperanza/adminparams.h>
+#include <esperanza/finalizationstate.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
-#include <esperanza/finalizationstate.h>
-#include <esperanza/adminparams.h>
 #include <test/test_unite.h>
 #include <test/test_unite_mocks.h>
 
@@ -16,12 +16,12 @@ static std::ostream &operator<<(std::ostream &os, const FinalizationState &f) {
   os << f.ToString();
   return os;
 }
-}
+}  // namespace esperanza
 
 namespace {
 
 class BlockDBMock : public BlockDB {
-public:
+ public:
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
     const auto it = blocks.find(&index);
     if (it == blocks.end()) {
@@ -40,7 +40,8 @@ public:
 
 class StateDBMock : public finalization::StateDB {
   using FinalizationState = finalization::FinalizationState;
-public:
+
+ public:
   std::map<const CBlockIndex *, FinalizationState> m_states;
   boost::optional<uint32_t> m_last_finalized_epoch;
 
@@ -82,7 +83,7 @@ public:
       blockchain::Height height,
       const esperanza::FinalizationParams &fin_params,
       const esperanza::AdminParams &admin_params,
-      std::map<const CBlockIndex *, FinalizationState> *states) const override { }
+      std::map<const CBlockIndex *, FinalizationState> *states) const override {}
 
   FinalizationState &Get(const CBlockIndex &index) {
     const auto it = m_states.find(&index);
@@ -92,7 +93,7 @@ public:
 };
 
 class Fixture {
-public:
+ public:
   Fixture() : m_repo(NewRepo()) {
     m_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
@@ -139,7 +140,7 @@ public:
     }
   }
 
-  std::map<blockchain::Height, CBlockIndex *> m_block_heights; // m_block_index owns these block indexes
+  std::map<blockchain::Height, CBlockIndex *> m_block_heights;  // m_block_index owns these block indexes
 };
 
 }  // namespace
@@ -158,7 +159,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
 
   finalization::StateRepository &repo = *fixture.m_repo;
 
-  BOOST_CHECK(repo.Find(b0) != nullptr); // we have a state for genesis block
+  BOOST_CHECK(repo.Find(b0) != nullptr);  // we have a state for genesis block
   BOOST_CHECK(repo.Find(b1) == nullptr);
   BOOST_CHECK(repo.Find(b2) == nullptr);
 
@@ -209,7 +210,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
 
   // Trim the repository
   repo.TrimUntilHeight(3);
-  BOOST_CHECK(repo.Find(b0) != nullptr); // genesis
+  BOOST_CHECK(repo.Find(b0) != nullptr);  // genesis
   BOOST_CHECK(repo.Find(b1) == nullptr);
   BOOST_CHECK(repo.Find(b2) == nullptr);
   BOOST_CHECK(repo.Find(b3) != nullptr);
@@ -220,7 +221,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
 
   // Reset repo completely.
   fixture.Reset();
-  BOOST_CHECK(repo.Find(b0) != nullptr); // genesis
+  BOOST_CHECK(repo.Find(b0) != nullptr);  // genesis
   BOOST_CHECK(repo.Find(b3) == nullptr);
   BOOST_CHECK(repo.Find(b4) == nullptr);
 
@@ -247,7 +248,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     }
   };
 
-  auto remove_from_db = [&fixture] (const blockchain::Height h) {
+  auto remove_from_db = [&fixture](const blockchain::Height h) {
     const CBlockIndex *index = fixture.m_chain.AtHeight(h);
     BOOST_REQUIRE(index != nullptr);
     BOOST_REQUIRE(fixture.m_state_db.m_states.count(index) == 1);
@@ -362,7 +363,6 @@ BOOST_AUTO_TEST_CASE(recovering) {
     }
     BOOST_REQUIRE(not("unreachable"));
   }
-
 }
 
 BOOST_AUTO_TEST_SUITE_END()

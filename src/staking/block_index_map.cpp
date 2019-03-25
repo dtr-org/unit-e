@@ -2,19 +2,19 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include<staking/block_index_map.h>
-#include<validation.h>
+#include <staking/block_index_map.h>
+#include <validation.h>
 
 namespace staking {
 namespace {
 
 class BlockIndexMapImpl final : public BlockIndexMap {
-public:
+ public:
   CCriticalSection &GetLock() const override {
     return cs_main;
   }
 
-  CBlockIndex *Lookup(const uint256 &block_hash) const override{
+  CBlockIndex *Lookup(const uint256 &block_hash) const override {
     AssertLockHeld(GetLock());
     return LookupBlockIndex(block_hash);
   }
@@ -29,10 +29,10 @@ public:
   }
 };
 
-}
+}  // namespace
 
 std::unique_ptr<BlockIndexMap> BlockIndexMap::New() {
   return MakeUnique<BlockIndexMapImpl>();
 }
 
-}
+}  // namespace staking
