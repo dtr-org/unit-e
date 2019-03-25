@@ -238,33 +238,4 @@ BOOST_AUTO_TEST_CASE(deposit_amount) {
   BOOST_CHECK_EQUAL(10000, state.GetDepositSize(validatorAddress));
 }
 
-BOOST_AUTO_TEST_CASE(calculate_finalization_reward) {
-  FinalizationStateSpy spy;
-
-  spy.InitializeEpoch(spy.EpochLength());
-  spy.InitializeEpoch(spy.EpochLength() * 2);
-  spy.InitializeEpoch(spy.EpochLength() * 3);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 3);
-  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 1);
-  BOOST_CHECK_EQUAL(spy.GetLastFinalizedEpoch(), 1);
-  BOOST_CHECK_EQUAL(spy.GetLastJustifiedEpoch(), 2);
-
-  BOOST_CHECK(spy.MustPayFinalizationRewardsAt(spy.EpochLength() * 3));
-  auto reward = spy.CalculateFinalizationRewardsAt(spy.EpochLength() * 3);
-  BOOST_CHECK_EQUAL(reward.second.size(), spy.EpochLength());
-
-  BOOST_CHECK(!spy.MustPayFinalizationRewardsAt(spy.EpochLength() * 3 + 1));
-
-  spy.InitializeEpoch(spy.EpochLength() * 4);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 4);
-  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 2);
-  BOOST_CHECK_EQUAL(spy.GetLastFinalizedEpoch(), 2);
-  BOOST_CHECK_EQUAL(spy.GetLastJustifiedEpoch(), 3);
-
-  BOOST_CHECK(spy.MustPayFinalizationRewardsAt(spy.EpochLength() * 4));
-  reward = spy.CalculateFinalizationRewardsAt(spy.EpochLength() * 4);
-  BOOST_CHECK_EQUAL(reward.second.size(), spy.EpochLength());
-}
-
-
 BOOST_AUTO_TEST_SUITE_END()

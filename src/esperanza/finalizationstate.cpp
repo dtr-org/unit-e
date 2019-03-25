@@ -1068,45 +1068,6 @@ bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) co
   return it != m_checkpoints.end() && it->second.m_is_finalized;
 }
 
-bool FinalizationState::MustPayFinalizationRewardsAt(blockchain::Height block_height) const {
-  uint32_t epoch = GetEpoch(block_height);
-  if (block_height != GetEpochStartHeight(epoch)) {
-    return false;
-  }
-  if (GetLastFinalizedEpoch() == epoch - 2) {
-    return true;
-  }
-  // TODO: check that block_height is the beginning of the epoch
-  if (m_epoch_to_dynasty.count(epoch) == 0) {
-    return false;
-  }
-  uint32_t dynasty = m_epoch_to_dynasty.at(epoch);
-  if (m_dynasty_start_epoch.count(dynasty) == 0) {
-    return false;
-  }
-  return m_dynasty_start_epoch.at(dynasty) == epoch;
-}
-
-std::pair<blockchain::Height, std::vector<CAmount>> FinalizationState::CalculateFinalizationRewardsAt(blockchain::Height block_height) const {
-  if (!MustPayFinalizationRewardsAt(block_height) || m_current_dynasty < 1) {
-    return {0, {}};
-  }
-  // TODO: get dynasty for the block_height
-  const uint32_t finalized_dynasty = m_current_dynasty - 1;
-  const uint32_t finalized_dyn_start_epoch = m_dynasty_start_epoch.at(finalized_dynasty);
-  const uint32_t justified_dyn_start_epoch = m_dynasty_start_epoch.at(finalized_dynasty + 1);
-  const blockchain::Height finalized_dyn_start_height = GetEpochStartHeight(finalized_dyn_start_epoch);
-  std::vector<CAmount> rewards;
-  for (uint32_t epoch = finalized_dyn_start_epoch; epoch < justified_dyn_start_epoch; ++epoch) {
-    const CAmount epoch_reward = 0; // TODO: calculate reward
-    const blockchain::Height next_epoch_start = GetEpochStartHeight(epoch + 1);
-    for (blockchain::Height h = GetEpochStartHeight(epoch); h < next_epoch_start; ++h) {
-      rewards.push_back(epoch_reward);
-    }
-  }
-  return {finalized_dyn_start_height, rewards};
-}
-
 FinalizationState::InitStatus FinalizationState::GetInitStatus() const {
   return m_status;
 }
