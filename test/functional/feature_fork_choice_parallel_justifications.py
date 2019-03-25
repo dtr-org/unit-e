@@ -116,9 +116,9 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         disconnect_nodes(node, fork2.index)
 
         payto = finalizer1.getnewaddress('', 'legacy')
-        txid1 = finalizer1.deposit(payto, 10000)
+        txid1 = finalizer1.deposit(payto, 1500)
         finalizer2.setaccount(payto, '')
-        txid2 = finalizer2.deposit(payto, 10000)
+        txid2 = finalizer2.deposit(payto, 1500)
         if txid1 != txid2:  # improve log message
             tx1 = FromHex(CTransaction(), finalizer1.getrawtransaction(txid1))
             tx2 = FromHex(CTransaction(), finalizer2.getrawtransaction(txid2))

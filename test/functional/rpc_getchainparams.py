@@ -8,7 +8,7 @@
 Showcases how to pass chainparams to nodes and inject a new
 genesis block including funds (for testing purposes). Also
 checks that loading -customchainparams actually works."""
-
+from test_framework.messages import UNIT
 from test_framework.test_framework import (UnitETestFramework)
 from test_framework.util import assert_equal
 
@@ -26,12 +26,12 @@ class GetParametersTest (UnitETestFramework):
              "block_stake_timestamp_interval_seconds": 48,
              "genesis_block": {
                  "p2wpkh_funds": [
-                     {"amount": 750000000000, "pub_key_hash": "c2c28cd4df085d164ea0e4a2f8f9c5a4fbe86487"},
-                     {"amount": 150000000000, "pub_key_hash": "4cc1c8059ce6e8e0124f3cc9676fbc985e68a4a0"},
-                     {"amount": 200000000000, "pub_key_hash": "b99b83c1cea07c27a743d0440b698a7d59f88e08"}
+                     {"amount": 7500 * UNIT, "pub_key_hash": "c2c28cd4df085d164ea0e4a2f8f9c5a4fbe86487"},
+                     {"amount": 1500 * UNIT, "pub_key_hash": "4cc1c8059ce6e8e0124f3cc9676fbc985e68a4a0"},
+                     {"amount": 2000 * UNIT, "pub_key_hash": "b99b83c1cea07c27a743d0440b698a7d59f88e08"}
                  ],
                  "p2wsh_funds": [
-                     {"amount": 250000000000, "script_hash": "9d65e6fd035a643956361a3e5b2084cd8c10e07a5438c9ca1128017d4a02d185"}
+                     {"amount": 2500 * UNIT, "script_hash": "9d65e6fd035a643956361a3e5b2084cd8c10e07a5438c9ca1128017d4a02d185"}
                  ]
              }},
             {"network_name": "qualityland"},
@@ -51,14 +51,14 @@ class GetParametersTest (UnitETestFramework):
         assert_equal(params[0]['block_time_seconds'], 24)
         assert_equal(params[0]['block_stake_timestamp_interval_seconds'], 48)
         assert_equal(len(params[0]['genesis_block']['p2wpkh_funds']), 3)
-        assert_equal(params[0]['genesis_block']['p2wpkh_funds'][0]['amount'], 750000000000)
+        assert_equal(params[0]['genesis_block']['p2wpkh_funds'][0]['amount'], 7500 * UNIT)
         assert_equal(params[0]['genesis_block']['p2wpkh_funds'][0]['pub_key_hash'], 'c2c28cd4df085d164ea0e4a2f8f9c5a4fbe86487')
-        assert_equal(params[0]['genesis_block']['p2wpkh_funds'][1]['amount'], 150000000000)
+        assert_equal(params[0]['genesis_block']['p2wpkh_funds'][1]['amount'], 1500 * UNIT)
         assert_equal(params[0]['genesis_block']['p2wpkh_funds'][1]['pub_key_hash'], '4cc1c8059ce6e8e0124f3cc9676fbc985e68a4a0')
-        assert_equal(params[0]['genesis_block']['p2wpkh_funds'][2]['amount'], 200000000000)
+        assert_equal(params[0]['genesis_block']['p2wpkh_funds'][2]['amount'], 2000 * UNIT)
         assert_equal(params[0]['genesis_block']['p2wpkh_funds'][2]['pub_key_hash'], 'b99b83c1cea07c27a743d0440b698a7d59f88e08')
         assert_equal(len(params[0]['genesis_block']['p2wsh_funds']), 1)
-        assert_equal(params[0]['genesis_block']['p2wsh_funds'][0]['amount'], 250000000000)
+        assert_equal(params[0]['genesis_block']['p2wsh_funds'][0]['amount'], 25000 * UNIT)
         assert_equal(params[0]['genesis_block']['p2wsh_funds'][0]['script_hash'], '9d65e6fd035a643956361a3e5b2084cd8c10e07a5438c9ca1128017d4a02d185')
         assert_equal(params[1]['network_name'], "qualityland")
         assert_equal(params[2]['stake_maturity'], 7)

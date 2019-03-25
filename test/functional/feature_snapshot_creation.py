@@ -75,7 +75,7 @@ class SnapshotCreationTest(UnitETestFramework):
 
         # disable instant justification
         payto = validator.getnewaddress("", "legacy")
-        txid = validator.deposit(payto, 10000)
+        txid = validator.deposit(payto, 1500)
         self.wait_for_transaction(txid, 10)
 
         node.generatetoaddress(10, node.getnewaddress('', 'bech32'))

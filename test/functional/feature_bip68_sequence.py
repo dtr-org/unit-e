@@ -38,7 +38,7 @@ class BIP68Test(UnitETestFramework):
         connect_nodes(self.nodes[2], 0)  # send deposit to one node only
         self.nodes[0].generate(1)
         addr = self.nodes[2].getnewaddress('', 'legacy')
-        txid = self.nodes[2].deposit(addr, 10000)
+        txid = self.nodes[2].deposit(addr, 1500)
         wait_until(lambda: txid in self.nodes[0].getrawmempool(), timeout=10)
         self.stop_node(2)
 

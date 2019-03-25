@@ -87,7 +87,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         sync_blocks([node0, node1, node2, validator])
 
         payto = validator.getnewaddress('', 'legacy')
-        txid = validator.deposit(payto, 10000)
+        txid = validator.deposit(payto, 1500)
         wait_until(lambda: self.have_tx_in_mempool([node0, node1, node2], txid))
 
         disconnect_nodes(node0, node1.index)
@@ -189,7 +189,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
 
         # add deposit
         payto = finalizer.getnewaddress('', 'legacy')
-        txid = finalizer.deposit(payto, 10000)
+        txid = finalizer.deposit(payto, 1500)
         wait_until(lambda: self.have_tx_in_mempool([fork1, fork2], txid))
 
         # leave instant justification

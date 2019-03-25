@@ -50,7 +50,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         # LEave IBD
         self.generate_block(nodes[1])
 
-        deposit_tx = validator.deposit(validator_address, 10000)
+        deposit_tx = validator.deposit(validator_address, 1500)
 
         # wait for transaction to propagate
         self.wait_for_transaction(deposit_tx, 30)
