@@ -13,12 +13,13 @@ from test_framework.util import (
     assert_finalizationstate,
     connect_nodes,
     sync_blocks,
-    sync_mempools,
     wait_until,
 )
 
+
 def generate_block(node):
     node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+
 
 class FeatureFinalizerTest(UnitETestFramework):
     def set_test_params(self):
@@ -44,26 +45,31 @@ class FeatureFinalizerTest(UnitETestFramework):
         v.new_address = v.getnewaddress("", "legacy")
         tx = v.deposit(v.new_address, 1500)
         self.wait_for_transaction(tx)
+        p.generatetoaddress(1, p.getnewaddress('', 'bech32'))
+        sync_blocks([p, v])
 
         self.log.info("Restart validator")
         self.restart_node(v.index)
-        connect_nodes(p, v.index)
 
-        self.log.info("Leave insta finalization")
+        self.log.info("Leave insta justification")
         for _ in range(30):
             generate_block(p)
-        sync_blocks([p, v])
+        assert_equal(p.getblockcount(), 32)
+        assert_finalizationstate(p, {"currentEpoch": 6,
+                                     "lastJustifiedEpoch": 4,
+                                     "lastFinalizedEpoch": 3,
+                                     "validators": 1})
 
         self.log.info("Check finalizer votes after restart")
-        # Make sure vote is included
-        wait_until(lambda: len(v.getrawmempool()) > 0)
+        self.wait_for_vote_and_disconnect(finalizer=v, node=p)
         generate_block(p)
 
-        assert_equal(p.getblockcount(), 32)
+        assert_equal(p.getblockcount(), 33)
         assert_finalizationstate(p, {"currentEpoch": 6,
                                      "lastJustifiedEpoch": 5,
                                      "lastFinalizedEpoch": 4,
                                      "validators": 1})
+
 
 if __name__ == '__main__':
     FeatureFinalizerTest().main()
