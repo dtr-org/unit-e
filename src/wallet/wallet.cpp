@@ -3207,7 +3207,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
 /**
  * Call after CreateTransaction unless you want to abort
  */
-bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CConnman* connman, CValidationState& state)
+bool CWallet::CommitTransaction(const CWalletTx& wtxNew, CReserveKey& reservekey, CConnman* connman, CValidationState& state, bool relay, CWalletTx **tx_out)
 {
     {
         LOCK2(cs_main, cs_wallet);
@@ -3231,13 +3231,16 @@ bool CWallet::CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CCon
         // Get the inserted-CWalletTx from mapWallet so that the
         // fInMempool flag is cached properly
         CWalletTx& wtx = mapWallet[wtxNew.GetHash()];
+        if (tx_out != nullptr) {
+          *tx_out = &wtx;
+        }
 
         if (fBroadcastTransactions) {
             // Broadcast
             if (!wtx.AcceptToMemoryPool(maxTxFee, state)) {
                 LogPrintf("CommitTransaction(): Transaction cannot be broadcast immediately, %s\n", state.GetRejectReason());
                 // TODO: if we expect the failure to be long term or permanent, instead delete wtx from the wallet and return failure.
-            } else {
+            } else if (relay) {
                 bool embargoed = false;
                 if (wtx.tx->GetType() == +TxType::REGULAR && connman->embargoman) {
                     embargoed =

@@ -8,6 +8,7 @@
 #include <base58.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <esperanza/validatorstate.h>
 #include <fs.h>
 #include <protocol.h>
 #include <serialize.h>
@@ -860,4 +861,12 @@ bool CWalletDB::ReadVersion(int& nVersion)
 bool CWalletDB::WriteVersion(int nVersion)
 {
     return batch.WriteVersion(nVersion);
+}
+
+bool CWalletDB::WriteValidatorState(const esperanza::ValidatorState &state) {
+    return WriteIC(std::string("validator-state"), state);
+}
+
+bool CWalletDB::ReadValidatorState(esperanza::ValidatorState &state) {
+    return batch.Read(std::string("validator-state"), state);
 }

@@ -26,6 +26,7 @@
 #include <vector>
 
 class CWallet;
+class CWalletDBWrapper;
 class CWalletTx;
 class COutput;
 class CScheduler;
@@ -70,6 +71,20 @@ class WalletExtension : public staking::StakingWallet {
   //! Backup the enclosing wallet to a new file in the datadir, appending
   //! the current timestamp to avoid overwriting previous backups.
   bool BackupWallet();
+
+  class ValidatorStateWatchWriter {
+   public:
+    ValidatorStateWatchWriter(WalletExtension &wallet)
+        : m_wallet(wallet),
+          m_initial_state(wallet.validatorState),
+          m_state(wallet.validatorState) {}
+    ~ValidatorStateWatchWriter();
+
+   private:
+    WalletExtension &m_wallet;
+    boost::optional<ValidatorState> m_initial_state;
+    boost::optional<ValidatorState> &m_state;
+  };
 
  public:
   //! \brief non-intrusive extension of the bitcoin-core wallet.
@@ -163,6 +178,7 @@ class WalletExtension : public staking::StakingWallet {
                                 const CBlockIndex *pIndex);
 
   void ReadValidatorStateFromFile();
+  void WriteValidatorStateToFile();
 
   void BlockConnected(const std::shared_ptr<const CBlock> &pblock,
                       const CBlockIndex &index);

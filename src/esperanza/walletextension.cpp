@@ -21,14 +21,19 @@
 #include <wallet/coincontrol.h>
 #include <wallet/fees.h>
 #include <wallet/wallet.h>
-
-#include <boost/filesystem.hpp>
+#include <wallet/walletdb.h>
 
 #include <cstdint>
 
 namespace esperanza {
 
 CCriticalSection cs_pendingSlashing;
+
+WalletExtension::ValidatorStateWatchWriter::~ValidatorStateWatchWriter() {
+  if (m_state != m_initial_state) {
+    m_wallet.WriteValidatorStateToFile();
+  }
+}
 
 WalletExtension::WalletExtension(const WalletExtensionDeps &dependencies,
                                  ::CWallet &enclosing_wallet)
@@ -243,15 +248,20 @@ bool WalletExtension::BackupWallet() {
   return m_enclosing_wallet.BackupWallet(backup_path.string());
 }
 
-// UNIT-E: read validatorState from the wallet file
 void WalletExtension::ReadValidatorStateFromFile() {
   if (m_dependencies.settings->node_is_validator && !m_dependencies.settings->node_is_proposer) {
     LogPrint(BCLog::FINALIZATION, "%s: -validating is enabled for wallet %s.\n",
              __func__, m_enclosing_wallet.GetName());
 
     validatorState = ValidatorState();
+    CWalletDB(*m_enclosing_wallet.dbw).ReadValidatorState(*validatorState);
     nIsValidatorEnabled = true;
   }
+}
+
+void WalletExtension::WriteValidatorStateToFile() {
+  assert(validatorState);
+  CWalletDB(*m_enclosing_wallet.dbw).WriteValidatorState(*validatorState);
 }
 
 bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
@@ -259,6 +269,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
 
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
+  ValidatorStateWatchWriter validator_writer(*this);
 
   CCoinControl coinControl;
   CAmount nFeeRet;
@@ -539,9 +550,6 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
   CTransactionRef &prevRef = validator.m_last_esperanza_tx;
 
   if (SendVote(prevRef, vote, createdTx)) {
-    validator.m_vote_map[target_epoch] = vote;
-    validator.m_last_target_epoch = vote.m_target_epoch;
-    validator.m_last_source_epoch = vote.m_source_epoch;
 
     LogPrint(BCLog::FINALIZATION, "%s: Casted vote with id %s.\n", __func__,
              createdTx.tx->GetHash().GetHex());
@@ -553,6 +561,8 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 
   assert(validatorState);
 
+  ValidatorState &validator = validatorState.get();
+
   wtxNewOut.fTimeReceivedIsTxTime = true;
   wtxNewOut.BindWallet(&m_enclosing_wallet);
   wtxNewOut.fFromMe = true;
@@ -562,7 +572,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   CMutableTransaction txNew;
   txNew.SetType(TxType::VOTE);
 
-  if (validatorState.get().m_phase != +ValidatorState::Phase::IS_VALIDATING) {
+  if (validator.m_phase != +ValidatorState::Phase::IS_VALIDATING) {
     return error("%s: Cannot create votes for non-validators.", __func__);
   }
 
@@ -595,12 +605,30 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
 
   wtxNewOut.SetTx(MakeTransactionRef(std::move(txNew)));
 
+  CWalletTx *wtx_new = nullptr;
+
+  CConnman *connman = g_connman.get();
+
   m_enclosing_wallet.CommitTransaction(wtxNewOut, reservekey, g_connman.get(),
-                                       state);
+                                       state, /*relay*/ false, &wtx_new);
   if (state.IsInvalid()) {
     LogPrint(BCLog::FINALIZATION, "%s: Cannot commit vote transaction: %s.\n",
              __func__, state.GetRejectReason());
     return false;
+  }
+
+  validator.m_vote_map[vote.m_target_epoch] = vote;
+  validator.m_last_target_epoch = vote.m_target_epoch;
+  validator.m_last_source_epoch = vote.m_source_epoch;
+  WriteValidatorStateToFile();
+
+  bool embargoed = false;
+  if (connman != nullptr && wtx_new->tx->GetType() == +TxType::REGULAR && connman->embargoman) {
+    embargoed = connman->embargoman->SendTransactionAndEmbargo(*wtx_new->tx);
+  }
+
+  if (!embargoed) {
+    wtx_new->RelayWalletTransaction(connman);
   }
 
   return true;
@@ -718,14 +746,17 @@ void WalletExtension::BlockConnected(
 
         uint32_t currentDynasty = state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.get().m_end_dynasty) {
+          LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynasty=%d reached\n", validatorState.get().m_end_dynasty);
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
+          WriteValidatorStateToFile();
         } else {
-          VoteIfNeeded(*state);
+          VoteIfNeeded(*state);  // resposible to write validator state
         }
 
         break;
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
+        ValidatorStateWatchWriter validator_writer(*this);
         FinalizationState *state = FinalizationState::GetState();
         assert(state);
 
@@ -763,6 +794,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
   if (pIndex == nullptr) {
     return true;
   }
+
+  ValidatorStateWatchWriter validator_writer(*this);
 
   switch (tx.GetType()) {
 

@@ -45,6 +45,10 @@ class CWalletTx;
 class uint160;
 class uint256;
 
+namespace esperanza {
+struct ValidatorState;
+};
+
 /** Error statuses for the wallet database */
 enum class DBErrors
 {
@@ -263,6 +267,12 @@ public:
     bool ReadVersion(int& nVersion);
     //! Write wallet version
     bool WriteVersion(int nVersion);
+
+    //! Write validator state
+    bool WriteValidatorState(const esperanza::ValidatorState &state);
+    //! Read validator state
+    bool ReadValidatorState(esperanza::ValidatorState &state);
+
 private:
     CDB batch;
     CWalletDBWrapper& m_dbw;
