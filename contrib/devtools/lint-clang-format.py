@@ -3,9 +3,9 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+import difflib
 import subprocess
 import sys
-import difflib
 
 import shared.lib
 
@@ -21,7 +21,7 @@ def gitadd(filename):
                         stdout=subprocess.PIPE)
   return ps.wait()
 
-def checkandupdate(filename, replace = False, addtogit = False):
+def checkandupdate(filename, replace=False, addtogit=False):
   ps = subprocess.Popen("clang-format -style=file " + filename,
                         shell=True,
                         stdout=subprocess.PIPE)
@@ -40,7 +40,7 @@ def checkandupdate(filename, replace = False, addtogit = False):
           print(filename, "has been formatted")
     else:
       print(filename, "is not formatted")
-      diff = difflib.unified_diff(unformatted, formatted)
+      diff = difflib.unified_diff(unformatted.splitlines(True), formatted.splitlines(True))
       print(''.join(diff))
   return isformatted
 
