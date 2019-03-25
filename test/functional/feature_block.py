@@ -155,7 +155,7 @@ class FullBlockTest(ComparisonTestFramework):
         new_meta = calc_snapshot_hash(self.nodes[0], prev_meta.data, 0, block_height, inputs, outputs)
         self.block_snapshot_meta[block.sha256] = new_meta
 
-    def next_block(self, number, coin, spend=None, additional_coinbase_value=0, script=CScript([OP_TRUE]), solve=True, coinbase_pieces=1):
+    def next_block(self, number, coin, spend=None, additional_coinbase_value=0, script=CScript([OP_TRUE]), solve=True, coinbase_pieces=1, sign=True):
         if self.tip == None:
             base_block_hash = self.genesis_hash
             block_time = int(time.time())+1
@@ -173,11 +173,17 @@ class FullBlockTest(ComparisonTestFramework):
         coinbase = create_coinbase(height, coin, snapshot_hash, self.coinbase_pubkey, n_pieces=coinbase_pieces)
         coinbase.vout[0].nValue += additional_coinbase_value
 
+        if sign:
+            coinbase = sign_coinbase(self.nodes[0], coinbase)
+            for out in coinbase.vout:
+                out.scriptPubKey = CScript(out.scriptPubKey)
+
         coinbase.rehash()
         if spend == None:
             block = create_block(base_block_hash, coinbase, block_time)
         else:
             coinbase.vout[0].nValue += spend.tx.vout[spend.n].nValue - 1 # all but one satoshi to fees
+            coinbase = sign_coinbase(self.nodes[0], coinbase)
             coinbase.rehash()
             block = create_block(base_block_hash, coinbase, block_time)
             tx = create_transaction(spend.tx, spend.n, b"", 1, script)  # spend 1 satoshi
