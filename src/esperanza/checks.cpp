@@ -106,7 +106,7 @@ bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_stat
     return false;
   }
 
-  const Result res = fin_state.ValidateDeposit(validator_address, tx.GetValueOut());
+  const Result res = fin_state.ValidateDeposit(validator_address, tx.vout[0].nValue);
   switch (res) {
     case +Result::SUCCESS:
       return true;
