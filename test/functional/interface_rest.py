@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the REST API."""
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, BLOCK_HEADER_LENGTH
 from test_framework.util import *
 from struct import *
 from io import BytesIO
@@ -203,8 +203,6 @@ class RESTTest (UnitETestFramework):
         ################
         # /rest/block/ #
         ################
-
-        BLOCK_HEADER_LENGTH = 112
 
         # check binary format
         response = http_get_call(url.hostname, url.port, '/rest/block/'+bb_hash+self.FORMAT_SEPARATOR+"bin", True)
