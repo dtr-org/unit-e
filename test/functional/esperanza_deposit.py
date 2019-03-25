@@ -8,8 +8,9 @@ from test_framework.util import (
     assert_equal,
     JSONRPCException,
     wait_until,
-)
+    assert_raises_rpc_error)
 from test_framework.test_framework import UnitETestFramework
+from test_framework.mininode import UNIT
 
 
 class EsperanzaDepositTest(UnitETestFramework):
@@ -44,29 +45,44 @@ class EsperanzaDepositTest(UnitETestFramework):
 
     def run_test(self):
         nodes = self.nodes
-
         validator = nodes[0]
 
         self.setup_stake_coins(*self.nodes)
-
-        payto = validator.getnewaddress("", "legacy")
-
         assert_equal(validator.getbalance(), validator.initial_stake)
 
         # Leave IBD
         self.generate_sync(nodes[1])
 
+        test_not_enough_money_for_deposit(validator)
+        test_deposit_too_small(validator)
+        self.test_successful_deposit(validator)
+        test_duplicate_deposit(validator)
+
+    def test_successful_deposit(self, validator):
+        nodes = self.nodes
+
+        payto = validator.getnewaddress("", "legacy")
         txid = validator.deposit(payto, 1500)
+
+        deposit_tx = validator.gettransaction(txid)
+        assert_equal(0, deposit_tx['amount'])  # we send the money to ourselves
+        assert (deposit_tx['fee'] < 0)  # fee returned by gettransaction is negative
+
+        raw_deposit_tx = validator.decoderawtransaction(deposit_tx['hex'])
+        assert_equal(1500, raw_deposit_tx['vout'][0]['value'])
+        assert_equal(10000 - 1500 + deposit_tx['fee'], raw_deposit_tx['vout'][1]['value'])
 
         # wait for transaction to propagate
         self.wait_for_transaction(txid, 60)
 
-        wait_until(lambda: validator.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_CONFIRMATION', timeout=5)
+        wait_until(lambda: validator.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_CONFIRMATION',
+                   timeout=5)
 
         # mine a block to allow the deposit to get included
         self.generate_sync(nodes[2])
 
-        wait_until(lambda: validator.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION', timeout=5)
+        wait_until(lambda: validator.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION',
+                   timeout=5)
 
         # the validator will be ready to operate in epoch 4
         # TODO: UNIT - E: it can be 2 epochs as soon as #572 is fixed
@@ -88,6 +104,24 @@ class EsperanzaDepositTest(UnitETestFramework):
                 i += 1
                 print("error generating block:", exp.error)
         raise AssertionError("Node" + str(node.index) + " cannot generate block")
+
+
+# Deposit all you got, not enough coins left for the fees
+def test_not_enough_money_for_deposit(validator):
+    payto = validator.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-25, "Cannot create deposit.", validator.deposit, payto, validator.initial_stake)
+
+
+# Deposit less then the minimum
+def test_deposit_too_small(validator):
+    payto = validator.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-8, "Amount is below minimum allowed.", validator.deposit, payto, 100)
+
+
+# Deposit again
+def test_duplicate_deposit(validator):
+    payto = validator.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-8, "The node is already validating.", validator.deposit, payto, 1500)
 
 
 if __name__ == '__main__':
