@@ -1003,7 +1003,7 @@ public:
      */
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletTx& wtxNew, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
                            std::string& strFailReason, const CCoinControl& coin_control, bool sign = true, TxType type = TxType::REGULAR);
-    bool CommitTransaction(CWalletTx& wtxNew, CReserveKey& reservekey, CConnman* connman, CValidationState& state);
+    bool CommitTransaction(const CWalletTx& wtxNew, CReserveKey& reservekey, CConnman* connman, CValidationState& state, bool relay = true, CWalletTx **tx_out = nullptr);
 
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& entries);
     bool AddAccountingEntry(const CAccountingEntry&);
