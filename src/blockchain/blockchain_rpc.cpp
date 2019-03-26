@@ -39,6 +39,7 @@ class BlockchainRPCImpl : public BlockchainRPC {
     PUT_PARAMETER(reward_schedule);
     PUT_PARAMETER(period_blocks);
     PUT_PARAMETER(mine_blocks_on_demand);
+    PUT_PARAMETER(base58_prefixes);
     PUT_PARAMETER(bech32_human_readable_prefix);
     PUT_PARAMETER(deployment_confirmation_period);
     PUT_PARAMETER(rule_change_activation_threshold);
