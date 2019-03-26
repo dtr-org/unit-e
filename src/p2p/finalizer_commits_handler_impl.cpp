@@ -5,6 +5,7 @@
 #include <p2p/finalizer_commits_handler_impl.h>
 
 #include <chainparams.h>
+#include <consensus/merkle.h>
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
@@ -308,7 +309,10 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
   }
 
   for (const HeaderAndFinalizerCommits &d : msg.data) {
-    // UNIT-E TODO: Check commits merkle root after it is added
+    const uint256 commits_merkle_root = ComputeMerkleRoot(d.commits);
+    if (commits_merkle_root != d.header.hash_finalizer_commits_merkle_root) {
+      return err(100, "bad-finalizer-commits-merkle-root", d.header.GetHash());
+    }
     for (const auto &c : d.commits) {
       if (!c->IsFinalizerCommit()) {
         return err(100, "bad-non-commit", d.header.GetHash());

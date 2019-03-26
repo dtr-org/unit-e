@@ -28,7 +28,7 @@ class ProcessorImpl final : public StateProcessor {
 };
 
 bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block) {
-  const auto state = m_repo->FindOrCreate(block_index, FinalizationState::COMPLETED);
+  const auto state = m_repo->FindOrCreate(block_index, FinalizationState::FROM_COMMITS);
   if (state == nullptr) {
     LogPrint(BCLog::FINALIZATION, "ERROR: Cannot find or create finalization state for %s\n",
              block_index.GetBlockHash().GetHex());

@@ -18,13 +18,16 @@ from test_framework.key import CECKey
 from test_framework.messages import (
     msg_getcommits,
     msg_commits,
+    CBlock,
     CommitsLocator,
     HeaderAndCommits,
+    ser_uint256,
 )
 from test_framework.util import (
     assert_equal,
     wait_until,
 )
+import copy
 import time
 from test_framework.mininode import network_thread_start, P2PInterface
 
@@ -242,11 +245,28 @@ class CommitsTest(UnitETestFramework):
         # generate next 10 blocks, fool commit in one of them, send them
         generate(10)
         msg = make_commits_msg(chain[-10:])
-        msg.data[-1].commits = chain[-1].vtx # fool commits with coinbase tx
+        malicious_block = copy.deepcopy(chain[-1])
+        msg.data[-1].commits = malicious_block.vtx # fool commits with coinbase tx
+        hashes = []
+        tx = malicious_block.vtx[0]
+        tx.calc_sha256()
+        hashes.append(ser_uint256(tx.sha256))
+        malicious_block.hash_finalizer_commits_merkle_root = CBlock.get_merkle_root(hashes)
+        malicious_block.rehash()
+        msg.data[-1].header.hash_finalizer_commits_merkle_root = malicious_block.hash_finalizer_commits_merkle_root
         node.p2p.send_message(msg)
-        check_reject(b'bad-non-commit', chain[-1].sha256) # node rejected commits because of non-commit transaction
+        check_reject(b'bad-non-commit', malicious_block.sha256) # node rejected commits because of non-commit transaction
         check_headers(30) # must keep old amount of headers
 
+        # send commits with bad merkle root
+        msg = make_commits_msg(chain[-10:])
+        malicious_block = copy.deepcopy(chain[-2])
+        malicious_block.hash_finalizer_commits_merkle_root = 42
+        malicious_block.rehash()
+        msg.data[-2].header.hash_finalizer_commits_merkle_root = malicious_block.hash_finalizer_commits_merkle_root
+        node.p2p.send_message(msg)
+        check_reject(b'bad-finalizer-commits-merkle-root', malicious_block.sha256) # node rejected commits because of bad commits merkle root
+        check_headers(30) # must keep old amount of headers
 
 if __name__ == '__main__':
     CommitsTest().main()

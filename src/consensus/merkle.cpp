@@ -136,6 +136,15 @@ uint256 ComputeMerkleRoot(const std::vector<uint256>& leaves, bool* mutated) {
     return hash;
 }
 
+uint256 ComputeMerkleRoot(const std::vector<CTransactionRef>& vtx, bool* mutated) {
+  std::vector<uint256> leaves;
+  leaves.reserve(vtx.size());
+  for (const auto &tx : vtx) {
+    leaves.emplace_back(tx->GetHash());
+  }
+  return ComputeMerkleRoot(leaves, mutated);
+}
+
 std::vector<uint256> ComputeMerkleBranch(const std::vector<uint256>& leaves, uint32_t position) {
     std::vector<uint256> ret;
     MerkleComputation(leaves, nullptr, nullptr, position, &ret);
@@ -168,6 +177,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
 uint256 BlockFinalizerCommitsMerkleRoot(const CBlock& block, bool* mutated)
 {
     std::vector<uint256> leaves;
+    leaves.reserve(block.vtx.size());
     for (const CTransactionRef &tx : block.vtx) {
         if (tx->IsFinalizerCommit()) {
             leaves.emplace_back(tx->GetHash());

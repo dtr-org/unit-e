@@ -214,14 +214,14 @@ BOOST_AUTO_TEST_CASE(states_workflow) {
   ok = fixture.ProcessNewTip(b2);
   BOOST_CHECK_EQUAL(ok, false);
 
-  // Process b1 state from commits and try to process b2 from block. This must fail due to we can't
-  // confirm state that based on unconfirmed one.
+  // Process b1 state from commits and process b2 from block. This must work due to we consider
+  // state processed from commits as good as one processed from the full block.
   ok = fixture.ProcessNewCommits(b1);
   BOOST_REQUIRE(ok);
   ok = fixture.ProcessNewTipCandidate(b2);
-  BOOST_CHECK_EQUAL(ok, false);
+  BOOST_CHECK_EQUAL(ok, true);
   ok = fixture.ProcessNewTip(b2);
-  BOOST_CHECK_EQUAL(ok, false);
+  BOOST_CHECK_EQUAL(ok, true);
 
   // Now we can process b2 from commits and then from the block (it's what we do in snapshot sync).
   ok = fixture.ProcessNewCommits(b2);
