@@ -160,7 +160,10 @@ UniValue logout(const JSONRPCRequest& request) {
   }
 
   CWalletTx tx;
-  extWallet.SendLogout(tx);
+
+  if (!extWallet.SendLogout(tx)) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot send logout transaction.");
+  }
 
   return tx.GetHash().GetHex();
 }

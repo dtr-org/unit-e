@@ -9,8 +9,8 @@ from test_framework.util import (
     assert_finalizationstate,
     sync_blocks,
     disconnect_nodes,
-    sync_mempools
-)
+    sync_mempools,
+    assert_raises_rpc_error)
 from test_framework.util import assert_equal
 from test_framework.test_framework import UnitETestFramework
 
@@ -30,7 +30,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
             '-validating=1',
             '-esperanzaconfig=' + json_params
         ]
-        proposer_node_params = [ '-esperanzaconfig=' + json_params]
+        proposer_node_params = ['-esperanzaconfig=' + json_params]
 
         self.extra_args = [proposer_node_params,
                            validator_node_params,
@@ -50,7 +50,6 @@ class EsperanzaLogoutTest(UnitETestFramework):
         connect_nodes(finalizer2, proposer.index)
 
     def run_test(self):
-
         proposer = self.nodes[0]
         finalizer1 = self.nodes[1]
         finalizer2 = self.nodes[2]
@@ -119,13 +118,14 @@ class EsperanzaLogoutTest(UnitETestFramework):
         sync_mempools([proposer, finalizer2])
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=proposer)
 
+        # Check that we cannot logout again
+        assert_raises_rpc_error(-8, "Cannot send logout transaction.", finalizer1.logout)
+
         # Mine votes
         proposer.generate(1)
         sync_blocks([proposer, finalizer2])
         sync_mempools([proposer, finalizer2])
 
-        # Here we miss finalization because the finalizers need to be in curDyn and prevDyn
-        # in order for their votes to count for the finalization
         assert_finalizationstate(proposer, {'currentEpoch': 6,
                                             'currentDynasty': 4,
                                             'lastJustifiedEpoch': 5,
@@ -147,13 +147,11 @@ class EsperanzaLogoutTest(UnitETestFramework):
         sync_blocks([proposer, finalizer2])
         sync_mempools([proposer, finalizer2])
 
-        # Finalization recovers again to optimal
         assert_finalizationstate(proposer, {'currentEpoch': 7,
                                             'currentDynasty': 5,
                                             'lastJustifiedEpoch': 6,
                                             'lastFinalizedEpoch': 5,
                                             'validators': 2})
-
 
         resp = finalizer1.getvalidatorinfo()
         assert_equal(resp["validator_status"], "IS_VALIDATING")
@@ -189,6 +187,8 @@ class EsperanzaLogoutTest(UnitETestFramework):
         proposer.generate(1)
         sync_blocks([proposer, finalizer2])
         sync_mempools([proposer, finalizer2])
+
+        assert_raises_rpc_error(-8, "The node is not validating validating.", finalizer1.logout)
 
         assert_finalizationstate(proposer, {'currentEpoch': 9,
                                             'currentDynasty': 7,
