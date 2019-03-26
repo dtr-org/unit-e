@@ -38,5 +38,13 @@ std::unique_ptr<Settings> Settings::New(
     }
   }
 
+  if (args->IsArgSet("-datadir")) {
+    const fs::path path = fs::system_complete(args->GetArg("-datadir", ""));
+    if (fs::is_directory(path)) {
+      settings->base_data_dir = path;
+    }
+  }
+  settings->data_dir = settings->base_data_dir / blockchain_behavior->GetParameters().data_dir_suffix;
+
   return settings;
 }

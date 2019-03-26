@@ -5,8 +5,11 @@
 #ifndef UNIT_E_TEST_UNITE_MOCKS_H
 #define UNIT_E_TEST_UNITE_MOCKS_H
 
+#include <blockdb.h>
 #include <coins.h>
+#include <finalization/state_db.h>
 #include <staking/active_chain.h>
+#include <staking/block_index_map.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 
@@ -44,6 +47,53 @@ class NetworkMock : public staking::Network {
     ++invocations_GetOutboundNodeCount;
     return outbound_node_count;
   }
+};
+
+class BlockIndexMapMock : public staking::BlockIndexMap {
+public:
+  bool reverse = false;
+
+  CCriticalSection &GetLock() const override { return cs; }
+  CBlockIndex *Insert(const uint256 &block_hash) {
+    const auto result = indexes.emplace(block_hash, new CBlockIndex());
+    CBlockIndex *index = result.first->second;
+    const uint256 &hash = result.first->first;
+    if (!result.second) {
+      return index;
+    }
+    index->phashBlock = &hash;
+    return index;
+  }
+  CBlockIndex *Lookup(const uint256 &block_hash) const override {
+    const auto it = indexes.find(block_hash);
+    if (it == indexes.end()) {
+      return nullptr;
+    }
+    return it->second;
+  }
+  void ForEach(std::function<bool(const uint256 &, const CBlockIndex &)> &&f) const override {
+    if (!reverse) {
+      for (auto it = indexes.begin(); it != indexes.end(); ++it) {
+        if (!f(it->first, *it->second)) {
+          return;
+        }
+      }
+    } else {
+      for (auto it = indexes.rbegin(); it != indexes.rend(); ++it) {
+        if (!f(it->first, *it->second)) {
+          return;
+        }
+      }
+    }
+  }
+  ~BlockIndexMapMock() {
+    for (auto &i : indexes) {
+      delete i.second;
+    }
+  }
+private:
+  mutable CCriticalSection cs;
+  std::map<uint256, CBlockIndex*> indexes;
 };
 
 class ActiveChainMock : public staking::ActiveChain {
@@ -102,11 +152,6 @@ class ActiveChainMock : public staking::ActiveChain {
     return boost::none;
   };
 
-  //! Function to find most common block index
-  std::function<const CBlockIndex *(const CBlockIndex *)> find_fork_origin = [](const CBlockIndex *) {
-    return nullptr;
-  };
-
   CCriticalSection &GetLock() const override {
     ++invocations_GetLock;
     return lock;
@@ -133,7 +178,11 @@ class ActiveChainMock : public staking::ActiveChain {
   }
   const CBlockIndex *FindForkOrigin(const CBlockIndex &block_index) const override {
     ++invocations_FindForkOrigin;
-    return find_fork_origin(&block_index);
+    const CBlockIndex *walk = &block_index;
+    while (walk != nullptr && block_at_height(walk->nHeight) != walk) {
+      walk = walk->pprev;
+    }
+    return walk;
   }
   const CBlockIndex *GetNext(const CBlockIndex &block_index) const override {
     ++invocations_GetNext;
@@ -228,6 +277,61 @@ class CoinsViewMock : public AccessibleCoinsView {
   bool HaveInputs(const CTransaction &tx) const override {
     ++invocations_HaveInputs;
     return have_inputs(tx);
+  }
+};
+
+class StateDBMock : public finalization::StateDB {
+  using FinalizationState = finalization::FinalizationState;
+public:
+  mutable std::atomic<std::uint32_t> invocations_Save{0};
+  mutable std::atomic<std::uint32_t> invocations_Load{0};
+  mutable std::atomic<std::uint32_t> invocations_LoadParticular{0};
+  mutable std::atomic<std::uint32_t> invocations_FindLastFinalizedEpoch{0};
+  mutable std::atomic<std::uint32_t> invocations_LoadStatesHigherThan{0};
+
+  bool Save(const std::map<const CBlockIndex *, FinalizationState> &states) override {
+    ++invocations_Save;
+    return false;
+  }
+
+  bool Load(const esperanza::FinalizationParams &fin_params,
+            const esperanza::AdminParams &admin_params,
+            std::map<const CBlockIndex *, FinalizationState> *states) override {
+    ++invocations_Load;
+    return false;
+  }
+
+  bool Load(const CBlockIndex &index,
+            const esperanza::FinalizationParams &fin_params,
+            const esperanza::AdminParams &admin_params,
+            std::map<const CBlockIndex *, FinalizationState> *states) const override {
+    ++invocations_LoadParticular;
+    return false;
+  }
+
+  boost::optional<uint32_t> FindLastFinalizedEpoch(
+      const esperanza::FinalizationParams &fin_params,
+      const esperanza::AdminParams &admin_params) const override {
+    ++invocations_FindLastFinalizedEpoch;
+    return boost::none;
+  }
+
+  void LoadStatesHigherThan(
+      blockchain::Height height,
+      const esperanza::FinalizationParams &fin_params,
+      const esperanza::AdminParams &admin_params,
+      std::map<const CBlockIndex *, FinalizationState> *states) const override {
+    ++invocations_LoadStatesHigherThan;
+  }
+};
+
+class BlockDBMock : public ::BlockDB {
+public:
+  mutable std::atomic<std::uint32_t> invocations_ReadBlock{0};
+
+  boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
+    ++invocations_ReadBlock;
+    return boost::none;
   }
 };
 

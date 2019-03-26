@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <esperanza/adminstate.h>
+#include <util.h>
 
 namespace esperanza {
 
@@ -59,6 +60,17 @@ bool AdminState::operator==(const AdminState &other) const {
   return m_admin_pub_keys == other.m_admin_pub_keys &&
          m_white_list == other.m_white_list &&
          m_permissioning_is_active == other.m_permissioning_is_active;
+}
+
+std::string AdminState::ToString() const {
+  return strprintf(
+      "AdminState{"
+      "m_admin_pub_keys=%s "
+      "m_white_list=%s "
+      "m_permissioning_is_active=%d}",
+      util::to_string(m_admin_pub_keys),
+      util::to_string(m_white_list),
+      m_permissioning_is_active);
 }
 
 }  // namespace esperanza

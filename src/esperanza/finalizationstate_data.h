@@ -96,6 +96,35 @@ class FinalizationStateData {
   ufp64::ufp64_t m_reward_factor = 0;
 
   AdminState m_admin_state;
+
+ public:
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_checkpoints);
+    READWRITE(m_epoch_to_dynasty);
+    READWRITE(m_dynasty_start_epoch);
+    READWRITE(m_validators);
+    READWRITE(m_dynasty_deltas);
+    READWRITE(m_deposit_scale_factor);
+    READWRITE(m_total_slashed);
+    READWRITE(m_current_epoch);
+    READWRITE(m_current_dynasty);
+    READWRITE(m_cur_dyn_deposits);
+    READWRITE(m_prev_dyn_deposits);
+    READWRITE(m_expected_source_epoch);
+    READWRITE(m_last_finalized_epoch);
+    READWRITE(m_last_justified_epoch);
+    READWRITE(m_recommended_target_hash);
+    READWRITE(m_recommended_target_epoch);
+    READWRITE(m_last_voter_rescale);
+    READWRITE(m_last_non_voter_rescale);
+    READWRITE(m_reward_factor);
+    READWRITE(m_admin_state);
+  };
+
+  std::string ToString() const;
 };
 
 }  // namespace esperanza

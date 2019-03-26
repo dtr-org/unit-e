@@ -139,11 +139,21 @@ std::ostream& operator<<(std::ostream& os, const uint256& num);
 namespace std {
 template <typename T>
 ::std::ostream &operator<<(::std::ostream &os, const ::std::vector<T> &v) {
-    os << ::util::to_string(v);
-    return os;
+  os << ::util::to_string(v);
+  return os;
 }
 template <typename T>
 ::std::ostream &operator<<(::std::ostream &os, const ::std::set<T> &v) {
+  os << ::util::to_string(v);
+  return os;
+}
+template <typename Tk, typename Tv>
+::std::ostream &operator<<(::std::ostream &os, const ::std::map<Tk, Tv> &v) {
+  os << ::util::to_string(v);
+  return os;
+}
+template <typename T, size_t N>
+::std::ostream &operator<<(::std::ostream &os, const ::std::array<T, N> &v) {
   os << ::util::to_string(v);
   return os;
 }

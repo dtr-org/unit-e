@@ -67,6 +67,8 @@ UNITE_TESTS = \
   test/esperanza/finalizationstate_slash_tests.cpp \
   test/esperanza/finalizationstate_utils.h \
   test/esperanza/finalizationstate_utils.cpp \
+  test/finalization/params_tests.cpp \
+  test/finalization/state_db_tests.cpp \
   test/finalization/state_processor_tests.cpp \
   test/finalization/state_repository_tests.cpp \
   test/finalization/vote_recorder_tests.cpp \

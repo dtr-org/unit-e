@@ -10,9 +10,9 @@
 #include <key.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
+#include <serialize.h>
 #include <sync.h>
 #include <uint256.h>
-#include <array>
 
 namespace esperanza {
 
@@ -38,6 +38,17 @@ class AdminState {
   void EndPermissioning();
   bool IsPermissioningActive() const;
   bool operator==(const AdminState &other) const;
+
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_admin_pub_keys);
+    READWRITE(m_white_list);
+    READWRITE(m_permissioning_is_active);
+  }
+
+  std::string ToString() const;
 };
 
 }  // namespace esperanza

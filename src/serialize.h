@@ -841,6 +841,25 @@ void Unserialize(Stream &is, boost::optional<T> &v) {
 
 
 /**
+ * std::array
+ */
+template<typename Stream, typename T, size_t N>
+void Serialize(Stream &os, const std::array<T, N> &v) {
+    for (auto const &i : v) {
+        Serialize(os, i);
+    }
+}
+
+template<typename Stream, typename T, size_t N>
+void Unserialize(Stream &is, std::array<T, N> &v) {
+    for (auto &i : v) {
+        Unserialize(is, i);
+    }
+}
+
+
+
+/**
  * Support for ADD_SERIALIZE_METHODS and READWRITE macro
  */
 struct CSerActionSerialize
