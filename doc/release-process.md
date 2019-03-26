@@ -89,29 +89,29 @@ rm SHA256SUMS
 (the digest algorithm is forced to sha256 to avoid confusion of the `Hash:` header that GPG adds with the SHA256 used for the files)
 Note: check that SHA256SUMS itself doesn't end up in SHA256SUMS, which is a spurious/nonsensical entry.
 
-- Upload zips and installers, as well as `SHA256SUMS.asc` from last step, to the unite.org server
-  into `/var/www/bin/unite-core-${VERSION}`
+- Upload zips and installers, as well as `SHA256SUMS.asc` from last step, to the bitcoin.org server
+  into `/var/www/bin/bitcoin-core-${VERSION}`
 
 - A `.torrent` will appear in the directory after a few minutes. Optionally help seed this torrent. To get the `magnet:` URI use:
 ```bash
 transmission-show -m <torrent file>
 ```
 Insert the magnet URI into the announcement sent to mailing lists. This permits
-people without access to `unite.org` to download the binary distribution.
+people without access to `bitcoin.org` to download the binary distribution.
 Also put it into the `optional_magnetlink:` slot in the YAML file for
 unite.org (see below for unite.org update instructions).
 
-- Update unite.org version
+- Update bitcoin.org version
 
-  - First, check to see if the Unit-e.org maintainers have prepared a
-    release: https://github.com/unite-dot-org/unite.org/labels/Releases
+  - First, check to see if the bitcoin.org maintainers have prepared a
+    release: https://github.com/bitcoin-dot-org/bitcoin.org/labels/Releases
 
       - If they have, it will have previously failed their Travis CI
         checks because the final release files weren't uploaded.
         Trigger a Travis CI rebuild---if it passes, merge.
 
   - If they have not prepared a release, follow the Unit-e.org release
-    instructions: https://github.com/unite-dot-org/unite.org#release-notes
+    instructions: https://github.com/bitcoin-dot-org/bitcoin.org#release-notes
 
   - After the pull request is merged, the website will automatically show the newest version within 15 minutes, as well
     as update the OS download links. Ping @saivann/@harding (saivann/harding on Freenode) in case anything goes wrong
