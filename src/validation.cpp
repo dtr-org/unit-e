@@ -3206,6 +3206,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         // while still invalidating it.
         if (mutated)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-duplicate", true, "duplicate transaction");
+
+        uint256 merkle_root = BlockFinalizerCommitsMerkleRoot(block);
+        if (block.hash_finalizer_commits_merkle_root != merkle_root) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-finalizercommits-merkleroot", true, "hash_finalizer_commits_merkle_root mismatch");
+        }
     }
 
     // All potential-corruption validation must be done before we do any

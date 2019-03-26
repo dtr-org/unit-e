@@ -28,6 +28,8 @@ CBlock GetRealBlock() {
           "5275289558f51c9966699404ae2294730c3c9f9bda53523ce50e9b95e558da2f"
           // hash witness merkle root
           "0000000000000000000000000000000000000000000000000000000000000000"
+          // hash finalizer commits merkle root
+          "0000000000000000000000000000000000000000000000000000000000000000"
           // time
           "db261b4d"
           // bits

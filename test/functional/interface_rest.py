@@ -220,14 +220,14 @@ class RESTTest (UnitETestFramework):
         # check block hex format
         response_hex = http_get_call(url.hostname, url.port, '/rest/block/'+bb_hash+self.FORMAT_SEPARATOR+"hex", True)
         assert_equal(response_hex.status, 200)
-        assert_greater_than(int(response_hex.getheader('content-length')), BLOCK_HEADER_LENGTH * 2)
+        assert_greater_than(int(response_hex.getheader('content-length')), BLOCK_HEADER_LENGTH)
         response_hex_str = response_hex.read()
-        assert_equal(encode(response_str, "hex_codec")[0:224], response_hex_str[0:BLOCK_HEADER_LENGTH * 2])
+        assert_equal(encode(response_str, "hex_codec")[0:BLOCK_HEADER_LENGTH * 2], response_hex_str[0:BLOCK_HEADER_LENGTH * 2])
 
         # compare with hex block header
         response_header_hex = http_get_call(url.hostname, url.port, '/rest/headers/1/'+bb_hash+self.FORMAT_SEPARATOR+"hex", True)
         assert_equal(response_header_hex.status, 200)
-        assert_greater_than(int(response_header_hex.getheader('content-length')), BLOCK_HEADER_LENGTH * 2)
+        assert_greater_than(int(response_header_hex.getheader('content-length')), BLOCK_HEADER_LENGTH)
         response_header_hex_str = response_header_hex.read()
         assert_equal(response_hex_str[0:BLOCK_HEADER_LENGTH * 2], response_header_hex_str[0:BLOCK_HEADER_LENGTH * 2])
         assert_equal(encode(response_header_str, "hex_codec")[0:BLOCK_HEADER_LENGTH * 2], response_header_hex_str[0:BLOCK_HEADER_LENGTH * 2])

@@ -289,6 +289,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nVersion       = diskindex.nVersion;
                 pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
                 pindexNew->hash_witness_merkle_root = diskindex.hash_witness_merkle_root;
+                pindexNew->hash_finalizer_commits_merkle_root = diskindex.hash_finalizer_commits_merkle_root;
                 pindexNew->nTime          = diskindex.nTime;
                 pindexNew->nBits          = diskindex.nBits;
                 pindexNew->nNonce         = diskindex.nNonce;
