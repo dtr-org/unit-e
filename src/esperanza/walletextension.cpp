@@ -281,7 +281,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   CPubKey pubKey;
   m_enclosing_wallet.GetPubKey(keyID, pubKey);
 
-  CRecipient r{CScript::CreatePayVoteSlashScript(pubKey), amount, false};
+  CRecipient r{CScript::CreatePayVoteSlashScript(pubKey), amount, /*fSubtractFeeFromAmount=*/false};
   vecSend.push_back(r);
 
   if (!m_enclosing_wallet.CreateTransaction(

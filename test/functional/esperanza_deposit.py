@@ -8,7 +8,9 @@ from test_framework.util import (
     assert_equal,
     JSONRPCException,
     wait_until,
-    assert_raises_rpc_error, assert_greater_than)
+    assert_raises_rpc_error,
+    assert_lesser_than
+)
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -64,12 +66,12 @@ class EsperanzaDepositTest(UnitETestFramework):
         txid = validator.deposit(payto, 1500)
 
         deposit_tx = validator.gettransaction(txid)
-        assert_equal(0, deposit_tx['amount'])  # we send the money to ourselves
-        assert_greater_than(0, deposit_tx['fee'])  # fee returned by gettransaction is negative
+        assert_equal(deposit_tx['amount'], 0)  # we send the money to ourselves
+        assert_lesser_than(deposit_tx['fee'], 0)  # fee returned by gettransaction is negative
 
         raw_deposit_tx = validator.decoderawtransaction(deposit_tx['hex'])
-        assert_equal(1500, raw_deposit_tx['vout'][0]['value'])
-        assert_equal(10000 - 1500 + deposit_tx['fee'], raw_deposit_tx['vout'][1]['value'])
+        assert_equal(raw_deposit_tx['vout'][0]['value'], 1500)
+        assert_equal(raw_deposit_tx['vout'][1]['value'], 10000 - 1500 + deposit_tx['fee'])
 
         # wait for transaction to propagate
         self.wait_for_transaction(txid, 60)
