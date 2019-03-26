@@ -108,7 +108,7 @@ For example:
   ./github-merge.py 3077
 
 (in any git repository) will help you merge pull request #3077 for the
-unite/unite repository.
+dtr-org/unit-e repository.
 
 What it does:
 * Fetch master and the pull request.
@@ -128,7 +128,7 @@ Setup
 ---------
 Configuring the github-merge tool for the unite repository is done in the following way:
 
-    git config githubmerge.repository unite/unite
+    git config githubmerge.repository dtr-org/unit-e
     git config githubmerge.testcmd "make -j4 check" (adapt to whatever you want to use for testing)
     git config --global user.signingkey mykeyid (if you want to GPG sign)
 
