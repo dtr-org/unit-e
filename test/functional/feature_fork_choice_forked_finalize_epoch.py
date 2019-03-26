@@ -87,9 +87,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         # create deposit
         disconnect_nodes(node, finalizer2.index)
         payto = finalizer1.getnewaddress('', 'legacy')
-        txid1 = finalizer1.deposit(payto, 10000)
+        txid1 = finalizer1.deposit(payto, 1500)
         finalizer2.setaccount(payto, '')
-        txid2 = finalizer2.deposit(payto, 10000)
+        txid2 = finalizer2.deposit(payto, 1500)
         assert_equal(txid1, txid2)
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
@@ -205,9 +205,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         # create deposit
         disconnect_nodes(node, finalizer2.index)
         payto = finalizer1.getnewaddress('', 'legacy')
-        txid1 = finalizer1.deposit(payto, 10000)
+        txid1 = finalizer1.deposit(payto, 1500)
         finalizer2.setaccount(payto, '')
-        txid2 = finalizer2.deposit(payto, 10000)
+        txid2 = finalizer2.deposit(payto, 1500)
         assert_equal(txid1, txid2)
         wait_until(lambda: len(node.getrawmempool()) > 0, timeout=10)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))

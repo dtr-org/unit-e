@@ -15,7 +15,9 @@ CTransaction CreateVoteTx(const CTransaction &spendable_tx, const CKey &spendabl
                           const esperanza::Vote &vote, const std::vector<unsigned char> &vote_sig);
 
 CTransaction CreateDepositTx(const CTransaction &spendable_tx,
-                             const CKey &spendable_key, CAmount amount);
+                             const CKey &spendable_key,
+                             const CAmount &amount,
+                             const CAmount &change = 0);
 
 CTransaction CreateLogoutTx(const CTransaction &spendable_tx,
                             const CKey &spendable_key, CAmount amount);

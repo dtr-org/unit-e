@@ -163,7 +163,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
 
         # disable instant finalization
         payto = finalizer.getnewaddress('', 'legacy')
-        txid = finalizer.deposit(payto, 10000)
+        txid = finalizer.deposit(payto, 1500)
         self.wait_for_transaction(txid, timeout=10)
 
         node3.generatetoaddress(7, node3.getnewaddress('', 'bech32'))

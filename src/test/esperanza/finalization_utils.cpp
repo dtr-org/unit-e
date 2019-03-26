@@ -8,9 +8,11 @@
 #include <boost/test/unit_test.hpp>
 
 CTransaction CreateBaseTransaction(const CTransaction &spendable_tx,
-                                   const CKey &spendable_key, CAmount amount,
+                                   const CKey &spendable_key,
+                                   const CAmount &amount,
                                    const TxType type,
-                                   const CScript &script_pub_key) {
+                                   const CScript &script_pub_key,
+                                   const CAmount &change = 0) {
 
   CBasicKeyStore keystore;
   keystore.AddKey(spendable_key);
@@ -22,8 +24,12 @@ CTransaction CreateBaseTransaction(const CTransaction &spendable_tx,
   mtx.vin[0].prevout.hash = spendable_tx.GetHash();
   mtx.vin[0].prevout.n = 0;
 
-  CTxOut out(amount, script_pub_key);
-  mtx.vout.push_back(out);
+  CAmount value_out = amount - change;
+  mtx.vout.emplace_back(value_out, script_pub_key);
+
+  if (change > 0) {
+    mtx.vout.emplace_back(change, script_pub_key);
+  }
 
   // Sign
   std::vector<unsigned char> vch_sig;
@@ -73,12 +79,15 @@ CTransaction CreateVoteTx(const esperanza::Vote &vote, const CKey &spendable_key
 }
 
 CTransaction CreateDepositTx(const CTransaction &spendable_tx,
-                             const CKey &spendable_key, CAmount amount) {
+                             const CKey &spendable_key,
+                             const CAmount &amount,
+                             const CAmount &change) {
+
   CScript script_pub_key =
       CScript::CreatePayVoteSlashScript(spendable_key.GetPubKey());
 
   return CreateBaseTransaction(spendable_tx, spendable_key, amount,
-                               TxType::DEPOSIT, script_pub_key);
+                               TxType::DEPOSIT, script_pub_key, change);
 }
 
 CTransaction CreateLogoutTx(const CTransaction &spendable_tx,

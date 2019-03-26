@@ -49,7 +49,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         # Leave IBD
         self.generate_block(nodes[1])
 
-        deposit_tx = validator.deposit(payto, 10000)
+        deposit_tx = validator.deposit(payto, 1500)
 
         # wait for transaction to propagate
         self.wait_for_transaction(deposit_tx, 60)

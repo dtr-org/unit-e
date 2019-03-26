@@ -75,11 +75,11 @@ class EsperanzaSlashTest(UnitETestFramework):
 
         disconnect_nodes(fork1, finalizer2.index)
         addr = finalizer1.getnewaddress('', 'legacy')
-        txid1 = finalizer1.deposit(addr, 10000)
+        txid1 = finalizer1.deposit(addr, 1500)
         wait_until(lambda: txid1 in fork1.getrawmempool())
 
         finalizer2.setaccount(addr, '')
-        txid2 = finalizer2.deposit(addr, 10000)
+        txid2 = finalizer2.deposit(addr, 1500)
         assert_equal(txid1, txid2)
         connect_nodes(fork1, finalizer2.index)
 

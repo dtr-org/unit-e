@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckDepositTx_test) {
 
   {
     // insufficient amount in deposit
-    CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000);
+    CTransaction deposit = CreateDepositTx(CTransaction(mtx), key, 10000 * UNIT, 9000 * UNIT);
     CValidationState err_state;
 
     FinalizationState fin_state(FinalizationParams{}, AdminParams{});
