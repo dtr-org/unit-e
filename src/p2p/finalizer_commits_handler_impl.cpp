@@ -13,7 +13,6 @@
 #include <finalization/state_repository.h>
 #include <finalization/vote_recorder.h>
 #include <net_processing.h>
-#include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
 #include <staking/active_chain.h>
 #include <validation.h>
@@ -394,8 +393,9 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
     const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
     const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
+    const bool snapshot_enabled = snapshot::IsISDEnabled();
 
-    if (index_epoch > tip_epoch) {
+    if (!snapshot_enabled && index_epoch > tip_epoch) {
       download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
       LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
                index_epoch, download_until);
@@ -412,11 +412,18 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       LogPrint(BCLog::NET, "Commits sync finished after processing header=%s, height=%d\n",
                last_index->GetBlockHash().GetHex(), last_index->nHeight);
       download_until = last_index->nHeight;
+      if (snapshot_enabled) {
+        snapshot::HeadersDownloaded();
+      }
       break;
 
     case FinalizerCommitsResponse::Status::LengthExceeded:
       // Just wait the next message to come
       break;
+  }
+
+  if (snapshot_enabled) {
+    return true;
   }
 
   LOCK(cs);

@@ -3291,13 +3291,8 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                    got back an empty response.  */
                 if (pindexStart->pprev)
                     pindexStart = pindexStart->pprev;
-                if (snapshot::IsISDEnabled()) {
-                    LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
-                    connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexStart), uint256()));
-                } else {
-                    LogPrint(BCLog::NET, "initial getcommits (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
-                    connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETCOMMITS, GetComponent<p2p::FinalizerCommitsHandler>()->GetFinalizerCommitsLocator(*pindexStart, nullptr)));
-                }
+                LogPrint(BCLog::NET, "initial getcommits (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
+                connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETCOMMITS, GetComponent<p2p::FinalizerCommitsHandler>()->GetFinalizerCommitsLocator(*pindexStart, nullptr)));
             }
         }
 

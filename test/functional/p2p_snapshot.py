@@ -36,6 +36,7 @@ from test_framework.mininode import (
     NODE_SNAPSHOT,
 )
 from test_framework.blocktools import (
+    msg_commits,
     msg_headers,
     msg_witness_block,
     msg_getsnaphead,
@@ -49,6 +50,7 @@ from test_framework.blocktools import (
     CBlockHeader,
     CBlock,
     COutPoint,
+    HeaderAndCommits,
     ser_vector,
     ser_uint256,
     uint256_from_str,
@@ -86,6 +88,16 @@ class BaseNode(P2PInterface):
         msg.status = 1
         for h in self.headers:
             msg.headers.append(h)
+        self.send_message(msg)
+
+    def on_getcommits(self, message):
+        if len(self.headers) == 0:
+            return
+
+        msg = msg_commits()
+        msg.status = 1 # TipReached
+        for h in self.headers:
+            msg.data.append(HeaderAndCommits(h))
         self.send_message(msg)
 
     def on_getsnaphead(self, message):
