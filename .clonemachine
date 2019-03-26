@@ -9,6 +9,7 @@ appropriated_files:
 - doc/man/unite-cli.1
 - doc/man/unite-tx.1
 - doc/man/united.1
+- doc/release-process.md
 
 removed_files:
 - contrib/gitian-descriptors/gitian-osx-signer.yml
