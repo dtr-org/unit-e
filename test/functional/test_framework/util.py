@@ -51,11 +51,11 @@ def assert_greater_than_or_equal(thing1, thing2):
     if thing1 < thing2:
         raise AssertionError("%s < %s" % (str(thing1), str(thing2)))
 
-def assert_lesser_than(thing1, thing2):
+def assert_less_than(thing1, thing2):
     if thing1 >= thing2:
         raise AssertionError("%s >= %s" % (str(thing1), str(thing2)))
 
-def assert_lesser_than_or_equal(thing1, thing2):
+def assert_less_than_or_equal(thing1, thing2):
     if thing1 > thing2:
         raise AssertionError("%s > %s" % (str(thing1), str(thing2)))
 
