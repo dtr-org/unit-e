@@ -191,9 +191,11 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         payto = finalizer.getnewaddress('', 'legacy')
         txid = finalizer.deposit(payto, 10000)
         wait_until(lambda: self.have_tx_in_mempool([fork1, fork2], txid))
+        disconnect_nodes(finalizer, fork1.index)
 
         # leave instant justification
         fork1.generatetoaddress(3 + 5 + 5 + 5 + 5 + 1, fork1.getnewaddress('', 'bech32'))
+        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
         assert_equal(fork1.getblockcount(), 25)
         assert_finalizationstate(fork1, {'currentDynasty': 3,
                                          'currentEpoch': 5,
@@ -213,7 +215,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         # J
         # e5 - e6 fork1, fork2, fork3
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
-        wait_until(lambda: len(fork1.getrawmempool()) == 1, timeout=10)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
         fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 34)
         assert_finalizationstate(fork1, {'currentDynasty': 4,
@@ -230,6 +232,7 @@ class ForkChoiceFinalizationTest(UnitETestFramework):
         sync_blocks([fork1, fork3])
         disconnect_nodes(fork1, fork3.index)
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
+        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
         sync_blocks([fork1, fork2])
 
         for fork in [fork1, fork2]:
