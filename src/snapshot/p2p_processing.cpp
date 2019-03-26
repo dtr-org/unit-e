@@ -578,15 +578,6 @@ bool P2PState::InFlightSnapshotDiscovery(const CNode &node) {
     }
   }
 
-  // check node reply timeout
-  {
-    const auto diff = now - node.m_requested_snapshot_at;
-    const auto diff_sec = std::chrono::duration_cast<std::chrono::seconds>(diff);
-    if (diff_sec.count() > m_params.snapshot_chunk_timeout_sec) {
-      return false;
-    }
-  }
-
   return true;
 }
 
