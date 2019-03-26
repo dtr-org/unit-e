@@ -1,3 +1,6 @@
+**This describes the Bitcoin Core release process. It will need to be adapted to
+the unit-e release process when we start doing releases.**
+
 ### Verify Binaries
 
 #### Preparation:

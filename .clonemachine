@@ -4,6 +4,8 @@ appropriated_files:
 - contrib/gitian-build.py
 - contrib/gitian-keys/keys.txt
 - doc/gitian-building.md
+- contrib/verifybinaries/README.md
+- contrib/verifybinaries/verify.sh
 
 removed_files:
 - contrib/gitian-descriptors/gitian-osx-signer.yml
