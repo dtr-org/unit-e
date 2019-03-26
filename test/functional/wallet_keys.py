@@ -20,35 +20,28 @@ class WalletKeysTest(UnitETestFramework):
         self.extra_args = [[]]
 
     def run_test(self):
-        node = self.nodes[0]
+        keytool = KeyTool.for_node(self.nodes[0])
 
-        keytool = KeyTool.for_node(node)
-
-        bech32_address = node.getnewaddress('', 'bech32')
-        privkey = PrivateKey.from_node(node, bech32_address)
-        pubkey = PublicKey.from_node(node, bech32_address)
+        bech32_address = keytool.get_bech32_address()
+        privkey = keytool.get_privkey(bech32_address)
+        pubkey = keytool.get_pubkey(bech32_address)
 
         assert(pubkey.is_compressed())
-        assert_equal(pubkey.to_hex(),
-                     privkey.get_pubkey().to_hex())
-        assert_equal(privkey.bech32_address(keytool.human_readable_prefix),
-                     pubkey.bech32_address(keytool.human_readable_prefix))
-        assert_equal(privkey.bech32_address(keytool.human_readable_prefix),
-                     bech32_address)
-        assert_equal(pubkey.bech32_address(keytool.human_readable_prefix),
-                     bech32_address)
-
-        legacy_address = node.getnewaddress('', 'legacy')
-        privkey = PrivateKey.from_node(node, legacy_address)
-        pubkey = PublicKey.from_node(node, legacy_address)
 
         assert_equal(pubkey.to_hex(),
                      privkey.get_pubkey().to_hex())
-        assert_equal(privkey.legacy_address(keytool.pubkey_version_byte),
-                     pubkey.legacy_address(keytool.pubkey_version_byte))
-        assert_equal(privkey.legacy_address(keytool.pubkey_version_byte),
-                     legacy_address)
-        assert_equal(pubkey.legacy_address(keytool.pubkey_version_byte),
+        assert_equal(keytool.get_bech32_address(privkey),
+                     keytool.get_bech32_address(pubkey),
+                     bech32_address)
+
+        legacy_address = keytool.get_legacy_address()
+        privkey = keytool.get_privkey(legacy_address)
+        pubkey = keytool.get_pubkey(legacy_address)
+
+        assert_equal(pubkey.to_hex(),
+                     privkey.get_pubkey().to_hex())
+        assert_equal(keytool.get_legacy_address(privkey),
+                     keytool.get_legacy_address(pubkey),
                      legacy_address)
 
 
