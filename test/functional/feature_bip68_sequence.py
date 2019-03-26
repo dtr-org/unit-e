@@ -321,7 +321,9 @@ class BIP68Test(UnitETestFramework):
         tip = int(self.nodes[0].getblockhash(self.nodes[0].getblockcount()-1), 16)
         height = self.nodes[0].getblockcount()
         # Let's get the available stake that is not already used
-        avail_stake = [x for x in self.nodes[0].listunspent() if x['txid'] != tx1.hash]
+        # We must exclude tx2 outputs from the list since any stake referred to them will fail
+        # In order to do that, we limit outputs with the number of minimum confirmations (minconf = 2)
+        avail_stake = [x for x in self.nodes[0].listunspent(2) if x['txid'] != tx1.hash]
         for i in range(2):
             stake = avail_stake.pop()
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
