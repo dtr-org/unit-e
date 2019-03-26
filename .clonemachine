@@ -6,6 +6,9 @@ appropriated_files:
 - doc/gitian-building.md
 - contrib/verifybinaries/README.md
 - contrib/verifybinaries/verify.sh
+- doc/man/unite-cli.1
+- doc/man/unite-tx.1
+- doc/man/united.1
 
 removed_files:
 - contrib/gitian-descriptors/gitian-osx-signer.yml
