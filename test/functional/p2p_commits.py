@@ -247,10 +247,9 @@ class CommitsTest(UnitETestFramework):
         msg = make_commits_msg(chain[-10:])
         malicious_block = copy.deepcopy(chain[-1])
         msg.data[-1].commits = malicious_block.vtx # fool commits with coinbase tx
-        hashes = []
         tx = malicious_block.vtx[0]
         tx.calc_sha256()
-        hashes.append(ser_uint256(tx.sha256))
+        hashes = [ser_uint256(tx.sha256)]
         malicious_block.hash_finalizer_commits_merkle_root = CBlock.get_merkle_root(hashes)
         malicious_block.rehash()
         msg.data[-1].header.hash_finalizer_commits_merkle_root = malicious_block.hash_finalizer_commits_merkle_root
