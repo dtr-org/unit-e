@@ -156,7 +156,7 @@ UniValue logout(const JSONRPCRequest& request) {
   if (validator.m_phase !=
       +esperanza::ValidatorState::Phase::IS_VALIDATING) {
     throw JSONRPCError(RPC_INVALID_PARAMETER,
-                       "The node is not validating validating.");
+                       "The node is not validating.");
   }
 
   CWalletTx tx;

@@ -4,6 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 from test_framework.util import (
+    assert_equal,
     json,
     connect_nodes,
     assert_finalizationstate,
@@ -11,7 +12,6 @@ from test_framework.util import (
     disconnect_nodes,
     sync_mempools,
     assert_raises_rpc_error)
-from test_framework.util import assert_equal
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -26,15 +26,15 @@ class EsperanzaLogoutTest(UnitETestFramework):
         }
         json_params = json.dumps(params_data)
 
-        validator_node_params = [
+        finalizer_node_params = [
             '-validating=1',
             '-esperanzaconfig=' + json_params
         ]
         proposer_node_params = ['-esperanzaconfig=' + json_params]
 
         self.extra_args = [proposer_node_params,
-                           validator_node_params,
-                           validator_node_params]
+                           finalizer_node_params,
+                           finalizer_node_params]
         self.setup_clean_chain = True
 
     # create topology where arrows denote non-persistent connection
@@ -76,23 +76,9 @@ class EsperanzaLogoutTest(UnitETestFramework):
         disconnect_nodes(finalizer1, proposer.index)
         disconnect_nodes(finalizer2, proposer.index)
 
-        # Generate enough blocks to advance 2 dynasties
-        proposer.generate(39)  # 5 * 10 - 1 (from IBD)
-        assert_equal(proposer.getblockcount(), 40)
-
-        # Check that validators are not yet included
-        assert_finalizationstate(proposer, {'currentEpoch': 4,
-                                            'currentDynasty': 2,
-                                            'validators': 0})
-
-        # Advance another dynasty to make the validators active
-        proposer.generate(10)
+        # Generate enough blocks to advance 3 dynasties and have active finalizers
+        proposer.generate(49)  # 5 * 10 - 1 (from IBD)
         assert_equal(proposer.getblockcount(), 50)
-        assert_finalizationstate(proposer, {'currentEpoch': 5,
-                                            'currentDynasty': 3,
-                                            'lastJustifiedEpoch': 4,
-                                            'lastFinalizedEpoch': 3,
-                                            'validators': 2})
 
         connect_nodes(proposer, finalizer1.index)
         connect_nodes(proposer, finalizer2.index)
@@ -111,7 +97,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         disconnect_nodes(finalizer1, proposer.index)
 
-        # Check that the validator is still voting for epoch 6
+        # Check that the finalizer is still voting for epoch 6
         proposer.generate(9)
         assert_equal(proposer.getblockcount(), 60)
         sync_blocks([proposer, finalizer2])
@@ -135,7 +121,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         resp = finalizer1.getvalidatorinfo()
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
-        # Check that the validator is still voting for epoch 7
+        # Check that the finalizer is still voting for epoch 7
         proposer.generate(9)
         assert_equal(proposer.getblockcount(), 70)
         sync_blocks([proposer, finalizer2])
@@ -156,7 +142,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         resp = finalizer1.getvalidatorinfo()
         assert_equal(resp["validator_status"], "IS_VALIDATING")
 
-        # Check that the validator is not included in the next dynasty
+        # Check that the finalizer is not included in the next dynasty
         connect_nodes(proposer, finalizer1.index)
         proposer.generate(9)
         assert_equal(proposer.getblockcount(), 80)
@@ -177,7 +163,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         resp = finalizer1.getvalidatorinfo()
         assert_equal(resp["validator_status"], "NOT_VALIDATING")
 
-        # Check that we manage to finalize even with one validator
+        # Check that we manage to finalize even with one finalizer
         proposer.generate(9)
         assert_equal(proposer.getblockcount(), 90)
         sync_blocks([proposer, finalizer1, finalizer2])
@@ -188,7 +174,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         sync_blocks([proposer, finalizer2])
         sync_mempools([proposer, finalizer2])
 
-        assert_raises_rpc_error(-8, "The node is not validating validating.", finalizer1.logout)
+        assert_raises_rpc_error(-8, "The node is not validating.", finalizer1.logout)
 
         assert_finalizationstate(proposer, {'currentEpoch': 9,
                                             'currentDynasty': 7,
