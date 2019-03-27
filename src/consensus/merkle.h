@@ -13,6 +13,7 @@
 #include <uint256.h>
 
 uint256 ComputeMerkleRoot(const std::vector<uint256>& leaves, bool* mutated = nullptr);
+uint256 ComputeMerkleRoot(const std::vector<CTransactionRef> &vtx, bool *mutated = nullptr);
 std::vector<uint256> ComputeMerkleBranch(const std::vector<uint256>& leaves, uint32_t position);
 uint256 ComputeMerkleRootFromBranch(const uint256& leaf, const std::vector<uint256>& branch, uint32_t position);
 

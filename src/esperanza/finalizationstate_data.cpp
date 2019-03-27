@@ -36,7 +36,7 @@ bool FinalizationStateData::operator==(const FinalizationStateData &other) const
 std::string FinalizationStateData::ToString() const {
   return strprintf(
       "FinalizationState{\n"
-      "checkpoints=%s\n"
+      "m_checkpoints=%s\n"
       "m_epoch_to_dynasty=%s\n"
       "m_dynasty_start_epoch=%s\n"
       "m_validators=%s\n"
