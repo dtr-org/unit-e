@@ -388,9 +388,9 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
 
     for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
       Result res = spy.InitializeEpoch(i);
-      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
+      BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
     }
-    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+    BOOST_REQUIRE_EQUAL(spy.GetCurrentEpoch(), 5);
 
     bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy);
     BOOST_CHECK(!ok);
@@ -864,7 +864,6 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
   const auto &params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
   const auto min_deposit = params.min_deposit_size;
-  const auto epoch_length = params.epoch_length;
 
   CKey k;
   InsecureNewKey(k, true);

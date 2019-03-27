@@ -74,11 +74,8 @@ bool FinalizationState::operator!=(const FinalizationState &other) const {
 Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
 
-  if (blockHeight % m_settings.epoch_length != 1) {
-    return fail(Result::INIT_WRONG_HEIGHT,
-                "%s: ERROR: block_height=%d is not the first block of new epoch\n",
-                __func__, blockHeight);
-  }
+  assert(blockHeight % m_settings.epoch_length == 1 &&
+         "provided blockHeight is not the first block of a new epoch");
 
   IncrementDynasty();
 
@@ -86,7 +83,7 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
 
   if (new_epoch != m_current_epoch + 1) {
     return fail(Result::INIT_WRONG_EPOCH,
-                "%s: ERROR: new_epoch must be %d but %d was passed\n",
+                "%s: new_epoch must be %d but %d was passed\n",
                 __func__, m_current_epoch + 1, new_epoch);
   }
 

@@ -59,8 +59,6 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_wrong_height_passed) {
 
   FinalizationStateSpy state;
 
-  BOOST_CHECK_EQUAL(state.InitializeEpoch(2 * state.EpochLength()),
-                    +Result::INIT_WRONG_HEIGHT);
   BOOST_CHECK_EQUAL(state.InitializeEpoch(state.EpochLength() * 2 + 1),
                     +Result::INIT_WRONG_EPOCH);
   BOOST_CHECK_EQUAL(0, state.GetCurrentEpoch());
@@ -110,8 +108,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
   *spy.PrevDynDeposits() = 150000000;
 
   BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + spy.GetEpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL("0.00057194", ufp64::to_str(*spy.RewardFactor()));
+  BOOST_CHECK_EQUAL("0.00057174", ufp64::to_str(*spy.RewardFactor()));
 }
 
 // GetRecommendedVote tests
