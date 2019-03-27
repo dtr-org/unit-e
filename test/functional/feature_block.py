@@ -17,6 +17,7 @@ from test_framework.comptool import TestManager, TestInstance, RejectResult
 from test_framework.blocktools import *
 import time
 from test_framework.key import CECKey
+from test_framework.keytools import KeyTool
 from test_framework.script import *
 from test_framework.mininode import network_thread_start
 import struct
@@ -75,6 +76,7 @@ class FullBlockTest(ComparisonTestFramework):
         self.test = TestManager(self, self.options.tmpdir)
         self.test.add_all_connections(self.nodes)
         network_thread_start()
+        self.keytool = KeyTool.for_node(self.nodes[0])
         self.test.run()
 
     def add_transactions_to_block(self, block, tx_list):
@@ -99,7 +101,7 @@ class FullBlockTest(ComparisonTestFramework):
 
     def create_and_sign_transaction(self, spend_tx, n, value, script=CScript([OP_TRUE])):
         tx = self.create_tx(spend_tx, n, value, script)
-        self.sign_tx(tx, spend_tx, n)
+        tx = sign_transaction(self.nodes[0], tx)
         tx.rehash()
         return tx
 
@@ -170,7 +172,11 @@ class FullBlockTest(ComparisonTestFramework):
         # First create the coinbase
         height = self.block_heights[base_block_hash] + 1
         snapshot_hash = self.block_snapshot_meta[base_block_hash].hash
-        coinbase = create_coinbase(height, coin, snapshot_hash, self.coinbase_pubkey, n_pieces=coinbase_pieces)
+
+        bech32_address = self.keytool.get_bech32_address()
+        coinbase_pubkey = self.keytool.get_pubkey(bech32_address).to_bytes()
+
+        coinbase = create_coinbase(height, coin, snapshot_hash, coinbase_pubkey, n_pieces=coinbase_pieces)
         coinbase.vout[0].nValue += additional_coinbase_value
 
         if sign:
@@ -187,7 +193,7 @@ class FullBlockTest(ComparisonTestFramework):
             coinbase.rehash()
             block = create_block(base_block_hash, coinbase, block_time)
             tx = create_transaction(spend.tx, spend.n, b"", 1, script)  # spend 1 satoshi
-            self.sign_tx(tx, spend.tx, spend.n)
+            tx = sign_transaction(self.nodes[0], tx)
             self.add_transactions_to_block(block, [tx])
             block.compute_merkle_trees()
         if solve:
@@ -237,15 +243,15 @@ class FullBlockTest(ComparisonTestFramework):
             return {'txid': coin.tx.hash, 'vout': coin.n, 'amount': coin.tx.vout[coin.n].nValue / UNIT}
 
         # returns a test case that asserts that the current tip was accepted
-        def accepted(test_name = ""):
-            return TestInstance([[self.tip, True]], test_name=test_name)
+        def accepted(test_name = "", send_witness=True):
+            return TestInstance([[self.tip, True]], test_name=test_name, send_witness=send_witness)
 
         # returns a test case that asserts that the current tip was rejected
-        def rejected(reject = None, test_name = ""):
+        def rejected(reject = None, test_name = "", send_witness=True):
             if reject is None:
-                return TestInstance([[self.tip, False]], test_name=test_name)
+                return TestInstance([[self.tip, False]], test_name=test_name, send_witness=send_witness)
             else:
-                return TestInstance([[self.tip, reject]], test_name=test_name)
+                return TestInstance([[self.tip, reject]], test_name=test_name, send_witness=send_witness)
 
         # move the tip back to a previous block
         def tip(number):
@@ -324,7 +330,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(1)
         b3 = block(3, get_staking_coin(), spend=out[1])
         txout_b3 = PreviousSpendableOutput(b3.vtx[1], 0, self.block_heights[b3.sha256])
-        yield rejected()
+        yield rejected()  # b3 is not really rejected, just not chosen as tip.
         comp_snapshot_hash(2)
 
 
@@ -592,7 +598,7 @@ class FullBlockTest(ComparisonTestFramework):
         save_spendable_output()
         comp_snapshot_hash(33)
 
-        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS - 1) // 20)+ [OP_CHECKSIG] * 19)
+        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS - 1) // 20) + [OP_CHECKSIG] * 19)
         block(34, get_staking_coin(), spend=out[10], script=too_many_multisigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(33)
@@ -661,7 +667,7 @@ class FullBlockTest(ComparisonTestFramework):
         spend = out[11]
         tx = create_tx(spend.tx, spend.n, 1, p2sh_script)
         tx.vout.append(CTxOut(out_value(11) - 1, CScript([OP_TRUE])))
-        self.sign_tx(tx, spend.tx, spend.n)
+        tx = sign_transaction(self.nodes[0], tx)
         tx.rehash()
         b39 = update_block(39, [tx])
         b39_outputs += 1
