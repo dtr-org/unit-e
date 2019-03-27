@@ -860,7 +860,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
 
 BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
-  FinalizationState *state = FinalizationState::GetState();
+  FinalizationState *esperanza = FinalizationState::GetState();
 
   const auto &params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
   const auto min_deposit = params.min_deposit_size;
@@ -871,17 +871,17 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
   uint160 validator_address = k.GetPubKey().GetID();
 
   BOOST_CHECK_EQUAL(
-      state->ValidateDeposit(validator_address, min_deposit),
+      esperanza->ValidateDeposit(validator_address, min_deposit),
       +Result::SUCCESS);
 
-  state->ProcessDeposit(validator_address, min_deposit);
+  esperanza->ProcessDeposit(validator_address, min_deposit);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
-  for (uint32_t i = 1; i < 5 * state->GetEpochLength() + 1; i += state->GetEpochLength()) {
-    Result res = state->InitializeEpoch(i);
+  for (uint32_t i = 1; i < 5 * esperanza->GetEpochLength() + 1; i += esperanza->GetEpochLength()) {
+    Result res = esperanza->InitializeEpoch(i);
     BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
   }
-  BOOST_CHECK_EQUAL(state->GetCurrentEpoch(), 5);
+  BOOST_CHECK_EQUAL(esperanza->GetCurrentEpoch(), 5);
 
   uint256 target_hash = uint256();
 
