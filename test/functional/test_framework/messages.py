@@ -345,18 +345,29 @@ class CTxOut():
                bytes_to_hex_str(self.scriptPubKey))
 
 
+class TxType(Enum):
+    REGULAR = 0
+    COINBASE = 1
+    DEPOSIT = 2
+    VOTE = 3
+    LOGOUT = 4
+    SLASH = 5
+    WITHDRAW = 6
+    ADMIN = 7
+
+
 class UTXO:
-    def __init__(self, height, is_coin_base, outpoint, tx_out):
+    def __init__(self, height, tx_type, outpoint, tx_out):
         self.outpoint = outpoint
         self.height = height
-        self.isCoinBase = is_coin_base
+        self.tx_type = tx_type
         self.txOut = tx_out
 
     def deserialize(self, f):
         self.outpoint = COutPoint()
         self.outpoint.deserialize(f)
         self.height = struct.unpack("<I", f.read(4))[0]
-        self.isCoinBase = struct.unpack("<B", f.read[1])[0]
+        self.tx_type = TxType(struct.unpack("<B", f.read[1])[0])
         self.txOut = CTxOut()
         self.txOut.deserialize(f)
 
@@ -364,13 +375,13 @@ class UTXO:
         r = b""
         r += self.outpoint.serialize()
         r += struct.pack("<I", self.height)
-        r += struct.pack("<B", self.isCoinBase)
+        r += struct.pack("<B", self.tx_type.value)
         r += self.txOut.serialize()
         return r
 
     def __repr__(self):
-        return "UTXO(outpoint=%s height=%i isCoinBase=%i txOut=%s)" \
-            % (self.outpoint, self.height, self.isCoinBase, repr(self.txOut))
+        return "UTXO(outpoint=%s height=%i tx_type=%s txOut=%s)" \
+            % (self.outpoint, self.height, self.tx_type.name, repr(self.txOut))
 
 
 class CScriptWitness():
@@ -433,17 +444,6 @@ class CTxWitness():
         return True
 
 
-class TxType(Enum):
-    REGULAR = 0
-    COINBASE = 1
-    DEPOSIT = 2
-    VOTE = 3
-    LOGOUT = 4
-    SLASH = 5
-    WITHDRAW = 6
-    ADMIN = 7
-
-
 class CTransaction():
     def __init__(self, tx=None):
         if tx is None:
@@ -467,20 +467,20 @@ class CTransaction():
         self.nVersion = (self.nVersion & 0x0000FFFF) | (tx_type.value << 16)
 
     def get_type(self):
-        return TxType(self.nVersion >> 16).name
+        return TxType(self.nVersion >> 16)
 
     def is_finalizer_commit(self):
         name = self.get_type()
-        if (name == TxType.VOTE.name or
-            name == TxType.ADMIN.name or
-            name == TxType.DEPOSIT.name or
-            name == TxType.LOGOUT.name or
-            name == TxType.SLASH.name or
-            name == TxType.WITHDRAW.name):
+        if (name == TxType.VOTE or
+            name == TxType.ADMIN or
+            name == TxType.DEPOSIT or
+            name == TxType.LOGOUT or
+            name == TxType.SLASH or
+            name == TxType.WITHDRAW):
             return True
 
-        if (name == TxType.COINBASE.name or
-            name == TxType.REGULAR.name):
+        if (name == TxType.COINBASE or
+            name == TxType.REGULAR):
             return False
 
         assert False, ('unknown type: %s' % name)
@@ -1640,26 +1640,26 @@ class UTXOSubset:
     def __init__(self):
         self.tx_id = 0
         self.height = 0
-        self.is_coin_base = False
+        self.tx_type = TxType.REGULAR
         self.outputs = dict()
 
     def deserialize(self, f):
         self.tx_id = deser_uint256(f)
         self.height = struct.unpack('<I', f.read(4))[0]
-        self.is_coin_base = struct.unpack('<B', f.read(1))[0] == 1
+        self.tx_type = TxType(struct.unpack('<B', f.read(1))[0])
         self.outputs = deser_uint32_map(f, CTxOut)
 
     def serialize(self):
         r = b""
         r += ser_uint256(self.tx_id)
         r += struct.pack('<I', self.height)
-        r += struct.pack('<B', self.is_coin_base)
+        r += struct.pack('<B', self.tx_type.value)
         r += ser_uint32_map(self.outputs)
         return r
 
     def __repr__(self):
-        return "UTXOSubset(tx_id=%064x height=%i, is_coin_base=%i outputs=%s)" \
-                % (self.tx_id, self.height, self.is_coin_base, repr(self.outputs))
+        return "UTXOSubset(tx_id=%064x height=%i, tx_type=%s outputs=%s)" \
+                % (self.tx_id, self.height, self.tx_type.name, repr(self.outputs))
 
 
 class msg_notfound():

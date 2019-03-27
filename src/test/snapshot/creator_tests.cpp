@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator) {
       s << i / coinsPerTX;
       point.hash.SetHex(HexStr(s));
 
-      Coin coin(CTxOut(1, CScript()), 1, false);
+      Coin coin(CTxOut(1, CScript()), 1, TxType::REGULAR);
       viewCache->AddCoin(point, std::move(coin), false);
     }
     BOOST_CHECK(viewCache->Flush());
@@ -148,7 +148,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator_concurrent_read) {
       s << i / coinsPerTX;
       point.hash.SetHex(HexStr(s));
 
-      Coin coin(CTxOut(1, CScript()), 1, false);
+      Coin coin(CTxOut(1, CScript()), 1, TxType::REGULAR);
       viewCache->AddCoin(point, std::move(coin), false);
     }
     BOOST_CHECK(viewCache->Flush());
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(snapshot_creator_concurrent_read) {
     // update chainstate to produce new snapshot hash
     COutPoint point;
     point.n = 5000 + static_cast<uint32_t>(i);
-    Coin coin(CTxOut(1, CScript()), 1, false);
+    Coin coin(CTxOut(1, CScript()), 1, TxType::REGULAR);
     viewCache->AddCoin(point, std::move(coin), false);
     BOOST_CHECK(viewCache->Flush());
 

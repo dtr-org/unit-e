@@ -354,13 +354,15 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   mtx.vout = {CTxOut(1, script)};
   CTransaction prev_tx(mtx);
 
+  CCoinsViewCache view(pcoinsTip.get());
+
   {
     CTransaction tx = CreateLogoutTx(prev_tx, key, 1);
     CValidationState err_state;
     Consensus::Params params = Params().GetConsensus();
     FinalizationStateSpy spy(FinalizationParams{}, AdminParams{});
 
-    bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy);
+    bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy, view);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-logout-invalid-state");
 
@@ -392,7 +394,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
     }
     BOOST_REQUIRE_EQUAL(spy.GetCurrentEpoch(), 5);
 
-    bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy);
+    bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy, view);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-logout-no-prev-tx-found");
 
@@ -429,7 +431,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
     }
     BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
 
-    bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy);
+    bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy, view);
     BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
@@ -667,6 +669,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   mt.vout = {CTxOut(1, CScript::CreatePayVoteSlashScript(pub_key))};
   CTransaction prev_tx(mt);
 
+  CCoinsViewCache view(pcoinsTip.get());
+
   {
     CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
@@ -688,7 +692,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
       BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
 
-    bool ok = ContextualCheckVoteTx(tx, err_state, params, spy);
+    bool ok = ContextualCheckVoteTx(tx, err_state, params, spy, view);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-no-prev-tx-found");
   }
@@ -718,7 +722,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     CValidationState err_state;
     Consensus::Params params = Params().GetConsensus();
 
-    bool ok = ContextualCheckVoteTx(tx, err_state, params, spy);
+    bool ok = ContextualCheckVoteTx(tx, err_state, params, spy, view);
     BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
@@ -793,6 +797,8 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
   mt.vout = {CTxOut(1, CScript::CreatePayVoteSlashScript(pub_key))};
   CTransaction prev_tx(mt);
 
+  CCoinsViewCache view(pcoinsTip.get());
+
   {
     CBlockIndex block_index;
     block_index.phashBlock = &target_hash;
@@ -815,7 +821,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     CValidationState err_state;
     Consensus::Params params = Params().GetConsensus();
 
-    bool ok = ContextualCheckWithdrawTx(tx, err_state, params, spy);
+    bool ok = ContextualCheckWithdrawTx(tx, err_state, params, spy, view);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-withdraw-no-prev-tx-found");
   }
@@ -852,7 +858,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     CValidationState err_state;
     Consensus::Params params = Params().GetConsensus();
 
-    bool ok = ContextualCheckWithdrawTx(tx, err_state, params, spy);
+    bool ok = ContextualCheckWithdrawTx(tx, err_state, params, spy, view);
     BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
@@ -911,11 +917,13 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
   // Replace the vote with something meaningless
   mutedTx.vin[0].scriptSig = CScript() << 1337;
 
+  CCoinsViewCache view(pcoinsTip.get());
+
   CTransaction invalidVote(mutedTx);
   Consensus::Params params = Params().GetConsensus();
   CValidationState err_state;
   BOOST_CHECK(CheckFinalizerCommit(invalidVote, err_state) == false);
-  BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, params, spy) == false);
+  BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, params, spy, view) == false);
 
   BOOST_CHECK_EQUAL("bad-vote-data-format", err_state.GetRejectReason());
 }

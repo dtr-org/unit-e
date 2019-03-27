@@ -57,13 +57,13 @@ BOOST_AUTO_TEST_CASE(apdu_test_prepare_segwit) {
   COutPoint outpoint1(uint256(randvec<32>()), 0);
   CScript script1;
   script1 << OP_0;
-  Coin coin1(CTxOut(100000, script1), 0, 0);
+  Coin coin1(CTxOut(100000, script1), 0, TxType::REGULAR);
   view_cache.AddCoin(outpoint1, std::move(coin1), false);
 
   COutPoint outpoint2(uint256(randvec<32>()), 0);
   CScript script2;
   script2 << randvec<1200>();
-  Coin coin2(CTxOut(100000, script2), 0, 0);
+  Coin coin2(CTxOut(100000, script2), 0, TxType::REGULAR);
 
   // check that small transactions are broken up correctly
   {
@@ -145,13 +145,13 @@ BOOST_AUTO_TEST_CASE(apdu_test_sign_segwit) {
   COutPoint outpoint1(uint256(randvec<32>()), 0);
   CScript script1;
   script1 << OP_0;
-  Coin coin1(CTxOut(100000, script1), 0, 0);
+  Coin coin1(CTxOut(100000, script1), 0, TxType::REGULAR);
   view_cache.AddCoin(outpoint1, std::move(coin1), false);
 
   COutPoint outpoint2(uint256(randvec<32>()), 0);
   CScript script2;
   script2 << randvec<1200>();
-  Coin coin2(CTxOut(100000, script2), 0, 0);
+  Coin coin2(CTxOut(100000, script2), 0, TxType::REGULAR);
 
   // check that small transactions are broken up correctly
   {

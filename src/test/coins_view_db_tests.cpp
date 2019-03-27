@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(ccoins_view_cache_clear_coins)
   CCoinsMap coins;
   for (size_t i = 0; i < 5; ++i) {
     COutPoint point(uint256S("aa"), static_cast<uint32_t>(i));
-    Coin coin(CTxOut(1, CScript()), 1, false);
+    Coin coin(CTxOut(1, CScript()), 1, TxType::REGULAR);
     CCoinsCacheEntry entry(std::move(coin));
     entry.flags |= CCoinsCacheEntry::DIRTY;
     coins.emplace(point, std::move(entry));

@@ -26,7 +26,6 @@ class PreviousSpendableOutput():
         self.tx = tx
         self.n = n  # the output we're spending
         self.height = height  # at which height the tx was created
-        self.is_coin_base = tx.is_coin_base()
 
 #  Use this class for tests that require behavior other than normal "mininode" behavior.
 #  For now, it is used to serialize a bloated varint (b64).
@@ -143,12 +142,12 @@ class FullBlockTest(ComparisonTestFramework):
                     continue
                 if out.is_unspendable():
                     continue
-                utxo = UTXO(spent_coin.height, spent_coin.is_coin_base, vin.prevout, out)
+                utxo = UTXO(spent_coin.height, spent_coin.tx.get_type(), vin.prevout, out)
                 inputs.append(utxo)
             for idx, out in enumerate(tx.vout):
                 if out.is_unspendable():
                     continue
-                utxo = UTXO(block_height, tx_idx == 0, COutPoint(tx.sha256, idx), out)
+                utxo = UTXO(block_height, tx.get_type(), COutPoint(tx.sha256, idx), out)
                 outputs.append(utxo)
 
         assert_equal(block_height, self.block_heights[block.hashPrevBlock]+1)

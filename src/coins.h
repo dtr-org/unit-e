@@ -35,27 +35,26 @@ public:
     //! unspent transaction output
     CTxOut out;
 
-    //! whether containing transaction was a coinbase
-    unsigned int fCoinBase : 1;
+    TxType tx_type;
 
     //! at which height this containing transaction was included in the active block chain
-    uint32_t nHeight : 31;
+    uint32_t nHeight;
 
     //! construct a Coin from a CTxOut and height/coinbase information.
-    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn) {}
-    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn) {}
+    Coin(CTxOut&& outIn, int nHeightIn, TxType tx_type) : out(std::move(outIn)), tx_type(tx_type), nHeight(nHeightIn) {}
+    Coin(const CTxOut& outIn, int nHeightIn, TxType tx_type) : out(outIn), tx_type(tx_type), nHeight(nHeightIn) {}
 
     void Clear() {
         out.SetNull();
-        fCoinBase = false;
+        tx_type = TxType::REGULAR;
         nHeight = 0;
     }
 
     //! empty constructor
-    Coin() : fCoinBase(false), nHeight(0) { }
+    Coin() : tx_type(TxType::REGULAR), nHeight(0) { }
 
     bool IsCoinBase() const {
-        return fCoinBase;
+        return tx_type == +TxType::COINBASE;
     }
 
     //! \brief checks if this transaction is a coinbase and the reward is still immature
@@ -89,17 +88,18 @@ public:
     template<typename Stream>
     void Serialize(Stream &s) const {
         assert(!IsSpent());
-        uint32_t code = nHeight * 2 + fCoinBase;
-        ::Serialize(s, VARINT(code));
+        uint8_t type = +tx_type;
+        ::Serialize(s, type);
+        ::Serialize(s, nHeight);
         ::Serialize(s, CTxOutCompressor(REF(out)));
     }
 
     template<typename Stream>
     void Unserialize(Stream &s) {
-        uint32_t code = 0;
-        ::Unserialize(s, VARINT(code));
-        nHeight = code >> 1;
-        fCoinBase = code & 1;
+        uint8_t type = 0;
+        ::Unserialize(s, type);
+        tx_type = TxType::_from_integral(type);
+        ::Unserialize(s, nHeight);
         ::Unserialize(s, REF(CTxOutCompressor(out)));
     }
 
@@ -255,7 +255,7 @@ class CCoinsViewCache : public CCoinsViewBacked, public AccessibleCoinsView
 protected:
     /**
      * Make mutable so that we can "fill the cache" even from Get-methods
-     * declared as "const".  
+     * declared as "const".
      */
     mutable uint256 hashBlock;
     mutable snapshot::SnapshotHash snapshotHash;
@@ -341,7 +341,7 @@ public:
     //! Calculate the size of the cache (in bytes)
     size_t DynamicMemoryUsage() const;
 
-    /** 
+    /**
      * Amount of unites coming in to a transaction
      * Note that lightweight clients may not know anything besides the hash of previous transactions,
      * so may not be able to calculate this.

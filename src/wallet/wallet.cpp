@@ -3129,7 +3129,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CWalletT
                 CCoinsView view;
                 CCoinsViewCache coins_cache(&view);
                 for (const CInputCoin &coin : setCoins) {
-                    Coin temp(coin.txout, 0, false);
+                    Coin temp(coin.txout, 0, txType);
                     coins_cache.AddCoin(coin.outpoint, std::move(temp), true);
                 }
 

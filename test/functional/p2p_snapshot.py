@@ -317,7 +317,7 @@ class P2PSnapshotTest(UnitETestFramework):
         for subset in syncing_p2p.snapshot_data:
             for n in subset.outputs:
                 out = COutPoint(subset.tx_id, n)
-                utxo = UTXO(subset.height, subset.is_coin_base, out, subset.outputs[n])
+                utxo = UTXO(subset.height, subset.tx_type, out, subset.outputs[n])
                 utxos.append(utxo)
         inputs = bytes_to_hex_str(ser_vector([]))
         outputs = bytes_to_hex_str(ser_vector(utxos))

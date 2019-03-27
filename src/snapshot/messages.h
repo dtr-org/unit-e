@@ -26,18 +26,18 @@ struct UTXOSubset {
   //! at which block height the TX was included
   uint32_t height = 0;
 
-  bool is_coin_base = false;
+  TxType tx_type = TxType::REGULAR;
 
   //! key is the CTxOut index
   std::map<uint32_t, CTxOut> outputs;
 
   UTXOSubset() : tx_id(), outputs() {}
 
-  UTXOSubset(const uint256 &_tx_id, const uint32_t _height, const bool _is_coin_base,
+  UTXOSubset(const uint256 &_tx_id, const uint32_t _height, const TxType _tx_type,
              std::map<uint32_t, CTxOut> out_map)
       : tx_id(_tx_id),
         height(_height),
-        is_coin_base(_is_coin_base),
+        tx_type(_tx_type),
         outputs{std::move(out_map)} {}
 
   ADD_SERIALIZE_METHODS;
@@ -46,7 +46,11 @@ struct UTXOSubset {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(tx_id);
     READWRITE(height);
-    READWRITE(is_coin_base);
+    uint8_t type = +tx_type;
+    READWRITE(type);
+    if (ser_action.ForRead()) {
+      tx_type = TxType::_from_integral(type);
+    }
     READWRITE(outputs);
   }
 };
@@ -145,7 +149,7 @@ struct Snapshot {
 struct UTXO {
   COutPoint out_point;
   uint32_t height = 0;
-  bool is_coin_base = false;
+  TxType tx_type = TxType::REGULAR;
   CTxOut tx_out;
 
   UTXO()
@@ -160,7 +164,11 @@ struct UTXO {
   inline void SerializationOp(Stream &s, Operation ser_action) {
     READWRITE(out_point);
     READWRITE(height);
-    READWRITE(is_coin_base);
+    uint8_t type = +tx_type;
+    READWRITE(type);
+    if (ser_action.ForRead()) {
+      tx_type = TxType::_from_integral(type);
+    }
     READWRITE(tx_out);
   }
 };

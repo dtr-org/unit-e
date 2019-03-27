@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction) {
     for(uint32_t i = 0; i < mtx.vin.size(); i++) {
         Coin coin;
         coin.nHeight = 1;
-        coin.fCoinBase = false;
+        coin.tx_type = TxType::REGULAR;
         coin.out.nValue = 1000;
         coin.out.scriptPubKey = scriptPubKey;
         coins.emplace_back(std::move(coin));

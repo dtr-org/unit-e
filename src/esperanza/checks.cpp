@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chainparams.h>
+#include <coins.h>
 #include <esperanza/adminparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
@@ -17,7 +18,8 @@ namespace esperanza {
 bool ContextualCheckFinalizerCommit(const CTransaction &tx,
                                     CValidationState &err_state,
                                     const Consensus::Params &params,
-                                    const FinalizationState &fin_state) {
+                                    const FinalizationState &fin_state,
+                                    const CCoinsView &view) {
   switch (tx.GetType()) {
     case +TxType::REGULAR:
     case +TxType::COINBASE:
@@ -25,13 +27,13 @@ bool ContextualCheckFinalizerCommit(const CTransaction &tx,
     case +TxType::DEPOSIT:
       return ContextualCheckDepositTx(tx, err_state, fin_state);
     case +TxType::VOTE:
-      return ContextualCheckVoteTx(tx, err_state, params, fin_state);
+      return ContextualCheckVoteTx(tx, err_state, params, fin_state, view);
     case +TxType::LOGOUT:
-      return ContextualCheckLogoutTx(tx, err_state, params, fin_state);
+      return ContextualCheckLogoutTx(tx, err_state, params, fin_state, view);
     case +TxType::SLASH:
       return ContextualCheckSlashTx(tx, err_state, params, fin_state);
     case +TxType::WITHDRAW:
-      return ContextualCheckWithdrawTx(tx, err_state, params, fin_state);
+      return ContextualCheckWithdrawTx(tx, err_state, params, fin_state, view);
     case +TxType::ADMIN:
       return ContextualCheckAdminTx(tx, err_state, fin_state);
   }
@@ -67,6 +69,40 @@ inline bool CheckValidatorAddress(const CTransaction &tx, uint160 *addr_out) {
   }
   return ExtractValidatorAddress(tx, *addr_out);
 }
+
+bool FindPrevTxData(const CTransaction &tx,
+                    const Consensus::Params &consensus_params,
+                    const CCoinsView &view,
+                    TxType *tx_type,
+                    CScript *script) {
+  Coin prev_coin;
+  if (view.GetCoin(tx.vin[0].prevout, prev_coin)) {
+    if (tx_type != nullptr) {
+      *tx_type = prev_coin.tx_type;
+    }
+    if (script != nullptr) {
+      *script = prev_coin.out.scriptPubKey;
+    }
+    return true;
+  }
+  CTransactionRef prev_tx;
+  uint256 block_hash;
+  // We have to look into the tx database to find the prev tx, hence the
+  // use of fAllowSlow = true
+  LogPrint(BCLog::FINALIZATION, "Cannout find coin=%s in the UTXO set, try find the whole transaction\n", tx.vin[0].prevout.ToString());
+  if (GetTransaction(tx.vin[0].prevout.hash, prev_tx, consensus_params,
+                     block_hash, true)) {
+    if (tx_type != nullptr) {
+      *tx_type = prev_tx->GetType();
+    }
+    if (script != nullptr) {
+      *script = prev_tx->vout[0].scriptPubKey;
+    }
+    return true;
+  }
+  return false;
+}
+
 }  // namespace
 
 bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
@@ -159,7 +195,8 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
 
 bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
                              const Consensus::Params &consensus_params,
-                             const FinalizationState &fin_state) {
+                             const FinalizationState &fin_state,
+                             const CCoinsView &view) {
 
   uint160 validator_address = uint160();
   if (!CheckLogoutTx(tx, err_state, &validator_address)) {
@@ -175,23 +212,20 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
   // check (potentially goes to disk) and there is a good chance that if the
   // vote is not valid (i.e. outdated) then the function will return before
   // reaching this point.
-  CTransactionRef prev_tx;
-  uint256 block_hash;
+  TxType prev_tx_type = TxType::REGULAR;
+  CScript prev_out_script;
 
-  // We have to look into the tx database to find the prev tx, hence the
-  // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prev_tx, consensus_params,
-                      block_hash, true)) {
+  if (!FindPrevTxData(tx, consensus_params, view, &prev_tx_type, &prev_out_script)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-logout-no-prev-tx-found");
   }
 
-  if (!prev_tx->IsDeposit() && !prev_tx->IsVote()) {
+  if (prev_tx_type != +TxType::DEPOSIT && prev_tx_type != +TxType::VOTE) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-logout-prev-not-deposit-or-vote");
   }
 
-  if (prev_tx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
+  if (prev_out_script != tx.vout[0].scriptPubKey) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-logout-not-same-payvoteslash-script");
   }
@@ -230,28 +264,25 @@ bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
 
 bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
                                const Consensus::Params &consensus_params,
-                               const FinalizationState &fin_state) {
+                               const FinalizationState &fin_state,
+                               const CCoinsView &view) {
 
   uint160 validator_address = uint160();
   if (!CheckWithdrawTx(tx, err_state, &validator_address)) {
     return false;
   }
 
-  CTransactionRef prev_tx;
-  uint256 block_hash;
+  TxType prev_tx_type = TxType::REGULAR;
+  CScript prev_out_script;
 
-  // We have to look into the tx database to find the prev tx, hence the
-  // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prev_tx, consensus_params,
-                      block_hash, true)) {
-
+  if (!FindPrevTxData(tx, consensus_params, view, &prev_tx_type, &prev_out_script)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-withdraw-no-prev-tx-found");
   }
 
   std::vector<std::vector<unsigned char>> prev_solutions;
   txnouttype prev_type_ret;
-  if (!Solver(prev_tx->vout[0].scriptPubKey, prev_type_ret, prev_solutions)) {
+  if (!Solver(prev_out_script, prev_type_ret, prev_solutions)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-logout-script-not-solvable");
   }
@@ -263,7 +294,7 @@ bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_sta
                          "bad-withdraw-invalid-state");
   }
 
-  if (!prev_tx->IsLogout() && !prev_tx->IsVote()) {
+  if (prev_tx_type != +TxType::LOGOUT && prev_tx_type != +TxType::VOTE) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-withdraw-prev-not-logout-or-vote");
   }
@@ -312,7 +343,8 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
 
 bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
                            const Consensus::Params &consensus_params,
-                           const FinalizationState &fin_state) {
+                           const FinalizationState &fin_state,
+                           const CCoinsView &view) {
 
   Vote vote;
   std::vector<unsigned char> vote_sig;
@@ -332,21 +364,21 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   // check (potentially goes to disk) and there is a good chance that if the
   // vote is not valid (i.e. outdated) then the function will return before
   // reaching this point.
-  CTransactionRef prev_tx;
-  uint256 block_hash;
-  // We have to look into the tx database to find the prev tx, hence the
-  // use of fAllowSlow = true
-  if (!GetTransaction(tx.vin[0].prevout.hash, prev_tx, consensus_params,
-                      block_hash, true)) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-no-prev-tx-found");
+
+  TxType prev_tx_type = TxType::REGULAR;
+  CScript prev_out_script;
+
+  if (!FindPrevTxData(tx, consensus_params, view, &prev_tx_type, &prev_out_script)) {
+    return err_state.DoS(10, false, REJECT_INVALID,
+                         "bad-vote-no-prev-tx-found");
   }
 
-  if (!prev_tx->IsDeposit() && !prev_tx->IsVote() && !prev_tx->IsLogout()) {
+  if (prev_tx_type != +TxType::DEPOSIT && prev_tx_type != +TxType::VOTE && prev_tx_type != +TxType::LOGOUT) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-vote-prev-not-deposit-vote-or-logout");
   }
 
-  if (prev_tx->vout[0].scriptPubKey != tx.vout[0].scriptPubKey) {
+  if (prev_out_script != tx.vout[0].scriptPubKey) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-vote-not-same-payvoteslash-script");
   }

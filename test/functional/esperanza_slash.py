@@ -14,6 +14,7 @@ from test_framework.blocktools import (
     CTransaction,
     FromHex,
     ToHex,
+    TxType,
 )
 from test_framework.util import (
     sync_blocks,
@@ -166,7 +167,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         assert_equal(len(fork2.getrawmempool()), 1)
         v2b = fork2.getrawtransaction(fork2.getrawmempool()[0])
         tx_v2b = FromHex(CTransaction(), v2b)
-        assert_equal(tx_v2b.get_type(), 'VOTE')
+        assert_equal(tx_v2b.get_type(), TxType.VOTE)
 
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
@@ -195,7 +196,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         wait_until(lambda: len(fork2.getrawmempool()) == 1, timeout=20)
         s1_hash = fork2.getrawmempool()[0]
         s1 = FromHex(CTransaction(), fork2.getrawtransaction(s1_hash))
-        assert_equal(s1.get_type(), 'SLASH')
+        assert_equal(s1.get_type(), TxType.SLASH)
 
         b37 = fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))[0]
         block = FromHex(CBlock(), fork2.getblock(b37, 0))
