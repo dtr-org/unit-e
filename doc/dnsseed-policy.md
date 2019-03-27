@@ -51,4 +51,4 @@ situations but should be discussed in public in advance.
 
 See also
 ----------
-- [unite-seeder](https://github.com/sipa/unite-seeder) is a reference implementation of a DNS seed.
+- [unite-seeder](https://github.com/sipa/bitcoin-seeder) is a reference implementation of a DNS seed.
