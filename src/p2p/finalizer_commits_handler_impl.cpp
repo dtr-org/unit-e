@@ -61,12 +61,6 @@ const CBlockIndex &FinalizerCommitsHandlerImpl::FindLastFinalizedCheckpoint(
   AssertLockHeld(m_active_chain->GetLock());
 
   const uint32_t epoch = fin_state.GetLastFinalizedEpoch();
-
-  // Workaround 0th epoch finalization. #570
-  if (epoch == 0) {
-    return *m_active_chain->GetGenesis();
-  }
-
   return GetCheckpointIndex(epoch, fin_state);
 }
 

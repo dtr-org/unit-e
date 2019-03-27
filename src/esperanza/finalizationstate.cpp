@@ -831,6 +831,12 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
 
 uint32_t FinalizationState::GetCheckpointHeightAfterFinalizedEpoch() const {
   const uint32_t epoch = m_last_finalized_epoch + 1;
+  if (m_last_finalized_epoch != 0) {
+    // epoch=0 is self-finalized and doesn't require
+    // parent epoch to justify it but for other epochs
+    // this rule must hold
+    assert(GetCheckpoint(epoch).m_is_justified);
+  }
   return GetEpochCheckpointHeight(epoch);
 }
 
