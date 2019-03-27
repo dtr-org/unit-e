@@ -6,6 +6,7 @@
 #define UNITE_STAKING_BLOCK_INDEX_MAP
 
 #include <sync.h>
+#include <functional>
 #include <memory>
 
 class CBlockIndex;
