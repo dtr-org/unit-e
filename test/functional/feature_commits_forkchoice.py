@@ -106,6 +106,13 @@ class FinalizationForkChoice(UnitETestFramework):
         # p2:
         disconnect_nodes(p2, v0.index)
 
+        # disconnect p1
+        # v0:
+        # p0:
+        # p1:
+        # p2:
+        disconnect_nodes(p1, v0.index)
+
         # generate long chain in p0 but don't justify it
         #  F     J
         # 39 .. 49 .. 98    -- p0
@@ -118,13 +125,21 @@ class FinalizationForkChoice(UnitETestFramework):
                                       'lastFinalizedEpoch': 3})
 
         # generate short chain in p1 and justify it
+        # on the 6th and 7th epochs sync with validator
         #  F     J
         # 39 .. 49 .. 58 .. .. .. .. .. .. 98    -- p0
         #               \
         #                59 .. 69 .. 78          -- p1
         #                 F     J
-        for _ in range(20):
-            generate_block(p1)
+        # get to the 6th epoch
+        p1.generatetoaddress(2, p1.getnewaddress('', 'bech32'))
+        self.wait_for_vote_and_disconnect(finalizer=v0, node=p1)
+        # get to the 7th epoch
+        p1.generatetoaddress(10, p1.getnewaddress('', 'bech32'))
+        self.wait_for_vote_and_disconnect(finalizer=v0, node=p1)
+        # generate the rest of the blocks
+        p1.generatetoaddress(8, p1.getnewaddress('', 'bech32'))
+        connect_nodes(p1, v0.index)
         sync_blocks([p1, v0])
 
         assert_equal(p1.getblockcount(), 78)
