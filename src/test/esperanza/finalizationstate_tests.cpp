@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(get_epoch) {
 
   FinalizationParams params;
   FinalizationState state(params, esperanza::AdminParams{});
-  BOOST_CHECK_EQUAL(state.GetEpochLength(), 5);
+  BOOST_REQUIRE_EQUAL(state.GetEpochLength(), 5);
 
   for (const auto &it : height_to_epoch) {
     BOOST_CHECK_EQUAL(state.GetEpoch(it.first), it.second);
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(initialize_epoch_reward_factor) {
 // GetRecommendedVote tests
 BOOST_AUTO_TEST_CASE(get_recommended_vote) {
   FinalizationStateSpy spy;
-  uint160 validatorAddress = RandValidatorAddr();
+  uint160 validator_address = RandValidatorAddr();
 
   const uint256 target_hash = GetRandHash();
   CBlockIndex target;
@@ -126,9 +126,9 @@ BOOST_AUTO_TEST_CASE(get_recommended_vote) {
   spy.SetRecommendedTarget(target);
   spy.SetExpectedSourceEpoch(3);
 
-  Vote res = spy.GetRecommendedVote(validatorAddress);
+  Vote res = spy.GetRecommendedVote(validator_address);
 
-  BOOST_CHECK_EQUAL(res.m_validator_address.GetHex(), validatorAddress.GetHex());
+  BOOST_CHECK_EQUAL(res.m_validator_address.GetHex(), validator_address.GetHex());
   BOOST_CHECK_EQUAL(res.m_source_epoch, 3);
   BOOST_CHECK_EQUAL(res.m_target_epoch, 7);
   BOOST_CHECK_EQUAL(res.m_target_hash, target_hash);
@@ -158,10 +158,10 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
   CTransactionRef depositTx = MakeTransactionRef(CreateDepositTx(tx, k, 10000));
   block.vtx = std::vector<CTransactionRef>{depositTx};
 
-  uint256 deposit_hash = depositTx->GetHash();
+  uint256 depositHash = depositTx->GetHash();
   state.ProcessNewTip(blockIndex, block);
 
-  BOOST_CHECK_EQUAL(deposit_hash.GetHex(),
+  BOOST_CHECK_EQUAL(depositHash.GetHex(),
                     state.GetLastTxHash(validatorAddress).GetHex());
 
   // Test vote
@@ -232,10 +232,10 @@ BOOST_AUTO_TEST_CASE(deposit_amount) {
   base_tx.vin.resize(1);
   base_tx.vout.resize(1);
 
-  CMutableTransaction depositTx = CreateDepositTx(base_tx, k, 10000);
-  depositTx.vout.emplace_back(15000, CScript::CreateP2PKHScript(ToByteVector(validatorAddress)));
+  CMutableTransaction deposit_tx = CreateDepositTx(base_tx, k, 10000);
+  deposit_tx.vout.emplace_back(15000, CScript::CreateP2PKHScript(ToByteVector(validatorAddress)));
 
-  block.vtx = std::vector<CTransactionRef>{MakeTransactionRef(depositTx)};
+  block.vtx = std::vector<CTransactionRef>{MakeTransactionRef(deposit_tx)};
 
   FinalizationStateSpy state;
   state.ProcessNewTip(blockIndex, block);

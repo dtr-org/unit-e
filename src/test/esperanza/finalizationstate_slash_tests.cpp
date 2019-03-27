@@ -11,8 +11,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_not_a_validator) {
   FinalizationStateSpy spy;
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
-  Vote v1{validatorAddress, uint256S("5"), 3, 5};
-  Vote v2{validatorAddress, uint256S("15"), 3, 5};
+  Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
+  Vote v2 = {validatorAddress, uint256S("15"), 3, 5};
 
   BOOST_CHECK_EQUAL(spy.IsSlashable(v1, v2), +Result::SLASH_NOT_A_VALIDATOR);
 
@@ -35,8 +35,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_not_the_same_validator) {
   CAmount depositSize_1 = spy.MinDepositSize();
   CAmount depositSize_2 = spy.MinDepositSize() + 1;
 
-  Vote v1{validatorAddress_1, uint256S("5"), 3, 5};
-  Vote v2{validatorAddress_2, uint256S("6"), 12, 52};
+  Vote v1 = {validatorAddress_1, uint256S("5"), 3, 5};
+  Vote v2 = {validatorAddress_2, uint256S("6"), 12, 52};
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress_1, depositSize_1);
@@ -53,8 +53,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_too_early) {
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  Vote v1{validatorAddress, uint256S("5"), 3, 5};
-  Vote v2{validatorAddress, uint256S("6"), 12, 52};
+  Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
+  Vote v2 = {validatorAddress, uint256S("6"), 12, 52};
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
@@ -105,8 +105,8 @@ BOOST_AUTO_TEST_CASE(is_slashable_already_slashed) {
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  Vote v1{validatorAddress, uint256S("5"), 3, 5};
-  Vote v2{validatorAddress, uint256S("6"), 3, 5};
+  Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
+  Vote v2 = {validatorAddress, uint256S("6"), 3, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
@@ -150,8 +150,8 @@ BOOST_AUTO_TEST_CASE(process_slash_duplicate_vote) {
   CAmount depositSize = spy.MinDepositSize();
 
   // This is a double vote
-  Vote v1{validatorAddress, uint256S("5"), 3, 5};
-  Vote v2{validatorAddress, uint256S("6"), 3, 5};
+  Vote v1 = {validatorAddress, uint256S("5"), 3, 5};
+  Vote v2 = {validatorAddress, uint256S("6"), 3, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
@@ -194,8 +194,8 @@ BOOST_AUTO_TEST_CASE(process_slash_surrounding_vote) {
   CAmount depositSize = spy.MinDepositSize();
 
   // This is a surrounding
-  Vote v1{validatorAddress, uint256S("5"), 1, 5};
-  Vote v2{validatorAddress, uint256S("4"), 3, 4};
+  Vote v1 = {validatorAddress, uint256S("5"), 1, 5};
+  Vote v2 = {validatorAddress, uint256S("4"), 3, 4};
 
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);

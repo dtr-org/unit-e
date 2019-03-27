@@ -150,15 +150,15 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
 }
 
-BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_targetHash) {
+BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 
   FinalizationStateSpy spy;
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  uint256 old_targetHash = GetRandHash();
+  uint256 old_target_hash = GetRandHash();
   CBlockIndex block_index;
-  block_index.phashBlock = &old_targetHash;
+  block_index.phashBlock = &old_target_hash;
   spy.SetRecommendedTarget(block_index);
 
   uint256 targetHash = GetRandHash();
