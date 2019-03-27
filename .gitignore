@@ -2,9 +2,9 @@
 
 *.exe
 src/unite
-src/united
-src/unite-cli
-src/unite-tx
+src/unit-e
+src/unit-e-cli
+src/unit-e-tx
 src/test/test_unite
 src/test/test_unite_fuzzy
 

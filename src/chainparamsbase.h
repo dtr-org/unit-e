@@ -10,7 +10,7 @@
 #include <vector>
 
 /**
- * CBaseChainParams defines the base parameters (shared between unite-cli and united)
+ * CBaseChainParams defines the base parameters (shared between unit-e-cli and unit-e)
  * of a given instance of the Unit-e system.
  */
 class CBaseChainParams

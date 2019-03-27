@@ -20,7 +20,7 @@ BOOST_AUTO_TEST_CASE(try_initialize_mainnet) {
   UnitEInjector injector;
   ArgsManager args;
   const char *const argv[] = {
-      "./united"};
+      "./unit-e"};
   args.ParseParameters(1, argv);
   blockchain::Behavior::MakeGlobal(&args);
   BOOST_CHECK_NO_THROW(injector.Initialize());
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(try_initialize_testnet) {
   UnitEInjector injector;
   ArgsManager args;
   const char *const argv[] = {
-      "./united",
+      "./unit-e",
       "-testnet"};
   args.ParseParameters(2, argv);
   blockchain::Behavior::MakeGlobal(&args);
@@ -41,7 +41,7 @@ BOOST_AUTO_TEST_CASE(try_initialize_regtest) {
   UnitEInjector injector;
   ArgsManager args;
   const char *const argv[] = {
-      "./united",
+      "./unit-e",
       "-regtest"};
   args.ParseParameters(2, argv);
   blockchain::Behavior::MakeGlobal(&args);

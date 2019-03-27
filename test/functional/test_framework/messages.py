@@ -190,7 +190,7 @@ def FromHex(obj, hex_string):
 def ToHex(obj):
     return bytes_to_hex_str(obj.serialize())
 
-# Objects that map to united objects, which can be serialized/deserialized
+# Objects that map to unit-e objects, which can be serialized/deserialized
 
 class CAddress():
     def __init__(self):
@@ -492,7 +492,7 @@ class CTransaction():
         if len(self.vin) == 0:
             flags = struct.unpack("<B", f.read(1))[0]
             # Not sure why flags can't be zero, but this
-            # matches the implementation in united
+            # matches the implementation in unit-e
             if (flags != 0):
                 self.vin = deser_vector(f, CTxIn)
                 self.vout = deser_vector(f, CTxOut)

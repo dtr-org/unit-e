@@ -142,7 +142,7 @@ bool ShutdownRequested()
 /**
  * This is a minimally invasive approach to shutdown on LevelDB read errors from the
  * chainstate, while keeping user interface out of the common library, which is shared
- * between united and non-server tools.
+ * between unit-e and non-server tools.
 */
 class CCoinsViewErrorCatcher final : public CCoinsViewBacked
 {
@@ -376,7 +376,7 @@ std::string HelpMessage(HelpMessageMode mode)
     }
     strUsage +=HelpMessageOpt("-assumevalid=<hex>", strprintf(_("If this block is in the chain assume that it and its ancestors are valid and potentially skip their script verification (0 to verify all, default (testnet): %s)"), testnetChainParams->GetConsensus().defaultAssumeValid.GetHex()));
     strUsage += HelpMessageOpt("-conf=<file>", strprintf(_("Specify configuration file (default: %s)"), UNITE_CONF_FILENAME));
-    if (mode == HelpMessageMode::UNITED) {
+    if (mode == HelpMessageMode::UNIT_E) {
 #if HAVE_DECL_DAEMON
         strUsage += HelpMessageOpt("-daemon", _("Run in the background as a daemon and accept commands"));
 #endif
@@ -873,7 +873,7 @@ void InitLogging()
     fLogIPs = gArgs.GetBoolArg("-logips", DEFAULT_LOGIPS);
 
     if (fLogThreadNames) {
-        SetThreadDebugName("united");
+        SetThreadDebugName("unit-e");
     }
 
     LogPrintf("\n\n"
@@ -1367,7 +1367,7 @@ bool AppInitMain()
     GetMainSignals().RegisterWithMempoolSignals(mempool);
 
     /* Register RPC commands regardless of -server setting so they will be
-     * available in unite-cli even if external calls are disabled.
+     * available in unit-e-cli even if external calls are disabled.
      */
     RegisterAllCoreRPCCommands(tableRPC);
     RegisterFinalizationRPCCommands(tableRPC);

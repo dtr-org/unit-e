@@ -116,8 +116,8 @@ class UTXOManager:
 class AcceptBlockTest(UnitETestFramework):
     def add_options(self, parser):
         parser.add_option("--testbinary", dest="testbinary",
-                          default=os.getenv("UNITED", "united"),
-                          help="united binary to test")
+                          default=os.getenv("UNIT_E", "unit-e"),
+                          help="unit-e binary to test")
 
     def set_test_params(self):
         self.setup_clean_chain = True

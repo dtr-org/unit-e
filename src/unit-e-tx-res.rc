@@ -17,13 +17,13 @@ BEGIN
         BLOCK "040904E4" // U.S. English - multilingual (hex)
         BEGIN
             VALUE "CompanyName",        "Unit-e"
-            VALUE "FileDescription",    "unite-cli (JSON-RPC client for " PACKAGE_NAME ")"
+            VALUE "FileDescription",    "unit-e-tx (CLI Unit-e transaction editor utility)"
             VALUE "FileVersion",        VER_FILEVERSION_STR
-            VALUE "InternalName",       "unite-cli"
+            VALUE "InternalName",       "unit-e-tx"
             VALUE "LegalCopyright",     COPYRIGHT_STR
             VALUE "LegalTrademarks1",   "Distributed under the MIT software license, see the accompanying file COPYING or http://www.opensource.org/licenses/mit-license.php."
-            VALUE "OriginalFilename",   "unite-cli.exe"
-            VALUE "ProductName",        "unite-cli"
+            VALUE "OriginalFilename",   "unit-e-tx.exe"
+            VALUE "ProductName",        "unit-e-tx"
             VALUE "ProductVersion",     VER_PRODUCTVERSION_STR
         END
     END
