@@ -108,6 +108,7 @@ bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &
     esperanza::FinalizationState *state = m_repo->Find(block_index);
     assert(state);
 
+    // We cannot make forks before this point as they can revert finalization.
     const uint32_t trim_until = state->GetCheckpointHeightAfterFinalizedEpoch();
 
     // for 0 epoch it will be in the future

@@ -87,7 +87,7 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
                 __func__, m_current_epoch + 1, new_epoch);
   }
 
-  LogPrint(BCLog::FINALIZATION, "%s: new_epoch=%d height=%d\n",
+  LogPrint(BCLog::FINALIZATION, "%s: new_epoch=%d starts at height=%d\n",
            __func__, new_epoch, blockHeight);
 
   Checkpoint cp = Checkpoint();
@@ -158,6 +158,9 @@ void FinalizationState::InstaJustify() {
 void FinalizationState::IncrementDynasty() {
   // finalized epoch is m_current_epoch - 2 because:
   // finalized (0) - justified (1) - votes to justify (2)
+
+  // m_current_epoch >= 2 is needed as for the m_current_epoch=1
+  // we don't have m_current_epoch - 2
   if (m_current_epoch >= 2 && GetCheckpoint(m_current_epoch - 2).m_is_finalized) {
 
     m_current_dynasty += 1;
