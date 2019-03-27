@@ -74,7 +74,7 @@ bool FinalizationState::operator!=(const FinalizationState &other) const {
 Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
 
-  assert(blockHeight % m_settings.epoch_length == 1 &&
+  assert(IsEpochStart(blockHeight) &&
          "provided blockHeight is not the first block of a new epoch");
 
   IncrementDynasty();
@@ -984,8 +984,7 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   assert(m_status == NEW);
   uint256 block_hash = block_index.GetBlockHash();
 
-  // This is the first block of a new epoch.
-  if (block_index.nHeight % m_settings.epoch_length == 1) {
+  if (IsEpochStart(block_index.nHeight)) {
     InitializeEpoch(block_index.nHeight);
   }
 
@@ -993,8 +992,7 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     ProcessNewCommit(tx);
   }
 
-  // This is the last block for the current epoch and it represents it
-  if (block_index.nHeight % m_settings.epoch_length == 0) {
+  if (IsCheckpoint(block_index.nHeight)) {
     LogPrint(BCLog::FINALIZATION,
              "%s: Last block of the epoch, new m_recommended_target_hash=%s\n",
              __func__, block_hash.GetHex());
@@ -1048,8 +1046,20 @@ uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
   return validator.m_last_transaction_hash;
 }
 
+bool FinalizationState::IsEpochStart(blockchain::Height block_height) const {
+  return block_height % m_settings.epoch_length == 1;
+}
+
 bool FinalizationState::IsCheckpoint(blockchain::Height blockHeight) const {
   return blockHeight % m_settings.epoch_length == 0;
+}
+
+bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) const {
+  if (!IsCheckpoint(blockHeight)) {
+    return false;
+  }
+  auto const it = m_checkpoints.find(GetEpoch(blockHeight));
+  return it != m_checkpoints.end() && it->second.m_is_justified;
 }
 
 bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) const {
