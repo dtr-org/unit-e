@@ -12,6 +12,9 @@ from .messages import (
 from .segwit_addr import (
     encode
 )
+from .test_node import (
+    TestNode
+)
 
 from array import array
 from collections import deque
@@ -32,9 +35,7 @@ class BinaryData:
             data = bytes.fromhex(data)
         elif isinstance(data, array):
             data = bytes(list(data))
-        elif isinstance(data, bytearray):
-            data = bytes(data)
-        elif isinstance(data, list):
+        elif isinstance(data, (bytearray, list)):
             data = bytes(data)
         elif not isinstance(data, bytes):
             raise TypeError(
@@ -95,7 +96,7 @@ class BinaryData:
             padding = b'\0' * (length - len(result))
         return BinaryData(data=padding + bytes(result))
 
-    def to_base58check(self, version=0x00):
+    def to_base58check(self, version):
         """Encode the data using base58check. Returns a str."""
         data = bytes([version]) + self.data
         checksum = hash256(data)[0:4]
@@ -212,7 +213,11 @@ class KeyTool(object):
 
     def __init__(self,
                  pubkey_version_byte, privkey_version_byte,
-                 human_readable_prefix, node=None):
+                 human_readable_prefix, node):
+
+        if not isinstance(node, TestNode):
+            raise TypeError('node is not an instance of TestNode (is: %s)' % type(node))
+
         self.pubkey_version_byte = pubkey_version_byte
         self.privkey_version_byte = privkey_version_byte
         self.human_readable_prefix = human_readable_prefix
@@ -237,8 +242,6 @@ class KeyTool(object):
 
     def get_pubkey(self, address=None, node=None):
         if node is None:
-            if self.node is None:
-                raise ValueError('no node given, and no node initialized')
             return self.get_pubkey(node=self.node, address=address)
         if address is None:
             address = self.get_bech32_address(key_or_node=node)
@@ -246,8 +249,6 @@ class KeyTool(object):
 
     def get_privkey(self, address=None, node=None):
         if node is None:
-            if self.node is None:
-                raise ValueError('no node given, and no node initialized')
             return self.get_privkey(node=self.node, address=address)
         if address is None:
             address = self.get_bech32_address(key_or_node=node)
@@ -255,8 +256,6 @@ class KeyTool(object):
 
     def get_bech32_address(self, key_or_node=None):
         if key_or_node is None:
-            if self.node is None:
-                raise ValueError('no key_or_node given, and no node initialized')
             return self.get_bech32_address(key_or_node=self.node)
         if isinstance(key_or_node, (PublicKey, PrivateKey)):
             return key_or_node.bech32_address(hrp=self.human_readable_prefix)
@@ -264,8 +263,6 @@ class KeyTool(object):
 
     def get_legacy_address(self, key_or_node=None):
         if key_or_node is None:
-            if self.node is None:
-                raise ValueError('no key_or_node given, and no node initialized')
             return self.get_legacy_address(key_or_node=self.node)
         if isinstance(key_or_node, (PublicKey, PrivateKey)):
             return key_or_node.legacy_address(version=self.pubkey_version_byte)
@@ -273,8 +270,6 @@ class KeyTool(object):
 
     def get_privkey_wif(self, key_or_node=None):
         if key_or_node is None:
-            if self.node is None:
-                raise ValueError('no key_or_node given, and no node initialized')
             return self.get_privkey_wif(key_or_node=self.node)
         if isinstance(key_or_node, PrivateKey):
             return key_or_node.wif(version=self.privkey_version_byte)
