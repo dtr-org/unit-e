@@ -40,5 +40,6 @@ UniValue ToUniValue(float value);
 UniValue ToUniValue(double value);
 UniValue ToUniValue(const uint256& hash);
 UniValue ToUniValue(const blockchain::GenesisBlock& value);
+UniValue ToUniValue(const std::vector<unsigned char> base58_prefixes[blockchain::Base58Type::_size_constant]);
 
 #endif // UNITE_RPC_UTIL_H

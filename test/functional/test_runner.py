@@ -78,6 +78,7 @@ BASE_SCRIPTS= [
     'p2p_feefilter.py',
     'feature_assumevalid.py',
     # vv Tests less than 30s vv
+    'wallet_keys.py',
     'p2p_compactblocks.py',
     'esperanza_expired_vote_conflict.py',
     'feature_csv_activation.py',
