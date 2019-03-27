@@ -6,6 +6,7 @@
 #define UNITE_PROPOSER_FINALIZATION_REWARD_LOGIC_H
 
 #include <blockchain/blockchain_behavior.h>
+#include <blockdb.h>
 #include <dependency.h>
 #include <finalization/state_repository.h>
 
@@ -24,7 +25,8 @@ class FinalizationRewardLogic {
 
   static std::unique_ptr<FinalizationRewardLogic> New(
       Dependency<blockchain::Behavior>,
-      Dependency<finalization::StateRepository>);
+      Dependency<finalization::StateRepository>,
+      Dependency<BlockDB>);
 };
 
 }  // namespace proposer
