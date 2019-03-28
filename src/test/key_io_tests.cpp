@@ -18,8 +18,7 @@
 
 extern UniValue read_json(const std::string& jsondata);
 
-// MIHAI: TODO: Fix and re-enable
-BOOST_FIXTURE_TEST_SUITE(key_io_tests, BasicTestingSetup, *boost::unit_test::disabled())
+BOOST_FIXTURE_TEST_SUITE(key_io_tests, BasicTestingSetup)
 
 // Goal: check that parsed keys match test payload
 BOOST_AUTO_TEST_CASE(key_io_valid_parse)
@@ -40,7 +39,7 @@ BOOST_AUTO_TEST_CASE(key_io_valid_parse)
         std::vector<unsigned char> exp_payload = ParseHex(test[1].get_str());
         const UniValue &metadata = test[2].get_obj();
         bool isPrivkey = find_value(metadata, "isPrivkey").get_bool();
-        SelectParams(GetComponent<blockchain::Behavior>(), find_value(metadata, "chain").get_str());
+        SelectParams(find_value(metadata, "chain").get_str());
         bool try_case_flip = find_value(metadata, "tryCaseFlip").isNull() ? false : find_value(metadata, "tryCaseFlip").get_bool();
         if (isPrivkey) {
             bool isCompressed = find_value(metadata, "isCompressed").get_bool();
@@ -99,7 +98,7 @@ BOOST_AUTO_TEST_CASE(key_io_valid_gen)
         std::vector<unsigned char> exp_payload = ParseHex(test[1].get_str());
         const UniValue &metadata = test[2].get_obj();
         bool isPrivkey = find_value(metadata, "isPrivkey").get_bool();
-        SelectParams(GetComponent<blockchain::Behavior>(), find_value(metadata, "chain").get_str());
+        SelectParams(find_value(metadata, "chain").get_str());
         if (isPrivkey) {
             bool isCompressed = find_value(metadata, "isCompressed").get_bool();
             CKey key;

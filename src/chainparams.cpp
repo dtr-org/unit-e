@@ -208,6 +208,12 @@ void SelectParams(Dependency<blockchain::Behavior> blockchain_behavior, const st
     globalChainParams = CreateChainParams(blockchain_behavior, network);
 }
 
+void SelectParams(const std::string& network)
+{
+    SelectBaseParams(network);
+    globalChainParams = CreateChainParams(network);
+}
+
 void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout)
 {
     globalChainParams->UpdateVersionBitsParameters(d, nStartTime, nTimeout);

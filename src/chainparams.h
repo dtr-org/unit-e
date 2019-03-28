@@ -112,6 +112,12 @@ const CChainParams &Params();
 void SelectParams(Dependency<blockchain::Behavior>, const std::string& chain);
 
 /**
+ * Sets the params returned by Params() to those for the given BIP70 chain name.
+ * @throws std::runtime_error when the chain is not supported.
+ */
+void SelectParams(const std::string& chain);
+
+/**
  * Allows modifying the Version Bits regtest parameters.
  */
 void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
