@@ -288,8 +288,8 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
           vecSend, wtxOut, reservekey, nFeeRet, nChangePosInOut, sError,
           coinControl, true, TxType::DEPOSIT)) {
 
-    LogPrint(BCLog::FINALIZATION, "%s: Cannot create deposit transaction.\n",
-             __func__);
+    LogPrint(BCLog::FINALIZATION, "%s: Cannot create deposit transaction. %s\n",
+             __func__, sError);
     return false;
   }
 
