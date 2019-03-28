@@ -238,17 +238,20 @@ class WalletTest(UnitETestFramework):
         node_0_bal = self.check_fee_amount(self.nodes[0].getbalance(), node_0_bal + Decimal('10'), fee_per_byte, self.get_vsize(self.nodes[2].getrawtransaction(txid)))
 
         # Test ResendWalletTransactions:
-        # Create a couple of transactions, then start up a fourth
-        # node (nodes[3]) and ask nodes[0] to rebroadcast.
+        # - Start up, prepare and disconnect the fourth node (nodes[3])
+        # - Create a couple of transactions
+        # - Connect nodes[3] and ask nodes[0] to rebroadcast
         # EXPECT: nodes[3] should have those transactions in its mempool.
+        self.start_node(3)
+        connect_nodes_bi(self.nodes, 0, 3)
+        sync_blocks(self.nodes)
+        disconnect_nodes(self.nodes[0], self.nodes[3].index)
+
         txid1 = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 1)
         txid2 = self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 1)
         sync_mempools(self.nodes[0:2])
 
-        self.start_node(3)
-        connect_nodes_bi(self.nodes, 0, 3)
-        sync_blocks(self.nodes)
-
+        connect_nodes(self.nodes[0], self.nodes[3].index)
         relayed = self.nodes[0].resendwallettransactions()
         assert_equal(set(relayed), {txid1, txid2})
         sync_mempools(self.nodes)
@@ -451,7 +454,7 @@ class WalletTest(UnitETestFramework):
         # Split into two chains
         rawtx = self.nodes[0].createrawtransaction([{"txid":singletxid, "vout":0}], {chain_addrs[0]:node0_balance/2-Decimal('0.01'), chain_addrs[1]:node0_balance/2-Decimal('0.01')})
         signedtx = self.nodes[0].signrawtransaction(rawtx)
-        singletxid = self.nodes[0].sendrawtransaction(signedtx["hex"])
+        self.nodes[0].sendrawtransaction(signedtx["hex"])
         sync_mempools(self.nodes[:2])
         self.nodes[1].generate(1)
         sync_blocks(self.nodes[:2])
@@ -489,7 +492,7 @@ class WalletTest(UnitETestFramework):
 
         node0_balance = self.nodes[0].getbalance()
         # With walletrejectlongchains we will not create the tx and store it in our wallet.
-        assert_raises_rpc_error(-4, "Transaction has too long of a mempool chain", self.nodes[0].sendtoaddress, sending_addr, node0_balance - Decimal('0.01'))
+        assert_raises_rpc_error(-4, "Transaction has too long of a mempool chain", self.nodes[0].sendtoaddress, sending_addr, node0_balance, "", "", True)
 
         # Verify nothing new in wallet
         assert_equal(total_txs, len(self.nodes[0].listtransactions("*",99999)))
