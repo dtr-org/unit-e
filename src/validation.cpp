@@ -75,15 +75,8 @@ namespace {
             if (pa->forking_before_active_finalization && !pb->forking_before_active_finalization) return true;
 
             // sort by justification
-            const bool pa_has_last_justified_epoch = static_cast<bool>(pa->last_justified_epoch);
-            const bool pb_has_last_justified_epoch = static_cast<bool>(pb->last_justified_epoch);
-
-            if (pa_has_last_justified_epoch && pb_has_last_justified_epoch) {
-              if (pa->last_justified_epoch.get() > pb->last_justified_epoch.get()) return false;
-              if (pa->last_justified_epoch.get() < pb->last_justified_epoch.get()) return true;
-            }
-            else if (pa_has_last_justified_epoch && !pb_has_last_justified_epoch) return false;
-            else if (!pa_has_last_justified_epoch && pb_has_last_justified_epoch) return true;
+            if (pa->last_justified_epoch > pb->last_justified_epoch) return false;
+            if (pa->last_justified_epoch < pb->last_justified_epoch) return true;
 
             // then sort by most total work, ...
             if (pa->nChainWork > pb->nChainWork) return false;
@@ -4489,14 +4482,8 @@ bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
         return false;
     }
 
-    bool has_finalization = tip_state->GetLastFinalizedEpoch() > 0;
-    if (!has_finalization) {
-        // UNIT-E: TODO: remove this once #570 is implemented
-        has_finalization = tip_state->GetLastJustifiedEpoch() == 1;
-    }
-    if (!has_finalization) {
-        // we don't have a single finalization yet
-        // so all the forks are allowed
+    if (tip_state->GetLastFinalizedEpoch() == 0) {
+        // we haven't reached any finalization yet
         return false;
     }
 

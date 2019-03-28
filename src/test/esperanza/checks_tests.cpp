@@ -385,9 +385,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
     BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                       +Result::SUCCESS);
     spy.ProcessDeposit(validator_address, deposit_size);
-    for (size_t i = 1; i < 6; ++i) {
-      spy.InitializeEpoch(i * spy.EpochLength());
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
     }
+    BOOST_REQUIRE_EQUAL(spy.GetCurrentEpoch(), 5);
 
     bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy);
     BOOST_CHECK(!ok);
@@ -419,9 +422,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
     BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                       +Result::SUCCESS);
     spy.ProcessDeposit(validator_address, deposit_size);
-    for (size_t i = 1; i < 6; ++i) {
-      spy.InitializeEpoch(i * spy.EpochLength());
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
+    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
 
     bool ok = ContextualCheckLogoutTx(tx, err_state, params, spy);
     BOOST_CHECK(ok);
@@ -529,9 +535,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckSlashTx_test) {
     BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                       +Result::SUCCESS);
     spy.ProcessDeposit(validator_address, deposit_size);
-    for (size_t i = 1; i < 6; ++i) {
-      spy.InitializeEpoch(i * spy.EpochLength());
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
+    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
 
     bool ok = ContextualCheckSlashTx(tx, err_state, params, spy);
     BOOST_CHECK(ok);
@@ -673,8 +682,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                       +Result::SUCCESS);
     spy.ProcessDeposit(validator_address, deposit_size);
-    for (size_t i = 1; i < 6; ++i) {
-      spy.InitializeEpoch(i * spy.EpochLength());
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
 
     bool ok = ContextualCheckVoteTx(tx, err_state, params, spy);
@@ -696,9 +707,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                       +Result::SUCCESS);
     spy.ProcessDeposit(validator_address, deposit_size);
-    for (size_t i = 1; i < 6; ++i) {
-      spy.InitializeEpoch(i * spy.EpochLength());
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
+    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
 
     CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
@@ -790,9 +804,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                       +Result::SUCCESS);
     spy.ProcessDeposit(validator_address, deposit_size);
-    for (size_t i = 1; i < 6; ++i) {
-      spy.InitializeEpoch(i * spy.EpochLength());
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
+    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
 
     CTransaction tx = CreateWithdrawTx(prev_tx, key, 1);
     CValidationState err_state;
@@ -818,9 +835,12 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
                       +Result::SUCCESS);
     spy.ProcessDeposit(validator_address, deposit_size);
-    for (size_t i = 1; i < 8; ++i) {
-      spy.InitializeEpoch(i * spy.EpochLength());
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
+    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
 
     BOOST_CHECK_EQUAL(spy.ValidateLogout(validator_address), +Result::SUCCESS);
     spy.ProcessLogout(validator_address);
@@ -844,7 +864,6 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
   const auto &params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
   const auto min_deposit = params.min_deposit_size;
-  const auto epoch_length = params.epoch_length;
 
   CKey k;
   InsecureNewKey(k, true);
@@ -857,10 +876,11 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
   esperanza->ProcessDeposit(validator_address, min_deposit);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
-  for (int i = 1; i < 6; ++i) {
-    BOOST_CHECK_EQUAL(esperanza->InitializeEpoch(i * epoch_length),
-                      +Result::SUCCESS);
+  for (uint32_t i = 1; i < 5 * esperanza->GetEpochLength() + 1; i += esperanza->GetEpochLength()) {
+    Result res = esperanza->InitializeEpoch(i);
+    BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
   }
+  BOOST_CHECK_EQUAL(esperanza->GetCurrentEpoch(), 5);
 
   uint256 target_hash = uint256();
 

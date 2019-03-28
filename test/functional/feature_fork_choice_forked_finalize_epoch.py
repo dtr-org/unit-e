@@ -96,9 +96,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         disconnect_nodes(node, finalizer1.index)
 
         # leave instant justification
-        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress('', 'bech32'))
-        sync_blocks([node, fork])
-        assert_equal(node.getblockcount(), 29)
+        node.generatetoaddress(3 + 5 + 5 + 5 + 5, node.getnewaddress('', 'bech32'))
+        sync_blocks([node, fork], timeout=10)
+        assert_equal(node.getblockcount(), 25)
         assert_finalizationstate(node, {'currentDynasty': 3,
                                         'currentEpoch': 5,
                                         'lastJustifiedEpoch': 4,
@@ -114,8 +114,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         fork.generatetoaddress(5 + 5 + 1, fork.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork)
         fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
-        disconnect_nodes(fork, finalizer2.index)
-        assert_equal(fork.getblockcount(), 41)
+        assert_equal(fork.getblockcount(), 37)
         assert_finalizationstate(fork, {'currentDynasty': 4,
                                         'currentEpoch': 8,
                                         'lastJustifiedEpoch': 7,
@@ -130,7 +129,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
-        assert_equal(node.getblockcount(), 34)
+        assert_equal(node.getblockcount(), 30)
         assert_finalizationstate(node, {'currentDynasty': 4,
                                         'currentEpoch': 6,
                                         'lastJustifiedEpoch': 5,
@@ -144,7 +143,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
-        assert_equal(node.getblockcount(), 39)
+        assert_equal(node.getblockcount(), 35)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,
@@ -154,7 +153,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         connect_nodes(node, fork.index)
         time.sleep(5)  # give enough time to decide
 
-        assert_equal(node.getblockcount(), 39)
+        assert_equal(node.getblockcount(), 35)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,
@@ -165,7 +164,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
 
         # test that node has valid state after restart
         self.restart_node(node.index)
-        assert_equal(node.getblockcount(), 39)
+        assert_equal(node.getblockcount(), 35)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,
@@ -216,9 +215,9 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         # leave instant justification
         #   F        F        F        F        J
         # [ e0 ] - [ e1 ] - [ e2 ] - [ e3 ] - [ e4 ] - [ e5 ]
-        node.generatetoaddress(2 + 5 + 5 + 5 + 5 + 5, node.getnewaddress('', 'bech32'))
+        node.generatetoaddress(3 + 5 + 5 + 5 + 5, node.getnewaddress('', 'bech32'))
         sync_blocks([node, fork])
-        assert_equal(node.getblockcount(), 29)
+        assert_equal(node.getblockcount(), 25)
         assert_finalizationstate(node, {'currentDynasty': 3,
                                         'currentEpoch': 5,
                                         'lastJustifiedEpoch': 4,
@@ -228,12 +227,11 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         # justify epoch that will be finalized
         #       F        J
         # ... [ e4 ] - [ e5 ] - [ e6 ] node, fork
-        connect_nodes(node, finalizer1.index)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
-        sync_blocks([node, fork])
-        assert_equal(node.getblockcount(), 34)
+        sync_blocks([node, fork], timeout=10)
+        assert_equal(node.getblockcount(), 30)
         assert_finalizationstate(node, {'currentDynasty': 4,
                                         'currentEpoch': 6,
                                         'lastJustifiedEpoch': 5,
@@ -247,7 +245,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         #                         .. ] - [ e7 ] - [ e8 ] fork
         disconnect_nodes(node, fork.index)
         fork.generatetoaddress(5 + 5, fork.getnewaddress('', 'bech32'))
-        assert_equal(fork.getblockcount(), 44)
+        assert_equal(fork.getblockcount(), 40)
         assert_finalizationstate(fork, {'currentDynasty': 5,
                                         'currentEpoch': 8,
                                         'lastJustifiedEpoch': 5,
@@ -262,12 +260,11 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         fork.generatetoaddress(1, fork.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork)
         fork.generatetoaddress(4, fork.getnewaddress('', 'bech32'))
-        assert_equal(fork.getblockcount(), 49)
+        assert_equal(fork.getblockcount(), 45)
         assert_finalizationstate(fork, {'currentDynasty': 5,
                                         'currentEpoch': 9,
                                         'lastJustifiedEpoch': 8,
                                         'lastFinalizedEpoch': 4})
-        disconnect_nodes(fork, finalizer2.index)
 
         # finalize epoch=5 on node
         #       F        F        J
@@ -278,7 +275,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        assert_equal(node.getblockcount(), 36)
+        assert_equal(node.getblockcount(), 32)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,
@@ -287,7 +284,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
         # node shouldn't switch to fork as it's finalization is behind
         connect_nodes(node, fork.index)
         time.sleep(5)
-        assert_equal(node.getblockcount(), 36)
+        assert_equal(node.getblockcount(), 32)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,
@@ -298,7 +295,7 @@ class ForkChoiceForkedFinalizeEpochTest(UnitETestFramework):
 
         # test that node has valid state after restart
         self.restart_node(node.index)
-        assert_equal(node.getblockcount(), 36)
+        assert_equal(node.getblockcount(), 32)
         assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 7,
                                         'lastJustifiedEpoch': 6,

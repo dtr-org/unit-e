@@ -237,7 +237,7 @@ public:
     mutable boost::optional<std::vector<CTransactionRef>> commits;
 
     //! last justified epoch counting from this block index
-    boost::optional<uint32_t> last_justified_epoch;
+    uint32_t last_justified_epoch;
 
     //! keeps tracking if current CBlockIndex tries to fork
     //! the chainActive before finalization
@@ -267,7 +267,7 @@ public:
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
-        last_justified_epoch = boost::none;
+        last_justified_epoch = 0;
         forking_before_active_finalization = false;
 
         commits.reset();

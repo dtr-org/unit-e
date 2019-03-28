@@ -147,7 +147,7 @@ class FinalizationState : public FinalizationStateData {
 
   uint32_t GetEpochLength() const;
   uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
-  uint32_t GetEpoch(blockchain::Height blockHeight) const;
+  uint32_t GetEpoch(blockchain::Height block_height) const;
 
   //! \brief Returns the height of the first block of the epoch.
   blockchain::Height GetEpochStartHeight(uint32_t epoch) const;
@@ -170,7 +170,10 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
   uint256 GetLastTxHash(uint160 &validatorAddress) const;
 
-  //! \brief Returns whether block on height blockHeight is checkpoint
+  //! \brief Returns whether block on block_height is the first block of the epoch
+  bool IsEpochStart(blockchain::Height block_height) const;
+
+  //! \brief Returns whether block on blockHeight is the last block of the epoch
   bool IsCheckpoint(blockchain::Height blockHeight) const;
 
   //! \brief Returns whether block on height blockHeight is justified checkpoint

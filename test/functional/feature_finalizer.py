@@ -13,7 +13,6 @@ from test_framework.util import (
     assert_finalizationstate,
     connect_nodes,
     sync_blocks,
-    wait_until,
 )
 
 
@@ -52,9 +51,9 @@ class FeatureFinalizerTest(UnitETestFramework):
         self.restart_node(v.index)
 
         self.log.info("Leave insta justification")
-        for _ in range(30):
+        for _ in range(24):
             generate_block(p)
-        assert_equal(p.getblockcount(), 32)
+        assert_equal(p.getblockcount(), 26)
         assert_finalizationstate(p, {"currentEpoch": 6,
                                      "lastJustifiedEpoch": 4,
                                      "lastFinalizedEpoch": 3,
@@ -64,7 +63,7 @@ class FeatureFinalizerTest(UnitETestFramework):
         self.wait_for_vote_and_disconnect(finalizer=v, node=p)
         generate_block(p)
 
-        assert_equal(p.getblockcount(), 33)
+        assert_equal(p.getblockcount(), 27)
         assert_finalizationstate(p, {"currentEpoch": 6,
                                      "lastJustifiedEpoch": 5,
                                      "lastFinalizedEpoch": 4,

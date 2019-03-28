@@ -42,41 +42,47 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_too_early) {
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  // e0/d0 - a deposit is made
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
+  // e1/d0
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 1);
+
+  // e1/d0 - a deposit is made
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
 
-  // e0/d0 - try to vote but fail because wrong target
+  // e1/d0 - try to vote but fail because wrong target
   Vote vote{validatorAddress, targetHash, 0, 0};
-  BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
-
-  // e1/d0 - try to vote but fail because too early
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  vote = {validatorAddress, targetHash, 0, 0};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
 
-  // e2/d1 - try to vote but fail because too early
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  // e2/d0 - try to vote but fail because too early
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 2);
+  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 0);
+
   vote = {validatorAddress, targetHash, 0, 1};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
 
   // e3/d1 - try to vote but fail because too early
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 3);
+  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 1);
+
   vote = {validatorAddress, targetHash, 1, 2};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
 
-  // e4/d1 - try to vote but fail because too early
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  // e4/d2 - try to vote but fail because too early
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 4);
+  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 2);
+
   vote = {validatorAddress, targetHash, 2, 3};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_NOT_VOTABLE);
 
-  // e5/d2 - try to vote and succeed
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  // e5/d3 - try to vote and succeed
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 3);
+
   vote = {validatorAddress, targetHash, 3, 4};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
 }
@@ -95,25 +101,19 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_already_voted) {
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  // The validator is included from here on
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
   Vote vote{validatorAddress, targetHash, 3, 5};
-
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_ALREADY_VOTED);
@@ -132,21 +132,16 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_epoch) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  // The validator is included from here on
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
-                    +Result::SUCCESS);
+
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
   Vote vote{validatorAddress, targetHash, 3, 4};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_EPOCH);
@@ -168,24 +163,19 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_wrong_target_hash) {
 
   uint256 targetHash = GetRandHash();
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  // The validator is included from here on
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
-                    +Result::SUCCESS);
+
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 6 * spy.EpochLength()), +Result::SUCCESS);
 
   Vote vote{validatorAddress, targetHash, 3, 6};
-
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_WRONG_TARGET_HASH);
 }
 
@@ -201,26 +191,19 @@ BOOST_AUTO_TEST_CASE(validate_vote_tx_non_votable_source_epoch_not_justified) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  // The validator is included from here on
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
-                    +Result::SUCCESS);
+
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
   Vote vote{validatorAddress, targetHash, 5, 5};
-
-  BOOST_CHECK_EQUAL(spy.ValidateVote(vote),
-                    +Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED);
+  BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::VOTE_SRC_EPOCH_NOT_JUSTIFIED);
 }
 
 BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
@@ -236,22 +219,18 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  // The validator is included from here on
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
 
-  Vote vote{validatorAddress, targetHash, 1, 4};
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
+  Vote vote{validatorAddress, targetHash, 1, 5};
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
 }
 
@@ -270,25 +249,21 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_reward_no_consensus) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress_1, depositSize_1);
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_2, depositSize_2),
-                    +Result::SUCCESS);
+
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_2, depositSize_2), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress_2, depositSize_2);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  // The validator is included from here on
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 2);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
-  Vote vote{validatorAddress_1, targetHash, 3, 4};
+  Vote vote{validatorAddress_1, targetHash, 3, 5};
 
   BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
   spy.ProcessVote(vote);
@@ -311,25 +286,19 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_1, depositSize_1), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress_1, depositSize_1);
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_2, depositSize_2),
-                    +Result::SUCCESS);
+
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress_2, depositSize_2), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress_2, depositSize_2);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  // The validator is included from here on
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 2);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 5 * spy.EpochLength()), +Result::SUCCESS);
 
   Vote vote{validatorAddress_2, targetHash, 4, 5};
 
@@ -339,8 +308,7 @@ BOOST_AUTO_TEST_CASE(process_vote_tx_success_with_finalization) {
   BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_is_justified, true);
   BOOST_CHECK_EQUAL(spy.Checkpoints()[5].m_is_finalized, false);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(7 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 6 * spy.EpochLength()), +Result::SUCCESS);
 
   targetHash = GetRandHash();
   block_index.phashBlock = &targetHash;

@@ -51,7 +51,7 @@ class RepositoryImpl final : public StateRepository {
  private:
   FinalizationState *Create(const CBlockIndex &block_index, FinalizationState::InitStatus required_parent_status);
   bool ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block);
-  bool FinalizationHappened(const CBlockIndex &block_index, blockchain::Height *out_height);
+  bool FinalizationHappened(const CBlockIndex &block_index);
   FinalizationState *GetGenesisState() const;
   bool LoadStatesFromDB();
   const FinalizationState *FindBestState();

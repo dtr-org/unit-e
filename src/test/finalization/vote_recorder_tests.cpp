@@ -46,9 +46,11 @@ BOOST_AUTO_TEST_CASE(record_votes) {
 
   uint160 validatorAddress = RandValidatorAddr();
   state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
   // Test one single vote is added
   esperanza::Vote vote{validatorAddress, GetRandHash(), 1, 2};
@@ -97,11 +99,11 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
 
   uint160 validatorAddress = RandValidatorAddr();
   state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
-  state->InitializeEpoch(200);
-  state->InitializeEpoch(250);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
   esperanza::Vote vote1{validatorAddress, GetRandHash(), 5, 10};
   esperanza::Vote vote2{validatorAddress, GetRandHash(), 7, 10};
@@ -130,11 +132,11 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
   uint160 validatorAddress = RandValidatorAddr();
   state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
-  state->InitializeEpoch(200);
-  state->InitializeEpoch(250);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
   esperanza::Vote outerVote{validatorAddress, GetRandHash(), 1, 10};
   esperanza::Vote innerVote{validatorAddress, GetRandHash(), 2, 9};
@@ -162,11 +164,11 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
 
   uint160 validatorAddress = RandValidatorAddr();
   state->ProcessDeposit(validatorAddress, 1000000);
-  state->InitializeEpoch(50);
-  state->InitializeEpoch(100);
-  state->InitializeEpoch(150);
-  state->InitializeEpoch(200);
-  state->InitializeEpoch(250);
+  state->InitializeEpoch(1);
+  state->InitializeEpoch(1 + 1 * 50);
+  state->InitializeEpoch(1 + 2 * 50);
+  state->InitializeEpoch(1 + 3 * 50);
+  state->InitializeEpoch(1 + 4 * 50);
 
   esperanza::Vote outerVote{validatorAddress, GetRandHash(), 1, 10};
   esperanza::Vote innerVote{validatorAddress, GetRandHash(), 2, 9};

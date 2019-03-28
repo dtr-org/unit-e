@@ -762,10 +762,7 @@ void WalletExtension::BlockConnected(
         FinalizationState *state = FinalizationState::GetState();
         assert(state);
 
-        // TODO: UNIT-E: remove "state->GetCurrentEpoch() > 2" when we delete instant finalization
-        // and start epoch from 1 #570, #572
-        if (state->GetCurrentEpoch() > 2 &&
-            state->GetLastFinalizedEpoch() >= validatorState.get().m_deposit_epoch) {
+        if (state->GetLastFinalizedEpoch() >= validatorState.get().m_deposit_epoch) {
           // Deposit is finalized there is no possible rollback
           validatorState.get().m_phase = ValidatorState::Phase::IS_VALIDATING;
 

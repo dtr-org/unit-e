@@ -135,6 +135,7 @@ BOOST_FIXTURE_TEST_SUITE(finalizer_commits_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(get_commits_locator) {
   Fixture fixture;
+  fixture.AddBlocks(1);  // add genesis
 
   staking::ActiveChain &chain = fixture.active_chain;
   FinalizationStateSpy &state = fixture.repo.state;
@@ -142,7 +143,7 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
 
   BOOST_REQUIRE(state.GetEpochLength() == 5);
 
-  // Fill chain right before 0th checkpoint.
+  // Fill chain right before 1st checkpoint.
   fixture.AddBlocks(4);
   BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 0);
 
@@ -187,16 +188,16 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
     BOOST_CHECK_EQUAL(locator.stop, uint256());
   }
 
-  // Complete 0th epoch.
+  // Complete 1st epoch.
   fixture.AddBlocks(1);
 
-  // Check 0th checkpoint is included in locator.
+  // Check 1st checkpoint is included in locator.
   {
     const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(*chain.AtHeight(4), nullptr);
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(5), nullptr);
     const std::vector<uint256> expected_start = {
       chain.AtHeight(0)->GetBlockHash(),
-      chain.AtHeight(4)->GetBlockHash(),
+      chain.AtHeight(5)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
@@ -220,11 +221,11 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   // Check that 0th checkpoint is included in the locator.
   {
     const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(*chain.AtHeight(5), nullptr);
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(6), nullptr);
     const std::vector<uint256> expected_start = {
       chain.AtHeight(0)->GetBlockHash(),
-      chain.AtHeight(4)->GetBlockHash(),
       chain.AtHeight(5)->GetBlockHash(),
+      chain.AtHeight(6)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
@@ -233,10 +234,10 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   // Check that start == checkpoint isn't included in locator twice.
   {
     const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(*chain.AtHeight(4), nullptr);
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(5), nullptr);
     const std::vector<uint256> expected_start = {
       chain.AtHeight(0)->GetBlockHash(),
-      chain.AtHeight(4)->GetBlockHash(),
+      chain.AtHeight(5)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
@@ -259,15 +260,15 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   fixture.AddBlocks(4 + 5 + 2); // 1st epoch + 2nd epoch + two blocks of 3rd.
 
   // Make 1st epoch finalized
-  state.SetLastFinalizedEpoch(1);
-  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 1);
+  state.SetLastFinalizedEpoch(2);
+  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 2);
 
   // Check locator starts with last finalized checkpoint
   {
     const p2p::FinalizerCommitsLocator locator =
       commits.GetFinalizerCommitsLocator(*chain.AtHeight(12), nullptr);
     const std::vector<uint256> expected_start = {
-      chain.AtHeight(9)->GetBlockHash(),
+      chain.AtHeight(10)->GetBlockHash(),
       chain.AtHeight(12)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
@@ -277,11 +278,11 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   // Check locator includes checkpoint.
   {
     const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(*chain.AtHeight(15), nullptr);
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(16), nullptr);
     const std::vector<uint256> expected_start = {
-      chain.AtHeight(9)->GetBlockHash(),
-      chain.AtHeight(14)->GetBlockHash(),
+      chain.AtHeight(10)->GetBlockHash(),
       chain.AtHeight(15)->GetBlockHash(),
+      chain.AtHeight(16)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
@@ -290,9 +291,9 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   // When start == last_finalized_checkpoint, check locator includes only it.
   {
     const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(*chain.AtHeight(9), nullptr);
+      commits.GetFinalizerCommitsLocator(*chain.AtHeight(10), nullptr);
     const std::vector<uint256> expected_start = {
-      chain.AtHeight(9)->GetBlockHash(),
+      chain.AtHeight(10)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
@@ -303,9 +304,9 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
     const p2p::FinalizerCommitsLocator locator =
       commits.GetFinalizerCommitsLocator(*chain.AtHeight(8), nullptr);
     const std::vector<uint256> expected_start = {
-      chain.AtHeight(9)->GetBlockHash(),
-      chain.AtHeight(14)->GetBlockHash(),
-      chain.AtHeight(16)->GetBlockHash(),
+      chain.AtHeight(10)->GetBlockHash(),
+      chain.AtHeight(15)->GetBlockHash(),
+      chain.AtHeight(17)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
@@ -331,32 +332,32 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   // Check locator works on the fork
   {
     const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(fork[15], nullptr);
+      commits.GetFinalizerCommitsLocator(fork[16], nullptr);
     const std::vector<uint256> expected_start = {
-      chain.AtHeight(9)->GetBlockHash(),
-      fork[14].GetBlockHash(),
+      chain.AtHeight(10)->GetBlockHash(),
       fork[15].GetBlockHash(),
+      fork[16].GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
   }
 
-  // Move finalization to checkpoint 14
+  // Move finalization to checkpoint 15
   // Build a fork after finalization
   //                          F
-  // 0 .. 4 .. 9 .. 11 12 .. 14 ..    -- main chain
+  // 0 .. 4 .. 9 .. 11 12 .. 15 ..    -- main chain
   //                 |
-  //                 > 12 .. 14 .. 17 -- fork
-  state.SetLastFinalizedEpoch(2);
-  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 2);
+  //                 > 12 .. 15 .. 17 -- fork
+  state.SetLastFinalizedEpoch(3);
+  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 3);
 
   // Check locator doesn't consider fork started before last_finalized_checkpoint
   {
     const p2p::FinalizerCommitsLocator locator =
-      commits.GetFinalizerCommitsLocator(fork[15], nullptr);
+      commits.GetFinalizerCommitsLocator(fork[16], nullptr);
     const std::vector<uint256> expected_start = {
-      chain.AtHeight(14)->GetBlockHash(),
-      chain.AtHeight(16)->GetBlockHash(),
+      chain.AtHeight(15)->GetBlockHash(),
+      chain.AtHeight(17)->GetBlockHash(),
     };
     BOOST_CHECK_EQUAL(locator.start, expected_start);
     BOOST_CHECK_EQUAL(locator.stop, uint256());
@@ -367,6 +368,7 @@ const CBlockIndex *nullindex = nullptr;
 
 BOOST_AUTO_TEST_CASE(find_most_recent_start) {
   Fixture fixture;
+  fixture.AddBlocks(1);  // add genesis
 
   staking::ActiveChain &chain = fixture.active_chain;
   FinalizationStateSpy &state = fixture.repo.state;
@@ -412,10 +414,10 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
     BOOST_CHECK_EQUAL(result, chain.AtHeight(2));
   }
 
-  state.SetLastFinalizedEpoch(1);
+  state.SetLastFinalizedEpoch(2);
   fixture.AddBlocks(16);
-  state.SetLastFinalizedEpoch(2); // block 14
-  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 2);
+  state.SetLastFinalizedEpoch(3); // block 15
+  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 3);
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
@@ -426,35 +428,35 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(9)->GetBlockHash(),
+          chain.AtHeight(10)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(9));
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(10));
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(9)->GetBlockHash(),
-          chain.AtHeight(14)->GetBlockHash(),
-          chain.AtHeight(19)->GetBlockHash(),
+          chain.AtHeight(10)->GetBlockHash(),
+          chain.AtHeight(15)->GetBlockHash(),
+          chain.AtHeight(20)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(19));
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(20));
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(9)->GetBlockHash(),
-          chain.AtHeight(14)->GetBlockHash(),
+          chain.AtHeight(10)->GetBlockHash(),
+          chain.AtHeight(15)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(14));
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(15));
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(9)->GetBlockHash(),
-          chain.AtHeight(19)->GetBlockHash(),
-          chain.AtHeight(14)->GetBlockHash(),
+          chain.AtHeight(10)->GetBlockHash(),
+          chain.AtHeight(20)->GetBlockHash(),
+          chain.AtHeight(15)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(19));
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(20));
   }
 
   std::map<blockchain::Height, uint256> fork_hashes;
@@ -471,51 +473,51 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(14)->GetBlockHash(),
+          chain.AtHeight(15)->GetBlockHash(),
           fork[20].GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(14));
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(15));
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(14)->GetBlockHash(),
-          fork[19].GetBlockHash(),
+          chain.AtHeight(15)->GetBlockHash(),
+          fork[20].GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(14));
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(15));
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          fork[19].GetBlockHash(),
-        }, uint256()});
-    BOOST_CHECK_EQUAL(result, nullindex);
-  }
-
-  {
-    const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(4)->GetBlockHash(),
-          fork[19].GetBlockHash(),
-          chain.AtHeight(14)->GetBlockHash(),
-        }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(4));
-  }
-
-  {
-    const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(19)->GetBlockHash(),
+          fork[20].GetBlockHash(),
         }, uint256()});
     BOOST_CHECK_EQUAL(result, nullindex);
   }
 
-  state.SetLastFinalizedEpoch(3); // block 19
-  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 3);
+  {
+    const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
+          chain.AtHeight(10)->GetBlockHash(),
+          fork[20].GetBlockHash(),
+          chain.AtHeight(15)->GetBlockHash(),
+        }, uint256()});
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(10));
+  }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(19)->GetBlockHash(),
+          chain.AtHeight(20)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(19));
+    BOOST_CHECK_EQUAL(result, nullindex);
+  }
+
+  state.SetLastFinalizedEpoch(4); // block 20
+  BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 4);
+
+  {
+    const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
+          chain.AtHeight(20)->GetBlockHash(),
+        }, uint256()});
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(20));
   }
 
   {
@@ -527,22 +529,22 @@ BOOST_AUTO_TEST_CASE(find_most_recent_start) {
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(20)->GetBlockHash(),
+          chain.AtHeight(21)->GetBlockHash(),
         }, uint256()});
     BOOST_CHECK_EQUAL(result, nullindex);
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          chain.AtHeight(19)->GetBlockHash(),
           chain.AtHeight(20)->GetBlockHash(),
+          chain.AtHeight(21)->GetBlockHash(),
         }, uint256()});
-    BOOST_CHECK_EQUAL(result, chain.AtHeight(20));
+    BOOST_CHECK_EQUAL(result, chain.AtHeight(21));
   }
 
   {
     const CBlockIndex *result = commits.FindMostRecentStart(Locator{{
-          fork[19].GetBlockHash(),
+          fork[20].GetBlockHash(),
         }, uint256()});
     BOOST_CHECK_EQUAL(result, nullindex);
   }

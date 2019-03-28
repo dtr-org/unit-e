@@ -83,7 +83,7 @@ class SnapshotTest(UnitETestFramework):
             res = node.getblocksnapshot(node.getblockhash(height))
             if 'valid' not in res:
                 return False
-            return True
+            return res['valid']
 
         blank_node = self.nodes[0]
         full_node = self.nodes[1]
@@ -95,35 +95,36 @@ class SnapshotTest(UnitETestFramework):
         # generate 2 epochs to create the snapshot which will be finalized
         # one block after
         #               s0      s1
-        # G------------(h=3)...(h=8)-(h=9) full_node
+        # G------------(h=4)...(h=9)-(h=10) full_node
         # | isd_node
         # | rework_node
         # | blank_node
-        full_node.generatetoaddress(4 + 5, full_node.getnewaddress('', 'bech32'))
-        wait_until(lambda: has_snapshot(full_node, 3), timeout=3)
-        assert_equal(full_node.getblockcount(), 9)
+        full_node.generatetoaddress(5 + 5, full_node.getnewaddress('', 'bech32'))
+        assert_equal(full_node.getblockcount(), 10)
+        wait_until(lambda: has_snapshot(full_node, 4), timeout=3)
+        wait_until(lambda: has_snapshot(full_node, 9), timeout=3)
 
         # generate the longest fork that will be used later
         #               s0      s1
-        # G------------(h=3)...(h=8)-(h=9) full_node
+        # G------------(h=4)...(h=9)-(h=10) full_node
         # | isd_node                   \
         # | blank_node                  -------------------(h=15) rework_node
         connect_nodes(rework_node, full_node.index)
         sync_blocks([rework_node, full_node])
         disconnect_nodes(rework_node, full_node.index)
-        rework_node.generatetoaddress(6, rework_node.getnewaddress('', 'bech32'))
+        rework_node.generatetoaddress(5, rework_node.getnewaddress('', 'bech32'))
         assert_equal(rework_node.getblockcount(), 15)
 
         # generate 1 more block creates new epoch and instantly finalizes the previous one
         # to make the first snapshot be part of finalized epoch
         #               s0      s1
-        # G------------(h=3)...(h=8)-(h=9)-(h=10) full_node, blank_node
+        # G------------(h=4)...(h=9)-(h=10)-(h=11) full_node, blank_node
         # | isd_node                   \
         #                               -------------------(h=15) rework_node
         full_node.generatetoaddress(1, full_node.getnewaddress('', 'bech32'))
-        assert_equal(full_node.getblockcount(), 10)
-        wait_until(lambda: has_finalized_snapshot(full_node, height=3), timeout=5)
-        wait_until(lambda: has_snapshot(full_node, height=8), timeout=5)
+        assert_equal(full_node.getblockcount(), 11)
+        wait_until(lambda: has_finalized_snapshot(full_node, height=4), timeout=5)
+        wait_until(lambda: has_snapshot(full_node, height=9), timeout=5)
         assert_equal(len(full_node.listsnapshots()), 2)
         connect_nodes(blank_node, full_node.index)
         sync_blocks([blank_node, full_node])
@@ -131,42 +132,42 @@ class SnapshotTest(UnitETestFramework):
 
         # sync isd_node with blank_node and full_node using ISD
         #               s0      s1
-        # G------------(h=3)...(h=8)-(h=9)-(h=10) full_node, blank_node, isd_node
+        # G------------(h=4)...(h=9)-(h=10)-(h=11) full_node, blank_node, isd_node
         #                              \
         #                               -------------------(h=15) rework_node
         connect_nodes(isd_node, blank_node.index)
         connect_nodes(isd_node, full_node.index)
         sync_blocks([full_node, isd_node])
-        wait_until(lambda: has_finalized_snapshot(isd_node, height=3), timeout=5)
-        wait_until(lambda: has_snapshot(isd_node, height=8), timeout=5)
+        wait_until(lambda: has_finalized_snapshot(isd_node, height=4), timeout=5)
+        wait_until(lambda: has_snapshot(isd_node, height=9), timeout=5)
         assert_equal(full_node.listsnapshots(), isd_node.listsnapshots())
         chain = isd_node.getblockchaininfo()
-        assert_equal(chain['headers'], 10)
-        assert_equal(chain['blocks'], 10)
+        assert_equal(chain['headers'], 11)
+        assert_equal(chain['blocks'], 11)
         assert_equal(chain['initialblockdownload'], False)
         assert_equal(chain['initialsnapshotdownload'], False)
         assert_equal(chain['pruned'], True)
-        assert_equal(chain['pruneheight'], 4)
+        assert_equal(chain['pruneheight'], 5)
         assert_equal(full_node.gettxoutsetinfo(), isd_node.gettxoutsetinfo())
 
         # test that isd_node can be restarted
         restart_node(isd_node)
-        wait_until(lambda: isd_node.getblockcount() == 10, timeout=5)
+        wait_until(lambda: isd_node.getblockcount() == 11, timeout=5)
         chain = isd_node.getblockchaininfo()
-        assert_equal(chain['headers'], 10)
-        assert_equal(chain['blocks'], 10)
+        assert_equal(chain['headers'], 11)
+        assert_equal(chain['blocks'], 11)
         assert_equal(chain['initialblockdownload'], False)
         assert_equal(chain['initialsnapshotdownload'], False)
 
         # test that isd_node can create blocks
         #               s0      s1
-        # G------------(h=3)...(h=8)-(h=9)-(h=10) full_node, blank_node
+        # G------------(h=4)...(h=9)-(h=10)-(h=11) full_node, blank_node
         #                              \     \
-        #                               \     -(h=11) isd_node
+        #                               \     -(h=12) isd_node
         #                                -------------------(h=15) rework_node
 
         # Import funds for the node in pruning mode
-        isd_node.importmasterkey(regtest_mnemonics[5]['mnemonics'], "", False)
+        isd_node.importmasterkey(regtest_mnemonics[5]['mnemonics'], '', False)
         isd_node.initial_stake = regtest_mnemonics[5]['balance']
 
         genesis = isd_node.getblock(isd_node.getblockhash(0))
@@ -176,7 +177,7 @@ class SnapshotTest(UnitETestFramework):
         isd_node.importprunedfunds(genesis_tx_hex, fund_proof)
 
         isd_node.generatetoaddress(1, isd_node.getnewaddress('', 'bech32'))
-        assert_equal(isd_node.getblockcount(), 11)
+        assert_equal(isd_node.getblockcount(), 12)
 
         # test that reorg one epoch after finalization is possible
         #               s0      s1

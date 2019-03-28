@@ -21,7 +21,7 @@ class ProcessorImpl final : public StateProcessor {
 
  private:
   bool ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block);
-  bool FinalizationHappened(const CBlockIndex &block_index, blockchain::Height *out_height);
+  bool FinalizationHappened(const CBlockIndex &block_index);
 
   Dependency<finalization::StateRepository> m_repo;
   Dependency<staking::ActiveChain> m_active_chain;
@@ -70,7 +70,7 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
   return true;
 }
 
-bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index, blockchain::Height *out_height) {
+bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index) {
   if (block_index.pprev == nullptr) {
     return false;
   }
@@ -80,25 +80,13 @@ bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index, blockch
     return false;
   }
 
-  const auto epoch_length = m_repo->GetFinalizationParams().epoch_length;
-  // workaround first epoch finalization
-  if (static_cast<blockchain::Height>(block_index.nHeight) == epoch_length * 2) {
-    if (out_height != nullptr) {
-      *out_height = epoch_length - 1;
-    }
-    return true;
-  }
-
-  const auto prev_fin_epoch = prev_state->GetLastFinalizedEpoch();
-  const auto new_fin_epoch = new_state->GetLastFinalizedEpoch();
+  const uint32_t prev_fin_epoch = prev_state->GetLastFinalizedEpoch();
+  const uint32_t new_fin_epoch = new_state->GetLastFinalizedEpoch();
   if (prev_fin_epoch == new_fin_epoch) {
     return false;
   }
 
   assert(new_fin_epoch > prev_fin_epoch);
-  if (out_height != nullptr) {
-    *out_height = (new_fin_epoch + 1) * epoch_length - 1;
-  }
   return true;
 }
 
@@ -110,17 +98,26 @@ bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &
   }
   const uint32_t epoch_length = m_repo->GetFinalizationParams().epoch_length;
   if (block_index.nHeight > 0 && !m_repo->Restoring() &&
-      (block_index.nHeight + 2) % epoch_length == 0) {
+      (block_index.nHeight + 1) % epoch_length == 0) {
     // Generate the snapshot for the block which is one block behind the last one.
     // The last epoch block will contain the snapshot hash pointing to this snapshot.
     snapshot::Creator::GenerateOrSkip(m_repo->GetTipState()->GetCurrentEpoch());
   }
-  blockchain::Height finalization_height = 0;
-  if (FinalizationHappened(block_index, &finalization_height)) {
-    // We remove all the states until the `last finalized epoch + 1` epoch.
-    // We cannot make forks before this point as them can revert finalization.
-    m_repo->TrimUntilHeight(finalization_height + epoch_length);
-    snapshot::Creator::FinalizeSnapshots(m_active_chain->AtHeight(finalization_height));
+
+  if (FinalizationHappened(block_index)) {
+    esperanza::FinalizationState *state = m_repo->Find(block_index);
+    assert(state);
+
+    // We cannot make forks before this point as they can revert finalization.
+    const uint32_t trim_until = state->GetCheckpointHeightAfterFinalizedEpoch();
+
+    // for 0 epoch it will be in the future
+    if (static_cast<uint32_t>(block_index.nHeight) > trim_until) {
+      m_repo->TrimUntilHeight(trim_until);
+    }
+
+    const uint32_t checkpoint = state->GetEpochCheckpointHeight(state->GetLastFinalizedEpoch());
+    snapshot::Creator::FinalizeSnapshots(m_active_chain->AtHeight(checkpoint));
   }
   return true;
 }
