@@ -8,6 +8,9 @@
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <consensus/validation.h>
+#include <esperanza/vote.h>
+#include <esperanza/finalizationstate.h>
+#include <finalization/vote_recorder.h>
 
 // TODO remove the following dependencies
 #include <chain.h>
@@ -91,6 +94,9 @@ std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags
 
 bool EvaluateSequenceLocks(const CBlockIndex& block, std::pair<int, int64_t> lockPair)
 {
+    if (block.nHeight == 0) {
+        return true;
+    }
     assert(block.pprev);
     int64_t nBlockTime = block.pprev->GetMedianTimePast();
     if (lockPair.first >= block.nHeight || lockPair.second >= nBlockTime)
@@ -139,45 +145,42 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 {
     int64_t nSigOps = GetLegacySigOpCount(tx) * WITNESS_SCALE_FACTOR;
 
-    if (tx.IsCoinBase())
-        return nSigOps;
-
     if (flags & SCRIPT_VERIFY_P2SH) {
         nSigOps += GetP2SHSigOpCount(tx, inputs) * WITNESS_SCALE_FACTOR;
     }
 
-    for (unsigned int i = 0; i < tx.vin.size(); i++)
+    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i)
     {
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
         const CTxOut &prevout = coin.out;
-        nSigOps += CountWitnessSigOps(tx.vin[i].scriptSig, prevout.scriptPubKey, &tx.vin[i].scriptWitness, flags);
+        nSigOps += CountWitnessSigOps(tx.vin[i].scriptSig, prevout.scriptPubKey, &tx.vin[i].scriptWitness, flags, tx.GetType());
     }
     return nSigOps;
 }
 
-bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fCheckDuplicateInputs)
+bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool fCheckDuplicateInputs)
 {
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
-        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vin-empty");
+        return errState.DoS(10, false, REJECT_INVALID, "bad-txns-vin-empty");
     if (tx.vout.empty())
-        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vout-empty");
+        return errState.DoS(10, false, REJECT_INVALID, "bad-txns-vout-empty");
     // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
     if (::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
-        return state.DoS(100, false, REJECT_INVALID, "bad-txns-oversize");
+        return errState.DoS(100, false, REJECT_INVALID, "bad-txns-oversize");
 
     // Check for negative or overflow output values
     CAmount nValueOut = 0;
     for (const auto& txout : tx.vout)
     {
         if (txout.nValue < 0)
-            return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-negative");
+            return errState.DoS(100, false, REJECT_INVALID, "bad-txns-vout-negative");
         if (txout.nValue > MAX_MONEY)
-            return state.DoS(100, false, REJECT_INVALID, "bad-txns-vout-toolarge");
+            return errState.DoS(100, false, REJECT_INVALID, "bad-txns-vout-toolarge");
         nValueOut += txout.nValue;
         if (!MoneyRange(nValueOut))
-            return state.DoS(100, false, REJECT_INVALID, "bad-txns-txouttotal-toolarge");
+            return errState.DoS(100, false, REJECT_INVALID, "bad-txns-txouttotal-toolarge");
     }
 
     // Check for duplicate inputs - note that this check is slow so we skip it in CheckBlock
@@ -186,26 +189,41 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
         for (const auto& txin : tx.vin)
         {
             if (!vInOutPoints.insert(txin.prevout).second)
-                return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
+                return errState.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
         }
     }
 
     if (tx.IsCoinBase())
     {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-length");
+            return errState.DoS(100, false, REJECT_INVALID, "bad-cb-length");
     }
     else
     {
         for (const auto& txin : tx.vin)
             if (txin.prevout.IsNull())
-                return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
+                return errState.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
+    }
+
+    switch (tx.GetType()) {
+        case TxType::DEPOSIT:
+        case TxType::VOTE:
+        case TxType::LOGOUT:
+            if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+                return errState.DoS(100, false, REJECT_INVALID, "bad-txns-vout-script");
+            }
+        case TxType::REGULAR:
+        case TxType::SLASH:
+        case TxType::COINBASE:
+        case TxType::WITHDRAW:
+        case TxType::ADMIN:
+            break;
     }
 
     return true;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee)
+bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, const int nSpendHeight, CAmount& txfee, CAmount *inputs_amount)
 {
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
@@ -214,15 +232,15 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+    for (std::size_t i = tx.IsCoinBase() ? 1 : 0; i < tx.vin.size(); ++i) {
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
         assert(!coin.IsSpent());
 
-        // If prev is coinbase, check that it's matured
-        if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
+        // If prev is coinbase, check that the reward is mature
+        if (coin.IsImmatureCoinBaseReward(prevout.n, nSpendHeight)) {
             return state.Invalid(false,
-                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase",
+                REJECT_INVALID, "bad-txns-premature-spend-of-coinbase-reward",
                 strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
         }
 
@@ -233,15 +251,52 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
+    if (inputs_amount) {
+        *inputs_amount = nValueIn;
+    }
+
     const CAmount value_out = tx.GetValueOut();
-    if (nValueIn < value_out) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
-            strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
+    // UNIT-E TODO: To distinguish bitcoin coinbase and unit-e coinbase check for staking input
+    if (tx.IsCoinBase() && tx.vin.size() >= 2) {
+        // The coinbase transaction should spend exactly its inputs and the reward.
+        // The reward output is by definition in the zeroth output. The reward
+        // consists of newly minted money (the block reward) and the fees accumulated
+        // from the transactions.
+        if (tx.vout.empty()) {
+          return state.DoS(100, false, REJECT_INVALID, "bad-cb-no-reward", false,
+                           strprintf("coinbase without a reward txout"));
+        }
+        const CTxOut &reward_out = tx.vout[0];
+        const CAmount reward = reward_out.nValue;
+        if (nValueIn + reward < value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-much", false,
+                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
+                                       FormatMoney(nValueIn),
+                                       FormatMoney(reward),
+                                       FormatMoney(value_out)));
+        }
+        if (nValueIn + reward > value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-little", false,
+                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
+                                       FormatMoney(nValueIn),
+                                       FormatMoney(reward),
+                                       FormatMoney(value_out)));
+        }
+    } else if (!tx.IsCoinBase()) {
+        // All other transactions have to spend no more then their inputs. If they spend
+        // less, the change is counted towards the fees which are included in the reward
+        // of the coinbase transaction.
+        if (nValueIn < value_out) {
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
+                             strprintf("value in (%s) < value out (%s)",
+                                       FormatMoney(nValueIn),
+                                       FormatMoney(value_out)));
+        }
     }
 
     // Tally transaction fees
     const CAmount txfee_aux = nValueIn - value_out;
-    if (!MoneyRange(txfee_aux)) {
+    if (!tx.IsCoinBase() && !MoneyRange(txfee_aux)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-fee-outofrange");
     }
 

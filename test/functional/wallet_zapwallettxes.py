@@ -30,6 +30,8 @@ class ZapWalletTXesTest (UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
         self.log.info("Mining blocks...")
         self.nodes[0].generate(1)
         self.sync_all()

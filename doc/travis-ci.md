@@ -1,11 +1,9 @@
 Travis CI
 =========
 
-Support for using travis-ci has been added in order to automate pull-testing.
-See [travis-ci.org](https://travis-ci.org/) for more info
-
-This procedure is different than the pull-tester that came before it in a few
-ways.
+[Travis CI](https://travis-ci.com/) is used as continuous integration system for
+unit-e. It runs automated tests on all commits to the master branch and all pull
+requests.
 
 There is nothing to administer. This is a major feature as it means
 that builds have no local state. Because there is no ability to login to the

@@ -31,10 +31,10 @@ class WalletHDTest(UnitETestFramework):
         self.start_node(1)
         connect_nodes_bi(self.nodes, 0, 1)
 
-        # Make sure we use hd, keep masterkeyid
-        masterkeyid = self.nodes[1].getwalletinfo()['hdseedid']
-        assert_equal(masterkeyid, self.nodes[1].getwalletinfo()['hdmasterkeyid'])
-        assert_equal(len(masterkeyid), 40)
+        # Make sure we use hd, keep seedid
+        seedid = self.nodes[1].getwalletinfo()['hdseedid']
+        assert_equal(masterkeyid, self.nodes[1].getwalletinfo()['hdseedid'])
+        assert_equal(len(seedid), 40)
 
         # create an internal key
         change_addr = self.nodes[1].getrawchangeaddress()
@@ -49,6 +49,9 @@ class WalletHDTest(UnitETestFramework):
         self.nodes[1].backupwallet(os.path.join(self.nodes[1].datadir, "hd.bak"))
         #self.nodes[1].dumpwallet(os.path.join(self.nodes[1].datadir, "hd.dump"))
 
+        # Setup the initial funds for the node
+        self.setup_stake_coins(self.nodes[0])
+
         # Derive some HD addresses and remember the last
         # Also send funds to each add
         self.nodes[0].generate(101)
@@ -59,7 +62,7 @@ class WalletHDTest(UnitETestFramework):
             hd_info = self.nodes[1].getaddressinfo(hd_add)
             assert_equal(hd_info["hdkeypath"], "m/0'/0'/"+str(i)+"'")
             assert_equal(hd_info["hdseedid"], masterkeyid)
-            assert_equal(hd_info["hdmasterkeyid"], masterkeyid)
+            assert_equal(hd_info["hdseedid"], seedid)
             self.nodes[0].sendtoaddress(hd_add, 1)
             self.nodes[0].generate(1)
         self.nodes[0].sendtoaddress(non_hd_add, 1)
@@ -89,7 +92,7 @@ class WalletHDTest(UnitETestFramework):
             hd_info_2 = self.nodes[1].getaddressinfo(hd_add_2)
             assert_equal(hd_info_2["hdkeypath"], "m/0'/0'/"+str(i)+"'")
             assert_equal(hd_info_2["hdseedid"], masterkeyid)
-            assert_equal(hd_info_2["hdmasterkeyid"], masterkeyid)
+            assert_equal(hd_info_2["hdseedid"], seedid)
         assert_equal(hd_add, hd_add_2)
         connect_nodes_bi(self.nodes, 0, 1)
         self.sync_all()

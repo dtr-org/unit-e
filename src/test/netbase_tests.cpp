@@ -10,7 +10,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(netbase_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(netbase_tests, ReducedTestingSetup)
 
 static CNetAddr ResolveIP(const char* ip)
 {
@@ -82,10 +82,10 @@ bool static TestSplitHost(std::string test, std::string host, int port)
 
 BOOST_AUTO_TEST_CASE(netbase_splithost)
 {
-    BOOST_CHECK(TestSplitHost("www.bitcoincore.org", "www.bitcoincore.org", -1));
-    BOOST_CHECK(TestSplitHost("[www.bitcoincore.org]", "www.bitcoincore.org", -1));
-    BOOST_CHECK(TestSplitHost("www.bitcoincore.org:80", "www.bitcoincore.org", 80));
-    BOOST_CHECK(TestSplitHost("[www.bitcoincore.org]:80", "www.bitcoincore.org", 80));
+    BOOST_CHECK(TestSplitHost("www.unite.org", "www.unite.org", -1));
+    BOOST_CHECK(TestSplitHost("[www.unite.org]", "www.unite.org", -1));
+    BOOST_CHECK(TestSplitHost("www.unite.org:80", "www.unite.org", 80));
+    BOOST_CHECK(TestSplitHost("[www.unite.org]:80", "www.unite.org", 80));
     BOOST_CHECK(TestSplitHost("127.0.0.1", "127.0.0.1", -1));
     BOOST_CHECK(TestSplitHost("127.0.0.1:7182", "127.0.0.1", 7182));
     BOOST_CHECK(TestSplitHost("[127.0.0.1]", "127.0.0.1", -1));

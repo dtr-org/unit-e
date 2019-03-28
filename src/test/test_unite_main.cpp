@@ -5,12 +5,20 @@
 #define BOOST_TEST_MODULE Unit-e Test Suite
 
 #include <net.h>
+#include <scheduler.h>
 
 #include <memory>
 
 #include <boost/test/unit_test.hpp>
 
 std::unique_ptr<CConnman> g_connman;
+
+static CScheduler scheduler;
+
+CScheduler& GetScheduler()
+{
+    return scheduler;
+}
 
 [[noreturn]] void Shutdown(void* parg)
 {

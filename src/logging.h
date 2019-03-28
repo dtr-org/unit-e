@@ -19,6 +19,8 @@
 static const bool DEFAULT_LOGTIMEMICROS = false;
 static const bool DEFAULT_LOGIPS        = false;
 static const bool DEFAULT_LOGTIMESTAMPS = true;
+static const bool DEFAULT_LOGTHREADNAMES = false;
+static const bool DEFAULT_LOGCATEGORIES = true;
 extern const char * const DEFAULT_DEBUGLOGFILE;
 
 extern bool fLogIPs;
@@ -53,6 +55,11 @@ namespace BCLog {
         COINDB      = (1 << 18),
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
+        VALIDATION  = (1 << 24),
+        PROPOSING   = (1 << 25),
+        FINALIZATION = (1 << 26),
+        SNAPSHOT    = (1 << 27),
+        ADMIN       = (1 << 28),
         ALL         = ~(uint32_t)0,
     };
 
@@ -73,7 +80,7 @@ namespace BCLog {
         /** Log categories bitfield. */
         std::atomic<uint32_t> m_categories{0};
 
-        std::string LogTimestampStr(const std::string& str);
+        std::string LogPrependHeader(const std::string& str, BCLog::LogFlags category);
 
     public:
         bool m_print_to_console = false;
@@ -81,12 +88,14 @@ namespace BCLog {
 
         bool m_log_timestamps = DEFAULT_LOGTIMESTAMPS;
         bool m_log_time_micros = DEFAULT_LOGTIMEMICROS;
+        bool m_log_thread_names = DEFAULT_LOGTHREADNAMES;
+        bool m_log_categories = DEFAULT_LOGCATEGORIES;
 
         fs::path m_file_path;
         std::atomic<bool> m_reopen_file{false};
 
         /** Send a string to the log output */
-        void LogPrintStr(const std::string &str);
+        void LogPrintStr(const std::string &str, BCLog::LogFlags category = BCLog::NONE);
 
         /** Returns whether logs will be written to any output */
         bool Enabled() const { return m_print_to_console || m_print_to_file; }

@@ -46,6 +46,8 @@ class WalletTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
+
         # Check that nodes don't own any UTXOs
         assert_equal(len(self.nodes[0].listunspent()), 0)
         assert_equal(len(self.nodes[1].listunspent()), 0)

@@ -24,6 +24,10 @@ class CScheduler;
 class CTxMemPool;
 enum class MemPoolRemovalReason;
 
+namespace finalization {
+struct VoteRecord;
+}
+
 // These functions dispatch to one or all registered wallets
 
 /** Register a wallet to receive updates from core */
@@ -145,6 +149,12 @@ protected:
      * Notifies listeners that a block which builds directly on our current tip
      * has been received and connected to the headers tree, though not validated yet */
     virtual void NewPoWValidBlock(const CBlockIndex *pindex, const std::shared_ptr<const CBlock>& block) {};
+
+    /**
+     * Notifies listeners that a slashable event has be detected
+     */
+    virtual void SlashingConditionDetected(const finalization::VoteRecord &vote1, const finalization::VoteRecord &vote2) {};
+
     friend void ::RegisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterValidationInterface(CValidationInterface*);
     friend void ::UnregisterAllValidationInterfaces();
@@ -185,6 +195,7 @@ public:
     void Broadcast(int64_t nBestBlockTime, CConnman* connman);
     void BlockChecked(const CBlock&, const CValidationState&);
     void NewPoWValidBlock(const CBlockIndex *, const std::shared_ptr<const CBlock>&);
+    void SlashingConditionDetected(const finalization::VoteRecord &, const finalization::VoteRecord &);
 };
 
 CMainSignals& GetMainSignals();

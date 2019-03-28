@@ -21,7 +21,44 @@ import struct
 import sys
 import threading
 
-from test_framework.messages import CBlockHeader, MIN_VERSION_SUPPORTED, msg_addr, msg_block, MSG_BLOCK, msg_blocktxn, msg_cmpctblock, msg_feefilter, msg_getaddr, msg_getblocks, msg_getblocktxn, msg_getdata, msg_getheaders, msg_headers, msg_inv, msg_mempool, msg_ping, msg_pong, msg_reject, msg_sendcmpct, msg_sendheaders, msg_tx, MSG_TX, MSG_TYPE_MASK, msg_verack, msg_version, NODE_NETWORK, NODE_WITNESS, sha256
+from test_framework.messages import (
+    CBlockHeader,
+    MIN_VERSION_SUPPORTED,
+    msg_addr,
+    msg_block,
+    MSG_BLOCK,
+    msg_blocktxn,
+    msg_cmpctblock,
+    msg_commits,
+    msg_feefilter,
+    msg_getaddr,
+    msg_getblocks,
+    msg_getblocktxn,
+    msg_getcommits,
+    msg_getdata,
+    msg_getheaders,
+    msg_getsnaphead,
+    msg_getsnapshot,
+    msg_headers,
+    msg_inv,
+    msg_mempool,
+    msg_notfound,
+    msg_ping,
+    msg_pong,
+    msg_reject,
+    msg_sendcmpct,
+    msg_sendheaders,
+    msg_snaphead,
+    msg_snapshot,
+    msg_tx,
+    MSG_TX,
+    MSG_TYPE_MASK,
+    msg_verack,
+    msg_version,
+    NODE_NETWORK,
+    NODE_WITNESS,
+    sha256
+)
 from test_framework.util import wait_until
 
 logger = logging.getLogger("TestFramework.mininode")
@@ -48,6 +85,13 @@ MESSAGEMAP = {
     b"tx": msg_tx,
     b"verack": msg_verack,
     b"version": msg_version,
+    b"getsnaphead": msg_getsnaphead,
+    b"snaphead": msg_snaphead,
+    b"getsnapshot": msg_getsnapshot,
+    b"snapshot": msg_snapshot,
+    b"notfound": msg_notfound,
+    b"getcommits": msg_getcommits,
+    b"commits": msg_commits,
 }
 
 MAGIC_BYTES = {
@@ -155,14 +199,17 @@ class P2PConnection(asyncio.Protocol):
                 self.recvbuf = self.recvbuf[4+12+4+4+msglen:]
                 if command not in MESSAGEMAP:
                     raise ValueError("Received unknown command from %s:%d: '%s' %s" % (self.dstaddr, self.dstport, command, repr(msg)))
-                f = BytesIO(msg)
-                t = MESSAGEMAP[command]()
-                t.deserialize(f)
-                self._log_message("receive", t)
-                self.on_message(t)
+                self.on_data(command, msg)
         except Exception as e:
             logger.exception('Error reading message:', repr(e))
             raise
+
+    def on_data(self, command, data):
+        f = BytesIO(data)
+        t = MESSAGEMAP[command]()
+        t.deserialize(f)
+        self._log_message("receive", t)
+        self.on_message(t)
 
     def on_message(self, message):
         """Callback for processing a P2P payload. Must be overridden by derived class."""
@@ -295,11 +342,18 @@ class P2PInterface(P2PConnection):
     def on_getheaders(self, message): pass
     def on_headers(self, message): pass
     def on_mempool(self, message): pass
+    def on_notfound(self, message): pass
     def on_pong(self, message): pass
     def on_reject(self, message): pass
     def on_sendcmpct(self, message): pass
     def on_sendheaders(self, message): pass
     def on_tx(self, message): pass
+    def on_getsnaphead(self, message): pass
+    def on_snaphead(self, message): pass
+    def on_getsnapshot(self, message): pass
+    def on_snapshot(self, message): pass
+    def on_getcommits(self, message): pass
+    def on_commits(self, message): pass
 
     def on_inv(self, message):
         want = msg_getdata()
@@ -371,8 +425,11 @@ class P2PInterface(P2PConnection):
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
     def wait_for_verack(self, timeout=60):
-        test_function = lambda: self.message_count["verack"]
+        test_function = lambda: self.got_verack()
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
+
+    def got_verack(self):
+        return self.message_count["verack"]
 
     # Message sending helper functions
 

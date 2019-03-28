@@ -12,7 +12,12 @@
 #include <utilmoneystr.h>
 #include <validation.h>
 #include <walletinitinterface.h>
+#include <wallet/rpcaddressbook.h>
+#include <wallet/rpcadmin.h>
+#include <wallet/rpcmnemonic.h>
+#include <wallet/rpcvalidator.h>
 #include <wallet/rpcwallet.h>
+#include <wallet/rpcwalletext.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 
@@ -34,7 +39,7 @@ public:
     bool Verify() const override;
 
     //! Load wallet databases.
-    bool Open() const override;
+    bool Open(const esperanza::WalletExtensionDeps &deps) const override;
 
     //! Complete startup of wallets.
     void Start(CScheduler& scheduler) const override;
@@ -135,25 +140,29 @@ bool WalletInit::ParameterInteraction() const
         }
     }
 
-    if (gArgs.GetBoolArg("-sysperms", false))
+    if (gArgs.GetBoolArg("-sysperms", false)) {
         return InitError("-sysperms is not allowed in combination with enabled wallet functionality");
-    if (gArgs.GetArg("-prune", 0) && gArgs.GetBoolArg("-rescan", false))
+    }
+    if (gArgs.GetArg("-prune", 0) && gArgs.GetBoolArg("-rescan", false)) {
         return InitError(_("Rescans are not possible in pruned mode. You will need to use -reindex which will download the whole blockchain again."));
+    }
 
-    if (::minRelayTxFee.GetFeePerK() > HIGH_TX_FEE_PER_KB)
+    if (::minRelayTxFee.GetFeePerK() > HIGH_TX_FEE_PER_KB) {
         InitWarning(AmountHighWarn("-minrelaytxfee") + " " +
                     _("The wallet will avoid paying less than the minimum relay fee."));
+    }
 
     if (gArgs.IsArgSet("-maxtxfee"))
     {
         CAmount nMaxFee = 0;
-        if (!ParseMoney(gArgs.GetArg("-maxtxfee", ""), nMaxFee))
+        if (!ParseMoney(gArgs.GetArg("-maxtxfee", ""), nMaxFee)) {
             return InitError(AmountErrMsg("maxtxfee", gArgs.GetArg("-maxtxfee", "")));
-        if (nMaxFee > HIGH_MAX_TX_FEE)
+        }
+        if (nMaxFee > HIGH_MAX_TX_FEE) {
             InitWarning(_("-maxtxfee is set very high! Fees this large could be paid on a single transaction."));
+        }
         maxTxFee = nMaxFee;
-        if (CFeeRate(maxTxFee, 1000) < ::minRelayTxFee)
-        {
+        if (CFeeRate(maxTxFee, 1000) < ::minRelayTxFee) {
             return InitError(strprintf(_("Invalid amount for -maxtxfee=<amount>: '%s' (must be at least the minrelay fee of %s to prevent stuck transactions)"),
                                        gArgs.GetArg("-maxtxfee", ""), ::minRelayTxFee.ToString()));
         }
@@ -169,6 +178,11 @@ void WalletInit::RegisterRPC(CRPCTable &t) const
     }
 
     RegisterWalletRPCCommands(t);
+    RegisterMnemonicRPCCommands(t);
+    RegisterValidatorRPCCommands(t);
+    RegisterAdminRPCCommands(t);
+    RegisterAddressbookRPCCommands(t);
+    RegisterWalletextRPCCommands(t);
 }
 
 bool WalletInit::Verify() const
@@ -220,7 +234,7 @@ bool WalletInit::Verify() const
     return true;
 }
 
-bool WalletInit::Open() const
+bool WalletInit::Open(const esperanza::WalletExtensionDeps& deps) const
 {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         LogPrintf("Wallet disabled!\n");
@@ -228,7 +242,7 @@ bool WalletInit::Open() const
     }
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
-        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, fs::absolute(walletFile, GetWalletDir()));
+        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(deps, walletFile, fs::absolute(walletFile, GetWalletDir()));
         if (!pwallet) {
             return false;
         }
@@ -241,7 +255,7 @@ bool WalletInit::Open() const
 void WalletInit::Start(CScheduler& scheduler) const
 {
     for (const std::shared_ptr<CWallet>& pwallet : GetWallets()) {
-        pwallet->postInitProcess();
+        pwallet->postInitProcess(scheduler);
     }
 
     // Run a thread to flush wallet periodically

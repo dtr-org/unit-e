@@ -7,7 +7,7 @@ BENCH_SRCDIR = bench
 BENCH_BINARY = bench/bench_unite$(EXEEXT)
 
 RAW_BENCH_FILES = \
-  bench/data/block413567.raw
+  bench/data/test_block.raw
 GENERATED_BENCH_FILES = $(RAW_BENCH_FILES:.raw=.raw.h)
 
 bench_bench_unite_SOURCES = \
@@ -35,8 +35,8 @@ nodist_bench_bench_unite_SOURCES = $(GENERATED_BENCH_FILES)
 bench_bench_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CLFAGS) $(EVENT_PTHREADS_CFLAGS) -I$(builddir)/bench/
 bench_bench_unite_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 bench_bench_unite_LDADD = \
-  $(LIBUNITE_WALLET) \
   $(LIBUNITE_SERVER) \
+  $(LIBUNITE_WALLET) \
   $(LIBUNITE_COMMON) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CONSENSUS) \
@@ -51,6 +51,12 @@ if ENABLE_ZMQ
 bench_bench_unite_LDADD += $(LIBUNITE_ZMQ) $(ZMQ_LIBS)
 endif
 
+if ENABLE_USBDEVICE
+bench_bench_unite_LDADD += \
+    $(LIBUNITE_USBDEVICE) \
+    $(HIDAPI_LIBS)
+endif
+
 if ENABLE_WALLET
 bench_bench_unite_SOURCES += bench/coin_selection.cpp
 endif
@@ -62,7 +68,7 @@ CLEAN_UNITE_BENCH = bench/*.gcda bench/*.gcno $(GENERATED_BENCH_FILES)
 
 CLEANFILES += $(CLEAN_UNITE_BENCH)
 
-bench/checkblock.cpp: bench/data/block413567.raw.h
+bench/checkblock.cpp: bench/data/test_block.raw.h
 
 unite_bench: $(BENCH_BINARY)
 

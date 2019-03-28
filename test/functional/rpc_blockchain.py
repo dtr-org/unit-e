@@ -12,7 +12,6 @@ Test the following RPCs:
     - getblockhash
     - getblockheader
     - getchaintxstats
-    - getnetworkhashps
     - verifychain
 
 Tests correspond to code in rpc/blockchain.cpp.
@@ -22,7 +21,7 @@ from decimal import Decimal
 import http.client
 import subprocess
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (UnitETestFramework, DISABLE_FINALIZATION)
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
@@ -52,14 +51,23 @@ class BlockchainTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
-        self.restart_node(0, extra_args=['-stopatheight=207', '-prune=1'])  # Set extra args with pruning after rescan is complete
+        self.restart_node(0, extra_args=['-stopatheight=207', '-prune=1', DISABLE_FINALIZATION])  # Set extra args with pruning after rescan is complete
+
+        self.setup_stake_coins(self.nodes[0], rescan=False)
+
+        genesis = self.nodes[0].getblock(self.nodes[0].getbestblockhash())
+        funding_txid = genesis['tx'][0]
+        genesis_tx_hex = self.nodes[0].getrawtransaction(funding_txid)
+        fund_proof = self.nodes[0].gettxoutproof([funding_txid])
+        self.nodes[0].importprunedfunds(genesis_tx_hex, fund_proof)
+
+        self.nodes[0].generatetoaddress(200, self.nodes[0].getnewaddress('', 'bech32'))
 
         self._test_getblockchaininfo()
         self._test_getchaintxstats()
         self._test_gettxoutsetinfo()
         self._test_getblockheader()
         self._test_getdifficulty()
-        self._test_getnetworkhashps()
         self._test_stopatheight()
         self._test_waitforblockheight()
         assert self.nodes[0].verifychain(4, 0)
@@ -76,10 +84,10 @@ class BlockchainTest(UnitETestFramework):
             'difficulty',
             'headers',
             'initialblockdownload',
+            'initialsnapshotdownload',
             'mediantime',
             'pruned',
             'size_on_disk',
-            'softforks',
             'verificationprogress',
             'warnings',
         ]
@@ -98,12 +106,12 @@ class BlockchainTest(UnitETestFramework):
         assert res['pruned']
         assert not res['automatic_pruning']
 
-        self.restart_node(0, ['-stopatheight=207'])
+        self.restart_node(0, ['-stopatheight=207', DISABLE_FINALIZATION])
         res = self.nodes[0].getblockchaininfo()
         # should have exact keys
         assert_equal(sorted(res.keys()), keys)
 
-        self.restart_node(0, ['-stopatheight=207', '-prune=550'])
+        self.restart_node(0, ['-stopatheight=207', '-prune=550', DISABLE_FINALIZATION])
         res = self.nodes[0].getblockchaininfo()
         # result should have these additional pruning keys if prune=550
         assert_equal(sorted(res.keys()), sorted(['pruneheight', 'automatic_pruning', 'prune_target_size'] + keys))
@@ -137,9 +145,9 @@ class BlockchainTest(UnitETestFramework):
         chaintxstats = self.nodes[0].getchaintxstats(1)
         # 200 txs plus genesis tx
         assert_equal(chaintxstats['txcount'], 201)
-        # tx rate should be 1 per 10 minutes, or 1/600
-        # we have to round because of binary math
-        assert_equal(round(chaintxstats['txrate'] * 600, 10), Decimal(1))
+
+        # all transactions are created with the rate lower than 1 sec
+        assert('txrate' not in chaintxstats)
 
         b1_hash = self.nodes[0].getblockhash(1)
         b1 = self.nodes[0].getblock(b1_hash)
@@ -169,11 +177,17 @@ class BlockchainTest(UnitETestFramework):
         node = self.nodes[0]
         res = node.gettxoutsetinfo()
 
-        assert_equal(res['total_amount'], Decimal('8725.00000000'))
-        assert_equal(res['transactions'], 200)
+        assert_equal(res['total_amount'], Decimal('1060750.00000000'))
+
+        assert_equal(res['transactions'], 201)
         assert_equal(res['height'], 200)
-        assert_equal(res['txouts'], 200)
-        assert_equal(res['bogosize'], 15000),
+
+        # - there is 106 initial UTXOs in regtest funds
+        # - each of the 200 blocks creates a reward UTXO
+        # - the first staking splits the initial 10000 into 10x1000 (106-1+10, an additional 9)
+        # 200 + 106 + 9 = 315
+        assert_equal(res['txouts'], 315)
+        assert_equal(res['bogosize'], 22680),
         assert_equal(res['bestblock'], node.getblockhash(200))
         size = res['disk_size']
         assert size > 6400
@@ -186,11 +200,11 @@ class BlockchainTest(UnitETestFramework):
         node.invalidateblock(b1hash)
 
         res2 = node.gettxoutsetinfo()
-        assert_equal(res2['transactions'], 0)
-        assert_equal(res2['total_amount'], Decimal('0'))
+        assert_equal(res2['transactions'], 1)
+        assert_equal(res2['total_amount'], Decimal('1060000.00000000'))
         assert_equal(res2['height'], 0)
-        assert_equal(res2['txouts'], 0)
-        assert_equal(res2['bogosize'], 0),
+        assert_equal(res2['txouts'], 106)
+        assert_equal(res2['bogosize'], 7632),
         assert_equal(res2['bestblock'], node.getblockhash(0))
         assert_equal(len(res2['hash_serialized_2']), 64)
 
@@ -205,6 +219,7 @@ class BlockchainTest(UnitETestFramework):
 
     def _test_getblockheader(self):
         node = self.nodes[0]
+        self.log.info("Test getblockheader")
 
         assert_raises_rpc_error(-5, "Block not found", node.getblockheader, "nonsense")
 
@@ -227,20 +242,17 @@ class BlockchainTest(UnitETestFramework):
         assert isinstance(header['nonce'], int)
         assert isinstance(header['version'], int)
         assert isinstance(int(header['versionHex'], 16), int)
-        assert isinstance(header['difficulty'], Decimal)
+        assert isinstance(header['difficulty'], (int, Decimal))
 
     def _test_getdifficulty(self):
+        self.log.info("Test getdifficulty")
         difficulty = self.nodes[0].getdifficulty()
         # 1 hash in 2 should be valid, so difficulty should be 1/2**31
         # binary => decimal => binary math is why we do this check
         assert abs(difficulty * 2**31 - 1) < 0.0001
 
-    def _test_getnetworkhashps(self):
-        hashes_per_second = self.nodes[0].getnetworkhashps()
-        # This should be 2 hashes every 10 minutes or 1/300
-        assert abs(hashes_per_second * 300 - 1) < 0.0001
-
     def _test_stopatheight(self):
+        self.log.info("Test stopatheight")
         assert_equal(self.nodes[0].getblockcount(), 200)
         self.nodes[0].generate(6)
         assert_equal(self.nodes[0].getblockcount(), 206)

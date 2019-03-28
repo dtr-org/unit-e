@@ -84,11 +84,6 @@ from test_framework.util import (
     sync_mempools,
 )
 
-# The versionbit bit used to signal activation of SegWit
-VB_WITNESS_BIT = 1
-VB_PERIOD = 144
-VB_TOP_BITS = 0x20000000
-
 MAX_SIGOP_COST = 80000
 
 class UTXO():
@@ -140,16 +135,13 @@ def test_witness_block(node, p2p, block, accepted, with_witness=True, reason=Non
 
     - Submit the block over the p2p interface
     - use the getbestblockhash rpc to check for acceptance."""
-    if with_witness:
-        p2p.send_message(msg_witness_block(block))
-    else:
-        p2p.send_message(msg_block(block))
+    p2p.send_message(msg_witness_block(block))
     p2p.sync_with_ping()
-    assert_equal(node.getbestblockhash() == block.hash, accepted)
-    if (reason is not None and not accepted):
-        # Check the rejection reason as well.
-        with mininode_lock:
-            assert_equal(p2p.last_message["reject"].reason, reason)
+
+    if accepted:
+        assert_equal(rpc.getbestblockhash(), block.hash)
+    else:
+        assert_not_equal(rpc.getbestblockhash(), block.hash)
 
 class TestP2PConn(P2PInterface):
     def __init__(self):
@@ -194,9 +186,9 @@ class TestP2PConn(P2PInterface):
 class SegWitTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 3
-        # This test tests SegWit both pre and post-activation, so use the normal BIP9 activation.
-        self.extra_args = [["-whitelist=127.0.0.1", "-vbparams=segwit:0:999999999999"], ["-whitelist=127.0.0.1", "-acceptnonstdtxn=0", "-vbparams=segwit:0:999999999999"], ["-whitelist=127.0.0.1", "-vbparams=segwit:0:0"]]
+        self.num_nodes = 2
+        # This test tests SegWit
+        self.extra_args = [["-whitelist=127.0.0.1"], ["-whitelist=127.0.0.1", "-acceptnonstdtxn=0"]]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -214,15 +206,20 @@ class SegWitTest(UnitETestFramework):
         tip = self.nodes[0].getbestblockhash()
         height = self.nodes[0].getblockcount() + 1
         block_time = self.nodes[0].getblockheader(tip)["mediantime"] + 1
-        block = create_block(int(tip, 16), create_coinbase(height), block_time)
-        block.version = version
-        block.rehash()
+        meta = get_tip_snapshot_meta(self.nodes[0])
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, meta.hash))
+        block = create_block(int(tip, 16), coinbase, block_time)
+        block.nVersion = nVersion
         return block
 
     def update_witness_block_with_transactions(self, block, tx_list, nonce=0):
         """Add list of transactions to block, adds witness commitment, then solves."""
         block.vtx.extend(tx_list)
-        add_witness_commitment(block, nonce)
+        for tx in block.vtx:
+            tx.rehash()
+        block.ensure_ltor()
+        block.compute_merkle_trees()
         block.solve()
 
     def run_test(self):
@@ -267,13 +264,12 @@ class SegWitTest(UnitETestFramework):
         self.test_witness_commitments()
         self.test_block_malleability()
         self.test_witness_block_size()
-        self.test_submit_block()
         self.test_extra_witness_data()
         self.test_max_witness_push_length()
         self.test_max_witness_program_length()
         self.test_witness_input_length()
         self.test_block_relay()
-        self.test_tx_relay_after_segwit_activation()
+        self.test_tx_relay()
         self.test_standardness_v0()
         self.test_segwit_versions()
         self.test_premature_coinbase_witness_spend()
@@ -281,7 +277,6 @@ class SegWitTest(UnitETestFramework):
         self.test_signature_version_1()
         self.test_non_standard_witness_blinding()
         self.test_non_standard_witness()
-        self.test_upgrade_after_activation()
         self.test_witness_sigops()
 
     # Individual tests
@@ -318,7 +313,7 @@ class SegWitTest(UnitETestFramework):
         # Create a transaction that spends the coinbase
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(txid, 0), b""))
-        tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
+        tx.vout.append(CTxOut((PROPOSER_REWARD - 1) * UNIT, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
         tx.calc_sha256()
 
         # Check that serializing it with or without witness is the same
@@ -329,7 +324,7 @@ class SegWitTest(UnitETestFramework):
         self.test_node.sync_with_ping()  # make sure the tx was processed
         assert(tx.hash in self.nodes[0].getrawmempool())
         # Save this transaction for later
-        self.utxo.append(UTXO(tx.sha256, 0, 49 * 100000000))
+        self.utxo.append(UTXO(tx.sha256, 0, (PROPOSER_REWARD - 1) * UNIT))
         self.nodes[0].generate(1)
 
     @subtest
@@ -982,21 +977,20 @@ class SegWitTest(UnitETestFramework):
         child_tx.rehash()
         self.update_witness_block_with_transactions(block, [parent_tx, child_tx])
 
-        vsize = get_virtual_size(block)
-        additional_bytes = (MAX_BLOCK_BASE_SIZE - vsize) * 4
+        # Calculate exact additional bytes (get_virtual_size would round it)
+        additional_bytes = 1 + (4 * MAX_BLOCK_BASE_SIZE) - (3 * len(block.serialize(with_witness=False)) + len(block.serialize(with_witness=True)))
         i = 0
         while additional_bytes > 0:
             # Add some more bytes to each input until we hit MAX_BLOCK_BASE_SIZE+1
-            extra_bytes = min(additional_bytes + 1, 55)
-            block.vtx[-1].wit.vtxinwit[int(i / (2 * NUM_DROPS))].scriptWitness.stack[i % (2 * NUM_DROPS)] = b'a' * (195 + extra_bytes)
+            extra_bytes = min(additional_bytes , 55)
+            child_tx.wit.vtxinwit[int(i / (2 * NUM_DROPS))].scriptWitness.stack[i % (2 * NUM_DROPS)] = b'a' * (195 + extra_bytes)
             additional_bytes -= extra_bytes
             i += 1
 
-        block.vtx[0].vout.pop()  # Remove old commitment
-        add_witness_commitment(block)
+        block.compute_merkle_trees()
         block.solve()
-        vsize = get_virtual_size(block)
-        assert_equal(vsize, MAX_BLOCK_BASE_SIZE + 1)
+        segwit_size = 3 * len(block.serialize(with_witness=False)) + len(block.serialize(with_witness=True))
+        assert_equal(segwit_size, (4 * MAX_BLOCK_BASE_SIZE) + 1)
         # Make sure that our test case would exceed the old max-network-message
         # limit
         assert(len(block.serialize(True)) > 2 * 1024 * 1024)
@@ -1004,54 +998,17 @@ class SegWitTest(UnitETestFramework):
         test_witness_block(self.nodes[0], self.test_node, block, accepted=False)
 
         # Now resize the second transaction to make the block fit.
-        cur_length = len(block.vtx[-1].wit.vtxinwit[0].scriptWitness.stack[0])
-        block.vtx[-1].wit.vtxinwit[0].scriptWitness.stack[0] = b'a' * (cur_length - 1)
-        block.vtx[0].vout.pop()
-        add_witness_commitment(block)
+        cur_length = len(child_tx.wit.vtxinwit[0].scriptWitness.stack[0])
+        child_tx.wit.vtxinwit[0].scriptWitness.stack[0] = b'a' * (cur_length - 1)
+        block.compute_merkle_trees()
         block.solve()
-        assert(get_virtual_size(block) == MAX_BLOCK_BASE_SIZE)
+        assert_equal(get_virtual_size(block), MAX_BLOCK_BASE_SIZE)
 
         test_witness_block(self.nodes[0], self.test_node, block, accepted=True)
 
         # Update available utxo's
         self.utxo.pop(0)
-        self.utxo.append(UTXO(block.vtx[-1].sha256, 0, block.vtx[-1].vout[0].nValue))
-
-    @subtest
-    def test_submit_block(self):
-        """Test that submitblock adds the nonce automatically when possible."""
-        block = self.build_next_block()
-
-        # Try using a custom nonce and then don't supply it.
-        # This shouldn't possibly work.
-        add_witness_commitment(block, nonce=1)
-        block.vtx[0].wit = CTxWitness()  # drop the nonce
-        block.solve()
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
-        assert(self.nodes[0].getbestblockhash() != block.hash)
-
-        # Now redo commitment with the standard nonce, but let united fill it in.
-        add_witness_commitment(block, nonce=0)
-        block.vtx[0].wit = CTxWitness()
-        block.solve()
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
-        assert_equal(self.nodes[0].getbestblockhash(), block.hash)
-
-        # This time, add a tx with non-empty witness, but don't supply
-        # the commitment.
-        block_2 = self.build_next_block()
-
-        add_witness_commitment(block_2)
-
-        block_2.solve()
-
-        # Drop commitment and nonce -- submitblock should not fill in.
-        block_2.vtx[0].vout.pop()
-        block_2.vtx[0].wit = CTxWitness()
-
-        self.nodes[0].submitblock(bytes_to_hex_str(block_2.serialize(True)))
-        # Tip should not advance!
-        assert(self.nodes[0].getbestblockhash() != block_2.hash)
+        self.utxo.append(UTXO(child_tx.sha256, 0, child_tx.vout[0].nValue))
 
     @subtest
     def test_extra_witness_data(self):
@@ -1080,7 +1037,7 @@ class SegWitTest(UnitETestFramework):
         block.vtx[1].wit.vtxinwit = []
         block.vtx[1].vin[0].scriptSig = CScript([OP_0])
         block.vtx[1].rehash()
-        add_witness_commitment(block)
+        block.compute_merkle_trees()
         block.solve()
 
         test_witness_block(self.nodes[0], self.test_node, block, accepted=True)
@@ -1094,6 +1051,7 @@ class SegWitTest(UnitETestFramework):
         tx2.wit.vtxinwit.extend([CTxInWitness(), CTxInWitness()])
         tx2.wit.vtxinwit[0].scriptWitness.stack = [CScript([CScriptNum(1)]), CScript([CScriptNum(1)]), witness_program]
         tx2.wit.vtxinwit[1].scriptWitness.stack = [CScript([OP_TRUE])]
+        tx2.rehash()
 
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx2])
@@ -1107,7 +1065,7 @@ class SegWitTest(UnitETestFramework):
         tx2.wit.vtxinwit[0].scriptWitness.stack.pop(0)
         tx2.wit.vtxinwit[1].scriptWitness.stack = []
         tx2.rehash()
-        add_witness_commitment(block)
+        block.compute_merkle_trees()
         block.solve()
 
         # This has extra signature data for a witness input, so it should fail.
@@ -1117,7 +1075,7 @@ class SegWitTest(UnitETestFramework):
         # success (even with extra scriptsig data in the non-witness input)
         tx2.vin[0].scriptSig = b""
         tx2.rehash()
-        add_witness_commitment(block)
+        block.compute_merkle_trees()
         block.solve()
 
         test_witness_block(self.nodes[0], self.test_node, block, accepted=True)
@@ -1155,7 +1113,7 @@ class SegWitTest(UnitETestFramework):
         # Now reduce the length of the stack element
         tx2.wit.vtxinwit[0].scriptWitness.stack[0] = b'a' * (MAX_SCRIPT_ELEMENT_SIZE)
 
-        add_witness_commitment(block)
+        block.compute_merkle_trees()
         block.solve()
         test_witness_block(self.nodes[0], self.test_node, block, accepted=True)
 
@@ -1218,7 +1176,6 @@ class SegWitTest(UnitETestFramework):
         witness_program = CScript([OP_DROP, OP_TRUE])
         witness_hash = sha256(witness_program)
         script_pubkey = CScript([OP_0, witness_hash])
-
         # Create a transaction that splits our utxo into many outputs
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
@@ -1227,6 +1184,7 @@ class SegWitTest(UnitETestFramework):
             tx.vout.append(CTxOut(int(value / 10), script_pubkey))
         tx.vout[0].nValue -= 1000
         assert(tx.vout[0].nValue >= 0)
+        tx.rehash()
 
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx])
@@ -1262,6 +1220,7 @@ class SegWitTest(UnitETestFramework):
         for i in range(11):
             tx2.wit.vtxinwit.append(CTxInWitness())
             tx2.wit.vtxinwit[i].scriptWitness.stack = [b'a', witness_program]
+        tx2.rehash()
 
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx2])
@@ -1293,15 +1252,13 @@ class SegWitTest(UnitETestFramework):
         self.utxo.pop()
         self.utxo.append(UTXO(tx2.sha256, 0, tx2.vout[0].nValue))
 
-    @subtest
-    def test_tx_relay_after_segwit_activation(self):
-        """Test transaction relay after segwit activation.
 
-        After segwit activates, verify that mempool:
-        - rejects transactions with unnecessary/extra witnesses
-        - accepts transactions with valid witnesses
-        and that witness transactions are relayed to non-upgraded peers."""
-
+    # Verify that mempool:
+    # - rejects transactions with unnecessary/extra witnesses
+    # - accepts transactions with valid witnesses
+    # and that witness transactions are relayed to non-upgraded peers.
+    def test_tx_relay(self):
+        self.log.info("Testing relay of witness transactions")
         # Generate a transaction that doesn't require a witness, but send it
         # with a witness.  Should be rejected because we can't use a witness
         # when spending a non-witness output.
@@ -1359,12 +1316,8 @@ class SegWitTest(UnitETestFramework):
         test_transaction_acceptance(self.nodes[0], self.test_node, tx3, with_witness=True, accepted=False)
 
         # Get rid of the extra witness, and verify acceptance.
-        tx3.wit.vtxinwit[0].scriptWitness.stack = [witness_program]
-        # Also check that old_node gets a tx announcement, even though this is
-        # a witness transaction.
-        self.old_node.wait_for_inv([CInv(1, tx2.sha256)])  # wait until tx2 was inv'ed
-        test_transaction_acceptance(self.nodes[0], self.test_node, tx3, with_witness=True, accepted=True)
-        self.old_node.wait_for_inv([CInv(1, tx3.sha256)])
+        tx3.wit.vtxinwit[0].scriptWitness.stack = [ witness_program ]
+        test_transaction_acceptance(self.nodes[0].rpc, self.test_node, tx3, with_witness=True, accepted=True)
 
         # Test that getrawtransaction returns correct witness information
         # hash, size, vsize
@@ -1414,7 +1367,9 @@ class SegWitTest(UnitETestFramework):
         witness_program = CScript([OP_TRUE])
         witness_hash = sha256(witness_program)
         assert_equal(len(self.nodes[1].getrawmempool()), 0)
-        for version in list(range(OP_1, OP_16 + 1)) + [OP_0]:
+        # Do not check OP_1 and OP_2 (remote staking) here as it is a standard version
+        # and version 0 is enough to test spending standard transaction in a non-standard one
+        for version in list(range(OP_3, OP_16 + 1)) + [OP_0]:
             # First try to spend to a future version segwit script_pubkey.
             script_pubkey = CScript([CScriptOp(version), witness_hash])
             tx.vin = [CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b"")]
@@ -1429,9 +1384,9 @@ class SegWitTest(UnitETestFramework):
         sync_blocks(self.nodes)
         assert(len(self.nodes[0].getrawmempool()) == 0)
 
-        # Finally, verify that version 0 -> version 1 transactions
+        # Finally, verify that version 0 -> version 3 transactions
         # are non-standard
-        script_pubkey = CScript([CScriptOp(OP_1), witness_hash])
+        script_pubkey = CScript([CScriptOp(OP_3), witness_hash])
         tx2 = CTransaction()
         tx2.vin = [CTxIn(COutPoint(tx.sha256, 0), b"")]
         tx2.vout = [CTxOut(tx.vout[0].nValue - 1000, script_pubkey)]
@@ -1460,7 +1415,7 @@ class SegWitTest(UnitETestFramework):
         test_transaction_acceptance(self.nodes[0], self.test_node, tx3, with_witness=True, accepted=False)
         self.test_node.sync_with_ping()
         with mininode_lock:
-            assert(b"reserved for soft-fork upgrades" in self.test_node.last_message["reject"].reason)
+            assert_in(b"reserved for soft-fork upgrades", self.test_node.last_message["reject"].reason)
 
         # Building a block with the transaction must be valid, however.
         block = self.build_next_block()
@@ -1756,18 +1711,18 @@ class SegWitTest(UnitETestFramework):
 
         # Check that we can't have a scriptSig
         tx2.vin[0].scriptSig = CScript([signature, pubkey])
+        tx2.rehash()
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx, tx2])
         test_witness_block(self.nodes[0], self.test_node, block, accepted=False)
 
         # Move the signature to the witness.
-        block.vtx.pop()
         tx2.wit.vtxinwit.append(CTxInWitness())
         tx2.wit.vtxinwit[0].scriptWitness.stack = [signature, pubkey]
         tx2.vin[0].scriptSig = b""
         tx2.rehash()
 
-        self.update_witness_block_with_transactions(block, [tx2])
+        self.update_witness_block_with_transactions(block, [])
         test_witness_block(self.nodes[0], self.test_node, block, accepted=True)
 
         temp_utxos.pop(0)
@@ -1844,7 +1799,10 @@ class SegWitTest(UnitETestFramework):
         self.nodes[0].generate(1)
         sync_blocks(self.nodes)
 
-        # Update our utxo list; we spent the first entry.
+        # Sending this with witnesses should be valid.
+        test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
+
+        # Update self.utxo
         self.utxo.pop(0)
         self.utxo.append(UTXO(tx3.sha256, 0, tx3.vout[0].nValue))
 
@@ -1947,28 +1905,6 @@ class SegWitTest(UnitETestFramework):
         assert_equal(len(self.nodes[1].getrawmempool()), 0)
 
         self.utxo.pop(0)
-
-    @subtest
-    def test_upgrade_after_activation(self):
-        """Test the behavior of starting up a segwit-aware node after the softfork has activated."""
-
-        # Restart with the new binary
-        self.stop_node(2)
-        self.start_node(2, extra_args=["-vbparams=segwit:0:999999999999"])
-        connect_nodes(self.nodes[0], 2)
-
-        sync_blocks(self.nodes)
-
-        # Make sure that this peer thinks segwit has activated.
-        assert(get_bip9_status(self.nodes[2], 'segwit')['status'] == "active")
-
-        # Make sure this peer's blocks match those of node0.
-        height = self.nodes[2].getblockcount()
-        while height >= 0:
-            block_hash = self.nodes[2].getblockhash(height)
-            assert_equal(block_hash, self.nodes[0].getblockhash(height))
-            assert_equal(self.nodes[0].getblock(block_hash), self.nodes[2].getblock(block_hash))
-            height -= 1
 
     @subtest
     def test_witness_sigops(self):

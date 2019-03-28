@@ -35,8 +35,9 @@ import os
 from random import randint
 import shutil
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
 from test_framework.util import assert_equal, assert_raises_rpc_error, connect_nodes, sync_blocks, sync_mempools
+
 
 class WalletBackupTest(UnitETestFramework):
     def set_test_params(self):
@@ -100,6 +101,8 @@ class WalletBackupTest(UnitETestFramework):
         os.remove(os.path.join(self.nodes[2].datadir, 'regtest', 'wallets', 'wallet.dat'))
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
+
         self.log.info("Generating initial blockchain")
         self.nodes[0].generate(1)
         sync_blocks(self.nodes)
@@ -110,10 +113,10 @@ class WalletBackupTest(UnitETestFramework):
         self.nodes[3].generate(100)
         sync_blocks(self.nodes)
 
-        assert_equal(self.nodes[0].getbalance(), 50)
-        assert_equal(self.nodes[1].getbalance(), 50)
-        assert_equal(self.nodes[2].getbalance(), 50)
-        assert_equal(self.nodes[3].getbalance(), 0)
+        assert_equal(self.nodes[0].getbalance(), PROPOSER_REWARD + self.nodes[0].initial_stake)
+        assert_equal(self.nodes[1].getbalance(), PROPOSER_REWARD + self.nodes[1].initial_stake)
+        assert_equal(self.nodes[2].getbalance(), PROPOSER_REWARD + self.nodes[2].initial_stake)
+        assert_equal(self.nodes[3].getbalance(), PROPOSER_REWARD * (100 - COINBASE_MATURITY) + self.nodes[3].initial_stake)
 
         self.log.info("Creating transactions")
         # Five rounds of sending each other transactions.
@@ -144,8 +147,9 @@ class WalletBackupTest(UnitETestFramework):
         total = balance0 + balance1 + balance2 + balance3
 
         # At this point, there are 214 blocks (103 for setup, then 10 rounds, then 101.)
-        # 114 are mature, so the sum of all wallets should be 114 * 50 = 5700.
-        assert_equal(total, 5700)
+        mature_blocks = (214 - COINBASE_MATURITY)
+        total_reward = PROPOSER_REWARD * mature_blocks
+        assert_equal(total, total_reward + (4 * self.nodes[0].initial_stake))
 
         ##
         # Test restoring spender wallets from backups

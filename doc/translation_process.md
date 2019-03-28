@@ -1,6 +1,9 @@
 Translations
 ============
 
+**This describes the Bitcoin Core translation process. It will need to be
+adapted to the unit-e release process when we start doing translations.**
+
 The Unit-e-Core project has been designed to support multiple localisations. This makes adding new phrases, and completely new languages easily achievable. For managing all application translations, Unit-e-Core makes use of the Transifex online translation management tool.
 
 ### Helping to translate (using Transifex)
@@ -62,7 +65,11 @@ token =
 username = USERNAME
 ```
 
-The Transifex Unit-e project config file is included as part of the repo. It can be found at `.tx/config`, however you shouldn’t need to change anything.
+**For Windows**
+
+Please see [http://docs.transifex.com/developer/client/setup#windows](http://docs.transifex.com/developer/client/setup#windows) for details on installation.
+
+The Transifex Unit-e project config file is included as part of the repo. It can be found at `.tx/config`, however you shouldn’t need change anything.
 
 ### Synchronising translations
 To assist in updating translations, we have created a script to help.

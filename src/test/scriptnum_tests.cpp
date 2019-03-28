@@ -10,7 +10,7 @@
 #include <limits.h>
 #include <stdint.h>
 
-BOOST_FIXTURE_TEST_SUITE(scriptnum_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(scriptnum_tests, ReducedTestingSetup)
 
 /** A selection of numbers that do not trigger int64_t overflow
  *  when added/subtracted. */
@@ -142,6 +142,14 @@ static void CheckCompare(const int64_t& num1, const int64_t& num2)
     BOOST_CHECK((bignum1 <= bignum2) ==  (scriptnum1 <= num2));
 }
 
+template<typename T>
+void CheckSerializeDeserialize(const T &value) {
+    const std::vector<uint8_t> serialized = CScriptNum::serialize(value);
+    T deserialized;
+    BOOST_CHECK(CScriptNum::deserialize(serialized, deserialized));
+    BOOST_CHECK_EQUAL(deserialized, value);
+}
+
 static void RunCreate(const int64_t& num)
 {
     CheckCreateInt(num);
@@ -195,6 +203,70 @@ BOOST_AUTO_TEST_CASE(operators)
             RunOperators(values[i] - values[j], values[i] - values[j]);
         }
     }
+}
+
+BOOST_AUTO_TEST_CASE(serialize_deserialize)
+{
+    CheckSerializeDeserialize(0);
+    CheckSerializeDeserialize(-1);
+    CheckSerializeDeserialize(1);
+
+    // Values with MSB=0x80 require special handling
+    CheckSerializeDeserialize(0x80);
+    CheckSerializeDeserialize(0x8011);
+    CheckSerializeDeserialize(0x801122);
+    CheckSerializeDeserialize(0x80112233);
+    CheckSerializeDeserialize(0x8011223344);
+    CheckSerializeDeserialize(0x801122334455);
+    CheckSerializeDeserialize(0x80112233445566);
+    CheckSerializeDeserialize(-0x80);
+    CheckSerializeDeserialize(-0x8011);
+    CheckSerializeDeserialize(-0x801122);
+    CheckSerializeDeserialize(-0x80112233);
+    CheckSerializeDeserialize(-0x8011223344);
+    CheckSerializeDeserialize(-0x801122334455);
+    CheckSerializeDeserialize(-0x80112233445566);
+
+    CheckSerializeDeserialize(std::numeric_limits<uint8_t>::max());
+    CheckSerializeDeserialize(std::numeric_limits<int8_t>::max());
+    CheckSerializeDeserialize(std::numeric_limits<int8_t>::min());
+
+    CheckSerializeDeserialize(std::numeric_limits<uint16_t>::max());
+    CheckSerializeDeserialize(std::numeric_limits<int16_t>::max());
+    CheckSerializeDeserialize(std::numeric_limits<int16_t>::min());
+
+    CheckSerializeDeserialize(std::numeric_limits<uint32_t>::max());
+    CheckSerializeDeserialize(std::numeric_limits<int32_t>::max());
+    CheckSerializeDeserialize(std::numeric_limits<int32_t>::min());
+
+    CheckSerializeDeserialize(std::numeric_limits<int64_t>::max());
+    CheckSerializeDeserialize(std::numeric_limits<int64_t>::min());
+}
+
+BOOST_AUTO_TEST_CASE(deserialize_to_smaller_or_bigger_type)
+{
+  const auto max_i64 = std::numeric_limits<int64_t>::max();
+  const auto min_i64 = std::numeric_limits<int64_t>::min();
+  const auto max_i32 = std::numeric_limits<int32_t>::max();
+  const auto min_i32 = std::numeric_limits<int32_t>::min();
+  int32_t i32;
+  int64_t i64;
+
+  // 64 -> 32 overflows and should not be deserialized
+  BOOST_CHECK(!CScriptNum::deserialize(CScriptNum::serialize(max_i64), i32));
+  BOOST_CHECK(!CScriptNum::deserialize(CScriptNum::serialize(min_i64), i32));
+
+  // 32 -> 32 OK
+  BOOST_CHECK(CScriptNum::deserialize(CScriptNum::serialize(max_i32), i32));
+  BOOST_CHECK(CScriptNum::deserialize(CScriptNum::serialize(min_i32), i32));
+
+  // 32 -> 64 OK
+  BOOST_CHECK(CScriptNum::deserialize(CScriptNum::serialize(max_i32), i64));
+  BOOST_CHECK(CScriptNum::deserialize(CScriptNum::serialize(min_i32), i64));
+
+  uint32_t ui32;
+  // Overflow because of sign
+  BOOST_CHECK(!CScriptNum::deserialize(CScriptNum::serialize(min_i32), ui32));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -342,23 +342,33 @@ struct TxMempoolInfo
  * this is passed to the notification signal.
  */
 enum class MemPoolRemovalReason {
-    UNKNOWN = 0, //! Manually removed or unknown reason
-    EXPIRY,      //! Expired from mempool
-    SIZELIMIT,   //! Removed in size limiting
-    REORG,       //! Removed for reorganization
-    BLOCK,       //! Removed for block
-    CONFLICT,    //! Removed for conflict with in-block transaction
-    REPLACED     //! Removed for replacement
+    UNKNOWN = 0,      //! Manually removed or unknown reason
+    EXPIRY,           //! Expired from mempool
+    SIZELIMIT,        //! Removed in size limiting
+    REORG,            //! Removed for reorganization
+    BLOCK,            //! Removed for block
+    CONFLICT,         //! Removed for conflict with in-block transaction
+    REPLACED,         //! Removed for replacement
+    OUTDATED_VOTE,    //! Removed because outdated
+    SLASH_CONFLICT    //! Removed because conflicting with a slash
 };
 
 class SaltedTxidHasher
 {
 private:
     /** Salt */
-    const uint64_t k0, k1;
+    uint64_t k0, k1;
 
 public:
     SaltedTxidHasher();
+
+    SaltedTxidHasher(const SaltedTxidHasher&) = default;
+    SaltedTxidHasher(SaltedTxidHasher&&) = default;
+
+    SaltedTxidHasher& operator=(const SaltedTxidHasher&) = default;
+    SaltedTxidHasher& operator=(SaltedTxidHasher&&) = default;
+
+    ~SaltedTxidHasher() = default;
 
     size_t operator()(const uint256& txid) const {
         return SipHashUint256(k0, k1, txid);
@@ -620,6 +630,12 @@ public:
     /** Expire all transaction (and their dependencies) in the mempool older than time. Return the number of removed transactions. */
     int Expire(int64_t time);
 
+    /** Expire all the votes (and their dependencies) in the mempol wich are referring to
+     *  an epoch before the last finalized one.
+     *  @return the number of removed elements.
+     */
+    int ExpireVotes();
+
     /**
      * Calculate the ancestor and descendant count for the given transaction.
      * The counts include the transaction itself.
@@ -768,11 +784,19 @@ struct DisconnectedBlockTransactions {
         return memusage::MallocUsage(sizeof(CTransactionRef) + 6 * sizeof(void*)) * queuedTx.size() + cachedInnerUsage;
     }
 
+    const indexed_disconnected_transactions &GetQueuedTx() const {
+        return queuedTx;
+    }
+
     void addTransaction(const CTransactionRef& tx)
     {
         queuedTx.insert(tx);
         cachedInnerUsage += RecursiveDynamicUsage(tx);
     }
+
+    // Add entries for a block while reconstructing the topological ordering so
+    // they can be added back to the mempool simply.
+    void LoadFromBlockInTopologicalOrder(const std::vector<CTransactionRef> &vtx);
 
     // Remove entries based on txid_index, and update memory usage.
     void removeForBlock(const std::vector<CTransactionRef>& vtx)

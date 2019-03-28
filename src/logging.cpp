@@ -25,6 +25,10 @@ BCLog::Logger* const g_logger = new BCLog::Logger();
 
 bool fLogIPs = DEFAULT_LOGIPS;
 
+// Cannot use std::string here as mingw doesn't support thread_local variables with destructors
+// see also: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83562
+extern thread_local char g_thread_name[16];
+
 static int FileWriteStr(const std::string &str, FILE *fp)
 {
     return fwrite(str.data(), 1, str.size(), fp);
@@ -119,9 +123,41 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::COINDB, "coindb"},
     {BCLog::QT, "qt"},
     {BCLog::LEVELDB, "leveldb"},
+    {BCLog::VALIDATION, "validation"},
+    {BCLog::PROPOSING, "proposing"},
+    {BCLog::FINALIZATION, "finalization"},
+    {BCLog::SNAPSHOT, "snapshot"},
+    {BCLog::ADMIN, "admin"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };
+
+//! @see http://supertech.csail.mit.edu/papers/debruijn.pdf
+static std::array<std::string, 32> ComputeDeBrujinLabelTabel()
+{
+    std::array<std::string, 32> categories;
+    for (const auto &logCategory : LogCategories) {
+        if (logCategory.flag == static_cast<uint32_t>(BCLog::NONE) ||
+            logCategory.flag == static_cast<uint32_t>(BCLog::ALL)) {
+            continue;
+        }
+        const uint32_t vec = logCategory.flag;
+        const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+        categories[pos] = logCategory.category;
+    }
+    return categories;
+}
+
+static std::string GetLogCategoryLabel(const BCLog::LogFlags category)
+{
+    if (category == BCLog::NONE) {
+        return "";
+    }
+    static const std::array<std::string, 32> labels = ComputeDeBrujinLabelTabel();
+    const auto vec = static_cast<uint32_t>(category);
+    const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+    return labels[pos];
+}
 
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)
 {
@@ -168,25 +204,42 @@ std::vector<CLogCategoryActive> ListActiveLogCategories()
     return ret;
 }
 
-std::string BCLog::Logger::LogTimestampStr(const std::string &str)
+std::string BCLog::Logger::LogPrependHeader(const std::string &str, BCLog::LogFlags category)
 {
     std::string strStamped;
 
-    if (!m_log_timestamps)
+    if (!m_log_timestamps && !m_log_thread_names && !m_log_categories)
         return str;
 
     if (m_started_new_line) {
-        int64_t nTimeMicros = GetTimeMicros();
-        strStamped = FormatISO8601DateTime(nTimeMicros/1000000);
-        if (m_log_time_micros) {
-            strStamped.pop_back();
-            strStamped += strprintf(".%06dZ", nTimeMicros%1000000);
+        if (m_log_timestamps) {
+            int64_t nTimeMicros = GetTimeMicros();
+            strStamped = FormatISO8601DateTime(nTimeMicros/1000000);
+            if (m_log_time_micros) {
+                strStamped.pop_back();
+                strStamped += strprintf(".%06dZ", nTimeMicros%1000000);
+            }
+            strStamped += ' ';
         }
-        int64_t mocktime = GetMockTime();
-        if (mocktime) {
-            strStamped += " (mocktime: " + FormatISO8601DateTime(mocktime) + ")";
+
+        if (m_log_thread_names) {
+            strStamped += g_thread_name;
+            strStamped += ' ';
         }
-        strStamped += ' ' + str;
+
+        if (m_log_categories) {
+            strStamped += strprintf("[%12s] ", GetLogCategoryLabel(category));
+        }
+
+        if (m_log_timestamps) {
+            int64_t mocktime = GetMockTime();
+            if (mocktime) {
+                strStamped += " (mocktime: " + FormatISO8601DateTime(mocktime) + ")";
+            }
+            strStamped += ' ';
+        }
+
+        strStamped += str;
     } else
         strStamped = str;
 
@@ -198,9 +251,9 @@ std::string BCLog::Logger::LogTimestampStr(const std::string &str)
     return strStamped;
 }
 
-void BCLog::Logger::LogPrintStr(const std::string &str)
+void BCLog::Logger::LogPrintStr(const std::string &str, BCLog::LogFlags category)
 {
-    std::string strTimestamped = LogTimestampStr(str);
+    std::string strTimestamped = LogPrependHeader(str, category);
 
     if (m_print_to_console) {
         // print to console

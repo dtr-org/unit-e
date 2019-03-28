@@ -30,6 +30,7 @@ from .messages import (
 )
 from .script import (
     CScript,
+    CScriptNum,
     OP_0,
     OP_1,
     OP_CHECKMULTISIG,
@@ -39,6 +40,7 @@ from .script import (
     hash160,
 )
 from .util import assert_equal
+from .test_framework import PROPOSER_REWARD
 from io import BytesIO
 
 # From BIP141
@@ -55,33 +57,17 @@ def create_block(hashprev, coinbase, ntime=None):
     block.hashPrevBlock = hashprev
     block.nBits = 0x207fffff  # difficulty retargeting is disabled in REGTEST chainparams
     block.vtx.append(coinbase)
-    block.hashMerkleRoot = block.calc_merkle_root()
+    block.compute_merkle_trees()
     block.calc_sha256()
     return block
 
-def get_witness_script(witness_root, witness_nonce):
-    witness_commitment = uint256_from_str(hash256(ser_uint256(witness_root) + ser_uint256(witness_nonce)))
-    output_data = WITNESS_COMMITMENT_HEADER + ser_uint256(witness_commitment)
-    return CScript([OP_RETURN, output_data])
 
-def add_witness_commitment(block, nonce=0):
-    """Add a witness commitment to the block's coinbase transaction.
-
-    According to BIP141, blocks with witness rules active must commit to the
-    hash of all in-block transactions including witness."""
-    # First calculate the merkle root of the block's
-    # transactions, with witnesses.
-    witness_nonce = nonce
-    witness_root = block.calc_witness_merkle_root()
-    # witness_nonce should go to coinbase witness.
-    block.vtx[0].wit.vtxinwit = [CTxInWitness()]
-    block.vtx[0].wit.vtxinwit[0].scriptWitness.stack = [ser_uint256(witness_nonce)]
-
-    # witness commitment is the last OP_RETURN output in coinbase
-    block.vtx[0].vout.append(CTxOut(0, get_witness_script(witness_root, witness_nonce)))
-    block.vtx[0].rehash()
-    block.hashMerkleRoot = block.calc_merkle_root()
-    block.rehash()
+def sign_transaction(node, tx):
+    signresult = node.signrawtransaction(bytes_to_hex_str(tx.serialize()))
+    tx = CTransaction()
+    f = BytesIO(hex_str_to_bytes(signresult['hex']))
+    tx.deserialize(f)
+    return tx
 
 def serialize_script_num(value):
     r = bytearray(0)
@@ -98,25 +84,75 @@ def serialize_script_num(value):
         r[-1] |= 0x80
     return r
 
-def create_coinbase(height, pubkey=None):
+def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     """Create a coinbase transaction, assuming no miner fees.
 
-    If pubkey is passed in, the coinbase output will be a P2PK output;
-    otherwise an anyone-can-spend output."""
+    If pubkey is passed in, the coinbase outputs will be P2PK outputs;
+    otherwise anyone-can-spend outputs. The first output is the reward,
+    which is not spendable for COINBASE_MATURITY blocks."""
+    assert(n_pieces > 0)
+    stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
-    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff),
-                        ser_string(serialize_script_num(height)), 0xffffffff))
-    coinbaseoutput = CTxOut()
-    coinbaseoutput.nValue = 50 * UNIT
-    halvings = int(height / 150)  # regtest
-    coinbaseoutput.nValue >>= halvings
-    if (pubkey is not None):
-        coinbaseoutput.scriptPubKey = CScript([pubkey, OP_CHECKSIG])
+    coinbase.set_type(TxType.COINBASE)
+    script_sig = CScript([CScriptNum(height), ser_uint256(snapshot_hash)])
+    coinbase.vin.append(CTxIn(COutPoint(0, 0xffffffff), script_sig, 0xffffffff))
+    coinbase.vin.append(CTxIn(outpoint=stake_in, nSequence=0xffffffff))
+
+    output_script = None
+    if (pubkey != None):
+        output_script = CScript([pubkey, OP_CHECKSIG])
     else:
-        coinbaseoutput.scriptPubKey = CScript([OP_TRUE])
-    coinbase.vout = [coinbaseoutput]
-    coinbase.calc_sha256()
+        output_script = CScript([OP_TRUE])
+
+    rewardoutput = CTxOut(int(PROPOSER_REWARD * UNIT), output_script)
+
+    piece_value = int(stake['amount'] * UNIT / n_pieces)
+    outputs = [CTxOut(piece_value, output_script) for _ in range(n_pieces)]
+
+    # Add the remainder to the first stake output
+    # Do not add it to reward, as the reward output has to be exactly block reward + fees
+    outputs[0].nValue += int(stake['amount'] * UNIT) - piece_value * n_pieces
+
+    coinbase.vout = [ rewardoutput ] + outputs
+    coinbase.rehash()
     return coinbase
+
+
+# Convenience wrapper
+# Returns the signed coinbase
+def sign_coinbase(node, coinbase):
+    coinbase = sign_transaction(node, coinbase)
+    coinbase.rehash()
+    return coinbase
+
+
+def generate(node, n, preserve_utxos=[]):
+    """ Generate n blocks on the node, making sure not to touch the utxos specified.
+
+    :param preserve_utxos: an iterable of either dicts {'txid': ..., 'vout': ...}
+    """
+    preserve_utxos = set((x['txid'], x['vout']) for x in preserve_utxos)
+
+    snapshot_meta = get_tip_snapshot_meta(node)
+    height = node.getblockcount()
+    tip = int(node.getbestblockhash(), 16)
+    block_time = node.getblock(hex(tip))['time'] + 1
+    txouts = []
+
+    for _ in range(n):
+        if not txouts:
+            txouts = [x for x in node.listunspent()
+                      if (x['txid'], x['vout']) not in preserve_utxos]
+        stake = txouts.pop()
+        coinbase = sign_coinbase(node, create_coinbase(height, stake, snapshot_meta.hash))
+        block = create_block(tip, coinbase, block_time)
+        snapshot_meta = update_snapshot_with_tx(node, snapshot_meta.data, 0, height + 1, coinbase)
+        block.solve()
+        node.p2p.send_message(msg_block(block))
+        tip = block.sha256
+        block_time += 1
+        height += 1
+
 
 def create_tx_with_script(prevtx, n, script_sig=b"", *, amount, script_pub_key=CScript()):
     """Return one-input, one-output transaction object
@@ -217,3 +253,52 @@ def send_to_witness(use_p2wsh, node, utxo, pubkey, encode_p2sh, amount, sign=Tru
             tx_to_witness = ToHex(tx)
 
     return node.sendrawtransaction(tx_to_witness)
+
+
+class SnapshotMeta:
+    def __init__(self, res):
+        self.hash = uint256_from_str(hex_str_to_bytes(res['hash']))
+        self.data = res['data']
+
+
+def get_tip_snapshot_meta(node):
+    return SnapshotMeta(node.gettipsnapshot())
+
+
+def calc_snapshot_hash(node, snapshot_data, stake_modifier, height, inputs, outputs):
+    chain_work = 2 + 2*height
+    res = node.calcsnapshothash(
+        bytes_to_hex_str(ser_vector(inputs)),
+        bytes_to_hex_str(ser_vector(outputs)),
+        bytes_to_hex_str(ser_uint256(stake_modifier)),
+        bytes_to_hex_str(ser_uint256(chain_work)),
+        snapshot_data
+    )
+    return SnapshotMeta(res)
+
+
+def update_snapshot_with_tx(node, snapshot_data, stake_modifier, height, tx):
+    """
+    Returns updated snapshot for a single tx (if need arises, change it to a list of txses)
+    """
+
+    is_coinbase = tx.get_type() == TxType.COINBASE.name
+    vin_start = 1 if is_coinbase else 0
+
+    node_height = node.getblockcount()
+
+    inputs = []
+    outputs = []
+
+    for i in range(vin_start, len(tx.vin)):
+        tx_in = tx.vin[i]
+        prevout = node.gettxout(hex(tx_in.prevout.hash), tx_in.prevout.n)
+        ctx_out = CTxOut(int(prevout['value']*UNIT), CScript(hex_str_to_bytes(prevout['scriptPubKey']['hex'])))
+        utxo = UTXO(node_height + 1 - prevout['confirmations'], prevout['coinbase'], tx_in.prevout, ctx_out)
+        inputs.append(utxo)
+
+    for i, tx_out in enumerate(tx.vout):
+        utxo = UTXO(height, is_coinbase, COutPoint(tx.sha256, i), tx_out)
+        outputs.append(utxo)
+
+    return calc_snapshot_hash(node, snapshot_data, stake_modifier, height, inputs, outputs)

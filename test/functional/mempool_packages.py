@@ -48,8 +48,9 @@ class MempoolPackagesTest(UnitETestFramework):
         # MAX_ANCESTORS transactions off a confirmed tx should be fine
         chain = []
         for i in range(MAX_ANCESTORS):
-            (txid, sent_value) = self.chain_transaction(self.nodes[0], txid, 0, value, fee, 1)
+            (txid, sent_value) = self.chain_transaction(self.nodes[0], txid, vout, value, fee, 1)
             value = sent_value
+            vout = 0
             chain.append(txid)
 
         # Check mempool has MAX_ANCESTORS transactions in it, and descendant and ancestor

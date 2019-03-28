@@ -20,6 +20,9 @@ class PrioritiseTransactionTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         # Test `prioritisetransaction` required parameters
         assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction)
         assert_raises_rpc_error(-1, "prioritisetransaction", self.nodes[0].prioritisetransaction, '')
@@ -119,7 +122,7 @@ class PrioritiseTransactionTest(UnitETestFramework):
         inputs = []
         outputs = {}
         inputs.append({"txid" : utxo["txid"], "vout" : utxo["vout"]})
-        outputs[self.nodes[0].getnewaddress()] = utxo["amount"]
+        outputs[self.nodes[0].getnewaddress("", "bech32")] = utxo["amount"]
         raw_tx = self.nodes[0].createrawtransaction(inputs, outputs)
         tx_hex = self.nodes[0].signrawtransactionwithwallet(raw_tx)["hex"]
         tx_id = self.nodes[0].decoderawtransaction(tx_hex)["txid"]
@@ -137,16 +140,10 @@ class PrioritiseTransactionTest(UnitETestFramework):
         assert_equal(self.nodes[0].sendrawtransaction(tx_hex), tx_id)
         assert(tx_id in self.nodes[0].getrawmempool())
 
-        # Test that calling prioritisetransaction is sufficient to trigger
-        # getblocktemplate to (eventually) return a new block.
-        mock_time = int(time.time())
-        self.nodes[0].setmocktime(mock_time)
-        template = self.nodes[0].getblocktemplate()
-        self.nodes[0].prioritisetransaction(txid=tx_id, fee_delta=-int(self.relayfee*UNIT))
-        self.nodes[0].setmocktime(mock_time+10)
-        new_template = self.nodes[0].getblocktemplate()
-
-        assert(template != new_template)
+        self.log.info("Assert that prioritised free transaction is included in a block")
+        blockhash = self.nodes[0].generate(1)
+        block = self.nodes[0].getblock(blockhash[0])
+        assert(tx_id in block['tx'])
 
 if __name__ == '__main__':
     PrioritiseTransactionTest().main()

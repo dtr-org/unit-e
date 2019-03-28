@@ -61,20 +61,37 @@ BASE_SCRIPTS = [
     'wallet_hd.py',
     'wallet_backup.py',
     # vv Tests less than 5m vv
+    'feature_no_esperanza_tx_relay_delay.py',
+    'feature_maxuploadtarget.py',
+    'mempool_packages.py',
     'feature_block.py',
     'rpc_fundrawtransaction.py',
     'p2p_compactblocks.py',
     'feature_segwit.py',
+    'feature_fee_estimation.py',
+    'esperanza_withdraw.py',
     # vv Tests less than 2m vv
+    'feature_bip68_sequence.py',
     'wallet_basic.py',
     'wallet_labels.py',
     'p2p_segwit.py',
+    'p2p_embargoman_star.py',
+    'esperanza_admin_full_cycle.py',
+    'p2p_timeouts.py',
     'wallet_dump.py',
+    'esperanza_vote.py',
+    'p2p_embargoman_probing.py',
     'wallet_listtransactions.py',
+    'proposer_balance.py',
+    'p2p_embargoman_loop.py',
     # vv Tests less than 60s vv
+    'feature_bip9_softforks.py',
+    'p2p_feefilter.py',
     'p2p_sendheaders.py',
     'wallet_zapwallettxes.py',
+    'esperanza_expired_vote_conflict.py',
     'wallet_importmulti.py',
+    'wallet_bumpfee.py',
     'mempool_limit.py',
     'rpc_txoutproof.py',
     'wallet_listreceivedby.py',
@@ -84,9 +101,12 @@ BASE_SCRIPTS = [
     'wallet_address_types.py',
     'feature_reindex.py',
     # vv Tests less than 30s vv
+    'feature_ltor.py',
+    'feature_assumevalid.py',
     'wallet_keypool_topup.py',
     'interface_zmq.py',
     'interface_unite_cli.py',
+    'esperanza_slash.py',
     'mempool_resurrect.py',
     'wallet_txn_doublespend.py --mineblock',
     'wallet_txn_clone.py',
@@ -114,47 +134,82 @@ BASE_SCRIPTS = [
     'rpc_net.py',
     'wallet_keypool.py',
     'p2p_mempool.py',
+    'esperanza_deposit.py',
+    'esperanza_finalizationstate.py',
+    'esperanza_logout.py',
     'mining_prioritisetransaction.py',
     'p2p_invalid_locator.py',
     'p2p_invalid_block.py',
     'p2p_invalid_tx.py',
     'rpc_createmultisig.py',
+    'p2p_invalid_stake.py',
     'feature_versionbits_warning.py',
     'rpc_preciousblock.py',
     'wallet_importprunedfunds.py',
     'rpc_zmq.py',
     'rpc_signmessage.py',
     'wallet_balance.py',
+    'feature_spend_genesis.py',
+    'rpc_filtertransactions.py',
     'feature_nulldummy.py',
     'mempool_accept.py',
+    'rpc_sendtypeto.py',
     'wallet_import_rescan.py',
     'rpc_bind.py --ipv4',
     'rpc_bind.py --ipv6',
     'rpc_bind.py --nonloopback',
-    'mining_basic.py',
     'wallet_bumpfee.py',
     'rpc_named_arguments.py',
+    'rpc_addressbook.py',
     'wallet_listsinceblock.py',
     'p2p_leak.py',
     'wallet_encryption.py',
     'feature_dersig.py',
     'feature_cltv.py',
     'rpc_uptime.py',
+    'wallet_txn_doublespend.py',
+    'wallet_txn_clone.py --mineblock',
+    'feature_notifications.py',
+    'feature_remote_staking.py',
+    'rpc_invalidateblock.py',
+    'feature_rbf.py',
     'wallet_resendwallettransactions.py',
     'wallet_fallbackfee.py',
+    'wallet_mnemonicinfo.py',
+    'wallet_mnemonicnew.py',
+    'wallet_importmasterkey.py',
+    'esperanza_admin_validation.py',
+    'p2p_commits.py',
+    'proposer_multiwallet.py',
+    'proposer_stakeable_balance.py',
+    'proposer_settings.py',
     'feature_minchainwork.py',
     'rpc_getblockstats.py',
     'p2p_fingerprint.py',
     'feature_uacomment.py',
+    'rpc_runstringcommand.py',
     'p2p_unrequested_blocks.py',
     'feature_includeconf.py',
     'rpc_scantxoutset.py',
     'feature_logging.py',
     'p2p_node_network_limited.py',
     'feature_blocksdir.py',
+    'rpc_getchainparams.py',
     'feature_config_args.py',
     'rpc_help.py',
     'feature_help.py',
+    'feature_help.py',
+    'rpc_calcsnapshothash.py',
+    'rpc_getblocksnapshot.py',
+    'rpc_validator.py',
+    'rpc_finalization.py',
+    'feature_snapshot.py',
+    'p2p_snapshot.py',
+    'feature_snapshot_creation.py',
+    'feature_fork_choice_finalization.py',
+    'feature_fork_choice_parallel_justifications.py',
+    'feature_fork_choice_forked_finalize_epoch.py',
+    'example_test.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
 ]
@@ -163,30 +218,27 @@ EXTENDED_SCRIPTS = [
     # These tests are not run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
     'feature_pruning.py',
-    # vv Tests less than 20m vv
-    'feature_fee_estimation.py',
-    # vv Tests less than 5m vv
-    'feature_maxuploadtarget.py',
-    'mempool_packages.py',
     'feature_dbcrash.py',
+    # vv Tests less than 20m vv
+    # vv Tests less than 5m vv
     # vv Tests less than 2m vv
-    'feature_bip68_sequence.py',
-    'mining_getblocktemplate_longpoll.py',
-    'p2p_timeouts.py',
     # vv Tests less than 60s vv
     'p2p_feefilter.py',
+    'rpc_bind.py',
     # vv Tests less than 30s vv
-    'feature_assumevalid.py',
-    'example_test.py',
-    'wallet_txn_doublespend.py',
-    'wallet_txn_clone.py --mineblock',
-    'feature_notifications.py',
-    'rpc_invalidateblock.py',
-    'feature_rbf.py',
 ]
 
+USBDEVICE_SCRIPTS = [
+    # These tests are enabled or disabled based on the ENABLE_USBDEVICE
+    # flag in configure.ini
+    'wallet_hwquery.py',
+    'wallet_hwsign.py',
+]
+
+DISABLED_SCRIPTS = []
+
 # Place EXTENDED_SCRIPTS first since it has the 3 longest running tests
-ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS
+ALL_SCRIPTS = EXTENDED_SCRIPTS + BASE_SCRIPTS + DISABLED_SCRIPTS + USBDEVICE_SCRIPTS
 
 NON_SCRIPTS = [
     # These are python files that live in the functional tests directory, but are not test scripts.
@@ -238,6 +290,7 @@ def main():
     logging.debug("Temporary test directory at %s" % tmpdir)
 
     enable_united = config["components"].getboolean("ENABLE_UNITED")
+    enable_usbdevice = config["components"].getboolean("ENABLE_USBDEVICE")
 
     if config["environment"]["EXEEXT"] == ".exe" and not args.force:
         # https://github.com/unite/unite/commit/d52802551752140cf41f0d9a225a43e84404d3e9
@@ -267,6 +320,8 @@ def main():
     else:
         # Run base tests only
         test_list += BASE_SCRIPTS
+        if enable_usbdevice:
+            test_list += USBDEVICE_SCRIPTS
 
     # Remove the test cases that the user has explicitly asked to exclude.
     if args.exclude:
@@ -440,6 +495,8 @@ class TestHandler:
             log_stderr = tempfile.SpooledTemporaryFile(max_size=2**16)
             test_argv = test.split()
             testdir = "{}/{}_{}".format(self.tmpdir, re.sub(".py$", "", test_argv[0]), portseed)
+            test_file_path = self.tests_dir + test_argv[0]
+            assert os.access(test_file_path, os.X_OK), test_file_path + " is not executable"
             tmpdir_arg = ["--tmpdir={}".format(testdir)]
             self.jobs.append((test,
                               time.time(),
@@ -523,7 +580,7 @@ class TestResult():
 def check_script_prefixes():
     """Check that test scripts start with one of the allowed name prefixes."""
 
-    good_prefixes_re = re.compile("(example|feature|interface|mempool|mining|p2p|rpc|wallet)_")
+    good_prefixes_re = re.compile("(example|esperanza|finalization|feature|interface|mempool|mining|p2p|proposer|rpc|wallet)_")
     bad_script_names = [script for script in ALL_SCRIPTS if good_prefixes_re.match(script) is None]
 
     if bad_script_names:

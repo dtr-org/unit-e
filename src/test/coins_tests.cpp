@@ -52,7 +52,7 @@ public:
 
     uint256 GetBestBlock() const override { return hashBestBlock_; }
 
-    bool BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock) override
+    bool BatchWrite(CCoinsMap& mapCoins, const uint256& hashBlock, const snapshot::SnapshotHash &snapshotHash) override
     {
         for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end(); ) {
             if (it->second.flags & CCoinsCacheEntry::DIRTY) {
@@ -68,6 +68,12 @@ public:
         if (!hashBlock.IsNull())
             hashBestBlock_ = hashBlock;
         return true;
+    }
+
+    bool clear_coins_called = false;
+
+    void ClearCoins() override {
+      clear_coins_called = true;
     }
 };
 
@@ -95,7 +101,7 @@ public:
 
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(coins_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(coins_tests, ReducedTestingSetup)
 
 static const unsigned int NUM_SIMULATION_ITERATIONS = 40000;
 
@@ -299,6 +305,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
         // 19/20 txs add a new transaction
         if (randiter % 20 < 19) {
             CMutableTransaction tx;
+            tx.SetType(TxType::REGULAR);
             tx.vin.resize(1);
             tx.vout.resize(1);
             tx.vout[0].nValue = i; //Keep txs unique unless intended to duplicate
@@ -308,6 +315,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
             // 2/20 times create a new coinbase
             if (randiter % 20 < 2 || coinbase_coins.size() < 10) {
+                tx.SetType(TxType::COINBASE);
                 // 1/10 of those times create a duplicate coinbase
                 if (InsecureRandRange(10) == 0 && coinbase_coins.size()) {
                     auto utxod = FindRandomFrom(coinbase_coins);
@@ -588,7 +596,7 @@ void WriteCoinsViewEntry(CCoinsView& view, CAmount value, char flags)
 {
     CCoinsMap map;
     InsertCoinsMapEntry(map, value, flags);
-    view.BatchWrite(map, {});
+    view.BatchWrite(map, {}, {});
 }
 
 class SingleEntryCacheTest
@@ -853,6 +861,14 @@ BOOST_AUTO_TEST_CASE(ccoins_write)
             for (char parent_flags : parent_value == ABSENT ? ABSENT_FLAGS : FLAGS)
                 for (char child_flags : child_value == ABSENT ? ABSENT_FLAGS : CLEAN_FLAGS)
                     CheckWriteCoins(parent_value, child_value, parent_value, parent_flags, child_flags, parent_flags);
+}
+
+BOOST_AUTO_TEST_CASE(ccoins_clear) {
+  CCoinsViewTest base;
+  CCoinsViewCache cache1(&base);
+  CCoinsViewCache cache2(&cache1);
+  cache2.ClearCoins();
+  BOOST_CHECK(base.clear_coins_called);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

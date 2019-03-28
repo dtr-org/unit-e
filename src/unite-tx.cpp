@@ -6,6 +6,9 @@
 #include <config/unite-config.h>
 #endif
 
+#include <base58.h>
+#include <blockchain/blockchain_behavior.h>
+#include <chainparams.h>
 #include <clientversion.h>
 #include <coins.h>
 #include <consensus/consensus.h>
@@ -88,7 +91,7 @@ static int AppInitRawTx(int argc, char* argv[])
 
     // Check for -testnet or -regtest parameter (Params() calls are only valid after this clause)
     try {
-        SelectParams(gArgs.GetChainName());
+        SelectParams(blockchain::Behavior::MakeGlobal(&gArgs), gArgs.GetChainName());
     } catch (const std::exception& e) {
         fprintf(stderr, "Error: %s\n", e.what());
         return EXIT_FAILURE;
@@ -196,7 +199,7 @@ static void MutateTxVersion(CMutableTransaction& tx, const std::string& cmdVal)
     if (!ParseInt64(cmdVal, &newVersion) || newVersion < 1 || newVersion > CTransaction::MAX_STANDARD_VERSION)
         throw std::runtime_error("Invalid TX version requested: '" + cmdVal + "'");
 
-    tx.nVersion = (int) newVersion;
+    tx.SetVersion(static_cast<uint16_t>(newVersion));
 }
 
 static void MutateTxLocktime(CMutableTransaction& tx, const std::string& cmdVal)

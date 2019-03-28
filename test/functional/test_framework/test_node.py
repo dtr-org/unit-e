@@ -26,6 +26,7 @@ from .util import (
     rpc_url,
     wait_until,
     p2p_port,
+    assert_greater_than_or_equal,
 )
 
 # For Python 3.4 compatibility
@@ -185,7 +186,9 @@ class TestNode():
                 if e.errno != errno.ECONNREFUSED:  # Port not yet open?
                     raise  # unknown IO error
             except JSONRPCException as e:  # Initialization phase
-                if e.error['code'] != -28:  # RPC in warmup?
+                # -28 RPC in warmup
+                # -342 Service unavailable, RPC server started but is shutting down due to error
+                if e.error['code'] != -28 and e.error['code'] != -342:
                     raise  # unknown JSON RPC exception
             except ValueError as e:  # cookie file not found and no rpcuser or rpcassword. united still starting
                 if "No RPC credentials" not in str(e):
@@ -201,13 +204,37 @@ class TestNode():
             wallet_path = "wallet/{}".format(urllib.parse.quote(wallet_name))
             return self.rpc / wallet_path
 
-    def stop_node(self, expected_stderr=''):
+    def drain_main_signal_callbacks_pending(self):
+        """Waits until the node processes internal signals and becomes available for new p2p messages."""
+        queue_size = self.getmainsignalscallbackspending()
+
+        # if node has in the queue more than 10 pending callbacks,
+        # it stops accepting new p2p messages until it drains the queue.
+        # see CChainState::ActivateBestChain
+        while queue_size > 10:
+            # In normal scenario we don't end up in this loop but if there is
+            # a large re-organization the queue size can jump to >1K
+            time.sleep(1)
+            timeout = time.time() + 20
+            left = queue_size
+            while time.time() < timeout:
+                left = self.getmainsignalscallbackspending()
+                if left != queue_size:
+                    break
+                time.sleep(0.5)
+            if left == queue_size:
+                assert_greater_than_or_equal(10, left)  # print message
+            else:
+                queue_size = left
+
+    def stop_node(self, expected_stderr='', wait=0):
         """Stop the node."""
         if not self.running:
             return
         self.log.debug("Stopping node")
         try:
-            self.stop()
+            self.drain_main_signal_callbacks_pending()
+            self.stop(wait=wait)
         except http.client.CannotSendRequest:
             self.log.exception("Unable to stop node.")
 

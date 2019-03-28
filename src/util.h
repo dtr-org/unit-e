@@ -17,6 +17,7 @@
 #include <compat.h>
 #include <fs.h>
 #include <logging.h>
+#include <uint256.h>
 #include <sync.h>
 #include <tinyformat.h>
 #include <utiltime.h>
@@ -25,9 +26,11 @@
 #include <atomic>
 #include <exception>
 #include <map>
+#include <memory>
 #include <set>
 #include <stdint.h>
 #include <string>
+#include <type_traits>
 #include <unordered_set>
 #include <vector>
 
@@ -68,6 +71,13 @@ bool error(const char* fmt, const Args&... args)
 {
     LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));
     return false;
+}
+
+template<int errcode, typename... Args>
+int error(const char *fmt, const Args&... args)
+{
+    LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));
+    return errcode;
 }
 
 void PrintExceptionContinue(const std::exception *pex, const char* pszThread);
@@ -132,6 +142,7 @@ enum class OptionsCategory {
     GUI,
     COMMANDS,
     REGISTER_COMMANDS,
+    STAKING,
 
     HIDDEN // Always the last option to avoid printing these in the help
 };
@@ -314,6 +325,7 @@ std::string HelpMessageOpt(const std::string& option, const std::string& message
  */
 int GetNumCores();
 
+void SetThreadDebugName(const char* name);
 void RenameThread(const char* name);
 
 /**
@@ -355,6 +367,8 @@ std::string CopyrightHolders(const std::string& strPrefix);
  */
 int ScheduleBatchPriority(void);
 
+int64_t StrToEpoch(const std::string &input, bool fillMax = false);
+
 namespace util {
 
 //! Simplification of std insertion
@@ -365,6 +379,95 @@ inline void insert(Tdst& dst, const Tsrc& src) {
 template <typename TsetT, typename Tsrc>
 inline void insert(std::set<TsetT>& dst, const Tsrc& src) {
     dst.insert(src.begin(), src.end());
+}
+
+template <typename T>
+std::string stringify(const T &v);
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<std::string,
+                     decltype((static_cast<typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->ToString())>::value,
+        T>::type &v) {
+    return v.ToString();
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<std::string,
+                     decltype(std::to_string(*static_cast<typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr)))>::value,
+        T>::type &v) {
+    return std::to_string(v);
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<std::string,
+                     typename std::remove_reference<typename std::remove_const<T>::type>::type>::value,
+        T>::type &v) {
+    return v;
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     std::pair<decltype((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->first),
+                               decltype((static_cast<const typename std::remove_reference<typename std::remove_const<T>::type>::type *>(nullptr))->second)>>::value,
+        T>::type &v) {
+    return tinyformat::format("(%s, %s)",
+                              stringify<typename std::remove_reference<typename std::remove_const<decltype(v.first)>::type>::type>(v.first),
+                              stringify<typename std::remove_reference<typename std::remove_const<decltype(v.second)>::type>::type>(v.second));
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     typename std::shared_ptr<const typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>>::value,
+        T>::type &v) {
+    return stringify<typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>(*v);
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     typename std::unique_ptr<const typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>>::value,
+        T>::type &v) {
+    return stringify<typename std::remove_reference<typename std::remove_const<T>::type>::type::element_type>(*v);
+}
+
+template <typename T>
+std::string stringify(
+    const typename std::enable_if<
+        std::is_same<typename std::remove_reference<typename std::remove_const<T>::type>::type,
+                     typename std::add_pointer<const typename std::remove_pointer<typename std::remove_reference<typename std::remove_const<T>::type>::type>::type>::type>::value,
+        T>::type &v) {
+    return stringify<typename std::remove_pointer<typename std::remove_reference<typename std::remove_const<T>::type>::type>::type>(*v);
+}
+
+template <typename T>
+std::string stringify(const T &v) {
+    std::string res = "[";
+    auto it = v.begin();
+    if (it != v.end()) {
+        res += stringify<typename std::remove_reference<typename std::remove_const<decltype(*it)>::type>::type>(*it);
+        for (++it; it != v.end(); ++it) {
+            res += ", ";
+            res += stringify<typename std::remove_reference<typename std::remove_const<decltype(*it)>::type>::type>(*it);
+        }
+    }
+    res += "]";
+    return res;
+}
+
+template <typename T>
+std::string to_string(const T &v) {
+    return stringify<typename std::remove_reference<typename std::remove_const<T>::type>::type>(v);
 }
 
 } // namespace util

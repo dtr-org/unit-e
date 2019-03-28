@@ -16,16 +16,16 @@
 
 #include <boost/test/unit_test.hpp>
 
-static const std::string strSecret1 = "5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHfmFiWtmAbrj";
-static const std::string strSecret2 = "5KC4ejrDjv152FGwP386VD1i2NYc5KkfSMyv1nGy1VGDxGHqVY3";
-static const std::string strSecret1C = "Kwr371tjA9u2rFSMZjTNun2PXXP3WPZu2afRHTcta6KxEUdm1vEw";
-static const std::string strSecret2C = "L3Hq7a8FEQwJkW1M2GNKDW28546Vp5miewcCzSqUD9kCAXrJdS3g";
-static const std::string addr1 = "1QFqqMUD55ZV3PJEJZtaKCsQmjLT6JkjvJ";
-static const std::string addr2 = "1F5y5E5FMc5YzdJtB9hLaUe43GDxEKXENJ";
-static const std::string addr1C = "1NoJrossxPBKfCHuJXT4HadJrXRE9Fxiqs";
-static const std::string addr2C = "1CRj2HyM1CXWzHAXLQtiGLyggNT9WQqsDs";
+static const std::string strSecret1 = "91j9WfVTBvbxWcKigECfohDnoPartAfedckheMdo1VzmHsFkPkQ";
+static const std::string strSecret2 = "92xhEUfmL95CzJnE1P21MoZfg2uKEVHrnJqs6QdUME1GjDwGXKz";
+static const std::string strSecret1C = "cND2ZvtabDbJ1gucx9GWH6XT9kgTAqfb6cotPt5Q5CyxVDhid2EN";
+static const std::string strSecret2C = "cTepaV86fUdZuwUcQgBSapXBhHPuUXsQiykg6sHyiGQCRH13XiUS";
+static const std::string addr1 = "n4mo8QZBt6zjpVmr28rx985jdiw9zwfcvS";
+static const std::string addr2 = "mubvNHAEAdWomjnVtifiQPrNuFpf6cT8ie";
+static const std::string addr1C = "n3KG9rxrmQcaSJmX26RS7VqdiX1w3iSB5t";
+static const std::string addr2C = "mrwgKM4KpDxmmPe93ys66GC1YN3rSvrapB";
 
-static const std::string strAddressBad = "1HV9Lc3sNHZxwj4Zk6fB38tEmBryq2cBiF";
+static const std::string strAddressBad = "mx16df8rBK1DiqYBTfdYs46ZdBTgk78hxD";
 
 
 BOOST_FIXTURE_TEST_SUITE(key_tests, BasicTestingSetup)

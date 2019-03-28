@@ -12,6 +12,9 @@
 #include <tinyformat.h>
 #include <uint256.h>
 
+#include <boost/optional.hpp>
+#include <tinyformat.h>
+
 #include <vector>
 
 /**
@@ -140,7 +143,7 @@ enum BlockStatus: uint32_t {
      */
     BLOCK_VALID_TRANSACTIONS =    3,
 
-    //! Outputs do not overspend inputs, no double spends, coinbase output ok, no immature coinbase spends, BIP30.
+    //! Outputs do not overspend inputs, no double spends, coinbase output ok, no immature coinbase spends.
     //! Implies all parents are also at least CHAIN.
     BLOCK_VALID_CHAIN        =    4,
 
@@ -194,6 +197,11 @@ public:
     //! (memory only) Total amount of work (expected number of hashes) in the chain up to and including this block
     arith_uint256 nChainWork;
 
+    //! \brief The amount of stake that was used to propose this block.
+    //!
+    //! This value is crucial for kernel and difficulty computation.
+    CAmount stake_amount;
+
     //! Number of transactions in this block.
     //! Note: in a potential headers-first mode, this number cannot be relied upon
     unsigned int nTx;
@@ -209,8 +217,9 @@ public:
     //! block header
     int32_t nVersion;
     uint256 hashMerkleRoot;
-    uint32_t nTime;
-    uint32_t nBits;
+    uint256 hash_witness_merkle_root;
+    blockchain::Time nTime;
+    blockchain::Difficulty nBits;
     uint32_t nNonce;
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
@@ -218,6 +227,19 @@ public:
 
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
+
+    //! Proof-of-Stake: the stake modifier is a hash of some entropy bits to make pre-computing blocks more difficult
+    uint256 stake_modifier;
+
+    //! Vector of commits. If it's not set, node hasn't received commits for this block header
+    boost::optional<std::vector<CTransactionRef>> commits;
+
+    //! last justified epoch counting from this block index
+    boost::optional<uint32_t> last_justified_epoch;
+
+    //! keeps tracking if current CBlockIndex tries to fork
+    //! the chainActive before finalization
+    bool forking_before_active_finalization;
 
     void SetNull()
     {
@@ -229,6 +251,7 @@ public:
         nDataPos = 0;
         nUndoPos = 0;
         nChainWork = arith_uint256();
+        stake_amount = 0;
         nTx = 0;
         nChainTx = 0;
         nStatus = 0;
@@ -236,10 +259,15 @@ public:
         nTimeMax = 0;
 
         nVersion       = 0;
-        hashMerkleRoot = uint256();
+        hashMerkleRoot = uint256::zero;
+        hash_witness_merkle_root = uint256::zero;
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
+        last_justified_epoch = boost::none;
+        forking_before_active_finalization = false;
+
+        ResetCommits();
     }
 
     CBlockIndex()
@@ -253,6 +281,7 @@ public:
 
         nVersion       = block.nVersion;
         hashMerkleRoot = block.hashMerkleRoot;
+        hash_witness_merkle_root = block.hash_witness_merkle_root;
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
@@ -283,6 +312,7 @@ public:
         if (pprev)
             block.hashPrevBlock = pprev->GetBlockHash();
         block.hashMerkleRoot = hashMerkleRoot;
+        block.hash_witness_merkle_root = hash_witness_merkle_root;
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
@@ -357,6 +387,14 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
+
+    void ResetCommits() {
+        commits.reset();
+    }
+
+    void ResetCommits(const std::vector<CTransactionRef> &_commits) {
+        commits = _commits;
+    }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);
@@ -391,6 +429,10 @@ public:
         READWRITE(VARINT(nHeight, VarIntMode::NONNEGATIVE_SIGNED));
         READWRITE(VARINT(nStatus));
         READWRITE(VARINT(nTx));
+
+        READWRITE(stake_modifier);
+        READWRITE(VARINT(stake_amount, VarIntMode::NONNEGATIVE_SIGNED));
+
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
             READWRITE(VARINT(nFile, VarIntMode::NONNEGATIVE_SIGNED));
         if (nStatus & BLOCK_HAVE_DATA)
@@ -402,9 +444,17 @@ public:
         READWRITE(this->nVersion);
         READWRITE(hashPrev);
         READWRITE(hashMerkleRoot);
+        READWRITE(hash_witness_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
+
+        // commits
+        READWRITE(commits);
+
+        // support fork choice rules
+        READWRITE(last_justified_epoch);
+        READWRITE(forking_before_active_finalization);
     }
 
     uint256 GetBlockHash() const
@@ -413,6 +463,7 @@ public:
         block.nVersion        = nVersion;
         block.hashPrevBlock   = hashPrev;
         block.hashMerkleRoot  = hashMerkleRoot;
+        block.hash_witness_merkle_root = hash_witness_merkle_root;
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
@@ -452,6 +503,11 @@ public:
         if (nHeight < 0 || nHeight >= (int)vChain.size())
             return nullptr;
         return vChain[nHeight];
+    }
+    // UNIT-E: blockchain::Height compatible operator[].
+    //         In a bright future we will get rid of operator[](int).
+    CBlockIndex *operator[](const blockchain::Height h) const {
+        return (*this)[static_cast<int>(h)];
     }
 
     /** Compare two chains efficiently. */

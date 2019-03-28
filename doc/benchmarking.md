@@ -6,7 +6,7 @@ for cryptographic algorithms (e.g. SHA1, SHA256, SHA512, RIPEMD160), as well as 
 
 Running
 ---------------------
-After compiling unite-core, the benchmarks can be run with:
+After compiling unit-e, the benchmarks can be run with:
 
     src/bench/bench_unite
 

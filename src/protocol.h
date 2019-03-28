@@ -238,6 +238,40 @@ extern const char *GETBLOCKTXN;
  * @since protocol version 70014 as described by BIP 152
  */
 extern const char *BLOCKTXN;
+
+/**
+ * Contains the snapshot::GetSnapshotHeader message.
+ * Peer should respond with the "snaphead" message.
+ */
+extern const char *GETSNAPSHOTHEADER;
+
+/**
+ * Contains the snapshot::SnapshotHeader message.
+ * Sent in response to a "getsnaphead" message.
+ */
+extern const char *SNAPSHOTHEADER;
+
+/**
+ * Contains the snapshot::GetSnapshot message.
+ * Peer should respond with the "snapshot" message.
+ */
+extern const char *GETSNAPSHOT;
+
+/**
+ * Contains the snapshot::Snapshot object
+ * Sent in response to a "getsnapshot" message.
+ */
+extern const char *SNAPSHOT;
+/**
+ * Contains a getcommits request as described in ADR-21.
+ * Peer should respond with the "commits" message.
+ */
+extern const char *GETCOMMITS;
+/**
+ * Contains commits message as described in ADR-21.
+ * Sent in respose to a "getcommits" message.
+ */
+extern const char *COMMITS;
 };
 
 /* Get a vector of all valid message types (see above) */
@@ -268,6 +302,11 @@ enum ServiceFlags : uint64_t {
     // serving the last 288 (2 day) blocks
     // See BIP159 for details on how this is implemented.
     NODE_NETWORK_LIMITED = (1 << 10),
+
+    // NODE_SNAPSHOT means that node generates periodically snapshots
+    // and is capable of responding to the getsnapshot protocol request.
+    // See UIP-11 for details
+    NODE_SNAPSHOT = (1 << 15),
 
     // Bits 24-31 are reserved for temporary experiments. Just pick a bit that
     // isn't getting used, or one not being used much, and notify the

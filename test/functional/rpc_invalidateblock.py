@@ -13,6 +13,7 @@ class InvalidateTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
+        self.extra_args = [[DISABLE_FINALIZATION]] * 3
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -21,6 +22,9 @@ class InvalidateTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
+
+        self.setup_stake_coins(*self.nodes)
+
         self.log.info("Make sure we repopulate setBlockIndexCandidates after InvalidateBlock:")
         self.log.info("Mine 4 blocks on Node 0")
         self.nodes[0].generate(4)

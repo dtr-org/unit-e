@@ -15,6 +15,7 @@ msg_block, msg_tx, msg_headers, etc.:
 
 ser_*, deser_*: functions that handle serialization/deserialization."""
 from codecs import encode
+from enum import Enum
 import copy
 import hashlib
 from io import BytesIO
@@ -44,6 +45,7 @@ NODE_NETWORK = (1 << 0)
 NODE_BLOOM = (1 << 2)
 NODE_WITNESS = (1 << 3)
 NODE_NETWORK_LIMITED = (1 << 10)
+NODE_SNAPSHOT = (1 << 15)
 
 MSG_TX = 1
 MSG_BLOCK = 2
@@ -139,6 +141,25 @@ def ser_vector(l, ser_function_name=None):
             r += getattr(i, ser_function_name)()
         else:
             r += i.serialize()
+    return r
+
+
+def deser_uint32_map(f, klass):
+    m = dict()
+    size = deser_compact_size(f)
+    for _ in range(size):
+        k = struct.unpack('<I', f.read(4))[0]
+        o = klass()
+        o.deserialize(f)
+        m[k] = o
+    return m
+
+
+def ser_uint32_map(d):
+    r = ser_compact_size(len(d))
+    for i in d:
+        r += struct.pack('<I', i)
+        r += d[i].serialize()
     return r
 
 
@@ -279,6 +300,9 @@ class COutPoint():
         r += struct.pack("<I", self.n)
         return r
 
+    def is_null(self):
+        return self.hash == 0
+
     def __repr__(self):
         return "COutPoint(hash=%064x n=%i)" % (self.hash, self.n)
 
@@ -313,7 +337,7 @@ class CTxIn():
 
 class CTxOut():
     def __init__(self, nValue=0, scriptPubKey=b""):
-        self.nValue = nValue
+        self.nValue = int(nValue)
         self.scriptPubKey = scriptPubKey
 
     def deserialize(self, f):
@@ -326,10 +350,44 @@ class CTxOut():
         r += ser_string(self.scriptPubKey)
         return r
 
+    def is_unspendable(self):
+        if len(self.scriptPubKey) > 0:
+            return self.scriptPubKey[0] == 0x6a or len(self.scriptPubKey) > 10000
+        return False
+
+
     def __repr__(self):
         return "CTxOut(nValue=%i.%08i scriptPubKey=%s)" \
             % (self.nValue // UNIT, self.nValue % UNIT,
                bytes_to_hex_str(self.scriptPubKey))
+
+
+class UTXO:
+    def __init__(self, height, is_coin_base, outpoint, tx_out):
+        self.outpoint = outpoint
+        self.height = height
+        self.isCoinBase = is_coin_base
+        self.txOut = tx_out
+
+    def deserialize(self, f):
+        self.outpoint = COutPoint()
+        self.outpoint.deserialize(f)
+        self.height = struct.unpack("<I", f.read(4))[0]
+        self.isCoinBase = struct.unpack("<B", f.read[1])[0]
+        self.txOut = CTxOut()
+        self.txOut.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.outpoint.serialize()
+        r += struct.pack("<I", self.height)
+        r += struct.pack("<B", self.isCoinBase)
+        r += self.txOut.serialize()
+        return r
+
+    def __repr__(self):
+        return "UTXO(outpoint=%s height=%i isCoinBase=%i txOut=%s)" \
+            % (self.outpoint, self.height, self.isCoinBase, repr(self.txOut))
 
 
 class CScriptWitness():
@@ -392,6 +450,17 @@ class CTxWitness():
         return True
 
 
+class TxType(Enum):
+    REGULAR = 0
+    COINBASE = 1
+    DEPOSIT = 2
+    VOTE = 3
+    LOGOUT = 4
+    SLASH = 5
+    WITHDRAW = 6
+    ADMIN = 7
+
+
 class CTransaction():
     def __init__(self, tx=None):
         if tx is None:
@@ -410,6 +479,12 @@ class CTransaction():
             self.sha256 = tx.sha256
             self.hash = tx.hash
             self.wit = copy.deepcopy(tx.wit)
+
+    def set_type(self, tx_type):
+        self.nVersion = (self.nVersion & 0x0000FFFF) | (tx_type.value << 16)
+
+    def get_type(self):
+        return TxType(self.nVersion >> 16).name
 
     def deserialize(self, f):
         self.nVersion = struct.unpack("<i", f.read(4))[0]
@@ -491,6 +566,9 @@ class CTransaction():
                 return False
         return True
 
+    def is_coin_base(self):
+        return TxType(self.nVersion >> 16) == TxType.COINBASE
+
     def __repr__(self):
         return "CTransaction(nVersion=%i vin=%s vout=%s wit=%s nLockTime=%i)" \
             % (self.nVersion, repr(self.vin), repr(self.vout), repr(self.wit), self.nLockTime)
@@ -504,6 +582,7 @@ class CBlockHeader():
             self.nVersion = header.nVersion
             self.hashPrevBlock = header.hashPrevBlock
             self.hashMerkleRoot = header.hashMerkleRoot
+            self.hash_witness_merkle_root = header.hash_witness_merkle_root
             self.nTime = header.nTime
             self.nBits = header.nBits
             self.nNonce = header.nNonce
@@ -515,6 +594,7 @@ class CBlockHeader():
         self.nVersion = 1
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
+        self.hash_witness_merkle_root = 0
         self.nTime = 0
         self.nBits = 0
         self.nNonce = 0
@@ -525,6 +605,7 @@ class CBlockHeader():
         self.nVersion = struct.unpack("<i", f.read(4))[0]
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
+        self.hash_witness_merkle_root = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
         self.nBits = struct.unpack("<I", f.read(4))[0]
         self.nNonce = struct.unpack("<I", f.read(4))[0]
@@ -536,6 +617,7 @@ class CBlockHeader():
         r += struct.pack("<i", self.nVersion)
         r += ser_uint256(self.hashPrevBlock)
         r += ser_uint256(self.hashMerkleRoot)
+        r += ser_uint256(self.hash_witness_merkle_root)
         r += struct.pack("<I", self.nTime)
         r += struct.pack("<I", self.nBits)
         r += struct.pack("<I", self.nNonce)
@@ -547,6 +629,7 @@ class CBlockHeader():
             r += struct.pack("<i", self.nVersion)
             r += ser_uint256(self.hashPrevBlock)
             r += ser_uint256(self.hashMerkleRoot)
+            r += ser_uint256(self.hash_witness_merkle_root)
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
@@ -559,8 +642,8 @@ class CBlockHeader():
         return self.sha256
 
     def __repr__(self):
-        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x)" \
-            % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,
+        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x hash_witness_merkle_root=%064x nTime=%s nBits=%08x nNonce=%08x)" \
+            % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
                time.ctime(self.nTime), self.nBits, self.nNonce)
 
 
@@ -580,6 +663,9 @@ class CBlock(CBlockHeader):
             r += ser_vector(self.vtx, "serialize_with_witness")
         else:
             r += ser_vector(self.vtx, "serialize_without_witness")
+        # UNIT-E: serialize an empty block signature on top of the block
+        # this is just an interim solution
+        r += ser_vector([])
         return r
 
     # Calculate the merkle root given a vector of transaction hashes
@@ -611,6 +697,10 @@ class CBlock(CBlockHeader):
 
         return self.get_merkle_root(hashes)
 
+    def compute_merkle_trees(self):
+        self.hashMerkleRoot = self.calc_merkle_root()
+        self.hash_witness_merkle_root = self.calc_witness_merkle_root()
+
     def is_valid(self):
         self.calc_sha256()
         target = uint256_from_compact(self.nBits)
@@ -630,9 +720,16 @@ class CBlock(CBlockHeader):
             self.nNonce += 1
             self.rehash()
 
+    def ensure_ltor(self):
+        if len(self.vtx) <= 1:
+            return
+        for tx in self.vtx:
+            tx.rehash()
+        self.vtx = [self.vtx[0]] + sorted(self.vtx[1:], key=lambda _tx: _tx.hash)
+
     def __repr__(self):
-        return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
-            % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot,
+        return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x hash_witness_merkle_root=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
+            % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
                time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
 
 
@@ -760,18 +857,24 @@ class HeaderAndShortIDs():
         return [ key0, key1 ]
 
     # Version 2 compact blocks use wtxid in shortids (rather than txid)
-    def initialize_from_block(self, block, nonce=0, prefill_list = [0], use_witness = False):
+    def initialize_from_block(self, block, prefill = [], add_genesis=True, nonce=0, use_witness = True):
         self.header = CBlockHeader(block)
         self.nonce = nonce
-        self.prefilled_txn = [ PrefilledTransaction(i, block.vtx[i]) for i in prefill_list ]
+        if add_genesis:
+            if block.vtx[0] not in prefill:
+                prefill = [block.vtx[0]] + prefill
+
+        self.prefilled_txn = [ PrefilledTransaction(block.vtx.index(tx), tx) for tx in prefill ]
+        self.prefilled_txn.sort(key=lambda tx: tx.index) # the prefilled transactions can be out of order
         self.shortids = []
         self.use_witness = use_witness
         [k0, k1] = self.get_siphash_keys()
-        for i in range(len(block.vtx)):
-            if i not in prefill_list:
-                tx_hash = block.vtx[i].sha256
+
+        for tx in block.vtx:
+            if tx not in prefill:
+                tx_hash = tx.sha256
                 if use_witness:
-                    tx_hash = block.vtx[i].calc_sha256(with_witness=True)
+                    tx_hash = tx.calc_sha256(with_witness=True)
                 self.shortids.append(calculate_shortid(k0, k1, tx_hash))
 
     def __repr__(self):
@@ -1223,14 +1326,15 @@ class msg_headers():
         self.headers = headers if headers is not None else []
 
     def deserialize(self, f):
-        # comment in united indicates these should be deserialized as blocks
-        blocks = deser_vector(f, CBlock)
+        blocks = deser_vector(f, CBlockHeader)
         for x in blocks:
-            self.headers.append(CBlockHeader(x))
+            self.headers.append(x)
 
     def serialize(self):
-        blocks = [CBlock(x) for x in self.headers]
-        return ser_vector(blocks)
+        headers_to_send = []
+        for header in self.headers:
+            headers_to_send.append(CBlockHeader(header))
+        return ser_vector(headers_to_send)
 
     def __repr__(self):
         return "msg_headers(headers=%s)" % repr(self.headers)
@@ -1361,4 +1465,259 @@ class msg_witness_blocktxn(msg_blocktxn):
     def serialize(self):
         r = b""
         r += self.block_transactions.serialize(with_witness=True)
+        return r
+
+class msg_getsnaphead:
+    command = b"getsnaphead"
+
+    def serialize(self):
+        r = b""
+        return r
+
+    def deserialize(self, f): pass
+
+    def __repr__(self):
+        return "msg_getsnaphead"
+
+
+class msg_snaphead:
+    command = b"snaphead"
+
+    def __init__(self, snapshot_header=None):
+        self.snapshot_header = SnapshotHeader() if snapshot_header is None else snapshot_header
+
+    def serialize(self):
+        return self.snapshot_header.serialize()
+
+    def deserialize(self, f):
+        self.snapshot_header.deserialize(f)
+
+    def __repr__(self):
+        return "msg_snaphead(%s)" % (repr(self.snapshot_header))
+
+
+class SnapshotHeader:
+    def __init__(self, snapshot_hash=0, block_hash=0, stake_modifier=0, chain_work=0, total_utxo_subsets=0):
+        self.snapshot_hash = snapshot_hash
+        self.block_hash = block_hash
+        self.stake_modifier = stake_modifier
+        self.chain_work = chain_work
+        self.total_utxo_subsets = total_utxo_subsets
+
+    def deserialize(self, f):
+        self.snapshot_hash = deser_uint256(f)
+        self.block_hash = deser_uint256(f)
+        self.stake_modifier = deser_uint256(f)
+        self.chain_work = deser_uint256(f)
+        self.total_utxo_subsets = struct.unpack('<Q', f.read(8))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.snapshot_hash)
+        r += ser_uint256(self.block_hash)
+        r += ser_uint256(self.stake_modifier)
+        r += ser_uint256(self.chain_work)
+        r += struct.pack('<Q', self.total_utxo_subsets)
+        return r
+
+    def __repr__(self):
+        return "SnapshotHeader(snapshot_hash=%064x block_hash=%064x stake_modifier=%064x chain_work=%064x total_utxo_subsets=%i)" \
+                % (self.snapshot_hash, self.block_hash, self.stake_modifier, self.chain_work, self.total_utxo_subsets)
+
+
+class msg_getsnapshot:
+    command = b"getsnapshot"
+
+    def __init__(self, getsnapshot=None):
+        self.getsnapshot = GetSnapshot() if getsnapshot is None else getsnapshot
+
+    def serialize(self):
+        return self.getsnapshot.serialize()
+
+    def deserialize(self, f):
+        self.getsnapshot.deserialize(f)
+
+    def __repr__(self):
+        return "msg_getsnapshot(%s)" % (repr(self.getsnapshot))
+
+
+class GetSnapshot:
+    def __init__(self, snapshot_hash=0, index=0, count=0):
+        self.snapshot_hash = snapshot_hash
+        self.utxo_subset_index = index
+        self.utxo_subset_count = count
+
+    def deserialize(self, f):
+        self.snapshot_hash = deser_uint256(f)
+        self.utxo_subset_index = struct.unpack('<Q', f.read(8))[0]
+        self.utxo_subset_count = struct.unpack('<H', f.read(2))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.snapshot_hash)
+        r += struct.pack('<Q', self.utxo_subset_index)
+        r += struct.pack('<H', self.utxo_subset_count)
+        return r
+
+    def __repr__(self):
+        return "GetSnapshot(snapshot_hash=%064x utxo_subset_index=%i utxo_subset_count=%i)" \
+                % (self.snapshot_hash, self.utxo_subset_index, self.utxo_subset_count)
+
+
+class msg_snapshot:
+    command = b"snapshot"
+
+    def __init__(self, snapshot=None):
+        self.snapshot = Snapshot() if snapshot is None else snapshot
+
+    def serialize(self):
+        return self.snapshot.serialize()
+
+    def deserialize(self, f):
+        self.snapshot.deserialize(f)
+
+    def __repr__(self):
+        return "msg_snapshot(%s)" % (repr(self.snapshot))
+
+
+class Snapshot:
+    def __init__(self, snapshot_hash=0, utxo_subset_index=0, utxo_subsets=[]):
+        self.snapshot_hash = snapshot_hash
+        self.utxo_subset_index = utxo_subset_index
+        self.utxo_subsets = utxo_subsets
+
+    def deserialize(self, f):
+        self.snapshot_hash = deser_uint256(f)
+        self.utxo_subset_index = struct.unpack('<Q', f.read(8))[0]
+        self.utxo_subsets = deser_vector(f, UTXOSubset)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.snapshot_hash)
+        r += struct.pack('<Q', self.utxo_subset_index)
+        r += ser_vector(self.utxo_subsets)
+        return r
+
+    def __repr__(self):
+        return "Snapshot(snapshot_hash=%064x utxo_subset_index=%i, utxo_subsets=%s)" \
+                % (self.snapshot_hash, self.utxo_subset_index, repr(self.utxo_subsets))
+
+
+class UTXOSubset:
+    def __init__(self):
+        self.tx_id = 0
+        self.height = 0
+        self.is_coin_base = False
+        self.outputs = dict()
+
+    def deserialize(self, f):
+        self.tx_id = deser_uint256(f)
+        self.height = struct.unpack('<I', f.read(4))[0]
+        self.is_coin_base = struct.unpack('<B', f.read(1))[0] == 1
+        self.outputs = deser_uint32_map(f, CTxOut)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.tx_id)
+        r += struct.pack('<I', self.height)
+        r += struct.pack('<B', self.is_coin_base)
+        r += ser_uint32_map(self.outputs)
+        return r
+
+    def __repr__(self):
+        return "UTXOSubset(tx_id=%064x height=%i, is_coin_base=%i outputs=%s)" \
+                % (self.tx_id, self.height, self.is_coin_base, repr(self.outputs))
+
+
+class msg_notfound():
+    command = b"notfound"
+
+    def __init__(self, inv=None):
+        self.inv = inv if inv != None else []
+
+    def deserialize(self, f):
+        self.inv = deser_vector(f, CInv)
+
+    def serialize(self):
+        return ser_vector(self.inv)
+
+    def __repr__(self):
+        return "msg_notfound(inv=%s)" % (repr(self.inv))
+
+
+class CommitsLocator():
+    def __init__(self, start=[], stop=0):
+        self.start = start
+        self.stop = stop
+
+    def deserialize(self, f):
+        self.start = deser_uint256_vector(f)
+        self.stop = deser_uint256(f)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256_vector(self.start)
+        r += ser_uint256(self.stop)
+        return r
+
+    def __repr__(self):
+        return "CommitsLocator(start=%s stop=%064x)" \
+            % (repr(self.start), self.stop)
+
+
+class msg_getcommits:
+    command = b"getcommits"
+
+    def __init__(self, locator=None):
+        if locator is None:
+            self.locator = CommitsLocator()
+        else:
+            self.locator = locator
+
+    def deserialize(self, f):
+        self.locator.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.locator.serialize()
+        return r
+
+    def __repr__(self):
+        return "getcommits(%s)" % (repr(self.locator))
+
+class HeaderAndCommits:
+    def __init__(self, header=None):
+        self.header = header if header is not None else CBlockHeader()
+        self.commits = []
+
+    def deserialize(self, f):
+        self.header.deserialize(f)
+        self.header.calc_sha256()
+        self.commits = deser_vector(f, CTransaction)
+
+    def serialize(self):
+        r = b""
+        r += self.header.serialize()
+        r += ser_vector(self.commits, "serialize_without_witness")
+        return r
+
+class msg_commits:
+    command = b"commits"
+
+    def __init__(self, status=0):
+        self.status = status
+        self.data = []
+
+    def __repr__(self):
+        return "msg_commits(status={0}, length={1}, first={2})".format(
+            self.status, len(self.data), self.data[0].header.hash if len(self.data) > 0 else "Nil")
+
+    def deserialize(self, f):
+        self.status = struct.unpack("<B", f.read(1))[0]
+        self.data = deser_vector(f, HeaderAndCommits)
+
+    def serialize(self):
+        r = b""
+        r += struct.pack("<B", self.status)
+        r += ser_vector(self.data)
         return r

@@ -6,6 +6,7 @@
 #ifndef UNITE_PRIMITIVES_BLOCK_H
 #define UNITE_PRIMITIVES_BLOCK_H
 
+#include <blockchain/blockchain_types.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <uint256.h>
@@ -24,8 +25,9 @@ public:
     int32_t nVersion;
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
-    uint32_t nTime;
-    uint32_t nBits;
+    uint256 hash_witness_merkle_root;
+    blockchain::Time nTime;
+    blockchain::Difficulty nBits;
     uint32_t nNonce;
 
     CBlockHeader()
@@ -40,6 +42,7 @@ public:
         READWRITE(this->nVersion);
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
+        READWRITE(hash_witness_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
@@ -50,6 +53,7 @@ public:
         nVersion = 0;
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
+        hash_witness_merkle_root.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;
@@ -75,6 +79,9 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
 
+    //! signature of the block for Proof-of-Stake
+    std::vector<uint8_t> signature;
+
     // memory only
     mutable bool fChecked;
 
@@ -89,32 +96,40 @@ public:
         *(static_cast<CBlockHeader*>(this)) = header;
     }
 
+    CBlock(const CBlock &block) = default;
+
     ADD_SERIALIZE_METHODS;
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITEAS(CBlockHeader, *this);
         READWRITE(vtx);
+        READWRITE(signature);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
+        signature.clear();
         fChecked = false;
     }
 
     CBlockHeader GetBlockHeader() const
     {
         CBlockHeader block;
-        block.nVersion       = nVersion;
-        block.hashPrevBlock  = hashPrevBlock;
+        block.nVersion = nVersion;
+        block.hashPrevBlock = hashPrevBlock;
         block.hashMerkleRoot = hashMerkleRoot;
-        block.nTime          = nTime;
-        block.nBits          = nBits;
-        block.nNonce         = nNonce;
+        block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.nTime = nTime;
+        block.nBits = nBits;
+        block.nNonce = nNonce;
         return block;
     }
+
+    //! \brief (Re)computes the merkle trees of this block.
+    void ComputeMerkleTrees();
 
     std::string ToString() const;
 };

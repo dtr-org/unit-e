@@ -76,6 +76,8 @@
 #include <openssl/crypto.h>
 #include <openssl/rand.h>
 #include <openssl/conf.h>
+
+#include <array>
 #include <thread>
 
 // Application startup time (used for uptime calculation)
@@ -87,6 +89,10 @@ const char * const UNITE_PID_FILENAME = "united.pid";
 ArgsManager gArgs;
 
 CTranslationInterface translationInterface;
+
+// Cannot use std::string here as mingw doesn't support thread_local variables with destructors
+// see also: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83562
+thread_local char g_thread_name[16];
 
 /** Init OpenSSL library multithreading support */
 static std::unique_ptr<CCriticalSection[]> ppmutexOpenSSL;
@@ -226,7 +232,7 @@ public:
      *  See also comments around ArgsManager::ArgsManager() below. */
     static inline bool UseDefaultSection(const ArgsManager& am, const std::string& arg)
     {
-        return (am.m_network == CBaseChainParams::MAIN || am.m_network_only_args.count(arg) == 0);
+        return (am.m_network == CBaseChainParams::TESTNET || am.m_network_only_args.count(arg) == 0);
     }
 
     /** Convert regular argument into the network-specific setting */
@@ -384,7 +390,7 @@ void ArgsManager::WarnForSectionOnlyArgs()
     if (m_network.empty()) return;
 
     // if it's okay to use the default section for this network, don't worry
-    if (m_network == CBaseChainParams::MAIN) return;
+    if (m_network == CBaseChainParams::TESTNET) return;
 
     for (const auto& arg : m_network_only_args) {
         std::pair<bool, std::string> found_result;
@@ -636,6 +642,9 @@ std::string ArgsManager::GetHelpMessage() const
                 break;
             case OptionsCategory::REGISTER_COMMANDS:
                 usage += HelpMessageGroup("Register Commands:");
+                break;
+            case OptionsCategory::STAKING:
+                usage += HelpMessageGroup("Staking options:");
                 break;
             default:
                 break;
@@ -968,9 +977,7 @@ std::string ArgsManager::GetChainName() const
         throw std::runtime_error("Invalid combination of -regtest and -testnet.");
     if (fRegTest)
         return CBaseChainParams::REGTEST;
-    if (fTestNet)
-        return CBaseChainParams::TESTNET;
-    return CBaseChainParams::MAIN;
+    return CBaseChainParams::TESTNET;
 }
 
 #ifndef WIN32
@@ -1155,8 +1162,14 @@ void runCommand(const std::string& strCommand)
         LogPrintf("runCommand error: system(%s) returned %d\n", strCommand, nErr);
 }
 
+void SetThreadDebugName(const char* name) {
+    auto name_len = std::strlen(name);
+    std::strncpy(g_thread_name, name, std::min(name_len, sizeof(g_thread_name)-1)); // -1 is for the '\0'
+}
+
 void RenameThread(const char* name)
 {
+    SetThreadDebugName(name);
 #if defined(PR_SET_NAME)
     // Only the first 15 characters are used (16 - NUL terminator)
     ::prctl(PR_SET_NAME, name, 0, 0, 0);
@@ -1165,9 +1178,6 @@ void RenameThread(const char* name)
 
 #elif defined(MAC_OSX)
     pthread_setname_np(name);
-#else
-    // Prevent warnings for unused parameters...
-    (void)name;
 #endif
 }
 
@@ -1251,4 +1261,50 @@ int ScheduleBatchPriority(void)
 #else
     return 1;
 #endif
+}
+
+static int DaysInMonth(int year, int month) {
+  return month == 2
+             ? (year % 4 ? 28 : (year % 100 ? 29 : (year % 400 ? 28 : 29)))
+             : ((month - 1) % 7 % 2 ? 30 : 31);
+}
+
+int64_t StrToEpoch(const std::string &input, bool fillMax) {
+  int year, month, day, hours, minutes, seconds;
+  int n = sscanf(input.c_str(), "%d-%d-%dT%d:%d:%d",
+                 &year, &month, &day, &hours, &minutes, &seconds);
+
+  struct tm tm = {};
+
+  if (n > 0 && year >= 1970 && year <= 9999) {
+    tm.tm_year = year - 1900;
+  }
+  if (n > 1 && month > 0 && month < 13) {
+    tm.tm_mon = month - 1;
+  } else if (fillMax) {
+    tm.tm_mon = 11;
+    month = 12;
+  }
+  if (n > 2 && day > 0 && day < 32) {
+    tm.tm_mday = day;
+  } else {
+    tm.tm_mday = fillMax ? DaysInMonth(year, month) : 1;
+  }
+  if (n > 3 && hours >= 0 && hours < 24) {
+    tm.tm_hour = hours;
+  } else if (fillMax) {
+    tm.tm_hour = 23;
+  }
+  if (n > 4 && minutes >= 0 && minutes < 60) {
+    tm.tm_min = minutes;
+  } else if (fillMax) {
+    tm.tm_min = 59;
+  }
+  if (n > 5 && seconds >= 0 && seconds < 60) {
+    tm.tm_sec = seconds;
+  } else if (fillMax) {
+    tm.tm_sec = 59;
+  }
+
+  return (int64_t)mktime(&tm);
 }

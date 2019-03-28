@@ -5,11 +5,13 @@
 #ifndef UNITE_WALLET_RPCWALLET_H
 #define UNITE_WALLET_RPCWALLET_H
 
+#include <memory>
 #include <string>
 
 class CRPCTable;
 class CWallet;
 class JSONRPCRequest;
+class CWalletTx;
 class UniValue;
 struct PartiallySignedTransaction;
 class CTransaction;
@@ -27,6 +29,7 @@ std::shared_ptr<CWallet> GetWalletForJSONRPCRequest(const JSONRPCRequest& reques
 std::string HelpRequiringPassphrase(CWallet *);
 void EnsureWalletIsUnlocked(CWallet *);
 bool EnsureWalletIsAvailable(CWallet *, bool avoidException);
+void WalletTxToJSON(const CWalletTx &wtx, UniValue &entry);
 
 UniValue getaddressinfo(const JSONRPCRequest& request);
 UniValue signrawtransactionwithwallet(const JSONRPCRequest& request);

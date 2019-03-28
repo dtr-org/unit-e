@@ -62,8 +62,7 @@ First, install the general dependencies:
     sudo apt install build-essential libtool autotools-dev automake pkg-config bsdmainutils curl git
 
 A host toolchain (`build-essential`) is necessary because some dependency
-packages (such as `protobuf`) need to build host utilities that are used in the
-build process.
+packages need to build host utilities that are used in the build process.
 
 See also: [dependencies.md](dependencies.md).
 
@@ -85,7 +84,9 @@ This means you cannot use a directory that located directly on the host Windows 
 
 Acquire the source in the usual way:
 
-    git clone https://github.com/unite/unite.git
+    cd /usr/src
+    sudo git clone https://github.com/dtr-org/unit-e.git
+    sudo chmod -R a+rw unit-e
 
 Once the source code is ready the build steps are below.
 
@@ -113,7 +114,9 @@ This means you cannot use a directory that located directly on the host Windows 
 
 Acquire the source in the usual way:
 
-    git clone https://github.com/unite/unite.git
+    cd /usr/src
+    sudo git clone https://github.com/dtr-org/unit-e.git
+    sudo chmod -R a+rw unit-e
 
 Then build using:
 
@@ -135,9 +138,10 @@ Installation
 After building using the Windows subsystem it can be useful to copy the compiled
 executables to a directory on the windows drive in the same directory structure
 as they appear in the release `.zip` archive. This can be done in the following
-way. This will install to `c:\workspace\unite`, for example:
+way. This will install to `c:\workspace\unit-e`, for example:
 
     make install DESTDIR=/mnt/c/workspace/unite
+    make install DESTDIR=/mnt/c/workspace/unit-e
 
 Footnotes
 ---------
@@ -146,5 +150,5 @@ Footnotes
 compiler options to allow a choice between either posix or win32 threads. The default option is win32 threads which is the more
 efficient since it will result in binary code that links directly with the Windows kernel32.lib. Unfortunately, the headers
 required to support win32 threads conflict with some of the classes in the C++11 standard library in particular std::mutex.
-It's not possible to build the unit-e code using the win32 version of the Mingw-w64 cross compilers (at least not without
-modifying headers in the unit-e source code).
+It's not possible to build the unite code using the win32 version of the Mingw-w64 cross compilers (at least not without
+modifying headers in the unite source code).

@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <vector>
 
+class AccessibleCoinsView;
 class CBlockIndex;
 class CCoinsViewCache;
 class CTransaction;
@@ -18,7 +19,7 @@ class CValidationState;
 /** Transaction validation functions */
 
 /** Context-independent validity checks */
-bool CheckTransaction(const CTransaction& tx, CValidationState& state, bool fCheckDuplicateInputs=true);
+bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool fCheckDuplicateInputs=true);
 
 namespace Consensus {
 /**
@@ -27,7 +28,7 @@ namespace Consensus {
  * @param[out] txfee Set to the transaction fee if successful.
  * Preconditions: tx.IsCoinBase() is false.
  */
-bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee);
+bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, int nSpendHeight, CAmount& txfee, CAmount *inputs_amount = nullptr);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */

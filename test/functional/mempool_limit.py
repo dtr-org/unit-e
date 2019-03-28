@@ -13,12 +13,14 @@ class MempoolLimitTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 1
-        self.extra_args = [["-maxmempool=5", "-spendzeroconfchange=0"]]
+        self.extra_args = [["-maxmempool=5", "-spendzeroconfchange=0", "-stakesplitthreshold=5000000000"]]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
+
         txouts = gen_return_txouts()
         relayfee = self.nodes[0].getnetworkinfo()['relayfee']
 

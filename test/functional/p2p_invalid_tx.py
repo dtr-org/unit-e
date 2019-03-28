@@ -47,6 +47,11 @@ class InvalidTxRequestTest(UnitETestFramework):
     def run_test(self):
         node = self.nodes[0]  # convenience reference to the node
 
+        self.setup_stake_coins(self.nodes[0])
+
+        if self.tip is None:
+            self.tip = int("0x" + self.nodes[0].getbestblockhash(), 0)
+        self.block_time = int(time.time())+1
         self.bootstrap_p2p()  # Add one p2p connection to the node
 
         best_block = self.nodes[0].getbestblockhash()
@@ -56,7 +61,12 @@ class InvalidTxRequestTest(UnitETestFramework):
 
         self.log.info("Create a new block with an anyone-can-spend coinbase.")
         height = 1
-        block = create_block(tip, create_coinbase(height), block_time)
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+        coin = get_unspent_coins(self.nodes[0], 1)[0]
+        coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash))
+        block = create_block(self.tip, coinbase, self.block_time)
+
+        self.block_time += 1
         block.solve()
         # Save the coinbase for later
         block1 = block
@@ -64,13 +74,31 @@ class InvalidTxRequestTest(UnitETestFramework):
         node.p2p.send_blocks_and_test([block], node, success=True)
 
         self.log.info("Mature the block.")
-        self.nodes[0].generate(100)
+
+        blocks = []
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+        for i in range(100):
+            prev_coinbase = coinbase
+            stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
+            coinbase = create_coinbase(height, stake, snapshot_meta.hash)
+            block = create_block(self.tip, coinbase, self.block_time)
+            block.solve()
+            self.tip = block.sha256
+            self.block_time += 1
+            blocks.append(block)
+
+            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
+            output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
+            snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
+            height += 1
+        node.p2p.send_blocks_and_test(blocks, node, success=True)
 
         # b'\x64' is OP_NOTIF
         # Transaction will be rejected with code 16 (REJECT_INVALID)
         # and we get disconnected immediately
         self.log.info('Test a transaction that is rejected')
-        tx1 = create_tx_with_script(block1.vtx[0], 0, script_sig=b'\x64' * 35, amount=50 * UNIT - 12000)
+        tx1 = create_tx_with_script(coinbase, 1, script_sig=b'\x64' * 35, amount=50 * UNIT - 12000)
         node.p2p.send_txs_and_test([tx1], node, success=False, expect_disconnect=True)
 
         # Make two p2p connections to provide the node with orphans

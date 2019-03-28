@@ -16,13 +16,9 @@ Then install [Homebrew](https://brew.sh).
 Dependencies
 ----------------------
 
-    brew install automake berkeley-db4 libtool boost miniupnpc openssl pkg-config protobuf python qt libevent qrencode
+    brew install automake berkeley-db4 libtool boost miniupnpc openssl pkg-config python libevent
 
 See [dependencies.md](dependencies.md) for a complete overview.
-
-If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG
-
-    brew install librsvg
 
 Berkeley DB
 -----------
@@ -41,16 +37,14 @@ from the root of the repository.
 Build unit-e
 ------------------------
 
-1. Clone the unit-e source code and cd into `unite`
+1. Clone the unite source code and cd into `unite`
 
-        git clone https://github.com/unite/unite
-        cd unite
+        git clone https://github.com/dtr-org/unit-e
+        cd unit-e
 
 2.  Build unit-e:
 
-    Configure and build the headless unit-e binaries as well as the GUI (if Qt is found).
-
-    You can disable the GUI build by passing `--without-gui` to configure.
+    Configure and build the unite binaries.
 
         ./autogen.sh
         ./configure
@@ -88,9 +82,24 @@ Other commands:
     ./src/unite-cli --help # Outputs a list of command-line options.
     ./src/unite-cli help # Outputs a list of RPC commands when the daemon is running.
 
+Using Qt Creator as IDE (untested)
+------------------------
+You can use Qt Creator as an IDE, for unite development.
+Download and install the community edition of [Qt Creator](https://www.qt.io/download/).
+Uncheck everything except Qt Creator during the installation process.
+
+1. Make sure you installed everything through Homebrew mentioned above
+2. Do a proper ./configure --enable-debug
+3. In Qt Creator do "New Project" -> Import Project -> Import Existing Project
+4. Enter "unit-e" as project name, enter src as location
+5. Leave the file selection as it is
+6. Confirm the "summary page"
+7. In the "Projects" tab select "Manage Kits..."
+8. Select the default "Desktop" kit and select "Clang (x86 64bit in /usr/bin)" as compiler
+9. Select LLDB as debugger (you might need to set the path to your installation)
+10. Start debugging with Qt Creator
+
 Notes
 -----
 
 * Tested on OS X 10.10 Yosemite through macOS 10.13 High Sierra on 64-bit Intel processors only.
-
-* Building with downloaded Qt binaries is not officially supported. See the notes in [#7714](https://github.com/unite/unite/issues/7714)

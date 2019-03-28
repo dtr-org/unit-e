@@ -10,6 +10,10 @@
 class CScheduler;
 class CRPCTable;
 
+namespace esperanza {
+class WalletExtensionDeps;
+}
+
 class WalletInitInterface {
 public:
     /** Get wallet help string */
@@ -21,7 +25,7 @@ public:
     /** Verify wallets */
     virtual bool Verify() const = 0;
     /** Open wallets*/
-    virtual bool Open() const = 0;
+    virtual bool Open(const esperanza::WalletExtensionDeps& ) const = 0;
     /** Start wallets*/
     virtual void Start(CScheduler& scheduler) const = 0;
     /** Flush Wallets*/

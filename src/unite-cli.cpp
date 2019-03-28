@@ -10,7 +10,7 @@
 #include <chainparamsbase.h>
 #include <clientversion.h>
 #include <fs.h>
-#include <rpc/client.h>
+#include <rpc/parameter_conversion.h>
 #include <rpc/protocol.h>
 #include <util.h>
 #include <utilstrencodings.h>
@@ -31,8 +31,8 @@ static const int CONTINUE_EXECUTION=-1;
 
 static void SetupCliArgs()
 {
-    const auto defaultBaseParams = CreateBaseChainParams(CBaseChainParams::MAIN);
     const auto testnetBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
+    const auto &defaultBaseParams = testnetBaseParams;
 
     gArgs.AddArg("-?", "This help message", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-version", "Print version and exit", false, OptionsCategory::OPTIONS);

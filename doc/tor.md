@@ -8,8 +8,8 @@ configure Tor.
 
 ## 1. Run unit-e behind a Tor proxy
 
-The first step is running unit-e behind a Tor proxy. This will already anonymize all
-outgoing connections, but more is possible.
+The first step is running Unit-e behind a Tor proxy. This will already make all
+outgoing connections be anonymized, but more is possible.
 
 	-proxy=ip:port  Set the proxy server. If SOCKS5 is selected (default), this proxy
 	                server will be used to try to reach .onion addresses as well.

@@ -71,8 +71,14 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
     return bnNew.GetCompact();
 }
 
+// UNIT-E: Remove or change to adapt to PoS
 bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
 {
+    // UNIT-E: If the hash is the genesis then make it pass anyway
+    if (hash == params.hashGenesisBlock) {
+      return true;
+    }
+
     bool fNegative;
     bool fOverflow;
     arith_uint256 bnTarget;
