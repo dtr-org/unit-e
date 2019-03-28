@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
 
   BOOST_REQUIRE(state.GetEpochLength() == 5);
 
-  // Fill chain right before 1th checkpoint.
+  // Fill chain right before 1st checkpoint.
   fixture.AddBlocks(4);
   BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 0);
 
@@ -188,10 +188,10 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
     BOOST_CHECK_EQUAL(locator.stop, uint256());
   }
 
-  // Complete 1th epoch.
+  // Complete 1st epoch.
   fixture.AddBlocks(1);
 
-  // Check 1th checkpoint is included in locator.
+  // Check 1st checkpoint is included in locator.
   {
     const p2p::FinalizerCommitsLocator locator =
       commits.GetFinalizerCommitsLocator(*chain.AtHeight(5), nullptr);

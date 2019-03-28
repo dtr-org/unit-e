@@ -120,7 +120,7 @@ class ExpiredVoteTest(UnitETestFramework):
         setup_deposit(self, p0, [v])
         sync_blocks([p0, p1, v])
 
-        # get to up to block 148, just one before the new checkpoint
+        # get to up to block 49, just one before the new checkpoint
         for n in range(0, 9):
             generate_block(p0)
 
