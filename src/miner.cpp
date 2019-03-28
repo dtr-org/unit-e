@@ -108,11 +108,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     //TODO UNIT-E: Remove this as soon as we move to the new proposing logic
     // Get the wallet that is used to retrieve the stakable coins.
     // If a wallet is not explicitly provided, stake on the first one available.
-    std::shared_ptr<CWallet> wallet(pwallet);
-    if (!wallet) {
+    std::shared_ptr<CWallet> wallet;
+    if (!pwallet) {
         std::vector<std::shared_ptr<CWallet>> wallets = GetComponent<proposer::MultiWallet>()->GetWallets();
         assert(!wallets.empty());
         wallet = wallets[0];
+        pwallet = wallet.get();
     }
 
     int64_t nTimeStart = GetTimeMicros();
@@ -131,7 +132,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
     LOCK(cs_main);
-    LOCK(wallet->cs_wallet);
+    LOCK(pwallet->cs_wallet);
     LOCK(mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
@@ -166,7 +167,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
     // Create coinbase transaction.
-    const staking::CoinSet &stakeable_coins = wallet->GetWalletExtension().GetStakeableCoins();
+    const staking::CoinSet &stakeable_coins = pwallet->GetWalletExtension().GetStakeableCoins();
     if (stakeable_coins.empty()) {
       throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
     }
@@ -186,7 +187,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
           0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
       };
 
-      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension());
+      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, pwallet->GetWalletExtension());
       pblocktemplate->block.vtx[0] = coinbase;
 
       LogPrintf("%s: block weight=%u txs=%u fees=%ld sigops=%d\n", __func__, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
