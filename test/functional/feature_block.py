@@ -89,16 +89,6 @@ class FullBlockTest(ComparisonTestFramework):
         tx = create_transaction(spend_tx, n, b"", value, script)
         return tx
 
-    # sign a transaction, using the key we know about
-    # this signs input 0 in tx, which is assumed to be spending output n in spend_tx
-    def sign_tx(self, tx, spend_tx, n):
-        scriptPubKey = bytearray(spend_tx.vout[n].scriptPubKey)
-        if (scriptPubKey[0] == OP_TRUE):  # an anyone-can-spend
-            tx.vin[0].scriptSig = CScript()
-            return
-        (sighash, err) = SignatureHash(spend_tx.vout[n].scriptPubKey, tx, 0, SIGHASH_ALL)
-        tx.vin[0].scriptSig = CScript([self.coinbase_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))])
-
     def create_and_sign_transaction(self, spend_tx, n, value, script=CScript([OP_TRUE])):
         tx = self.create_tx(spend_tx, n, value, script)
         tx = sign_transaction(self.nodes[0], tx)
@@ -194,6 +184,7 @@ class FullBlockTest(ComparisonTestFramework):
             block = create_block(base_block_hash, coinbase, block_time)
             tx = create_transaction(spend.tx, spend.n, b"", 1, script)  # spend 1 satoshi
             tx = sign_transaction(self.nodes[0], tx)
+            tx.rehash()
             self.add_transactions_to_block(block, [tx])
             block.compute_merkle_trees()
         if solve:
@@ -316,7 +307,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield accepted()
         comp_snapshot_hash(1)
 
-        block(2, get_staking_coin(), spend=out[1])
+        b2 = block(2, get_staking_coin(), spend=out[1])
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(2)
@@ -328,7 +319,8 @@ class FullBlockTest(ComparisonTestFramework):
         #
         # Nothing should happen at this point. We saw b2 first so it takes priority.
         tip(1)
-        b3 = block(3, get_staking_coin(), spend=out[1])
+        b3 = block(3, get_staking_coin())
+        update_block(block_number=3, new_transactions=[b2.vtx[1]])  # Reusing out[1], used in b2
         txout_b3 = PreviousSpendableOutput(b3.vtx[1], 0, self.block_heights[b3.sha256])
         yield rejected()  # b3 is not really rejected, just not chosen as tip.
         comp_snapshot_hash(2)
@@ -338,7 +330,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         #     genesis -> b1 (0) -> b2 (1)
         #                      \-> b3 (1) -> b4 (2)
-        block(4, get_staking_coin(), spend=out[2])
+        b4 = block(4, get_staking_coin(), spend=out[2])
         yield accepted()
         comp_snapshot_hash(4)
 
@@ -347,7 +339,8 @@ class FullBlockTest(ComparisonTestFramework):
         #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (3)
         #                      \-> b3 (1) -> b4 (2)
         tip(2)
-        block(5, get_staking_coin(), spend=out[2])
+        block(5, get_staking_coin())
+        update_block(block_number=5, new_transactions=[b4.vtx[1]])  # Reusing out[2], used in b4
         save_spendable_output()
         yield rejected()
         comp_snapshot_hash(4)
@@ -1386,7 +1379,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx1.vout.append(CTxOut(0, CScript([OP_TRUE])))
         tx1.vout.append(CTxOut(0, CScript([OP_TRUE])))
         tx1.calc_sha256()
-        self.sign_tx(tx1, out[29].tx, out[29].n)
+        tx1 = sign_transaction(self.nodes[0], tx1)
         tx1.rehash()
         tx2 = create_tx(tx1, 1, 0, CScript([OP_RETURN]))
         tx2.vout.append(CTxOut(0, CScript([OP_RETURN])))
