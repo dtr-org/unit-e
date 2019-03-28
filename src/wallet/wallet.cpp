@@ -305,7 +305,10 @@ CPubKey CWallet::DeriveNewPubKey(WalletBatch &batch, bool internal)
     mapKeyMetadata[pubkey.GetID()] = metadata;
     UpdateTimeFirstKey(nCreationTime);
 
-    mapWatchKeys[pubkey.GetID()] = pubkey;
+    {
+        LOCK(cs_KeyStore);
+        mapWatchKeys[pubkey.GetID()] = pubkey;
+    }
 
     // check if we need to remove from watch-only
     CScript script;
@@ -449,6 +452,7 @@ void CWallet::LoadKeyMetadata(const CPubKey& pubkey, const CKeyMetadata &meta)
     AssertLockHeld(cs_wallet); // mapKeyMetadata
     CKeyID keyID = pubkey.GetID();
     if (!meta.master_key_id.IsNull()) {
+        LOCK(cs_KeyStore);
         mapWatchKeys[pubkey.GetID()] = pubkey;
     }
     LoadKeyMetadata(keyID, meta);
