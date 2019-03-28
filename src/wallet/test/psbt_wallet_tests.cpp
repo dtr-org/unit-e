@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(psbt_updater_test)
     m_wallet.AddCScript(ws1);
 
     // Add hd seed
-    CKey key = DecodeSecret("5KSSJQ7UNfFGwVgpCZDSHm5rVNhMFcFtvWM3zQ8mW4qNDEN7LFd"); // Mainnet and uncompressed form of cUkG8i1RFfWGWy5ziR11zJ5V4U4W3viSFCfyJmZnvQaUsd1xuF3T
+    CKey key = DecodeSecret("93D4t8w1xtKQuZC6pu7MAMdp9344Qmo6GTD152VGqoaQzF5veoL"); // Testnet and uncompressed form of cUkG8i1RFfWGWy5ziR11zJ5V4U4W3viSFCfyJmZnvQaUsd1xuF3T
     CPubKey master_pub_key = m_wallet.DeriveNewSeed(key);
     m_wallet.SetHDSeed(master_pub_key);
     m_wallet.NewKeyPool();
