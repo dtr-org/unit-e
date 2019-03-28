@@ -19,6 +19,7 @@ namespace proposer {
 class BlockBuilderImpl : public BlockBuilder {
  private:
   const Dependency<Settings> m_settings;
+  const Dependency<FinalizationRewardLogic> m_finalization_reward_logic;
 
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
     auto number_of_pieces = amount / threshold;
@@ -95,10 +96,13 @@ class BlockBuilderImpl : public BlockBuilder {
 
  public:
   explicit BlockBuilderImpl(
-      Dependency<Settings> settings)
-      : m_settings(settings) {}
+      Dependency<Settings> settings,
+      Dependency<FinalizationRewardLogic> finalization_reward_logic)
+      : m_settings(settings),
+        m_finalization_reward_logic(finalization_reward_logic) {}
 
   const CTransactionRef BuildCoinbaseTransaction(
+      const CBlockIndex &prev_block,
       const uint256 &snapshot_hash,
       const EligibleCoin &eligible_coin,
       const staking::CoinSet &coins,
@@ -148,6 +152,13 @@ class BlockBuilderImpl : public BlockBuilder {
 
     tx.vout.emplace_back(reward, reward_script);
 
+    std::vector<std::pair<CScript, CAmount>> finalization_rewards =
+        m_finalization_reward_logic->GetFinalizationRewards(prev_block);
+
+    if (!finalization_rewards.empty()) {
+      //TODO UNIT-E: add reward outputs
+    }
+
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && combined_total > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(combined_total, threshold);
@@ -195,7 +206,7 @@ class BlockBuilderImpl : public BlockBuilder {
 
     // add coinbase transaction first
     const CTransactionRef coinbase_transaction =
-        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, coinbase_script, wallet);
+        BuildCoinbaseTransaction(prev_block, snapshot_hash, coin, coins, fees, coinbase_script, wallet);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;
@@ -215,8 +226,10 @@ class BlockBuilderImpl : public BlockBuilder {
   }
 };
 
-std::unique_ptr<BlockBuilder> BlockBuilder::New(const Dependency<Settings> settings) {
-  return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(settings));
+std::unique_ptr<BlockBuilder> BlockBuilder::New(
+    const Dependency<Settings> settings,
+    const Dependency<FinalizationRewardLogic> finalization_reward_logic) {
+  return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(settings, finalization_reward_logic));
 }
 
 }  // namespace proposer

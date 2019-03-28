@@ -23,7 +23,11 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
   }
 
   std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &last_block) override {
+
     const auto fin_state = m_fin_state_repo->Find(last_block);
+    if (last_block.nHeight < fin_state->GetEpochLength()) {
+      return {};
+    }
     assert(fin_state);
 
     auto prev_height = static_cast<blockchain::Height>(last_block.nHeight);
@@ -33,8 +37,9 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
 
     std::vector<std::pair<CScript, CAmount>> result;
     result.reserve(fin_state->GetEpochLength());
-    auto pblock = &last_block;
+    const CBlockIndex *pblock = &last_block;
     blockchain::Height epoch_start = fin_state->GetEpochStartHeight(fin_state->GetCurrentEpoch());
+
     for (auto h = prev_height; h >= epoch_start; --h) {
       assert(pblock && pblock->nHeight == h);
       auto block = m_block_db->ReadBlock(*pblock);

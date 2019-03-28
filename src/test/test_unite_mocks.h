@@ -389,13 +389,14 @@ class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
   MethodMock<decltype(&proposer::BlockBuilder::BuildBlock)> mock_BuildBlock{this};
 
   const CTransactionRef BuildCoinbaseTransaction(
+      const CBlockIndex &prev_block,
       const uint256 &snapshot_hash,
       const proposer::EligibleCoin &eligible_coin,
       const staking::CoinSet &coins,
       const CAmount fees,
       const boost::optional<CScript> &coinbase_script,
       staking::StakingWallet &wallet) const override {
-    return mock_BuildCoinbaseTransaction(snapshot_hash, eligible_coin, coins, fees, coinbase_script, wallet);
+    return mock_BuildCoinbaseTransaction(prev_block, snapshot_hash, eligible_coin, coins, fees, coinbase_script, wallet);
   }
   std::shared_ptr<const CBlock> BuildBlock(
       const CBlockIndex &index,

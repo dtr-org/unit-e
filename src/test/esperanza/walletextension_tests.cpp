@@ -77,7 +77,16 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   const auto pubkey = key.GetPubKey();
   const auto pubkeydata = std::vector<unsigned char>(pubkey.begin(), pubkey.end());
 
-  auto block_builder = proposer::BlockBuilder::New(&settings);
+  auto behavior = blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
+  auto active_chain = staking::ActiveChain::New();
+  auto block_index_map = staking::BlockIndexMap::New();
+  finalization::Params params;
+  UnitEInjectorConfiguration injector_conf;
+  auto state_db = finalization::StateDB::New(&injector_conf, &settings, &params, block_index_map.get(), active_chain.get(), nullptr);
+  auto block_db = BlockDB::New();
+  auto state_repository = finalization::StateRepository::New(&params, block_index_map.get(), active_chain.get(), state_db.get(), block_db.get());
+  auto finalization_reward_logic = proposer::FinalizationRewardLogic::New(behavior.get(), state_repository.get(), block_db.get());
+  auto block_builder = proposer::BlockBuilder::New(&settings, finalization_reward_logic.get());
 
   {
     LOCK(m_wallet->cs_wallet);
@@ -138,7 +147,7 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   // BuildCoinbaseTransaction() will also sign it
   CTransactionRef coinbase_transaction =
-      block_builder->BuildCoinbaseTransaction(uint256(), eligible_coin, coins, 700, boost::none, m_wallet->GetWalletExtension());
+      block_builder->BuildCoinbaseTransaction(*active_chain->GetTip(), uint256(), eligible_coin, coins, 700, boost::none, m_wallet->GetWalletExtension());
 
   // check that a coinbase transaction was built successfully
   BOOST_REQUIRE(static_cast<bool>(coinbase_transaction));

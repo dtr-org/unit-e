@@ -34,6 +34,7 @@
 
 #ifdef ENABLE_WALLET
 #include <proposer/block_builder.h>
+#include <proposer/finalization_reward_logic.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_logic.h>
@@ -107,6 +108,11 @@ class UnitEInjector : public Injector<UnitEInjector> {
             finalization::StateRepository,
             finalization::StateProcessor)
 
+  COMPONENT(FinalizationRewardLogic, proposer::FinalizationRewardLogic, proposer::FinalizationRewardLogic::New,
+            blockchain::Behavior,
+            finalization::StateRepository,
+            BlockDB)
+
   COMPONENT(StakingRPC, staking::StakingRPC, staking::StakingRPC::New,
             staking::ActiveChain,
             BlockDB)
@@ -128,7 +134,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New)
 
   COMPONENT(BlockBuilder, proposer::BlockBuilder, proposer::BlockBuilder::New,
-            Settings)
+            Settings,
+            proposer::FinalizationRewardLogic)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
             Settings,

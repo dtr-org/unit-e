@@ -10,6 +10,7 @@
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <proposer/eligible_coin.h>
+#include <proposer/finalization_reward_logic.h>
 #include <settings.h>
 #include <staking/coin.h>
 #include <staking/stakingwallet.h>
@@ -24,6 +25,7 @@ class BlockBuilder {
  public:
   //! \brief Builds a coinbase transaction.
   virtual const CTransactionRef BuildCoinbaseTransaction(
+      const CBlockIndex &prev_block,                    //!< The previous block / current tip.
       const uint256 &snapshot_hash,                     //!< The snapshot hash to be included.
       const EligibleCoin &eligible_coin,                //!< The eligible coin to reference as stake. Also contains the target height.
       const staking::CoinSet &coins,                    //!< Any other coins that should be combined into the coinbase tx.
@@ -34,7 +36,7 @@ class BlockBuilder {
 
   //! \brief Builds a brand new block.
   virtual std::shared_ptr<const CBlock> BuildBlock(
-      const CBlockIndex &index,                         //!< The previous block / current tip.
+      const CBlockIndex &prev_block,                    //!< The previous block / current tip.
       const uint256 &snapshot_hash,                     //!< The snapshot hash to be included in the new block.
       const EligibleCoin &stake_coin,                   //!< The coin to use as stake.
       const staking::CoinSet &coins,                    //!< Other coins to combine with the stake.
@@ -46,7 +48,9 @@ class BlockBuilder {
 
   virtual ~BlockBuilder() = default;
 
-  static std::unique_ptr<BlockBuilder> New(Dependency<Settings>);
+  static std::unique_ptr<BlockBuilder> New(
+      Dependency<Settings>,
+      Dependency<FinalizationRewardLogic>);
 };
 
 }  // namespace proposer
