@@ -345,7 +345,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected()
         comp_snapshot_hash(4)
 
-        block(6, get_staking_coin(), spend=out[3])
+        b6 = block(6, get_staking_coin(), spend=out[3])
         yield accepted()
         comp_snapshot_hash(6)
 
@@ -376,7 +376,8 @@ class FullBlockTest(ComparisonTestFramework):
         #                                          \-> b10 (3) -> b11 (4)
         #                      \-> b3 (1) -> b4 (2)
         tip(5)
-        block(10, get_staking_coin(), spend=out[3])
+        block(10, get_staking_coin())
+        update_block(block_number=10, new_transactions=[b6.vtx[1]])  # Reusing out[3], used in b6
         yield rejected()
         comp_snapshot_hash(6)
 
@@ -391,7 +392,8 @@ class FullBlockTest(ComparisonTestFramework):
         #                                              (b12 added last)
         #                      \-> b3 (1) -> b4 (2)
         tip(5)
-        b12 = block(12, get_staking_coin(), spend=out[3])
+        b12 = block(12, get_staking_coin())
+        update_block(block_number=12, new_transactions=[b6.vtx[1]])  # Reusing out[3], used in b6
         save_spendable_output()
         b13 = block(13, get_staking_coin(), spend=out[4])
         # Deliver the block header for b12, and the block b13.
