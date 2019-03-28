@@ -158,7 +158,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     const CTransactionRef p2pkh_coinbase = CreateAndProcessBlock({}, p2pkh_scriptPubKey).vtx[0];
 
-    m_wallet.AddCScript(p2pkh_scriptPubKey);
+    m_wallet->AddCScript(p2pkh_scriptPubKey);
 
     // flags to test: SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY, SCRIPT_VERIFY_CHECKSEQUENCE_VERIFY, SCRIPT_VERIFY_NULLDUMMY, uncompressed pubkey thing
 
@@ -242,8 +242,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
     // Lock the coin so it cannot be used for staking
     {
-        LOCK(m_wallet.cs_wallet);
-        m_wallet.LockCoin(COutPoint(p2pkh_coinbase->GetHash(), 1));
+        LOCK(m_wallet->cs_wallet);
+        m_wallet->LockCoin(COutPoint(p2pkh_coinbase->GetHash(), 1));
     }
 
     block = CreateAndProcessBlock({spend_tx}, p2pkh_scriptPubKey);
@@ -342,7 +342,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
         // Sign
         SignatureData sigdata;
-        ProduceSignature(m_wallet, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, 11*EEES, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
+        ProduceSignature(*m_wallet, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, 11*EEES, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
         UpdateInput(valid_with_witness_tx.vin[0], sigdata);
 
         // This should be valid under all script flags.
@@ -370,7 +370,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         // Sign
         for (int i=0; i<2; ++i) {
             SignatureData sigdata;
-            ProduceSignature(m_wallet, MutableTransactionSignatureCreator(&tx, i, 11*EEES, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
+            ProduceSignature(*m_wallet, MutableTransactionSignatureCreator(&tx, i, 11*EEES, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
             UpdateInput(tx.vin[i], sigdata);
         }
 
@@ -410,8 +410,8 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
       tx.vout[0].scriptPubKey = p2pkh_scriptPubKey;
 
       {
-        LOCK(m_wallet.GetWalletExtension().GetLock());
-        m_wallet.GetWalletExtension().SignCoinbaseTransaction(tx);
+        LOCK(m_wallet->GetWalletExtension().GetLock());
+        m_wallet->GetWalletExtension().SignCoinbaseTransaction(tx);
       }
 
       CValidationState state;

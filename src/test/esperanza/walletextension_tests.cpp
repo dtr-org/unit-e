@@ -82,8 +82,8 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   auto block_builder = proposer::BlockBuilder::New(behavior.get(), &settings);
 
   {
-    LOCK(m_wallet.cs_wallet);
-    m_wallet.AddKeyPubKey(key, pubkey);
+    LOCK(m_wallet->cs_wallet);
+    m_wallet->AddKeyPubKey(key, pubkey);
   }
 
   const auto destination = WitnessV0KeyHash(pubkey.GetID());
@@ -102,16 +102,16 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   CTransactionRef tx3ref = MakeTransactionRef(tx3);
 
   {
-    LOCK(m_wallet.cs_wallet);
-    const CWallet *wallet = &m_wallet;
+    LOCK(m_wallet->cs_wallet);
+    const CWallet *wallet = m_wallet.get();
 
     CWalletTx walletTx1(wallet, tx1ref);
     CWalletTx walletTx2(wallet, tx2ref);
     CWalletTx walletTx3(wallet, tx3ref);
 
-    m_wallet.LoadToWallet(walletTx1);
-    m_wallet.LoadToWallet(walletTx2);
-    m_wallet.LoadToWallet(walletTx3);
+    m_wallet->LoadToWallet(walletTx1);
+    m_wallet->LoadToWallet(walletTx2);
+    m_wallet->LoadToWallet(walletTx3);
   }
 
   const CBlockIndex block = [] {
@@ -140,7 +140,7 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   // BuildCoinbaseTransaction() will also sign it
   CTransactionRef coinbase_transaction =
-      block_builder->BuildCoinbaseTransaction(uint256(), eligible_coin, coins, 700, m_wallet.GetWalletExtension());
+      block_builder->BuildCoinbaseTransaction(uint256(), eligible_coin, coins, 700, m_wallet->GetWalletExtension());
 
   // check that a coinbase transaction was built successfully
   BOOST_REQUIRE(static_cast<bool>(coinbase_transaction));
@@ -165,12 +165,12 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   // We should be able to spend all the outputs
   for (const auto &out : coinbase_transaction->vout) {
-    BOOST_CHECK(::IsMine(m_wallet, out.scriptPubKey) == ISMINE_SPENDABLE);
+    BOOST_CHECK(::IsMine(*m_wallet, out.scriptPubKey) == ISMINE_SPENDABLE);
   }
 }
 
 BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
-  auto pwallet = &m_wallet;
+  auto pwallet = m_wallet.get();
   auto &wallet_ext = pwallet->GetWalletExtension();
 
   CKey our_key;
@@ -191,7 +191,7 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
   const auto their_script = CScript() << ToByteVector(their_pubkey) << OP_CHECKSIG;
   const auto their_script_hash = Sha256(their_script.begin(), their_script.end());
 
-  LOCK2(cs_main, m_wallet.cs_wallet);
+  LOCK2(cs_main, m_wallet->cs_wallet);
   pwallet->AddKey(our_key);
   pwallet->AddCScript(our_script);
 
@@ -200,7 +200,7 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript::CreateP2PKHScript(ToByteVector(our_pubkey.GetID())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
-    m_wallet.LoadToWallet(wtx);
+    m_wallet->LoadToWallet(wtx);
 
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
     BOOST_CHECK_EQUAL(balance, 0);
@@ -211,8 +211,8 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
     CMutableTransaction tx;
     tx.vout.emplace_back(100, CScript() << ToByteVector(our_pubkey) << OP_CHECKSIG);
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
-    m_wallet.LoadToWallet(wtx);
-    BOOST_CHECK_EQUAL(m_wallet.IsMine(tx.vout[0]), ISMINE_SPENDABLE);
+    m_wallet->LoadToWallet(wtx);
+    BOOST_CHECK_EQUAL(m_wallet->IsMine(tx.vout[0]), ISMINE_SPENDABLE);
 
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
     BOOST_CHECK_EQUAL(balance, 0);
@@ -225,14 +225,14 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
                                   ToByteVector(their_pubkey.GetID()),
                                   ToByteVector(random_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
-    m_wallet.LoadToWallet(wtx);
+    m_wallet->LoadToWallet(wtx);
 
     CMutableTransaction tx2;
     tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
                                    ToByteVector(their_pubkey.GetID()),
                                    ToByteVector(their_script_hash)));
     CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
-    m_wallet.LoadToWallet(wtx2);
+    m_wallet->LoadToWallet(wtx2);
 
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
     BOOST_CHECK_EQUAL(balance, 0);
@@ -245,14 +245,14 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
                                   ToByteVector(our_pubkey.GetID()),
                                   ToByteVector(their_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
-    m_wallet.LoadToWallet(wtx);
+    m_wallet->LoadToWallet(wtx);
 
     CMutableTransaction tx2;
     tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
                                    ToByteVector(our_pubkey.GetID()),
                                    ToByteVector(their_script_hash)));
     CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
-    m_wallet.LoadToWallet(wtx2);
+    m_wallet->LoadToWallet(wtx2);
 
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
     BOOST_CHECK_EQUAL(balance, 0);
@@ -265,14 +265,14 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
                                   ToByteVector(their_pubkey.GetID()),
                                   ToByteVector(our_pubkey.GetSha256())));
     CWalletTx wtx(pwallet, MakeTransactionRef(tx));
-    m_wallet.LoadToWallet(wtx);
+    m_wallet->LoadToWallet(wtx);
 
     CMutableTransaction tx2;
     tx2.vout.emplace_back(100, CScript::CreateRemoteStakingScripthashScript(
                                    ToByteVector(their_pubkey.GetID()),
                                    ToByteVector(our_script_hash)));
     CWalletTx wtx2(pwallet, MakeTransactionRef(tx2));
-    m_wallet.LoadToWallet(wtx2);
+    m_wallet->LoadToWallet(wtx2);
 
     CAmount balance = wallet_ext.GetRemoteStakingBalance();
     BOOST_CHECK_EQUAL(balance, 200);
@@ -281,11 +281,11 @@ BOOST_FIXTURE_TEST_CASE(get_remote_staking_balance, WalletTestingSetup) {
 
 BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
 
-  const auto pwallet = &m_wallet;
+  const auto pwallet = m_wallet.get();
   const auto &wallet_ext = pwallet->GetWalletExtension();
 
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
+    LOCK2(cs_main, m_wallet->cs_wallet);
     BOOST_CHECK_EQUAL(wallet_ext.GetStakeableCoins().size(), 1);
   }
 
@@ -297,7 +297,7 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
 
   // Check that a coin can be selected
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
+    LOCK2(cs_main, m_wallet->cs_wallet);
     staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
     BOOST_REQUIRE_EQUAL(stakeable_coins.size(), 2);  // The just created stakeable tx + initial reward
 
@@ -313,7 +313,7 @@ BOOST_FIXTURE_TEST_CASE(get_stakeable_coins, TestChain100Setup) {
 
   // Make sure locked coins are not selected
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
+    LOCK2(cs_main, m_wallet->cs_wallet);
     staking::CoinSet stakeable_coins = wallet_ext.GetStakeableCoins();
     BOOST_CHECK_EQUAL(stakeable_coins.size(), 2);  // The just created stakeable tx + initial reward
 

@@ -42,7 +42,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
     CTransactionRef new_coinbase = CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0];
     CBlockIndex* newTip = chainActive.Tip();
 
-    RemoveWallet(m_wallet_ptr);
+    RemoveWallet(m_wallet);
 
     LOCK(cs_main);
 
@@ -131,7 +131,7 @@ BOOST_FIXTURE_TEST_CASE(importwallet_rescan, TestChain100Setup)
     SetMockTime(KEY_TIME);
     m_coinbase_txns.emplace_back(*CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey())).vtx[0]);
 
-    RemoveWallet(m_wallet_ptr);
+    RemoveWallet(m_wallet);
 
     LOCK(cs_main);
 
@@ -208,10 +208,10 @@ BOOST_FIXTURE_TEST_CASE(get_immature_credit, TestChain100Setup)
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
   {
     LOCK(cs_main);
-    const CWalletTx *const immature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.back().GetHash());
+    const CWalletTx *const immature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.back().GetHash());
     BOOST_CHECK_EQUAL(immature_coinbase->GetImmatureCredit(), immature_coinbase->tx->vout[0].nValue);
 
-    const CWalletTx *const mature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.front().GetHash());
+    const CWalletTx *const mature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.front().GetHash());
     BOOST_CHECK_EQUAL(mature_coinbase->GetImmatureCredit(), 0);
   }
 
@@ -220,10 +220,10 @@ BOOST_FIXTURE_TEST_CASE(get_immature_credit, TestChain100Setup)
 
   {
     LOCK(cs_main);
-    const CWalletTx *const immature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.at(2).GetHash());
+    const CWalletTx *const immature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.at(2).GetHash());
     BOOST_CHECK_EQUAL(immature_coinbase->GetImmatureCredit(), immature_coinbase->tx->vout[0].nValue);
 
-    const CWalletTx *const mature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.at(1).GetHash());
+    const CWalletTx *const mature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.at(1).GetHash());
     BOOST_CHECK_EQUAL(mature_coinbase->GetImmatureCredit(), 0);
   }
 }
@@ -234,10 +234,10 @@ BOOST_FIXTURE_TEST_CASE(get_available_credit, TestChain100Setup)
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
   {
     LOCK(cs_main);
-    const CWalletTx *const immature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.back().GetHash());
+    const CWalletTx *const immature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.back().GetHash());
     BOOST_CHECK_EQUAL(immature_coinbase->GetAvailableCredit(), 0);
 
-    const CWalletTx *const mature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.front().GetHash());
+    const CWalletTx *const mature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.front().GetHash());
     BOOST_CHECK_EQUAL(mature_coinbase->GetAvailableCredit(), mature_coinbase->tx->vout[0].nValue);
   }
 
@@ -246,10 +246,10 @@ BOOST_FIXTURE_TEST_CASE(get_available_credit, TestChain100Setup)
 
   {
     LOCK(cs_main);
-    const CWalletTx *const immature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.at(2).GetHash());
+    const CWalletTx *const immature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.at(2).GetHash());
     BOOST_CHECK_EQUAL(immature_coinbase->GetAvailableCredit(), 0);
 
-    const CWalletTx *const mature_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.at(1).GetHash());
+    const CWalletTx *const mature_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.at(1).GetHash());
     BOOST_CHECK_EQUAL(mature_coinbase->GetAvailableCredit(), immature_coinbase->tx->vout[0].nValue);
   }
 }
@@ -260,15 +260,15 @@ BOOST_FIXTURE_TEST_CASE(get_immature_watch_only_credit, TestChain100Setup)
   watch_only_key.MakeNewKey(true);
   const CScript watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
   {
-    LOCK(m_wallet.cs_wallet);
-    assert(m_wallet.AddWatchOnly(watch_only_script, 0));
+    LOCK(m_wallet->cs_wallet);
+    assert(m_wallet->AddWatchOnly(watch_only_script, 0));
   }
 
   CTransactionRef immature_coinbase = CreateAndProcessBlock({}, watch_only_script).vtx[0];
 
   {
      LOCK(cs_main);
-     const CWalletTx *const wallet_tx = m_wallet.GetWalletTx(immature_coinbase->GetHash());
+     const CWalletTx *const wallet_tx = m_wallet->GetWalletTx(immature_coinbase->GetHash());
      BOOST_CHECK_EQUAL(wallet_tx->GetImmatureWatchOnlyCredit(), immature_coinbase->vout[0].nValue);
   }
 
@@ -279,7 +279,7 @@ BOOST_FIXTURE_TEST_CASE(get_immature_watch_only_credit, TestChain100Setup)
 
   {
     LOCK(cs_main);
-    const CWalletTx *const wallet_tx = m_wallet.GetWalletTx(immature_coinbase->GetHash());
+    const CWalletTx *const wallet_tx = m_wallet->GetWalletTx(immature_coinbase->GetHash());
     BOOST_CHECK_EQUAL(wallet_tx->GetImmatureWatchOnlyCredit(), 0);
   }
 }
@@ -290,15 +290,15 @@ BOOST_FIXTURE_TEST_CASE(get_available_watch_only_credit, TestChain100Setup)
   watch_only_key.MakeNewKey(true);
   const CScript watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
   {
-    LOCK(m_wallet.cs_wallet);
-    assert(m_wallet.AddWatchOnly(watch_only_script, 0));
+    LOCK(m_wallet->cs_wallet);
+    assert(m_wallet->AddWatchOnly(watch_only_script, 0));
   }
 
   CTransactionRef watch_only_coinbase = CreateAndProcessBlock({}, watch_only_script).vtx[0];
 
   {
     LOCK(cs_main);
-    const CWalletTx *wallet_tx = m_wallet.GetWalletTx(watch_only_coinbase->GetHash());
+    const CWalletTx *wallet_tx = m_wallet->GetWalletTx(watch_only_coinbase->GetHash());
     // The stake is watch-only
     BOOST_CHECK_EQUAL(wallet_tx->GetAvailableCredit(false, ISMINE_WATCH_ONLY), 10000 * UNIT);
   }
@@ -311,7 +311,7 @@ BOOST_FIXTURE_TEST_CASE(get_available_watch_only_credit, TestChain100Setup)
   {
     // The initial stake of 10000 * UNIT also beacame watch-only cause we proposed with a watch-only script
     LOCK(cs_main);
-    const CWalletTx *wallet_tx = m_wallet.GetWalletTx(watch_only_coinbase->GetHash());
+    const CWalletTx *wallet_tx = m_wallet->GetWalletTx(watch_only_coinbase->GetHash());
     BOOST_CHECK_EQUAL(wallet_tx->GetAvailableCredit(false, ISMINE_WATCH_ONLY), watch_only_coinbase->GetValueOut());
   }
 }
@@ -349,24 +349,24 @@ static int64_t AddTx(CWallet& wallet, uint32_t lockTime, int64_t mockTime, int64
 BOOST_AUTO_TEST_CASE(ComputeTimeSmart)
 {
     // New transaction should use clock time if lower than block time.
-    BOOST_CHECK_EQUAL(AddTx(m_wallet, 1, 100, 120), 100);
+    BOOST_CHECK_EQUAL(AddTx(*m_wallet, 1, 100, 120), 100);
 
     // Test that updating existing transaction does not change smart time.
-    BOOST_CHECK_EQUAL(AddTx(m_wallet, 1, 200, 220), 100);
+    BOOST_CHECK_EQUAL(AddTx(*m_wallet, 1, 200, 220), 100);
 
     // New transaction should use clock time if there's no block time.
-    BOOST_CHECK_EQUAL(AddTx(m_wallet, 2, 300, 0), 300);
+    BOOST_CHECK_EQUAL(AddTx(*m_wallet, 2, 300, 0), 300);
 
     // New transaction should use block time if lower than clock time.
-    BOOST_CHECK_EQUAL(AddTx(m_wallet, 3, 420, 400), 400);
+    BOOST_CHECK_EQUAL(AddTx(*m_wallet, 3, 420, 400), 400);
 
     // New transaction should use latest entry time if higher than
     // min(block time, clock time).
-    BOOST_CHECK_EQUAL(AddTx(m_wallet, 4, 500, 390), 400);
+    BOOST_CHECK_EQUAL(AddTx(*m_wallet, 4, 500, 390), 400);
 
     // If there are future entries, new transaction should use time of the
     // newest entry that is no more than 300 seconds ahead of the clock time.
-    BOOST_CHECK_EQUAL(AddTx(m_wallet, 5, 50, 600), 300);
+    BOOST_CHECK_EQUAL(AddTx(*m_wallet, 5, 50, 600), 300);
 
     // Reset mock time for other tests.
     SetMockTime(0);
@@ -375,12 +375,12 @@ BOOST_AUTO_TEST_CASE(ComputeTimeSmart)
 BOOST_AUTO_TEST_CASE(LoadReceiveRequests)
 {
     CTxDestination dest = CKeyID();
-    LOCK(m_wallet.cs_wallet);
-    m_wallet.AddDestData(dest, "misc", "val_misc");
-    m_wallet.AddDestData(dest, "rr0", "val_rr0");
-    m_wallet.AddDestData(dest, "rr1", "val_rr1");
+    LOCK(m_wallet->cs_wallet);
+    m_wallet->AddDestData(dest, "misc", "val_misc");
+    m_wallet->AddDestData(dest, "rr0", "val_rr0");
+    m_wallet->AddDestData(dest, "rr1", "val_rr1");
 
-    auto values = m_wallet.GetDestValues("rr");
+    auto values = m_wallet->GetDestValues("rr");
     BOOST_CHECK_EQUAL(values.size(), 2U);
     BOOST_CHECK_EQUAL(values[0], "val_rr0");
     BOOST_CHECK_EQUAL(values[1], "val_rr1");
@@ -493,10 +493,10 @@ BOOST_FIXTURE_TEST_CASE(ListCoins, ListCoinsTestingSetup)
 BOOST_FIXTURE_TEST_CASE(AvailableCoins_coinbase_maturity, TestChain100Setup)
 {
     {
-        LOCK2(cs_main, m_wallet.cs_wallet);
+        LOCK2(cs_main, m_wallet->cs_wallet);
 
         std::vector<COutput> stake_available;
-        m_wallet.AvailableCoins(stake_available);
+        m_wallet->AvailableCoins(stake_available);
         BOOST_CHECK_EQUAL(stake_available.size(), 1);
         BOOST_CHECK_EQUAL(stake_available[0].tx->tx->vout[stake_available[0].i].nValue, 10000 * UNIT);
     }
@@ -505,10 +505,10 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins_coinbase_maturity, TestChain100Setup)
     CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
 
     {
-        LOCK2(cs_main, m_wallet.cs_wallet);
+        LOCK2(cs_main, m_wallet->cs_wallet);
 
         std::vector<COutput> available;
-        m_wallet.AvailableCoins(available);
+        m_wallet->AvailableCoins(available);
         // Stake + block reward are now available
         BOOST_CHECK_EQUAL(available.size(), 2);
     }
@@ -574,8 +574,8 @@ BOOST_FIXTURE_TEST_CASE(AvailableCoins, ListCoinsTestingSetup) {
 BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup) {
 
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const std::map<CTxDestination, CAmount> balances = m_wallet.GetAddressBalances();
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const std::map<CTxDestination, CAmount> balances = m_wallet->GetAddressBalances();
     BOOST_CHECK_EQUAL(balances.size(), 1); // the stake
   }
 
@@ -584,8 +584,8 @@ BOOST_FIXTURE_TEST_CASE(GetAddressBalances_coinbase_maturity, TestChain100Setup)
 
   {
     const CTxDestination coinbase_destination = GetDestinationForKey(coinbaseKey.GetPubKey(), OutputType::LEGACY);
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const std::map<CTxDestination, CAmount> balances = m_wallet.GetAddressBalances();
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const std::map<CTxDestination, CAmount> balances = m_wallet->GetAddressBalances();
     BOOST_CHECK_EQUAL(balances.size(), 2);
     BOOST_CHECK_EQUAL(balances.at(coinbase_destination), 10000 * UNIT);
   }
@@ -595,10 +595,10 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
 
   // Nothing is mature currenly so no balances (except the inital stake)
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const CAmount all_balance = m_wallet.GetLegacyBalance(ISMINE_ALL, 0, nullptr);
-    const CAmount spendable_balance = m_wallet.GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
-    const CAmount watchonly_balance = m_wallet.GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const CAmount all_balance = m_wallet->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
+    const CAmount spendable_balance = m_wallet->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
+    const CAmount watchonly_balance = m_wallet->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
     BOOST_CHECK_EQUAL(all_balance, 10000 * UNIT);
     BOOST_CHECK_EQUAL(spendable_balance, 10000 * UNIT);
     BOOST_CHECK_EQUAL(watchonly_balance, 0);
@@ -609,10 +609,10 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
 
   // Now we should have the same balance as before plus the newly mature coinbase
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const CAmount all_balance = m_wallet.GetLegacyBalance(ISMINE_ALL, 0, nullptr);
-    const CAmount spendable_balance = m_wallet.GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
-    const CAmount watchonly_balance = m_wallet.GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const CAmount all_balance = m_wallet->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
+    const CAmount spendable_balance = m_wallet->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
+    const CAmount watchonly_balance = m_wallet->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
     BOOST_CHECK_EQUAL(all_balance, (10000 * UNIT) + m_coinbase_txns.front().vout[0].nValue);
     BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + m_coinbase_txns.back().vout[0].nValue);
     BOOST_CHECK_EQUAL(watchonly_balance, 0);
@@ -624,8 +624,8 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
   const CScript watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
 
   {
-    LOCK(m_wallet.cs_wallet);
-    assert(m_wallet.AddWatchOnly(watch_only_script, 0));
+    LOCK(m_wallet->cs_wallet);
+    assert(m_wallet->AddWatchOnly(watch_only_script, 0));
   }
 
   // Make one more coinbase mature so we can use it to mine after we spent our
@@ -643,10 +643,10 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
   // watch-only stake and reward
   {
       auto coinbase_reward = m_coinbase_txns.back().vout[0].nValue;
-      LOCK2(cs_main, m_wallet.cs_wallet);
-      const CAmount all_balance = m_wallet.GetLegacyBalance(ISMINE_ALL, 0, nullptr);
-      const CAmount spendable_balance = m_wallet.GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
-      const CAmount watchonly_balance = m_wallet.GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
+      LOCK2(cs_main, m_wallet->cs_wallet);
+      const CAmount all_balance = m_wallet->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
+      const CAmount spendable_balance = m_wallet->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
+      const CAmount watchonly_balance = m_wallet->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
       BOOST_CHECK_EQUAL(all_balance, (10000 * UNIT) + coinbase_reward * 102 + watch_only_coinbase->GetValueOut());
       BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 102);
       BOOST_CHECK_EQUAL(watchonly_balance, watch_only_coinbase->GetValueOut());
@@ -661,22 +661,22 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
   const blockchain::Height height = chainActive.Height();
   {
     LOCK(cs_main);
-    const CWalletTx *const first = m_wallet.GetWalletTx(m_coinbase_txns.front().GetHash());
+    const CWalletTx *const first = m_wallet->GetWalletTx(m_coinbase_txns.front().GetHash());
     BOOST_CHECK(first);
     // Height is 101, COINBASE_MATURITY is 100, so we expect the coinbase to be mature
     BOOST_CHECK_EQUAL(first->GetBlocksToRewardMaturity(), 0);
 
-    const CWalletTx *const next_to_first = m_wallet.GetWalletTx(m_coinbase_txns.at(1).GetHash());
+    const CWalletTx *const next_to_first = m_wallet->GetWalletTx(m_coinbase_txns.at(1).GetHash());
     BOOST_CHECK(next_to_first);
     BOOST_CHECK_EQUAL(next_to_first->GetBlocksToRewardMaturity(), 1);
 
-    const CWalletTx *const middle = m_wallet.GetWalletTx(m_coinbase_txns.at(m_coinbase_txns.size()/2).GetHash());
+    const CWalletTx *const middle = m_wallet->GetWalletTx(m_coinbase_txns.at(m_coinbase_txns.size()/2).GetHash());
     BOOST_CHECK(middle);
     BOOST_CHECK_EQUAL(middle->GetBlocksToRewardMaturity(), COINBASE_MATURITY - (height/2));
 
     // Just another block has been created on top of the last coibase, so we expect
     // it to need other COINBASE_MATURITY - 1 confirmations
-    const CWalletTx *const last = m_wallet.GetWalletTx(m_coinbase_txns.back().GetHash());
+    const CWalletTx *const last = m_wallet->GetWalletTx(m_coinbase_txns.back().GetHash());
     BOOST_CHECK(last);
     BOOST_CHECK_EQUAL(last->GetBlocksToRewardMaturity(), COINBASE_MATURITY - 1);
   }
@@ -689,10 +689,10 @@ BOOST_FIXTURE_TEST_CASE(GetBlockToMaturity, TestChain100Setup)
 
   {
     LOCK(cs_main);
-    CWalletTx last_generated_coinbase(&m_wallet, last_block.vtx[0]);
+    CWalletTx last_generated_coinbase(m_wallet.get(), last_block.vtx[0]);
     BOOST_CHECK_EQUAL(last_generated_coinbase.GetBlocksToRewardMaturity(), COINBASE_MATURITY + 1);
 
-    const CWalletTx *const last_coinbase = m_wallet.GetWalletTx(m_coinbase_txns.back().GetHash());
+    const CWalletTx *const last_coinbase = m_wallet->GetWalletTx(m_coinbase_txns.back().GetHash());
     BOOST_CHECK(last_coinbase);
     BOOST_CHECK_EQUAL(last_coinbase->GetBlocksToRewardMaturity(), COINBASE_MATURITY - 11);
   }
@@ -702,8 +702,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
 
   // Nothing is mature currenly so no balances (except the initial stake)
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const CWalletTx *const first = m_wallet.GetWalletTx(m_coinbase_txns.front().GetHash());
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const CWalletTx *const first = m_wallet->GetWalletTx(m_coinbase_txns.front().GetHash());
     const CAmount all_credit = first->GetCredit(ISMINE_ALL);
     const CAmount spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
     const CAmount watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
@@ -716,8 +716,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
   CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
 
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const CWalletTx *const first = m_wallet.GetWalletTx(m_coinbase_txns.front().GetHash());
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const CWalletTx *const first = m_wallet->GetWalletTx(m_coinbase_txns.front().GetHash());
     const CAmount all_credit = first->GetCredit(ISMINE_ALL);
     const CAmount spendable_credit = first->GetCredit(ISMINE_SPENDABLE);
     const CAmount watchonly_credit = first->GetCredit(ISMINE_WATCH_ONLY);
@@ -732,8 +732,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
   const CScript watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
 
   {
-    LOCK(m_wallet.cs_wallet);
-    assert(m_wallet.AddWatchOnly(watch_only_script, 0));
+    LOCK(m_wallet->cs_wallet);
+    assert(m_wallet->AddWatchOnly(watch_only_script, 0));
   }
 
   // Make one more coinbase mature so we can use it to mine after we spent our
@@ -747,8 +747,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
   }
 
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const CWalletTx *const watch_only = m_wallet.GetWalletTx(watch_only_coinbase->GetHash());
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const CWalletTx *const watch_only = m_wallet->GetWalletTx(watch_only_coinbase->GetHash());
     const CAmount all_credit = watch_only->GetCredit(ISMINE_ALL);
     const CAmount spendable_credit = watch_only->GetCredit(ISMINE_SPENDABLE);
     const CAmount watchonly_credit = watch_only->GetCredit(ISMINE_WATCH_ONLY);
@@ -761,8 +761,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_maturity, TestChain100Setup) {
 BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_cache, TestChain100Setup) {
   // Nothing is mature (except the initial stake) currenlty so nothing should be cached
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const CWalletTx *const first = m_wallet.GetWalletTx(m_coinbase_txns.front().GetHash());
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const CWalletTx *const first = m_wallet->GetWalletTx(m_coinbase_txns.front().GetHash());
     const CAmount available_credit = first->GetAvailableCredit(true);
     const CAmount all_credit = first->GetCredit(ISMINE_ALL);
     BOOST_CHECK_EQUAL(all_credit, 10000 * UNIT);
@@ -776,8 +776,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_cache, TestChain100Setup) {
   // Make one coinbase mature
   CreateAndProcessBlock({}, GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID())));
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
-    const CWalletTx *const first = m_wallet.GetWalletTx(m_coinbase_txns.front().GetHash());
+    LOCK2(cs_main, m_wallet->cs_wallet);
+    const CWalletTx *const first = m_wallet->GetWalletTx(m_coinbase_txns.front().GetHash());
 
     // Since we didn't call GetBalance or GetAvailableCredit yet, nothing should be cached
     BOOST_CHECK_EQUAL(first->fCreditCached, false);
@@ -819,8 +819,8 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_cache, TestChain100Setup) {
   const CScript watch_only_script = GetScriptForRawPubKey(watch_only_key.GetPubKey());
 
   {
-    LOCK(m_wallet.cs_wallet);
-    assert(m_wallet.AddWatchOnly(watch_only_script, 0));
+    LOCK(m_wallet->cs_wallet);
+    assert(m_wallet->AddWatchOnly(watch_only_script, 0));
   }
 
   // The initial stake is gonna be used to generate this block and it will become
@@ -832,9 +832,9 @@ BOOST_FIXTURE_TEST_CASE(GetCredit_coinbase_cache, TestChain100Setup) {
   }
 
   {
-    LOCK2(cs_main, m_wallet.cs_wallet);
+    LOCK2(cs_main, m_wallet->cs_wallet);
 
-    const CWalletTx *const watch_only = m_wallet.GetWalletTx(watch_only_coinbase->GetHash());
+    const CWalletTx *const watch_only = m_wallet->GetWalletTx(watch_only_coinbase->GetHash());
 
     BOOST_CHECK_EQUAL(watch_only->fWatchCreditCached, false);
     BOOST_CHECK_EQUAL(watch_only->nWatchCreditCached, 0);

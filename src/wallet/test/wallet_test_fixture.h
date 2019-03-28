@@ -13,7 +13,6 @@
 
 //! Testing setup and teardown for wallet.
 struct WalletTestingSetup : public TestingSetup {
-
   explicit WalletTestingSetup(
       const std::string &chainName = CBaseChainParams::TESTNET);
 
@@ -24,8 +23,7 @@ struct WalletTestingSetup : public TestingSetup {
   ~WalletTestingSetup();
 
   Settings settings;
-  std::shared_ptr<CWallet> m_wallet_ptr;
-  CWallet &m_wallet;
+  std::shared_ptr<CWallet> m_wallet;
 };
 
 //

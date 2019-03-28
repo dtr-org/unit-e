@@ -15,9 +15,7 @@ WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
     : WalletTestingSetup([](Settings& s){}, chainName) {}
 
 WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const std::string& chainName)
-    : TestingSetup(chainName),
-      m_wallet_ptr(new CWallet("mock", WalletDatabase::CreateMock())),
-      m_wallet(*m_wallet_ptr)
+    : TestingSetup(chainName)
 {
     bool fFirstRun;
 
@@ -25,9 +23,10 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
     esperanza::WalletExtensionDeps deps;
     deps.settings = &settings;
 
-    m_wallet.LoadWallet(fFirstRun);
-    RegisterValidationInterface(&m_wallet);
-    AddWallet(m_wallet_ptr);
+    m_wallet.reset(new CWallet("mock", WalletDatabase::CreateMock(), deps));
+    m_wallet->LoadWallet(fFirstRun);
+    RegisterValidationInterface(m_wallet.get());
+    AddWallet(m_wallet);
 
     RegisterWalletRPCCommands(tableRPC);
     RegisterValidatorRPCCommands(tableRPC);
@@ -35,8 +34,8 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
 
 WalletTestingSetup::~WalletTestingSetup()
 {
-    RemoveWallet(m_wallet_ptr);
-    UnregisterValidationInterface(&m_wallet);
+    RemoveWallet(m_wallet);
+    UnregisterValidationInterface(m_wallet.get());
 }
 
 TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::REGTEST)
@@ -44,13 +43,13 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
   coinbaseKey = DecodeSecret("cQTjnbHifWGuMhm9cRgQ23ip5KntTMfj3zwo6iQyxMVxSfJyptqL");
   assert(coinbaseKey.IsValid());
   {
-    LOCK(m_wallet.cs_wallet);
-    assert(m_wallet.AddKey(coinbaseKey));
+    LOCK(m_wallet->cs_wallet);
+    assert(m_wallet->AddKey(coinbaseKey));
   }
 
-  WalletRescanReserver reserver(&m_wallet);
+  WalletRescanReserver reserver(m_wallet.get());
   reserver.reserve();
-  m_wallet.ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
+  m_wallet->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
 
   // Generate a 100-block chain:
   GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0
