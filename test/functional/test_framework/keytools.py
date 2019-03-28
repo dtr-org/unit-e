@@ -130,7 +130,9 @@ class BinaryData:
 
     def to_base58check(self, version):
         """
-        Encode the data using base58check. Returns a str.
+        Encodes the data using base58check. Returns a str.
+
+        The Base58Check encoding scheme is described in https://en.bitcoin.it/wiki/Base58Check_encoding.
 
         :param version: The version byte to use. 0x00 for mainnet, 0xEF for testnet/regtest.
         """
@@ -155,7 +157,7 @@ class PrivateKey(BinaryData):
     A private key (like CKey in C++ code)
 
     A private key is a 256-bit number represented by a string of 32 bytes.
-    A private key can be used to derive a public key from it.
+    A private key can be used to derive a public key from it, using `get_pubkey()`.
     """
 
     __slots__ = ['key', 'compressed']
@@ -165,7 +167,7 @@ class PrivateKey(BinaryData):
         Constructs a private key.
 
         :param data: optional, defaults to None. If omitted, a random private key will be generated. May be of any type
-            that is accepted by BinaryData.__init__
+            that is accepted by BinaryData.
         :param compressed: optional, defaults to True. Whether a public key derived from this private key will be
             compressed or not.
 
@@ -195,7 +197,9 @@ class PrivateKey(BinaryData):
 
     def bech32_address(self, hrp):
         """
-        Derives a bech32 address form this private key.
+        Derives a bech32 address from this private key.
+
+        Bech32 addresses are the native segwit format, see: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 
         :param hrp: The human readable prefix to use for the address.
         :return: A P2PWKH bech32 encoded address. Funds spent to this address can be unlocked using this private key.
@@ -210,6 +214,9 @@ class PrivateKey(BinaryData):
     def wif(self, version):
         """
         Dump the key in wallet import format (WIF).
+
+        Wallet Import Format is described at https://en.bitcoin.it/wiki/Wallet_import_format
+        Test vectors can be obtained via http://gobittest.appspot.com/PrivateKey
 
         :param version The version byte to be used for this address. 0xEF is the version byte for regtest. Using
             KeyTool the chainparams in use will be populated automatically from the node.
@@ -266,11 +273,25 @@ class PublicKey(BinaryData):
         return "PublicKey(%s)" % str(self)
 
     def legacy_address(self, version):
-        """ Creates a P2PKH address in base58check encoding from this public key. """
+        """
+        Creates a P2PKH address in base58check encoding from this public key.
+
+        An in-depth explanation of the technical background of legacy addresses can be found at:
+        - https://en.bitcoin.it/wiki/Technical_background_of_version_1_Bitcoin_addresses
+        - http://royalforkblog.github.io/2014/08/11/graphical-address-generator/
+        """
         h = BinaryData(ripemd160(sha256(self.data)))
         return h.to_base58check(version=version)
 
     def bech32_address(self, hrp):
+        """
+        Derives a bech32 address from this public key.
+
+        Bech32 addresses are the native segwit format, see: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+
+        :param hrp: The human readable prefix to use for the address.
+        :return: A P2PWKH bech32 encoded address.
+        """
         if not self.is_compressed():
             raise ValueError('not a compressed pubkey')
         return encode(hrp, 0, ripemd160(sha256(self.data)))
@@ -309,7 +330,7 @@ class KeyTool(object):
     @staticmethod
     def for_node(node):
         """
-        Creates a keytool for use with the given node.
+        Creates a KeyTool for use with the given node.
 
         The node will be queried for the chainparams in use and the version bytes and human readable prefixes
         will be used automatically when creating addresses. This allows tests to be written agnostic from the
@@ -358,7 +379,7 @@ class KeyTool(object):
         :param key: An instance of a PublicKey or PrivateKey.
         :param rescan: Whether the node's wallet should rescan transactions using the imported key.
         :param node: optional, defaults to None. The node to import this key at. If None given the node which this
-            keytool was initialized with is used.
+            KeyTool was initialized with is used.
         """
         if node is None:
             node = self.node
@@ -373,7 +394,7 @@ class KeyTool(object):
 
         :param address: A bech32 or legacy address given as a string.
         :param node: optional, defaults to None. The node to lookup the key at. If None given the node which this
-            keytool was initialized with is used.
+            KeyTool was initialized with is used.
         """
         if node is None:
             node = self.node
@@ -385,7 +406,7 @@ class KeyTool(object):
 
         :param address: A bech32 or legacy address given as a string.
         :param node: optional, defaults to None. The node to lookup the key at. If None given the node which this
-            keytool was initialized with is used.
+            KeyTool was initialized with is used.
         """
         if node is None:
             node = self.node
@@ -394,6 +415,8 @@ class KeyTool(object):
     def get_bech32_address(self, key_or_node=None):
         """
         Get a bech32/segwit address for a given key or from a node.
+
+        Bech32 addresses are the native segwit format, see: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 
         :param key_or_node: optional, defaults to None. Either a key (instance of PrivateKey or PublicKey) or a
             TestNode. If a key is given the address is derived from that key and no communication with any node
@@ -426,6 +449,9 @@ class KeyTool(object):
     def get_privkey_wif(self, key):
         """
         Export a private key in wallet import format (WIF).
+
+        Wallet Import Format is described at https://en.bitcoin.it/wiki/Wallet_import_format
+        Test vectors can be obtained via http://gobittest.appspot.com/PrivateKey
 
         Uses the version bytes as reported by the chainparams from the node with which this KeyTool instance was
         initialized with.
