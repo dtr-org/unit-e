@@ -280,7 +280,8 @@ public:
      *  0  : in memory pool, waiting to be included in a block
      * >=1 : this many blocks deep in the main chain
      */
-    int GetDepthInMainChain() const;
+    int GetDepthInMainChain() const { const CBlockIndex *block_index; return GetDepthInMainChain(block_index); }
+    int GetDepthInMainChain(const CBlockIndex * &block_index) const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool IsInMainChain() const { return GetDepthInMainChain() > 0; }
     int GetBlocksToRewardMaturity() const;
     bool hashUnset() const { return (hashBlock.IsNull() || hashBlock == ABANDON_HASH); }

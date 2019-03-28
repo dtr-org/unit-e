@@ -50,8 +50,8 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
     const CBlockIndex *containing_block;
-    int depth = tx->GetDepthInMainChain();  // requires cs_main
-    if (depth == 0) {
+    tx->GetDepthInMainChain(containing_block);  // requires cs_main
+    if (!containing_block) {
       // transaction is not included in a block
       continue;
     }
