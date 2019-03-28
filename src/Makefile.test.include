@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-TESTS += test/test_unite
 bin_PROGRAMS += test/test_unite
 noinst_PROGRAMS += test/test_unite_fuzzy
 TEST_SRCDIR = test
@@ -22,6 +21,14 @@ JSON_TEST_FILES = \
 RAW_TEST_FILES =
 
 GENERATED_TEST_FILES = $(JSON_TEST_FILES:.json=.json.h) $(RAW_TEST_FILES:.raw=.raw.h)
+
+UNITE_TEST_SUITE = \
+  test/test_unite.h \
+  test/test_unite.cpp \
+  test/test_unite_block_fixture.h \
+  test/test_unite_block_fixture.cpp \
+  test/test_unite_main.cpp \
+  test/test_unite_mocks.h
 
 # test_unite binary #
 UNITE_TESTS = \
@@ -123,12 +130,6 @@ UNITE_TESTS = \
   test/staking/coin_tests.cpp \
   test/staking/proof_of_stake_tests.cpp \
   test/streams_tests.cpp \
-  test/test_unite.h \
-  test/test_unite.cpp \
-  test/test_unite_block_fixture.h \
-  test/test_unite_block_fixture.cpp \
-  test/test_unite_main.cpp \
-  test/test_unite_mocks.h \
   test/timedata_tests.cpp \
   test/torcontrol_tests.cpp \
   test/transaction_tests.cpp \
@@ -159,11 +160,13 @@ UNITE_TESTS += \
   test/validation_block_tests.cpp \
   test/waiter_tests.cpp \
   wallet/test/rpcvalidator_tests.cpp \
-  wallet/test/wallet_test_fixture.cpp \
-  wallet/test/wallet_test_fixture.h \
   wallet/test/accounting_tests.cpp \
   wallet/test/wallet_tests.cpp \
   wallet/test/crypto_tests.cpp
+
+UNITE_TEST_SUITE += \
+  wallet/test/wallet_test_fixture.cpp \
+  wallet/test/wallet_test_fixture.h
 endif
 
 if ENABLE_USBDEVICE
@@ -172,7 +175,7 @@ UNITE_TESTS += \
   test/ledger_apdu_tests.cpp
 endif
 
-test_test_unite_SOURCES = $(UNITE_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
+test_test_unite_SOURCES = $(UNITE_TEST_SUITE) $(UNITE_TESTS) $(JSON_TEST_FILES) $(RAW_TEST_FILES)
 test_test_unite_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(TESTDEFS) $(EVENT_CFLAGS)
 test_test_unite_LDADD =
 if ENABLE_WALLET
@@ -227,13 +230,17 @@ unite_test_check: $(TEST_BINARY) FORCE
 unite_test_clean : FORCE
 	rm -f $(CLEAN_UNITE_TEST) $(test_test_unite_OBJECTS) $(TEST_BINARY)
 
-check-local:
+check-local: $(UNITE_TESTS:.cpp=.cpp.test)
 	@echo "Running test/util/unite-util-test.py..."
 	$(PYTHON) $(top_builddir)/test/util/unite-util-test.py
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C secp256k1 check
 if EMBEDDED_UNIVALUE
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C univalue check
 endif
+
+%.cpp.test: %.cpp
+	@echo Running tests: `cat $< | grep "BOOST_FIXTURE_TEST_SUITE(\|BOOST_AUTO_TEST_SUITE(" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1` from $<
+	$(AM_V_at)$(TEST_BINARY) -l test_suite -t "`cat $< | grep "BOOST_FIXTURE_TEST_SUITE(\|BOOST_AUTO_TEST_SUITE(" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`" > $<.log 2>&1 || (cat $<.log && false)
 
 %.json.h: %.json
 	@$(MKDIR_P) $(@D)
