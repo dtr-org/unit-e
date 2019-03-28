@@ -9,8 +9,11 @@
 # usage:
 # - run contrib/devtools/run-unit-tests.sh from the repository root
 
+which parallel > /dev/null || (echo "GNU parallel is not installed"; false) || exit 1
+
 src/test/test_unite --list_content 2>&1 | \
   grep -v -F '    ' | \
-  awk '{ print "src/test/test_unite --run_test=" $0 " > \"" $0 ".log\" 2>&1 && (echo \"- [x] " $0 "\"; rm \"" $0 ".log\"; true) || (echo \"- [ ] " $0 " (see " $0 ".log)\"; false)"}' | \
+  tr -d '*' | \
+  awk '{ f = $0 ".log"; print "src/test/test_unite --run_test=" $0 " > \"" f "\" 2>&1 && (echo \"- [x] " $0 "\"; rm \"" f "\"; true) || (echo \"- [ ] " $0 " (see " f ")\"; false)"}' | \
   parallel -j 0 bash -c 2> /dev/null | \
   sort
