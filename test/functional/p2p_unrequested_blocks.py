@@ -155,13 +155,12 @@ class AcceptBlockTest(UnitETestFramework):
         genesis_utxo = [UTXO(0, TxType.COINBASE, COutPoint(int(genesis_coin['txid'], 16), genesis_coin['vout']), genesis_txout)]
         utxo_manager.available_outputs = genesis_utxo
 
-        # 1. Have nodes mine a block (leave IBD)
+        self.log.info("1. Have nodes mine a block (leave IBD)")
         [ n.generate(1) for n in self.nodes ]
         tips = [ int("0x" + n.getbestblockhash(), 0) for n in self.nodes ]
         tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
-        # 2. Send one block that builds on each tip.
-        # This should be accepted by node0
+        self.log.info("2. Send one block that builds on each tip. This should be accepted by node0.")
         blocks_h2 = []  # the height 2 blocks on each node's chain
         block_time = int(time.time()) + 1
         coin = get_unspent_coins(self.nodes[0], 1)[0]
@@ -179,12 +178,12 @@ class AcceptBlockTest(UnitETestFramework):
         assert_equal(self.nodes[1].getblockcount(), 1)
         self.log.info("First height 2 block accepted by node0; correctly rejected by node1")
 
-        # 3. Send another block that builds on genesis.
+        self.log.info("3. Send another block that builds on genesis.")
         coinbase = utxo_manager.get_coinbase(1, n_pieces=300)
         block_h1f = create_block(int("0x" + self.nodes[0].getblockhash(0), 0), coinbase, block_time)
         block_time += 1
         block_h1f.solve()
-        test_node.send_message(msg_block(block_h1f))
+        test_node.send_message(msg_witness_block(block_h1f))
         utxo_manager.process(coinbase, 1)
 
         test_node.sync_with_ping()
@@ -196,12 +195,12 @@ class AcceptBlockTest(UnitETestFramework):
         assert tip_entry_found
         assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, block_h1f.hash)
 
-        # 4. Send another two block that build on the fork.
+        self.log.info("4. Send another two block that build on the fork.")
         coinbase = utxo_manager.get_coinbase(2)
         block_h2f = create_block(block_h1f.sha256, coinbase, block_time)
         block_time += 1
         block_h2f.solve()
-        test_node.send_message(msg_block(block_h2f))
+        test_node.send_message(msg_witness_block(block_h2f))
 
         utxo_manager.process(coinbase, 2)
 
@@ -219,11 +218,11 @@ class AcceptBlockTest(UnitETestFramework):
         self.nodes[0].getblock(block_h2f.hash)
         self.log.info("Second height 2 block accepted, but not reorg'ed to")
 
-        # 4b. Now send another block that builds on the forking chain.
+        self.log.info("4b. Now send another block that builds on the forking chain.")
         coinbase = utxo_manager.get_coinbase(3)
         block_h3 = create_block(block_h2f.sha256, coinbase, block_h2f.nTime+1)
         block_h3.solve()
-        test_node.send_message(msg_block(block_h3))
+        test_node.send_message(msg_witness_block(block_h3))
         utxo_manager.process(coinbase, 3)
 
         test_node.sync_with_ping()
@@ -241,7 +240,8 @@ class AcceptBlockTest(UnitETestFramework):
         self.nodes[0].getblock(block_h3.hash)
         self.log.info("Unrequested more-work block accepted")
 
-        # 4c. Now mine 288 more blocks and deliver; all should be processed but
+        self.log.info("4c. Now mine 288 more blocks and deliver")
+        # all should be processed but
         # the last (height-too-high) on node (as long as its not missing any headers)
         tip = block_h3
         all_blocks = []
@@ -277,7 +277,7 @@ class AcceptBlockTest(UnitETestFramework):
             self.nodes[0].getblock(x.hash)
         assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, all_blocks[-1].hash)
 
-        # 5. Test handling of unrequested block on the node that didn't process
+        self.log.info("5. Test handling of unrequested block on the node that didn't process")
         # Should still not be processed (even though it has a child that has more
         # work).
 
@@ -292,13 +292,13 @@ class AcceptBlockTest(UnitETestFramework):
         network_thread_start()
         test_node.wait_for_verack()
 
-        test_node.send_message(msg_block(block_h1f))
+        test_node.send_message(msg_witness_block(block_h1f))
 
         test_node.sync_with_ping()
         assert_equal(self.nodes[0].getblockcount(), 2)
         self.log.info("Unrequested block that would complete more-work chain was ignored")
 
-        # 6. Try to get node to request the missing block.
+        self.log.info("6. Try to get node to request the missing block.")
         # Poke the node with an inv for block at height 3 and see if that
         # triggers a getdata on block 2 (it should if block 2 is missing).
         with mininode_lock:
@@ -314,8 +314,8 @@ class AcceptBlockTest(UnitETestFramework):
         assert_equal(getdata.inv[0].hash, block_h1f.sha256)
         self.log.info("Inv at tip triggered getdata for unprocessed block")
 
-        # 7. Send the missing block for the third time (now it is requested)
-        test_node.send_message(msg_block(block_h1f))
+        self.log.info("7. Send the missing block for the third time (now it is requested)")
+        test_node.send_message(msg_witness_block(block_h1f))
 
         test_node.sync_with_ping()
         assert_equal(self.nodes[0].getblockcount(), 290)
@@ -324,7 +324,7 @@ class AcceptBlockTest(UnitETestFramework):
         assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, all_blocks[287].hash)
         self.log.info("Successfully reorged to longer chain from non-whitelisted peer")
 
-        # 8. Create a chain which is invalid at a height longer than the
+        self.log.info("8. Create a chain which is invalid at a height longer than the")
         # current chain, but which has more blocks on top of that
 
         # Reset utxo managers to current state
@@ -410,7 +410,7 @@ class AcceptBlockTest(UnitETestFramework):
         test_node.send_message(headers_message)
         test_node.wait_for_disconnect()
 
-        # 9. Connect node1 to node0 and ensure it is able to sync
+        self.log.info("9. Connect node1 to node0 and ensure it is able to sync")
         connect_nodes(self.nodes[0], 1)
         sync_blocks([self.nodes[0], self.nodes[1]])
         self.log.info("Successfully synced nodes 1 and 0")
