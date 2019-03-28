@@ -31,7 +31,7 @@ struct Fixture {
     }
   };
 
-  CWallet wallet;
+  std::shared_ptr<CWallet> wallet;
   MultiWalletMock multi_wallet_mock;
 
   Fixture(std::initializer_list<std::string> args)
@@ -49,14 +49,14 @@ struct Fixture {
           return argsman;
         }()),
         settings(Settings::New(args_manager.get(), behavior.get())),
-        wallet("mock", WalletDatabase::CreateMock(), [&] {
+        wallet(new CWallet("mock", WalletDatabase::CreateMock(), [&] {
           esperanza::WalletExtensionDeps deps;
           deps.settings = settings.get();
           return deps;
-        }()),
+        }())),
         multi_wallet_mock([&] {
           MultiWalletMock mock;
-          mock.wallets.emplace_back(&wallet);
+          mock.wallets.emplace_back(wallet);
           return mock;
         }()) {}
 
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(start_stop_and_status) {
   });
   // destroying the proposer stops it
   BOOST_CHECK(f.network_mock.GetNodeCount_invocations > 0);
-  BOOST_CHECK_EQUAL(f.wallet.GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_NO_PEERS);
+  BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_NO_PEERS);
 }
 
 BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(advance_to_blockchain_sync) {
     p->Start();
   });
   BOOST_CHECK(f.chain_mock.GetInitialBlockDownloadStatus_invocations > 0);
-  BOOST_CHECK_EQUAL(f.wallet.GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
+  BOOST_CHECK_EQUAL(f.wallet->GetWalletExtension().GetProposerState().m_status, +proposer::Status::NOT_PROPOSING_SYNCING_BLOCKCHAIN);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
