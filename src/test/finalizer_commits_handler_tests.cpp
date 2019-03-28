@@ -314,8 +314,8 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   // Build a fork after finalization
   //           F
   // 0 .. 4 .. 9 .. 11 12 ..    -- main chain
-  //                  \
-  //                   12 .. 17 -- fork
+  //                 |
+  //                 > 12 .. 17 -- fork
   std::map<blockchain::Height, uint256> fork_hashes;
   std::map<blockchain::Height, CBlockIndex> fork;
 
@@ -345,8 +345,8 @@ BOOST_AUTO_TEST_CASE(get_commits_locator) {
   // Build a fork after finalization
   //                          F
   // 0 .. 4 .. 9 .. 11 12 .. 14 ..    -- main chain
-  //                  \
-  //                   12 .. 14 .. 17 -- fork
+  //                 |
+  //                 > 12 .. 14 .. 17 -- fork
   state.SetLastFinalizedEpoch(2);
   BOOST_REQUIRE(state.GetLastFinalizedEpoch() == 2);
 
