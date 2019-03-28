@@ -39,23 +39,26 @@ def create_transactions(node, address, amt, fees):
 
 class WalletTest(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 2
+        self.num_nodes = 3
         self.setup_clean_chain = True
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        mining_node = self.nodes[2]
+        self.setup_stake_coins(mining_node)
+
         # Check that nodes don't own any UTXOs
         assert_equal(len(self.nodes[0].listunspent()), 0)
         assert_equal(len(self.nodes[1].listunspent()), 0)
 
         self.log.info("Mining one block for each node")
 
-        self.nodes[0].generate(1)
-        self.sync_all()
-        self.nodes[1].generate(1)
-        self.nodes[1].generatetoaddress(100, RANDOM_COINBASE_ADDRESS)
+        mining_node.generate(1)
+        mining_node.sendtoaddress(self.nodes[0].getnewaddress(), 50)
+        mining_node.sendtoaddress(self.nodes[1].getnewaddress(), 50)
+        mining_node.generate(100)
         self.sync_all()
 
         assert_equal(self.nodes[0].getbalance(), 50)
@@ -108,7 +111,7 @@ class WalletTest(UnitETestFramework):
         assert_equal(self.nodes[1].getwalletinfo()["unconfirmed_balance"], Decimal('0'))  # Doesn't include output of node 0's send since it was spent
         assert_equal(self.nodes[1].getunconfirmedbalance(), Decimal('0'))
 
-        self.nodes[1].generatetoaddress(1, RANDOM_COINBASE_ADDRESS)
+        mining_node.generatetoaddress(1, RANDOM_COINBASE_ADDRESS)
         self.sync_all()
 
         # balances are correct after the transactions are confirmed
@@ -118,7 +121,8 @@ class WalletTest(UnitETestFramework):
         # Send total balance away from node 1
         txs = create_transactions(self.nodes[1], self.nodes[0].getnewaddress(), Decimal('29.97'), [Decimal('0.01')])
         self.nodes[1].sendrawtransaction(txs[0]['hex'])
-        self.nodes[1].generatetoaddress(2, RANDOM_COINBASE_ADDRESS)
+        self.sync_all()
+        mining_node.generatetoaddress(2, RANDOM_COINBASE_ADDRESS)
         self.sync_all()
 
         # getbalance with a minconf incorrectly excludes coins that have been spent more recently than the minconf blocks ago

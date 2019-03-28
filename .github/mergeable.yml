@@ -1,0 +1,26 @@
+mergeable:
+  pull_requests:
+    label:
+      must_include:
+        regex: ".+"
+        message: "The pull-request is not categorized using any label."
+      must_exclude:
+        regex: "^wip$"
+        message: "The pull-request is labelled as work in progress (WIP)."
+    title:
+      must_exclude:
+        regex: "^WIP"
+        message: "The pull-request is titled as work in progress (WIP:)."
+    description:
+      must_include:
+        regex: "^.{10,}"
+        message: 'The description must not be empty (at least 10 characters)!'
+  issues:
+    label:
+      must_include:
+        regex: ".+"
+        message: "The issue is not categorized using any label."
+    description:
+      must_include:
+        regex: "^.{10,}"
+        message: 'The description must not be empty (at least 10 characters)!'

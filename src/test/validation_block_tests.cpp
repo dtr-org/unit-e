@@ -7,18 +7,18 @@
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
+#include <injector.h>
 #include <miner.h>
 #include <pow.h>
 #include <random.h>
 #include <test/test_unite.h>
 #include <validation.h>
 #include <validationinterface.h>
+#include <snapshot/messages.h>
+#include <esperanza/finalizationstate.h>
+#include <wallet/test/wallet_test_fixture.h>
 
-struct RegtestingSetup : public TestingSetup {
-    RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
-};
-
-BOOST_FIXTURE_TEST_SUITE(validation_block_tests, RegtestingSetup)
+BOOST_FIXTURE_TEST_SUITE(validation_block_tests, TestChain100Setup)
 
 struct TestSubscriber : public CValidationInterface {
     uint256 m_expected_tip;
@@ -46,7 +46,14 @@ struct TestSubscriber : public CValidationInterface {
     }
 };
 
-std::shared_ptr<CBlock> Block(const uint256& prev_hash)
+struct BlockData {
+  std::shared_ptr<CBlock> block;
+  CBlockIndex block_index;
+  snapshot::SnapshotHash hash;
+  uint32_t height;
+};
+
+BlockData Block(const BlockData &prevData)
 {
     static int i = 0;
     static uint64_t time = Params().GenesisBlock().nTime;
@@ -56,20 +63,32 @@ std::shared_ptr<CBlock> Block(const uint256& prev_hash)
 
     auto ptemplate = BlockAssembler(Params()).CreateNewBlock(pubKey, false);
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
-    pblock->hashPrevBlock = prev_hash;
+    pblock->hashPrevBlock = prevData.block->GetHash();
     pblock->nTime = ++time;
 
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
     txCoinbase.vout.resize(1);
+    std::vector<uint8_t> snapshotHash = prevData.hash.GetHashVector(prevData.block_index);
+    txCoinbase.vin[0].scriptSig = CScript() << (prevData.height + 1) << snapshotHash << OP_0;
     txCoinbase.vin[0].scriptWitness.SetNull();
+    txCoinbase.vin[1].scriptWitness.SetNull();
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
 
-    return pblock;
+    snapshot::SnapshotHash newHash(prevData.hash.GetData());
+    const COutPoint out(pblock->vtx[0]->GetHash(), 0);
+    const Coin coin(pblock->vtx[0]->vout[0], prevData.height + 1, true);
+    newHash.AddUTXO(snapshot::UTXO(out, coin));
+
+    CBlockIndex bi;
+    bi.stake_modifier = prevData.block_index.stake_modifier;
+    bi.nBits = pblock->nBits;
+    bi.nChainWork = prevData.block_index.nChainWork + GetBlockProof(bi);
+    return BlockData{pblock, bi, newHash, prevData.height + 1};
 }
 
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
 {
-    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    pblock->ComputeMerkleTrees();
 
     while (!CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
         ++(pblock->nNonce);
@@ -79,43 +98,46 @@ std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
 }
 
 // construct a valid block
-const std::shared_ptr<const CBlock> GoodBlock(const uint256& prev_hash)
+const BlockData GoodBlock(const BlockData& prevData)
 {
-    return FinalizeBlock(Block(prev_hash));
+    BlockData data = Block(prevData);
+    FinalizeBlock(data.block);
+    return data;
 }
 
 // construct an invalid block (but with a valid header)
-const std::shared_ptr<const CBlock> BadBlock(const uint256& prev_hash)
+const BlockData BadBlock(const BlockData& prevData)
 {
-    auto pblock = Block(prev_hash);
+    BlockData data = Block(prevData);
 
     CMutableTransaction coinbase_spend;
-    coinbase_spend.vin.push_back(CTxIn(COutPoint(pblock->vtx[0]->GetHash(), 0), CScript(), 0));
-    coinbase_spend.vout.push_back(pblock->vtx[0]->vout[0]);
+    coinbase_spend.vin.push_back(CTxIn(COutPoint(data.block->vtx[0]->GetHash(), 0), CScript(), 0));
+    coinbase_spend.vout.push_back(data.block->vtx[0]->vout[0]);
 
     CTransactionRef tx = MakeTransactionRef(coinbase_spend);
-    pblock->vtx.push_back(tx);
+    data.block->vtx.push_back(tx);
 
-    auto ret = FinalizeBlock(pblock);
-    return ret;
+    FinalizeBlock(data.block);
+    return data;
 }
 
-void BuildChain(const uint256& root, int height, const unsigned int invalid_rate, const unsigned int branch_rate, const unsigned int max_size, std::vector<std::shared_ptr<const CBlock>>& blocks)
+void BuildChain(const BlockData &root, int height, const unsigned int invalid_rate, const unsigned int branch_rate, const unsigned int max_size, std::vector<std::shared_ptr<const CBlock>>& blocks)
 {
     if (height <= 0 || blocks.size() >= max_size) return;
 
     bool gen_invalid = GetRand(100) < invalid_rate;
     bool gen_fork = GetRand(100) < branch_rate;
 
-    const std::shared_ptr<const CBlock> pblock = gen_invalid ? BadBlock(root) : GoodBlock(root);
-    blocks.push_back(pblock);
+    const BlockData blockData = gen_invalid ? BadBlock(root) : GoodBlock(root);
+    blocks.push_back(blockData.block);
     if (!gen_invalid) {
-        BuildChain(pblock->GetHash(), height - 1, invalid_rate, branch_rate, max_size, blocks);
+        BuildChain(blockData, height - 1, invalid_rate, branch_rate, max_size, blocks);
     }
 
     if (gen_fork) {
-        blocks.push_back(GoodBlock(root));
-        BuildChain(blocks.back()->GetHash(), height - 1, invalid_rate, branch_rate, max_size, blocks);
+        const BlockData data = GoodBlock(root);
+        blocks.push_back(data.block);
+        BuildChain(data, height - 1, invalid_rate, branch_rate, max_size, blocks);
     }
 }
 
@@ -123,9 +145,41 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
 {
     // build a large-ish chain that's likely to have some forks
     std::vector<std::shared_ptr<const CBlock>> blocks;
+
+    CChainParams params = Params();
+    esperanza::FinalizationParams fin_params = params.GetFinalization();
+    fin_params.epoch_length = 999999;
+    GetComponent<finalization::StateRepository>()->Reset(fin_params, params.GetAdminParams());
+    GetComponent<finalization::StateRepository>()->ResetToTip(*chainActive.Tip());
+
+    BlockData genesisData;
+    {
+        genesisData.block = std::make_shared<CBlock>(Params().GenesisBlock());
+        genesisData.height = 0;
+
+        CBlockIndex bi;
+        bi.nBits = genesisData.block->nBits;
+        bi.nChainWork = GetBlockProof(bi);
+        genesisData.block_index = bi;
+
+        for (size_t txIdx = 0; txIdx < genesisData.block->vtx.size(); ++txIdx) {
+            auto &tx = genesisData.block->vtx[txIdx];
+            for (size_t i = 0; i < tx->vout.size(); ++i) {
+                auto &out = tx->vout[i];
+                if (out.scriptPubKey.IsUnspendable()) {
+                  continue;
+                }
+
+                const COutPoint outPoint(tx->GetHash(), i);
+                const Coin coin(out, 0, txIdx == 0);
+                genesisData.hash.AddUTXO(snapshot::UTXO(outPoint, coin));
+            }
+        }
+    }
+
     while (blocks.size() < 50) {
         blocks.clear();
-        BuildChain(Params().GenesisBlock().GetHash(), 100, 15, 10, 500, blocks);
+        BuildChain(genesisData, 100, 15, 10, 500, blocks);
     }
 
     bool ignored;
@@ -153,19 +207,27 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     // this will create parallelism and randomness inside validation - the ValidationInterface
     // will subscribe to events generated during block validation and assert on ordering invariance
     boost::thread_group threads;
+    // boost unit test is not thread safe as the checks record the results in some shared memory
+    // which is not synchronized / does not happen under mutual exclusion.
+    std::mutex cs;
+    const auto check = [&cs](bool condition) {
+      std::lock_guard<decltype(cs)> lock(cs);
+      BOOST_CHECK(condition);
+    };
     for (int i = 0; i < 10; i++) {
-        threads.create_thread([&blocks]() {
+        threads.create_thread([&]() {
             bool ignored;
             for (int i = 0; i < 1000; i++) {
                 auto block = blocks[GetRand(blocks.size() - 1)];
-                ProcessNewBlock(Params(), block, true, &ignored);
+                bool processed = ProcessNewBlock(Params(), block, true, &ignored);
+                check(processed);
             }
 
             // to make sure that eventually we process the full chain - do it here
             for (auto block : blocks) {
                 if (block->vtx.size() == 1) {
                     bool processed = ProcessNewBlock(Params(), block, true, &ignored);
-                    assert(processed);
+                    check(processed);
                 }
             }
         });

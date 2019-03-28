@@ -33,13 +33,28 @@ class HelpRpcTest(UnitETestFramework):
         # command titles
         titles = [line[3:-3] for line in node.help().splitlines() if line.startswith('==')]
 
-        components = ['Blockchain', 'Control', 'Generating', 'Mining', 'Network', 'Rawtransactions', 'Util']
+        components = [
+            'Blockchain',
+            'Control',
+            'Finalization',
+            'Generating',
+            'Mining',
+            'Mnemonic',
+            'Network',
+            'Rawtransactions',
+            'Snapshot',
+            'Util',
+        ]
 
         if self.is_wallet_compiled():
             components.append('Wallet')
 
         if self.is_zmq_compiled():
             components.append('Zmq')
+
+        if self.is_usbdevice_compiled():
+            components.append('Usbdevice')
+        components.sort()
 
         assert_equal(titles, components)
 

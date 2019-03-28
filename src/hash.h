@@ -65,7 +65,7 @@ public:
     }
 };
 
-/** Compute the 256-bit hash of an object. */
+//! Compute the 256-bit hash (double SHA-256) of an object.
 template<typename T1>
 inline uint256 Hash(const T1 pbegin, const T1 pend)
 {
@@ -76,7 +76,7 @@ inline uint256 Hash(const T1 pbegin, const T1 pend)
     return result;
 }
 
-/** Compute the 256-bit hash of the concatenation of two objects. */
+//! Compute the 256-bit hash (double SHA-256) of the concatenation of two objects.
 template<typename T1, typename T2>
 inline uint256 Hash(const T1 p1begin, const T1 p1end,
                     const T2 p2begin, const T2 p2end) {
@@ -88,7 +88,29 @@ inline uint256 Hash(const T1 p1begin, const T1 p1end,
     return result;
 }
 
-/** Compute the 160-bit hash an object. */
+//! Compute the SHA-256 hash of an object.
+template<typename T1>
+inline uint256 Sha256(const T1 pbegin, const T1 pend)
+{
+    static const unsigned char pblank[1] = {0};
+    uint256 result;
+    CSHA256().Write(pbegin == pend ? pblank : (const unsigned char*)&pbegin[0], (pend - pbegin) * sizeof(pbegin[0]))
+             .Finalize((unsigned char*)&result);
+    return result;
+}
+
+//! Compute the RIPEMD-160 hash of an object.
+template<typename T1>
+inline uint160 Ripemd160(const T1 pbegin, const T1 pend)
+{
+    static const unsigned char pblank[1] = {0};
+    uint160 result;
+    CRIPEMD160().Write(pbegin == pend ? pblank : (const unsigned char*)&pbegin[0], (pend - pbegin) * sizeof(pbegin[0]))
+                .Finalize((unsigned char*)&result);
+    return result;
+}
+
+/** Compute the 160-bit hash (RIPEMD-160 of SHA-256) of an object. */
 template<typename T1>
 inline uint160 Hash160(const T1 pbegin, const T1 pend)
 {
@@ -191,6 +213,8 @@ uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL
 }
 
 unsigned int MurmurHash3(unsigned int nHashSeed, const std::vector<unsigned char>& vDataToHash);
+
+unsigned int MurmurHash3(unsigned int nHashSeed, const unsigned char * vDataToHash, size_t nDataSize);
 
 void BIP32Hash(const ChainCode &chainCode, unsigned int nChild, unsigned char header, const unsigned char data[32], unsigned char output[64]);
 

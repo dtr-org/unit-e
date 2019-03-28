@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
+#include <chainparams.h>
 #include <coins.h>
 #include <compat/byteswap.h>
 #include <consensus/validation.h>
@@ -28,6 +29,7 @@
 #include <uint256.h>
 #include <utilstrencodings.h>
 #ifdef ENABLE_WALLET
+#include <wallet/wallet.h>
 #include <wallet/rpcwallet.h>
 #endif
 
@@ -146,11 +148,6 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
     bool in_active_chain = true;
     uint256 hash = ParseHashV(request.params[0], "parameter 1");
     CBlockIndex* blockindex = nullptr;
-
-    if (hash == Params().GenesisBlock().hashMerkleRoot) {
-        // Special exception for the genesis block coinbase transaction
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The genesis block coinbase is not considered an ordinary transaction and cannot be retrieved");
-    }
 
     // Accept either a bool (true) or a num (>=1) to indicate verbose output.
     bool fVerbose = false;
@@ -417,11 +414,13 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
     bool has_data{false};
 
     for (const std::string& name_ : outputs.getKeys()) {
-        if (name_ == "data") {
-            if (has_data) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate key: data");
+        if (name_.compare(0, 4, "data") == 0) {
+            if (name_.size() == 4) {
+                if (has_data) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate key: data");
+                }
+                has_data = true;
             }
-            has_data = true;
             std::vector<unsigned char> data = ParseHexV(outputs[name_].getValStr(), "Data");
 
             CTxOut out(0, CScript() << OP_RETURN << data);
@@ -865,7 +864,20 @@ UniValue SignTransaction(CMutableTransaction& mtx, const UniValue& prevTxsUnival
     // transaction to avoid rehashing.
     const CTransaction txConst(mtx);
     // Sign what we can:
-    for (unsigned int i = 0; i < mtx.vin.size(); i++) {
+
+    if (txConst.IsCoinBase()) {
+#ifdef ENABLE_WALLET
+        CWallet *pwallet = static_cast<CWallet*>(keystore);
+        if (!pwallet->GetWalletExtension().SignCoinbaseTransaction(mtx)) {
+            for (std::size_t i = 1; i < mtx.vin.size(); ++i) {
+                TxInErrorToJSON(mtx.vin[i], vErrors, "Cannot sign the coinbase.");
+            }
+        }
+#else
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Signing coinbase is not supported without a wallet");
+#endif
+    } else {
+      for (unsigned int i = 0; i < mtx.vin.size(); ++i) {
         CTxIn& txin = mtx.vin[i];
         const Coin& coin = view.AccessCoin(txin.prevout);
         if (coin.IsSpent()) {
@@ -880,6 +892,13 @@ UniValue SignTransaction(CMutableTransaction& mtx, const UniValue& prevTxsUnival
         if (!fHashSingle || (i < mtx.vout.size())) {
             ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata);
         }
+
+        // Votes don't need to combine the sigdata and the scriptSig cause the
+        // sigdata contains the vote already
+        // MIHAI: FIXME: CombineSignatures has been removed
+        // if (mtx.GetType() != +TxType::VOTE) {
+        //    sigdata = CombineSignatures(prevPubKey, TransactionSignatureChecker(&txConst, i, amount), sigdata, DataFromTransaction(mtx, i));
+        // }
 
         UpdateInput(txin, sigdata);
 
@@ -897,7 +916,9 @@ UniValue SignTransaction(CMutableTransaction& mtx, const UniValue& prevTxsUnival
                 TxInErrorToJSON(txin, vErrors, ScriptErrorString(serror));
             }
         }
+      }
     }
+
     bool fComplete = vErrors.empty();
 
     UniValue result(UniValue::VOBJ);

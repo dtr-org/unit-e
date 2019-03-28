@@ -10,7 +10,7 @@ soft-forks, and test that warning alerts are generated.
 import os
 import re
 
-from test_framework.blocktools import create_block, create_coinbase
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta
 from test_framework.messages import msg_block
 from test_framework.mininode import P2PInterface, mininode_lock
 from test_framework.test_framework import UnitETestFramework
@@ -39,7 +39,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         # Open and close to create zero-length file
         with open(self.alert_filename, 'w', encoding='utf8'):
             pass
-        self.extra_args = [["-alertnotify=echo %s >> \"" + self.alert_filename + "\""]]
+        self.extra_args = [["-alertnotify=echo %s >> \"" + self.alert_filename + "\"", "-stakesplitthreshold=2500000000"]]
         self.setup_nodes()
 
     def send_blocks_with_version(self, peer, numblocks, version):
@@ -49,14 +49,21 @@ class VersionBitsWarningTest(UnitETestFramework):
         block_time = self.nodes[0].getblockheader(tip)["time"] + 1
         tip = int(tip, 16)
 
+        snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for _ in range(numblocks):
-            block = create_block(tip, create_coinbase(height + 1), block_time)
+            stake = self.nodes[0].listunspent()[0]
+            coinbase = create_coinbase(height + 1, stake, snapshot_meta.hash)
+            block = create_block(tip, coinbase, block_time)
             block.nVersion = version
             block.solve()
             peer.send_message(msg_block(block))
+            self.nodes[0].waitforblockheight(height+1, 10000)
             block_time += 1
             height += 1
             tip = block.sha256
+
+            snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
+
         peer.sync_with_ping()
 
     def versionbits_in_alert_file(self):
@@ -66,6 +73,8 @@ class VersionBitsWarningTest(UnitETestFramework):
 
     def run_test(self):
         node = self.nodes[0]
+        self.setup_stake_coins(node)
+
         node.add_p2p_connection(P2PInterface())
 
         # Mine one period worth of blocks
@@ -77,7 +86,6 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.generate(VB_PERIOD - VB_THRESHOLD + 1)
 
         # Check that we're not getting any versionbit-related errors in get*info()
-        assert(not VB_PATTERN.match(node.getmininginfo()["warnings"]))
         assert(not VB_PATTERN.match(node.getnetworkinfo()["warnings"]))
 
         self.log.info("Check that there is a warning if >50 blocks in the last 100 were an unknown version")
@@ -86,7 +94,6 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.generate(VB_PERIOD - VB_THRESHOLD)
 
         # Check that get*info() shows the 51/100 unknown block version error.
-        assert(WARN_UNKNOWN_RULES_MINED in node.getmininginfo()["warnings"])
         assert(WARN_UNKNOWN_RULES_MINED in node.getnetworkinfo()["warnings"])
 
         self.log.info("Check that there is a warning if previous VB_BLOCKS have >=VB_THRESHOLD blocks with unknown versionbits version.")
@@ -103,7 +110,6 @@ class VersionBitsWarningTest(UnitETestFramework):
         # Generating one more block will be enough to generate an error.
         node.generate(1)
         # Check that get*info() shows the versionbits unknown rules warning
-        assert(WARN_UNKNOWN_RULES_ACTIVE in node.getmininginfo()["warnings"])
         assert(WARN_UNKNOWN_RULES_ACTIVE in node.getnetworkinfo()["warnings"])
         # Check that the alert file shows the versionbits unknown rules warning
         wait_until(lambda: self.versionbits_in_alert_file(), timeout=60)

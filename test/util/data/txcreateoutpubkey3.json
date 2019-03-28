@@ -2,6 +2,7 @@
     "txid": "bfc7e898ee9f6a9652d7b8cca147e2da134502e2ada0f279ed634fc8cf833f8c",
     "hash": "bfc7e898ee9f6a9652d7b8cca147e2da134502e2ada0f279ed634fc8cf833f8c",
     "version": 1,
+    "txtype": 0,
     "size": 42,
     "vsize": 42,
     "weight": 168,
@@ -18,7 +19,7 @@
                 "reqSigs": 1,
                 "type": "scripthash",
                 "addresses": [
-                    "3GnzN8FqgvYGYdhj8NW6UNxxVv3Uj1ApQn"
+                    "2N8MCRsBsJP3ckRLGoW7y6KxDiGFeSu6XiP"
                 ]
             }
         }

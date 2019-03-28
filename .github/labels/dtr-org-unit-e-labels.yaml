@@ -1,0 +1,158 @@
+org: dtr-org
+repo: unit-e
+categories:
+- name: Status
+  labels:
+  - name: wip
+    color: '666666'
+    description: Work in progress which is not supposed to be merged yet
+    id: 1054557852
+  - name: needs design
+    color: '888888'
+    description: 'Needs a design (possibly in a UIP) before it can be implemented'
+    id: 1134722696
+  - name: brainstorming
+    color: 'cccccc'
+    description: Needs input, ideas are welcome
+    id: brainstorming
+  - name: backport
+    color: f7ca96
+    description: Feature should be contributed to bitcoin
+    id: 1049622413
+  - name: backported
+    color: f7931a
+    description: Feature has been merged into bitcoin also
+    id: 1049640722
+- name: Type
+  labels:
+  - name: bug
+    color: d73a4a
+    description: A problem of existing functionality
+    id: 954312754
+  - name: feature
+    color: 38d33d
+    description: New functionality
+    id: 954312756
+  - name: refactoring
+    color: 54d958
+    description: Changes which clean up code but don't change the user-visible behavior
+    id: 1049646666
+  - name: performance
+    color: 6fdf73
+    description: 'Affecting the performance of the software'
+    id: 1061919841
+  - name: broken test
+    color: dd5664
+    description: A test isn't working
+    id: 962260863
+  - name: floating test
+    color: e2727e
+    description: A test that sometimes but not always fails
+    id: 1049200870
+- name: Category
+  labels:
+  - name: build
+    color: dceaff
+    description: Build system
+    id: 961085722
+  - name: ci
+    color: cbdfff
+    description: Continuous integration
+    id: 1045230454
+  - name: style
+    color: bad5ff
+    description: Code style and naming
+    id: 1045238076
+  - name: documentation
+    color: a9cbff
+    description: Documentation
+    id: 1045253957
+  - name: repo
+    color: 98c0ff
+    description: Configuration of the repository itself
+    id: 1144491282
+  - name: security
+    color: 87b6fe
+    description: A security related issue
+    id: 1135608458
+  - name: technical debt
+    color: 77acfe
+    description: 'Cleaning up code which is there for historical reasons'
+    id: 1045243585
+  - name: tests
+    color: 66a1fe
+    description: 'Automated tests'
+    id: 1054509740
+  - name: tools
+    color: 5597fe
+    description: 'Development tools'
+    id: 1129728492
+  - name: upstream sync
+    color: 448dfe
+    description: 'Related to upstream merges'
+    id: 1045240955
+  - name: usability
+    color: 3382fe
+    description: ''
+    id: 1145053601
+- name: Component
+  color: ffcc00
+  labels:
+  - name: consensus
+    description: ''
+    id: 1045236901
+  - name: economics
+    description: ''
+    id: 1144503521
+  - name: finalization
+    description: ''
+    id: 1057074469
+  - name: genesis
+    description: ''
+    id: 1045240262
+  - name: permissioning
+    description: ''
+    id: 1051714364
+  - name: p2p
+    description: ''
+    id: 1049645885
+  - name: policy
+    description: ''
+    id: 1079399619
+  - name: privacy
+    description: ''
+    id: 1139786471
+  - name: proposing
+    description: ''
+    id: 1057074186
+  - name: rpc
+    description: ''
+    id: 1050601486
+  - name: utxo
+    description: 'UTXO Db and Indexes'
+    id: 1140670847
+  - name: wallet
+    description: ''
+    id: 1045242123
+- name: Platform
+  color: 9a6af2
+  labels:
+  - name: linux
+    description: ''
+    id: 1049646323
+  - name: windows
+    description: ''
+    id: 1049646264
+  - name: mac
+    description: ''
+    id: 1049646199
+- name: Welcome
+  labels:
+  - name: good first issue
+    color: a0f324
+    description: Good for newcomers
+    id: 954312758
+  - name: up for grabs
+    color: a0f324
+    description: Abandoned pull requests that welcome some love. Close the pull request when you apply this label.
+    id: upforgrabs

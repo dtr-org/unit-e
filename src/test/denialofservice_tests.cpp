@@ -8,7 +8,6 @@
 #include <keystore.h>
 #include <net.h>
 #include <net_processing.h>
-#include <pow.h>
 #include <script/sign.h>
 #include <serialize.h>
 #include <util.h>
@@ -76,7 +75,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
     // Test starts here
     {
         LOCK2(cs_main, dummyNode1.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode1); // should result in getheaders
+        peerLogic->SendMessages(&dummyNode1, 0, 1); // should result in getheaders
     }
     {
         LOCK2(cs_main, dummyNode1.cs_vSend);
@@ -89,7 +88,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
     SetMockTime(nStartTime+21*60);
     {
         LOCK2(cs_main, dummyNode1.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode1); // should result in getheaders
+        peerLogic->SendMessages(&dummyNode1, 0, 1); // should result in getheaders
     }
     {
         LOCK2(cs_main, dummyNode1.cs_vSend);
@@ -99,7 +98,7 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
     SetMockTime(nStartTime+24*60);
     {
         LOCK2(cs_main, dummyNode1.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode1); // should result in disconnect
+        peerLogic->SendMessages(&dummyNode1, 0, 1); // should result in disconnect
     }
     BOOST_CHECK(dummyNode1.fDisconnect == true);
     SetMockTime(0);
@@ -119,7 +118,7 @@ static void AddRandomOutboundPeer(std::vector<CNode *> &vNodes, PeerLogicValidat
     node.nVersion = 1;
     node.fSuccessfullyConnected = true;
 
-    CConnmanTest::AddNode(node);
+    CConnmanTest::AddNode(node, g_connman.get());
 }
 
 BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
@@ -188,7 +187,7 @@ BOOST_AUTO_TEST_CASE(stale_tip_peer_management)
         peerLogic->FinalizeNode(node->GetId(), dummy);
     }
 
-    CConnmanTest::ClearNodes();
+    CConnmanTest::ClearNodes(g_connman.get());
 }
 
 BOOST_AUTO_TEST_CASE(DoS_banning)
@@ -207,7 +206,7 @@ BOOST_AUTO_TEST_CASE(DoS_banning)
     }
     {
         LOCK2(cs_main, dummyNode1.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode1);
+        peerLogic->SendMessages(&dummyNode1, 0, 1);
     }
     BOOST_CHECK(connman->IsBanned(addr1));
     BOOST_CHECK(!connman->IsBanned(ip(0xa0b0c001|0x0000ff00))); // Different IP, not banned
@@ -224,7 +223,7 @@ BOOST_AUTO_TEST_CASE(DoS_banning)
     }
     {
         LOCK2(cs_main, dummyNode2.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode2);
+        peerLogic->SendMessages(&dummyNode2, 0, 1);
     }
     BOOST_CHECK(!connman->IsBanned(addr2)); // 2 not banned yet...
     BOOST_CHECK(connman->IsBanned(addr1));  // ... but 1 still should be
@@ -234,7 +233,7 @@ BOOST_AUTO_TEST_CASE(DoS_banning)
     }
     {
         LOCK2(cs_main, dummyNode2.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode2);
+        peerLogic->SendMessages(&dummyNode2, 0, 1);
     }
     BOOST_CHECK(connman->IsBanned(addr2));
 
@@ -260,7 +259,7 @@ BOOST_AUTO_TEST_CASE(DoS_banscore)
     }
     {
         LOCK2(cs_main, dummyNode1.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode1);
+        peerLogic->SendMessages(&dummyNode1, 0, 1);
     }
     BOOST_CHECK(!connman->IsBanned(addr1));
     {
@@ -269,7 +268,7 @@ BOOST_AUTO_TEST_CASE(DoS_banscore)
     }
     {
         LOCK2(cs_main, dummyNode1.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode1);
+        peerLogic->SendMessages(&dummyNode1, 0, 1);
     }
     BOOST_CHECK(!connman->IsBanned(addr1));
     {
@@ -278,7 +277,7 @@ BOOST_AUTO_TEST_CASE(DoS_banscore)
     }
     {
         LOCK2(cs_main, dummyNode1.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode1);
+        peerLogic->SendMessages(&dummyNode1, 0, 1);
     }
     BOOST_CHECK(connman->IsBanned(addr1));
     gArgs.ForceSetArg("-banscore", std::to_string(DEFAULT_BANSCORE_THRESHOLD));
@@ -307,7 +306,7 @@ BOOST_AUTO_TEST_CASE(DoS_bantime)
     }
     {
         LOCK2(cs_main, dummyNode.cs_sendProcessing);
-        peerLogic->SendMessages(&dummyNode);
+        peerLogic->SendMessages(&dummyNode, 0, 1);
     }
     BOOST_CHECK(connman->IsBanned(addr));
 

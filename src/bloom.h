@@ -28,6 +28,8 @@ enum bloomflags
     // Only adds outpoints to the filter if the output is a pay-to-pubkey/pay-to-multisig script
     BLOOM_UPDATE_P2PUBKEY_ONLY = 2,
     BLOOM_UPDATE_MASK = 3,
+    // Adds deposits, votes, slashes and logouts to allow verifying finalization
+    MATCH_EPSPERANZA_FINALIZATION = 8,
 };
 
 /**
@@ -65,7 +67,7 @@ public:
      * This will apply if nFPRate is very low or nElements is unreasonably high.
      * nTweak is a constant which is added to the seed value passed to the hash function
      * It should generally always be a random value (and is largely only exposed for unit testing)
-     * nFlags should be one of the BLOOM_UPDATE_* enums (not _MASK)
+     * nFlags can be MATCH_ESPERANZA_TRANSACTIONS and one of the BLOOM_UPDATE_* enums (not _MASK)
      */
     CBloomFilter(const unsigned int nElements, const double nFPRate, const unsigned int nTweak, unsigned char nFlagsIn);
     CBloomFilter() : isFull(true), isEmpty(false), nHashFuncs(0), nTweak(0), nFlags(0) {}

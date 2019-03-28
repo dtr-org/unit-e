@@ -16,6 +16,7 @@ import random
 import re
 from subprocess import CalledProcessError
 import time
+import math
 
 from . import coverage
 from .authproxy import AuthServiceProxy, JSONRPCException
@@ -38,6 +39,10 @@ def assert_equal(thing1, thing2, *args):
     if thing1 != thing2 or any(thing1 != arg for arg in args):
         raise AssertionError("not(%s)" % " == ".join(str(arg) for arg in (thing1, thing2) + args))
 
+def assert_not_equal(thing, *args):
+    if any(thing == arg for arg in args):
+        raise AssertionError("expected not equal(%s)" % ", ".join(str(arg) for arg in (thing,) + args))
+
 def assert_greater_than(thing1, thing2):
     if thing1 <= thing2:
         raise AssertionError("%s <= %s" % (str(thing1), str(thing2)))
@@ -45,6 +50,15 @@ def assert_greater_than(thing1, thing2):
 def assert_greater_than_or_equal(thing1, thing2):
     if thing1 < thing2:
         raise AssertionError("%s < %s" % (str(thing1), str(thing2)))
+
+def assert_in(thing, sequence):
+    if thing not in sequence:
+        raise AssertionError("%s not in %s" % (str(thing), str(sequence)))
+
+def assert_contents_equal(thing1, thing2, key=lambda x: x):
+    if len(thing1) != len(thing2):
+        raise AssertionError("Sequences have different lengths: {} and {}".format(thing1, thing2))
+    assert_equal(sorted(thing1, key=key), sorted(thing2, key=key))
 
 def assert_raises(exc, fun, *args, **kwds):
     assert_raises_message(exc, None, fun, *args, **kwds)
@@ -375,13 +389,14 @@ def connect_nodes_bi(nodes, a, b):
     connect_nodes(nodes[a], b)
     connect_nodes(nodes[b], a)
 
-def sync_blocks(rpc_connections, *, wait=1, timeout=60):
+def sync_blocks(rpc_connections, *, wait=1, timeout=60, height=None):
     """
     Wait until everybody has the same tip.
 
-    sync_blocks needs to be called with an rpc_connections set that has least
-    one node already synced to the latest, stable tip, otherwise there's a
-    chance it might return before all nodes are stably synced.
+    if height is not specified, then sync_blocks needs to be called with an
+    rpc_connections set that has least one node already synced to the latest,
+    stable tip, otherwise there's a chance it might return before all nodes are
+    stably synced.
     """
     stop_time = time.time() + timeout
     while time.time() <= stop_time:
@@ -391,7 +406,7 @@ def sync_blocks(rpc_connections, *, wait=1, timeout=60):
         time.sleep(wait)
     raise AssertionError("Block sync timed out:{}".format("".join("\n  {!r}".format(b) for b in best_hash)))
 
-def sync_mempools(rpc_connections, *, wait=1, timeout=60, flush_scheduler=True):
+def sync_mempools(rpc_connections, *, wait=1, timeout=150, flush_scheduler=True):
     """
     Wait until everybody has the same transactions in their memory
     pools
@@ -404,8 +419,25 @@ def sync_mempools(rpc_connections, *, wait=1, timeout=60, flush_scheduler=True):
                 for r in rpc_connections:
                     r.syncwithvalidationinterfacequeue()
             return
+
         time.sleep(wait)
     raise AssertionError("Mempool sync timed out:{}".format("".join("\n  {!r}".format(m) for m in pool)))
+
+def get_unspent_coins(node, n_coins, lock=False):
+    """
+    Wrapper for listing coins to use for staking.
+    """
+    unspent_outputs = node.listunspent()
+    assert(len(unspent_outputs) >= n_coins)
+    # return from the from to avoid problems on reorg
+    if lock:
+        node.lockunspent(False, [{'txid': tx['txid'], 'vout': tx['vout']} for tx in unspent_outputs[:n_coins]])
+    return unspent_outputs[:n_coins]
+
+def check_finalization(node, expected):
+    state = node.getfinalizationstate()
+    for key in expected:
+        assert_equal(state[key], expected[key])
 
 # Transaction/Block functions
 #############################
@@ -483,8 +515,8 @@ def create_confirmed_utxos(fee, node, count):
         to_generate -= 25
     utxos = node.listunspent()
     iterations = count - len(utxos)
-    addr1 = node.getnewaddress()
-    addr2 = node.getnewaddress()
+    addr1 = node.getnewaddress("", "bech32")
+    addr2 = node.getnewaddress("", "bech32")
     if iterations <= 0:
         return utxos
     for i in range(iterations):
@@ -552,9 +584,10 @@ def mine_large_block(node, utxos=None):
     num = 14
     txouts = gen_return_txouts()
     utxos = utxos if utxos is not None else []
-    if len(utxos) < num:
-        utxos.clear()
-        utxos.extend(node.listunspent())
+
+    # We must pass enough transactions
+    assert len(utxos) >= num
+
     fee = 100 * node.getnetworkinfo()["relayfee"]
     create_lots_of_big_transactions(node, txouts, utxos, num, fee=fee)
     node.generate(1)
@@ -569,3 +602,30 @@ def find_vout_for_address(node, txid, addr):
         if any([addr == a for a in tx["vout"][i]["scriptPubKey"]["addresses"]]):
             return i
     raise RuntimeError("Vout not found for address: txid=%s, addr=%s" % (txid, addr))
+
+def base58_to_bytes(string):
+    char_map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+    decimal = 0
+    for char in string:
+        decimal = 58 * decimal + char_map.index(char)
+
+    return decimal.to_bytes(math.ceil(math.log2(decimal)/8), byteorder='big')
+
+
+def base58check_to_bytes(string):
+    return base58_to_bytes(string)[1:-4]
+
+
+def bytes_to_base58(bytes):
+    char_map = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+
+    i = int.from_bytes(bytes, byteorder='big')
+    if i == 0:
+        return char_map[0]
+
+    string = ""
+    while i > 0:
+        i, idx = divmod(i, 58)
+        string = char_map[idx] + string
+
+    return string

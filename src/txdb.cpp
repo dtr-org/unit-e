@@ -29,6 +29,10 @@ static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
 
+// use full names to void collision with the Bitcoin naming
+static const std::string DB_SNAPSHOT_HASH_DATA = "SNAPSHOT_HASH_DATA";
+static const std::string DB_SNAPSHOT_INDEX = "SNAPSHOT_INDEX";
+
 namespace {
 
 struct CoinEntry {
@@ -80,7 +84,7 @@ std::vector<uint256> CCoinsViewDB::GetHeadBlocks() const {
     return vhashHeadBlocks;
 }
 
-bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
+bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, const snapshot::SnapshotHash &snapshotHash) {
     CDBBatch batch(db);
     size_t count = 0;
     size_t changed = 0;
@@ -134,6 +138,7 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock) {
     // In the last batch, mark the database as consistent with hashBlock again.
     batch.Erase(DB_HEAD_BLOCKS);
     batch.Write(DB_BEST_BLOCK, hashBlock);
+    batch.Write(DB_SNAPSHOT_HASH_DATA, snapshotHash.GetData());
 
     LogPrint(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
     bool ret = db.WriteBatch(batch);
@@ -170,7 +175,7 @@ bool CBlockTreeDB::ReadLastBlockFile(int &nFile) {
 
 CCoinsViewCursor *CCoinsViewDB::Cursor() const
 {
-    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock());
+    CCoinsViewDBCursor *i = new CCoinsViewDBCursor(const_cast<CDBWrapper&>(db).NewIterator(), GetBestBlock(), GetSnapshotHash());
     /* It seems that there are no "const iterators" for LevelDB.  Since we
        only need read operations on it, use a const-cast to get around
        that restriction.  */
@@ -264,15 +269,21 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->pprev          = insertBlockIndex(diskindex.hashPrev);
                 pindexNew->nHeight        = diskindex.nHeight;
                 pindexNew->nFile          = diskindex.nFile;
+                pindexNew->stake_modifier = diskindex.stake_modifier;
+                pindexNew->stake_amount   = diskindex.stake_amount;
                 pindexNew->nDataPos       = diskindex.nDataPos;
                 pindexNew->nUndoPos       = diskindex.nUndoPos;
                 pindexNew->nVersion       = diskindex.nVersion;
                 pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
+                pindexNew->hash_witness_merkle_root = diskindex.hash_witness_merkle_root;
                 pindexNew->nTime          = diskindex.nTime;
                 pindexNew->nBits          = diskindex.nBits;
                 pindexNew->nNonce         = diskindex.nNonce;
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
+                pindexNew->commits        = std::move(diskindex.commits);
+                pindexNew->last_justified_epoch = diskindex.last_justified_epoch;
+                pindexNew->forking_before_active_finalization = diskindex.forking_before_active_finalization;
 
                 if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams))
                     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
@@ -410,4 +421,39 @@ bool CCoinsViewDB::Upgrade() {
     uiInterface.ShowProgress("", 100, false);
     LogPrintf("[%s].\n", ShutdownRequested() ? "CANCELLED" : "DONE");
     return !ShutdownRequested();
+}
+
+snapshot::SnapshotHash CCoinsViewDB::GetSnapshotHash() const {
+    std::vector<uint8_t>data;
+    if (db.Read(DB_SNAPSHOT_HASH_DATA, data)) {
+        return snapshot::SnapshotHash(data);
+    }
+    return snapshot::SnapshotHash();
+}
+
+bool CCoinsViewDB::SetSnapshotIndex(const snapshot::SnapshotIndex &snapshotIndex) {
+    return db.Write(DB_SNAPSHOT_INDEX, snapshotIndex);
+}
+
+bool CCoinsViewDB::GetSnapshotIndex(snapshot::SnapshotIndex &snapshotIndexOut) {
+    return db.Read(DB_SNAPSHOT_INDEX, snapshotIndexOut);
+}
+
+void CCoinsViewDB::ClearCoins() {
+    size_t total = 0;
+    std::unique_ptr<CCoinsViewCursor> cursor(Cursor());
+    while (cursor->Valid()) {
+        COutPoint key;
+        if (cursor->GetKey(key)) {
+            CoinEntry entry(&key);
+            db.Erase(entry);
+            ++total;
+        }
+        cursor->Next();
+    }
+
+    std::unique_ptr<CCoinsViewCursor> empty_cursor(Cursor());
+    assert(!empty_cursor->Valid() && "chainstate must have 0 coins");
+
+    LogPrint(BCLog::COINDB, "%s: deleted %i keys in the DB\n", __func__, total);
 }

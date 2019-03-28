@@ -4,8 +4,6 @@ OpenBSD build guide
 
 This guide describes how to build united and command-line utilities on OpenBSD.
 
-OpenBSD is most commonly used as a server OS, so this guide does not contain instructions for building the GUI.
-
 Preparation
 -------------
 
@@ -17,7 +15,7 @@ pkg_add autoconf # (select highest version, e.g. 2.69)
 pkg_add automake # (select highest version, e.g. 1.15)
 pkg_add python # (select highest version, e.g. 3.6)
 
-git clone https://github.com/unite/unite.git
+git clone https://github.com/dtr-org/unit-e
 ```
 
 See [dependencies.md](dependencies.md) for a complete overview.
@@ -69,13 +67,13 @@ Make sure `BDB_PREFIX` is set to the appropriate path from the above steps.
 
 To configure with wallet:
 ```bash
-./configure --with-gui=no CC=cc CXX=c++ \
+./configure CC=cc CXX=c++ \
     BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" BDB_CFLAGS="-I${BDB_PREFIX}/include"
 ```
 
 To configure without wallet:
 ```bash
-./configure --disable-wallet --with-gui=no CC=cc CXX=c++
+./configure --disable-wallet CC=cc CXX=c++
 ```
 
 Build and run the tests:
@@ -95,7 +93,7 @@ The standard ulimit restrictions in OpenBSD are very strict:
     data(kbytes)         1572864
 
 This, unfortunately, in some cases not enough to compile some `.cpp` files in the project,
-(see issue [#6658](https://github.com/unite/unite/issues/6658)).
+(see issue [#6658](https://github.com/bitcoin/bitcoin/issues/6658)).
 If your user is in the `staff` group the limit can be raised with:
 
     ulimit -d 3000000

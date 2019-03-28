@@ -23,7 +23,6 @@ class KeyPoolTest(UnitETestFramework):
         wallet_info_old = nodes[0].getwalletinfo()
         assert_equal(wallet_info_old['hdseedid'], wallet_info_old['hdmasterkeyid'])
         assert(addr_before_encrypting_data['hdseedid'] == wallet_info_old['hdseedid'])
-
         # Encrypt wallet and wait to terminate
         nodes[0].node_encrypt_wallet('test')
         # Restart node 0
@@ -75,10 +74,10 @@ class KeyPoolTest(UnitETestFramework):
         time.sleep(1.1)
         assert_equal(nodes[0].getwalletinfo()["unlocked_until"], 0)
 
-        # drain them by mining
-        nodes[0].generate(1)
-        nodes[0].generate(1)
-        nodes[0].generate(1)
+        # drain them
+        nodes[0].getnewaddress()
+        nodes[0].getnewaddress()
+        nodes[0].getnewaddress()
         assert_raises_rpc_error(-12, "Keypool ran out", nodes[0].generate, 1)
 
         nodes[0].walletpassphrase('test', 100)

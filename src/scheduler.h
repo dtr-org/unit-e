@@ -123,4 +123,6 @@ public:
     size_t CallbacksPending();
 };
 
+class task_unscheduled : std::exception {};
+
 #endif

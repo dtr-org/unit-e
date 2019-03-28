@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(limitedmap_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(limitedmap_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(limitedmap_test)
 {

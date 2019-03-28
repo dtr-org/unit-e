@@ -16,8 +16,9 @@ make assumptions about execution order.
 
 from decimal import Decimal
 
-from test_framework.blocktools import add_witness_commitment, create_block, create_coinbase, send_to_witness
-from test_framework.messages import BIP125_SEQUENCE_NUMBER, CTransaction
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, send_to_witness
+from test_framework.messages import BIP125_SEQUENCE_NUMBER, CTransaction, msg_witness_block
+from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes_bi, hex_str_to_bytes, sync_mempools
 
@@ -40,20 +41,28 @@ class BumpFeeTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
+        peer_node, rbf_node = self.nodes
+
         # Encrypt wallet for test_locked_wallet_fails test
-        self.nodes[1].node_encrypt_wallet(WALLET_PASSPHRASE)
+        rbf_node.node_encrypt_wallet(WALLET_PASSPHRASE)
+
         self.start_node(1)
-        self.nodes[1].walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
+
+        rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
+
+        rbf_node.add_p2p_connection(P2PInterface())
+        rbf_node.p2p.wait_for_verack()
 
         connect_nodes_bi(self.nodes, 0, 1)
         self.sync_all()
 
-        peer_node, rbf_node = self.nodes
-        rbf_node_address = rbf_node.getnewaddress()
+        rbf_node_address = rbf_node.getnewaddress('', 'legacy')
 
-        # fund rbf node with 10 coins of 0.001 btc (100,000 satoshis)
+        # fund rbf node with 25 coins of 0.001 btc (100,000 satoshis)
         self.log.info("Mining blocks...")
-        peer_node.generate(110)
+        peer_node.generate(116)
         self.sync_all()
         for i in range(25):
             peer_node.sendtoaddress(rbf_node_address, 0.001)
@@ -65,6 +74,7 @@ class BumpFeeTest(UnitETestFramework):
         self.log.info("Running tests")
         dest_address = peer_node.getnewaddress()
         test_simple_bumpfee_succeeds(rbf_node, peer_node, dest_address)
+        test_bumpfee_estimate_succeeds(rbf_node, dest_address)
         test_segwit_bumpfee_succeeds(rbf_node, dest_address)
         test_nonrbf_bumpfee_fails(peer_node, dest_address)
         test_notmine_bumpfee_fails(rbf_node, peer_node, dest_address)
@@ -100,6 +110,14 @@ def test_simple_bumpfee_succeeds(rbf_node, peer_node, dest_address):
     bumpedwtx = rbf_node.gettransaction(bumped_tx["txid"])
     assert_equal(oldwtx["replaced_by_txid"], bumped_tx["txid"])
     assert_equal(bumpedwtx["replaces_txid"], rbfid)
+
+
+def test_bumpfee_estimate_succeeds(rbf_node, dest_address):
+    rbfid = spend_one_input(rbf_node, dest_address)
+    estimate = rbf_node.bumpfee(rbfid, None, True)
+    # Estimating the fee should not commit a transaction
+    assert "txid" not in estimate
+    assert estimate["fee"] > 0
 
 
 def test_segwit_bumpfee_succeeds(rbf_node, dest_address):
@@ -295,13 +313,15 @@ def submit_block_with_tx(node, tx):
     tip = node.getbestblockhash()
     height = node.getblockcount() + 1
     block_time = node.getblockheader(tip)["mediantime"] + 1
-    block = create_block(int(tip, 16), create_coinbase(height), block_time)
+    snapshot_hash = get_tip_snapshot_meta(node).hash
+    stake = node.listunspent()[0]
+    block = create_block(int(tip, 16), create_coinbase(height, stake, snapshot_hash), block_time)
     block.vtx.append(ctx)
     block.rehash()
-    block.hashMerkleRoot = block.calc_merkle_root()
-    add_witness_commitment(block)
+    block.compute_merkle_trees()
     block.solve()
-    node.submitblock(bytes_to_hex_str(block.serialize(True)))
+    node.p2p.send_and_ping(msg_witness_block(block))
+    assert_equal(node.getbestblockhash(), block.hash)
     return block
 
 

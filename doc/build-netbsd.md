@@ -4,8 +4,6 @@ NetBSD build guide
 
 This guide describes how to build united and command-line utilities on NetBSD.
 
-This guide does not contain instructions for building the GUI.
-
 Preparation
 -------------
 
@@ -22,7 +20,9 @@ libtool
 pkg-config
 python37
 
-git clone https://github.com/unite/unite.git
+Download the source code:
+```
+git clone https://github.com/dtr-org/unit-e
 ```
 
 See [dependencies.md](dependencies.md) for a complete overview.
@@ -54,7 +54,7 @@ export BDB_PREFIX="$PWD/db4"
 With wallet:
 ```
 ./autogen.sh
-./configure --with-gui=no CPPFLAGS="-I/usr/pkg/include" \
+./configure CPPFLAGS="-I/usr/pkg/include" \
     LDFLAGS="-L/usr/pkg/lib" \
     BOOST_CPPFLAGS="-I/usr/pkg/include" \
     BOOST_LDFLAGS="-L/usr/pkg/lib" \
@@ -65,7 +65,7 @@ With wallet:
 Without wallet:
 ```
 ./autogen.sh
-./configure --with-gui=no --disable-wallet \
+./configure --disable-wallet \
     CPPFLAGS="-I/usr/pkg/include" \
     LDFLAGS="-L/usr/pkg/lib" \
     BOOST_CPPFLAGS="-I/usr/pkg/include" \

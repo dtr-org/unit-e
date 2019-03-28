@@ -5,6 +5,9 @@
 #include <sync.h>
 
 #include <logging.h>
+#include <memory>
+#include <set>
+#include <util.h>
 #include <utilstrencodings.h>
 
 #include <stdio.h>

@@ -10,12 +10,13 @@ import os
 import shutil
 import time
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
 from test_framework.test_node import ErrorMatch
 from test_framework.util import (
     assert_equal,
     assert_raises_rpc_error,
 )
+from test_framework.regtest_mnemonics import regtest_mnemonics
 
 
 class MultiWalletTest(UnitETestFramework):
@@ -119,9 +120,10 @@ class MultiWalletTest(UnitETestFramework):
         # if wallets/ doesn't exist, datadir should be the default wallet dir
         wallet_dir2 = data_dir('walletdir')
         os.rename(wallet_dir(), wallet_dir2)
-        self.start_node(0, ['-wallet=w4', '-wallet=w5'])
+        self.start_node(0, ['-wallet=w4', '-wallet=w5', '-rescan'])
         assert_equal(set(node.listwallets()), {"w4", "w5"})
         w5 = wallet("w5")
+        w5.importmasterkey(regtest_mnemonics[5]['mnemonics'])
         w5.generate(1)
 
         # now if wallets/ exists again, but the rootdir is specified as the walletdir, w4 and w5 should still be loaded
@@ -130,7 +132,7 @@ class MultiWalletTest(UnitETestFramework):
         assert_equal(set(node.listwallets()), {"w4", "w5"})
         w5 = wallet("w5")
         w5_info = w5.getwalletinfo()
-        assert_equal(w5_info['immature_balance'], 50)
+        assert_equal(w5_info['immature_balance'], PROPOSER_REWARD)
 
         competing_wallet_dir = os.path.join(self.options.tmpdir, 'competing_walletdir')
         os.mkdir(competing_wallet_dir)
@@ -143,11 +145,12 @@ class MultiWalletTest(UnitETestFramework):
         wallets = [wallet(w) for w in wallet_names]
         wallet_bad = wallet("bad")
 
+        wallets[0].importmasterkey(regtest_mnemonics[1]['mnemonics'])
         # check wallet names and balances
         wallets[0].generate(1)
         for wallet_name, wallet in zip(wallet_names, wallets):
             info = wallet.getwalletinfo()
-            assert_equal(info['immature_balance'], 50 if wallet is wallets[0] else 0)
+            assert_equal(info['immature_balance'], PROPOSER_REWARD if wallet is wallets[0] else 0)
             assert_equal(info['walletname'], wallet_name)
 
         # accessing invalid wallet fails
@@ -158,7 +161,7 @@ class MultiWalletTest(UnitETestFramework):
 
         w1, w2, w3, w4, *_ = wallets
         w1.generate(101)
-        assert_equal(w1.getbalance(), 100)
+        assert_equal(w1.getbalance(), (102 - COINBASE_MATURITY) * PROPOSER_REWARD + regtest_mnemonics[1]['balance'])
         assert_equal(w2.getbalance(), 0)
         assert_equal(w3.getbalance(), 0)
         assert_equal(w4.getbalance(), 0)

@@ -6,7 +6,7 @@ Some notes on how to build unit-e in Unix.
 
 Note
 ---------------------
-Always use absolute paths to configure and compile unit-e and the dependencies,
+Always use absolute paths to configure and compile unite and the dependencies,
 for example, when specifying the path of the dependency:
 
 	../dist/configure --enable-cxx --disable-shared --with-pic --prefix=$BDB_PREFIX
@@ -23,8 +23,6 @@ To Build
 make
 make install # optional
 ```
-
-This will build unite-qt as well if the dependencies are met.
 
 Dependencies
 ---------------------
@@ -43,11 +41,9 @@ Optional dependencies:
  ------------|------------------|----------------------
  miniupnpc   | UPnP Support     | Firewall-jumping support
  libdb4.8    | Berkeley DB      | Wallet storage (only needed when wallet enabled)
- qt          | GUI              | GUI toolkit (only needed when GUI enabled)
- protobuf    | Payments in GUI  | Data interchange format used for payment protocol (only needed when GUI enabled)
- libqrencode | QR codes in GUI  | Optional for generating QR codes (only needed when GUI enabled)
  univalue    | Utility          | JSON parsing and encoding (bundled version will be used unless --with-system-univalue passed to configure)
  libzmq3     | ZMQ notification | Optional, allows generating ZMQ notifications (requires ZMQ version >= 4.x)
+ hidapi      | Hardware support | Optional, allows working with hardware wallets such as the Ledger Nano S.
 
 For the versions used, see [dependencies.md](dependencies.md)
 
@@ -97,22 +93,9 @@ ZMQ dependencies (provides ZMQ API 4.x):
 
     sudo apt-get install libzmq3-dev
 
-#### Dependencies for the GUI
+hidapi (provides USB HID device support):
 
-If you want to build unite-qt, make sure that the required packages for Qt development
-are installed. Qt 5 is necessary to build the GUI.
-To build without GUI pass `--without-gui`.
-
-To build with Qt 5 you need the following:
-
-    sudo apt-get install libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
-
-libqrencode (optional) can be installed with:
-
-    sudo apt-get install libqrencode-dev
-
-Once these are installed, they will be found by configure and a unite-qt executable will be
-built by default.
+    sudo apt-get install libhidapi-dev libusb-1.0-0-dev libudev-dev
 
 
 ### Fedora
@@ -126,14 +109,6 @@ Build requirements:
 Optional:
 
     sudo dnf install miniupnpc-devel
-
-To build with Qt 5 you need the following:
-
-    sudo dnf install qt5-qttools-devel qt5-qtbase-devel protobuf-devel
-
-libqrencode (optional) can be installed with:
-
-    sudo dnf install qrencode-devel
 
 Notes
 -----
@@ -178,7 +153,7 @@ If you need to build Boost yourself:
 
 Security
 --------
-To help make your unit-e installation more secure by making certain attacks impossible to
+To help make your unite installation more secure by making certain attacks impossible to
 exploit even if a vulnerability is found, binaries are hardened by default.
 This can be disabled with:
 
@@ -202,7 +177,7 @@ Hardening enables the following features:
 
     To test that you have built PIE executable, install scanelf, part of paxutils, and use:
 
-    	scanelf -e ./unite
+        scanelf -e ./unit-e
 
     The output should contain:
 
@@ -210,14 +185,14 @@ Hardening enables the following features:
     ET_DYN
 
 * Non-executable Stack
-    If the stack is executable then trivial stack-based buffer overflow exploits are possible if
-    vulnerable buffers are found. By default, unit-e should be built with a non-executable stack,
+    If the stack is executable then trivial stack based buffer overflow exploits are possible if
+    vulnerable buffers are found. By default, unite should be built with a non-executable stack
     but if one of the libraries it uses asks for an executable stack or someone makes a mistake
     and uses a compiler extension which requires an executable stack, it will silently build an
     executable without the non-executable stack protection.
 
     To verify that the stack is non-executable after compiling use:
-    `scanelf -e ./unite`
+    `scanelf -e ./unit-e`
 
     The output should contain:
 	STK/REL/PTL
@@ -227,7 +202,7 @@ Hardening enables the following features:
 
 Disable-wallet mode
 --------------------
-When the intention is to run only a P2P node without a wallet, unit-e may be compiled in
+When the intention is to run only a P2P node without a wallet, unite may be compiled in
 disable-wallet mode with:
 
     ./configure --disable-wallet
@@ -249,10 +224,10 @@ Setup and Build Example: Arch Linux
 This example lists the steps necessary to setup and build a command line only, non-wallet distribution of the latest changes on Arch Linux:
 
     pacman -S git base-devel boost libevent python
-    git clone https://github.com/unite/unite.git
-    cd unite/
+    git clone https://github.com/dtr-org/unit-e
+    cd unit-e
     ./autogen.sh
-    ./configure --disable-wallet --without-gui --without-miniupnpc
+    ./configure --disable-wallet --without-miniupnpc
     make check
 
 Note:
@@ -277,7 +252,7 @@ Then, install the toolchain and curl:
 To build executables for ARM:
 
     cd depends
-    make HOST=arm-linux-gnueabihf NO_QT=1
+    make HOST=arm-linux-gnueabihf
     cd ..
     ./autogen.sh
     ./configure --prefix=$PWD/depends/arm-linux-gnueabihf --enable-glibc-back-compat --enable-reduce-exports LDFLAGS=-static-libstdc++

@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test transaction signing using the signrawtransaction* RPCs."""
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 import decimal
 
 class RpcCreateMultiSigTest(UnitETestFramework):
@@ -24,6 +24,8 @@ class RpcCreateMultiSigTest(UnitETestFramework):
 
     def run_test(self):
         node0,node1,node2 = self.nodes
+
+        self.setup_stake_coins(self.nodes[0])
 
         # 50 UTE each, rest will be 25 UTE each
         node0.generate(149)
@@ -49,7 +51,7 @@ class RpcCreateMultiSigTest(UnitETestFramework):
 
         height = node0.getblockchaininfo()["blocks"]
         assert 150 < height < 350
-        total = 149*50 + (height-149-100)*25
+        total = node0.initial_stake + 149 * PROPOSER_REWARD + (height - 149 - 100) * PROPOSER_REWARD
         assert bal1 == 0
         assert bal2 == self.moved
         assert bal0+bal1+bal2 == total
@@ -61,7 +63,7 @@ class RpcCreateMultiSigTest(UnitETestFramework):
         madd = msig["address"]
         mredeem = msig["redeemScript"]
         if self.output_type == 'bech32':
-            assert madd[0:4] == "bcrt"  # actually a bech32 address
+            assert madd[0:4] == "uert"  # actually a bech32 address
 
         # compare against addmultisigaddress
         msigw = node1.addmultisigaddress(self.nsigs, self.pub, None, self.output_type)

@@ -25,6 +25,10 @@ BCLog::Logger* const g_logger = new BCLog::Logger();
 
 bool fLogIPs = DEFAULT_LOGIPS;
 
+// Cannot use std::string here as mingw doesn't support thread_local variables with destructors
+// see also: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=83562
+extern thread_local char g_thread_name[16];
+
 static int FileWriteStr(const std::string &str, FILE *fp)
 {
     return fwrite(str.data(), 1, str.size(), fp);
@@ -119,13 +123,66 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::COINDB, "coindb"},
     {BCLog::QT, "qt"},
     {BCLog::LEVELDB, "leveldb"},
+    {BCLog::VALIDATION, "validation"},
+    {BCLog::PROPOSING, "proposing"},
+    {BCLog::FINALIZATION, "finalization"},
+    {BCLog::SNAPSHOT, "snapshot"},
+    {BCLog::ADMIN, "admin"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };
 
+namespace {
+
+template <typename Callable>
+void ForEachLogCategory(Callable&& f) {
+    for (const CLogCategoryDesc &category_desc : LogCategories) {
+        if (category_desc.flag == static_cast<uint32_t>(BCLog::NONE) ||
+            category_desc.flag == static_cast<uint32_t>(BCLog::ALL)) {
+            continue;
+        }
+        f(category_desc);
+    }
+}
+
+//! @see http://supertech.csail.mit.edu/papers/debruijn.pdf
+std::array<std::string, 32> ComputeDeBrujinLabelTabel() {
+    std::array<std::string, 32> categories;
+    ForEachLogCategory([&](const CLogCategoryDesc &category_desc) {
+          const uint32_t vec = category_desc.flag;
+          const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+          categories[pos] = category_desc.category;
+    });
+    return categories;
+}
+
+std::string GetLogCategoryLabel(const BCLog::LogFlags category) {
+    if (category == BCLog::NONE) {
+        return "";
+    }
+    static const std::array<std::string, 32> labels = ComputeDeBrujinLabelTabel();
+    const auto vec = static_cast<uint32_t>(category);
+    const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+    return labels[pos];
+}
+
+std::size_t ComputeLogCategoryMaxLength() {
+    std::size_t length = 0;
+    ForEachLogCategory([&](const CLogCategoryDesc &category_desc) {
+        length = std::max<std::size_t>(length, category_desc.category.size());
+    });
+    return length;
+}
+
+std::string ComputeCategoryFormatString() {
+  return strprintf("[%%%ds] ", ComputeLogCategoryMaxLength());
+}
+
+}
+
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)
 {
-    if (str == "") {
+    if (str.empty()) {
         flag = BCLog::ALL;
         return true;
     }
@@ -142,65 +199,77 @@ std::string ListLogCategories()
 {
     std::string ret;
     int outcount = 0;
-    for (const CLogCategoryDesc& category_desc : LogCategories) {
-        // Omit the special cases.
-        if (category_desc.flag != BCLog::NONE && category_desc.flag != BCLog::ALL) {
-            if (outcount != 0) ret += ", ";
-            ret += category_desc.category;
-            outcount++;
+    ForEachLogCategory([&](const CLogCategoryDesc &category_desc) {
+        if (outcount != 0) {
+            ret += ", ";
         }
-    }
+        ret += category_desc.category;
+        outcount++;
+    });
     return ret;
 }
 
 std::vector<CLogCategoryActive> ListActiveLogCategories()
 {
     std::vector<CLogCategoryActive> ret;
-    for (const CLogCategoryDesc& category_desc : LogCategories) {
-        // Omit the special cases.
-        if (category_desc.flag != BCLog::NONE && category_desc.flag != BCLog::ALL) {
-            CLogCategoryActive catActive;
-            catActive.category = category_desc.category;
-            catActive.active = LogAcceptCategory(category_desc.flag);
-            ret.push_back(catActive);
-        }
-    }
+    ForEachLogCategory([&](const CLogCategoryDesc &category_desc) {
+        CLogCategoryActive cat_active;
+        cat_active.category = category_desc.category;
+        cat_active.active = LogAcceptCategory(category_desc.flag);
+        ret.push_back(cat_active);
+    });
     return ret;
 }
 
-std::string BCLog::Logger::LogTimestampStr(const std::string &str)
+std::string BCLog::Logger::LogPrependHeader(const std::string &str, BCLog::LogFlags category)
 {
     std::string strStamped;
 
-    if (!m_log_timestamps)
+    if (!m_log_timestamps && !m_log_thread_names && !m_log_categories) {
         return str;
-
+    }
     if (m_started_new_line) {
-        int64_t nTimeMicros = GetTimeMicros();
-        strStamped = FormatISO8601DateTime(nTimeMicros/1000000);
-        if (m_log_time_micros) {
-            strStamped.pop_back();
-            strStamped += strprintf(".%06dZ", nTimeMicros%1000000);
+        if (m_log_timestamps) {
+            int64_t nTimeMicros = GetTimeMicros();
+            strStamped = FormatISO8601DateTime(nTimeMicros/1000000);
+            if (m_log_time_micros) {
+                strStamped.pop_back();
+                strStamped += strprintf(".%06dZ", nTimeMicros%1000000);
+            }
+            strStamped += ' ';
         }
-        int64_t mocktime = GetMockTime();
-        if (mocktime) {
-            strStamped += " (mocktime: " + FormatISO8601DateTime(mocktime) + ")";
-        }
-        strStamped += ' ' + str;
-    } else
-        strStamped = str;
 
-    if (!str.empty() && str[str.size()-1] == '\n')
-        m_started_new_line = true;
-    else
-        m_started_new_line = false;
+        if (m_log_categories) {
+            static std::string fmt = ComputeCategoryFormatString();
+            strStamped += strprintf(fmt, GetLogCategoryLabel(category));
+        }
+
+        if (m_log_thread_names) {
+            strStamped += '<';
+            strStamped += g_thread_name;
+            strStamped += "> ";
+        }
+
+        if (m_log_timestamps) {
+            int64_t mocktime = GetMockTime();
+            if (mocktime) {
+                strStamped += "(mocktime: " + FormatISO8601DateTime(mocktime) + ") ";
+            }
+        }
+
+        strStamped += str;
+    } else {
+        strStamped = str;
+    }
+
+    m_started_new_line = !str.empty() && str[str.size()-1] == '\n';
 
     return strStamped;
 }
 
-void BCLog::Logger::LogPrintStr(const std::string &str)
+void BCLog::Logger::LogPrintStr(const std::string &str, BCLog::LogFlags category)
 {
-    std::string strTimestamped = LogTimestampStr(str);
+    std::string strTimestamped = LogPrependHeader(str, category);
 
     if (m_print_to_console) {
         // print to console
@@ -258,7 +327,7 @@ void BCLog::Logger::ShrinkDebugFile()
             fclose(file);
             return;
         }
-        int nBytes = fread(vch.data(), 1, vch.size(), file);
+        std::size_t nBytes = fread(vch.data(), 1, vch.size(), file);
         fclose(file);
 
         file = fsbridge::fopen(m_file_path, "w");

@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Using: contrib/devtools/lint-clang-format.py [--check-commit] [--replace [--git-add]]
+
+# Checking unit-e sources follow style guide.
+# With no options, just check all the project files.
+
+# --check-commit   consider only Unit-E files from the current commit
+# --replace        adjust unformatted files
+# --git-add        add formated files back into your commit
+
+unset GIT_DIR
+./contrib/devtools/lint-clang-format.py --check-commit --replace --git-add

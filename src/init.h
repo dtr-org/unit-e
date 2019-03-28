@@ -67,4 +67,7 @@ void SetupServerArgs();
 /** Returns licensing information (for -version) */
 std::string LicenseInfo();
 
+//! Returns the global background task scheduler
+CScheduler& GetScheduler();
+
 #endif // UNITE_INIT_H

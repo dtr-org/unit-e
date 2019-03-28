@@ -8,7 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(streams_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(streams_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(streams_vector_writer)
 {
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(streams_serializedata_xor)
     CDataStream ds(in, 0, 0);
 
     // Degenerate case
-
+    
     key.push_back('\x00');
     key.push_back('\x00');
     ds.Xor(key);
@@ -88,7 +88,6 @@ BOOST_AUTO_TEST_CASE(streams_serializedata_xor)
     in.push_back('\xf0');
     expected_xor.push_back('\xf0');
     expected_xor.push_back('\x0f');
-
     // Single character key
 
     ds.clear();
@@ -109,7 +108,6 @@ BOOST_AUTO_TEST_CASE(streams_serializedata_xor)
     in.push_back('\x0f');
     expected_xor.push_back('\x0f');
     expected_xor.push_back('\x00');
-
     ds.clear();
     ds.insert(ds.begin(), in.begin(), in.end());
 

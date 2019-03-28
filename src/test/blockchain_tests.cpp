@@ -1,3 +1,7 @@
+// Copyright (c) 2017-2018 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include <boost/test/unit_test.hpp>
 
 #include <stdlib.h>
@@ -41,7 +45,7 @@ static void TestDifficulty(uint32_t nbits, double expected_difficulty)
     RejectDifficultyMismatch(difficulty, expected_difficulty);
 }
 
-BOOST_FIXTURE_TEST_SUITE(blockchain_tests, BasicTestingSetup)
+BOOST_FIXTURE_TEST_SUITE(blockchain_tests, ReducedTestingSetup)
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_very_low_target)
 {

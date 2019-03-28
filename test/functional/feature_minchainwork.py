@@ -52,6 +52,8 @@ class MinimumChainWorkTest(UnitETestFramework):
 
         starting_blockcount = self.nodes[2].getblockcount()
 
+        self.setup_stake_coins(self.nodes[0])
+
         num_blocks_to_generate = int((self.node_min_work[1] - starting_chain_work) / REGTEST_WORK_PER_BLOCK)
         self.log.info("Generating %d blocks on node0", num_blocks_to_generate)
         hashes = self.nodes[0].generate(num_blocks_to_generate)

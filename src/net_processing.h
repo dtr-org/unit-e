@@ -56,9 +56,11 @@ public:
     * Send queued protocol messages to be sent to a give node.
     *
     * @param[in]   pto             The node which we are sending messages to.
+    * @param[in]   node_index      The node index starting from 0 that is being called
+    * @param[in]   total_nodes     The number of all nodes that will be called
     * @return                      True if there is more work to be done
     */
-    bool SendMessages(CNode* pto) override EXCLUSIVE_LOCKS_REQUIRED(pto->cs_sendProcessing);
+    bool SendMessages(CNode* pto, size_t node_index, size_t total_nodes) override;
 
     /** Consider evicting an outbound peer based on the amount of time they've been behind our tip */
     void ConsiderEviction(CNode *pto, int64_t time_in_seconds);

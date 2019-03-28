@@ -16,7 +16,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from io import BytesIO
 from test_framework.messages import CTransaction, ToHex
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import assert_equal, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes_bi, hex_str_to_bytes
 
 class multidict(dict):
@@ -52,6 +52,8 @@ class RawTransactionsTest(UnitETestFramework):
         connect_nodes_bi(self.nodes, 0, 2)
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], self.nodes[2])
+
         self.log.info('prepare some coins for multiple *rawtransaction commands')
         self.nodes[2].generate(1)
         self.sync_all()
@@ -64,9 +66,9 @@ class RawTransactionsTest(UnitETestFramework):
         self.nodes[0].generate(5)
         self.sync_all()
 
-        self.log.info('Test getrawtransaction on genesis block coinbase returns an error')
+        self.log.info('Test getrawtransaction on genesis block coinbase does not return an error')
         block = self.nodes[0].getblock(self.nodes[0].getblockhash(0))
-        assert_raises_rpc_error(-5, "The genesis block coinbase is not considered an ordinary transaction", self.nodes[0].getrawtransaction, block['merkleroot'])
+        assert(block['hash'])
 
         self.log.info('Check parameter types and required parameters of createrawtransaction')
         # Test `createrawtransaction` required parameters
@@ -298,12 +300,14 @@ class RawTransactionsTest(UnitETestFramework):
 
         rawTxSigned = self.nodes[2].signrawtransactionwithwallet(rawTx, inputs)
         assert_equal(rawTxSigned['complete'], True) #node2 can sign the tx compl., own two of three keys
-        self.nodes[2].sendrawtransaction(rawTxSigned['hex'])
+        txToLock = self.nodes[2].sendrawtransaction(rawTxSigned['hex'])
         rawTx = self.nodes[0].decoderawtransaction(rawTxSigned['hex'])
         self.sync_all()
+        # This UTXO is needed later and should not be spent
+        self.nodes[0].lockunspent(False, [{"txid": txToLock, "vout": 0}])
         self.nodes[0].generate(1)
         self.sync_all()
-        assert_equal(self.nodes[0].getbalance(), bal+Decimal('50.00000000')+Decimal('2.19000000')) #block reward + tx
+        assert_equal(self.nodes[0].getbalance(), bal + PROPOSER_REWARD + Decimal('2.19000000')) #block reward + tx
 
         # 2of2 test for combining transactions
         bal = self.nodes[2].getbalance()
@@ -352,7 +356,7 @@ class RawTransactionsTest(UnitETestFramework):
         self.sync_all()
         self.nodes[0].generate(1)
         self.sync_all()
-        assert_equal(self.nodes[0].getbalance(), bal+Decimal('50.00000000')+Decimal('2.19000000')) #block reward + tx
+        assert_equal(self.nodes[0].getbalance(), bal + PROPOSER_REWARD + Decimal('2.19000000')) #block reward + tx
 
         # decoderawtransaction tests
         # witness transaction
@@ -418,19 +422,19 @@ class RawTransactionsTest(UnitETestFramework):
         # TRANSACTION VERSION NUMBER TESTS #
         ####################################
 
-        # Test the minimum transaction version number that fits in a signed 32-bit integer.
+        # Test the minimum transaction version number that fits in an unsigned 16-bit integer.
         tx = CTransaction()
-        tx.nVersion = -0x80000000
+        tx.nVersion = 0
         rawtx = ToHex(tx)
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], -0x80000000)
+        assert_equal(decrawtx['version'], 0)
 
-        # Test the maximum transaction version number that fits in a signed 32-bit integer.
+        # Test the maximum transaction version number that fits in an unsigned 16-bit integer.
         tx = CTransaction()
-        tx.nVersion = 0x7fffffff
+        tx.nVersion = 0xffff
         rawtx = ToHex(tx)
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], 0x7fffffff)
+        assert_equal(decrawtx['version'], 0xffff)
 
 if __name__ == '__main__':
     RawTransactionsTest().main()

@@ -23,6 +23,8 @@ class DeprecatedRpcTest(UnitETestFramework):
         # assert_raises_rpc_error(-5, "Invalid public key", self.nodes[0].createmultisig, 1, [self.nodes[0].getnewaddress()])
         # self.nodes[1].createmultisig(1, [self.nodes[1].getnewaddress()])
 
+        self.setup_stake_coins(*self.nodes)
+
         self.log.info("Test validateaddress deprecation")
         SOME_ADDRESS = "mnvGjUy3NMj67yJ6gkK5o9e5RS33Z2Vqcu"  # This is just some random address to pass as a parameter to validateaddress
         dep_validate_address = self.nodes[0].validateaddress(SOME_ADDRESS)
@@ -49,10 +51,10 @@ class DeprecatedRpcTest(UnitETestFramework):
         # - listreceivedbylabel
         # - setlabel
         #
-        address0 = self.nodes[0].getnewaddress()
+        address0 = self.nodes[0].getnewaddress('', 'bech32')
         self.nodes[0].generatetoaddress(101, address0)
         self.sync_all()
-        address1 = self.nodes[1].getnewaddress()
+        address1 = self.nodes[1].getnewaddress('', 'bech32')
         self.nodes[1].generatetoaddress(101, address1)
 
         self.log.info("- getaccount")

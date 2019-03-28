@@ -6,11 +6,13 @@
 
 import time
 
-from test_framework.blocktools import create_block, create_coinbase, add_witness_commitment
-from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, sign_coinbase, sign_transaction, update_snapshot_with_tx
+from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, ToHex, msg_block, msg_witness_block
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, get_bip9_status, satoshi_round, sync_blocks
+from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes, get_bip9_status, satoshi_round, sync_blocks, wait_until
+from test_framework.mininode import P2PInterface
+from test_framework.regtest_mnemonics import regtest_mnemonics
 
 SEQUENCE_LOCKTIME_DISABLE_FLAG = (1<<31)
 SEQUENCE_LOCKTIME_TYPE_FLAG = (1<<22) # this means use time (0 means height)
@@ -22,17 +24,31 @@ NOT_FINAL_ERROR = "non-BIP68-final (code 64)"
 
 class BIP68Test(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 2
-        self.extra_args = [[], ["-acceptnonstdtxn=0"]]
+        self.num_nodes = 3
+        self.extra_args = [[], ["-acceptnonstdtxn=0"], ['-validating=1']]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        self.nodes[0].add_p2p_connection(P2PInterface())
+
         self.relayfee = self.nodes[0].getnetworkinfo()["relayfee"]
 
+        # Add deposit to stop finalization as in this test
+        # we need to revert 11 blocks (2 epochs) via invalidateblock
+        # and node is not allowed to revert finalization
+        self.nodes[2].importmasterkey(regtest_mnemonics[0]['mnemonics'])
+        self.restart_node(2)  # disconnect from other nodes
+        connect_nodes(self.nodes[2], 0)  # send deposit to one node only
+        self.nodes[0].generate(1)
+        addr = self.nodes[2].getnewaddress('', 'legacy')
+        txid = self.nodes[2].deposit(addr, 10000)
+        wait_until(lambda: txid in self.nodes[0].getrawmempool(), timeout=10)
+        self.stop_node(2)
+
         # Generate some coins
-        self.nodes[0].generate(110)
+        self.nodes[0].generate(109)
 
         self.log.info("Running test disable flag")
         self.test_disable_flag()
@@ -254,6 +270,7 @@ class BIP68Test(UnitETestFramework):
             cur_time += 600
 
         assert(tx2.hash in self.nodes[0].getrawmempool())
+        tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=True)
         test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=False)
@@ -308,16 +325,24 @@ class BIP68Test(UnitETestFramework):
         # tx3 to be removed.
         tip = int(self.nodes[0].getblockhash(self.nodes[0].getblockcount()-1), 16)
         height = self.nodes[0].getblockcount()
+        # Let's get the available stake that is not already used
+        avail_stake = [x for x in self.nodes[0].listunspent() if x['txid'] != tx1.hash]
         for i in range(2):
-            block = create_block(tip, create_coinbase(height), cur_time)
+            stake = avail_stake.pop()
+            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
+            block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3
-            block.rehash()
             block.solve()
             tip = block.sha256
+
+            tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], tip_snapshot_meta.data, 0, height, coinbase)
+
             height += 1
-            self.nodes[0].submitblock(ToHex(block))
+            self.nodes[0].p2p.send_and_ping(msg_block(block))
             cur_time += 1
 
+        # sync as the reorg is happening
+        self.nodes[0].p2p.sync_with_ping()
         mempool = self.nodes[0].getrawmempool()
         assert(tx3.hash not in mempool)
         assert(tx2.hash in mempool)
@@ -348,31 +373,36 @@ class BIP68Test(UnitETestFramework):
         tx2_raw = self.nodes[0].signrawtransactionwithwallet(ToHex(tx2))["hex"]
         tx2 = FromHex(tx2, tx2_raw)
         tx2.rehash()
-
         self.nodes[0].sendrawtransaction(ToHex(tx2))
 
-        # Now make an invalid spend of tx2 according to BIP68
-        sequence_value = 100 # 100 block relative locktime
+        # Now make an invalid (non-final) spend of tx2 according to BIP68
+        non_final_sequence_value = 100
 
         tx3 = CTransaction()
         tx3.nVersion = 2
-        tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=sequence_value)]
+        tx3.vin = [CTxIn(COutPoint(tx2.sha256, 0), nSequence=non_final_sequence_value)]
         tx3.vout = [CTxOut(int(tx2.vout[0].nValue - self.relayfee * UNIT), CScript([b'a' * 35]))]
         tx3.rehash()
 
+        # Make sure the transaction will not be accepted into mempool
         assert_raises_rpc_error(-26, NOT_FINAL_ERROR, self.nodes[0].sendrawtransaction, ToHex(tx3))
 
-        # make a block that violates bip68; ensure that the tip updates
+        # Make a block that violates bip68; ensure that the tip updates
         tip = int(self.nodes[0].getbestblockhash(), 16)
-        block = create_block(tip, create_coinbase(self.nodes[0].getblockcount()+1))
+        snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
+
+        coinbase = create_coinbase(self.nodes[0].getblockcount()+1, self.nodes[0].listunspent()[0], snapshot_hash)
+        coinbase = sign_transaction(self.nodes[0], coinbase)
+        coinbase.rehash()
+
+        block = create_block(tip, coinbase)
         block.nVersion = 3
         block.vtx.extend([tx1, tx2, tx3])
-        block.hashMerkleRoot = block.calc_merkle_root()
-        block.rehash()
-        add_witness_commitment(block)
+        block.ensure_ltor()
+        block.compute_merkle_trees()
         block.solve()
 
-        self.nodes[0].submitblock(bytes_to_hex_str(block.serialize(True)))
+        self.nodes[0].p2p.send_and_ping(msg_witness_block(block))
         assert_equal(self.nodes[0].getbestblockhash(), block.hash)
 
     def activateCSV(self):
@@ -385,7 +415,7 @@ class BIP68Test(UnitETestFramework):
         assert_equal(get_bip9_status(self.nodes[0], 'csv')['status'], "locked_in")
         self.nodes[0].generate(1)
         assert_equal(get_bip9_status(self.nodes[0], 'csv')['status'], "active")
-        sync_blocks(self.nodes)
+        sync_blocks(self.nodes[:2])
 
     # Use self.nodes[1] to test that version 2 transactions are standard.
     def test_version2_relay(self):

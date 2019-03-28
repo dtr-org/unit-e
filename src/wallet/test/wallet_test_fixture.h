@@ -11,13 +11,41 @@
 
 #include <memory>
 
-/** Testing setup and teardown for wallet.
- */
-struct WalletTestingSetup: public TestingSetup {
-    explicit WalletTestingSetup(const std::string& chainName = CBaseChainParams::MAIN);
-    ~WalletTestingSetup();
+//! Testing setup and teardown for wallet.
+struct WalletTestingSetup : public TestingSetup {
+  explicit WalletTestingSetup(
+      const std::string &chainName = CBaseChainParams::TESTNET);
 
-    CWallet m_wallet;
+  explicit WalletTestingSetup(
+      std::function<void(Settings&)> f,
+      const std::string &chainName = CBaseChainParams::TESTNET);
+
+  ~WalletTestingSetup();
+
+  Settings settings;
+  std::shared_ptr<CWallet> m_wallet;
+};
+
+//
+// Testing fixture that pre-creates a
+// 100-block REGTEST-mode block chain
+//
+struct TestChain100Setup : public WalletTestingSetup {
+  TestChain100Setup();
+
+  // Create a new block with just given transactions, coinbase paying to
+  // scriptPubKey, and try to add it to the current chain.
+  //
+  // Asserts that the a new block was successfully created. Alternatively
+  // a pointer to a bool can be passed in which the result will be stored in.
+  CBlock CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns,
+                               const CScript& scriptPubKey,
+                               bool *processed = nullptr);
+
+  ~TestChain100Setup();
+
+  std::vector<CTransaction> m_coinbase_txns; // For convenience, coinbase transactions
+  CKey coinbaseKey; // private/public key needed to spend coinbase transactions
 };
 
 #endif // UNITE_WALLET_TEST_WALLET_TEST_FIXTURE_H

@@ -43,9 +43,6 @@ This allows for running united without having to do any manual configuration.
 `conf`, `pid`, and `wallet` accept relative paths which are interpreted as
 relative to the data directory. `wallet` *only* supports relative paths.
 
-For an example configuration file that describes the configuration settings,
-see `share/examples/unite.conf`.
-
 Paths
 ---------------------------------
 
@@ -83,8 +80,6 @@ Installing this .service file consists of just copying it to
 
 To test, run `systemctl start united` and to enable for system startup run
 `systemctl enable united`
-
-NOTE: When installing for systemd in Debian/Ubuntu the .service file needs to be copied to the /lib/systemd/system directory instead.
 
 ### OpenRC
 

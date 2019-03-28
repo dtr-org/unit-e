@@ -32,7 +32,7 @@ class NodeNetworkLimitedTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [['-prune=550', '-addrmantest'], [], []]
+        self.extra_args = [['-prune=550', '-addrmantest', '-createsnapshot=0'], [], []]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -50,6 +50,17 @@ class NodeNetworkLimitedTest(UnitETestFramework):
         self.disconnect_all()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0], self.nodes[1], rescan=False)
+
+        genesis = self.nodes[0].getblock(self.nodes[0].getbestblockhash())
+        funding_txid = genesis['tx'][0]
+        genesis_tx_hex = self.nodes[0].getrawtransaction(funding_txid)
+        fund_proof = self.nodes[0].gettxoutproof([funding_txid])
+        self.nodes[0].importprunedfunds(genesis_tx_hex, fund_proof)
+
+        fund_proof = self.nodes[1].gettxoutproof([funding_txid])
+        self.nodes[1].importprunedfunds(genesis_tx_hex, fund_proof)
+
         node = self.nodes[0].add_p2p_connection(P2PIgnoreInv())
 
         expected_services = NODE_BLOOM | NODE_WITNESS | NODE_NETWORK_LIMITED

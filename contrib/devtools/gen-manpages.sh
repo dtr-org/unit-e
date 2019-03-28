@@ -7,10 +7,9 @@ BUILDDIR=${BUILDDIR:-$TOPDIR}
 BINDIR=${BINDIR:-$BUILDDIR/src}
 MANDIR=${MANDIR:-$TOPDIR/doc/man}
 
-UNITED=${UNITED:-$BINDIR/united}
-UNITECLI=${UNITECLI:-$BINDIR/unite-cli}
-UNITETX=${UNITETX:-$BINDIR/unite-tx}
-UNITEQT=${UNITEQT:-$BINDIR/qt/unite-qt}
+UNITED=${UNITED:-$SRCDIR/united}
+UNITECLI=${UNITECLI:-$SRCDIR/unite-cli}
+UNITETX=${UNITETX:-$SRCDIR/unite-tx}
 
 [ ! -x $UNITED ] && echo "$UNITED not found or not executable." && exit 1
 
@@ -19,11 +18,11 @@ BTCVER=($($UNITECLI --version | head -n1 | awk -F'[ -]' '{ print $6, $7 }'))
 
 # Create a footer file with copyright content.
 # This gets autodetected fine for united if --version-string is not set,
-# but has different outcomes for unite-qt and unite-cli.
+# but has different outcomes for unite-cli.
 echo "[COPYRIGHT]" > footer.h2m
 $UNITED --version | sed -n '1!p' >> footer.h2m
 
-for cmd in $UNITED $UNITECLI $UNITETX $UNITEQT; do
+for cmd in $UNITED $UNITECLI $UNITETX; do
   cmdname="${cmd##*/}"
   help2man -N --version-string=${BTCVER[0]} --include=footer.h2m -o ${MANDIR}/${cmdname}.1 ${cmd}
   sed -i "s/\\\-${BTCVER[1]}//g" ${MANDIR}/${cmdname}.1

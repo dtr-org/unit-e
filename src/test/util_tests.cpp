@@ -21,7 +21,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-BOOST_FIXTURE_TEST_SUITE(util_tests, BasicTestingSetup)
+BOOST_AUTO_TEST_SUITE(util_tests)
 
 BOOST_AUTO_TEST_CASE(util_criticalsection)
 {
@@ -50,6 +50,7 @@ static const unsigned char ParseHex_expected[65] = {
     0xde, 0x5c, 0x38, 0x4d, 0xf7, 0xba, 0x0b, 0x8d, 0x57, 0x8a, 0x4c, 0x70, 0x2b, 0x6b, 0xf1, 0x1d,
     0x5f
 };
+
 BOOST_AUTO_TEST_CASE(util_ParseHex)
 {
     std::vector<unsigned char> result;
@@ -485,7 +486,7 @@ BOOST_AUTO_TEST_CASE(util_ReadConfigStream)
     test_args.SetNetworkOnlyArg("-ccc");
     test_args.SetNetworkOnlyArg("-h");
 
-    test_args.SelectConfigNetwork(CBaseChainParams::MAIN);
+    test_args.SelectConfigNetwork(CBaseChainParams::TESTNET);
     BOOST_CHECK(test_args.GetArg("-d", "xxx") == "e");
     BOOST_CHECK(test_args.GetArgs("-ccc").size() == 2);
     BOOST_CHECK(test_args.GetArg("-h", "xxx") == "0");
@@ -556,9 +557,6 @@ BOOST_AUTO_TEST_CASE(util_GetChainName)
     // regtest in testnet section is ignored
     const char* testnetconf = "testnet=1\nregtest=0\n[test]\nregtest=1";
     std::string error;
-
-    test_args.ParseParameters(0, (char**)argv_testnet, error);
-    BOOST_CHECK_EQUAL(test_args.GetChainName(), "main");
 
     test_args.ParseParameters(2, (char**)argv_testnet, error);
     BOOST_CHECK_EQUAL(test_args.GetChainName(), "test");
@@ -798,7 +796,7 @@ BOOST_AUTO_TEST_CASE(strprintf_numbers)
 #undef B
 #undef E
 
-/* Check for mingw/wine issue #3494
+/* Check for mingw/wine issue bitcoin/bitcoin#3494
  * Remove this test before time.ctime(0xffffffff) == 'Sun Feb  7 07:28:15 2106'
  */
 BOOST_AUTO_TEST_CASE(gettime)
@@ -1075,6 +1073,152 @@ BOOST_AUTO_TEST_CASE(test_ParseFixedPoint)
     BOOST_CHECK(!ParseFixedPoint("1.", 8, &amount));
 }
 
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector) {
+    const std::vector<std::uint32_t> vec{1, 1, 2, 3, 5};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[1, 1, 2, 3, 5]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_set) {
+    std::set<std::uint32_t> set;
+    set.emplace(3);
+    set.emplace(1);
+    set.emplace(7);
+    set.emplace(1);
+    const std::string str = util::to_string(set);
+    BOOST_CHECK_EQUAL("[1, 3, 7]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_uint256) {
+    const uint256 u1 = uint256S("87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7");
+    const uint256 u2 = uint256S("0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f");
+    const std::vector<uint256> vec{u1, u2};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7, 0263829989b6fd954f72baaf2fc64bc2e2f01d692d4de72986ea808f6e99813f]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_strings) {
+    const std::string s1("abc");
+    const std::string s2("xyz");
+    const std::vector<std::string> vec{s1, s2};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[abc, xyz]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_empty_vector) {
+    const std::vector<std::uint32_t> vec;
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_empty_set) {
+    const std::set<std::uint32_t> set;
+    const std::string str = util::to_string(set);
+    BOOST_CHECK_EQUAL("[]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_one_element_vector) {
+    const std::vector<std::uint32_t> vec{13};
+    const std::string str = util::to_string(vec);
+    BOOST_CHECK_EQUAL("[13]", str);
+}
+
+struct SomeStruct {
+  std::string value;
+
+  std::string ToString() const {
+    return value;
+  }
+
+  friend bool operator <(const SomeStruct &s1, const SomeStruct &s2) {
+    return s1.value < s2.value;
+  }
+};
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_container_of_things_that_have_a_ToString_member_function) {
+    const std::vector<SomeStruct> vec{{"hello"}, {"world"}};
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[hello, world]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_maps_and_nested_containers) {
+    std::map<std::uint16_t, std::vector<std::set<SomeStruct>>> map;
+    std::set<SomeStruct> set1;
+    set1.emplace(SomeStruct{"foo"});
+    set1.emplace(SomeStruct{"bar"});
+    std::set<SomeStruct> set2;
+    set2.emplace(SomeStruct{"qux"});
+    set2.emplace(SomeStruct{"quux"});
+    std::vector<std::set<SomeStruct>> vec{set1, set2};
+    map[19] = vec;
+    map[23] = vec;
+
+    const std::string str(util::to_string(map));
+    BOOST_CHECK_EQUAL("[(19, [[bar, foo], [quux, qux]]), (23, [[bar, foo], [quux, qux]])]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_pointers) {
+    const int a = 3;
+    const int b = 7;
+    std::vector<const int *> vec;
+    vec.emplace_back(&a);
+    vec.emplace_back(&b);
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[3, 7]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_pointers_to_things_that_have_a_ToString_member_function) {
+    const SomeStruct a{"foo"};
+    const SomeStruct b{"bar"};
+    std::vector<const SomeStruct *> vec;
+    vec.emplace_back(&a);
+    vec.emplace_back(&b);
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[foo, bar]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_unique_pointers) {
+    std::vector<std::unique_ptr<const int>> vec;
+    vec.emplace_back(new int(3));
+    vec.emplace_back(new int(7));
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[3, 7]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_unique_pointers_to_things_that_have_a_ToString_member_function) {
+    std::vector<std::unique_ptr<const SomeStruct>> vec;
+    vec.emplace_back(new SomeStruct{"foo"});
+    vec.emplace_back(new SomeStruct{"bar"});
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[foo, bar]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_shared_pointers) {
+    std::vector<std::shared_ptr<const int>> vec;
+    vec.emplace_back(new int(3));
+    vec.emplace_back(new int(7));
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[3, 7]", str);
+}
+
+BOOST_AUTO_TEST_CASE(test_to_string_with_vector_of_shared_pointers_to_things_that_have_a_ToString_member_function) {
+    std::vector<std::shared_ptr<const SomeStruct>> vec;
+    vec.emplace_back(new SomeStruct{"foo"});
+    vec.emplace_back(new SomeStruct{"bar"});
+
+    const std::string str(util::to_string(vec));
+    BOOST_CHECK_EQUAL("[foo, bar]", str);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(util_tests_datadir, BasicTestingSetup)
+
 static void TestOtherThread(fs::path dirname, std::string lockname, bool *result)
 {
     *result = LockDirectory(dirname, lockname);
@@ -1092,22 +1236,22 @@ static void TestOtherProcess(fs::path dirname, std::string lockname, int fd)
         int rv = read(fd, &ch, 1); // Wait for command
         assert(rv == 1);
         switch(ch) {
-        case LockCommand:
-            ch = LockDirectory(dirname, lockname);
-            rv = write(fd, &ch, 1);
-            assert(rv == 1);
-            break;
-        case UnlockCommand:
-            ReleaseDirectoryLocks();
-            ch = true; // Always succeeds
-            rv = write(fd, &ch, 1);
-            assert(rv == 1);
-            break;
-        case ExitCommand:
-            close(fd);
-            exit(0);
-        default:
-            assert(0);
+            case LockCommand:
+                ch = LockDirectory(dirname, lockname);
+                rv = write(fd, &ch, 1);
+                assert(rv == 1);
+                break;
+            case UnlockCommand:
+                ReleaseDirectoryLocks();
+                ch = true; // Always succeeds
+                rv = write(fd, &ch, 1);
+                assert(rv == 1);
+                break;
+            case ExitCommand:
+                close(fd);
+                exit(0);
+            default:
+                assert(0);
         }
     }
 }
@@ -1201,8 +1345,7 @@ BOOST_AUTO_TEST_CASE(test_LockDirectory)
     fs::remove_all(dirname);
 }
 
-BOOST_AUTO_TEST_CASE(test_DirIsWritable)
-{
+BOOST_AUTO_TEST_CASE(test_DirIsWritable) {
     // Should be able to write to the data dir.
     fs::path tmpdirname = SetDataDir("test_DirIsWritable");
     BOOST_CHECK_EQUAL(DirIsWritable(tmpdirname), true);
