@@ -111,6 +111,7 @@ struct Fixture {
 
   class BlockBuilderMock : public proposer::BlockBuilder {
     const CTransactionRef BuildCoinbaseTransaction(
+        const CBlockIndex &,
         const uint256 &,
         const proposer::EligibleCoin &,
         const staking::CoinSet &,
