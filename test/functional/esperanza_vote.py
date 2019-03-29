@@ -11,6 +11,7 @@ from test_framework.util import (
     sync_blocks,
     connect_nodes,
     disconnect_nodes,
+    assert_finalizationstate,
 )
 from test_framework.test_framework import UnitETestFramework
 
@@ -77,22 +78,30 @@ class EsperanzaVoteTest(UnitETestFramework):
         disconnect_nodes(finalizer3, node0.index)
         assert_equal(len(node0.getpeerinfo()), 0)
 
-        # move tip to the height when deposits are finalized
+        # move tip to the height when validators are activated
         # complete epoch + 3 epochs + 1 block of new epoch
-        node0.generatetoaddress(4 + 5 + 5 + 5 + 1, node0.getnewaddress('', 'bech32'))
-        assert_equal(node0.getblockcount(), 21)
-        assert_equal(node0.getfinalizationstate()['currentEpoch'], 5)
-        assert_equal(node0.getfinalizationstate()['currentDynasty'], 3)
-        assert_equal(node0.getfinalizationstate()['lastFinalizedEpoch'], 3)
-        assert_equal(node0.getfinalizationstate()['lastJustifiedEpoch'], 4)
-        assert_equal(node0.getfinalizationstate()['validators'], 3)
+        node0.generatetoaddress(4 + 5 + 5 + 5 + 5 + 1, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 26)
+        assert_finalizationstate(node0, {'currentDynasty': 3,
+                                         'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 4,
+                                         'lastFinalizedEpoch': 3,
+                                         'validators': 3})
 
         # test that finalizers vote after processing 1st block of new epoch
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
         self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
         assert_equal(len(node0.getrawmempool()), 3)
-        self.log.info('Finalizers voted after first block of new epoch')
+
+        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        assert_finalizationstate(node0, {'currentDynasty': 3,
+                                         'currentEpoch': 6,
+                                         'lastJustifiedEpoch': 5,
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 3})
+        self.log.info('Finalizers voted a'
+                      'fter first block of new epoch')
 
         # UNIT-E TODO: there is a know issue https://github.com/dtr-org/unit-e/issues/643
         # that finalizer doesn't vote after processing the checkpoint.

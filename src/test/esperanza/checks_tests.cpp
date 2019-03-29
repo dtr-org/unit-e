@@ -382,15 +382,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
     block_index.phashBlock = &target_hash;
     spy.SetRecommendedTarget(block_index);
 
-    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
-                      +Result::SUCCESS);
-    spy.ProcessDeposit(validator_address, deposit_size);
-
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
-      Result res = spy.InitializeEpoch(i);
-      BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
-    }
-    BOOST_REQUIRE_EQUAL(spy.GetCurrentEpoch(), 5);
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
     bool ok = ContextualCheckLogoutTx(tx, err_state, spy, view);
     BOOST_CHECK(!ok);
@@ -418,15 +410,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
     block_index.phashBlock = &target_hash;
     spy.SetRecommendedTarget(block_index);
 
-    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
-                      +Result::SUCCESS);
-    spy.ProcessDeposit(validator_address, deposit_size);
-
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
-      Result res = spy.InitializeEpoch(i);
-      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
-    }
-    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
     bool ok = ContextualCheckLogoutTx(tx, err_state, spy, view);
     BOOST_CHECK(ok);
@@ -529,15 +513,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckSlashTx_test) {
     block_index.phashBlock = &target_hash;
     spy.SetRecommendedTarget(block_index);
 
-    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
-                      +Result::SUCCESS);
-    spy.ProcessDeposit(validator_address, deposit_size);
-
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
-      Result res = spy.InitializeEpoch(i);
-      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
-    }
-    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
     bool ok = ContextualCheckSlashTx(tx, err_state, spy);
     BOOST_CHECK(ok);
@@ -652,7 +628,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   CPubKey pub_key = key.GetPubKey();
   uint160 validator_address = pub_key.GetID();
 
-  Vote vote_out{pub_key.GetID(), target_hash, 0, 4};
+  Vote vote_out{pub_key.GetID(), target_hash, 0, 5};
 
   std::vector<unsigned char> vote_sig_out;
   BOOST_CHECK(Vote::CreateSignature(&keystore, vote_out, vote_sig_out));
@@ -677,14 +653,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     block_index.phashBlock = &target_hash;
     spy.SetRecommendedTarget(block_index);
 
-    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
-                      +Result::SUCCESS);
-    spy.ProcessDeposit(validator_address, deposit_size);
-
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
-      Result res = spy.InitializeEpoch(i);
-      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
-    }
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
     bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
     BOOST_CHECK(!ok);
@@ -702,15 +671,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     block_index.phashBlock = &target_hash;
     spy.SetRecommendedTarget(block_index);
 
-    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
-                      +Result::SUCCESS);
-    spy.ProcessDeposit(validator_address, deposit_size);
-
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
-      Result res = spy.InitializeEpoch(i);
-      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
-    }
-    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
     CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
@@ -800,15 +761,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     CAmount deposit_size = spy.MinDepositSize();
     spy.SetRecommendedTarget(block_index);
 
-    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
-                      +Result::SUCCESS);
-    spy.ProcessDeposit(validator_address, deposit_size);
-
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
-      Result res = spy.InitializeEpoch(i);
-      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
-    }
-    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
     CTransaction tx = CreateWithdrawTx(prev_tx, key, 1);
     CValidationState err_state;
@@ -830,15 +783,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     CAmount deposit_size = spy.MinDepositSize();
     spy.SetRecommendedTarget(block_index);
 
-    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
-                      +Result::SUCCESS);
-    spy.ProcessDeposit(validator_address, deposit_size);
-
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
-      Result res = spy.InitializeEpoch(i);
-      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
-    }
-    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+    spy.CreateAndActivateDeposit(validator_address, deposit_size);
 
     BOOST_CHECK_EQUAL(spy.ValidateLogout(validator_address), +Result::SUCCESS);
     spy.ProcessLogout(validator_address);
@@ -865,18 +810,7 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
   InsecureNewKey(k, true);
   uint160 validator_address = k.GetPubKey().GetID();
 
-  BOOST_CHECK_EQUAL(
-      spy.ValidateDeposit(validator_address, min_deposit),
-      +Result::SUCCESS);
-
-  spy.ProcessDeposit(validator_address, min_deposit);
-
-  // Initialize few epoch - since epoch 4 we don't have instant finalization
-  for (uint32_t i = 1; i < 5 * spy.GetEpochLength() + 1; i += spy.GetEpochLength()) {
-    Result res = spy.InitializeEpoch(i);
-    BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
-  }
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+  spy.CreateAndActivateDeposit(validator_address, min_deposit);
 
   uint256 target_hash = uint256();
 
