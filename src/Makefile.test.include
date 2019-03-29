@@ -23,14 +23,23 @@ RAW_TEST_FILES =
 GENERATED_TEST_FILES = $(JSON_TEST_FILES:.json=.json.h) $(RAW_TEST_FILES:.raw=.raw.h)
 
 UNITE_TEST_SUITE = \
+  test/esperanza/finalization_utils.h \
+  test/esperanza/finalization_utils.cpp \
+  test/esperanza/finalizationstate_utils.h \
+  test/esperanza/finalizationstate_utils.cpp \
+  test/rpc_test_utils.h \
+  test/rpc_test_utils.cpp \
+  test/scriptnum10.h \
   test/test_unite_main.cpp \
   test/test_unite.h \
-  test/test_unite.cpp
+  test/test_unite.cpp \
+  test/test_unite_block_fixture.h \
+  test/test_unite_block_fixture.cpp \
+  test/test_unite_mocks.h
 
 # test_unite binary #
 UNITE_TESTS =\
   test/arith_uint256_tests.cpp \
-  test/scriptnum10.h \
   test/addrman_tests.cpp \
   test/amount_tests.cpp \
   test/allocator_tests.cpp \
@@ -61,8 +70,6 @@ UNITE_TESTS =\
   test/esperanza/admincommand_tests.cpp \
   test/esperanza/adminstate_tests.cpp \
   test/esperanza/checks_tests.cpp \
-  test/esperanza/finalization_utils.h \
-  test/esperanza/finalization_utils.cpp \
   test/esperanza/finalizationparams_tests.cpp \
   test/esperanza/finalizationstate_tests.cpp \
   test/esperanza/finalizationstate_deposit_tests.cpp \
@@ -70,8 +77,6 @@ UNITE_TESTS =\
   test/esperanza/finalizationstate_logout_tests.cpp \
   test/esperanza/finalizationstate_withdraw_tests.cpp \
   test/esperanza/finalizationstate_slash_tests.cpp \
-  test/esperanza/finalizationstate_utils.h \
-  test/esperanza/finalizationstate_utils.cpp \
   test/finalization/state_processor_tests.cpp \
   test/finalization/state_repository_tests.cpp \
   test/finalization/vote_recorder_tests.cpp \
@@ -100,8 +105,6 @@ UNITE_TESTS =\
   test/random_tests.cpp \
   test/reverselock_tests.cpp \
   test/rpc_tests.cpp \
-  test/rpc_test_utils.h \
-  test/rpc_test_utils.cpp \
   test/sanity_tests.cpp \
   test/scheduler_tests.cpp \
   test/script_p2sh_tests.cpp \
@@ -126,9 +129,6 @@ UNITE_TESTS =\
   test/staking/coin_tests.cpp \
   test/staking/proof_of_stake_tests.cpp \
   test/streams_tests.cpp \
-  test/test_unite_block_fixture.h \
-  test/test_unite_block_fixture.cpp \
-  test/test_unite_mocks.h \
   test/timedata_tests.cpp \
   test/torcontrol_tests.cpp \
   test/transaction_tests.cpp \
