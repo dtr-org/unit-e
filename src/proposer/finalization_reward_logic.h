@@ -16,6 +16,14 @@ class CWallet;
 
 namespace proposer {
 
+class MissingBlockError : public std::runtime_error {
+ public:
+  const CBlockIndex &missed_index;
+  explicit MissingBlockError(const CBlockIndex &index)
+      : std::runtime_error(strprintf("Cannot load block=%s", index.GetBlockHash().GetHex())),
+        missed_index(index) {}
+};
+
 class FinalizationRewardLogic {
 
  public:

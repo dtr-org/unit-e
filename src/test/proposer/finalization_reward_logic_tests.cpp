@@ -103,8 +103,8 @@ struct Fixture {
   }
 
   void BuildChain(blockchain::Height max_height) {
-    blocks.resize(max_height);
-    block_indices.resize(max_height);
+    blocks.resize(max_height + 1);
+    block_indices.resize(max_height + 1);
     for (blockchain::Height h = 1; h <= max_height; ++h) {
       blocks[h].hashPrevBlock = blocks[h - 1].GetHash();
       std::vector<unsigned char> dest(20, static_cast<unsigned char>(h));
@@ -131,50 +131,35 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
   auto logic = f.GetFinalizationRewardLogic();
   auto fin_state = finalization::FinalizationState(f.fin_params, f.admin_params);
 
-  // TODO UNIT-E: test that we don't pay rewards at the block 1 once https://github.com/dtr-org/unit-e/pull/809 is merged
+  f.BuildChain(f.fin_params.GetEpochCheckpointHeight(2) + 1);
 
-  fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(1));
-  BOOST_CHECK_EQUAL(fin_state.GetLastFinalizedEpoch(), 0);
-  BOOST_CHECK_EQUAL(fin_state.GetCurrentEpoch(), 1);
+  f.AddState(0, fin_state);
+  std::vector<std::pair<CScript, CAmount>> rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(0));
+  BOOST_CHECK_EQUAL(rewards.size(), 0);
 
-  auto first_epoch_checkpoint = f.fin_params.GetEpochCheckpointHeight(1);
-  f.BuildChain(first_epoch_checkpoint + f.fin_params.epoch_length + 1);
+  for (uint32_t epoch = 1; epoch < 3; ++epoch) {
+    fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(epoch));
+    BOOST_REQUIRE_EQUAL(fin_state.GetCurrentEpoch(), epoch);
 
-  auto test_height = first_epoch_checkpoint;
+    for (auto h = fin_state.GetEpochStartHeight(epoch); h < f.fin_params.GetEpochCheckpointHeight(epoch); ++h) {
+      f.AddState(h, fin_state);
+      rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(h));
+      BOOST_CHECK_EQUAL(rewards.size(), 0);
+    }
 
-  f.AddState(test_height, fin_state);
-  // We must pay out the rewards at the first block of an epoch, i.e. when the current tip is a checkpoint block
-  std::vector<std::pair<CScript, CAmount>> rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(test_height));
-  BOOST_CHECK_EQUAL(rewards.size(), f.fin_params.epoch_length);
-  for (std::size_t i = 0; i < rewards.size(); ++i) {
-    auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(1) + i);
-    auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
-    BOOST_CHECK_EQUAL(rewards[i].second, r);
-    auto s = f.BlockAtHeight(h).vtx[0]->vout[0].scriptPubKey;
-    BOOST_CHECK_EQUAL(HexStr(rewards[i].first), HexStr(s));
-  }
+    auto checkpoint_height = fin_state.GetEpochCheckpointHeight(epoch);
+    f.AddState(checkpoint_height, fin_state);
 
-  fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(2));
-  BOOST_CHECK_EQUAL(fin_state.GetLastFinalizedEpoch(), 0);
-  BOOST_CHECK_EQUAL(fin_state.GetCurrentEpoch(), 2);
-
-  ++test_height;
-  for (; test_height < f.fin_params.GetEpochCheckpointHeight(2); ++test_height) {
-    f.AddState(test_height, fin_state);
-    rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(test_height));
-    BOOST_CHECK_EQUAL(rewards.size(), 0);
-  }
-
-  // Calculate rewards at the checkpoint of the second epoch
-  f.AddState(test_height, fin_state);
-  rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(test_height));
-  BOOST_CHECK_EQUAL(rewards.size(), f.fin_params.epoch_length);
-  for (std::size_t i = 0; i < rewards.size(); ++i) {
-    auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(2) + i);
-    auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
-    BOOST_CHECK_EQUAL(rewards[i].second, r);
-    auto s = f.BlockAtHeight(h).vtx[0]->vout[0].scriptPubKey;
-    BOOST_CHECK_EQUAL(HexStr(rewards[i].first), HexStr(s));
+    // We must pay out the rewards in the first block of an epoch, i.e. when the current tip is a checkpoint block
+    rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(checkpoint_height));
+    BOOST_CHECK_EQUAL(rewards.size(), f.fin_params.epoch_length);
+    for (std::size_t i = 0; i < rewards.size(); ++i) {
+      auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(epoch) + i);
+      auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
+      BOOST_CHECK_EQUAL(rewards[i].second, r);
+      auto s = f.BlockAtHeight(h).vtx[0]->vout[0].scriptPubKey;
+      BOOST_CHECK_EQUAL(HexStr(rewards[i].first), HexStr(s));
+    }
   }
 }
 
