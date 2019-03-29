@@ -73,6 +73,7 @@ FinalizerCommitsLocator FinalizerCommitsHandlerImpl::GetFinalizerCommitsLocator(
     const CBlockIndex &start, const CBlockIndex *const stop) const {
 
   LOCK(m_active_chain->GetLock());
+  LOCK(m_repo->GetReadLock());
 
   FinalizerCommitsLocator locator;
 
@@ -128,6 +129,7 @@ const CBlockIndex *FinalizerCommitsHandlerImpl::FindMostRecentStart(
     const FinalizerCommitsLocator &locator) const {
 
   AssertLockHeld(m_active_chain->GetLock());
+  LOCK(m_repo->GetReadLock());
 
   const finalization::FinalizationState *const fin_state = m_repo->GetTipState();
   assert(fin_state != nullptr);
@@ -209,6 +211,7 @@ void FinalizerCommitsHandlerImpl::OnGetCommits(
     CNode &node, const FinalizerCommitsLocator &locator, const Consensus::Params &params) const {
 
   LOCK(m_active_chain->GetLock());
+  LOCK(m_repo->GetReadLock());
 
   const CBlockIndex *const start = FindMostRecentStart(locator);
   if (start == nullptr) {
@@ -381,18 +384,22 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
   blockchain::Height download_until = 0;
 
-  const finalization::FinalizationState *tip_state = m_repo->GetTipState();
-  const finalization::FinalizationState *index_state = m_repo->Find(*last_index);
-  assert(tip_state != nullptr);
-  assert(index_state != nullptr);
+  {
+    LOCK(m_repo->GetReadLock());
 
-  const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
-  const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
+    const finalization::FinalizationState *tip_state = m_repo->GetTipState();
+    const finalization::FinalizationState *index_state = m_repo->Find(*last_index);
+    assert(tip_state != nullptr);
+    assert(index_state != nullptr);
 
-  if (index_epoch > tip_epoch) {
-    download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
-    LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
-             index_epoch, download_until);
+    const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
+    const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
+
+    if (index_epoch > tip_epoch) {
+      download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
+      LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
+               index_epoch, download_until);
+    }
   }
 
   switch (msg.status) {

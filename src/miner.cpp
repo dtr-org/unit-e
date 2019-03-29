@@ -139,6 +139,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     LOCK(cs_main);
     LOCK(wallet->cs_wallet);
+    LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
     LOCK(mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);

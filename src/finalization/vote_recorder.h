@@ -21,6 +21,8 @@ class FinalizationState;
 
 namespace finalization {
 
+using FinalizationState = esperanza::FinalizationState;
+
 struct VoteRecord {
   esperanza::Vote vote;
   std::vector<unsigned char> sig;
@@ -50,7 +52,8 @@ class VoteRecorder : private boost::noncopyable {
 
  public:
   void RecordVote(const esperanza::Vote &vote,
-                  const std::vector<unsigned char> &voteSig);
+                  const std::vector<unsigned char> &voteSig,
+                  const FinalizationState &fin_state);
 
   boost::optional<VoteRecord> GetVote(const uint160 &validatorAddress,
                                       uint32_t epoch) const;

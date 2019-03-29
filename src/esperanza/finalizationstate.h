@@ -165,7 +165,7 @@ class FinalizationState : public FinalizationStateData {
   void ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes);
 
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
-  uint256 GetLastTxHash(uint160 &validatorAddress) const;
+  uint256 GetLastTxHash(const uint160 &validatorAddress) const;
 
   //! \brief Returns whether block on block_height is the first block of the epoch
   bool IsEpochStart(blockchain::Height block_height) const;

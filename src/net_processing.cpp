@@ -3272,6 +3272,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
             pindexBestHeader = chainActive.Tip();
         bool fFetch = state.fPreferredDownload || (nPreferredDownload == 0 && !pto->fClient && !pto->fOneShot); // Download if this is a nice peer, or we have no nice peers and this one might do.
         if (!state.fSyncStarted && !pto->fClient && !fImporting && !fReindex) {
+            LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
             const auto *fin_state = GetComponent<finalization::StateRepository>()->GetTipState();
             assert(fin_state != nullptr);
             // Only actively request headers from a single peer, unless we're close to today.

@@ -942,19 +942,23 @@ int CTxMemPool::ExpireVotes() {
   LOCK(cs);
   auto it = mempool.mapTx.get<ancestor_score>().begin();
 
-  finalization::FinalizationState *fin_state = GetComponent<finalization::StateRepository>()->GetTipState();
+  AssertLockHeld(GetComponent<finalization::StateRepository>()->GetReadLock());
+
+  const finalization::FinalizationState *fin_state =
+      GetComponent<finalization::StateRepository>()->GetTipState();
   assert(fin_state != nullptr);
 
   setEntries toremove;
   while (it != mapTx.get<ancestor_score>().end()) {
 
-    if (it->GetTx().IsVote()) {
+      if (it->GetTx().IsVote()) {
       if (esperanza::IsVoteExpired(it->GetTx(), *fin_state)) {
           toremove.insert(mapTx.project<0>(it));
       }
     }
     ++it;
   }
+
   setEntries stage;
   for (txiter removeit : toremove) {
       CalculateDescendants(removeit, stage);

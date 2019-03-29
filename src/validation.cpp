@@ -450,6 +450,7 @@ static void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) 
         LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool.\n", expired);
     }
 
+    LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
     pool.ExpireVotes();
 
     std::vector<COutPoint> vNoSpendsRemaining;
@@ -619,6 +620,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
+    LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
     LOCK(pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
 
     // If there is an expired vote in the mempool and a new vote (or other
@@ -2006,26 +2008,30 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
     }
 
-    const finalization::FinalizationState *fin_state = nullptr;
-    if (pindex->pprev != nullptr) {
-        fin_state = GetComponent<finalization::StateRepository>()->Find(*pindex->pprev);
-    }
-    assert(fin_state != nullptr || isGenesisBlock || !has_finalization_tx);
+    {
+        LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
+        const finalization::FinalizationState *fin_state = nullptr;
+        if (pindex->pprev != nullptr) {
+            fin_state = GetComponent<finalization::StateRepository>()->Find(*pindex->pprev);
+        }
+        assert(fin_state != nullptr || isGenesisBlock || !has_finalization_tx);
 
-    // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
-    // deadlock between threads.
-    //
-    // unite-msghand (when accepting new block and connecting it):
-    // - lock pqueue->ControlMutex in ConnectBlock() -> CCheckQueueControl()
-    // - lock mempool.cs in ConnectBlock() -> CheckFinalizerTx() -> GetTransaction() -> mempool.get()
-    //
-    // unite-proposer or unite-http (when creating new block)
-    // - lock mempool.cs in BlockAssembler::CreateNewBlock()
-    // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
-    if (!isGenesisBlock &&
-        has_finalization_tx &&
-        !ContextualCheckBlockFinalizerCommits(block, state, *fin_state, view)) {
-        return false;
+        // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
+        // deadlock between threads.
+        //
+        // unite-msghand (when accepting new block and connecting it):
+        // - lock pqueue->ControlMutex in ConnectBlock() -> CCheckQueueControl()
+        // - lock mempool.cs in ConnectBlock() -> CheckFinalizerTx() -> GetTransaction() -> mempool.get()
+        //
+        // unite-proposer or unite-http (when creating new block)
+        // - lock mempool.cs in BlockAssembler::CreateNewBlock()
+        // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
+        if (!isGenesisBlock &&
+            has_finalization_tx &&
+            !ContextualCheckBlockFinalizerCommits(
+              block,state, *fin_state, view)) {
+            return false;
+        }
     }
 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : nullptr);
@@ -3398,16 +3404,19 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
             }
         }
 
-        const finalization::FinalizationState *fin_state =
-            GetComponent<finalization::StateRepository>()->GetTipState();
-        assert(fin_state != nullptr);
+        {
+            LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
+            const finalization::FinalizationState *fin_state =
+                GetComponent<finalization::StateRepository>()->GetTipState();
+            assert(fin_state != nullptr);
 
-        const CBlockIndex *most_common_index = chainActive.FindFork(pindexPrev);
-        assert(most_common_index != nullptr);
-        if (fin_state->GetEpoch(most_common_index->nHeight) < fin_state->GetLastFinalizedEpoch()) {
-            return state.DoS(10,
-                             error("%s: %s came from previous dynasty", __func__, hash.ToString()),
-                             REJECT_INVALID, "bad-fork-dynasty");
+            const CBlockIndex *most_common_index = chainActive.FindFork(pindexPrev);
+            assert(most_common_index != nullptr);
+            if (fin_state->GetEpoch(most_common_index->nHeight) < fin_state->GetLastFinalizedEpoch()) {
+                return state.DoS(10,
+                                 error("%s: %s came from previous dynasty", __func__, hash.ToString()),
+                                 REJECT_INVALID, "bad-fork-dynasty");
+            }
         }
     }
 
@@ -4476,8 +4485,11 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
 
 bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
     auto state_repo = GetComponent<finalization::StateRepository>();
+    LOCK(state_repo->GetReadLock());
+
     esperanza::FinalizationState *tip_state = state_repo->GetTipState();
     assert(tip_state || chainActive.Height() == -1); // sanity check
+
     if (!tip_state) {
         // we are processing genesis block
         return false;
@@ -4533,6 +4545,7 @@ void CChainState::UpdateLastJustifiedEpoch(CBlockIndex *block_index) {
     assert(block_index != nullptr);
 
     auto repo = GetComponent<finalization::StateRepository>();
+    LOCK(repo->GetReadLock());
     esperanza::FinalizationState *block_state = repo->Find(*block_index);
     assert(block_state);
 
