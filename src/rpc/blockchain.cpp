@@ -1218,17 +1218,18 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     LOCK(cs_main);
 
     UniValue obj(UniValue::VOBJ);
-    obj.pushKV("chain",                 Params().NetworkIDString());
-    obj.pushKV("blocks",                (int)chainActive.Height());
-    obj.pushKV("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1);
-    obj.pushKV("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex());
-    obj.pushKV("difficulty",            (double)GetDifficulty(chainActive.Tip()));
-    obj.pushKV("mediantime",            (int64_t)chainActive.Tip()->GetMedianTimePast());
-    obj.pushKV("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip()));
-    obj.pushKV("initialblockdownload",  IsInitialBlockDownload());
-    obj.pushKV("chainwork",             chainActive.Tip()->nChainWork.GetHex());
-    obj.pushKV("size_on_disk",          CalculateCurrentUsage());
-    obj.pushKV("pruned",                fPruneMode);
+    obj.pushKV("chain",                   Params().NetworkIDString());
+    obj.pushKV("blocks",                  (int)chainActive.Height());
+    obj.pushKV("headers",                 pindexBestHeader ? pindexBestHeader->nHeight : -1);
+    obj.pushKV("bestblockhash",           chainActive.Tip()->GetBlockHash().GetHex());
+    obj.pushKV("difficulty",              (double)GetDifficulty(chainActive.Tip()));
+    obj.pushKV("mediantime",              (int64_t)chainActive.Tip()->GetMedianTimePast());
+    obj.pushKV("verificationprogress",    GuessVerificationProgress(Params().TxData(), chainActive.Tip()));
+    obj.pushKV("initialsnapshotdownload", snapshot::IsInitialSnapshotDownload());
+    obj.pushKV("initialblockdownload",    IsInitialBlockDownload());
+    obj.pushKV("chainwork",               chainActive.Tip()->nChainWork.GetHex());
+    obj.pushKV("size_on_disk",            CalculateCurrentUsage());
+    obj.pushKV("pruned",                  fPruneMode);
     if (fPruneMode) {
         CBlockIndex* block = chainActive.Tip();
         assert(block);
@@ -1236,11 +1237,11 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             block = block->pprev;
         }
 
-        obj.pushKV("pruneheight",        block->nHeight);
+        obj.pushKV("pruneheight",         block->nHeight);
 
         // if 0, execution bypasses the whole if block.
         bool automatic_pruning = (gArgs.GetArg("-prune", 0) != 1);
-        obj.pushKV("automatic_pruning",  automatic_pruning);
+        obj.pushKV("automatic_pruning",   automatic_pruning);
         if (automatic_pruning) {
             obj.pushKV("prune_target_size",  nPruneTarget);
         }
