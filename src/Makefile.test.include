@@ -23,6 +23,7 @@ RAW_TEST_FILES =
 GENERATED_TEST_FILES = $(JSON_TEST_FILES:.json=.json.h) $(RAW_TEST_FILES:.raw=.raw.h)
 
 UNITE_TEST_SUITE = \
+  test/scriptnum10.h \
   test/test_unite.h \
   test/test_unite.cpp \
   test/test_unite_block_fixture.h \
@@ -33,7 +34,6 @@ UNITE_TEST_SUITE = \
 # test_unite binary #
 UNITE_TESTS = \
   test/arith_uint256_tests.cpp \
-  test/scriptnum10.h \
   test/addrman_tests.cpp \
   test/amount_tests.cpp \
   test/allocator_tests.cpp \
@@ -239,8 +239,9 @@ if EMBEDDED_UNIVALUE
 endif
 
 %.cpp.test: %.cpp
-	@echo Running tests: `cat $< | grep "BOOST_FIXTURE_TEST_SUITE(\|BOOST_AUTO_TEST_SUITE(" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1` from $<
-	$(AM_V_at)$(TEST_BINARY) -l test_suite -t "`cat $< | grep "BOOST_FIXTURE_TEST_SUITE(\|BOOST_AUTO_TEST_SUITE(" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`" > $<.log 2>&1 || (cat $<.log && false)
+	@for test_suite in `cat $< | grep -E "(BOOST_FIXTURE_TEST_SUITE\\(|BOOST_AUTO_TEST_SUITE\\()" | cut -d '(' -f 2 | cut -d ',' -f 1 | cut -d ')' -f 1`; do \
+	    $(TEST_BINARY) -l test_suite -t $$test_suite > $<"-"$$test_suite".log" 2>&1 && (echo "Success: $$test_suite from $<") || ((echo "Failure: $$test_suite from $<"); cat $<"-"$$test_suite".log" && false) \
+	done
 
 %.json.h: %.json
 	@$(MKDIR_P) $(@D)
