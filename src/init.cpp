@@ -421,6 +421,8 @@ void SetupServerArgs()
             "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)", MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-isd", "Enable Initial Snapshot Download. Can be enabled only if -prune is set.", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-createsnapshot", "Creates snapshot of UTXOs per 150 epochs (default: 1); -createsnapshot=0 disables snapshot creation", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-snapshotchunktimeout=<timeout>", "Set the snapshot chunk timeout, in seconds (default: 5)", true, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-snapshotdiscoverytimeout=<timeout>", "Set the snapshot discovery timeout, in seconds (default: 5)", true, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks", false, OptionsCategory::OPTIONS);
 #ifndef WIN32
