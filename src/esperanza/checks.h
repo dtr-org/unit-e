@@ -21,8 +21,9 @@ class FinalizationState;
 //! It assumes that the vote is well formed and in general parsable. It does not
 //! make anycheck over the validity of the vote transaction.
 //! \param tx transaction containing the vote.
+//! \param fin_state the actual finalization state.
 //! \returns true if the vote is expired, false otherwise.
-bool IsVoteExpired(const CTransaction &tx);
+bool IsVoteExpired(const CTransaction &tx, const FinalizationState &fin_state);
 
 //! The Check-family functions do basic transaction verifications such as transaction
 //! type, format, solvable, etc.

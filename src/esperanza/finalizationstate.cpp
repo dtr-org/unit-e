@@ -7,7 +7,6 @@
 #include <chainparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/vote.h>
-#include <injector.h>
 #include <script/ismine.h>
 #include <tinyformat.h>
 #include <ufp64.h>
@@ -25,7 +24,6 @@
 namespace esperanza {
 
 namespace {
-CCriticalSection cs_init_lock;
 const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 }  // namespace
 
@@ -840,14 +838,6 @@ uint32_t FinalizationState::GetCheckpointHeightAfterFinalizedEpoch() const {
   return GetEpochCheckpointHeight(epoch);
 }
 
-// UNIT-E TODO: get rid of this function
-FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
-  if (block_index == nullptr) {
-    return GetComponent<finalization::StateRepository>()->GetTipState();
-  }
-  return GetComponent<finalization::StateRepository>()->Find(*block_index);
-}
-
 uint32_t FinalizationState::GetEpochLength() const {
   return m_settings.epoch_length;
 }
@@ -893,8 +883,8 @@ const Validator *FinalizationState::GetValidator(const uint160 &validatorAddress
   }
 }
 
-bool FinalizationState::ValidateDepositAmount(CAmount amount) {
-  return amount >= GetState()->m_settings.min_deposit_size;
+bool FinalizationState::ValidateDepositAmount(CAmount amount) const {
+  return amount >= m_settings.min_deposit_size;
 }
 
 void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {

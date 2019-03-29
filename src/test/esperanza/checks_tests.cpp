@@ -860,8 +860,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
 
 BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
 
-  FinalizationState *esperanza = FinalizationState::GetState();
-
+  FinalizationStateSpy spy;
   const auto &params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
   const auto min_deposit = params.min_deposit_size;
 
@@ -870,34 +869,34 @@ BOOST_AUTO_TEST_CASE(IsVoteExpired_test) {
   uint160 validator_address = k.GetPubKey().GetID();
 
   BOOST_CHECK_EQUAL(
-      esperanza->ValidateDeposit(validator_address, min_deposit),
+      spy.ValidateDeposit(validator_address, min_deposit),
       +Result::SUCCESS);
 
-  esperanza->ProcessDeposit(validator_address, min_deposit);
+  spy.ProcessDeposit(validator_address, min_deposit);
 
   // Initialize few epoch - since epoch 4 we don't have instant finalization
-  for (uint32_t i = 1; i < 5 * esperanza->GetEpochLength() + 1; i += esperanza->GetEpochLength()) {
-    Result res = esperanza->InitializeEpoch(i);
+  for (uint32_t i = 1; i < 5 * spy.GetEpochLength() + 1; i += spy.GetEpochLength()) {
+    Result res = spy.InitializeEpoch(i);
     BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
   }
-  BOOST_CHECK_EQUAL(esperanza->GetCurrentEpoch(), 5);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
 
   uint256 target_hash = uint256();
 
   Vote expired{RandValidatorAddr(), target_hash, 0, 2};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(expired, k)), true);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(expired, k), spy), true);
 
   Vote current{RandValidatorAddr(), target_hash, 0, 5};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(current, k)), false);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(current, k), spy), false);
 
   Vote afterLastFinalization{RandValidatorAddr(), target_hash, 0, 3};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(afterLastFinalization, k)), true);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(afterLastFinalization, k), spy), true);
 
   Vote future{RandValidatorAddr(), target_hash, 0, 12};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(future, k)), false);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(future, k), spy), false);
 
   Vote currentOtherFork{RandValidatorAddr(), GetRandHash(), 0, 5};
-  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(currentOtherFork, k)), false);
+  BOOST_CHECK_EQUAL(IsVoteExpired(CreateVoteTx(currentOtherFork, k), spy), false);
 }
 
 BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
@@ -907,6 +906,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
   Vote vote = Vote{key.GetPubKey().GetID(), GetRandHash(), 0, 2};
   CTransaction tx = CreateVoteTx(vote, key);
   CMutableTransaction mutedTx(tx);
+  FinalizationStateSpy spy;
 
   // Replace the vote with something meaningless
   mutedTx.vin[0].scriptSig = CScript() << 1337;
@@ -915,8 +915,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
   Consensus::Params params = Params().GetConsensus();
   CValidationState err_state;
   BOOST_CHECK(CheckFinalizerCommit(invalidVote, err_state) == false);
-  const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
-  BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, params, fin_state) == false);
+  BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, params, spy) == false);
 
   BOOST_CHECK_EQUAL("bad-vote-data-format", err_state.GetRejectReason());
 }

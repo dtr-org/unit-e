@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <finalization/vote_recorder.h>
+#include <injector.h>
 #include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 #include <validationinterface.h>
@@ -38,7 +39,10 @@ BOOST_AUTO_TEST_CASE(singleton) {
 
 BOOST_AUTO_TEST_CASE(record_votes) {
 
-  auto state = FinalizationState::GetState();
+  // This test changes tip's finalization state and inderectly checks it via RecordVote().
+
+  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
@@ -91,7 +95,10 @@ BOOST_AUTO_TEST_CASE(record_votes) {
 
 BOOST_AUTO_TEST_CASE(record_double_vote) {
 
-  auto state = FinalizationState::GetState();
+  // This test changes tip's finalization state and inderectly checks it via RecordVote().
+
+  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
@@ -124,7 +131,10 @@ BOOST_AUTO_TEST_CASE(record_double_vote) {
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
-  auto state = FinalizationState::GetState();
+  // This test changes tip's finalization state and inderectly checks it via RecordVote().
+
+  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
@@ -156,7 +166,10 @@ BOOST_AUTO_TEST_CASE(record_surrounding_vote_inner_passed) {
 
 BOOST_AUTO_TEST_CASE(record_surrounding_vote_outer_passed) {
 
-  auto state = FinalizationState::GetState();
+  // This test changes tip's finalization state and inderectly checks it via RecordVote().
+
+  FinalizationState *state = GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(state != nullptr);
 
   SlashListener listener;
   RegisterValidationInterface(&listener);
