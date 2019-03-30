@@ -14,6 +14,7 @@
 #include <finalization/state_db.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
+#include <injector_config.h>
 #include <p2p/finalizer_commits_handler.h>
 #include <settings.h>
 #include <staking/active_chain.h>
@@ -31,10 +32,6 @@
 #include <proposer/proposer.h>
 #include <proposer/proposer_rpc.h>
 #endif
-
-struct UnitEInjectorConfiguration {
-  bool use_in_memory_databases = false;
-};
 
 class UnitEInjector : public Injector<UnitEInjector> {
 
@@ -70,10 +67,16 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(BlockDB, ::BlockDB, BlockDB::New)
 
   COMPONENT(FinalizationStateDB, finalization::StateDB, finalization::StateDB::New,
-            Settings, staking::BlockIndexMap, staking::ActiveChain)
+            UnitEInjectorConfiguration,
+            Settings,
+            staking::BlockIndexMap,
+            staking::ActiveChain)
 
   COMPONENT(FinalizationStateRepository, finalization::StateRepository, finalization::StateRepository::New,
-            staking::BlockIndexMap, staking::ActiveChain, finalization::StateDB, BlockDB)
+            staking::BlockIndexMap,
+            staking::ActiveChain,
+            finalization::StateDB,
+            BlockDB)
 
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
             finalization::StateRepository,

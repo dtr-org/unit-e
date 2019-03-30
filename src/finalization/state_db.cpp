@@ -6,6 +6,7 @@
 
 #include <dbwrapper.h>
 #include <esperanza/finalizationstate.h>
+#include <injector_config.h>
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
 #include <validation.h>
@@ -162,10 +163,13 @@ void StateDBImpl::LoadStatesHigherThan(
 }  // namespace
 
 std::unique_ptr<StateDB> StateDB::New(
+    Dependency<UnitEInjectorConfiguration> config,
     Dependency<Settings> settings,
     Dependency<staking::BlockIndexMap> block_index_map,
     Dependency<staking::ActiveChain> active_chain) {
-  return NewFromParams(StateDBParams{}, settings, block_index_map, active_chain);
+  StateDBParams state_db_params;
+  state_db_params.inmemory = config->use_in_memory_databases;
+  return NewFromParams(state_db_params, settings, block_index_map, active_chain);
 }
 
 std::unique_ptr<StateDB> StateDB::NewFromParams(
