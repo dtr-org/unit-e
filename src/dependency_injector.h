@@ -128,13 +128,13 @@ struct Invoker<> {
   }();                                                                          \
   Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }
 
-#define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                     \
+#define UNMANAGED_COMPONENT(NAME, TYPE, FACTORY)                     \
  private:                                                            \
   Dependency<TYPE> m_component_##NAME = [this] {                     \
     return Registrator<TYPE>::Register<>(                            \
         this, #NAME, [](InjectorType *injector) -> void {            \
           injector->m_component_##NAME =                             \
-              Initializer<TYPE>::Unmanaged::Init(injector, POINTER); \
+              Initializer<TYPE>::Unmanaged::Init(injector, FACTORY); \
         });                                                          \
   }();                                                               \
   Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }
@@ -231,10 +231,13 @@ class Injector {
   using InjectorType = I;
 
   // a function pointer to a function that takes an Injector as its first
-  // argument. Used for static methos to act as if they were non-static member
+  // argument. Used for static methods to act as if they were non-static member
   // methods, but we need a stable function pointer to them (thus static) and
   // they need access to the injector (hence it's passed in).
   using Method = void (*)(InjectorType *);
+
+  template <typename T>
+  using Factory = T *(*)(InjectorType *);
 
   struct Component {
     std::string m_name;
@@ -321,17 +324,16 @@ class Injector {
         auto &component = GetComponent(injector);
         const auto dependencies = GatherDependencies(injector, component);
         std::unique_ptr<ComponentType> *returnTypeDeductionHint = nullptr;
-        auto ptr = InjectorUtil::Invoker<Args...>::
-                       Invoke(returnTypeDeductionHint, f, dependencies, 0)
-                           .release();
+        auto ptr = InjectorUtil::Invoker<Args...>::Invoke(returnTypeDeductionHint, f, dependencies, 0).release();
         component.m_instance = ptr;
         return ptr;
       }
     };
     struct Unmanaged {
       template <typename T>
-      static ComponentType *Init(I *injector, T *ptr) {
+      static ComponentType *Init(I *injector, Factory<T> factory) {
         auto &component = GetComponent(injector);
+        T *const ptr = factory(injector);
         component.m_instance = ptr;
         component.m_deleter = nullptr;
         return ptr;

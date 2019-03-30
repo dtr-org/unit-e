@@ -8,9 +8,9 @@ namespace {
 std::unique_ptr<UnitEInjector> injector = nullptr;
 }
 
-void UnitEInjector::Init() {
+void UnitEInjector::Init(UnitEInjectorConfiguration config) {
   assert(!injector);
-  injector = MakeUnique<UnitEInjector>();
+  injector = MakeUnique<UnitEInjector>(config);
   injector->Initialize();
 }
 

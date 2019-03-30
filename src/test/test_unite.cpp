@@ -82,7 +82,9 @@ ReducedTestingSetup::~ReducedTestingSetup()
 BasicTestingSetup::BasicTestingSetup(const std::string& chainName) : ReducedTestingSetup(chainName)
 {
         blockchain::Behavior::SetGlobal(blockchain::Behavior::NewForNetwork(blockchain::Network::_from_string(chainName.c_str())));
-        UnitEInjector::Init();
+        UnitEInjectorConfiguration config;
+        config.use_in_memory_databases = true;
+        UnitEInjector::Init(config);
         SelectParams(GetComponent<blockchain::Behavior>(), chainName);
 }
 

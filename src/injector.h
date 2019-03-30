@@ -10,6 +10,7 @@
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_parameters.h>
 #include <blockchain/blockchain_rpc.h>
+#include <blockdb.h>
 #include <finalization/state_db.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
@@ -21,7 +22,6 @@
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
-#include <blockdb.h>
 #include <util.h>
 #include <validation.h>
 
@@ -32,11 +32,20 @@
 #include <proposer/proposer_rpc.h>
 #endif
 
+struct UnitEInjectorConfiguration {
+  bool use_in_memory_databases = false;
+};
+
 class UnitEInjector : public Injector<UnitEInjector> {
 
-  UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
+  static ::ArgsManager *GetGlobalArgs(UnitEInjector *) { return &gArgs; }
+  UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, GetGlobalArgs)
 
-  UNMANAGED_COMPONENT(BlockchainBehavior, blockchain::Behavior, &blockchain::Behavior::GetGlobal())
+  static blockchain::Behavior *GetGlobalBehavior(UnitEInjector *) { return &blockchain::Behavior::GetGlobal(); }
+  UNMANAGED_COMPONENT(BlockchainBehavior, blockchain::Behavior, GetGlobalBehavior)
+
+  static UnitEInjectorConfiguration *GetInjectorConfiguration(UnitEInjector *injector) { return &injector->m_config; }
+  UNMANAGED_COMPONENT(InjectorConfiguration, UnitEInjectorConfiguration, GetInjectorConfiguration)
 
   COMPONENT(Settings, ::Settings, Settings::New,
             ::ArgsManager,
@@ -109,9 +118,13 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
 #endif
 
+  UnitEInjectorConfiguration m_config;
+
  public:
+  explicit UnitEInjector(UnitEInjectorConfiguration config) : m_config(config) {}
+
   //! \brief Initializes a globally available instance of the injector.
-  static void Init();
+  static void Init(UnitEInjectorConfiguration = UnitEInjectorConfiguration{});
 
   //! \brief Destructs the injector and all components managed by it.
   static void Destroy();

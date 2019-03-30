@@ -142,6 +142,7 @@ UNITE_CORE_H = \
   indirectmap.h \
   init.h \
   injector.h \
+  injector_config.h \
   key.h \
   key/mnemonic/mnemonic.h \
   key/mnemonic/chinese_simplified.h \

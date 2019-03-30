@@ -185,7 +185,8 @@ class Inj : public Injector<Inj> {
 };
 
 class UnmanagedInj : public Injector<UnmanagedInj> {
-  UNMANAGED_COMPONENT(One, ComplexThing, global_ptr.get())
+  static ComplexThing *GetGlobalPtr(UnmanagedInj *) { return global_ptr.get(); }
+  UNMANAGED_COMPONENT(One, ComplexThing, GetGlobalPtr)
   COMPONENT(Two, InjTestNS::Q, InjTestNS::Q::Make, ComplexThing)
  public:
   template <typename T>
