@@ -61,7 +61,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
 
         # Leave IBD
         proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
-        sync_blocks([proposer, finalizer1, finalizer2])
+        sync_blocks([proposer, finalizer1, finalizer2], timeout=10)
 
         finalizer1_address = finalizer1.getnewaddress('', 'legacy')
 
@@ -75,7 +75,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         self.wait_for_transaction(d1, timeout=10)
         self.wait_for_transaction(d2, timeout=10)
         proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
-        sync_blocks([proposer, finalizer1, finalizer2])
+        sync_blocks([proposer, finalizer1, finalizer2], timeout=10)
         disconnect_nodes(finalizer1, proposer.index)
         disconnect_nodes(finalizer2, proposer.index)
         assert_equal(proposer.getblockcount(), 2)
@@ -121,6 +121,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
 
         connect_nodes(finalizer1, proposer.index)
+        sync_blocks([finalizer1, proposer], timeout=10)
         l1 = finalizer1.logout()
         wait_until(lambda: l1 in proposer.getrawmempool(), timeout=10)
         disconnect_nodes(finalizer1, proposer.index)
@@ -209,6 +210,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
                                             'lastJustifiedEpoch': 19,
                                             'lastFinalizedEpoch': 18,
                                             'validators': 1})
+        sync_blocks([proposer, finalizer1], timeout=10)
         w1 = finalizer1.withdraw(finalizer1_address)
         wait_until(lambda: w1 in proposer.getrawmempool(), timeout=10)
         proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
