@@ -13,6 +13,7 @@
 #include <validation.h>
 
 namespace p2p {
+namespace {
 
 class DisabledGrapheneSender : public GrapheneSender {
   void UpdateRequesterTxPoolCount(const CNode &requester, uint64_t new_count) override {}
@@ -203,6 +204,8 @@ void GrapheneSenderImpl::OnDisconnected(NodeId node) {
   LOCK(m_cs);
   m_receiver_infos.erase(node);
 }
+
+}  // namespace
 
 std::unique_ptr<GrapheneSender> GrapheneSender::New(Dependency<ArgsManager> args,
                                                     Dependency<TxPool> txpool) {

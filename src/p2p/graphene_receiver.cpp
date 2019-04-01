@@ -16,6 +16,7 @@
 #include <validation.h>
 
 namespace p2p {
+namespace {
 
 class DisabledGrapheneReceiver : public GrapheneReceiver {
  public:
@@ -316,6 +317,8 @@ void GrapheneReceiverImpl::OnBlockReceived(NodeId node, const uint256 &block_has
   const auto key = std::make_pair(block_hash, node);
   m_graphene_blocks_in_flight.erase(key);
 }
+
+}  // namespace
 
 std::unique_ptr<GrapheneReceiver> GrapheneReceiver::New(Dependency<::ArgsManager> args,
                                                         Dependency<::TxPool> txpool) {
