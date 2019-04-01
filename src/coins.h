@@ -26,7 +26,8 @@
  * A UTXO entry.
  *
  * Serialized format:
- * - VARINT((coinbase ? 1 : 0) | (height << 1))
+ * - uint8_t for TxType
+ * - uint32_t for Height
  * - the non-spent CTxOut (via CTxOutCompressor)
  */
 class Coin

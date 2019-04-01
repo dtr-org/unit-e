@@ -2,7 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <chainparams.h>
 #include <coins.h>
 #include <esperanza/adminparams.h>
 #include <esperanza/checks.h>
@@ -17,7 +16,6 @@ namespace esperanza {
 
 bool ContextualCheckFinalizerCommit(const CTransaction &tx,
                                     CValidationState &err_state,
-                                    const Consensus::Params &params,
                                     const FinalizationState &fin_state,
                                     const CCoinsView &view) {
   switch (tx.GetType()) {
@@ -27,13 +25,13 @@ bool ContextualCheckFinalizerCommit(const CTransaction &tx,
     case +TxType::DEPOSIT:
       return ContextualCheckDepositTx(tx, err_state, fin_state);
     case +TxType::VOTE:
-      return ContextualCheckVoteTx(tx, err_state, params, fin_state, view);
+      return ContextualCheckVoteTx(tx, err_state, fin_state, view);
     case +TxType::LOGOUT:
-      return ContextualCheckLogoutTx(tx, err_state, params, fin_state, view);
+      return ContextualCheckLogoutTx(tx, err_state, fin_state, view);
     case +TxType::SLASH:
-      return ContextualCheckSlashTx(tx, err_state, params, fin_state);
+      return ContextualCheckSlashTx(tx, err_state, fin_state);
     case +TxType::WITHDRAW:
-      return ContextualCheckWithdrawTx(tx, err_state, params, fin_state, view);
+      return ContextualCheckWithdrawTx(tx, err_state, fin_state, view);
     case +TxType::ADMIN:
       return ContextualCheckAdminTx(tx, err_state, fin_state);
   }
@@ -70,33 +68,30 @@ inline bool CheckValidatorAddress(const CTransaction &tx, uint160 *addr_out) {
   return ExtractValidatorAddress(tx, *addr_out);
 }
 
-bool FindPrevTxData(const CTransaction &tx,
-                    const Consensus::Params &consensus_params,
-                    const CCoinsView &view,
-                    TxType *tx_type,
-                    CScript *script) {
-  Coin prev_coin;
-  if (view.GetCoin(tx.vin[0].prevout, prev_coin)) {
-    if (tx_type != nullptr) {
-      *tx_type = prev_coin.tx_type;
+bool FindPrevOutData(const COutPoint &prevout,
+                     const CCoinsView &view,
+                     TxType *tx_type_out,
+                     CScript *script_out) {
+  {
+    LOCK(mempool.cs);
+    CTransactionRef prev_tx = mempool.get(prevout.hash);
+    if (prev_tx != nullptr) {
+      if (tx_type_out != nullptr) {
+        *tx_type_out = prev_tx->GetType();
+      }
+      if (script_out != nullptr) {
+        *script_out = prev_tx->vout[0].scriptPubKey;
+      }
+      return true;
     }
-    if (script != nullptr) {
-      *script = prev_coin.out.scriptPubKey;
-    }
-    return true;
   }
-  CTransactionRef prev_tx;
-  uint256 block_hash;
-  // We have to look into the tx database to find the prev tx, hence the
-  // use of fAllowSlow = true
-  LogPrint(BCLog::FINALIZATION, "Cannout find coin=%s in the UTXO set, try find the whole transaction\n", tx.vin[0].prevout.ToString());
-  if (GetTransaction(tx.vin[0].prevout.hash, prev_tx, consensus_params,
-                     block_hash, true)) {
-    if (tx_type != nullptr) {
-      *tx_type = prev_tx->GetType();
+  Coin prev_coin;
+  if (view.GetCoin(prevout, prev_coin)) {
+    if (tx_type_out != nullptr) {
+      *tx_type_out = prev_coin.tx_type;
     }
-    if (script != nullptr) {
-      *script = prev_tx->vout[0].scriptPubKey;
+    if (script_out != nullptr) {
+      *script_out = prev_coin.out.scriptPubKey;
     }
     return true;
   }
@@ -194,7 +189,6 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
 }
 
 bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
-                             const Consensus::Params &consensus_params,
                              const FinalizationState &fin_state,
                              const CCoinsView &view) {
 
@@ -215,7 +209,7 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
   TxType prev_tx_type = TxType::REGULAR;
   CScript prev_out_script;
 
-  if (!FindPrevTxData(tx, consensus_params, view, &prev_tx_type, &prev_out_script)) {
+  if (!FindPrevOutData(tx.vin[0].prevout, view, &prev_tx_type, &prev_out_script)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-logout-no-prev-tx-found");
   }
@@ -263,7 +257,6 @@ bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
 }
 
 bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
-                               const Consensus::Params &consensus_params,
                                const FinalizationState &fin_state,
                                const CCoinsView &view) {
 
@@ -275,9 +268,14 @@ bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_sta
   TxType prev_tx_type = TxType::REGULAR;
   CScript prev_out_script;
 
-  if (!FindPrevTxData(tx, consensus_params, view, &prev_tx_type, &prev_out_script)) {
+  if (!FindPrevOutData(tx.vin[0].prevout, view, &prev_tx_type, &prev_out_script)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-withdraw-no-prev-tx-found");
+  }
+
+  if (prev_tx_type != +TxType::LOGOUT && prev_tx_type != +TxType::VOTE) {
+    return err_state.DoS(10, false, REJECT_INVALID,
+                         "bad-withdraw-prev-not-logout-or-vote");
   }
 
   std::vector<std::vector<unsigned char>> prev_solutions;
@@ -292,11 +290,6 @@ bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_sta
   if (res != +Result::SUCCESS) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-withdraw-invalid-state");
-  }
-
-  if (prev_tx_type != +TxType::LOGOUT && prev_tx_type != +TxType::VOTE) {
-    return err_state.DoS(10, false, REJECT_INVALID,
-                         "bad-withdraw-prev-not-logout-or-vote");
   }
 
   return true;
@@ -342,7 +335,6 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
 }
 
 bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
-                           const Consensus::Params &consensus_params,
                            const FinalizationState &fin_state,
                            const CCoinsView &view) {
 
@@ -368,7 +360,7 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   TxType prev_tx_type = TxType::REGULAR;
   CScript prev_out_script;
 
-  if (!FindPrevTxData(tx, consensus_params, view, &prev_tx_type, &prev_out_script)) {
+  if (!FindPrevOutData(tx.vin[0].prevout, view, &prev_tx_type, &prev_out_script)) {
     return err_state.DoS(10, false, REJECT_INVALID,
                          "bad-vote-no-prev-tx-found");
   }
@@ -415,7 +407,6 @@ bool CheckSlashTx(const CTransaction &tx, CValidationState &err_state,
 }
 
 bool ContextualCheckSlashTx(const CTransaction &tx, CValidationState &err_state,
-                            const Consensus::Params &consensus_params,
                             const FinalizationState &fin_state) {
 
   Vote vote1;

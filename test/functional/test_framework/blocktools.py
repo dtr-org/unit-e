@@ -245,7 +245,7 @@ def update_snapshot_with_tx(node, snapshot_data, stake_modifier, height, tx):
         tx_in = tx.vin[i]
         prevout = node.gettxout(hex(tx_in.prevout.hash), tx_in.prevout.n)
         ctx_out = CTxOut(int(prevout['value']*UNIT), CScript(hex_str_to_bytes(prevout['scriptPubKey']['hex'])))
-        utxo = UTXO(node_height + 1 - prevout['confirmations'], TxType(int(prevout['type'])), tx_in.prevout, ctx_out)
+        utxo = UTXO(node_height + 1 - prevout['confirmations'], TxType[prevout['txtype']], tx_in.prevout, ctx_out)
         inputs.append(utxo)
 
     for i, tx_out in enumerate(tx.vout):

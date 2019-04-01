@@ -535,11 +535,12 @@ BOOST_AUTO_TEST_CASE(ccoins_serialization)
     // Wrong tx_type
     CDataStream ss6(ParseHex("093bd80100bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4"), SER_DISK, CLIENT_VERSION);
     Coin cc6;
-    try {
-        ss6 >> cc6;
-        BOOST_CHECK_MESSAGE(false, "We should have thrown");
-    } catch (const std::runtime_error &e) {
-    }
+    BOOST_CHECK_THROW(ss6 >> cc6, std::runtime_error);
+    // try {
+    //     ss6 >> cc6;
+    //     BOOST_CHECK_MESSAGE(false, "We should have thrown");
+    // } catch (const std::runtime_error &e) {
+    // }
 }
 
 const static COutPoint OUTPOINT;

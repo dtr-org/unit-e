@@ -227,7 +227,6 @@ void BlockAssembler::AddMandatoryTxs()
     const finalization::FinalizationState *fin_state =
         GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state !=nullptr);
-    CCoinsViewCache view(pcoinsTip.get());
 
     auto mi = mempool.mapTx.get<ancestor_score>().begin();
     for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {
@@ -235,7 +234,7 @@ void BlockAssembler::AddMandatoryTxs()
         if (mi->GetTx().IsVote()) {
             CValidationState state;
             //Check again in case the vote became invalid in the meanwhile (different target now)
-            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, chainparams.GetConsensus(), *fin_state, view)) {
+            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, *fin_state, *pcoinsTip)) {
                 AddToBlock(mempool.mapTx.project<0>(mi));
                 LogPrint(BCLog::FINALIZATION,
                          "%s: Add vote with id %s to a new block.\n",

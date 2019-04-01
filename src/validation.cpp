@@ -586,12 +586,11 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
 }
 
 static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationState &err_state,
-                                           const Consensus::Params &params,
                                            const esperanza::FinalizationState &fin_state,
                                            const CCoinsView &view) {
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::ContextualCheckFinalizerCommit(tx, err_state, params, fin_state, view)) {
+    if (!esperanza::ContextualCheckFinalizerCommit(tx, err_state, fin_state, view)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
@@ -601,12 +600,11 @@ static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationSt
 
 static bool ContextualCheckBlockFinalizerCommits(const CBlock &block,
                                                  CValidationState &err_state,
-                                                 const Consensus::Params &params,
                                                  const esperanza::FinalizationState &fin_state,
                                                  const CCoinsView &view) {
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizerCommit()) {
-            if (!::ContextualCheckFinalizerCommit(*tx, err_state, params, fin_state, view)) {
+            if (!::ContextualCheckFinalizerCommit(*tx, err_state, fin_state, view)) {
                 return false;
             }
         }
@@ -673,8 +671,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state != nullptr);
     if (tx.IsFinalizerCommit() &&
-        !::ContextualCheckFinalizerCommit(
-            tx, state, chainparams.GetConsensus(), *fin_state, view)) {
+        !::ContextualCheckFinalizerCommit(tx, state, *fin_state, view)) {
         return false; // state already filled by ContextualCheckFinalizerTx
     }
 
@@ -2027,8 +2024,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
     if (!isGenesisBlock &&
         has_finalization_tx &&
-        !ContextualCheckBlockFinalizerCommits(
-            block, state, chainparams.GetConsensus(), *fin_state, view)) {
+        !ContextualCheckBlockFinalizerCommits(block, state, *fin_state, view)) {
         return false;
     }
 
