@@ -172,7 +172,7 @@ void GrapheneSenderImpl::OnGrapheneTxRequestReceived(CNode &from,
   const uint256 block_hash = request.block_hash;
 
   const CBlockIndex *block_index = LookupBlockIndex(request.block_hash);
-  assert(block_index); // We recently checked that WE sent this block first
+  assert(block_index);  // We recently checked that WE sent this block first
 
   GrapheneTx response(block_hash, {});
 
