@@ -492,8 +492,13 @@ void FinalizationState::ProcessVote(const Vote &vote) {
     ProcessReward(validatorAddress, reward);
   }
 
-  bool enoughVotes =
+  bool isTwoThirdsCurDyn =
       curDynastyVotes >= ufp64::div_to_uint(m_cur_dyn_deposits * 2, ufp64::to_ufp64(3));
+
+  bool isTwoThirdsPrevDyn =
+      prevDynastyVotes >= ufp64::div_to_uint(m_prev_dyn_deposits * 2, ufp64::to_ufp64(3));
+
+  bool enoughVotes = isTwoThirdsCurDyn && isTwoThirdsPrevDyn;
 
   if (enoughVotes && !GetCheckpoint(targetEpoch).m_is_justified) {
 
@@ -860,7 +865,8 @@ blockchain::Height FinalizationState::GetEpochCheckpointHeight(const uint32_t ep
 std::vector<Validator> FinalizationState::GetActiveFinalizers() const {
   std::vector<Validator> res;
   for (const auto &it : m_validators) {
-    if (IsInDynasty(it.second, m_current_dynasty)) {
+    if (IsInDynasty(it.second, m_current_dynasty) ||
+        IsInDynasty(it.second, m_current_dynasty - 1)) {
       res.push_back(it.second);
     }
   }
