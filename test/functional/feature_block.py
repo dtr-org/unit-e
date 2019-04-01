@@ -95,9 +95,27 @@ class FullBlockTest(ComparisonTestFramework):
         tx.rehash()
         return tx
 
-    def find_spend(self, prevout):
-        for num in self.blocks:
-            block = self.blocks[num]
+    def find_spend(self, prevout, prevtip):
+        # First, get the number we associated to the 'prevtip' block
+        tip_num = None
+        for block_num in self.blocks:
+            if self.blocks[block_num] is prevtip:
+                tip_num = block_num
+                break
+        assert tip_num is not None
+
+        # Now, create chain of blocks ending in 'prevtip'
+        chain = [prevtip]
+        for num in sorted(self.blocks.keys(), reverse=True):
+            if num >= tip_num:
+                continue
+            if self.blocks[num].sha256 == prevtip.hashPrevBlock:
+                prevtip = self.blocks[num]
+                chain.append(prevtip)
+        chain = reversed(chain)
+
+        # Now, let's look for the prevout's origin
+        for block in chain:
             for tx in block.vtx:
                 if tx.sha256 == prevout.hash:
                     if block.sha256 not in self.block_heights:
@@ -124,7 +142,7 @@ class FullBlockTest(ComparisonTestFramework):
                         spend = None
 
                 if spent_coin is None:
-                    spent_coin = self.find_spend(vin.prevout)
+                    spent_coin = self.find_spend(vin.prevout, block)
                 if spent_coin is None:
                     continue
                 if len(spent_coin.tx.vout) <= spent_coin.n:
