@@ -9,7 +9,9 @@ from test_framework.util import (
     sync_blocks,
     assert_equal,
     assert_raises_rpc_error,
-    assert_less_than, wait_until, connect_nodes_bi)
+    assert_less_than,
+    wait_until,
+    connect_nodes)
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -23,25 +25,25 @@ class EsperanzaDepositTest(UnitETestFramework):
         }
         json_params = json.dumps(params_data)
 
-        validator_node_params = [
+        finalizer_node_params = [
             '-validating=1',
             '-esperanzaconfig=' + json_params
         ]
         proposer_node_params = ['-esperanzaconfig=' + json_params]
 
         self.extra_args = [proposer_node_params,
-                           validator_node_params]
+                           finalizer_node_params]
         self.setup_clean_chain = True
 
     # create topology where arrows denote non-persistent connection
-    # finalizer ←→ proposer
+    # finalizer → proposer
     def setup_network(self):
         self.setup_nodes()
 
         proposer = self.nodes[0]
         finalizer = self.nodes[1]
 
-        connect_nodes_bi(self.nodes, finalizer.index, proposer.index)
+        connect_nodes(finalizer, proposer.index)
 
     def run_test(self):
         proposer = self.nodes[0]
@@ -85,7 +87,7 @@ class EsperanzaDepositTest(UnitETestFramework):
                    timeout=5)
 
         assert_equal(proposer.getblockcount(), 2)
-        assert_finalizationstate(proposer, {'currentEpoch': 0,
+        assert_finalizationstate(proposer, {'currentEpoch': 1,
                                             'currentDynasty': 0,
                                             'lastJustifiedEpoch': 0,
                                             'lastFinalizedEpoch': 0,
@@ -93,8 +95,8 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         # the finalizer will be ready to operate at the beginning of epoch 4
         # TODO: UNIT-E: it can be 3 epochs as soon as #572 is fixed
-        proposer.generate(38)
-        assert_equal(proposer.getblockcount(), 40)
+        proposer.generate(29)
+        assert_equal(proposer.getblockcount(), 31)
         sync_blocks([proposer, finalizer])
 
         assert_finalizationstate(proposer, {'currentEpoch': 4,
@@ -108,7 +110,7 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         # The finalizer will actually join the finalizers set one dynasty later
         proposer.generate(10)
-        assert_equal(proposer.getblockcount(), 50)
+        assert_equal(proposer.getblockcount(), 41)
         sync_blocks([proposer, finalizer])
 
         assert_finalizationstate(proposer, {'currentEpoch': 5,
@@ -119,21 +121,21 @@ class EsperanzaDepositTest(UnitETestFramework):
 
 
 # Deposit all you got, not enough coins left for the fees
-def test_not_enough_money_for_deposit(validator):
-    payto = validator.getnewaddress("", "legacy")
-    assert_raises_rpc_error(-25, "Cannot create deposit.", validator.deposit, payto, validator.initial_stake)
+def test_not_enough_money_for_deposit(finalizer):
+    payto = finalizer.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-25, "Cannot create deposit.", finalizer.deposit, payto, finalizer.initial_stake)
 
 
 # Deposit less then the minimum
-def test_deposit_too_small(validator):
-    payto = validator.getnewaddress("", "legacy")
-    assert_raises_rpc_error(-8, "Amount is below minimum allowed.", validator.deposit, payto, 100)
+def test_deposit_too_small(finalizer):
+    payto = finalizer.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-8, "Amount is below minimum allowed.", finalizer.deposit, payto, 100)
 
 
 # Deposit again
-def test_duplicate_deposit(validator):
-    payto = validator.getnewaddress("", "legacy")
-    assert_raises_rpc_error(-8, "The node is already validating.", validator.deposit, payto, 1500)
+def test_duplicate_deposit(finalizer):
+    payto = finalizer.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-8, "The node is already validating.", finalizer.deposit, payto, 1500)
 
 
 if __name__ == '__main__':
