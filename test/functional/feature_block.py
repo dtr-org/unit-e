@@ -570,7 +570,7 @@ class FullBlockTest(ComparisonTestFramework):
         # b30 has a max-sized coinbase scriptSig.
         tip(23)
         b30 = block(30, get_staking_coin())
-        b30.vtx[0].vin[0].scriptSig += b'\x00' * (99-len(b30.vtx[0].vin[0].scriptSig))
+        b30.vtx[0].vin[0].scriptSig += b'\x00' * (100 - len(b30.vtx[0].vin[0].scriptSig))
         assert_equal(len(b30.vtx[0].vin[0].scriptSig), 100)
         b30.vtx[0].rehash()
         b30 = update_block(30, [])

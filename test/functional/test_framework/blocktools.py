@@ -153,7 +153,10 @@ def get_legacy_sigopcount_block(block, fAccurate=True):
 def get_legacy_sigopcount_tx(tx, fAccurate=True):
     count = 0
     for i in tx.vout:
-        count += i.scriptPubKey.GetSigOpCount(fAccurate)
+        scriptpubkey = i.scriptPubKey
+        if not isinstance(scriptpubkey, CScript):
+            scriptpubkey = CScript(scriptpubkey)
+        count += scriptpubkey.GetSigOpCount(fAccurate)
     for j in tx.vin:
         # scriptSig might be of type bytes, so convert to CScript for the moment
         count += CScript(j.scriptSig).GetSigOpCount(fAccurate)
