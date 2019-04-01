@@ -14,29 +14,57 @@
 
 namespace p2p {
 
-GrapheneSender::GrapheneSender(bool enabled,
-                               Dependency<::TxPool> tx_pool)
-    : m_enabled(enabled),
-      m_sender_tx_pool(tx_pool),
-      m_random(false) {
-}
-
-void GrapheneSender::UpdateRequesterTxPoolCount(const CNode &requester,
-                                                uint64_t new_count) {
-  LOCK(m_cs);
-  if (!m_enabled) {
-    return;
-  }
-
-  m_receiver_infos[requester.GetId()].tx_pool_count = new_count;
-}
-
-bool GrapheneSender::SendBlock(CNode &to, const CBlock &block, const CBlockIndex &index) {
-
-  if (!m_enabled) {
+class DisabledGrapheneSender : public GrapheneSender {
+  void UpdateRequesterTxPoolCount(const CNode &requester, uint64_t new_count) override {}
+  bool SendBlock(CNode &to, const CBlock &block, const CBlockIndex &index) override {
     return false;
   }
 
+  void OnGrapheneTxRequestReceived(CNode &from,
+                                   const GrapheneTxRequest &request) override {
+    LogPrint(BCLog::NET, "Graphene block tx is requested in violation of protocol, peer %d\n", from.GetId());
+    Misbehaving(from.GetId(), 100);
+  }
+
+  void OnDisconnected(NodeId node) override {}
+};
+
+class GrapheneSenderImpl : public GrapheneSender {
+ public:
+  explicit GrapheneSenderImpl(Dependency<::TxPool> tx_pool);
+  void UpdateRequesterTxPoolCount(const CNode &requester, uint64_t new_count) override;
+  bool SendBlock(CNode &to, const CBlock &block, const CBlockIndex &index) override;
+  void OnGrapheneTxRequestReceived(CNode &from,
+                                   const GrapheneTxRequest &request) override;
+  void OnDisconnected(NodeId node) override;
+
+ private:
+  struct ReceiverInfo {
+    int last_requested_height = 0;
+    uint256 last_requested_hash;
+    bool requested_tx = false;
+    uint64_t tx_pool_count = 0;
+    uint64_t last_nonce = 0;
+  };
+
+  CCriticalSection m_cs;
+  std::unordered_map<NodeId, ReceiverInfo> m_receiver_infos;
+  Dependency<TxPool> m_sender_tx_pool;
+  FastRandomContext m_random;
+};
+
+GrapheneSenderImpl::GrapheneSenderImpl(Dependency<::TxPool> tx_pool)
+    : m_sender_tx_pool(tx_pool),
+      m_random(false) {
+}
+
+void GrapheneSenderImpl::UpdateRequesterTxPoolCount(const CNode &requester,
+                                                    uint64_t new_count) {
+  LOCK(m_cs);
+  m_receiver_infos[requester.GetId()].tx_pool_count = new_count;
+}
+
+bool GrapheneSenderImpl::SendBlock(CNode &to, const CBlock &block, const CBlockIndex &index) {
   if (block.vtx.size() < MIN_TRANSACTIONS_IN_GRAPHENE_BLOCK) {
     return false;
   }
@@ -106,8 +134,8 @@ bool GrapheneSender::SendBlock(CNode &to, const CBlock &block, const CBlockIndex
   return true;
 }
 
-void GrapheneSender::OnGrapheneTxRequestReceived(CNode &from,
-                                                 const GrapheneTxRequest &request) {
+void GrapheneSenderImpl::OnGrapheneTxRequestReceived(CNode &from,
+                                                     const GrapheneTxRequest &request) {
 
   if (request.block_hash.IsNull() || request.missing_tx_short_hashes.empty()) {
     LogPrint(BCLog::NET, "Received incorrect graphene tx request from peer %d\n", from.GetId());
@@ -142,14 +170,8 @@ void GrapheneSender::OnGrapheneTxRequestReceived(CNode &from,
 
   const uint256 block_hash = request.block_hash;
 
-  CBlockIndex *block_index = LookupBlockIndex(request.block_hash);
-  if (!block_index) {
-    LogPrint(BCLog::NET, "Peer %d requested unknown graphene block tx %s\n",
-             from.GetId(),
-             block_hash.GetHex());
-    Misbehaving(from.GetId(), 20);
-    return;
-  }
+  const CBlockIndex *block_index = LookupBlockIndex(request.block_hash);
+  assert(block_index); // We recently checked that WE sent this block first
 
   GrapheneTx response(block_hash, {});
 
@@ -177,7 +199,7 @@ void GrapheneSender::OnGrapheneTxRequestReceived(CNode &from,
   PushMessage(from, NetMsgType::GRAPHENETX, response);
 }
 
-void GrapheneSender::OnDisconnected(NodeId node) {
+void GrapheneSenderImpl::OnDisconnected(NodeId node) {
   LOCK(m_cs);
   m_receiver_infos.erase(node);
 }
@@ -186,8 +208,11 @@ std::unique_ptr<GrapheneSender> GrapheneSender::New(Dependency<ArgsManager> args
                                                     Dependency<TxPool> txpool) {
 
   const bool enabled = args->GetBoolArg("-graphene", true);
+  if (enabled) {
+    return MakeUnique<GrapheneSenderImpl>(txpool);
+  }
 
-  return MakeUnique<GrapheneSender>(enabled, txpool);
+  return MakeUnique<DisabledGrapheneSender>();
 }
 
 }  // namespace p2p

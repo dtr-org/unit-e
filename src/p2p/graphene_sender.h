@@ -17,32 +17,16 @@ namespace p2p {
 
 class GrapheneSender {
  public:
-  GrapheneSender(bool enabled, Dependency<::TxPool> tx_pool);
+  virtual void UpdateRequesterTxPoolCount(const CNode &requester, uint64_t new_count) = 0;
+  virtual bool SendBlock(CNode &to, const CBlock &block, const CBlockIndex &index) = 0;
+  virtual void OnGrapheneTxRequestReceived(CNode &from,
+                                           const GrapheneTxRequest &request) = 0;
+  virtual void OnDisconnected(NodeId node) = 0;
 
-  void UpdateRequesterTxPoolCount(const CNode &requester, uint64_t new_count);
-  bool SendBlock(CNode &to, const CBlock &block, const CBlockIndex &index);
-  void OnGrapheneTxRequestReceived(CNode &from,
-                                   const GrapheneTxRequest &request);
-  void OnDisconnected(NodeId node);
+  virtual ~GrapheneSender() = default;
 
   static std::unique_ptr<GrapheneSender> New(Dependency<::ArgsManager>,
                                              Dependency<TxPool>);
-
- private:
-  const bool m_enabled;
-
-  struct ReceiverInfo {
-    int last_requested_height = 0;
-    uint256 last_requested_hash;
-    bool requested_tx = false;
-    uint64_t tx_pool_count = 0;
-    uint64_t last_nonce = 0;
-  };
-
-  CCriticalSection m_cs;
-  std::unordered_map<NodeId, ReceiverInfo> m_receiver_infos;
-  Dependency<TxPool> m_sender_tx_pool;
-  FastRandomContext m_random;
 };
 
 }  // namespace p2p

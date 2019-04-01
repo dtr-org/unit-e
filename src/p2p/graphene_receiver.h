@@ -18,9 +18,6 @@ namespace p2p {
 
 class GrapheneReceiver {
  public:
-  explicit GrapheneReceiver(bool enabled,
-                            Dependency<TxPool> txpool);
-
   //! \brief Requests graphene blocks if applicable
   //!
   //! \param invs_in_out - invs that we are going to request from \p from
@@ -30,39 +27,23 @@ class GrapheneReceiver {
   //!
   //! This function checks invs that are being requested and if conditions for
   //! graphene met - sends corresponding graphene requests, removing corresponding invs
-  void RequestAsGrapheneWhatPossible(CNode &from,
-                                     const CBlockIndex &last_inv_block_index,
-                                     const size_t blocks_in_flight,
-                                     std::vector<CInv> *invs_in_out);
+  virtual void RequestAsGrapheneWhatPossible(CNode &from,
+                                             const CBlockIndex &last_inv_block_index,
+                                             size_t blocks_in_flight,
+                                             std::vector<CInv> *invs_in_out) = 0;
 
-  void OnGrapheneBlockReceived(CNode &from,
-                               const GrapheneBlock &graphene_block);
+  virtual void OnGrapheneBlockReceived(CNode &from, const GrapheneBlock &graphene_block) = 0;
 
-  void OnGrapheneTxReceived(CNode &from, const GrapheneTx &graphene_tx);
+  virtual void OnGrapheneTxReceived(CNode &from, const GrapheneTx &graphene_tx) = 0;
 
-  void OnDisconnected(NodeId node);
+  virtual void OnDisconnected(NodeId node) = 0;
+
+  virtual void OnBlockReceived(NodeId node, const uint256 &block_hash) = 0;
+
+  virtual ~GrapheneReceiver() = default;
 
   static std::unique_ptr<GrapheneReceiver> New(Dependency<::ArgsManager>,
                                                Dependency<::TxPool> txpool);
-
-  void OnBlockReceived(NodeId node, const uint256 &block_hash);
-
- private:
-  const bool m_enabled;
-  Dependency<TxPool> m_txpool;
-
-  // Currently we can only download one graphene block at a time,
-  // used map mostly for future where we might reconsider this
-  std::map<std::pair<uint256, NodeId>, std::unique_ptr<GrapheneBlockReconstructor>> m_graphene_blocks_in_flight;
-
-  void RequestFallbackBlock(CNode &from, const uint256 &block_hash);
-
-  bool CheckMerkleRoot(const CBlock &block);
-
-  void ReconstructAndSubmitBlock(CNode &from,
-                                 const GrapheneBlockReconstructor &reconstructor);
-
-  void MarkBlockNotInFlight(const CNode &from, const uint256 &block_hash);
 };
 
 }  // namespace p2p

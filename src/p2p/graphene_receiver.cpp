@@ -17,21 +17,75 @@
 
 namespace p2p {
 
-GrapheneReceiver::GrapheneReceiver(const bool enabled,
-                                   Dependency<TxPool> txpool)
-    : m_enabled(enabled),
-      m_txpool(txpool) {}
+class DisabledGrapheneReceiver : public GrapheneReceiver {
+ public:
+  void RequestAsGrapheneWhatPossible(CNode &from,
+                                     const CBlockIndex &last_inv_block_index,
+                                     size_t blocks_in_flight,
+                                     std::vector<CInv> *invs_in_out) override {}
 
-void GrapheneReceiver::RequestAsGrapheneWhatPossible(
+  void OnGrapheneBlockReceived(CNode &from,
+                               const GrapheneBlock &graphene_block) override {
+    LogPrint(BCLog::NET, "Graphene block is sent in violation of protocol, peer %d\n", from.GetId());
+    Misbehaving(from.GetId(), 100);
+  }
+
+  void OnGrapheneTxReceived(CNode &from, const GrapheneTx &graphene_tx) override {
+    LogPrint(BCLog::NET, "Graphene block tx is sent in violation of protocol, peer %d\n", from.GetId());
+    Misbehaving(from.GetId(), 100);
+  }
+
+  void OnDisconnected(NodeId node) override {
+  }
+
+  void OnBlockReceived(NodeId node, const uint256 &block_hash) override {
+  }
+};
+
+class GrapheneReceiverImpl : public GrapheneReceiver {
+ public:
+  explicit GrapheneReceiverImpl(Dependency<TxPool> txpool);
+
+  void RequestAsGrapheneWhatPossible(CNode &from,
+                                     const CBlockIndex &last_inv_block_index,
+                                     size_t blocks_in_flight,
+                                     std::vector<CInv> *invs_in_out) override;
+
+  void OnGrapheneBlockReceived(CNode &from,
+                               const GrapheneBlock &graphene_block) override;
+
+  void OnGrapheneTxReceived(CNode &from, const GrapheneTx &graphene_tx) override;
+
+  void OnDisconnected(NodeId node) override;
+
+  void OnBlockReceived(NodeId node, const uint256 &block_hash) override;
+
+ private:
+  Dependency<TxPool> m_txpool;
+
+  // Currently we can only download one graphene block at a time,
+  // used map mostly for future where we might reconsider this
+  std::map<std::pair<uint256, NodeId>, std::unique_ptr<GrapheneBlockReconstructor>> m_graphene_blocks_in_flight;
+
+  void RequestFallbackBlock(CNode &from, const uint256 &block_hash);
+
+  bool CheckMerkleRoot(const CBlock &block);
+
+  void ReconstructAndSubmitBlock(CNode &from,
+                                 const GrapheneBlockReconstructor &reconstructor);
+
+  void MarkBlockNotInFlight(const CNode &from, const uint256 &block_hash);
+};
+
+GrapheneReceiverImpl::GrapheneReceiverImpl(Dependency<TxPool> txpool)
+    : m_txpool(txpool) {}
+
+void GrapheneReceiverImpl::RequestAsGrapheneWhatPossible(
     CNode &from,
     const CBlockIndex &last_inv_block_index,
     const size_t blocks_in_flight,
     std::vector<CInv> *invs_in_out) {
   AssertLockHeld(cs_main);
-
-  if (!m_enabled) {
-    return;
-  }
 
   assert(invs_in_out);
 
@@ -60,17 +114,10 @@ void GrapheneReceiver::RequestAsGrapheneWhatPossible(
   PushMessage(from, NetMsgType::GETGRAPHENE, request);
 }
 
-void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
-                                               const GrapheneBlock &graphene_block) {
+void GrapheneReceiverImpl::OnGrapheneBlockReceived(CNode &from,
+                                                   const GrapheneBlock &graphene_block) {
 
   const uint256 block_hash = graphene_block.header.GetHash();
-
-  if (!m_enabled) {
-    LogPrint(BCLog::NET, "Graphene block %s sent in violation of protocol, peer %d\n",
-             block_hash.GetHex(), from.GetId());
-    Misbehaving(from.GetId(), 100);
-    return;
-  }
 
   std::unique_ptr<GrapheneBlockReconstructor> reconstructor;
 
@@ -141,8 +188,8 @@ void GrapheneReceiver::OnGrapheneBlockReceived(CNode &from,
   ReconstructAndSubmitBlock(from, *reconstructor);
 }
 
-void GrapheneReceiver::ReconstructAndSubmitBlock(CNode &from,
-                                                 const GrapheneBlockReconstructor &reconstructor) {
+void GrapheneReceiverImpl::ReconstructAndSubmitBlock(CNode &from,
+                                                     const GrapheneBlockReconstructor &reconstructor) {
 
   const uint256 block_hash = reconstructor.GetBlockHash();
   CBlock block = reconstructor.ReconstructLTOR();
@@ -173,7 +220,7 @@ void GrapheneReceiver::ReconstructAndSubmitBlock(CNode &from,
   }
 }
 
-void GrapheneReceiver::OnGrapheneTxReceived(CNode &from, const GrapheneTx &graphene_tx) {
+void GrapheneReceiverImpl::OnGrapheneTxReceived(CNode &from, const GrapheneTx &graphene_tx) {
 
   const uint256 &block_hash = graphene_tx.block_hash;
   std::unique_ptr<GrapheneBlockReconstructor> reconstructor;
@@ -216,7 +263,7 @@ void GrapheneReceiver::OnGrapheneTxReceived(CNode &from, const GrapheneTx &graph
   ReconstructAndSubmitBlock(from, *reconstructor);
 }
 
-void GrapheneReceiver::RequestFallbackBlock(CNode &from, const uint256 &block_hash) {
+void GrapheneReceiverImpl::RequestFallbackBlock(CNode &from, const uint256 &block_hash) {
   AssertLockHeld(cs_main);
 
   const auto key = std::make_pair(block_hash, from.GetId());
@@ -229,14 +276,14 @@ void GrapheneReceiver::RequestFallbackBlock(CNode &from, const uint256 &block_ha
   PushMessage(from, NetMsgType::GETDATA, invs);
 }
 
-bool GrapheneReceiver::CheckMerkleRoot(const CBlock &block) {
+bool GrapheneReceiverImpl::CheckMerkleRoot(const CBlock &block) {
   bool mutated;
   const uint256 merkle_root = BlockMerkleRoot(block, &mutated);
 
   return !mutated && block.hashMerkleRoot == merkle_root;
 }
 
-void GrapheneReceiver::OnDisconnected(const NodeId node) {
+void GrapheneReceiverImpl::OnDisconnected(const NodeId node) {
   AssertLockHeld(cs_main);
 
   // We expect to not have many such blocks (in fact currently one), so linear scan is acceptable
@@ -249,13 +296,7 @@ void GrapheneReceiver::OnDisconnected(const NodeId node) {
   }
 }
 
-std::unique_ptr<GrapheneReceiver> GrapheneReceiver::New(Dependency<::ArgsManager> args,
-                                                        Dependency<::TxPool> txpool) {
-  const bool enabled = args->GetBoolArg("-graphene", true);
-  return MakeUnique<GrapheneReceiver>(enabled, txpool);
-}
-
-void GrapheneReceiver::MarkBlockNotInFlight(const CNode &from, const uint256 &block_hash) {
+void GrapheneReceiverImpl::MarkBlockNotInFlight(const CNode &from, const uint256 &block_hash) {
   AssertLockHeld(cs_main);
 
   const auto key = std::make_pair(block_hash, from.GetId());
@@ -269,11 +310,21 @@ void GrapheneReceiver::MarkBlockNotInFlight(const CNode &from, const uint256 &bl
   MarkBlockAsReceived(block_hash);
 }
 
-void GrapheneReceiver::OnBlockReceived(NodeId node, const uint256 &block_hash) {
+void GrapheneReceiverImpl::OnBlockReceived(NodeId node, const uint256 &block_hash) {
   AssertLockHeld(cs_main);
 
   const auto key = std::make_pair(block_hash, node);
   m_graphene_blocks_in_flight.erase(key);
+}
+
+std::unique_ptr<GrapheneReceiver> GrapheneReceiver::New(Dependency<::ArgsManager> args,
+                                                        Dependency<::TxPool> txpool) {
+  const bool enabled = args->GetBoolArg("-graphene", true);
+  if (enabled) {
+    return MakeUnique<GrapheneReceiverImpl>(txpool);
+  }
+
+  return MakeUnique<DisabledGrapheneReceiver>();
 }
 
 }  // namespace p2p
