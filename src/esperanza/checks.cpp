@@ -9,6 +9,7 @@
 #include <finalization/vote_recorder.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
+#include <txmempool.h>
 #include <util.h>
 #include <validation.h>
 
@@ -80,7 +81,7 @@ bool FindPrevOutData(const COutPoint &prevout,
         *tx_type_out = prev_tx->GetType();
       }
       if (script_out != nullptr) {
-        *script_out = prev_tx->vout[0].scriptPubKey;
+        *script_out = prev_tx->vout[prevout.n].scriptPubKey;
       }
       return true;
     }
