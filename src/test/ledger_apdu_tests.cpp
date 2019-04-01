@@ -27,6 +27,8 @@ std::vector<uint8_t> randvec() {
 
 const size_t APDU_HEADER_SIZE = 5;
 
+BOOST_AUTO_TEST_SUITE(ledger_apdu_tests)
+
 BOOST_AUTO_TEST_CASE(apdu_test_ext_pubkey) {
   usbdevice::APDU apdu;
   std::string error;
@@ -191,3 +193,5 @@ BOOST_AUTO_TEST_CASE(apdu_test_sign_segwit) {
     BOOST_CHECK_EQUAL(input_payload_size, 1 + 36 + 8 + 3 + script2.size() + 4);
   }
 }
+
+BOOST_AUTO_TEST_SUITE_END()
