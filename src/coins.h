@@ -64,8 +64,8 @@ public:
     //! COINBASE_MATURITY blocks deep in the blockchain (that is: COINBASE_MATURITY
     //! blocks have to be included in the chain afterwards).
     //!
+    //! \param prevout_index The output index.
     //! \param spend_height The height at which the TxOut is tried to be spent.
-    //! \param prevout_index The output index
     bool IsImmatureCoinBaseReward(const uint32_t prevout_index, const int spend_height) const {
         if (!IsCoinBase() || prevout_index > 0) {
             // Only the first output of a coinbase (containing rewards and fees
