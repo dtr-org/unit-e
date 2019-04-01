@@ -18,19 +18,17 @@ namespace p2p {
 
 class GrapheneReceiver {
  public:
-  //! \brief Requests graphene blocks if applicable
+  //! \brief Requests graphene block(s) if certain conditions are met
   //!
-  //! \param invs_in_out - invs that we are going to request from \p from
   //! \param last_inv_block_index - CBlockIndex of the last block we are requesting
   //! \param blocks_in_flight - how many blocks are currently in flight. This
   //! should include \p invs_in_out
-  //!
-  //! This function checks invs that are being requested and if conditions for
-  //! graphene met - sends corresponding graphene requests, removing corresponding invs
-  virtual void RequestAsGrapheneWhatPossible(CNode &from,
-                                             const CBlockIndex &last_inv_block_index,
-                                             size_t blocks_in_flight,
-                                             std::vector<CInv> *invs_in_out) = 0;
+  //! \param invs - invs that we are going to request from \p from
+  //! \returns true if graphene blocks were requested
+  virtual bool RequestBlocks(CNode &from,
+                             const CBlockIndex &last_inv_block_index,
+                             size_t blocks_in_flight,
+                             const std::vector<CInv> &invs) = 0;
 
   virtual void OnGrapheneBlockReceived(CNode &from, const GrapheneBlock &graphene_block) = 0;
 
@@ -38,7 +36,7 @@ class GrapheneReceiver {
 
   virtual void OnDisconnected(NodeId node) = 0;
 
-  virtual void OnBlockReceived(NodeId node, const uint256 &block_hash) = 0;
+  virtual void OnMarkedAsReceived(NodeId node, const uint256 &block_hash) = 0;
 
   virtual ~GrapheneReceiver() = default;
 

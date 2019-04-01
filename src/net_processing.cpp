@@ -312,7 +312,7 @@ bool MarkBlockAsReceived(const uint256& hash) {
         state->vBlocksInFlight.erase(itInFlight->second.second);
         state->nBlocksInFlight--;
         state->nStallingSince = 0;
-        GetComponent<p2p::GrapheneReceiver>()->OnBlockReceived(itInFlight->second.first, itInFlight->first);
+        GetComponent<p2p::GrapheneReceiver>()->OnMarkedAsReceived(itInFlight->second.first, itInFlight->first);
         mapBlocksInFlight.erase(itInFlight);
         return true;
     }
@@ -1452,19 +1452,15 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
                             pindexLast->GetBlockHash().ToString(), pindexLast->nHeight);
                 }
 
-                // This function might modify vGetData if it is going to request something as graphene
-                GetComponent<p2p::GrapheneReceiver>()->RequestAsGrapheneWhatPossible(
-                  *pfrom,
-                  *pindexLast,
-                  mapBlocksInFlight.size(),
-                  &vGetData);
-
-                if (vGetData.size() > 0) {
-                    if (nodestate->fSupportsDesiredCmpctVersion && vGetData.size() == 1 && nodestate->nBlocksInFlight == 1 && pindexLast->pprev->IsValid(BLOCK_VALID_CHAIN)) {
-                        // In any case, we want to download using a compact block, not a regular one
-                        vGetData[0] = CInv(MSG_CMPCT_BLOCK, vGetData[0].hash);
+                const auto graphene = GetComponent<p2p::GrapheneReceiver>();
+                if (!graphene->RequestBlocks(*pfrom, *pindexLast, mapBlocksInFlight.size(), vGetData)) {
+                    if (vGetData.size() > 0) {
+                        if (nodestate->fSupportsDesiredCmpctVersion && vGetData.size() == 1 && nodestate->nBlocksInFlight == 1 && pindexLast->pprev->IsValid(BLOCK_VALID_CHAIN)) {
+                            // In any case, we want to download using a compact block, not a regular one
+                            vGetData[0] = CInv(MSG_CMPCT_BLOCK, vGetData[0].hash);
+                        }
+                        connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETDATA, vGetData));
                     }
-                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETDATA, vGetData));
                 }
             }
         }

@@ -20,10 +20,12 @@ namespace {
 
 class DisabledGrapheneReceiver : public GrapheneReceiver {
  public:
-  void RequestAsGrapheneWhatPossible(CNode &from,
-                                     const CBlockIndex &last_inv_block_index,
-                                     size_t blocks_in_flight,
-                                     std::vector<CInv> *invs_in_out) override {}
+  bool RequestBlocks(CNode &from,
+                     const CBlockIndex &last_inv_block_index,
+                     const size_t blocks_in_flight,
+                     const std::vector<CInv> &invs) override {
+    return false;
+  }
 
   void OnGrapheneBlockReceived(CNode &from,
                                const GrapheneBlock &graphene_block) override {
@@ -39,7 +41,7 @@ class DisabledGrapheneReceiver : public GrapheneReceiver {
   void OnDisconnected(NodeId node) override {
   }
 
-  void OnBlockReceived(NodeId node, const uint256 &block_hash) override {
+  void OnMarkedAsReceived(NodeId node, const uint256 &block_hash) override {
   }
 };
 
@@ -47,10 +49,10 @@ class GrapheneReceiverImpl : public GrapheneReceiver {
  public:
   explicit GrapheneReceiverImpl(Dependency<TxPool> txpool);
 
-  void RequestAsGrapheneWhatPossible(CNode &from,
-                                     const CBlockIndex &last_inv_block_index,
-                                     size_t blocks_in_flight,
-                                     std::vector<CInv> *invs_in_out) override;
+  bool RequestBlocks(CNode &from,
+                     const CBlockIndex &last_inv_block_index,
+                     size_t blocks_in_flight,
+                     const std::vector<CInv> &invs) override;
 
   void OnGrapheneBlockReceived(CNode &from,
                                const GrapheneBlock &graphene_block) override;
@@ -59,7 +61,7 @@ class GrapheneReceiverImpl : public GrapheneReceiver {
 
   void OnDisconnected(NodeId node) override;
 
-  void OnBlockReceived(NodeId node, const uint256 &block_hash) override;
+  void OnMarkedAsReceived(NodeId node, const uint256 &block_hash) override;
 
  private:
   Dependency<TxPool> m_txpool;
@@ -81,25 +83,22 @@ class GrapheneReceiverImpl : public GrapheneReceiver {
 GrapheneReceiverImpl::GrapheneReceiverImpl(Dependency<TxPool> txpool)
     : m_txpool(txpool) {}
 
-void GrapheneReceiverImpl::RequestAsGrapheneWhatPossible(
+bool GrapheneReceiverImpl::RequestBlocks(
     CNode &from,
     const CBlockIndex &last_inv_block_index,
     const size_t blocks_in_flight,
-    std::vector<CInv> *invs_in_out) {
+    const std::vector<CInv> &invs) {
   AssertLockHeld(cs_main);
-
-  assert(invs_in_out);
 
   // Copying similar logic from compact block
   // This also technically means that we can request only one graphene block at a time
-  if (invs_in_out->size() != 1 ||
+  if (invs.size() != 1 ||
       blocks_in_flight != 1 ||
       !last_inv_block_index.pprev->IsValid(BLOCK_VALID_CHAIN)) {
-    return;
+    return false;
   }
 
-  const uint256 block_hash = invs_in_out->front().hash;
-  invs_in_out->clear();
+  const uint256 block_hash = invs.front().hash;
 
   // Want to be consistent with global state
   assert(m_graphene_blocks_in_flight.empty());
@@ -113,6 +112,8 @@ void GrapheneReceiverImpl::RequestAsGrapheneWhatPossible(
            request.requested_block_hash.GetHex(), from.GetId());
 
   PushMessage(from, NetMsgType::GETGRAPHENE, request);
+
+  return true;
 }
 
 void GrapheneReceiverImpl::OnGrapheneBlockReceived(CNode &from,
@@ -311,7 +312,8 @@ void GrapheneReceiverImpl::MarkBlockNotInFlight(const CNode &from, const uint256
   MarkBlockAsReceived(block_hash);
 }
 
-void GrapheneReceiverImpl::OnBlockReceived(NodeId node, const uint256 &block_hash) {
+void GrapheneReceiverImpl::OnMarkedAsReceived(NodeId node,
+                                              const uint256 &block_hash) {
   AssertLockHeld(cs_main);
 
   const auto key = std::make_pair(block_hash, node);
