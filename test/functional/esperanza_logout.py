@@ -67,7 +67,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         self.wait_for_transaction(deptx_1, 60)
         self.wait_for_transaction(deptx_2, 60)
 
-        assert_finalizationstate(proposer, {'currentEpoch': 0,
+        assert_finalizationstate(proposer, {'currentEpoch': 1,
                                             'currentDynasty': 0,
                                             'lastJustifiedEpoch': 0,
                                             'lastFinalizedEpoch': 0,
@@ -76,19 +76,24 @@ class EsperanzaLogoutTest(UnitETestFramework):
         disconnect_nodes(finalizer1, proposer.index)
         disconnect_nodes(finalizer2, proposer.index)
 
-        # Generate enough blocks to advance 3 dynasties and have active finalizers
-        proposer.generate(49)  # 5 * 10 - 1 (from IBD)
-        assert_equal(proposer.getblockcount(), 50)
+        # Generate enough blocks to advance 2 dynasties and have active finalizers
+        proposer.generate(40)  # 4 * 10
+        assert_equal(proposer.getblockcount(), 41)
+        assert_finalizationstate(proposer, {'currentEpoch': 5,
+                                            'currentDynasty': 3,
+                                            'lastJustifiedEpoch': 4,
+                                            'lastFinalizedEpoch': 3,
+                                            'validators': 2})
 
-        connect_nodes(proposer, finalizer1.index)
-        connect_nodes(proposer, finalizer2.index)
+        connect_nodes(finalizer1, proposer.index)
+        connect_nodes(finalizer2, proposer.index)
 
         sync_blocks([proposer, finalizer1, finalizer2])
         sync_mempools([proposer, finalizer1, finalizer2])
 
         # Mine the votes to avoid the next logout to conflict with a vote in the mempool
         proposer.generate(1)
-        assert_equal(proposer.getblockcount(), 51)
+        assert_equal(proposer.getblockcount(), 42)
         sync_blocks([proposer, finalizer1, finalizer2])
 
         # Logout included in epoch 5, logout will be effective in dynasty 3+3 = 6
@@ -99,7 +104,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         # Check that the finalizer is still voting for epoch 6
         proposer.generate(9)
-        assert_equal(proposer.getblockcount(), 60)
+        assert_equal(proposer.getblockcount(), 51)
         sync_blocks([proposer, finalizer2])
         sync_mempools([proposer, finalizer2])
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=proposer)
@@ -123,7 +128,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         # Check that the finalizer is still voting for epoch 7
         proposer.generate(9)
-        assert_equal(proposer.getblockcount(), 70)
+        assert_equal(proposer.getblockcount(), 61)
         sync_blocks([proposer, finalizer2])
         sync_mempools([proposer, finalizer2])
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=proposer)
@@ -145,7 +150,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         # Check that the finalizer is not included in the next dynasty
         connect_nodes(proposer, finalizer1.index)
         proposer.generate(9)
-        assert_equal(proposer.getblockcount(), 80)
+        assert_equal(proposer.getblockcount(), 71)
         sync_blocks([proposer, finalizer1, finalizer2])
         sync_mempools([proposer, finalizer1, finalizer2])
 
@@ -165,7 +170,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         # Check that we manage to finalize even with one finalizer
         proposer.generate(9)
-        assert_equal(proposer.getblockcount(), 90)
+        assert_equal(proposer.getblockcount(), 81)
         sync_blocks([proposer, finalizer1, finalizer2])
         sync_mempools([proposer, finalizer1, finalizer2])
 
