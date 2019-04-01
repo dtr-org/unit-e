@@ -21,6 +21,7 @@ class BlockIndexMap;
 }  // namespace staking
 
 class CBlockIndex;
+class UnitEInjectorConfiguration;
 
 namespace finalization {
 
@@ -68,9 +69,11 @@ class StateDB {
   virtual ~StateDB() = default;
 
   static std::unique_ptr<StateDB> New(
+      Dependency<UnitEInjectorConfiguration>,
       Dependency<Settings>,
       Dependency<staking::BlockIndexMap>,
       Dependency<staking::ActiveChain>);
+
   static std::unique_ptr<StateDB> NewFromParams(
       const StateDBParams &,
       Dependency<Settings>,

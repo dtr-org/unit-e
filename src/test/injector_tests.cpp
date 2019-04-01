@@ -11,13 +11,19 @@
 
 BOOST_AUTO_TEST_SUITE(injector_tests)
 
+static const UnitEInjectorConfiguration config = [](){
+  UnitEInjectorConfiguration cfg;
+  cfg.use_in_memory_databases = true;
+  return cfg;
+}();
+
 BOOST_AUTO_TEST_CASE(check_order) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   BOOST_CHECK_NO_THROW(injector.DetermineInitializationOrder());
 }
 
 BOOST_AUTO_TEST_CASE(try_initialize_mainnet) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   ArgsManager args;
   const char *const argv[] = {
       "./united"};
@@ -27,7 +33,7 @@ BOOST_AUTO_TEST_CASE(try_initialize_mainnet) {
 }
 
 BOOST_AUTO_TEST_CASE(try_initialize_testnet) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   ArgsManager args;
   const char *const argv[] = {
       "./united",
@@ -38,7 +44,7 @@ BOOST_AUTO_TEST_CASE(try_initialize_testnet) {
 }
 
 BOOST_AUTO_TEST_CASE(try_initialize_regtest) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   ArgsManager args;
   const char *const argv[] = {
       "./united",
