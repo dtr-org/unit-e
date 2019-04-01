@@ -1023,7 +1023,7 @@ UniValue gettxout(const JSONRPCRequest& request)
             "        ,...\n"
             "     ]\n"
             "  },\n"
-            "  \"type\" :            (numeric) Transaction type\n"
+            "  \"txtype\" :          (string) Transaction type\n"
             "}\n"
 
             "\nExamples:\n"
