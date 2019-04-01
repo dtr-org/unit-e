@@ -8,6 +8,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+BOOST_AUTO_TEST_SUITE(extkey_tests)
 
 BOOST_AUTO_TEST_CASE(extkey_path_parse) {
   bool result;
@@ -67,3 +68,5 @@ BOOST_AUTO_TEST_CASE(extkey_path_format) {
   std::string path_str = FormatExtKeyPath(path);
   BOOST_CHECK(path_str == "m/44'/1'/0'/1/0");
 }
+
+BOOST_AUTO_TEST_SUITE_END()
