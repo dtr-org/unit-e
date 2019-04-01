@@ -2943,6 +2943,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
         int dos;
         if (validation_state.IsInvalid(dos)) {
+            LOCK(cs_main);
             Misbehaving(pfrom->GetId(), dos);
             CBlockReject reject = {(unsigned char)validation_state.GetRejectCode(),
                                    validation_state.GetRejectReason().substr(0, MAX_REJECT_MESSAGE_LENGTH),
