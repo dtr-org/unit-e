@@ -82,8 +82,6 @@ public:
     CCoinsViewCursor *Cursor() const override;
     void ClearCoins() override;
 
-    //! Attempt to update from an older database format. Returns whether an error occurred.
-    bool Upgrade();
     size_t EstimateSize() const override;
 
     bool SetSnapshotIndex(const snapshot::SnapshotIndex &snapshotIndex);
