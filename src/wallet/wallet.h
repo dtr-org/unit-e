@@ -281,7 +281,7 @@ public:
      * >=1 : this many blocks deep in the main chain
      */
     int GetDepthInMainChain() const { const CBlockIndex *block_index; return GetDepthInMainChain(block_index); }
-    int GetDepthInMainChain(const CBlockIndex * &block_index) const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    int GetDepthInMainChain(const CBlockIndex * &block_index) const;
     bool IsInMainChain() const { return GetDepthInMainChain() > 0; }
     int GetBlocksToRewardMaturity() const;
     bool hashUnset() const { return (hashBlock.IsNull() || hashBlock == ABANDON_HASH); }
