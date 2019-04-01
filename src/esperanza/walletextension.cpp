@@ -768,7 +768,7 @@ void WalletExtension::BlockConnected(
 
         uint32_t currentDynasty = fin_state->GetCurrentDynasty();
         if (currentDynasty > validatorState.get().m_end_dynasty) {
-          LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynasty=%d reached\n", validatorState.get().m_end_dynasty);
+          LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynasty=%d passed\n", validatorState.get().m_end_dynasty);
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
           WriteValidatorStateToFile();
         } else {

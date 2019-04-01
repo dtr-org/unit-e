@@ -197,9 +197,8 @@ class EsperanzaWithdrawTest(UnitETestFramework):
                                             'validators': 1})
 
         # last block that finalizer1 can't withdraw
-        # TODO UNIT-E: actually finalizer shouldn't withdraw on checkout -1
-        # but after the checkpoint is processed it's OK to create withdraw commit
-        # as it will be added to the block of the next epoch only.
+        # TODO UNIT-E: allow to create a withdraw tx on checkpoint
+        # as it will be added to the block on the next epoch only.
         # We have an known issue https://github.com/dtr-org/unit-e/issues/643
         # that finalizer can't vote after checkpoint is processed, it looks that
         # finalizer can't create any finalizer commits at this point (and only at this point).

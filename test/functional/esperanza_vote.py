@@ -78,7 +78,7 @@ class EsperanzaVoteTest(UnitETestFramework):
         disconnect_nodes(finalizer3, node0.index)
         assert_equal(len(node0.getpeerinfo()), 0)
 
-        # move tip to the height when validators are activated
+        # move tip to the height when finalizers are activated
         # complete epoch + 3 epochs + 1 block of new epoch
         node0.generatetoaddress(4 + 5 + 5 + 5 + 5 + 1, node0.getnewaddress('', 'bech32'))
         assert_equal(node0.getblockcount(), 26)
