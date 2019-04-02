@@ -9,9 +9,9 @@ Connect to a single node.
 [Policy/Consensus] Check that the new NULLDUMMY rules are enforced
 """
 
-from test_framework.blocktools import create_coinbase, create_block, create_transaction, add_witness_commitment
-from test_framework.messages import msg_witness_block
-from test_framework.mininode import CTransaction, network_thread_start, P2PInterface
+from test_framework.blocktools import create_coinbase, create_block
+from test_framework.messages import CTransaction, msg_witness_block
+from test_framework.mininode import P2PInterface
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import assert_equal, assert_raises_rpc_error, bytes_to_hex_str
@@ -37,7 +37,7 @@ class NULLDUMMYTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        # This script tests NULLDUMMY, which is part of 'segwit',
+#This script tests NULLDUMMY, which is part of 'segwit',
         self.extra_args = [['-whitelist=127.0.0.1', '-addresstype=legacy', "-deprecatedrpc=addwitnessaddress"]]
 
     def run_test(self):
