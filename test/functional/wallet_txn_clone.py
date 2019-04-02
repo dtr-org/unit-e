@@ -74,21 +74,21 @@ class TxnMallTest(UnitETestFramework):
         node1_address = self.nodes[1].getnewaddress()
 
         node0_utxos = self.nodes[0].listunspent(0)
-        fund_foo_vout = find_vout(self.nodes[0], fund_foo_txid, 1219)
-        fund_bar_vout = find_vout(self.nodes[0], fund_bar_txid, 29)
+        fund_foo_vout = find_vout(self.nodes[0], node0_txid1, 1219)
+        fund_bar_vout = find_vout(self.nodes[0], node0_txid2, 29)
 
         # Send tx1, and another transaction tx2 that won't be cloned
-        lock_all_utxos_except(self.nodes[0], fund_foo_txid, fund_foo_vout)
-        txid1 = self.nodes[0].sendfrom("foo", node1_address, 40, 0)
+        lock_all_utxos_except(self.nodes[0], node0_txid1, fund_foo_vout)
+        txid1 = self.nodes[0].sendtoaddress(node1_address, 40)
         unlock_all_utxos(self.nodes[0])
 
-        lock_all_utxos_except(self.nodes[0], fund_bar_txid, fund_bar_vout)
-        txid2 = self.nodes[0].sendfrom("bar", node1_address, 20, 0)
+        lock_all_utxos_except(self.nodes[0], node0_txid2, fund_bar_vout)
+        txid2 = self.nodes[0].sendtoaddress(node1_address, 20)
         unlock_all_utxos(self.nodes[0])
 
         # Construct a clone of tx1, to be malleated
         rawtx1 = self.nodes[0].getrawtransaction(txid1,1)
-        assert_equal(rawtx1['vin'][0]['txid'], fund_foo_txid)
+        assert_equal(rawtx1['vin'][0]['txid'], node0_txid1)
         clone_inputs = [{"txid":rawtx1["vin"][0]["txid"],"vout":rawtx1["vin"][0]["vout"]}]
         clone_outputs = {rawtx1["vout"][0]["scriptPubKey"]["addresses"][0]:rawtx1["vout"][0]["value"],
                          rawtx1["vout"][1]["scriptPubKey"]["addresses"][0]:rawtx1["vout"][1]["value"]}
