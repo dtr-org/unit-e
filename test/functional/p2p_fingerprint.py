@@ -25,9 +25,13 @@ from test_framework.mininode import (
     msg_getdata,
     msg_getheaders,
 )
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (
+    DISABLE_FINALIZATION,
+    UnitETestFramework,
+)
 from test_framework.util import (
     assert_equal,
+    get_unspent_coins,
     wait_until,
 )
 
