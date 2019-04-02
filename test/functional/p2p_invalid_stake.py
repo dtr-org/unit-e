@@ -6,7 +6,7 @@
 
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal
-from test_framework.mininode import (P2PInterface, network_thread_start)
+from test_framework.mininode import P2PInterface
 from test_framework.messages import msg_block
 from test_framework.blocktools import (get_tip_snapshot_meta, create_coinbase, sign_transaction, create_block)
 
@@ -44,7 +44,6 @@ class InvalidStakeTest(UnitETestFramework):
         self.setup_stake_coins(node)
 
         p2p = node.add_p2p_connection(TestNode())
-        network_thread_start()
         p2p.wait_for_verack()
 
         assert_equal(node.getblockcount(), 0)
