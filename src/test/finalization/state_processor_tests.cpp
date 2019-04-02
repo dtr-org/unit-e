@@ -67,10 +67,12 @@ class Fixture {
   }
 
   const esperanza::FinalizationState *GetState(const blockchain::Height h) {
+    LOCK(m_repo->GetLock());
     return m_repo->Find(*m_chain.AtHeight(h));
   }
 
   const esperanza::FinalizationState *GetState(const CBlockIndex &block_index) {
+    LOCK(m_repo->GetLock());
     return m_repo->Find(block_index);
   }
 

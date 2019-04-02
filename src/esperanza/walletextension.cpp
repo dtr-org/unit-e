@@ -448,18 +448,21 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   // Calculate how much we have left of the initial withdraw
   const CAmount initialDeposit = prevTx->vout[0].nValue;
 
-  FinalizationState *state = GetStateRepo()->GetTipState();
-  assert(state != nullptr);
-
   CAmount currentDeposit = 0;
 
-  const esperanza::Result res = state->CalculateWithdrawAmount(
-      validator.m_validator_address, currentDeposit);
+  {
+    LOCK(GetStateRepo()->GetLock());
+    const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+    assert(fin_state != nullptr);
 
-  if (res != +Result::SUCCESS) {
-    LogPrint(BCLog::FINALIZATION, "%s: Cannot calculate withdraw amount: %s.\n",
-             __func__, res._to_string());
-    return false;
+    const esperanza::Result res = fin_state->CalculateWithdrawAmount(
+        validator.m_validator_address, currentDeposit);
+
+    if (res != +Result::SUCCESS) {
+      LogPrint(BCLog::FINALIZATION, "%s: Cannot calculate withdraw amount: %s.\n",
+               __func__, res._to_string());
+      return false;
+    }
   }
 
   const CAmount toWithdraw = std::min(currentDeposit, initialDeposit);
@@ -664,11 +667,16 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   scriptSig << std::vector<unsigned char>(vote2Script.begin(), vote2Script.end());
   const CScript burnScript = CScript::CreateUnspendableScript();
 
-  FinalizationState *state = GetStateRepo()->GetTipState();
-  assert(state != nullptr);
+  const uint160 validatorAddress = vote1.vote.m_validator_address;
+  uint256 txHash;
 
-  uint160 validatorAddress = vote1.vote.m_validator_address;
-  const uint256 txHash = state->GetLastTxHash(validatorAddress);
+  {
+    LOCK(GetStateRepo()->GetLock());
+    const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+    assert(fin_state != nullptr);
+
+    txHash = fin_state->GetLastTxHash(validatorAddress);
+  }
 
   CTransactionRef lastSlashableTx;
   uint256 blockHash;
@@ -754,31 +762,33 @@ void WalletExtension::BlockConnected(
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         // In case we are logged out, stop validating.
-        FinalizationState *state = GetStateRepo()->GetTipState();
-        assert(state);
+        LOCK(GetStateRepo()->GetLock());
+        const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+        assert(fin_state);
 
-        uint32_t currentDynasty = state->GetCurrentDynasty();
+        uint32_t currentDynasty = fin_state->GetCurrentDynasty();
         if (currentDynasty >= validatorState.get().m_end_dynasty) {
           LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynasty=%d reached\n", validatorState.get().m_end_dynasty);
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
           WriteValidatorStateToFile();
         } else {
-          VoteIfNeeded(*state);  // resposible to write validator state
+          VoteIfNeeded(*fin_state);  // resposible to write validator state
         }
 
         break;
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
         ValidatorStateWatchWriter validator_writer(*this);
-        FinalizationState *state = GetStateRepo()->GetTipState();
-        assert(state);
+        LOCK(GetStateRepo()->GetLock());
+        const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+        assert(fin_state);
 
-        if (state->GetLastFinalizedEpoch() >= validatorState.get().m_deposit_epoch) {
+        if (fin_state->GetLastFinalizedEpoch() >= validatorState.get().m_deposit_epoch) {
           // Deposit is finalized there is no possible rollback
           validatorState.get().m_phase = ValidatorState::Phase::IS_VALIDATING;
 
           const esperanza::Validator *validator =
-              state->GetValidator(validatorState.get().m_validator_address);
+              fin_state->GetValidator(validatorState.get().m_validator_address);
 
           validatorState.get().m_start_dynasty = validator->m_start_dynasty;
 
@@ -833,12 +843,15 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
           return false;
         }
 
-        FinalizationState *fin_state = GetStateRepo()->GetTipState();
-        assert(fin_state != nullptr);
+        {
+          LOCK(GetStateRepo()->GetLock());
+          const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+          assert(fin_state != nullptr);
 
-        state.m_validator_address = validatorAddress;
-        state.m_last_esperanza_tx = ptx;
-        state.m_deposit_epoch = fin_state->GetEpoch(*pIndex);
+          state.m_validator_address = validatorAddress;
+          state.m_last_esperanza_tx = ptx;
+          state.m_deposit_epoch = fin_state->GetEpoch(*pIndex);
+        }
 
       } else {
         LogPrint(BCLog::FINALIZATION,
@@ -859,7 +872,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
       if (state.m_phase == expectedPhase) {
 
-        FinalizationState *fin_state = GetStateRepo()->GetTipState();
+        LOCK(GetStateRepo()->GetLock());
+        const FinalizationState *fin_state = GetStateRepo()->GetTipState();
         assert(fin_state != nullptr);
 
         const esperanza::Validator *validator =

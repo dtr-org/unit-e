@@ -18,15 +18,13 @@ CCriticalSection VoteRecorder::cs_recorder;
 std::shared_ptr<VoteRecorder> VoteRecorder::g_voteRecorder;
 
 void VoteRecorder::RecordVote(const esperanza::Vote &vote,
-                              const std::vector<unsigned char> &voteSig) {
+                              const std::vector<unsigned char> &voteSig,
+                              const FinalizationState &fin_state) {
 
   LOCK(cs_recorder);
 
-  const FinalizationState *state = GetComponent<StateRepository>()->GetTipState();
-  assert(state != nullptr);
-
   // Check if the vote comes from a validator
-  if (!state->GetValidator(vote.m_validator_address)) {
+  if (!fin_state.GetValidator(vote.m_validator_address)) {
     return;
   }
 
@@ -45,7 +43,7 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   }
 
   if (offendingVote) {
-    esperanza::Result res = state->IsSlashable(vote, offendingVote.get().vote);
+    esperanza::Result res = fin_state.IsSlashable(vote, offendingVote.get().vote);
     if (res == +esperanza::Result::SUCCESS) {
       GetMainSignals().SlashingConditionDetected(VoteRecord{vote, voteSig},
                                                  offendingVote.get());
@@ -138,6 +136,7 @@ CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
 bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
   assert(tx.IsVote());
 
+  LOCK(GetComponent<StateRepository>()->GetLock());
   const FinalizationState *fin_state = GetComponent<StateRepository>()->GetTipState();
   assert(fin_state != nullptr);
 
@@ -151,7 +150,7 @@ bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
 
   if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
       res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
-    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig);
+    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig, *fin_state);
   }
 
   return true;

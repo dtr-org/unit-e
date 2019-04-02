@@ -40,6 +40,7 @@ class RepoMock : public finalization::StateRepository {
 public:
   RepoMock(const esperanza::FinalizationParams &params) : m_params(params), state(m_params) { }
 
+  CCriticalSection &GetLock() override { return cs; }
   FinalizationState *GetTipState() override { return &state; }
   FinalizationState *Find(const CBlockIndex &) override { return &state; }
   FinalizationState *FindOrCreate(const CBlockIndex &, FinalizationState::InitStatus) override { return &state; }
@@ -56,6 +57,7 @@ public:
 private:
   esperanza::FinalizationParams m_params;
   esperanza::AdminParams m_admin_params;
+  CCriticalSection cs;
 
 public:
     FinalizationStateSpy state;

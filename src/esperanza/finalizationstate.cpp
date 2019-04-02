@@ -1037,7 +1037,7 @@ void FinalizationState::RegisterLastTx(uint160 &validatorAddress,
   validator.m_last_transaction_hash = tx->GetHash();
 }
 
-uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
+uint256 FinalizationState::GetLastTxHash(const uint160 &validatorAddress) const {
   const Validator &validator = m_validators.at(validatorAddress);
   return validator.m_last_transaction_hash;
 }
