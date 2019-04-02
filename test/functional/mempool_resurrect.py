@@ -4,6 +4,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test resurrection of mined transactions when the blockchain is re-organized."""
 
+from decimal import Decimal
+
 from test_framework.blocktools import create_raw_transaction
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import assert_equal
