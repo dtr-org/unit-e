@@ -109,7 +109,7 @@ class BaseNode(P2PInterface):
             if i.hash in self.parent_blocks:
                 self.send_message(msg_witness_block(self.parent_blocks[i.hash]))
 
-    def update_snapshot_header_from(self, node):
+    def update_snapshot_from(self, node):
         # take the latest finalized
         res = next(s for s in reversed(node.listsnapshots()) if s['snapshot_finalized'])
         self.snapshot_header = SnapshotHeader(
@@ -119,6 +119,8 @@ class BaseNode(P2PInterface):
             chain_work=uint256_from_rev_hex(res['chain_work']),
             total_utxo_subsets=res['total_utxo_subsets'],
         )
+        snapshot = FromHex(Snapshot(), node.getrawsnapshot(res['snapshot_hash']))
+        self.snapshot_data = snapshot.utxo_subsets
 
     def update_headers_and_blocks_from(self, node):
         self.headers = []
@@ -292,7 +294,7 @@ class P2PSnapshotTest(UnitETestFramework):
         serving_p2p = syncing_node.add_p2p_connection(BaseNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
 
         # configure serving_p2p to have snapshot header and parent block
-        serving_p2p.update_snapshot_header_from(serving_node)
+        serving_p2p.update_snapshot_from(serving_node)
         serving_p2p.update_headers_and_blocks_from(serving_node)
 
         network_thread_start()
@@ -373,19 +375,10 @@ class P2PSnapshotTest(UnitETestFramework):
 
         # configure p2p to have snapshot header and parent block
         p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
-        p2p.update_snapshot_header_from(snap_node)
+        p2p.update_snapshot_from(snap_node)
         p2p.update_headers_and_blocks_from(snap_node)
 
-        # helper p2p connection to fetch snapshot content
-        snap_p2p = snap_node.add_p2p_connection(BaseNode())
-
         network_thread_start()
-        snap_p2p.wait_for_verack()
-
-        # fetch snapshot content for p2p
-        snap_p2p.wait_for_verack()
-        p2p.snapshot_data = snap_p2p.fetch_snapshot_data(p2p.snapshot_header)
-        snap_node.disconnect_p2ps()
 
         # test 1. the node can be restarted after it discovered the snapshot
         wait_until(lambda: p2p.snapshot_chunk1_requested, timeout=10)
@@ -474,7 +467,7 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: has_valid_snapshot(snap_node, 4), timeout=10)
 
         valid_p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
-        valid_p2p.update_snapshot_header_from(snap_node)
+        valid_p2p.update_snapshot_from(snap_node)
 
         # create the second snapshot and store it in broken_p2p
         snap_node.generatetoaddress(5, snap_node.getnewaddress('', 'bech32'))
@@ -482,25 +475,16 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: has_valid_snapshot(snap_node, 9), timeout=10)
 
         broken_p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
-        broken_p2p.update_snapshot_header_from(snap_node)
+        broken_p2p.update_snapshot_from(snap_node)
+        broken_p2p.snapshot_data[-1].outputs[0].nValue *= 2  # break snapshot
         broken_p2p.update_headers_and_blocks_from(snap_node)
         valid_p2p.update_headers_and_blocks_from(snap_node)
-
-        # helper p2p connection to fetch snapshot content
-        snap_p2p = snap_node.add_p2p_connection(BaseNode())
 
         network_thread_start()
 
         # make sure that node knows about both peers
         valid_p2p.wait_for_verack()
         broken_p2p.wait_for_verack()
-
-        # add snapshot data to p2p
-        snap_p2p.wait_for_verack()
-        valid_p2p.snapshot_data = snap_p2p.fetch_snapshot_data(valid_p2p.snapshot_header)
-        broken_p2p.snapshot_data = snap_p2p.fetch_snapshot_data(broken_p2p.snapshot_header)
-        broken_p2p.snapshot_data[-1].outputs[0].nValue *= 2  # break snapshot
-        snap_node.disconnect_p2ps()
 
         # node must pick the best snapshot
         wait_until(lambda: broken_p2p.snapshot_chunk1_requested, timeout=10)
@@ -555,24 +539,20 @@ class P2PSnapshotTest(UnitETestFramework):
         full_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
         no_snap_p2p = sync_node.add_p2p_connection(WaitNode())
         for p2p in [full_snap_p2p, no_snap_p2p]:
-            p2p.update_snapshot_header_from(snap_node)
+            p2p.update_snapshot_from(snap_node)
 
         # add the best snapshot to half_snap_p2p
         snap_node.generatetoaddress(5, snap_node.getnewaddress('', 'bech32'))
         assert_equal(snap_node.getblockcount(), 16)
         wait_until(lambda: has_valid_snapshot(snap_node, 9), timeout=10)
         half_snap_p2p = sync_node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
-        half_snap_p2p.update_snapshot_header_from(snap_node)
+        half_snap_p2p.update_snapshot_from(snap_node)
         for p2p in [half_snap_p2p, full_snap_p2p, no_snap_p2p]:
             p2p.update_headers_and_blocks_from(snap_node)
 
-        # retrieve snapshot data
-        helper_p2p = snap_node.add_p2p_connection(BaseNode())
-        network_thread_start()
-        helper_p2p.wait_for_verack()
-        full_snap_p2p.snapshot_data = helper_p2p.fetch_snapshot_data(full_snap_p2p.snapshot_header)
-        half_snap_p2p.snapshot_data = helper_p2p.fetch_snapshot_data(half_snap_p2p.snapshot_header)
         self.stop_node(snap_node.index)
+
+        network_thread_start()
 
         # test 1. the node requests snapshot from peers that have service flag set
         full_snap_p2p.wait_for_verack()
