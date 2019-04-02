@@ -35,9 +35,9 @@ struct Fixture {
   const uint256 txid;
 
   const proposer::EligibleCoin eligible_coin{
-      staking::Coin(&block, {txid, 0}, {100, GetScriptForDestination(CKeyID())}),
+      staking::Coin(&block, {txid, 0}, {100 * UNIT, GetScriptForDestination(CKeyID())}),
       uint256(),
-      CAmount(50),
+      CAmount(50 * UNIT),
       blockchain::Height(18),
       behavior->CalculateProposingTimestampAfter(4711),
       blockchain::Difficulty(0x20FF00)};
@@ -164,7 +164,8 @@ BOOST_AUTO_TEST_CASE(build_block_and_validate) {
 }
 
 BOOST_AUTO_TEST_CASE(split_amount) {
-  auto split_amount_test = [&](int split_threshold, int expected_outputs) -> void {
+
+  auto split_amount_test = [&](CAmount split_threshold, int expected_outputs) -> void {
     Fixture f{tfm::format("-stakesplitthreshold=%d", split_threshold)};
     std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();
     std::unique_ptr<proposer::BlockBuilder> builder = f.MakeBlockBuilder();
@@ -184,7 +185,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
     const proposer::EligibleCoin eligible_coin{
         utxo,
         uint256(),
-        CAmount(50),
+        CAmount(50 * UNIT),
         blockchain::Height(current_tip.nHeight + 1),
         blockchain::Time(16161616),
         blockchain::Difficulty(0x20ff00)};
@@ -221,13 +222,16 @@ BOOST_AUTO_TEST_CASE(split_amount) {
   };
 
   // eligible_coin.amount=100, threshold=10, reward=50 -> 10x10 (reward is separate)
-  split_amount_test(10, 11);  // 10 + 1
+  split_amount_test(10 * UNIT, 11);  // 10 + 1
 
   // no piece bigger than 70
-  split_amount_test(70, 3);
+  split_amount_test(70 * UNIT, 3);
 
   // check that dust is avoided
-  split_amount_test(149, 2);
+  split_amount_test(149 * UNIT, 2);
+
+  // check that there are at most 1024 outputs (1023 max + 1 for change)
+  split_amount_test(9765625, 1024);
 }
 
 BOOST_AUTO_TEST_CASE(check_reward_destination) {

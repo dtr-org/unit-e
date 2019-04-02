@@ -17,11 +17,18 @@ namespace proposer {
 
 class BlockBuilderImpl : public BlockBuilder {
  private:
+  static constexpr uint32_t MAX_STAKE_SPLIT_PIECES = 1023;
+
   Dependency<blockchain::Behavior> m_blockchain_behavior;
   Dependency<Settings> m_settings;
 
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
     auto number_of_pieces = amount / threshold;
+
+    if (number_of_pieces > MAX_STAKE_SPLIT_PIECES) {
+      number_of_pieces = MAX_STAKE_SPLIT_PIECES;
+    }
+
     if (amount % threshold > 0) {
       // if spend can not be spread evenly we need one more to fit the rest
       ++number_of_pieces;
