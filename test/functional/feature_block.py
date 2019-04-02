@@ -708,7 +708,6 @@ class FullBlockTest(ComparisonTestFramework):
         save_spendable_output()
         comp_snapshot_hash(39)
 
-
         # Test sigops in P2SH redeem scripts
         #
         # b40 creates 3333 tx's spending the 6-sigop P2SH outputs from b39 for a total of 19998 sigops.
@@ -718,6 +717,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(39)
         b40 = block(40, get_staking_coin(), spend=out[13])
+        b40_tx1 = b40.vtx[1]  # We'll reuse this tx (from out[13]) for b42
         sigops = get_legacy_sigopcount_block(b40)
         numTxes = (MAX_BLOCK_SIGOPS - sigops) // b39_sigops_per_output
         assert_equal(numTxes <= b39_outputs, True)
@@ -772,8 +772,9 @@ class FullBlockTest(ComparisonTestFramework):
         #                                                                  \-> b41 (13)
         #
         tip(39)
-        block(42, get_staking_coin(), spend=out[13])
-        yield rejected()
+        block(42, get_staking_coin(), spend=None)
+        update_block(42, [b40_tx1])  # Reusing out[13], used in b41
+        yield rejected()  # Not rejected, but not selected as new tip
         save_spendable_output()
         comp_snapshot_hash(41)
 
