@@ -333,7 +333,7 @@ class FullBlockTest(ComparisonTestFramework):
         # so fork like this:
         #
         #     genesis -> b1 (0) -> b2 (1)
-        #                      \-> b3 (1)
+        #                      \-> b3 (2)
         #
         # Nothing should happen at this point. We saw b2 first so it takes priority.
         tip(1)
@@ -346,15 +346,15 @@ class FullBlockTest(ComparisonTestFramework):
         # Now we add another block to make the alternative chain longer.
         #
         #     genesis -> b1 (0) -> b2 (1)
-        #                      \-> b3 (1) -> b4 (2)
+        #                      \-> b3 (2) -> b4 (3)
         b4 = block(4, get_staking_coin(), spend=out[3])
         yield accepted()
         comp_snapshot_hash(4)
 
 
         # ... and back to the first chain.
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (3)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6 (4)
+        #                      \-> b3 (2) -> b4 (3)
         tip(2)
         block(5, get_staking_coin())
         update_block(block_number=5, new_transactions=[b4.vtx[1]])  # Reusing out[3], used in b4
@@ -367,9 +367,9 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(6)
 
         # Try to create a fork that double-spends
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (3)
-        #                                          \-> b7 (2) -> b8 (4)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6 (4)
+        #                                          \-> b7 (3) -> b8 (5)
+        #                      \-> b3 (2) -> b4 (3)
         tip(5)
         block(7, get_staking_coin(), spend=out[3])
         yield rejected()
@@ -380,18 +380,18 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(6)
 
         # Try to create a block that has too much fee
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (3)
-        #                                                    \-> b9 (4)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6 (4)
+        #                                                    \-> b9 (5)
+        #                      \-> b3 (2) -> b4 (3)
         tip(6)
         block(9, get_staking_coin(), spend=out[5], additional_coinbase_value=1)
         yield rejected(RejectResult(16, b'bad-cb-amount'))
         comp_snapshot_hash(6)
 
         # Create a fork that ends in a block with too much fee (the one that causes the reorg)
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b10 (3) -> b11 (4)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b10 (4) -> b11 (5)
+        #                      \-> b3 (2) -> b4 (3)
         tip(5)
         block(10, get_staking_coin())
         update_block(block_number=10, new_transactions=[b6.vtx[1]])  # Reusing out[4], used in b6
@@ -404,10 +404,10 @@ class FullBlockTest(ComparisonTestFramework):
 
 
         # Try again, but with a valid fork first
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b14 (5)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b14 (6)
         #                                              (b12 added last)
-        #                      \-> b3 (1) -> b4 (2)
+        #                      \-> b3 (2) -> b4 (3)
         tip(5)
         b12 = block(12, get_staking_coin())
         update_block(block_number=12, new_transactions=[b6.vtx[1]])  # Reusing out[4], used in b6
@@ -429,9 +429,9 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(13)
 
         # Add a block with MAX_BLOCK_SIGOPS and one with one more sigop
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b16 (6)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b15 (6) -> b16 (7)
+        #                      \-> b3 (2) -> b4 (3)
 
         # Test that a block with a lot of checksigs is okay
         lots_of_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS - 2))
@@ -450,19 +450,19 @@ class FullBlockTest(ComparisonTestFramework):
 
 
         # Attempt to spend a transaction created on a different fork
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b17 (b3.vtx[1])
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b15 (6) -> b17 (b3.vtx[1])
+        #                      \-> b3 (2) -> b4 (3)
         tip(15)
         block(17, get_staking_coin(), spend=txout_b3)
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
         comp_snapshot_hash(15)
 
         # Attempt to spend a transaction created on a different fork (on a fork this time)
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5)
-        #                                                                \-> b18 (b3.vtx[1]) -> b19 (6)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b15 (6)
+        #                                                                \-> b18 (b3.vtx[1]) -> b19 (7)
+        #                      \-> b3 (2) -> b4 (3)
         tip(13)
         block(18, get_staking_coin(), spend=txout_b3)
         yield rejected()
@@ -473,9 +473,9 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(15)
 
         # Attempt to spend a coinbase at depth too low
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b15 (6) -> b20 (8)
+        #                      \-> b3 (2) -> b4 (3)
         tip(15)
         block(20, get_staking_coin(), spend=out[8])
         # UNIT-E: The first 100 blocks are by definition mature such that the system can
@@ -486,10 +486,10 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(20)
 
         # Attempt to spend a coinbase at depth too low (on a fork this time)
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7)
-        #                                                                \-> b21 (6) -> b22 (5)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b15 (6) -> b20 (8)
+        #                                                                \-> b21 (7) -> b22 (6)
+        #                      \-> b3 (2) -> b4 (3)
         tip(13)
         block(21, get_staking_coin(), spend=out[7])
         yield rejected(test_name="spend immature coinbase transaction from a fork")
@@ -500,10 +500,10 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(20)
 
         # Create a block on either side of MAX_BLOCK_BASE_SIZE and make sure its accepted/rejected
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7) -> b23 (6)
-        #                                                                           \-> b24 (6) -> b25 (7)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b15 (6) -> b20 (8) -> b23 (7)
+        #                                                                           \-> b24 (7) -> b25 (8)
+        #                      \-> b3 (2) -> b4 (3)
         tip(20)
         b23 = block(23, get_staking_coin(), spend=out[7])
         tx = CTransaction()
@@ -534,10 +534,10 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(23)
 
         # Create blocks with a coinbase input script size out of range
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6  (3)
-        #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b23 (6) -> b30 (7)
-        #                                                                           \-> ... (6) -> ... (7)
-        #                      \-> b3 (1) -> b4 (2)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (3) -> b6  (4)
+        #                                          \-> b12 (4) -> b13 (5) -> b15 (6) -> b23 (7) -> b30 (8)
+        #                                                                           \-> ... (7) -> ... (8)
+        #                      \-> b3 (2) -> b4 (3)
         tip(15)
         b26 = block(26, get_staking_coin(), spend=out[7])
         b26.vtx[0].vin[0].scriptSig = b'\x00'
@@ -580,10 +580,10 @@ class FullBlockTest(ComparisonTestFramework):
 
         # b31 - b35 - check sigops of OP_CHECKMULTISIG / OP_CHECKMULTISIGVERIFY / OP_CHECKSIGVERIFY
         #
-        #     genesis -> ... -> b30 (7) -> b31 (8) -> b33 (9) -> b35 (10)
-        #                                                                \-> b36 (11)
-        #                                                    \-> b34 (10)
-        #                                         \-> b32 (9)
+        #     genesis -> ... -> b30 (8) -> b31 (9) -> b33 (9) -> b35 (11)
+        #                                                                \-> b36 (12)
+        #                                                    \-> b34 (11)
+        #                                         \-> b32 (10)
         #
 
         # MULTISIG: each op code counts as 20 sigops.  To create the edge case, pack another 19 sigops at the end.
@@ -632,10 +632,10 @@ class FullBlockTest(ComparisonTestFramework):
 
         # Check spending of a transaction in a block which failed to connect
         #
-        # b6  (3)
-        # b12 (3) -> b13 (4) -> b15 (5) -> b23 (6) -> b30 (7) -> b31 (8) -> b33 (9) -> b35 (10)
-        #                                                                                     \-> b37 (11)
-        #                                                                                     \-> b38 (11/37)
+        # b6  (4)
+        # b12 (4) -> b13 (5) -> b15 (6) -> b23 (7) -> b30 (8) -> b31 (9) -> b33 (10) -> b35 (11)
+        #                                                                                     \-> b37 (12)
+        #                                                                                     \-> b38 (12/37)
         #
 
         # save 37's spendable output, but then double-spend out11 to invalidate the block
@@ -656,8 +656,8 @@ class FullBlockTest(ComparisonTestFramework):
         # Check P2SH SigOp counting
         #
         #
-        #   13 (4) -> b15 (5) -> b23 (6) -> b30 (7) -> b31 (8) -> b33 (9) -> b35 (10) -> b39 (11) -> b41 (12)
-        #                                                                                        \-> b40 (12)
+        #   13 (5) -> b15 (6) -> b23 (7) -> b30 (8) -> b31 (9) -> b33 (10) -> b35 (11) -> b39 (12) -> b41 (13)
+        #                                                                                         \-> b40 (13)
         #
         # b39 - create some P2SH outputs that will require 6 sigops to spend:
         #
@@ -676,7 +676,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         # Create a transaction that spends one satoshi to the p2sh_script, the rest to OP_TRUE
         # This must be signed because it is spending a coinbase
-        spend = out[11]
+        spend = out[12]
         tx = create_tx(spend.tx, spend.n, 1, p2sh_script)
         tx.vout.append(CTxOut(out_value(11) - 1, CScript([OP_TRUE])))
         tx = sign_transaction(self.nodes[0], tx)
@@ -695,7 +695,11 @@ class FullBlockTest(ComparisonTestFramework):
             total_size += len(tx_new.serialize())
             if total_size >= MAX_BLOCK_BASE_SIZE:
                 break
-            b39.vtx.append(tx_new) # add tx to block
+
+            tx_new = sign_transaction(self.nodes[0], tx_new)
+            tx_new.rehash()
+
+            b39.vtx.append(tx_new)  # add tx to block
             tx_last = tx_new
             b39_outputs += 1
 
@@ -764,8 +768,8 @@ class FullBlockTest(ComparisonTestFramework):
 
         # Fork off of b39 to create a constant base again
         #
-        # b23 (6) -> b30 (7) -> b31 (8) -> b33 (9) -> b35 (10) -> b39 (11) -> b42 (12) -> b43 (13)
-        #                                                                  \-> b41 (12)
+        # b23 (7) -> b30 (8) -> b31 (9) -> b33 (10) -> b35 (11) -> b39 (12) -> b42 (13) -> b43 (14)
+        #                                                                  \-> b41 (13)
         #
         tip(39)
         block(42, get_staking_coin(), spend=out[13])
