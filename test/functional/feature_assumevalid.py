@@ -40,18 +40,18 @@ from test_framework.blocktools import (
     update_snapshot_with_tx,
 )
 from test_framework.key import CECKey
-from test_framework.mininode import (
-    CBlockHeader,
+from test_framework.messages import (
     COutPoint,
+    CBlockHeader,
     CTransaction,
     CTxIn,
     CTxOut,
     UTXO,
-    network_thread_join,
-    network_thread_start,
-    P2PInterface,
     msg_block,
-    msg_headers
+    msg_headers,
+)
+from test_framework.mininode import (
+    P2PInterface,
 )
 from test_framework.script import (CScript, OP_TRUE)
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
