@@ -65,7 +65,6 @@ BASE_SCRIPTS= [
     'wallet_backup.py',
     # vv Tests less than 2m vv
     'proposer_balance.py',
-    'feature_no_esperanza_tx_relay_delay.py',
     'feature_bip68_sequence.py',
     'wallet_address_types.py',
     'p2p_timeouts.py',
@@ -73,6 +72,7 @@ BASE_SCRIPTS= [
     'p2p_embargoman_star.py',
     'rpc_fundrawtransaction.py',
     'wallet_hd.py',
+    'feature_no_esperanza_tx_relay_delay.py',
     'esperanza_admin_full_cycle.py',
     'wallet_basic.py',
     'p2p_feefilter.py',
