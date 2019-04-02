@@ -76,7 +76,7 @@ BlockData Block(const BlockData &prevData)
 
     snapshot::SnapshotHash newHash(prevData.hash.GetData());
     const COutPoint out(pblock->vtx[0]->GetHash(), 0);
-    const Coin coin(pblock->vtx[0]->vout[0], prevData.height + 1, true);
+    const Coin coin(pblock->vtx[0]->vout[0], prevData.height + 1, TxType::COINBASE);
     newHash.AddUTXO(snapshot::UTXO(out, coin));
 
     CBlockIndex bi;
@@ -171,7 +171,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
                 }
 
                 const COutPoint outPoint(tx->GetHash(), i);
-                const Coin coin(out, 0, txIdx == 0);
+                const Coin coin(out, 0, txIdx == 0 ? TxType::COINBASE : TxType::REGULAR);
                 genesisData.hash.AddUTXO(snapshot::UTXO(outPoint, coin));
             }
         }

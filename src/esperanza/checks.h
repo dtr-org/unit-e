@@ -11,6 +11,8 @@
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 
+class CCoinsView;
+
 namespace esperanza {
 
 class FinalizationState;
@@ -36,8 +38,8 @@ bool CheckFinalizerCommit(const CTransaction &tx, CValidationState &err_state);
 //! \brief Generalized finalization transaction contextual check. Asserts on non-finalization transactions.
 bool ContextualCheckFinalizerCommit(const CTransaction &tx,
                                     CValidationState &err_state,
-                                    const Consensus::Params &params,
-                                    const FinalizationState &fin_state);
+                                    const FinalizationState &fin_state,
+                                    const CCoinsView &view);
 
 bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
                     uint160 *validator_address_out);
@@ -47,26 +49,25 @@ bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_stat
 bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
                  Vote *vote_out, std::vector<unsigned char> *vote_sig_out);
 bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
-                           const Consensus::Params &consensus_params,
-                           const FinalizationState &fin_state);
+                           const FinalizationState &fin_state,
+                           const CCoinsView &view);
 
 bool CheckSlashTx(const CTransaction &tx, CValidationState &err_state,
                   Vote *vote1_out, Vote *vote2_out);
 bool ContextualCheckSlashTx(const CTransaction &tx, CValidationState &err_state,
-                            const Consensus::Params &consensus_params,
                             const FinalizationState &fin_state);
 
 bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
                    uint160 *out_validator_address);
 bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
-                             const Consensus::Params &consensus_params,
-                             const FinalizationState &fin_state);
+                             const FinalizationState &fin_state,
+                             const CCoinsView &view);
 
 bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
                      uint160 *out_validator_address);
 bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
-                               const Consensus::Params &consensus_arams,
-                               const FinalizationState &fin_state);
+                               const FinalizationState &fin_state,
+                               const CCoinsView &view);
 
 bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,
                   std::vector<CPubKey> *keys_out);

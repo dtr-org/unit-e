@@ -76,9 +76,9 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
             self.block_time += 1
             test.blocks_and_transactions.append([block, True])
 
-            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
-            output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
+            input_utxo = UTXO(height-1, TxType.COINBASE, coinbase.vin[1].prevout, prev_coinbase.vout[1])
+            output_reward = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            output_stake = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
 
             height += 1

@@ -586,11 +586,11 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
 }
 
 static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationState &err_state,
-                                          const Consensus::Params &params,
-                                          const esperanza::FinalizationState &fin_state) {
+                                           const esperanza::FinalizationState &fin_state,
+                                           const CCoinsView &view) {
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (!esperanza::ContextualCheckFinalizerCommit(tx, err_state, params, fin_state)) {
+    if (!esperanza::ContextualCheckFinalizerCommit(tx, err_state, fin_state, view)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
         return false;
@@ -599,12 +599,12 @@ static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationSt
 }
 
 static bool ContextualCheckBlockFinalizerCommits(const CBlock &block,
-                                              CValidationState &err_state,
-                                              const Consensus::Params &params,
-                                              const esperanza::FinalizationState &fin_state) {
+                                                 CValidationState &err_state,
+                                                 const esperanza::FinalizationState &fin_state,
+                                                 const CCoinsView &view) {
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizerCommit()) {
-            if (!::ContextualCheckFinalizerCommit(*tx, err_state, params, fin_state)) {
+            if (!::ContextualCheckFinalizerCommit(*tx, err_state, fin_state, view)) {
                 return false;
             }
         }
@@ -662,19 +662,22 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
+    CCoinsView dummy;
+    CCoinsViewCache view(&dummy);
+    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), pool);
+    view.SetBackend(viewMemPool);
+
     const finalization::FinalizationState *fin_state =
         GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state != nullptr);
     if (tx.IsFinalizerCommit() &&
-        !::ContextualCheckFinalizerCommit(tx,
-                                      state,
-                                      chainparams.GetConsensus(),
-                                      *fin_state)) {
+        !::ContextualCheckFinalizerCommit(tx, state, *fin_state, view)) {
         return false; // state already filled by ContextualCheckFinalizerTx
     }
 
     // Check for conflicts with in-memory transactions
     std::set<uint256> setConflicts;
+
     for (const CTxIn &txin : tx.vin)
     {
         auto itConflicting = pool.mapNextTx.find(txin.prevout);
@@ -725,12 +728,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     }
 
     {
-        CCoinsView dummy;
-        CCoinsViewCache view(&dummy);
-
         LockPoints lp;
-        CCoinsViewMemPool viewMemPool(pcoinsTip.get(), pool);
-        view.SetBackend(viewMemPool);
 
         // do all inputs exist?
         for (const CTxIn txin : tx.vin) {
@@ -1673,7 +1671,7 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
         const Coin& alternate = AccessByTxid(view, out.hash);
         if (!alternate.IsSpent()) {
             undo.nHeight = alternate.nHeight;
-            undo.fCoinBase = alternate.fCoinBase;
+            undo.tx_type = alternate.tx_type;
         } else {
             // Adding output for transaction without known metadata
             return DISCONNECT_FAILED;
@@ -1749,9 +1747,9 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             Coin coin;
             bool is_spent = view.SpendCoin(out, &coin);
 
-            if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || tx.IsCoinBase() != coin.fCoinBase) {
-                LogPrintf("ERROR: Transaction output mismatch: idx=%d is_spent=%d tx_vout=%s coin_out=%s height=%d coin_height=%d tx.IsCoinBase=%d coin.IsCoinBase=%d\n",
-                    o, is_spent, tx.vout[o].ToString(), coin.out.ToString(), pindex->nHeight, coin.nHeight, tx.IsCoinBase(), coin.fCoinBase);
+            if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || tx.GetType() != coin.tx_type) {
+                LogPrintf("ERROR: Transaction output mismatch: idx=%d is_spent=%d tx_vout=%s coin_out=%s height=%d coin_height=%d tx.GetType()=%s coin.tx_type=%s\n",
+                          o, is_spent, tx.vout[o].ToString(), coin.out.ToString(), pindex->nHeight, coin.nHeight, tx.GetType()._to_string(), coin.tx_type._to_string());
                 fClean = false; // Transaction output mismatch
             }
         }
@@ -2026,10 +2024,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // - lock pqueue->ControlMutex in BlockAssember::CreateNewBlock() -> TestBlockValidity() -> ConnectBlock() -> CCheckQueueControl()
     if (!isGenesisBlock &&
         has_finalization_tx &&
-        !ContextualCheckBlockFinalizerCommits(block,
-                                           state,
-                                           chainparams.GetConsensus(),
-                                           *fin_state)) {
+        !ContextualCheckBlockFinalizerCommits(block, state, *fin_state, view)) {
         return false;
     }
 

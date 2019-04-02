@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(snapshot_iterator) {
       subset.outputs[i] = out;
       idx.WriteUTXOSubset(subset);
       snapshotHash.AddUTXO(
-          snapshot::UTXO(COutPoint(subset.tx_id, i), Coin(out, 0, false)));
+          snapshot::UTXO(COutPoint(subset.tx_id, i), Coin(out, 0, TxType::REGULAR)));
     }
     BOOST_CHECK(idx.Flush());
   }

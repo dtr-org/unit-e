@@ -46,6 +46,7 @@ from test_framework.mininode import (CBlockHeader,
                                      CTxIn,
                                      CTxOut,
                                      UTXO,
+                                     TxType,
                                      network_thread_join,
                                      network_thread_start,
                                      P2PInterface,
@@ -160,7 +161,7 @@ class AssumeValidTest(UnitETestFramework):
         self.block1 = block
         self.tip = block.sha256
 
-        utxo1 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        utxo1 = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
         snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
         height += 1
 
@@ -173,7 +174,7 @@ class AssumeValidTest(UnitETestFramework):
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
             height += 1
 
@@ -197,7 +198,7 @@ class AssumeValidTest(UnitETestFramework):
 
         snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
 
-        utxo2 = UTXO(height, False, COutPoint(tx.sha256, 0), tx.vout[0])
+        utxo2 = UTXO(height, tx.get_type(), COutPoint(tx.sha256, 0), tx.vout[0])
         snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [utxo1], [utxo2])
 
         height += 1
@@ -212,7 +213,7 @@ class AssumeValidTest(UnitETestFramework):
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
             height += 1
 

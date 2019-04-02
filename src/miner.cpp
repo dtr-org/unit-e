@@ -234,7 +234,7 @@ void BlockAssembler::AddMandatoryTxs()
         if (mi->GetTx().IsVote()) {
             CValidationState state;
             //Check again in case the vote became invalid in the meanwhile (different target now)
-            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, chainparams.GetConsensus(), *fin_state)) {
+            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, *fin_state, *pcoinsTip)) {
                 AddToBlock(mempool.mapTx.project<0>(mi));
                 LogPrint(BCLog::FINALIZATION,
                          "%s: Add vote with id %s to a new block.\n",

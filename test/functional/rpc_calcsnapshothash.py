@@ -13,6 +13,7 @@ from test_framework.messages import (
     ser_vector,
     bytes_to_hex_str,
     uint256_from_str,
+    TxType,
     UTXO,
     COutPoint,
     CTxOut,
@@ -40,7 +41,7 @@ class RpcCalcSnapshotHashTest(UnitETestFramework):
         def def_utxo(height):
             hex_id = hex_str_to_bytes('0' * 64)
             uint256 = uint256_from_str(hex_id)
-            return UTXO(height, 0, COutPoint(uint256, 0), CTxOut(0, b""))
+            return UTXO(height, TxType.REGULAR, COutPoint(uint256, 0), CTxOut(0, b""))
 
         # empty inputs and outputs doesn't produce empty hash
         # as it includes stake modifier

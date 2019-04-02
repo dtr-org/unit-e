@@ -419,7 +419,7 @@ class UnitETestFramework():
         new_txs = [tx for tx in node.getrawmempool() if tx not in txs]
         assert_equal(len(new_txs), 1)
         vote = FromHex(CTransaction(), node.getrawtransaction(new_txs[0]))
-        assert_equal(vote.get_type(), TxType.VOTE.name)
+        assert_equal(vote.get_type(), TxType.VOTE)
 
     def generate_sync(self, generator_node, nblocks=1):
         """
