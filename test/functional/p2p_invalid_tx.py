@@ -5,18 +5,30 @@
 """Test node responses to invalid transactions.
 
 In this test we connect to one node over p2p, and test tx requests."""
-from test_framework.blocktools import create_block, create_coinbase, create_tx_with_script
+
+from decimal import Decimal
+
+from test_framework.blocktools import (
+    calc_snapshot_hash,
+    create_block,
+    create_coinbase,
+    create_tx_with_script,
+    get_tip_snapshot_meta,
+    sign_coinbase,
+)
 from test_framework.messages import (
     UNIT,
+    UTXO,
     COutPoint,
     CTransaction,
     CTxIn,
     CTxOut,
 )
 from test_framework.mininode import P2PDataStore
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import (
     assert_equal,
+    get_unspent_coins,
     wait_until,
 )
 
@@ -49,9 +61,6 @@ class InvalidTxRequestTest(UnitETestFramework):
 
         self.setup_stake_coins(self.nodes[0])
 
-        if self.tip is None:
-            self.tip = int("0x" + self.nodes[0].getbestblockhash(), 0)
-        self.block_time = int(time.time())+1
         self.bootstrap_p2p()  # Add one p2p connection to the node
 
         best_block = self.nodes[0].getbestblockhash()
@@ -64,9 +73,9 @@ class InvalidTxRequestTest(UnitETestFramework):
         snapshot_hash = get_tip_snapshot_meta(self.nodes[0]).hash
         coin = get_unspent_coins(self.nodes[0], 1)[0]
         coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_hash))
-        block = create_block(self.tip, coinbase, self.block_time)
+        block = create_block(tip, coinbase, block_time)
 
-        self.block_time += 1
+        block_time += 1
         block.solve()
         # Save the coinbase for later
         block1 = block
@@ -79,19 +88,19 @@ class InvalidTxRequestTest(UnitETestFramework):
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         for i in range(100):
             prev_coinbase = coinbase
+            height += 1
             stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
-            coinbase = create_coinbase(height, stake, snapshot_meta.hash)
-            block = create_block(self.tip, coinbase, self.block_time)
+            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, snapshot_meta.hash))
+            block = create_block(tip, coinbase, block_time)
             block.solve()
-            self.tip = block.sha256
-            self.block_time += 1
+            tip = block.sha256
+            block_time += 1
             blocks.append(block)
 
             input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
             output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
-            height += 1
         node.p2p.send_blocks_and_test(blocks, node, success=True)
 
         # b'\x64' is OP_NOTIF
@@ -112,30 +121,30 @@ class InvalidTxRequestTest(UnitETestFramework):
         SCRIPT_PUB_KEY_OP_TRUE = b'\x51\x75' * 15 + b'\x51'
         tx_withhold = CTransaction()
         tx_withhold.vin.append(CTxIn(outpoint=COutPoint(block1.vtx[0].sha256, 0)))
-        tx_withhold.vout.append(CTxOut(nValue=50 * UNIT - 12000, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
+        tx_withhold.vout.append(CTxOut(nValue=PROPOSER_REWARD * UNIT - 12000, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
         tx_withhold.calc_sha256()
 
         # Our first orphan tx with some outputs to create further orphan txs
         tx_orphan_1 = CTransaction()
         tx_orphan_1.vin.append(CTxIn(outpoint=COutPoint(tx_withhold.sha256, 0)))
-        tx_orphan_1.vout = [CTxOut(nValue=10 * UNIT, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE)] * 3
+        tx_orphan_1.vout = [CTxOut(nValue=1 * UNIT, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE)] * 3
         tx_orphan_1.calc_sha256()
 
         # A valid transaction with low fee
         tx_orphan_2_no_fee = CTransaction()
         tx_orphan_2_no_fee.vin.append(CTxIn(outpoint=COutPoint(tx_orphan_1.sha256, 0)))
-        tx_orphan_2_no_fee.vout.append(CTxOut(nValue=10 * UNIT, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
+        tx_orphan_2_no_fee.vout.append(CTxOut(nValue=1 * UNIT, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
 
         # A valid transaction with sufficient fee
         tx_orphan_2_valid = CTransaction()
         tx_orphan_2_valid.vin.append(CTxIn(outpoint=COutPoint(tx_orphan_1.sha256, 1)))
-        tx_orphan_2_valid.vout.append(CTxOut(nValue=10 * UNIT - 12000, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
+        tx_orphan_2_valid.vout.append(CTxOut(nValue=1 * UNIT - 12000, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
         tx_orphan_2_valid.calc_sha256()
 
         # An invalid transaction with negative fee
         tx_orphan_2_invalid = CTransaction()
         tx_orphan_2_invalid.vin.append(CTxIn(outpoint=COutPoint(tx_orphan_1.sha256, 2)))
-        tx_orphan_2_invalid.vout.append(CTxOut(nValue=11 * UNIT, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
+        tx_orphan_2_invalid.vout.append(CTxOut(nValue=Decimal('1.1') * UNIT, scriptPubKey=SCRIPT_PUB_KEY_OP_TRUE))
 
         self.log.info('Send the orphans ... ')
         # Send valid orphan txs from p2ps[0]
