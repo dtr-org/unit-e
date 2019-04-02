@@ -71,6 +71,7 @@ class FullBlockTest(ComparisonTestFramework):
         self.coinbase_pubkey = self.coinbase_key.get_pubkey()
         self.tip = None
         self.blocks = {}
+        self.blocks_by_hash = {}
 
     def run_test(self):
         self.test = TestManager(self, self.options.tmpdir)
@@ -96,26 +97,13 @@ class FullBlockTest(ComparisonTestFramework):
         return tx
 
     def find_spend(self, prevout, prevtip):
-        # First, get the number we associated to the 'prevtip' block
-        tip_num = None
-        for block_num in self.blocks:
-            if self.blocks[block_num] is prevtip:
-                tip_num = block_num
-                break
-        assert tip_num is not None
-
-        # Now, create chain of blocks ending in 'prevtip'
-        chain = [prevtip]
-        for num in sorted(self.blocks.keys(), reverse=True):
-            if num >= tip_num:
-                continue
-            if self.blocks[num].sha256 == prevtip.hashPrevBlock:
-                prevtip = self.blocks[num]
-                chain.append(prevtip)
-        chain = reversed(chain)
+        reversed_chain = [prevtip]
+        while prevtip.hashPrevBlock in self.blocks_by_hash:
+            prevtip = self.blocks_by_hash[prevtip.hashPrevBlock]
+            reversed_chain.append(prevtip)
 
         # Now, let's look for the prevout's origin
-        for block in chain:
+        for block in reversed_chain:
             for tx in block.vtx:
                 if tx.sha256 == prevout.hash:
                     if block.sha256 not in self.block_heights:
@@ -123,7 +111,6 @@ class FullBlockTest(ComparisonTestFramework):
 
                     height = self.block_heights[block.sha256]
                     return PreviousSpendableOutput(tx, prevout.n, height)
-
 
     def set_block_snapshot_meta(self, block, spend=None):
         block_height = self.block_heights[block.sha256]
@@ -214,6 +201,11 @@ class FullBlockTest(ComparisonTestFramework):
         self.blocks[number] = block
         self.set_block_snapshot_meta(block, spend)
 
+        # This is conditional to avoid problems with partially constructed
+        # blocks that could be based on previous ones.
+        if block.sha256 not in self.blocks_by_hash:
+            self.blocks_by_hash[block.sha256] = block
+
         return block
 
     def get_tests(self):
@@ -280,7 +272,9 @@ class FullBlockTest(ComparisonTestFramework):
                 if del_refs:
                     del self.block_heights[old_sha256]
                     del self.block_snapshot_meta[old_sha256]
+                    del self.blocks_by_hash[old_sha256]
             self.blocks[block_number] = block
+            self.blocks_by_hash[block.sha256] = block
             self.set_block_snapshot_meta(block)
             return block
 
@@ -793,7 +787,11 @@ class FullBlockTest(ComparisonTestFramework):
         # the first transaction be non-coinbase, etc.  The purpose of b44 is to make sure this works.
         height = self.block_heights[self.tip.sha256] + 1
         snapshot_hash = self.block_snapshot_meta[self.tip.sha256].hash
+
         coinbase = create_coinbase(height, get_staking_coin(), snapshot_hash, self.coinbase_pubkey)
+        coinbase = sign_coinbase(self.nodes[0], coinbase)
+        for _out in coinbase.vout:
+            _out.scriptPubKey = CScript(_out.scriptPubKey)
 
         b44 = CBlock()
         b44.nTime = self.tip.nTime + 1
@@ -805,6 +803,7 @@ class FullBlockTest(ComparisonTestFramework):
         b44.solve()
         self.tip = b44
         self.block_heights[b44.sha256] = height
+        self.blocks_by_hash[b44.sha256] = b44
         self.blocks[44] = b44
         self.set_block_snapshot_meta(b44)
         yield accepted()
@@ -954,7 +953,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(55)
         b56 = copy.deepcopy(b57)
         self.blocks[56] = b56
-        assert_equal(len(b56.vtx),3)
+        assert_equal(len(b56.vtx), 3)
         assert_equal(b56.hash, b57.hash)
         b56 = update_block(56, [tx1], del_refs=False)
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
