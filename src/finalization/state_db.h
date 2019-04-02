@@ -21,7 +21,7 @@ class BlockIndexMap;
 }  // namespace staking
 
 class CBlockIndex;
-class UnitEInjectorConfiguration;
+struct UnitEInjectorConfiguration;
 
 namespace finalization {
 
