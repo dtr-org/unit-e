@@ -29,6 +29,7 @@ class BlocksdirTest(UnitETestFramework):
         os.mkdir(blocksdir_path)
         self.log.info("Starting with exiting blocksdir ...")
         self.start_node(0, ["-blocksdir=" + blocksdir_path])
+        self.setup_stake_coins(self.nodes[0])
         self.log.info("mining blocks..")
         self.nodes[0].generate(10)
         assert os.path.isfile(os.path.join(blocksdir_path, "regtest", "blocks", "blk00000.dat"))
