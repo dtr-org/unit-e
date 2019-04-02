@@ -951,14 +951,13 @@ int CTxMemPool::ExpireVotes() {
   setEntries toremove;
   while (it != mapTx.get<ancestor_score>().end()) {
 
-      if (it->GetTx().IsVote()) {
+    if (it->GetTx().IsVote()) {
       if (esperanza::IsVoteExpired(it->GetTx(), *fin_state)) {
           toremove.insert(mapTx.project<0>(it));
       }
     }
     ++it;
   }
-
   setEntries stage;
   for (txiter removeit : toremove) {
       CalculateDescendants(removeit, stage);
