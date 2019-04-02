@@ -73,7 +73,7 @@ FinalizerCommitsLocator FinalizerCommitsHandlerImpl::GetFinalizerCommitsLocator(
     const CBlockIndex &start, const CBlockIndex *const stop) const {
 
   LOCK(m_active_chain->GetLock());
-  LOCK(m_repo->GetReadLock());
+  LOCK(m_repo->GetLock());
 
   FinalizerCommitsLocator locator;
 
@@ -129,7 +129,7 @@ const CBlockIndex *FinalizerCommitsHandlerImpl::FindMostRecentStart(
     const FinalizerCommitsLocator &locator) const {
 
   AssertLockHeld(m_active_chain->GetLock());
-  LOCK(m_repo->GetReadLock());
+  LOCK(m_repo->GetLock());
 
   const finalization::FinalizationState *const fin_state = m_repo->GetTipState();
   assert(fin_state != nullptr);
@@ -211,7 +211,7 @@ void FinalizerCommitsHandlerImpl::OnGetCommits(
     CNode &node, const FinalizerCommitsLocator &locator, const Consensus::Params &params) const {
 
   LOCK(m_active_chain->GetLock());
-  LOCK(m_repo->GetReadLock());
+  LOCK(m_repo->GetLock());
 
   const CBlockIndex *const start = FindMostRecentStart(locator);
   if (start == nullptr) {
@@ -385,7 +385,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
   blockchain::Height download_until = 0;
 
   {
-    LOCK(m_repo->GetReadLock());
+    LOCK(m_repo->GetLock());
 
     const finalization::FinalizationState *tip_state = m_repo->GetTipState();
     const finalization::FinalizationState *index_state = m_repo->Find(*last_index);

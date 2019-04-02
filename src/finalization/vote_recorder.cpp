@@ -136,7 +136,7 @@ CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
 bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
   assert(tx.IsVote());
 
-  LOCK(GetComponent<StateRepository>()->GetReadLock());
+  LOCK(GetComponent<StateRepository>()->GetLock());
   const FinalizationState *fin_state = GetComponent<StateRepository>()->GetTipState();
   assert(fin_state != nullptr);
 

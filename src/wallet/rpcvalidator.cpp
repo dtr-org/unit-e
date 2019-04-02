@@ -59,7 +59,7 @@ UniValue deposit(const JSONRPCRequest &request)
   }
 
   {
-    LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
     const finalization::FinalizationState *fin_state =
       GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state != nullptr);

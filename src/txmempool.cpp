@@ -942,7 +942,7 @@ int CTxMemPool::ExpireVotes() {
   LOCK(cs);
   auto it = mempool.mapTx.get<ancestor_score>().begin();
 
-  AssertLockHeld(GetComponent<finalization::StateRepository>()->GetReadLock());
+  AssertLockHeld(GetComponent<finalization::StateRepository>()->GetLock());
 
   const finalization::FinalizationState *fin_state =
       GetComponent<finalization::StateRepository>()->GetTipState();

@@ -451,7 +451,7 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   CAmount currentDeposit = 0;
 
   {
-    LOCK(GetStateRepo()->GetReadLock());
+    LOCK(GetStateRepo()->GetLock());
     const FinalizationState *fin_state = GetStateRepo()->GetTipState();
     assert(fin_state != nullptr);
 
@@ -671,7 +671,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   uint256 txHash;
 
   {
-    LOCK(GetStateRepo()->GetReadLock());
+    LOCK(GetStateRepo()->GetLock());
     const FinalizationState *fin_state = GetStateRepo()->GetTipState();
     assert(fin_state != nullptr);
 
@@ -762,7 +762,7 @@ void WalletExtension::BlockConnected(
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         // In case we are logged out, stop validating.
-        LOCK(GetStateRepo()->GetReadLock());
+        LOCK(GetStateRepo()->GetLock());
         const FinalizationState *fin_state = GetStateRepo()->GetTipState();
         assert(fin_state);
 
@@ -779,7 +779,7 @@ void WalletExtension::BlockConnected(
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
         ValidatorStateWatchWriter validator_writer(*this);
-        LOCK(GetStateRepo()->GetReadLock());
+        LOCK(GetStateRepo()->GetLock());
         const FinalizationState *fin_state = GetStateRepo()->GetTipState();
         assert(fin_state);
 
@@ -844,7 +844,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         }
 
         {
-          LOCK(GetStateRepo()->GetReadLock());
+          LOCK(GetStateRepo()->GetLock());
           const FinalizationState *fin_state = GetStateRepo()->GetTipState();
           assert(fin_state != nullptr);
 
@@ -872,7 +872,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
       if (state.m_phase == expectedPhase) {
 
-        LOCK(GetStateRepo()->GetReadLock());
+        LOCK(GetStateRepo()->GetLock());
         const FinalizationState *fin_state = GetStateRepo()->GetTipState();
         assert(fin_state != nullptr);
 

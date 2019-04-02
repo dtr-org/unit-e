@@ -450,7 +450,7 @@ static void LimitMempoolSize(CTxMemPool& pool, size_t limit, unsigned long age) 
         LogPrint(BCLog::MEMPOOL, "Expired %i transactions from the memory pool.\n", expired);
     }
 
-    LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
     pool.ExpireVotes();
 
     std::vector<COutPoint> vNoSpendsRemaining;
@@ -620,7 +620,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     const CTransaction& tx = *ptx;
     const uint256 hash = tx.GetHash();
     AssertLockHeld(cs_main);
-    LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
     LOCK(pool.cs); // mempool "read lock" (held through GetMainSignals().TransactionAddedToMempool())
 
     // If there is an expired vote in the mempool and a new vote (or other
@@ -2009,7 +2009,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     {
-        LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
+        LOCK(GetComponent<finalization::StateRepository>()->GetLock());
         const finalization::FinalizationState *fin_state = nullptr;
         if (pindex->pprev != nullptr) {
             fin_state = GetComponent<finalization::StateRepository>()->Find(*pindex->pprev);
@@ -2180,6 +2180,7 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
     int64_t nNow = 0;
     try {
     {
+        LOCK(GetComponent<finalization::StateRepository>()->GetLock());
         LOCK(cs_LastBlockFile);
         if (fPruneMode && (fCheckForPruning || nManualPruneHeight > 0) && !fReindex) {
             if (nManualPruneHeight > 0) {
@@ -3405,7 +3406,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
 
         {
-            LOCK(GetComponent<finalization::StateRepository>()->GetReadLock());
+            LOCK(GetComponent<finalization::StateRepository>()->GetLock());
             const finalization::FinalizationState *fin_state =
                 GetComponent<finalization::StateRepository>()->GetTipState();
             assert(fin_state != nullptr);
@@ -4485,7 +4486,7 @@ bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskB
 
 bool IsForkingBeforeLastFinalization(const CBlockIndex &block_index) {
     auto state_repo = GetComponent<finalization::StateRepository>();
-    LOCK(state_repo->GetReadLock());
+    LOCK(state_repo->GetLock());
 
     esperanza::FinalizationState *tip_state = state_repo->GetTipState();
     assert(tip_state || chainActive.Height() == -1); // sanity check
@@ -4545,7 +4546,7 @@ void CChainState::UpdateLastJustifiedEpoch(CBlockIndex *block_index) {
     assert(block_index != nullptr);
 
     auto repo = GetComponent<finalization::StateRepository>();
-    LOCK(repo->GetReadLock());
+    LOCK(repo->GetLock());
     esperanza::FinalizationState *block_state = repo->Find(*block_index);
     assert(block_state);
 

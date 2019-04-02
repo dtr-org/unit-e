@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
 
   finalization::StateRepository &repo = *fixture.m_repo;
 
-  LOCK(repo.GetReadLock());
+  LOCK(repo.GetLock());
 
   BOOST_CHECK(repo.Find(b0) != nullptr);  // we have a state for genesis block
   BOOST_CHECK(repo.Find(b1) == nullptr);
@@ -239,7 +239,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
   Fixture fixture;
 
   LOCK(fixture.m_chain.GetLock());
-  LOCK(fixture.m_repo->GetReadLock());
+  LOCK(fixture.m_repo->GetLock());
 
   auto check_restored = [&fixture](finalization::StateRepository &restored) {
     for (blockchain::Height i = 0; i <= fixture.m_chain.GetHeight(); ++i) {
@@ -281,7 +281,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
-    LOCK(restored_repo->GetReadLock());
+    LOCK(restored_repo->GetLock());
     check_restored(*restored_repo);
   }
 
@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
-    LOCK(restored_repo->GetReadLock());
+    LOCK(restored_repo->GetLock());
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
     check_restored(*restored_repo);
   }
@@ -310,7 +310,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
-    LOCK(restored_repo->GetReadLock());
+    LOCK(restored_repo->GetLock());
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
     check_restored(*restored_repo);
@@ -329,7 +329,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)].read_requests, 1);
-    LOCK(restored_repo->GetReadLock());
+    LOCK(restored_repo->GetLock());
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(9)) != nullptr);
@@ -349,7 +349,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
     BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)].read_requests, 1);
-    LOCK(restored_repo->GetReadLock());
+    LOCK(restored_repo->GetLock());
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(9)) != nullptr);

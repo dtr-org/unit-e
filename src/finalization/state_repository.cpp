@@ -27,7 +27,7 @@ class RepositoryImpl final : public StateRepository {
         m_state_db(state_db),
         m_block_db(block_db) {}
 
-  CCriticalSection &GetReadLock() override { return m_trim_cs; }
+  CCriticalSection &GetLock() override { return cs; }
   FinalizationState *GetTipState() override;
   FinalizationState *Find(const CBlockIndex &block_index) override;
   FinalizationState *FindOrCreate(const CBlockIndex &block_index,
@@ -70,7 +70,6 @@ class RepositoryImpl final : public StateRepository {
   const esperanza::AdminParams *m_admin_params = nullptr;
 
   mutable CCriticalSection cs;
-  mutable CCriticalSection m_trim_cs;  // This could actually be a read-write mutex (std::shared_mutex since C++17).
   std::map<const CBlockIndex *, FinalizationState> m_states;
   std::unique_ptr<FinalizationState> m_genesis_state;
   std::atomic<bool> m_restoring{false};
@@ -83,7 +82,7 @@ class RepositoryImpl final : public StateRepository {
 };
 
 FinalizationState *RepositoryImpl::GetTipState() {
-  AssertLockHeld(m_trim_cs);
+  AssertLockHeld(cs);
   const auto *block_index = m_active_chain->GetTip();
   if (block_index == nullptr) {
     return nullptr;
@@ -92,8 +91,7 @@ FinalizationState *RepositoryImpl::GetTipState() {
 }
 
 FinalizationState *RepositoryImpl::Find(const CBlockIndex &block_index) {
-  LOCK(cs);
-  AssertLockHeld(m_trim_cs);
+  AssertLockHeld(cs);
   if (block_index.nHeight == 0) {
     return GetGenesisState();
   }
@@ -123,8 +121,7 @@ FinalizationState *RepositoryImpl::Create(const CBlockIndex &block_index,
 
 FinalizationState *RepositoryImpl::FindOrCreate(const CBlockIndex &block_index,
                                                 FinalizationState::InitStatus required_parent_status) {
-  LOCK(cs);
-  AssertLockHeld(m_trim_cs);
+  AssertLockHeld(cs);
   if (const auto state = Find(block_index)) {
     return state;
   }
@@ -150,8 +147,8 @@ void RepositoryImpl::ResetToTip(const CBlockIndex &block_index) {
 }
 
 void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
+  LOCK(cs);
   LogPrint(BCLog::FINALIZATION, "Trimming state repository for height < %d\n", height);
-  LOCK2(m_trim_cs, cs);
   for (auto it = m_states.begin(); it != m_states.end();) {
     const CBlockIndex *index = it->first;
     if (!m_active_chain->Contains(*index)) {
@@ -167,7 +164,7 @@ void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
 }
 
 FinalizationState *RepositoryImpl::GetGenesisState() const {
-  LOCK(cs);
+  AssertLockHeld(cs);
   return m_genesis_state.get();
 }
 
@@ -176,7 +173,7 @@ bool RepositoryImpl::Confirm(const CBlockIndex &block_index,
                              FinalizationState **state_out) {
   assert(new_state.GetInitStatus() == esperanza::FinalizationState::COMPLETED);
 
-  LOCK(cs);
+  AssertLockHeld(cs);
   const auto it = m_states.find(&block_index);
   assert(it != m_states.end());
   const auto &old_state = it->second;
@@ -203,7 +200,7 @@ const esperanza::AdminParams &RepositoryImpl::GetAdminParams() const {
 }
 
 bool RepositoryImpl::RestoreFromDisk(Dependency<finalization::StateProcessor> proc) {
-  LOCK2(m_trim_cs, cs);
+  LOCK(cs);
   RestoringRAII restoring(*this);
   if (!LoadStatesFromDB()) {
     return error("States restoring failed\n");
@@ -215,6 +212,8 @@ bool RepositoryImpl::RestoreFromDisk(Dependency<finalization::StateProcessor> pr
 }
 
 bool RepositoryImpl::LoadStatesFromDB() {
+  AssertLockHeld(cs);
+
   const boost::optional<uint32_t> last_finalized_epoch =
       m_state_db->FindLastFinalizedEpoch(GetFinalizationParams(), GetAdminParams());
 
@@ -241,9 +240,7 @@ bool RepositoryImpl::LoadStatesFromDB() {
 }
 
 void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> proc) {
-
   AssertLockHeld(cs);
-  AssertLockHeld(m_trim_cs);
 
   const FinalizationState *state = FindBestState();
   if (state == nullptr) {
@@ -316,6 +313,7 @@ void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> pr
 
 const FinalizationState *RepositoryImpl::FindBestState() {
   AssertLockHeld(m_active_chain->GetLock());
+  AssertLockHeld(cs);
 
   const CBlockIndex *walk = m_active_chain->GetTip();
   while (walk != nullptr) {

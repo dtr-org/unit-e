@@ -40,7 +40,7 @@ class RepoMock : public finalization::StateRepository {
 public:
   RepoMock(const esperanza::FinalizationParams &params) : m_params(params), state(m_params) { }
 
-  CCriticalSection &GetReadLock() override { return cs; }
+  CCriticalSection &GetLock() override { return cs; }
   FinalizationState *GetTipState() override { return &state; }
   FinalizationState *Find(const CBlockIndex &) override { return &state; }
   FinalizationState *FindOrCreate(const CBlockIndex &, FinalizationState::InitStatus) override { return &state; }

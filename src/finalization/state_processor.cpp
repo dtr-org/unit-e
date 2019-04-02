@@ -28,7 +28,7 @@ class ProcessorImpl final : public StateProcessor {
 };
 
 bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CBlock &block) {
-  AssertLockHeld(m_repo->GetReadLock());
+  AssertLockHeld(m_repo->GetLock());
   const auto state = m_repo->FindOrCreate(block_index, FinalizationState::FROM_COMMITS);
   if (state == nullptr) {
     LogPrint(BCLog::FINALIZATION, "ERROR: Cannot find or create finalization state for %s\n",
@@ -72,10 +72,12 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
 }
 
 bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index) {
+  AssertLockHeld(m_repo->GetLock());
+
   if (block_index.pprev == nullptr) {
     return false;
   }
-  LOCK(m_repo->GetReadLock());
+
   const auto *prev_state = m_repo->Find(*block_index.pprev);
   const auto *new_state = m_repo->Find(block_index);
   if (prev_state == nullptr || new_state == nullptr) {
@@ -93,12 +95,15 @@ bool ProcessorImpl::FinalizationHappened(const CBlockIndex &block_index) {
 }
 
 bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &block) {
+  LOCK(m_repo->GetLock());
+
   LogPrint(BCLog::FINALIZATION, "Process tip block_hash=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
-  LOCK(m_repo->GetReadLock());
+
   if (!ProcessNewTipWorker(block_index, block)) {
     return false;
   }
+
   const uint32_t epoch_length = m_repo->GetFinalizationParams().epoch_length;
   if (block_index.nHeight > 0 && !m_repo->Restoring() &&
       (block_index.nHeight + 1) % epoch_length == 0) {
@@ -128,7 +133,7 @@ bool ProcessorImpl::ProcessNewTip(const CBlockIndex &block_index, const CBlock &
 bool ProcessorImpl::ProcessNewTipCandidate(const CBlockIndex &block_index, const CBlock &block) {
   LogPrint(BCLog::FINALIZATION, "Process candidate tip block_hash=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
-  LOCK(m_repo->GetReadLock());
+  LOCK(m_repo->GetLock());
   return ProcessNewTipWorker(block_index, block);
 }
 
@@ -136,7 +141,7 @@ bool ProcessorImpl::ProcessNewCommits(const CBlockIndex &block_index, const std:
   LogPrint(BCLog::FINALIZATION, "Process commits block_hash=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
 
-  LOCK(m_repo->GetReadLock());
+  LOCK(m_repo->GetLock());
 
   const auto state = m_repo->FindOrCreate(block_index, FinalizationState::FROM_COMMITS);
   if (state == nullptr) {
