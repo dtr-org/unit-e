@@ -12,12 +12,12 @@ The following checks are performed:
 """
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.mininode import (
-    P2PInterface,
-    network_thread_start,
+from test_framework.messages import (
     msg_witness_block,
 )
-
+from test_framework.mininode import (
+    P2PInterface,
+)
 from test_framework.util import (
     connect_nodes,
     check_finalization,
@@ -56,11 +56,11 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
 
         esperanza_config = '-esperanzaconfig={"epochLength":5}'
         self.extra_args = [
-            ['-proposing=0', esperanza_config],
-            ['-proposing=0', esperanza_config],
-            ['-proposing=0', esperanza_config],
-            ['-proposing=0', esperanza_config, '-validating=1'],
-            ['-proposing=0', esperanza_config, '-validating=1'],
+            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config],
+            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config],
+            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config],
+            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config, '-validating=1'],
+            ['-deprecatedrpc=accounts', '-proposing=0', esperanza_config, '-validating=1'],
         ]
 
     def setup_network(self):
@@ -262,7 +262,6 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
                                    'lastFinalizedEpoch': 4})
 
         attacker = node.add_p2p_connection(BaseNode())
-        network_thread_start()
         attacker.wait_for_verack()
 
         # send blocks without the last one that has a justified vote
