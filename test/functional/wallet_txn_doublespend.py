@@ -48,7 +48,7 @@ class TxnMallTest(UnitETestFramework):
         disconnect_nodes(self.nodes[2], 1)
 
     def run_test(self):
-        starting_balance = self.nodes[0].getbalance("")
+        starting_balance = self.nodes[0].getbalance()
         change_address = self.nodes[0].getnewaddress()
 
         foo_fund = 1219
@@ -56,7 +56,7 @@ class TxnMallTest(UnitETestFramework):
         doublespend_amount = 1240
         tx_fee = Decimal('-.02')
 
-        # Assign coins to foo and bar accounts:
+        # Assign coins to foo and bar addresses:
         node0_address_foo = self.nodes[0].getnewaddress()
         fund_foo_txid = self.nodes[0].sendtoaddress(node0_address_foo, foo_fund)
         fund_foo_tx = self.nodes[0].gettransaction(fund_foo_txid)
@@ -66,7 +66,7 @@ class TxnMallTest(UnitETestFramework):
         fund_bar_tx = self.nodes[0].gettransaction(fund_bar_txid)
 
         assert_equal(self.nodes[0].getbalance(),
-                     starting_balance - foo_fund - bar_fund + fund_foo_tx["fee"] + fund_bar_tx["fee"])
+                     starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"])
 
         # Coins are sent to node1_address
         node1_address = self.nodes[1].getnewaddress()
@@ -143,8 +143,8 @@ class TxnMallTest(UnitETestFramework):
         expected = starting_balance + 3 * PROPOSER_REWARD - doublespend_amount + fund_foo_tx["fee"] + fund_bar_tx["fee"] + tx_fee
         assert_equal(self.nodes[0].getbalance(), expected)
 
-        # Node1's balance should be its initial balance (1250 for 25 block rewards) plus the doublespend:
-        assert_equal(self.nodes[1].getbalance(), 1250 + 1240)
+        # Node1's balance should be its initial balance plus the doublespend:
+        assert_equal(self.nodes[1].getbalance(), 10000 + 25 * PROPOSER_REWARD + 1240)
 
 if __name__ == '__main__':
     TxnMallTest().main()
