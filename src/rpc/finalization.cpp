@@ -18,8 +18,8 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
         "Returns an object containing finalization information."
         "\nResult:\n"
         "{\n"
-        "  \"currentEpoch\": xxxxxxx            (numeric) currentEpoch\n"
         "  \"currentDynasty\": xxxxxxx          (numeric) currentDynasty\n"
+        "  \"currentEpoch\": xxxxxxx            (numeric) currentEpoch\n"
         "  \"lastJustifiedEpoch\": xxxxxxx      (numeric) lastJustifiedEpoch\n"
         "  \"lastFinalizedEpoch\": xxxxxxx      (numeric) lastFinalizedEpoch\n"
         "  \"validators\": xxxxxxx              (numeric) current number of "
@@ -39,10 +39,10 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
 
   UniValue obj(UniValue::VOBJ);
 
-  obj.pushKV("currentEpoch", (uint64_t) fin_state->GetCurrentEpoch());
   obj.pushKV("currentDynasty", (uint64_t) fin_state->GetCurrentDynasty());
-  obj.pushKV("lastFinalizedEpoch", (uint64_t) fin_state->GetLastFinalizedEpoch());
+  obj.pushKV("currentEpoch", (uint64_t) fin_state->GetCurrentEpoch());
   obj.pushKV("lastJustifiedEpoch", (uint64_t) fin_state->GetLastJustifiedEpoch());
+  obj.pushKV("lastFinalizedEpoch", (uint64_t) fin_state->GetLastFinalizedEpoch());
   obj.pushKV("validators", (uint64_t) fin_state->GetActiveFinalizers().size());
 
   return obj;
