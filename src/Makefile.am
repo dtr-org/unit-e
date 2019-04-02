@@ -285,7 +285,6 @@ UNITE_CORE_H = \
   wallet/db.h \
   wallet/feebumper.h \
   wallet/fees.h \
-  wallet/init.h \
   wallet/rpcaddressbook.h \
   wallet/rpcadmin.h \
   wallet/rpcmnemonic.h \
