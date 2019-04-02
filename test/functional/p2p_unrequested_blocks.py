@@ -51,6 +51,7 @@ Node1 is unused in tests 3-7:
    work on its chain).
 """
 
+import os
 import time
 
 from test_framework.blocktools import (
@@ -58,15 +59,30 @@ from test_framework.blocktools import (
     sign_coinbase,
     create_coinbase,
     create_transaction,
+    create_tx_with_script,
     get_tip_snapshot_meta,
     calc_snapshot_hash,
     UTXO,
     COutPoint,
 )
-from test_framework.messages import CBlockHeader, CInv, msg_block, msg_headers, msg_inv
+from test_framework.messages import (
+    CBlockHeader,
+    CInv,
+    UNIT,
+    msg_block,
+    msg_headers,
+    msg_inv,
+)
 from test_framework.mininode import mininode_lock, P2PInterface
 from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
-from test_framework.util import assert_equal, assert_raises_rpc_error, connect_nodes, sync_blocks
+from test_framework.util import (
+    assert_equal,
+    assert_raises_rpc_error,
+    connect_nodes,
+    get_unspent_coins,
+    hex_str_to_bytes,
+    sync_blocks,
+)
 from test_framework.script import (CScript, CTxOut)
 
 
@@ -118,9 +134,9 @@ class UTXOManager:
 
 class AcceptBlockTest(UnitETestFramework):
     def add_options(self, parser):
-        parser.add_option("--testbinary", dest="testbinary",
-                          default=os.getenv("UNITED", "united"),
-                          help="united binary to test")
+        parser.add_argument("--testbinary", dest="testbinary",
+                            default=os.getenv("UNITED", "united"),
+                            help="united binary to test")
 
     def set_test_params(self):
         self.setup_clean_chain = True
