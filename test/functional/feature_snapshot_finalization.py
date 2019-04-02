@@ -9,10 +9,12 @@ Test snapshot and commits integration.
 After fast sync node should contain actual finalization state
 """
 
+from test_framework.messages import ToHex
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
+    assert_raises_rpc_error,
     connect_nodes,
     disconnect_nodes,
     sync_blocks,
@@ -49,6 +51,11 @@ class SnapshotFinalization(UnitETestFramework):
         connect_nodes(p, v.index)
 
     def run_test(self):
+        def corrupt_script(script, n_byte):
+            script = bytearray(script)
+            script[n_byte] = 1 if script[n_byte] == 0 else 0
+            return bytes(script)
+
         p, v, s = self.nodes
 
         self.setup_stake_coins(p, v)
@@ -59,7 +66,8 @@ class SnapshotFinalization(UnitETestFramework):
         disconnect_nodes(p, v.index)
 
         self.log.info("Generate few epochs")
-        self.generate_epoch(epoch_length=5, proposer=p, finalizer=v, count=2)
+        votes = self.generate_epoch(epoch_length=5, proposer=p, finalizer=v, count=2)
+        assert(len(votes) != 0)
 
         assert_equal(p.getblockcount(), 32)
         assert_finalizationstate(p, {'currentEpoch': 7,
@@ -76,7 +84,18 @@ class SnapshotFinalization(UnitETestFramework):
                                      'lastFinalizedEpoch': 5,
                                      'validators':1})
 
-        self.log.info("Generate next epoch")
+        self.log.info("fast-sync complete, check slashing condition")
+
+        # check that vote_recorder works and slashes
+        # corrupt the 1st byte of transaction signature
+        # but keep the correct vote signature
+        # see schema in CScript::MatchPayVoteSlashScript
+        tx = votes[0]
+        tx.vout[0].scriptPubKey = corrupt_script(script=tx.vout[0].scriptPubKey, n_byte=77)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', p.sendrawtransaction, ToHex(tx))
+        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', s.sendrawtransaction, ToHex(tx))
+
+        self.log.info("Done, generate next epoch")
         self.generate_epoch(epoch_length=5, proposer=p, finalizer=v, count=1)
 
         assert_equal(p.getblockcount(), 37)

@@ -447,11 +447,18 @@ class UnitETestFramework():
 
     @classmethod
     def generate_epoch(cls, epoch_length, proposer, finalizer, count=1):
+        """
+        Generate count epochs and collect votes.
+        """
         assert(epoch_length > 1)
+        votes=[]
         for _ in range(count):
             proposer.generatetoaddress(epoch_length - 1, proposer.getnewaddress('', 'bech32'))
             cls.wait_for_vote_and_disconnect(finalizer, proposer)
+            for tx in proposer.getrawmempool():
+                votes.append(FromHex(CTransaction(), proposer.getrawtransaction(tx)))
             proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        return votes
 
     def enable_mocktime(self):
         """Enable mocktime for the script.
