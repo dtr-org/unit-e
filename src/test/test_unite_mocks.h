@@ -8,11 +8,13 @@
 #include <blockdb.h>
 #include <coins.h>
 #include <finalization/state_db.h>
+#include <finalization/state_repository.h>
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
 #include <staking/block_validator.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <util.h>
 
 #include <atomic>
@@ -405,6 +407,33 @@ class BlockValidatorMock : public staking::BlockValidator {
     ++invocations_ContextualCheckBlockHeader;
     return stub_ContextualCheckBlockHeader(block_header, block_index, time, info);
   }
+};
+
+class StateRepositoryMock : public finalization::StateRepository {
+ public:
+  StateRepositoryMock(const esperanza::FinalizationParams &params) : m_params(params), state(m_params) { }
+
+  CCriticalSection &GetLock() override { return cs; }
+  finalization::FinalizationState *GetTipState() override { return &state; }
+  finalization::FinalizationState *Find(const CBlockIndex &) override { return &state; }
+  finalization::FinalizationState *FindOrCreate(const CBlockIndex &, finalization::FinalizationState::InitStatus) override { return &state; }
+  bool Confirm(const CBlockIndex &, finalization::FinalizationState &&, finalization::FinalizationState **) override { return false; }
+  bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
+  bool SaveToDisk() override { return false; }
+  bool Restoring() const override { return false; }
+  void ResetToTip(const CBlockIndex &) override { }
+  void TrimUntilHeight(const blockchain::Height) override { }
+  const esperanza::FinalizationParams &GetFinalizationParams() const override { return m_params; }
+  const esperanza::AdminParams &GetAdminParams() const override { return m_admin_params; }
+  void Reset(const esperanza::FinalizationParams &, const esperanza::AdminParams &) override { }
+
+ private:
+  esperanza::FinalizationParams m_params;
+  esperanza::AdminParams m_admin_params;
+  CCriticalSection cs;
+
+ public:
+  FinalizationStateSpy state;
 };
 
 }  // namespace mocks

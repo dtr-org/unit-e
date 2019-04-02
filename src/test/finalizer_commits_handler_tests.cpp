@@ -36,33 +36,6 @@ public:
   using p2p::FinalizerCommitsHandlerImpl::IsSameFork;
 };
 
-class RepoMock : public finalization::StateRepository {
-public:
-  RepoMock(const esperanza::FinalizationParams &params) : m_params(params), state(m_params) { }
-
-  CCriticalSection &GetLock() override { return cs; }
-  FinalizationState *GetTipState() override { return &state; }
-  FinalizationState *Find(const CBlockIndex &) override { return &state; }
-  FinalizationState *FindOrCreate(const CBlockIndex &, FinalizationState::InitStatus) override { return &state; }
-  bool Confirm(const CBlockIndex &, FinalizationState &&, FinalizationState **) override { return false; }
-  bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
-  bool SaveToDisk() override { return false; }
-  bool Restoring() const override { return false; }
-  void ResetToTip(const CBlockIndex &) override { }
-  void TrimUntilHeight(const blockchain::Height) override { }
-  const esperanza::FinalizationParams &GetFinalizationParams() const override { return m_params; }
-  const esperanza::AdminParams &GetAdminParams() const override { return m_admin_params; }
-  void Reset(const esperanza::FinalizationParams &, const esperanza::AdminParams &) override { }
-
-private:
-  esperanza::FinalizationParams m_params;
-  esperanza::AdminParams m_admin_params;
-  CCriticalSection cs;
-
-public:
-    FinalizationStateSpy state;
-};
-
 class Fixture {
  public:
   static constexpr blockchain::Height epoch_length = 5;
@@ -115,7 +88,7 @@ class Fixture {
   }
 
   mocks::ActiveChainMock active_chain;
-  RepoMock repo;
+  mocks::StateRepositoryMock repo;
   FinalizerCommitsHandlerSpy commits;
 
  private:
