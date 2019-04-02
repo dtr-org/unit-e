@@ -20,11 +20,14 @@ from .messages import (
     CTxOut,
     FromHex,
     ToHex,
+    TxType,
+    UTXO,
     bytes_to_hex_str,
     hash256,
     hex_str_to_bytes,
     ser_string,
     ser_uint256,
+    ser_vector,
     sha256,
     uint256_from_str,
 )
@@ -43,8 +46,6 @@ from .util import assert_equal
 from .test_framework import PROPOSER_REWARD
 from io import BytesIO
 
-# From BIP141
-WITNESS_COMMITMENT_HEADER = b"\xaa\x21\xa9\xed"
 
 def create_block(hashprev, coinbase, ntime=None):
     """Create a block (with regtest difficulty)."""
@@ -63,7 +64,7 @@ def create_block(hashprev, coinbase, ntime=None):
 
 
 def sign_transaction(node, tx):
-    signresult = node.signrawtransaction(bytes_to_hex_str(tx.serialize()))
+    signresult = node.signrawtransactionwithwallet(bytes_to_hex_str(tx.serialize()))
     tx = CTransaction()
     f = BytesIO(hex_str_to_bytes(signresult['hex']))
     tx.deserialize(f)

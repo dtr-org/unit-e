@@ -85,7 +85,6 @@ BASE_SCRIPTS = [
     'proposer_balance.py',
     'p2p_embargoman_loop.py',
     # vv Tests less than 60s vv
-    'feature_bip9_softforks.py',
     'p2p_feefilter.py',
     'p2p_sendheaders.py',
     'wallet_zapwallettxes.py',

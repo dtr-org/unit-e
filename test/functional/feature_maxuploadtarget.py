@@ -11,6 +11,9 @@ if uploadtarget has been reached.
 * Verify that the upload counters are reset after 24 hours.
 """
 
+from collections import defaultdict
+import time
+
 from test_framework.messages import CInv, msg_getdata
 from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework

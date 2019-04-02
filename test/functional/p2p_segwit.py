@@ -9,7 +9,7 @@ import random
 import struct
 import time
 
-from test_framework.blocktools import create_block, create_coinbase, add_witness_commitment, get_witness_script, WITNESS_COMMITMENT_HEADER
+from test_framework.blocktools import create_block, create_coinbase, sign_coinbase
 from test_framework.key import CECKey, CPubKey
 from test_framework.messages import (
     BIP125_SEQUENCE_NUMBER,
@@ -50,6 +50,7 @@ from test_framework.script import (
     MAX_SCRIPT_ELEMENT_SIZE,
     OP_0,
     OP_1,
+    OP_3,
     OP_16,
     OP_2DROP,
     OP_CHECKMULTISIG,
@@ -72,9 +73,13 @@ from test_framework.script import (
     SignatureHash,
     hash160,
 )
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (
+    PROPOSER_REWARD,
+    UnitETestFramework,
+)
 from test_framework.util import (
     assert_equal,
+    assert_not_equal,
     bytes_to_hex_str,
     connect_nodes,
     disconnect_nodes,
@@ -211,6 +216,8 @@ class SegWitTest(UnitETestFramework):
         coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, meta.hash))
         block = create_block(int(tip, 16), coinbase, block_time)
         block.nVersion = nVersion
+        block.compute_merkle_trees()
+        block.solve()
         return block
 
     def update_witness_block_with_transactions(self, block, tx_list, nonce=0):
@@ -571,27 +578,6 @@ class SegWitTest(UnitETestFramework):
         self.nodes[0].setmocktime(int(time.time()) + 10)
         self.nodes[2].setmocktime(int(time.time()) + 10)
 
-        for node in [self.nodes[0], self.nodes[2]]:
-            gbt_results = node.getblocktemplate({"rules": ["segwit"]})
-            block_version = gbt_results['version']
-            if node == self.nodes[2]:
-                # If this is a non-segwit node, we should still not get a witness
-                # commitment, nor a version bit signalling segwit.
-                assert_equal(block_version & (1 << VB_WITNESS_BIT), 0)
-                assert('default_witness_commitment' not in gbt_results)
-            else:
-                # For segwit-aware nodes, check the version bit and the witness
-                # commitment are correct.
-                assert(block_version & (1 << VB_WITNESS_BIT) != 0)
-                assert('default_witness_commitment' in gbt_results)
-                witness_commitment = gbt_results['default_witness_commitment']
-
-                # Check that default_witness_commitment is present.
-                witness_root = CBlock.get_merkle_root([ser_uint256(0),
-                                                       ser_uint256(txid)])
-                script = get_witness_script(witness_root, 0)
-                assert_equal(witness_commitment, bytes_to_hex_str(script))
-
         # undo mocktime
         self.nodes[0].setmocktime(0)
         self.nodes[2].setmocktime(0)
@@ -812,7 +798,6 @@ class SegWitTest(UnitETestFramework):
 
         # First try a correct witness commitment.
         block = self.build_next_block()
-        add_witness_commitment(block)
         block.solve()
 
         # Test the test -- witness serialization should be different
@@ -823,7 +808,6 @@ class SegWitTest(UnitETestFramework):
 
         # Try to tweak the nonce
         block_2 = self.build_next_block()
-        add_witness_commitment(block_2, nonce=28)
         block_2.solve()
 
         # The commitment should have changed!
@@ -868,7 +852,6 @@ class SegWitTest(UnitETestFramework):
         # right location, and with some funds burned(!).
         # This should succeed (nValue shouldn't affect finding the
         # witness commitment).
-        add_witness_commitment(block_3, nonce=0)
         block_3.vtx[0].vout[0].nValue -= 1
         block_3.vtx[0].vout[-1].nValue += 1
         block_3.vtx[0].rehash()
@@ -901,7 +884,6 @@ class SegWitTest(UnitETestFramework):
         # because of a too-large coinbase witness is not permanently
         # marked bad.
         block = self.build_next_block()
-        add_witness_commitment(block)
         block.solve()
 
         block.vtx[0].wit.vtxinwit[0].scriptWitness.stack.append(b'a' * 5000000)
@@ -922,7 +904,6 @@ class SegWitTest(UnitETestFramework):
         # Now make sure that malleating the witness reserved value doesn't
         # result in a block permanently marked bad.
         block = self.build_next_block()
-        add_witness_commitment(block)
         block.solve()
 
         # Change the nonce -- should not cause the block to be permanently

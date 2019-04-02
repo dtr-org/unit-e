@@ -43,7 +43,7 @@ from test_framework.script import (
     SignatureHash,
     hash160,
 )
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import assert_equal
 
 MAX_BLOCK_SIGOPS = 20000
@@ -497,7 +497,8 @@ class FullBlockTest(UnitETestFramework):
 
         b39 = self.update_block(39, [])
         self.sync_blocks([b39], True)
-        self.save_spendable_output()comp_snapshot_hash(39)
+        self.save_spendable_output()
+        comp_snapshot_hash(39)
 
         # Test sigops in P2SH redeem scripts
         #
