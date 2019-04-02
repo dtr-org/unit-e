@@ -12,7 +12,7 @@ from test_framework.messages import msg_block
 from test_framework.mininode import mininode_lock, P2PInterface
 from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, bytes_to_hex_str, wait_until
+from test_framework.util import assert_equal, bytes_to_hex_str, get_unspent_coins, wait_until
 
 # Reject codes that we might receive in this test
 REJECT_INVALID = 16
