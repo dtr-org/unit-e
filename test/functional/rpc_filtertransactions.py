@@ -10,6 +10,7 @@ from test_framework.address import *
 class FilterTransactionsTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 3
+        self.extra_args = [['-deprecatedrpc=validateaddress']]*3
         self.enable_mocktime()
 
     def run_test(self):
