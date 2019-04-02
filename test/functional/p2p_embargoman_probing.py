@@ -13,8 +13,14 @@ responses we received and they should be the same
 
 from test_framework.util import connect_nodes, assert_equal
 from test_framework.test_framework import UnitETestFramework
-from test_framework.mininode import (P2PInterface, network_thread_start,
-                                     msg_getdata, msg_mempool, msg_inv)
+from test_framework.messages import (
+    msg_getdata,
+    msg_mempool,
+    msg_inv
+)
+from test_framework.mininode import (
+    P2PInterface,
+)
 from test_framework.messages import CInv
 import time
 import threading
@@ -59,7 +65,6 @@ class EmbargoProbing(UnitETestFramework):
         source.add_p2p_connection(real_probe)
         source.add_p2p_connection(imaginary_probe)
         source.add_p2p_connection(inv_sender)
-        network_thread_start()
 
         real_probe.wait_for_verack()
         imaginary_probe.wait_for_verack()
