@@ -5,6 +5,7 @@
 #include <snapshot/p2p_processing.h>
 
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <snapshot/iterator.h>
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
@@ -15,14 +16,20 @@
 
 namespace snapshot {
 
-inline CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
-  CBlockIndex *bi = LookupBlockIndex(hash);
+inline const CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
+  const CBlockIndex *bi = LookupBlockIndex(hash);
   if (!bi) {
+    LogPrint(BCLog::SNAPSHOT, "%s: block=%s not found\n", __func__, hash.GetHex());
     return nullptr;
   }
 
-  // todo: check that header is finalized
-  // once ADR-21 is implemented
+  auto fin_repo = GetComponent<finalization::StateRepository>();
+  const finalization::FinalizationState *fin_state = fin_repo->GetTipState();
+  if (bi->nHeight <= fin_state->GetEpochCheckpointHeight(fin_state->GetLastFinalizedEpoch())) {
+    LogPrint(BCLog::SNAPSHOT, "%s: block=%s height=%d is not finalized\n", hash.GetHex(), bi->nHeight);
+    return nullptr;
+  }
+
   return bi;
 }
 

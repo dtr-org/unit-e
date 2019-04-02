@@ -393,7 +393,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
     const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
     const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
-    const bool snapshot_enabled = snapshot::IsISDEnabled();
+    const bool snapshot_enabled = snapshot::IsISDEnabled() && snapshot::IsInitialSnapshotDownload();
 
     if (!snapshot_enabled && index_epoch > tip_epoch) {
       download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
