@@ -301,13 +301,15 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             return
 
         for n in self.nodes:
+            wallets = n.listwallets()
+            w = n.get_wallet_rpc(wallets[0])
             try:
-                n.getwalletinfo()
+                w.getwalletinfo()
             except JSONRPCException as e:
                 assert str(e).startswith('Method not found')
                 continue
 
-            n.importprivkey(n.get_deterministic_priv_key()[1])
+            w.importprivkey(n.get_deterministic_priv_key()[1])
 
     def run_test(self):
         """Tests must override this method to define test logic"""
