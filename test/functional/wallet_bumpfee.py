@@ -16,8 +16,9 @@ make assumptions about execution order.
 
 from decimal import Decimal
 
-from test_framework.blocktools import add_witness_commitment, create_block, create_coinbase, send_to_witness
-from test_framework.messages import BIP125_SEQUENCE_NUMBER, CTransaction
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, send_to_witness
+from test_framework.messages import BIP125_SEQUENCE_NUMBER, CTransaction, msg_witness_block
+from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, assert_greater_than, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes_bi, hex_str_to_bytes, sync_mempools
 
@@ -52,7 +53,6 @@ class BumpFeeTest(UnitETestFramework):
         rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
 
         rbf_node.add_p2p_connection(P2PInterface())
-        network_thread_start()
         rbf_node.p2p.wait_for_verack()
 
         connect_nodes_bi(self.nodes, 0, 1)
@@ -313,13 +313,12 @@ def submit_block_with_tx(node, tx):
     tip = node.getbestblockhash()
     height = node.getblockcount() + 1
     block_time = node.getblockheader(tip)["mediantime"] + 1
-    snapshot_hash = blocktools.get_tip_snapshot_meta(node).hash
+    snapshot_hash = get_tip_snapshot_meta(node).hash
     stake = node.listunspent()[0]
     block = create_block(int(tip, 16), create_coinbase(height, stake, snapshot_hash), block_time)
     block.vtx.append(ctx)
     block.rehash()
-    block.hashMerkleRoot = block.calc_merkle_root()
-    add_witness_commitment(block)
+    block.compute_merkle_trees()
     block.solve()
     node.p2p.send_and_ping(msg_witness_block(block))
     assert_equal(node.getbestblockhash(), block.hash)
