@@ -78,7 +78,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         txid1 = finalizer1.deposit(addr, 10000)
         wait_until(lambda: txid1 in fork1.getrawmempool())
 
-        finalizer2.setaccount(addr, '')
+        finalizer2.setlabel(addr, '')
         txid2 = finalizer2.deposit(addr, 10000)
         assert_equal(txid1, txid2)
         connect_nodes(fork1, finalizer2.index)
