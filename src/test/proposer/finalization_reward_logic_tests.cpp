@@ -21,6 +21,7 @@ class FakeStateRepository : public finalization::StateRepository {
   esperanza::FinalizationParams fin_params;
   esperanza::AdminParams admin_params;
   std::map<const CBlockIndex *, finalization::FinalizationState> states;
+  CCriticalSection cs;
 
   finalization::FinalizationState *GetTipState() override {
     return nullptr;
@@ -49,6 +50,7 @@ class FakeStateRepository : public finalization::StateRepository {
   void TrimUntilHeight(blockchain::Height height) override {}
   const esperanza::FinalizationParams &GetFinalizationParams() const override { return fin_params; }
   const esperanza::AdminParams &GetAdminParams() const override { return admin_params; }
+  CCriticalSection &GetLock() override { return cs; }
 };
 
 class FakeBlockDB : public ::BlockDB {

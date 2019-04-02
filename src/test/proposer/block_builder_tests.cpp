@@ -11,6 +11,7 @@
 #include <wallet/wallet.h>
 
 #include <test/test_unite.h>
+#include <test/test_unite_mocks.h>
 #include <boost/test/unit_test.hpp>
 
 #include <test/test_unite_mocks.h>
@@ -26,14 +27,10 @@ struct Fixture {
   std::unique_ptr<::Settings> settings;
   blockchain::Parameters parameters = blockchain::Parameters::TestNet();
   std::unique_ptr<staking::ActiveChain> active_chain = staking::ActiveChain::New();
-  std::unique_ptr<staking::BlockIndexMap> block_index_map = staking::BlockIndexMap::New();
   std::unique_ptr<BlockDB> block_db = BlockDB::New();
-  std::unique_ptr<finalization::StateDB> state_db =
-      finalization::StateDB::New(settings.get(), block_index_map.get(), active_chain.get());
-  std::unique_ptr<finalization::StateRepository> state_repository =
-      finalization::StateRepository::New(block_index_map.get(), active_chain.get(), state_db.get(), block_db.get());
+  mocks::StateRepositoryMock state_repository{Params().GetFinalization()};
   std::unique_ptr<proposer::FinalizationRewardLogic> finalization_reward_logic =
-      proposer::FinalizationRewardLogic::New(behavior.get(), state_repository.get(), block_db.get());
+      proposer::FinalizationRewardLogic::New(behavior.get(), &state_repository, block_db.get());
 
   uint256 snapshot_hash = uint256::zero;
 

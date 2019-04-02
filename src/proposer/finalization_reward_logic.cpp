@@ -34,6 +34,7 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
   }
 
   std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &last_block) override {
+    LOCK(m_fin_state_repo->GetLock());
 
     const auto fin_state = m_fin_state_repo->Find(last_block);
     assert(fin_state);

@@ -26,6 +26,17 @@
 
 #include <boost/test/unit_test.hpp>
 
+namespace {
+
+class FinalizationRewardLogicStub : public proposer::FinalizationRewardLogic {
+ public:
+  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &blockIndex) override {
+    return {};
+  }
+};
+
+} // namespace
+
 BOOST_AUTO_TEST_SUITE(walletextension_tests)
 
 BOOST_FIXTURE_TEST_CASE(vote_signature, ReducedTestingSetup) {
@@ -79,14 +90,8 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
 
   auto behavior = blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
   auto active_chain = staking::ActiveChain::New();
-  auto block_index_map = staking::BlockIndexMap::New();
-  finalization::Params params;
-  UnitEInjectorConfiguration injector_conf;
-  auto state_db = finalization::StateDB::New(&injector_conf, &settings, &params, block_index_map.get(), active_chain.get(), nullptr);
-  auto block_db = BlockDB::New();
-  auto state_repository = finalization::StateRepository::New(&params, block_index_map.get(), active_chain.get(), state_db.get(), block_db.get());
-  auto finalization_reward_logic = proposer::FinalizationRewardLogic::New(behavior.get(), state_repository.get(), block_db.get());
-  auto block_builder = proposer::BlockBuilder::New(&settings, finalization_reward_logic.get());
+  FinalizationRewardLogicStub finalization_reward_logic;
+  auto block_builder = proposer::BlockBuilder::New(&settings, &finalization_reward_logic);
 
   {
     LOCK(m_wallet->cs_wallet);
