@@ -5,18 +5,28 @@
 """Test the wallet."""
 from decimal import Decimal
 import time
+import math
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, COINBASE_MATURITY, STAKE_SPLIT_THRESHOLD
 from test_framework.util import (
     assert_array_result,
     assert_equal,
     assert_fee_amount,
+    assert_greater_than,
     assert_raises_rpc_error,
     connect_nodes_bi,
     sync_blocks,
     sync_mempools,
     wait_until,
 )
+
+
+def send_specific_output(node, txid, idx, to, amount):
+    return node.sendtypeto(
+        '', '', [{'address': to, 'amount': amount}], '', '', False,
+        {'inputs': [{'tx': txid, 'n': idx}]}
+    )
+
 
 class WalletTest(UnitETestFramework):
     def set_test_params(self):
@@ -201,7 +211,6 @@ class WalletTest(UnitETestFramework):
 
         assert_equal(self.nodes[0].getbalance(), 0)
         assert_equal(self.nodes[2].getbalance(), balance2)
-        assert_equal(self.nodes[2].getbalance("from1"), node2_from1)
 
         # Verify that a spent output cannot be locked anymore
         spent_0 = {"txid": node0utxos[0]["txid"], "vout": node0utxos[0]["vout"]}
@@ -270,7 +279,7 @@ class WalletTest(UnitETestFramework):
         # 4. check if recipient (node0) can list the zero value tx
         usp = self.nodes[1].listunspent(query_options={'minimumAmount': '49.998'})[0]
         inputs = [{"txid": usp['txid'], "vout": usp['vout']}]
-        outputs = {self.nodes[1].getnewaddress(): usp[0]['amount'] - Decimal('0.002'), self.nodes[0].getnewaddress(): 11.11}
+        outputs = {self.nodes[1].getnewaddress(): usp['amount'] - Decimal('0.002'), self.nodes[0].getnewaddress(): 11.11}
 
         raw_tx = self.nodes[1].createrawtransaction(inputs, outputs).replace("c0833842", "00000000")  # replace 11.11 with 0.0 (int32)
         signed_raw_tx = self.nodes[1].signrawtransactionwithwallet(raw_tx)
@@ -419,7 +428,7 @@ class WalletTest(UnitETestFramework):
             '-reindex',
             '-zapwallettxes=1',
             '-zapwallettxes=2',
-            # disabled until issue is fixed: https://github.com/unite/unite/issues/7463
+            # disabled until issue is fixed: https://github.com/bitcoin/bitcoin/issues/7463
             # '-salvagewallet',
         ]
         chainlimit = 6
