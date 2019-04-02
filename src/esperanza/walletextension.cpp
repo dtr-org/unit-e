@@ -824,6 +824,16 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       assert(validatorState);
       esperanza::ValidatorState &state = validatorState.get();
 
+      // In case that we are reading from blocks in initial sync we need to
+      // consider the case where we do not initiate our deposit, but we read it
+      // from the blockchain.
+      const auto bootstrap_phase =
+          +esperanza::ValidatorState::Phase::NOT_VALIDATING;
+
+      if (pIndex && state.m_phase == bootstrap_phase) {
+        state.m_phase = +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
+      }
+
       const auto expectedPhase =
           +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
 

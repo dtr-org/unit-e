@@ -240,8 +240,10 @@ class UnitETestFramework():
 
     def setup_stake_coins(self, *args, rescan=True):
         for i, node in enumerate(args):
-            node.importmasterkey(regtest_mnemonics[i+2]['mnemonics'], "", rescan)
-            node.initial_stake = regtest_mnemonics[i+2]['balance']
+            node.mnemonics = regtest_mnemonics[i + 2]['mnemonics']
+            node.initial_stake = regtest_mnemonics[i + 2]['balance']
+            node.importmasterkey(node.mnemonics, "", rescan)
+
 
     def run_test(self):
         """Tests must override this method to define test logic"""
