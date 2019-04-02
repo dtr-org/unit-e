@@ -1203,6 +1203,11 @@ public:
        this function). */
     void SetHDSeed(const CPubKey& key);
 
+    bool SetHDMasterKey(
+        const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
+        const std::vector<CKeyMetadata> &metadata, bool hardwareDevice = false
+    );
+
     /**
      * Blocks until the wallet state is up-to-date to /at least/ the current
      * chain at the time this function is entered

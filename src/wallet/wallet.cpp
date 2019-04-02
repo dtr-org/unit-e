@@ -1682,6 +1682,35 @@ void CWallet::SetHDSeed(const CPubKey& seed)
     SetHDChain(newHdChain, false);
 }
 
+bool CWallet::SetHDMasterKey(
+    const CPubKey& masterKey, const std::vector<CExtPubKey> &acctKeys,
+    const std::vector<CKeyMetadata> &acctKeyMetadata, bool isHardwareDevice
+)
+ {
+    assert(!isHardwareDevice || !acctKeys.empty());
+    assert(acctKeys.size() == acctKeyMetadata.size());
+
+     LOCK(cs_wallet);
+
+    CHDChain newHdChain;
+    newHdChain.nVersion = CHDChain::VERSION_HD_HW_WALLET;
+    newHdChain.master_key_id = masterKey.GetID();
+    newHdChain.account_pubkeys.insert(newHdChain.account_pubkeys.end(), acctKeys.begin(), acctKeys.end());
+    newHdChain.is_hardware_device = isHardwareDevice;
+
+    // Associated metadata (HD key paths) must be persisted to the DB
+    WalletBatch walletdb(*database);
+    for (size_t i = 0; i < acctKeyMetadata.size(); i++) {
+        mapKeyMetadata[acctKeys[i].pubkey.GetID()] = acctKeyMetadata[i];
+        if (!walletdb.WriteKeyMetadata(acctKeys[i].pubkey, acctKeyMetadata[i])) {
+            return false;
+        }
+    }
+
+    SetHDChain(newHdChain, false);
+    return true;
+ }
+
 void CWallet::SetHDChain(const CHDChain& chain, bool memonly)
 {
     LOCK(cs_wallet);
@@ -3215,7 +3244,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
                 }
 
                 if (!pdevice->PrepareTransaction(
-                    txNewConst, coins_cache, *this, SIGHASH_ALL, error
+                    txNew, coins_cache, *this, SIGHASH_ALL, error
                 )) {
                     strFailReason = std::move(error);
                     return false;
@@ -3227,12 +3256,13 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
 
-                auto txCreator = MakeUnique<MutableTransactionSignatureCreator>(&txNew, nIn, coin.txout.nValue, SIGHASH_ALL);
+                std::unique_ptr<BaseSignatureCreator> txCreator =
+                        MakeUnique<MutableTransactionSignatureCreator>(&txNew, nIn, coin.txout.nValue, SIGHASH_ALL);
 
 #ifdef ENABLE_USBDEVICE
                 if (::IsMine(*this, scriptPubKey) == ISMINE_HW_DEVICE) {
                     txCreator.reset(new usbdevice::DeviceSignatureCreator(
-                        pdevice, *this, txNewConst, nIn, coin.txout.nValue, SIGHASH_ALL
+                        pdevice, *this, txNew, nIn, coin.txout.nValue, SIGHASH_ALL
                     ));
                 }
 #endif

@@ -95,7 +95,7 @@ ZMQ dependencies (provides ZMQ API 4.x):
 
 hidapi (provides USB HID device support):
 
-    sudo apt-get install libhidapi-dev
+    sudo apt-get install libhidapi-dev libusb-1.0-0-dev libudev-dev
 
 
 ### Fedora

@@ -3,7 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <base58.h>
+#include <key_io.h>
 #include <extkey.h>
 #include <key.h>
 #include <rpc/protocol.h>
@@ -174,8 +174,11 @@ static UniValue getdeviceextpubkey(const JSONRPCRequest &request) {
   return rv;
 }
 
+static const int64_t TIMESTAMP_MIN = 0;
+
 static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
-  CWallet *pwallet = GetWalletForJSONRPCRequest(request);
+  std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
+  CWallet *pwallet = wallet.get();
   if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
     return NullUniValue;
   }
@@ -248,7 +251,7 @@ static UniValue initaccountfromdevice(const JSONRPCRequest &request) {
 
   {
     LOCK(pwallet->cs_wallet);
-    CWalletDB wdb(pwallet->GetDBHandle(), "r+");
+    WalletBatch wdb(pwallet->GetDBHandle(), "r+");
 
     int64_t creation_time = GetTime();
     CKeyMetadata metadata(creation_time);
