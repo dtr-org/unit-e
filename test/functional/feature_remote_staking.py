@@ -23,6 +23,7 @@ def stake_p2wsh(node, staking_node, amount):
     spending_script_hash = sha256(bare)
 
     addr_info = staking_node.validateaddress(staking_node.getnewaddress('', 'legacy'))
+    print(addr_info)
     staking_key_hash = hash160(hex_str_to_bytes(addr_info['pubkey']))
 
     rs_p2wsh = CScript([OP_2, staking_key_hash, spending_script_hash])
@@ -35,8 +36,8 @@ class RemoteStakingTest(UnitETestFramework):
         self.num_nodes = 2
         self.setup_clean_chain = True
         self.extra_args=[
-            [],
-            ['-minimumchainwork=0', '-maxtipage=1000000000']
+            ['-deprecatedrpc=validateaddress'],
+            ['-deprecatedrpc=validateaddress', '-minimumchainwork=0', '-maxtipage=1000000000']
         ]
 
     def run_test(self):
