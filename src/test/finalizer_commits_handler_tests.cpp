@@ -36,30 +36,6 @@ public:
   using p2p::FinalizerCommitsHandlerImpl::IsSameFork;
 };
 
-class RepoMock : public finalization::StateRepository {
-public:
-  RepoMock(const finalization::Params &params)
-    : m_finalization_params(params),
-      state(m_finalization_params) { }
-
-  CCriticalSection &GetLock() override { return cs; }
-  FinalizationState *GetTipState() override { return &state; }
-  FinalizationState *Find(const CBlockIndex &) override { return &state; }
-  FinalizationState *FindOrCreate(const CBlockIndex &, FinalizationState::InitStatus) override { return &state; }
-  bool Confirm(const CBlockIndex &, FinalizationState &&, FinalizationState **) override { return false; }
-  bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
-  bool SaveToDisk() override { return false; }
-  bool Restoring() const override { return false; }
-  void TrimUntilHeight(const blockchain::Height) override { }
-
-private:
-  finalization::Params m_finalization_params;
-  CCriticalSection cs;
-
-public:
-    FinalizationStateSpy state;
-};
-
 class Fixture {
  public:
   static constexpr blockchain::Height epoch_length = 5;
@@ -112,7 +88,7 @@ class Fixture {
   }
 
   mocks::ActiveChainFake active_chain;
-  RepoMock repo;
+  mocks::StateRepositoryMock repo;
   FinalizerCommitsHandlerSpy commits;
 
  private:

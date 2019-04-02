@@ -9,6 +9,7 @@
 #include <coins.h>
 #include <esperanza/finalizationstate.h>
 #include <finalization/state_db.h>
+#include <finalization/state_repository.h>
 #include <proposer/block_builder.h>
 #include <proposer/proposer_logic.h>
 #include <staking/active_chain.h>
@@ -17,6 +18,7 @@
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <util.h>
 
 #include <test/util/mocks.h>
@@ -409,6 +411,30 @@ class BlockBuilderMock : public proposer::BlockBuilder, public Mock {
       staking::StakingWallet &wallet) const override {
     return mock_BuildBlock(index, snapshot_hash, stake_coin, coins, txs, fees, coinbase_script, wallet);
   }
+};
+
+class StateRepositoryMock : public finalization::StateRepository {
+ public:
+  explicit StateRepositoryMock(const finalization::Params &params)
+      : m_finalization_params(params),
+        state(m_finalization_params) { }
+
+  CCriticalSection &GetLock() override { return cs; }
+  FinalizationState *GetTipState() override { return &state; }
+  FinalizationState *Find(const CBlockIndex &) override { return &state; }
+  FinalizationState *FindOrCreate(const CBlockIndex &, FinalizationState::InitStatus) override { return &state; }
+  bool Confirm(const CBlockIndex &, FinalizationState &&, FinalizationState **) override { return false; }
+  bool RestoreFromDisk(Dependency<finalization::StateProcessor>) override { return false; }
+  bool SaveToDisk() override { return false; }
+  bool Restoring() const override { return false; }
+  void TrimUntilHeight(const blockchain::Height) override { }
+
+ private:
+  finalization::Params m_finalization_params;
+  CCriticalSection cs;
+
+ public:
+  FinalizationStateSpy state;
 };
 
 }  // namespace mocks
