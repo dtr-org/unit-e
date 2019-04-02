@@ -559,7 +559,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             # Create cache directories, run uniteds:
             for i in range(MAX_NODES):
                 datadir = initialize_datadir(self.options.cachedir, i)
-                args = [self.options.united, "-datadir=" + datadir, '-disablewallet']
+                args = [self.options.united, "-datadir=" + datadir]
                 if i > 0:
                     args.append("-connect=127.0.0.1:" + str(p2p_port(0)))
                 self.nodes.append(TestNode(i, get_datadir_path(self.options.cachedir, i), extra_conf=["bind=127.0.0.1"], extra_args=[], rpchost=None, timewait=self.rpc_timewait, united=self.options.united, unite_cli=self.options.unitecli, mocktime=self.mocktime, coverage_dir=None))
@@ -583,6 +583,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
 
             for peer in range(4):
                 self.nodes[peer].importmasterkey(regtest_mnemonics[-(peer+1)]['mnemonics'])
+                self.nodes[peer].importprivkey(self.nodes[peer].get_deterministic_priv_key()[1])
 
             self.enable_mocktime()
             block_time = self.mocktime - (201 * 10 * 60)
@@ -604,7 +605,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
                 return os.path.join(get_datadir_path(self.options.cachedir, n), "regtest", *paths)
 
             for i in range(MAX_NODES):
-                os.rmdir(cache_path(i, 'wallets'))  # Remove empty wallets dir
+                shutil.rmtree(cache_path(i, 'wallets'))  # Remove cache generators' wallets dir
                 for entry in os.listdir(cache_path(i)):
                     if entry not in ['wallets', 'chainstate', 'blocks', 'snapshots']:
                         os.remove(cache_path(i, entry))
