@@ -21,6 +21,9 @@ from test_framework.blocktools import (
     update_snapshot_with_tx,
     sign_coinbase,
 )
+from test_framework.messages import (
+    CInv
+)
 from test_framework.mininode import (
     P2PInterface,
     mininode_lock,
@@ -138,6 +141,8 @@ class ExampleTest(UnitETestFramework):
 
     def run_test(self):
         """Main test logic"""
+
+        self.setup_stake_coins(*self.nodes)
 
         # Create P2P connections will wait for a verack to make sure the connection is fully up
         self.nodes[0].add_p2p_connection(BaseNode())
