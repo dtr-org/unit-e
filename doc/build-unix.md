@@ -116,7 +116,7 @@ Optional:
 
 Notes
 -----
-The release is built with GCC and then "strip united" to strip the debug
+The release is built with GCC and then "strip unit-e" to strip the debug
 symbols, which reduces the executable size by about 90%.
 
 

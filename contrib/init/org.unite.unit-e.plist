@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>org.unite.united</string>
+	<string>org.unite.unit-e</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/local/bin/united</string>
+		<string>/usr/local/bin/unit-e</string>
 	</array>
 	<key>RunAtLoad</key>
 	<true/>

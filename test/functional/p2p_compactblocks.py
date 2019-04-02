@@ -14,7 +14,7 @@ from test_framework.blocktools import create_block, create_coinbase, get_tip_sna
 from test_framework.script import CScript, OP_TRUE, OP_DROP
 
 
-# TestNode: A peer we use to send messages to united, and store responses.
+# TestNode: A peer we use to send messages to unit-e, and store responses.
 class TestNode(P2PInterface):
     def __init__(self):
         super().__init__()
@@ -246,7 +246,7 @@ class CompactBlocksTest(UnitETestFramework):
         test_node.send_and_ping(sendcmpct)
         check_announcement_of_new_block(node, test_node, lambda p: "cmpctblock" not in p.last_message and "headers" in p.last_message)
 
-    # This test actually causes united to (reasonably!) disconnect us, so do this last.
+    # This test actually causes unit-e to (reasonably!) disconnect us, so do this last.
     def test_invalid_cmpctblock_message(self):
         self.nodes[0].generate(101)
         block = self.build_block_on_tip(self.nodes[0])
@@ -261,7 +261,7 @@ class CompactBlocksTest(UnitETestFramework):
         assert_equal(int(self.nodes[0].getbestblockhash(), 16), block.hashPrevBlock)
 
     # Compare the generated shortids to what we expect based on BIP 152, given
-    # united's choice of nonce.
+    # unit-e's choice of nonce.
     def test_compactblock_construction(self, node, test_node, use_witness_address):
         # Generate a bunch of transactions.
         node.generate(101)
@@ -379,7 +379,7 @@ class CompactBlocksTest(UnitETestFramework):
                 header_and_shortids.shortids.pop(0)
             index += 1
 
-    # Test that united requests compact blocks when we announce new blocks
+    # Test that unit-e requests compact blocks when we announce new blocks
     # via header or inv, and that responding to getblocktxn causes the block
     # to be successfully reconstructed.
     def test_compactblock_requests(self, node, test_node):
@@ -549,7 +549,7 @@ class CompactBlocksTest(UnitETestFramework):
         test_getblocktxn_response(block, comp_block, test_node, block.middle_txs[6:] + [block.unspent_tx])
 
         # Now give an incorrect response.
-        # Note that it's possible for united to be smart enough to know we're
+        # Note that it's possible for unit-e to be smart enough to know we're
         # lying, since it could check to see if the shortid matches what we're
         # sending, and eg disconnect us for misbehavior.  If that behavior
         # change were made, we could just modify this test by having a
@@ -580,7 +580,7 @@ class CompactBlocksTest(UnitETestFramework):
         assert_equal(int(node.getbestblockhash(), 16), block.sha256)
 
     def test_getblocktxn_handler(self, node, test_node):
-        # united will not send blocktxn responses for blocks whose height is
+        # unit-e will not send blocktxn responses for blocks whose height is
         # more than 10 blocks deep.
         MAX_GETBLOCKTXN_DEPTH = 10
         chain_height = node.getblockcount()

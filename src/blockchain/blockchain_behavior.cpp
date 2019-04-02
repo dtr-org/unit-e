@@ -110,7 +110,7 @@ std::unique_ptr<Behavior> Behavior::NewFromParameters(const Parameters &paramete
 
 namespace {
 //! A global blockchain_behavior instance which is managed outside of the
-//! injector as there are parts of united which require access to the currently
+//! injector as there are parts of unit-e which require access to the currently
 //! selected blockchain parameters before and after the injector
 std::unique_ptr<Behavior> g_blockchain_behavior;
 }  // namespace

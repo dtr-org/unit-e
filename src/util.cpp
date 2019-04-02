@@ -84,8 +84,8 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char * const UNITE_CONF_FILENAME = "unite.conf";
-const char * const UNITE_PID_FILENAME = "united.pid";
+const char * const UNITE_CONF_FILENAME = "unit-e.conf";
+const char * const UNITE_PID_FILENAME = "unit-e.pid";
 const char * const DEFAULT_DEBUGLOGFILE = "debug.log";
 
 ArgsManager gArgs;
@@ -721,7 +721,7 @@ void ArgsManager::ReadConfigFile(const std::string& confPath)
 {
     fs::ifstream streamConfig(GetConfigFile(confPath));
     if (!streamConfig.good())
-        return; // No unite.conf file is OK
+        return; // No unit-e.conf file is OK
 
     {
         LOCK(cs_args);
@@ -730,7 +730,7 @@ void ArgsManager::ReadConfigFile(const std::string& confPath)
 
         for (boost::program_options::detail::config_file_iterator it(streamConfig, setOptions), end; it != end; ++it)
         {
-            // Don't overwrite existing settings so command line settings override unite.conf
+            // Don't overwrite existing settings so command line settings override unit-e.conf
             std::string strKey = std::string("-") + it->string_key;
             std::string strValue = it->value[0];
             InterpretNegativeSetting(strKey, strValue);

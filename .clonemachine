@@ -6,9 +6,9 @@ appropriated_files:
 - doc/gitian-building.md
 - contrib/verifybinaries/README.md
 - contrib/verifybinaries/verify.sh
-- doc/man/unite-cli.1
-- doc/man/unite-tx.1
-- doc/man/united.1
+- doc/man/unit-e-cli.1
+- doc/man/unit-e-tx.1
+- doc/man/unit-e.1
 - doc/release-process.md
 
 removed_files:

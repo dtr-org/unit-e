@@ -61,15 +61,15 @@ Build unit-e
 Running
 -------
 
-unit-e is now available at `./src/united`
+unit-e is now available at `./src/unit-e`
 
 Before running, it's recommended you create an RPC configuration file.
 
-    echo -e "rpcuser=uniterpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Unit-e/unite.conf"
+    echo -e "rpcuser=uniterpc\nrpcpassword=$(xxd -l 16 -p /dev/urandom)" > "/Users/${USER}/Library/Application Support/Unit-e/unit-e.conf"
 
-    chmod 600 "/Users/${USER}/Library/Application Support/Unit-e/unite.conf"
+    chmod 600 "/Users/${USER}/Library/Application Support/Unit-e/unit-e.conf"
 
-The first time you run united, it will start downloading the blockchain. This process could take several hours.
+The first time you run unit-e, it will start downloading the blockchain. This process could take several hours.
 
 You can monitor the download process by looking at the debug.log file:
 
@@ -78,9 +78,9 @@ You can monitor the download process by looking at the debug.log file:
 Other commands:
 -------
 
-    ./src/united -daemon # Starts the unite daemon.
-    ./src/unite-cli --help # Outputs a list of command-line options.
-    ./src/unite-cli help # Outputs a list of RPC commands when the daemon is running.
+    ./src/unit-e -daemon # Starts the unite daemon.
+    ./src/unit-e-cli --help # Outputs a list of command-line options.
+    ./src/unit-e-cli help # Outputs a list of RPC commands when the daemon is running.
 
 Using Qt Creator as IDE (untested)
 ------------------------

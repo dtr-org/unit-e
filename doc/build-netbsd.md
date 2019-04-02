@@ -2,7 +2,7 @@ NetBSD build guide
 ======================
 (updated for NetBSD 7.0)
 
-This guide describes how to build united and command-line utilities on NetBSD.
+This guide describes how to build unit-e and command-line utilities on NetBSD.
 
 Preparation
 -------------

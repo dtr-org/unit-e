@@ -65,12 +65,12 @@ noinst_PROGRAMS =
 TESTS =
 BENCHMARKS =
 
-if BUILD_UNITED
-  bin_PROGRAMS += united
+if BUILD_UNIT_E
+  bin_PROGRAMS += unit-e
 endif
 
 if BUILD_UNITE_UTILS
-  bin_PROGRAMS += unite-cli unite-tx
+  bin_PROGRAMS += unit-e-cli unit-e-tx
 endif
 
 .PHONY: FORCE check-symbols check-security
@@ -502,7 +502,7 @@ libunite_consensus_a_SOURCES = \
   utilstrencodings.h \
   version.h
 
-# common: shared between united and non-server tools
+# common: shared between unit-e and non-server tools
 libunite_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
 libunite_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libunite_common_a_SOURCES = \
@@ -571,17 +571,17 @@ endif
 nodist_libunite_util_a_SOURCES = $(srcdir)/obj/build.h
 #
 
-# united binary #
-united_SOURCES = united.cpp
-united_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
-united_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-united_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+# unit-e binary #
+unit_e_SOURCES = unit-e.cpp
+unit_e_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
+unit_e_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+unit_e_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-united_SOURCES += united-res.rc
+unit_e_SOURCES += unit-e-res.rc
 endif
 
-united_LDADD = \
+unit_e_LDADD = \
   $(LIBUNITE_SERVER) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_USBDEVICE) \
@@ -596,39 +596,39 @@ united_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-united_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) \
+unit_e_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS) \
   $(HIDAPI_LIBS) $(USB_LIBS)
 
-# unite-cli binary #
-unite_cli_SOURCES = unite-cli.cpp
-unite_cli_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CFLAGS)
-unite_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-unite_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+# unit-e-cli binary #
+unit_e_cli_SOURCES = unit-e-cli.cpp
+unit_e_cli_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES) $(EVENT_CFLAGS)
+unit_e_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+unit_e_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-unite_cli_SOURCES += unite-cli-res.rc
+unit_e_cli_SOURCES += unit-e-cli-res.rc
 endif
 
-unite_cli_LDADD = \
+unit_e_cli_LDADD = \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
   $(LIBUNITE_CRYPTO)
 
-unite_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) \
+unit_e_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS) \
   $(HIDAPI_LIBS) $(USB_LIBS)
 #
 
-# unite-tx binary #
-unite_tx_SOURCES = unite-tx.cpp
-unite_tx_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
-unite_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-unite_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+# unit-e-tx binary #
+unit_e_tx_SOURCES = unit-e-tx.cpp
+unit_e_tx_CPPFLAGS = $(AM_CPPFLAGS) $(UNITE_INCLUDES)
+unit_e_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
+unit_e_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
 
 if TARGET_WINDOWS
-unite_tx_SOURCES += unite-tx-res.rc
+unit_e_tx_SOURCES += unit-e-tx-res.rc
 endif
 
-unite_tx_LDADD = \
+unit_e_tx_LDADD = \
   $(LIBUNITE_COMMON) \
   $(LIBUNIVALUE) \
   $(LIBUNITE_UTIL) \
@@ -636,7 +636,7 @@ unite_tx_LDADD = \
   $(LIBUNITE_CRYPTO) \
   $(LIBSECP256K1)
 
-unite_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) \
+unit_e_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) \
   $(HIDAPI_LIBS) $(USB_LIBS)
 #
 

@@ -16,7 +16,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libuniteconsensus.pc
 endif
 
-UNITED_BIN=$(top_builddir)/src/$(UNITE_DAEMON_NAME)$(EXEEXT)
+UNIT_E_BIN=$(top_builddir)/src/$(UNITE_DAEMON_NAME)$(EXEEXT)
 UNITE_CLI_BIN=$(top_builddir)/src/$(UNITE_CLI_NAME)$(EXEEXT)
 UNITE_WIN_INSTALLER=$(PACKAGE)-$(PACKAGE_VERSION)-win$(WINDOWS_BITS)-setup$(EXEEXT)
 
@@ -24,9 +24,9 @@ empty :=
 space := $(empty) $(empty)
 
 DIST_DOCS = $(wildcard doc/*.md) $(wildcard doc/release-notes/*.md)
-DIST_CONTRIB = $(top_srcdir)/contrib/unite-cli.bash-completion \
-	       $(top_srcdir)/contrib/unite-tx.bash-completion \
-	       $(top_srcdir)/contrib/united.bash-completion \
+DIST_CONTRIB = $(top_srcdir)/contrib/unit-e-cli.bash-completion \
+	       $(top_srcdir)/contrib/unit-e-tx.bash-completion \
+	       $(top_srcdir)/contrib/unit-e.bash-completion \
 	       $(top_srcdir)/contrib/init \
 	       $(top_srcdir)/contrib/install_db4.sh
 DIST_SHARE = \
@@ -51,7 +51,7 @@ dist-hook:
 
 $(UNITE_WIN_INSTALLER): all-recursive
 	$(MKDIR_P) $(top_builddir)/release
-	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(UNITED_BIN) $(top_builddir)/release
+	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(UNIT_E_BIN) $(top_builddir)/release
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(UNITE_CLI_BIN) $(top_builddir)/release
 	@test -f $(MAKENSIS) && $(MAKENSIS) -V2 $(top_builddir)/share/setup.nsi || \
 	  ( echo error: could not build $@ && exit 1 )
@@ -61,7 +61,7 @@ if TARGET_WINDOWS
 deploy: $(UNITE_WIN_INSTALLER)
 endif
 
-$(UNITED_BIN): FORCE
+$(UNIT_E_BIN): FORCE
 	$(MAKE) -C src $(@F)
 
 $(UNITE_CLI_BIN): FORCE

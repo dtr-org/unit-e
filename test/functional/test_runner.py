@@ -161,7 +161,7 @@ BASE_SCRIPTS= [
     'rpc_getblocksnapshot.py',
     'feature_snapshot_creation.py',
     'feature_finalizer.py',
-    'interface_unite_cli.py',
+    'interface_unit_e_cli.py',
     'mempool_resurrect.py',
     'mempool_spend_coinbase.py',
     'p2p_invalid_stake.py',
@@ -270,7 +270,7 @@ def main():
 
     enable_wallet = config["components"].getboolean("ENABLE_WALLET")
     enable_utils = config["components"].getboolean("ENABLE_UTILS")
-    enable_united = config["components"].getboolean("ENABLE_UNITED")
+    enable_unit_e = config["components"].getboolean("ENABLE_UNIT_E")
     enable_usbdevice = config["components"].getboolean("ENABLE_USBDEVICE")
 
     if config["environment"]["EXEEXT"] == ".exe" and not args.force:
@@ -279,8 +279,8 @@ def main():
         print("Tests currently disabled on Windows by default. Use --force option to enable")
         sys.exit(0)
 
-    if not (enable_wallet and enable_utils and enable_united):
-        print("No functional tests to run. Wallet, utils, and united must all be enabled")
+    if not (enable_wallet and enable_utils and enable_unit_e):
+        print("No functional tests to run. Wallet, utils, and unit-e must all be enabled")
         print("Rerun `configure` with -enable-wallet, -with-utils and -with-daemon and rerun make")
         sys.exit(0)
 
@@ -335,10 +335,10 @@ def main():
     run_tests(test_list, config["environment"]["SRCDIR"], config["environment"]["BUILDDIR"], config["environment"]["EXEEXT"], tmpdir, args.jobs, args.coverage, passon_args, args.combinedlogslen)
 
 def run_tests(test_list, src_dir, build_dir, exeext, tmpdir, jobs=1, enable_coverage=False, args=[], combined_logs_len=0):
-    # Warn if united is already running (unix only)
+    # Warn if unit-e is already running (unix only)
     try:
-        if subprocess.check_output(["pidof", "united"]) is not None:
-            print("%sWARNING!%s There is already a united process running on this system. Tests may fail unexpectedly due to resource contention!" % (BOLD[1], BOLD[0]))
+        if subprocess.check_output(["pidof", "unit-e"]) is not None:
+            print("%sWARNING!%s There is already a unit-e process running on this system. Tests may fail unexpectedly due to resource contention!" % (BOLD[1], BOLD[0]))
     except (OSError, subprocess.SubprocessError):
         pass
 
@@ -348,9 +348,9 @@ def run_tests(test_list, src_dir, build_dir, exeext, tmpdir, jobs=1, enable_cove
         print("%sWARNING!%s There is a cache directory here: %s. If tests fail unexpectedly, try deleting the cache directory." % (BOLD[1], BOLD[0], cache_dir))
 
     #Set env vars
-    if "UNITED" not in os.environ:
-        os.environ["UNITED"] = build_dir + '/src/united' + exeext
-        os.environ["UNITECLI"] = build_dir + '/src/unite-cli' + exeext
+    if "UNIT_E" not in os.environ:
+        os.environ["UNIT_E"] = build_dir + '/src/unit-e' + exeext
+        os.environ["UNIT_E_CLI"] = build_dir + '/src/unit-e-cli' + exeext
 
     tests_dir = src_dir + '/test/functional/'
 
@@ -447,7 +447,7 @@ class TestHandler:
         self.test_list = test_list
         self.flags = flags
         self.num_running = 0
-        # In case there is a graveyard of zombie uniteds, we can apply a
+        # In case there is a graveyard of zombie unit-e daemons, we can apply a
         # pseudorandom offset to hopefully jump over them.
         # (625 is PORT_RANGE/MAX_NODES)
         self.portseed_offset = int(time.time() * 1000) % 625
@@ -567,7 +567,7 @@ class RPCCoverage():
     Coverage calculation works by having each test script subprocess write
     coverage files into a particular directory. These files contain the RPC
     commands invoked during testing, as well as a complete listing of RPC
-    commands per `unite-cli help` (`rpc_interface.txt`).
+    commands per `unit-e-cli help` (`rpc_interface.txt`).
 
     After all tests complete, the commands run are combined and diff'd against
     the complete list to calculate uncovered RPC commands.

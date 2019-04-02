@@ -524,7 +524,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected(RejectResult(16, b'bad-cb-length'))
         comp_snapshot_hash(23)
 
-        # Extend the b26 chain to make sure united isn't accepting b26
+        # Extend the b26 chain to make sure unit-e isn't accepting b26
         block(27, get_staking_coin(), spend=out[7])
         yield rejected(False)
         comp_snapshot_hash(23)
@@ -538,7 +538,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected(RejectResult(16, b'bad-cb-length'))
         comp_snapshot_hash(23)
 
-        # Extend the b28 chain to make sure united isn't accepting b28
+        # Extend the b28 chain to make sure unit-e isn't accepting b28
         block(29, get_staking_coin(), spend=out[7])
         yield rejected(False)
         comp_snapshot_hash(23)

@@ -1,11 +1,11 @@
 Sample configuration files for:
 ```
-SystemD: united.service
-Upstart: united.conf
-OpenRC:  united.openrc
-         united.openrcconf
-CentOS:  united.init
-OS X:    org.unite.united.plist
+SystemD: unit-e.service
+Upstart: unit-e.conf
+OpenRC:  unit-e.openrc
+         unit-e.openrcconf
+CentOS:  unit-e.init
+OS X:    org.unite.unit-e.plist
 ```
 have been made available to assist packagers in creating node packages here.
 
