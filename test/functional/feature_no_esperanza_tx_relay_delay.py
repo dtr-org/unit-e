@@ -72,7 +72,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             return sum(l) / len(l)
 
         def median(l):
-            assert len(l) % 2 == 1
+            assert_equal(len(l) % 2, 1)
             return sorted(l)[int(len(l)/2)]
 
         def new_votes_in_mempool(node):
