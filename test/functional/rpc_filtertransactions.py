@@ -5,7 +5,6 @@
 
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
-from test_framework.address import *
 
 class FilterTransactionsTest(UnitETestFramework):
     def set_test_params(self):
