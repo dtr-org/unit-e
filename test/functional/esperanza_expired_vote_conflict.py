@@ -2,7 +2,7 @@
 # Copyright (c) 2018-2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
-from test_framework.mininode import P2PInterface, network_thread_start
+from test_framework.mininode import P2PInterface
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import json, sync_blocks, assert_equal, wait_until
 import os.path
@@ -56,7 +56,6 @@ class ExpiredVoteConflict(UnitETestFramework):
         relay.relay_txs = True
         relay.connect_nodes(proposer, validator)
 
-        network_thread_start()
         relay.wait_for_verack()
 
         # Exit IBD
