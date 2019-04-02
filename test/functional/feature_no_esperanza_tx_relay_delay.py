@@ -59,8 +59,8 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         self.setup_stake_coins(middle, finalizer)
 
         # create network topology where arrows denote the connection direction:
-        #       finalizer
-        #          ↑
+        #         finalizer
+        #             ↑
         # inbound → middle → outbound
         connect_nodes(inbound, middle.index)
         connect_nodes(middle, outbound.index)
@@ -72,7 +72,7 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
             return sum(l) / len(l)
 
         def median(l):
-            assert(len(l) % 2 == 1)
+            assert len(l) % 2 == 1
             return sorted(l)[int(len(l)/2)]
 
         def new_votes_in_mempool(node):
