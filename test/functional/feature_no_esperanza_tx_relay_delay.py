@@ -29,7 +29,7 @@ from test_framework.messages import (
 import time
 from functools import reduce
 
-TEST_SAMPLES = 5
+TEST_SAMPLES = 11
 
 
 class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
@@ -199,6 +199,8 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         assert median(inbound_vote_delays) < median(inbound_delays)
         assert mean(outbound_vote_delays) < mean(outbound_delays)
         assert median(outbound_vote_delays) < mean(outbound_delays)
+
+        assert False
 
 
 if __name__ == '__main__':
