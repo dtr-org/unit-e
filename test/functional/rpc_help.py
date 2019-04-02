@@ -43,7 +43,6 @@ class HelpRpcTest(UnitETestFramework):
             'Network',
             'Rawtransactions',
             'Snapshot',
-            'Usbdevice',
             'Util',
         ]
 
@@ -52,6 +51,10 @@ class HelpRpcTest(UnitETestFramework):
 
         if self.is_zmq_compiled():
             components.append('Zmq')
+
+        if self.is_usbdevice_compiled():
+            components.append('Usbdevice')
+        components.sort()
 
         assert_equal(titles, components)
 

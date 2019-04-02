@@ -666,3 +666,10 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         config.read_file(open(self.options.configfile))
 
         return config["components"].getboolean("ENABLE_ZMQ")
+
+    def is_usbdevice_compiled(self):
+        """Checks whether the zmq module was compiled."""
+        config = configparser.ConfigParser()
+        config.read_file(open(self.options.configfile))
+
+        return config["components"].getboolean("ENABLE_USBDEVICE")
