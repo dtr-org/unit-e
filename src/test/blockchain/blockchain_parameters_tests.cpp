@@ -15,12 +15,12 @@ BOOST_AUTO_TEST_CASE(reward_function_test) {
   Parameters params = blockchain::Parameters::TestNet();
 
   CAmount block_reward = params.reward_function(params, 0);
-  BOOST_CHECK_EQUAL(61810000, block_reward);
+  BOOST_CHECK_EQUAL(618100000, block_reward);
 
   const int64_t expected_height_after_50_years = 50 * 60 * 60 * 24 * 365 / params.block_time_seconds;
 
   block_reward = params.reward_function(params, expected_height_after_50_years + 1);
-  BOOST_CHECK_EQUAL(61810000, block_reward);
+  BOOST_CHECK_EQUAL(618100000, block_reward);
 }
 
 class ActiveChainWithTime : public ChainAccess {

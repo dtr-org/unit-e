@@ -44,7 +44,7 @@ Parameters Parameters::Base() noexcept {
   p.finalization_reward_fraction = ufp64::div_2uint(4, 10);
   assert(p.expected_maximum_supply == p.initial_supply + (p.reward * avg_blocks_per_year * expected_emission_years));
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
-    return ufp64::mul_to_uint(p.immediate_reward_fraction, p.reward);
+    return p.reward;
   };
 
   p.difficulty_adjustment_window = 128;
