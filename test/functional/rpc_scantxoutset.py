@@ -19,6 +19,8 @@ class ScantxoutsetTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def run_test(self):
+        self.setup_stake_coins(self.nodes[0])
+
         self.log.info("Mining blocks...")
         self.nodes[0].generate(110)
 
@@ -53,6 +55,7 @@ class ScantxoutsetTest(UnitETestFramework):
         self.stop_node(0)
         shutil.rmtree(os.path.join(self.nodes[0].datadir, "regtest", 'wallets'))
         self.start_node(0)
+        self.setup_stake_coins(self.nodes[0])
         self.nodes[0].generate(110)
 
         self.restart_node(0, ['-nowallet'])
