@@ -77,11 +77,20 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
   // logout
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 6);
 
   Validator *validator = &(*spy.pValidators())[validatorAddress];
 
+  // Logout delay is set in dynasties but since we have finalization
+  // every epoch, it's equal to number of epochs.
+  // epoch=706 is the last epoch the finalizer can vote
   uint32_t end_logout = spy.GetCurrentEpoch() + static_cast<uint32_t>(spy.DynastyLogoutDelay());
+  BOOST_CHECK_EQUAL(end_logout, 706);
+
+  // From epoch end_logout+1 until end_withdraw-1 finalizer can't withdraw.
+  // At end_withdraw or later finalizer can withdraw its deposit.
   uint32_t end_withdraw = end_logout + static_cast<uint32_t>(spy.WithdrawalEpochDelay());
+  BOOST_CHECK_EQUAL(end_withdraw, 15706);
 
   for (uint32_t i = spy.GetCurrentEpoch(); i < end_withdraw; ++i) {
     if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {

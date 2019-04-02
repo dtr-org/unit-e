@@ -78,7 +78,7 @@ void FinalizationStateSpy::shuffle() {
   m_current_dynasty = Rand<uint32_t>();
   m_cur_dyn_deposits = Rand<CAmount>();
   m_prev_dyn_deposits = Rand<CAmount>();
-  m_expected_source_epoch = Rand<CAmount>();
+  m_expected_source_epoch = Rand<uint32_t>();
   m_last_finalized_epoch = Rand<uint32_t>();
   m_last_justified_epoch = Rand<uint32_t>();
   m_recommended_target_hash = GetRandHash();
@@ -89,3 +89,25 @@ void FinalizationStateSpy::shuffle() {
 }
 
 #undef ConstRand
+
+void FinalizationStateSpy::CreateAndActivateDeposit(const uint160 &validator_address, CAmount deposit_size) {
+  BOOST_REQUIRE_EQUAL(GetCurrentEpoch(), 0);
+
+  Result res = ValidateDeposit(validator_address, deposit_size);
+  BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
+
+  ProcessDeposit(validator_address, deposit_size);
+
+  for (uint32_t i = 1; i < 6 * EpochLength() + 1; i += EpochLength()) {
+    BOOST_REQUIRE_EQUAL(GetActiveFinalizers().size(), 0);
+
+    res = InitializeEpoch(i);
+    BOOST_REQUIRE_EQUAL(res, +Result::SUCCESS);
+  }
+
+  BOOST_REQUIRE_EQUAL(GetCurrentDynasty(), 3);
+  BOOST_REQUIRE_EQUAL(GetCurrentEpoch(), 6);
+  BOOST_REQUIRE_EQUAL(GetLastJustifiedEpoch(), 4);
+  BOOST_REQUIRE_EQUAL(GetLastFinalizedEpoch(), 3);
+  BOOST_REQUIRE_EQUAL(GetActiveFinalizers().size(), 1);
+}
