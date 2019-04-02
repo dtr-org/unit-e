@@ -217,6 +217,10 @@ class P2PConnection(asyncio.Protocol):
 
     # Socket write methods
 
+    def send_data(self, command, data):
+        tmsg = self._build_data(command, data)
+        self._send_raw_message(tmsg)
+
     def send_message(self, message):
         """Send a P2P message over the socket.
 
@@ -226,7 +230,9 @@ class P2PConnection(asyncio.Protocol):
             raise IOError('Not connected')
         self._log_message("send", message)
         tmsg = self._build_message(message)
+        self._send_raw_message(tmsg)
 
+    def _send_raw_message(self, tmsg):
         def maybe_write():
             if not self._transport:
                 return
@@ -244,6 +250,9 @@ class P2PConnection(asyncio.Protocol):
         """Build a serialized P2P message"""
         command = message.command
         data = message.serialize()
+        return self._build_data(command, data)
+
+    def _build_data(self, command, data):
         tmsg = MAGIC_BYTES[self.network]
         tmsg += command
         tmsg += b"\x00" * (12 - len(command))

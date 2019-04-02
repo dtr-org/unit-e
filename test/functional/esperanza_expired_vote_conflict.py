@@ -122,11 +122,12 @@ class ExpiredVoteConflict(UnitETestFramework):
 # traffic between nodes. Can disable transactions relay while relaying blocks
 class MiniRelay:
     class Node(P2PInterface):
-        def __init__(self):
+        def __init__(self, network="regtest"):
             super().__init__()
             self.send_to = None
             self.relay_txs = True
             self.verack_received = False
+            self.network = network
 
         def on_data(self, command, raw_message):
             if not self.relay_txs and command == b'tx':
