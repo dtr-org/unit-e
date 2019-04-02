@@ -27,21 +27,8 @@ test_cannot_sync_with_snapshot checks:
 """
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.mininode import (
-    P2PInterface,
-    network_thread_start,
-    network_thread_join,
-    NODE_NETWORK,
-    NODE_WITNESS,
+from test_framework.messages import (
     NODE_SNAPSHOT,
-)
-from test_framework.blocktools import (
-    msg_headers,
-    msg_witness_block,
-    msg_getsnaphead,
-    msg_snaphead,
-    msg_getsnapshot,
-    msg_snapshot,
     SnapshotHeader,
     GetSnapshot,
     Snapshot,
@@ -49,6 +36,19 @@ from test_framework.blocktools import (
     CBlockHeader,
     CBlock,
     COutPoint,
+    msg_headers,
+    msg_witness_block,
+    msg_getsnaphead,
+    msg_snaphead,
+    msg_getsnapshot,
+    msg_snapshot,
+)
+from test_framework.mininode import (
+    P2PInterface,
+    NODE_NETWORK,
+    NODE_WITNESS,
+)
+from test_framework.blocktools import (
     ser_vector,
     ser_uint256,
     uint256_from_str,
