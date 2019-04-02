@@ -12,11 +12,11 @@ re-requested.
 """
 import copy
 
-from test_framework.blocktools import create_block, create_coinbase, create_tx_with_script
+from test_framework.blocktools import create_block, create_coinbase, create_tx_with_script, get_tip_snapshot_meta
 from test_framework.messages import UNIT
 from test_framework.mininode import P2PDataStore
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal
+from test_framework.util import assert_equal, get_unspent_coins
 
 class InvalidBlockRequestTest(UnitETestFramework):
     def set_test_params(self):
