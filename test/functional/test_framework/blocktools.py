@@ -16,16 +16,12 @@ from .messages import (
     COutPoint,
     CTransaction,
     CTxIn,
-    CTxInWitness,
     CTxOut,
     FromHex,
     ToHex,
     TxType,
     UTXO,
-    bytes_to_hex_str,
-    hash256,
-    hex_str_to_bytes,
-    ser_string,
+    msg_block,
     ser_uint256,
     ser_vector,
     sha256,
@@ -38,11 +34,14 @@ from .script import (
     OP_1,
     OP_CHECKMULTISIG,
     OP_CHECKSIG,
-    OP_RETURN,
     OP_TRUE,
     hash160,
 )
-from .util import assert_equal
+from .util import (
+    assert_equal,
+    bytes_to_hex_str,
+    hex_str_to_bytes,
+)
 from .test_framework import PROPOSER_REWARD
 from io import BytesIO
 
