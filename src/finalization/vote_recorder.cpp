@@ -133,12 +133,10 @@ std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {
 
 CScript VoteRecord::GetScript() const { return CScript::EncodeVote(vote, sig); }
 
-bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
+bool RecordVote(const CTransaction &tx,
+                CValidationState &err_state,
+                const FinalizationState &fin_state) {
   assert(tx.IsVote());
-
-  LOCK(GetComponent<StateRepository>()->GetLock());
-  const FinalizationState *fin_state = GetComponent<StateRepository>()->GetTipState();
-  assert(fin_state != nullptr);
 
   esperanza::Vote vote;
   std::vector<unsigned char> voteSig;
@@ -146,11 +144,11 @@ bool RecordVote(const CTransaction &tx, CValidationState &err_state) {
   if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, vote, voteSig)) {
     return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
   }
-  const esperanza::Result res = fin_state->ValidateVote(vote);
+  const esperanza::Result res = fin_state.ValidateVote(vote);
 
   if (res != +esperanza::Result::ADMIN_BLACKLISTED &&
       res != +esperanza::Result::VOTE_NOT_BY_VALIDATOR) {
-    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig, *fin_state);
+    finalization::VoteRecorder::GetVoteRecorder()->RecordVote(vote, voteSig, fin_state);
   }
 
   return true;

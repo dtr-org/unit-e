@@ -23,11 +23,14 @@ inline const CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
     return nullptr;
   }
 
-  auto fin_repo = GetComponent<finalization::StateRepository>();
-  const finalization::FinalizationState *fin_state = fin_repo->GetTipState();
-  if (bi->nHeight <= fin_state->GetEpochCheckpointHeight(fin_state->GetLastFinalizedEpoch())) {
-    LogPrint(BCLog::SNAPSHOT, "%s: block=%s height=%d is not finalized\n", hash.GetHex(), bi->nHeight);
-    return nullptr;
+  {
+    auto fin_repo = GetComponent<finalization::StateRepository>();
+    LOCK(fin_repo->GetLock());
+    const finalization::FinalizationState *fin_state = fin_repo->GetTipState();
+    if (bi->nHeight <= fin_state->GetEpochCheckpointHeight(fin_state->GetLastFinalizedEpoch())) {
+      LogPrint(BCLog::SNAPSHOT, "%s: block=%s height=%d is not finalized\n", hash.GetHex(), bi->nHeight);
+      return nullptr;
+    }
   }
 
   return bi;

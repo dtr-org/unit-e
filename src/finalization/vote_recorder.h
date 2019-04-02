@@ -63,7 +63,9 @@ class VoteRecorder : private boost::noncopyable {
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 
-bool RecordVote(const CTransaction &tx, CValidationState &err_state);
+bool RecordVote(const CTransaction &tx,
+                CValidationState &err_state,
+                const FinalizationState &fin_state);
 
 }  // namespace finalization
 

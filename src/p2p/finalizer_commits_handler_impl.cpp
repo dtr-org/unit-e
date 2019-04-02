@@ -322,9 +322,12 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
   std::list<const CBlockIndex *> to_append;
 
+  const bool fast_sync = snapshot::IsISDEnabled() && snapshot::IsInitialSnapshotDownload();
+
   const CBlockIndex *last_index = nullptr;
   {
     LOCK(m_active_chain->GetLock());
+    LOCK(m_repo->GetLock());
 
     for (const HeaderAndFinalizerCommits &d : msg.data) {
 
@@ -340,15 +343,25 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       }
 
       // UNIT-E TODO: Store finalizer transactions somewhere.
-      // We cannot perform ContextualCheck now as it relies on GetTransaction which effectively
-      // loads prev transaction from the disk. During commits exchange we do not have such data
-      // on the disk.
+      // We cannot perform ContextualCheck now as it relies on UTXO lookup. During commits
+      // exchange we do not have such data.
       // So, now just record the votes. ContextualCheck would be performed later after block
       // arrives.
 
+      // In case of fast-sync record votes relying on the previously processed finalization state.
+      // Otherwise use the tip's state.
+
+      const finalization::FinalizationState *fin_state = nullptr;
+      if (fast_sync && new_index->pprev != nullptr) {
+        fin_state = m_repo->Find(*new_index->pprev);
+      } else {
+        fin_state = m_repo->GetTipState();
+      }
+      assert(fin_state != nullptr);
+
       for (const auto &c : d.commits) {
         if (c->IsVote()) {
-          if (!finalization::RecordVote(*c, err_state)) {
+          if (!finalization::RecordVote(*c, err_state, *fin_state)) {
             return false;
           }
         }
@@ -383,8 +396,6 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
   blockchain::Height download_until = 0;
 
-  const bool snapshot_enabled = snapshot::IsISDEnabled() && snapshot::IsInitialSnapshotDownload();
-
   {
     LOCK(m_repo->GetLock());
 
@@ -396,7 +407,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
     const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
     const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
 
-    if (!snapshot_enabled && index_epoch > tip_epoch) {
+    if (!fast_sync && index_epoch > tip_epoch) {
       download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
       LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
                index_epoch, download_until);
@@ -413,7 +424,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       LogPrint(BCLog::NET, "Commits sync finished after processing header=%s, height=%d\n",
                last_index->GetBlockHash().GetHex(), last_index->nHeight);
       download_until = last_index->nHeight;
-      if (snapshot_enabled) {
+      if (fast_sync) {
         snapshot::HeadersDownloaded();
       }
       break;
@@ -423,7 +434,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       break;
   }
 
-  if (snapshot_enabled) {
+  if (fast_sync) {
     return true;
   }
 

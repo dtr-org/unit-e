@@ -6,7 +6,6 @@
 #include <esperanza/adminparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
-#include <finalization/vote_recorder.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
 #include <txmempool.h>
@@ -204,9 +203,9 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
   }
 
   // We keep the check for the prev at the end because is the most expensive
-  // check (potentially goes to disk) and there is a good chance that if the
-  // vote is not valid (i.e. outdated) then the function will return before
-  // reaching this point.
+  // check and there is a good chance that if the vote is not valid (i.e. outdated)
+  // then the function will return before reaching this point.
+
   TxType prev_tx_type = TxType::REGULAR;
   CScript prev_out_script;
 
@@ -345,18 +344,13 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
     return false;
   }
 
-  if (!finalization::RecordVote(tx, err_state)) {
-    return false;
-  }
-
   if (fin_state.ValidateVote(vote) != +Result::SUCCESS) {
     return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-invalid-state");
   }
 
   // We keep the check for the prev at the end because is the most expensive
-  // check (potentially goes to disk) and there is a good chance that if the
-  // vote is not valid (i.e. outdated) then the function will return before
-  // reaching this point.
+  // check and there is a good chance that if the vote is not valid (i.e. outdated)
+  // then the function will return before reaching this point.
 
   TxType prev_tx_type = TxType::REGULAR;
   CScript prev_out_script;
