@@ -134,18 +134,25 @@ const CLogCategoryDesc LogCategories[] =
 
 namespace {
 
+template <typename Callable>
+void ForEachLogCategory(Callable&& f) {
+    for (const CLogCategoryDesc &category_desc : LogCategories) {
+        if (category_desc.flag == static_cast<uint32_t>(BCLog::NONE) ||
+            category_desc.flag == static_cast<uint32_t>(BCLog::ALL)) {
+            continue;
+        }
+        f(category_desc);
+    }
+}
+
 //! @see http://supertech.csail.mit.edu/papers/debruijn.pdf
 std::array<std::string, 32> ComputeDeBrujinLabelTabel() {
     std::array<std::string, 32> categories;
-    for (const auto &logCategory : LogCategories) {
-        if (logCategory.flag == static_cast<uint32_t>(BCLog::NONE) ||
-            logCategory.flag == static_cast<uint32_t>(BCLog::ALL)) {
-            continue;
-        }
-        const uint32_t vec = logCategory.flag;
-        const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
-        categories[pos] = logCategory.category;
-    }
+    ForEachLogCategory([&](const CLogCategoryDesc &category_desc) {
+          const uint32_t vec = category_desc.flag;
+          const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
+          categories[pos] = category_desc.category;
+    });
     return categories;
 }
 
@@ -159,11 +166,23 @@ std::string GetLogCategoryLabel(const BCLog::LogFlags category) {
     return labels[pos];
 }
 
+std::size_t ComputeLogCategoryMaxLength() {
+    std::size_t length = 0;
+    ForEachLogCategory([&](const CLogCategoryDesc &category_desc) {
+        length = std::max<std::size_t>(length, category_desc.category.size());
+    });
+    return length;
+}
+
+std::string ComputeCategoryFormatString() {
+  return strprintf("[%%%ds] ", ComputeLogCategoryMaxLength());
+}
+
 }
 
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)
 {
-    if (str == "") {
+    if (str.empty()) {
         flag = BCLog::ALL;
         return true;
     }
@@ -180,14 +199,13 @@ std::string ListLogCategories()
 {
     std::string ret;
     int outcount = 0;
-    for (const CLogCategoryDesc& category_desc : LogCategories) {
-        // Omit the special cases.
-        if (category_desc.flag != BCLog::NONE && category_desc.flag != BCLog::ALL) {
-            if (outcount != 0) ret += ", ";
-            ret += category_desc.category;
-            outcount++;
+    ForEachLogCategory([&](const CLogCategoryDesc &category_desc) {
+        if (outcount != 0) {
+            ret += ", ";
         }
-    }
+        ret += category_desc.category;
+        outcount++;
+    });
     return ret;
 }
 
@@ -210,9 +228,9 @@ std::string BCLog::Logger::LogPrependHeader(const std::string &str, BCLog::LogFl
 {
     std::string strStamped;
 
-    if (!m_log_timestamps && !m_log_thread_names && !m_log_categories)
+    if (!m_log_timestamps && !m_log_thread_names && !m_log_categories) {
         return str;
-
+    }
     if (m_started_new_line) {
         if (m_log_timestamps) {
             int64_t nTimeMicros = GetTimeMicros();
@@ -224,13 +242,15 @@ std::string BCLog::Logger::LogPrependHeader(const std::string &str, BCLog::LogFl
             strStamped += ' ';
         }
 
-        if (m_log_thread_names) {
-            strStamped += g_thread_name;
-            strStamped += ' ';
+        if (m_log_categories) {
+            static std::string fmt = ComputeCategoryFormatString();
+            strStamped += strprintf(fmt, GetLogCategoryLabel(category));
         }
 
-        if (m_log_categories) {
-            strStamped += strprintf("[%12s] ", GetLogCategoryLabel(category));
+        if (m_log_thread_names) {
+            strStamped += '<';
+            strStamped += g_thread_name;
+            strStamped += "> ";
         }
 
         if (m_log_timestamps) {
@@ -241,13 +261,11 @@ std::string BCLog::Logger::LogPrependHeader(const std::string &str, BCLog::LogFl
         }
 
         strStamped += str;
-    } else
+    } else {
         strStamped = str;
+    }
 
-    if (!str.empty() && str[str.size()-1] == '\n')
-        m_started_new_line = true;
-    else
-        m_started_new_line = false;
+    m_started_new_line = !str.empty() && str[str.size()-1] == '\n';
 
     return strStamped;
 }
@@ -312,7 +330,7 @@ void BCLog::Logger::ShrinkDebugFile()
             fclose(file);
             return;
         }
-        int nBytes = fread(vch.data(), 1, vch.size(), file);
+        std::size_t nBytes = fread(vch.data(), 1, vch.size(), file);
         fclose(file);
 
         file = fsbridge::fopen(m_file_path, "w");
