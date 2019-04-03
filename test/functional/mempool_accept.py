@@ -5,7 +5,7 @@
 """Test mempool acceptance of raw transactions."""
 
 from io import BytesIO
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.messages import (
     BIP125_SEQUENCE_NUMBER,
     UNIT,
@@ -62,11 +62,14 @@ class MempoolAcceptanceTest(UnitETestFramework):
         assert_raises_rpc_error(-8, 'Array must contain exactly one raw transaction for now', lambda: node.testmempoolaccept(rawtxs=['ff00baar', 'ff22']))
         assert_raises_rpc_error(-22, 'TX decode failed', lambda: node.testmempoolaccept(rawtxs=['ff00baar']))
 
+        # Only leave block rewards to spend
+        self.nodes[0].lockunspent(False, self.nodes[0].listunspent(query_options={'minimumAmount': 1000}))
+
         self.log.info('A transaction already in the blockchain')
         coin = node.listunspent()[0]  # Pick a random coin(base) to spend
         raw_tx_in_block = node.signrawtransactionwithwallet(node.createrawtransaction(
             inputs=[{'txid': coin['txid'], 'vout': coin['vout']}],
-            outputs=[{node.getnewaddress(): 0.3}, {node.getnewaddress(): 49}],
+            outputs=[{node.getnewaddress(): 0.3}, {node.getnewaddress(): PROPOSER_REWARD - 1}],
         ))['hex']
         txid_in_block = node.sendrawtransaction(hexstring=raw_tx_in_block, allowhighfees=True)
         node.generate(1)
@@ -197,7 +200,7 @@ class MempoolAcceptanceTest(UnitETestFramework):
 
         self.log.info('A transaction with too large output value')
         tx.deserialize(BytesIO(hex_str_to_bytes(raw_tx_reference)))
-        tx.vout[0].nValue = 21000000 * UNIT + 1
+        tx.vout[0].nValue = 2718275100 * UNIT + 1
         self.check_mempool_result(
             result_expected=[{'txid': tx.rehash(), 'allowed': False, 'reject-reason': '16: bad-txns-vout-toolarge'}],
             rawtxs=[bytes_to_hex_str(tx.serialize())],
@@ -206,7 +209,7 @@ class MempoolAcceptanceTest(UnitETestFramework):
         self.log.info('A transaction with too large sum of output values')
         tx.deserialize(BytesIO(hex_str_to_bytes(raw_tx_reference)))
         tx.vout = [tx.vout[0]] * 2
-        tx.vout[0].nValue = 21000000 * UNIT
+        tx.vout[0].nValue = 2718275100 * UNIT
         self.check_mempool_result(
             result_expected=[{'txid': tx.rehash(), 'allowed': False, 'reject-reason': '16: bad-txns-txouttotal-toolarge'}],
             rawtxs=[bytes_to_hex_str(tx.serialize())],
