@@ -53,14 +53,14 @@ CPPFILT_CMD = os.getenv('CPPFILT', '/usr/bin/c++filt')
 # Allowed NEEDED libraries
 ALLOWED_LIBRARIES = {
 # united
-b'libgcc_s.so.1', # GCC base support
-b'libc.so.6', # C library
-b'libpthread.so.0', # threading
-b'libanl.so.1', # DNS resolve
-b'libm.so.6', # math library
-b'librt.so.1', # real-time (clock)
-b'ld-linux-x86-64.so.2', # 64-bit dynamic linker
-b'ld-linux.so.2', # 32-bit dynamic linker
+'libgcc_s.so.1', # GCC base support
+'libc.so.6', # C library
+'libpthread.so.0', # threading
+'libanl.so.1', # DNS resolve
+'libm.so.6', # math library
+'librt.so.1', # real-time (clock)
+'ld-linux-x86-64.so.2', # 64-bit dynamic linker
+'ld-linux.so.2', # 32-bit dynamic linker
 }
 
 class CPPFilt(object):
