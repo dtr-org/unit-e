@@ -9,7 +9,12 @@ import random
 import struct
 import time
 
-from test_framework.blocktools import create_block, create_coinbase, sign_coinbase
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+    get_tip_snapshot_meta,
+    sign_coinbase,
+)
 from test_framework.key import CECKey, CPubKey
 from test_framework.messages import (
     BIP125_SEQUENCE_NUMBER,
@@ -84,6 +89,7 @@ from test_framework.util import (
     connect_nodes,
     disconnect_nodes,
     get_bip9_status,
+    get_unspent_coins,
     hex_str_to_bytes,
     sync_blocks,
     sync_mempools,
@@ -291,15 +297,11 @@ class SegWitTest(UnitETestFramework):
     def subtest(func):  # noqa: N805
         """Wraps the subtests for logging and state assertions."""
         def func_wrapper(self, *args, **kwargs):
-            self.log.info("Subtest: {} (Segwit status = {})".format(func.__name__, self.segwit_status))
-            # Assert segwit status is as expected
-            assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], self.segwit_status)
+            self.log.info("Subtest: %s" % func.__name__)
             func(self, *args, **kwargs)
             # Each subtest should leave some utxos for the next subtest
             assert self.utxo
             sync_blocks(self.nodes)
-            # Assert segwit status is as expected at end of subtest
-            assert_equal(get_bip9_status(self.nodes[0], 'segwit')['status'], self.segwit_status)
 
         return func_wrapper
 
