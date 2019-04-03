@@ -74,7 +74,7 @@ Style guide Python
 Refer to
 [/test/functional/README.md#style-guidelines](/test/functional/README.md#style-guidelines).
 You can check the code for style violations by running
-[`contrib/devtools/lint-python.sh`](../contrib/devtools/lint-python.sh).
+[`test/lint/lint-python.sh`](/test/lint/lint-python.sh).
 
 UNIT-E tag
 ------------
@@ -640,11 +640,11 @@ to check a subtree directory for consistency with its upstream repository. Run
 it for example as:
 
 ```console
-$ contrib/devtools/git-subtree-check.sh src/secp256k1
+$ test/lint/git-subtree-check.sh src/secp256k1
 src/secp256k1 in HEAD currently refers to tree 8ae830321a35bc7499991d5428bec2b231f0f154
 src/secp256k1 in HEAD was last updated in commit 520d78e7c9698245e8da1509661922068ffe67ed (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
 src/secp256k1 in HEAD was last updated to upstream commit f43d43b1a4b9d2eb426d131f9a9b756de6a2cce2 (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
-GOOD    contrib/devtools/git/subtree
+GOOD
 ```
 
 ### Updating subtrees
