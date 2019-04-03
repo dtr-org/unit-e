@@ -10,7 +10,6 @@ from test_framework.util import (
     assert_finalizationstate,
     sync_blocks,
     disconnect_nodes,
-    sync_mempools,
     assert_raises_rpc_error,
     wait_until,
 )
@@ -60,7 +59,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         # Leave IBD
         proposer.generate(1)
-        sync_blocks([finalizer1, finalizer2])
+        sync_blocks([finalizer1, finalizer2], timeout=10)
 
         deptx_1 = finalizer1.deposit(finalizer1.getnewaddress("", "legacy"), 1500)
         deptx_2 = finalizer2.deposit(finalizer2.getnewaddress("", "legacy"), 3001)
@@ -98,6 +97,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         # At dynasty=3+3=6 finalizer is still voting
         # At dynasty=7 finalizer doesn't vote
         connect_nodes(finalizer1, proposer.index)
+        sync_blocks([finalizer1, proposer], timeout=10)
         logout_tx = finalizer1.logout()
         wait_until(lambda: logout_tx in proposer.getrawmempool(), timeout=10)
         disconnect_nodes(finalizer1, proposer.index)
@@ -144,7 +144,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         # finalizer1 is not validating so we can keep it connected
         connect_nodes(finalizer1, proposer.index)
-        sync_blocks([finalizer1, proposer])
+        sync_blocks([finalizer1, proposer], timeout=10)
         assert_equal(finalizer1.getvalidatorinfo()["validator_status"], "NOT_VALIDATING")
         assert_raises_rpc_error(-8, "The node is not validating.", finalizer1.logout)
 
