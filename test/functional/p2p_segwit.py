@@ -100,13 +100,32 @@ from test_framework.util import (
 
 MAX_SIGOP_COST = 80000
 
-# Calculate the virtual size of a witness block:
-# (base + witness/4)
+class UTXO():
+    """Used to keep track of anyone-can-spend outputs that we can use in the tests."""
+    def __init__(self, sha256, n, value):
+        self.sha256 = sha256
+        self.n = n
+        self.nValue = value
+
+def get_p2pkh_script(pubkeyhash):
+    """Get the script associated with a P2PKH."""
+    return CScript([CScriptOp(OP_DUP), CScriptOp(OP_HASH160), pubkeyhash, CScriptOp(OP_EQUALVERIFY), CScriptOp(OP_CHECKSIG)])
+
+def sign_p2pk_witness_input(script, tx_to, in_idx, hashtype, value, key):
+    """Add signature for a P2PK witness program."""
+    tx_hash = SegwitVersion1SignatureHash(script, tx_to, in_idx, hashtype, value)
+    signature = key.sign(tx_hash) + chr(hashtype).encode('latin-1')
+    tx_to.wit.vtxinwit[in_idx].scriptWitness.stack = [signature, script]
+    tx_to.rehash()
+
 def get_virtual_size(witness_block):
+    """Calculate the virtual size of a witness block.
+
+    Virtual size is base + witness/4."""
     base_size = len(witness_block.serialize(with_witness=False))
     total_size = len(witness_block.serialize(with_witness=True))
     # the "+3" is so we round up
-    vsize = int((3*base_size + total_size + 3)/4)
+    vsize = int((3 * base_size + total_size + 3) / 4)
     return vsize
 
 def test_transaction_acceptance(rpc, p2p, tx, with_witness, accepted, reason=None):
@@ -174,23 +193,46 @@ class TestNode(P2PInterface):
         self.wait_for_block(blockhash, timeout)
         return self.last_message["block"].block
 
-# Used to keep track of anyone-can-spend outputs that we can use in the tests
-class UTXO():
-    def __init__(self, sha256, n, nValue):
-        self.sha256 = sha256
-        self.n = n
-        self.nValue = nValue
 
-# Helper for getting the script associated with a P2PKH
-def GetP2PKHScript(pubkeyhash):
-    return CScript([CScriptOp(OP_DUP), CScriptOp(OP_HASH160), pubkeyhash, CScriptOp(OP_EQUALVERIFY), CScriptOp(OP_CHECKSIG)])
+class TestP2PConn(P2PInterface):
+    def __init__(self):
+        super().__init__()
+        self.getdataset = set()
 
-# Add signature for a P2PK witness program.
-def sign_P2PK_witness_input(script, txTo, inIdx, hashtype, value, key):
-    tx_hash = SegwitVersion1SignatureHash(script, txTo, inIdx, hashtype, value)
-    signature = key.sign(tx_hash) + chr(hashtype).encode('latin-1')
-    txTo.wit.vtxinwit[inIdx].scriptWitness.stack = [signature, script]
-    txTo.rehash()
+    def on_getdata(self, message):
+        for inv in message.inv:
+            self.getdataset.add(inv.hash)
+
+    def announce_tx_and_wait_for_getdata(self, tx, timeout=60, success=True):
+        with mininode_lock:
+            self.last_message.pop("getdata", None)
+        self.send_message(msg_inv(inv=[CInv(1, tx.sha256)]))
+        if success:
+            self.wait_for_getdata(timeout)
+        else:
+            time.sleep(timeout)
+            assert not self.last_message.get("getdata")
+
+    def announce_block_and_wait_for_getdata(self, block, use_header, timeout=60):
+        with mininode_lock:
+            self.last_message.pop("getdata", None)
+            self.last_message.pop("getheaders", None)
+        msg = msg_headers()
+        msg.headers = [CBlockHeader(block)]
+        if use_header:
+            self.send_message(msg)
+        else:
+            self.send_message(msg_inv(inv=[CInv(2, block.sha256)]))
+            self.wait_for_getheaders()
+            self.send_message(msg)
+        self.wait_for_getdata()
+
+    def request_block(self, blockhash, inv_type, timeout=60):
+        with mininode_lock:
+            self.last_message.pop("block", None)
+        self.send_message(msg_getdata(inv=[CInv(inv_type, blockhash)]))
+        self.wait_for_block(blockhash, timeout)
+        return self.last_message["block"].block
 
 
 class SegWitTest(UnitETestFramework):
@@ -233,6 +275,18 @@ class SegWitTest(UnitETestFramework):
     def test_witness_services(self):
         self.log.info("Verifying NODE_WITNESS service bit")
         assert((self.test_node.nServices & NODE_WITNESS) != 0)
+
+
+    def subtest(func):  # noqa: N805
+        """Wraps the subtests for logging and state assertions."""
+        def func_wrapper(self, *args, **kwargs):
+            self.log.info("Subtest: %s" % func.__name__)
+            func(self, *args, **kwargs)
+            # Each subtest should leave some utxos for the next subtest
+            assert self.utxo
+            sync_blocks(self.nodes, timeout=10)
+
+        return func_wrapper
 
 
     # See if sending a regular transaction works, and create a utxo
@@ -957,18 +1011,18 @@ class SegWitTest(UnitETestFramework):
                 tx.vout.append(CTxOut(prev_utxo.nValue - 1000, scriptPubKey))
                 tx.wit.vtxinwit.append(CTxInWitness())
                 # Too-large input value
-                sign_P2PK_witness_input(witness_program, tx, 0, hashtype, prev_utxo.nValue+1, key)
+                sign_p2pk_witness_input(witness_program, tx, 0, hashtype, prev_utxo.nValue+1, key)
                 self.update_witness_block_with_transactions(block, [tx])
                 test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=False)
 
                 # Too-small input value
-                sign_P2PK_witness_input(witness_program, tx, 0, hashtype, prev_utxo.nValue-1, key)
+                sign_p2pk_witness_input(witness_program, tx, 0, hashtype, prev_utxo.nValue-1, key)
                 block.vtx.pop() # remove last tx
                 self.update_witness_block_with_transactions(block, [tx])
                 test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=False)
 
                 # Now try correct value
-                sign_P2PK_witness_input(witness_program, tx, 0, hashtype, prev_utxo.nValue, key)
+                sign_p2pk_witness_input(witness_program, tx, 0, hashtype, prev_utxo.nValue, key)
                 block.vtx.pop()
                 self.update_witness_block_with_transactions(block, [tx])
                 test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=True)
@@ -989,7 +1043,7 @@ class SegWitTest(UnitETestFramework):
         for i in range(NUM_TESTS):
             tx.vout.append(CTxOut(split_value, scriptPubKey))
         tx.wit.vtxinwit.append(CTxInWitness())
-        sign_P2PK_witness_input(witness_program, tx, 0, SIGHASH_ALL, prev_utxo.nValue, key)
+        sign_p2pk_witness_input(witness_program, tx, 0, SIGHASH_ALL, prev_utxo.nValue, key)
         for i in range(NUM_TESTS):
             temp_utxos.append(UTXO(tx.sha256, i, split_value))
 
@@ -1024,7 +1078,7 @@ class SegWitTest(UnitETestFramework):
                 if random.randint(0, 1):
                     anyonecanpay = SIGHASH_ANYONECANPAY
                 hashtype = random.randint(1, 3) | anyonecanpay
-                sign_P2PK_witness_input(witness_program, tx, i, hashtype, temp_utxos[i].nValue, key)
+                sign_p2pk_witness_input(witness_program, tx, i, hashtype, temp_utxos[i].nValue, key)
                 if (hashtype == SIGHASH_SINGLE and i >= num_outputs):
                     used_sighash_single_out_of_bounds = True
             tx.rehash()
@@ -1054,12 +1108,12 @@ class SegWitTest(UnitETestFramework):
         tx.vin.append(CTxIn(COutPoint(temp_utxos[0].sha256, temp_utxos[0].n), b""))
         tx.vout.append(CTxOut(temp_utxos[0].nValue, scriptPKH))
         tx.wit.vtxinwit.append(CTxInWitness())
-        sign_P2PK_witness_input(witness_program, tx, 0, SIGHASH_ALL, temp_utxos[0].nValue, key)
+        sign_p2pk_witness_input(witness_program, tx, 0, SIGHASH_ALL, temp_utxos[0].nValue, key)
         tx2 = CTransaction()
         tx2.vin.append(CTxIn(COutPoint(tx.sha256, 0), b""))
         tx2.vout.append(CTxOut(tx.vout[0].nValue, CScript([OP_TRUE])))
 
-        script = GetP2PKHScript(pubkeyhash)
+        script = get_p2pkh_script(pubkeyhash)
         sig_hash = SegwitVersion1SignatureHash(script, tx2, 0, SIGHASH_ALL, tx.vout[0].nValue)
         signature = key.sign(sig_hash) + b'\x01' # 0x1 is SIGHASH_ALL
 
@@ -1094,7 +1148,7 @@ class SegWitTest(UnitETestFramework):
             # the signatures as we go.
             tx.vin.append(CTxIn(COutPoint(i.sha256, i.n), b""))
             tx.wit.vtxinwit.append(CTxInWitness())
-            sign_P2PK_witness_input(witness_program, tx, index, SIGHASH_ALL|SIGHASH_ANYONECANPAY, i.nValue, key)
+            sign_p2pk_witness_input(witness_program, tx, index, SIGHASH_ALL|SIGHASH_ANYONECANPAY, i.nValue, key)
             index += 1
         block = self.build_next_block()
         self.update_witness_block_with_transactions(block, [tx])
@@ -1307,7 +1361,7 @@ class SegWitTest(UnitETestFramework):
         tx2 = CTransaction()
         tx2.vin.append(CTxIn(COutPoint(tx.sha256, 0), b""))
         tx2.vout.append(CTxOut(tx.vout[0].nValue-1000, scriptWSH))
-        script = GetP2PKHScript(pubkeyhash)
+        script = get_p2pkh_script(pubkeyhash)
         sig_hash = SegwitVersion1SignatureHash(script, tx2, 0, SIGHASH_ALL, tx.vout[0].nValue)
         signature = key.sign(sig_hash) + b'\x01' # 0x1 is SIGHASH_ALL
         tx2.wit.vtxinwit.append(CTxInWitness())
@@ -1332,7 +1386,7 @@ class SegWitTest(UnitETestFramework):
         tx3.vin.append(CTxIn(COutPoint(tx2.sha256, 0), b""))
         tx3.vout.append(CTxOut(tx2.vout[0].nValue-1000, scriptP2SH))
         tx3.wit.vtxinwit.append(CTxInWitness())
-        sign_P2PK_witness_input(witness_program, tx3, 0, SIGHASH_ALL, tx2.vout[0].nValue, key)
+        sign_p2pk_witness_input(witness_program, tx3, 0, SIGHASH_ALL, tx2.vout[0].nValue, key)
 
         # Should fail policy test.
         test_transaction_acceptance(self.nodes[0].rpc, self.test_node, tx3, True, False, b'non-mandatory-script-verify-flag (Using non-compressed keys in segwit)')
@@ -1344,12 +1398,12 @@ class SegWitTest(UnitETestFramework):
         # Test 3: P2SH(P2WSH)
         # Try to spend the P2SH output created in the last test.
         # Send it to a P2PKH output, which we'll use in the next test.
-        scriptPubKey = GetP2PKHScript(pubkeyhash)
+        scriptPubKey = get_p2pkh_script(pubkeyhash)
         tx4 = CTransaction()
         tx4.vin.append(CTxIn(COutPoint(tx3.sha256, 0), scriptSig))
         tx4.vout.append(CTxOut(tx3.vout[0].nValue-1000, scriptPubKey))
         tx4.wit.vtxinwit.append(CTxInWitness())
-        sign_P2PK_witness_input(witness_program, tx4, 0, SIGHASH_ALL, tx3.vout[0].nValue, key)
+        sign_p2pk_witness_input(witness_program, tx4, 0, SIGHASH_ALL, tx3.vout[0].nValue, key)
 
         # Should fail policy test.
         test_transaction_acceptance(self.nodes[0].rpc, self.test_node, tx4, True, False, b'non-mandatory-script-verify-flag (Using non-compressed keys in segwit)')
