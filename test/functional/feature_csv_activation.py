@@ -47,7 +47,14 @@ from itertools import product
 from io import BytesIO
 import time
 
-from test_framework.blocktools import create_coinbase, create_block, create_transaction
+from test_framework.blocktools import (
+    create_coinbase,
+    create_block,
+    create_transaction,
+    get_tip_snapshot_meta,
+    sign_coinbase,
+    update_snapshot_with_tx,
+)
 from test_framework.messages import ToHex, CTransaction
 from test_framework.mininode import P2PDataStore
 from test_framework.script import (
@@ -59,6 +66,7 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     get_bip9_status,
+    get_unspent_coins,
     hex_str_to_bytes,
 )
 
@@ -198,6 +206,7 @@ class BIP68_112_113Test(UnitETestFramework):
         self.nodes[0].p2p.send_blocks_and_test(blocks, self.nodes[0], success=success, reject_code=reject_code, reject_reason=reject_reason, request_block=request_block)
 
     def run_test(self):
+        self.setup_stake_coins(*self.nodes)
         self.nodes[0].add_p2p_connection(P2PDataStore())
 
         self.log.info("Generate blocks in the past for coinbase outputs.")
