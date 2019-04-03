@@ -6,6 +6,7 @@
 
 #include <esperanza/finalizationstate.h>
 #include <injector.h>
+#include <snapshot/chainstate_iterator.h>
 #include <snapshot/iterator.h>
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
@@ -13,6 +14,10 @@
 #include <txdb.h>
 #include <util.h>
 #include <validation.h>
+
+#ifdef ENABLE_WALLET
+#include <wallet/wallet.h>
+#endif
 
 namespace snapshot {
 
@@ -426,6 +431,33 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     std::vector<std::pair<int, const CBlockFileInfo *>> file_info;
     pblocktree->WriteBatchSync(file_info, last_file, blocks);
   }
+
+#ifdef ENABLE_WALLET
+  LogPrint(BCLog::SNAPSHOT, "Importing wallet txs...\n");
+
+  ChainstateIterator iter(pcoinsdbview.get());
+  while (iter.Valid()) {
+    const UTXOSubset &utxo_subset = iter.GetUTXOSubset();
+    const CBlockIndex *block_index = chainActive[utxo_subset.height];
+    assert(block_index && "requested CBlockIndex is not part of chainActive");
+
+    auto tx = MakeTransactionRef(CTransaction(utxo_subset));
+
+    for (CWallet *wallet : vpwallets) {
+      LOCK2(cs_main, wallet->cs_wallet);
+      wallet->AddToWalletIfInvolvingMe(tx, block_index, /* posInBlock */ 0, /* fUpdate */ false);
+    }
+
+    iter.Next();
+  }
+
+  CAmount total_balance = 0;
+  for (CWallet *wallet : vpwallets) {
+    LOCK2(cs_main, wallet->cs_wallet);
+    total_balance += wallet->GetBalance();
+  }
+  LogPrint(BCLog::SNAPSHOT, "Imported wallet txs. Total balance=%d\n", total_balance);
+#endif
 
   // at this stage we are leaving ISD
   FinalizeSnapshots(snapshot_block_index);

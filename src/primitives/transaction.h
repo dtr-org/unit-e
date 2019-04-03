@@ -13,6 +13,10 @@
 #include <serialize.h>
 #include <uint256.h>
 
+namespace snapshot {
+struct UTXOSubset;
+}
+
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -384,6 +388,9 @@ public:
     /** Convert a CMutableTransaction into a CTransaction. */
     CTransaction(const CMutableTransaction &tx);
     CTransaction(CMutableTransaction &&tx);
+
+    /** Convert UTXOSubset into a pruned CTransaction that won't have inputs. */
+    CTransaction(const snapshot::UTXOSubset &utxo_subset);
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {

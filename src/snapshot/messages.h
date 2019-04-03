@@ -53,6 +53,15 @@ struct UTXOSubset {
     }
     READWRITE(outputs);
   }
+
+  std::vector<CTxOut> GetOutputs() const {
+    std::vector<CTxOut> outs;
+    outs.reserve(outputs.size());
+    for (const auto &it : outputs) {
+      outs.emplace_back(it.second);
+    }
+    return outs;
+  }
 };
 
 //! \brief header of the best snapshot

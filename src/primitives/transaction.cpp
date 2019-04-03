@@ -8,6 +8,7 @@
 #include <hash.h>
 #include <tinyformat.h>
 #include <utilstrencodings.h>
+#include <snapshot/messages.h>
 
 std::string COutPoint::ToString() const
 {
@@ -87,6 +88,12 @@ uint256 CTransaction::GetWitnessHash() const
 CTransaction::CTransaction() : vin(), vout(), nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), hash() {}
 CTransaction::CTransaction(const CMutableTransaction &tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
 CTransaction::CTransaction(CMutableTransaction &&tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash(ComputeHash()) {}
+
+CTransaction::CTransaction(const snapshot::UTXOSubset &utxo_subset)
+    : vout(utxo_subset.GetOutputs()),
+      nVersion(static_cast<uint32_t>(utxo_subset.tx_type) << 16),
+      nLockTime(0),
+      hash(utxo_subset.tx_id) {}
 
 CAmount CTransaction::GetValueOut() const
 {

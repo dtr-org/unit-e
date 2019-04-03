@@ -103,6 +103,7 @@ BASE_SCRIPTS= [
     'mempool_packages.py',
     'wallet_abandonconflict.py',
     'feature_snapshot.py',
+    'feature_snapshot_wallet.py',
     'wallet_importmulti.py',
     'wallet_accounts.py',
     'wallet_listreceivedby.py',
