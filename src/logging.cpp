@@ -236,9 +236,8 @@ std::string BCLog::Logger::LogPrependHeader(const std::string &str, BCLog::LogFl
         if (m_log_timestamps) {
             int64_t mocktime = GetMockTime();
             if (mocktime) {
-                strStamped += " (mocktime: " + FormatISO8601DateTime(mocktime) + ")";
+                strStamped += "(mocktime: " + FormatISO8601DateTime(mocktime) + ") ";
             }
-            strStamped += ' ';
         }
 
         strStamped += str;
