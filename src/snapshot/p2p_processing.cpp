@@ -16,19 +16,35 @@
 
 namespace snapshot {
 
+const finalization::FinalizationState *FindFinalizationState(const CBlockIndex *best_index) {
+  auto repo = GetComponent<finalization::StateRepository>();
+  AssertLockHeld(repo->GetLock());
+  for (const CBlockIndex *walk = best_index; walk != nullptr; walk = walk->pprev) {
+    if (auto state = repo->Find(*walk)) {
+      return state;
+    }
+  }
+  return nullptr;
+}
+
 inline const CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
   const CBlockIndex *bi = LookupBlockIndex(hash);
   if (!bi) {
-    LogPrint(BCLog::SNAPSHOT, "%s: block=%s not found\n", __func__, hash.GetHex());
+    return nullptr;
+  }
+
+  if (pindexBestHeader == nullptr) {
     return nullptr;
   }
 
   {
-    auto fin_repo = GetComponent<finalization::StateRepository>();
-    LOCK(fin_repo->GetLock());
-    const finalization::FinalizationState *fin_state = fin_repo->GetTipState();
-    if (bi->nHeight <= fin_state->GetEpochCheckpointHeight(fin_state->GetLastFinalizedEpoch())) {
-      LogPrint(BCLog::SNAPSHOT, "%s: block=%s height=%d is not finalized\n", hash.GetHex(), bi->nHeight);
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+    const finalization::FinalizationState *fin_state = FindFinalizationState(pindexBestHeader);
+    if (fin_state == nullptr) {
+      return nullptr;
+    }
+    if (bi->nHeight > fin_state->GetEpochCheckpointHeight(fin_state->GetLastFinalizedEpoch())) {
+      LogPrint(BCLog::SNAPSHOT, "block=%s height=%d is not finalized\n", hash.GetHex(), bi->nHeight);
       return nullptr;
     }
   }
@@ -527,11 +543,6 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
     return;
   }
 
-  if (m_best_snapshot.IsNull()) {
-    m_best_snapshot = best_snapshot;
-    return;
-  }
-
   // if a peer has the snapshot which matches with one node downloads, mark it the best
   if (!m_downloading_snapshot.IsNull() && best_snapshot == m_downloading_snapshot) {
     m_best_snapshot = best_snapshot;
@@ -540,17 +551,27 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
 
   // don't switch the snapshot once it's decided to download it
   // and there are peers that can support it
-  if (m_downloading_snapshot == m_best_snapshot) {
+  if (!m_best_snapshot.IsNull() && m_downloading_snapshot == m_best_snapshot) {
     return;
   }
 
   // compare heights to find the best snapshot
   LOCK(cs_main);
+
+  const CBlockIndex *const new_bi = LookupFinalizedBlockIndex(best_snapshot.block_hash);
+
+  if (new_bi == nullptr) {
+    return;
+  }
+
+  if (m_best_snapshot.IsNull()) {
+    m_best_snapshot = best_snapshot;
+  }
+
   const CBlockIndex *const cur_bi = LookupBlockIndex(m_best_snapshot.block_hash);
   assert(cur_bi);
 
-  const CBlockIndex *const new_bi = LookupFinalizedBlockIndex(best_snapshot.block_hash);
-  if (new_bi && new_bi->nHeight > cur_bi->nHeight) {
+  if (new_bi->nHeight > cur_bi->nHeight) {
     m_best_snapshot = best_snapshot;
     return;
   }

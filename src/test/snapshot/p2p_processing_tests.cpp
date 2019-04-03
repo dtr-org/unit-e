@@ -7,6 +7,7 @@
 #include <memory>
 
 #include <chainparams.h>
+#include <injector.h>
 #include <net.h>
 #include <netaddress.h>
 #include <serialize.h>
@@ -15,6 +16,7 @@
 #include <snapshot/messages.h>
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
+#include <test/esperanza/finalizationstate_utils.h>
 #include <test/test_unite.h>
 #include <validation.h>
 #include <version.h>
@@ -157,6 +159,36 @@ BOOST_AUTO_TEST_CASE(process_snapshot) {
   BOOST_CHECK_EQUAL(best_snapshot.total_utxo_subsets, total);
 }
 
+class FinalizationStateCopyable : public finalization::FinalizationState {
+ public:
+  FinalizationStateCopyable &operator=(const FinalizationStateCopyable &other) {
+    m_checkpoints = other.m_checkpoints;
+    m_epoch_to_dynasty = other.m_epoch_to_dynasty;
+    m_dynasty_start_epoch = other.m_dynasty_start_epoch;
+    m_validators = other.m_validators;
+    m_dynasty_deltas = other.m_dynasty_deltas;
+    m_deposit_scale_factor = other.m_deposit_scale_factor;
+    m_total_slashed = other.m_total_slashed;
+    m_current_epoch = other.m_current_epoch;
+    m_current_dynasty = other.m_current_dynasty;
+    m_cur_dyn_deposits = other.m_cur_dyn_deposits;
+    m_prev_dyn_deposits = other.m_prev_dyn_deposits;
+    m_expected_source_epoch = other.m_expected_source_epoch;
+    m_last_finalized_epoch = other.m_last_finalized_epoch;
+    m_last_justified_epoch = other.m_last_justified_epoch;
+    m_recommended_target_hash = other.m_recommended_target_hash;
+    m_recommended_target_epoch = other.m_recommended_target_epoch;
+    m_last_voter_rescale = other.m_last_voter_rescale;
+    m_last_non_voter_rescale = other.m_last_non_voter_rescale;
+    m_reward_factor = other.m_reward_factor;
+    m_admin_state = other.m_admin_state;
+    return *this;
+  }
+  FinalizationStateCopyable &operator=(const FinalizationState &other) {
+    return (*this = static_cast<const FinalizationStateCopyable &>(other));
+  }
+};
+
 BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   snapshot::InitP2P(Params().GetSnapshotParams());
   snapshot::EnableISDMode();
@@ -170,6 +202,21 @@ BOOST_AUTO_TEST_CASE(start_initial_snapshot_download) {
   b2->pprev = b1;
   b1->nHeight = 1;
   b2->nHeight = 2;
+
+  pindexBestHeader = b2;
+
+  FinalizationStateSpy spy;
+  spy.SetLastFinalizedEpoch(1);
+  auto repo = GetComponent<finalization::StateRepository>();
+  {
+    // UNIT-E TODO: These dirty things mean we must factor out snapshot to the component
+    // and mock repository dependency.
+    LOCK(repo->GetLock());
+    repo->ResetToTip(*b2);
+    finalization::FinalizationState *fin_state = repo->Find(*b2);
+    assert(fin_state != nullptr);
+    *(static_cast<FinalizationStateCopyable *>(fin_state)) = spy;
+  }
 
   snapshot::SnapshotHeader best;
   best.snapshot_hash = uint256S("a2");

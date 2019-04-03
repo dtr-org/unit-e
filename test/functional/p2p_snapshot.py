@@ -121,9 +121,9 @@ class BaseNode(P2PInterface):
             if i.hash in self.parent_blocks:
                 self.send_message(msg_witness_block(self.parent_blocks[i.hash]))
 
-    def update_snapshot_from(self, node):
+    def update_snapshot_from(self, node, finalized=True):
         # take the latest finalized
-        res = next(s for s in reversed(node.listsnapshots()) if s['snapshot_finalized'])
+        res = next(s for s in reversed(node.listsnapshots()) if s['snapshot_finalized'] == finalized)
         self.snapshot_header = SnapshotHeader(
             snapshot_hash=uint256_from_rev_hex(res['snapshot_hash']),
             block_hash=uint256_from_rev_hex(res['block_hash']),
@@ -462,6 +462,7 @@ class P2PSnapshotTest(UnitETestFramework):
         3. node - the node which syncs the snapshot
         4. broken_p2p - mini node that claims has the best snapshot but it's broken
         5. valid_p2p - mini node that sends a valid snapshot
+        6. not_finalized_p2p - mini node that claims has the best snapshot but it's not finalied
         """
 
         snap_node = self.nodes[4]
@@ -492,11 +493,16 @@ class P2PSnapshotTest(UnitETestFramework):
         broken_p2p.update_headers_and_blocks_from(snap_node)
         valid_p2p.update_headers_and_blocks_from(snap_node)
 
+        not_finalized_p2p = node.add_p2p_connection(WaitNode(), services=SERVICE_FLAGS_WITH_SNAPSHOT)
+        not_finalized_p2p.update_snapshot_from(snap_node, finalized=False)
+        not_finalized_p2p.update_headers_and_blocks_from(snap_node)
+
         network_thread_start()
 
-        # make sure that node knows about both peers
+        # make sure that node knows about all the peers
         valid_p2p.wait_for_verack()
         broken_p2p.wait_for_verack()
+        not_finalized_p2p.wait_for_verack()
 
         # node must pick the best snapshot
         wait_until(lambda: broken_p2p.snapshot_chunk1_requested, timeout=10)
@@ -519,6 +525,10 @@ class P2PSnapshotTest(UnitETestFramework):
         valid_p2p.return_snapshot_chunk2 = True
         valid_p2p.return_parent_block = True
         valid_p2p.on_getsnapshot(valid_p2p.last_getsnapshot_message)
+
+        # node doesn't request not finalied snapshot
+        assert_equal(not_finalized_p2p.snapshot_header_requested, True)
+        assert_equal(not_finalized_p2p.snapshot_chunk1_requested, False)
 
         # node requests parent block and finishes ISD
         wait_until(lambda: node.getblockcount() == 16, timeout=20)
