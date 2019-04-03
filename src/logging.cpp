@@ -132,9 +132,10 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::ALL, "all"},
 };
 
+namespace {
+
 //! @see http://supertech.csail.mit.edu/papers/debruijn.pdf
-static std::array<std::string, 32> ComputeDeBrujinLabelTabel()
-{
+std::array<std::string, 32> ComputeDeBrujinLabelTabel() {
     std::array<std::string, 32> categories;
     for (const auto &logCategory : LogCategories) {
         if (logCategory.flag == static_cast<uint32_t>(BCLog::NONE) ||
@@ -148,8 +149,7 @@ static std::array<std::string, 32> ComputeDeBrujinLabelTabel()
     return categories;
 }
 
-static std::string GetLogCategoryLabel(const BCLog::LogFlags category)
-{
+std::string GetLogCategoryLabel(const BCLog::LogFlags category) {
     if (category == BCLog::NONE) {
         return "";
     }
@@ -157,6 +157,8 @@ static std::string GetLogCategoryLabel(const BCLog::LogFlags category)
     const auto vec = static_cast<uint32_t>(category);
     const size_t pos = (static_cast<uint32_t>((vec & -vec) * 0x077CB531U)) >> 27;
     return labels[pos];
+}
+
 }
 
 bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str)
