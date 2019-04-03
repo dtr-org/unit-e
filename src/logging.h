@@ -140,9 +140,9 @@ bool GetLogCategory(BCLog::LogFlags& flag, const std::string& str);
 // peer can fill up a user's disk with debug.log entries.
 
 template <typename... Args>
-static inline void LogPrint(const BCLog::LogFlags& category, const char *const fmt, const Args&... args)
+static inline void LogPrint(const BCLog::LogFlags category, const char *const fmt, const Args&... args)
 {
-  if (LogAcceptCategory((category))) {
+  if (LogAcceptCategory((category)) || category == BCLog::NONE) {
     std::string log_msg;
     try {
       log_msg = tfm::format(fmt, args...);
