@@ -133,13 +133,22 @@ class MiniRelay:
             if not self.relay_txs and command == b'tx':
                 return
 
+            if command == b'version':
+                # do not relay version messages to avoid duplicates
+                return
+
             if command == b'verack':
                 self.verack_received = True
+                # relay veracks... but later.
+                return
 
             self.send_to.send_data(command, raw_message)
 
         def wait_for_verack(self):
             wait_until(lambda: self.verack_received, timeout=30)
+
+        def relay_verack(self):
+            self.send_to.send_data(b'verack', b'')
 
     def __init__(self):
         super().__init__()
@@ -163,6 +172,8 @@ class MiniRelay:
     def wait_for_verack(self):
         self.mininode1.wait_for_verack()
         self.mininode2.wait_for_verack()
+        self.mininode1.relay_verack()
+        self.mininode2.relay_verack()
 
     def connect_nodes(self, node1, node2):
         node1.add_p2p_connection(self.mininode1)
