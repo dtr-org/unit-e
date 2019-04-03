@@ -521,7 +521,7 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
 
   const uint32_t dynasty = state.GetCurrentDynasty();
 
-  if (dynasty >= validator.m_end_dynasty) {
+  if (dynasty > validator.m_end_dynasty) {
     return;
   }
 
@@ -767,8 +767,8 @@ void WalletExtension::BlockConnected(
         assert(fin_state);
 
         uint32_t currentDynasty = fin_state->GetCurrentDynasty();
-        if (currentDynasty >= validatorState.get().m_end_dynasty) {
-          LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynasty=%d reached\n", validatorState.get().m_end_dynasty);
+        if (currentDynasty > validatorState.get().m_end_dynasty) {
+          LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynasty=%d passed\n", validatorState.get().m_end_dynasty);
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
           WriteValidatorStateToFile();
         } else {

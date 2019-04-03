@@ -16,6 +16,7 @@ from test_framework.util import (
     assert_equal,
     wait_until,
     sync_blocks,
+    assert_finalizationstate,
 )
 
 
@@ -73,10 +74,15 @@ class SnapshotCreationTest(UnitETestFramework):
         payto = validator.getnewaddress("", "legacy")
         txid = validator.deposit(payto, 1500)
         self.wait_for_transaction(txid, 10)
-
-        node.generatetoaddress(10, node.getnewaddress('', 'bech32'))
-        sync_blocks([node, validator])
         self.stop_node(validator.index)
+
+        node.generatetoaddress(12, node.getnewaddress('', 'bech32'))
+        assert_equal(node.getblockcount(), 41)
+        assert_finalizationstate(node, {'currentDynasty': 6,
+                                        'currentEpoch': 9,
+                                        'lastJustifiedEpoch': 7,
+                                        'lastFinalizedEpoch': 6,
+                                        'validators': 1})
 
         wait_until(lambda: has_valid_snapshot_for_height(node, 39), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
@@ -85,17 +91,17 @@ class SnapshotCreationTest(UnitETestFramework):
         assert node.getblocksnapshot(node.getblockhash(19))['snapshot_finalized']
         assert node.getblocksnapshot(node.getblockhash(24))['snapshot_finalized']
         assert node.getblocksnapshot(node.getblockhash(29))['snapshot_finalized']
-        assert node.getblocksnapshot(node.getblockhash(34))['snapshot_finalized'] is False  # will be finalized
-        assert node.getblocksnapshot(node.getblockhash(39))['snapshot_finalized'] is False  # will be finalized
+        assert node.getblocksnapshot(node.getblockhash(34))['snapshot_finalized'] is False
+        assert node.getblocksnapshot(node.getblockhash(39))['snapshot_finalized'] is False
 
         # test 3. node keeps at least 2 finalized snapshots
-        node.generatetoaddress(10, node.getnewaddress('', 'bech32'))
+        node.generatetoaddress(9, node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_valid_snapshot_for_height(node, 49), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
         assert has_valid_snapshot_for_height(node, 19) is False
-        assert has_valid_snapshot_for_height(node, 24) is False
+        assert node.getblocksnapshot(node.getblockhash(24))['snapshot_finalized']
         assert node.getblocksnapshot(node.getblockhash(29))['snapshot_finalized']
-        assert node.getblocksnapshot(node.getblockhash(34))['snapshot_finalized']
+        assert has_valid_snapshot_for_height(node, 34) is False
         assert node.getblocksnapshot(node.getblockhash(39))['snapshot_finalized'] is False
         assert node.getblocksnapshot(node.getblockhash(44))['snapshot_finalized'] is False
         assert node.getblocksnapshot(node.getblockhash(49))['snapshot_finalized'] is False
@@ -103,17 +109,17 @@ class SnapshotCreationTest(UnitETestFramework):
         node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_valid_snapshot_for_height(node, 54), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
+        assert node.getblocksnapshot(node.getblockhash(24))['snapshot_finalized']
         assert node.getblocksnapshot(node.getblockhash(29))['snapshot_finalized']
-        assert node.getblocksnapshot(node.getblockhash(34))['snapshot_finalized']
-        assert has_valid_snapshot_for_height(node, 38) is False
+        assert has_valid_snapshot_for_height(node, 39) is False
         assert node.getblocksnapshot(node.getblockhash(44))['snapshot_finalized'] is False
         assert node.getblocksnapshot(node.getblockhash(49))['snapshot_finalized'] is False
 
         node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         wait_until(lambda: has_valid_snapshot_for_height(node, 59), timeout=10)
         assert_equal(len(node.listsnapshots()), 5)
+        assert node.getblocksnapshot(node.getblockhash(24))['snapshot_finalized']
         assert node.getblocksnapshot(node.getblockhash(29))['snapshot_finalized']
-        assert node.getblocksnapshot(node.getblockhash(34))['snapshot_finalized']
         assert has_valid_snapshot_for_height(node, 44) is False
         assert node.getblocksnapshot(node.getblockhash(49))['snapshot_finalized'] is False
         assert node.getblocksnapshot(node.getblockhash(54))['snapshot_finalized'] is False

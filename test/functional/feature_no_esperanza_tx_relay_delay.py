@@ -166,9 +166,9 @@ class FeatureNoEsperanzaTxRelayDelayTest(UnitETestFramework):
         txid = finalizer.deposit(payto, 1500)
         self.wait_for_transaction(txid, timeout=10)
 
-        node3.generatetoaddress(6, node3.getnewaddress('', 'bech32'))
-        assert_equal(node3.getblockcount(), 7)
-        assert_equal(node3.getfinalizationstate()['currentEpoch'], 4)
+        node3.generatetoaddress(8, node3.getnewaddress('', 'bech32'))
+        assert_equal(node3.getblockcount(), 9)
+        assert_equal(node3.getfinalizationstate()['currentEpoch'], 5)
         sync_blocks(self.nodes, timeout=10)
 
         # record relay time of the vote transaction to the outbound peer

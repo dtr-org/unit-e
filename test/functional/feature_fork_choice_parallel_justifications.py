@@ -147,11 +147,11 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         #                             fork2
         node.generatetoaddress(22, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 25)
-        assert_finalizationstate(node, {'currentDynasty': 3,
+        assert_finalizationstate(node, {'currentDynasty': 2,
                                         'currentEpoch': 5,
                                         'lastJustifiedEpoch': 4,
                                         'lastFinalizedEpoch': 3,
-                                        'validators': 1})
+                                        'validators': 0})
 
         connect_nodes(node, fork1.index)
         connect_nodes(node, fork2.index)
@@ -171,17 +171,19 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         # e5 is justified for fork1
         create_justification(fork=fork1, finalizer=finalizer1, after_blocks=2)
         assert_equal(fork1.getblockcount(), 27)
-        assert_finalizationstate(fork1, {'currentDynasty': 4,
+        assert_finalizationstate(fork1, {'currentDynasty': 3,
                                          'currentEpoch': 6,
                                          'lastJustifiedEpoch': 5,
-                                         'lastFinalizedEpoch': 4})
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
 
         sync_node_to_fork(node, fork1)
 
-        assert_finalizationstate(node, {'currentDynasty': 4,
+        assert_finalizationstate(node, {'currentDynasty': 3,
                                         'currentEpoch': 6,
                                         'lastJustifiedEpoch': 5,
-                                        'lastFinalizedEpoch': 4})
+                                        'lastFinalizedEpoch': 4,
+                                        'validators': 1})
 
         self.log.info('node successfully switched to the justified fork')
 
@@ -195,24 +197,27 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         #                             - e6 - e7 - e8 fork2, node
         create_justification(fork=fork2, finalizer=finalizer2, after_blocks=2)
         assert_equal(fork2.getblockcount(), 27)
-        assert_finalizationstate(fork2, {'currentDynasty': 4,
+        assert_finalizationstate(fork2, {'currentDynasty': 3,
                                          'currentEpoch': 6,
                                          'lastJustifiedEpoch': 5,
-                                         'lastFinalizedEpoch': 4})
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
 
         create_justification(fork=fork2, finalizer=finalizer2, after_blocks=10)
         assert_equal(fork2.getblockcount(), 37)
-        assert_finalizationstate(fork2, {'currentDynasty': 5,
+        assert_finalizationstate(fork2, {'currentDynasty': 4,
                                          'currentEpoch': 8,
                                          'lastJustifiedEpoch': 7,
-                                         'lastFinalizedEpoch': 4})
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
 
         sync_node_to_fork(node, fork2)
 
-        assert_finalizationstate(node, {'currentDynasty': 5,
+        assert_finalizationstate(node, {'currentDynasty': 4,
                                         'currentEpoch': 8,
                                         'lastJustifiedEpoch': 7,
-                                        'lastFinalizedEpoch': 4})
+                                        'lastFinalizedEpoch': 4,
+                                        'validators': 1})
 
         self.log.info('node successfully switched to the longest justified fork')
 
@@ -226,17 +231,19 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         #                             - e6 - e7 - e8 fork2
         create_justification(fork=fork1, finalizer=finalizer1, after_blocks=16)
         assert_equal(fork1.getblockcount(), 43)
-        assert_finalizationstate(fork1, {'currentDynasty': 5,
+        assert_finalizationstate(fork1, {'currentDynasty': 4,
                                          'currentEpoch': 9,
                                          'lastJustifiedEpoch': 8,
-                                         'lastFinalizedEpoch': 4})
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
 
         sync_node_to_fork(node, fork1)
 
-        assert_finalizationstate(node, {'currentDynasty': 5,
+        assert_finalizationstate(node, {'currentDynasty': 4,
                                         'currentEpoch': 9,
                                         'lastJustifiedEpoch': 8,
-                                        'lastFinalizedEpoch': 4})
+                                        'lastFinalizedEpoch': 4,
+                                        'validators': 1})
 
         self.log.info('node successfully switched back to the longest justified fork')
 
@@ -256,10 +263,11 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         create_justification(fork=fork1, finalizer=finalizer1, after_blocks=14)
 
         assert_equal(fork1.getblockcount(), 57)
-        assert_finalizationstate(fork1, {'currentDynasty': 5,
+        assert_finalizationstate(fork1, {'currentDynasty': 4,
                                          'currentEpoch': 12,
                                          'lastJustifiedEpoch': 11,
-                                         'lastFinalizedEpoch': 4})
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
 
         attacker = node.add_p2p_connection(BaseNode())
         network_thread_start()
@@ -275,10 +283,11 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
             wait_until(lambda: node.getblockcount() == node_blocks, timeout=15)
 
         assert_equal(node.getblockcount(), 56)
-        assert_finalizationstate(node, {'currentDynasty': 5,
+        assert_finalizationstate(node, {'currentDynasty': 4,
                                         'currentEpoch': 12,
                                         'lastJustifiedEpoch': 8,
-                                        'lastFinalizedEpoch': 4})
+                                        'lastFinalizedEpoch': 4,
+                                        'validators': 1})
 
         # create finalization
         #                                         J               J
@@ -289,24 +298,27 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         #                             - e6 - e7 - e8 - e9 - e10 - e11 - e12[56, 57] fork2
         create_justification(fork=fork2, finalizer=finalizer2, after_blocks=11)
         assert_equal(fork2.getblockcount(), 48)
-        assert_finalizationstate(fork2, {'currentDynasty': 5,
+        assert_finalizationstate(fork2, {'currentDynasty': 4,
                                          'currentEpoch': 10,
                                          'lastJustifiedEpoch': 9,
-                                         'lastFinalizedEpoch': 4})
+                                         'lastFinalizedEpoch': 4,
+                                         'validators': 1})
 
         create_justification(fork=fork2, finalizer=finalizer2, after_blocks=6)
         assert_equal(fork2.getblockcount(), 54)
-        assert_finalizationstate(fork2, {'currentDynasty': 5,
+        assert_finalizationstate(fork2, {'currentDynasty': 4,
                                          'currentEpoch': 11,
                                          'lastJustifiedEpoch': 10,
-                                         'lastFinalizedEpoch': 9})
+                                         'lastFinalizedEpoch': 9,
+                                         'validators': 1})
 
         fork2.generatetoaddress(3, fork2.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 57)
-        assert_finalizationstate(fork2, {'currentDynasty': 6,
+        assert_finalizationstate(fork2, {'currentDynasty': 5,
                                          'currentEpoch': 12,
                                          'lastJustifiedEpoch': 10,
-                                         'lastFinalizedEpoch': 9})
+                                         'lastFinalizedEpoch': 9,
+                                         'validators': 1})
 
         # node follows longer finalization
         #                                         J               J
@@ -319,10 +331,11 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         sync_node_to_fork(node, fork2)
 
         assert_equal(node.getblockcount(), 57)
-        assert_finalizationstate(node, {'currentDynasty': 6,
+        assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 12,
                                         'lastJustifiedEpoch': 10,
-                                        'lastFinalizedEpoch': 9})
+                                        'lastFinalizedEpoch': 9,
+                                        'validators': 1})
 
         # send block with surrounded vote that justifies longer fork
         # node's view:
@@ -342,10 +355,11 @@ class ForkChoiceParallelJustificationsTest(UnitETestFramework):
         wait_for_reject(attacker, b'bad-fork-dynasty', block.sha256)
         assert_equal(node.getblockcount(), 57)
         assert_equal(node.getblockhash(57), tip)
-        assert_finalizationstate(node, {'currentDynasty': 6,
+        assert_finalizationstate(node, {'currentDynasty': 5,
                                         'currentEpoch': 12,
                                         'lastJustifiedEpoch': 10,
-                                        'lastFinalizedEpoch': 9})
+                                        'lastFinalizedEpoch': 9,
+                                        'validators': 1})
 
         self.log.info('node did not re-org before finalization')
 

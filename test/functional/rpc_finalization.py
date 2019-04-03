@@ -110,7 +110,7 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 15)
         state = node.getfinalizationstate()
-        assert_equal(state['currentDynasty'], 1)
+        assert_equal(state['currentDynasty'], 0)
         assert_equal(state['currentEpoch'], 3)
         assert_equal(state['lastJustifiedEpoch'], 2)
         assert_equal(state['lastFinalizedEpoch'], 1)
@@ -123,7 +123,7 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 20)
         state = node.getfinalizationstate()
-        assert_equal(state['currentDynasty'], 2)
+        assert_equal(state['currentDynasty'], 1)
         assert_equal(state['currentEpoch'], 4)
         assert_equal(state['lastJustifiedEpoch'], 3)
         assert_equal(state['lastFinalizedEpoch'], 2)
@@ -136,23 +136,31 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 25)
         state = node.getfinalizationstate()
-        assert_equal(state['currentDynasty'], 3)
+        assert_equal(state['currentDynasty'], 2)
         assert_equal(state['currentEpoch'], 5)
         assert_equal(state['lastJustifiedEpoch'], 4)
         assert_equal(state['lastFinalizedEpoch'], 3)
-        assert_equal(state['validators'], 1)
-        self.log.info('instant finalization 4 is correct')
+        assert_equal(state['validators'], 0)
 
         # no justification
         # F    F    F    F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6
-        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
+        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
+        assert_equal(node.getblockcount(), 26)
+        state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
+        assert_equal(state['currentEpoch'], 6)
+        assert_equal(state['lastJustifiedEpoch'], 4)
+        assert_equal(state['lastFinalizedEpoch'], 3)
+        assert_equal(state['validators'], 1)
+
+        node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 30)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
         assert_equal(state['currentEpoch'], 6)
-        assert_equal(state['currentDynasty'], 4)
-        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['lastJustifiedEpoch'], 4)
+        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['validators'], 1)
 
         # no justification
@@ -161,10 +169,10 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 31)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
         assert_equal(state['currentEpoch'], 7)
-        assert_equal(state['currentDynasty'], 4)
-        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['lastJustifiedEpoch'], 4)
+        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['validators'], 1)
         self.log.info('finalization state without justification is correct')
 
@@ -176,23 +184,23 @@ class RpcFinalizationTest(UnitETestFramework):
 
         assert_equal(node.getblockcount(), 32)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
         assert_equal(state['currentEpoch'], 7)
-        assert_equal(state['currentDynasty'], 4)
-        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['lastJustifiedEpoch'], 6)
+        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['validators'], 1)
         self.log.info('finalization state after justification is correct')
 
         # skip 1 justification
-        # F    F    F    J              J
+        # F    F    F    F    J         J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9[41]
         node.generatetoaddress(9, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 41)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
         assert_equal(state['currentEpoch'], 9)
-        assert_equal(state['currentDynasty'], 4)
-        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['lastJustifiedEpoch'], 6)
+        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['validators'], 1)
         self.log.info('finalization state without justification is correct')
 
@@ -203,34 +211,34 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 42)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
         assert_equal(state['currentEpoch'], 9)
-        assert_equal(state['currentDynasty'], 4)
-        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['lastJustifiedEpoch'], 8)
+        assert_equal(state['lastFinalizedEpoch'], 3)
         assert_equal(state['validators'], 1)
 
-        # F    F    F    J              J         F    J
+        # F    F    F    F    J         J         F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10[46, 47]
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 47)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
         assert_equal(state['currentEpoch'], 10)
-        assert_equal(state['currentDynasty'], 4)
-        assert_equal(state['lastFinalizedEpoch'], 8)
         assert_equal(state['lastJustifiedEpoch'], 9)
+        assert_equal(state['lastFinalizedEpoch'], 8)
         assert_equal(state['validators'], 1)
 
-        # F    F    F    J              J         F    J
+        # F    F    F    F    J         J         F    J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10
         node.generatetoaddress(3, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 50)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 3)
         assert_equal(state['currentEpoch'], 10)
-        assert_equal(state['currentDynasty'], 4)
-        assert_equal(state['lastFinalizedEpoch'], 8)
         assert_equal(state['lastJustifiedEpoch'], 9)
+        assert_equal(state['lastFinalizedEpoch'], 8)
         assert_equal(state['validators'], 1)
 
         self.log.info('finalization state after finalization is correct')
@@ -240,10 +248,10 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 51)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 4)
         assert_equal(state['currentEpoch'], 11)
-        assert_equal(state['currentDynasty'], 5)
-        assert_equal(state['lastFinalizedEpoch'], 8)
         assert_equal(state['lastJustifiedEpoch'], 9)
+        assert_equal(state['lastFinalizedEpoch'], 8)
         assert_equal(state['validators'], 1)
         self.log.info('dynasty after finalization is updated correctly')
 
@@ -256,10 +264,10 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 55)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 4)
         assert_equal(state['currentEpoch'], 11)
-        assert_equal(state['currentDynasty'], 5)
-        assert_equal(state['lastFinalizedEpoch'], 9)
         assert_equal(state['lastJustifiedEpoch'], 10)
+        assert_equal(state['lastFinalizedEpoch'], 9)
         assert_equal(state['validators'], 1)
 
         # F    F    F    F    J              J    F    F    F     J
@@ -269,23 +277,23 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 60)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 5)
         assert_equal(state['currentEpoch'], 12)
-        assert_equal(state['currentDynasty'], 6)
-        assert_equal(state['lastFinalizedEpoch'], 10)
         assert_equal(state['lastJustifiedEpoch'], 11)
+        assert_equal(state['lastFinalizedEpoch'], 10)
         assert_equal(state['validators'], 1)
 
-        # F    F    F    F    J              J    F    F    F     F     J
+        # F    F    F    J                   J    F    F    F     F     J
         # e0 - e1 - e2 - e3 - e4 - e5 - e6 - e7 - e8 - e9 - e10 - e11 - e12 - e13
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node)
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 65)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 6)
         assert_equal(state['currentEpoch'], 13)
-        assert_equal(state['currentDynasty'], 7)
-        assert_equal(state['lastFinalizedEpoch'], 11)
         assert_equal(state['lastJustifiedEpoch'], 12)
+        assert_equal(state['lastFinalizedEpoch'], 11)
         assert_equal(state['validators'], 1)
 
         # F    F    F    F    J              J    F    F    F     F     J
@@ -293,10 +301,10 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 66)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 7)
         assert_equal(state['currentEpoch'], 14)
-        assert_equal(state['currentDynasty'], 8)
-        assert_equal(state['lastFinalizedEpoch'], 11)
         assert_equal(state['lastJustifiedEpoch'], 12)
+        assert_equal(state['lastFinalizedEpoch'], 11)
         assert_equal(state['validators'], 2)
         self.log.info('new deposit was activated correctly')
 
@@ -307,10 +315,10 @@ class RpcFinalizationTest(UnitETestFramework):
         node.generatetoaddress(4, node.getnewaddress('', 'bech32'))
         assert_equal(node.getblockcount(), 70)
         state = node.getfinalizationstate()
+        assert_equal(state['currentDynasty'], 7)
         assert_equal(state['currentEpoch'], 14)
-        assert_equal(state['currentDynasty'], 8)
-        assert_equal(state['lastFinalizedEpoch'], 12)
         assert_equal(state['lastJustifiedEpoch'], 13)
+        assert_equal(state['lastFinalizedEpoch'], 12)
         assert_equal(state['validators'], 2)
         self.log.info('new finalizer votes')
 

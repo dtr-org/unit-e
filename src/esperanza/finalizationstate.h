@@ -215,7 +215,7 @@ class FinalizationState : public FinalizationStateData {
   uint64_t GetTotalSlashed(uint32_t epoch) const;
   Checkpoint &GetCheckpoint(uint32_t epoch);
   const Checkpoint &GetCheckpoint(uint32_t epoch) const;
-  uint64_t GetDynastyDelta(uint32_t dynasty);
+  CAmount GetDynastyDelta(uint32_t dynasty);
   void RegisterLastTx(uint160 &validatorAddress, CTransactionRef tx);
   void ProcessNewCommit(const CTransactionRef &tx);
 

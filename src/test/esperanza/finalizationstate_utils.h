@@ -54,6 +54,8 @@ class FinalizationStateSpy : public FinalizationState {
     return m_settings.bounty_fraction_denominator;
   }
 
+  void CreateAndActivateDeposit(const uint160 &validator_address, CAmount deposit_size);
+
   void shuffle();
 
   using FinalizationState::GetCurrentDynasty;

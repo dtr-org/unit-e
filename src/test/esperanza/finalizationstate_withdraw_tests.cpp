@@ -42,25 +42,17 @@ BOOST_AUTO_TEST_CASE(process_withdraw_before_end_dynasty) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
-
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  spy.CreateAndActivateDeposit(validatorAddress, depositSize);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
 
-  for (uint32_t i = 5; i < spy.DynastyLogoutDelay() + 1; ++i) {
-    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
-    Vote vote{validatorAddress, targetHash, i - 1, i};
-
+  for (uint32_t i = 6; i < spy.DynastyLogoutDelay() + 1; ++i) {
+    Vote vote{validatorAddress, targetHash, i - 2, i - 1};
     BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
     spy.ProcessVote(vote);
+
+    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
   }
 
   BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, withdrawAmount),
@@ -80,72 +72,45 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  // e1/d0 - create a deposit
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 1);
-  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 0);
-
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 2);
-  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 0);
-
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 3);
-  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 1);
-
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 4);
-  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 2);
-  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 0);
-
-  // the validator is active
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
-  BOOST_CHECK_EQUAL(spy.GetCurrentDynasty(), 3);
-  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
+  spy.CreateAndActivateDeposit(validatorAddress, depositSize);
 
   // logout
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
+  BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 6);
 
   Validator *validator = &(*spy.pValidators())[validatorAddress];
 
-  // The reason for this apparently magic "+ 3" is explained later on.
-  uint32_t endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 3;
+  // Logout delay is set in dynasties but since we have finalization
+  // every epoch, it's equal to number of epochs.
+  // epoch=706 is the last epoch the finalizer can vote
+  uint32_t end_logout = spy.GetCurrentEpoch() + static_cast<uint32_t>(spy.DynastyLogoutDelay());
+  BOOST_CHECK_EQUAL(end_logout, 706);
 
-  uint32_t i = 5;
-  for (; i <= endEpoch; ++i) {
-    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
+  // From epoch end_logout+1 until end_withdraw-1 finalizer can't withdraw.
+  // At end_withdraw or later finalizer can withdraw its deposit.
+  uint32_t end_withdraw = end_logout + static_cast<uint32_t>(spy.WithdrawalEpochDelay());
+  BOOST_CHECK_EQUAL(end_withdraw, 15706);
 
+  for (uint32_t i = spy.GetCurrentEpoch(); i < end_withdraw; ++i) {
     if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
-      Vote vote{validatorAddress, targetHash, i - 1, i};
+      Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
       spy.ProcessVote(vote);
     }
-    // To explain why DYNASTY_LOGOUT_DELAY + 3 is correct the explanation is
-    // not trivial. The end dynasty was set when we logged out (e5/d3) so it
-    // would be at least DYNASTY_LOGOUT_DELAY + 3. Since we aim to reach
-    // finalization every epoch we have that every epoch is finalized and hence
-    // a new dynasty is created exception made for e(DYNASTY_LOGOUT_DELAY+2).
-    // The reason for this is that since the function DepositExists() checks
-    // also the previous dynasty deposits, in e(DYNASTY_LOGOUT_DELAY+2) we have
-    // the weird scenario in which the only validator is logged out and cannot
-    // vote but his deposit still counts to avoid InstaJustify. Hence
-    // e(DYNASTY_LOGOUT_DELAY+2) cannot be finalized and we need to wait for the
-    // next epoch to have finalization, hence DYNASTY_LOGOUT_DELAY + 3 + 1.
-    if (i <= spy.DynastyLogoutDelay() + 4) {
+
+    if (i <= end_logout) {
       BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize),
                         +Result::WITHDRAW_BEFORE_END_DYNASTY);
     } else {
       BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize),
                         +Result::WITHDRAW_TOO_EARLY);
     }
+
+    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
   }
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
   BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, depositSize), +Result::SUCCESS);
 }
 
@@ -163,17 +128,9 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
+  spy.CreateAndActivateDeposit(validatorAddress, depositSize);
 
   Validator *validator = &(*spy.pValidators())[validatorAddress];
-
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 1 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 2 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 3 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 4 * spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.GetActiveFinalizers().size(), 1);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
@@ -185,11 +142,9 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
   // Just to be sure we are after the lock period
   uint32_t endEpoch = spy.DynastyLogoutDelay() + spy.WithdrawalEpochDelay() + 10;
 
-  for (uint32_t i = 5; i < endEpoch; ++i) {
-    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
-
+  for (uint32_t i = 6; i < endEpoch; ++i) {
     if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
-      Vote vote{validatorAddress, targetHash, i - 1, i};
+      Vote vote{validatorAddress, targetHash, i - 2, i - 1};
 
       BOOST_CHECK_EQUAL(spy.ValidateVote(vote), +Result::SUCCESS);
       spy.ProcessVote(vote);
@@ -200,6 +155,8 @@ BOOST_AUTO_TEST_CASE(process_withdraw_completely_slashed) {
       BOOST_CHECK_EQUAL(spy.IsSlashable(v1, v2), +Result::SUCCESS);
       spy.ProcessSlash(v1, v2);
     }
+
+    BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + i * spy.EpochLength()), +Result::SUCCESS);
   }
 
   BOOST_CHECK_EQUAL(spy.ValidateWithdraw(validatorAddress, withdrawAmount), +Result::SUCCESS);

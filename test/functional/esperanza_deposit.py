@@ -11,8 +11,15 @@ from test_framework.util import (
     assert_raises_rpc_error,
     assert_less_than,
     wait_until,
-    connect_nodes)
+    connect_nodes,
+    disconnect_nodes,
+)
 from test_framework.test_framework import UnitETestFramework
+from test_framework.messages import (
+    FromHex,
+    CTransaction,
+    TxType,
+)
 
 
 class EsperanzaDepositTest(UnitETestFramework):
@@ -82,42 +89,44 @@ class EsperanzaDepositTest(UnitETestFramework):
 
         # mine a block to allow the deposit to get included
         self.generate_sync(proposer)
+        disconnect_nodes(finalizer, proposer.index)
 
         wait_until(lambda: finalizer.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION',
                    timeout=5)
 
-        assert_equal(proposer.getblockcount(), 2)
+        # move to checkpoint
+        proposer.generate(8)
+        assert_equal(proposer.getblockcount(), 10)
         assert_finalizationstate(proposer, {'currentEpoch': 1,
                                             'currentDynasty': 0,
                                             'lastJustifiedEpoch': 0,
                                             'lastFinalizedEpoch': 0,
                                             'validators': 0})
 
-        # the finalizer will be ready to operate at the beginning of epoch 4
-        # TODO: UNIT-E: it can be 3 epochs as soon as #572 is fixed
-        proposer.generate(29)
-        assert_equal(proposer.getblockcount(), 31)
-        sync_blocks([proposer, finalizer])
+        # the finalizer will be ready to operate at currentDynasty=3
+        for _ in range(4):
+            proposer.generate(10)
+            assert_finalizationstate(proposer, {'validators': 0})
 
-        assert_finalizationstate(proposer, {'currentEpoch': 4,
-                                            'currentDynasty': 2,
-                                            'lastJustifiedEpoch': 3,
-                                            'lastFinalizedEpoch': 2,
-                                            'validators': 0})
-
-        wait_until(lambda: finalizer.getvalidatorinfo()['enabled'] == 1, timeout=5)
-        assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'IS_VALIDATING')
-
-        # The finalizer will actually join the finalizers set one dynasty later
-        proposer.generate(10)
-        assert_equal(proposer.getblockcount(), 41)
-        sync_blocks([proposer, finalizer])
-
-        assert_finalizationstate(proposer, {'currentEpoch': 5,
+        # start new dynasty
+        proposer.generate(1)
+        assert_equal(proposer.getblockcount(), 51)
+        assert_finalizationstate(proposer, {'currentEpoch': 6,
                                             'currentDynasty': 3,
                                             'lastJustifiedEpoch': 4,
                                             'lastFinalizedEpoch': 3,
                                             'validators': 1})
+
+        connect_nodes(finalizer, proposer.index)
+        sync_blocks([finalizer, proposer], timeout=10)
+        wait_until(lambda: finalizer.getvalidatorinfo()['enabled'] == 1, timeout=5)
+        assert_equal(finalizer.getvalidatorinfo()['validator_status'], 'IS_VALIDATING')
+
+        # creates actual vote
+        wait_until(lambda: len(proposer.getrawmempool()) == 1, timeout=5)
+        txraw = proposer.getrawtransaction(proposer.getrawmempool()[0])
+        vote = FromHex(CTransaction(), txraw)
+        assert_equal(vote.get_type(), TxType.VOTE)
 
 
 # Deposit all you got, not enough coins left for the fees
