@@ -136,6 +136,15 @@ proposer::State &WalletExtension::GetProposerState() {
   return m_proposer_state;
 }
 
+CScript WalletExtension::GetScriptForStaking() {
+  LOCK(m_enclosing_wallet.cs_wallet);
+  CPubKey pubkey;
+  if (!m_enclosing_wallet.GetKeyFromPool(pubkey)) {
+    m_enclosing_wallet.TopUpKeyPool(1);
+  }
+  return GetScriptForDestination(pubkey.GetID());
+}
+
 boost::optional<CKey> WalletExtension::GetKey(const CPubKey &pubkey) const {
   const CKeyID keyid = pubkey.GetID();
   CKey key;

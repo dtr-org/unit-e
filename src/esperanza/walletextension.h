@@ -121,6 +121,9 @@ class WalletExtension : public staking::StakingWallet {
   // defined in staking::StakingWallet
   proposer::State &GetProposerState() override;
 
+  // defined in staking::StakingWallet
+  CScript GetScriptForStaking() override;
+
   bool SetMasterKeyFromSeed(const key::mnemonic::Seed &seed,
                             bool brand_new,
                             std::string &error);

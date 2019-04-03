@@ -7,14 +7,26 @@
 
 #include <amount.h>
 #include <dependency.h>
+#include <fs.h>
+#include <script/standard.h>
 #include <util.h>
 
-#include <script/standard.h>
+#include <boost/optional.hpp>
+
 #include <memory>
 
 namespace blockchain {
 class Behavior;
 }
+
+namespace staking {
+
+struct ReturnStakeToSameAddress {};
+struct ReturnStakeToNewAddress {};
+
+using StakeReturnMode = boost::variant<ReturnStakeToSameAddress, ReturnStakeToNewAddress, CScript>;
+
+}  // namespace staking
 
 struct Settings {
 
@@ -48,11 +60,13 @@ struct Settings {
   //! \brief Path to the data dir (e.g. ~/user/.unite/regtest).
   fs::path data_dir = GetDefaultDataDir();
 
-  //! \brief the destination of the proposing reward.
-  //
+  //! \brief Destination to send the reward for proposing a block to.
+  //!
   //! If not set it will use the destination of the coin used for proposing the
   //! block.
   boost::optional<CTxDestination> reward_destination = boost::none;
+
+  staking::StakeReturnMode stake_return_mode = staking::ReturnStakeToSameAddress{};
 
   static std::unique_ptr<Settings> New(
       Dependency<::ArgsManager>,

@@ -9,6 +9,7 @@
 #include <dependency.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <proposer/coinbase_parameters.h>
 #include <proposer/eligible_coin.h>
 #include <settings.h>
 #include <staking/coin.h>
@@ -24,11 +25,12 @@ class BlockBuilder {
  public:
   //! \brief Builds a coinbase transaction.
   virtual const CTransactionRef BuildCoinbaseTransaction(
-      const uint256 &snapshot_hash,       //!< The snapshot hash to be included.
-      const EligibleCoin &eligible_coin,  //!< The eligible coin to reference as stake. Also contains the target height.
-      const staking::CoinSet &coins,      //!< Any other coins that should be combined into the coinbase tx.
-      CAmount fees,                       //!< The amount of fees to be included (for the reward).
-      staking::StakingWallet &wallet      //!< The wallet to be used for signing the transaction.
+      const uint256 &snapshot_hash,          //!< The snapshot hash to be included.
+      const EligibleCoin &eligible_coin,     //!< The eligible coin to reference as stake. Also contains the target height.
+      const staking::CoinSet &coins,         //!< Any other coins that should be combined into the coinbase tx.
+      CAmount fees,                          //!< The amount of fees to be included (for the reward).
+      staking::StakingWallet &wallet,        //!< The wallet to be used for signing the transaction.
+      const CoinbaseTransactionParameters &  //!<
       ) const = 0;
 
   //! \brief Builds a brand new block.

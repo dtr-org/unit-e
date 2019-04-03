@@ -74,7 +74,8 @@ class BlockBuilderImpl : public BlockBuilder {
       const EligibleCoin &eligible_coin,
       const staking::CoinSet &coins,
       const CAmount fees,
-      staking::StakingWallet &wallet) const override {
+      staking::StakingWallet &wallet,
+      const CoinbaseTransactionParameters &params) const override {
     CMutableTransaction tx;
 
     // UNIT-E TODO: Restore BIP-9 versioning here
@@ -113,24 +114,21 @@ class BlockBuilderImpl : public BlockBuilder {
 
     const CAmount reward = fees + eligible_coin.reward;
 
-    // Send fees and block reward to the reward_address set, if one is
-    // configured. If an empty block is proposed and there's no block reward
-    // (which happens after the finite supply limit is reached)
-    // then there is no reward at all. The reward output will nevertheless
-    // be added with an amount of zero.
-    const CScript reward_script = m_settings->reward_destination && reward > 0
-                                      ? GetScriptForDestination(*m_settings->reward_destination)
-                                      : eligible_coin.utxo.GetScriptPubKey();
+    // Send fees and block reward to the reward_address set, if one is configured.
+    const CScript reward_script =
+        params.GetRewardScript(*m_settings, eligible_coin.utxo.GetScriptPubKey());
     tx.vout.emplace_back(reward, reward_script);
 
+    const CScript stake_return_script =
+        params.GetStakeReturnScript(*m_settings, wallet, eligible_coin.utxo.GetScriptPubKey());
     const CAmount threshold = m_settings->stake_split_threshold;
     if (threshold > 0 && combined_total > threshold) {
       const std::vector<CAmount> pieces = SplitAmount(combined_total, threshold);
       for (const CAmount amount : pieces) {
-        tx.vout.emplace_back(amount, eligible_coin.utxo.GetScriptPubKey());
+        tx.vout.emplace_back(amount, stake_return_script);
       }
     } else {
-      tx.vout.emplace_back(combined_total, eligible_coin.utxo.GetScriptPubKey());
+      tx.vout.emplace_back(combined_total, stake_return_script);
     }
 
     assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),
@@ -168,8 +166,9 @@ class BlockBuilderImpl : public BlockBuilder {
     // nonce will be removed and is not relevant in PoS, not setting it here
 
     // add coinbase transaction first
+    CoinbaseTransactionParameters params;
     const CTransactionRef coinbase_transaction =
-        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, wallet);
+        BuildCoinbaseTransaction(snapshot_hash, coin, coins, fees, wallet, params);
     if (!coinbase_transaction) {
       Log("Failed to create coinbase transaction.");
       return nullptr;

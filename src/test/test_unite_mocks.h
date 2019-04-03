@@ -19,6 +19,20 @@
 
 namespace mocks {
 
+class ArgsManagerMock : public ::ArgsManager {
+ public:
+  ArgsManagerMock(std::initializer_list<std::string> args) {
+    const char **argv = new const char *[args.size() + 1];
+    argv[0] = "executable-name";
+    std::size_t i = 1;
+    for (const auto &arg : args) {
+      argv[i++] = arg.c_str();
+    }
+    ParseParameters(static_cast<int>(i), argv);
+    delete[] argv;
+  }
+};
+
 class NetworkMock : public staking::Network {
  public:
   mutable std::atomic<std::uint32_t> invocations_GetTime;
@@ -50,7 +64,7 @@ class NetworkMock : public staking::Network {
 };
 
 class BlockIndexMapMock : public staking::BlockIndexMap {
-public:
+ public:
   bool reverse = false;
 
   CCriticalSection &GetLock() const override { return cs; }
@@ -91,9 +105,10 @@ public:
       delete i.second;
     }
   }
-private:
+
+ private:
   mutable CCriticalSection cs;
-  std::map<uint256, CBlockIndex*> indexes;
+  std::map<uint256, CBlockIndex *> indexes;
 };
 
 class ActiveChainMock : public staking::ActiveChain {
@@ -282,7 +297,8 @@ class CoinsViewMock : public AccessibleCoinsView {
 
 class StateDBMock : public finalization::StateDB {
   using FinalizationState = finalization::FinalizationState;
-public:
+
+ public:
   mutable std::atomic<std::uint32_t> invocations_Save{0};
   mutable std::atomic<std::uint32_t> invocations_Load{0};
   mutable std::atomic<std::uint32_t> invocations_LoadParticular{0};
@@ -326,7 +342,7 @@ public:
 };
 
 class BlockDBMock : public ::BlockDB {
-public:
+ public:
   mutable std::atomic<std::uint32_t> invocations_ReadBlock{0};
 
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {

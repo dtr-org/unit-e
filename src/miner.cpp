@@ -111,7 +111,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, CWallet *wallet)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, CWallet *wallet)
 {
     //TODO UNIT-E: Remove this as soon as we move to the new proposing logic
     // Get the wallet that is used to retrieve the stakable coins.
@@ -181,7 +181,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     bool success = false;
     CValidationState state;
-    const staking::ActiveChain *active_chain = GetComponent<staking::ActiveChain>();
+    Dependency<staking::ActiveChain> active_chain = GetComponent<staking::ActiveChain>();
     for (const staking::Coin &coin : stakeable_coins) {
       proposer::EligibleCoin eligible_coin = {
           staking::Coin(active_chain->GetBlockIndex(coin.GetTransactionId()),
@@ -194,7 +194,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
           0 //TODO UNIT-E: At the moment is not used, since we still have PoW here
       };
 
-      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension());
+      proposer::CoinbaseTransactionParameters params;
+      params.SetStakeReturnScript(scriptPubKeyIn);
+      params.SetRewardScript(scriptPubKeyIn);
+      const CTransactionRef coinbase = GetComponent<proposer::BlockBuilder>()->BuildCoinbaseTransaction(
+          uint256(snapshot_hash), eligible_coin, staking::CoinSet(), nFees, wallet->GetWalletExtension(), params);
       pblocktemplate->block.vtx[0] = coinbase;
 
       LogPrintf("%s: block weight=%u txs=%u fees=%ld sigops=%d\n", __func__, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);

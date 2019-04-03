@@ -55,6 +55,7 @@ struct Fixture {
     CAmount GetStakeableBalance() const override { return 1000; }
     staking::CoinSet GetStakeableCoins() const override { return staking::CoinSet(); }
     proposer::State &GetProposerState() override { return state; }
+    CScript GetScriptForStaking() override { return CScript(); }
     boost::optional<CKey> GetKey(const CPubKey &) const override { return key; }
     bool SignCoinbaseTransaction(CMutableTransaction &tx) override { return signfunc(tx); }
   };

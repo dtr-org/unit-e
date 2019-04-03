@@ -110,7 +110,8 @@ struct Fixture {
         const proposer::EligibleCoin &,
         const staking::CoinSet &,
         CAmount,
-        staking::StakingWallet &) const override { return nullptr; };
+        staking::StakingWallet &,
+        const proposer::CoinbaseTransactionParameters &) const override { return nullptr; };
     std::shared_ptr<const CBlock> BuildBlock(
         const CBlockIndex &,
         const uint256 &,

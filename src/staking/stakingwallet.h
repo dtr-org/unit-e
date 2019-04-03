@@ -51,6 +51,8 @@ class StakingWallet {
   //! \brief returns the mutable proposer state for this wallet.
   virtual proposer::State &GetProposerState() = 0;
 
+  virtual CScript GetScriptForStaking() = 0;
+
   //! \brief retrieve the private key corresponding to the given public key.
   virtual boost::optional<CKey> GetKey(const CPubKey &) const = 0;
 
