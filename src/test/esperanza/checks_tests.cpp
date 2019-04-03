@@ -198,8 +198,13 @@ BOOST_AUTO_TEST_CASE(CheckDepositTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckDepositTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-deposit-malformed", err_state.GetRejectReason());
+    bool ok = CheckDepositTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-deposit-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vin.resize(1);
@@ -210,8 +215,13 @@ BOOST_AUTO_TEST_CASE(CheckDepositTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckDepositTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-deposit-malformed", err_state.GetRejectReason());
+    bool ok = CheckDepositTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-deposit-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vout.resize(1);
@@ -222,8 +232,13 @@ BOOST_AUTO_TEST_CASE(CheckDepositTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckDepositTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-deposit-vout-script", err_state.GetRejectReason());
+    bool ok = CheckDepositTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-deposit-vout-script");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -231,7 +246,8 @@ BOOST_AUTO_TEST_CASE(CheckDepositTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckDepositTx(tx, err_state, &va_out);
+    bool ok = CheckDepositTx(tx, err_state, &va_out);
+    BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
 }
@@ -257,7 +273,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckDepositTx_test) {
 
     int dos = 0;
     err_state.IsInvalid(dos);
-    BOOST_CHECK_EQUAL(dos, 10);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -301,8 +317,13 @@ BOOST_AUTO_TEST_CASE(CheckLogoutTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckLogoutTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-logout-malformed", err_state.GetRejectReason());
+    bool ok = CheckLogoutTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-logout-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vin.resize(1);
@@ -313,8 +334,13 @@ BOOST_AUTO_TEST_CASE(CheckLogoutTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckLogoutTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-logout-malformed", err_state.GetRejectReason());
+    bool ok = CheckLogoutTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-logout-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vout.resize(1);
@@ -325,8 +351,13 @@ BOOST_AUTO_TEST_CASE(CheckLogoutTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckLogoutTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-logout-vout-script", err_state.GetRejectReason());
+    bool ok = CheckLogoutTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-logout-vout-script");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -334,7 +365,8 @@ BOOST_AUTO_TEST_CASE(CheckLogoutTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckLogoutTx(tx, err_state, &va_out);
+    bool ok = CheckLogoutTx(tx, err_state, &va_out);
+    BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
 }
@@ -363,11 +395,11 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
 
     bool ok = ContextualCheckLogoutTx(tx, err_state, spy, view);
     BOOST_CHECK(!ok);
-    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-logout-invalid-state");
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-logout-not-from-validator");
 
     int dos = 0;
     err_state.IsInvalid(dos);
-    BOOST_CHECK_EQUAL(dos, 10);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -433,8 +465,13 @@ BOOST_AUTO_TEST_CASE(CheckSlashTx_test) {
     Vote vote1;
     Vote vote2;
 
-    CheckSlashTx(tx, err_state, &vote1, &vote2);
-    BOOST_CHECK_EQUAL("bad-slash-malformed", err_state.GetRejectReason());
+    bool ok = CheckSlashTx(tx, err_state, &vote1, &vote2);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-slash-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vin.resize(1);
@@ -446,8 +483,13 @@ BOOST_AUTO_TEST_CASE(CheckSlashTx_test) {
     Vote vote1;
     Vote vote2;
 
-    CheckSlashTx(tx, err_state, &vote1, &vote2);
-    BOOST_CHECK_EQUAL("bad-slash-malformed", err_state.GetRejectReason());
+    bool ok = CheckSlashTx(tx, err_state, &vote1, &vote2);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-slash-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vout.resize(1);
@@ -459,8 +501,13 @@ BOOST_AUTO_TEST_CASE(CheckSlashTx_test) {
     Vote vote1;
     Vote vote2;
 
-    CheckSlashTx(tx, err_state, &vote1, &vote2);
-    BOOST_CHECK_EQUAL("bad-slash-data-format", err_state.GetRejectReason());
+    bool ok = CheckSlashTx(tx, err_state, &vote1, &vote2);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-slash-data-format");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -470,7 +517,8 @@ BOOST_AUTO_TEST_CASE(CheckSlashTx_test) {
     CTransaction tx = CreateSlashTx(pub_key, vote1, vote2);
     CValidationState err_state;
 
-    CheckSlashTx(tx, err_state, &vote1, &vote2);
+    bool ok = CheckSlashTx(tx, err_state, &vote1, &vote2);
+    BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
 }
@@ -495,7 +543,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckSlashTx_test) {
 
     int dos = 0;
     err_state.IsInvalid(dos);
-    BOOST_CHECK_EQUAL(dos, 10);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -513,11 +561,41 @@ BOOST_AUTO_TEST_CASE(ContextualCheckSlashTx_test) {
     block_index.phashBlock = &target_hash;
     spy.SetRecommendedTarget(block_index);
 
-    spy.CreateAndActivateDeposit(validator_address, deposit_size);
+    BOOST_CHECK_EQUAL(spy.ValidateDeposit(validator_address, deposit_size),
+                      +Result::SUCCESS);
+    spy.ProcessDeposit(validator_address, deposit_size);
 
+    // Slash too early
     bool ok = ContextualCheckSlashTx(tx, err_state, spy);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-slash-not-slashable");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 0);
+
+    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+      Result res = spy.InitializeEpoch(i);
+      BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
+    }
+    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+
+    err_state = CValidationState();
+    ok = ContextualCheckSlashTx(tx, err_state, spy);
     BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
+
+    spy.ProcessSlash(vote1, vote2);
+
+    // Duplicate slash
+    err_state = CValidationState();
+    ok = ContextualCheckSlashTx(tx, err_state, spy);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-slash-not-slashable");
+
+    dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 0);
   }
 }
 
@@ -535,8 +613,13 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     Vote vote_out;
     std::vector<unsigned char> vote_sig_out;
 
-    CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
-    BOOST_CHECK_EQUAL("bad-vote-malformed", err_state.GetRejectReason());
+    bool ok = CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vin.resize(1);
@@ -548,8 +631,13 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     Vote vote_out;
     std::vector<unsigned char> vote_sig_out;
 
-    CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
-    BOOST_CHECK_EQUAL("bad-vote-malformed", err_state.GetRejectReason());
+    bool ok = CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vout.resize(1);
@@ -561,8 +649,13 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     Vote vote_out;
     std::vector<unsigned char> vote_sig_out;
 
-    CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
-    BOOST_CHECK_EQUAL("bad-vote-vout-script", err_state.GetRejectReason());
+    bool ok = CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-vout-script");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -574,8 +667,13 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     Vote vote_out;
     std::vector<unsigned char> vote_sig_out;
 
-    CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
-    BOOST_CHECK_EQUAL("bad-vote-data-format", err_state.GetRejectReason());
+    bool ok = CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-data-format");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -592,8 +690,13 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     Vote vote_out;
     std::vector<unsigned char> vote_sig_out;
 
-    CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
-    BOOST_CHECK_EQUAL("bad-vote-signature", err_state.GetRejectReason());
+    bool ok = CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-signature");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -613,7 +716,8 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
 
-    CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
+    bool ok = CheckVoteTx(tx, err_state, &vote_out, &vote_sig_out);
+    BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
 }
@@ -697,8 +801,13 @@ BOOST_AUTO_TEST_CASE(CheckWithdrawTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckWithdrawTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-withdraw-malformed", err_state.GetRejectReason());
+    bool ok = CheckWithdrawTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-withdraw-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vout.resize(1);
@@ -709,8 +818,13 @@ BOOST_AUTO_TEST_CASE(CheckWithdrawTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckWithdrawTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-withdraw-malformed", err_state.GetRejectReason());
+    bool ok = CheckWithdrawTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-withdraw-malformed");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   mtx.vin.resize(1);
@@ -721,8 +835,13 @@ BOOST_AUTO_TEST_CASE(CheckWithdrawTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckWithdrawTx(tx, err_state, &va_out);
-    BOOST_CHECK_EQUAL("bad-withdraw-vout-script-invalid-p2pkh", err_state.GetRejectReason());
+    bool ok = CheckWithdrawTx(tx, err_state, &va_out);
+    BOOST_CHECK(!ok);
+    BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-withdraw-vout-script-invalid-p2pkh");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 100);
   }
 
   {
@@ -730,7 +849,8 @@ BOOST_AUTO_TEST_CASE(CheckWithdrawTx_test) {
     CValidationState err_state;
     uint160 va_out;
 
-    CheckWithdrawTx(tx, err_state, &va_out);
+    bool ok = CheckWithdrawTx(tx, err_state, &va_out);
+    BOOST_CHECK(ok);
     BOOST_CHECK(err_state.IsValid());
   }
 }
@@ -846,10 +966,14 @@ BOOST_AUTO_TEST_CASE(CheckVoteTransaction_malformed_vote) {
 
   CTransaction invalidVote(mutedTx);
   CValidationState err_state;
-  BOOST_CHECK(CheckFinalizerCommit(invalidVote, err_state) == false);
-  BOOST_CHECK(ContextualCheckVoteTx(invalidVote, err_state, spy, view) == false);
 
-  BOOST_CHECK_EQUAL("bad-vote-data-format", err_state.GetRejectReason());
+  bool ok = ContextualCheckVoteTx(invalidVote, err_state, spy, view);
+  BOOST_CHECK(!ok);
+  BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-data-format");
+
+  int dos = 0;
+  err_state.IsInvalid(dos);
+  BOOST_CHECK_EQUAL(dos, 100);
 }
 
 BOOST_AUTO_TEST_CASE(ExtractValidatorIndex_deposit) {

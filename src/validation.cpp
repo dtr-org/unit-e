@@ -675,19 +675,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
     }
 
-    CCoinsView dummy;
-    CCoinsViewCache view(&dummy);
-    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), pool);
-    view.SetBackend(viewMemPool);
-
-    const finalization::FinalizationState *fin_state =
-        GetComponent<finalization::StateRepository>()->GetTipState();
-    assert(fin_state != nullptr);
-    if (tx.IsFinalizerCommit() &&
-        !::ContextualCheckFinalizerCommit(tx, state, *fin_state, *fin_state, view)) {
-        return false; // state already filled by ContextualCheckFinalizerTx
-    }
-
     // Check for conflicts with in-memory transactions
     std::set<uint256> setConflicts;
 
@@ -740,6 +727,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
     }
 
+    CCoinsView dummy;
+    CCoinsViewCache view(&dummy);
+    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), pool);
+    view.SetBackend(viewMemPool);
+
     {
         LockPoints lp;
 
@@ -762,6 +754,14 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 }
                 return false; // fMissingInputs and !state.IsInvalid() is used to detect this condition, don't set state.Invalid()
             }
+        }
+
+        const finalization::FinalizationState *fin_state =
+            GetComponent<finalization::StateRepository>()->GetTipState();
+        assert(fin_state != nullptr);
+        if (tx.IsFinalizerCommit() &&
+            !::ContextualCheckFinalizerCommit(tx, state, *fin_state, view)) {
+          return false; // state already filled by ContextualCheckFinalizerTx
         }
 
         // Bring the best block into scope

@@ -537,7 +537,7 @@ Result FinalizationState::ValidateLogout(const uint160 &validatorAddress) const 
   const Validator &validator = it->second;
 
   if (validator.m_start_dynasty > m_current_dynasty) {
-    return fail(Result::LOGOUT_NOT_A_VALIDATOR,
+    return fail(Result::LOGOUT_NOT_YET_A_VALIDATOR,
                 "%s: the validator with address %s is logging out before the "
                 "start dynasty.\n",
                 __func__, validator.m_validator_address.GetHex());

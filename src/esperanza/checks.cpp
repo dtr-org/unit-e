@@ -106,23 +106,23 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
   assert(tx.IsDeposit());
 
   if (tx.vin.empty() || tx.vout.empty()) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-deposit-malformed");
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-deposit-malformed");
   }
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-deposit-vout-script");
   }
 
   std::vector<std::vector<unsigned char>> solutions;
   txnouttype type_ret;
   if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-deposit-script-not-solvable");
   }
 
   if (!CheckValidatorAddress(tx, validator_address_out)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-deposit-cannot-extract-validator-address");
   }
 
@@ -144,7 +144,7 @@ bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_stat
     case +Result::DEPOSIT_DUPLICATE:
       return err_state.Invalid(false, REJECT_INVALID, "bad-deposit-duplicate");
     default:
-      return err_state.DoS(10, false, REJECT_INVALID, "bad-deposit-invalid");
+      return err_state.DoS(100, false, REJECT_INVALID, "bad-deposit-invalid");
   }
 }
 
@@ -165,23 +165,23 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
   assert(tx.IsLogout());
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-logout-malformed");
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-logout-malformed");
   }
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-vout-script");
   }
 
   std::vector<std::vector<unsigned char>> solutions;
   txnouttype type_ret;
   if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-script-not-solvable");
   }
 
   if (!CheckValidatorAddress(tx, validator_address_out)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-cannot-extract-validator-address");
   }
 
@@ -198,8 +198,13 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
   }
 
   const Result res = fin_state.ValidateLogout(validator_address);
-  if (res != +Result::SUCCESS) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-logout-invalid-state");
+  switch (res) {
+    case +Result::SUCCESS:
+      break;
+    case +Result::LOGOUT_NOT_A_VALIDATOR:
+      return err_state.DoS(100, false, REJECT_INVALID, "bad-logout-not-from-validator");
+    default:
+      return err_state.DoS(0, false, REJECT_INVALID, "bad-logout-invalid");
   }
 
   // We keep the check for the prev at the end because is the most expensive
@@ -210,17 +215,16 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
   CScript prev_out_script;
 
   if (!FindPrevOutData(tx.vin[0].prevout, view, &prev_tx_type, &prev_out_script)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
-                         "bad-logout-no-prev-tx-found");
+    return err_state.DoS(10, false, REJECT_INVALID, "bad-logout-no-prev-tx-found");
   }
 
   if (prev_tx_type != +TxType::DEPOSIT && prev_tx_type != +TxType::VOTE) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-prev-not-deposit-or-vote");
   }
 
   if (prev_out_script != tx.vout[0].scriptPubKey) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-not-same-payvoteslash-script");
   }
 
@@ -233,23 +237,23 @@ bool CheckWithdrawTx(const CTransaction &tx, CValidationState &err_state,
   assert(tx.IsWithdraw());
 
   if (tx.vin.size() != 1 || tx.vout.size() > 3) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-withdraw-malformed");
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-withdraw-malformed");
   }
 
   if (!tx.vout[0].scriptPubKey.IsPayToPublicKeyHash()) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-withdraw-vout-script-invalid-p2pkh");
   }
 
   std::vector<std::vector<unsigned char>> solutions;
   txnouttype type_ret;
   if (!Solver(tx.vout[0].scriptPubKey, type_ret, solutions)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-withdraw-script-not-solvable");
   }
 
   if (!CheckValidatorAddress(tx, out_validator_address)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-withdraw-cannot-extract-validator-address");
   }
 
@@ -274,21 +278,21 @@ bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_sta
   }
 
   if (prev_tx_type != +TxType::LOGOUT && prev_tx_type != +TxType::VOTE) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-withdraw-prev-not-logout-or-vote");
   }
 
   std::vector<std::vector<unsigned char>> prev_solutions;
   txnouttype prev_type_ret;
   if (!Solver(prev_out_script, prev_type_ret, prev_solutions)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-script-not-solvable");
   }
 
   const Result res = fin_state.ValidateWithdraw(validator_address, tx.vout[0].nValue);
 
   if (res != +Result::SUCCESS) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-withdraw-invalid-state");
   }
 
@@ -301,11 +305,11 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   assert(tx.IsVote());
 
   if (tx.vin.size() != 1 || tx.vout.size() != 1) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-malformed");
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-malformed");
   }
 
   if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-vout-script");
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-vout-script");
   }
 
   static thread_local Vote vote_tmp;
@@ -318,12 +322,12 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   if (!CScript::ExtractVoteFromVoteSignature(tx.vin[0].scriptSig, *vote_out, *vote_sig_out)) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-vote-data-format");
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-data-format");
   }
 
   CPubKey pubkey;
   if (!ExtractValidatorPubkey(tx, pubkey)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-scriptpubkey-pubkey-format");
   }
 
@@ -361,12 +365,12 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   if (prev_tx_type != +TxType::DEPOSIT && prev_tx_type != +TxType::VOTE && prev_tx_type != +TxType::LOGOUT) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-vote-prev-not-deposit-vote-or-logout");
   }
 
   if (prev_out_script != tx.vout[0].scriptPubKey) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-vote-not-same-payvoteslash-script");
   }
 
@@ -395,7 +399,7 @@ bool CheckSlashTx(const CTransaction &tx, CValidationState &err_state,
   std::vector<unsigned char> vote2_sig;
   if (!CScript::ExtractVotesFromSlashSignature(tx.vin[0].scriptSig, *vote1_out,
                                                *vote2_out, vote1_sig, vote2_sig)) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-slash-data-format");
+    return err_state.DoS(100, false, REJECT_INVALID, "bad-slash-data-format");
   }
 
   return true;
@@ -412,11 +416,15 @@ bool ContextualCheckSlashTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   const esperanza::Result res = fin_state.IsSlashable(vote1, vote2);
-  if (res != +esperanza::Result::SUCCESS) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-slash-not-slashable");
+  switch (res) {
+    case +esperanza::Result::SUCCESS:
+      return true;
+    case +esperanza::Result::SLASH_TOO_EARLY:
+    case +esperanza::Result::SLASH_ALREADY_SLASHED:
+      return err_state.DoS(0, false, REJECT_INVALID, "bad-slash-not-slashable");
+    default:
+      return err_state.DoS(100, false, REJECT_INVALID, "bad-slash-not-slashable");
   }
-
-  return true;
 }
 
 bool CheckAdminTx(const CTransaction &tx, CValidationState &err_state,

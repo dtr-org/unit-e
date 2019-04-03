@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
   BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
 
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::LOGOUT_NOT_A_VALIDATOR);
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::LOGOUT_NOT_YET_A_VALIDATOR);
 }
 
 BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
