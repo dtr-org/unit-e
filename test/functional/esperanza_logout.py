@@ -108,7 +108,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
 
         # Check that we cannot logout again
-        assert_raises_rpc_error(-8, "Cannot send logout transaction.", finalizer1.logout)
+        assert_raises_rpc_error(-8, 'Cannot send logout transaction.', finalizer1.logout)
 
         # Mine votes and move to checkpoint
         proposer.generate(9)
@@ -145,8 +145,8 @@ class EsperanzaLogoutTest(UnitETestFramework):
         # finalizer1 is not validating so we can keep it connected
         connect_nodes(finalizer1, proposer.index)
         sync_blocks([finalizer1, proposer], timeout=10)
-        assert_equal(finalizer1.getvalidatorinfo()["validator_status"], "NOT_VALIDATING")
-        assert_raises_rpc_error(-8, "The node is not validating.", finalizer1.logout)
+        wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'NOT_VALIDATING', timeout=5)
+        assert_raises_rpc_error(-8, 'The node is not validating.', finalizer1.logout)
 
         # Check that we manage to finalize even with one finalizer
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
