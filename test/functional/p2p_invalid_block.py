@@ -12,8 +12,15 @@ re-requested.
 """
 import copy
 
-from test_framework.blocktools import create_block, create_coinbase, create_tx_with_script, get_tip_snapshot_meta
-from test_framework.messages import UNIT
+from test_framework.blocktools import (
+    calc_snapshot_hash,
+    create_block,
+    create_coinbase,
+    create_tx_with_script,
+    get_tip_snapshot_meta,
+    sign_coinbase,
+)
+from test_framework.messages import UNIT, UTXO, COutPoint
 from test_framework.mininode import P2PDataStore
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, get_unspent_coins
@@ -31,6 +38,8 @@ class InvalidBlockRequestTest(UnitETestFramework):
         # Add p2p connection to node0
         node = self.nodes[0]  # convenience reference to the node
         node.add_p2p_connection(P2PDataStore())
+
+        self.setup_stake_coins(node)
 
         best_block = node.getblock(node.getbestblockhash())
         tip = int(node.getbestblockhash(), 16)
@@ -52,6 +61,7 @@ class InvalidBlockRequestTest(UnitETestFramework):
         block1 = block
         tip = block.sha256
         node.p2p.send_blocks_and_test([block1], node, success=True)
+        height += 1
 
         self.log.info("Mature the block.")
 
@@ -60,7 +70,7 @@ class InvalidBlockRequestTest(UnitETestFramework):
         for i in range(100):
             prev_coinbase = coinbase
             stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
-            coinbase = create_coinbase(height, stake, snapshot_meta.hash)
+            coinbase = sign_coinbase(node, create_coinbase(height, stake, snapshot_meta.hash))
             block = create_block(tip, coinbase, block_time)
             block.solve()
             tip = block.sha256
@@ -85,7 +95,7 @@ class InvalidBlockRequestTest(UnitETestFramework):
         prev_coinbase = coinbase
         stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        coinbase = create_coinbase(height, stake, snapshot_meta.hash)
+        coinbase = sign_coinbase(node, create_coinbase(height, stake, snapshot_meta.hash))
         block2 = create_block(tip, coinbase, block_time)
         block_time += 1
 
@@ -120,10 +130,9 @@ class InvalidBlockRequestTest(UnitETestFramework):
 
         self.log.info("Test very broken block.")
 
-        prev_coinbase = coinbase
         stake = {'txid': prev_coinbase.hash, 'vout': 1, 'amount': prev_coinbase.vout[1].nValue/UNIT}
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-        block3 = create_block(tip, create_coinbase(height, stake, snapshot_meta.hash), block_time)
+        block3 = create_block(tip, sign_coinbase(node, create_coinbase(height, stake, snapshot_meta.hash)), block_time)
         block_time += 1
         block3.vtx[0].vout[0].nValue = 100 * UNIT  # Too high!
         block3.vtx[0].sha256 = None
