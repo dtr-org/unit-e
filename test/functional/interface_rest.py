@@ -40,8 +40,8 @@ def filter_output_indices_by_value(vouts, value):
 class RESTTest (UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 2
-        self.extra_args = [["-rest"], []]
+        self.num_nodes = 3
+        self.extra_args = [["-rest"], [], []]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -84,14 +84,18 @@ class RESTTest (UnitETestFramework):
 
         self.nodes[0].generate(1)
         self.sync_all()
-        self.nodes[1].generatetoaddress(100, not_related_address)
+        self.nodes[2].generate(100)
         self.sync_all()
 
         assert_equal(self.nodes[0].getbalance(), self.nodes[0].initial_stake + PROPOSER_REWARD)
 
+        # Ensure only one spendable coin on node 0
+        stake = self.nodes[0].listunspent(query_options={'minimumAmount': 1000})
+        self.nodes[0].lockunspent(False, stake)
+
         txid = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
         self.sync_all()
-        self.nodes[1].generatetoaddress(1, not_related_address)
+        self.nodes[2].generate(1)
         self.sync_all()
         bb_hash = self.nodes[0].getbestblockhash()
 
@@ -177,7 +181,8 @@ class RESTTest (UnitETestFramework):
         json_obj = self.test_rest_request("/getutxos/checkmempool/{}-{}".format(*spent))
         assert_equal(len(json_obj['utxos']), 0)
 
-        self.nodes[0].generate(1)
+        self.sync_all()
+        self.nodes[2].generate(1)
         self.sync_all()
 
         json_obj = self.test_rest_request("/getutxos/{}-{}".format(*spending))
@@ -198,7 +203,8 @@ class RESTTest (UnitETestFramework):
         long_uri = '/'.join(['{}-{}'.format(txid, n_) for n_ in range(15)])
         self.test_rest_request("/getutxos/checkmempool/{}".format(long_uri), http_method='POST', status=200)
 
-        self.nodes[0].generate(1)  # generate block to not affect upcoming tests
+        self.sync_all()
+        self.nodes[2].generate(1)  # generate block to not affect upcoming tests
         self.sync_all()
 
         self.log.info("Test the /block and /headers URIs")
@@ -219,12 +225,12 @@ class RESTTest (UnitETestFramework):
         response_hex = self.test_rest_request("/block/{}".format(bb_hash), req_type=ReqType.HEX, ret_type=RetType.OBJ)
         assert_greater_than(int(response_hex.getheader('content-length')), 224)
         response_hex_bytes = response_hex.read().strip(b'\n')
-        assert_equal(binascii.hexlify(response_bytes[0:224]), response_hex_bytes)
+        assert_equal(binascii.hexlify(response_bytes)[0:224], response_hex_bytes[0:224])
 
         # Compare with hex block header
         response_header_hex = self.test_rest_request("/headers/1/{}".format(bb_hash), req_type=ReqType.HEX, ret_type=RetType.OBJ)
         assert_greater_than(int(response_header_hex.getheader('content-length')), 224)
-        response_header_hex_bytes = response_header_hex.read()
+        response_header_hex_bytes = response_header_hex.read().strip(b'\n')
         assert_equal(binascii.hexlify(response_header_bytes), response_header_hex_bytes)
 
         # Check json format
@@ -262,9 +268,9 @@ class RESTTest (UnitETestFramework):
 
         # Make 3 tx and mine them on node 1
         txs = []
-        txs.append(self.nodes[0].sendtoaddress(not_related_address, 11))
-        txs.append(self.nodes[0].sendtoaddress(not_related_address, 11))
-        txs.append(self.nodes[0].sendtoaddress(not_related_address, 11))
+        txs.append(self.nodes[0].sendtoaddress(not_related_address, 1.1))
+        txs.append(self.nodes[0].sendtoaddress(not_related_address, 1.1))
+        txs.append(self.nodes[0].sendtoaddress(not_related_address, 1.1))
         self.sync_all()
 
         # Check that there are exactly 3 transactions in the TX memory pool before generating the block
