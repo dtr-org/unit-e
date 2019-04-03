@@ -1050,19 +1050,59 @@ UniValue sendrawtransaction(const JSONRPCRequest& request)
     return hashTx.GetHex();
 }
 
-static const CRPCCommand commands[] =
-{ //  category              name                      actor (function)         argNames
-  //  --------------------- ------------------------  -----------------------  ----------
-    { "rawtransactions",    "getrawtransaction",      &getrawtransaction,      {"txid","verbose","blockhash"} },
-    { "rawtransactions",    "createrawtransaction",   &createrawtransaction,   {"inputs","outputs","locktime","replaceable"} },
-    { "rawtransactions",    "decoderawtransaction",   &decoderawtransaction,   {"hexstring","iswitness"} },
-    { "rawtransactions",    "decodescript",           &decodescript,           {"hexstring"} },
-    { "rawtransactions",    "sendrawtransaction",     &sendrawtransaction,     {"hexstring","allowhighfees"} },
-    { "rawtransactions",    "combinerawtransaction",  &combinerawtransaction,  {"txs"} },
-    { "rawtransactions",    "signrawtransaction",     &signrawtransaction,     {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
+UniValue extractvotefromsignature(const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "extractvotefromsignature\n"
+            "\nReturns JSON representation of decoded vote\n"
+            "\nArguments:\n"
+            "1. \"signature\"               (string).\n"
+            "Result:\n"
+            "{\n"
+            "  \"validator_ddress\": xxxx   (string) the validator address\n"
+            "  \"target_hash\": xxxx\n      (string) the target hash"
+            "  \"source_epoch\": xxxx       (numeric) the source epoch\n"
+            "  \"target_epoch\": xxxx       (numeric) the target epoch\n"
+            "}\n"
+            "\n"
+            + HelpExampleCli("extractvotefromsignature", "\"hexstring\"")
+            + HelpExampleRpc("extractvotefromsignature", "\"hexstring\""));
+    }
+    esperanza::Vote vote;
+    std::vector<unsigned char> vote_sig_out;
 
-    { "blockchain",         "gettxoutproof",          &gettxoutproof,          {"txids", "blockhash"} },
-    { "blockchain",         "verifytxoutproof",       &verifytxoutproof,       {"proof"} },
+    UniValue r(UniValue::VOBJ);
+    CScript script;
+    if (request.params[0].get_str().size() > 0) {
+        std::vector<unsigned char> data(ParseHexV(request.params[0].get_str(), "signature"));
+        script = CScript(data.begin(), data.end());
+    }
+
+    if (!CScript::ExtractVoteFromVoteSignature(script, vote, vote_sig_out)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "script decode failed");
+    }
+
+    r.push_back(Pair("validator_address", vote.m_validator_address.GetHex()));
+    r.push_back(Pair("target_hash", vote.m_target_hash.GetHex()));
+    r.push_back(Pair("source_epoch", (uint64_t)vote.m_source_epoch));
+    r.push_back(Pair("target_epoch", (uint64_t)vote.m_target_epoch));
+    return r;
+}
+
+static const CRPCCommand commands[] =
+{ //  category              name                        actor (function)           argNames
+  //  --------------------- --------------------------  -------------------------  ----------
+    { "rawtransactions",    "getrawtransaction",        &getrawtransaction,        {"txid","verbose","blockhash"} },
+    { "rawtransactions",    "createrawtransaction",     &createrawtransaction,     {"inputs","outputs","locktime","replaceable"} },
+    { "rawtransactions",    "decoderawtransaction",     &decoderawtransaction,     {"hexstring","iswitness"} },
+    { "rawtransactions",    "decodescript",             &decodescript,             {"hexstring"} },
+    { "rawtransactions",    "sendrawtransaction",       &sendrawtransaction,       {"hexstring","allowhighfees"} },
+    { "rawtransactions",    "combinerawtransaction",    &combinerawtransaction,    {"txs"} },
+    { "rawtransactions",    "signrawtransaction",       &signrawtransaction,       {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
+    { "rawtransactions",    "extractvotefromsignature", &extractvotefromsignature, {"hexstring"}},
+
+    { "blockchain",         "gettxoutproof",            &gettxoutproof,          {"txids", "blockhash"} },
+    { "blockchain",         "verifytxoutproof",         &verifytxoutproof,       {"proof"} },
 };
 
 void RegisterRawTransactionRPCCommands(CRPCTable &t)

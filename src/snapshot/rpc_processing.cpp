@@ -262,7 +262,7 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
 }
 
 UniValue getrawsnapshot(const JSONRPCRequest &request) {
-  if (request.fHelp) {
+  if (request.fHelp || request.params.size() != 1) {
     throw std::runtime_error(
         "getrawsnapshot\n"
         "\nReturns hex string that contains snapshot data\n"

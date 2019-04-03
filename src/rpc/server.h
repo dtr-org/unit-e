@@ -179,6 +179,8 @@ extern CRPCTable tableRPC;
  * Utilities: convert hex-encoded Values
  * (throws error if not hex).
  */
+extern uint160 ParseHash160V(const UniValue& v, std::string strName);
+extern uint160 ParseHash160O(const UniValue& v, std::string strKey);
 extern uint256 ParseHashV(const UniValue& v, std::string strName);
 extern uint256 ParseHashO(const UniValue& o, std::string strKey);
 extern std::vector<unsigned char> ParseHexV(const UniValue& v, std::string strName);
