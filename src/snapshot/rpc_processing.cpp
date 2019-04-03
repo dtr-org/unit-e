@@ -261,6 +261,41 @@ UniValue gettipsnapshot(const JSONRPCRequest &request) {
   return root;
 }
 
+UniValue getrawsnapshot(const JSONRPCRequest &request) {
+  if (request.fHelp) {
+    throw std::runtime_error(
+        "getrawsnapshot\n"
+        "\nReturns hex string that contains snapshot data\n"
+        "\nArguments:\n"
+        "1. \"snapshothash\" (hex, required) snapshot that must be returned.\n"
+        "\nExamples:\n" +
+        HelpExampleCli("getrawsnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03") +
+        HelpExampleRpc("getrawsnapshot", "34aa7d3aabd5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"));
+  }
+
+  LOCK(cs_snapshot);
+
+  uint256 snapshot_hash = uint256S(request.params[0].get_str());
+  std::unique_ptr<Indexer> idx = SnapshotIndex::OpenSnapshot(snapshot_hash);
+  if (!idx) {
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Snapshot was not found");
+  }
+
+  Snapshot snapshot;
+  snapshot.snapshot_hash = idx->GetSnapshotHeader().snapshot_hash;
+  snapshot.utxo_subset_index = 0;
+
+  Iterator iter(std::move(idx));
+  while (iter.Valid()) {
+    snapshot.utxo_subsets.emplace_back(iter.GetUTXOSubset());
+    iter.Next();
+  }
+
+  CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+  stream << snapshot;
+  return HexStr(stream.begin(), stream.end());
+}
+
 // clang-format off
 static const CRPCCommand commands[] = {
     // category   name                actor (function)   argNames
@@ -270,6 +305,7 @@ static const CRPCCommand commands[] = {
     { "snapshot", "listsnapshots",    &listsnapshots,    {""} },
     { "snapshot", "gettipsnapshot",   &gettipsnapshot,   {}},
     { "snapshot", "calcsnapshothash", &calcsnapshothash, {}},
+    { "snapshot", "getrawsnapshot",   &getrawsnapshot,   {"snapshothash"}},
 };
 // clang-format on
 
