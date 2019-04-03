@@ -4171,7 +4171,10 @@ CWallet* CWallet::CreateWalletFromFile(const esperanza::WalletExtensionDeps& dep
         }
     }
 
-    walletInstance->m_wallet_extension.ReadValidatorStateFromFile();
+    // In the case of reindex, don't restore validator's state, since it will be built from scratch.
+    if (!fReindex) {
+        walletInstance->m_wallet_extension.ReadValidatorStateFromFile();
+    }
 
     LogPrintf(" wallet      %15dms\n", GetTimeMillis() - nStart);
 
