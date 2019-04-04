@@ -594,7 +594,7 @@ static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationSt
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
     if (tx.IsVote()) {
-        if (!esperanza::CheckVoteTx(tx, err_state, /*vote=*/nullptr, /*vote_sig=*/nullptr)) {
+        if (!esperanza::CheckVoteTx(tx, err_state, /*vote_out=*/nullptr, /*vote_sig_out=*/nullptr)) {
             return false;
         }
         if (!finalization::RecordVote(tx, err_state, tip_fin_state)) {

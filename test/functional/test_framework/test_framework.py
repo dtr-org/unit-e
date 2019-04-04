@@ -451,7 +451,7 @@ class UnitETestFramework():
         Generate `count` epochs and collect votes.
         """
         epoch_length = proposer.getfinalizationconfig()['epochLength']
-        assert(epoch_length > 1)
+        assert epoch_length > 1
         votes=[]
         for _ in range(count):
             proposer.generatetoaddress(epoch_length - 1, proposer.getnewaddress('', 'bech32'))
