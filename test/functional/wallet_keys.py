@@ -31,7 +31,7 @@ class WalletKeysTest(UnitETestFramework):
         self.log.info("- Lookup the public key for the newly created address from the node")
         pubkey = keytool.get_pubkey(bech32_address)
 
-        assert(pubkey.is_compressed())
+        assert pubkey.is_compressed()
 
         self.log.info("- Check that addresses derived via KeyTool match the address given by the node")
         assert_equal(keytool.get_bech32_address(privkey),

@@ -113,7 +113,7 @@ class InvalidBlockRequestTest(ComparisonTestFramework):
         block2.vtx.append(block2.vtx[-1])
         assert_equal(block2.hashMerkleRoot, block2.calc_merkle_root())
         assert_equal(orig_hash, block2.rehash())
-        assert(block2_orig.vtx != block2.vtx)
+        assert block2_orig.vtx != block2.vtx
 
         self.tip = block2.sha256
         yield TestInstance([[block2, RejectResult(16, b'bad-txns-duplicate')]])

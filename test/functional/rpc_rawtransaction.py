@@ -62,7 +62,7 @@ class RawTransactionsTest(UnitETestFramework):
 
         # Test getrawtransaction on genesis block coinbase does not return an error
         block = self.nodes[0].getblock(self.nodes[0].getblockhash(0))
-        assert(block['hash'])
+        assert block['hash']
 
         # Test `createrawtransaction` required parameters
         assert_raises_rpc_error(-1, "createrawtransaction", self.nodes[0].createrawtransaction)

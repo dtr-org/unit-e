@@ -70,7 +70,7 @@ def serialize_script_num(value):
 # otherwise anyone-can-spend outputs. The first output is the reward,
 # which is not spendable for COINBASE_MATURITY blocks.
 def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
-    assert(n_pieces > 0)
+    assert n_pieces > 0
     stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
     coinbase.set_type(TxType.COINBASE)
@@ -138,7 +138,7 @@ def generate(node, n, preserve_utxos=[]):
 # If the scriptPubKey is not specified, make it anyone-can-spend.
 def create_transaction(prevtx, n, sig, value, scriptPubKey=CScript()):
     tx = CTransaction()
-    assert(n < len(prevtx.vout))
+    assert n < len(prevtx.vout)
     tx.vin.append(CTxIn(COutPoint(prevtx.sha256, n), sig, 0xffffffff))
     tx.vout.append(CTxOut(value, scriptPubKey))
     tx.calc_sha256()
@@ -195,7 +195,7 @@ def send_to_witness(use_p2wsh, node, utxo, pubkey, encode_p2sh, amount, sign=Tru
     tx_to_witness = create_witness_tx(node, use_p2wsh, utxo, pubkey, encode_p2sh, amount)
     if (sign):
         signed = node.signrawtransaction(tx_to_witness)
-        assert("errors" not in signed or len(["errors"]) == 0)
+        assert "errors" not in signed or len(["errors"]) == 0
         return node.sendrawtransaction(signed["hex"])
     else:
         if (insert_redeem_script):

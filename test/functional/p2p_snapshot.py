@@ -90,7 +90,7 @@ class BaseNode(P2PInterface):
 
     def on_getsnaphead(self, message):
         if self.return_snapshot_header:
-            assert(self.snapshot_header.snapshot_hash > 0)
+            assert self.snapshot_header.snapshot_hash > 0
             self.send_message(msg_snaphead(self.snapshot_header))
 
     def on_snaphead(self, message):
@@ -101,7 +101,7 @@ class BaseNode(P2PInterface):
 
     def on_snapshot(self, message):
         assert_equal(message.snapshot.snapshot_hash, self.snapshot_header.snapshot_hash)
-        assert(len(message.snapshot.utxo_subsets) > 0)
+        assert len(message.snapshot.utxo_subsets) > 0
         self.snapshot_data += message.snapshot.utxo_subsets
 
     def on_getdata(self, message):
@@ -234,11 +234,11 @@ def path_to_snapshot(node, snapshot_hash):
 
 
 def assert_has_snapshot_on_disk(node, snapshot_hash):
-    assert(os.path.isdir(path_to_snapshot(node, snapshot_hash)))
+    assert os.path.isdir(path_to_snapshot(node, snapshot_hash))
 
 
 def assert_no_snapshot_on_disk(node, snapshot_hash):
-    assert(os.path.isdir(path_to_snapshot(node, snapshot_hash)) is False)
+    assert os.path.isdir(path_to_snapshot(node, snapshot_hash)) is False
 
 
 class P2PSnapshotTest(UnitETestFramework):
@@ -562,10 +562,10 @@ class P2PSnapshotTest(UnitETestFramework):
         wait_until(lambda: full_snap_p2p.snapshot_header_requested, timeout=10)
         wait_until(lambda: half_snap_p2p.snapshot_header_requested, timeout=10)
         wait_until(lambda: half_snap_p2p.snapshot_chunk1_requested, timeout=10)
-        assert(full_snap_p2p.snapshot_header_requested is True)
-        assert(half_snap_p2p.snapshot_header_requested is True)
-        assert(no_snap_p2p.snapshot_header_requested is False)
-        assert(full_snap_p2p.snapshot_chunk1_requested is False)  # didn't start asking for the 2nd best
+        assert full_snap_p2p.snapshot_header_requested is True
+        assert half_snap_p2p.snapshot_header_requested is True
+        assert no_snap_p2p.snapshot_header_requested is False
+        assert full_snap_p2p.snapshot_chunk1_requested is False  # didn't start asking for the 2nd best
         self.log.info('Service flag are correctly recognized')
 
         # test 2. the node can't receive the 2nd part of the snapshot
@@ -603,8 +603,8 @@ class P2PSnapshotTest(UnitETestFramework):
 
         wait_until(lambda: full_snap_p2p.parent_block_requested, timeout=10)
         wait_until(lambda: no_snap_p2p.parent_block_requested, timeout=10)
-        assert(full_snap_p2p.snapshot_chunk1_requested is False)
-        assert(no_snap_p2p.snapshot_chunk1_requested is False)
+        assert full_snap_p2p.snapshot_chunk1_requested is False
+        assert no_snap_p2p.snapshot_chunk1_requested is False
         assert_has_snapshot_on_disk(sync_node, full_snap_p2p.snapshot_header.snapshot_hash)
         self.log.info('Node cannot receive parent block from new peers')
 

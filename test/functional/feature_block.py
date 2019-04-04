@@ -1004,10 +1004,10 @@ class FullBlockTest(ComparisonTestFramework):
         b62 = block(62, get_staking_coin())
         tx = CTransaction()
         tx.nLockTime = 0xffffffff  #this locktime is non-final
-        assert(out[18].n < len(out[18].tx.vout))
+        assert out[18].n < len(out[18].tx.vout)
         tx.vin.append(CTxIn(COutPoint(out[18].tx.sha256, out[18].n))) # don't set nSequence
         tx.vout.append(CTxOut(0, CScript([OP_TRUE])))
-        assert(tx.vin[0].nSequence < 0xffffffff)
+        assert tx.vin[0].nSequence < 0xffffffff
         tx.calc_sha256()
         b62 = update_block(62, [tx])
         yield rejected(RejectResult(16, b'bad-txns-nonfinal'))
@@ -1338,8 +1338,8 @@ class FullBlockTest(ComparisonTestFramework):
         # now check that tx78 and tx79 have been put back into the peer's mempool
         mempool = self.nodes[0].getrawmempool()
         assert_equal(len(mempool), 2)
-        assert(tx78.hash in mempool)
-        assert(tx79.hash in mempool)
+        assert tx78.hash in mempool
+        assert tx79.hash in mempool
 
 
         # Test invalid opcodes in dead execution paths.

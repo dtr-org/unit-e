@@ -23,7 +23,7 @@ def unidirectional_node_sync_via_rpc(node_src, node_dest):
     blockhash = node_src.getbestblockhash()
     while True:
         try:
-            assert(len(node_dest.getblock(blockhash, False)) > 0)
+            assert len(node_dest.getblock(blockhash, False)) > 0
             break
         except:
             blocks_to_copy.append(blockhash)
@@ -73,7 +73,7 @@ class PreciousTest(UnitETestFramework):
         self.log.info("Mine competing blocks E-F-G on Node 1")
         hashG = self.nodes[1].generate(3)[-1]
         assert_equal(self.nodes[1].getblockcount(), 5)
-        assert(hashC != hashG)
+        assert hashC != hashG
         self.log.info("Connect nodes and check no reorg occurs")
         # Submit competing blocks via RPC so any reorg should occur before we proceed (no way to wait on inaction for p2p sync)
         node_sync_via_rpc(self.nodes[0:2])

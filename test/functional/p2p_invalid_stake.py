@@ -17,7 +17,7 @@ class TestNode(P2PInterface):
 
 def get_staking_coin(node):
     unspent_outputs = node.listunspent()
-    assert(len(unspent_outputs) > 0)
+    assert len(unspent_outputs) > 0
     return unspent_outputs[0]
 
 def build_block_on_tip(node, staking_coin):
