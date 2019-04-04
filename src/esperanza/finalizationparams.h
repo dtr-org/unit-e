@@ -48,6 +48,22 @@ struct FinalizationParams {
     return epoch * epoch_length;
   }
 
+  bool IsEpochStart(blockchain::Height block_height) const {
+    return block_height % epoch_length == 1;
+  }
+
+  bool IsCheckpoint(blockchain::Height block_height) const {
+    return block_height % epoch_length == 0;
+  }
+
+  uint32_t GetEpoch(const blockchain::Height block_height) const {
+    uint32_t epoch = block_height / epoch_length;
+    if (block_height % epoch_length != 0) {
+      ++epoch;
+    }
+    return epoch;
+  }
+
   // UNIT-E: move this once we have a argManager util that parses parameters
   // passed to the node at startup
 };

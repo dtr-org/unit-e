@@ -848,11 +848,7 @@ uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
 }
 
 uint32_t FinalizationState::GetEpoch(const blockchain::Height block_height) const {
-  uint32_t epoch = block_height / m_settings.epoch_length;
-  if (block_height % m_settings.epoch_length != 0) {
-    ++epoch;
-  }
-  return epoch;
+  return m_settings.GetEpoch(block_height);
 }
 
 blockchain::Height FinalizationState::GetEpochStartHeight(const uint32_t epoch) const {
@@ -1045,11 +1041,11 @@ uint256 FinalizationState::GetLastTxHash(const uint160 &validatorAddress) const 
 }
 
 bool FinalizationState::IsEpochStart(blockchain::Height block_height) const {
-  return block_height % m_settings.epoch_length == 1;
+  return m_settings.IsEpochStart(block_height);
 }
 
-bool FinalizationState::IsCheckpoint(blockchain::Height blockHeight) const {
-  return blockHeight % m_settings.epoch_length == 0;
+bool FinalizationState::IsCheckpoint(blockchain::Height block_height) const {
+  return m_settings.IsCheckpoint(block_height);
 }
 
 bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) const {

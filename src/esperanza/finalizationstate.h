@@ -172,7 +172,7 @@ class FinalizationState : public FinalizationStateData {
   bool IsEpochStart(blockchain::Height block_height) const;
 
   //! \brief Returns whether block on blockHeight is the last block of the epoch
-  bool IsCheckpoint(blockchain::Height blockHeight) const;
+  bool IsCheckpoint(blockchain::Height block_height) const;
 
   //! \brief Returns whether block on height blockHeight is justified checkpoint
   bool IsJustifiedCheckpoint(blockchain::Height blockHeight) const;
