@@ -62,7 +62,7 @@ from test_framework.script import (
     OP_CHECKSEQUENCEVERIFY,
     OP_DROP,
 )
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import (
     assert_equal,
     get_bip9_status,
@@ -104,14 +104,14 @@ def sign_transaction(node, unsignedtx):
     return tx
 
 def create_bip112special(node, input, txversion, address):
-    tx = create_transaction(node, input, address, amount=Decimal("49.98"))
+    tx = create_transaction(node, input, address, amount=PROPOSER_REWARD-Decimal("0.02"))
     tx.nVersion = txversion
     signtx = sign_transaction(node, tx)
     signtx.vin[0].scriptSig = CScript([-1, OP_CHECKSEQUENCEVERIFY, OP_DROP] + list(CScript(signtx.vin[0].scriptSig)))
     return signtx
 
 def send_generic_input_tx(node, coinbases, address):
-    return node.sendrawtransaction(ToHex(sign_transaction(node, create_transaction(node, node.getblock(coinbases.pop())['tx'][0], address, amount=Decimal("49.99")))))
+    return node.sendrawtransaction(ToHex(sign_transaction(node, create_transaction(node, node.getblock(coinbases.pop())['tx'][0], address, amount=PROPOSER_REWARD - Decimal("0.01")))))
 
 def create_bip68txs(node, bip68inputs, txversion, address, locktime_delta=0):
     """Returns a list of bip68 transactions with different bits set."""
@@ -119,7 +119,7 @@ def create_bip68txs(node, bip68inputs, txversion, address, locktime_delta=0):
     assert(len(bip68inputs) >= 16)
     for i, (sdf, srhb, stf, srlb) in enumerate(product(*[[True, False]] * 4)):
         locktime = relative_locktime(sdf, srhb, stf, srlb)
-        tx = create_transaction(node, bip68inputs[i], address, amount=Decimal("49.98"))
+        tx = create_transaction(node, bip68inputs[i], address, amount=PROPOSER_REWARD - Decimal("0.02"))
         tx.nVersion = txversion
         tx.vin[0].nSequence = locktime + locktime_delta
         tx = sign_transaction(node, tx)
@@ -134,7 +134,7 @@ def create_bip112txs(node, bip112inputs, varyOP_CSV, txversion, address, locktim
     assert(len(bip112inputs) >= 16)
     for i, (sdf, srhb, stf, srlb) in enumerate(product(*[[True, False]] * 4)):
         locktime = relative_locktime(sdf, srhb, stf, srlb)
-        tx = create_transaction(node, bip112inputs[i], address, amount=Decimal("49.98"))
+        tx = create_transaction(node, bip112inputs[i], address, amount=PROPOSER_REWARD - Decimal("0.02"))
         if (varyOP_CSV):  # if varying OP_CSV, nSequence is fixed
             tx.vin[0].nSequence = BASE_RELATIVE_LOCKTIME + locktime_delta
         else:  # vary nSequence instead, OP_CSV is fixed
@@ -215,7 +215,14 @@ class BIP68_112_113Test(UnitETestFramework):
             return get_unspent_coins(self.nodes[0], 1)[0]
         long_past_time = int(time.time()) - 600 * 1000  # enough to build up to 1000 blocks 10 minutes apart without worrying about getting into the future
         self.nodes[0].setmocktime(long_past_time - 100)  # enough so that the generated blocks will still all be before long_past_time
-        self.nodes[0].generate(1) # split coins to have enough unspent outputs for staking and spending
+
+        self.coinbase_blocks = []
+        for i in range(1 + 16 + 2 * 32 + 1):
+            block, = self.nodes[0].generate(1)  # 82 blocks generated for inputs
+            block_details = self.nodes[0].getblock(block, 1)
+            # Lock coinbase rewards, so that we don't lose track of them
+            self.nodes[0].lockunspent(False, [{"txid": block_details['tx'][0], "vout": 0}])
+            self.coinbase_blocks.append(block)
 
         self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         self.nodes[0].setmocktime(0)  # set time back to present so yielded blocks aren't in the future as we advance last_block_time
@@ -318,10 +325,10 @@ class BIP68_112_113Test(UnitETestFramework):
 
         # Test both version 1 and version 2 transactions for all tests
         # BIP113 test transaction will be modified before each use to put in appropriate block time
-        bip113tx_v1 = create_transaction(self.nodes[0], bip113input, self.nodeaddress, amount=Decimal("49.98"))
+        bip113tx_v1 = create_transaction(self.nodes[0], bip113input, self.nodeaddress, amount=PROPOSER_REWARD-Decimal("0.02"))
         bip113tx_v1.vin[0].nSequence = 0xFFFFFFFE
         bip113tx_v1.nVersion = 1
-        bip113tx_v2 = create_transaction(self.nodes[0], bip113input, self.nodeaddress, amount=Decimal("49.98"))
+        bip113tx_v2 = create_transaction(self.nodes[0], bip113input, self.nodeaddress, amount=PROPOSER_REWARD-Decimal("0.02"))
         bip113tx_v2.vin[0].nSequence = 0xFFFFFFFE
         bip113tx_v2.nVersion = 2
 
@@ -444,7 +451,7 @@ class BIP68_112_113Test(UnitETestFramework):
         bip68timetxs = [tx['tx'] for tx in bip68txs_v2 if not tx['sdf'] and tx['stf']]
         for tx in bip68timetxs:
             self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
-            self.sync_blocks([self.create_test_block([tx])], success=False)
+            self.sync_blocks([self.create_test_block(tip_coin(), [tx])], success=False)
 
         bip68heighttxs = [tx['tx'] for tx in bip68txs_v2 if not tx['sdf'] and not tx['stf']]
         for tx in bip68heighttxs:
@@ -494,13 +501,13 @@ class BIP68_112_113Test(UnitETestFramework):
         fail_txs += [tx['tx'] for tx in bip112txs_vary_OP_CSV_9_v1 if not tx['sdf']]
         fail_txs += [tx['tx'] for tx in bip112txs_vary_OP_CSV_9_v1 if not tx['sdf']]
         for tx in fail_txs:
-            self.sync_blocks([self.create_test_block([tx])], success=False)
+            self.sync_blocks([self.create_test_block(tip_coin(), [tx])], success=False)
             self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         self.log.info("Test version 2 txs")
 
         # -1 OP_CSV tx should fail
-        self.sync_blocks([self.create_test_block([bip112tx_special_v2])], success=False)
+        self.sync_blocks([self.create_test_block(tip_coin(), [bip112tx_special_v2])], success=False)
         self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # If SEQUENCE_LOCKTIME_DISABLE_FLAG is set in argument to OP_CSV, version 2 txs should pass (all sequence locks are met)
@@ -517,20 +524,20 @@ class BIP68_112_113Test(UnitETestFramework):
         fail_txs = all_rlt_txs(bip112txs_vary_nSequence_9_v2)
         fail_txs += [tx['tx'] for tx in bip112txs_vary_OP_CSV_9_v2 if not tx['sdf']]
         for tx in fail_txs:
-            self.sync_blocks([self.create_test_block([tx])], success=False)
+            self.sync_blocks([self.create_test_block(tip_coin(), [tx])], success=False)
             self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # If SEQUENCE_LOCKTIME_DISABLE_FLAG is set in nSequence, tx should fail
         fail_txs = [tx['tx'] for tx in bip112txs_vary_nSequence_v2 if tx['sdf']]
         for tx in fail_txs:
-            self.sync_blocks([self.create_test_block([tx])], success=False)
+            self.sync_blocks([self.create_test_block(tip_coin(), [tx])], success=False)
             self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # If sequencelock types mismatch, tx should fail
         fail_txs = [tx['tx'] for tx in bip112txs_vary_nSequence_v2 if not tx['sdf'] and tx['stf']]
         fail_txs += [tx['tx'] for tx in bip112txs_vary_OP_CSV_v2 if not tx['sdf'] and tx['stf']]
         for tx in fail_txs:
-            self.sync_blocks([self.create_test_block([tx])], success=False)
+            self.sync_blocks([self.create_test_block(tip_coin(), [tx])], success=False)
             self.tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         # Remaining txs should pass, just test masking works properly
