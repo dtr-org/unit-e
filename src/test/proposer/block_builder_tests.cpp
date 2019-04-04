@@ -12,9 +12,9 @@
 #include <test/test_unite.h>
 #include <boost/test/unit_test.hpp>
 
+#include <test/test_unite_mocks.h>
 #include <algorithm>
 #include <cstdlib>
-#include <test/test_unite_mocks.h>
 
 namespace {
 
