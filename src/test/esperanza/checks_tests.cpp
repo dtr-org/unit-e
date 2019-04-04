@@ -574,11 +574,11 @@ BOOST_AUTO_TEST_CASE(ContextualCheckSlashTx_test) {
     err_state.IsInvalid(dos);
     BOOST_CHECK_EQUAL(dos, 0);
 
-    for (uint32_t i = 1; i < 5 * spy.EpochLength() + 1; i += spy.EpochLength()) {
+    for (uint32_t i = 1; i < 6 * spy.EpochLength() + 1; i += spy.EpochLength()) {
       Result res = spy.InitializeEpoch(i);
       BOOST_CHECK_EQUAL(res, +Result::SUCCESS);
     }
-    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 5);
+    BOOST_CHECK_EQUAL(spy.GetCurrentEpoch(), 6);
 
     err_state = CValidationState();
     ok = ContextualCheckSlashTx(tx, err_state, spy);
