@@ -8,7 +8,7 @@
 #include <timedata.h>
 #include <util.h>
 #include <validation.h>
-#include "coin.h"
+#include <coin.h>
 
 namespace staking {
 
@@ -22,7 +22,8 @@ class ActiveChainAdapter final : public ActiveChain {
   const CBlockIndex *GetTip() const override {
     const CBlockIndex *tip_block_index = chainActive.Tip();
     if (!tip_block_index) {
-      LogPrintf("WARNING: Genesis block not loaded yet (%s returns %p)\n", __func__, tip_block_index);
+      LogPrintf("ERROR: Genesis block not loaded yet (%s returns %p)\n", __func__, tip_block_index);
+      throw std::runtime_error("genesis block not loaded yet");
     }
     return tip_block_index;
   }
@@ -30,7 +31,8 @@ class ActiveChainAdapter final : public ActiveChain {
   const CBlockIndex *GetGenesis() const override {
     const CBlockIndex *genesis_block_index = chainActive.Genesis();
     if (!genesis_block_index) {
-      LogPrintf("WARNING: Genesis block not loaded yet (%s returns %p)\n", __func__, genesis_block_index);
+      LogPrintf("ERROR: Genesis block not loaded yet (%s returns %p)\n", __func__, genesis_block_index);
+      throw std::runtime_error("genesis block not loaded yet");
     }
     return genesis_block_index;
   }
@@ -58,8 +60,8 @@ class ActiveChainAdapter final : public ActiveChain {
     // prevent returning negative numbers which would be turned into extremely big unsigned numbers
     int height = chainActive.Height();
     if (height < 0) {
-      LogPrintf("WARNING: Genesis block not loaded yet (got height=%d in %s)\n", height, __func__);
-      height = 0;
+      LogPrintf("ERROR: Genesis block not loaded yet (got height=%d in %s)\n", height, __func__);
+      throw std::runtime_error("genesis block not loaded yet");
     }
     return static_cast<blockchain::Height>(height);
   }
