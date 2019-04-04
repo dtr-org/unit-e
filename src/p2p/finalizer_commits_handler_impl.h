@@ -46,6 +46,8 @@ class FinalizerCommitsHandlerImpl : public FinalizerCommitsHandler {
   bool FindNextBlocksToDownload(
       NodeId nodeid, size_t count, std::vector<const CBlockIndex *> &blocks_out) override;
 
+  const CBlockIndex *GetLastFinalizedCheckpoint() const override;
+
  protected:
   const CBlockIndex *FindMostRecentStart(const FinalizerCommitsLocator &locator) const;
 
@@ -93,6 +95,16 @@ class FinalizerCommitsHandlerImpl : public FinalizerCommitsHandler {
   mutable CCriticalSection cs;
   std::map<NodeId, std::multiset<const CBlockIndex *, HeightComparator>> m_wait_list;
   std::map<NodeId, std::list<const CBlockIndex *>> m_blocks_to_download;
+  //! The last finalized checkpoint.
+  //!  F  J votes
+  //! e1 e2 e3
+  //! It's a checkpoint of epoch e1.
+  const CBlockIndex *m_last_finalized_checkpoint = nullptr;
+  //! The point in the chain where finalization happened.
+  //!  F  J votes
+  //! e1 e2 e3
+  //! It's one of the index from epoch e3.
+  const CBlockIndex *m_last_finalization_point = nullptr;
 };
 
 }  // namespace p2p

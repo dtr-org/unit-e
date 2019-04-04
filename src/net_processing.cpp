@@ -3265,7 +3265,26 @@ bool PeerLogicValidation::SendMessages(CNode* pto, size_t node_index, size_t tot
                 pto->vAddrToSend.shrink_to_fit();
         }
 
-        snapshot::StartInitialSnapshotDownload(*pto, node_index, total_nodes, msgMaker);
+        //! UNIT-E: When snapshot becomes a component, we can hide this code there and
+        //! evaluate it only if needed.
+        const CBlockIndex *last_finalized_checkpoint =
+            GetComponent<p2p::FinalizerCommitsHandler>()->GetLastFinalizedCheckpoint();
+        {
+            LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+            const auto *fin_state = GetComponent<finalization::StateRepository>()->GetTipState();
+            assert(fin_state != nullptr);
+            const uint32_t epoch = fin_state->GetLastFinalizedEpoch();
+            if (last_finalized_checkpoint == nullptr ||
+                epoch > fin_state->GetEpoch(*last_finalized_checkpoint)) {
+
+                const blockchain::Height h = fin_state->GetEpochCheckpointHeight(epoch);
+                last_finalized_checkpoint = chainActive[h];
+            }
+        }
+
+        assert(last_finalized_checkpoint != nullptr);
+
+        snapshot::StartInitialSnapshotDownload(*pto, node_index, total_nodes, msgMaker, *last_finalized_checkpoint);
 
         // Start block sync
         if (pindexBestHeader == nullptr)

@@ -102,11 +102,11 @@ class SnapshotFinalization(UnitETestFramework):
 
         self.log.info("Check slashig condition")
         # Create new vote with input=votes[-1] which attepts to make a double vote
-        # To detect double vote, it's enough to two votes were:
+        # To detect double vote, it's enough having two votes which are:
         # 1. from same validator
         # 2. with same source epoch
         # 3. differet target epochs.
-        # So that make target epoch different.
+        # So, make target epoch different.
         vote = s.extractvotefromsignature(bytes_to_hex_str(votes[0].vin[0].scriptSig))
         vote['target_epoch'] = vote['target_epoch'] + 1
         prev_tx = s.decoderawtransaction(ToHex(votes[-1]))

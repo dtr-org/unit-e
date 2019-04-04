@@ -5,7 +5,6 @@
 #include <snapshot/p2p_processing.h>
 
 #include <esperanza/finalizationstate.h>
-#include <injector.h>
 #include <snapshot/iterator.h>
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
@@ -16,37 +15,15 @@
 
 namespace snapshot {
 
-const finalization::FinalizationState *FindFinalizationState(const CBlockIndex *best_index) {
-  auto repo = GetComponent<finalization::StateRepository>();
-  AssertLockHeld(repo->GetLock());
-  for (const CBlockIndex *walk = best_index; walk != nullptr; walk = walk->pprev) {
-    if (auto state = repo->Find(*walk)) {
-      return state;
-    }
-  }
-  return nullptr;
-}
-
-inline const CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
+inline const CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash,
+                                                    const CBlockIndex &last_finalized_checkpoint) {
   const CBlockIndex *bi = LookupBlockIndex(hash);
   if (!bi) {
     return nullptr;
   }
 
-  if (pindexBestHeader == nullptr) {
+  if (last_finalized_checkpoint.GetAncestor(bi->nHeight) != bi) {
     return nullptr;
-  }
-
-  {
-    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
-    const finalization::FinalizationState *fin_state = FindFinalizationState(pindexBestHeader);
-    if (fin_state == nullptr) {
-      return nullptr;
-    }
-    if (bi->nHeight > fin_state->GetEpochCheckpointHeight(fin_state->GetLastFinalizedEpoch())) {
-      LogPrint(BCLog::SNAPSHOT, "block=%s height=%d is not finalized\n", hash.GetHex(), bi->nHeight);
-      return nullptr;
-    }
   }
 
   return bi;
@@ -249,7 +226,8 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
 }
 
 void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index, const size_t total_nodes,
-                                            const CNetMsgMaker &msg_maker) {
+                                            const CNetMsgMaker &msg_maker,
+                                            const CBlockIndex &last_finalized_checkpoint) {
   if (!IsISDEnabled()) {
     return;
   }
@@ -292,13 +270,13 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
 
   // start snapshot downloading
 
-  SnapshotHeader node_best_snapshot = NodeBestSnapshot(node);
+  SnapshotHeader node_best_snapshot = NodeBestSnapshot(node, last_finalized_checkpoint);
   if (node_best_snapshot.IsNull()) {
     if (InFlightSnapshotDiscovery(node)) {
       m_in_flight_snapshot_discovery = true;
     }
   } else {
-    SetIfBestSnapshot(node_best_snapshot);
+    SetIfBestSnapshot(node_best_snapshot, last_finalized_checkpoint);
 
     // if the peer has the snapshot that node decided to download
     // ask for the relevant chunk from it
@@ -511,13 +489,14 @@ bool P2PState::FindNextBlocksToDownload(const NodeId node_id,
   return true;
 }
 
-SnapshotHeader P2PState::NodeBestSnapshot(CNode &node) {
+SnapshotHeader P2PState::NodeBestSnapshot(CNode &node, const CBlockIndex &last_finalized_checkpoint) {
   if (node.m_best_snapshot.IsNull()) {
     return {};
   }
 
   LOCK(cs_main);
-  const CBlockIndex *const bi = LookupFinalizedBlockIndex(node.m_best_snapshot.block_hash);
+  const CBlockIndex *const bi =
+      LookupFinalizedBlockIndex(node.m_best_snapshot.block_hash, last_finalized_checkpoint);
   if (!bi) {
     return {};
   }
@@ -538,7 +517,8 @@ SnapshotHeader P2PState::NodeBestSnapshot(CNode &node) {
   return node.m_best_snapshot;
 }
 
-void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
+void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot,
+                                 const CBlockIndex &last_finalized_checkpoint) {
   if (best_snapshot.IsNull()) {
     return;
   }
@@ -558,7 +538,8 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
   // compare heights to find the best snapshot
   LOCK(cs_main);
 
-  const CBlockIndex *const new_bi = LookupFinalizedBlockIndex(best_snapshot.block_hash);
+  const CBlockIndex *const new_bi =
+      LookupFinalizedBlockIndex(best_snapshot.block_hash, last_finalized_checkpoint);
 
   if (new_bi == nullptr) {
     return;
@@ -660,8 +641,10 @@ bool ProcessSnapshot(CNode &node, CDataStream &data,
 }
 
 void StartInitialSnapshotDownload(CNode &node, const size_t node_index, const size_t total_nodes,
-                                  const CNetMsgMaker &msg_maker) {
-  g_p2p_state.StartInitialSnapshotDownload(node, node_index, total_nodes, msg_maker);
+                                  const CNetMsgMaker &msg_maker,
+                                  const CBlockIndex &last_finalized_checkpoint) {
+  g_p2p_state.StartInitialSnapshotDownload(
+      node, node_index, total_nodes, msg_maker, last_finalized_checkpoint);
 }
 
 bool FindNextBlocksToDownload(const NodeId node_id,

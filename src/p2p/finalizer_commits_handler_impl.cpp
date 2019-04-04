@@ -399,7 +399,16 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
   {
     LOCK(m_repo->GetLock());
 
-    const finalization::FinalizationState *tip_state = m_repo->GetTipState();
+    const finalization::FinalizationState *tip_state = nullptr;
+
+    if (m_last_finalization_point != nullptr) {
+      tip_state = m_repo->Find(*m_last_finalization_point);
+    }
+
+    if (tip_state == nullptr) {
+      tip_state = m_repo->GetTipState();
+    }
+
     const finalization::FinalizationState *index_state = m_repo->Find(*last_index);
     assert(tip_state != nullptr);
     assert(index_state != nullptr);
@@ -407,10 +416,15 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
     const uint32_t index_epoch = index_state->GetLastFinalizedEpoch();
     const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
 
-    if (!fast_sync && index_epoch > tip_epoch) {
-      download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
-      LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
-               index_epoch, download_until);
+    if (index_epoch > tip_epoch) {
+      m_last_finalization_point = last_index;
+      const blockchain::Height h = index_state->GetEpochCheckpointHeight(index_epoch);
+      m_last_finalized_checkpoint = last_index->GetAncestor(h);
+      if (!fast_sync) {
+        download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
+        LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
+                 index_epoch, download_until);
+      }
     }
   }
 
@@ -512,6 +526,10 @@ bool FinalizerCommitsHandlerImpl::FindNextBlocksToDownload(
     return true;
   }
   return false;
-};
+}
+
+const CBlockIndex *FinalizerCommitsHandlerImpl::GetLastFinalizedCheckpoint() const {
+  return m_last_finalized_checkpoint;
+}
 
 }  // namespace p2p
