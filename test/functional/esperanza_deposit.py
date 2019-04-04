@@ -15,6 +15,7 @@ from test_framework.util import (
     wait_until,
     connect_nodes,
     disconnect_nodes,
+    get_datadir_path
 )
 from test_framework.test_framework import UnitETestFramework
 from test_framework.messages import (
