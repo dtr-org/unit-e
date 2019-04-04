@@ -54,7 +54,7 @@ class BinaryData:
                 'data is not of type bytes (is: %s) '
                 'and could not be converted into bytes' % type(data))
 
-        assert (isinstance(data, bytes))
+        assert isinstance(data, bytes)
         self.data = data
 
     def __iter__(self):
