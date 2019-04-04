@@ -25,7 +25,7 @@ namespace mocks {
 //! Usage:
 //!   ArgsManagerMock argsman{ "-proposing=0", "-printtoconsole" };
 //!
-//! Uses std::intiializer_list, so the curly braces are actually required.
+//! Uses std::initializer_list, so the curly braces are actually required.
 class ArgsManagerMock : public ArgsManager {
  public:
   ArgsManagerMock(std::initializer_list<std::string> args) {
