@@ -415,7 +415,12 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
 
     for (const std::string& name_ : outputs.getKeys()) {
         if (name_.compare(0, 4, "data") == 0) {
-            has_data = true;
+            if (name_.size() == 4) {
+                if (has_data) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, duplicate key: data");
+                }
+                has_data = true;
+            }
             std::vector<unsigned char> data = ParseHexV(outputs[name_].getValStr(), "Data");
 
             CTxOut out(0, CScript() << OP_RETURN << data);

@@ -16,7 +16,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from io import BytesIO
 from test_framework.messages import CTransaction, ToHex
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import assert_equal, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes_bi, hex_str_to_bytes
 
 class multidict(dict):
@@ -422,19 +422,19 @@ class RawTransactionsTest(UnitETestFramework):
         # TRANSACTION VERSION NUMBER TESTS #
         ####################################
 
-        # Test the minimum transaction version number that fits in a signed 32-bit integer.
+        # Test the minimum transaction version number that fits in an unsigned 16-bit integer.
         tx = CTransaction()
-        tx.nVersion = -0x80000000
+        tx.nVersion = 0
         rawtx = ToHex(tx)
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], -0x80000000)
+        assert_equal(decrawtx['version'], 0)
 
-        # Test the maximum transaction version number that fits in a signed 32-bit integer.
+        # Test the maximum transaction version number that fits in an unsigned 16-bit integer.
         tx = CTransaction()
-        tx.nVersion = 0x7fffffff
+        tx.nVersion = 0xffff
         rawtx = ToHex(tx)
         decrawtx = self.nodes[0].decoderawtransaction(rawtx)
-        assert_equal(decrawtx['version'], 0x7fffffff)
+        assert_equal(decrawtx['version'], 0xffff)
 
 if __name__ == '__main__':
     RawTransactionsTest().main()
