@@ -25,19 +25,20 @@ class ProposerStub : public Proposer {
   void Wake() override {}
   void Start() override {}
   void Stop() override {}
+  bool IsStarted() override { return false; }
 };
 
 class ProposerImpl : public Proposer {
  private:
   static constexpr const char *THREAD_NAME = "unite-proposer";
 
-  Dependency<blockchain::Behavior> m_blockchain_behavior;
-  Dependency<MultiWallet> m_multi_wallet;
-  Dependency<staking::Network> m_network;
-  Dependency<staking::ActiveChain> m_active_chain;
-  Dependency<staking::TransactionPicker> m_transaction_picker;
-  Dependency<proposer::BlockBuilder> m_block_builder;
-  Dependency<proposer::Logic> m_proposer_logic;
+  const Dependency<blockchain::Behavior> m_blockchain_behavior;
+  const Dependency<MultiWallet> m_multi_wallet;
+  const Dependency<staking::Network> m_network;
+  const Dependency<staking::ActiveChain> m_active_chain;
+  const Dependency<staking::TransactionPicker> m_transaction_picker;
+  const Dependency<proposer::BlockBuilder> m_block_builder;
+  const Dependency<proposer::Logic> m_proposer_logic;
 
   std::thread m_thread;
   enum {
@@ -139,13 +140,13 @@ class ProposerImpl : public Proposer {
   }
 
  public:
-  ProposerImpl(Dependency<blockchain::Behavior> blockchain_behavior,
-               Dependency<MultiWallet> multi_wallet,
-               Dependency<staking::Network> network,
-               Dependency<staking::ActiveChain> active_chain,
-               Dependency<staking::TransactionPicker> transaction_picker,
-               Dependency<proposer::BlockBuilder> block_builder,
-               Dependency<proposer::Logic> proposer_logic)
+  ProposerImpl(const Dependency<blockchain::Behavior> blockchain_behavior,
+               const Dependency<MultiWallet> multi_wallet,
+               const Dependency<staking::Network> network,
+               const Dependency<staking::ActiveChain> active_chain,
+               const Dependency<staking::TransactionPicker> transaction_picker,
+               const Dependency<proposer::BlockBuilder> block_builder,
+               const Dependency<proposer::Logic> proposer_logic)
       : m_blockchain_behavior(blockchain_behavior),
         m_multi_wallet(multi_wallet),
         m_network(network),
@@ -182,20 +183,24 @@ class ProposerImpl : public Proposer {
     LogPrint(BCLog::PROPOSING, "Proposer stopped.\n");
   }
 
+  bool IsStarted() override {
+    return m_state == STARTED;
+  }
+
   ~ProposerImpl() override {
     Stop();
   };
 };
 
 std::unique_ptr<Proposer> Proposer::New(
-    Dependency<Settings> settings,
-    Dependency<blockchain::Behavior> behavior,
-    Dependency<MultiWallet> multi_wallet,
-    Dependency<staking::Network> network,
-    Dependency<staking::ActiveChain> active_chain,
-    Dependency<staking::TransactionPicker> transaction_picker,
-    Dependency<proposer::BlockBuilder> block_builder,
-    Dependency<proposer::Logic> proposer_logic) {
+    const Dependency<Settings> settings,
+    const Dependency<blockchain::Behavior> behavior,
+    const Dependency<MultiWallet> multi_wallet,
+    const Dependency<staking::Network> network,
+    const Dependency<staking::ActiveChain> active_chain,
+    const Dependency<staking::TransactionPicker> transaction_picker,
+    const Dependency<proposer::BlockBuilder> block_builder,
+    const Dependency<proposer::Logic> proposer_logic) {
   if (settings->node_is_proposer) {
     return std::unique_ptr<Proposer>(new ProposerImpl(behavior, multi_wallet, network, active_chain, transaction_picker, block_builder, proposer_logic));
   } else {

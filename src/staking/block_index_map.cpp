@@ -21,8 +21,8 @@ class BlockIndexMapImpl final : public BlockIndexMap {
 
   void ForEach(std::function<bool(const uint256 &, const CBlockIndex &)> &&f) const override {
     AssertLockHeld(GetLock());
-    for (auto it = mapBlockIndex.begin(); it != mapBlockIndex.end(); ++it) {
-      if (!f(it->first, *it->second)) {
+    for (auto &it : mapBlockIndex) {
+      if (!f(it.first, *it.second)) {
         return;
       }
     }

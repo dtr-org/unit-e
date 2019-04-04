@@ -1,10 +1,11 @@
-// Copyright (c) 2018 The Unit-e developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef UNIT_E_PROPOSER_RPC_H
 #define UNIT_E_PROPOSER_RPC_H
 
+#include <blockdb.h>
 #include <dependency.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
@@ -27,9 +28,11 @@ namespace proposer {
 class ProposerRPC {
 
  public:
-  virtual UniValue proposerstatus(const JSONRPCRequest &request) = 0;
+  virtual UniValue proposerstatus(const JSONRPCRequest &request) const = 0;
 
-  virtual UniValue proposerwake(const JSONRPCRequest &request) = 0;
+  virtual UniValue proposerwake(const JSONRPCRequest &request) const = 0;
+
+  virtual UniValue getstakeablecoins(const JSONRPCRequest &request) const = 0;
 
   virtual ~ProposerRPC() = default;
 

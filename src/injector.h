@@ -24,6 +24,7 @@
 #include <staking/block_validator.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
+#include <staking/staking_rpc.h>
 #include <staking/transactionpicker.h>
 #include <txpool.h>
 #include <util.h>
@@ -34,7 +35,6 @@
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_rpc.h>
-
 #endif
 
 class UnitEInjector : public Injector<UnitEInjector> {
@@ -69,7 +69,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(FinalizationStateDB, finalization::StateDB, finalization::StateDB::New,
             UnitEInjectorConfiguration,
-            Settings,
+            ::Settings,
             staking::BlockIndexMap,
             staking::ActiveChain)
 
@@ -77,7 +77,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::BlockIndexMap,
             staking::ActiveChain,
             finalization::StateDB,
-            BlockDB)
+            ::BlockDB)
 
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
             finalization::StateRepository,
@@ -87,6 +87,10 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::ActiveChain,
             finalization::StateRepository,
             finalization::StateProcessor)
+
+  COMPONENT(StakingRPC, staking::StakingRPC, staking::StakingRPC::New,
+            staking::ActiveChain,
+            ::BlockDB)
 
   COMPONENT(TxPool, ::TxPool, ::TxPool::New);
 
@@ -121,7 +125,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::StakeValidator)
 
   COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::New,
-            Settings,
+            ::Settings,
             blockchain::Behavior,
             proposer::MultiWallet,
             staking::Network,

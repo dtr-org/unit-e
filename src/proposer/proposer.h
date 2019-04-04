@@ -34,6 +34,8 @@ class Proposer {
 
   virtual void Stop() = 0;
 
+  virtual bool IsStarted() = 0;
+
   virtual ~Proposer() = default;
 
   static std::unique_ptr<Proposer> New(Dependency<Settings>,

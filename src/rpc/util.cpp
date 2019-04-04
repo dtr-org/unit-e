@@ -10,8 +10,10 @@
 #include <pubkey.h>
 #include <rpc/protocol.h>
 #include <rpc/util.h>
-#include <tinyformat.h>
+#include <staking/coin.h>
 #include <utilstrencodings.h>
+
+#include <tinyformat.h>
 
 // Converts a hex string to a public key if possible
 CPubKey HexToPubKey(const std::string& hex_in)
@@ -74,6 +76,10 @@ UniValue ToUniValue(const std::uint32_t value) {
     return UniValue(static_cast<std::int64_t>(value));
 }
 
+UniValue ToUniValue(const std::uint64_t value) {
+    return UniValue(static_cast<std::int64_t>(value));
+}
+
 UniValue ToUniValue(const float value) {
     if (value > std::numeric_limits<decltype(value)>::max()) {
         return "+Inf";
@@ -108,14 +114,14 @@ UniValue ToUniValue(const COutPoint &outpoint) {
 }
 
 UniValue ToUniValue(const CScript &script) {
-    UniValue obj;
+    UniValue obj(UniValue::VOBJ);
     ScriptPubKeyToUniv(script, obj, /* fIncludeHex= */ true);
     return obj;
 }
 
 UniValue ToUniValue(const CTxOut &txout) {
     UniValue obj(UniValue::VOBJ);
-    obj.pushKV("amount", txout.nValue);
+    obj.pushKV("amount", ValueFromAmount(txout.nValue));
     obj.pushKV("scriptPubKey", ToUniValue(txout.scriptPubKey));
     return obj;
 }
@@ -123,7 +129,32 @@ UniValue ToUniValue(const CTxOut &txout) {
 UniValue ToUniValue(const CTxIn &txin) {
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("prevout", ToUniValue(txin.prevout));
-    obj.pushKV("scriptSig", ToUniValue(txin.scriptSig));
+    UniValue script_sig_obj(UniValue::VOBJ);
+    script_sig_obj.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
+    script_sig_obj.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+    obj.pushKV("scriptSig", script_sig_obj);
+    UniValue witness_obj(UniValue::VARR);
+    if (!txin.scriptWitness.IsNull()) {
+        for (const auto& item : txin.scriptWitness.stack) {
+            witness_obj.push_back(HexStr(item.begin(), item.end()));
+        }
+    }
+    obj.pushKV("scriptWitness", witness_obj);
+    return obj;
+}
+
+UniValue ToUniValue(const staking::Coin &coin) {
+    UniValue obj(UniValue::VOBJ);
+    UniValue stake_out(UniValue::VOBJ);
+    stake_out.pushKV("amount", ValueFromAmount(coin.GetAmount()));
+    stake_out.pushKV("script_pub_key", ToUniValue(coin.GetScriptPubKey()));
+    stake_out.pushKV("out_point", ToUniValue(coin.GetOutPoint()));
+    obj.pushKV("coin", stake_out);
+    UniValue source_block(UniValue::VOBJ);
+    source_block.pushKV("height", ToUniValue(coin.GetHeight()));
+    source_block.pushKV("hash", ToUniValue(coin.GetBlockHash()));
+    source_block.pushKV("time", ToUniValue(coin.GetBlockTime()));
+    obj.pushKV("source_block", source_block);
     return obj;
 }
 

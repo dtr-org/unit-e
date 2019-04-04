@@ -94,8 +94,8 @@ public:
   }
   void ForEach(std::function<bool(const uint256 &, const CBlockIndex &)> &&f) const override {
     if (!reverse) {
-      for (auto it = indexes.begin(); it != indexes.end(); ++it) {
-        if (!f(it->first, *it->second)) {
+      for (const auto &indexe : indexes) {
+        if (!f(indexe.first, *indexe.second)) {
           return;
         }
       }
@@ -107,7 +107,7 @@ public:
       }
     }
   }
-  ~BlockIndexMapMock() {
+  ~BlockIndexMapMock() override {
     for (auto &i : indexes) {
       delete i.second;
     }

@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2017 The Bitcoin Core developers
+// Copyright (c) 2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -158,6 +159,13 @@ static const CRPCConvertParam vRPCConvertParams[] =
 
     { "importmasterkey", 2, "rescan" },
     { "importmasterkey", 3, "brand_new" },
+
+    { "tracechain", 0, "start" },
+    { "tracechain", 1, "length" },
+
+    { "tracestake", 0, "start" },
+    { "tracestake", 1, "length" },
+    { "tracestake", 2, "reverse" },
 };
 
 class CRPCConvertTable

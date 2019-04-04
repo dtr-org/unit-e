@@ -38,6 +38,7 @@
 #include <rpc/register.h>
 #include <rpc/safemode.h>
 #include <rpc/blockchain.h>
+#include <rpc/staking.h>
 #include <script/standard.h>
 #include <script/sigcache.h>
 #include <scheduler.h>
@@ -1383,6 +1384,7 @@ bool AppInitMain()
     RegisterAllCoreRPCCommands(tableRPC);
     RegisterFinalizationRPCCommands(tableRPC);
     snapshot::RegisterRPCCommands(tableRPC);
+    RegisterStakingRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
     RegisterProposerRPCCommands(tableRPC);
     RegisterWalletRPC(tableRPC);
@@ -1922,7 +1924,6 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     GetComponent<proposer::Proposer>()->Start();
-    SetProposerRPC(GetComponent<proposer::ProposerRPC>());
 #endif
 
     LogPrintf("Started up.\n");
