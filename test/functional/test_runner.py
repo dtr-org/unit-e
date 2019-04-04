@@ -132,6 +132,7 @@ BASE_SCRIPTS= [
     'esperanza_deposit.py',
     'esperanza_vote.py',
     'wallet_listsinceblock.py',
+    'esperanza_self_slash.py',
     'feature_minchainwork.py',
     'feature_reindex_commits.py',
     'p2p_unrequested_blocks.py',
