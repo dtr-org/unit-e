@@ -134,7 +134,7 @@ def addr_to_hex(addr):
                 sub[x].append(val >> 8)
                 sub[x].append(val & 0xff)
         nullbytes = 16 - len(sub[0]) - len(sub[1])
-        assert x == 0 and nullbytes == 0) or (x == 1 and nullbytes > 0
+        assert (x == 0 and nullbytes == 0) or (x == 1 and nullbytes > 0)
         addr = sub[0] + ([0] * nullbytes) + sub[1]
     else:
         raise ValueError('Could not parse address %s' % addr)
