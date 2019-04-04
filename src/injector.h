@@ -35,14 +35,11 @@
 
 class UnitEInjector : public Injector<UnitEInjector> {
 
-  static ::ArgsManager *GetGlobalArgs(UnitEInjector *) { return &gArgs; }
-  UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, GetGlobalArgs)
+  UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
 
-  static blockchain::Behavior *GetGlobalBehavior(UnitEInjector *) { return &blockchain::Behavior::GetGlobal(); }
-  UNMANAGED_COMPONENT(BlockchainBehavior, blockchain::Behavior, GetGlobalBehavior)
+  UNMANAGED_COMPONENT(BlockchainBehavior, blockchain::Behavior, &blockchain::Behavior::GetGlobal())
 
-  static UnitEInjectorConfiguration *GetInjectorConfiguration(UnitEInjector *injector) { return &injector->m_config; }
-  UNMANAGED_COMPONENT(InjectorConfiguration, UnitEInjectorConfiguration, GetInjectorConfiguration)
+  UNMANAGED_COMPONENT(InjectorConfiguration, UnitEInjectorConfiguration, [](UnitEInjector *i) { return &i->m_config; })
 
   COMPONENT(Settings, ::Settings, Settings::New,
             ::ArgsManager,
