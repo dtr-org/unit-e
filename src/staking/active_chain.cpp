@@ -5,10 +5,10 @@
 #include <staking/active_chain.h>
 
 #include <chainparams.h>
+#include <coin.h>
 #include <timedata.h>
 #include <util.h>
 #include <validation.h>
-#include <coin.h>
 
 namespace staking {
 
