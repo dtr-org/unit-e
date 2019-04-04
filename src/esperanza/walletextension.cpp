@@ -754,7 +754,7 @@ void WalletExtension::BlockConnected(
     const std::shared_ptr<const CBlock> &pblock, const CBlockIndex &index) {
 
   LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
-  if (nIsValidatorEnabled && !IsInitialBlockDownload()) {
+  if (nIsValidatorEnabled) {
 
     assert(validatorState);
     ValidatorStateWatchWriter validator_writer(*this);
@@ -771,8 +771,8 @@ void WalletExtension::BlockConnected(
           LogPrint(BCLog::FINALIZATION, "Validator is disabled because end_dynasty=%d passed\n", validatorState.get().m_end_dynasty);
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
           WriteValidatorStateToFile();
-        } else {
-          VoteIfNeeded(*fin_state);  // resposible to write validator state
+        } else if (!IsInitialBlockDownload()) {
+          VoteIfNeeded(*fin_state);  // responsible to write validator state
         }
 
         break;
