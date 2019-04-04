@@ -69,9 +69,6 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   const CBlockIndex *AtHeight(const blockchain::Height height) const override {
-    if (height > GetHeight()) {
-      return nullptr;
-    }
     return chainActive[height];
   }
 
