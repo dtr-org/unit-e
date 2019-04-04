@@ -34,30 +34,27 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
   }
 
   std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &last_block) override {
-    LOCK(m_fin_state_repo->GetLock());
-
-    const auto fin_state = m_fin_state_repo->Find(last_block);
-    assert(fin_state);
-    if (last_block.nHeight < fin_state->GetEpochCheckpointHeight(1)) {
+    if (last_block.nHeight < m_fin_state_repo->GetFinalizationParams().GetEpochCheckpointHeight(1)) {
       return {};
     }
 
     auto prev_height = static_cast<blockchain::Height>(last_block.nHeight);
-    if (!fin_state->IsCheckpoint(prev_height)) {
+    if (!m_fin_state_repo->GetFinalizationParams().IsCheckpoint(prev_height)) {
       return {};
     }
 
     std::vector<std::pair<CScript, CAmount>> result;
-    result.reserve(fin_state->GetEpochLength());
+    result.reserve(m_fin_state_repo->GetFinalizationParams().epoch_length);
     const CBlockIndex *pblock = &last_block;
-    blockchain::Height epoch_start = fin_state->GetEpochStartHeight(fin_state->GetCurrentEpoch());
+    const auto epoch = m_fin_state_repo->GetFinalizationParams().GetEpoch(prev_height);
+    const blockchain::Height epoch_start = m_fin_state_repo->GetFinalizationParams().GetEpochStartHeight(epoch);
 
     for (auto h = prev_height; h >= epoch_start; --h) {
       assert(pblock && pblock->nHeight == h);
       result.emplace_back(GetRewardScript(*pblock), m_blockchain_behavior->CalculateFinalizationReward(h));
       pblock = pblock->pprev;
     }
-    assert(result.size() == fin_state->GetEpochLength());
+    assert(result.size() == m_fin_state_repo->GetFinalizationParams().epoch_length);
     std::reverse(result.begin(), result.end());
     return result;
   }

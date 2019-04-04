@@ -8,9 +8,11 @@
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <consensus/validation.h>
+#include <blockchain/blockchain_behavior.h>
 #include <esperanza/vote.h>
 #include <esperanza/finalizationstate.h>
 #include <finalization/vote_recorder.h>
+#include <proposer/finalization_reward_logic.h>
 
 // TODO remove the following dependencies
 #include <chain.h>
@@ -263,33 +265,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     const CAmount value_out = tx.GetValueOut();
-    if (tx.IsCoinBase()) {
-        // The coinbase transaction should spend exactly its inputs and the reward.
-        // The reward output is by definition in the zeroth output. The reward
-        // consists of newly minted money (the block reward) and the fees accumulated
-        // from the transactions.
-        if (tx.vout.empty()) {
-          return state.DoS(100, false, REJECT_INVALID, "bad-cb-no-reward", false,
-                           strprintf("coinbase without a reward txout"));
-        }
-        const CTxOut &reward_out = tx.vout[0];
-        const CAmount reward = reward_out.nValue;
-        if (nValueIn + reward < value_out) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-much", false,
-                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
-                                       FormatMoney(nValueIn),
-                                       FormatMoney(reward),
-                                       FormatMoney(value_out)));
-        }
-        if (nValueIn + reward > value_out) {
-            return state.DoS(100, false, REJECT_INVALID, "bad-cb-spends-too-little", false,
-                             strprintf("value in (%s) + reward(%s) != value out (%s) in coinbase",
-                                       FormatMoney(nValueIn),
-                                       FormatMoney(reward),
-                                       FormatMoney(value_out)));
-        }
-    } else if (!tx.IsCoinBase()) {
-        // All other transactions have to spend no more then their inputs. If they spend
+    // Coinbase outputs are validated in Consensus::CheckBlockRewards
+    if (!tx.IsCoinBase()) {
+        // All other transactions have to spend no more than their inputs. If they spend
         // less, the change is counted towards the fees which are included in the reward
         // of the coinbase transaction.
         if (nValueIn < value_out) {
@@ -307,5 +285,51 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     txfee = txfee_aux;
+    return true;
+}
+
+bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationState &state,
+                                  const CBlockIndex &prev_block, CAmount input_amount, CAmount fees,
+                                  blockchain::Behavior &behavior,
+                                  proposer::FinalizationRewardLogic &finalization_rewards) {
+    // TODO UNIT-E: provide components as arguments
+    // TODO UNIT-E: check if correct height is used
+    CAmount block_reward = fees + behavior.CalculateBlockReward(prev_block.nHeight);
+    std::vector<std::pair<CScript, CAmount>> fin_rewards = finalization_rewards.GetFinalizationRewards(prev_block);
+
+    if (coinbase_tx.vout.size() < fin_rewards.size() + 1) {
+        return state.DoS(100,
+                         error("%s: too few coinbase outputs expected at least %d actual %d", __func__,
+                               fin_rewards.size() + 1, coinbase_tx.vout.size()),
+                         REJECT_INVALID, "bad-cb-finalization-reward");
+    }
+    for (std::size_t i = 0; i < fin_rewards.size(); ++i) {
+        block_reward += fin_rewards[i].second;
+        if (coinbase_tx.vout[i + 1].nValue != fin_rewards[i].second ||
+            coinbase_tx.vout[i + 1].scriptPubKey != fin_rewards[i].first) {
+            return state.DoS(100, error("%s: incoorect finalization reward", __func__), REJECT_INVALID,
+                             "bad-cb-finalization-reward");
+        }
+    }
+    // TODO UNIT-E: check for underflow
+    if (coinbase_tx.GetValueOut() - input_amount > block_reward) {
+        return state.DoS(100,
+                         error("%s: coinbase pays too much (total output=%d total input=%d expected reward=%d )",
+                               __func__, FormatMoney(coinbase_tx.GetValueOut()), FormatMoney(input_amount),
+                               FormatMoney(block_reward)),
+                         REJECT_INVALID, "bad-cb-amount");
+    }
+
+    // if (coinbase_tx.GetValueOut() - input_amount < block_reward) {
+    if (coinbase_tx.GetValueOut() < input_amount) {
+        return state.DoS(100,
+                         error("%s: coinbase pays too little (total output=%d total input=%d expected reward=%d )",
+                               __func__, FormatMoney(coinbase_tx.GetValueOut()), FormatMoney(input_amount),
+                               FormatMoney(block_reward)),
+                         REJECT_INVALID, "bad-cb-spends-too-little");
+    }
+
+    // TODO UNIT-E: check that sum of non reward outputs is smaller or equal to to coinbase_in
+
     return true;
 }
