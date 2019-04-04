@@ -441,7 +441,7 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     const CBlockIndex *block_index = chainActive[utxo_subset.height];
     assert(block_index && "requested CBlockIndex is not part of chainActive");
 
-    auto tx = MakeTransactionRef(CTransaction(utxo_subset));
+    const auto tx = MakeTransactionRef(CTransaction(utxo_subset));
 
     for (CWallet *wallet : vpwallets) {
       LOCK2(cs_main, wallet->cs_wallet);
