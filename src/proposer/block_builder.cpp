@@ -155,8 +155,10 @@ class BlockBuilderImpl : public BlockBuilder {
     std::vector<std::pair<CScript, CAmount>> finalization_rewards =
         m_finalization_reward_logic->GetFinalizationRewards(prev_block);
 
-    if (!finalization_rewards.empty()) {
-      //TODO UNIT-E: add reward outputs
+    CAmount combined_reward = reward;
+    for (const auto &r : finalization_rewards) {
+      tx.vout.emplace_back(r.second, r.first);
+      combined_reward += r.second;
     }
 
     const CAmount threshold = m_settings->stake_split_threshold;
@@ -172,7 +174,7 @@ class BlockBuilderImpl : public BlockBuilder {
     assert(std::accumulate(tx.vout.begin(), tx.vout.end(), CAmount(0),
                            [](const CAmount sum, const CTxOut &tx_out) -> CAmount {
                              return sum + tx_out.nValue;
-                           }) == combined_total + reward);
+                           }) == combined_total + combined_reward);
 
     // sign inputs
     {

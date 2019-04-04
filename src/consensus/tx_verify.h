@@ -16,6 +16,14 @@ class CCoinsViewCache;
 class CTransaction;
 class CValidationState;
 
+namespace proposer {
+class FinalizationRewardLogic;
+}
+
+namespace blockchain {
+class Behavior;
+}
+
 /** Transaction validation functions */
 
 /** Context-independent validity checks */
@@ -29,6 +37,10 @@ namespace Consensus {
  * Preconditions: tx.IsCoinBase() is false.
  */
 bool CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, int nSpendHeight, CAmount& txfee, CAmount *inputs_amount = nullptr);
+
+bool CheckBlockRewards(const CTransaction &coinbase_tx, CValidationState &state, const CBlockIndex &prev_block,
+    CAmount input_amount, CAmount fees, blockchain::Behavior &behavior,
+    proposer::FinalizationRewardLogic &finalization_rewards);
 } // namespace Consensus
 
 /** Auxiliary functions for transaction validation (ideally should not be exposed) */
