@@ -92,7 +92,9 @@ class SnapshotWalletTest(UnitETestFramework):
         wait_until(lambda: has_finalized_snapshot(node0, height=9), timeout=10)
 
         # setup node1_isd before fast sync
-        # we need to pre-generate 3 addresses that we used
+        # We need to pre-generate 3 addresses/keys that we used, otherwise
+        # CWallet::IsMine() will not detect our UTXOs. On mainnet, this is not
+        # a problem, because the keypool is automatically filled up with 1000 entries.
         node1_isd.importmasterkey(regtest_mnemonics[1]['mnemonics'], '', False)
         node1_isd.getnewaddress('', 'bech32')  # address that was used for genesis output
         assert_equal(node1_isd.getnewaddress('', 'bech32'), a1)
