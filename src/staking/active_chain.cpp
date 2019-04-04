@@ -5,7 +5,7 @@
 #include <staking/active_chain.h>
 
 #include <chainparams.h>
-#include <coin.h>
+#include <coins.h>
 #include <timedata.h>
 #include <util.h>
 #include <validation.h>
