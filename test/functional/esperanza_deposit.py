@@ -67,6 +67,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         sync_blocks([proposer, finalizer])
 
         test_not_enough_money_for_deposit(finalizer)
+        test_not_enabled_finalizer(proposer)
         test_deposit_too_small(finalizer)
         self.test_successful_deposit(finalizer, proposer)
         test_duplicate_deposit(finalizer)
@@ -156,6 +157,13 @@ class EsperanzaDepositTest(UnitETestFramework):
                    timeout=5)
 
 
+# Deposit with a non enabled finalizer
+def test_not_enabled_finalizer(proposer):
+    payto = proposer.getnewaddress("", "legacy")
+    assert_raises_rpc_error(-32600, "The node must be enabled to be a finalizer.", proposer.deposit, payto,
+                            proposer.initial_stake)
+
+
 # Deposit all you got, not enough coins left for the fees
 def test_not_enough_money_for_deposit(finalizer):
     payto = finalizer.getnewaddress("", "legacy")
@@ -171,7 +179,7 @@ def test_deposit_too_small(finalizer):
 # Deposit again
 def test_duplicate_deposit(finalizer):
     payto = finalizer.getnewaddress("", "legacy")
-    assert_raises_rpc_error(-8, "The node is already validating.", finalizer.deposit, payto, 1500)
+    assert_raises_rpc_error(-32600, "The node is already a finalizer.", finalizer.deposit, payto, 1500)
 
 
 if __name__ == '__main__':

@@ -27,7 +27,8 @@ BETTER_ENUM(
 )
 // clang-format on
 
-struct ValidatorState {
+class ValidatorState {
+ public:
   typedef _Phase Phase;
 
   Phase m_phase = Phase::NOT_VALIDATING;
@@ -40,6 +41,10 @@ struct ValidatorState {
   uint32_t m_deposit_epoch = std::numeric_limits<uint32_t>::max();
   uint32_t m_end_dynasty = std::numeric_limits<uint32_t>::max();
   uint32_t m_start_dynasty = std::numeric_limits<uint32_t>::max();
+
+  inline bool IsNew() const {
+    return m_validator_address == uint160S("0");
+  }
 
   ADD_SERIALIZE_METHODS
 
