@@ -446,17 +446,20 @@ class UnitETestFramework():
         return generated_blocks
 
     @classmethod
-    def generate_epoch(cls, epoch_length, proposer, finalizer, count=1):
+    def generate_epoch(cls, proposer, finalizer, count=1):
         """
-        Generate count epochs and collect votes.
+        Generate `count` epochs and collect votes.
         """
+        epoch_length = proposer.getfinalizationconfig()['epochLength']
         assert(epoch_length > 1)
         votes=[]
         for _ in range(count):
             proposer.generatetoaddress(epoch_length - 1, proposer.getnewaddress('', 'bech32'))
             cls.wait_for_vote_and_disconnect(finalizer, proposer)
             for tx in proposer.getrawmempool():
-                votes.append(FromHex(CTransaction(), proposer.getrawtransaction(tx)))
+                tx = FromHex(CTransaction(), proposer.getrawtransaction(tx))
+                if tx.get_type() == TxType.VOTE:
+                    votes.append(tx)
             proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
         return votes
 

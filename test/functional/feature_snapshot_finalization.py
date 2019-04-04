@@ -24,7 +24,6 @@ from test_framework.util import (
     connect_nodes,
     disconnect_nodes,
     sync_blocks,
-    sync_chain,
     wait_until,
 )
 
@@ -68,7 +67,7 @@ class SnapshotFinalization(UnitETestFramework):
         disconnect_nodes(p, v.index)
 
         self.log.info("Generate few epochs")
-        votes = self.generate_epoch(epoch_length=5, proposer=p, finalizer=v, count=2)
+        votes = self.generate_epoch(proposer=p, finalizer=v, count=2)
         assert(len(votes) != 0)
 
         assert_equal(p.getblockcount(), 32)
@@ -87,7 +86,7 @@ class SnapshotFinalization(UnitETestFramework):
                                      'validators': 1})
 
         self.log.info("Generate next epoch")
-        votes += self.generate_epoch(epoch_length=5, proposer=p, finalizer=v, count=1)
+        votes += self.generate_epoch(proposer=p, finalizer=v, count=1)
 
         assert_equal(p.getblockcount(), 37)
         assert_finalizationstate(p, {'currentEpoch': 8,
@@ -101,10 +100,15 @@ class SnapshotFinalization(UnitETestFramework):
                                      'lastFinalizedEpoch': 6,
                                      'validators': 1})
 
-        self.log.info("Check slashig condition");
+        self.log.info("Check slashig condition")
         # Create new vote with input=votes[-1] which attepts to make a double vote
+        # To detect double vote, it's enough to two votes were:
+        # 1. from same validator
+        # 2. with same source epoch
+        # 3. differet target epochs.
+        # So that make target epoch different.
         vote = s.extractvotefromsignature(bytes_to_hex_str(votes[0].vin[0].scriptSig))
-        vote['target_epoch'] = vote['target_epoch'] + 1;
+        vote['target_epoch'] = vote['target_epoch'] + 1
         prev_tx = s.decoderawtransaction(ToHex(votes[-1]))
         vtx = v.createvotetransaction(vote, prev_tx['txid'])
         vtx = v.signrawtransaction(vtx)

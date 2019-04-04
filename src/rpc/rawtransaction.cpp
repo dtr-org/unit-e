@@ -1059,7 +1059,7 @@ UniValue extractvotefromsignature(const JSONRPCRequest &request) {
             "1. \"signature\"               (string).\n"
             "Result:\n"
             "{\n"
-            "  \"validator_ddress\": xxxx   (string) the validator address\n"
+            "  \"validator_address\": xxxx   (string) the validator address\n"
             "  \"target_hash\": xxxx\n      (string) the target hash"
             "  \"source_epoch\": xxxx       (numeric) the source epoch\n"
             "  \"target_epoch\": xxxx       (numeric) the target epoch\n"

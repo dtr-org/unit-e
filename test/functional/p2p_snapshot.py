@@ -462,7 +462,7 @@ class P2PSnapshotTest(UnitETestFramework):
         3. node - the node which syncs the snapshot
         4. broken_p2p - mini node that claims has the best snapshot but it's broken
         5. valid_p2p - mini node that sends a valid snapshot
-        6. not_finalized_p2p - mini node that claims has the best snapshot but it's not finalied
+        6. not_finalized_p2p - mini node that claims has the best snapshot but it's not finalized
         """
 
         snap_node = self.nodes[4]
@@ -526,7 +526,7 @@ class P2PSnapshotTest(UnitETestFramework):
         valid_p2p.return_parent_block = True
         valid_p2p.on_getsnapshot(valid_p2p.last_getsnapshot_message)
 
-        # node doesn't request not finalied snapshot
+        # node doesn't request not finalized snapshot
         assert_equal(not_finalized_p2p.snapshot_header_requested, True)
         assert_equal(not_finalized_p2p.snapshot_chunk1_requested, False)
 
