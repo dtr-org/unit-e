@@ -2,6 +2,8 @@
 # Copyright (c) 2018-2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+import os
+import shutil
 
 from test_framework.util import (
     json,
@@ -13,6 +15,7 @@ from test_framework.util import (
     wait_until,
     connect_nodes,
     disconnect_nodes,
+    get_datadir_path
 )
 from test_framework.test_framework import UnitETestFramework
 from test_framework.messages import (
@@ -67,6 +70,7 @@ class EsperanzaDepositTest(UnitETestFramework):
         test_deposit_too_small(finalizer)
         self.test_successful_deposit(finalizer, proposer)
         test_duplicate_deposit(finalizer)
+        self.test_restart_finalizer(finalizer, proposer)
 
     def test_successful_deposit(self, finalizer, proposer):
 
@@ -127,6 +131,29 @@ class EsperanzaDepositTest(UnitETestFramework):
         txraw = proposer.getrawtransaction(proposer.getrawmempool()[0])
         vote = FromHex(CTransaction(), txraw)
         assert_equal(vote.get_type(), TxType.VOTE)
+
+    def test_restart_finalizer(self, finalizer, proposer):
+        self.stop_node(finalizer.index)
+
+        def clean_up(dirs, files):
+            for dir in dirs:
+                shutil.rmtree(get_datadir_path(self.options.tmpdir, finalizer.index) + "/regtest/" + dir)
+                os.makedirs(get_datadir_path(self.options.tmpdir, finalizer.index) + "/regtest/" + dir)
+
+            for file in files:
+                os.remove(get_datadir_path(self.options.tmpdir, finalizer.index) + "/regtest/" + file)
+
+        clean_up(['wallets', 'chainstate', 'blocks', 'snapshots', 'finalization'], ['mempool.dat'])
+        new_args = self.extra_args[finalizer.index].append('-reindex')
+
+        # Restart the node
+        self.start_node(finalizer.index, new_args)
+        finalizer.importmasterkey(finalizer.mnemonics, "", True)
+        connect_nodes(finalizer, proposer.index)
+        sync_blocks([proposer, finalizer])
+
+        wait_until(lambda: finalizer.getvalidatorinfo()['validator_status'] == 'IS_VALIDATING',
+                   timeout=5)
 
 
 # Deposit all you got, not enough coins left for the fees
