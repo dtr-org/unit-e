@@ -138,10 +138,10 @@ bool ContextualCheckDepositTx(const CTransaction &tx, CValidationState &err_stat
   }
 
   const Result res = fin_state.ValidateDeposit(validator_address, tx.vout[0].nValue);
-  switch (res) {
-    case +Result::SUCCESS:
+  switch (+res) {
+    case Result::SUCCESS:
       return true;
-    case +Result::DEPOSIT_DUPLICATE:
+    case Result::DEPOSIT_DUPLICATE:
       return err_state.Invalid(false, REJECT_INVALID, "bad-deposit-duplicate");
     default:
       return err_state.DoS(100, false, REJECT_INVALID, "bad-deposit-invalid");
@@ -198,10 +198,10 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
   }
 
   const Result res = fin_state.ValidateLogout(validator_address);
-  switch (res) {
-    case +Result::SUCCESS:
+  switch (+res) {
+    case Result::SUCCESS:
       break;
-    case +Result::LOGOUT_NOT_A_VALIDATOR:
+    case Result::LOGOUT_NOT_A_VALIDATOR:
       return err_state.DoS(100, false, REJECT_INVALID, "bad-logout-not-from-validator");
     default:
       return err_state.DoS(0, false, REJECT_INVALID, "bad-logout-invalid");
@@ -416,11 +416,11 @@ bool ContextualCheckSlashTx(const CTransaction &tx, CValidationState &err_state,
   }
 
   const esperanza::Result res = fin_state.IsSlashable(vote1, vote2);
-  switch (res) {
-    case +esperanza::Result::SUCCESS:
+  switch (+res) {
+    case esperanza::Result::SUCCESS:
       return true;
-    case +esperanza::Result::SLASH_TOO_EARLY:
-    case +esperanza::Result::SLASH_ALREADY_SLASHED:
+    case esperanza::Result::SLASH_TOO_EARLY:
+    case esperanza::Result::SLASH_ALREADY_SLASHED:
       return err_state.DoS(0, false, REJECT_INVALID, "bad-slash-not-slashable");
     default:
       return err_state.DoS(100, false, REJECT_INVALID, "bad-slash-not-slashable");
