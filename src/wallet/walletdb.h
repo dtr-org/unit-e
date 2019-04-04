@@ -46,7 +46,7 @@ class uint160;
 class uint256;
 
 namespace esperanza {
-struct ValidatorState;
+class ValidatorState;
 };
 
 /** Error statuses for the wallet database */
