@@ -67,7 +67,7 @@ struct Fixture {
   std::vector<unsigned char> pubkeydata;
 
   Fixture(std::initializer_list<std::string> args)
-      : args_manager(std::unique_ptr<ArgsManager>(new mocks::ArgsManagerMock(args))),
+      : args_manager(new mocks::ArgsManagerMock(args)),
         settings(Settings::New(args_manager.get(), behavior.get())) {
 
     const key::mnemonic::Seed seed("scout wheat rhythm inmate make insect chimney interest fire oxygen gap party slush grid post");
