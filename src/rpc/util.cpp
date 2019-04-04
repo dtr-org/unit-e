@@ -4,6 +4,7 @@
 
 #include <base58.h>
 #include <blockchain/blockchain_behavior.h>
+#include <core_io.h>
 #include <injector.h>
 #include <keystore.h>
 #include <pubkey.h>
@@ -99,11 +100,38 @@ UniValue ToUniValue(const double value) {
     return value;
 }
 
-UniValue ToUniValue(const uint256& hash) {
+UniValue ToUniValue(const COutPoint &outpoint) {
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("txid", ToUniValue(outpoint.hash));
+    obj.pushKV("n", ToUniValue(outpoint.n));
+    return obj;
+}
+
+UniValue ToUniValue(const CScript &script) {
+    UniValue obj;
+    ScriptPubKeyToUniv(script, obj, /* fIncludeHex= */ true);
+    return obj;
+}
+
+UniValue ToUniValue(const CTxOut &txout) {
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("amount", txout.nValue);
+    obj.pushKV("scriptPubKey", ToUniValue(txout.scriptPubKey));
+    return obj;
+}
+
+UniValue ToUniValue(const CTxIn &txin) {
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("prevout", ToUniValue(txin.prevout));
+    obj.pushKV("scriptSig", ToUniValue(txin.scriptSig));
+    return obj;
+}
+
+UniValue ToUniValue(const uint256 &hash) {
     return UniValue(hash.GetHex());
 }
 
-UniValue ToUniValue(const blockchain::GenesisBlock& value) {
+UniValue ToUniValue(const blockchain::GenesisBlock &value) {
     UniValue result(UniValue::VOBJ);
     result.pushKV("version", ToUniValue(value.block.nVersion));
     result.pushKV("time", ToUniValue(value.block.nTime));

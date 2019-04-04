@@ -17,19 +17,19 @@ class CKeyStore;
 class CPubKey;
 class CScript;
 
-CPubKey HexToPubKey(const std::string& hex_in);
-CPubKey AddrToPubKey(CKeyStore* const keystore, const std::string& addr_in);
-CScript CreateMultisigRedeemscript(int required, const std::vector<CPubKey>& pubkeys);
+CPubKey HexToPubKey(const std::string &hex_in);
+CPubKey AddrToPubKey(CKeyStore *const keystore, const std::string &addr_in);
+CScript CreateMultisigRedeemscript(int required, const std::vector<CPubKey> &pubkeys);
 
 template <typename T>
-UniValue ToUniValue(const T& value) {
+UniValue ToUniValue(const T &value) {
   return UniValue(value);
 }
 
 template <typename T>
-UniValue ToUniValue(const std::vector<T> vector) {
+UniValue ToUniValue(const std::vector<T> &vector) {
   UniValue array(UniValue::VARR);
-  for (const T& v : vector) {
+  for (const T &v : vector) {
     array.push_back(ToUniValue(v));
   }
   return array;
@@ -38,8 +38,12 @@ UniValue ToUniValue(const std::vector<T> vector) {
 UniValue ToUniValue(std::uint32_t value);
 UniValue ToUniValue(float value);
 UniValue ToUniValue(double value);
-UniValue ToUniValue(const uint256& hash);
-UniValue ToUniValue(const blockchain::GenesisBlock& value);
+UniValue ToUniValue(const COutPoint &outpoint);
+UniValue ToUniValue(const CScript &script);
+UniValue ToUniValue(const CTxOut &txout);
+UniValue ToUniValue(const CTxIn &txin);
+UniValue ToUniValue(const uint256 &hash);
+UniValue ToUniValue(const blockchain::GenesisBlock &value);
 UniValue ToUniValue(const std::vector<unsigned char> base58_prefixes[blockchain::Base58Type::_size_constant]);
 
-#endif // UNITE_RPC_UTIL_H
+#endif  // UNITE_RPC_UTIL_H
