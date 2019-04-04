@@ -270,18 +270,6 @@ UniValue createvotetransaction(const JSONRPCRequest &request) {
   CTxOut txout(amount, script_pubkey);
   tx.vout.push_back(txout);
 
-  CTransaction tx_const(tx);
-  uint32_t in = 0;
-  SignatureData sigdata;
-
-  if (!ProduceSignature(
-        *pwallet,
-        TransactionSignatureCreator(&tx_const, in, amount, SIGHASH_ALL),
-        script_pubkey, sigdata, &tx_const)) {
-    throw JSONRPCError(RPC_WALLET_ERROR, "Cannot sign vote transaction");
-  }
-  UpdateTransaction(tx, in, sigdata);
-
   return EncodeHexTx(tx, RPCSerializationFlags());
 }
 

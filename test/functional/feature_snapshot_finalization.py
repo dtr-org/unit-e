@@ -106,8 +106,9 @@ class SnapshotFinalization(UnitETestFramework):
         vote = s.extractvotefromsignature(bytes_to_hex_str(votes[0].vin[0].scriptSig))
         vote['target_epoch'] = vote['target_epoch'] + 1;
         prev_tx = s.decoderawtransaction(ToHex(votes[-1]))
-        vtx = FromHex(CTransaction(), v.createvotetransaction(vote, prev_tx['txid']))
-
+        vtx = v.createvotetransaction(vote, prev_tx['txid'])
+        vtx = v.signrawtransaction(vtx)
+        vtx = FromHex(CTransaction(), vtx['hex'])
         assert_raises_rpc_error(-26, 'bad-vote-invalid-state', s.sendrawtransaction, ToHex(vtx))
         wait_until(lambda: len(s.getrawmempool()) > 0, timeout=20)
         slash = FromHex(CTransaction(), s.getrawtransaction(s.getrawmempool()[0]))
