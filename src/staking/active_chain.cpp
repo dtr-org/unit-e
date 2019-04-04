@@ -20,11 +20,19 @@ class ActiveChainAdapter final : public ActiveChain {
   CCriticalSection &GetLock() const override { return cs_main; }
 
   const CBlockIndex *GetTip() const override {
-    return chainActive.Tip();
+    const CBlockIndex *tip_block_index = chainActive.Tip();
+    if (!tip_block_index) {
+      LogPrintf("WARNING: Genesis block not loaded yet (%s returns %p)\n", __func__, tip_block_index);
+    }
+    return tip_block_index;
   }
 
   const CBlockIndex *GetGenesis() const override {
-    return chainActive.Genesis();
+    const CBlockIndex *genesis_block_index = chainActive.Genesis();
+    if (!genesis_block_index) {
+      LogPrintf("WARNING: Genesis block not loaded yet (%s returns %p)\n", __func__, genesis_block_index);
+    }
+    return genesis_block_index;
   }
 
   bool Contains(const CBlockIndex &block_index) const override {
@@ -40,11 +48,18 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   blockchain::Height GetSize() const override {
+    // minimum value that can be returned is 1 as we should always have the genesis block
     return static_cast<blockchain::Height>(chainActive.Height() + 1);
   }
 
   blockchain::Height GetHeight() const override {
-    return static_cast<blockchain::Height>(chainActive.Height());
+    // prevent returning negative numbers which would be turned into extremely big unsigned numbers
+    int height = chainActive.Height();
+    if (height < 0) {
+      LogPrintf("WARNING: Genesis block not loaded yet (got height=%d in %s)\n", height, __func__);
+      height = 0;
+    }
+    return static_cast<blockchain::Height>(height);
   }
 
   const CBlockIndex *AtDepth(const blockchain::Depth depth) const override {
@@ -52,6 +67,9 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   const CBlockIndex *AtHeight(const blockchain::Height height) const override {
+    if (height > GetHeight()) {
+      return nullptr;
+    }
     return chainActive[height];
   }
 
