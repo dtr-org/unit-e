@@ -12,12 +12,33 @@
 #include <staking/block_index_map.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
+#include <util.h>
 
 #include <atomic>
 #include <cstdint>
 #include <functional>
 
 namespace mocks {
+
+//! \brief An ArgsManager that can be initialized using a list of cli args.
+//!
+//! Usage:
+//!   ArgsManagerMock argsman{ "-proposing=0", "-printtoconsole" };
+//!
+//! Uses std::intiializer_list, so the curly braces are actually required.
+class ArgsManagerMock : public ArgsManager {
+ public:
+  ArgsManagerMock(std::initializer_list<std::string> args) {
+    const char **argv = new const char *[args.size() + 1];
+    argv[0] = "executable-name";
+    std::size_t i = 1;
+    for (const std::string &arg : args) {
+      argv[i++] = arg.c_str();
+    }
+    ParseParameters(static_cast<int>(i), argv);
+    delete[] argv;
+  }
+};
 
 class NetworkMock : public staking::Network {
  public:
