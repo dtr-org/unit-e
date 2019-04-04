@@ -59,7 +59,7 @@ class EmbargoManStar(UnitETestFramework):
         relay2 = self.single_run()
 
         # Relay should change because txs were fluffed too often
-        assert (relay1 != relay2)
+        assert relay1 != relay2
 
     def single_run(self):
         run_start_time = time.perf_counter()

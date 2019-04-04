@@ -61,7 +61,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
         assert_equal(set(node.getrawmempool()), set())
         for txid in spends1_id+spends2_id:
             tx = node.gettransaction(txid)
-            assert(tx["confirmations"] > 0)
+            assert tx["confirmations"] > 0
 
         # Use invalidateblock to re-org back; all transactions should
         # end up unconfirmed and back in the mempool
@@ -72,7 +72,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
         assert_equal(set(node.getrawmempool()), set(spends1_id+spends2_id))
         for txid in spends1_id+spends2_id:
             tx = node.gettransaction(txid)
-            assert(tx["confirmations"] == 0)
+            assert tx["confirmations"] == 0
 
         # Generate another block, they should all get mined
         node.generate(1)
@@ -80,7 +80,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
         assert_equal(set(node.getrawmempool()), set())
         for txid in spends1_id+spends2_id:
             tx = node.gettransaction(txid)
-            assert(tx["confirmations"] > 0)
+            assert tx["confirmations"] > 0
 
 
 if __name__ == '__main__':

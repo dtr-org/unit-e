@@ -142,8 +142,8 @@ class SegWitTest(UnitETestFramework):
         txid1 = send_to_witness(1, self.nodes[0], find_unspent(self.nodes[0], PROPOSER_REWARD), self.pubkey[0], False, PROPOSER_REWARD - Decimal("0.004"))
         hex_tx = self.nodes[0].gettransaction(txid)['hex']
         tx = FromHex(CTransaction(), hex_tx)
-        assert(tx.wit.is_null()) # This should not be a segwit input
-        assert(txid1 in self.nodes[0].getrawmempool())
+        assert tx.wit.is_null() # This should not be a segwit input
+        assert txid1 in self.nodes[0].getrawmempool()
 
         # Now create tx2, which will spend from txid1.
         tx = CTransaction()
@@ -152,7 +152,7 @@ class SegWitTest(UnitETestFramework):
         tx2_hex = self.nodes[0].signrawtransaction(ToHex(tx))['hex']
         txid2 = self.nodes[0].sendrawtransaction(tx2_hex)
         tx = FromHex(CTransaction(), tx2_hex)
-        assert(not tx.wit.is_null())
+        assert not tx.wit.is_null()
 
         # Now create tx3, which will spend from txid2
         tx = CTransaction()
@@ -160,8 +160,8 @@ class SegWitTest(UnitETestFramework):
         tx.vout.append(CTxOut(int((PROPOSER_REWARD - Decimal('0.05')) * UNIT), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))  # Huge fee
         tx.calc_sha256()
         txid3 = self.nodes[0].sendrawtransaction(ToHex(tx))
-        assert(tx.wit.is_null())
-        assert(txid3 in self.nodes[0].getrawmempool())
+        assert tx.wit.is_null()
+        assert txid3 in self.nodes[0].getrawmempool()
 
         # UNIT-E TODO: Previously checked here was that a node without segwit would not include the second and third transactions
         # but it does not make sense here as we want to enable segwit by default. Remove this comment after enabling segwit
@@ -195,8 +195,8 @@ class SegWitTest(UnitETestFramework):
         uncompressed_spendable_address = ["mvozP4UwyGD2mGZU4D2eMvMLPB9WkMmMQu"]
         self.nodes[0].importprivkey("cNC8eQ5dg3mFAVePDX4ddmPYpPbw41r9bm2jd1nLJT77e6RrzTRR")
         compressed_spendable_address = ["mmWQubrDomqpgSYekvsU7HWEVjLFHAakLe"]
-        assert ((self.nodes[0].validateaddress(uncompressed_spendable_address[0])['iscompressed'] == False))
-        assert ((self.nodes[0].validateaddress(compressed_spendable_address[0])['iscompressed'] == True))
+        assert not self.nodes[0].validateaddress(uncompressed_spendable_address[0])['iscompressed']
+        assert self.nodes[0].validateaddress(compressed_spendable_address[0])['iscompressed']
 
         self.nodes[0].importpubkey(pubkeys[0])
         compressed_solvable_address = [key_to_p2pkh(pubkeys[0])]

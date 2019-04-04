@@ -368,7 +368,7 @@ class TestManager():
                     [ c.send_header(block_header) for c in self.p2p_connections ]
 
                 else:  # Tx test runner
-                    assert(isinstance(b_or_t, CTransaction))
+                    assert isinstance(b_or_t, CTransaction)
                     tx = b_or_t
                     tx_outcome = outcome
                     # Add to shared tx store and clear map entry

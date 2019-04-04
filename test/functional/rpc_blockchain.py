@@ -114,7 +114,7 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(chaintxstats['txcount'], 201)
 
         # all transactions are created with the rate lower than 1 sec
-        assert('txrate' not in chaintxstats)
+        assert 'txrate' not in chaintxstats
 
         b1 = self.nodes[0].getblock(self.nodes[0].getblockhash(1))
         b200 = self.nodes[0].getblock(self.nodes[0].getblockhash(200))
@@ -132,9 +132,9 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(chaintxstats['time'], b1['time'])
         assert_equal(chaintxstats['txcount'], 2)
         assert_equal(chaintxstats['window_block_count'], 0)
-        assert('window_tx_count' not in chaintxstats)
-        assert('window_interval' not in chaintxstats)
-        assert('txrate' not in chaintxstats)
+        assert 'window_tx_count' not in chaintxstats
+        assert 'window_interval' not in chaintxstats
+        assert 'txrate' not in chaintxstats
 
         assert_raises_rpc_error(-8, "Invalid block count: should be between 0 and the block's height - 1", self.nodes[0].getchaintxstats, 201)
 

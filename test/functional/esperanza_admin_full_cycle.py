@@ -153,23 +153,17 @@ class AdminFullCycle(UnitETestFramework):
         n_blocks = 2 * EPOCH_LENGTH
         self.generate_sync(proposer, n_blocks)
 
-        assert (prev_n_blocks_have_txs_from(proposer, validator1.address,
-                                            n_blocks))
-        assert (prev_n_blocks_have_txs_from(proposer, validator2.address,
-                                            n_blocks))
-        assert (prev_n_blocks_have_txs_from(proposer, validator3.address,
-                                            n_blocks))
+        assert prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks)
+        assert prev_n_blocks_have_txs_from(proposer, validator2.address, n_blocks)
+        assert prev_n_blocks_have_txs_from(proposer, validator3.address, n_blocks)
 
         # Blacklist v1
         admin.blacklist([validator1.pubkey])
         self.generate_sync(proposer, n_blocks)
 
-        assert (not prev_n_blocks_have_txs_from(proposer, validator1.address,
-                                                n_blocks))
-        assert (prev_n_blocks_have_txs_from(proposer, validator2.address,
-                                            n_blocks))
-        assert (prev_n_blocks_have_txs_from(proposer, validator3.address,
-                                            n_blocks))
+        assert not prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks)
+        assert prev_n_blocks_have_txs_from(proposer, validator2.address, n_blocks)
+        assert prev_n_blocks_have_txs_from(proposer, validator3.address, n_blocks)
 
         # v1 should be able to logout even if blacklisted
         validator1.logout_ok()
@@ -187,12 +181,9 @@ class AdminFullCycle(UnitETestFramework):
         validator1.deposit_ok()
         self.generate_sync(proposer, n_blocks)
 
-        assert (
-            prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks))
-        assert (
-            prev_n_blocks_have_txs_from(proposer, validator2.address, n_blocks))
-        assert (
-            prev_n_blocks_have_txs_from(proposer, validator3.address, n_blocks))
+        assert prev_n_blocks_have_txs_from(proposer, validator1.address, n_blocks)
+        assert prev_n_blocks_have_txs_from(proposer, validator2.address, n_blocks)
+        assert prev_n_blocks_have_txs_from(proposer, validator3.address, n_blocks)
 
 
 if __name__ == '__main__':

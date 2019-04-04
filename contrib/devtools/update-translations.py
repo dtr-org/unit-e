@@ -84,7 +84,7 @@ def check_format_specifiers(source, translation, errors, numerus):
     source_f = split_format_specifiers(find_format_specifiers(source))
     # assert that no source messages contain both Qt and strprintf format specifiers
     # if this fails, go change the source as this is hacky and confusing!
-    assert(not(source_f[0] and source_f[1]))
+    assert not(source_f[0] and source_f[1])
     try:
         translation_f = split_format_specifiers(find_format_specifiers(translation))
     except IndexError:

@@ -77,7 +77,7 @@ class RawTransactionsTest(UnitETestFramework):
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
-        assert(len(dec_tx['vin']) > 0) #test that we have enough inputs
+        assert len(dec_tx['vin']) > 0 #test that we have enough inputs
 
         ##############################
         # simple test with two coins #
@@ -90,7 +90,7 @@ class RawTransactionsTest(UnitETestFramework):
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
-        assert(len(dec_tx['vin']) > 0) #test if we have enough inputs
+        assert len(dec_tx['vin']) > 0 #test if we have enough inputs
 
         ##############################
         # simple test with two coins #
@@ -103,7 +103,7 @@ class RawTransactionsTest(UnitETestFramework):
         rawtxfund = self.nodes[2].fundrawtransaction(rawtx)
         fee = rawtxfund['fee']
         dec_tx  = self.nodes[2].decoderawtransaction(rawtxfund['hex'])
-        assert(len(dec_tx['vin']) > 0)
+        assert len(dec_tx['vin']) > 0
         assert_equal(dec_tx['vin'][0]['scriptSig']['hex'], '')
 
 
@@ -122,7 +122,7 @@ class RawTransactionsTest(UnitETestFramework):
         for out in dec_tx['vout']:
             totalOut += out['value']
 
-        assert(len(dec_tx['vin']) > 0)
+        assert len(dec_tx['vin']) > 0
         assert_equal(dec_tx['vin'][0]['scriptSig']['hex'], '')
 
 
@@ -343,7 +343,7 @@ class RawTransactionsTest(UnitETestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
+        assert feeDelta >= 0 and feeDelta <= feeTolerance
         ############################################################
 
         ############################################################
@@ -358,7 +358,7 @@ class RawTransactionsTest(UnitETestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
+        assert feeDelta >= 0 and feeDelta <= feeTolerance
         ############################################################
 
 
@@ -385,7 +385,7 @@ class RawTransactionsTest(UnitETestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
+        assert feeDelta >= 0 and feeDelta <= feeTolerance
         ############################################################
 
 
@@ -418,7 +418,7 @@ class RawTransactionsTest(UnitETestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(feeDelta >= 0 and feeDelta <= feeTolerance)
+        assert feeDelta >= 0 and feeDelta <= feeTolerance
         ############################################################
 
 
@@ -537,7 +537,7 @@ class RawTransactionsTest(UnitETestFramework):
 
         #compare fee
         feeDelta = Decimal(fundedTx['fee']) - Decimal(signedFee)
-        assert(feeDelta >= 0 and feeDelta <= feeTolerance*19) #~19 inputs
+        assert feeDelta >= 0 and feeDelta <= feeTolerance*19 #~19 inputs
 
 
         #############################################
@@ -599,7 +599,7 @@ class RawTransactionsTest(UnitETestFramework):
         assert_equal(len(res_dec["vin"]), 1)
         assert_equal(res_dec["vin"][0]["txid"], watchonly_txid)
 
-        assert("fee" in result.keys())
+        assert "fee" in result.keys()
         assert_greater_than(result["changepos"], -1)
 
         ###############################################################
@@ -614,16 +614,16 @@ class RawTransactionsTest(UnitETestFramework):
         result = self.nodes[3].fundrawtransaction(rawtx, True)
         res_dec = self.nodes[0].decoderawtransaction(result["hex"])
         assert_equal(len(res_dec["vin"]), 2)
-        assert(res_dec["vin"][0]["txid"] == watchonly_txid or res_dec["vin"][1]["txid"] == watchonly_txid)
+        assert res_dec["vin"][0]["txid"] == watchonly_txid or res_dec["vin"][1]["txid"] == watchonly_txid
 
         assert_greater_than(result["fee"], 0)
         assert_greater_than(result["changepos"], -1)
         assert_equal(result["fee"] + res_dec["vout"][result["changepos"]]["value"], watchonly_amount / 10)
 
         signedtx = self.nodes[3].signrawtransaction(result["hex"])
-        assert(not signedtx["complete"])
+        assert not signedtx["complete"]
         signedtx = self.nodes[0].signrawtransaction(signedtx["hex"])
-        assert(signedtx["complete"])
+        assert signedtx["complete"]
         self.nodes[0].sendrawtransaction(signedtx["hex"])
         self.nodes[0].generate(1)
         self.sync_all()
@@ -655,10 +655,10 @@ class RawTransactionsTest(UnitETestFramework):
         for out in res_dec['vout']:
             if out['value'] > 1.0:
                 changeaddress += out['scriptPubKey']['addresses'][0]
-        assert(changeaddress != "")
+        assert changeaddress != ""
         nextaddr = self.nodes[3].getnewaddress()
         # Now the change address key should be removed from the keypool
-        assert(changeaddress != nextaddr)
+        assert changeaddress != nextaddr
 
         ######################################
         # Test subtractFeeFromOutputs option #

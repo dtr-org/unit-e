@@ -162,7 +162,7 @@ def test_verify(mocker):
     mocker.patch("subprocess.check_call", side_effect=CalledProcessError(1, 'gverify'))
     with raises(Exception) as e:
         gitian_build.verify(create_args(mocker))
-    assert('Command \'gverify\' returned non-zero exit status 1.' in str(e))
+    assert 'Command \'gverify\' returned non-zero exit status 1.' in str(e)
 
     mocker.patch("pathlib.Path.is_dir", return_value=False)
     with raises(SystemExit):
@@ -285,21 +285,21 @@ def test_verify_user_specified_osslsigncode(mocker):
     mocker.patch("pathlib.Path.is_file", return_value=False)
     with raises(Exception) as e:
         gitian_build.verify_user_specified_osslsigncode('ossl_path')
-    assert('provided osslsign does not exists: ossl_path' in str(e))
+    assert 'provided osslsign does not exists: ossl_path' in str(e)
 
     mocker.patch("pathlib.Path.is_file", return_value=True)
     mocker.patch("subprocess.call", return_value=1)
     with raises(Exception) as e:
         gitian_build.verify_user_specified_osslsigncode('ossl_path')
-    assert('cannot execute provided osslsigncode: ossl_path' in str(e))
+    assert 'cannot execute provided osslsigncode: ossl_path' in str(e)
 
     mocker.patch("subprocess.call", side_effect=CalledProcessError(1, 'some cmd'))
     with raises(Exception) as e:
         gitian_build.verify_user_specified_osslsigncode('ossl_path')
-    assert('unexpected exception raised while executing provided osslsigncode: Command \'some cmd\' returned non-zero exit status 1.' in str(e))
+    assert 'unexpected exception raised while executing provided osslsigncode: Command \'some cmd\' returned non-zero exit status 1.' in str(e)
 
     mocker.patch("subprocess.call", return_value=255)
-    assert(gitian_build.verify_user_specified_osslsigncode('ossl_path') == Path('ossl_path').resolve())
+    assert gitian_build.verify_user_specified_osslsigncode('ossl_path') == Path('ossl_path').resolve()
 
 def test_find_osslsigncode(mocker):
     class which_mock:
@@ -316,25 +316,25 @@ def test_find_osslsigncode(mocker):
 
     # won't find the osslsigncode
     mocker.patch("pathlib.Path.is_file", return_value=False)
-    assert(original_find_osslsigncode("") is None)
+    assert original_find_osslsigncode("") is None
 
     # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode
     mocker.patch("pathlib.Path.is_file", return_value=True)
-    assert(original_find_osslsigncode("") == Path('osslsigncode-1.7.1/osslsigncode').resolve())
+    assert original_find_osslsigncode("") == Path('osslsigncode-1.7.1/osslsigncode').resolve()
 
 
     mocker.patch("subprocess.call", return_value=1)
 
     # won't find the osslsigncode
     mocker.patch("pathlib.Path.is_file", return_value=False)
-    assert(original_find_osslsigncode("") is None)
+    assert original_find_osslsigncode("") is None
 
     # will find the osslsigncode in osslsigncode-1.7.1/osslsigncode but won't be able to execute it (--version won't return 255)
     mocker.patch("pathlib.Path.is_file", return_value=True)
-    assert(original_find_osslsigncode("") is None)
+    assert original_find_osslsigncode("") is None
 
 
     # Test that user specified path will be properly returned (sanity test)
     mocker.patch("pathlib.Path.is_file", return_value=True)
     mocker.patch("subprocess.call", return_value=255)
-    assert(gitian_build.verify_user_specified_osslsigncode('ossl_path') == Path('ossl_path').resolve())
+    assert gitian_build.verify_user_specified_osslsigncode('ossl_path') == Path('ossl_path').resolve()

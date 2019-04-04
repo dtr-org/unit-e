@@ -131,9 +131,9 @@ class P2PLeakTest(UnitETestFramework):
         network_thread_join()
 
         # Make sure no unexpected messages came in
-        assert(no_version_bannode.unexpected_msg == False)
-        assert(no_version_idlenode.unexpected_msg == False)
-        assert(no_verack_idlenode.unexpected_msg == False)
+        assert no_version_bannode.unexpected_msg == False
+        assert no_version_idlenode.unexpected_msg == False
+        assert no_verack_idlenode.unexpected_msg == False
         assert not unsupported_service_bit5_node.unexpected_msg
         assert not unsupported_service_bit7_node.unexpected_msg
 

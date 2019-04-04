@@ -27,9 +27,9 @@ class DisableWalletTest (UnitETestFramework):
         assert_raises_rpc_error(-32601, 'Method not found', self.nodes[0].generatetoaddress, 1, 'mneYUmWYsuk7kySiURxCi3AGxrAqZxLgPZ')
 
         x = self.nodes[0].validateaddress('3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy')
-        assert(x['isvalid'] == False)
+        assert x['isvalid'] == False
         x = self.nodes[0].validateaddress('mneYUmWYsuk7kySiURxCi3AGxrAqZxLgPZ')
-        assert(x['isvalid'] == True)
+        assert x['isvalid'] == True
 
 if __name__ == '__main__':
     DisableWalletTest ().main ()

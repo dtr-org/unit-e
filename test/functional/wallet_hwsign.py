@@ -59,7 +59,7 @@ class UsbDeviceCryptoTest(UnitETestFramework):
         self.sync_all()
 
         # Check final balance
-        assert(other_node.getbalance() > other_node.initial_stake - 0.01)
+        assert other_node.getbalance() > other_node.initial_stake - 0.01
 
 
 if __name__ == '__main__':
