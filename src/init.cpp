@@ -1912,7 +1912,7 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     std::unique_lock<std::mutex> lk(m_import);
-    cv_import.wait(lk, [&]{return !fReindex.load();});
+    cv_import.wait(lk, [&]{return !fImporting.load();});
     StartWallets(scheduler);
 #endif
 
