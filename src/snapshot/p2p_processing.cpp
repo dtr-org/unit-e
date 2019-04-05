@@ -547,6 +547,7 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot,
 
   if (m_best_snapshot.IsNull()) {
     m_best_snapshot = best_snapshot;
+    return;
   }
 
   const CBlockIndex *const cur_bi = LookupBlockIndex(m_best_snapshot.block_hash);
