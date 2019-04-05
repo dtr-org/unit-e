@@ -745,10 +745,15 @@ void ThreadImport(std::vector<fs::path> vImportFiles)
         return;
     }
     } // End scope of CImportingNow
+
     if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         LoadMempool();
         fDumpMempoolLater = !fRequestShutdown;
     }
+
+    // Since the import process can restore the node's ValidatorState,
+    // we must ensure that all callbacks processed in the context of the import.
+    SyncWithValidationInterfaceQueue();
     // Notify parent thread about the finished import
     cv_import.notify_all();
 }
