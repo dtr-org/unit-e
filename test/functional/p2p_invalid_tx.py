@@ -7,7 +7,7 @@
 In this test we connect to one node over p2p, and test tx requests.
 """
 
-from test_framework.test_framework import ComparisonTestFramework
+from test_framework.test_framework import ComparisonTestFramework, DISABLE_FINALIZATION
 from test_framework.comptool import TestManager, TestInstance, RejectResult
 from test_framework.blocktools import *
 from test_framework.util import get_unspent_coins
@@ -23,6 +23,7 @@ class InvalidTxRequestTest(ComparisonTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
+        self.extra_args = [['-whitelist=127.0.0.1', DISABLE_FINALIZATION]] * self.num_nodes
 
     def run_test(self):
         test = TestManager(self, self.options.tmpdir)

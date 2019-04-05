@@ -33,7 +33,7 @@ and confirm again balances are correct.
 from random import randint
 import shutil
 
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import *
 
 
@@ -42,7 +42,7 @@ class WalletBackupTest(UnitETestFramework):
         self.num_nodes = 4
         self.setup_clean_chain = True
         # nodes 1, 2,3 are spenders, let's give them a keypool=100
-        self.extra_args = [["-keypool=100"], ["-keypool=100"], ["-keypool=100"], []]
+        self.extra_args = [["-keypool=100", DISABLE_FINALIZATION]] * 3 + [[DISABLE_FINALIZATION]]
 
     def setup_network(self, split=False):
         self.setup_nodes()

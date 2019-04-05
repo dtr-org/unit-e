@@ -5,7 +5,7 @@
 """Test segwit transactions and blocks on P2P network."""
 
 from test_framework.mininode import *
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.messages import msg_block, msg_witness_block
 from test_framework.util import *
 from test_framework.script import *
@@ -114,7 +114,8 @@ class SegWitTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 2
         # This test tests SegWit
-        self.extra_args = [["-whitelist=127.0.0.1"], ["-whitelist=127.0.0.1", "-acceptnonstdtxn=0"]]
+        self.extra_args = [["-whitelist=127.0.0.1", DISABLE_FINALIZATION],
+                           ["-whitelist=127.0.0.1", "-acceptnonstdtxn=0", DISABLE_FINALIZATION]]
 
     def setup_network(self):
         self.setup_nodes()

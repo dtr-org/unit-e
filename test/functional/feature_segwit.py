@@ -12,7 +12,7 @@ from test_framework.address import (
     script_to_p2wsh,
 )
 from test_framework.blocktools import witness_script, send_to_witness
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import *
 from test_framework.mininode import sha256, CTransaction, CTxIn, COutPoint, CTxOut, UNIT, ToHex, FromHex
 from test_framework.address import script_to_p2sh, key_to_p2pkh
@@ -40,9 +40,9 @@ class SegWitTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 3
         # This test tests SegWit
-        self.extra_args = [["-addresstype=legacy", "-deprecatedrpc=addwitnessaddress"],
-                           ["-blockversion=4", "-promiscuousmempoolflags=517", "-addresstype=legacy", "-deprecatedrpc=addwitnessaddress"],
-                           ["-blockversion=536870915", "-promiscuousmempoolflags=517", "-addresstype=legacy", "-deprecatedrpc=addwitnessaddress"]]
+        self.extra_args = [["-addresstype=legacy", "-deprecatedrpc=addwitnessaddress", DISABLE_FINALIZATION],
+                           ["-blockversion=4", "-promiscuousmempoolflags=517", "-addresstype=legacy", "-deprecatedrpc=addwitnessaddress", DISABLE_FINALIZATION],
+                           ["-blockversion=536870915", "-promiscuousmempoolflags=517", "-addresstype=legacy", "-deprecatedrpc=addwitnessaddress", DISABLE_FINALIZATION]]
 
     def setup_network(self):
         super().setup_network()
