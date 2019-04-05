@@ -45,7 +45,7 @@ class ActiveChainAdapter final : public ActiveChain {
 
   blockchain::Height GetHeight() const override {
     // prevent returning negative numbers which would be turned into extremely big unsigned numbers
-    int height = chainActive.Height();
+    const int height = chainActive.Height();
     if (height < 0) {
       LogPrintf("ERROR: Genesis block not loaded yet (got height=%d in %s)\n", height, __func__);
       throw std::runtime_error("genesis block not loaded yet");

@@ -62,7 +62,12 @@ class ActiveChain : public blockchain::ChainAccess {
   //! \return A pointer to the current tip or nullptr if there is no current tip yet.
   virtual const CBlockIndex *GetTip() const = 0;
 
-  //! \brief returns the chain genesis
+  //! \brief returns the chain genesis.
+  //!
+  //! If invoked during IBD the genesis block might not have been loaded
+  //! from disk yet.
+  //!
+  //! \return A pointer to the genesis block's index or nullptr if the block is not loaded yet.
   virtual const CBlockIndex *GetGenesis() const = 0;
 
   //! \brief returns whether chain contains a block index
