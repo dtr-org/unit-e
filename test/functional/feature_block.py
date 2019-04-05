@@ -365,7 +365,7 @@ class FullBlockTest(ComparisonTestFramework):
 
 
         # ... and back to the first chain.
-        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (4)
+        #     genesis -> b1 (0) -> b2 (1) -> b5 (2) -> b6 (3)
         #                      \-> b3 (1) -> b4 (2)
         tip(2)
         block(5, get_staking_coin(), spend=out[2])
@@ -658,8 +658,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         # attempt to spend b37's first non-coinbase tx, at which point b37 was still considered valid
         tip(35)
-        # No need to sign the tx, because the input is missing anyway
-        block(38, get_staking_coin(), spend=txout_b37, sign_spend=False)
+        block(38, get_staking_coin(), spend=txout_b37)
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
         comp_snapshot_hash(35)
 
@@ -724,7 +723,6 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(39)
         b40 = block(40, get_staking_coin(), spend=out[12])
-
         sigops = get_legacy_sigopcount_block(b40)
         numTxes = (MAX_BLOCK_SIGOPS - sigops) // b39_sigops_per_output
         assert_equal(numTxes <= b39_outputs, True)
@@ -793,7 +791,7 @@ class FullBlockTest(ComparisonTestFramework):
         # Test a number of really invalid scenarios
         #
         #  -> b31 (8) -> b33 (9) -> b35 (10) -> b39 (11) -> b42 (12) -> b43 (13) -> b44 (14)
-        #                                                                                  \-> ??? (15)
+        #                                                                                   \-> ??? (15)
 
         # The next few blocks are going to be created "by hand" since they'll do funky things, such as having
         # the first transaction be non-coinbase, etc.  The purpose of b44 is to make sure this works.
@@ -965,7 +963,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(55)
         b56 = copy.deepcopy(b57)
         self.blocks[56] = b56
-        assert_equal(len(b56.vtx), 3)
+        assert_equal(len(b56.vtx),3)
         assert_equal(b56.hash, b57.hash)
         b56 = update_block(56, [tx1], del_refs=False)
         yield rejected(RejectResult(16, b'bad-txns-duplicate'))
@@ -1043,7 +1041,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(60)
         b62 = block(62, get_staking_coin())
         tx = CTransaction()
-        tx.nLockTime = 0xffffffff  # this locktime is non-final
+        tx.nLockTime = 0xffffffff  #this locktime is non-final
         assert out[18].n < len(out[18].tx.vout)
         tx.vin.append(CTxIn(COutPoint(out[18].tx.sha256, out[18].n))) # don't set nSequence
         tx.vout.append(CTxOut(0, CScript([OP_TRUE])))
@@ -1057,7 +1055,7 @@ class FullBlockTest(ComparisonTestFramework):
         # Test a non-final coinbase is also rejected
         #
         #   -> b39 (11) -> b42 (12) -> b43 (13) -> b53 (14) -> b55 (15) -> b57 (16) -> b60 (17)
-        #                                                                                      \-> b63 (-)
+        #                                                                                     \-> b63 (-)
         #
         tip(60)
         b63 = block(63, get_staking_coin())
@@ -1124,7 +1122,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(64)
         block(65, get_staking_coin())
-        tx1 = create_and_sign_tx(out[20].tx, out[19].n, out_value(19))
+        tx1 = create_and_sign_tx(out[19].tx, out[19].n, out_value(19))
         tx2 = create_and_sign_tx(tx1, 0, 0)
         update_block(65, [tx1, tx2])
         yield accepted()
@@ -1312,7 +1310,7 @@ class FullBlockTest(ComparisonTestFramework):
         size = MAX_BLOCK_SIGOPS - 2 + MAX_SCRIPT_ELEMENT_SIZE + 1 + 5
         a = bytearray([OP_CHECKSIG] * size)
         a[MAX_BLOCK_SIGOPS-2] = 0x4e # PUSHDATA4, but leave the following bytes as just checksigs
-        tx = create_and_sign_tx(out[24].tx, out[24].n, 1, CScript(a))
+        tx = create_and_sign_tx(out[23].tx, out[23].n, 1, CScript(a))
         b76 = update_block(76, [tx])
         yield accepted()
         save_spendable_output()
@@ -1320,8 +1318,8 @@ class FullBlockTest(ComparisonTestFramework):
 
         # Test transaction resurrection
         #
-        # -> b77 (25) -> b78 (26) -> b79 (27)
-        #            \-> b80 (26) -> b81 (27) -> b82 (28)
+        # -> b77 (24) -> b78 (25) -> b79 (26)
+        #            \-> b80 (25) -> b81 (26) -> b82 (27)
         #
         #    b78 creates a tx, which is spent in b79. After b82, both should be in mempool
         #
@@ -1338,7 +1336,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(76)
         block(77, get_staking_coin())
-        tx77 = create_and_sign_tx(out[25].tx, out[25].n, 5)
+        tx77 = create_and_sign_tx(out[24].tx, out[24].n, 5)
         update_block(77, [tx77])
         yield accepted()
         save_spendable_output()
@@ -1360,17 +1358,17 @@ class FullBlockTest(ComparisonTestFramework):
         assert_equal(len(self.nodes[0].getrawmempool()), 0)
 
         tip(77)
-        block(80, get_staking_coin(), spend=out[26])
+        block(80, get_staking_coin(), spend=out[25])
         yield rejected()
         save_spendable_output()
         comp_snapshot_hash(79)
 
-        block(81, get_staking_coin(), spend=out[27])
+        block(81, get_staking_coin(), spend=out[26])
         yield rejected() # other chain is same length
         save_spendable_output()
         comp_snapshot_hash(79)
 
-        block(82, get_staking_coin(), spend=out[28])
+        block(82, get_staking_coin(), spend=out[27])
         yield accepted()  # now this chain is longer, triggers re-org
         save_spendable_output()
         comp_snapshot_hash(82)
@@ -1433,27 +1431,27 @@ class FullBlockTest(ComparisonTestFramework):
         comp_snapshot_hash(84)
 
         tip(83)
-        block(85, get_staking_coin(), spend=out[30])
+        block(85, get_staking_coin(), spend=out[29])
         yield rejected()
         comp_snapshot_hash(84)
 
-        block(86, get_staking_coin(), spend=out[31])
+        block(86, get_staking_coin(), spend=out[30])
         yield accepted()
         comp_snapshot_hash(86)
 
         tip(84)
-        block(87, get_staking_coin(), spend=out[31])
+        block(87, get_staking_coin(), spend=out[30])
         yield rejected()
         save_spendable_output()
         comp_snapshot_hash(86)
 
-        block(88, get_staking_coin(), spend=out[32])
+        block(88, get_staking_coin(), spend=out[31])
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(88)
 
         # trying to spend the OP_RETURN output is rejected
-        block("89a", get_staking_coin(), spend=out[33])
+        block("89a", get_staking_coin(), spend=out[32])
         tx = create_tx(tx1, 0, 0, CScript([OP_TRUE]))
         update_block("89a", [tx])
         yield rejected()
@@ -1466,7 +1464,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(88)
         LARGE_REORG_SIZE = 1088
         test1 = TestInstance(sync_every_block=False)
-        spend=out[33]
+        spend=out[32]
         for i in range(89, LARGE_REORG_SIZE + 89):
             b = block(i, get_staking_coin(), spend)
             tx = CTransaction()
