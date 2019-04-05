@@ -5,10 +5,10 @@
 #include <staking/active_chain.h>
 
 #include <chainparams.h>
+#include <coins.h>
 #include <timedata.h>
 #include <util.h>
 #include <validation.h>
-#include "coin.h"
 
 namespace staking {
 
@@ -40,11 +40,17 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   blockchain::Height GetSize() const override {
-    return static_cast<blockchain::Height>(chainActive.Height() + 1);
+    return GetHeight() + 1;
   }
 
   blockchain::Height GetHeight() const override {
-    return static_cast<blockchain::Height>(chainActive.Height());
+    // prevent returning negative numbers which would be turned into extremely big unsigned numbers
+    const int height = chainActive.Height();
+    if (height < 0) {
+      LogPrintf("ERROR: Genesis block not loaded yet (got height=%d in %s)\n", height, __func__);
+      throw std::runtime_error("genesis block not loaded yet");
+    }
+    return static_cast<blockchain::Height>(height);
   }
 
   const CBlockIndex *AtDepth(const blockchain::Depth depth) const override {
