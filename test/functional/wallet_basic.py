@@ -7,7 +7,13 @@ from decimal import Decimal
 import time
 import math
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, COINBASE_MATURITY, STAKE_SPLIT_THRESHOLD
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+    COINBASE_MATURITY,
+    STAKE_SPLIT_THRESHOLD,
+    DISABLE_FINALIZATION,
+)
 from test_framework.util import (
     assert_array_result,
     assert_equal,
@@ -39,7 +45,7 @@ class WalletTest(UnitETestFramework):
         self.skip_if_no_wallet()
 
     def setup_network(self):
-        self.add_nodes(4)
+        self.add_nodes(4, extra_args=[[DISABLE_FINALIZATION]] * 4)
         self.start_node(0)
         self.start_node(1)
         self.start_node(2)
@@ -306,9 +312,9 @@ class WalletTest(UnitETestFramework):
 
         # do some -walletbroadcast tests
         self.stop_nodes()
-        self.start_node(0, ["-walletbroadcast=0"])
-        self.start_node(1, ["-walletbroadcast=0"])
-        self.start_node(2, ["-walletbroadcast=0"])
+        self.start_node(0, ["-walletbroadcast=0", DISABLE_FINALIZATION])
+        self.start_node(1, ["-walletbroadcast=0", DISABLE_FINALIZATION])
+        self.start_node(2, ["-walletbroadcast=0", DISABLE_FINALIZATION])
         connect_nodes_bi(self.nodes, 0, 1)
         connect_nodes_bi(self.nodes, 1, 2)
         connect_nodes_bi(self.nodes, 0, 2)
@@ -441,9 +447,9 @@ class WalletTest(UnitETestFramework):
             self.log.info("check " + m)
             self.stop_nodes()
             # set lower ancestor limit for later
-            self.start_node(0, [m, "-limitancestorcount=" + str(chainlimit)])
-            self.start_node(1, [m, "-limitancestorcount=" + str(chainlimit)])
-            self.start_node(2, [m, "-limitancestorcount=" + str(chainlimit)])
+            self.start_node(0, [m, "-limitancestorcount=" + str(chainlimit), DISABLE_FINALIZATION])
+            self.start_node(1, [m, "-limitancestorcount=" + str(chainlimit), DISABLE_FINALIZATION])
+            self.start_node(2, [m, "-limitancestorcount=" + str(chainlimit), DISABLE_FINALIZATION])
             if m == '-reindex':
                 # reindex will leave rpc warm up "early"; Wait for it to finish
                 wait_until(lambda: [block_count] * 3 == [self.nodes[i].getblockcount() for i in range(3)])
@@ -495,7 +501,7 @@ class WalletTest(UnitETestFramework):
         # Try with walletrejectlongchains
         # Double chain limit but require combining inputs, so we pass SelectCoinsMinConf
         self.stop_node(0)
-        self.start_node(0, extra_args=["-walletrejectlongchains", "-limitancestorcount=" + str(2 * chainlimit)])
+        self.start_node(0, extra_args=["-walletrejectlongchains", "-limitancestorcount=" + str(2 * chainlimit), DISABLE_FINALIZATION])
 
         # wait for loadmempool
         timeout = 10

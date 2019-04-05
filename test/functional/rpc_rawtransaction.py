@@ -16,7 +16,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from io import BytesIO
 from test_framework.messages import CTransaction, ToHex
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import assert_equal, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes_bi, hex_str_to_bytes
 
 class multidict(dict):
@@ -42,7 +42,7 @@ class RawTransactionsTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [["-addresstype=legacy"], ["-addresstype=legacy"], ["-addresstype=legacy"]]
+        self.extra_args = [["-addresstype=legacy", DISABLE_FINALIZATION]] * self.num_nodes
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()

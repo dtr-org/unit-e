@@ -30,7 +30,7 @@ from test_framework.mininode import (
     msg_block,
     msg_getdata,
 )
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import (
     assert_equal,
     connect_nodes,
@@ -89,7 +89,7 @@ class ExampleTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 3
         # Use self.extra_args to change command-line arguments for the nodes
-        self.extra_args = [[], ["-logips"], []]
+        self.extra_args = [[DISABLE_FINALIZATION], [DISABLE_FINALIZATION, "-logips"], [DISABLE_FINALIZATION]]
 
         # self.log.info("I've finished set_test_params")  # Oops! Can't run self.log before run_test()
 
