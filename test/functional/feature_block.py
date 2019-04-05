@@ -318,7 +318,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield accepted()
         comp_snapshot_hash(1)
 
-        b2 = block(2, get_staking_coin(), spend=out[1])
+        block(2, get_staking_coin(), spend=out[1])
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(2)
