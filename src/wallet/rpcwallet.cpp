@@ -3445,7 +3445,7 @@ UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript>
     while (nHeight < nHeightEnd)
     {
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(
-              coinbaseScript->reserveScript, true, pwallet
+              coinbaseScript->reserveScript, pwallet
         ));
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
