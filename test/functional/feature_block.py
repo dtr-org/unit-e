@@ -21,11 +21,16 @@ from test_framework.script import *
 from test_framework.mininode import network_thread_start
 import struct
 
+
 class PreviousSpendableOutput():
     def __init__(self, tx = CTransaction(), n=-1, height=0):
         self.tx = tx
         self.n = n  # the output we're spending
         self.height = height  # at which height the tx was created
+
+    def __repr__(self):
+        return 'PreviousSpendableOutput(tx=%s, n=%i, height=%i)' % (self.tx.hash, self.n, self.height)
+
 
 #  Use this class for tests that require behavior other than normal "mininode" behavior.
 #  For now, it is used to serialize a bloated varint (b64).
@@ -91,9 +96,21 @@ class FullBlockTest(ComparisonTestFramework):
         tx = create_transaction(spend_tx, n, b"", value, script)
         return tx
 
-    def create_and_sign_transaction(self, spend_tx, n, value, script=CScript([OP_TRUE]), assert_no_errors=True):
+    def sign_tx(self, tx, spend_tx, n):
+        """
+        Signs a transaction, using the key we know about. Signs input 0 in tx,
+        which is assumed to be spending output n in spend_tx.
+        """
+        scriptPubKey = bytearray(spend_tx.vout[n].scriptPubKey)
+        if (scriptPubKey[0] == OP_TRUE):  # an anyone-can-spend
+            tx.vin[0].scriptSig = CScript()
+            return
+        (sighash, err) = SignatureHash(spend_tx.vout[n].scriptPubKey, tx, 0, SIGHASH_ALL)
+        tx.vin[0].scriptSig = CScript([self.coinbase_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))])
+
+    def create_and_sign_transaction(self, spend_tx, n, value, script=CScript([OP_TRUE])):
         tx = self.create_tx(spend_tx, n, value, script)
-        tx = sign_transaction(self.nodes[0], tx, assert_no_errors)
+        self.sign_tx(tx, spend_tx, n)
         tx.rehash()
         return tx
 
@@ -177,17 +194,18 @@ class FullBlockTest(ComparisonTestFramework):
             for out in coinbase.vout:
                 out.scriptPubKey = CScript(out.scriptPubKey)
 
-        coinbase.rehash()
-        if spend == None:
+        if spend is None:
+            coinbase.rehash()
             block = create_block(base_block_hash, coinbase, block_time)
         else:
             coinbase.vout[0].nValue += spend.tx.vout[spend.n].nValue - 1 # all but one satoshi to fees
-            coinbase = sign_coinbase(self.nodes[0], coinbase)
+            if sign_stake:
+                coinbase = sign_coinbase(self.nodes[0], coinbase)
             coinbase.rehash()
             block = create_block(base_block_hash, coinbase, block_time)
             tx = create_transaction(spend.tx, spend.n, b"", 1, script)  # spend 1 satoshi
             if sign_spend:
-                tx = sign_transaction(self.nodes[0], tx)
+                self.sign_tx(tx, spend.tx, spend.n)
                 tx.rehash()
             self.add_transactions_to_block(block, [tx])
             block.compute_merkle_trees()
@@ -680,7 +698,7 @@ class FullBlockTest(ComparisonTestFramework):
         spend = out[12]
         tx = create_tx(spend.tx, spend.n, 1, p2sh_script)
         tx.vout.append(CTxOut(out_value(11) - 1, CScript([OP_TRUE])))
-        tx = sign_transaction(self.nodes[0], tx)
+        self.sign_tx(tx, spend.tx, spend.n)
         tx.rehash()
         b39 = update_block(39, [tx])
         b39_outputs += 1
@@ -696,12 +714,6 @@ class FullBlockTest(ComparisonTestFramework):
             total_size += len(tx_new.serialize())
             if total_size >= MAX_BLOCK_BASE_SIZE:
                 break
-
-            # The node will complain about missing inputs, but that's because we
-            # are creating 0-conf transactions. So no reason to worry here.
-            tx_new = sign_transaction(self.nodes[0], tx_new, assert_no_errors=False)
-            tx_new.rehash()
-
             b39.vtx.append(tx_new)  # add tx to block
             tx_last = tx_new
             b39_outputs += 1
@@ -720,7 +732,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         tip(39)
         b40 = block(40, get_staking_coin(), spend=out[13])
-        b40_tx1 = b40.vtx[1]  # We'll reuse this tx (from out[13]) for b42
+
         sigops = get_legacy_sigopcount_block(b40)
         numTxes = (MAX_BLOCK_SIGOPS - sigops) // b39_sigops_per_output
         assert_equal(numTxes <= b39_outputs, True)
@@ -775,8 +787,7 @@ class FullBlockTest(ComparisonTestFramework):
         #                                                                  \-> b41 (13)
         #
         tip(39)
-        block(42, get_staking_coin(), spend=None)
-        update_block(42, [b40_tx1])  # Reusing out[13], used in b41
+        block(42, get_staking_coin(), spend=out[13])
         yield rejected()  # Not rejected, but not selected as new tip
         save_spendable_output()
         comp_snapshot_hash(41)
@@ -1122,7 +1133,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(64)
         block(65, get_staking_coin())
         tx1 = create_and_sign_tx(out[20].tx, out[20].n, out_value(20))
-        tx2 = create_and_sign_tx(tx1, 0, 0, assert_no_errors=False)  # The node complains with 0-conf transactions
+        tx2 = create_and_sign_tx(tx1, 0, 0)
         update_block(65, [tx1, tx2])
         yield accepted()
         save_spendable_output()
@@ -1145,8 +1156,8 @@ class FullBlockTest(ComparisonTestFramework):
         tip(65)
         block(67, get_staking_coin())
         tx1 = create_and_sign_tx(out[21].tx, out[21].n, out_value(21))
-        tx2 = create_and_sign_tx(tx1, 0, 1, assert_no_errors=False)
-        tx3 = create_and_sign_tx(tx1, 0, 2, assert_no_errors=False)
+        tx2 = create_and_sign_tx(tx1, 0, 1)
+        tx3 = create_and_sign_tx(tx1, 0, 2)
         update_block(67, [tx1, tx2, tx3])
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
         comp_snapshot_hash(65)
@@ -1206,7 +1217,7 @@ class FullBlockTest(ComparisonTestFramework):
         tip(69)
         b72 = block(72, get_staking_coin())
         tx1 = create_and_sign_tx(out[22].tx, out[22].n, 2)
-        tx2 = create_and_sign_tx(tx1, 0, 1, assert_no_errors=False)
+        tx2 = create_and_sign_tx(tx1, 0, 1)
         b72 = update_block(72, [tx1, tx2])  # now tip is 72
         b71 = copy.deepcopy(b72)
         b71.vtx.append(b72.vtx[-1])   # add duplicate transaction
@@ -1353,10 +1364,8 @@ class FullBlockTest(ComparisonTestFramework):
         yield accepted()
         comp_snapshot_hash(79)
 
-        return  # TODO UNIT-E : Remove this return to re-enable the next assertions
-
-        # mempool should be empty
-        assert_equal(len(self.nodes[0].getrawmempool()), 0)
+        # Mempool only will contain a transaction created at block 3 (out[2])
+        assert_equal(len(self.nodes[0].getrawmempool()), 1)
 
         tip(77)
         block(80, get_staking_coin(), spend=out[26])
@@ -1376,7 +1385,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         # now check that tx78 and tx79 have been put back into the peer's mempool
         mempool = self.nodes[0].getrawmempool()
-        assert_equal(len(mempool), 2)
+        assert_equal(len(mempool), 3)
         assert tx78.hash in mempool
         assert tx79.hash in mempool
 
@@ -1395,6 +1404,9 @@ class FullBlockTest(ComparisonTestFramework):
         tx2.rehash()
 
         update_block(83, [tx1, tx2])
+
+        return  # TODO UNIT-E : Remove this return to re-enable the next assertions
+
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(83)
@@ -1413,7 +1425,7 @@ class FullBlockTest(ComparisonTestFramework):
         tx1.vout.append(CTxOut(0, CScript([OP_TRUE])))
         tx1.vout.append(CTxOut(0, CScript([OP_TRUE])))
         tx1.calc_sha256()
-        tx1 = sign_transaction(self.nodes[0], tx1)
+        self.sign_tx(tx1, out[29].tx, out[29].n)
         tx1.rehash()
         tx2 = create_tx(tx1, 1, 0, CScript([OP_RETURN]))
         tx2.vout.append(CTxOut(0, CScript([OP_RETURN])))
