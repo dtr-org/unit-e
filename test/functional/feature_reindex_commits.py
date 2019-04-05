@@ -32,13 +32,14 @@ class FeatureReindexCommits(UnitETestFramework):
             'dynastyLogoutDelay': 2,
             'withdrawalEpochDelay': 2
         })
-        proposer_args = ['-proposing=1', '-debug=all', '-whitelist=127.0.0.1',
-                         '-esperanzaconfig=' + finalization_params]
+
+        proposer_args = [
+            '-proposing=1',
+            '-esperanzaconfig=' +
+            finalization_params]
 
         validator_args = [
             '-validating=1',
-            '-debug=all',
-            '-whitelist=127.0.0.1',
             '-esperanzaconfig=' +
             finalization_params]
 
@@ -59,24 +60,43 @@ class FeatureReindexCommits(UnitETestFramework):
 
         self.setup_stake_coins(self.proposer, self.finalizer)
         self.generate_sync(self.proposer)
-        self.assert_validator_status('NOT_VALIDATING')
+        self.assert_finalizer_status('NOT_VALIDATING')
 
         self.generate_deposit()
-        self.assert_validator_status('IS_VALIDATING')
+        self.assert_finalizer_status('IS_VALIDATING')
 
-        self.assert_votes(10)
+        disconnect_nodes(self.proposer, self.finalizer.index)
+
+        votes = self.generate_epoch(
+            EPOCH_LENGTH,
+            proposer=self.proposer,
+            finalizer=self.finalizer,
+            count=10)
+        assert_equal(len(votes), 10)
 
         self.restart_nodes(True)
-        self.assert_validator_status('IS_VALIDATING')
+        self.assert_finalizer_status('IS_VALIDATING')
 
-        self.generate_sync(self.proposer, EPOCH_LENGTH)
+        votes = self.generate_epoch(
+            EPOCH_LENGTH,
+            proposer=self.proposer,
+            finalizer=self.finalizer,
+            count=10)
+        assert_equal(len(votes), 10)
 
         self.restart_nodes(False)
-        self.assert_validator_status('IS_VALIDATING')
+        self.assert_finalizer_status('IS_VALIDATING')
 
         last_fin_epoch = self.finalizer.getfinalizationstate()[
             'lastFinalizedEpoch']
-        self.assert_votes(10)
+
+        votes = self.generate_epoch(
+            EPOCH_LENGTH,
+            proposer=self.proposer,
+            finalizer=self.finalizer,
+            count=10)
+        assert_equal(len(votes), 10)
+
         assert_equal(
             last_fin_epoch + 10,
             self.finalizer.getfinalizationstate()['lastFinalizedEpoch'])
@@ -92,32 +112,15 @@ class FeatureReindexCommits(UnitETestFramework):
                 '', 'bech32'))
         assert_equal(self.proposer.getblockcount(), 52)
 
-    def assert_validator_status(self, status):
+    def assert_finalizer_status(self, status):
         wait_until(lambda: self.finalizer.getvalidatorinfo()[
             'validator_status'] == status, timeout=10)
 
-    def assert_votes(self, count):
-        disconnect_nodes(self.proposer, self.finalizer.index)
-
-        votes = self.generate_epoch(
-            EPOCH_LENGTH,
-            proposer=self.proposer,
-            finalizer=self.finalizer,
-            count=count)
-        assert_equal(len(votes), count)
-
-        connect_nodes_bi(self.nodes, 0, 1)
-        sync_blocks(self.nodes)
-
     def restart_nodes(self, reindex):
         tip_before = self.proposer.getbestblockhash()
-
         self.stop_nodes()
         self.start_nodes(self.get_extra_args(reindex))
-
-        connect_nodes_bi(self.nodes, 0, 1)
         wait_until(lambda: self.proposer.getbestblockhash() == tip_before)
-        sync_blocks(self.nodes)
 
 
 if __name__ == '__main__':
