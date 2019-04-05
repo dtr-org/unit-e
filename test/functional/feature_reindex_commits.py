@@ -68,7 +68,6 @@ class FeatureReindexCommits(UnitETestFramework):
         disconnect_nodes(self.proposer, self.finalizer.index)
 
         votes = self.generate_epoch(
-            EPOCH_LENGTH,
             proposer=self.proposer,
             finalizer=self.finalizer,
             count=10)
@@ -78,7 +77,6 @@ class FeatureReindexCommits(UnitETestFramework):
         self.assert_finalizer_status('IS_VALIDATING')
 
         votes = self.generate_epoch(
-            EPOCH_LENGTH,
             proposer=self.proposer,
             finalizer=self.finalizer,
             count=10)
@@ -91,7 +89,6 @@ class FeatureReindexCommits(UnitETestFramework):
             'lastFinalizedEpoch']
 
         votes = self.generate_epoch(
-            EPOCH_LENGTH,
             proposer=self.proposer,
             finalizer=self.finalizer,
             count=10)
