@@ -66,9 +66,6 @@ class FullBlockTest(ComparisonTestFramework):
         self.extra_args = [['-whitelist=127.0.0.1', DISABLE_FINALIZATION]]
         self.block_heights = {}
         self.block_snapshot_meta = {}  # key(block_hash) : value(SnapshotMeta)
-        self.coinbase_key = CECKey()
-        self.coinbase_key.set_secretbytes(b"horsebattery")
-        self.coinbase_pubkey = self.coinbase_key.get_pubkey()
         self.tip = None
         self.blocks = {}
         self.blocks_by_hash = {}
@@ -78,6 +75,11 @@ class FullBlockTest(ComparisonTestFramework):
         self.test.add_all_connections(self.nodes)
         network_thread_start()
         self.keytool = KeyTool.for_node(self.nodes[0])
+
+        self.coinbase_key = self.keytool.make_privkey()
+        self.coinbase_pubkey = bytes(self.coinbase_key.get_pubkey())
+        self.keytool.upload_key(self.coinbase_key)
+
         self.test.run()
 
     def add_transactions_to_block(self, block, tx_list):
@@ -168,10 +170,7 @@ class FullBlockTest(ComparisonTestFramework):
         height = self.block_heights[base_block_hash] + 1
         snapshot_hash = self.block_snapshot_meta[base_block_hash].hash
 
-        bech32_address = self.keytool.get_bech32_address()
-        coinbase_pubkey = self.keytool.get_pubkey(bech32_address).to_bytes()
-
-        coinbase = create_coinbase(height, coin, snapshot_hash, coinbase_pubkey, n_pieces=coinbase_pieces)
+        coinbase = create_coinbase(height, coin, snapshot_hash, self.coinbase_pubkey, n_pieces=coinbase_pieces)
         coinbase.vout[0].nValue += additional_coinbase_value
 
         if sign_stake:
