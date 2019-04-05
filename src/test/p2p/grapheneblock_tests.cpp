@@ -18,14 +18,12 @@
 
 BOOST_FIXTURE_TEST_SUITE(grapheneblock_tests, ReducedTestingSetup)
 
-FastRandomContext random(true);
-
 CTransactionRef CreateCoinbase() {
   CMutableTransaction coinbase;
   coinbase.vin.resize(1);
   coinbase.SetType(TxType::COINBASE);
 
-  return MakeTransactionRef(coinbase);
+  return MakeTransactionRef(std::move(coinbase));
 }
 
 CTransactionRef CreateTx(size_t seed) {
@@ -36,7 +34,7 @@ CTransactionRef CreateTx(size_t seed) {
   mut_tx.vout.resize(1);
   mut_tx.vout[0].nValue = seed;
 
-  return MakeTransactionRef(mut_tx);
+  return MakeTransactionRef(std::move(mut_tx));
 }
 
 class MempoolMock : public ::TxPool {
@@ -69,7 +67,8 @@ void CheckBlocksEqual(const CBlock &expected,
 
 void CheckReconstructsBack(const CBlock &original,
                            const MempoolMock &sender_mempool,
-                           const MempoolMock &receiver_mempool) {
+                           const MempoolMock &receiver_mempool,
+                           FastRandomContext &random) {
 
   const auto maybe_graphene =
       p2p::CreateGrapheneBlock(original, sender_mempool.GetTxCount(),
@@ -86,16 +85,18 @@ void CheckReconstructsBack(const CBlock &original,
 }
 
 BOOST_AUTO_TEST_CASE(coinbase_only) {
+  FastRandomContext random(true);
   CBlock block;
   block.vtx.emplace_back(CreateCoinbase());
 
   MempoolMock sender_mempool;
   MempoolMock receiver_mempool;
 
-  CheckReconstructsBack(block, sender_mempool, receiver_mempool);
+  CheckReconstructsBack(block, sender_mempool, receiver_mempool, random);
 }
 
 BOOST_AUTO_TEST_CASE(exact_mempools) {
+  FastRandomContext random(true);
   CBlock block;
   block.vtx.emplace_back(CreateCoinbase());
 
@@ -109,10 +110,11 @@ BOOST_AUTO_TEST_CASE(exact_mempools) {
   MempoolMock receiver_mempool;
   receiver_mempool.txs = {tx1, tx2};
 
-  CheckReconstructsBack(block, sender_mempool, receiver_mempool);
+  CheckReconstructsBack(block, sender_mempool, receiver_mempool, random);
 }
 
 BOOST_AUTO_TEST_CASE(different_mempools_but_the_same_size) {
+  FastRandomContext random(true);
   CBlock block;
   block.vtx.emplace_back(CreateCoinbase());
 
@@ -127,10 +129,11 @@ BOOST_AUTO_TEST_CASE(different_mempools_but_the_same_size) {
   MempoolMock receiver_mempool;
   receiver_mempool.txs = {tx1, tx2, tx3};
 
-  CheckReconstructsBack(block, sender_mempool, receiver_mempool);
+  CheckReconstructsBack(block, sender_mempool, receiver_mempool, random);
 }
 
 BOOST_AUTO_TEST_CASE(thousands_of_txs) {
+  FastRandomContext random(true);
   CBlock block;
   constexpr size_t SENDER_TXS = 100000;
   constexpr size_t RECEIVER_TXS = 100000;
@@ -195,12 +198,13 @@ BOOST_AUTO_TEST_CASE(thousands_of_txs) {
   CheckBlocksEqual(block, reconstructed);
 }
 
-size_t RandRange(size_t min_incl, size_t max_incl) {
+size_t RandRange(size_t min_incl, size_t max_incl, FastRandomContext &random) {
   BOOST_REQUIRE(min_incl <= max_incl);
   return random.randrange(max_incl - min_incl + 1) + min_incl;
 }
 
 BOOST_AUTO_TEST_CASE(decode_rate) {
+  FastRandomContext random(true);
   constexpr size_t TX_CACHE_SIZE = 20000;
   constexpr size_t TRIALS = 1000;
   constexpr size_t MAX_BLOCK_COUNT = 1000;
@@ -223,12 +227,12 @@ BOOST_AUTO_TEST_CASE(decode_rate) {
     CBlock block;
     MempoolMock sender;
     MempoolMock receiver;
-    size_t sender_count = RandRange(0, txs.size());
+    size_t sender_count = RandRange(0, txs.size(), random);
     size_t receiver_count =
         RandRange(sender_count * (1.0f - SENDER_RECEIVER_RATIO),
-                  sender_count * (1.0f + SENDER_RECEIVER_RATIO));
+                  sender_count * (1.0f + SENDER_RECEIVER_RATIO), random);
     receiver_count = std::min(receiver_count, txs.size());
-    size_t block_count = RandRange(0, std::min(MAX_BLOCK_COUNT, sender_count));
+    size_t block_count = RandRange(0, std::min(MAX_BLOCK_COUNT, sender_count), random);
 
     std::random_shuffle(txs.begin(), txs.end());
 
