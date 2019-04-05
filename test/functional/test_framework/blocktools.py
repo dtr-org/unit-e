@@ -41,11 +41,8 @@ def create_block(hashprev, coinbase, nTime=None):
     return block
 
 
-def sign_transaction(node, tx, assert_no_errors=True):
+def sign_transaction(node, tx):
     signresult = node.signrawtransaction(bytes_to_hex_str(tx.serialize()))
-    if assert_no_errors and "errors" in signresult:
-        print("Transaction Signing Errors: %s" % signresult["errors"])
-        assert False
     tx = CTransaction()
     f = BytesIO(hex_str_to_bytes(signresult['hex']))
     tx.deserialize(f)

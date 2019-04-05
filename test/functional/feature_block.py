@@ -105,7 +105,7 @@ class FullBlockTest(ComparisonTestFramework):
         if (scriptPubKey[0] == OP_TRUE):  # an anyone-can-spend
             tx.vin[0].scriptSig = CScript()
             return
-        (sighash, err) = SignatureHash(spend_tx.vout[n].scriptPubKey, tx, 0, SIGHASH_ALL)
+        (sighash, err) = SignatureHash(CScript(spend_tx.vout[n].scriptPubKey), tx, 0, SIGHASH_ALL)
         tx.vin[0].scriptSig = CScript([self.coinbase_key.sign(sighash) + bytes(bytearray([SIGHASH_ALL]))])
 
     def create_and_sign_transaction(self, spend_tx, n, value, script=CScript([OP_TRUE])):
@@ -1394,9 +1394,6 @@ class FullBlockTest(ComparisonTestFramework):
         tx2.rehash()
 
         update_block(83, [tx1, tx2])
-
-        return  # TODO UNIT-E : Remove this return to re-enable the next assertions
-
         yield accepted()
         save_spendable_output()
         comp_snapshot_hash(83)
@@ -1478,6 +1475,7 @@ class FullBlockTest(ComparisonTestFramework):
             save_spendable_output()
             spend = get_spendable_output()
 
+        return  # TODO UNIT-E : Remove this return to re-enable the next assertions
         yield test1
         chain1_tip = i
         comp_snapshot_hash(chain1_tip)
