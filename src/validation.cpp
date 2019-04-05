@@ -53,6 +53,7 @@
 #include <boost/thread.hpp>
 
 #include <esperanza/finalizationstate.h>
+#include <finalization/vote_recorder.h>
 #include <tinyformat.h>
 #include <snapshot/snapshot_validation.h>
 
@@ -588,9 +589,18 @@ static BCLog::LogFlags GetTransactionLogCategory(const CTransaction &tx) {
 
 static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationState &err_state,
                                            const esperanza::FinalizationState &fin_state,
+                                           const esperanza::FinalizationState &tip_fin_state,
                                            const CCoinsView &view) {
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
+    if (tx.IsVote()) {
+        if (!esperanza::CheckVoteTx(tx, err_state, /*vote_out=*/nullptr, /*vote_sig_out=*/nullptr)) {
+            return false;
+        }
+        if (!finalization::RecordVote(tx, err_state, tip_fin_state)) {
+            return false;
+        }
+    }
     if (!esperanza::ContextualCheckFinalizerCommit(tx, err_state, fin_state, view)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
@@ -602,10 +612,11 @@ static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationSt
 static bool ContextualCheckBlockFinalizerCommits(const CBlock &block,
                                                  CValidationState &err_state,
                                                  const esperanza::FinalizationState &fin_state,
+                                                 const esperanza::FinalizationState &tip_fin_state,
                                                  const CCoinsView &view) {
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizerCommit()) {
-            if (!::ContextualCheckFinalizerCommit(*tx, err_state, fin_state, view)) {
+            if (!::ContextualCheckFinalizerCommit(*tx, err_state, fin_state, tip_fin_state, view)) {
                 return false;
             }
         }
@@ -673,7 +684,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state != nullptr);
     if (tx.IsFinalizerCommit() &&
-        !::ContextualCheckFinalizerCommit(tx, state, *fin_state, view)) {
+        !::ContextualCheckFinalizerCommit(tx, state, *fin_state, *fin_state, view)) {
         return false; // state already filled by ContextualCheckFinalizerTx
     }
 
@@ -2009,12 +2020,16 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     {
-        LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+        auto repo = GetComponent<finalization::StateRepository>();
+        LOCK(repo->GetLock());
         const finalization::FinalizationState *fin_state = nullptr;
         if (pindex->pprev != nullptr) {
-            fin_state = GetComponent<finalization::StateRepository>()->Find(*pindex->pprev);
+            fin_state = repo->Find(*pindex->pprev);
         }
         assert(fin_state != nullptr || isGenesisBlock || !has_finalization_tx);
+
+        const finalization::FinalizationState *tip_fin_state = repo->GetTipState();
+        assert(tip_fin_state != nullptr || isGenesisBlock);
 
         // UNIT-E: We need to check finalization transactions prior check queue control in order to avoid
         // deadlock between threads.
@@ -2029,7 +2044,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (!isGenesisBlock &&
             has_finalization_tx &&
             !ContextualCheckBlockFinalizerCommits(
-              block,state, *fin_state, view)) {
+                block,state, *fin_state, *tip_fin_state, view)) {
             return false;
         }
     }

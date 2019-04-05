@@ -186,6 +186,7 @@ BASE_SCRIPTS= [
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
     'proposer_multiwallet.py',
+    'feature_snapshot_finalization.py',
     'rpc_getchainparams.py',
     'rpc_calcsnapshothash.py',
     'rpc_validator.py',

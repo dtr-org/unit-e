@@ -71,8 +71,8 @@ BOOST_AUTO_TEST_CASE(outbound_slow_chain_eviction)
 
     // Test starts here
     LOCK(dummyNode1.cs_sendProcessing);
-    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy); // should result in getheaders
     LOCK(dummyNode1.cs_vSend);
+    peerLogic->SendMessages(&dummyNode1, 0, 1, interruptDummy); // should result in getheaders
     BOOST_CHECK(dummyNode1.vSendMsg.size() > 0);
     dummyNode1.vSendMsg.clear();
 

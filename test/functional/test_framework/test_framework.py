@@ -339,14 +339,16 @@ class UnitETestFramework():
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
 
-    def wait_for_transaction(self, txid, timeout=150):
+    def wait_for_transaction(self, txid, timeout=150, nodes=None):
+        if nodes is None:
+            nodes = self.nodes
         timeout += time.perf_counter()
 
-        presence = dict.fromkeys(range(len(self.nodes)))
+        presence = dict.fromkeys(range(len(nodes)))
 
         while time.perf_counter() < timeout:
             all_have = True
-            for node in self.nodes:
+            for node in nodes:
                 try:
                     if presence[node.index]:
                         continue
@@ -423,25 +425,45 @@ class UnitETestFramework():
         vote = FromHex(CTransaction(), node.getrawtransaction(new_txs[0]))
         assert_equal(vote.get_type(), TxType.VOTE)
 
-    def generate_sync(self, generator_node, nblocks=1):
+    def generate_sync(self, generator_node, nblocks=1, nodes=None):
         """
         Generates nblocks on a given node. Performing full sync after each block
         """
+        if nodes is None:
+            nodes = self.nodes
         generated_blocks = []
         for _ in range(nblocks):
             block = generator_node.generate(1)[0]
             generated_blocks.append(block)
-            sync_blocks(self.nodes)
+            sync_blocks(nodes)
 
             # VoteIfNeeded is called on a background thread.
             # By syncing we ensure that all votes will be in the mempools at the
             # end of this iteration
-            for node in self.nodes:
+            for node in nodes:
                 node.syncwithvalidationinterfacequeue()
 
-            sync_mempools(self.nodes)
+            sync_mempools(nodes)
 
         return generated_blocks
+
+    @classmethod
+    def generate_epoch(cls, proposer, finalizer, count=1):
+        """
+        Generate `count` epochs and collect votes.
+        """
+        epoch_length = proposer.getfinalizationconfig()['epochLength']
+        assert epoch_length > 1
+        votes=[]
+        for _ in range(count):
+            proposer.generatetoaddress(epoch_length - 1, proposer.getnewaddress('', 'bech32'))
+            cls.wait_for_vote_and_disconnect(finalizer, proposer)
+            for tx in proposer.getrawmempool():
+                tx = FromHex(CTransaction(), proposer.getrawtransaction(tx))
+                if tx.get_type() == TxType.VOTE:
+                    votes.append(tx)
+            proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        return votes
 
     def enable_mocktime(self):
         """Enable mocktime for the script.

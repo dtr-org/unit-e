@@ -63,7 +63,14 @@ class VoteRecorder : private boost::noncopyable {
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 
-bool RecordVote(const CTransaction &tx, CValidationState &err_state);
+//! \brief Records the vote.
+//!
+//! tx must be a vote transaction
+//! fin_state is a FinalizationState VoteRecorder must rely on when it checks transaction validity
+//!           and slashable condition. It must be best known finalization state on a moment.
+bool RecordVote(const CTransaction &tx,
+                CValidationState &err_state,
+                const FinalizationState &fin_state);
 
 }  // namespace finalization
 

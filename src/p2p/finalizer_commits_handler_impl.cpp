@@ -13,7 +13,6 @@
 #include <finalization/state_repository.h>
 #include <finalization/vote_recorder.h>
 #include <net_processing.h>
-#include <snapshot/p2p_processing.h>
 #include <snapshot/state.h>
 #include <staking/active_chain.h>
 #include <validation.h>
@@ -323,9 +322,12 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
 
   std::list<const CBlockIndex *> to_append;
 
+  const bool fast_sync = snapshot::IsISDEnabled() && snapshot::IsInitialSnapshotDownload();
+
   const CBlockIndex *last_index = nullptr;
   {
     LOCK(m_active_chain->GetLock());
+    LOCK(m_repo->GetLock());
 
     for (const HeaderAndFinalizerCommits &d : msg.data) {
 
@@ -341,15 +343,25 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       }
 
       // UNIT-E TODO: Store finalizer transactions somewhere.
-      // We cannot perform ContextualCheck now as it relies on GetTransaction which effectively
-      // loads prev transaction from the disk. During commits exchange we do not have such data
-      // on the disk.
+      // We cannot perform ContextualCheck now as it relies on UTXO lookup. During commits
+      // exchange we do not have such data.
       // So, now just record the votes. ContextualCheck would be performed later after block
       // arrives.
 
+      // In case of fast-sync record votes relying on the previously processed finalization state.
+      // Otherwise use the tip's state.
+
+      const finalization::FinalizationState *fin_state = nullptr;
+      if (fast_sync && new_index->pprev != nullptr) {
+        fin_state = m_repo->Find(*new_index->pprev);
+      } else {
+        fin_state = m_repo->GetTipState();
+      }
+      assert(fin_state != nullptr);
+
       for (const auto &c : d.commits) {
         if (c->IsVote()) {
-          if (!finalization::RecordVote(*c, err_state)) {
+          if (!finalization::RecordVote(*c, err_state, *fin_state)) {
             return false;
           }
         }
@@ -387,7 +399,16 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
   {
     LOCK(m_repo->GetLock());
 
-    const finalization::FinalizationState *tip_state = m_repo->GetTipState();
+    const finalization::FinalizationState *tip_state = nullptr;
+
+    if (m_last_finalization_point != nullptr) {
+      tip_state = m_repo->Find(*m_last_finalization_point);
+    }
+
+    if (tip_state == nullptr) {
+      tip_state = m_repo->GetTipState();
+    }
+
     const finalization::FinalizationState *index_state = m_repo->Find(*last_index);
     assert(tip_state != nullptr);
     assert(index_state != nullptr);
@@ -396,9 +417,14 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
     const uint32_t tip_epoch = tip_state->GetLastFinalizedEpoch();
 
     if (index_epoch > tip_epoch) {
-      download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
-      LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
-               index_epoch, download_until);
+      m_last_finalization_point = last_index;
+      const blockchain::Height h = index_state->GetEpochCheckpointHeight(index_epoch);
+      m_last_finalized_checkpoint = last_index->GetAncestor(h);
+      if (!fast_sync) {
+        download_until = index_state->GetEpochCheckpointHeight(index_epoch + 1);
+        LogPrint(BCLog::NET, "Commits sync reached finalization at epoch=%d, mark blocks up to height %d to download\n",
+                 index_epoch, download_until);
+      }
     }
   }
 
@@ -412,11 +438,18 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       LogPrint(BCLog::NET, "Commits sync finished after processing header=%s, height=%d\n",
                last_index->GetBlockHash().GetHex(), last_index->nHeight);
       download_until = last_index->nHeight;
+      if (fast_sync) {
+        snapshot::HeadersDownloaded();
+      }
       break;
 
     case FinalizerCommitsResponse::Status::LengthExceeded:
       // Just wait the next message to come
       break;
+  }
+
+  if (fast_sync) {
+    return true;
   }
 
   LOCK(cs);
@@ -493,6 +526,10 @@ bool FinalizerCommitsHandlerImpl::FindNextBlocksToDownload(
     return true;
   }
   return false;
-};
+}
+
+const CBlockIndex *FinalizerCommitsHandlerImpl::GetLastFinalizedCheckpoint() const {
+  return m_last_finalized_checkpoint;
+}
 
 }  // namespace p2p

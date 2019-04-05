@@ -51,7 +51,8 @@ class P2PState {
   //! requests the snapshot from the node if it has the best one
   //! can request the second best snapshot if previous one was detected broken
   void StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
-                                    const CNetMsgMaker &msg_maker);
+                                    const CNetMsgMaker &msg_maker,
+                                    const CBlockIndex &last_finalized_checkpoint);
 
   //! Invokes inside original FindNextBlocksToDownload and returns the block
   //! which is the best block of the candidate snapshot. Returns true if the
@@ -91,10 +92,11 @@ class P2PState {
 
   //! returns node's best_snapshot if it points to finalized epoch
   //! and downloading process hasn't timed out
-  SnapshotHeader NodeBestSnapshot(CNode &node);
+  SnapshotHeader NodeBestSnapshot(CNode &node, const CBlockIndex &last_finalized_checkpoint);
 
   //! update m_best_snapshot if provided one is a better one
-  void SetIfBestSnapshot(const SnapshotHeader &best_snapshot);
+  void SetIfBestSnapshot(const SnapshotHeader &best_snapshot,
+                         const CBlockIndex &last_finalized_checkpoint);
 
   bool InFlightSnapshotDiscovery(const CNode &node);
 };
@@ -118,7 +120,8 @@ bool ProcessSnapshot(CNode &node, CDataStream &data,
 
 // proxy to g_p2p_state.StartInitialSnapshotDownload
 void StartInitialSnapshotDownload(CNode &node, size_t node_index, size_t total_nodes,
-                                  const CNetMsgMaker &msg_maker);
+                                  const CNetMsgMaker &msg_maker,
+                                  const CBlockIndex &last_finalized_checkpointb);
 
 // proxy to g_p2p_state.FindNextBlocksToDownload
 bool FindNextBlocksToDownload(NodeId node_id,

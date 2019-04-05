@@ -54,10 +54,16 @@ class FinalizerCommitsHandler {
   virtual void OnDisconnect(NodeId nodeid) = 0;
 
   //! \brief Find whether we need to download blocks to satisfy commits full sync
-  //
-  // Returns true when blocks_out modified.
+  //!
+  //! Returns true when blocks_out modified.
   virtual bool FindNextBlocksToDownload(
       NodeId nodeid, size_t count, std::vector<const CBlockIndex *> &blocks_out) = 0;
+
+  //! \brief Returns the last finalized checkpoint.
+  //!
+  //! This value is actual during commits-exchange stage only. After node leaves full-sync or fast-sync,
+  //! and processes blocks in a normal sync mode, it becomes outdated.
+  virtual const CBlockIndex *GetLastFinalizedCheckpoint() const = 0;
 
   virtual ~FinalizerCommitsHandler() = default;
 
