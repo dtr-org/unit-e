@@ -16,7 +16,6 @@ from test_framework.util import *
 from test_framework.comptool import TestManager, TestInstance, RejectResult
 from test_framework.blocktools import *
 import time
-from test_framework.key import CECKey
 from test_framework.keytools import KeyTool
 from test_framework.script import *
 from test_framework.mininode import network_thread_start
@@ -76,7 +75,7 @@ class FullBlockTest(ComparisonTestFramework):
         network_thread_start()
         self.keytool = KeyTool.for_node(self.nodes[0])
 
-        self.coinbase_key = self.keytool.make_privkey()
+        self.coinbase_key = self.keytool.make_privkey(data=sha256(b"horsebattery"))
         self.coinbase_pubkey = bytes(self.coinbase_key.get_pubkey())
         self.keytool.upload_key(self.coinbase_key)
 
