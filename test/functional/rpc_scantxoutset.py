@@ -5,6 +5,7 @@
 """Test the scantxoutset rpc call."""
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal
+from test_framework.regtest_mnemonics import regtest_mnemonics
 
 from decimal import Decimal
 import shutil
@@ -12,7 +13,7 @@ import os
 
 class ScantxoutsetTest(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 1
+        self.num_nodes = 2
         self.setup_clean_chain = True
 
     def skip_test_if_missing_module(self):
@@ -24,12 +25,12 @@ class ScantxoutsetTest(UnitETestFramework):
         self.log.info("Mining blocks...")
         self.nodes[0].generate(110)
 
-        addr_P2SH_SEGWIT = self.nodes[0].getnewaddress("", "p2sh-segwit")
-        pubk1 = self.nodes[0].getaddressinfo(addr_P2SH_SEGWIT)['pubkey']
-        addr_LEGACY = self.nodes[0].getnewaddress("", "legacy")
-        pubk2 = self.nodes[0].getaddressinfo(addr_LEGACY)['pubkey']
-        addr_BECH32 = self.nodes[0].getnewaddress("", "bech32")
-        pubk3 = self.nodes[0].getaddressinfo(addr_BECH32)['pubkey']
+        addr_P2SH_SEGWIT = self.nodes[1].getnewaddress("", "p2sh-segwit")
+        pubk1 = self.nodes[1].getaddressinfo(addr_P2SH_SEGWIT)['pubkey']
+        addr_LEGACY = self.nodes[1].getnewaddress("", "legacy")
+        pubk2 = self.nodes[1].getaddressinfo(addr_LEGACY)['pubkey']
+        addr_BECH32 = self.nodes[1].getnewaddress("", "bech32")
+        pubk3 = self.nodes[1].getaddressinfo(addr_BECH32)['pubkey']
         self.nodes[0].sendtoaddress(addr_P2SH_SEGWIT, 0.001)
         self.nodes[0].sendtoaddress(addr_LEGACY, 0.002)
         self.nodes[0].sendtoaddress(addr_BECH32, 0.004)
@@ -47,7 +48,6 @@ class ScantxoutsetTest(UnitETestFramework):
         self.nodes[0].sendtoaddress("mtfUoUax9L4tzXARpw1oTGxWyoogp52KhJ", 4.096) # (m/1/1/0)
         self.nodes[0].sendtoaddress("mxp7w7j8S1Aq6L8StS2PqVvtt4HGxXEvdy", 8.192) # (m/1/1/1)
         self.nodes[0].sendtoaddress("mpQ8rokAhp1TAtJQR6F6TaUmjAWkAWYYBq", 16.384) # (m/1/1/1500)
-
 
         self.nodes[0].generate(1)
 
