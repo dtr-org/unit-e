@@ -326,7 +326,7 @@ class FullBlockTest(ComparisonTestFramework):
 
         # collect spendable outputs now to avoid cluttering the code later on
         out = []
-        for i in range(34):
+        for i in range(33):
             out.append(get_spendable_output())
 
         # Start by building a couple of blocks on top (which output is spent is
@@ -359,7 +359,7 @@ class FullBlockTest(ComparisonTestFramework):
         #
         #     genesis -> b1 (0) -> b2 (1)
         #                      \-> b3 (1) -> b4 (2)
-        b4 = block(4, get_staking_coin(), spend=out[2])
+        block(4, get_staking_coin(), spend=out[2])
         yield accepted()
         comp_snapshot_hash(4)
 
@@ -373,7 +373,7 @@ class FullBlockTest(ComparisonTestFramework):
         yield rejected()
         comp_snapshot_hash(4)
 
-        b6 = block(6, get_staking_coin(), spend=out[3])
+        block(6, get_staking_coin(), spend=out[3])
         yield accepted()
         comp_snapshot_hash(6)
 
@@ -445,7 +445,7 @@ class FullBlockTest(ComparisonTestFramework):
         # Test that a block with a lot of checksigs is okay
         lots_of_checksigs = CScript([OP_CHECKSIG] * (MAX_BLOCK_SIGOPS - 2))
         tip(13)
-        b15 = block(15, get_staking_coin(), spend=out[5], script=lots_of_checksigs)
+        block(15, get_staking_coin(), spend=out[5], script=lots_of_checksigs)
         yield accepted(test_name="accept MAX_BLOCK_SIGOPS - 2")
         save_spendable_output()
         comp_snapshot_hash(15)
@@ -486,7 +486,7 @@ class FullBlockTest(ComparisonTestFramework):
         #                                          \-> b12 (3) -> b13 (4) -> b15 (5) -> b20 (7)
         #                      \-> b3 (1) -> b4 (2)
         tip(15)
-        b20 = block(20, get_staking_coin(), spend=out[7])
+        block(20, get_staking_coin(), spend=out[7])
         # UNIT-E: The first 100 blocks are by definition mature such that the system can
         # be bootstrapped. At this point in the test the blocks do not have an adequate height
         # yet as that we could not spend a transaction. Thus we changed from
@@ -590,7 +590,7 @@ class FullBlockTest(ComparisonTestFramework):
         # b31 - b35 - check sigops of OP_CHECKMULTISIG / OP_CHECKMULTISIGVERIFY / OP_CHECKSIGVERIFY
         #
         #     genesis -> ... -> b30 (7) -> b31 (8) -> b33 (9) -> b35 (10)
-        #                                                                 \-> b36 (11)
+        #                                                                \-> b36 (11)
         #                                                    \-> b34 (10)
         #                                         \-> b32 (9)
         #
@@ -619,7 +619,7 @@ class FullBlockTest(ComparisonTestFramework):
         save_spendable_output()
         comp_snapshot_hash(33)
 
-        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS - 1) // 20) + [OP_CHECKSIG] * 19)
+        too_many_multisigs = CScript([OP_CHECKMULTISIGVERIFY] * ((MAX_BLOCK_SIGOPS - 1) // 20)+ [OP_CHECKSIG] * 19)
         block(34, get_staking_coin(), spend=out[10], script=too_many_multisigs)
         yield rejected(RejectResult(16, b'bad-blk-sigops'))
         comp_snapshot_hash(33)
@@ -643,15 +643,16 @@ class FullBlockTest(ComparisonTestFramework):
         #
         # b6  (3)
         # b12 (3) -> b13 (4) -> b15 (5) -> b23 (6) -> b30 (7) -> b31 (8) -> b33 (9) -> b35 (10)
-        #                                                                                    \-> b37 (11)
-        #                                                                                    \-> b38 (11/37)
+        #                                                                                     \-> b37 (11)
+        #                                                                                     \-> b38 (11/37)
         #
 
         # save 37's spendable output, but then double-spend out11 to invalidate the block
         tip(35)
         b37 = block(37, get_staking_coin(), spend=out[11])
         txout_b37 = PreviousSpendableOutput(b37.vtx[1], 0, self.block_heights[b37.sha256])
-        b37 = update_block(37, [b35.vtx[1]])  # out[11] from b35
+        tx = create_and_sign_tx(out[11].tx, out[11].n, 0)
+        b37 = update_block(37, [tx])
         yield rejected(RejectResult(16, b'bad-txns-inputs-missingorspent'))
         comp_snapshot_hash(35)
 
