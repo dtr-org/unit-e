@@ -18,7 +18,7 @@ from test_framework.address import (
 from test_framework.blocktools import witness_script, send_to_witness
 from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, sha256, ToHex
 from test_framework.script import CScript, OP_HASH160, OP_CHECKSIG, OP_0, hash160, OP_EQUAL, OP_DUP, OP_EQUALVERIFY, OP_1, OP_2, OP_CHECKMULTISIG, OP_TRUE, OP_DROP
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import (
     assert_equal,
     assert_contents_equal,
@@ -61,16 +61,19 @@ class SegWitTest(UnitETestFramework):
             [
                 "-addresstype=legacy",
                 "-deprecatedrpc=addwitnessaddress",
+                DISABLE_FINALIZATION,
             ],
             [
                 "-blockversion=4",
                 "-addresstype=legacy",
                 "-deprecatedrpc=addwitnessaddress",
+                DISABLE_FINALIZATION,
             ],
             [
                 "-blockversion=536870915",
                 "-addresstype=legacy",
                 "-deprecatedrpc=addwitnessaddress",
+                DISABLE_FINALIZATION,
             ],
         ]
 

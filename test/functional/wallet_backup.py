@@ -35,7 +35,7 @@ import os
 from random import randint
 import shutil
 
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import assert_equal, assert_raises_rpc_error, connect_nodes, sync_blocks, sync_mempools
 
 
@@ -44,7 +44,7 @@ class WalletBackupTest(UnitETestFramework):
         self.num_nodes = 4
         self.setup_clean_chain = True
         # nodes 1, 2,3 are spenders, let's give them a keypool=100
-        self.extra_args = [["-keypool=100"], ["-keypool=100"], ["-keypool=100"], []]
+        self.extra_args = [["-keypool=100", DISABLE_FINALIZATION]] * 3 + [[DISABLE_FINALIZATION]]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
