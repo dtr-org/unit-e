@@ -16,7 +16,6 @@
 #include <finalization/state_repository.h>
 #include <injector_config.h>
 #include <p2p/finalizer_commits_handler.h>
-#include <p2p/graphene.h>
 #include <p2p/graphene_receiver.h>
 #include <p2p/graphene_sender.h>
 #include <settings.h>

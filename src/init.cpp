@@ -30,7 +30,6 @@
 #include <net.h>
 #include <net_processing.h>
 #include <p2p/embargoman_init.h>
-#include <p2p/graphene.h>
 #include <policy/feerate.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
