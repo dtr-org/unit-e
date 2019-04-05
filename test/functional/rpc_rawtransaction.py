@@ -12,7 +12,7 @@ Test the following RPCs:
    - getrawtransaction
 """
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import *
 
 
@@ -39,7 +39,7 @@ class RawTransactionsTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [["-addresstype=legacy"], ["-addresstype=legacy"], ["-addresstype=legacy"]]
+        self.extra_args = [["-addresstype=legacy", DISABLE_FINALIZATION]] * self.num_nodes
 
     def setup_network(self, split=False):
         super().setup_network()

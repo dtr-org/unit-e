@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the fundrawtransaction RPC."""
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import *
 
 
@@ -18,6 +18,7 @@ class RawTransactionsTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
         self.setup_clean_chain = True
+        self.extra_args = [[DISABLE_FINALIZATION]] * self.num_nodes
 
     def setup_network(self, split=False):
         self.setup_nodes()

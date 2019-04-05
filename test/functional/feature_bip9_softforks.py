@@ -20,7 +20,7 @@ import shutil
 import time
 import itertools
 
-from test_framework.test_framework import ComparisonTestFramework
+from test_framework.test_framework import ComparisonTestFramework, DISABLE_FINALIZATION
 from test_framework.util import *
 from test_framework.mininode import CTransaction, network_thread_start
 from test_framework.blocktools import create_coinbase, sign_coinbase, create_block, get_tip_snapshot_meta, \
@@ -32,7 +32,7 @@ from test_framework.script import CScript, OP_1NEGATE, OP_CHECKSEQUENCEVERIFY, O
 class BIP9SoftForksTest(ComparisonTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
-        self.extra_args = [['-whitelist=127.0.0.1', '-stakesplitthreshold=1000000000']]
+        self.extra_args = [['-whitelist=127.0.0.1', '-stakesplitthreshold=1000000000', DISABLE_FINALIZATION]]
         self.setup_clean_chain = True
 
     def run_test(self):

@@ -9,7 +9,12 @@ Verify that a unit-e node can load multiple wallet files
 import os
 import shutil
 
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, PROPOSER_REWARD
+from test_framework.test_framework import (
+    UnitETestFramework,
+    COINBASE_MATURITY,
+    PROPOSER_REWARD,
+    DISABLE_FINALIZATION,
+)
 from test_framework.util import assert_equal, assert_raises_rpc_error
 from test_framework.regtest_mnemonics import regtest_mnemonics
 
@@ -18,7 +23,8 @@ class MultiWalletTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [['-wallet=w1', '-wallet=w2', '-wallet=w3', '-wallet=w'], []]
+        self.extra_args = [['-wallet=w1', '-wallet=w2', '-wallet=w3', '-wallet=w', DISABLE_FINALIZATION],
+                           [DISABLE_FINALIZATION]]
         self.supports_cli = True
 
     def run_test(self):
