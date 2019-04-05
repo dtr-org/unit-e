@@ -2310,7 +2310,6 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
 
     {
         WaitableLock lock(csBestBlock);
-        hashBestBlock = pindexNew->GetBlockHash();
         cvBlockChange.notify_all();
     }
 

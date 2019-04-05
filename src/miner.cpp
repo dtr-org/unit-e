@@ -50,9 +50,6 @@
 // pool, we select by highest fee rate of a transaction combined with all
 // its ancestors.
 
-uint64_t nLastBlockTx = 0;
-uint64_t nLastBlockWeight = 0;
-
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     int64_t nOldTime = pblock->nTime;
@@ -111,7 +108,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, CWallet *wallet)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, CWallet *wallet)
 {
     //TODO UNIT-E: Remove this as soon as we move to the new proposing logic
     // Get the wallet that is used to retrieve the stakable coins.
@@ -167,9 +164,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     ltor::SortTransactions(pblock->vtx);
 
     int64_t nTime1 = GetTimeMicros();
-
-    nLastBlockTx = nBlockTx;
-    nLastBlockWeight = nBlockWeight;
 
     std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
