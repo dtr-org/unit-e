@@ -105,10 +105,13 @@ class SnapshotFinalization(UnitETestFramework):
         # To detect double vote, it's enough having two votes which are:
         # 1. from same validator
         # 2. with same source epoch
-        # 3. differet target epochs.
-        # So, make target epoch different.
+        # 3. with same target epoch
+        # 4. with different target hash
+        # So, make target hash different.
         vote = s.extractvotefromsignature(bytes_to_hex_str(votes[0].vin[0].scriptSig))
-        vote['target_epoch'] = vote['target_epoch'] + 1
+        target_hash = list(vote['target_hash'])
+        target_hash[0] = '0' if target_hash[0] == '1' else '1'
+        vote['target_hash'] = "".join(target_hash)
         prev_tx = s.decoderawtransaction(ToHex(votes[-1]))
         vtx = v.createvotetransaction(vote, prev_tx['txid'])
         vtx = v.signrawtransaction(vtx)
@@ -117,6 +120,7 @@ class SnapshotFinalization(UnitETestFramework):
         wait_until(lambda: len(s.getrawmempool()) > 0, timeout=20)
         slash = FromHex(CTransaction(), s.getrawtransaction(s.getrawmempool()[0]))
         assert_equal(slash.get_type(), TxType.SLASH)
+        self.log.info("Slahed")
 
 if __name__ == '__main__':
     SnapshotFinalization().main()
