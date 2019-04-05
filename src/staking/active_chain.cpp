@@ -40,10 +40,7 @@ class ActiveChainAdapter final : public ActiveChain {
   }
 
   blockchain::Height GetSize() const override {
-    const blockchain::Height size = GetHeight() + 1;
-    // minimum value that can be returned is 1 as we should always have the genesis block
-    assert(size >= 1);
-    return size;
+    return GetHeight() + 1;
   }
 
   blockchain::Height GetHeight() const override {

@@ -16,8 +16,7 @@
 class BlockDB {
 
  public:
-  //! \brief This function reads a block from the database given a CBlockIndex
-  //! reference to it.
+  //! \brief Rads a block from the database, given a CBlockIndex.
   //!
   //! \param index the reference to the block to read.
   //! \return the block if found.
