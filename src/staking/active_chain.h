@@ -52,10 +52,14 @@ class ActiveChain : public blockchain::ChainAccess {
   //! \brief returns the height of the tip of the currently active chain.
   //!
   //! The height of the genesis block is zero. An active chain always has a
-  //! genesis block.
+  //! genesis block. If there is no active chain (because the genesis block
+  //! is not loaded yet) this function will throw an exception. It is guaranteed
+  //! not to throw an exception once we're out of IBD.
   virtual blockchain::Height GetHeight() const = 0;
 
   //! \brief returns the tip of the currently active chain.
+  //!
+  //! \return A pointer to the current tip or nullptr if there is no current tip yet.
   virtual const CBlockIndex *GetTip() const = 0;
 
   //! \brief returns the chain genesis

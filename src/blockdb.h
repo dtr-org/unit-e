@@ -16,12 +16,11 @@
 class BlockDB {
 
  public:
-  //! \brief This function reads a block from the database give a CBlockIndex
+  //! \brief This function reads a block from the database given a CBlockIndex
   //! reference to it.
   //!
   //! \param index the reference to the block to read.
   //! \return the block if found.
-  //!
   virtual boost::optional<CBlock> ReadBlock(const CBlockIndex &index) = 0;
 
   virtual ~BlockDB() = default;

@@ -20,21 +20,11 @@ class ActiveChainAdapter final : public ActiveChain {
   CCriticalSection &GetLock() const override { return cs_main; }
 
   const CBlockIndex *GetTip() const override {
-    const CBlockIndex *tip_block_index = chainActive.Tip();
-    if (!tip_block_index) {
-      LogPrintf("ERROR: Genesis block not loaded yet (%s returns %p)\n", __func__, tip_block_index);
-      throw std::runtime_error("genesis block not loaded yet");
-    }
-    return tip_block_index;
+    return chainActive.Tip();
   }
 
   const CBlockIndex *GetGenesis() const override {
-    const CBlockIndex *genesis_block_index = chainActive.Genesis();
-    if (!genesis_block_index) {
-      LogPrintf("ERROR: Genesis block not loaded yet (%s returns %p)\n", __func__, genesis_block_index);
-      throw std::runtime_error("genesis block not loaded yet");
-    }
-    return genesis_block_index;
+    return chainActive.Genesis();
   }
 
   bool Contains(const CBlockIndex &block_index) const override {
