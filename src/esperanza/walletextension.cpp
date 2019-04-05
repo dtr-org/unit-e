@@ -875,7 +875,21 @@ void WalletExtension::SlashingConditionDetected(
   pendingSlashings.emplace_back(vote1, vote2);
 }
 
+std::shared_ptr<CWallet> GetWalletHandle(CWallet *pwallet) {
+  for (std::shared_ptr<CWallet> w : GetWallets()) {
+    if (w.get() == pwallet) {
+      return w;
+    }
+  }
+  return nullptr;
+}
+
 void WalletExtension::ManagePendingSlashings() {
+  // Ensure the wallet won't be freed while we need it
+  std::shared_ptr<CWallet> wallet = GetWalletHandle(&m_enclosing_wallet);
+  if (!wallet) {
+    throw task_unscheduled();
+  }
 
   if (pendingSlashings.empty()) {
     return;
