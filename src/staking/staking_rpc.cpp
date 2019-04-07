@@ -335,13 +335,6 @@ class StakingRPCImpl : public StakingRPC {
     }
   }
 
-  template <typename Iter, typename Callable>
-  void ForEach(Iter it, Iter end, Callable &&f) {
-    for (; it != end; ++it) {
-      f(*it);
-    }
-  }
-
  public:
   StakingRPCImpl(
       const Dependency<staking::ActiveChain> chain,
@@ -373,9 +366,9 @@ class StakingRPCImpl : public StakingRPC {
     StakeVisitor stake_visitor;
     auto add = [&](const StakeMeta &stake_link) { arr.push_back(boost::apply_visitor(stake_visitor, stake_link)); };
     if (reverse) {
-      ForEach(vec.crbegin(), vec.crend(), add);
+      std::for_each(vec.crbegin(), vec.crend(), add);
     } else {
-      ForEach(vec.cbegin(), vec.cend(), add);
+      std::for_each(vec.cbegin(), vec.cend(), add);
     }
     return arr;
   }
