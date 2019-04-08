@@ -64,13 +64,15 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       continue;
     }
 
-    blockchain::Height height = static_cast<blockchain::Height>(containing_block->nHeight);
+    auto height = static_cast<blockchain::Height>(containing_block->nHeight);
     if (!m_dependencies.GetStakeValidator().IsStakeMature(height)) {
       continue;
     }
 
     const bool skip_reward = tx->IsCoinBase() && tx->GetBlocksToRewardMaturity() > 0;
-    for (std::size_t out_index = skip_reward ? 1 : 0; out_index < coins.size(); ++out_index) {
+    const std::size_t reward_offset =
+        skip_reward ? GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(height) + 1 : 0;
+    for (std::size_t out_index = reward_offset; out_index < coins.size(); ++out_index) {
       if (m_enclosing_wallet.IsSpent(txId, static_cast<unsigned int>(out_index))) {
         continue;
       }

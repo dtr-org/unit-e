@@ -4,6 +4,7 @@
 
 #include <proposer/finalization_reward_logic.h>
 #include <util.h>
+
 #include <algorithm>
 
 namespace proposer {
@@ -57,6 +58,14 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
     assert(result.size() == m_fin_state_repo->GetFinalizationParams().epoch_length);
     std::reverse(result.begin(), result.end());
     return result;
+  }
+
+  std::size_t GetNumberOfRewardOutputs(const blockchain::Height current_height) override {
+    if (m_fin_state_repo->GetFinalizationParams().IsEpochStart(current_height) &&
+        m_fin_state_repo->GetFinalizationParams().GetEpoch(current_height) > 1) {
+      return m_fin_state_repo->GetFinalizationParams().epoch_length;
+    }
+    return 0;
   }
 };
 
