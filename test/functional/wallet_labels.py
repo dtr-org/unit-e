@@ -35,15 +35,18 @@ class WalletLabelsTest(UnitETestFramework):
 
     def run_test(self):
         """Run the test twice - once using the accounts API and once using the labels API."""
-        self.setup_stake_coins(*self.nodes)
         self.log.info("Test accounts API")
         self._run_subtest(True, self.nodes[0])
         self.log.info("Test labels API")
         self._run_subtest(False, self.nodes[1])
 
     def _run_subtest(self, accounts_api, node):
-        # Check that there's no UTXO on any of the nodes
+        # Check that there's no spendable UTXO in any wallet on the node
         assert_equal(len(node.listunspent()), 0)
+        # Unlock initial fund just for this node
+        self.setup_stake_coins(node)
+        # Check that there's exactly one spendable UTXO in this node's wallet now
+        assert_equal(len(node.listunspent()), 1)
 
         # Note each time we call generate, all generated coins go into
         # the same address, so we call twice to get two addresses w/50 each
