@@ -31,7 +31,7 @@ bool ProcessorImpl::ProcessNewTipWorker(const CBlockIndex &block_index, const CB
   AssertLockHeld(m_repo->GetLock());
   const auto state = m_repo->FindOrCreate(block_index, FinalizationState::FROM_COMMITS);
   if (state == nullptr) {
-    LogPrint(BCLog::FINALIZATION, "ERROR: Cannot find or create finalization state for %s\n",
+    LogPrint(BCLog::FINALIZATION, "Cannot find or create finalization state for %s\n",
              block_index.GetBlockHash().GetHex());
     return false;
   }
