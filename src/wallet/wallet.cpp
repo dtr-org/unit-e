@@ -2300,7 +2300,8 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
     CAmount balance = 0;
     for (const auto& entry : mapWallet) {
         const CWalletTx& wtx = entry.second;
-        const int depth = wtx.GetDepthInMainChain();
+        const CBlockIndex *block;
+        const int depth = wtx.GetDepthInMainChain(block);
         if (depth < 0 || !CheckFinalTx(*wtx.tx)) {
             continue;
         }
@@ -2311,7 +2312,7 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
         const bool outgoing = debit > 0;
         std::size_t start_index = 0;
         if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity() > 0) {
-          start_index = 1;
+          start_index = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
         }
         for (std::size_t i = start_index; i < wtx.tx->vout.size(); ++i) {
             const CTxOut& out = wtx.tx->vout[i];
@@ -2366,7 +2367,8 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             if (!CheckFinalTx(*pcoin->tx)) {
                 continue;
             }
-            int nDepth = pcoin->GetDepthInMainChain();
+            const CBlockIndex *block;
+            int nDepth = pcoin->GetDepthInMainChain(block);
             if (nDepth < 0) {
                 continue;
             }
@@ -2415,8 +2417,11 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
                 continue;
             }
 
-            const bool skip_reward = pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0;
-            for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
+            unsigned int reward_offset = 0;
+            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
+                reward_offset = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
+            }
+            for (unsigned int i = reward_offset; i < pcoin->tx->vout.size(); i++) {
                 if (pcoin->tx->vout[i].nValue < nMinimumAmount || pcoin->tx->vout[i].nValue > nMaximumAmount) {
                     continue;
                 }

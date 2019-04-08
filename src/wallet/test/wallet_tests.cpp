@@ -635,10 +635,12 @@ BOOST_FIXTURE_TEST_CASE(get_available_watch_only_credit, TestChain100Setup)
   }
 
   {
-    // The initial stake of 10000 * UNIT also beacame watch-only cause we proposed with a watch-only script
+    // The initial stake of 10000 * UNIT also became watch-only cause we proposed with a watch-only script
     LOCK(cs_main);
     const CWalletTx *wallet_tx = pwalletMain->GetWalletTx(watch_only_coinbase->GetHash());
-    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableWatchOnlyCredit(), watch_only_coinbase->GetValueOut());
+    CAmount value_without_fin_rewards = watch_only_coinbase->vout.front().nValue
+        + watch_only_coinbase->vout.back().nValue;
+    BOOST_CHECK_EQUAL(wallet_tx->GetAvailableWatchOnlyCredit(), value_without_fin_rewards);
   }
 }
 
@@ -931,15 +933,20 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
 
   // As per mature outputs we should have 103 blocks worth of rewards
   // - 1 reward used to stake the watch-only + the initial stake + the
-  // watch-only stake and reward
+  // watch-only stake and reward + 100 finalization rewards
   {
       auto coinbase_reward = coinbaseTxns.back().vout[0].nValue;
+      auto finalization_reward = coinbaseTxns[5].vout[1].nValue;
       LOCK2(cs_main, pwalletMain->cs_wallet);
       const CAmount all_balance = pwalletMain->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
       const CAmount spendable_balance = pwalletMain->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
       const CAmount watchonly_balance = pwalletMain->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
-      BOOST_CHECK_EQUAL(all_balance, (10000 * UNIT) + coinbase_reward * 102 + watch_only_coinbase->GetValueOut());
-      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 102);
+
+      BOOST_CHECK_EQUAL(
+          all_balance,
+          (10000 * UNIT) + coinbase_reward * 102 + finalization_reward * 100 + watch_only_coinbase->GetValueOut()
+      );
+      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 102 + finalization_reward * 100);
       BOOST_CHECK_EQUAL(watchonly_balance, watch_only_coinbase->GetValueOut());
   }
 }
