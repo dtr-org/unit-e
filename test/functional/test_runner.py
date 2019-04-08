@@ -83,6 +83,7 @@ BASE_SCRIPTS= [
     'wallet_keys.py',
     'p2p_compactblocks.py',
     'esperanza_expired_vote_conflict.py',
+    'esperanza_vote_reorg.py',
     'feature_csv_activation.py',
     'rpc_rawtransaction.py',
     'p2p_embargoman_probing.py',
