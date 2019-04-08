@@ -47,9 +47,9 @@ To start a new patch fork the unit-e repository on GitHub or, if you already
 have a fork, [update its master
 branch](https://help.github.com/articles/syncing-a-fork/) to the latest version.
 
-This workflow is the same for everybody including those who have write access to
-the main repo to have a consistent, symmetric, and fair workflow. So don't
-create pull requests as branches in the main repo.
+This workflow is the same for everybody, including those who have write access
+to the main repo, in order to have a consistent, symmetric, and fair workflow.
+So don't create pull requests as branches in the main repo.
 
 ### Create topic branch
 
@@ -167,18 +167,21 @@ feature, fix a bug, or refactor code; but not a mixture. Please also avoid super
 pull requests which attempt to do too much, are overly large, or overly complex
 as this makes review difficult.
 
-If a pull request is not to be considered for merging (yet), please prefix the
-title with `WIP:`. You can use [Tasks
+If a pull request is not to be considered for merging (yet), please create it as
+a [draft pull
+request](https://github.blog/2019-02-14-introducing-draft-pull-requests/). You
+can use [Tasks
 Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
-in the body of the pull request to indicate tasks are pending.
+in the body of the pull request to indicate tasks which are pending.
 
 If you continue to work in the pull request and it gets to a state where it's
-ready to be merged, remove the `WIP:` and notify reviewers that it's ready to be
-reviewed for merge.
+ready to be merged, [mark it as ready for
+review](https://help.github.com/en/articles/changing-the-stage-of-a-pull-request)
+and notify reviewers that it's ready to be reviewed for merge.
 
 Use this mechanism also to get early feedback on concepts or incomplete
 implementations which aren't integrated with the overall code yet. Create a pull
-request on master with the `WIP:` prefix in the title so the discussion is
+request on master as draft pull requests so the discussion is
 available in the main project but it's clear that the code doesn't get merged as
 it is.
 
@@ -276,9 +279,8 @@ adding too much effort or noise.
 
 #### Decision by maintainers
 
-The following applies to code changes to the unit-e project (and related
-projects such as libsecp256k1), and is not to be confused with overall Unit-e
-Network Protocol consensus changes.
+The following applies to code changes to the unit-e project and is not to be
+confused with overall Unit-e Network Protocol consensus changes.
 
 Whether and when a pull request is merged into unit-e rests with the project
 maintainers. A pull request needs approval of at least one maintainer to be
@@ -339,14 +341,31 @@ commit message during the squash as this is what directly will end up in the
 main code branch. Copy relevant information from the pull request description as
 needed.
 
+If the pull request contains commits by multiple people, add `Co-authored-by:`
+trailers in the commit message to reflect authorship of the pull request as a
+whole. This avoids author information being lost due to the squashing of the
+commits.
+
 There are some exceptions to the rule to squash commits, for example when
 merging upstream code and the commits and authors should be kept as they are.
+
+
+Creating issues
+---------------
+
+If you find bugs or any other issues in unit-e, please submit them as [issues on
+GitHub](https://github.com/dtr-org/unit-e/issues). There is some more information in
+the [developer
+notes](https://github.com/dtr-org/unit-e/blob/master/doc/developer-notes.md#github-issues).
+If you would like to report security issues you can also send them to
+security@dtr.org.
 
 
 Release Policy
 --------------
 
-The project leader is the release manager for each unit-e release.
+unit-e currently is in a pre-release phase where there are source code only
+releases. The maintainers are managing the releases as a team.
 
 
 License Policy
