@@ -59,7 +59,7 @@ void AddTimeData(const CNetAddr& ip, int64_t nOffsetSample)
     vTimeOffsets.input(nOffsetSample);
     LogPrint(BCLog::NET,"added time data, samples %d, offset %+d (%+d minutes)\n", vTimeOffsets.size(), nOffsetSample, nOffsetSample/60);
 
-    // There is a known issue here (see issue bitcoin/bitcoin#4521):
+    // There is a known issue here (see issue unite/unite#4521):
     //
     // - The structure vTimeOffsets contains up to 200 elements, after which
     // any new element added to it will not increase its size, replacing the

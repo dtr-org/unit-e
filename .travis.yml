@@ -14,7 +14,7 @@ stages:
   - lint
   - test
 git:
-  depth: false  # full clone for git subtree check, this works around issue bitcoin/bitcoin#12388
+  depth: false  # full clone for git subtree check, this works around issue unite/unite#12388
 env:
   global:
     - MAKEJOBS=-j3

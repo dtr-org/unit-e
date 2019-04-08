@@ -29,7 +29,7 @@ static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
 
-// use full names to void collision with the Bitcoin naming
+// use full names to void collision with the Unit-e naming
 static const std::string DB_SNAPSHOT_HASH_DATA = "SNAPSHOT_HASH_DATA";
 static const std::string DB_SNAPSHOT_INDEX = "SNAPSHOT_INDEX";
 

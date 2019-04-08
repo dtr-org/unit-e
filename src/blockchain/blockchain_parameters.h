@@ -56,7 +56,7 @@ struct Parameters {
   //! difficulty accordingly (using whatever metric is provided by the block
   //! index).
   //!
-  //! For example the bitcoin difficulty function would be:
+  //! For example the unite difficulty function would be:
   //!
   //! difficultyFunction = [](const Parameters &p, BlockHeight h, ChainAccess &ix) -> Difficulty {
   //!   constexpr int TARGET_TIMESPAN = 14 * 24 * 60 * 60;
@@ -64,7 +64,7 @@ struct Parameters {
   //!     // it it's not difficulty adjust time, just return current difficulty
   //!     return ix.AtDepth(1)->nBits;
   //!   }
-  //!   // block at depth 2015 (bitcoin has an off-by-one error here)
+  //!   // block at depth 2015 (unite has an off-by-one error here)
   //!   BlockTime nFirstBlockTime = ix.AdDepth(2015)->nTime;
   //!   // Limit adjustment step
   //!   int64_t nActualTimespan = ix.AtDepth(1)->GetBlockTime() - nFirstBlockTime;
@@ -125,8 +125,8 @@ struct Parameters {
 
   //! \brief The maximum allowed weight for a block.
   //!
-  //! Bitcoin used to have a MAX_BLOCK_SIZE of 1MB which replaced with a new
-  //! concept of "block weight" in bitcoin. The block weight is effectively
+  //! Unit-e used to have a MAX_BLOCK_SIZE of 1MB which replaced with a new
+  //! concept of "block weight" in unite. The block weight is effectively
   //! a block size, but it is computed differently. In the end the "core block"
   //! must still be <= MAX_BLOCK_SIZE but it can carry an additional 3MB of
   //! witness programs (which is the larger part of a block as it contains the
@@ -145,7 +145,7 @@ struct Parameters {
 
   //! \brief The maximum allowed number of signature check operations in a block.
   //!
-  //! This is a constant which used to be hardcoded in bitcoin and is parameterized
+  //! This is a constant which used to be hardcoded in unite and is parameterized
   //! in here. Each opcode is associated with a cost and validity is checked
   //! according to the total cost that it effects (which basically is computing
   //! power required for validation).
@@ -205,7 +205,7 @@ struct Parameters {
   //! of softforks. The known deployments for this chain are defined in this
   //! parameter.
   //!
-  //! See https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki
+  //! See https://github.com/unite/bips/blob/master/bip-0009.mediawiki
   //!
   //! UNIT-E: Use a better-enum for deployments to not resort to the MAX_VERSION_BITS_DEPLOYMENTS hack
   //! (the hack here is to utilize one extra enum for the number of enum values)

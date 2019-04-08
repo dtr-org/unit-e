@@ -256,7 +256,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     const CAmount value_out = tx.GetValueOut();
-    // UNIT-E TODO: To distinguish bitcoin coinbase and unit-e coinbase check for staking input
+    // UNIT-E TODO: To distinguish unite coinbase and unit-e coinbase check for staking input
     if (tx.IsCoinBase() && tx.vin.size() >= 2) {
         // The coinbase transaction should spend exactly its inputs and the reward.
         // The reward output is by definition in the zeroth output. The reward

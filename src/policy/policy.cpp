@@ -77,7 +77,7 @@ bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType)
 bool IsStandardTx(const CTransaction& tx, std::string& reason)
 {
     // unit-e has a notion of "regular" transactions which are partitioned into
-    // "standard" and "non-standard" transactions (in contrast to bitcoin where
+    // "standard" and "non-standard" transactions (in contrast to unite where
     // every transaction is a "regular" transaction). Beyond "regular transactions
     // unit-e features a wealth of other transaction types ("non-regular") such as
     // finalization transactions. Also coinbase transactions are distinguished

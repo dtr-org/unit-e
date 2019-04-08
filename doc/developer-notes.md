@@ -250,7 +250,7 @@ Additional resources:
  * [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
  * [GCC Instrumentation Options](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html)
  * [Google Sanitizers Wiki](https://github.com/google/sanitizers/wiki)
- * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/bitcoin/bitcoin/issues/12691)
+ * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/unite/unite/issues/12691)
 
 Locking/mutex usage notes
 -------------------------
@@ -588,11 +588,11 @@ external projects without a tight relationship to unit-e.
 
 Changes on the parts of the code which are pulled in as a git subtree are
 ideally done through contributions to the original upstream and then pulled in
-via subtree updates in bitcoin upstream and then merged to unit-e with a bitcoin
+via subtree updates in unite upstream and then merged to unit-e with a unite
 merge.
 
 Where this is too slow changes might also be done via pull request to the
-unit-e version of the code. See the [bitcoin developer
+unit-e version of the code. See the [unite developer
 notes](https://github.com/dtr-org/unit-e/blob/master/doc/developer-notes.md#subtrees)
 for their policies on that.
 
@@ -625,7 +625,7 @@ These are the current subtrees and where they are coming from:
 
 - src/crypto/ctaes
 
-  Upstream at https://github.com/bitcoin-core/ctaes, actively maintained by
+  Upstream at https://github.com/unite-core/ctaes, actively maintained by
   unit-e contributors.
 
 - src/univalue
@@ -739,7 +739,7 @@ To create a scripted-diff:
 
 The scripted-diff is verified by the tool `test/lint/commit-script-check.sh`
 
-Commit [`bb81e173`](https://github.com/bitcoin/bitcoin/commit/bb81e173) is an
+Commit [`bb81e173`](https://github.com/unite/unite/commit/bb81e173) is an
 example of a scripted-diff.
 
 RPC interface guidelines

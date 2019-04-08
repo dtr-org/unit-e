@@ -8,7 +8,7 @@
 #include <validation.h>
 
 //! \brief Implementation of BlockDB that uses disk to save and read the block
-//! data. It delegates to bitcoin functions like `ReadBlockFromDisk`.
+//! data. It delegates to unite functions like `ReadBlockFromDisk`.
 class BlockDiskStorage final : public BlockDB {
 
  private:

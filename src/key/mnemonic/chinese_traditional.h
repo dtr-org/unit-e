@@ -1,7 +1,7 @@
 #ifndef _WORDLIST_CHINESE_T_H
 #define _WORDLIST_CHINESE_T_H 1
 
-// https://github.com/bitcoin/bips/blob/master/bip-0039/chinese_traditional.txt
+// https://github.com/unite/bips/blob/master/bip-0039/chinese_traditional.txt
 
 namespace key {
 namespace mnemonic {

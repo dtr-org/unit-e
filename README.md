@@ -19,8 +19,8 @@ performance needed to enter mainstream use.
 ## The unit-e client
 
 This repository hosts the implementation of the first Unit-e client: `unit-e`,
-also known as the "Feuerland" client. It is based on the [Bitcoin
-Core](https://github.com/bitcoin/bitcoin) code base as upstream and adds
+also known as the "Feuerland" client. It is based on the [Unit-e
+Core](https://github.com/unite/unite) code base as upstream and adds
 features such as:
 
 * Replace Proof of Work by [Proof of Stake with on-chain block
@@ -37,7 +37,7 @@ features such as:
 
 We regularly merge upstream changes into the unit-e code base and also strive to
 contribute back changes which are relevant for upstream. The last upstream sync
-was done with the [0.17](https://github.com/bitcoin/bitcoin/tree/0.17) version,
+was done with the [0.17](https://github.com/unite/unite/tree/0.17) version,
 plus some changes cherry-picked from later development branches.
 
 The client is in a pre-testnet development phase. With the [launch of the

@@ -24,7 +24,7 @@ namespace staking {
 //! This class is an interface.
 //!
 //! Currently the only implementation of the TransactionPicker is an
-//! adapter to bitcoins CBlockAssembler. A conceivable alternative
+//! adapter to unites CBlockAssembler. A conceivable alternative
 //! implementation would take into account maybe a minimum transaction
 //! amount (but that might also have been taken care of by transaction
 //! relay policies – then again a proposer might still very well include

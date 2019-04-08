@@ -10,16 +10,16 @@
 
 namespace staking {
 
-//! \brief An adapter to bitcoins CBlockAssembler.
+//! \brief An adapter to unites CBlockAssembler.
 //!
 //! The CBlockAssembler comprises the logic for picking transactions.
-//! In order to maintain compatibility with bitcoin but not rely on
+//! In order to maintain compatibility with unite but not rely on
 //! CBlockTemplate and not change existing code this adapter is used
 //! to just extract the transactions to be included when building a new
 //! block.
 //!
 //! CBlockTemplate is an invention to support external mining software.
-//! Previous iterations of bitcoin had an rpc method called "getwork"
+//! Previous iterations of unite had an rpc method called "getwork"
 //! which would only return a block header to solve the hash for. This
 //! effectively took away power from the miners in a mining pool and
 //! centralize the decision which transactions to include in mined blocks
@@ -44,9 +44,9 @@ class BlockAssemblerAdapter final : public TransactionPicker {
 
     ::BlockAssembler blockAssembler(::Params(), blockAssemblerOptions);
 
-    // The block assembler unfortunately also creates a bitcoin-style
+    // The block assembler unfortunately also creates a unite-style
     // coinbase transaction. We do not want to touch that logic to
-    // retain compatibility with bitcoin. The construction of the
+    // retain compatibility with unite. The construction of the
     // coinbase transaction is left to the component using a
     // TransactionPicker to build a block. Therefore we just pass an
     // empty script to the blockAssembler.

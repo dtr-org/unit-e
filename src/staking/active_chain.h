@@ -24,13 +24,13 @@ namespace staking {
 //! \brief an interface to the current blockchain's state.
 //!
 //! Proposing a block requires access to the current chain state. A lot
-//! of these mechanisms are free functions in bitcoin which are super
+//! of these mechanisms are free functions in unite which are super
 //! hard to control for example in unit tests. Thus this interface is
 //! defined to encapsulate all that free floating stuff behind a single
 //! API. Inspiration for this has been drawn from a proposed Chain
-//! interface in bitcoin to separate Wallet and Node from each other.
-//! See: https://github.com/bitcoin/bitcoin/pull/14437 - in particular
-//! https://github.com/ryanofsky/bitcoin/blob/45b23efaada081a7be9e255df59670f4704c45d1/src/interfaces/chain.h
+//! interface in unite to separate Wallet and Node from each other.
+//! See: https://github.com/unite/unite/pull/14437 - in particular
+//! https://github.com/ryanofsky/unite/blob/45b23efaada081a7be9e255df59670f4704c45d1/src/interfaces/chain.h
 class ActiveChain : public blockchain::ChainAccess {
 
  public:

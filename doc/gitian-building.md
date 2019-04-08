@@ -6,7 +6,7 @@ Gitian building
 If you are using Ubuntu, Debian or MacOS, running the `gitian-build.py` with
 `--setup` flag should be enough. If you are having problems or if you are using
 different operating system, you can find some more information in [the gitian
-guide](https://github.com/bitcoin-core/docs/tree/master/gitian-building)
+guide](https://github.com/unite-core/docs/tree/master/gitian-building)
 for unit-e on which the unit-e build process is based. Some of this
 information might need adaption to unit-e, though.
 

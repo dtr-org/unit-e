@@ -201,7 +201,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       // UNIT-E TODO: this check is required to mitigate CVE-2012-2459
       // Apparently an alternative construction of the merkle tree avoids this
       // issue completely _and_ results in faster merkle tree construction, see
-      // BIP 98 https://github.com/bitcoin/bips/blob/master/bip-0098.mediawiki
+      // BIP 98 https://github.com/unite/bips/blob/master/bip-0098.mediawiki
       result.AddError(Error::DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE);
     }
 

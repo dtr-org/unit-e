@@ -87,7 +87,7 @@ EXPECTED_HOLDER_NAMES = [
     "The Bitcoin Core developers \n",
     "Bitcoin Core Developers\n",
     "the unit-e developers\n",
-    "The Bitcoin developers\n",
+    "The Unit-e developers\n",
     "The LevelDB Authors\. All rights reserved\.\n",
     "BitPay Inc\.\n",
     "BitPay, Inc\.\n",

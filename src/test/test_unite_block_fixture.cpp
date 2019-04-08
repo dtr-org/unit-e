@@ -10,7 +10,7 @@ namespace {
 
 //! \brief Creates a real block with nine transactions.
 //!
-//! The block here is derived from a real bitcoin block at height=100002:
+//! The block here is derived from a real unite block at height=100002:
 //! 0000000000013b8ab2cd513b0261a14096412195a72a0c4827d229dcc7e0f7af
 CBlock GetRealBlock() {
   CBlock block;

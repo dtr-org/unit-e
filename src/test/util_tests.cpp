@@ -796,7 +796,7 @@ BOOST_AUTO_TEST_CASE(strprintf_numbers)
 #undef B
 #undef E
 
-/* Check for mingw/wine issue bitcoin/bitcoin#3494
+/* Check for mingw/wine issue unite/unite#3494
  * Remove this test before time.ctime(0xffffffff) == 'Sun Feb  7 07:28:15 2106'
  */
 BOOST_AUTO_TEST_CASE(gettime)

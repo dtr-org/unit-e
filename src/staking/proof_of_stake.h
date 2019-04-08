@@ -15,7 +15,7 @@ namespace staking {
 
 //! \brief Extract the staking key from a P2WPKH witness stack.
 //!
-//! As per https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wpkh,
+//! As per https://github.com/unite/bips/blob/master/bip-0141.mediawiki#p2wpkh,
 //! a P2WPKH transaction looks like this:
 //!
 //!    witness:      <signature> <pubkey>
@@ -29,7 +29,7 @@ std::vector<CPubKey> ExtractP2WPKHKeys(const CScriptWitness &);
 
 //! \brief Extract the staking key from a P2WSH witness stack.
 //!
-//! As per https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki#p2wsh,
+//! As per https://github.com/unite/bips/blob/master/bip-0141.mediawiki#p2wsh,
 //! a P2WSH transaction looks like this:
 //!
 //!    witness:      0 <signature1> <1 <pubkey1> <pubkey2> 2 CHECKMULTISIG>

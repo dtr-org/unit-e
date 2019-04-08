@@ -112,7 +112,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
 //! \brief Retrieves the globally available instance of the injector.
 //!
-//! This mechanism solely exists such that old bitcoin code which is not
+//! This mechanism solely exists such that old unite code which is not
 //! part of the component framework can access components. It must never
 //! be invoked from within any function that lives in a component.
 //!

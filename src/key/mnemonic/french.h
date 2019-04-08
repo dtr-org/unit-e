@@ -1,7 +1,7 @@
 #ifndef _WORDLIST_FRENCH_H
 #define _WORDLIST_FRENCH_H 1
 
-// https://github.com/bitcoin/bips/blob/master/bip-0039/french.txt
+// https://github.com/unite/bips/blob/master/bip-0039/french.txt
 
 namespace key {
 namespace mnemonic {

@@ -92,7 +92,7 @@ bool GetExtPubKeyAPDU(const std::vector<uint32_t> &path, APDU &apdu_out,
 //! \brief Generate command APDUs for initializing a wallet's transaction state
 //! and prepare it for signing.
 //!
-//! See https://ledgerhq.github.io/btchip-doc/bitcoin-technical-beta.html for
+//! See https://ledgerhq.github.io/btchip-doc/unite-technical-beta.html for
 //! description of the HASH INPUT START command and signing process.
 //!
 //! \param[in] tx the transaction to be signed
