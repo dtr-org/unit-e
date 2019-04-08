@@ -147,7 +147,7 @@ Parameters Parameters::RegTest() noexcept {
 
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
-  p.stake_maturity = 2;
+  p.stake_maturity = 1000;
 
   p.message_start_characters[0] = 0xfa;
   p.message_start_characters[1] = 0xbf;
