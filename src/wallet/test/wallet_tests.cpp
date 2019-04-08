@@ -631,15 +631,20 @@ BOOST_FIXTURE_TEST_CASE(GetLegacyBalance_coinbase_maturity, TestChain100Setup) {
   }
 
   // As per mature outputs we should have 103 blocks worth of rewards + the initial
-  // stake + the watch-only reward
+  // stake + the watch-only reward + 100 finalization rewards
   {
       auto coinbase_reward = m_coinbase_txns.back().vout[0].nValue;
+      auto finalization_reward = m_coinbase_txns[5].vout[1].nValue;
       LOCK2(cs_main, m_wallet->cs_wallet);
       const CAmount all_balance = m_wallet->GetLegacyBalance(ISMINE_ALL, 0, nullptr);
       const CAmount spendable_balance = m_wallet->GetLegacyBalance(ISMINE_SPENDABLE, 0, nullptr);
       const CAmount watchonly_balance = m_wallet->GetLegacyBalance(ISMINE_WATCH_ONLY, 0, nullptr);
-      BOOST_CHECK_EQUAL(all_balance, (10000 * UNIT) + coinbase_reward * 103 + watch_only_coinbase->vout[0].nValue);
-      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 103);
+
+      BOOST_CHECK_EQUAL(
+          all_balance,
+          (10000 * UNIT) + coinbase_reward * 103 + finalization_reward * 100 + watch_only_coinbase->vout[0].nValue
+      );
+      BOOST_CHECK_EQUAL(spendable_balance, (10000 * UNIT) + coinbase_reward * 103 + finalization_reward * 100);
       BOOST_CHECK_EQUAL(watchonly_balance, watch_only_coinbase->vout[0].nValue);
   }
 }
