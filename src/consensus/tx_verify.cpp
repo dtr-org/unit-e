@@ -288,8 +288,8 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
                                   const CBlockIndex &prev_block, CAmount input_amount, CAmount fees,
                                   blockchain::Behavior &behavior,
                                   proposer::FinalizationRewardLogic &finalization_rewards) {
-    // TODO UNIT-E: provide components as arguments
-    // TODO UNIT-E: check if correct height is used
+    assert(MoneyRange(input_amount));
+
     CAmount block_reward = fees + behavior.CalculateBlockReward(prev_block.nHeight);
     std::vector<std::pair<CScript, CAmount>> fin_rewards = finalization_rewards.GetFinalizationRewards(prev_block);
 
@@ -307,7 +307,7 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
                              "bad-cb-finalization-reward");
         }
     }
-    // TODO UNIT-E: check for underflow
+
     if (coinbase_tx.GetValueOut() - input_amount > block_reward) {
         return state.DoS(100,
                          error("%s: coinbase pays too much (total output=%d total input=%d expected reward=%d )",
@@ -316,7 +316,7 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
                          REJECT_INVALID, "bad-cb-amount");
     }
 
-    // if (coinbase_tx.GetValueOut() - input_amount < block_reward) {
+    // TODO UNIT-E: make the check stricter: if (coinbase_tx.GetValueOut() - input_amount < block_reward)
     if (coinbase_tx.GetValueOut() < input_amount) {
         return state.DoS(100,
                          error("%s: coinbase pays too little (total output=%d total input=%d expected reward=%d )",
@@ -325,7 +325,16 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
                          REJECT_INVALID, "bad-cb-spends-too-little");
     }
 
-    // TODO UNIT-E: check that sum of non reward outputs is smaller or equal to to coinbase_in
+    CAmount non_reward_out = 0;
 
+    for (std::size_t i = fin_rewards.size() + 1; i < coinbase_tx.vout.size(); ++i) {
+        non_reward_out += coinbase_tx.vout[i].nValue;
+    }
+    if (non_reward_out > input_amount) {
+        return state.DoS(100,
+                         error("%s: coinbase spends too much (non-reward output=%d total input=%d)",
+                               __func__, FormatMoney(non_reward_out), FormatMoney(input_amount)),
+                         REJECT_INVALID, "bad-cb-spends-too-much");
+    }
     return true;
 }
