@@ -49,7 +49,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
         spends[i].nVersion = 1;
         spends[i].vin.resize(1);
         spends[i].vin[0].prevout.hash = last_coinbase->GetHash();
-        spends[i].vin[0].prevout.n = 1;
+        spends[i].vin[0].prevout.n = last_coinbase->vout.size() - 1;
         spends[i].vout.resize(1);
         spends[i].vout[0].nValue = 11*EEES;
         spends[i].vout[0].scriptPubKey = scriptPubKey;
@@ -168,7 +168,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     dersig_invalid_tx.nVersion = 1;
     dersig_invalid_tx.vin.resize(1);
     dersig_invalid_tx.vin[0].prevout.hash = p2pkh_coinbase->GetHash();
-    dersig_invalid_tx.vin[0].prevout.n = 1;
+    dersig_invalid_tx.vin[0].prevout.n = p2pkh_coinbase->vout.size() - 1;
     dersig_invalid_tx.vout.resize(4);
     dersig_invalid_tx.vout[0].nValue = 11*EEES;
     dersig_invalid_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;
@@ -215,7 +215,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     spend_tx.nVersion = 1;
     spend_tx.vin.resize(1);
     spend_tx.vin[0].prevout.hash = p2pkh_coinbase->GetHash();
-    spend_tx.vin[0].prevout.n = 1;
+    spend_tx.vin[0].prevout.n = p2pkh_coinbase->vout.size() - 1;
     spend_tx.vout.resize(4);
     spend_tx.vout[0].nValue = 11*EEES;
     spend_tx.vout[0].scriptPubKey = p2sh_scriptPubKey;
@@ -242,7 +242,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Lock the coin so it cannot be used for staking
     {
         LOCK(pwalletMain->cs_wallet);
-        pwalletMain->LockCoin(COutPoint(p2pkh_coinbase->GetHash(), 1));
+        pwalletMain->LockCoin(spend_tx.vin[0].prevout);
     }
 
     block = CreateAndProcessBlock({spend_tx}, p2pkh_scriptPubKey);
