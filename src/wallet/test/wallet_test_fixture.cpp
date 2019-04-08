@@ -60,7 +60,7 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
   pwalletMain->ScanForWalletTransactions(chainActive.Genesis(), nullptr, reserver);
 
   // Generate a 100-block chain:
-  GetComponent<Settings>()->stake_split_threshold = 0; // reset to 0
+  GetComponent<Settings>()->stake_split_threshold = 0; // do not split stake
   CScript script_pubkey = GetScriptForDestination(WitnessV0KeyHash(coinbaseKey.GetPubKey().GetID()));
   for (int i = 0; i < COINBASE_MATURITY; i++)
   {

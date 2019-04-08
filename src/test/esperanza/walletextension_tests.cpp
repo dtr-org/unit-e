@@ -34,6 +34,9 @@ class FinalizationRewardLogicStub : public proposer::FinalizationRewardLogic {
   std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &blockIndex) override {
     return {};
   }
+  size_t GetNumberOfRewardOutputs(blockchain::Height height) override {
+    return 0;
+  }
 };
 
 }  // namespace

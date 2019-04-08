@@ -29,6 +29,8 @@ class FinalizationRewardLogic {
  public:
   virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &) = 0;
 
+  virtual std::size_t GetNumberOfRewardOutputs(blockchain::Height) = 0;
+
   virtual ~FinalizationRewardLogic() = default;
 
   static std::unique_ptr<FinalizationRewardLogic> New(
