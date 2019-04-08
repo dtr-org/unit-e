@@ -8,6 +8,7 @@
 #include <dependency.h>
 #include <finalization/state_repository.h>
 #include <settings.h>
+#include <staking/active_chain.h>
 
 class UnitEInjector;
 
@@ -27,6 +28,7 @@ class WalletExtensionDeps {
  private:
   const Dependency<Settings> m_settings;
   const Dependency<finalization::StateRepository> m_finalization_state_repository;
+  const Dependency<staking::ActiveChain> active_chain;
 
  public:
   //! \brief Constructor for testing only.

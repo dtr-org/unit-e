@@ -66,6 +66,8 @@ Parameters Parameters::Base() noexcept {
   p.deployment_confirmation_period = 2016;
   p.rule_change_activation_threshold = 1916;
 
+  p.default_settings.finalizer_vote_from_epoch_block_number = 35;
+
   return p;
 }
 
@@ -124,6 +126,7 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.node_is_proposer = false;
   p.default_settings.stake_split_threshold = 1000 * UNIT;
   p.default_settings.p2p_port = 17292;
+  p.default_settings.finalizer_vote_from_epoch_block_number = 1;
   p.data_dir_suffix = "regtest";
 
   return p;
