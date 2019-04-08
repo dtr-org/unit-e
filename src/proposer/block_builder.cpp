@@ -5,7 +5,6 @@
 #include <proposer/block_builder.h>
 
 #include <consensus/merkle.h>
-#include <injector.h>
 #include <key.h>
 #include <pubkey.h>
 #include <staking/proof_of_stake.h>
