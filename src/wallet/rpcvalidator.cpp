@@ -10,6 +10,7 @@
 #include <injector.h>
 #include <rpc/server.h>
 #include <rpc/safemode.h>
+#include <validation.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 

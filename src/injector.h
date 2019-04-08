@@ -28,10 +28,10 @@
 #include <staking/transactionpicker.h>
 #include <txpool.h>
 #include <util.h>
-#include <validation.h>
 
 #ifdef ENABLE_WALLET
 #include <proposer/block_builder.h>
+#include <proposer/proposer_logic.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_rpc.h>

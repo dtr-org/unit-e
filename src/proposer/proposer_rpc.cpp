@@ -5,12 +5,18 @@
 #include <proposer/proposer_rpc.h>
 
 #include <core_io.h>
+#include <proposer/multiwallet.h>
+#include <proposer/proposer.h>
+#include <rpc/server.h>
 #include <rpc/util.h>
+#include <staking/active_chain.h>
+#include <staking/network.h>
 #include <wallet/wallet.h>
 
 #include <better-enums/enum.h>
 #include <tinyformat.h>
 
+#include <algorithm>
 #include <numeric>
 
 namespace proposer {

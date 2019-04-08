@@ -7,7 +7,16 @@
 
 #include <chainparams.h>
 #include <net.h>
+#include <proposer/block_builder.h>
+#include <proposer/multiwallet.h>
+#include <proposer/proposer_logic.h>
+#include <proposer/proposer_status.h>
+#include <proposer/sync.h>
+#include <proposer/waiter.h>
 #include <script/script.h>
+#include <staking/active_chain.h>
+#include <staking/network.h>
+#include <staking/transactionpicker.h>
 #include <sync.h>
 #include <util.h>
 #include <utilmoneystr.h>
@@ -199,8 +208,8 @@ std::unique_ptr<Proposer> Proposer::New(
     const Dependency<staking::Network> network,
     const Dependency<staking::ActiveChain> active_chain,
     const Dependency<staking::TransactionPicker> transaction_picker,
-    const Dependency<proposer::BlockBuilder> block_builder,
-    const Dependency<proposer::Logic> proposer_logic) {
+    const Dependency<BlockBuilder> block_builder,
+    const Dependency<Logic> proposer_logic) {
   if (settings->node_is_proposer) {
     return std::unique_ptr<Proposer>(new ProposerImpl(behavior, multi_wallet, network, active_chain, transaction_picker, block_builder, proposer_logic));
   } else {

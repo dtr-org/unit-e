@@ -6,7 +6,6 @@
 
 #include <base58.h>
 #include <dependency.h>
-#include <init.h>
 
 std::unique_ptr<Settings> Settings::New(
     Dependency<::ArgsManager> args,
@@ -34,7 +33,7 @@ std::unique_ptr<Settings> Settings::New(
     } else {
       settings->reward_destination = boost::none;
       LogPrintf("%s: -rewardaddress: Invalid address provided %s\n", __func__, reward_address);
-      StartShutdown();
+      throw std::runtime_error("Invalid -rewardaddress");
     }
   }
 

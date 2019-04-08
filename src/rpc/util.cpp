@@ -5,7 +5,6 @@
 #include <base58.h>
 #include <blockchain/blockchain_behavior.h>
 #include <core_io.h>
-#include <injector.h>
 #include <keystore.h>
 #include <pubkey.h>
 #include <rpc/protocol.h>
@@ -195,8 +194,7 @@ UniValue ToUniValue(const blockchain::GenesisBlock &value) {
 UniValue ToUniValue(const std::vector<unsigned char> base58_prefixes[blockchain::Base58Type::_size_constant]) {
     UniValue result(UniValue::VOBJ);
     for (const auto &type : blockchain::Base58Type::_values()) {
-        std::vector<unsigned char> prefix =
-            GetComponent<blockchain::Behavior>()->GetBase58Prefix(type);
+        std::vector<unsigned char> prefix = base58_prefixes[type._to_index()];
         UniValue bytes(UniValue::VARR);
         for (const unsigned char byte : prefix) {
             bytes.push_back(byte);

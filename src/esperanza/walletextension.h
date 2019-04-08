@@ -11,7 +11,6 @@
 #include <esperanza/walletextension_deps.h>
 #include <esperanza/walletstate.h>
 #include <finalization/vote_recorder.h>
-#include <injector.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <miner.h>

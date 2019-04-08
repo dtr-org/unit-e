@@ -5,17 +5,23 @@
 #ifndef UNIT_E_PROPOSER_RPC_H
 #define UNIT_E_PROPOSER_RPC_H
 
-#include <blockdb.h>
 #include <dependency.h>
-#include <proposer/multiwallet.h>
-#include <proposer/proposer.h>
-#include <rpc/server.h>
-#include <staking/active_chain.h>
-#include <staking/network.h>
 
 #include <univalue.h>
 
+#include <memory>
+
+class JSONRPCRequest;
+
+namespace staking {
+class Network;
+class ActiveChain;
+}  // namespace staking
+
 namespace proposer {
+
+class MultiWallet;
+class Proposer;
 
 //! \brief The proposer RPC commands, dependency injected.
 //!

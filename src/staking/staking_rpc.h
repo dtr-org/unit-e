@@ -5,17 +5,16 @@
 #ifndef UNIT_E_STAKING_RPC_H
 #define UNIT_E_STAKING_RPC_H
 
-#include <blockdb.h>
 #include <dependency.h>
-#include <proposer/multiwallet.h>
-#include <proposer/proposer.h>
 #include <rpc/server.h>
-#include <staking/active_chain.h>
-#include <staking/network.h>
 
 #include <univalue.h>
 
+class BlockDB;
+
 namespace staking {
+
+class ActiveChain;
 
 //! \brief The staking RPC commands, dependency injected.
 //!

@@ -6,6 +6,7 @@
 #include <amount.h>
 #include <base58.h>
 #include <chain.h>
+#include <chainparams.h>
 #include <consensus/validation.h>
 #include <core_io.h>
 #include <esperanza/walletextension.h>

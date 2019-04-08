@@ -4,12 +4,20 @@
 
 #include <staking/staking_rpc.h>
 
+#include <blockdb.h>
+#include <chain.h>
 #include <core_io.h>
+#include <primitives/block.h>
+#include <primitives/transaction.h>
 #include <rpc/util.h>
+#include <staking/active_chain.h>
 
 #include <better-enums/enum.h>
 #include <tinyformat.h>
 #include <boost/variant.hpp>
+
+#include <algorithm>
+#include <numeric>
 
 namespace staking {
 
@@ -47,43 +55,49 @@ class StakingRPCImpl : public StakingRPC {
     CTxOut stake_out;
     CTxIn stake_in;
   };
+
   using StakeMeta = boost::variant<GenesisBlock, NotOnDisk, NoStakeFound, InvalidBlock, InvalidReference, StakeInfo>;
-  static void BlockInfo(UniValue &obj, const CBlockIndex &block) {
+
+  static inline void BlockInfo(UniValue &obj, const CBlockIndex &block) {
     obj.pushKV("block_hash", ToUniValue(*block.phashBlock));
     obj.pushKV("block_height", ToUniValue(block.nHeight));
   }
-  static void TransactionInfo(UniValue &obj, const CTransactionRef &tx) {
+  static inline void TransactionInfo(UniValue &obj, const CTransactionRef &tx) {
     obj.pushKV("txid", ToUniValue(tx->GetHash()));
     obj.pushKV("wtxid", ToUniValue(tx->GetWitnessHash()));
   }
+  static inline void StatusInfo(UniValue &obj, const std::string &msg) {
+    obj.pushKV("status", msg);
+  }
+
   class StakeVisitor : public boost::static_visitor<UniValue> {
    public:
     UniValue operator()(const GenesisBlock &genesis) {
       UniValue obj(UniValue::VOBJ);
       BlockInfo(obj, *genesis.block);
-      obj.pushKV("status", "genesis block");
+      StatusInfo(obj, "genesis block");
       return obj;
     }
     UniValue operator()(const NotOnDisk &not_on_disk) {
       UniValue obj(UniValue::VOBJ);
       BlockInfo(obj, *not_on_disk.block);
-      obj.pushKV("status", "not on disk");
+      StatusInfo(obj, "not on disk");
       return obj;
     }
     UniValue operator()(const NoStakeFound &no_stake_found) {
       UniValue obj(UniValue::VOBJ);
       BlockInfo(obj, *no_stake_found.block);
       obj.pushKV("stake_txin", ToUniValue(no_stake_found.stake_in));
-      obj.pushKV("status", "on disk, spending stake tx not found");
+      StatusInfo(obj, "on disk, spending stake tx not found");
       return obj;
     }
     UniValue operator()(const InvalidBlock &invalid_block) {
       UniValue obj(UniValue::VOBJ);
       if (invalid_block.block) {
         BlockInfo(obj, *invalid_block.block);
-        obj.pushKV("status", "on disk, block invalid: " + std::string(invalid_block.reason));
+        StatusInfo(obj, "on disk, block invalid: " + std::string(invalid_block.reason));
       } else {
-        obj.pushKV("status", "unknown");
+        StatusInfo(obj, "unknown");
       }
       return obj;
     }
@@ -92,7 +106,7 @@ class StakingRPCImpl : public StakingRPC {
       BlockInfo(obj, *invalid_reference.block);
       obj.pushKV("stake_txin", ToUniValue(invalid_reference.stake_in));
       obj.pushKV("stake_txid", ToUniValue(invalid_reference.tx->GetHash()));
-      obj.pushKV("status", "on disk, spending tx found, index invalid");
+      StatusInfo(obj, "on disk, spending tx found, index invalid");
       return obj;
     }
     UniValue operator()(const StakeInfo &stake_info) {
@@ -102,7 +116,7 @@ class StakingRPCImpl : public StakingRPC {
       obj.pushKV("funding_block_height", ToUniValue(stake_info.funding_block->nHeight));
       obj.pushKV("stake_txout", ToUniValue(stake_info.stake_out));
       obj.pushKV("stake_txin", ToUniValue(stake_info.stake_in));
-      obj.pushKV("status", "ondisk, stake found");
+      StatusInfo(obj, "ondisk, stake found");
       return obj;
     }
   };
@@ -252,10 +266,8 @@ class StakingRPCImpl : public StakingRPC {
 
   UniValue GetInitialFundsInfo(const CTransactionRef &tx) {
     UniValue result(UniValue::VOBJ);
-    CAmount amount;
-    for (const CTxOut &out : tx->vout) {
-      amount += out.nValue;
-    }
+    const CAmount amount = std::accumulate(tx->vout.cbegin(), tx->vout.cend(), CAmount(0),
+                                           [](const CAmount sum, const CTxOut &out) { return sum + out.nValue; });
     TransactionInfo(result, tx);
     result.pushKV("amount", ValueFromAmount(amount));
     result.pushKV("length", static_cast<std::int64_t>(tx->vout.size()));
@@ -268,7 +280,7 @@ class StakingRPCImpl : public StakingRPC {
     BlockInfo(result, index);
     decltype(index.nHeight) height = index.nHeight;
     boost::optional<CBlock> block = m_block_db->ReadBlock(index);
-    result.pushKV("status", block ? "ondisk" : "nodata");
+    StatusInfo(result, block ? "ondisk" : "nodata");
     if (height == 0) {
       result.pushKV("initial_funds", GetInitialFundsInfo(block->vtx[0]));
     } else if (block) {
@@ -284,7 +296,7 @@ class StakingRPCImpl : public StakingRPC {
     return result;
   }
 
-  UniValue DoTraceChain(const CBlockIndex *const start, const std::size_t length) {
+  UniValue TraceChain(const CBlockIndex *const start, const std::size_t length) {
     UniValue result(UniValue::VOBJ);
     result.pushKV("start_hash", ToUniValue(*start->phashBlock));
     result.pushKV("start_height", ToUniValue(start->nHeight));
@@ -391,15 +403,14 @@ class StakingRPCImpl : public StakingRPC {
     const CBlockIndex *start;
     std::size_t length;
     ReadParameters(request, &start, &length);
-    return DoTraceChain(start, length);
+    return TraceChain(start, length);
   }
 };
 
 std::unique_ptr<StakingRPC> StakingRPC::New(
     const Dependency<staking::ActiveChain> chain,
     const Dependency<::BlockDB> block_db) {
-  return std::unique_ptr<StakingRPC>(
-      new StakingRPCImpl(chain, block_db));
+  return std::unique_ptr<StakingRPC>(new StakingRPCImpl(chain, block_db));
 }
 
 }  // namespace staking

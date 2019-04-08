@@ -6,24 +6,26 @@
 #define UNITE_PROPOSER_PROPOSER_H
 
 #include <dependency.h>
-#include <primitives/block.h>
-#include <proposer/block_builder.h>
-#include <proposer/multiwallet.h>
-#include <proposer/proposer_logic.h>
-#include <proposer/proposer_status.h>
-#include <proposer/sync.h>
-#include <proposer/waiter.h>
-#include <settings.h>
-#include <staking/active_chain.h>
-#include <staking/network.h>
-#include <staking/transactionpicker.h>
 
-#include <map>
 #include <memory>
 
-class CWallet;
+class Settings;
+
+namespace blockchain {
+class Behavior;
+}
+
+namespace staking {
+class ActiveChain;
+class Network;
+class TransactionPicker;
+}  // namespace staking
 
 namespace proposer {
+
+class BlockBuilder;
+class Logic;
+class MultiWallet;
 
 class Proposer {
 
@@ -44,8 +46,8 @@ class Proposer {
                                        Dependency<staking::Network>,
                                        Dependency<staking::ActiveChain>,
                                        Dependency<staking::TransactionPicker>,
-                                       Dependency<proposer::BlockBuilder>,
-                                       Dependency<proposer::Logic>);
+                                       Dependency<BlockBuilder>,
+                                       Dependency<Logic>);
 };
 
 }  // namespace proposer
