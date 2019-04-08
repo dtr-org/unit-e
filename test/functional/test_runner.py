@@ -131,6 +131,7 @@ BASE_SCRIPTS= [
     'esperanza_vote.py',
     'wallet_listsinceblock.py',
     'feature_minchainwork.py',
+    'feature_reindex_commits.py',
     'p2p_unrequested_blocks.py',
     'rpc_finalization.py',
     'feature_logging.py',

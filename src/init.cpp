@@ -666,6 +666,17 @@ void CleanupBlockRevFiles()
     }
 }
 
+namespace { // Variables internal to initialization process only
+
+    int nMaxConnections;
+    int nUserMaxConnections;
+    int nFD;
+    ServiceFlags nLocalServices = ServiceFlags(NODE_NETWORK | NODE_NETWORK_LIMITED);
+    std::mutex m_import;
+    std::condition_variable cv_import;
+
+} // namespace
+
 void ThreadImport(std::vector<fs::path> vImportFiles)
 {
     const CChainParams& chainparams = Params();
@@ -734,10 +745,17 @@ void ThreadImport(std::vector<fs::path> vImportFiles)
         return;
     }
     } // End scope of CImportingNow
+
     if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         LoadMempool();
         fDumpMempoolLater = !fRequestShutdown;
     }
+
+    // Since the import process can restore the node's ValidatorState,
+    // we must ensure that all callbacks processed in the context of the import.
+    SyncWithValidationInterfaceQueue();
+    // Notify parent thread about the finished import
+    cv_import.notify_all();
 }
 
 /** Sanity checks
@@ -900,15 +918,6 @@ void InitLogging()
 #endif
     LogPrintf(PACKAGE_NAME " version %s\n", version_string);
 }
-
-namespace { // Variables internal to initialization process only
-
-int nMaxConnections;
-int nUserMaxConnections;
-int nFD;
-ServiceFlags nLocalServices = ServiceFlags(NODE_NETWORK | NODE_NETWORK_LIMITED);
-
-} // namespace
 
 [[noreturn]] static void new_handler_terminate()
 {
@@ -1663,7 +1672,8 @@ bool AppInitMain()
                 // UNIT-E TODO: Snapshot must start working once we can trust commits
                 // (commits merkle root added to the header and FROM_COMMITS is dropped).
                 // Check #836 for details.
-                if (!snapshot::IsISDEnabled()) {
+                // In the case of reindex, don't restore finalization's state, since it will be built from scratch.
+                if (!snapshot::IsISDEnabled() && !fReindex) {
                     LOCK(cs_main);
                     auto state_repository = GetComponent<finalization::StateRepository>();
                     auto state_processor = GetComponent<finalization::StateProcessor>();
@@ -1901,6 +1911,8 @@ bool AppInitMain()
     uiInterface.InitMessage(_("Done loading"));
 
 #ifdef ENABLE_WALLET
+    std::unique_lock<std::mutex> lk(m_import);
+    cv_import.wait(lk, [&]{return !fImporting.load();});
     StartWallets(scheduler);
 #endif
 
