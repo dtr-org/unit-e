@@ -4,6 +4,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test BIP68 implementation."""
 
+import random
+
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import *
 from test_framework.blocktools import *
@@ -124,7 +126,6 @@ class BIP68Test(UnitETestFramework):
         while len(addresses) < max_outputs:
             addresses.append(self.nodes[0].getnewaddress())
         while len(self.nodes[0].listunspent()) < 200:
-            import random
             random.shuffle(addresses)
             num_outputs = random.randint(1, max_outputs)
             outputs = {}
@@ -335,7 +336,7 @@ class BIP68Test(UnitETestFramework):
             tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], tip_snapshot_meta.data, 0, height, coinbase)
 
             height += 1
-            self.nodes[0].p2p.send_and_ping(msg_block(block))
+            self.nodes[0].p2p.send_and_ping(msg_witness_block(block))  # It crashes HERE
             cur_time += 1
 
         # sync as the reorg is happening
