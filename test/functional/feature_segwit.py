@@ -19,7 +19,16 @@ from test_framework.blocktools import witness_script, send_to_witness
 from test_framework.messages import UNIT, COutPoint, CTransaction, CTxIn, CTxOut, FromHex, sha256, ToHex
 from test_framework.script import CScript, OP_HASH160, OP_CHECKSIG, OP_0, hash160, OP_EQUAL, OP_DUP, OP_EQUALVERIFY, OP_1, OP_2, OP_CHECKMULTISIG, OP_TRUE, OP_DROP
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
-from test_framework.util import assert_equal, assert_raises_rpc_error, bytes_to_hex_str, connect_nodes, hex_str_to_bytes, sync_blocks, try_rpc
+from test_framework.util import (
+    assert_equal,
+    assert_contents_equal,
+    assert_raises_rpc_error,
+    bytes_to_hex_str,
+    connect_nodes,
+    hex_str_to_bytes,
+    sync_blocks,
+    try_rpc,
+)
 
 from io import BytesIO
 
@@ -34,8 +43,10 @@ def getutxo(txid):
     utxo["txid"] = txid
     return utxo
 
-def find_spendable_utxo(node, min_value):
-    for utxo in node.listunspent(query_options={'minimumAmount': min_value}):
+def find_spendable_utxo(node, min_value, max_value=None):
+    if not max_value:
+        max_value = min_value
+    for utxo in node.listunspent(query_options={'minimumAmount': min_value, 'maximumAmount': max_value}):
         if utxo['spendable']:
             return utxo
 
@@ -45,16 +56,14 @@ class SegWitTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        # This test tests SegWit both pre and post-activation, so use the normal BIP9 activation.
+        # This test tests SegWit
         self.extra_args = [
             [
-                "-rpcserialversion=0",
                 "-addresstype=legacy",
                 "-deprecatedrpc=addwitnessaddress",
             ],
             [
                 "-blockversion=4",
-                "-rpcserialversion=1",
                 "-addresstype=legacy",
                 "-deprecatedrpc=addwitnessaddress",
             ],
@@ -86,7 +95,7 @@ class SegWitTest(UnitETestFramework):
         sync_blocks(self.nodes)
 
     def fail_accept(self, node, error_msg, txid, sign, redeem_script=""):
-        assert_raises_rpc_error(-26, error_msg, send_to_witness, use_p2wsh=1, node=node, utxo=getutxo(txid), pubkey=self.pubkey[0], encode_p2sh=False, amount=Decimal("49.998"), sign=sign, insert_redeem_script=redeem_script)
+        assert_raises_rpc_error(-26, error_msg, send_to_witness, use_p2wsh=1, node=node, utxo=getutxo(txid), pubkey=self.pubkey[0], encode_p2sh=False, amount=PROPOSER_REWARD - Decimal("0.002"), sign=sign, insert_redeem_script=redeem_script)
 
     def run_test(self):
 
@@ -133,11 +142,21 @@ class SegWitTest(UnitETestFramework):
         assert_equal(self.nodes[1].getbalance(), 20 * (PROPOSER_REWARD - Decimal("0.001")))
         assert_equal(self.nodes[2].getbalance(), 20 * (PROPOSER_REWARD - Decimal("0.001")))
 
+        self.log.info("Verify default node can't accept txs with missing witness")
+        # unsigned, no scriptsig
+        self.fail_accept(self.nodes[0], "mandatory-script-verify-flag", wit_ids[NODE_0][WIT_V0][0], False)
+        self.fail_accept(self.nodes[0], "mandatory-script-verify-flag", wit_ids[NODE_0][WIT_V1][0], False)
+        self.fail_accept(self.nodes[0], "mandatory-script-verify-flag", p2sh_ids[NODE_0][WIT_V0][0], False)
+        self.fail_accept(self.nodes[0], "mandatory-script-verify-flag", p2sh_ids[NODE_0][WIT_V1][0], False)
+        # unsigned with redeem script
+        self.fail_accept(self.nodes[0], "mandatory-script-verify-flag", p2sh_ids[NODE_0][WIT_V0][0], False, witness_script(False, self.pubkey[0]))
+        self.fail_accept(self.nodes[0], "mandatory-script-verify-flag", p2sh_ids[NODE_0][WIT_V1][0], False, witness_script(True, self.pubkey[0]))
+
         self.log.info("Verify witness txs without witness data are invalid")
-        self.fail_mine(self.nodes[2], wit_ids[NODE_2][WIT_V0][2], False)
-        self.fail_mine(self.nodes[2], wit_ids[NODE_2][WIT_V1][2], False)
-        self.fail_mine(self.nodes[2], p2sh_ids[NODE_2][WIT_V0][2], False, witness_script(False, self.pubkey[2]))
-        self.fail_mine(self.nodes[2], p2sh_ids[NODE_2][WIT_V1][2], False, witness_script(True, self.pubkey[2]))
+        self.fail_accept(self.nodes[2], 'non-mandatory-script-verify-flag (Witness program hash mismatch) (code 64)', wit_ids[NODE_2][WIT_V0][2], sign=False)
+        self.fail_accept(self.nodes[2], 'non-mandatory-script-verify-flag (Witness program was passed an empty witness) (code 64)', wit_ids[NODE_2][WIT_V1][2], sign=False)
+        self.fail_accept(self.nodes[2], 'non-mandatory-script-verify-flag (Witness program hash mismatch) (code 64)', p2sh_ids[NODE_2][WIT_V0][2], sign=False, redeem_script=witness_script(False, self.pubkey[2]))
+        self.fail_accept(self.nodes[2], 'non-mandatory-script-verify-flag (Witness program was passed an empty witness) (code 64)', p2sh_ids[NODE_2][WIT_V1][2], sign=False, redeem_script=witness_script(True, self.pubkey[2]))
 
         self.log.info("Verify default node can use witness txs")
         self.success_mine(self.nodes[0], wit_ids[NODE_0][WIT_V0][0], True)
@@ -161,8 +180,8 @@ class SegWitTest(UnitETestFramework):
         txid1 = send_to_witness(1, self.nodes[0], find_spendable_utxo(self.nodes[0], PROPOSER_REWARD), self.pubkey[0], False, PROPOSER_REWARD - Decimal("0.004"))
         hex_tx = self.nodes[0].gettransaction(txid)['hex']
         tx = FromHex(CTransaction(), hex_tx)
-        assert(tx.wit.is_null()) # This should not be a segwit input
-        assert(txid1 in self.nodes[0].getrawmempool())
+        assert tx.wit.is_null()  # This should not be a segwit input
+        assert txid1 in self.nodes[0].getrawmempool()
 
         # Now create tx2, which will spend from txid1.
         tx = CTransaction()
@@ -171,7 +190,7 @@ class SegWitTest(UnitETestFramework):
         tx2_hex = self.nodes[0].signrawtransactionwithwallet(ToHex(tx))['hex']
         txid2 = self.nodes[0].sendrawtransaction(tx2_hex)
         tx = FromHex(CTransaction(), tx2_hex)
-        assert(not tx.wit.is_null())
+        assert not tx.wit.is_null()
 
         # Now create tx3, which will spend from txid2
         tx = CTransaction()
@@ -179,8 +198,8 @@ class SegWitTest(UnitETestFramework):
         tx.vout.append(CTxOut(int((PROPOSER_REWARD - Decimal('0.05')) * UNIT), CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))  # Huge fee
         tx.calc_sha256()
         txid3 = self.nodes[0].sendrawtransaction(ToHex(tx))
-        assert(tx.wit.is_null())
-        assert(txid3 in self.nodes[0].getrawmempool())
+        assert tx.wit.is_null()
+        assert txid3 in self.nodes[0].getrawmempool()
 
         # UNIT-E TODO: Previously checked here was that a node without segwit would not include the second and third transactions
         # but it does not make sense here as we want to enable segwit by default. Remove this comment after enabling segwit
