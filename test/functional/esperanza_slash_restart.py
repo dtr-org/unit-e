@@ -5,6 +5,9 @@
 
 """
 Test slash condition detection works after node restart.
+
+1. Test usual restart.
+2. Test reindex.
 """
 
 from test_framework.messages import (
@@ -95,7 +98,6 @@ class EsperanzaSlashRestart(UnitETestFramework):
 
         self.log.info("Check slashig condition after node restart")
         self.restart_node(p)
-
         vtx = self.make_double_vote_tx(votes[0], votes[-1], p, f1)
         assert_raises_rpc_error(-26, 'bad-vote-invalid-state', p.sendrawtransaction, ToHex(vtx))
         wait_until(lambda: len(p.getrawmempool()) > 0, timeout=20)
@@ -109,7 +111,6 @@ class EsperanzaSlashRestart(UnitETestFramework):
 
         self.log.info("Check slashig condition after node restart with reindex")
         self.restart_node(p, reindex=True)
-
         vtx = self.make_double_vote_tx(votes[0], votes[-1], p, f2)
         assert_raises_rpc_error(-26, 'bad-vote-invalid-state', p.sendrawtransaction, ToHex(vtx))
         wait_until(lambda: len(p.getrawmempool()) > 0, timeout=20)
