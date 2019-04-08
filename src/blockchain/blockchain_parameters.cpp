@@ -58,6 +58,11 @@ Parameters Parameters::Base() noexcept {
     next_target *= (p.difficulty_adjustment_window - 1) * p.block_time_seconds + time_diff_over_window + time_diff_over_window;
     next_target /= (p.difficulty_adjustment_window + 1) * p.block_time_seconds;
 
+    const arith_uint256 max_difficulty = UintToArith256(p.max_difficulty);
+    if (next_target > max_difficulty) {
+      next_target = max_difficulty;
+    }
+
     return next_target.GetCompact();
   };
 
@@ -111,6 +116,8 @@ Parameters Parameters::TestNet() noexcept {
   p.default_settings.p2p_port = 17182;
   p.data_dir_suffix = "testnet";
 
+  p.max_difficulty = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
   return p;
 }
 
@@ -142,6 +149,8 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.p2p_port = 17292;
   p.default_settings.finalizer_vote_from_epoch_block_number = 1;
   p.data_dir_suffix = "regtest";
+
+  p.max_difficulty = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
   return p;
 }

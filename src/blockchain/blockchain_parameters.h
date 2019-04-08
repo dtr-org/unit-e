@@ -187,6 +187,9 @@ struct Parameters {
   //! (and should) be given as a pure lambda function.
   DifficultyFunction difficulty_function;
 
+  //! \brief Maximum allowed difficulty
+  uint256 max_difficulty;
+
   //! \brief Whether to allow the "generatetoaddress" and "generate" RPC calls.
   bool mine_blocks_on_demand;
 
