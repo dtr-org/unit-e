@@ -35,6 +35,7 @@ class WalletLabelsTest(UnitETestFramework):
 
     def run_test(self):
         """Run the test twice - once using the accounts API and once using the labels API."""
+        self.setup_stake_coins(*self.nodes)
         self.log.info("Test accounts API")
         self._run_subtest(True, self.nodes[0])
         self.log.info("Test labels API")
