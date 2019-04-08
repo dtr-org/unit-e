@@ -2,6 +2,7 @@
 # Copyright (c) 2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+from decimal import Decimal
 
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
 from test_framework.util import (
@@ -10,10 +11,13 @@ from test_framework.util import (
     disconnect_nodes,
     wait_until,
     sync_blocks,
+    assert_finalizationstate,
 )
 
 
-CB_DEFAULT_OUTPUTS = 3
+CB_DEFAULT_OUTPUTS = 2
+FULL_FINALIZATION_REWARD = Decimal(15)
+EPOCH_LENGTH = 5
 
 
 class FinalizationRewardsTest(UnitETestFramework):
@@ -21,101 +25,88 @@ class FinalizationRewardsTest(UnitETestFramework):
         self.num_nodes = 3
         self.setup_clean_chain = True
 
-        esperanza_config = '-esperanzaconfig={"epochLength":5}'
         self.extra_args = [
-            [esperanza_config],
-            [esperanza_config, '-validating=1'],
-            [esperanza_config, '-validating=1'],
+            ['-stakesplitthreshold=0'],
+            ['-stakesplitthreshold=0', '-validating=1'],
+            ['-stakesplitthreshold=0', '-validating=1'],
         ]
+        self.customchainparams = [{}]
 
     def setup_network(self):
         self.setup_nodes()
 
     def run_test(self):
+        def get_coinbase_of_last_block(node):
+            block_hash = node.getbestblockhash()
+            block = node.getblock(block_hash)
+            return node.getrawtransaction(block['tx'][0], True, block_hash)
+
         node = self.nodes[0]
         finalizer1, finalizer2 = self.nodes[1:]
 
         self.setup_stake_coins(*self.nodes)
 
-        # initial setup
-        state = node.getfinalizationstate()
-        assert_equal(state['currentEpoch'], 0)
-        assert_equal(state['currentDynasty'], 0)
-        assert_equal(state['lastFinalizedEpoch'], 0)
-        assert_equal(state['lastJustifiedEpoch'], 0)
-        assert_equal(state['validators'], 0)
-
-        # leave IBD
-        connect_nodes(node, finalizer1.index)
-        connect_nodes(node, finalizer2.index)
-
-        node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-        sync_blocks(self.nodes)
-
-        payto = finalizer1.getnewaddress('', 'legacy')
-        txid = finalizer1.deposit(payto, 10000)
-        wait_until(lambda: txid in node.getrawmempool())
-        payto = finalizer2.getnewaddress('', 'legacy')
-        txid = finalizer2.deposit(payto, 10000)
-        wait_until(lambda: txid in node.getrawmempool())
+        assert_finalizationstate(node, {'currentDynasty': 0,
+                                        'currentEpoch': 0,
+                                        'lastJustifiedEpoch': 0,
+                                        'lastFinalizedEpoch': 0})
 
         proposer_address1 = node.getnewaddress('', 'bech32')
         proposer_address2 = node.getnewaddress('', 'bech32')
 
-        # 0 ... 4 ... 9 ... 14 ... 19 ... 24 ... 29 ... 34 .... 39 40
-        #       F     F     F      F      F      F      J          tip
-        node.generatetoaddress(27, proposer_address1)
-        node.generatetoaddress(12, proposer_address2)
-
-        print(node.getfinalizationstate())
-        # Check the reward output count in the first coinbase of an epoch
-        block_hash = node.getbestblockhash()
-        epoch_first_block = node.getblock(block_hash)
-        epoch_first_cb = node.getrawtransaction(
-            epoch_first_block['tx'][0], True, block_hash)
-        assert_equal(len(epoch_first_cb['vout']), CB_DEFAULT_OUTPUTS + 5)
-
-        print(epoch_first_cb)
-        addresses = sum((x['scriptPubKey']['addresses']
-                         for x in epoch_first_cb['vout'][1:-CB_DEFAULT_OUTPUTS+1]), [])
-        assert_equal(addresses[0:4], [proposer_address1] * 4)
-        assert_equal(addresses[4:], [proposer_address2])
-
-        # Check the reward output count in the last coinbase of an epoch
-        block_hash = epoch_first_block['previousblockhash']
-        epoch_last_block = node.getblock(block_hash)
-        epoch_last_cb = node.getrawtransaction(
-            epoch_last_block['tx'][0], True, block_hash)
-        assert_equal(len(epoch_last_cb['vout']), CB_DEFAULT_OUTPUTS)
-
-        # Check reward amount
-        reward_amount = sum(
-            x['value'] for x in epoch_first_cb['vout'][CB_DEFAULT_OUTPUTS:])
-        assert_equal(reward_amount, PROPOSER_REWARD * 9 * 5)
-
-        disconnect_nodes(node, finalizer2.index)
-
-        # 0 .. 4 .. 9 .. 14 .. 19 .. 24 .. 29 .. 34 .. 39 .. 44 45
-        #      F    F    F     F     F     F     J              tip
-        node.generatetoaddress(5, node.getnewaddress('', 'bech32'))
-        block_hash = node.getbestblockhash()
-        epoch_first_block = node.getblock(block_hash)
-        epoch_first_cb = node.getrawtransaction(
-            epoch_first_block['tx'][0], True, block_hash)
+        node.generatetoaddress(1, proposer_address1)
+        assert_equal(node.getblockcount(), 1)
+        epoch_first_cb = get_coinbase_of_last_block(node)
+        # The first block of the first epoch does not have finalization rewards
         assert_equal(len(epoch_first_cb['vout']), CB_DEFAULT_OUTPUTS)
 
+        connect_nodes(node, finalizer1.index)
         connect_nodes(node, finalizer2.index)
-        # 0 .. 4 .. 9 .. 14 .. 19 .. 24 .. 29 .. 34 .. 39 .. 44 .. 49 .. 54 45
-        #      F    F    F     F     F     F     f     f     F     J        tip
-        node.generatetoaddress(10, node.getnewaddress('', 'bech32'))
+        sync_blocks([node, finalizer1, finalizer2])
 
-        # Check that, if the dynasty is several epochs long, we get the right
-        # number of reward outputs
-        block_hash = node.getbestblockhash()
-        epoch_first_block = node.getblock(block_hash)
-        epoch_first_cb = node.getrawtransaction(
-            epoch_first_block['tx'][0], True, block_hash)
-        assert_equal(len(epoch_first_cb['vout']), CB_DEFAULT_OUTPUTS + 15)
+        payto = finalizer1.getnewaddress('', 'legacy')
+        txid = finalizer1.deposit(payto, 5000)
+        wait_until(lambda: txid in node.getrawmempool())
+        payto = finalizer2.getnewaddress('', 'legacy')
+        txid = finalizer2.deposit(payto, 5000)
+        wait_until(lambda: txid in node.getrawmempool())
+
+        disconnect_nodes(node, finalizer1.index)
+        disconnect_nodes(node, finalizer2.index)
+
+        reward_addresses = [proposer_address1]
+        for i in range(EPOCH_LENGTH - 3):
+            node.generatetoaddress(1, proposer_address1)
+            reward_addresses.append(proposer_address1)
+            assert_equal(len(get_coinbase_of_last_block(node)['vout']), CB_DEFAULT_OUTPUTS)
+
+        for i in range(2):
+            node.generatetoaddress(1, proposer_address2)
+            reward_addresses.append(proposer_address2)
+            assert_equal(len(get_coinbase_of_last_block(node)['vout']), CB_DEFAULT_OUTPUTS)
+
+        node.generatetoaddress(1, proposer_address1)
+
+        # The first block of the second epoch must have finalization rewards for each block of the previous epoch
+        epoch_first_cb = get_coinbase_of_last_block(node)
+        assert_equal(len(epoch_first_cb['vout']), CB_DEFAULT_OUTPUTS + EPOCH_LENGTH)
+
+        for out in epoch_first_cb['vout'][1:EPOCH_LENGTH + 1]:
+            assert_equal(out['value'], FULL_FINALIZATION_REWARD)
+
+        addresses = sum((x['scriptPubKey']['addresses']
+                         for x in epoch_first_cb['vout'][1:EPOCH_LENGTH + 1]), [])
+        assert_equal(addresses, reward_addresses)
+
+        for i in range(EPOCH_LENGTH - 1):
+            node.generatetoaddress(1, proposer_address2)
+            reward_addresses.append(proposer_address2)
+            assert_equal(len(get_coinbase_of_last_block(node)['vout']), CB_DEFAULT_OUTPUTS)
+        node.generatetoaddress(1, proposer_address1)
+        assert_equal(len(get_coinbase_of_last_block(node)['vout']), CB_DEFAULT_OUTPUTS + EPOCH_LENGTH)
+
+        # Check that rewards are not spendable until the corresponding epoch is finalized
+        # Check that rewards are proportional to the number of votes included in the epoch
 
 
 if __name__ == '__main__':
