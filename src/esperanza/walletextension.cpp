@@ -47,17 +47,18 @@ WalletExtension::WalletExtension(const WalletExtensionDeps &dependencies,
   }
 }
 
-template <typename Callable> void WalletExtension::ForEachStakeableCoin(Callable f) const {
+template <typename Callable>
+void WalletExtension::ForEachStakeableCoin(Callable f) const {
   AssertLockHeld(cs_main);
-  AssertLockHeld(m_enclosing_wallet.cs_wallet); // access to mapWallet
+  AssertLockHeld(m_enclosing_wallet.cs_wallet);  // access to mapWallet
 
-  CCoinsViewCache view(pcoinsTip.get()); // requires cs_main
+  CCoinsViewCache view(pcoinsTip.get());  // requires cs_main
   for (const auto &it : m_enclosing_wallet.mapWallet) {
     const CWalletTx *const tx = &it.second;
     const uint256 &txId = tx->GetHash();
     const std::vector<::CTxOut> &coins = tx->tx->vout;
     const CBlockIndex *containing_block;
-    tx->GetDepthInMainChain(containing_block); // requires cs_main
+    tx->GetDepthInMainChain(containing_block);  // requires cs_main
     if (!containing_block) {
       // transaction is not included in a block
       continue;
