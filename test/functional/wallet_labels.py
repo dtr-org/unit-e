@@ -51,27 +51,42 @@ class WalletLabelsTest(UnitETestFramework):
         initial_balance = 10000
         assert_equal(node.getbalance(), 10000)
 
+        address_b = node.getnewaddress('', 'bech32')
+        address_c = node.getnewaddress('', 'bech32')
         # Note each time we call generate, all generated coins go into
         # the same address, so we call twice to get two addresses w/50 each
-        node.generate(1)
+        node.generatetoaddress(1, address_b)
         # slip a hundred blocks in here to make the one generated above
         # and the 101th (first in this series actually) have a mature reward.
-        node.generate(101)
+        node.generatetoaddress(101, address_c)
         reward_for_two_mature_blocks = 3.75 * 2
         assert_equal(node.getbalance(), initial_balance + reward_for_two_mature_blocks)
 
-        # there should be 2 address groups
-        # each with 1 address with a balance of 50 UTEs
+        # there should be 3 address groups
+        # (a) one address which is the staking address which the initial funds were sent to.
+        #     this address does no longer have any funds as they were used for staking and
+        #     were sent to address_b.
+        # (b) one address which the reward from the first call to generatetoaddress was sent to
+        #     it should carry a balance of 3.75 as the stake should have moved on to address C.
+        # (c) one address which the reward from the block at height=2 was sent to (and all
+        #     subsequent ones, but they are not mature yet at this point in time). It should
+        #     also carry the current stake, so 10003.75 in total.
         address_groups = node.listaddressgroupings()
-        assert_equal(len(address_groups), 2)
-        # the addresses aren't linked now, but will be after we send to the
-        # common address
+        assert_equal(len(address_groups), 3)
         linked_addresses = set()
         for address_group in address_groups:
+            # the addresses aren't linked now, so every address group should carry one address only.
             assert_equal(len(address_group), 1)
-            assert_equal(len(address_group[0]), 2)
-            assert_equal(address_group[0][1], 50)
             linked_addresses.add(address_group[0][0])
+        group_a = list(filter(lambda g: g[0][0] != address_b and g[0][0] != address_c, address_groups))
+        group_b = list(filter(lambda g: g[0][0] == address_b, address_groups))
+        group_c = list(filter(lambda g: g[0][0] == address_c, address_groups))
+        assert_equal(1, len(group_a))
+        assert_equal(1, len(group_b))
+        assert_equal(1, len(group_c))
+        assert_equal(group_a[0][0][1], 0)
+        assert_equal(group_b[0][0][1], 3.75)
+        assert_equal(group_c[0][0][1], 10003.75)
 
         # send 50 from each address to a third address not in this wallet
         # There's some fee that will come back to us when the miner reward
