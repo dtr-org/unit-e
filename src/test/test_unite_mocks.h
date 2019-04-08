@@ -271,6 +271,7 @@ class StakeValidatorMock : public staking::StakeValidator {
   bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
   void RememberPieceOfStake(const COutPoint &) override {}
   void ForgetPieceOfStake(const COutPoint &) override {}
+  bool IsStakeMature(const blockchain::Height) const override { return true; };
 };
 
 class CoinsViewMock : public AccessibleCoinsView {

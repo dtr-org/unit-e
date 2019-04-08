@@ -99,6 +99,11 @@ class StakeValidator {
       const COutPoint &  //!< [in] The reference to the UTXO used for staking.
       ) = 0;
 
+  //! \brief Checks whether a piece of stake at the given height is considered mature or not.
+  virtual bool IsStakeMature(
+      const blockchain::Height  //!< [in] The height of the stake coin.
+      ) const = 0;
+
   virtual ~StakeValidator() = default;
 
   static std::unique_ptr<StakeValidator> New(

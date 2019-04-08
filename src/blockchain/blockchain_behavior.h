@@ -65,9 +65,6 @@ class Behavior {
   //! \brief Checks whether the given block hash is the hash of the genesis block.
   bool IsGenesisBlockHash(const uint256 &) const;
 
-  //! \brief Checks whether a piece of stake at the given depth is considered mature or not.
-  bool IsStakeMature(blockchain::Depth) const;
-
   //! \brief The name of this network as a standard string.
   std::string GetNetworkName() const;
 

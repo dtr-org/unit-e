@@ -98,6 +98,7 @@ BASE_SCRIPTS= [
     'mining_prioritisetransaction.py',
     'mempool_limit.py',
     'interface_rest.py',
+    'proposer_stake_maturity.py',
     'mempool_persist.py',
     'wallet_multiwallet.py',
     'mempool_packages.py',
