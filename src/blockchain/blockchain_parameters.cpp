@@ -47,16 +47,16 @@ Parameters Parameters::Base() noexcept {
       return p.genesis_block.block.nBits;
     }
 
-    const auto window_end = chain.AtHeight(h - 1);
-    const auto window_start = chain.AtHeight(h - 2);
+    const CBlockIndex *window_end = chain.AtHeight(h - 1);
+    const CBlockIndex *window_start = chain.AtHeight(h - 2);
 
-    int32_t time_diff_over_window = window_end->nTime - window_start->nTime;
+    const blockchain::Time time_diff_over_window = window_end->nTime - window_start->nTime;
 
     arith_uint256 next_target;
     next_target.SetCompact(window_end->nBits);
 
-    next_target *= ((p.difficulty_adjustment_window - 1) * p.block_time_seconds + time_diff_over_window + time_diff_over_window);
-    next_target /= ((p.difficulty_adjustment_window + 1) * p.block_time_seconds);
+    next_target *= (p.difficulty_adjustment_window - 1) * p.block_time_seconds + time_diff_over_window + time_diff_over_window;
+    next_target /= (p.difficulty_adjustment_window + 1) * p.block_time_seconds;
 
     return next_target.GetCompact();
   };
