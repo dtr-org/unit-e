@@ -35,7 +35,7 @@ class FinalizationRewardLogicStub : public proposer::FinalizationRewardLogic {
   }
 };
 
-} // namespace
+}  // namespace
 
 BOOST_AUTO_TEST_SUITE(walletextension_tests)
 
