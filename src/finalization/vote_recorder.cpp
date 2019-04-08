@@ -159,17 +159,17 @@ boost::optional<VoteRecord> VoteRecorder::GetVote(const uint160 &validatorAddres
   return boost::none;
 }
 
-void VoteRecorder::Init(const DBParams &p) {
+void VoteRecorder::Init(const DBParams &params) {
   LOCK(cs_recorder);
   if (!g_voteRecorder) {
     //not using make_shared since the ctor is private
-    g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder(p));
+    g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder(params));
   }
 }
 
-void VoteRecorder::Reset(const DBParams &p) {
+void VoteRecorder::Reset(const DBParams &params) {
   LOCK(cs_recorder);
-  g_voteRecorder.reset(new VoteRecorder(p));
+  g_voteRecorder.reset(new VoteRecorder(params));
 }
 
 std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {

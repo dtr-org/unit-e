@@ -81,8 +81,8 @@ class VoteRecorder : private boost::noncopyable {
   boost::optional<VoteRecord> GetVote(const uint160 &validatorAddress,
                                       uint32_t epoch) const;
 
-  static void Init(const DBParams &p);
-  static void Reset(const DBParams &p);
+  static void Init(const DBParams &params);
+  static void Reset(const DBParams &params);
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 
