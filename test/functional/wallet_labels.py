@@ -16,15 +16,24 @@ Run the test twice - once using the accounts API and once using the labels API.
 The accounts API test can be removed in V0.18.
 """
 from collections import defaultdict
+from decimal import Decimal
 
 from test_framework.test_framework import UnitETestFramework
-from test_framework.util import assert_equal, assert_raises_rpc_error
+from test_framework.util import (
+    assert_equal,
+    assert_raises_rpc_error,
+    connect_nodes,
+    connect_nodes_bi,
+    sync_blocks,
+    sync_mempools
+)
 
 class WalletLabelsTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
-        self.num_nodes = 2
-        self.extra_args = [['-deprecatedrpc=accounts'], []]
+        self.num_nodes = 4
+        self.extra_args = [[]] * 4
+        self.extra_args[0] = ['-deprecatedrpc=accounts']
 
     def setup_network(self):
         """Don't connect nodes."""
@@ -35,12 +44,15 @@ class WalletLabelsTest(UnitETestFramework):
 
     def run_test(self):
         """Run the test twice - once using the accounts API and once using the labels API."""
+        self.setup_stake_coins(*self.nodes[2:], offset=2)
         self.log.info("Test accounts API")
-        self._run_subtest(True, self.nodes[0])
+        self._run_subtest(True, node_index=0, some_other_node_index=2)
         self.log.info("Test labels API")
-        self._run_subtest(False, self.nodes[1])
+        self._run_subtest(False, node_index=1, some_other_node_index=3)
 
-    def _run_subtest(self, accounts_api, node):
+    def _run_subtest(self, accounts_api, node_index, some_other_node_index):
+        node = self.nodes[node_index]
+        some_other_node = self.nodes[some_other_node_index]
         # Check that there's no spendable UTXO in any wallet on the node
         assert_equal(len(node.listunspent()), 0)
         # Unlock initial fund just for this node
@@ -49,7 +61,7 @@ class WalletLabelsTest(UnitETestFramework):
         assert_equal(len(node.listunspent()), 1)
         # The unlocked funds are 10000
         initial_balance = 10000
-        assert_equal(node.getbalance(), 10000)
+        assert_equal(node.getbalance(), initial_balance)
 
         address_b = node.getnewaddress('', 'bech32')
         address_c = node.getnewaddress('', 'bech32')
@@ -81,34 +93,77 @@ class WalletLabelsTest(UnitETestFramework):
         group_a = list(filter(lambda g: g[0][0] != address_b and g[0][0] != address_c, address_groups))
         group_b = list(filter(lambda g: g[0][0] == address_b, address_groups))
         group_c = list(filter(lambda g: g[0][0] == address_c, address_groups))
+        # there should be only one group for each address
         assert_equal(1, len(group_a))
         assert_equal(1, len(group_b))
         assert_equal(1, len(group_c))
+        # and each group should hold just one address
+        assert_equal(1, len(group_a[0]))
+        assert_equal(1, len(group_b[0]))
+        assert_equal(1, len(group_c[0]))
+        # with the aforementioned balances
         assert_equal(group_a[0][0][1], 0)
         assert_equal(group_b[0][0][1], 3.75)
         assert_equal(group_c[0][0][1], 10003.75)
 
-        # send 50 from each address to a third address not in this wallet
-        # There's some fee that will come back to us when the miner reward
-        # matures.
-        common_address = "msf4WtN1YQKXvNtvdFYt9JBnUD2FB41kjr"
+        # connect that other node
+        connect_nodes_bi(self.nodes, node_index, some_other_node_index)
+
+        # send everything (0 + 3.75 + 10003.75 = 10007.5)
+        common_address = some_other_node.getnewaddress('', 'bech32')
         txid = node.sendmany(
             fromaccount="",
-            amounts={common_address: 100},
+            amounts={common_address: 10007.5},
             subtractfeefrom=[common_address],
             minconf=1,
         )
+        # this transaction should hold the whole balance of this wallet give or take some fees.
         tx_details = node.gettransaction(txid)
         fee = -tx_details['details'][0]['fee']
-        # there should be 1 address group, with the previously
-        # unlinked addresses now linked (they both have 0 balance)
+        # when we sent money we sent from address_b and address_c only as address_a did have
+        # a balance of zero. Hence address_b and address_c should be joined in an address group
+        # now, and address_a should remain in it's own address group. A fourth address, part of
+        # the same group as address_a and address_b should have the fees.
         address_groups = node.listaddressgroupings()
-        assert_equal(len(address_groups), 1)
-        assert_equal(len(address_groups[0]), 2)
-        assert_equal(set([a[0] for a in address_groups[0]]), linked_addresses)
-        assert_equal([a[1] for a in address_groups[0]], [0, 0])
+        # This makes a total of two groups.
+        assert_equal(len(address_groups), 2)
+        # address_a will be on it's own now
+        group_a = list(filter(lambda g: g[0][0] != address_b and g[0][0] != address_c, address_groups))
+        # there should be just one group with address_a
+        assert_equal(len(group_a), 1)
+        # that group should have just that one address
+        assert_equal(len(group_a[0]), 1)
+        group_bc = list(filter(lambda g: g[0][0] == address_b or g[0][0] == address_c, address_groups))
+        # there should be just one group holding address_b and address_c
+        assert_equal(len(group_bc), 1)
+        # that group should hold two addresses
+        assert_equal(len(group_bc[0]), 2)
+        # which should be address_b and address_c
+        assert_equal(set(map(lambda g: g[0], group_bc[0])), set([address_b, address_c]))
+        # the total balance should be zero as we sent everything to the common_address
+        # at some_other_node
+        assert_equal(node.getbalance(), 0)
 
-        node.generate(1)
+        # common_address_privkey = some_other_node.dumpprivkey(common_address)
+        # # take back our funds
+        # node.importprivkey(common_address_privkey)
+        # assert_equal(node.getbalance(), Decimal(10007.5) - fee)
+        # # these coins should not be stakeable as they do not have any confirmations
+        # assert_equal(node.proposerstatus()['wallets'][0]['stakeable_balance'], 0)
+        # assert_raises_rpc_error(-1, "no stakeable coins.", node.generate, 1)
+
+        # the other node should have funds to generate a block
+        sync_blocks([node, some_other_node])
+        sync_mempools([node, some_other_node])
+        some_other_node.generatetoaddress(1, common_address)
+
+        print(node.getbalance())
+        print(some_other_node.getbalance())
+
+        assert_equal(some_other_node.getbalance(), Decimal(20007.5) - fee)
+
+        # make funds from some_other_node available to node
+        node.importprivkey(some_other_node.dumpprivkey(common_address))
 
         # we want to reset so that the "" label has what's expected.
         # otherwise we're off by exactly the fee amount as that's mined
@@ -122,14 +177,16 @@ class WalletLabelsTest(UnitETestFramework):
         labels = [Label(name, accounts_api) for name in ("a", "b", "c", "d", "e")]
         for label in labels:
             if accounts_api:
+                print("accounts")
                 address = node.getaccountaddress(label.name)
             else:
+                print("labels")
                 address = node.getnewaddress(label.name)
             label.add_receive_address(address)
             label.verify(node)
 
         # Check all labels are returned by listlabels.
-        assert_equal(node.listlabels(), [label.name for label in labels])
+        assert_equal(list(filter(lambda l: l, node.listlabels())), [label.name for label in labels])
 
         # Send a transaction to each label, and make sure this forces
         # getaccountaddress to generate a new receiving address.
@@ -168,12 +225,12 @@ class WalletLabelsTest(UnitETestFramework):
                 node.move(label.name, "", node.getbalance(label.name))
             label.verify(node)
         node.generate(101)
-        expected_account_balances = {"": 5200}
+        expected_account_balances = {"": 20397.5} # 20k + 3.75 * #no blocks reward
         for label in labels:
             expected_account_balances[label.name] = 0
         if accounts_api:
             assert_equal(node.listaccounts(), expected_account_balances)
-            assert_equal(node.getbalance(""), 5200)
+            assert_equal(node.getbalance(""), 20397.5)
 
         # Check that setlabel can assign a label to a new unused address.
         for label in labels:

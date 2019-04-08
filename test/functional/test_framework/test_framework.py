@@ -291,10 +291,10 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         self.add_nodes(self.num_nodes, extra_args)
         self.start_nodes()
 
-    def setup_stake_coins(self, *args, rescan=True):
+    def setup_stake_coins(self, *args, rescan=True, offset=0):
         for i, node in enumerate(args):
-            node.importmasterkey(regtest_mnemonics[i+2]['mnemonics'], "", rescan)
-            node.initial_stake = regtest_mnemonics[i+2]['balance']
+            node.importmasterkey(regtest_mnemonics[offset+i+2]['mnemonics'], "", rescan)
+            node.initial_stake = regtest_mnemonics[offset+i+2]['balance']
 
     def import_deterministic_coinbase_privkeys(self):
         if self.setup_clean_chain:
