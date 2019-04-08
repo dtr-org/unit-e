@@ -629,7 +629,7 @@ class FullBlockTest(UnitETestFramework):
         self.tip = b46
         assert 46 not in self.blocks
         self.blocks[46] = b46
-        self.set_block_snapshot_meta(b46)        
+        self.set_block_snapshot_meta(b46)
         self.sync_blocks([b46], success=False, reject_code=16, reject_reason=b'bad-blk-length', reconnect=True)
         self.comp_snapshot_hash(44)
 
