@@ -170,6 +170,12 @@ UNITE_CORE_H = \
   p2p/finalizer_commits_handler.h \
   p2p/finalizer_commits_handler_impl.h \
   p2p/finalizer_commits_types.h \
+  p2p/graphene.h \
+  p2p/graphene_common.h \
+  p2p/graphene_hasher.h \
+  p2p/graphene_messages.h \
+  p2p/graphene_receiver.h \
+  p2p/graphene_sender.h \
   policy/feerate.h \
   policy/fees.h \
   policy/policy.h \
@@ -244,12 +250,14 @@ UNITE_CORE_H = \
   trit.h \
   txdb.h \
   txmempool.h \
+  txpool.h \
   ufp64.h \
   ui_interface.h \
   undo.h \
   unilib/uninorms.h \
   unilib/utf8.h \
   util.h \
+  util/scope_stopwatch.h \
   utilmoneystr.h \
   utiltime.h \
   utiltypetags.h \
@@ -321,6 +329,10 @@ libunite_server_a_SOURCES = \
   p2p/finalizer_commits_handler.cpp \
   p2p/finalizer_commits_handler_impl.cpp \
   p2p/finalizer_commits_types.cpp \
+  p2p/graphene.cpp \
+  p2p/graphene_hasher.cpp \
+  p2p/graphene_receiver.cpp \
+  p2p/graphene_sender.cpp \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
@@ -362,6 +374,7 @@ libunite_server_a_SOURCES = \
   trit.cpp \
   txdb.cpp \
   txmempool.cpp \
+  txpool.cpp \
   ui_interface.cpp \
   validation.cpp \
   validationinterface.cpp \

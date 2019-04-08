@@ -45,6 +45,10 @@ const char *GETSNAPSHOT="getsnapshot";
 const char *SNAPSHOT="snapshot";
 const char *GETCOMMITS="getcommits";
 const char *COMMITS="commits";
+const char *GETGRAPHENE="getgraphene";
+const char *GRAPHENEBLOCK="graphenblock"; // Not a typo. Message lengths are limited to 12 chars
+const char *GETGRAPHENETX="getgraphentx"; // Not a typo. Message lengths are limited to 12 chars
+const char *GRAPHENETX="graphenetx";
 } // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of
@@ -83,6 +87,10 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::SNAPSHOT,
     NetMsgType::GETCOMMITS,
     NetMsgType::COMMITS,
+    NetMsgType::GETGRAPHENE,
+    NetMsgType::GRAPHENEBLOCK,
+    NetMsgType::GETGRAPHENETX,
+    NetMsgType::GRAPHENETX
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes+ARRAYLEN(allNetMessageTypes));
 

@@ -81,7 +81,7 @@ class TestNode(P2PInterface):
             self.send_message(msg_inv(inv=[CInv(2, block.sha256)]))
             self.wait_for_getheaders()
             self.send_message(msg)
-        self.wait_for_getdata()
+        self.wait_for_block_request(block.sha256)
 
     def request_block(self, blockhash, inv_type, timeout=60):
         with mininode_lock:
@@ -613,20 +613,17 @@ class SegWitTest(UnitETestFramework):
         block1.solve()
 
         self.test_node.announce_block_and_wait_for_getdata(block1, use_header=False)
-        assert self.test_node.last_message["getdata"].inv[0].type == blocktype
         test_witness_block(self.nodes[0].rpc, self.test_node, block1, True)
 
         block2 = self.build_next_block(nVersion=4)
         block2.solve()
 
         self.test_node.announce_block_and_wait_for_getdata(block2, use_header=True)
-        assert self.test_node.last_message["getdata"].inv[0].type == blocktype
         test_witness_block(self.nodes[0].rpc, self.test_node, block2, True)
 
         block3 = self.build_next_block(nVersion=4)
         block3.solve()
         self.test_node.announce_block_and_wait_for_getdata(block3, use_header=True)
-        assert self.test_node.last_message["getdata"].inv[0].type == blocktype
         test_witness_block(self.nodes[0].rpc, self.test_node, block3, True)
 
         # Witness blocks and non-witness blocks should be different.

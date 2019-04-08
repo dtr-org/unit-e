@@ -54,6 +54,10 @@ MESSAGEMAP = {
     b"notfound": msg_notfound,
     b"getcommits": msg_getcommits,
     b"commits": msg_commits,
+    b"getgraphene": msg_getgraphene,
+    b"graphenblock": msg_graphenblock,
+    b"getgraphentx": msg_getgraphentx,
+    b"graphenetx": msg_graphenetx,
 }
 
 MAGIC_BYTES = {
@@ -341,6 +345,9 @@ class P2PInterface(P2PConnection):
     def on_snapshot(self, message): pass
     def on_getcommits(self, message): pass
     def on_commits(self, message): pass
+    def on_graphenblock(self, message): pass
+    def on_getgraphentx(self, message): pass
+    def on_graphenetx(self, message): pass
 
     def on_inv(self, message):
         want = msg_getdata()
@@ -349,6 +356,9 @@ class P2PInterface(P2PConnection):
                 want.inv.append(i)
         if len(want.inv):
             self.send_message(want)
+
+    def on_getgraphene(self, message):
+        self.on_getdata(msg_getdata([CInv(2, message.request.requested_block_hash)]))
 
     def on_ping(self, message):
         self.send_message(msg_pong(message.nonce))
@@ -375,6 +385,24 @@ class P2PInterface(P2PConnection):
 
     def wait_for_getdata(self, timeout=60):
         test_function = lambda: self.last_message.get("getdata")
+        wait_until(test_function, timeout=timeout, lock=mininode_lock)
+
+    def wait_for_block_request(self, block_hash, timeout=60):
+        def test_function():
+            getdata = self.last_message.get("getdata", None)
+            getgraphene = self.last_message.get("getgraphene", None)
+
+            if getdata:
+                for inv in getdata.inv:
+                    if inv.hash == block_hash:
+                        return True
+
+            if getgraphene:
+                if getgraphene.request.requested_block_hash == block_hash:
+                    return True
+
+            return False
+
         wait_until(test_function, timeout=timeout, lock=mininode_lock)
 
     def wait_for_getheaders(self, timeout=60):

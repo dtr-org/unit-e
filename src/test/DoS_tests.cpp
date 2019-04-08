@@ -23,12 +23,6 @@
 extern bool AddOrphanTx(const CTransactionRef& tx, NodeId peer);
 extern void EraseOrphansFor(NodeId peer);
 extern unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans);
-struct COrphanTx {
-    CTransactionRef tx;
-    NodeId fromPeer;
-    int64_t nTimeExpire;
-};
-extern std::map<uint256, COrphanTx> mapOrphanTransactions;
 
 CService ip(uint32_t i)
 {
@@ -293,7 +287,7 @@ BOOST_AUTO_TEST_CASE(DoS_bantime)
 CTransactionRef RandomOrphan()
 {
     std::map<uint256, COrphanTx>::iterator it;
-    LOCK(cs_main);
+    LOCK2(cs_main, g_cs_orphans);
     it = mapOrphanTransactions.lower_bound(InsecureRand256());
     if (it == mapOrphanTransactions.end())
         it = mapOrphanTransactions.begin();
@@ -363,7 +357,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         BOOST_CHECK(!AddOrphanTx(MakeTransactionRef(tx), i));
     }
 
-    LOCK(cs_main);
+    LOCK2(cs_main, g_cs_orphans);
     // Test EraseOrphansFor:
     for (NodeId i = 0; i < 3; i++)
     {

@@ -17,6 +17,7 @@
 #include <merkleblock.h>
 #include <netmessagemaker.h>
 #include <netbase.h>
+#include <p2p/graphene.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <primitives/block.h>
@@ -50,13 +51,8 @@ struct IteratorComparator
     }
 };
 
-struct COrphanTx {
-    // When modifying, adapt the copy of this definition in tests/DoS_tests.
-    CTransactionRef tx;
-    NodeId fromPeer;
-    int64_t nTimeExpire;
-};
-static CCriticalSection g_cs_orphans;
+
+CCriticalSection g_cs_orphans;
 std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
 std::map<COutPoint, std::set<std::map<uint256, COrphanTx>::iterator, IteratorComparator>> mapOrphanTransactionsByPrev GUARDED_BY(g_cs_orphans);
 void EraseOrphansFor(NodeId peer);
@@ -74,19 +70,12 @@ static const int STALE_RELAY_AGE_LIMIT = 30 * 24 * 60 * 60;
 /// limiting block relay. Set to one week, denominated in seconds.
 static const int HISTORICAL_BLOCK_AGE = 7 * 24 * 60 * 60;
 
+std::map<uint256, std::pair<NodeId, bool>> mapBlockSource;
+
 // Internal stuff
 namespace {
     /** Number of nodes with fSyncStarted. */
     int nSyncStarted = 0;
-
-    /**
-     * Sources of received blocks, saved to be able to send them reject
-     * messages or ban them when processing happens afterwards. Protected by
-     * cs_main.
-     * Set mapBlockSource[hash].second to false if the node should not be
-     * punished if the block is invalid.
-     */
-    std::map<uint256, std::pair<NodeId, bool>> mapBlockSource;
 
     /**
      * Filter for transactions that were recently rejected by
@@ -304,9 +293,8 @@ void PushNodeVersion(CNode *pnode, CConnman* connman, int64_t nTime)
     }
 }
 
-// Requires cs_main.
-// Returns a bool indicating whether we requested this block.
-// Also used if a block was /not/ received and timed out or started with another peer
+} // namespace
+
 bool MarkBlockAsReceived(const uint256& hash) {
     std::map<uint256, std::pair<NodeId, std::list<QueuedBlock>::iterator> >::iterator itInFlight = mapBlocksInFlight.find(hash);
     if (itInFlight != mapBlocksInFlight.end()) {
@@ -324,11 +312,14 @@ bool MarkBlockAsReceived(const uint256& hash) {
         state->vBlocksInFlight.erase(itInFlight->second.second);
         state->nBlocksInFlight--;
         state->nStallingSince = 0;
+        GetComponent<p2p::GrapheneReceiver>()->OnMarkedAsReceived(itInFlight->second.first, itInFlight->first);
         mapBlocksInFlight.erase(itInFlight);
         return true;
     }
     return false;
 }
+
+namespace {
 
 // Requires cs_main.
 // returns false, still setting pit, if the block was already in flight from the same peer
@@ -619,6 +610,9 @@ void PeerLogicValidation::FinalizeNode(NodeId nodeid, bool& fUpdateConnectionTim
     LogPrint(BCLog::NET, "Cleared nodestate for peer=%d\n", nodeid);
 
     GetComponent<p2p::FinalizerCommitsHandler>()->OnDisconnect(nodeid);
+
+    GetComponent<p2p::GrapheneSender>()->OnDisconnected(nodeid);
+    GetComponent<p2p::GrapheneReceiver>()->OnDisconnected(nodeid);
 }
 
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats) {
@@ -1148,15 +1142,19 @@ void static ProcessGetBlockData(CNode* pfrom, const Consensus::Params& consensus
             // else
                 // no response
         }
-        else if (inv.type == MSG_CMPCT_BLOCK)
+        else if (inv.type == MSG_CMPCT_BLOCK || inv.type == MSG_GRAPHENE_BLOCK)
         {
             // If a peer is asking for old blocks, we're almost guaranteed
             // they won't have a useful mempool to match against a compact block,
             // and we don't feel like constructing the object for them, so
             // instead we respond with the full, non-compact block.
             int nSendFlags = 0;
+            // UNITE TODO: extract own MAX_CMPCTBLOCK_DEPTH-like constant for graphene and estimate its value
             if (CanDirectFetch(consensusParams) && mi->second->nHeight >= chainActive.Height() - MAX_CMPCTBLOCK_DEPTH) {
-                if (a_recent_compact_block && a_recent_compact_block->header.GetHash() == mi->second->GetBlockHash()) {
+                if (inv.type == MSG_GRAPHENE_BLOCK && GetComponent<p2p::GrapheneSender>()->SendBlock(*pfrom, *pblock, *mi->second)) {
+                    // Do nothing, SendBlock already did what needed
+                }
+                else if (a_recent_compact_block && a_recent_compact_block->header.GetHash() == mi->second->GetBlockHash()) {
                     connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::CMPCTBLOCK, *a_recent_compact_block));
                 } else {
                     CBlockHeaderAndShortTxIDs cmpctblock(*pblock);
@@ -1179,6 +1177,14 @@ void static ProcessGetBlockData(CNode* pfrom, const Consensus::Params& consensus
             pfrom->hashContinue.SetNull();
         }
     }
+}
+
+bool IsBlockInv(const CInv &inv) {
+    return inv.type == MSG_BLOCK ||
+           inv.type == MSG_FILTERED_BLOCK ||
+           inv.type == MSG_CMPCT_BLOCK ||
+           inv.type == MSG_WITNESS_BLOCK ||
+           inv.type == MSG_GRAPHENE_BLOCK;
 }
 
 void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParams, CConnman* connman, const std::atomic<bool>& interruptMsgProc)
@@ -1227,7 +1233,7 @@ void static ProcessGetData(CNode* pfrom, const Consensus::Params& consensusParam
 
     if (it != pfrom->vRecvGetData.end() && !pfrom->fPauseSend) {
         const CInv &inv = *it;
-        if (inv.type == MSG_BLOCK || inv.type == MSG_FILTERED_BLOCK || inv.type == MSG_CMPCT_BLOCK || inv.type == MSG_WITNESS_BLOCK) {
+        if (IsBlockInv(inv)) {
             it++;
             ProcessGetBlockData(pfrom, consensusParams, inv, connman, interruptMsgProc);
         }
@@ -1440,16 +1446,21 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
                     LogPrint(BCLog::NET, "Requesting block %s from  peer=%d\n",
                             pindex->GetBlockHash().ToString(), pfrom->GetId());
                 }
+
                 if (vGetData.size() > 1) {
                     LogPrint(BCLog::NET, "Downloading blocks toward %s (%d) via headers direct fetch\n",
                             pindexLast->GetBlockHash().ToString(), pindexLast->nHeight);
                 }
-                if (vGetData.size() > 0) {
-                    if (nodestate->fSupportsDesiredCmpctVersion && vGetData.size() == 1 && nodestate->nBlocksInFlight == 1 && pindexLast->pprev->IsValid(BLOCK_VALID_CHAIN)) {
-                        // In any case, we want to download using a compact block, not a regular one
-                        vGetData[0] = CInv(MSG_CMPCT_BLOCK, vGetData[0].hash);
+
+                const auto graphene = GetComponent<p2p::GrapheneReceiver>();
+                if (!graphene->RequestBlocks(*pfrom, *pindexLast, mapBlocksInFlight.size(), vGetData)) {
+                    if (vGetData.size() > 0) {
+                        if (nodestate->fSupportsDesiredCmpctVersion && vGetData.size() == 1 && nodestate->nBlocksInFlight == 1 && pindexLast->pprev->IsValid(BLOCK_VALID_CHAIN)) {
+                            // In any case, we want to download using a compact block, not a regular one
+                            vGetData[0] = CInv(MSG_CMPCT_BLOCK, vGetData[0].hash);
+                        }
+                        connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETDATA, vGetData));
                     }
-                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETDATA, vGetData));
                 }
             }
         }
@@ -2872,6 +2883,35 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             State(pfrom->GetId())->rejects.emplace_back(std::move(reject));
         }
         return false;
+    }
+
+    else if (strCommand == NetMsgType::GETGRAPHENE) {
+        p2p::GrapheneBlockRequest graphene_block_request;
+        vRecv >> graphene_block_request;
+
+        GetComponent<p2p::GrapheneSender>()->UpdateRequesterTxPoolCount(*pfrom, graphene_block_request.requester_mempool_count);
+
+        // ProcessGetData does not accept actual data, instead it reads it from vRecvGetData
+        pfrom->vRecvGetData.emplace_back(MSG_GRAPHENE_BLOCK, graphene_block_request.requested_block_hash);
+        ProcessGetData(pfrom, chainparams.GetConsensus(), connman, interruptMsgProc);
+    }
+
+    else if (strCommand == NetMsgType::GRAPHENEBLOCK && !fImporting && !fReindex) { // Ignore blocks received while importing
+        p2p::GrapheneBlock graphene_block;
+        vRecv >> graphene_block;
+        GetComponent<p2p::GrapheneReceiver>()->OnGrapheneBlockReceived(*pfrom, graphene_block);
+    }
+
+    else if (strCommand == NetMsgType::GETGRAPHENETX) {
+        p2p::GrapheneTxRequest graphene_tx_request;
+        vRecv >> graphene_tx_request;
+        GetComponent<p2p::GrapheneSender>()->OnGrapheneTxRequestReceived(*pfrom, graphene_tx_request);
+    }
+
+    else if (strCommand == NetMsgType::GRAPHENETX) {
+        p2p::GrapheneTx graphene_tx;
+        vRecv >> graphene_tx;
+        GetComponent<p2p::GrapheneReceiver>()->OnGrapheneTxReceived(*pfrom, graphene_tx);
     }
 
     else {

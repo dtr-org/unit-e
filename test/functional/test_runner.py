@@ -75,8 +75,10 @@ BASE_SCRIPTS= [
     'feature_no_esperanza_tx_relay_delay.py',
     'esperanza_admin_full_cycle.py',
     'wallet_basic.py',
+    'feature_graphene_passive.py',
     'p2p_feefilter.py',
     'feature_assumevalid.py',
+    'feature_graphene_active.py',
     # vv Tests less than 30s vv
     'wallet_keys.py',
     'p2p_compactblocks.py',

@@ -85,13 +85,24 @@ def deser_string(f):
 def ser_string(s):
     return ser_compact_size(len(s)) + s
 
+def deser_uint32(f):
+    return struct.unpack("<I", f.read(4))[0]
+
+def deser_uint64(f):
+    return struct.unpack("<Q", f.read(8))[0]
+
 def deser_uint256(f):
     r = 0
     for i in range(8):
-        t = struct.unpack("<I", f.read(4))[0]
+        t = deser_uint32(f)
         r += t << (i * 32)
     return r
 
+def ser_uint32(u):
+    return struct.pack("<I", u & 0xFFFFFFFF)
+
+def ser_uint64(u):
+    return struct.pack("<Q", u & 0xFFFFFFFFFFFFFFFF)
 
 def ser_uint256(u):
     return int(u).to_bytes(32, 'little')
@@ -1754,3 +1765,251 @@ class msg_commits:
         r += struct.pack("<B", self.status)
         r += ser_vector(self.data)
         return r
+
+
+class GrapheneBlockRequest:
+    def __init__(self, requested_block_hash=None, requester_mempool_count=0):
+        self.requested_block_hash = requested_block_hash
+        self.requester_mempool_count = requester_mempool_count
+
+    def deserialize(self, f):
+        self.requested_block_hash = deser_uint256(f)
+        self.requester_mempool_count = deser_uint64(f)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.requested_block_hash)
+        r += ser_uint64(self.requester_mempool_count)
+        return r
+
+    def __repr__(self):
+        return "GrapheneBlockRequest(hash=%064x mempool=%d)" % (self.requested_block_hash, self.requester_mempool_count)
+
+
+class msg_getgraphene:
+    command = b'getgraphene'
+
+    def __init__(self, request=None):
+        if request is None:
+            self.request = GrapheneBlockRequest()
+        else:
+            self.request = request
+
+    def deserialize(self, f):
+        self.request.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.request.serialize()
+        return r
+
+    def __repr__(self):
+        return "msg_getgraphene(request=%s)" % (repr(self.request))
+
+
+class CBloomFilterDummy:
+    def __init__(self):
+        self.vData = b"ffff"
+        self.nHashFuncs = 1
+        self.nTweak = 0
+        self.nFlags = 0
+
+    def deserialize(self, f):
+        self.vData = deser_string(f)
+        self.nHashFuncs = struct.unpack("<I", f.read(4))[0]
+        self.nTweak = struct.unpack("<I", f.read(4))[0]
+        self.nFlags = struct.unpack("<B", f.read(1))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_string(self.vData)
+        r += struct.pack("<I", self.nHashFuncs & 0xFFFFFFFF)
+        r += struct.pack("<I", self.nTweak & 0xFFFFFFFF)
+        r += struct.pack("<B", self.nFlags & 0xFF)
+
+        return r
+
+    def __repr__(self):
+        return "CBloomFilterDummy"
+
+
+class GrapheneIbltEntryDummy:
+    def __init__(self):
+        self.count = 0
+        self.key_sum = 0
+        self.key_check = 0
+
+    def serialize(self):
+        r = b""
+        r += ser_compact_size(self.count)
+        r += ser_uint64(self.key_sum)
+        r += ser_uint32(self.key_check)
+
+        return r
+
+    def deserialize(self, f):
+        self.count = deser_compact_size(f)
+        self.key_sum = deser_uint64(f)
+        self.key_check = deser_uint32(f)
+
+
+# Can serialize/deserialize IBLT as is,
+# but does not contain IBLT computation logic
+class GrapheneIbltDummy:
+    def __init__(self):
+        self.hash_table = []
+        self.num_hashes = 1
+
+    def deserialize(self, f):
+        self.hash_table = deser_vector(f, GrapheneIbltEntryDummy)
+        self.num_hashes = struct.unpack("<B", f.read(1))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_vector(self.hash_table)
+        r += struct.pack("<B", self.num_hashes & 0xFF)
+        return r
+
+    def __repr__(self):
+        return "GrapheneIbltDummy"
+
+
+class GrapheneBlock:
+    def __init__(self):
+        self.header = CBlockHeader()
+        self.nonce = 0
+        self.bloom_filter = CBloomFilterDummy()
+        self.iblt = GrapheneIbltDummy()
+        self.prefilled_transactions = []
+
+    def deserialize(self, f):
+        self.header.deserialize(f)
+        self.nonce = deser_uint64(f)
+        self.bloom_filter.deserialize(f)
+        self.iblt.deserialize(f)
+        self.prefilled_transactions = deser_vector(f, CTransaction)
+
+    def serialize(self):
+        r = b""
+        r += self.header.serialize()
+        r += ser_uint64(self.nonce)
+        r += self.bloom_filter.serialize()
+        r += self.iblt.serialize()
+        r += ser_vector(self.prefilled_transactions)
+
+        return r
+
+    def __repr__(self):
+        return "GrapheneBlock(header=%s, nonce=%s, bloom_filter=%s, iblt=%s, prefilled_transactions=%s)" % \
+               (repr(self.header), repr(self.nonce), repr(self.bloom_filter), repr(self.iblt), repr(self.prefilled_transactions))
+
+
+class msg_graphenblock:
+    command = b'graphenblock'
+
+    def __init__(self, block=None):
+        if block is None:
+            self.block = GrapheneBlock()
+        else:
+            self.block = block
+
+    def deserialize(self, f):
+        self.block.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.block.serialize()
+        return r
+
+    def __repr__(self):
+        return "msg_graphenblock(block=%s)" % repr(self.block)
+
+
+class GrapheneTxRequest:
+    def __init__(self):
+        self.block_hash = None
+        self.missing_tx_short_hashes = []
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.block_hash)
+        r += ser_compact_size(len(self.missing_tx_short_hashes))
+        for hash in self.missing_tx_short_hashes:
+            r += ser_uint64(hash)
+
+        return r
+
+    def deserialize(self, f):
+        self.block_hash = deser_uint256(f)
+        self.missing_tx_short_hashes.clear()
+        for _ in range(deser_compact_size(f)):
+            self.missing_tx_short_hashes.append(deser_uint64(f))
+
+    def __repr__(self):
+        return "GrapheneTxRequest(block_hash=%064x missing_tx_short_hashes=%s)" %\
+               (self.block_hash, repr(self.missing_tx_short_hashes))
+
+
+class msg_getgraphentx:
+    command = b"getgraphentx"
+
+    def __init__(self):
+        self.request = GrapheneTxRequest()
+
+    def serialize(self):
+        r = "b"
+        r += self.request.serialize()
+        return r
+
+    def deserialize(self, f):
+        self.request.deserialize(f)
+
+    def __repr__(self):
+        return "msg_getgraphentx(request=%s)" % repr(self.request)
+
+
+class GrapheneTx:
+    def __init__(self, block_hash=None, txs=None):
+        if block_hash is None:
+            self.block_hash = None
+        else:
+            self.block_hash = block_hash
+
+        if txs is None:
+            self.txs = []
+        else:
+            self.txs = txs
+
+    def deserialize(self, f):
+        self.block_hash = deser_uint256(f)
+        self.txs = deser_vector(f, CTransaction)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.block_hash)
+        r += ser_vector(self.txs, "serialize_with_witness")
+        return r
+
+    def __repr__(self):
+        return "GrapheneTx(hash=%064x transactions=%s)" % (self.block_hash, repr(self.txs))
+
+
+class msg_graphenetx:
+    command = b"graphenetx"
+
+    def __init__(self, graphene_tx=None):
+        if graphene_tx is None:
+            self.graphene_tx = GrapheneTx()
+        else:
+            self.graphene_tx = graphene_tx
+
+    def deserialize(self, f):
+        self.graphene_tx.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.graphene_tx.serialize()
+        return r
+
+    def __repr__(self):
+        return "msg_graphenetx(graphene_tx=%s)" % repr(self.graphene_tx)
