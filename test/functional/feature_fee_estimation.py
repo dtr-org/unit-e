@@ -135,9 +135,13 @@ class EstimateFeeTest(UnitETestFramework):
         But first we need to use one node to create a lot of outputs
         which we will use to generate our transactions.
         """
-        self.add_nodes(3, extra_args=[["-maxorphantx=1000", "-whitelist=127.0.0.1", "-limitancestorcount=150"],
-                                      ["-blockmaxweight=68000", "-maxorphantx=1000", "-limitancestorcount=150"],
-                                      ["-blockmaxweight=32000", "-maxorphantx=1000", "-limitancestorcount=150"]])
+        self.add_nodes(3, extra_args=[[
+            "-maxorphantx=1000", "-whitelist=127.0.0.1", "-limitancestorcount=150", "-limitdescendantcount=150"
+        ], [
+            "-blockmaxweight=68000", "-maxorphantx=1000", "-limitancestorcount=150", "-limitdescendantcount=150"
+        ], [
+            "-blockmaxweight=32000", "-maxorphantx=1000", "-limitancestorcount=150", "-limitdescendantcount=150"
+        ]])
         # Use node0 to mine blocks for input splitting
         # Node1 mines small blocks but that are bigger than the expected transaction rate.
         # NOTE: the CreateNewBlock code starts counting block weight at 4,000 weight,
@@ -179,6 +183,9 @@ class EstimateFeeTest(UnitETestFramework):
     def run_test(self):
         self.log.info("This test is time consuming, please be patient")
         self.log.info("Splitting inputs so we can generate tx's")
+
+        # Remove the source of randomness
+        random.seed(42)
 
         # Start node0
         self.start_node(0)
