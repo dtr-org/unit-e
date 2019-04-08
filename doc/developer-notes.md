@@ -583,8 +583,8 @@ Several parts of the repository are git subtrees of software maintained
 elsewhere. They are managed with
 [git-subtree](https://github.com/git/git/tree/master/contrib/subtree).
 
-Some of these are maintained by active developers of Bitcoin Core, some are
-external projects without a tight relationship to Bitcoin Core.
+Some of these are maintained by active developers of unit-e, some are
+external projects without a tight relationship to unit-e.
 
 Changes on the parts of the code which are pulled in as a git subtree are
 ideally done through contributions to the original upstream and then pulled in
@@ -592,7 +592,7 @@ via subtree updates in bitcoin upstream and then merged to unit-e with a bitcoin
 merge.
 
 Where this is too slow changes might also be done via pull request to the
-Bitcoin Core version of the code. See the [bitcoin developer
+unit-e version of the code. See the [bitcoin developer
 notes](https://github.com/dtr-org/unit-e/blob/master/doc/developer-notes.md#subtrees)
 for their policies on that.
 
@@ -616,7 +616,7 @@ These are the current subtrees and where they are coming from:
 - src/libsecp256k1
 
   Upstream at https://github.com/bitcoin-core/secp256k1, actively maintained
-  by Bitcoin Core contributors.
+  by unit-e contributors.
 
   Subtree pulled in from a fork of the upstream repo at
   https://github.com/dtr-org/secp256k1-fork from the `unit-e` branch, maintained
@@ -626,7 +626,7 @@ These are the current subtrees and where they are coming from:
 - src/crypto/ctaes
 
   Upstream at https://github.com/bitcoin-core/ctaes, actively maintained by
-  Bitcoin Core contributors.
+  unit-e contributors.
 
 - src/univalue
 

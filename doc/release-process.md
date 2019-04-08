@@ -1,7 +1,7 @@
 Release Process
 ====================
 
-**This describes the Bitcoin Core release process. It will need to be adapted to
+**This describes the unit-e release process. It will need to be adapted to
 the unit-e release process when we start doing releases.**
 
 Before every release candidate:
