@@ -47,12 +47,18 @@ class WalletLabelsTest(UnitETestFramework):
         self.setup_stake_coins(node)
         # Check that there's exactly one spendable UTXO in this node's wallet now
         assert_equal(len(node.listunspent()), 1)
+        # The unlocked funds are 10000
+        initial_balance = 10000
+        assert_equal(node.getbalance(), 10000)
 
         # Note each time we call generate, all generated coins go into
         # the same address, so we call twice to get two addresses w/50 each
         node.generate(1)
+        # slip a hundred blocks in here to make the one generated above
+        # and the 101th (first in this series actually) have a mature reward.
         node.generate(101)
-        assert_equal(node.getbalance(), 100)
+        reward_for_two_mature_blocks = 3.75 * 2
+        assert_equal(node.getbalance(), initial_balance + reward_for_two_mature_blocks)
 
         # there should be 2 address groups
         # each with 1 address with a balance of 50 UTEs
