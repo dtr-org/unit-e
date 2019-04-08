@@ -122,5 +122,11 @@ class SnapshotFinalization(UnitETestFramework):
         assert_equal(slash.get_type(), TxType.SLASH)
         self.log.info("Slahed")
 
+        self.log.info("Restart fast-sync node")
+        self.restart_node(s.index)
+        connect_nodes(s, p.index)
+        sync_blocks([s, p])
+
+
 if __name__ == '__main__':
     SnapshotFinalization().main()

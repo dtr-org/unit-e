@@ -3547,6 +3547,15 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         return error("%s: %s", __func__, FormatStateMessage(state));
     }
 
+    if (!pindex->commits) {
+        pindex->commits = std::vector<CTransactionRef>();
+        for (const auto &tx : pblock->vtx) {
+            if (tx->IsFinalizerCommit()) {
+                (*pindex->commits).emplace_back(tx);
+            }
+        }
+    }
+
     // Header is valid/has work, merkle tree and segwit merkle tree are good...RELAY NOW
     // (but if it does not build on our best tip, let the SendMessages loop relay it)
     if (!IsInitialBlockDownload() && chainActive.Tip() == pindex->pprev)
