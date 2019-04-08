@@ -63,6 +63,7 @@ class WalletLabelsTest(UnitETestFramework):
         initial_balance = 10000
         assert_equal(node.getbalance(), initial_balance)
 
+        self.log.info('- check listaddressgroupings')
         address_b = node.getnewaddress('', 'bech32')
         address_c = node.getnewaddress('', 'bech32')
         # Note each time we call generate, all generated coins go into
@@ -157,9 +158,6 @@ class WalletLabelsTest(UnitETestFramework):
         sync_mempools([node, some_other_node])
         some_other_node.generatetoaddress(1, common_address)
 
-        print(node.getbalance())
-        print(some_other_node.getbalance())
-
         assert_equal(some_other_node.getbalance(), Decimal(20007.5) - fee)
 
         # make funds from some_other_node available to node
@@ -172,20 +170,18 @@ class WalletLabelsTest(UnitETestFramework):
             node.sendfrom("", common_address, fee)
         amount_to_send = 1.0
 
-        # Create labels and make sure subsequent label API calls
+        self.log.info('- Create labels and make sure subsequent label API calls')
         # recognize the label/address associations.
         labels = [Label(name, accounts_api) for name in ("a", "b", "c", "d", "e")]
         for label in labels:
             if accounts_api:
-                print("accounts")
                 address = node.getaccountaddress(label.name)
             else:
-                print("labels")
                 address = node.getnewaddress(label.name)
             label.add_receive_address(address)
             label.verify(node)
 
-        # Check all labels are returned by listlabels.
+        self.log.info('- Check all labels are returned by listlabels.')
         assert_equal(list(filter(lambda l: l, node.listlabels())), [label.name for label in labels])
 
         # Send a transaction to each label, and make sure this forces
@@ -198,14 +194,14 @@ class WalletLabelsTest(UnitETestFramework):
                 node.sendtoaddress(label.addresses[0], amount_to_send)
             label.verify(node)
 
-        # Check the amounts received.
+        self.log.info('- Check the amounts received.')
         node.generate(1)
         for label in labels:
             assert_equal(
                 node.getreceivedbyaddress(label.addresses[0]), amount_to_send)
             assert_equal(node.getreceivedbylabel(label.name), amount_to_send)
 
-        # Check that sendfrom label reduces listaccounts balances.
+        self.log.info('- Check that sendfrom label reduces listaccounts balances.')
         for i, label in enumerate(labels):
             to_label = labels[(i + 1) % len(labels)]
             if accounts_api:
@@ -232,7 +228,7 @@ class WalletLabelsTest(UnitETestFramework):
             assert_equal(node.listaccounts(), expected_account_balances)
             assert_equal(node.getbalance(""), 20397.5)
 
-        # Check that setlabel can assign a label to a new unused address.
+        self.log.info('- Check that setlabel can assign a label to a new unused address.')
         for label in labels:
             address = node.getnewaddress()
             node.setlabel(address, label.name)
@@ -241,7 +237,8 @@ class WalletLabelsTest(UnitETestFramework):
             if accounts_api:
                 assert address not in node.getaddressesbyaccount("")
             else:
-                assert_raises_rpc_error(-11, "No addresses with label", node.getaddressesbylabel, "")
+                addresses = node.getaddressesbylabel("")
+                assert not address in addresses.keys()
 
         # Check that addmultisigaddress can assign labels.
         for label in labels:
