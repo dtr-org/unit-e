@@ -51,7 +51,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
         spends[i].nVersion = 1;
         spends[i].vin.resize(1);
         spends[i].vin[0].prevout.hash = last_coinbase->GetHash();
-        spends[i].vin[0].prevout.n = 1;
+        spends[i].vin[0].prevout.n = last_coinbase->vout.size() - 1;
         spends[i].vout.resize(1);
         spends[i].vout[0].nValue = 11*EEES;
         spends[i].vout[0].scriptPubKey = scriptPubKey;
@@ -247,7 +247,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Lock the coin so it cannot be used for staking
     {
         LOCK(m_wallet->cs_wallet);
-        m_wallet->LockCoin(COutPoint(p2pkh_coinbase->GetHash(), 1));
+        m_wallet->LockCoin(spend_tx.vin[0].prevout);
     }
 
     block = CreateAndProcessBlock({spend_tx}, p2pkh_scriptPubKey);
