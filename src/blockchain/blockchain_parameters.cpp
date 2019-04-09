@@ -43,7 +43,7 @@ Parameters Parameters::Base() noexcept {
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
   };
   p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
-    if (h <= p.difficulty_adjustment_window) {
+    if (h < 2) {
       return p.genesis_block.block.nBits;
     }
 
