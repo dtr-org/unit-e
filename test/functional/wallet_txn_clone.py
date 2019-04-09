@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the wallet accounts properly when there are cloned transactions with malleated scriptsigs."""
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, FULL_FINALIZATION_REWARD
 from test_framework.util import (
     assert_equal,
     connect_nodes,
@@ -29,7 +29,7 @@ def unlock_all_utxos(node):
 
 class TxnMallTest(UnitETestFramework):
     def set_test_params(self):
-        self.num_nodes = 4
+        self.num_nodes = 3
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -52,8 +52,8 @@ class TxnMallTest(UnitETestFramework):
         else:
             output_type = "legacy"
 
-        starting_balance = 10000 + 25 * PROPOSER_REWARD
-        for i in range(4):
+        starting_balance = 10000 + 25 * PROPOSER_REWARD + 25 * FULL_FINALIZATION_REWARD
+        for i in range(3):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
             self.nodes[i].getnewaddress()  # bug workaround, coins generated assigned to first getnewaddress!
 

@@ -285,7 +285,8 @@ public:
     int GetDepthInMainChain() const { const CBlockIndex *block_index; return GetDepthInMainChain(block_index); }
     int GetDepthInMainChain(const CBlockIndex * &block_index) const;
     bool IsInMainChain() const { return GetDepthInMainChain() > 0; }
-    int GetBlocksToRewardMaturity() const;
+    int GetBlocksToRewardMaturity() const { const CBlockIndex *index_ret; return GetBlocksToRewardMaturity(index_ret); }
+    int GetBlocksToRewardMaturity(const CBlockIndex * &index_ret) const;
     bool hashUnset() const { return (hashBlock.IsNull() || hashBlock == ABANDON_HASH); }
     bool isAbandoned() const { return (hashBlock == ABANDON_HASH); }
     void setAbandoned() { hashBlock = ABANDON_HASH; }

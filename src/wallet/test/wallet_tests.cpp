@@ -47,7 +47,9 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(nullBlock, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), m_coinbase_txns.back().vout[0].nValue + new_coinbase->vout[0].nValue);
+        const CAmount expected = m_coinbase_txns.back().GetValueOut() - m_coinbase_txns.back().vout.back().nValue
+            + new_coinbase->GetValueOut() - new_coinbase->vout.back().nValue;
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), expected);
     }
 
     // Prune the older block file.
@@ -62,7 +64,7 @@ BOOST_FIXTURE_TEST_CASE(rescan, TestChain100Setup)
         WalletRescanReserver reserver(&wallet);
         reserver.reserve();
         BOOST_CHECK_EQUAL(oldTip, wallet.ScanForWalletTransactions(oldTip, nullptr, reserver));
-        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), m_coinbase_txns.back().vout[0].nValue);
+        BOOST_CHECK_EQUAL(wallet.GetImmatureBalance(), new_coinbase->GetValueOut() - new_coinbase->vout.back().nValue);
     }
 
     // Verify importmulti RPC returns failure for a key whose creation time is

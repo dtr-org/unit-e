@@ -1612,10 +1612,15 @@ bool CWallet::IsAllFromMe(const CTransaction& tx, const isminefilter& filter) co
 CAmount CWallet::GetCredit(const CWalletTx& wtx, const isminefilter& filter, const BalanceType& balance_filter) const
 {
     CAmount nCredit = 0;
+    const CBlockIndex *block = nullptr;
+    std::size_t num_of_immature_rewards = 0;
+    if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity(block) > 0) {
+        num_of_immature_rewards = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
+    }
     for (std::size_t i = 0; i < wtx.tx->vout.size(); ++i) {
         const CTxOut& txout = wtx.tx->vout[i];
 
-        const bool is_immature = wtx.IsCoinBase() && i == 0 &&wtx.GetBlocksToRewardMaturity() > 0;
+        const bool is_immature = i < num_of_immature_rewards;
         if (balance_filter == +BalanceType::MATURE && is_immature) {
             continue;
         } else if (balance_filter == +BalanceType::IMMATURE && !is_immature) {
@@ -2201,13 +2206,23 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter
     }
 
     CAmount nCredit = 0;
+    std::size_t num_of_rewards = 0;
+    const CBlockIndex *block = nullptr;
+    if (IsCoinBase() && GetBlocksToRewardMaturity(block) > 0) {
+        if (!block) {
+            // Coinbase transaction not in the main chain
+            return nCredit;
+        }
+        num_of_rewards = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
+    }
     uint256 hashTx = GetHash();
     for (unsigned int i = 0; i < tx->vout.size(); i++) {
         if (!pwallet->IsSpent(hashTx, i)) {
             const CTxOut &txout = tx->vout[i];
-            if (IsCoinBase() && i == 0 && GetBlocksToRewardMaturity() > 0) {
-              continue;
+            if (i < num_of_rewards) {
+                continue;
             }
+
             nCredit += pwallet->GetCredit(txout, filter);
             if (!MoneyRange(nCredit)) {
                 throw std::runtime_error(std::string(__func__) + " : value out of range");
@@ -2443,7 +2458,7 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
     CAmount balance = 0;
     for (const auto& entry : mapWallet) {
         const CWalletTx& wtx = entry.second;
-        const CBlockIndex *block;
+        const CBlockIndex *block = nullptr;
         const int depth = wtx.GetDepthInMainChain(block);
         if (depth < 0 || !CheckFinalTx(*wtx.tx)) {
             continue;
@@ -2455,7 +2470,11 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
         const bool outgoing = debit > 0;
         std::size_t start_index = 0;
         if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity() > 0) {
-          start_index = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
+            if (!block) {
+                // Coinbase transaction is not in the main chain
+                continue;
+            }
+            start_index = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
         }
         for (std::size_t i = start_index; i < wtx.tx->vout.size(); ++i) {
             const CTxOut& out = wtx.tx->vout[i];
@@ -2510,7 +2529,7 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             if (!CheckFinalTx(*pcoin->tx)) {
                 continue;
             }
-            const CBlockIndex *block;
+            const CBlockIndex *block = nullptr;
             int nDepth = pcoin->GetDepthInMainChain(block);
         if (nDepth < 0) {
             continue;
@@ -3859,13 +3878,17 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
             if (!pcoin->IsTrusted()) {
                 continue;
             }
-            int nDepth = pcoin->GetDepthInMainChain();
+            const CBlockIndex *block;
+            int nDepth = pcoin->GetDepthInMainChain(block);
             if (nDepth < (pcoin->IsFromMe(ISMINE_ALL) ? 0 : 1)) {
                 continue;
             }
 
-            const bool skip_reward = pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0;
-            for (unsigned int i = skip_reward ? 1 : 0; i < pcoin->tx->vout.size(); i++) {
+            unsigned int reward_offset = 0;
+            if (pcoin->IsCoinBase() && pcoin->GetBlocksToRewardMaturity() > 0) {
+                reward_offset = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
+            }
+            for (unsigned int i = reward_offset; i < pcoin->tx->vout.size(); i++) {
                 CTxDestination addr;
                 if (!IsMine(pcoin->tx->vout[i])) {
                     continue;
@@ -4736,12 +4759,12 @@ int CMerkleTx::GetDepthInMainChain(const CBlockIndex* &pindexRet) const
     return ((nIndex == -1) ? (-1) : 1) * depth;
 }
 
-int CMerkleTx::GetBlocksToRewardMaturity() const
+int CMerkleTx::GetBlocksToRewardMaturity(const CBlockIndex* &index_ret) const
 {
     if (!IsCoinBase()) {
         return 0;
     }
-    int chain_depth = GetDepthInMainChain();
+    int chain_depth = GetDepthInMainChain(index_ret);
     return std::max(0, (COINBASE_MATURITY+1) - chain_depth);
 }
 
