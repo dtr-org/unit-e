@@ -5,6 +5,16 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 
-PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
-export PATH
+export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
 
+BEGIN_FOLD () {
+  echo ""
+  CURRENT_FOLD_NAME=$1
+  echo "travis_fold:start:${CURRENT_FOLD_NAME}"
+}
+
+END_FOLD () {
+  RET=$?
+  echo "travis_fold:end:${CURRENT_FOLD_NAME}"
+  return $RET
+}
