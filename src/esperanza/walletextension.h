@@ -60,7 +60,11 @@ class WalletExtension : public staking::StakingWallet {
 
   std::vector<std::pair<finalization::VoteRecord, finalization::VoteRecord>> pendingSlashings;
 
-  void VoteIfNeeded(const FinalizationState &state);
+  //! Cast vote if needed
+  //!
+  //! \param state of the latest known tip
+  //! \param height of the state
+  void VoteIfNeeded(const FinalizationState &state, blockchain::Height height);
 
   void ManagePendingSlashings();
 

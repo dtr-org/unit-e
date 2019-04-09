@@ -48,6 +48,18 @@ struct Settings {
   //! \brief Path to the data dir (e.g. ~/user/.unite/regtest).
   fs::path data_dir = GetDefaultDataDir();
 
+  //! \brief From which block in the epoch finalizer must start voting
+  //!
+  //! It can make sense to start voting a bit later than after the checkpoint
+  //! is processed as if re-orgs happens on a checkpoint and finalizer switches to
+  //! that fork, it can't vote on this epoch again as it will be double-voting.
+  //! Delaying the vote reduces the chance of voting on the fork
+  //! that won't be final for the finalizer but delaying for too long
+  //! can risk that vote won't be included by proposer at all.
+  //!
+  //! see default values in Parameters.finalizer_vote_on_epoch_block_number
+  std::uint32_t finalizer_vote_from_epoch_block_number = 0;
+
   //! \brief the destination of the proposing reward.
   //
   //! If not set it will use the destination of the coin used for proposing the

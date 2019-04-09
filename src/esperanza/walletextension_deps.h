@@ -8,6 +8,7 @@
 #include <dependency.h>
 #include <finalization/state_repository.h>
 #include <settings.h>
+#include <staking/active_chain.h>
 
 class UnitEInjector;
 
@@ -27,6 +28,7 @@ class WalletExtensionDeps {
  private:
   const Dependency<Settings> m_settings;
   const Dependency<finalization::StateRepository> m_finalization_state_repository;
+  const Dependency<staking::ActiveChain> m_active_chain;
 
  public:
   //! \brief Constructor for testing only.
@@ -58,6 +60,12 @@ class WalletExtensionDeps {
     assert(m_finalization_state_repository != nullptr &&
            "finalization::StateRepository not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
     return *m_finalization_state_repository;
+  }
+
+  staking::ActiveChain &GetActiveChain() const {
+    assert(m_active_chain != nullptr &&
+           "staking::ActiveChain not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
+    return *m_active_chain;
   }
 };
 
