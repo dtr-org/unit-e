@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
-# Copyright (c) 2018-2019 The Unit-e developers
+# Copyright (c) 2019 The Unit-e developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-EsperanzaSelfSlashTest checks:
-1. The validator will never slash itself
+FinalizatioSelfSlashTest checks:
+1. The finalizer will never slash itself
 """
-from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.blocktools import (
-    CBlock,
-    CTransaction,
-    FromHex,
-    ToHex,
     TxType,
 )
 from test_framework.util import (
@@ -24,10 +19,9 @@ from test_framework.util import (
     assert_equal,
     wait_until,
     sync_mempools)
-import time
 
 
-class EsperanzaSelfSlashTest(UnitETestFramework):
+class FinalizatioSelfSlashTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
@@ -111,11 +105,11 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
         #                                   \  v1          v2a
         #                                    - e6 - e7[31, 32] fork2
-        fork1.generate(1)
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
-        fork1.generate(5)
+        fork1.generatetoaddress(5, fork1.getnewaddress('', 'bech32'))
         raw_vote_1 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
-        fork1.generate(1)
+        fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 33)
         assert_finalizationstate(fork1, {'currentEpoch': 7,
                                          'lastJustifiedEpoch': 6,
@@ -124,7 +118,7 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
 
         # We'll use a second vote to check if there is slashing when a validator tries to send a double vote after it
         # voted.
-        fork1.generate(3)
+        fork1.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
         raw_vote_2 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         assert_equal(fork1.getblockcount(), 36)
         assert_finalizationstate(fork1, {'currentEpoch': 8,
@@ -135,9 +129,9 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
         # Send the conflicting vote from the other chain to finalizer2, it should record it and slash it later
         assert_raises_rpc_error(-26, " bad-vote-invalid-state", finalizer2.sendrawtransaction, raw_vote_1)
 
-        fork2.generate(1)
+        fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
-        fork2.generate(5)
+        fork2.generatetoaddress(5, fork2.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 32)
         assert_finalizationstate(fork2, {'currentEpoch': 7,
                                          'lastJustifiedEpoch': 5,
@@ -153,12 +147,12 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
         vote = fork2.decoderawtransaction(fork2.getrawtransaction(fork2.getrawmempool()[0]))
         assert_equal(vote['txtype'], TxType.VOTE.value)
 
-        fork2.generate(1)
+        fork2.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(len(fork2.getrawmempool()), 0)
         disconnect_nodes(finalizer2, fork2.index)
 
         # check if there is slashing after voting
-        fork2.generate(3)
+        fork2.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork2.getblockcount(), 36)
         assert_finalizationstate(fork2, {'currentEpoch': 8,
                                          'lastJustifiedEpoch': 6,
@@ -179,4 +173,4 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    EsperanzaSelfSlashTest().main()
+    FinalizatioSelfSlashTest().main()
