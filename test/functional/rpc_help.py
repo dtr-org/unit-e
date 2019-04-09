@@ -47,6 +47,8 @@ class HelpRpcTest(UnitETestFramework):
         ]
 
         if self.is_wallet_compiled():
+            components.append('Proposing')
+            components.append('Staking')
             components.append('Wallet')
 
         if self.is_zmq_compiled():
