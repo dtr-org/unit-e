@@ -143,7 +143,6 @@ def get_finalization_rewards(node):
         reward_out = coinbase['vout'][0]
         reward_script = CScript(hex_str_to_bytes(reward_out['scriptPubKey']['hex']))
         result.append(CTxOut(FULL_FINALIZATION_REWARD * UNIT, reward_script))
-    print(current_height, result)
     return result[::-1]
 
 
