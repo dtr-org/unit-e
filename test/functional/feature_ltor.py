@@ -21,6 +21,7 @@ from test_framework.blocktools import (
     create_coinbase,
     create_tx_with_script,
     get_tip_snapshot_meta,
+    get_finalization_rewards,
 )
 from test_framework.messages import (
     CTxOut,
@@ -34,7 +35,7 @@ from test_framework.mininode import (
 )
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.script import CScript
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import (
     assert_equal,
     sync_blocks,
@@ -226,15 +227,18 @@ class LTORTest(UnitETestFramework):
 
         if len(self.spendable_outputs) > 0:
             block_time = self.spendable_outputs[-1].nTime + 1
+            print(1, block_time)
         else:
             block_time = int(time_time()) + 2
+            print(2, block_time)
 
         block = create_block(
             hashprev=hashprev,
-            coinbase=sign_coinbase(self.nodes[0], create_coinbase(
+            coinbase=sign_coinbase(node0, create_coinbase(
                 height=sync_height + 1,
                 stake=node0.listunspent()[0],
-                snapshot_hash=snapshot_hash
+                snapshot_hash=snapshot_hash,
+                finalization_rewards=get_finalization_rewards(node0)
             )),
             ntime=block_time
         )
