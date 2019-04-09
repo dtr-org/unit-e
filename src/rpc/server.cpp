@@ -281,6 +281,7 @@ UniValue uptime(const JSONRPCRequest& jsonRequest)
 /**
  * Call Table
  */
+// clang-format off
 static const CRPCCommand vRPCCommands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
@@ -289,6 +290,7 @@ static const CRPCCommand vRPCCommands[] =
     { "control",            "stop",                   &stop,                   {"wait"}  },
     { "control",            "uptime",                 &uptime,                 {}  },
 };
+// clang-format on
 
 CRPCTable::CRPCTable()
 {

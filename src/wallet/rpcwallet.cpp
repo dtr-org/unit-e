@@ -6,6 +6,7 @@
 #include <amount.h>
 #include <base58.h>
 #include <chain.h>
+#include <chainparams.h>
 #include <consensus/validation.h>
 #include <core_io.h>
 #include <esperanza/walletextension.h>
@@ -3671,9 +3672,10 @@ extern UniValue removeprunedfunds(const JSONRPCRequest& request);
 extern UniValue importmulti(const JSONRPCRequest& request);
 extern UniValue rescanblockchain(const JSONRPCRequest& request);
 
+// clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                        actor (function)           argNames
-    //  --------------------- ------------------------    -----------------------  ----------
+  //  --------------------- ------------------------    -----------------------  ----------
     { "rawtransactions",    "fundrawtransaction",       &fundrawtransaction,       {"hexstring","options","iswitness"} },
     { "hidden",             "resendwallettransactions", &resendwallettransactions, {} },
     { "wallet",             "abandontransaction",       &abandontransaction,       {"txid"} },
@@ -3729,6 +3731,7 @@ static const CRPCCommand commands[] =
     { "generating",         "generate",                 &generate,                 {"nblocks","maxtries"} },
     { "generating",         "generatetoaddress",        &generatetoaddress,        {"nblocks","address","maxtries"} },
 };
+// clang-format on
 
 void RegisterWalletRPCCommands(CRPCTable &t)
 {

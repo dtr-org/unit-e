@@ -8,10 +8,11 @@
 #include <esperanza/walletextension.h>
 
 #include <blockchain/blockchain_types.h>
+#include <chainparams.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
-#include <injector.h>
+#include <finalization/state_repository.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
@@ -28,12 +29,6 @@
 
 namespace esperanza {
 
-namespace {
-Dependency<finalization::StateRepository> GetStateRepo() {
-  return GetComponent<finalization::StateRepository>();
-}
-}  // namespace
-
 CCriticalSection cs_pendingSlashing;
 
 WalletExtension::ValidatorStateWatchWriter::~ValidatorStateWatchWriter() {
@@ -45,7 +40,7 @@ WalletExtension::ValidatorStateWatchWriter::~ValidatorStateWatchWriter() {
 WalletExtension::WalletExtension(const WalletExtensionDeps &dependencies,
                                  ::CWallet &enclosing_wallet)
     : m_dependencies(dependencies), m_enclosing_wallet(enclosing_wallet) {
-  if (dependencies.settings->node_is_validator) {
+  if (dependencies.GetSettings().node_is_validator) {
     nIsValidatorEnabled = true;
     validatorState = ValidatorState();
   }
@@ -256,7 +251,7 @@ bool WalletExtension::BackupWallet() {
 }
 
 void WalletExtension::ReadValidatorStateFromFile() {
-  if (m_dependencies.settings->node_is_validator && !m_dependencies.settings->node_is_proposer) {
+  if (m_dependencies.GetSettings().node_is_validator && !m_dependencies.GetSettings().node_is_proposer) {
     LogPrint(BCLog::FINALIZATION, "%s: -validating is enabled for wallet %s.\n",
              __func__, m_enclosing_wallet.GetName());
 
@@ -451,8 +446,8 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   CAmount currentDeposit = 0;
 
   {
-    LOCK(GetStateRepo()->GetLock());
-    const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+    LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+    const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
     assert(fin_state != nullptr);
 
     const esperanza::Result res = fin_state->CalculateWithdrawAmount(
@@ -671,8 +666,8 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
   uint256 txHash;
 
   {
-    LOCK(GetStateRepo()->GetLock());
-    const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+    LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+    const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
     assert(fin_state != nullptr);
 
     txHash = fin_state->GetLastTxHash(validatorAddress);
@@ -680,7 +675,7 @@ bool WalletExtension::SendSlash(const finalization::VoteRecord &vote1,
 
   CTransactionRef lastSlashableTx;
   uint256 blockHash;
-  GetTransaction(txHash, lastSlashableTx, Params().GetConsensus(), blockHash,
+  GetTransaction(txHash, lastSlashableTx, ::Params().GetConsensus(), blockHash,
                  true);
 
   if (!lastSlashableTx) {
@@ -762,8 +757,8 @@ void WalletExtension::BlockConnected(
     switch (validatorState.get().m_phase) {
       case ValidatorState::Phase::IS_VALIDATING: {
         // In case we are logged out, stop validating.
-        LOCK(GetStateRepo()->GetLock());
-        const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+        LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+        const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
         assert(fin_state);
 
         uint32_t currentDynasty = fin_state->GetCurrentDynasty();
@@ -779,8 +774,8 @@ void WalletExtension::BlockConnected(
       }
       case ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION: {
         ValidatorStateWatchWriter validator_writer(*this);
-        LOCK(GetStateRepo()->GetLock());
-        const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+        LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+        const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
         assert(fin_state);
 
         if (fin_state->GetLastFinalizedEpoch() >= validatorState.get().m_deposit_epoch) {
@@ -854,8 +849,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         }
 
         {
-          LOCK(GetStateRepo()->GetLock());
-          const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+          LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+          const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
           assert(fin_state != nullptr);
 
           state.m_validator_address = validatorAddress;
@@ -882,8 +877,8 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
       if (state.m_phase == expectedPhase) {
 
-        LOCK(GetStateRepo()->GetLock());
-        const FinalizationState *fin_state = GetStateRepo()->GetTipState();
+        LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+        const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
         assert(fin_state != nullptr);
 
         const esperanza::Validator *validator =

@@ -9,17 +9,17 @@ namespace proposer {
 class LogicImpl final : public Logic {
 
  private:
-  Dependency<blockchain::Behavior> m_blockchain_behavior;
-  Dependency<staking::Network> m_network;
-  Dependency<staking::ActiveChain> m_active_chain;
-  Dependency<staking::StakeValidator> m_stake_validator;
+  const Dependency<blockchain::Behavior> m_blockchain_behavior;
+  const Dependency<staking::Network> m_network;
+  const Dependency<staking::ActiveChain> m_active_chain;
+  const Dependency<staking::StakeValidator> m_stake_validator;
 
  public:
   LogicImpl(
-      Dependency<blockchain::Behavior> blockchain_behavior,
-      Dependency<staking::Network> network,
-      Dependency<staking::ActiveChain> active_chain,
-      Dependency<staking::StakeValidator> stake_validator)
+      const Dependency<blockchain::Behavior> blockchain_behavior,
+      const Dependency<staking::Network> network,
+      const Dependency<staking::ActiveChain> active_chain,
+      const Dependency<staking::StakeValidator> stake_validator)
       : m_blockchain_behavior(blockchain_behavior),
         m_network(network),
         m_active_chain(active_chain),
@@ -76,10 +76,10 @@ class LogicImpl final : public Logic {
 };
 
 std::unique_ptr<Logic> Logic::New(
-    Dependency<blockchain::Behavior> blockchain_behavior,
-    Dependency<staking::Network> network,
-    Dependency<staking::ActiveChain> active_chain,
-    Dependency<staking::StakeValidator> stake_validator) {
+    const Dependency<blockchain::Behavior> blockchain_behavior,
+    const Dependency<staking::Network> network,
+    const Dependency<staking::ActiveChain> active_chain,
+    const Dependency<staking::StakeValidator> stake_validator) {
   return std::unique_ptr<Logic>(new LogicImpl(blockchain_behavior, network, active_chain, stake_validator));
 }
 

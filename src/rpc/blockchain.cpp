@@ -1601,6 +1601,7 @@ UniValue savemempool(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
+// clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
@@ -1635,6 +1636,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "syncwithvalidationinterfacequeue", &syncwithvalidationinterfacequeue, {} },
     { "hidden",             "getmainsignalscallbackspending", &getmainsignalscallbackspending, {}},
 };
+// clang-format on
 
 void RegisterBlockchainRPCCommands(CRPCTable &t)
 {

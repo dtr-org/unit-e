@@ -6,7 +6,6 @@
 
 #include <consensus/validation.h>
 #include <esperanza/finalizationstate.h>
-#include <injector.h>
 #include <util.h>
 #include <validationinterface.h>
 

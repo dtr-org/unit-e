@@ -4,7 +4,9 @@
 
 #include <wallet/test/wallet_test_fixture.h>
 
+#include <injector.h>
 #include <rpc/server.h>
+#include <validation.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
 #include <consensus/merkle.h>
@@ -23,8 +25,7 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
 
     f(settings);
-    esperanza::WalletExtensionDeps deps;
-    deps.settings = &settings;
+    esperanza::WalletExtensionDeps deps(&settings);
 
     pwalletMain = MakeUnique<CWallet>(deps, std::move(dbw));
     pwalletMain->LoadWallet(fFirstRun);

@@ -10,6 +10,7 @@
 #include <injector.h>
 #include <rpc/server.h>
 #include <rpc/safemode.h>
+#include <validation.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 
@@ -273,15 +274,17 @@ UniValue createvotetransaction(const JSONRPCRequest &request) {
   return EncodeHexTx(tx, RPCSerializationFlags());
 }
 
+// clang-format off
 static const CRPCCommand commands[] =
-    { //  category              name                        actor (function)           argNames
-      //  --------------------- ------------------------    -----------------------  ----------
-        { "wallet",             "deposit",                  &deposit,                  {"address", "amount"} },
-        { "wallet",             "logout",                   &logout,                   {} },
-        { "wallet",             "withdraw",                 &withdraw,                 {"address"} },
-        { "wallet",             "getvalidatorinfo",         &getvalidatorinfo,         {} },
-        { "wallet",             "createvotetransaction",    &createvotetransaction,    {"vote", "txid"}},
-    };
+{ //  category              name                        actor (function)           argNames
+  //  --------------------- ------------------------    -----------------------  ----------
+    { "wallet",             "deposit",                  &deposit,                  {"address", "amount"} },
+    { "wallet",             "logout",                   &logout,                   {} },
+    { "wallet",             "withdraw",                 &withdraw,                 {"address"} },
+    { "wallet",             "getvalidatorinfo",         &getvalidatorinfo,         {} },
+    { "wallet",             "createvotetransaction",    &createvotetransaction,    {"vote", "txid"}},
+};
+// clang-format on
 
 void RegisterValidatorRPCCommands(CRPCTable &t)
 {

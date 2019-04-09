@@ -204,6 +204,7 @@ UNITE_CORE_H = \
   rpc/protocol.h \
   rpc/safemode.h \
   rpc/server.h \
+  rpc/staking.h \
   rpc/register.h \
   rpc/util.h \
   scheduler.h \
@@ -231,6 +232,7 @@ UNITE_CORE_H = \
   staking/network.h \
   staking/proof_of_stake.h \
   staking/stake_validator.h \
+  staking/staking_rpc.h \
   staking/stakingwallet.h \
   staking/transactionpicker.h \
   staking/validation_error.h \
@@ -303,6 +305,7 @@ libunite_server_a_SOURCES = \
   blockencodings.cpp \
   chain.cpp \
   consensus/tx_verify.cpp \
+  dbwrapper.cpp \
   esperanza/admincommand.cpp \
   esperanza/adminstate.cpp \
   esperanza/checkpoint.cpp \
@@ -319,7 +322,6 @@ libunite_server_a_SOURCES = \
   iblt_params.cpp \
   init.cpp \
   injector.cpp \
-  dbwrapper.cpp \
   merkleblock.cpp \
   net.cpp \
   net_processing.cpp \
@@ -346,6 +348,7 @@ libunite_server_a_SOURCES = \
   rpc/rawtransaction.cpp \
   rpc/safemode.cpp \
   rpc/server.cpp \
+  rpc/staking.cpp \
   script/sigcache.cpp \
   script/ismine.cpp \
   snapshot/chainstate_iterator.cpp \
@@ -367,6 +370,7 @@ libunite_server_a_SOURCES = \
   staking/network.cpp \
   staking/proof_of_stake.cpp \
   staking/stake_validator.cpp \
+  staking/staking_rpc.cpp \
   staking/validation_error.cpp \
   staking/validation_result.cpp \
   timedata.cpp \

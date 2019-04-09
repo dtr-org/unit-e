@@ -9,8 +9,6 @@
 
 class CRPCTable;
 
-void SetProposerRPC(Dependency<proposer::ProposerRPC>);
-
 void RegisterProposerRPCCommands(CRPCTable &t);
 
 #endif  // UNIT_E_RPC_PROPOSING_H

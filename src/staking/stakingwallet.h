@@ -46,6 +46,9 @@ class StakingWallet {
   virtual CAmount GetStakeableBalance() const = 0;
 
   //! \brief returns the coins that can currently be used for staking.
+  //!
+  //! Requires the lock returned by ActiveChain::GetLock() (cs_main) and
+  //! the lock for this wallet (StakingWallet::GetLock()) to be held.
   virtual staking::CoinSet GetStakeableCoins() const = 0;
 
   //! \brief returns the mutable proposer state for this wallet.

@@ -199,9 +199,10 @@ UniValue sendadmincommands(const JSONRPCRequest &request) {
 
 // clang-format off
 static const CRPCCommand commands[] =
-    {  //  category name                actor (function)   argNames
-       //  ------- -------------------- ------------------- ---------------------
-        {"wallet", "sendadmincommands", &sendadmincommands, {"prevouts", "fee", "commands", "destination"}}};
+{ //  category   name                 actor (function)    argNames
+  //  --------   -------------------- ------------------- ---------------------
+      {"wallet", "sendadmincommands", &sendadmincommands, {"prevouts", "fee", "commands", "destination"}},
+};
 // clang-format on
 
 void RegisterAdminRPCCommands(CRPCTable &t) {

@@ -710,6 +710,7 @@ static UniValue getinfo_deprecated(const JSONRPCRequest& request)
     );
 }
 
+// clang-format off
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
@@ -727,6 +728,7 @@ static const CRPCCommand commands[] =
     { "hidden",             "getinfo",                &getinfo_deprecated,     {}},
     { "hidden",             "runstringcommand",       &runstringcommand,       {"arg0","arg1","arg2","arg3","arg4","arg5","arg6","arg7","arg8","arg9"}},
 };
+// clang-format on
 
 void RegisterMiscRPCCommands(CRPCTable &t)
 {

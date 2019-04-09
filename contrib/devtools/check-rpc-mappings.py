@@ -11,14 +11,20 @@ import sys
 
 # Source files (relative to root) to scan for dispatch tables
 SOURCES = [
-    "src/rpc/server.cpp",
     "src/rpc/blockchain.cpp",
+    "src/rpc/finalization.cpp",
     "src/rpc/mining.cpp",
     "src/rpc/misc.cpp",
     "src/rpc/net.cpp",
+    "src/rpc/proposing.cpp",
+    "src/rpc/server.cpp",
+    "src/rpc/staking.cpp",
     "src/rpc/rawtransaction.cpp",
+    "src/snapshot/rpc_processing.cpp",
+    "src/wallet/rpcadmin.cpp",
     "src/wallet/rpcaddressbook.cpp",
     "src/wallet/rpcmnemonic.cpp",
+    "src/wallet/rpcvalidator.cpp",
     "src/wallet/rpcwallet.cpp",
     "src/wallet/rpcwalletext.cpp",
     "src/snapshot/rpc_processing.cpp",
@@ -32,6 +38,9 @@ class RPCCommand:
     def __init__(self, name, args):
         self.name = name
         self.args = args
+
+    def __repr__(self):
+        return "RPCCommand(%s, %s)" % (self.name, [arg.names for arg in self.args])
 
 class RPCArgument:
     def __init__(self, names, idx):
@@ -48,9 +57,18 @@ def process_commands(fname):
     """Find and parse dispatch table in implementation file `fname`."""
     cmds = []
     in_rpcs = False
-    with open(fname, "r") as f:
+    alternative_style = False
+    with open(fname, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.rstrip()
+            match = re.match(r'.+_RPC_COMMAND\(([^,()]+)((, "[^"]+")*)\);', line)
+            if match:
+                args = match.group(2).split(", ")[1:]
+                cmds.append(RPCCommand(name=match.group(1),
+                                       args=[RPCArgument(parse_string(x.strip()).split('|'), idx) for idx, x in enumerate(args)]))
+                alternative_style = True
+            if alternative_style:
+                continue
             if not in_rpcs:
                 if re.match("static const CRPCCommand .*\[\] =", line):
                     in_rpcs = True
@@ -67,14 +85,14 @@ def process_commands(fname):
                     else:
                         args = []
                     cmds.append(RPCCommand(name, args))
-    assert not in_rpcs and cmds, "Something went wrong with parsing the C++ file: update the regexps"
+    assert not in_rpcs and cmds, "Something went wrong with parsing the C++ file %s: update the regexps" % fname
     return cmds
 
 def process_mapping(fname):
     """Find and parse conversion table in implementation file `fname`."""
     cmds = []
     in_rpcs = False
-    with open(fname, "r") as f:
+    with open(fname, 'r', encoding='utf-8') as f:
         for line in f:
             line = line.rstrip()
             if not in_rpcs:

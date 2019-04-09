@@ -7,6 +7,7 @@
 #include <injector.h>
 #include <rpc/safemode.h>
 #include <rpc/server.h>
+#include <rpc/util.h>
 #include <ufp64.h>
 #include <util.h>
 #include <utilstrencodings.h>
@@ -34,16 +35,16 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
 
   LOCK(GetComponent<finalization::StateRepository>()->GetLock());
   const finalization::FinalizationState *fin_state =
-    GetComponent<finalization::StateRepository>()->GetTipState();
-  assert(fin_state !=nullptr);
+      GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(fin_state != nullptr);
 
   UniValue obj(UniValue::VOBJ);
 
-  obj.pushKV("currentDynasty", (uint64_t) fin_state->GetCurrentDynasty());
-  obj.pushKV("currentEpoch", (uint64_t) fin_state->GetCurrentEpoch());
-  obj.pushKV("lastJustifiedEpoch", (uint64_t) fin_state->GetLastJustifiedEpoch());
-  obj.pushKV("lastFinalizedEpoch", (uint64_t) fin_state->GetLastFinalizedEpoch());
-  obj.pushKV("validators", (uint64_t) fin_state->GetActiveFinalizers().size());
+  obj.pushKV("currentDynasty", ToUniValue(fin_state->GetCurrentDynasty()));
+  obj.pushKV("currentEpoch", ToUniValue(fin_state->GetCurrentEpoch()));
+  obj.pushKV("lastJustifiedEpoch", ToUniValue(fin_state->GetLastJustifiedEpoch()));
+  obj.pushKV("lastFinalizedEpoch", ToUniValue(fin_state->GetLastFinalizedEpoch()));
+  obj.pushKV("validators", static_cast<std::uint64_t>(fin_state->GetActiveFinalizers().size()));
 
   return obj;
 }
@@ -73,12 +74,12 @@ UniValue getfinalizationconfig(const JSONRPCRequest &request) {
   const esperanza::FinalizationParams params = Params().GetFinalization();
   UniValue obj(UniValue::VOBJ);
 
-  obj.pushKV("epochLength", (uint64_t) params.epoch_length);
-  obj.pushKV("minDepositSize", (uint64_t) params.min_deposit_size);
-  obj.pushKV("dynastyLogoutDelay", (uint64_t) params.dynasty_logout_delay);
-  obj.pushKV("withdrawalEpochDelay", (uint64_t) params.withdrawal_epoch_delay);
-  obj.pushKV("bountyFractionDenominator", (uint64_t) params.bounty_fraction_denominator);
-  obj.pushKV("slashFractionMultiplier", (uint64_t) params.slash_fraction_multiplier);
+  obj.pushKV("epochLength", ToUniValue(params.epoch_length));
+  obj.pushKV("minDepositSize", ToUniValue(params.min_deposit_size));
+  obj.pushKV("dynastyLogoutDelay", ToUniValue(params.dynasty_logout_delay));
+  obj.pushKV("withdrawalEpochDelay", ToUniValue(params.withdrawal_epoch_delay));
+  obj.pushKV("bountyFractionDenominator", ToUniValue(params.bounty_fraction_denominator));
+  obj.pushKV("slashFractionMultiplier", ToUniValue(params.slash_fraction_multiplier));
   obj.pushKV("baseInterestFactor", ufp64::to_str(params.base_interest_factor));
   obj.pushKV("basePenaltyFactor", ufp64::to_str(params.base_penalty_factor));
 
@@ -87,11 +88,11 @@ UniValue getfinalizationconfig(const JSONRPCRequest &request) {
 
 // clang-format off
 static const CRPCCommand commands[] =
-        {   //  category        name                      actor (function)            argNames
-            //  --------        -------------------       ----------------            ----------
-            { "finalization",  "getfinalizationstate",   &getfinalizationstate,       {}          },
-            { "finalization",  "getfinalizationconfig",  &getfinalizationconfig,      {}          },
-        };
+{ //  category        name                      actor (function)            argNames
+  //  --------        -------------------       ----------------            ----------
+    { "finalization",  "getfinalizationstate",   &getfinalizationstate,       {}          },
+    { "finalization",  "getfinalizationconfig",  &getfinalizationconfig,      {}          },
+};
 // clang-format on
 
 void RegisterFinalizationRPCCommands(CRPCTable &t) {
