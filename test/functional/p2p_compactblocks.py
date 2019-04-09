@@ -8,7 +8,7 @@ Version 1 compact blocks are non-segwit and they are not supported
 """
 
 from test_framework.mininode import *
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
 from test_framework.util import *
 from test_framework.blocktools import create_block, sign_coinbase, create_coinbase, get_tip_snapshot_meta
 from test_framework.script import CScript, OP_TRUE, OP_DROP
@@ -104,7 +104,10 @@ class CompactBlocksTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [["-graphene=0"], ["-txindex", "-deprecatedrpc=addwitnessaddress", "-graphene=0"]]
+        self.extra_args = [
+            ["-graphene=0", DISABLE_FINALIZATION],
+            ["-txindex", "-deprecatedrpc=addwitnessaddress", "-graphene=0", DISABLE_FINALIZATION]
+        ]
         self.utxos = []
 
     def build_block_on_tip(self, node, txs=[]):
