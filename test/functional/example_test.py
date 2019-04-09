@@ -183,6 +183,8 @@ class ExampleTest(UnitETestFramework):
             txout = self.nodes[0].gettxout(stake['txid'], stake['vout'])
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, snapshot_meta.hash))
             block = create_block(self.tip, coinbase, self.block_time)
+            # Wait until the active chain picks up the previous block
+            wait_until(lambda: self.nodes[0].getblockcount() == height, timeout=5)
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height + 1, coinbase)
             block.solve()
             block_message = msg_block(block)

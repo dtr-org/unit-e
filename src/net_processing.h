@@ -9,6 +9,7 @@
 #include <net.h>
 #include <validationinterface.h>
 #include <consensus/params.h>
+#include <netmessagemaker.h>
 
 /** Default for -maxorphantx, maximum number of orphan transactions kept in memory */
 static const unsigned int DEFAULT_MAX_ORPHAN_TRANSACTIONS = 100;
@@ -85,5 +86,40 @@ struct CNodeStateStats {
 
 /** Get statistics from node state */
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
+
+/** Increase a node's misbehavior score. */
+void Misbehaving(NodeId nodeid, int howmuch, const std::string& message="");
+
+void UpdateBlockAvailability(NodeId nodeid, const uint256 &hash);
+
+template <typename... Args>
+void PushMessage(CNode &to, const std::string &command, Args&&... args) {
+  const CNetMsgMaker msg_maker(to.GetSendVersion());
+  g_connman->PushMessage(&to, msg_maker.Make(command, std::forward<Args>(args)...));
+}
+
+// Requires cs_main.
+// Returns a bool indicating whether we requested this block.
+// Also used if a block was /not/ received and timed out or started with another peer
+bool MarkBlockAsReceived(const uint256& hash);
+
+extern CCriticalSection g_cs_orphans;
+
+struct COrphanTx {
+  CTransactionRef tx;
+  NodeId fromPeer;
+  int64_t nTimeExpire;
+};
+
+extern std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
+
+/**
+ * Sources of received blocks, saved to be able to send them reject
+ * messages or ban them when processing happens afterwards. Protected by
+ * cs_main.
+ * Set mapBlockSource[hash].second to false if the node should not be
+ * punished if the block is invalid.
+ */
+extern std::map<uint256, std::pair<NodeId, bool>> mapBlockSource;
 
 #endif // UNITE_NET_PROCESSING_H

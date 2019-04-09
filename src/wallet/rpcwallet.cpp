@@ -1480,7 +1480,7 @@ static UniValue addwitnessaddress(const JSONRPCRequest& request)
 
     if (!IsDeprecatedRPCEnabled("addwitnessaddress")) {
         throw JSONRPCError(RPC_METHOD_DEPRECATED, "addwitnessaddress is deprecated and will be fully removed in v0.17. "
-            "To use addwitnessaddress in v0.16, restart united with -deprecatedrpc=addwitnessaddress.\n"
+            "To use addwitnessaddress in v0.16, restart unit-e with -deprecatedrpc=addwitnessaddress.\n"
             "Projects should transition to using the address_type argument of getnewaddress, or option -addresstype=[bech32|p2sh-segwit] instead.\n");
     }
 
@@ -3940,7 +3940,7 @@ UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript>
     while (nHeight < nHeightEnd)
     {
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(
-              coinbaseScript->reserveScript, true, pwallet
+              coinbaseScript->reserveScript, pwallet
         ));
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");

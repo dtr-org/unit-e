@@ -71,10 +71,10 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
                 if keys != expected_keys:
                     return False
                 return all([
-                    res['valid'] == True,
+                    res['valid'] is True,
                     res['block_hash'] == block_hash,
                     res['block_height'] == height,
-                    res['snapshot_finalized'] == True,
+                    res['snapshot_finalized'] is True,
                     len(res['snapshot_hash']) == 64,
                     len(res['stake_modifier']) == 64,
                     len(res['chain_work']) == 64,
@@ -100,10 +100,10 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
                 if keys != expected_keys:
                     return False
                 return all([
-                    res['valid'] == True,
+                    res['valid'] is True,
                     res['block_hash'] == block_hash,
                     res['block_height'] == height,
-                    res['snapshot_finalized'] == False,
+                    res['snapshot_finalized'] is False,
                     len(res['snapshot_hash']) == 64,
                     len(res['stake_modifier']) == 64,
                     len(res['chain_work']) == 64,
@@ -146,10 +146,10 @@ class RpcGetBlockSnapshotTest(UnitETestFramework):
         # make sure the node generated snapshots up to expected height
         wait_until(lambda: 'valid' in node0.getblocksnapshot(node0.getblockhash(28)), timeout=10)
 
-        wait_for_deleted_snapshot(node0, height=3)  # actually deleted
-        wait_for_deleted_snapshot(node0, height=4)  # wasn't created
-        wait_for_valid_finalized(node0, height=8)
-        wait_for_valid_non_finalized(node0, height=28)
+        wait_for_deleted_snapshot(node0, height=4)  # actually deleted
+        wait_for_deleted_snapshot(node0, height=5)  # wasn't created
+        wait_for_valid_finalized(node0, height=9)
+        wait_for_valid_non_finalized(node0, height=29)
 
         res = node0.getblocksnapshot(forked_block_hash)
         assert_equal(res['error'], "can't retrieve snapshot hash of the fork")

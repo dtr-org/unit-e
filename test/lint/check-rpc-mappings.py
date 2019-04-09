@@ -18,6 +18,7 @@ SOURCES = [
     "src/rpc/net.cpp",
     "src/rpc/rawtransaction.cpp",
     "src/wallet/rpcaddressbook.cpp",
+    "src/wallet/rpcmnemonic.cpp",
     "src/wallet/rpcwallet.cpp",
     "src/wallet/rpcwalletext.cpp",
     "src/snapshot/rpc_processing.cpp",

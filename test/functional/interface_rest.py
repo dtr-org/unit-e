@@ -14,7 +14,7 @@ from struct import pack, unpack
 import http.client
 import urllib.parse
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, BLOCK_HEADER_LENGTH
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
@@ -212,24 +212,24 @@ class RESTTest (UnitETestFramework):
 
         # Check binary format
         response = self.test_rest_request("/block/{}".format(bb_hash), req_type=ReqType.BIN, ret_type=RetType.OBJ)
-        assert_greater_than(int(response.getheader('content-length')), 112)
+        assert_greater_than(int(response.getheader('content-length')), BLOCK_HEADER_LENGTH)
         response_bytes = response.read()
 
         # Compare with block header
         response_header = self.test_rest_request("/headers/1/{}".format(bb_hash), req_type=ReqType.BIN, ret_type=RetType.OBJ)
-        assert_equal(int(response_header.getheader('content-length')), 112)
+        assert_equal(int(response_header.getheader('content-length')), BLOCK_HEADER_LENGTH)
         response_header_bytes = response_header.read()
-        assert_equal(response_bytes[:112], response_header_bytes)
+        assert_equal(response_bytes[:BLOCK_HEADER_LENGTH], response_header_bytes)
 
         # Check block hex format
         response_hex = self.test_rest_request("/block/{}".format(bb_hash), req_type=ReqType.HEX, ret_type=RetType.OBJ)
-        assert_greater_than(int(response_hex.getheader('content-length')), 224)
+        assert_greater_than(int(response_hex.getheader('content-length')), BLOCK_HEADER_LENGTH)
         response_hex_bytes = response_hex.read().strip(b'\n')
-        assert_equal(binascii.hexlify(response_bytes)[0:224], response_hex_bytes[0:224])
+        assert_equal(binascii.hexlify(response_bytes)[0:BLOCK_HEADER_LENGTH * 2], response_hex_bytes[0:BLOCK_HEADER_LENGTH * 2])
 
         # Compare with hex block header
         response_header_hex = self.test_rest_request("/headers/1/{}".format(bb_hash), req_type=ReqType.HEX, ret_type=RetType.OBJ)
-        assert_greater_than(int(response_header_hex.getheader('content-length')), 224)
+        assert_greater_than(int(response_header_hex.getheader('content-length')), BLOCK_HEADER_LENGTH * 2)
         response_header_hex_bytes = response_header_hex.read().strip(b'\n')
         assert_equal(binascii.hexlify(response_header_bytes), response_header_hex_bytes)
 

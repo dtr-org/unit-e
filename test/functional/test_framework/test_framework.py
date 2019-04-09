@@ -57,6 +57,8 @@ COINBASE_MATURITY = 100  # Should match the value from consensus.h
 STAKE_SPLIT_THRESHOLD = 1000  # Should match the value from blockchain_parameters.cpp
 PROPOSER_REWARD = Decimal('3.75')  # Will not decrease as tests don't generate enough blocks
 
+BLOCK_HEADER_LENGTH = 144
+
 # This parameter simulates the scenario that the node "never" reaches finalization.
 # The purpose of it is to adapt Unit-e tests to Unit-e which contradict with the finalization
 # so the existing tests will perform the check within one dynasty.
@@ -135,9 +137,9 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
 
         parser = argparse.ArgumentParser(usage="%(prog)s [options]")
         parser.add_argument("--nocleanup", dest="nocleanup", default=False, action="store_true",
-                            help="Leave uniteds and test.* datadir on exit or error")
+                            help="Leave unit-e daemons and test.* datadir on exit or error")
         parser.add_argument("--noshutdown", dest="noshutdown", default=False, action="store_true",
-                            help="Don't stop uniteds after the test execution")
+                            help="Don't stop unit-e daemons after the test execution")
         parser.add_argument("--cachedir", dest="cachedir", default=os.path.abspath(os.path.dirname(os.path.realpath(__file__)) + "/../../cache"),
                             help="Directory for caching pregenerated datadirs (default: %(default)s)")
         parser.add_argument("--tmpdir", dest="tmpdir", help="Root directory for datadirs")
@@ -155,7 +157,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         parser.add_argument("--pdbonfailure", dest="pdbonfailure", default=False, action="store_true",
                             help="Attach a python debugger if test fails")
         parser.add_argument("--usecli", dest="usecli", default=False, action="store_true",
-                            help="use unite-cli instead of RPC for all commands")
+                            help="use unit-e-cli instead of RPC for all commands")
         self.add_options(parser)
         self.options = parser.parse_args()
 
@@ -167,8 +169,8 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
 
         config = configparser.ConfigParser()
         config.read_file(open(self.options.configfile))
-        self.options.united = os.getenv("UNITED", default=config["environment"]["BUILDDIR"] + '/src/united' + config["environment"]["EXEEXT"])
-        self.options.unitecli = os.getenv("UNITECLI", default=config["environment"]["BUILDDIR"] + '/src/unite-cli' + config["environment"]["EXEEXT"])
+        self.options.unit_e = os.getenv("UNIT_E", default=config["environment"]["BUILDDIR"] + '/src/unit-e' + config["environment"]["EXEEXT"])
+        self.options.unit_e_cli = os.getenv("UNIT_E_CLI", default=config["environment"]["BUILDDIR"] + '/src/unit-e-cli' + config["environment"]["EXEEXT"])
 
         os.environ['PATH'] = os.pathsep.join([
             os.path.join(config['environment']['BUILDDIR'], 'src'),
@@ -226,7 +228,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         else:
             for node in self.nodes:
                 node.cleanup_on_exit = False
-            self.log.info("Note: uniteds were not stopped and may still be running")
+            self.log.info("Note: unit-e daemons were not stopped and may still be running")
 
         if not self.options.nocleanup and not self.options.noshutdown and success != TestStatus.FAILED:
             self.log.info("Cleaning up {} on exit".format(self.options.tmpdir))
@@ -293,8 +295,9 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
 
     def setup_stake_coins(self, *args, rescan=True, offset=0):
         for i, node in enumerate(args):
-            node.importmasterkey(regtest_mnemonics[offset+i+2]['mnemonics'], "", rescan)
-            node.initial_stake = regtest_mnemonics[offset+i+2]['balance']
+            node.mnemonics = regtest_mnemonics[i + 2]['mnemonics']
+            node.initial_stake = regtest_mnemonics[i + 2]['balance']
+            node.importmasterkey(node.mnemonics, "", rescan)
 
     def import_deterministic_coinbase_privkeys(self):
         if self.setup_clean_chain:
@@ -326,16 +329,16 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         if extra_args is None:
             extra_args = [[]] * num_nodes
         if binary is None:
-            binary = [self.options.united] * num_nodes
+            binary = [self.options.unit_e] * num_nodes
         assert_equal(len(extra_confs), num_nodes)
         assert_equal(len(extra_args), num_nodes)
         assert_equal(len(binary), num_nodes)
         for i in range(num_nodes):
             print("Starting node " + str(i) + " with args: " + ' '.join(str(e) for e in extra_args[i]))
-            self.nodes.append(TestNode(i, get_datadir_path(self.options.tmpdir, i), rpchost=rpchost, timewait=self.rpc_timewait, united=binary[i], unite_cli=self.options.unitecli, mocktime=self.mocktime, coverage_dir=self.options.coveragedir, extra_conf=extra_confs[i], extra_args=extra_args[i], use_cli=self.options.usecli))
+            self.nodes.append(TestNode(i, get_datadir_path(self.options.tmpdir, i), rpchost=rpchost, timewait=self.rpc_timewait, unit_e=binary[i], unit_e_cli=self.options.unit_e_cli, mocktime=self.mocktime, coverage_dir=self.options.coveragedir, extra_conf=extra_confs[i], extra_args=extra_args[i], use_cli=self.options.usecli))
 
     def start_node(self, i, *args, **kwargs):
-        """Start a united"""
+        """Start a unit-e"""
 
         node = self.nodes[i]
 
@@ -346,7 +349,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             coverage.write_all_rpc_commands(self.options.coveragedir, node.rpc)
 
     def start_nodes(self, extra_args=None, *args, **kwargs):
-        """Start multiple uniteds"""
+        """Start multiple unit-e daemons"""
 
         if extra_args is None:
             extra_args = [None] * self.num_nodes
@@ -366,12 +369,12 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
                 coverage.write_all_rpc_commands(self.options.coveragedir, node.rpc)
 
     def stop_node(self, i, expected_stderr='', wait=0):
-        """Stop a united test node"""
+        """Stop a unit-e test node"""
         self.nodes[i].stop_node(expected_stderr, wait=wait)
         self.nodes[i].wait_until_stopped()
 
     def stop_nodes(self, wait=0):
-        """Stop multiple united test nodes"""
+        """Stop multiple unit-e test nodes"""
         for node in self.nodes:
             # Issue RPC to stop nodes
             node.stop_node(wait=wait)
@@ -388,14 +391,16 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
     def wait_for_node_exit(self, i, timeout):
         self.nodes[i].process.wait(timeout)
 
-    def wait_for_transaction(self, txid, timeout=150):
+    def wait_for_transaction(self, txid, timeout=150, nodes=None):
+        if nodes is None:
+            nodes = self.nodes
         timeout += time.perf_counter()
 
-        presence = dict.fromkeys(range(len(self.nodes)))
+        presence = dict.fromkeys(range(len(nodes)))
 
         while time.perf_counter() < timeout:
             all_have = True
-            for node in self.nodes:
+            for node in nodes:
                 try:
                     if presence[node.index]:
                         continue
@@ -470,27 +475,47 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         new_txs = [tx for tx in node.getrawmempool() if tx not in txs]
         assert_equal(len(new_txs), 1)
         vote = FromHex(CTransaction(), node.getrawtransaction(new_txs[0]))
-        assert_equal(vote.get_type(), TxType.VOTE.name)
+        assert_equal(vote.get_type(), TxType.VOTE)
 
-    def generate_sync(self, generator_node, nblocks=1):
+    def generate_sync(self, generator_node, nblocks=1, nodes=None):
         """
         Generates nblocks on a given node. Performing full sync after each block
         """
+        if nodes is None:
+            nodes = self.nodes
         generated_blocks = []
         for _ in range(nblocks):
             block = generator_node.generate(1)[0]
             generated_blocks.append(block)
-            sync_blocks(self.nodes)
+            sync_blocks(nodes)
 
             # VoteIfNeeded is called on a background thread.
             # By syncing we ensure that all votes will be in the mempools at the
             # end of this iteration
-            for node in self.nodes:
+            for node in nodes:
                 node.syncwithvalidationinterfacequeue()
 
-            sync_mempools(self.nodes)
+            sync_mempools(nodes)
 
         return generated_blocks
+
+    @classmethod
+    def generate_epoch(cls, proposer, finalizer, count=1):
+        """
+        Generate `count` epochs and collect votes.
+        """
+        epoch_length = proposer.getfinalizationconfig()['epochLength']
+        assert epoch_length > 1
+        votes=[]
+        for _ in range(count):
+            proposer.generatetoaddress(epoch_length - 1, proposer.getnewaddress('', 'bech32'))
+            cls.wait_for_vote_and_disconnect(finalizer, proposer)
+            for tx in proposer.getrawmempool():
+                tx = FromHex(CTransaction(), proposer.getrawtransaction(tx))
+                if tx.get_type() == TxType.VOTE:
+                    votes.append(tx)
+            proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        return votes
 
     def enable_mocktime(self):
         """Enable mocktime for the script.
@@ -521,7 +546,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
         # User can provide log level as a number or string (eg DEBUG). loglevel was caught as a string, so try to convert it to an int
         ll = int(self.options.loglevel) if self.options.loglevel.isdigit() else self.options.loglevel.upper()
         ch.setLevel(ll)
-        # Format logs the same as united's debug.log with microprecision (so log files can be concatenated and sorted)
+        # Format logs the same as unit-e's debug.log with microprecision (so log files can be concatenated and sorted)
         formatter = logging.Formatter(fmt='%(asctime)s.%(msecs)03d000Z %(name)s (%(levelname)s): %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
         formatter.converter = time.gmtime
         fh.setFormatter(formatter)
@@ -558,13 +583,13 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
                 if os.path.isdir(get_datadir_path(self.options.cachedir, i)):
                     shutil.rmtree(get_datadir_path(self.options.cachedir, i))
 
-            # Create cache directories, run uniteds:
+            # Create cache directories, run unit-e daemons:
             for i in range(MAX_NODES):
                 datadir = initialize_datadir(self.options.cachedir, i)
-                args = [self.options.united, "-datadir=" + datadir]
+                args = [self.options.unit_e, "-datadir=" + datadir]
                 if i > 0:
                     args.append("-connect=127.0.0.1:" + str(p2p_port(0)))
-                self.nodes.append(TestNode(i, get_datadir_path(self.options.cachedir, i), extra_conf=["bind=127.0.0.1"], extra_args=[], rpchost=None, timewait=self.rpc_timewait, united=self.options.united, unite_cli=self.options.unitecli, mocktime=self.mocktime, coverage_dir=None))
+                self.nodes.append(TestNode(i, get_datadir_path(self.options.cachedir, i), extra_conf=["bind=127.0.0.1"], extra_args=[], rpchost=None, timewait=self.rpc_timewait, unit_e=self.options.unit_e, unit_e_cli=self.options.unit_e_cli, mocktime=self.mocktime, coverage_dir=None))
                 self.nodes[i].args = args
                 self.start_node(i)
 
@@ -609,14 +634,14 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             for i in range(MAX_NODES):
                 shutil.rmtree(cache_path(i, 'wallets'))  # Remove cache generators' wallets dir
                 for entry in os.listdir(cache_path(i)):
-                    if entry not in ['wallets', 'chainstate', 'blocks', 'snapshots']:
+                    if entry not in ['wallets', 'chainstate', 'blocks', 'snapshots', 'finalization']:
                         os.remove(cache_path(i, entry))
 
         for i in range(self.num_nodes):
             from_dir = get_datadir_path(self.options.cachedir, i)
             to_dir = get_datadir_path(self.options.tmpdir, i)
             shutil.copytree(from_dir, to_dir)
-            initialize_datadir(self.options.tmpdir, i)  # Overwrite port/rpcport in unite.conf
+            initialize_datadir(self.options.tmpdir, i)  # Overwrite port/rpcport in unit-e.conf
 
     def _initialize_chain_clean(self):
         """Initialize empty blockchain for use by the test.

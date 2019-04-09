@@ -17,14 +17,17 @@ from test_framework.key import CECKey
 from test_framework.messages import (
     msg_getcommits,
     msg_commits,
+    CBlock,
     CBlockHeader,
     CommitsLocator,
     HeaderAndCommits,
+    ser_uint256,
 )
 from test_framework.util import (
     assert_equal,
     wait_until,
 )
+import copy
 import time
 from test_framework.mininode import (
     P2PInterface,
@@ -93,71 +96,71 @@ class CommitsTest(UnitETestFramework):
             for i in range(0, len(hashes)):
                 assert_equal(m.data[i].header.sha256, hashes[i])
 
-        generate(18)
+        generate(19)
         # When no validators present, node automatically justifies previous epoch.
         # So that:
-        # F      F      J
-        # 0..4 - 5..9 - 10..14 - 15..18
-        assert_equal(node.getblockcount(), 18)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 1)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 2)
+        # F   F      F       J
+        # 0 - 1..5 - 6..10 - 11..15 - 16..19
+        assert_equal(node.getblockcount(), 19)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 2)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 3)
 
-        getcommits([blocks[5]])  # expect error: not a checkpoint
+        getcommits([blocks[4]])  # expect error: not a checkpoint
         time.sleep(2)
         assert_equal(len(p2p.messages), 0)
 
-        getcommits([blocks[4]])
-        check_commits(0, blocks[5:10])
+        getcommits([blocks[5]])
+        check_commits(0, blocks[6:11])
 
-        getcommits([blocks[4], blocks[9]])
-        check_commits(1, blocks[10:19])
+        getcommits([blocks[5], blocks[10]])
+        check_commits(1, blocks[11:20])
 
-        getcommits([blocks[4], blocks[12]])
-        check_commits(1, blocks[13:19])
+        getcommits([blocks[5], blocks[12]])
+        check_commits(1, blocks[13:20])
 
-        getcommits([blocks[4], blocks[9], blocks[11]])
-        check_commits(1, blocks[12:19])
+        getcommits([blocks[5], blocks[10], blocks[11]])
+        check_commits(1, blocks[12:20])
 
         # ascend ordering is broken, 11 is considered biggest
-        getcommits([blocks[4], blocks[11], blocks[9]])
-        check_commits(1, blocks[12:19])
+        getcommits([blocks[5], blocks[11], blocks[10]])
+        check_commits(1, blocks[12:20])
 
         # ascend ordering is broken, 11 is considered biggest, 12 is shadowed
-        getcommits([blocks[4], blocks[11], blocks[9], blocks[12]])
-        check_commits(1, blocks[12:19])
+        getcommits([blocks[5], blocks[11], blocks[10], blocks[12]])
+        check_commits(1, blocks[12:20])
 
         generate(1)  # 19th block, non-finalized checkpoint
-        assert_equal(node.getblockcount(), 19)
-        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 1)
-        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 2)
-
-        getcommits([blocks[14]])  # expect error
-        time.sleep(2)
-        assert_equal(len(p2p.messages), 0)
-
-        # last epoch is full but still not finalized, expect status=1
-        getcommits([blocks[9]])
-        check_commits(1, blocks[10:20])
-
-        getcommits([blocks[14]])  # expect error: not finalized checkpoint
-        time.sleep(2)
-        assert_equal(len(p2p.messages), 0)
-
-        generate(1)
         assert_equal(node.getblockcount(), 20)
         assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 2)
         assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 3)
 
-        # Epoch 15..19 is now finalized, expect status=0
-        getcommits([blocks[9]])
-        check_commits(0, blocks[10:15])
+        getcommits([blocks[15]])  # expect error
+        time.sleep(2)
+        assert_equal(len(p2p.messages), 0)
 
-        getcommits([blocks[14]])
-        check_commits(1, blocks[15:21])
+        # last epoch is full but still not finalized, expect status=1
+        getcommits([blocks[10]])
+        check_commits(1, blocks[11:21])
+
+        getcommits([blocks[15]])  # expect error: not finalized checkpoint
+        time.sleep(2)
+        assert_equal(len(p2p.messages), 0)
+
+        generate(1)
+        assert_equal(node.getblockcount(), 21)
+        assert_equal(node.getfinalizationstate()['lastFinalizedEpoch'], 3)
+        assert_equal(node.getfinalizationstate()['lastJustifiedEpoch'], 4)
+
+        # Epoch 16..20 is now finalized, expect status=0
+        getcommits([blocks[10]])
+        check_commits(0, blocks[11:16])
+
+        getcommits([blocks[15]])
+        check_commits(1, blocks[16:22])
 
         # Ask for unknown block hash, check most recent block is 14.
-        getcommits([blocks[9], blocks[14], 0x4242424242])
-        check_commits(1, blocks[15:21])
+        getcommits([blocks[10], blocks[15], 0x4242424242])
+        check_commits(1, blocks[16:22])
 
     def commits_test(self, node):
         def check_headers(number):
@@ -243,11 +246,27 @@ class CommitsTest(UnitETestFramework):
         # generate next 10 blocks, fool commit in one of them, send them
         generate(10)
         msg = make_commits_msg(chain[-10:])
-        msg.data[-1].commits = chain[-1].vtx # fool commits with coinbase tx
+        malicious_block = copy.deepcopy(chain[-1])
+        msg.data[-1].commits = malicious_block.vtx # fool commits with coinbase tx
+        tx = malicious_block.vtx[0]
+        tx.calc_sha256()
+        hashes = [ser_uint256(tx.sha256)]
+        malicious_block.hash_finalizer_commits_merkle_root = CBlock.get_merkle_root(hashes)
+        malicious_block.rehash()
+        msg.data[-1].header.hash_finalizer_commits_merkle_root = malicious_block.hash_finalizer_commits_merkle_root
         node.p2p.send_message(msg)
-        check_reject(b'bad-non-commit', chain[-1].sha256) # node rejected commits because of non-commit transaction
+        check_reject(b'bad-non-commit', malicious_block.sha256) # node rejected commits because of non-commit transaction
         check_headers(30) # must keep old amount of headers
 
+        # send commits with bad merkle root
+        msg = make_commits_msg(chain[-10:])
+        malicious_block = copy.deepcopy(chain[-2])
+        malicious_block.hash_finalizer_commits_merkle_root = 42
+        malicious_block.rehash()
+        msg.data[-2].header.hash_finalizer_commits_merkle_root = malicious_block.hash_finalizer_commits_merkle_root
+        node.p2p.send_message(msg)
+        check_reject(b'bad-finalizer-commits-merkle-root', malicious_block.sha256) # node rejected commits because of bad commits merkle root
+        check_headers(30) # must keep old amount of headers
 
 if __name__ == '__main__':
     CommitsTest().main()

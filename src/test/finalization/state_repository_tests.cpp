@@ -2,24 +2,99 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <finalization/state_repository.h>
-#include <esperanza/finalizationstate.h>
 #include <esperanza/adminparams.h>
+#include <esperanza/finalizationstate.h>
+#include <finalization/state_processor.h>
+#include <finalization/state_repository.h>
 #include <test/test_unite.h>
 #include <test/test_unite_mocks.h>
 
 #include <boost/test/unit_test.hpp>
 
+namespace esperanza {
+static std::ostream &operator<<(std::ostream &os, const FinalizationState &f) {
+  os << f.ToString();
+  return os;
+}
+}  // namespace esperanza
+
 namespace {
 
-class Fixture {
-public:
-  Fixture() : repo(finalization::StateRepository::New(&m_chain)) {
-    Reset();
+class BlockDBMock : public BlockDB {
+ public:
+  boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
+    const auto it = blocks.find(&index);
+    if (it == blocks.end()) {
+      return boost::none;
+    }
+    ++it->second.read_requests;
+    return it->second.block;
   }
 
-  void Reset() {
-    repo->Reset(Params().GetFinalization(), Params().GetAdminParams());
+  struct Info {
+    size_t read_requests = 0;
+    CBlock block;
+  };
+  std::map<const CBlockIndex *, Info> blocks;
+};
+
+class StateDBMock : public finalization::StateDB {
+  using FinalizationState = finalization::FinalizationState;
+
+ public:
+  std::map<const CBlockIndex *, FinalizationState> m_states;
+  boost::optional<uint32_t> m_last_finalized_epoch;
+
+  bool Save(const std::map<const CBlockIndex *, FinalizationState> &states) override {
+    for (const auto &s : states) {
+      m_states.emplace(s.first, finalization::FinalizationState(s.second, s.second.GetInitStatus()));
+    }
+    return true;
+  }
+
+  bool Load(const esperanza::FinalizationParams &fin_params,
+            const esperanza::AdminParams &admin_params,
+            std::map<const CBlockIndex *, FinalizationState> *states) override {
+    for (const auto &s : m_states) {
+      states->emplace(s.first, finalization::FinalizationState(s.second, s.second.GetInitStatus()));
+    }
+    return true;
+  }
+
+  bool Load(const CBlockIndex &index,
+            const esperanza::FinalizationParams &fin_params,
+            const esperanza::AdminParams &admin_params,
+            std::map<const CBlockIndex *, FinalizationState> *states) const override {
+    const auto it = m_states.find(&index);
+    if (it == m_states.end()) {
+      return false;
+    }
+    states->emplace(it->first, finalization::FinalizationState(it->second, it->second.GetInitStatus()));
+    return true;
+  }
+
+  boost::optional<uint32_t> FindLastFinalizedEpoch(
+      const esperanza::FinalizationParams &fin_params,
+      const esperanza::AdminParams &admin_params) const override {
+    return m_last_finalized_epoch;
+  }
+
+  void LoadStatesHigherThan(
+      blockchain::Height height,
+      const esperanza::FinalizationParams &fin_params,
+      const esperanza::AdminParams &admin_params,
+      std::map<const CBlockIndex *, FinalizationState> *states) const override {}
+
+  FinalizationState &Get(const CBlockIndex &index) {
+    const auto it = m_states.find(&index);
+    BOOST_REQUIRE(it != m_states.end());
+    return it->second;
+  }
+};
+
+class Fixture {
+ public:
+  Fixture() : m_repo(NewRepo()) {
     m_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
@@ -27,29 +102,36 @@ public:
       }
       return it->second;
     };
-    m_chain.find_fork_origin = [this](const CBlockIndex *index) {
-      while (index != nullptr && !m_chain.Contains(*index)) {
-        index = index->pprev;
-      }
-      return index;
-    };
+  }
+
+  std::unique_ptr<finalization::StateRepository> NewRepo() {
+    auto repo = finalization::StateRepository::New(&m_block_indexes, &m_chain, &m_state_db, &m_block_db);
+    repo->Reset(Params().GetFinalization(), Params().GetAdminParams());
+    return repo;
+  }
+
+  void Reset() {
+    m_repo->Reset(Params().GetFinalization(), Params().GetAdminParams());
   }
 
   CBlockIndex &CreateBlockIndex() {
     const auto height = FindNextHeight();
-    const auto ins_res = m_block_indexes.emplace(uint256S(std::to_string(height)), CBlockIndex());
-    CBlockIndex &index = ins_res.first->second;
+    CBlockIndex &index = *m_block_indexes.Insert(uint256S(std::to_string(height)));
     index.nHeight = height;
-    index.phashBlock = &ins_res.first->first;
     index.pprev = m_chain.tip;
     m_chain.tip = &index;
+    m_chain.height = height;
     m_block_heights[index.nHeight] = &index;
     return index;
   }
 
-  std::unique_ptr<finalization::StateRepository> repo;
+  std::unique_ptr<finalization::StateRepository> m_repo;
+  mocks::ActiveChainMock m_chain;
+  StateDBMock m_state_db;
+  BlockDBMock m_block_db;
+  mocks::BlockIndexMapMock m_block_indexes;
 
-private:
+ private:
   blockchain::Height FindNextHeight() {
     if (m_chain.tip == nullptr) {
       return 0;
@@ -58,12 +140,10 @@ private:
     }
   }
 
-  mocks::ActiveChainMock m_chain;
-  std::map<uint256, CBlockIndex> m_block_indexes;
-  std::map<blockchain::Height, CBlockIndex *> m_block_heights; // m_block_index owns these block indexes
+  std::map<blockchain::Height, CBlockIndex *> m_block_heights;  // m_block_index owns these block indexes
 };
 
-}
+}  // namespace
 
 BOOST_FIXTURE_TEST_SUITE(state_repository_tests, BasicTestingSetup)
 
@@ -77,79 +157,220 @@ BOOST_AUTO_TEST_CASE(basic_checks) {
   const auto &b3 = fixture.CreateBlockIndex();
   const auto &b4 = fixture.CreateBlockIndex();
 
-  BOOST_CHECK(fixture.repo->Find(b0) != nullptr); // we have a state for genesis block
-  BOOST_CHECK(fixture.repo->Find(b1) == nullptr);
-  BOOST_CHECK(fixture.repo->Find(b2) == nullptr);
+  finalization::StateRepository &repo = *fixture.m_repo;
+
+  LOCK(repo.GetLock());
+
+  BOOST_CHECK(repo.Find(b0) != nullptr);  // we have a state for genesis block
+  BOOST_CHECK(repo.Find(b1) == nullptr);
+  BOOST_CHECK(repo.Find(b2) == nullptr);
 
   // Create a new state.
-  auto *state1 = fixture.repo->FindOrCreate(b1, S::COMPLETED);
+  auto *state1 = repo.FindOrCreate(b1, S::COMPLETED);
   BOOST_REQUIRE(state1 != nullptr);
   BOOST_CHECK(state1->GetInitStatus() == S::NEW);
-  BOOST_CHECK(fixture.repo->Find(b1) == state1);
-  BOOST_CHECK(fixture.repo->FindOrCreate(b1, S::COMPLETED) == state1);
+  BOOST_CHECK(repo.Find(b1) == state1);
+  BOOST_CHECK(repo.FindOrCreate(b1, S::COMPLETED) == state1);
 
   // Try to create a state for a second block. It must fail due to parent's state is NEW.
-  BOOST_CHECK(fixture.repo->FindOrCreate(b2, S::COMPLETED) == nullptr);
-  BOOST_CHECK(fixture.repo->FindOrCreate(b2, S::FROM_COMMITS) == nullptr);
+  BOOST_CHECK(repo.FindOrCreate(b2, S::COMPLETED) == nullptr);
+  BOOST_CHECK(repo.FindOrCreate(b2, S::FROM_COMMITS) == nullptr);
 
   // Now relax requirement for parent's state, so that we can create new state
-  auto *state2 = fixture.repo->FindOrCreate(b2, S::NEW);
+  auto *state2 = repo.FindOrCreate(b2, S::NEW);
   BOOST_REQUIRE(state1 != nullptr);
   BOOST_CHECK(state1->GetInitStatus() == S::NEW);
 
   // Try to create a state when repository doesn't contain parent's state
-  BOOST_CHECK(fixture.repo->FindOrCreate(b4, S::COMPLETED) == nullptr);
-  BOOST_CHECK(fixture.repo->FindOrCreate(b4, S::FROM_COMMITS) == nullptr);
-  BOOST_CHECK(fixture.repo->FindOrCreate(b4, S::NEW) == nullptr);
+  BOOST_CHECK(repo.FindOrCreate(b4, S::COMPLETED) == nullptr);
+  BOOST_CHECK(repo.FindOrCreate(b4, S::FROM_COMMITS) == nullptr);
+  BOOST_CHECK(repo.FindOrCreate(b4, S::NEW) == nullptr);
 
   // Process state2 from commits and create state for b3.
   state2->ProcessNewCommits(b2, {});
   BOOST_CHECK(state2->GetInitStatus() == S::FROM_COMMITS);
-  BOOST_CHECK(fixture.repo->FindOrCreate(b3, S::COMPLETED) == nullptr);
-  auto *state3 = fixture.repo->FindOrCreate(b3, S::FROM_COMMITS);
+  BOOST_CHECK(repo.FindOrCreate(b3, S::COMPLETED) == nullptr);
+  auto *state3 = repo.FindOrCreate(b3, S::FROM_COMMITS);
   BOOST_REQUIRE(state3 != nullptr);
   state3->ProcessNewCommits(b3, {});
   BOOST_CHECK(state3->GetInitStatus() == S::FROM_COMMITS);
 
   // Check we cannot create next state with COMPLETED requirement.
-  BOOST_CHECK(fixture.repo->FindOrCreate(b4, S::COMPLETED) == nullptr);
+  BOOST_CHECK(repo.FindOrCreate(b4, S::COMPLETED) == nullptr);
 
   // Now, confirm the state3
   esperanza::FinalizationState state3_confirmed(*state2);
   state3_confirmed.ProcessNewTip(b3, CBlock());
-  BOOST_CHECK(fixture.repo->Confirm(b3, std::move(state3_confirmed), &state3));
+  BOOST_CHECK(repo.Confirm(b3, std::move(state3_confirmed), &state3));
   BOOST_CHECK(state3->GetInitStatus() == S::COMPLETED);
-  BOOST_CHECK(fixture.repo->Find(b3) == state3);
+  BOOST_CHECK(repo.Find(b3) == state3);
 
   // Now we can create next state with COMPLETED requirement.
-  auto *state4 = fixture.repo->FindOrCreate(b4, S::COMPLETED);
+  auto *state4 = repo.FindOrCreate(b4, S::COMPLETED);
   BOOST_REQUIRE(state4 != nullptr);
   BOOST_CHECK(state4->GetInitStatus() == S::NEW);
 
   // Trim the repository
-  fixture.repo->TrimUntilHeight(3);
-  BOOST_CHECK(fixture.repo->Find(b0) != nullptr); // genesis
-  BOOST_CHECK(fixture.repo->Find(b1) == nullptr);
-  BOOST_CHECK(fixture.repo->Find(b2) == nullptr);
-  BOOST_CHECK(fixture.repo->Find(b3) != nullptr);
-  BOOST_CHECK(fixture.repo->Find(b4) != nullptr);
+  repo.TrimUntilHeight(3);
+  BOOST_CHECK(repo.Find(b0) != nullptr);  // genesis
+  BOOST_CHECK(repo.Find(b1) == nullptr);
+  BOOST_CHECK(repo.Find(b2) == nullptr);
+  BOOST_CHECK(repo.Find(b3) != nullptr);
+  BOOST_CHECK(repo.Find(b4) != nullptr);
 
   // Btw, now we processed states til the chain's tip. Check it.
-  BOOST_CHECK(fixture.repo->GetTipState() == state4);
+  BOOST_CHECK(repo.GetTipState() == state4);
 
   // Reset repo completely.
   fixture.Reset();
-  BOOST_CHECK(fixture.repo->Find(b0) != nullptr); // genesis
-  BOOST_CHECK(fixture.repo->Find(b3) == nullptr);
-  BOOST_CHECK(fixture.repo->Find(b4) == nullptr);
+  BOOST_CHECK(repo.Find(b0) != nullptr);  // genesis
+  BOOST_CHECK(repo.Find(b3) == nullptr);
+  BOOST_CHECK(repo.Find(b4) == nullptr);
 
   // Reset  repo to the tip.
-  fixture.repo->ResetToTip(b4);
-  BOOST_CHECK(fixture.repo->Find(b3) == nullptr);
-  state4 = fixture.repo->Find(b4);
+  repo.ResetToTip(b4);
+  BOOST_CHECK(repo.Find(b3) == nullptr);
+  state4 = repo.Find(b4);
   BOOST_REQUIRE(state4 != nullptr);
   BOOST_CHECK(state4->GetInitStatus() == S::COMPLETED);
 }
 
+BOOST_AUTO_TEST_CASE(recovering) {
+  Fixture fixture;
+
+  LOCK(fixture.m_chain.GetLock());
+  LOCK(fixture.m_repo->GetLock());
+
+  auto check_restored = [&fixture](finalization::StateRepository &restored) {
+    for (blockchain::Height i = 0; i <= fixture.m_chain.GetHeight(); ++i) {
+      const CBlockIndex *index = fixture.m_chain.AtHeight(i);
+      BOOST_REQUIRE(index != nullptr);
+      finalization::FinalizationState *state = fixture.m_repo->Find(*index);
+      finalization::FinalizationState *restored_state = restored.Find(*index);
+      BOOST_REQUIRE(state != nullptr);
+      BOOST_REQUIRE(restored_state != nullptr);
+      BOOST_CHECK_EQUAL(*state, *restored_state);
+    }
+  };
+
+  auto remove_from_db = [&fixture](const blockchain::Height h) {
+    const CBlockIndex *index = fixture.m_chain.AtHeight(h);
+    BOOST_REQUIRE(index != nullptr);
+    BOOST_REQUIRE(fixture.m_state_db.m_states.count(index) == 1);
+    fixture.m_state_db.m_states.erase(index);
+    BOOST_REQUIRE(fixture.m_state_db.m_states.count(index) == 0);
+  };
+
+  for (size_t i = 0; i < 10; ++i) {
+    const CBlockIndex &index = fixture.CreateBlockIndex();
+    finalization::FinalizationState *state = fixture.m_repo->FindOrCreate(index, S::NEW);
+    BOOST_REQUIRE(state != nullptr);
+    state->ProcessNewTip(index, CBlock());
+  }
+
+  fixture.m_repo->SaveToDisk();
+
+  for (const CBlockIndex *walk = fixture.m_chain.GetTip(); walk != nullptr && walk->nHeight > 0; walk = walk->pprev) {
+    finalization::FinalizationState *state = fixture.m_repo->Find(*walk);
+    BOOST_REQUIRE(state != nullptr);
+    BOOST_CHECK_EQUAL(fixture.m_state_db.Get(*walk), *state);
+  }
+
+  // Check normal scenario
+  {
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    restored_repo->RestoreFromDisk(proc.get());
+    LOCK(restored_repo->GetLock());
+    check_restored(*restored_repo);
+  }
+
+  // Remove one state from DB and check how it's restored.
+  {
+    remove_from_db(5);
+    fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    restored_repo->RestoreFromDisk(proc.get());
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
+    LOCK(restored_repo->GetLock());
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    check_restored(*restored_repo);
+  }
+
+  // Remove second state from DB and check how it's restored.
+  {
+    remove_from_db(4);
+    fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    restored_repo->RestoreFromDisk(proc.get());
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
+    LOCK(restored_repo->GetLock());
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    check_restored(*restored_repo);
+  }
+
+  // Remove tip's state from DB and check how it's restored.
+  {
+    remove_from_db(9);
+    fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    restored_repo->RestoreFromDisk(proc.get());
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)].read_requests, 1);
+    LOCK(restored_repo->GetLock());
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(9)) != nullptr);
+    check_restored(*restored_repo);
+  }
+
+  // Remove tip's state from DB and check how it's restored (backward ordering in BlockIndexMap.ForEach).
+  {
+    fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
+    fixture.m_block_indexes.reverse = true;
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    restored_repo->RestoreFromDisk(proc.get());
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(5)].read_requests, 1);
+    BOOST_CHECK_EQUAL(fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)].read_requests, 1);
+    LOCK(restored_repo->GetLock());
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(4)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(9)) != nullptr);
+    check_restored(*restored_repo);
+  }
+
+  // Remove block 5 from the disk!
+  {
+    fixture.m_block_db.blocks.clear();
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(4)] = {};
+    fixture.m_block_db.blocks[fixture.m_chain.AtHeight(9)] = {};
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    try {
+      restored_repo->RestoreFromDisk(proc.get());
+    } catch (finalization::MissedBlockError &e) {
+      BOOST_CHECK(&e.missed_index == fixture.m_chain.AtHeight(5));
+      return;
+    }
+    BOOST_REQUIRE(not("unreachable"));
+  }
+}
 
 BOOST_AUTO_TEST_SUITE_END()

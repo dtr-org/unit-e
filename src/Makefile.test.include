@@ -30,11 +30,11 @@ UNITE_TEST_SUITE = \
   test/rpc_test_utils.h \
   test/rpc_test_utils.cpp \
   test/scriptnum10.h \
-  test/test_unite_main.cpp \
   test/test_unite.h \
   test/test_unite.cpp \
   test/test_unite_block_fixture.h \
   test/test_unite_block_fixture.cpp \
+  test/test_unite_main.cpp \
   test/test_unite_mocks.h
 
 # test_unite binary #
@@ -77,9 +77,12 @@ UNITE_TESTS =\
   test/esperanza/finalizationstate_logout_tests.cpp \
   test/esperanza/finalizationstate_withdraw_tests.cpp \
   test/esperanza/finalizationstate_slash_tests.cpp \
+  test/finalization/params_tests.cpp \
+  test/finalization/state_db_tests.cpp \
   test/finalization/state_processor_tests.cpp \
   test/finalization/state_repository_tests.cpp \
   test/finalization/vote_recorder_tests.cpp \
+  test/finalizer_commits_handler_tests.cpp \
   test/getarg_tests.cpp \
   test/hash_tests.cpp \
   test/iblt_tests.cpp \
@@ -98,6 +101,7 @@ UNITE_TESTS =\
   test/net_tests.cpp \
   test/netbase_tests.cpp \
   test/pmt_tests.cpp \
+  test/p2p/grapheneblock_tests.cpp \
   test/policyestimator_tests.cpp \
   test/pow_tests.cpp \
   test/prevector_tests.cpp \

@@ -2,7 +2,7 @@ OpenBSD build guide
 ======================
 (updated for OpenBSD 6.3)
 
-This guide describes how to build united and command-line utilities on OpenBSD.
+This guide describes how to build unit-e and command-line utilities on OpenBSD.
 
 Preparation
 -------------

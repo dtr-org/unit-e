@@ -58,55 +58,93 @@ TRAVIS_TIMEOUT_DURATION = 20 * 60
 BASE_SCRIPTS = [
     # Scripts that are run by the travis build process.
     # Longest test should go first, to favor running tests in parallel
-    'wallet_hd.py',
-    'wallet_backup.py',
-    # vv Tests less than 5m vv
-    'feature_no_esperanza_tx_relay_delay.py',
-    'feature_maxuploadtarget.py',
-    'mempool_packages.py',
     'feature_block.py',
-    'rpc_fundrawtransaction.py',
-    'p2p_compactblocks.py',
-    'feature_segwit.py',
     'feature_fee_estimation.py',
-    'esperanza_withdraw.py',
+    # vv Tests less than 5m vv
+    'wallet_multiwallet.py --usecli',
+    'feature_maxuploadtarget.py',
+    'p2p_segwit.py',
+    'wallet_listtransactions.py',
+    'wallet_backup.py',
     # vv Tests less than 2m vv
+    'proposer_balance.py',
     'feature_bip68_sequence.py',
     'wallet_basic.py',
     'wallet_labels.py',
     'p2p_segwit.py',
+    'wallet_address_types.py',
     'p2p_embargoman_star.py',
+    'rpc_fundrawtransaction.py',
+    'wallet_hd.py',
+    'feature_no_esperanza_tx_relay_delay.py',
     'esperanza_admin_full_cycle.py',
-    'p2p_timeouts.py',
-    'wallet_dump.py',
-    'esperanza_vote.py',
-    'p2p_embargoman_probing.py',
-    'wallet_listtransactions.py',
-    'proposer_balance.py',
-    'p2p_embargoman_loop.py',
+    'wallet_address_types.py',
     # vv Tests less than 60s vv
+    'wallet_basic.py',
+    'feature_graphene_passive.py',
     'p2p_feefilter.py',
-    'p2p_sendheaders.py',
-    'wallet_zapwallettxes.py',
+    'feature_assumevalid.py',
+    'feature_graphene_active.py',
+    # vv Tests less than 30s vv
+    'wallet_keys.py',
+    'p2p_compactblocks.py',
     'esperanza_expired_vote_conflict.py',
-    'wallet_importmulti.py',
-    'wallet_bumpfee.py',
-    'mempool_limit.py',
-    'rpc_txoutproof.py',
-    'wallet_listreceivedby.py',
-    'wallet_abandonconflict.py',
     'feature_csv_activation.py',
     'rpc_rawtransaction.py',
-    'wallet_address_types.py',
-    'feature_reindex.py',
-    # vv Tests less than 30s vv
-    'feature_ltor.py',
-    'feature_assumevalid.py',
-    'wallet_keypool_topup.py',
-    'interface_zmq.py',
-    'interface_unite_cli.py',
+    'p2p_embargoman_probing.py',
+    'p2p_embargoman_loop.py',
     'esperanza_slash.py',
-    'mempool_resurrect.py',
+    'feature_segwit.py',
+    'esperanza_withdraw.py',
+    'feature_fork_choice_forked_finalize_epoch.py',
+    'p2p_snapshot.py',
+    'proposer_settings.py',
+    'p2p_sendheaders.py',
+    'wallet_bumpfee.py',
+    'wallet_dump.py',
+    'mining_prioritisetransaction.py',
+    'mempool_limit.py',
+    'interface_rest.py',
+    'mempool_persist.py',
+    'wallet_multiwallet.py',
+    'mempool_packages.py',
+    'wallet_abandonconflict.py',
+    'feature_snapshot.py',
+    'wallet_importmulti.py',
+    'wallet_listreceivedby.py',
+    'feature_commits_forkchoice.py',
+    'feature_ltor.py',
+    'wallet_keypool_topup.py',
+    'p2p_commits.py',
+    'rpc_blockchain.py',
+    'esperanza_logout.py',
+    'feature_versionbits_warning.py',
+    'rpc_filtertransactions.py',
+    'wallet_encryption.py',
+    'feature_rbf.py',
+    'p2p_fingerprint.py',
+    'rpc_invalidateblock.py',
+    'wallet_zapwallettxes.py',
+    'feature_fork_choice_finalization.py',
+    'feature_fork_choice_parallel_justifications.py',
+    'p2p_leak.py',
+    'rpc_txoutproof.py',
+    'wallet_keypool.py',
+    'feature_reindex.py',
+    'rpc_getchaintips.py',
+    'mempool_reorg.py',
+    'esperanza_deposit.py',
+    'esperanza_vote.py',
+    'wallet_listsinceblock.py',
+    'feature_minchainwork.py',
+    'feature_reindex_commits.py',
+    'p2p_unrequested_blocks.py',
+    'rpc_finalization.py',
+    'feature_logging.py',
+    'rpc_preciousblock.py',
+    'esperanza_finalizationstate.py',
+    'finalization_state_restoration.py',
+    'interface_zmq.py',
     'wallet_txn_doublespend.py --mineblock',
     'wallet_txn_clone.py',
     'wallet_txn_clone.py --segwit',
@@ -122,24 +160,41 @@ BASE_SCRIPTS = [
     'interface_http.py',
     'rpc_psbt.py',
     'rpc_users.py',
+    'p2p_invalid_block.py',
+    'p2p_invalid_tx.py',
+    'rpc_sendtypeto.py',
+    'wallet_txn_doublespend.py',
+    'wallet_txn_clone.py --mineblock',
+    'feature_notifications.py',
+    'esperanza_admin_validation.py',
+    'proposer_stakeable_balance.py',
+    'wallet_importprunedfunds.py',
     'feature_proxy.py',
-    'rpc_signrawtransaction.py',
+    'feature_spend_genesis.py',
     'wallet_groups.py',
     'p2p_disconnect_ban.py',
+    'feature_uacomment.py',
+    'p2p_node_network_limited.py',
+    'rpc_runstringcommand.py',
+    'feature_config_args.py',
+    'rpc_getblocksnapshot.py',
+    'feature_snapshot_creation.py',
+    'feature_finalizer.py',
+    'interface_unit_e_cli.py',
+    'mempool_resurrect.py',
+    'mempool_spend_coinbase.py',
+    'p2p_invalid_stake.py',
+    'interface_http.py',
+    'rpc_signrawtransaction.py',
     'rpc_decodescript.py',
-    'rpc_blockchain.py',
     'rpc_deprecated.py',
-    'wallet_disable.py',
     'rpc_net.py',
-    'wallet_keypool.py',
     'p2p_mempool.py',
     'esperanza_deposit.py',
     'esperanza_finalizationstate.py',
     'esperanza_logout.py',
     'mining_prioritisetransaction.py',
     'p2p_invalid_locator.py',
-    'p2p_invalid_block.py',
-    'p2p_invalid_tx.py',
     'rpc_createmultisig.py',
     'p2p_invalid_stake.py',
     'feature_versionbits_warning.py',
@@ -159,25 +214,16 @@ BASE_SCRIPTS = [
     'rpc_bind.py --nonloopback',
     'rpc_named_arguments.py',
     'rpc_addressbook.py',
-    'wallet_listsinceblock.py',
-    'p2p_leak.py',
-    'wallet_encryption.py',
     'feature_dersig.py',
     'feature_cltv.py',
     'rpc_uptime.py',
-    'wallet_txn_doublespend.py',
-    'wallet_txn_clone.py --mineblock',
-    'feature_notifications.py',
     'feature_remote_staking.py',
-    'rpc_invalidateblock.py',
-    'feature_rbf.py',
+    'wallet_disable.py',
     'wallet_resendwallettransactions.py',
     'wallet_fallbackfee.py',
     'wallet_mnemonicinfo.py',
     'wallet_mnemonicnew.py',
     'wallet_importmasterkey.py',
-    'esperanza_admin_validation.py',
-    'p2p_commits.py',
     'proposer_multiwallet.py',
     'proposer_stakeable_balance.py',
     'proposer_settings.py',
@@ -192,22 +238,14 @@ BASE_SCRIPTS = [
     'feature_logging.py',
     'p2p_node_network_limited.py',
     'feature_blocksdir.py',
+    'feature_snapshot_finalization.py',
     'rpc_getchainparams.py',
-    'feature_config_args.py',
     'rpc_help.py',
     'feature_help.py',
-    'feature_help.py',
     'rpc_calcsnapshothash.py',
-    'rpc_getblocksnapshot.py',
     'rpc_validator.py',
-    'rpc_finalization.py',
-    'feature_snapshot.py',
-    'p2p_snapshot.py',
-    'feature_snapshot_creation.py',
-    'feature_fork_choice_finalization.py',
-    'feature_fork_choice_parallel_justifications.py',
-    'feature_fork_choice_forked_finalize_epoch.py',
     'example_test.py',
+    'feature_help.py',
     # Don't append tests at the end to avoid merge conflicts
     # Put them in a random line within the section that fits their approximate run-time
 ]
@@ -220,6 +258,7 @@ EXTENDED_SCRIPTS = [
     # vv Tests less than 20m vv
     # vv Tests less than 5m vv
     # vv Tests less than 2m vv
+    'p2p_timeouts.py',
     # vv Tests less than 60s vv
     'p2p_feefilter.py',
     'rpc_bind.py',
@@ -287,16 +326,16 @@ def main():
 
     logging.debug("Temporary test directory at %s" % tmpdir)
 
-    enable_united = config["components"].getboolean("ENABLE_UNITED")
+    enable_unit_e = config["components"].getboolean("ENABLE_UNIT_E")
     enable_usbdevice = config["components"].getboolean("ENABLE_USBDEVICE")
 
     if config["environment"]["EXEEXT"] == ".exe" and not args.force:
-        # https://github.com/unite/unite/commit/d52802551752140cf41f0d9a225a43e84404d3e9
-        # https://github.com/unite/unite/pull/5677#issuecomment-136646964
+        # https://github.com/bitcoin/bitcoin/commit/d52802551752140cf41f0d9a225a43e84404d3e9
+        # https://github.com/bitcoin/bitcoin/pull/5677#issuecomment-136646964
         print("Tests currently disabled on Windows by default. Use --force option to enable")
         sys.exit(0)
 
-    if not enable_united:
+    if not enable_unit_e:
         print("No functional tests to run.")
         print("Rerun ./configure with --with-daemon and then make")
         sys.exit(0)
@@ -362,10 +401,10 @@ def main():
 def run_tests(test_list, src_dir, build_dir, tmpdir, jobs=1, enable_coverage=False, args=None, combined_logs_len=0, failfast=False):
     args = args or []
 
-    # Warn if united is already running (unix only)
+    # Warn if unit-e is already running (unix only)
     try:
-        if subprocess.check_output(["pidof", "united"]) is not None:
-            print("%sWARNING!%s There is already a united process running on this system. Tests may fail unexpectedly due to resource contention!" % (BOLD[1], BOLD[0]))
+        if subprocess.check_output(["pidof", "unit-e"]) is not None:
+            print("%sWARNING!%s There is already a unit-e process running on this system. Tests may fail unexpectedly due to resource contention!" % (BOLD[1], BOLD[0]))
     except (OSError, subprocess.SubprocessError):
         pass
 
@@ -473,7 +512,7 @@ class TestHandler:
     """
 
     def __init__(self, num_tests_parallel, tests_dir, tmpdir, test_list=None, flags=None):
-        assert(num_tests_parallel >= 1)
+        assert num_tests_parallel >= 1
         self.num_jobs = num_tests_parallel
         self.tests_dir = tests_dir
         self.tmpdir = tmpdir
@@ -608,7 +647,7 @@ class RPCCoverage():
     Coverage calculation works by having each test script subprocess write
     coverage files into a particular directory. These files contain the RPC
     commands invoked during testing, as well as a complete listing of RPC
-    commands per `unite-cli help` (`rpc_interface.txt`).
+    commands per `unit-e-cli help` (`rpc_interface.txt`).
 
     After all tests complete, the commands run are combined and diff'd against
     the complete list to calculate uncovered RPC commands.

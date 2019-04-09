@@ -233,8 +233,8 @@ class SegWitTest(UnitETestFramework):
         uncompressed_spendable_address = ["mvozP4UwyGD2mGZU4D2eMvMLPB9WkMmMQu"]
         self.nodes[0].importprivkey("cNC8eQ5dg3mFAVePDX4ddmPYpPbw41r9bm2jd1nLJT77e6RrzTRR")
         compressed_spendable_address = ["mmWQubrDomqpgSYekvsU7HWEVjLFHAakLe"]
-        assert ((self.nodes[0].getaddressinfo(uncompressed_spendable_address[0])['iscompressed'] == False))
-        assert ((self.nodes[0].getaddressinfo(compressed_spendable_address[0])['iscompressed'] == True))
+        assert not self.nodes[0].getaddressinfo(uncompressed_spendable_address[0])['iscompressed']
+        assert self.nodes[0].getaddressinfo(compressed_spendable_address[0])['iscompressed']
 
         self.nodes[0].importpubkey(pubkeys[0])
         compressed_solvable_address = [key_to_p2pkh(pubkeys[0])]

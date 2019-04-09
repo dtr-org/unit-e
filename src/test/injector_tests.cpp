@@ -11,28 +11,34 @@
 
 BOOST_AUTO_TEST_SUITE(injector_tests)
 
+static const UnitEInjectorConfiguration config = [](){
+  UnitEInjectorConfiguration cfg;
+  cfg.use_in_memory_databases = true;
+  return cfg;
+}();
+
 BOOST_AUTO_TEST_CASE(check_order) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   BOOST_CHECK_NO_THROW(injector.DetermineInitializationOrder());
 }
 
 BOOST_AUTO_TEST_CASE(try_initialize_mainnet) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   ArgsManager args;
   std::string error;
   const char *const argv[] = {
-      "./united"};
+      "./unit-e"};
   args.ParseParameters(1, argv, error);
   blockchain::Behavior::MakeGlobal(&args);
   BOOST_CHECK_NO_THROW(injector.Initialize());
 }
 
 BOOST_AUTO_TEST_CASE(try_initialize_testnet) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   ArgsManager args;
   std::string error;
   const char *const argv[] = {
-      "./united",
+      "./unit-e",
       "-testnet"};
   args.ParseParameters(2, argv, error);
   blockchain::Behavior::MakeGlobal(&args);
@@ -40,11 +46,11 @@ BOOST_AUTO_TEST_CASE(try_initialize_testnet) {
 }
 
 BOOST_AUTO_TEST_CASE(try_initialize_regtest) {
-  UnitEInjector injector;
+  UnitEInjector injector(config);
   ArgsManager args;
   std::string error;
   const char *const argv[] = {
-      "./united",
+      "./unit-e",
       "-regtest"};
   args.ParseParameters(2, argv, error);
   blockchain::Behavior::MakeGlobal(&args);

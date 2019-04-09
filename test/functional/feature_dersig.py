@@ -86,9 +86,9 @@ class BIP66Test(UnitETestFramework):
         wait_until(lambda: "reject" in self.nodes[0].p2p.last_message.keys(), lock=mininode_lock)
         with mininode_lock:
             # We can receive different reject messages depending on whether
-            # united is running with multiple script check threads. If script
+            # unit-e is running with multiple script check threads. If script
             # check threads are not in use, then transaction script validation
-            # happens sequentially, and united produces more specific reject
+            # happens sequentially, and unit-e produces more specific reject
             # reasons.
             assert self.nodes[0].p2p.last_message["reject"].code in [REJECT_INVALID, REJECT_NONSTANDARD]
             assert_equal(self.nodes[0].p2p.last_message["reject"].data, block.sha256)

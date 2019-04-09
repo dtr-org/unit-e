@@ -4,8 +4,10 @@
 
 #include <wallet/rpcvalidator.h>
 
+#include <core_io.h>
 #include <esperanza/finalizationstate.h>
 #include <esperanza/validatorstate.h>
+#include <injector.h>
 #include <key_io.h>
 #include <rpc/server.h>
 #include <wallet/rpcwallet.h>
@@ -57,8 +59,15 @@ UniValue deposit(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
   }
 
-  if (!esperanza::FinalizationState::ValidateDepositAmount(amount)) {
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
+  {
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+    const finalization::FinalizationState *fin_state =
+      GetComponent<finalization::StateRepository>()->GetTipState();
+    assert(fin_state != nullptr);
+
+    if (!fin_state->ValidateDepositAmount(amount)) {
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
+    }
   }
 
   CTransactionRef tx;
@@ -153,11 +162,14 @@ UniValue logout(const JSONRPCRequest& request) {
   if (validator.m_phase !=
       +esperanza::ValidatorState::Phase::IS_VALIDATING) {
     throw JSONRPCError(RPC_INVALID_PARAMETER,
-                       "The node is not validating validating.");
+                       "The node is not validating.");
   }
 
   CTransactionRef tx;
-  extWallet.SendLogout(tx);
+
+  if (!extWallet.SendLogout(tx)) {
+    throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot send logout transaction.");
+  }
 
   return tx->GetHash().GetHex();
 }
@@ -200,6 +212,69 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
   return obj;
 }
 
+UniValue createvotetransaction(const JSONRPCRequest &request) {
+  if (request.fHelp || request.params.size() != 2) {
+    throw std::runtime_error(
+      "createvotetransaction\n"
+      "\nReturns raw transaction data\n"
+      "\nArguments:\n"
+      "1.\n"
+      "{\n"
+      "  \"validator_address\": xxxx   (string) the validator address\n"
+      "  \"target_hash\": xxxx        (string) the target hash\n"
+      "  \"source_epoch\": xxxx       (numeric) the source epoch\n"
+      "  \"target_epoch\": xxxx       (numeric) the target epoch\n"
+      "}\n"
+      "2. prev_tx                     (string) previous transaction hash\n"
+      "Result: raw transaction\n"
+      "\n"
+      + HelpExampleCli("createvotetransaction", "{\"validator_address\": xxxx, \"target_hash\": xxxx, \"source_epoch\": xxxx, \"target_epoch\": xxxx} txid")
+      + HelpExampleRpc("createvotetransaction", "{\"validator_address\": xxxx, \"target_hash\": xxxx, \"source_epoch\": xxxx, \"target_epoch\": xxxx} txid"));
+  }
+
+  std::shared_ptr<CWallet> wallet = GetWalletForJSONRPCRequest(request);
+  CWallet* const pwallet = wallet.get();
+  if (!EnsureWalletIsAvailable(pwallet, request.fHelp)){
+    return NullUniValue;
+  }
+
+  esperanza::Vote vote;
+
+  UniValue v = request.params[0].get_obj();
+  vote.m_validator_address = ParseHash160O(v, "validator_address");
+  vote.m_target_hash = ParseHashO(v, "target_hash");
+  vote.m_source_epoch = find_value(v, "source_epoch").get_int();
+  vote.m_target_epoch = find_value(v, "target_epoch").get_int();
+
+  CTransactionRef prev_tx;
+  uint256 txid = ParseHashV(request.params[1], "txid");
+  uint256 hash_block;
+  CBlockIndex *block_index = nullptr;
+  if (!GetTransaction(txid, prev_tx, Params().GetConsensus(), hash_block, true, block_index)) {
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No transaction with such id");
+  }
+
+  const CScript &script_pubkey = prev_tx->vout[0].scriptPubKey;
+  const CAmount amount = prev_tx->vout[0].nValue;
+
+  std::vector<unsigned char> vote_sig;
+  if (!esperanza::Vote::CreateSignature(pwallet, vote, vote_sig)) {
+    throw JSONRPCError(RPC_WALLET_ERROR, "Cannot sign vote");
+  }
+
+  CScript script_sig = CScript::EncodeVote(vote, vote_sig);
+
+  CMutableTransaction tx;
+  tx.SetType(TxType::VOTE);
+  tx.vin.push_back(
+    CTxIn(prev_tx->GetHash(), 0, script_sig, CTxIn::SEQUENCE_FINAL));
+
+  CTxOut txout(amount, script_pubkey);
+  tx.vout.push_back(txout);
+
+  return EncodeHexTx(tx, RPCSerializationFlags());
+}
+
 static const CRPCCommand commands[] =
     { //  category              name                        actor (function)           argNames
       //  --------------------- ------------------------    -----------------------  ----------
@@ -207,6 +282,7 @@ static const CRPCCommand commands[] =
         { "wallet",             "logout",                   &logout,                   {} },
         { "wallet",             "withdraw",                 &withdraw,                 {"address"} },
         { "wallet",             "getvalidatorinfo",         &getvalidatorinfo,         {} },
+        { "wallet",             "createvotetransaction",    &createvotetransaction,    {"vote", "txid"}},
     };
 
 void RegisterValidatorRPCCommands(CRPCTable &t)

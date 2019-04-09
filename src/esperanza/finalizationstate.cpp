@@ -7,7 +7,6 @@
 #include <chainparams.h>
 #include <esperanza/checks.h>
 #include <esperanza/vote.h>
-#include <injector.h>
 #include <script/ismine.h>
 #include <tinyformat.h>
 #include <ufp64.h>
@@ -25,7 +24,6 @@
 namespace esperanza {
 
 namespace {
-CCriticalSection cs_init_lock;
 const ufp64::ufp64_t BASE_DEPOSIT_SCALE_FACTOR = ufp64::to_ufp64(1);
 }  // namespace
 
@@ -74,36 +72,36 @@ bool FinalizationState::operator!=(const FinalizationState &other) const {
 Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
   LOCK(cs_esperanza);
 
+  assert(IsEpochStart(blockHeight) &&
+         "provided blockHeight is not the first block of a new epoch");
+
   IncrementDynasty();
 
-  const auto newEpoch = GetEpoch(blockHeight);
+  const uint32_t new_epoch = GetEpoch(blockHeight);
 
-  if (newEpoch != m_current_epoch + 1) {
+  if (new_epoch != m_current_epoch + 1) {
     return fail(Result::INIT_WRONG_EPOCH,
-                "%s: Next epoch should be %d but %d was passed.\n", __func__,
-                m_current_epoch + 1, newEpoch);
+                "%s: new_epoch must be %d but %d was passed\n",
+                __func__, m_current_epoch + 1, new_epoch);
   }
 
-  LogPrint(BCLog::FINALIZATION, "%s: New epoch found, this epoch is the %d.\n",
-           __func__, newEpoch);
+  LogPrint(BCLog::FINALIZATION, "%s: new_epoch=%d starts at height=%d\n",
+           __func__, new_epoch, blockHeight);
 
   Checkpoint cp = Checkpoint();
   cp.m_cur_dynasty_deposits = GetTotalCurDynDeposits();
   cp.m_prev_dynasty_deposits = GetTotalPrevDynDeposits();
-  m_checkpoints[newEpoch] = cp;
+  m_checkpoints[new_epoch] = cp;
 
-  m_current_epoch = newEpoch;
-
-  LogPrint(BCLog::FINALIZATION, "%s: Epoch block found at height %d.\n",
-           __func__, blockHeight);
+  m_current_epoch = new_epoch;
 
   m_last_voter_rescale = ufp64::add_uint(GetCollectiveRewardFactor(), 1);
 
   m_last_non_voter_rescale = ufp64::div(m_last_voter_rescale, (ufp64::add_uint(m_reward_factor, 1)));
 
-  m_deposit_scale_factor[newEpoch] = ufp64::mul(m_last_non_voter_rescale, GetDepositScaleFactor(newEpoch - 1));
+  m_deposit_scale_factor[new_epoch] = ufp64::mul(m_last_non_voter_rescale, GetDepositScaleFactor(new_epoch - 1));
 
-  m_total_slashed[newEpoch] = GetTotalSlashed(newEpoch - 1);
+  m_total_slashed[new_epoch] = GetTotalSlashed(new_epoch - 1);
 
   if (DepositExists()) {
     ufp64::ufp64_t interestBase = ufp64::div(m_settings.base_interest_factor, GetSqrtOfTotalDeposits());
@@ -130,7 +128,7 @@ Result FinalizationState::InitializeEpoch(blockchain::Height blockHeight) {
            "%s:%s new_epoch=%d current_dynasty=%d last_justified_epoch=%d last_finalized_epoch=%d\n",
            __func__,
            log_msg,
-           newEpoch,
+           new_epoch,
            m_current_dynasty,
            m_last_justified_epoch,
            m_last_finalized_epoch);
@@ -158,18 +156,19 @@ void FinalizationState::InstaJustify() {
 void FinalizationState::IncrementDynasty() {
   // finalized epoch is m_current_epoch - 2 because:
   // finalized (0) - justified (1) - votes to justify (2)
-  // TODO: UNIT-E: remove "m_current_epoch >= 2" when we delete instant finalization
-  // and start epoch from 1 #570, #572
-  if (m_current_epoch >= 2 && GetCheckpoint(m_current_epoch - 2).m_is_finalized) {
+
+  // skip dynasty increment for the hardcoded finalized epoch=0
+  // as it's already "considered" incremented from -1 to 0.
+  if (m_current_epoch > 2 && GetCheckpoint(m_current_epoch - 2).m_is_finalized) {
 
     m_current_dynasty += 1;
     m_prev_dyn_deposits = m_cur_dyn_deposits;
     m_cur_dyn_deposits += GetDynastyDelta(m_current_dynasty);
     m_dynasty_start_epoch[m_current_dynasty] = m_current_epoch;
 
-    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d.\n", __func__,
+    LogPrint(BCLog::FINALIZATION, "%s: New current dynasty=%d\n", __func__,
              m_current_dynasty);
-    // UNIT-E: we can clear old checkpoints (up to lastFinalizedEpoch - 1)
+    // UNIT-E: we can clear old checkpoints (up to m_last_finalized_epoch - 1)
   }
   m_epoch_to_dynasty[m_current_epoch] = m_current_dynasty;
 }
@@ -196,7 +195,7 @@ ufp64::ufp64_t FinalizationState::GetCollectiveRewardFactor() {
 }
 
 bool FinalizationState::DepositExists() const {
-  return m_cur_dyn_deposits > 0 && m_prev_dyn_deposits > 0;
+  return m_cur_dyn_deposits > 0;
 }
 
 ufp64::ufp64_t FinalizationState::GetSqrtOfTotalDeposits() const {
@@ -666,10 +665,6 @@ bool FinalizationState::IsPermissioningActive() const {
   return m_admin_state.IsPermissioningActive();
 }
 
-void FinalizationState::OnBlock(blockchain::Height blockHeight) {
-  m_admin_state.OnBlock(blockHeight);
-}
-
 Result FinalizationState::ValidateAdminKeys(const AdminKeySet &adminKeys) const {
   LOCK(cs_esperanza);
 
@@ -833,24 +828,14 @@ uint32_t FinalizationState::GetCurrentDynasty() const {
 }
 
 uint32_t FinalizationState::GetCheckpointHeightAfterFinalizedEpoch() const {
-  if (m_last_justified_epoch == 0) {
-    // UNIT-E TODO: see #570
-    // case when 0 means no finalization
-    return 0;
-  }
-
   const uint32_t epoch = m_last_finalized_epoch + 1;
-  assert(GetCheckpoint(epoch).m_is_justified);
-
-  return GetEpochCheckpointHeight(epoch);
-}
-
-// UNIT-E TODO: get rid of this function
-FinalizationState *FinalizationState::GetState(const CBlockIndex *block_index) {
-  if (block_index == nullptr) {
-    return GetComponent<finalization::StateRepository>()->GetTipState();
+  if (m_last_finalized_epoch != 0) {
+    // epoch=0 is self-finalized and doesn't require
+    // parent epoch to justify it but for other epochs
+    // this rule must hold
+    assert(GetCheckpoint(epoch).m_is_justified);
   }
-  return GetComponent<finalization::StateRepository>()->Find(*block_index);
+  return GetEpochCheckpointHeight(epoch);
 }
 
 uint32_t FinalizationState::GetEpochLength() const {
@@ -861,22 +846,27 @@ uint32_t FinalizationState::GetEpoch(const CBlockIndex &blockIndex) const {
   return GetEpoch(blockIndex.nHeight);
 }
 
-uint32_t FinalizationState::GetEpoch(blockchain::Height blockHeight) const {
-  return blockHeight / GetEpochLength();
+uint32_t FinalizationState::GetEpoch(const blockchain::Height block_height) const {
+  uint32_t epoch = block_height / m_settings.epoch_length;
+  if (block_height % m_settings.epoch_length != 0) {
+    ++epoch;
+  }
+  return epoch;
 }
 
 blockchain::Height FinalizationState::GetEpochStartHeight(const uint32_t epoch) const {
-  return epoch * m_settings.epoch_length;
+  return m_settings.GetEpochStartHeight(epoch);
 }
 
-blockchain::Height FinalizationState::GetEpochCheckpointHeight(uint32_t epoch) const {
-  return GetEpochStartHeight(epoch + 1) - 1;
+blockchain::Height FinalizationState::GetEpochCheckpointHeight(const uint32_t epoch) const {
+  return m_settings.GetEpochCheckpointHeight(epoch);
 }
 
 std::vector<Validator> FinalizationState::GetActiveFinalizers() const {
   std::vector<Validator> res;
   for (const auto &it : m_validators) {
-    if (IsInDynasty(it.second, m_current_dynasty)) {
+    if (IsInDynasty(it.second, m_current_dynasty) ||
+        IsInDynasty(it.second, m_current_dynasty - 1)) {
       res.push_back(it.second);
     }
   }
@@ -894,8 +884,8 @@ const Validator *FinalizationState::GetValidator(const uint160 &validatorAddress
   }
 }
 
-bool FinalizationState::ValidateDepositAmount(CAmount amount) {
-  return amount >= GetState()->m_settings.min_deposit_size;
+bool FinalizationState::ValidateDepositAmount(CAmount amount) const {
+  return amount >= m_settings.min_deposit_size;
 }
 
 void FinalizationState::ProcessNewCommit(const CTransactionRef &tx) {
@@ -991,17 +981,7 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
   assert(m_status == NEW);
   uint256 block_hash = block_index.GetBlockHash();
 
-  // Used to apply hardcoded parameters for a given block
-  OnBlock(block_index.nHeight);
-
-  // We can skip everything for the genesis block since it isn't suppose to
-  // contain esperanza's transactions.
-  if (block_index.nHeight == 0) {
-    return;
-  }
-
-  // This is the first block of a new epoch.
-  if (block_index.nHeight % m_settings.epoch_length == 0) {
+  if (IsEpochStart(block_index.nHeight)) {
     InitializeEpoch(block_index.nHeight);
   }
 
@@ -1009,13 +989,10 @@ void FinalizationState::ProcessNewCommits(const CBlockIndex &block_index,
     ProcessNewCommit(tx);
   }
 
-  // This is the last block for the current epoch and it represent it, so we
-  // update the targetHash.
-  if (block_index.nHeight % m_settings.epoch_length == m_settings.epoch_length - 1) {
-    LogPrint(
-        BCLog::FINALIZATION,
-        "%s: Last block of the epoch, the new recommended targetHash is %s.\n",
-        __func__, block_hash.GetHex());
+  if (IsCheckpoint(block_index.nHeight)) {
+    LogPrint(BCLog::FINALIZATION,
+             "%s: Last block of the epoch, new m_recommended_target_hash=%s\n",
+             __func__, block_hash.GetHex());
 
     m_recommended_target_hash = block_index.GetBlockHash();
     m_recommended_target_epoch = GetEpoch(block_index);
@@ -1037,7 +1014,7 @@ uint64_t FinalizationState::GetTotalSlashed(uint32_t epoch) const {
   return it->second;
 }
 
-uint64_t FinalizationState::GetDynastyDelta(uint32_t dynasty) {
+CAmount FinalizationState::GetDynastyDelta(uint32_t dynasty) {
   const auto pair = m_dynasty_deltas.emplace(dynasty, 0);
   return pair.first->second;
 }
@@ -1061,13 +1038,17 @@ void FinalizationState::RegisterLastTx(uint160 &validatorAddress,
   validator.m_last_transaction_hash = tx->GetHash();
 }
 
-uint256 FinalizationState::GetLastTxHash(uint160 &validatorAddress) const {
+uint256 FinalizationState::GetLastTxHash(const uint160 &validatorAddress) const {
   const Validator &validator = m_validators.at(validatorAddress);
   return validator.m_last_transaction_hash;
 }
 
+bool FinalizationState::IsEpochStart(blockchain::Height block_height) const {
+  return block_height % m_settings.epoch_length == 1;
+}
+
 bool FinalizationState::IsCheckpoint(blockchain::Height blockHeight) const {
-  return (blockHeight + 1) % m_settings.epoch_length == 0;
+  return blockHeight % m_settings.epoch_length == 0;
 }
 
 bool FinalizationState::IsJustifiedCheckpoint(blockchain::Height blockHeight) const {

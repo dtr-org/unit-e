@@ -23,6 +23,7 @@ from test_framework.messages import (
     CTransaction,
     CTxIn,
     CTxOut,
+    TxType,
 )
 from test_framework.mininode import P2PDataStore
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
@@ -97,9 +98,9 @@ class InvalidTxRequestTest(UnitETestFramework):
             block_time += 1
             blocks.append(block)
 
-            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
-            output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
+            input_utxo = UTXO(height-1, TxType.COINBASE, coinbase.vin[1].prevout, prev_coinbase.vout[1])
+            output_reward = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            output_stake = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
         node.p2p.send_blocks_and_test(blocks, node, success=True)
 

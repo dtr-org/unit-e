@@ -68,7 +68,7 @@ class RawTransactionsTest(UnitETestFramework):
 
         self.log.info('Test getrawtransaction on genesis block coinbase does not return an error')
         block = self.nodes[0].getblock(self.nodes[0].getblockhash(0))
-        assert(block['hash'])
+        assert block['hash']
 
         self.log.info('Check parameter types and required parameters of createrawtransaction')
         # Test `createrawtransaction` required parameters

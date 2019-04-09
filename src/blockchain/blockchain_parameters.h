@@ -15,9 +15,9 @@
 #include <uint256.h>
 
 #include <better-enums/enum.h>
+#include <ufp64.h>
 #include <cstdint>
 #include <type_traits>
-#include <ufp64.h>
 
 namespace blockchain {
 
@@ -98,7 +98,7 @@ struct Parameters {
   //! \brief The usable staking timestamps
   //!
   //! The kernel protocol for Proof of Stake masks timestamps such that a proposer
-  //! can use the same stake only every blockStakeTimestampIntervalSeconds. That is:
+  //! can use the same stake only every block_stake_timestamp_interval_seconds. That is:
   //! The blocktime used to compute the kernel hash is always:
   //!
   //! kernel_hash_ingredient = current_time - (current_time % block_stake_timestamp_interval_seconds)
@@ -222,6 +222,9 @@ struct Parameters {
 
   //! \brief Number of blocks which have to have a softfork activated in a confirmation period.
   std::uint32_t rule_change_activation_threshold;
+
+  //! \brief Suffix of the data dir. In the path "~/user/.unite/regtest", it's a "regtest" suffix.
+  std::string data_dir_suffix;
 
   //! \brief Default settings to use for this chain.
   Settings default_settings;

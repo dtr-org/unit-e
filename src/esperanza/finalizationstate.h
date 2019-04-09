@@ -144,12 +144,9 @@ class FinalizationState : public FinalizationStateData {
   std::vector<Validator> GetActiveFinalizers() const;
   const Validator *GetValidator(const uint160 &validatorAddress) const;
 
-  //! \brief Returns the finalization state for the given block.
-  static FinalizationState *GetState(const CBlockIndex *block = nullptr);
-
   uint32_t GetEpochLength() const;
   uint32_t GetEpoch(const CBlockIndex &blockIndex) const;
-  uint32_t GetEpoch(blockchain::Height blockHeight) const;
+  uint32_t GetEpoch(blockchain::Height block_height) const;
 
   //! \brief Returns the height of the first block of the epoch.
   blockchain::Height GetEpochStartHeight(uint32_t epoch) const;
@@ -157,7 +154,7 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Returns the height of the last block of the epoch.
   blockchain::Height GetEpochCheckpointHeight(uint32_t epoch) const;
 
-  static bool ValidateDepositAmount(CAmount amount);
+  bool ValidateDepositAmount(CAmount amount) const;
 
   //! \brief Processes the next chain (active or alternative) tip passed.
   //!
@@ -170,9 +167,12 @@ class FinalizationState : public FinalizationStateData {
   void ProcessNewCommits(const CBlockIndex &block_index, const std::vector<CTransactionRef> &txes);
 
   //! \brief Retrives the hash of the last finalization transaction performed by the validator.
-  uint256 GetLastTxHash(uint160 &validatorAddress) const;
+  uint256 GetLastTxHash(const uint160 &validatorAddress) const;
 
-  //! \brief Returns whether block on height blockHeight is checkpoint
+  //! \brief Returns whether block on block_height is the first block of the epoch
+  bool IsEpochStart(blockchain::Height block_height) const;
+
+  //! \brief Returns whether block on blockHeight is the last block of the epoch
   bool IsCheckpoint(blockchain::Height blockHeight) const;
 
   //! \brief Returns whether block on height blockHeight is justified checkpoint
@@ -217,7 +217,7 @@ class FinalizationState : public FinalizationStateData {
   uint64_t GetTotalSlashed(uint32_t epoch) const;
   Checkpoint &GetCheckpoint(uint32_t epoch);
   const Checkpoint &GetCheckpoint(uint32_t epoch) const;
-  uint64_t GetDynastyDelta(uint32_t dynasty);
+  CAmount GetDynastyDelta(uint32_t dynasty);
   void RegisterLastTx(uint160 &validatorAddress, CTransactionRef tx);
   void ProcessNewCommit(const CTransactionRef &tx);
 
@@ -227,12 +227,19 @@ class FinalizationState : public FinalizationStateData {
   const FinalizationParams &m_settings;
   InitStatus m_status = NEW;
 
- private:
-  void OnBlock(blockchain::Height blockHeight);
-};
+ public:
+  ADD_SERIALIZE_METHODS
 
-inline uint32_t GetEpoch(const CBlockIndex &blockIndex) { return FinalizationState::GetState()->GetEpoch(blockIndex); }
-inline uint32_t GetEpoch(blockchain::Height blockHeight) { return FinalizationState::GetState()->GetEpoch(blockHeight); }
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(static_cast<FinalizationStateData &>(*this));
+    int status = static_cast<int>(m_status);
+    READWRITE(status);
+    if (ser_action.ForRead()) {
+      m_status = static_cast<InitStatus>(status);
+    }
+  }
+};
 
 }  // namespace esperanza
 

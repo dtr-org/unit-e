@@ -6,6 +6,7 @@
 #define UNITE_ESPERANZA_VOTE_H
 
 #include <pubkey.h>
+#include <serialize.h>
 #include <stdint.h>
 #include <uint256.h>
 
@@ -40,6 +41,16 @@ class Vote {
 
   uint256 GetHash() const;
   std::string ToString() const;
+
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_validator_address);
+    READWRITE(m_target_hash);
+    READWRITE(m_source_epoch);
+    READWRITE(m_target_epoch);
+  }
 };
 
 }  // namespace esperanza

@@ -343,7 +343,7 @@ class FullBlockTest(UnitETestFramework):
         self.sync_blocks([b26], success=False, reject_code=16, reject_reason=b'bad-cb-length', reconnect=True)
         self.comp_snapshot_hash(23)
 
-        # Extend the b26 chain to make sure united isn't accepting b26
+        # Extend the b26 chain to make sure unit-e isn't accepting b26
         b27 = self.next_block(27, self.get_staking_coin(), spend=out[7])
         self.sync_blocks([b27], False)
         self.comp_snapshot_hash(23)
@@ -357,7 +357,7 @@ class FullBlockTest(UnitETestFramework):
         self.sync_blocks([b28], success=False, reject_code=16, reject_reason=b'bad-cb-length', reconnect=True)
         self.comp_snapshot_hash(23)
 
-        # Extend the b28 chain to make sure united isn't accepting b28
+        # Extend the b28 chain to make sure unit-e isn't accepting b28
         b29 = self.next_block(29, self.get_staking_coin(), spend=out[7])
         self.sync_blocks([b29], False)
         self.comp_snapshot_hash(23)
@@ -851,7 +851,7 @@ class FullBlockTest(UnitETestFramework):
         tx.nLockTime = 0xffffffff  # this locktime is non-final
         tx.vin.append(CTxIn(COutPoint(out[18].sha256, 0)))  # don't set nSequence
         tx.vout.append(CTxOut(0, CScript([OP_TRUE])))
-        assert(tx.vin[0].nSequence < 0xffffffff)
+        assert tx.vin[0].nSequence < 0xffffffff
         tx.calc_sha256()
         b62 = self.update_block(62, [tx])
         self.sync_blocks([b62], success=False, reject_code=16, reject_reason=b'bad-txns-nonfinal')
@@ -1189,8 +1189,8 @@ class FullBlockTest(UnitETestFramework):
         # now check that tx78 and tx79 have been put back into the peer's mempool
         mempool = self.nodes[0].getrawmempool()
         assert_equal(len(mempool), 2)
-        assert(tx78.hash in mempool)
-        assert(tx79.hash in mempool)
+        assert tx78.hash in mempool
+        assert tx79.hash in mempool
 
         # Test invalid opcodes in dead execution paths.
         #

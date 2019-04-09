@@ -42,9 +42,6 @@
 // pool, we select by highest fee rate of a transaction combined with all
 // its ancestors.
 
-uint64_t nLastBlockTx = 0;
-uint64_t nLastBlockWeight = 0;
-
 int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev)
 {
     int64_t nOldTime = pblock->nTime;
@@ -103,7 +100,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, CWallet *pwallet)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, CWallet *pwallet)
 {
     //TODO UNIT-E: Remove this as soon as we move to the new proposing logic
     // Get the wallet that is used to retrieve the stakable coins.
@@ -133,6 +130,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     LOCK(cs_main);
     LOCK(pwallet->cs_wallet);
+    LOCK(GetComponent<finalization::StateRepository>()->GetLock());
     LOCK(mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
@@ -160,9 +158,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     ltor::SortTransactions(pblock->vtx);
 
     int64_t nTime1 = GetTimeMicros();
-
-    nLastBlockTx = nBlockTx;
-    nLastBlockWeight = nBlockWeight;
 
     std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
@@ -218,14 +213,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
 void BlockAssembler::AddMandatoryTxs()
 {
-    const auto &fin_state = *esperanza::FinalizationState::GetState(chainActive.Tip());
+    const finalization::FinalizationState *fin_state =
+        GetComponent<finalization::StateRepository>()->GetTipState();
+    assert(fin_state !=nullptr);
+
     auto mi = mempool.mapTx.get<ancestor_score>().begin();
     for (;mi != mempool.mapTx.get<ancestor_score>().end(); ++mi) {
 
         if (mi->GetTx().IsVote()) {
             CValidationState state;
             //Check again in case the vote became invalid in the meanwhile (different target now)
-            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, chainparams.GetConsensus(), fin_state)) {
+            if (esperanza::ContextualCheckVoteTx(mi->GetTx(), state, *fin_state, *pcoinsTip)) {
                 AddToBlock(mempool.mapTx.project<0>(mi));
                 LogPrint(BCLog::FINALIZATION,
                          "%s: Add vote with id %s to a new block.\n",

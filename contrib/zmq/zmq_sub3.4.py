@@ -7,7 +7,7 @@
     ZMQ example using python3's asyncio
 
     Unit-e should be started with the command line arguments:
-        united -testnet -daemon \
+        unit-e -testnet -daemon \
                 -zmqpubrawtx=tcp://127.0.0.1:27181 \
                 -zmqpubrawblock=tcp://127.0.0.1:27181 \
                 -zmqpubhashtx=tcp://127.0.0.1:27181 \
@@ -23,7 +23,7 @@
     and `await` keywords respectively.
 
     A blocking example using python 2.7 can be obtained from the git history:
-    https://github.com/unite/unite/blob/37a7fe9e440b83e2364d5498931253937abe9294/contrib/zmq/zmq_sub.py
+    https://github.com/bitcoin/bitcoin/blob/37a7fe9e440b83e2364d5498931253937abe9294/contrib/zmq/zmq_sub.py
 """
 
 import binascii

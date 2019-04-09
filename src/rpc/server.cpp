@@ -115,6 +115,23 @@ CAmount AmountFromValue(const UniValue& value)
     return amount;
 }
 
+uint160 ParseHash160V(const UniValue& v, std::string strName)
+{
+    std::string strHex;
+    if (v.isStr())
+        strHex = v.get_str();
+    if (!IsHex(strHex)) // Note: IsHex("") is false
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strName+" must be hexadecimal string (not '"+strHex+"')");
+    if (40 != strHex.length())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s must be of length %d (not %d)", strName, 40, strHex.length()));
+    uint160 result;
+    result.SetHex(strHex);
+    return result;
+}
+uint160 ParseHash160O(const UniValue& o, std::string strKey)
+{
+    return ParseHash160V(find_value(o, strKey), strKey);
+}
 uint256 ParseHashV(const UniValue& v, std::string strName)
 {
     std::string strHex;
@@ -520,7 +537,7 @@ std::vector<std::string> CRPCTable::listCommands() const
 
 std::string HelpExampleCli(const std::string& methodname, const std::string& args)
 {
-    return "> unite-cli " + methodname + " " + args + "\n";
+    return "> unit-e-cli " + methodname + " " + args + "\n";
 }
 
 std::string HelpExampleRpc(const std::string& methodname, const std::string& args)

@@ -18,7 +18,12 @@ class FinalizationStateSpy : public FinalizationState {
   const FinalizationParams params = CreateChainParams(CBaseChainParams::TESTNET)->GetFinalization();
 
  public:
+  FinalizationStateSpy(const FinalizationParams &_params,
+                       const AdminParams &adminParams) : FinalizationState(_params, adminParams),
+                                                         params(_params) {}
   FinalizationStateSpy() : FinalizationState(params, AdminParams()) {}
+  FinalizationStateSpy(const FinalizationParams &_params) : FinalizationState(_params, AdminParams()),
+                                                            params(_params) {}
   FinalizationStateSpy(const FinalizationStateSpy &parent) : FinalizationState(parent) {}
 
   CAmount *CurDynDeposits() { return &m_cur_dyn_deposits; }
@@ -26,15 +31,17 @@ class FinalizationStateSpy : public FinalizationState {
   uint64_t *RewardFactor() { return &m_reward_factor; }
   std::map<uint160, Validator> &Validators() { return m_validators; }
   std::map<uint160, Validator> *pValidators() { return &m_validators; }
-  std::map<uint32_t, Checkpoint> &Checkpoints() {
-    return const_cast<std::map<uint32_t, Checkpoint> &>(m_checkpoints);
-  }
+  std::map<uint32_t, Checkpoint> &Checkpoints() { return m_checkpoints; }
   void SetRecommendedTarget(const CBlockIndex &block_index) {
     m_recommended_target_hash = block_index.GetBlockHash();
     m_recommended_target_epoch = GetEpoch(block_index);
   }
   void SetExpectedSourceEpoch(uint32_t epoch) {
     m_expected_source_epoch = epoch;
+  }
+  void SetLastFinalizedEpoch(uint32_t epoch) {
+    m_checkpoints[epoch].m_is_finalized = true;
+    m_last_finalized_epoch = epoch;
   }
 
   uint32_t EpochLength() const { return m_settings.epoch_length; }
@@ -47,6 +54,10 @@ class FinalizationStateSpy : public FinalizationState {
     return m_settings.bounty_fraction_denominator;
   }
 
+  void CreateAndActivateDeposit(const uint160 &validator_address, CAmount deposit_size);
+
+  void shuffle();
+
   using FinalizationState::GetCurrentDynasty;
   using FinalizationState::GetDepositSize;
   using FinalizationState::InitializeEpoch;
@@ -58,5 +69,7 @@ class FinalizationStateSpy : public FinalizationState {
 };
 
 uint160 RandValidatorAddr();
+CPubKey MakePubKey();
+esperanza::AdminKeySet MakeKeySet();
 
 #endif  //UNIT_E_TESTS_FINALIZATIONSTATE_UTILS_H

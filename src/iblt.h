@@ -34,7 +34,8 @@ class IBLT {
     const IBLTParams optimal_params = IBLTParams::FindOptimal(expected_items_count);
     m_num_hashes = optimal_params.num_hashes;
 
-    const size_t entries_num = ComputeEntriesNum(expected_items_count, optimal_params);
+    const size_t entries_num = ComputeNumberOfEntries(expected_items_count,
+                                                      optimal_params);
 
     m_hash_table.resize(entries_num);
   }
@@ -219,8 +220,8 @@ class IBLT {
   }
 
   //! \brief Computes exact number of entries without creating an IBLT
-  static size_t ComputeEntriesNum(size_t expected_items_count,
-                                  boost::optional<IBLTParams> params = {}) {
+  static size_t ComputeNumberOfEntries(size_t expected_items_count,
+                                       boost::optional<IBLTParams> params = {}) {
     const IBLTParams iblt_params = params
                                        ? params.get()
                                        : IBLTParams::FindOptimal(expected_items_count);

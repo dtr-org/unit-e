@@ -153,7 +153,7 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(chaintxstats['txcount'], 201)
 
         # all transactions are created with the rate lower than 1 sec
-        assert('txrate' not in chaintxstats)
+        assert 'txrate' not in chaintxstats
 
         b1_hash = self.nodes[0].getblockhash(1)
         b1 = self.nodes[0].getblock(b1_hash)
@@ -175,9 +175,9 @@ class BlockchainTest(UnitETestFramework):
         assert_equal(chaintxstats['txcount'], 2)
         assert_equal(chaintxstats['window_final_block_hash'], b1_hash)
         assert_equal(chaintxstats['window_block_count'], 0)
-        assert('window_tx_count' not in chaintxstats)
-        assert('window_interval' not in chaintxstats)
-        assert('txrate' not in chaintxstats)
+        assert 'window_tx_count' not in chaintxstats
+        assert 'window_interval' not in chaintxstats
+        assert 'txrate' not in chaintxstats
 
     def _test_gettxoutsetinfo(self):
         node = self.nodes[0]
@@ -242,6 +242,8 @@ class BlockchainTest(UnitETestFramework):
         assert_is_hash_string(header['hash'])
         assert_is_hash_string(header['previousblockhash'])
         assert_is_hash_string(header['merkleroot'])
+        assert_is_hash_string(header['witnessmerkleroot'])
+        assert_is_hash_string(header['finalizercommitsmerkleroot'])
         assert_is_hash_string(header['bits'], length=None)
         assert isinstance(header['time'], int)
         assert isinstance(header['mediantime'], int)

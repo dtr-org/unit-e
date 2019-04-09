@@ -9,6 +9,7 @@
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
 #include <esperanza/checks.h>
+#include <injector.h>
 #include <validation.h>
 #include <policy/policy.h>
 #include <policy/fees.h>
@@ -908,7 +909,7 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
     CTransactionRef ptx = mempool.get(outpoint.hash);
     if (ptx) {
         if (outpoint.n < ptx->vout.size()) {
-            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false);
+            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, ptx->GetType());
             return true;
         } else {
             return false;
@@ -935,11 +936,17 @@ int CTxMemPool::ExpireVotes() {
   LOCK(cs);
   auto it = mempool.mapTx.get<ancestor_score>().begin();
 
+  AssertLockHeld(GetComponent<finalization::StateRepository>()->GetLock());
+
+  const finalization::FinalizationState *fin_state =
+      GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(fin_state != nullptr);
+
   setEntries toremove;
   while (it != mapTx.get<ancestor_score>().end()) {
 
     if (it->GetTx().IsVote()) {
-      if (esperanza::IsVoteExpired(it->GetTx())) {
+      if (esperanza::IsVoteExpired(it->GetTx(), *fin_state)) {
           toremove.insert(mapTx.project<0>(it));
       }
     }

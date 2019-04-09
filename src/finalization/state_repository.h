@@ -5,9 +5,9 @@
 #ifndef UNITE_FINALIZATION_STATE_REPOSITORY
 #define UNITE_FINALIZATION_STATE_REPOSITORY
 
+#include <chain.h>
 #include <dependency.h>
 #include <esperanza/finalizationstate.h>
-#include <staking/active_chain.h>
 
 #include <memory>
 
@@ -20,19 +20,31 @@
 //! Parent state means the state of the CBlockIndex.pprev. States must be processed
 //! index by index.
 
-namespace finalization {
-class StateProcessor;
-}
-
 namespace esperanza {
 struct FinalizationParams;
 struct AdminParams;
-};  // namespace esperanza
+}  // namespace esperanza
+
+namespace staking {
+class ActiveChain;
+class BlockIndexMap;
+}  // namespace staking
 
 class CBlockIndex;
-class CChainParams;
+class BlockDB;
 
 namespace finalization {
+
+class StateDB;
+class StateProcessor;
+
+class MissedBlockError : public std::runtime_error {
+ public:
+  const CBlockIndex &missed_index;
+  MissedBlockError(const CBlockIndex &index)
+      : std::runtime_error(strprintf("Cannot load block=%s", index.GetBlockHash().GetHex())),
+        missed_index(index) {}
+};
 
 // UNIT-E TODO: FinalizationState is gonna be moved to finalization namespace.
 // When it happen, remove this line.
@@ -40,6 +52,9 @@ using FinalizationState = esperanza::FinalizationState;
 
 class StateRepository {
  public:
+  //! Returns the mutex which must be locked prior Find, FindOrCreate, or GetTipState.
+  virtual CCriticalSection &GetLock() = 0;
+
   //! Return the finalization state of the current active chain tip.
   virtual FinalizationState *GetTipState() = 0;
 
@@ -67,10 +82,12 @@ class StateRepository {
   //!
   //! Must be called during startup of the node to restore repository for current active chain.
   //!
-  //! UNIT-E TODO; The way we restore repository now requires us to use processor dependency.
+  //! The way we recover repository requires us to use processor dependency.
   //! We don't use it as a class component to avoid circular dependencies.
-  virtual void RestoreFromDisk(const CChainParams &chainparams,
-                               Dependency<finalization::StateProcessor> proc) = 0;
+  virtual bool RestoreFromDisk(Dependency<finalization::StateProcessor> proc) = 0;
+
+  //! \brief Saves the repository to disk.
+  virtual bool SaveToDisk() = 0;
 
   //! \brief Resturns whether node is reconstructing the repository.
   virtual bool Restoring() const = 0;
@@ -99,7 +116,11 @@ class StateRepository {
 
   virtual ~StateRepository() = default;
 
-  static std::unique_ptr<StateRepository> New(Dependency<staking::ActiveChain> active_chain);
+  static std::unique_ptr<StateRepository> New(
+      Dependency<staking::BlockIndexMap>,
+      Dependency<staking::ActiveChain>,
+      Dependency<finalization::StateDB>,
+      Dependency<BlockDB>);
 };
 
 }  // namespace finalization

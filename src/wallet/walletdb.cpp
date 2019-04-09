@@ -7,6 +7,7 @@
 
 #include <consensus/tx_verify.h>
 #include <consensus/validation.h>
+#include <esperanza/validatorstate.h>
 #include <fs.h>
 #include <key_io.h>
 #include <protocol.h>
@@ -874,4 +875,12 @@ bool WalletBatch::ReadVersion(int& nVersion)
 bool WalletBatch::WriteVersion(int nVersion)
 {
     return m_batch.WriteVersion(nVersion);
+}
+
+bool WalletBatch::WriteValidatorState(const esperanza::ValidatorState &state) {
+    return WriteIC(std::string("validator-state"), state);
+}
+
+bool WalletBatch::ReadValidatorState(esperanza::ValidatorState &state) {
+    return m_batch.Read(std::string("validator-state"), state);
 }

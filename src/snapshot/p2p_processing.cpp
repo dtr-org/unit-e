@@ -5,7 +5,6 @@
 #include <snapshot/p2p_processing.h>
 
 #include <esperanza/finalizationstate.h>
-#include <injector.h>
 #include <snapshot/iterator.h>
 #include <snapshot/snapshot_index.h>
 #include <snapshot/state.h>
@@ -16,14 +15,17 @@
 
 namespace snapshot {
 
-inline CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash) {
-  CBlockIndex *bi = LookupBlockIndex(hash);
+inline const CBlockIndex *LookupFinalizedBlockIndex(const uint256 &hash,
+                                                    const CBlockIndex &last_finalized_checkpoint) {
+  const CBlockIndex *bi = LookupBlockIndex(hash);
   if (!bi) {
     return nullptr;
   }
 
-  // todo: check that header is finalized
-  // once ADR-21 is implemented
+  if (last_finalized_checkpoint.GetAncestor(bi->nHeight) != bi) {
+    return nullptr;
+  }
+
   return bi;
 }
 
@@ -224,7 +226,8 @@ bool P2PState::ProcessSnapshot(CNode &node, CDataStream &data,
 }
 
 void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index, const size_t total_nodes,
-                                            const CNetMsgMaker &msg_maker) {
+                                            const CNetMsgMaker &msg_maker,
+                                            const CBlockIndex &last_finalized_checkpoint) {
   if (!IsISDEnabled()) {
     return;
   }
@@ -267,13 +270,13 @@ void P2PState::StartInitialSnapshotDownload(CNode &node, const size_t node_index
 
   // start snapshot downloading
 
-  SnapshotHeader node_best_snapshot = NodeBestSnapshot(node);
+  SnapshotHeader node_best_snapshot = NodeBestSnapshot(node, last_finalized_checkpoint);
   if (node_best_snapshot.IsNull()) {
     if (InFlightSnapshotDiscovery(node)) {
       m_in_flight_snapshot_discovery = true;
     }
   } else {
-    SetIfBestSnapshot(node_best_snapshot);
+    SetIfBestSnapshot(node_best_snapshot, last_finalized_checkpoint);
 
     // if the peer has the snapshot that node decided to download
     // ask for the relevant chunk from it
@@ -364,7 +367,6 @@ void P2PState::ProcessSnapshotParentBlock(const CBlock &parent_block,
     }
 
     chainActive.SetTip(block_index->pprev);
-    GetComponent<finalization::StateRepository>()->ResetToTip(*chainActive.Tip());
 
     snapshot_block_index = block_index->pprev;
     assert(GetSnapshotHash(snapshot_block_index, snapshot_hash));
@@ -487,13 +489,14 @@ bool P2PState::FindNextBlocksToDownload(const NodeId node_id,
   return true;
 }
 
-SnapshotHeader P2PState::NodeBestSnapshot(CNode &node) {
+SnapshotHeader P2PState::NodeBestSnapshot(CNode &node, const CBlockIndex &last_finalized_checkpoint) {
   if (node.m_best_snapshot.IsNull()) {
     return {};
   }
 
   LOCK(cs_main);
-  const CBlockIndex *const bi = LookupFinalizedBlockIndex(node.m_best_snapshot.block_hash);
+  const CBlockIndex *const bi =
+      LookupFinalizedBlockIndex(node.m_best_snapshot.block_hash, last_finalized_checkpoint);
   if (!bi) {
     return {};
   }
@@ -514,13 +517,9 @@ SnapshotHeader P2PState::NodeBestSnapshot(CNode &node) {
   return node.m_best_snapshot;
 }
 
-void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
+void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot,
+                                 const CBlockIndex &last_finalized_checkpoint) {
   if (best_snapshot.IsNull()) {
-    return;
-  }
-
-  if (m_best_snapshot.IsNull()) {
-    m_best_snapshot = best_snapshot;
     return;
   }
 
@@ -532,17 +531,29 @@ void P2PState::SetIfBestSnapshot(const SnapshotHeader &best_snapshot) {
 
   // don't switch the snapshot once it's decided to download it
   // and there are peers that can support it
-  if (m_downloading_snapshot == m_best_snapshot) {
+  if (!m_best_snapshot.IsNull() && m_downloading_snapshot == m_best_snapshot) {
     return;
   }
 
   // compare heights to find the best snapshot
   LOCK(cs_main);
+
+  const CBlockIndex *const new_bi =
+      LookupFinalizedBlockIndex(best_snapshot.block_hash, last_finalized_checkpoint);
+
+  if (new_bi == nullptr) {
+    return;
+  }
+
+  if (m_best_snapshot.IsNull()) {
+    m_best_snapshot = best_snapshot;
+    return;
+  }
+
   const CBlockIndex *const cur_bi = LookupBlockIndex(m_best_snapshot.block_hash);
   assert(cur_bi);
 
-  const CBlockIndex *const new_bi = LookupFinalizedBlockIndex(best_snapshot.block_hash);
-  if (new_bi && new_bi->nHeight > cur_bi->nHeight) {
+  if (new_bi->nHeight > cur_bi->nHeight) {
     m_best_snapshot = best_snapshot;
     return;
   }
@@ -632,8 +643,10 @@ bool ProcessSnapshot(CNode &node, CDataStream &data,
 }
 
 void StartInitialSnapshotDownload(CNode &node, const size_t node_index, const size_t total_nodes,
-                                  const CNetMsgMaker &msg_maker) {
-  g_p2p_state.StartInitialSnapshotDownload(node, node_index, total_nodes, msg_maker);
+                                  const CNetMsgMaker &msg_maker,
+                                  const CBlockIndex &last_finalized_checkpoint) {
+  g_p2p_state.StartInitialSnapshotDownload(
+      node, node_index, total_nodes, msg_maker, last_finalized_checkpoint);
 }
 
 bool FindNextBlocksToDownload(const NodeId node_id,

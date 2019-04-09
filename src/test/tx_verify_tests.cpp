@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_no_reward) {
   }();
 
   mocks::CoinsViewMock utxos;
-  utxos.default_coin = Coin(CTxOut(21, CScript()), 1, false);
+  utxos.default_coin = Coin(CTxOut(21, CScript()), 1, TxType::REGULAR);
 
   CValidationState validation_state;
   CAmount fees;
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_does_not_access_coinbase_meta_input) {
 
   std::vector<COutPoint> coins_accessed;
   mocks::CoinsViewMock utxos;
-  utxos.default_coin = Coin(CTxOut(21, CScript()), 1, false);
+  utxos.default_coin = Coin(CTxOut(21, CScript()), 1, TxType::REGULAR);
   utxos.access_coin = [&](const COutPoint &coin) -> const Coin & {
     coins_accessed.emplace_back(coin);
     return utxos.default_coin;
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_rejects_coinbase_that_spends_too_little) {
   }();
 
   mocks::CoinsViewMock utxos;
-  utxos.default_coin = Coin(CTxOut(stake_in, CScript()), 1, false);
+  utxos.default_coin = Coin(CTxOut(stake_in, CScript()), 1, TxType::REGULAR);
 
   CValidationState validation_state;
   CAmount fees;
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(check_tx_inputs_rejects_coinbase_that_spends_too_much) {
   }();
 
   mocks::CoinsViewMock utxos;
-  utxos.default_coin = Coin(CTxOut(stake_in, CScript()), 1, false);
+  utxos.default_coin = Coin(CTxOut(stake_in, CScript()), 1, TxType::REGULAR);
 
   CValidationState validation_state;
   CAmount fees;

@@ -62,6 +62,7 @@ from test_framework.blocktools import (
     create_tx_with_script,
     get_tip_snapshot_meta,
     calc_snapshot_hash,
+    TxType,
     UTXO,
     COutPoint,
 )
@@ -96,15 +97,15 @@ class UTXOManager:
         self.current_outputs = []
 
     def process(self, tx, height):
-        is_coinbase = tx.vin[0].prevout.hash == 0
+        is_coinbase = tx.get_type() == TxType.COINBASE
 
         start_index = 1 if is_coinbase else 0
         for tx_in in tx.vin[start_index:]:
             outpoints_equal = lambda coin: coin.outpoint.hash == tx_in.prevout.hash and coin.outpoint.n == tx_in.prevout.n
             prevout_utxo = next(filter(outpoints_equal, self.available_outputs+self.spent_outputs))
-            self.current_inputs.append(UTXO(prevout_utxo.height, prevout_utxo.isCoinBase, prevout_utxo.outpoint, prevout_utxo.txOut))
+            self.current_inputs.append(UTXO(prevout_utxo.height, prevout_utxo.tx_type, prevout_utxo.outpoint, prevout_utxo.txOut))
 
-        self.current_outputs.extend([UTXO(height, is_coinbase, COutPoint(tx.sha256, i), tx.vout[i]) for i in range(len(tx.vout))])
+        self.current_outputs.extend([UTXO(height, tx.get_type(), COutPoint(tx.sha256, i), tx.vout[i]) for i in range(len(tx.vout))])
 
     def get_spendable_utxo(self, height):
         for utxo in self.available_outputs:
@@ -135,8 +136,8 @@ class UTXOManager:
 class AcceptBlockTest(UnitETestFramework):
     def add_options(self, parser):
         parser.add_argument("--testbinary", dest="testbinary",
-                            default=os.getenv("UNITED", "united"),
-                            help="united binary to test")
+                            default=os.getenv("UNIT_E", "unit-e"),
+                            help="unit-e binary to test")
 
     def set_test_params(self):
         self.setup_clean_chain = True
@@ -167,7 +168,7 @@ class AcceptBlockTest(UnitETestFramework):
         utxo_manager = UTXOManager(self.nodes[0], fork_snapshot_meta)
         genesis_coin = get_unspent_coins(self.nodes[0], 1)[0]
         genesis_txout = CTxOut(int(genesis_coin['amount']*UNIT), CScript(hex_str_to_bytes(genesis_coin['scriptPubKey'])))
-        genesis_utxo = [UTXO(0, True, COutPoint(int(genesis_coin['txid'], 16), genesis_coin['vout']), genesis_txout)]
+        genesis_utxo = [UTXO(0, TxType.COINBASE, COutPoint(int(genesis_coin['txid'], 16), genesis_coin['vout']), genesis_txout)]
         utxo_manager.available_outputs = genesis_utxo
 
         # 1. Have nodes mine a block (leave IBD)
@@ -208,7 +209,7 @@ class AcceptBlockTest(UnitETestFramework):
             if x['hash'] == block_h1f.hash:
                 assert_equal(x['status'], "headers-only")
                 tip_entry_found = True
-        assert(tip_entry_found)
+        assert tip_entry_found
         assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, block_h1f.hash)
 
         # 4. Send another two block that build on the fork.
@@ -228,7 +229,7 @@ class AcceptBlockTest(UnitETestFramework):
             if x['hash'] == block_h2f.hash:
                 assert_equal(x['status'], "headers-only")
                 tip_entry_found = True
-        assert(tip_entry_found)
+        assert tip_entry_found
 
         # But this block should be accepted by node since it has equal work.
         self.nodes[0].getblock(block_h2f.hash)
@@ -249,7 +250,7 @@ class AcceptBlockTest(UnitETestFramework):
             if x['hash'] == block_h3.hash:
                 assert_equal(x['status'], "headers-only")
                 tip_entry_found = True
-        assert(tip_entry_found)
+        assert tip_entry_found
         self.nodes[0].getblock(block_h3.hash)
 
         # But this block should be accepted by node since it has more work.
@@ -383,7 +384,7 @@ class AcceptBlockTest(UnitETestFramework):
             if x['hash'] == block_293f.hash:
                 assert_equal(x['status'], "headers-only")
                 tip_entry_found = True
-        assert(tip_entry_found)
+        assert tip_entry_found
         assert_raises_rpc_error(-1, "Block not found on disk", self.nodes[0].getblock, block_293f.hash)
 
         test_node.send_message(msg_block(block_291f))

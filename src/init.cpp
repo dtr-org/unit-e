@@ -45,6 +45,7 @@
 #include <snapshot/initialization.h>
 #include <snapshot/rpc_processing.h>
 #include <snapshot/creator.h>
+#include <snapshot/state.h>
 #include <timedata.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -153,7 +154,7 @@ static const char* FEE_ESTIMATES_FILENAME="fee_estimates.dat";
 /**
  * This is a minimally invasive approach to shutdown on LevelDB read errors from the
  * chainstate, while keeping user interface out of the common library, which is shared
- * between united and non-server tools.
+ * between unit-e and non-server tools.
 */
 class CCoinsViewErrorCatcher final : public CCoinsViewBacked
 {
@@ -439,6 +440,7 @@ void SetupServerArgs()
     gArgs.AddArg("-enablebip61", strprintf("Send reject messages per BIP61 (default: %u)", DEFAULT_ENABLE_BIP61), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-externalip=<ip>", "Specify your own public address", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-forcednsseed", strprintf("Always query for peer addresses via DNS lookup (default: %u)", DEFAULT_FORCEDNSSEED), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-graphene", "Whether to use graphene protocol (default: true)", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-listenonion", strprintf("Automatically create Tor hidden service (default: %d)", DEFAULT_LISTEN_ONION), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-maxconnections=<n>", strprintf("Maintain at most <n> connections to peers (default: %u)", DEFAULT_MAX_PEER_CONNECTIONS), false, OptionsCategory::CONNECTION);
@@ -671,6 +673,17 @@ static void CleanupBlockRevFiles()
     }
 }
 
+namespace { // Variables internal to initialization process only
+
+    int nMaxConnections;
+    int nUserMaxConnections;
+    int nFD;
+    ServiceFlags nLocalServices = ServiceFlags(NODE_NETWORK | NODE_NETWORK_LIMITED);
+    std::mutex m_import;
+    std::condition_variable cv_import;
+
+} // namespace
+
 static void ThreadImport(std::vector<fs::path> vImportFiles)
 {
     const CChainParams& chainparams = Params();
@@ -740,10 +753,17 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         return;
     }
     } // End scope of CImportingNow
+
     if (gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         LoadMempool();
     }
     g_is_mempool_loaded = !ShutdownRequested();
+
+    // Since the import process can restore the node's ValidatorState,
+    // we must ensure that all callbacks processed in the context of the import.
+    SyncWithValidationInterfaceQueue();
+    // Notify parent thread about the finished import
+    cv_import.notify_all();
 }
 
 /** Sanity checks
@@ -895,7 +915,7 @@ void InitLogging()
     fLogIPs = gArgs.GetBoolArg("-logips", DEFAULT_LOGIPS);
 
     if (g_logger->m_log_thread_names) {
-        SetThreadDebugName("united");
+        SetThreadDebugName("unit-e");
     }
 
     LogPrintf("\n\n"
@@ -922,15 +942,6 @@ void InitLogging()
 #endif
     LogPrintf(PACKAGE_NAME " version %s\n", version_string);
 }
-
-namespace { // Variables internal to initialization process only
-
-int nMaxConnections;
-int nUserMaxConnections;
-int nFD;
-ServiceFlags nLocalServices = ServiceFlags(NODE_NETWORK | NODE_NETWORK_LIMITED);
-
-} // namespace
 
 [[noreturn]] static void new_handler_terminate()
 {
@@ -1387,7 +1398,7 @@ bool AppInitMain()
     GetMainSignals().RegisterWithMempoolSignals(mempool);
 
     /* Register RPC commands regardless of -server setting so they will be
-     * available in unite-cli even if external calls are disabled.
+     * available in unit-e-cli even if external calls are disabled.
      */
     RegisterAllCoreRPCCommands(tableRPC);
     RegisterFinalizationRPCCommands(tableRPC);
@@ -1677,6 +1688,19 @@ bool AppInitMain()
                     }
                 }
 
+                // UNIT-E TODO: Snapshot must start working once we can trust commits
+                // (commits merkle root added to the header and FROM_COMMITS is dropped).
+                // Check #836 for details.
+                // In the case of reindex, don't restore finalization's state, since it will be built from scratch.
+                if (!snapshot::IsISDEnabled() && !fReindex) {
+                    LOCK(cs_main);
+                    auto state_repository = GetComponent<finalization::StateRepository>();
+                    auto state_processor = GetComponent<finalization::StateProcessor>();
+                    state_repository->RestoreFromDisk(state_processor);
+                } else if (chainActive.Tip() != nullptr) {
+                    state_repository->ResetToTip(*chainActive.Tip());
+                }
+
                 if (!is_coinsview_empty) {
                     uiInterface.InitMessage(_("Verifying blocks..."));
                     if (fHavePruned && gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS) > MIN_BLOCKS_TO_KEEP) {
@@ -1699,6 +1723,7 @@ bool AppInitMain()
                         break;
                     }
                 }
+
             } catch (const std::exception& e) {
                 LogPrintf("%s\n", e.what());
                 strLoadError = _("Error opening block database");
@@ -1906,6 +1931,11 @@ bool AppInitMain()
 
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
+
+#ifdef ENABLE_WALLET
+    std::unique_lock<std::mutex> lk(m_import);
+    cv_import.wait(lk, [&]{return !fImporting.load();});
+#endif
 
     g_wallet_init_interface.Start(scheduler);
 

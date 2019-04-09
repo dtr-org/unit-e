@@ -101,15 +101,15 @@ BOOST_AUTO_TEST_CASE(error_reporting) {
 
   std::set<std::string> errors;
   BOOST_CHECK_THROW(blockchain::ReadCustomParametersFromJsonString(
-      "{"
-      "\"network_name\":true,"
-      "\"block_stake_timestamp_interval_seconds\":-4710,"
-      "\"block_time_seconds\":47119872349873054,"                          // bigger than std::uint32_t
-      "\"maximum_block_size\":47119872349873054239473490232131200271801,"  // bigger than std::int64_t
-      "\"max_future_block_time_seconds\":\"i call bull\","
-      "\"unknown_keys_are_ignored\":true}",
-      blockchain::Parameters::RegTest()), blockchain::FailedToParseCustomParametersError);
-
+                        "{"
+                        "\"network_name\":true,"
+                        "\"block_stake_timestamp_interval_seconds\":-4710,"
+                        "\"block_time_seconds\":47119872349873054,"                          // bigger than std::uint32_t
+                        "\"maximum_block_size\":47119872349873054239473490232131200271801,"  // bigger than std::int64_t
+                        "\"max_future_block_time_seconds\":\"i call bull\","
+                        "\"unknown_keys_are_ignored\":true}",
+                        blockchain::Parameters::RegTest()),
+                    blockchain::FailedToParseCustomParametersError);
 }
 
 BOOST_AUTO_TEST_CASE(load_genesis_block) {

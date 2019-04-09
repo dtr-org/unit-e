@@ -14,7 +14,9 @@ from test_framework.util import (
     assert_fee_amount,
     assert_greater_than,
     assert_raises_rpc_error,
+    connect_nodes,
     connect_nodes_bi,
+    disconnect_nodes,
     sync_blocks,
     sync_mempools,
     wait_until,
@@ -115,7 +117,7 @@ class WalletTest(UnitETestFramework):
         send_specific_output(self.nodes[0], utxos[1]['txid'], utxos[1]['vout'],
                              to=self.nodes[2].getnewaddress(), amount=Decimal('1.1'))
         memory_after = self.nodes[0].getmemoryinfo()
-        assert(memory_before['locked']['used'] + 64 <= memory_after['locked']['used'])
+        assert memory_before['locked']['used'] + 64 <= memory_after['locked']['used']
         balance0 -= Decimal('2.1')
         balance2 += Decimal('2.1')
 
@@ -255,22 +257,25 @@ class WalletTest(UnitETestFramework):
         node_0_bal = self.check_fee_amount(self.nodes[0].getbalance(), node_0_bal + Decimal('10'), fee_per_byte, self.get_vsize(self.nodes[2].getrawtransaction(txid)))
 
         # Test ResendWalletTransactions:
-        # Create a couple of transactions, then start up a fourth
-        # node (nodes[3]) and ask nodes[0] to rebroadcast.
+        # - Start up, prepare and disconnect the fourth node (nodes[3])
+        # - Create a couple of transactions
+        # - Connect nodes[3] and ask nodes[0] to rebroadcast
         # EXPECT: nodes[3] should have those transactions in its mempool.
+        self.start_node(3)
+        connect_nodes_bi(self.nodes, 0, 3)
+        sync_blocks(self.nodes)
+        disconnect_nodes(self.nodes[0], self.nodes[3].index)
+
         txid1 = self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 1)
         txid2 = self.nodes[1].sendtoaddress(self.nodes[0].getnewaddress(), 1)
         sync_mempools(self.nodes[0:2])
 
-        self.start_node(3)
-        connect_nodes_bi(self.nodes, 0, 3)
-        sync_blocks(self.nodes)
-
+        connect_nodes(self.nodes[0], self.nodes[3].index)
         relayed = self.nodes[0].resendwallettransactions()
         assert_equal(set(relayed), {txid1, txid2})
         sync_mempools(self.nodes)
 
-        assert(txid1 in self.nodes[3].getrawmempool())
+        assert txid1 in self.nodes[3].getrawmempool()
 
         # check if we can list zero value tx as available coins
         # 1. create raw_tx
@@ -297,7 +302,7 @@ class WalletTest(UnitETestFramework):
             if uTx['txid'] == zero_value_txid:
                 found = True
                 assert_equal(uTx['amount'], Decimal('0'))
-        assert(found)
+        assert found
 
         # do some -walletbroadcast tests
         self.stop_nodes()
@@ -377,7 +382,7 @@ class WalletTest(UnitETestFramework):
         self.nodes[1].importaddress(address_to_import)
 
         # 3. Validate that the imported address is watch-only on node1
-        assert(self.nodes[1].getaddressinfo(address_to_import)["iswatchonly"])
+        assert self.nodes[1].getaddressinfo(address_to_import)["iswatchonly"]
 
         # 4. Check that the unspents after import are not spendable
         assert_array_result(self.nodes[1].listunspent(),
@@ -428,7 +433,7 @@ class WalletTest(UnitETestFramework):
             '-reindex',
             '-zapwallettxes=1',
             '-zapwallettxes=2',
-            # disabled until issue is fixed: https://github.com/unite/unite/issues/7463
+            # disabled until issue is fixed: https://github.com/bitcoin/bitcoin/issues/7463
             # '-salvagewallet',
         ]
         chainlimit = 6
@@ -463,7 +468,7 @@ class WalletTest(UnitETestFramework):
         # Split into two chains
         rawtx = self.nodes[0].createrawtransaction([{"txid": singletxid, "vout": 0}], {chain_addrs[0]: node0_balance / 2 - Decimal('0.01'), chain_addrs[1]: node0_balance / 2 - Decimal('0.01')})
         signedtx = self.nodes[0].signrawtransactionwithwallet(rawtx)
-        singletxid = self.nodes[0].sendrawtransaction(signedtx["hex"])
+        self.nodes[0].sendrawtransaction(signedtx["hex"])
         sync_mempools(self.nodes[:2])
         self.nodes[1].generate(1)
         sync_blocks(self.nodes[:2])
@@ -482,8 +487,8 @@ class WalletTest(UnitETestFramework):
         # Without walletrejectlongchains, we will still generate a txid
         # The tx will be stored in the wallet but not accepted to the mempool
         extra_txid = self.nodes[0].sendtoaddress(sending_addr, Decimal('0.0001'))
-        assert(extra_txid not in self.nodes[0].getrawmempool())
-        assert(extra_txid in [tx["txid"] for tx in self.nodes[0].listtransactions()])
+        assert extra_txid not in self.nodes[0].getrawmempool()
+        assert extra_txid in [tx["txid"] for tx in self.nodes[0].listtransactions()]
         self.nodes[0].abandontransaction(extra_txid)
         total_txs = len(self.nodes[0].listtransactions("*", 99999))
 
@@ -501,7 +506,7 @@ class WalletTest(UnitETestFramework):
 
         node0_balance = self.nodes[0].getbalance()
         # With walletrejectlongchains we will not create the tx and store it in our wallet.
-        assert_raises_rpc_error(-4, "Transaction has too long of a mempool chain", self.nodes[0].sendtoaddress, sending_addr, node0_balance - Decimal('0.01'))
+        assert_raises_rpc_error(-4, "Transaction has too long of a mempool chain", self.nodes[0].sendtoaddress, sending_addr, node0_balance, "", "", True)
 
         # Verify nothing new in wallet
         assert_equal(total_txs, len(self.nodes[0].listtransactions("*", 99999)))

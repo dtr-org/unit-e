@@ -8,12 +8,13 @@ from decimal import Decimal
 
 from test_framework.blocktools import create_raw_transaction
 from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
-from test_framework.util import assert_equal
+from test_framework.util import assert_equal, assert_finalizationstate
 
 
 class MempoolCoinbaseTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
+        self.setup_clean_chain = True
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
@@ -30,7 +31,12 @@ class MempoolCoinbaseTest(UnitETestFramework):
             node.lockunspent(False, [{"txid": node.getblock(block_id)['tx'][0], "vout": 0}])
 
         # Make the first 3 coinbase mature now
-        node.generate(101)
+        node.generate(102)
+        assert_equal(node.getblockcount(), 105)
+        assert_finalizationstate(node, {'currentDynasty': 18,
+                                        'currentEpoch': 21,
+                                        'lastJustifiedEpoch': 20,
+                                        'lastFinalizedEpoch': 19})
 
         node0_address = node.getnewaddress("", "bech32")
         # Spend block 1/2/3's coinbase transactions
@@ -60,7 +66,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
         assert_equal(set(node.getrawmempool()), set())
         for txid in spends1_id+spends2_id:
             tx = node.gettransaction(txid)
-            assert(tx["confirmations"] > 0)
+            assert tx["confirmations"] > 0
 
         # Use invalidateblock to re-org back
         for node in self.nodes:
@@ -70,7 +76,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
         assert_equal(set(node.getrawmempool()), set(spends1_id+spends2_id))
         for txid in spends1_id+spends2_id:
             tx = node.gettransaction(txid)
-            assert(tx["confirmations"] == 0)
+            assert tx["confirmations"] == 0
 
         # Generate another block, they should all get mined
         node.generate(1)
@@ -78,7 +84,7 @@ class MempoolCoinbaseTest(UnitETestFramework):
         assert_equal(set(node.getrawmempool()), set())
         for txid in spends1_id+spends2_id:
             tx = node.gettransaction(txid)
-            assert(tx["confirmations"] > 0)
+            assert tx["confirmations"] > 0
 
 
 if __name__ == '__main__':

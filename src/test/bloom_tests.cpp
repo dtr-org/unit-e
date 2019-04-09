@@ -299,7 +299,8 @@ BOOST_AUTO_TEST_CASE(merkle_block_with_esperanza)
         "00000020" // block version
         "13df0e8aa1dceac5c5d1d4b6b83797fae69d5dea63c00fc25c59c679761e621d" // hash prev block
         "de7789b2fcd1b40c9b6b5e8f216bdfee5695b58e47e10504ddedc831ebf1854d" // hash merkle root
-        "0000000000000000000000000000000000000000000000000000000000000000" // hash segwit merkle root
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle root
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "680da15b" // time
         "ffff7f20" // bits
         "02000000" // nonce
@@ -359,6 +360,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2)
         "75616236cc2126035fadb38deb65b9102cc2c41c09cdf29fc051906800000000" // hash prev block
         "fe7d5e12ef0ff901f6050211249919b1c0653771832b3a80c66cea42847f0ae1" // hash merkle tree
         "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "d4d26e49" // time
         "ffff001d" // bits
         "00f0a441" // nonce
@@ -426,6 +428,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_2_with_update_none)
         "75616236cc2126035fadb38deb65b9102cc2c41c09cdf29fc051906800000000" // hash prev block
         "fe7d5e12ef0ff901f6050211249919b1c0653771832b3a80c66cea42847f0ae1" // hash merkle tree
         "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "d4d26e49" // time
         "ffff001d" // bits
         "00f0a441" // nonce
@@ -490,6 +493,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_3_and_serialize)
         "79cda856b143d9db2c1caff01d1aecc8630d30625d10e8b4b8b0000000000000" // hash prev block
         "b50cc069d6a3e33e3ff84a5c41d9d3febe7c770fdcc96b2c3ff60abe184f1963" // hash merkle tree
         "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "67291b4d" // time
         "4c86041b" // bits
         "8fa45d63" // nonce
@@ -525,7 +529,8 @@ BOOST_AUTO_TEST_CASE(merkle_block_3_and_serialize)
         "01000000" // block version
         "79cda856b143d9db2c1caff01d1aecc8630d30625d10e8b4b8b0000000000000" // hash prev block
         "b50cc069d6a3e33e3ff84a5c41d9d3febe7c770fdcc96b2c3ff60abe184f1963" // hash merkle tree
-        "0000000000000000000000000000000000000000000000000000000000000000" // hash segwit merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "67291b4d" // time
         "4c86041b" // bits
         "8fa45d63" // nonce
@@ -549,7 +554,8 @@ BOOST_AUTO_TEST_CASE(merkle_block_4)
         "01000000" // block version
         "82bb869cf3a793432a66e826e05a6fc37469f8efb7421dc88067010000000000" // hash prev block
         "7f16c5962e8bd963659c793ce370d95f093bc7e367117b3c30c1f8fdd0d97287" // hash merkle tree
-        "0000000000000000000000000000000000000000000000000000000000000000" // hash segwit merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "76381b4d" // time
         "4c86041b" // bits
         "554b8529" // nonce
@@ -608,6 +614,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_4_test_p2pubkey_only)
         "82bb869cf3a793432a66e826e05a6fc37469f8efb7421dc88067010000000000" // hash prev block
         "7f16c5962e8bd963659c793ce370d95f093bc7e367117b3c30c1f8fdd0d97287" // hash merkle tree
         "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "76381b4d" // time
         "4c86041b" // bits
         "554b8529" // nonce
@@ -643,6 +650,7 @@ BOOST_AUTO_TEST_CASE(merkle_block_4_test_update_none)
         "82bb869cf3a793432a66e826e05a6fc37469f8efb7421dc88067010000000000" // hash prev block
         "7f16c5962e8bd963659c793ce370d95f093bc7e367117b3c30c1f8fdd0d97287" // hash merkle tree
         "0000000000000000000000000000000000000000000000000000000000000000" // hash witness merkle tree
+        "0000000000000000000000000000000000000000000000000000000000000000" // hash_finalizer_commits_merkle_root
         "76381b4d" // time
         "4c86041b" // bits
         "554b8529" // nonce
@@ -744,6 +752,18 @@ BOOST_AUTO_TEST_CASE(rolling_bloom)
     for (int i = 0; i < DATASIZE; i++) {
         BOOST_CHECK(rb2.contains(data[i]));
     }
+}
+
+BOOST_AUTO_TEST_CASE(bloom_filter_honors_max_size) {
+    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
+    stream << CBloomFilter(100000, 0.000001, 0, BLOOM_UPDATE_ALL, 100);
+
+    BOOST_CHECK_EQUAL(110, stream.size());
+    stream.clear();
+
+    stream << CBloomFilter(10000000, 0.000001, 0, BLOOM_UPDATE_ALL);
+
+    BOOST_CHECK_EQUAL(MAX_BLOOM_FILTER_SIZE + 12, stream.size());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

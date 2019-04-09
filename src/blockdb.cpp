@@ -7,11 +7,9 @@
 #include <chainparams.h>
 #include <validation.h>
 
-//! \brief Implementation of BlockDB that uses disk to save and read the block
+//! Implementation of BlockDB that uses disk to save and read the block
 //! data. It delegates to unite functions like `ReadBlockFromDisk`.
 class BlockDiskStorage final : public BlockDB {
-
- private:
 
  public:
   ~BlockDiskStorage() override = default;
@@ -25,7 +23,6 @@ class BlockDiskStorage final : public BlockDB {
   }
 };
 
-std::unique_ptr<BlockDB>
-BlockDB::New() {
+std::unique_ptr<BlockDB> BlockDB::New() {
   return std::unique_ptr<BlockDB>(new BlockDiskStorage());
 }

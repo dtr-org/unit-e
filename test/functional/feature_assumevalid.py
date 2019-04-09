@@ -5,7 +5,7 @@
 """Test logic for skipping signature validation on old blocks.
 
 Test logic for skipping signature validation on blocks which we've assumed
-valid (https://github.com/unite/unite/pull/9484)
+valid (https://github.com/bitcoin/bitcoin/pull/9484)
 
 We build a chain that includes and invalid signature for one of the
 transactions:
@@ -46,6 +46,7 @@ from test_framework.messages import (
     CTransaction,
     CTxIn,
     CTxOut,
+    TxType,
     UTXO,
     msg_block,
     msg_headers,
@@ -159,7 +160,7 @@ class AssumeValidTest(UnitETestFramework):
         self.block1 = block
         self.tip = block.sha256
 
-        utxo1 = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+        utxo1 = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
         snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
         height += 1
 
@@ -172,7 +173,7 @@ class AssumeValidTest(UnitETestFramework):
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
             height += 1
 
@@ -196,7 +197,7 @@ class AssumeValidTest(UnitETestFramework):
 
         snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
 
-        utxo2 = UTXO(height, False, COutPoint(tx.sha256, 0), tx.vout[0])
+        utxo2 = UTXO(height, tx.get_type(), COutPoint(tx.sha256, 0), tx.vout[0])
         snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [utxo1], [utxo2])
 
         height += 1
@@ -211,7 +212,7 @@ class AssumeValidTest(UnitETestFramework):
             self.blocks.append(block)
             self.tip = block.sha256
             self.block_time += 1
-            utxo = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
             height += 1
 

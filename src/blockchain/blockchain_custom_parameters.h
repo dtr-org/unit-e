@@ -17,7 +17,7 @@ namespace blockchain {
 class FailedToParseCustomParametersError : public std::runtime_error {
 
  public:
-  explicit FailedToParseCustomParametersError(std::string&& what) : runtime_error(what) {}
+  explicit FailedToParseCustomParametersError(std::string &&what) : runtime_error(what) {}
 };
 
 //! \brief Read blockchain::Parameters from a UniValue json object.

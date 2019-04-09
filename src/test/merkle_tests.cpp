@@ -257,4 +257,107 @@ BOOST_AUTO_TEST_CASE(merkle_test_single_leaf)
   BOOST_CHECK_EQUAL(txhash.GetHex(), result.GetHex());
 }
 
+BOOST_AUTO_TEST_CASE(finalizer_commits_merkle_root)
+{
+  using tranactions = std::vector<CTransactionRef>;
+
+  auto make_tx = [](uint16_t version, TxType t) {
+    CMutableTransaction tx;
+    tx.SetVersion(version);
+    tx.SetType(t);
+    return MakeTransactionRef(tx);
+  };
+
+  auto compute_merkle = [](const tranactions &txs) {
+    std::vector<uint256> hashes;
+    for (const CTransactionRef& tx : txs) {
+      hashes.emplace_back(tx->GetHash());
+    }
+
+    const uint256 hash = ComputeMerkleRoot(hashes);
+    BOOST_CHECK(hash != uint256::zero); // sanity check
+    return hash;
+  };
+
+  struct TestCase{
+    std::string test_name;
+    tranactions txs;       // provided tx list
+    uint256 merkle_root;   // expected merkle root
+  };
+
+  std::vector<TestCase> test_cases{
+    TestCase{
+      "empty tx list",
+      tranactions{},
+      uint256::zero,
+    },
+    TestCase{
+      "tx list without finalizer commits",
+      tranactions{
+        make_tx(1, TxType::COINBASE),
+        make_tx(2, TxType::REGULAR),
+      },
+      uint256::zero,
+    },
+    TestCase{
+      "duplicate non finalized commits are ignored",
+      tranactions{
+        make_tx(1, TxType::COINBASE),
+        make_tx(1, TxType::COINBASE),
+        make_tx(2, TxType::REGULAR),
+        make_tx(2, TxType::REGULAR),
+      },
+      uint256::zero,
+    },
+    TestCase{
+      "list with one Vote tx",
+      tranactions{
+        make_tx(1, TxType::VOTE),
+      },
+      compute_merkle(tranactions{
+        make_tx(1, TxType::VOTE),
+      }),
+    },
+    TestCase{
+      "multiple regular txs with one Vote tx",
+      tranactions{
+        make_tx(1, TxType::REGULAR),
+        make_tx(2, TxType::VOTE),
+        make_tx(3, TxType::REGULAR),
+      },
+      compute_merkle(tranactions{
+        make_tx(2, TxType::VOTE),
+      }),
+    },
+    TestCase{
+      "all tx types",
+      tranactions{
+        make_tx(0, TxType::COINBASE),
+        make_tx(1, TxType::VOTE),
+        make_tx(2, TxType::ADMIN),
+        make_tx(3, TxType::WITHDRAW),
+        make_tx(4, TxType::LOGOUT),
+        make_tx(5, TxType::SLASH),
+        make_tx(6, TxType::DEPOSIT),
+        make_tx(7, TxType::REGULAR),
+      },
+      compute_merkle(tranactions{
+        make_tx(1, TxType::VOTE),
+        make_tx(2, TxType::ADMIN),
+        make_tx(3, TxType::WITHDRAW),
+        make_tx(4, TxType::LOGOUT),
+        make_tx(5, TxType::SLASH),
+        make_tx(6, TxType::DEPOSIT),
+      }),
+    }
+  };
+
+  for (const TestCase &tc : test_cases) {
+    CBlock block;
+    block.vtx = tc.txs;
+    uint256 hash = BlockFinalizerCommitsMerkleRoot(block);
+    BOOST_CHECK_MESSAGE(tc.merkle_root == hash, tc.test_name);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()

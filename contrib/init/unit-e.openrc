@@ -1,0 +1,92 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/unite/.unite" ]; then
+	UNIT_E_DEFAULT_DATADIR="/var/lib/unite/.unite"
+else
+	UNIT_E_DEFAULT_DATADIR="/var/lib/unit-e"
+fi
+
+UNIT_E_CONFIGFILE=${UNIT_E_CONFIGFILE:-/etc/unite/unit-e.conf}
+UNIT_E_PIDDIR=${UNIT_E_PIDDIR:-/var/run/unit-e}
+UNIT_E_PIDFILE=${UNIT_E_PIDFILE:-${UNIT_E_PIDDIR}/unit-e.pid}
+UNIT_E_DATADIR=${UNIT_E_DATADIR:-${UNIT_E_DEFAULT_DATADIR}}
+UNIT_E_USER=${UNIT_E_USER:-${UNITE_USER:-unite}}
+UNIT_E_GROUP=${UNIT_E_GROUP:-unite}
+UNIT_E_BIN=${UNIT_E_BIN:-/usr/bin/unit-e}
+UNIT_E_NICE=${UNIT_E_NICE:-${NICELEVEL:-0}}
+UNIT_E_OPTS="${UNIT_E_OPTS:-${UNITE_OPTS}}"
+
+name="unit-e Daemon"
+description="Unit-e cryptocurrency P2P network daemon"
+
+command="/usr/bin/unit-e"
+command_args="-pid=\"${UNIT_E_PIDFILE}\" \
+		-conf=\"${UNIT_E_CONFIGFILE}\" \
+		-datadir=\"${UNIT_E_DATADIR}\" \
+		-daemon \
+		${UNIT_E_OPTS}"
+
+required_files="${UNIT_E_CONFIGFILE}"
+start_stop_daemon_args="-u ${UNIT_E_USER} \
+			-N ${UNIT_E_NICE} -w 2000"
+pidfile="${UNIT_E_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${UNIT_E_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${UNIT_E_USER}:${UNIT_E_GROUP}" \
+	"${UNIT_E_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${UNIT_E_USER}:${UNIT_E_GROUP}" \
+	"${UNIT_E_PIDDIR}"
+
+	checkpath -f \
+	-o ${UNIT_E_USER}:${UNIT_E_GROUP} \
+	-m 0660 \
+	${UNIT_E_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${UNIT_E_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run unit-e."
+		eerror "The setting must appear in ${UNIT_E_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Unit-e Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

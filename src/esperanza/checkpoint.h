@@ -5,8 +5,9 @@
 #ifndef UNITE_ESPERANZA_CHECKPOINT_H
 #define UNITE_ESPERANZA_CHECKPOINT_H
 
-#include <amount.h>
+#include <serialize.h>
 #include <uint256.h>
+
 #include <map>
 #include <set>
 #include <vector>
@@ -33,6 +34,21 @@ class Checkpoint {
   uint64_t GetPrevDynastyVotes(uint32_t epoch);
 
   bool operator==(const Checkpoint &other) const;
+
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_is_justified);
+    READWRITE(m_is_finalized);
+    READWRITE(m_cur_dynasty_deposits);
+    READWRITE(m_prev_dynasty_deposits);
+    READWRITE(m_cur_dynasty_votes);
+    READWRITE(m_prev_dynasty_votes);
+    READWRITE(m_vote_set);
+  };
+
+  std::string ToString() const;
 };
 
 }  // namespace esperanza

@@ -128,13 +128,13 @@ struct Invoker<> {
   }();                                                                          \
   Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }
 
-#define UNMANAGED_COMPONENT(NAME, TYPE, POINTER)                     \
+#define UNMANAGED_COMPONENT(NAME, TYPE, FACTORY)                     \
  private:                                                            \
   Dependency<TYPE> m_component_##NAME = [this] {                     \
     return Registrator<TYPE>::Register<>(                            \
         this, #NAME, [](InjectorType *injector) -> void {            \
           injector->m_component_##NAME =                             \
-              Initializer<TYPE>::Unmanaged::Init(injector, POINTER); \
+              Initializer<TYPE>::Unmanaged::Init(injector, FACTORY); \
         });                                                          \
   }();                                                               \
   Dependency<TYPE> Get(TYPE *) const { return m_component_##NAME; }
@@ -149,15 +149,15 @@ class UnregisteredDependenciesError : public InjectionError {
   mutable std::string m_error_message;
 
  public:
-  std::vector<std::pair<std::string, std::type_index>> m_missingDependencies;
+  std::vector<std::pair<std::string, std::type_index>> m_missing_dependencies;
   explicit UnregisteredDependenciesError(
       std::vector<std::pair<std::string, std::type_index>>
           &&missingDependencies)
-      : m_missingDependencies(std::move(missingDependencies)){};
+      : m_missing_dependencies(std::move(missingDependencies)){};
   const char *what() const noexcept override {
     if (m_error_message.empty()) {
       std::ostringstream s;
-      for (const auto &missingDependency : m_missingDependencies) {
+      for (const auto &missingDependency : m_missing_dependencies) {
         tfm::format(s, "%s requires %s, but that is not a known component\n",
                     missingDependency.first, missingDependency.second.name());
       }
@@ -231,10 +231,16 @@ class Injector {
   using InjectorType = I;
 
   // a function pointer to a function that takes an Injector as its first
-  // argument. Used for static methos to act as if they were non-static member
+  // argument. Used for static methods to act as if they were non-static member
   // methods, but we need a stable function pointer to them (thus static) and
   // they need access to the injector (hence it's passed in).
   using Method = void (*)(InjectorType *);
+
+  // a function pointer to a function that takes an Injector is its first
+  // argument and creates a pointer to an unmanaged component from it. The
+  // injector will take ownership of that pointer.
+  template <typename T>
+  using Factory = T *(*)(InjectorType *);
 
   struct Component {
     std::string m_name;
@@ -249,7 +255,7 @@ class Injector {
   };
 
   std::map<std::type_index, Component> m_components;
-  std::vector<std::type_index> m_destructionOrder;
+  std::vector<std::type_index> m_destruction_order;
 
   static std::vector<void *> GatherDependencies(I *injector,
                                                 const Component &component) {
@@ -295,8 +301,7 @@ class Injector {
   template <typename T>
   struct Registrator {
     template <typename... Deps>
-    static Dependency<T> Register(I *injector, const std::string &name,
-                                  Method init) {
+    static Dependency<T> Register(I *const injector, const std::string &name, Method init) {
       std::type_index typeIndex(typeid(T));
       Component component;
       component.m_name = name;
@@ -311,7 +316,7 @@ class Injector {
 
   template <typename ComponentType>
   struct Initializer {
-    static Component &GetComponent(I *injector) {
+    static Component &GetComponent(I *const injector) {
       return injector->m_components[typeid(ComponentType)];
     }
     template <typename... Args>
@@ -321,20 +326,24 @@ class Injector {
         auto &component = GetComponent(injector);
         const auto dependencies = GatherDependencies(injector, component);
         std::unique_ptr<ComponentType> *returnTypeDeductionHint = nullptr;
-        auto ptr = InjectorUtil::Invoker<Args...>::
-                       Invoke(returnTypeDeductionHint, f, dependencies, 0)
-                           .release();
+        auto ptr = InjectorUtil::Invoker<Args...>::Invoke(returnTypeDeductionHint, f, dependencies, 0).release();
         component.m_instance = ptr;
         return ptr;
       }
     };
     struct Unmanaged {
-      template <typename T>
-      static ComponentType *Init(I *injector, T *ptr) {
+      static ComponentType *Init(I *const injector, ComponentType *const pointer) {
         auto &component = GetComponent(injector);
-        component.m_instance = ptr;
+        component.m_instance = pointer;
         component.m_deleter = nullptr;
-        return ptr;
+        return pointer;
+      }
+      static ComponentType *Init(I *const injector, Factory<ComponentType> factory) {
+        auto &component = GetComponent(injector);
+        ComponentType *const pointer = factory(injector);
+        component.m_instance = pointer;
+        component.m_deleter = nullptr;
+        return pointer;
       }
     };
   };
@@ -402,7 +411,7 @@ class Injector {
       }
     }
     std::reverse(initializationOrder.begin(), initializationOrder.end());
-    m_destructionOrder = std::move(initializationOrder);
+    m_destruction_order = std::move(initializationOrder);
     m_stopped.clear();
   }
 
@@ -412,7 +421,7 @@ class Injector {
       return;
     }
     std::vector<ComponentError> errors;
-    for (const std::type_index &component_type : m_destructionOrder) {
+    for (const std::type_index &component_type : m_destruction_order) {
       if (m_components[component_type].m_stopper) {
         try {
           m_components[component_type].m_stopper(static_cast<I *>(this));
@@ -437,7 +446,7 @@ class Injector {
     } catch (StoppingComponentsError &) {
       // see https://stackoverflow.com/a/130123/471478
     }
-    for (const std::type_index &componentType : m_destructionOrder) {
+    for (const std::type_index &componentType : m_destruction_order) {
       if (m_components[componentType].m_deleter) {
         m_components[componentType].m_deleter(static_cast<I *>(this));
       }

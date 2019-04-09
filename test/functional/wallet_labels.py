@@ -18,6 +18,7 @@ The accounts API test can be removed in V0.18.
 from collections import defaultdict
 from decimal import Decimal
 
+from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
@@ -44,7 +45,10 @@ class WalletLabelsTest(UnitETestFramework):
 
     def run_test(self):
         """Run the test twice - once using the accounts API and once using the labels API."""
-        self.setup_stake_coins(*self.nodes[2:], offset=2)
+        # Set up stake coins manually, to avoid key collisions
+        self.nodes[2].importmasterkey(regtest_mnemonics[5]['mnemonics'])
+        self.nodes[3].importmasterkey(regtest_mnemonics[6]['mnemonics'])
+
         self.log.info("Test accounts API")
         self._run_subtest(True, node_index=0, some_other_node_index=2)
         self.log.info("Test labels API")
@@ -120,7 +124,7 @@ class WalletLabelsTest(UnitETestFramework):
         )
         # this transaction should hold the whole balance of this wallet give or take some fees.
         tx_details = node.gettransaction(txid)
-        fee = -tx_details['details'][0]['fee']
+        fee = -tx_details['fee']
         # when we sent money we sent from address_b and address_c only as address_a did have
         # a balance of zero. Hence address_b and address_c should be joined in an address group
         # now, and address_a should remain in it's own address group. A fourth address, part of

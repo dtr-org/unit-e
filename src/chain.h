@@ -218,6 +218,7 @@ public:
     int32_t nVersion;
     uint256 hashMerkleRoot;
     uint256 hash_witness_merkle_root;
+    uint256 hash_finalizer_commits_merkle_root;
     blockchain::Time nTime;
     blockchain::Difficulty nBits;
     uint32_t nNonce;
@@ -232,10 +233,10 @@ public:
     uint256 stake_modifier;
 
     //! Vector of commits. If it's not set, node hasn't received commits for this block header
-    boost::optional<std::vector<CTransactionRef>> commits;
+    mutable boost::optional<std::vector<CTransactionRef>> commits;
 
     //! last justified epoch counting from this block index
-    boost::optional<uint32_t> last_justified_epoch;
+    uint32_t last_justified_epoch;
 
     //! keeps tracking if current CBlockIndex tries to fork
     //! the chainActive before finalization
@@ -261,13 +262,14 @@ public:
         nVersion       = 0;
         hashMerkleRoot = uint256::zero;
         hash_witness_merkle_root = uint256::zero;
+        hash_finalizer_commits_merkle_root = uint256::zero;
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
-        last_justified_epoch = boost::none;
+        last_justified_epoch = 0;
         forking_before_active_finalization = false;
 
-        ResetCommits();
+        commits.reset();
     }
 
     CBlockIndex()
@@ -282,6 +284,7 @@ public:
         nVersion       = block.nVersion;
         hashMerkleRoot = block.hashMerkleRoot;
         hash_witness_merkle_root = block.hash_witness_merkle_root;
+        hash_finalizer_commits_merkle_root = block.hash_finalizer_commits_merkle_root;
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
@@ -313,6 +316,7 @@ public:
             block.hashPrevBlock = pprev->GetBlockHash();
         block.hashMerkleRoot = hashMerkleRoot;
         block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
@@ -387,14 +391,6 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
-
-    void ResetCommits() {
-        commits.reset();
-    }
-
-    void ResetCommits(const std::vector<CTransactionRef> &_commits) {
-        commits = _commits;
-    }
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);
@@ -445,6 +441,7 @@ public:
         READWRITE(hashPrev);
         READWRITE(hashMerkleRoot);
         READWRITE(hash_witness_merkle_root);
+        READWRITE(hash_finalizer_commits_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
@@ -464,6 +461,7 @@ public:
         block.hashPrevBlock   = hashPrev;
         block.hashMerkleRoot  = hashMerkleRoot;
         block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;

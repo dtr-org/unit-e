@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(chainstate_iterator) {
         entry.coin = Coin();
         entry.coin.out.nValue = txId * 100 + i;
         entry.coin.nHeight = static_cast<uint32_t>(txId);
-        entry.coin.fCoinBase = static_cast<unsigned int>(txId % 2);
+        entry.coin.tx_type = TxType::_from_integral(txId % 8);
 
         map[point] = entry;
       }
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(chainstate_iterator) {
     snapshot::UTXOSubset subset = iter.GetUTXOSubset();
     BOOST_CHECK_EQUAL(subset.height, count);
     BOOST_CHECK_EQUAL(subset.tx_id.GetUint64(0), count);
-    BOOST_CHECK_EQUAL(subset.is_coin_base, count % 2 == 1);
+    BOOST_CHECK_EQUAL(static_cast<uint16_t>(subset.tx_type), count % 8);
     BOOST_CHECK_EQUAL(subset.outputs.size(), count + 1);
 
     int n = 0;

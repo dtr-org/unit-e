@@ -20,7 +20,7 @@ from test_framework.blocktools import (
     get_tip_snapshot_meta,
     sign_coinbase,
 )
-from test_framework.messages import UNIT, UTXO, COutPoint
+from test_framework.messages import UNIT, UTXO, COutPoint, TxType
 from test_framework.mininode import P2PDataStore
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal, get_unspent_coins
@@ -77,9 +77,9 @@ class InvalidBlockRequestTest(UnitETestFramework):
             block_time += 1
             blocks.append(block)
 
-            input_utxo = UTXO(height-1, True, coinbase.vin[1].prevout, prev_coinbase.vout[1])
-            output_reward = UTXO(height, True, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            output_stake = UTXO(height, True, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
+            input_utxo = UTXO(height-1, TxType.COINBASE, coinbase.vin[1].prevout, prev_coinbase.vout[1])
+            output_reward = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
+            output_stake = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 1), coinbase.vout[1])
             snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [input_utxo], [output_reward, output_stake])
 
             height += 1

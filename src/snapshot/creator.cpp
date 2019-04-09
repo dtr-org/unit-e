@@ -112,7 +112,7 @@ void Creator::GenerateOrSkip(const uint32_t current_epoch) {
     return;
   }
 
-  if (current_epoch > 0 && (current_epoch + 1) % g_create_snapshot_per_epoch != 0) {
+  if (current_epoch > 0 && current_epoch % g_create_snapshot_per_epoch != 0) {
     return;
   }
 

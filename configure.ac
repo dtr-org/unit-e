@@ -14,9 +14,9 @@ AC_CONFIG_HEADERS([src/config/unite-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([build-aux/m4])
 
-UNITE_DAEMON_NAME=united
-UNITE_CLI_NAME=unite-cli
-UNITE_TX_NAME=unite-tx
+UNITE_DAEMON_NAME=unit-e
+UNITE_CLI_NAME=unit-e-cli
+UNITE_TX_NAME=unit-e-tx
 
 dnl Unless the user specified ARFLAGS, force it to be cr
 AC_ARG_VAR(ARFLAGS, [Flags for the archiver, defaults to <cr> if not set])
@@ -82,7 +82,7 @@ AC_PATH_TOOL(RANLIB, ranlib)
 AC_PATH_TOOL(STRIP, strip)
 AC_PATH_TOOL(GCOV, gcov)
 AC_PATH_PROG(LCOV, lcov)
-dnl Python 3.x is supported from 3.4 on (see https://github.com/unite/unite/issues/7893)
+dnl Python 3.x is supported from 3.4 on (see https://github.com/bitcoin/bitcoin/issues/7893)
 AC_PATH_PROGS([PYTHON], [python3.7 python3.6 python3.5 python3.4 python3 python])
 AC_PATH_PROG(GENHTML, genhtml)
 AC_PATH_PROG([GIT], [git])
@@ -306,6 +306,7 @@ if test "x$CXXFLAGS_overridden" = "xno"; then
   AX_CHECK_COMPILE_FLAG([-Wunused-local-typedef],[NOWARN_CXXFLAGS="$NOWARN_CXXFLAGS -Wno-unused-local-typedef"],,[[$CXXFLAG_WERROR]])
   AX_CHECK_COMPILE_FLAG([-Wdeprecated-register],[NOWARN_CXXFLAGS="$NOWARN_CXXFLAGS -Wno-deprecated-register"],,[[$CXXFLAG_WERROR]])
   AX_CHECK_COMPILE_FLAG([-Wimplicit-fallthrough],[NOWARN_CXXFLAGS="$NOWARN_CXXFLAGS -Wno-implicit-fallthrough"],,[[$CXXFLAG_WERROR]])
+  AX_CHECK_COMPILE_FLAG([-Wsign-compare],[CXXFLAGS="$CXXFLAGS -Wno-sign-compare"],,[[$CXXFLAG_WERROR]])
 fi
 
 # Check for optional instruction set support. Enabling these does _not_ imply that all code will
@@ -389,7 +390,7 @@ CPPFLAGS="$CPPFLAGS -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS"
 
 AC_ARG_WITH([utils],
   [AS_HELP_STRING([--with-utils],
-  [build unite-cli unite-tx (default=yes)])],
+  [build unit-e-cli unit-e-tx (default=yes)])],
   [build_unite_utils=$withval],
   [build_unite_utils=yes])
 
@@ -401,9 +402,9 @@ AC_ARG_WITH([libs],
 
 AC_ARG_WITH([daemon],
   [AS_HELP_STRING([--with-daemon],
-  [build united daemon (default=yes)])],
-  [build_united=$withval],
-  [build_united=yes])
+  [build unit-e daemon (default=yes)])],
+  [build_unit_e=$withval],
+  [build_unit_e=yes])
 
 use_pkgconfig=yes
 case $host in
@@ -859,7 +860,7 @@ if test x$use_upnp != xno; then
   )
 fi
 
-if test x$build_unite_utils$build_united$use_tests$use_bench = xnononono; then
+if test x$build_unite_utils$build_unit_e$use_tests$use_bench = xnononono; then
     use_boost=no
 else
     use_boost=yes
@@ -1043,7 +1044,7 @@ if test x$use_pkgconfig = xyes; then
     [
       PKG_CHECK_MODULES([SSL], [libssl],, [AC_MSG_ERROR(openssl not found.)])
       PKG_CHECK_MODULES([CRYPTO], [libcrypto],,[AC_MSG_ERROR(libcrypto not found.)])
-      if test x$build_unite_utils$build_united$use_tests != xnonono; then
+      if test x$build_unite_utils$build_unit_e$use_tests != xnonono; then
         PKG_CHECK_MODULES([EVENT], [libevent],, [AC_MSG_ERROR(libevent not found.)])
         if test x$TARGET_OS != xwindows; then
           PKG_CHECK_MODULES([EVENT_PTHREADS], [libevent_pthreads],, [AC_MSG_ERROR(libevent_pthreads not found.)])
@@ -1068,7 +1069,7 @@ else
   AC_CHECK_HEADER([openssl/ssl.h],, AC_MSG_ERROR(libssl headers missing),)
   AC_CHECK_LIB([ssl],         [main],SSL_LIBS=-lssl, AC_MSG_ERROR(libssl missing))
 
-  if test x$build_unite_utils$build_united$use_tests != xnonono; then
+  if test x$build_unite_utils$build_unit_e$use_tests != xnonono; then
     AC_CHECK_HEADER([event2/event.h],, AC_MSG_ERROR(libevent headers missing),)
     AC_CHECK_LIB([event],[main],EVENT_LIBS=-levent,AC_MSG_ERROR(libevent missing))
     if test x$TARGET_OS != xwindows; then
@@ -1111,7 +1112,7 @@ dnl univalue check
 
 need_bundled_univalue=yes
 
-if test x$build_unite_utils$build_united$use_tests$use_bench = xnononono; then
+if test x$build_unite_utils$build_unit_e$use_tests$use_bench = xnononono; then
   need_bundled_univalue=no
 else
 
@@ -1155,11 +1156,11 @@ AM_CONDITIONAL([EMBEDDED_UNIVALUE],[test x$need_bundled_univalue = xyes])
 AC_SUBST(UNIVALUE_CFLAGS)
 AC_SUBST(UNIVALUE_LIBS)
 
-AC_MSG_CHECKING([whether to build united])
-AM_CONDITIONAL([BUILD_UNITED], [test x$build_united = xyes])
-AC_MSG_RESULT($build_united)
+AC_MSG_CHECKING([whether to build unit-e])
+AM_CONDITIONAL([BUILD_UNIT_E], [test x$build_unit_e = xyes])
+AC_MSG_RESULT($build_unit_e)
 
-AC_MSG_CHECKING([whether to build utils (unite-cli unite-tx)])
+AC_MSG_CHECKING([whether to build utils (unit-e-cli unit-e-tx)])
 AM_CONDITIONAL([BUILD_UNITE_UTILS], [test x$build_unite_utils = xyes])
 AC_MSG_RESULT($build_unite_utils)
 
@@ -1291,7 +1292,7 @@ else
   AC_MSG_RESULT([no])
 fi
 
-if test x$build_unite_utils$build_unite_libs$build_united$use_bench$use_tests = xnonononono; then
+if test x$build_unite_utils$build_unite_libs$build_unit_e$use_bench$use_tests = xnonononono; then
   AC_MSG_ERROR([No targets! Please specify at least one of: --with-utils --with-libs --with-daemon --enable-bench or --enable-tests])
 fi
 

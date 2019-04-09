@@ -96,6 +96,8 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
     result.pushKV("version", blockindex->nVersion);
     result.pushKV("versionHex", strprintf("%08x", blockindex->nVersion));
     result.pushKV("merkleroot", blockindex->hashMerkleRoot.GetHex());
+    result.pushKV("witnessmerkleroot", blockindex->hash_witness_merkle_root.GetHex());
+    result.pushKV("finalizercommitsmerkleroot", blockindex->hash_finalizer_commits_merkle_root.GetHex());
     result.pushKV("time", (int64_t)blockindex->nTime);
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
     result.pushKV("nonce", (uint64_t)blockindex->nNonce);
@@ -129,6 +131,8 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("version", block.nVersion);
     result.pushKV("versionHex", strprintf("%08x", block.nVersion));
     result.pushKV("merkleroot", block.hashMerkleRoot.GetHex());
+    result.pushKV("witnessmerkleroot", block.hash_witness_merkle_root.GetHex());
+    result.pushKV("finalizercommitsmerkleroot", blockindex->hash_finalizer_commits_merkle_root.GetHex());
     UniValue txs(UniValue::VARR);
     for(const auto& tx : block.vtx)
     {
@@ -877,7 +881,8 @@ static void ApplyStats(CCoinsStats &stats, CHashWriter& ss, const uint256& hash,
 {
     assert(!outputs.empty());
     ss << hash;
-    ss << VARINT(outputs.begin()->second.nHeight * 2 + outputs.begin()->second.fCoinBase ? 1u : 0u);
+    ss << static_cast<uint8_t>(outputs.begin()->second.tx_type);
+    ss << outputs.begin()->second.nHeight;
     stats.nTransactions++;
     for (const auto& output : outputs) {
         ss << VARINT(output.first + 1);
@@ -1047,7 +1052,7 @@ UniValue gettxout(const JSONRPCRequest& request)
             "        ,...\n"
             "     ]\n"
             "  },\n"
-            "  \"coinbase\" : true|false   (boolean) Coinbase or not\n"
+            "  \"txtype\" :          (string) Transaction type\n"
             "}\n"
 
             "\nExamples:\n"
@@ -1095,7 +1100,7 @@ UniValue gettxout(const JSONRPCRequest& request)
     UniValue o(UniValue::VOBJ);
     ScriptPubKeyToUniv(coin.out.scriptPubKey, o, true);
     ret.pushKV("scriptPubKey", o);
-    ret.pushKV("coinbase", (bool)coin.fCoinBase);
+    ret.pushKV("txtype", coin.tx_type._to_string());
 
     return ret;
 }

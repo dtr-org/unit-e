@@ -23,7 +23,7 @@ void ChainstateIterator::Next() {
     if (m_cursor->GetKey(key) && m_cursor->GetValue(coin)) {
       if (!m_outputs.empty() && key.hash != m_prev_tx_id) {
         m_utxo_subset =
-            UTXOSubset(m_prev_tx_id, m_prev_coin.nHeight, m_prev_coin.IsCoinBase(),
+            UTXOSubset(m_prev_tx_id, m_prev_coin.nHeight, m_prev_coin.tx_type,
                        std::move(m_outputs));
         m_outputs.clear();
         stop = true;
@@ -49,7 +49,7 @@ void ChainstateIterator::Next() {
   }
 
   m_utxo_subset = UTXOSubset(m_prev_tx_id, m_prev_coin.nHeight,
-                             m_prev_coin.IsCoinBase(), std::move(m_outputs));
+                             m_prev_coin.tx_type, std::move(m_outputs));
   m_outputs.clear();
 }
 

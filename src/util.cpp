@@ -83,8 +83,8 @@
 // Application startup time (used for uptime calculation)
 const int64_t nStartupTime = GetTime();
 
-const char * const UNITE_CONF_FILENAME = "unite.conf";
-const char * const UNITE_PID_FILENAME = "united.pid";
+const char * const UNITE_CONF_FILENAME = "unit-e.conf";
+const char * const UNITE_PID_FILENAME = "unit-e.pid";
 
 ArgsManager gArgs;
 

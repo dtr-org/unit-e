@@ -20,20 +20,20 @@ BOOST_AUTO_TEST_CASE(utxo_subset_serializer) {
       "00000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "00000000"                          // height
-      "00"                                // is_coin_base
+      "00"                                // tx_type
       "00";                               // outputs
   BOOST_CHECK_EQUAL(HexStr(s), exp);
   s.clear();
 
   subset.tx_id.SetHex("aa");
   subset.height = 0xbb;
-  subset.is_coin_base = true;
+  subset.tx_type = TxType::COINBASE;
   s << subset;
   exp =
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
-      "01"                                // is_coin_base
+      "01"                                // tx_type
       "00";                               // outputs
   BOOST_CHECK_MESSAGE(HexStr(s) == exp,
                       "expected: " << HexStr(s) << " got: " << exp);
@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(utxo_subset_serializer) {
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
-      "01"                                // is_coin_base
+      "01"                                // tx_type
       "01"                                // outputs count
       "02000000"                          // outpoint index
       "ffffffffffffffff"                  // nValue (-1 by default)
@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(utxo_subset_serializer) {
       "aa000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "bb000000"                          // tx height
-      "01"                                // is_coin_base
+      "01"                                // tx_type
       "01"                                // outputs count
       "02000000"                          // outpoint index
       "cc00000000000000"                  // nValue (-1 by default)
@@ -173,7 +173,7 @@ BOOST_AUTO_TEST_CASE(snapshot_serialization) {
 
   snapshot::UTXOSubset subset;
   subset.height = 53;
-  subset.is_coin_base = true;
+  subset.tx_type = TxType::COINBASE;
   subset.tx_id.SetHex("bb");
   CScript script;
   script << OP_RETURN;
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(snapshot_serialization) {
       "bb000000000000000000000000000000"  // tx id
       "00000000000000000000000000000000"  //
       "35000000"                          // tx height
-      "01"                                // is_coin_base
+      "01"                                // tx_type
       "01"                                // output size
       "05000000"                          // output index
       "0500000000000000"                  // amount
@@ -217,13 +217,13 @@ BOOST_AUTO_TEST_CASE(utxo_construct) {
   BOOST_CHECK_EQUAL(utxo1.out_point.hash, out.hash);
   BOOST_CHECK_EQUAL(utxo1.out_point.n, out.n);
   BOOST_CHECK_EQUAL(utxo1.height, coin.nHeight);
-  BOOST_CHECK_EQUAL(utxo1.is_coin_base, coin.IsCoinBase());
+  BOOST_CHECK_EQUAL(utxo1.tx_type, coin.tx_type);
   BOOST_CHECK(utxo1.tx_out == coin.out);
 
   out.hash.SetHex("aa");
   out.n = 10;
   coin.nHeight = 250;
-  coin.fCoinBase = 1;
+  coin.tx_type = TxType::COINBASE;
   coin.out.nValue = 35;
   coin.out.scriptPubKey << OP_RETURN;
 
@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(utxo_construct) {
   BOOST_CHECK_EQUAL(utxo2.out_point.hash, out.hash);
   BOOST_CHECK_EQUAL(utxo2.out_point.n, out.n);
   BOOST_CHECK_EQUAL(utxo2.height, coin.nHeight);
-  BOOST_CHECK_EQUAL(utxo2.is_coin_base, coin.IsCoinBase());
+  BOOST_CHECK_EQUAL(utxo2.tx_type, coin.tx_type);
   BOOST_CHECK(utxo2.tx_out == coin.out);
 }
 
@@ -247,7 +247,7 @@ BOOST_AUTO_TEST_CASE(utxo_serialization) {
       "00000000000000000000000000000000"  //
       "ffffffff"                          // txOutIndex
       "00000000"                          // height
-      "00"                                // isCoinBase
+      "00"                                // tx_type
       "ffffffffffffffff"                  // CAmount(-1)
       "00";                               // script length
   BOOST_CHECK_EQUAL(got, exp);
@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE(utxo_serialization) {
   out.n = 10;
   Coin coin;
   coin.nHeight = 250;
-  coin.fCoinBase = 1;
+  coin.tx_type = TxType::COINBASE;
   coin.out.nValue = 35;
   coin.out.scriptPubKey << OP_RETURN;
 
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(utxo_serialization) {
       "00000000000000000000000000000000"  //
       "0a000000"                          // txOutIndex
       "fa000000"                          // height
-      "01"                                // isCoinBase
+      "01"                                // tx_type
       "2300000000000000"                  // CAmount
       "01"                                // script length
       "6a";                               // script

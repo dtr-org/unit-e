@@ -51,12 +51,24 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       static ValidationError err("bad-stake-duplicate");
       return err;
     }
-    case staking::BlockValidationError::DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE: {
+    case staking::BlockValidationError::MERKLE_ROOT_DUPLICATE_TRANSACTIONS: {
       static ValidationError err("bad-txns-duplicate");
       return err;
     }
-    case staking::BlockValidationError::DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE: {
+    case staking::BlockValidationError::MERKLE_ROOT_MISMATCH: {
+      static ValidationError err("bad-txnmrklroot");
+      return err;
+    }
+    case staking::BlockValidationError::WITNESS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS: {
       static ValidationError err("bad-txns-witness-duplicate");
+      return err;
+    }
+    case staking::BlockValidationError::WITNESS_MERKLE_ROOT_MISMATCH: {
+      static ValidationError err("bad-witness-merkle-match");
+      return err;
+    }
+    case staking::BlockValidationError::FINALIZER_COMMITS_MERKLE_ROOT_MISMATCH: {
+      static ValidationError err("bad-finalizercommits-merkleroot");
       return err;
     }
     case staking::BlockValidationError::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION: {
@@ -73,10 +85,6 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
     }
     case staking::BlockValidationError::INVALID_BLOCK_PUBLIC_KEY: {
       static ValidationError err("bad-blk-public-key");
-      return err;
-    }
-    case staking::BlockValidationError::MERKLE_ROOT_MISMATCH: {
-      static ValidationError err("bad-txnmrklroot");
       return err;
     }
     case staking::BlockValidationError::MISMATCHING_HEIGHT: {
@@ -133,10 +141,6 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
     }
     case staking::BlockValidationError::TRANSACTION_INPUT_NOT_FOUND: {
       static ValidationError err("bad-txns-inputs-missingorspent");
-      return err;
-    }
-    case staking::BlockValidationError::WITNESS_MERKLE_ROOT_MISMATCH: {
-      static ValidationError err("bad-witness-merkle-match");
       return err;
     }
   }

@@ -2586,8 +2586,8 @@ std::map<CTxDestination, std::vector<COutput>> CWallet::ListCoins() const
     // CWalletTx objects, callers to this function really should acquire the
     // cs_wallet lock before calling it. However, the current caller doesn't
     // acquire this lock yet. There was an attempt to add the missing lock in
-    // https://github.com/unite/unite/pull/10340, but that change has been
-    // postponed until after https://github.com/unite/unite/pull/10244 to
+    // https://github.com/bitcoin/bitcoin/pull/10340, but that change has been
+    // postponed until after https://github.com/bitcoin/bitcoin/pull/10244 to
     // avoid adding some extra complexity to the Qt code.
 
     std::map<CTxDestination, std::vector<COutput>> result;
@@ -3239,7 +3239,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
                 CCoinsView view;
                 CCoinsViewCache coins_cache(&view);
                 for (const CInputCoin &coin : setCoins) {
-                    Coin temp(coin.txout, 0, false);
+                    Coin temp(coin.txout, 0, txType);
                     coins_cache.AddCoin(coin.outpoint, std::move(temp), true);
                 }
 
@@ -3317,7 +3317,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
 /**
  * Call after CreateTransaction unless you want to abort
  */
-bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, std::string fromAccount, CReserveKey& reservekey, CConnman* connman, CValidationState& state)
+bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, std::string fromAccount, CReserveKey& reservekey, CConnman* connman, CValidationState& state, bool relay, CWalletTx **tx_out)
 {
     {
         LOCK2(cs_main, cs_wallet);
@@ -3354,13 +3354,16 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
         // Get the inserted-CWalletTx from mapWallet so that the
         // fInMempool flag is cached properly
         CWalletTx& wtx = mapWallet.at(wtxNew.GetHash());
+        if (tx_out != nullptr) {
+          *tx_out = &wtx;
+        }
 
         if (fBroadcastTransactions) {
             // Broadcast
             if (!wtx.AcceptToMemoryPool(maxTxFee, state)) {
                 WalletLogPrintf("CommitTransaction(): Transaction cannot be broadcast immediately, %s\n", FormatStateMessage(state));
                 // TODO: if we expect the failure to be long term or permanent, instead delete wtx from the wallet and return failure.
-            } else {
+            } else if (relay) {
                 bool embargoed = false;
                 if (wtx.tx->GetType() == +TxType::REGULAR && connman->embargoman) {
                     embargoed =
@@ -4134,7 +4137,7 @@ void CWallet::GetKeyBirthTimes(std::map<CTxDestination, int64_t> &mapKeyBirth) c
  *
  * For more information see CWalletTx::nTimeSmart,
  * https://bitcointalk.org/?topic=54527, or
- * https://github.com/unite/unite/pull/1393.
+ * https://github.com/bitcoin/bitcoin/pull/1393.
  */
 unsigned int CWallet::ComputeTimeSmart(const CWalletTx& wtx) const
 {

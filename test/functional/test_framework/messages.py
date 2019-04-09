@@ -54,7 +54,7 @@ MSG_TYPE_MASK = 0xffffffff >> 2
 
 # Serialization/deserialization tools
 def sha256(s):
-    return hashlib.new('sha256', s).digest()
+    return hashlib.sha256(s).digest()
 
 def ripemd160(s):
     return hashlib.new('ripemd160', s).digest()
@@ -91,28 +91,31 @@ def deser_string(f):
 def ser_string(s):
     return ser_compact_size(len(s)) + s
 
+def deser_uint32(f):
+    return struct.unpack("<I", f.read(4))[0]
+
+def deser_uint64(f):
+    return struct.unpack("<Q", f.read(8))[0]
+
 def deser_uint256(f):
     r = 0
     for i in range(8):
-        t = struct.unpack("<I", f.read(4))[0]
+        t = deser_uint32(f)
         r += t << (i * 32)
     return r
 
+def ser_uint32(u):
+    return struct.pack("<I", u & 0xFFFFFFFF)
+
+def ser_uint64(u):
+    return struct.pack("<Q", u & 0xFFFFFFFFFFFFFFFF)
 
 def ser_uint256(u):
-    rs = b""
-    for i in range(8):
-        rs += struct.pack("<I", u & 0xFFFFFFFF)
-        u >>= 32
-    return rs
+    return int(u).to_bytes(32, 'little')
 
 
 def uint256_from_str(s):
-    r = 0
-    t = struct.unpack("<IIIIIIII", s[:32])
-    for i in range(8):
-        r += t[i] << (i * 32)
-    return r
+    return int.from_bytes(s[:32], 'little')
 
 
 def uint256_from_compact(c):
@@ -204,7 +207,7 @@ def FromHex(obj, hex_string):
 def ToHex(obj):
     return bytes_to_hex_str(obj.serialize())
 
-# Objects that map to united objects, which can be serialized/deserialized
+# Objects that map to unit-e objects, which can be serialized/deserialized
 
 class CAddress():
     def __init__(self):
@@ -362,18 +365,29 @@ class CTxOut():
                bytes_to_hex_str(self.scriptPubKey))
 
 
+class TxType(Enum):
+    REGULAR = 0
+    COINBASE = 1
+    DEPOSIT = 2
+    VOTE = 3
+    LOGOUT = 4
+    SLASH = 5
+    WITHDRAW = 6
+    ADMIN = 7
+
+
 class UTXO:
-    def __init__(self, height, is_coin_base, outpoint, tx_out):
+    def __init__(self, height, tx_type, outpoint, tx_out):
         self.outpoint = outpoint
         self.height = height
-        self.isCoinBase = is_coin_base
+        self.tx_type = tx_type
         self.txOut = tx_out
 
     def deserialize(self, f):
         self.outpoint = COutPoint()
         self.outpoint.deserialize(f)
         self.height = struct.unpack("<I", f.read(4))[0]
-        self.isCoinBase = struct.unpack("<B", f.read[1])[0]
+        self.tx_type = TxType(struct.unpack("<B", f.read[1])[0])
         self.txOut = CTxOut()
         self.txOut.deserialize(f)
 
@@ -381,13 +395,13 @@ class UTXO:
         r = b""
         r += self.outpoint.serialize()
         r += struct.pack("<I", self.height)
-        r += struct.pack("<B", self.isCoinBase)
+        r += struct.pack("<B", self.tx_type.value)
         r += self.txOut.serialize()
         return r
 
     def __repr__(self):
-        return "UTXO(outpoint=%s height=%i isCoinBase=%i txOut=%s)" \
-            % (self.outpoint, self.height, self.isCoinBase, repr(self.txOut))
+        return "UTXO(outpoint=%s height=%i tx_type=%s txOut=%s)" \
+            % (self.outpoint, self.height, self.tx_type.name, repr(self.txOut))
 
 
 class CScriptWitness():
@@ -450,17 +464,6 @@ class CTxWitness():
         return True
 
 
-class TxType(Enum):
-    REGULAR = 0
-    COINBASE = 1
-    DEPOSIT = 2
-    VOTE = 3
-    LOGOUT = 4
-    SLASH = 5
-    WITHDRAW = 6
-    ADMIN = 7
-
-
 class CTransaction():
     def __init__(self, tx=None):
         if tx is None:
@@ -484,7 +487,23 @@ class CTransaction():
         self.nVersion = (self.nVersion & 0x0000FFFF) | (tx_type.value << 16)
 
     def get_type(self):
-        return TxType(self.nVersion >> 16).name
+        return TxType(self.nVersion >> 16)
+
+    def is_finalizer_commit(self):
+        name = self.get_type()
+        if (name == TxType.VOTE or
+            name == TxType.ADMIN or
+            name == TxType.DEPOSIT or
+            name == TxType.LOGOUT or
+            name == TxType.SLASH or
+            name == TxType.WITHDRAW):
+            return True
+
+        if (name == TxType.COINBASE or
+            name == TxType.REGULAR):
+            return False
+
+        assert False, ('unknown type: %s' % name)
 
     def deserialize(self, f):
         self.nVersion = struct.unpack("<i", f.read(4))[0]
@@ -493,7 +512,7 @@ class CTransaction():
         if len(self.vin) == 0:
             flags = struct.unpack("<B", f.read(1))[0]
             # Not sure why flags can't be zero, but this
-            # matches the implementation in united
+            # matches the implementation in unit-e
             if (flags != 0):
                 self.vin = deser_vector(f, CTxIn)
                 self.vout = deser_vector(f, CTxOut)
@@ -583,6 +602,7 @@ class CBlockHeader():
             self.hashPrevBlock = header.hashPrevBlock
             self.hashMerkleRoot = header.hashMerkleRoot
             self.hash_witness_merkle_root = header.hash_witness_merkle_root
+            self.hash_finalizer_commits_merkle_root = header.hash_finalizer_commits_merkle_root
             self.nTime = header.nTime
             self.nBits = header.nBits
             self.nNonce = header.nNonce
@@ -595,6 +615,7 @@ class CBlockHeader():
         self.hashPrevBlock = 0
         self.hashMerkleRoot = 0
         self.hash_witness_merkle_root = 0
+        self.hash_finalizer_commits_merkle_root = 0
         self.nTime = 0
         self.nBits = 0
         self.nNonce = 0
@@ -606,6 +627,7 @@ class CBlockHeader():
         self.hashPrevBlock = deser_uint256(f)
         self.hashMerkleRoot = deser_uint256(f)
         self.hash_witness_merkle_root = deser_uint256(f)
+        self.hash_finalizer_commits_merkle_root = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
         self.nBits = struct.unpack("<I", f.read(4))[0]
         self.nNonce = struct.unpack("<I", f.read(4))[0]
@@ -618,6 +640,7 @@ class CBlockHeader():
         r += ser_uint256(self.hashPrevBlock)
         r += ser_uint256(self.hashMerkleRoot)
         r += ser_uint256(self.hash_witness_merkle_root)
+        r += ser_uint256(self.hash_finalizer_commits_merkle_root)
         r += struct.pack("<I", self.nTime)
         r += struct.pack("<I", self.nBits)
         r += struct.pack("<I", self.nNonce)
@@ -630,6 +653,7 @@ class CBlockHeader():
             r += ser_uint256(self.hashPrevBlock)
             r += ser_uint256(self.hashMerkleRoot)
             r += ser_uint256(self.hash_witness_merkle_root)
+            r += ser_uint256(self.hash_finalizer_commits_merkle_root)
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
             r += struct.pack("<I", self.nNonce)
@@ -642,9 +666,16 @@ class CBlockHeader():
         return self.sha256
 
     def __repr__(self):
-        return "CBlockHeader(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x hash_witness_merkle_root=%064x nTime=%s nBits=%08x nNonce=%08x)" \
+        return ("CBlockHeader(nVersion=%i "
+                "hashPrevBlock=%064x "
+                "hashMerkleRoot=%064x "
+                "hash_witness_merkle_root=%064x "
+                "hash_finalizer_commits_merkle_root=%064x "
+                "nTime=%s "
+                "nBits=%08x "
+                "nNonce=%08x)") \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
-               time.ctime(self.nTime), self.nBits, self.nNonce)
+               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits, self.nNonce)
 
 
 class CBlock(CBlockHeader):
@@ -671,6 +702,8 @@ class CBlock(CBlockHeader):
     # Calculate the merkle root given a vector of transaction hashes
     @classmethod
     def get_merkle_root(cls, hashes):
+        if len(hashes) == 0:
+            return 0
         while len(hashes) > 1:
             newhashes = []
             for i in range(0, len(hashes), 2):
@@ -697,9 +730,18 @@ class CBlock(CBlockHeader):
 
         return self.get_merkle_root(hashes)
 
+    def calc_finalizer_commits_merkle_root(self):
+        hashes = []
+        for tx in self.vtx:
+            if tx.is_finalizer_commit():
+                tx.calc_sha256()
+                hashes.append(ser_uint256(tx.sha256))
+        return self.get_merkle_root(hashes)
+
     def compute_merkle_trees(self):
         self.hashMerkleRoot = self.calc_merkle_root()
         self.hash_witness_merkle_root = self.calc_witness_merkle_root()
+        self.hash_finalizer_commits_merkle_root = self.calc_finalizer_commits_merkle_root()
 
     def is_valid(self):
         self.calc_sha256()
@@ -710,6 +752,10 @@ class CBlock(CBlockHeader):
             if not tx.is_valid():
                 return False
         if self.calc_merkle_root() != self.hashMerkleRoot:
+            return False
+        if self.calc_witness_merkle_root() != self.hash_witness_merkle_root:
+            return False
+        if self.calc_finalizer_commits_merkle_root() != self.hash_finalizer_commits_merkle_root:
             return False
         return True
 
@@ -728,9 +774,17 @@ class CBlock(CBlockHeader):
         self.vtx = [self.vtx[0]] + sorted(self.vtx[1:], key=lambda _tx: _tx.hash)
 
     def __repr__(self):
-        return "CBlock(nVersion=%i hashPrevBlock=%064x hashMerkleRoot=%064x hash_witness_merkle_root=%064x nTime=%s nBits=%08x nNonce=%08x vtx=%s)" \
+        return ("CBlock(nVersion=%i "
+                "hashPrevBlock=%064x "
+                "hashMerkleRoot=%064x "
+                "hash_witness_merkle_root=%064x "
+                "hash_finalizer_commits_merkle_root=%064x "
+                "nTime=%s "
+                "nBits=%08x "
+                "nNonce=%08x "
+                "vtx=%s)") \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
-               time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
+               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
 
 
 class PrefilledTransaction():
@@ -1607,26 +1661,26 @@ class UTXOSubset:
     def __init__(self):
         self.tx_id = 0
         self.height = 0
-        self.is_coin_base = False
+        self.tx_type = TxType.REGULAR
         self.outputs = dict()
 
     def deserialize(self, f):
         self.tx_id = deser_uint256(f)
         self.height = struct.unpack('<I', f.read(4))[0]
-        self.is_coin_base = struct.unpack('<B', f.read(1))[0] == 1
+        self.tx_type = TxType(struct.unpack('<B', f.read(1))[0])
         self.outputs = deser_uint32_map(f, CTxOut)
 
     def serialize(self):
         r = b""
         r += ser_uint256(self.tx_id)
         r += struct.pack('<I', self.height)
-        r += struct.pack('<B', self.is_coin_base)
+        r += struct.pack('<B', self.tx_type.value)
         r += ser_uint32_map(self.outputs)
         return r
 
     def __repr__(self):
-        return "UTXOSubset(tx_id=%064x height=%i, is_coin_base=%i outputs=%s)" \
-                % (self.tx_id, self.height, self.is_coin_base, repr(self.outputs))
+        return "UTXOSubset(tx_id=%064x height=%i, tx_type=%s outputs=%s)" \
+                % (self.tx_id, self.height, self.tx_type.name, repr(self.outputs))
 
 
 class msg_notfound():
@@ -1721,3 +1775,251 @@ class msg_commits:
         r += struct.pack("<B", self.status)
         r += ser_vector(self.data)
         return r
+
+
+class GrapheneBlockRequest:
+    def __init__(self, requested_block_hash=None, requester_mempool_count=0):
+        self.requested_block_hash = requested_block_hash
+        self.requester_mempool_count = requester_mempool_count
+
+    def deserialize(self, f):
+        self.requested_block_hash = deser_uint256(f)
+        self.requester_mempool_count = deser_uint64(f)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.requested_block_hash)
+        r += ser_uint64(self.requester_mempool_count)
+        return r
+
+    def __repr__(self):
+        return "GrapheneBlockRequest(hash=%064x mempool=%d)" % (self.requested_block_hash, self.requester_mempool_count)
+
+
+class msg_getgraphene:
+    command = b'getgraphene'
+
+    def __init__(self, request=None):
+        if request is None:
+            self.request = GrapheneBlockRequest()
+        else:
+            self.request = request
+
+    def deserialize(self, f):
+        self.request.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.request.serialize()
+        return r
+
+    def __repr__(self):
+        return "msg_getgraphene(request=%s)" % (repr(self.request))
+
+
+class CBloomFilterDummy:
+    def __init__(self):
+        self.vData = b"ffff"
+        self.nHashFuncs = 1
+        self.nTweak = 0
+        self.nFlags = 0
+
+    def deserialize(self, f):
+        self.vData = deser_string(f)
+        self.nHashFuncs = struct.unpack("<I", f.read(4))[0]
+        self.nTweak = struct.unpack("<I", f.read(4))[0]
+        self.nFlags = struct.unpack("<B", f.read(1))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_string(self.vData)
+        r += struct.pack("<I", self.nHashFuncs & 0xFFFFFFFF)
+        r += struct.pack("<I", self.nTweak & 0xFFFFFFFF)
+        r += struct.pack("<B", self.nFlags & 0xFF)
+
+        return r
+
+    def __repr__(self):
+        return "CBloomFilterDummy"
+
+
+class GrapheneIbltEntryDummy:
+    def __init__(self):
+        self.count = 0
+        self.key_sum = 0
+        self.key_check = 0
+
+    def serialize(self):
+        r = b""
+        r += ser_compact_size(self.count)
+        r += ser_uint64(self.key_sum)
+        r += ser_uint32(self.key_check)
+
+        return r
+
+    def deserialize(self, f):
+        self.count = deser_compact_size(f)
+        self.key_sum = deser_uint64(f)
+        self.key_check = deser_uint32(f)
+
+
+# Can serialize/deserialize IBLT as is,
+# but does not contain IBLT computation logic
+class GrapheneIbltDummy:
+    def __init__(self):
+        self.hash_table = []
+        self.num_hashes = 1
+
+    def deserialize(self, f):
+        self.hash_table = deser_vector(f, GrapheneIbltEntryDummy)
+        self.num_hashes = struct.unpack("<B", f.read(1))[0]
+
+    def serialize(self):
+        r = b""
+        r += ser_vector(self.hash_table)
+        r += struct.pack("<B", self.num_hashes & 0xFF)
+        return r
+
+    def __repr__(self):
+        return "GrapheneIbltDummy"
+
+
+class GrapheneBlock:
+    def __init__(self):
+        self.header = CBlockHeader()
+        self.nonce = 0
+        self.bloom_filter = CBloomFilterDummy()
+        self.iblt = GrapheneIbltDummy()
+        self.prefilled_transactions = []
+
+    def deserialize(self, f):
+        self.header.deserialize(f)
+        self.nonce = deser_uint64(f)
+        self.bloom_filter.deserialize(f)
+        self.iblt.deserialize(f)
+        self.prefilled_transactions = deser_vector(f, CTransaction)
+
+    def serialize(self):
+        r = b""
+        r += self.header.serialize()
+        r += ser_uint64(self.nonce)
+        r += self.bloom_filter.serialize()
+        r += self.iblt.serialize()
+        r += ser_vector(self.prefilled_transactions)
+
+        return r
+
+    def __repr__(self):
+        return "GrapheneBlock(header=%s, nonce=%s, bloom_filter=%s, iblt=%s, prefilled_transactions=%s)" % \
+               (repr(self.header), repr(self.nonce), repr(self.bloom_filter), repr(self.iblt), repr(self.prefilled_transactions))
+
+
+class msg_graphenblock:
+    command = b'graphenblock'
+
+    def __init__(self, block=None):
+        if block is None:
+            self.block = GrapheneBlock()
+        else:
+            self.block = block
+
+    def deserialize(self, f):
+        self.block.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.block.serialize()
+        return r
+
+    def __repr__(self):
+        return "msg_graphenblock(block=%s)" % repr(self.block)
+
+
+class GrapheneTxRequest:
+    def __init__(self):
+        self.block_hash = None
+        self.missing_tx_short_hashes = []
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.block_hash)
+        r += ser_compact_size(len(self.missing_tx_short_hashes))
+        for hash in self.missing_tx_short_hashes:
+            r += ser_uint64(hash)
+
+        return r
+
+    def deserialize(self, f):
+        self.block_hash = deser_uint256(f)
+        self.missing_tx_short_hashes.clear()
+        for _ in range(deser_compact_size(f)):
+            self.missing_tx_short_hashes.append(deser_uint64(f))
+
+    def __repr__(self):
+        return "GrapheneTxRequest(block_hash=%064x missing_tx_short_hashes=%s)" %\
+               (self.block_hash, repr(self.missing_tx_short_hashes))
+
+
+class msg_getgraphentx:
+    command = b"getgraphentx"
+
+    def __init__(self):
+        self.request = GrapheneTxRequest()
+
+    def serialize(self):
+        r = "b"
+        r += self.request.serialize()
+        return r
+
+    def deserialize(self, f):
+        self.request.deserialize(f)
+
+    def __repr__(self):
+        return "msg_getgraphentx(request=%s)" % repr(self.request)
+
+
+class GrapheneTx:
+    def __init__(self, block_hash=None, txs=None):
+        if block_hash is None:
+            self.block_hash = None
+        else:
+            self.block_hash = block_hash
+
+        if txs is None:
+            self.txs = []
+        else:
+            self.txs = txs
+
+    def deserialize(self, f):
+        self.block_hash = deser_uint256(f)
+        self.txs = deser_vector(f, CTransaction)
+
+    def serialize(self):
+        r = b""
+        r += ser_uint256(self.block_hash)
+        r += ser_vector(self.txs, "serialize_with_witness")
+        return r
+
+    def __repr__(self):
+        return "GrapheneTx(hash=%064x transactions=%s)" % (self.block_hash, repr(self.txs))
+
+
+class msg_graphenetx:
+    command = b"graphenetx"
+
+    def __init__(self, graphene_tx=None):
+        if graphene_tx is None:
+            self.graphene_tx = GrapheneTx()
+        else:
+            self.graphene_tx = graphene_tx
+
+    def deserialize(self, f):
+        self.graphene_tx.deserialize(f)
+
+    def serialize(self):
+        r = b""
+        r += self.graphene_tx.serialize()
+        return r
+
+    def __repr__(self):
+        return "msg_graphenetx(graphene_tx=%s)" % repr(self.graphene_tx)

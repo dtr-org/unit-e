@@ -26,6 +26,7 @@ public:
     uint256 hashPrevBlock;
     uint256 hashMerkleRoot;
     uint256 hash_witness_merkle_root;
+    uint256 hash_finalizer_commits_merkle_root;
     blockchain::Time nTime;
     blockchain::Difficulty nBits;
     uint32_t nNonce;
@@ -43,6 +44,7 @@ public:
         READWRITE(hashPrevBlock);
         READWRITE(hashMerkleRoot);
         READWRITE(hash_witness_merkle_root);
+        READWRITE(hash_finalizer_commits_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
@@ -54,6 +56,7 @@ public:
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
         hash_witness_merkle_root.SetNull();
+        hash_finalizer_commits_merkle_root.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;
@@ -122,6 +125,7 @@ public:
         block.hashPrevBlock = hashPrevBlock;
         block.hashMerkleRoot = hashMerkleRoot;
         block.hash_witness_merkle_root = hash_witness_merkle_root;
+        block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime = nTime;
         block.nBits = nBits;
         block.nNonce = nNonce;

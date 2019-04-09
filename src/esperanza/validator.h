@@ -5,8 +5,8 @@
 #ifndef UNITE_ESPERANZA_VALIDATOR_H
 #define UNITE_ESPERANZA_VALIDATOR_H
 
-#include <amount.h>
-#include <pubkey.h>
+#include <serialize.h>
+#include <uint256.h>
 
 namespace esperanza {
 
@@ -26,6 +26,21 @@ class Validator {
   bool m_is_slashed;
   uint64_t m_deposits_at_logout;
   uint256 m_last_transaction_hash;
+
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_validator_address);
+    READWRITE(m_deposit);
+    READWRITE(m_start_dynasty);
+    READWRITE(m_end_dynasty);
+    READWRITE(m_is_slashed);
+    READWRITE(m_deposits_at_logout);
+    READWRITE(m_last_transaction_hash);
+  }
+
+  std::string ToString() const;
 };
 
 }  // namespace esperanza

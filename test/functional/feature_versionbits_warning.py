@@ -86,7 +86,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.generate(VB_PERIOD - VB_THRESHOLD + 1)
 
         # Check that we're not getting any versionbit-related errors in get*info()
-        assert(not VB_PATTERN.match(node.getnetworkinfo()["warnings"]))
+        assert not VB_PATTERN.match(node.getnetworkinfo()["warnings"])
 
         self.log.info("Check that there is a warning if >50 blocks in the last 100 were an unknown version")
         # Build one period of blocks with VB_THRESHOLD blocks signaling some unknown bit
@@ -94,14 +94,14 @@ class VersionBitsWarningTest(UnitETestFramework):
         node.generate(VB_PERIOD - VB_THRESHOLD)
 
         # Check that get*info() shows the 51/100 unknown block version error.
-        assert(WARN_UNKNOWN_RULES_MINED in node.getnetworkinfo()["warnings"])
+        assert WARN_UNKNOWN_RULES_MINED in node.getnetworkinfo()["warnings"]
 
         self.log.info("Check that there is a warning if previous VB_BLOCKS have >=VB_THRESHOLD blocks with unknown versionbits version.")
         # Mine a period worth of expected blocks so the generic block-version warning
         # is cleared. This will move the versionbit state to ACTIVE.
         node.generate(VB_PERIOD)
 
-        # Stop-start the node. This is required because united will only warn once about unknown versions or unknown rules activating.
+        # Stop-start the node. This is required because unit-e will only warn once about unknown versions or unknown rules activating.
         self.restart_node(0)
 
         # Generating one block guarantees that we'll get out of IBD
@@ -110,7 +110,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         # Generating one more block will be enough to generate an error.
         node.generate(1)
         # Check that get*info() shows the versionbits unknown rules warning
-        assert(WARN_UNKNOWN_RULES_ACTIVE in node.getnetworkinfo()["warnings"])
+        assert WARN_UNKNOWN_RULES_ACTIVE in node.getnetworkinfo()["warnings"]
         # Check that the alert file shows the versionbits unknown rules warning
         wait_until(lambda: self.versionbits_in_alert_file(), timeout=60)
 

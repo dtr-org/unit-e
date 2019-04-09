@@ -36,6 +36,7 @@
 #include <future>
 #include <stdint.h>
 
+#include <byteswap.h>
 #include <univalue.h>
 
 
@@ -761,7 +762,7 @@ static UniValue combinerawtransaction(const JSONRPCRequest& request)
                 sigdata.MergeSignatureData(DataFromTransaction(txv, i, coin.out));
             }
         }
-        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&mergedTx, i, coin.out.nValue, 1), coin.out.scriptPubKey, sigdata);
+        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&mergedTx, i, coin.out.nValue, 1), coin.out.scriptPubKey, sigdata, &txConst);
 
         UpdateInput(txin, sigdata);
     }
@@ -890,15 +891,14 @@ UniValue SignTransaction(CMutableTransaction& mtx, const UniValue& prevTxsUnival
         SignatureData sigdata = DataFromTransaction(mtx, i, coin.out);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
         if (!fHashSingle || (i < mtx.vout.size())) {
-            ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata);
+            ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata, &txConst);
         }
 
         // Votes don't need to combine the sigdata and the scriptSig cause the
         // sigdata contains the vote already
-        // MIHAI: FIXME: CombineSignatures has been removed
-        // if (mtx.GetType() != +TxType::VOTE) {
-        //    sigdata = CombineSignatures(prevPubKey, TransactionSignatureChecker(&txConst, i, amount), sigdata, DataFromTransaction(mtx, i));
-        // }
+        if (mtx.GetType() != +TxType::VOTE) {
+            sigdata.MergeSignatureData(DataFromTransaction(mtx, i, coin.out));
+        }
 
         UpdateInput(txin, sigdata);
 
@@ -1203,6 +1203,45 @@ static UniValue sendrawtransaction(const JSONRPCRequest& request)
     });
 
     return hashTx.GetHex();
+}
+
+UniValue extractvotefromsignature(const JSONRPCRequest &request) {
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+            "extractvotefromsignature\n"
+            "\nReturns JSON representation of decoded vote\n"
+            "\nArguments:\n"
+            "1. \"signature\"               (string).\n"
+            "Result:\n"
+            "{\n"
+            "  \"validator_address\": xxxx   (string) the validator address\n"
+            "  \"target_hash\": xxxx\n      (string) the target hash"
+            "  \"source_epoch\": xxxx       (numeric) the source epoch\n"
+            "  \"target_epoch\": xxxx       (numeric) the target epoch\n"
+            "}\n"
+            "\n"
+            + HelpExampleCli("extractvotefromsignature", "\"hexstring\"")
+            + HelpExampleRpc("extractvotefromsignature", "\"hexstring\""));
+    }
+    esperanza::Vote vote;
+    std::vector<unsigned char> vote_sig_out;
+
+    UniValue r(UniValue::VOBJ);
+    CScript script;
+    if (request.params[0].get_str().size() > 0) {
+        std::vector<unsigned char> data(ParseHexV(request.params[0].get_str(), "signature"));
+        script = CScript(data.begin(), data.end());
+    }
+
+    if (!CScript::ExtractVoteFromVoteSignature(script, vote, vote_sig_out)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "script decode failed");
+    }
+
+    r.push_back(Pair("validator_address", vote.m_validator_address.GetHex()));
+    r.push_back(Pair("target_hash", vote.m_target_hash.GetHex()));
+    r.push_back(Pair("source_epoch", (uint64_t)vote.m_source_epoch));
+    r.push_back(Pair("target_epoch", (uint64_t)vote.m_target_epoch));
+    return r;
 }
 
 static UniValue testmempoolaccept(const JSONRPCRequest& request)
@@ -1844,6 +1883,7 @@ static const CRPCCommand commands[] =
     { "rawtransactions",    "combinerawtransaction",        &combinerawtransaction,     {"txs"} },
     { "rawtransactions",    "signrawtransaction",           &signrawtransaction,        {"hexstring","prevtxs","privkeys","sighashtype"} }, /* uses wallet if enabled */
     { "rawtransactions",    "signrawtransactionwithkey",    &signrawtransactionwithkey, {"hexstring","privkeys","prevtxs","sighashtype"} },
+    { "rawtransactions",    "extractvotefromsignature",     &extractvotefromsignature,  {"hexstring"}},
     { "rawtransactions",    "testmempoolaccept",            &testmempoolaccept,         {"rawtxs","allowhighfees"} },
     { "rawtransactions",    "decodepsbt",                   &decodepsbt,                {"psbt"} },
     { "rawtransactions",    "combinepsbt",                  &combinepsbt,               {"txs"} },

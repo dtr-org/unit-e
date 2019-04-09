@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <esperanza/checkpoint.h>
+#include <util.h>
 
 namespace esperanza {
 
@@ -30,6 +31,25 @@ bool Checkpoint::operator==(const Checkpoint &other) const {
          m_cur_dynasty_votes == other.m_cur_dynasty_votes &&
          m_prev_dynasty_votes == other.m_prev_dynasty_votes &&
          m_vote_set == other.m_vote_set;
+}
+
+std::string Checkpoint::ToString() const {
+  return strprintf(
+      "Checkpoint{"
+      "m_is_justified=% "
+      "m_is_finalized=%d "
+      "m_cur_dynasty_deposits=%d "
+      "m_prev_dynasty_deposits=%d "
+      "m_cur_dynasty_votes=%s "
+      "m_prev_dynasty_votes=%s "
+      "m_vote_set=%s}",
+      m_is_justified,
+      m_is_finalized,
+      m_cur_dynasty_deposits,
+      m_prev_dynasty_deposits,
+      util::to_string(m_cur_dynasty_votes),
+      util::to_string(m_prev_dynasty_votes),
+      util::to_string(m_vote_set));
 }
 
 }  // namespace esperanza

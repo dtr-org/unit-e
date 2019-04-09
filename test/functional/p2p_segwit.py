@@ -184,7 +184,7 @@ class TestNode(P2PInterface):
             self.send_message(msg_inv(inv=[CInv(2, block.sha256)]))
             self.wait_for_getheaders()
             self.send_message(msg)
-        self.wait_for_getdata()
+        self.wait_for_block_request(block.sha256)
 
     def request_block(self, blockhash, inv_type, timeout=60):
         with mininode_lock:
@@ -263,7 +263,7 @@ class SegWitTest(UnitETestFramework):
 
     # Adds list of transactions to block, adds witness commitment, then solves.
     def update_witness_block_with_transactions(self, block, tx_list):
-        assert(all(tx.hash is not None for tx in tx_list))
+        assert all(tx.hash is not None for tx in tx_list)
         block.vtx.extend(tx_list)
         for tx in block.vtx:
             tx.rehash()
@@ -274,7 +274,7 @@ class SegWitTest(UnitETestFramework):
     ''' Individual tests '''
     def test_witness_services(self):
         self.log.info("Verifying NODE_WITNESS service bit")
-        assert((self.test_node.nServices & NODE_WITNESS) != 0)
+        assert (self.test_node.nServices & NODE_WITNESS) != 0
 
 
     def subtest(func):  # noqa: N805
@@ -315,7 +315,7 @@ class SegWitTest(UnitETestFramework):
 
         self.test_node.send_message(msg_witness_tx(tx))
         self.test_node.sync_with_ping() # make sure the tx was processed
-        assert(tx.hash in self.nodes[0].getrawmempool())
+        assert tx.hash in self.nodes[0].getrawmempool()
         # Save this transaction for later
         self.utxo.append(UTXO(tx.sha256, 0, (PROPOSER_REWARD - 1) * UNIT))
         self.nodes[0].generate(1)
@@ -329,7 +329,7 @@ class SegWitTest(UnitETestFramework):
         # Test that witness-bearing blocks are limited at ceil(base + wit/4) <= 1MB.
         block = self.build_next_block()
 
-        assert(len(self.utxo) > 0)
+        assert len(self.utxo) > 0
 
         # Create a P2WSH transaction.
         # The witness program will be a bunch of OP_2DROP's, followed by OP_TRUE.
@@ -351,7 +351,7 @@ class SegWitTest(UnitETestFramework):
         for i in range(NUM_OUTPUTS):
             parent_tx.vout.append(CTxOut(child_value, scriptPubKey))
         parent_tx.vout[0].nValue -= 50000
-        assert(parent_tx.vout[0].nValue > 0)
+        assert parent_tx.vout[0].nValue > 0
         parent_tx.rehash()
 
         child_tx = CTransaction()
@@ -381,7 +381,7 @@ class SegWitTest(UnitETestFramework):
         assert_equal(segwit_size, (4 * MAX_BLOCK_BASE_SIZE) + 1)
         # Make sure that our test case would exceed the old max-network-message
         # limit
-        assert(len(block.serialize(True)) > 2*1024*1024)
+        assert len(block.serialize(True)) > 2*1024*1024
 
         test_witness_block(self.nodes[0].rpc, self.test_node, block, accepted=False)
 
@@ -403,7 +403,7 @@ class SegWitTest(UnitETestFramework):
     def test_extra_witness_data(self):
         self.log.info("Testing extra witness data in tx")
 
-        assert(len(self.utxo) > 0)
+        assert len(self.utxo) > 0
 
         block = self.build_next_block()
 
@@ -480,7 +480,7 @@ class SegWitTest(UnitETestFramework):
         ''' Should only allow up to 520 byte pushes in witness stack '''
         self.log.info("Testing maximum witness push size")
         MAX_SCRIPT_ELEMENT_SIZE = 520
-        assert(len(self.utxo))
+        assert len(self.utxo)
 
         block = self.build_next_block()
 
@@ -519,12 +519,12 @@ class SegWitTest(UnitETestFramework):
         # Can create witness outputs that are long, but can't be greater than
         # 10k bytes to successfully spend
         self.log.info("Testing maximum witness program length")
-        assert(len(self.utxo))
+        assert len(self.utxo)
         MAX_PROGRAM_LENGTH = 10000
 
         # This program is 19 max pushes (9937 bytes), then 64 more opcode-bytes.
         long_witness_program = CScript([b'a'*520]*19 + [OP_DROP]*63 + [OP_TRUE])
-        assert(len(long_witness_program) == MAX_PROGRAM_LENGTH+1)
+        assert len(long_witness_program) == MAX_PROGRAM_LENGTH+1
         long_witness_hash = sha256(long_witness_program)
         long_scriptPubKey = CScript([OP_0, long_witness_hash])
 
@@ -548,7 +548,7 @@ class SegWitTest(UnitETestFramework):
 
         # Try again with one less byte in the witness program
         witness_program = CScript([b'a'*520]*19 + [OP_DROP]*62 + [OP_TRUE])
-        assert(len(witness_program) == MAX_PROGRAM_LENGTH)
+        assert len(witness_program) == MAX_PROGRAM_LENGTH
         witness_hash = sha256(witness_program)
         scriptPubKey = CScript([OP_0, witness_hash])
 
@@ -568,7 +568,7 @@ class SegWitTest(UnitETestFramework):
     def test_witness_input_length(self):
         ''' Ensure that vin length must match vtxinwit length '''
         self.log.info("Testing witness input length")
-        assert(len(self.utxo))
+        assert len(self.utxo)
 
         witness_program = CScript([OP_DROP, OP_TRUE])
         witness_hash = sha256(witness_program)
@@ -581,7 +581,7 @@ class SegWitTest(UnitETestFramework):
         for i in range(10):
             tx.vout.append(CTxOut(int(nValue/10), scriptPubKey))
         tx.vout[0].nValue -= 1000
-        assert(tx.vout[0].nValue >= 0)
+        assert tx.vout[0].nValue >= 0
         tx.rehash()
 
         block = self.build_next_block()
@@ -660,7 +660,7 @@ class SegWitTest(UnitETestFramework):
         # Generate a transaction that doesn't require a witness, but send it
         # with a witness.  Should be rejected because we can't use a witness
         # when spending a non-witness output.
-        assert(len(self.utxo))
+        assert len(self.utxo)
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
         tx.vout.append(CTxOut(self.utxo[0].nValue - 1000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
@@ -727,7 +727,7 @@ class SegWitTest(UnitETestFramework):
         assert_equal(raw_tx["vsize"], vsize)
         assert_equal(len(raw_tx["vin"][0]["txinwitness"]), 1)
         assert_equal(raw_tx["vin"][0]["txinwitness"][0], hexlify(witness_program).decode('ascii'))
-        assert(vsize != raw_tx["size"])
+        assert vsize != raw_tx["size"]
 
         # Cleanup: mine the transactions and update utxo for next test
         self.nodes[0].generate(1)
@@ -751,20 +751,17 @@ class SegWitTest(UnitETestFramework):
         block1.solve()
 
         self.test_node.announce_block_and_wait_for_getdata(block1, use_header=False)
-        assert(self.test_node.last_message["getdata"].inv[0].type == blocktype)
         test_witness_block(self.nodes[0].rpc, self.test_node, block1, True)
 
         block2 = self.build_next_block(nVersion=4)
         block2.solve()
 
         self.test_node.announce_block_and_wait_for_getdata(block2, use_header=True)
-        assert(self.test_node.last_message["getdata"].inv[0].type == blocktype)
         test_witness_block(self.nodes[0].rpc, self.test_node, block2, True)
 
         block3 = self.build_next_block(nVersion=4)
         block3.solve()
         self.test_node.announce_block_and_wait_for_getdata(block3, use_header=True)
-        assert(self.test_node.last_message["getdata"].inv[0].type == blocktype)
         test_witness_block(self.nodes[0].rpc, self.test_node, block3, True)
 
         # Witness blocks and non-witness blocks should be different.
@@ -791,7 +788,7 @@ class SegWitTest(UnitETestFramework):
     # V0 segwit outputs should be standard
     def test_standardness_v0(self):
         self.log.info("Testing standardness of v0 outputs")
-        assert(len(self.utxo))
+        assert len(self.utxo)
 
         witness_program = CScript([OP_TRUE])
         witness_hash = sha256(witness_program)
@@ -856,7 +853,7 @@ class SegWitTest(UnitETestFramework):
     # but valid in blocks.
     def test_segwit_versions(self):
         self.log.info("Testing standardness/consensus for segwit versions (0-16)")
-        assert(len(self.utxo))
+        assert len(self.utxo)
         NUM_TESTS = 17 # will test OP_0, OP1, ..., OP_16
         if (len(self.utxo) < NUM_TESTS):
             tx = CTransaction()
@@ -895,7 +892,7 @@ class SegWitTest(UnitETestFramework):
 
         self.nodes[0].generate(1) # Mine all the transactions
         sync_blocks(self.nodes)
-        assert(len(self.nodes[0].getrawmempool()) == 0)
+        assert len(self.nodes[0].getrawmempool()) == 0
 
         # Finally, verify that version 0 -> version 3 transactions
         # are non-standard
@@ -986,7 +983,7 @@ class SegWitTest(UnitETestFramework):
         scriptPubKey = CScript([OP_0, witness_hash])
 
         # First create a witness output for use in the tests.
-        assert(len(self.utxo))
+        assert len(self.utxo)
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
         tx.vout.append(CTxOut(self.utxo[0].nValue-1000, scriptPubKey))
@@ -1062,7 +1059,7 @@ class SegWitTest(UnitETestFramework):
             # Create a slight bias for producing more utxos
             num_outputs = random.randint(1, 11)
             random.shuffle(temp_utxos)
-            assert(len(temp_utxos) > num_inputs)
+            assert len(temp_utxos) > num_inputs
             tx = CTransaction()
             total_value = 0
             for i in range(num_inputs):
@@ -1162,7 +1159,7 @@ class SegWitTest(UnitETestFramework):
     def test_p2sh_witness(self):
         self.log.info("Testing P2SH witness transactions")
 
-        assert(len(self.utxo))
+        assert len(self.utxo)
 
         # Prepare the p2sh-wrapped witness output
         witness_program = CScript([OP_DROP, OP_TRUE])
@@ -1224,7 +1221,7 @@ class SegWitTest(UnitETestFramework):
         '''Ensure sigop counting is correct inside witnesses.'''
         self.log.info("Testing sigops limit")
 
-        assert(len(self.utxo))
+        assert len(self.utxo)
 
         # Keep this under MAX_OPS_PER_SCRIPT (201)
         witness_program = CScript([OP_TRUE, OP_IF, OP_TRUE, OP_ELSE] + [OP_CHECKMULTISIG]*5 + [OP_CHECKSIG]*193 + [OP_ENDIF])
@@ -1239,7 +1236,7 @@ class SegWitTest(UnitETestFramework):
         extra_sigops_available = MAX_SIGOP_COST % sigops_per_script
 
         # We chose the number of checkmultisigs/checksigs to make this work:
-        assert(extra_sigops_available < 100) # steer clear of MAX_OPS_PER_SCRIPT
+        assert extra_sigops_available < 100 # steer clear of MAX_OPS_PER_SCRIPT
 
         # This script, when spent with the first
         # N(=MAX_SIGOP_COST//sigops_per_script) outputs of our transaction,
@@ -1335,7 +1332,7 @@ class SegWitTest(UnitETestFramework):
         pubkey = CPubKey(key.get_pubkey())
         assert_equal(len(pubkey), 65) # This should be an uncompressed pubkey
 
-        assert(len(self.utxo) > 0)
+        assert len(self.utxo) > 0
         utxo = self.utxo.pop(0)
 
         # Test 1: P2WPKH
@@ -1440,7 +1437,7 @@ class SegWitTest(UnitETestFramework):
 
         p2wsh_scripts = []
 
-        assert(len(self.utxo))
+        assert len(self.utxo)
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.utxo[0].sha256, self.utxo[0].n), b""))
 

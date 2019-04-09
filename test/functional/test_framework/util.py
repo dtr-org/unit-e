@@ -51,6 +51,14 @@ def assert_greater_than_or_equal(thing1, thing2):
     if thing1 < thing2:
         raise AssertionError("%s < %s" % (str(thing1), str(thing2)))
 
+def assert_less_than(thing1, thing2):
+    if thing1 >= thing2:
+        raise AssertionError("%s >= %s" % (str(thing1), str(thing2)))
+
+def assert_less_than_or_equal(thing1, thing2):
+    if thing1 > thing2:
+        raise AssertionError("%s > %s" % (str(thing1), str(thing2)))
+
 def assert_in(thing, sequence):
     if thing not in sequence:
         raise AssertionError("%s not in %s" % (str(thing), str(sequence)))
@@ -183,6 +191,15 @@ def assert_array_result(object_array, to_match, expected, should_not_find=False)
     if num_matched > 0 and should_not_find:
         raise AssertionError("Objects were found %s" % (str(to_match)))
 
+
+def assert_finalizationstate(node, expected):
+    state = node.getfinalizationstate()
+    for key in expected:
+        a = state[key]
+        b = expected[key]
+        if a != b:
+            raise AssertionError("%s: not(%s == %s)" % (str(key), str(a), str(b)))
+
 # Utility functions
 ###################
 
@@ -281,7 +298,7 @@ def get_rpc_proxy(url, node_number, timeout=None, coveragedir=None):
     return coverage.AuthServiceProxyWrapper(proxy, coverage_logfile)
 
 def p2p_port(n):
-    assert(n <= MAX_NODES)
+    assert n <= MAX_NODES
     return PORT_MIN + n + (MAX_NODES * PortSeed.n) % (PORT_RANGE - 1 - MAX_NODES)
 
 def rpc_port(n):
@@ -306,7 +323,7 @@ def initialize_datadir(dirname, n):
     datadir = get_datadir_path(dirname, n)
     if not os.path.isdir(datadir):
         os.makedirs(datadir)
-    with open(os.path.join(datadir, "unite.conf"), 'w', encoding='utf8') as f:
+    with open(os.path.join(datadir, "unit-e.conf"), 'w', encoding='utf8') as f:
         f.write("regtest=1\n")
         f.write("[regtest]\n")
         f.write("port=" + str(p2p_port(n)) + "\n")
@@ -331,8 +348,8 @@ def append_config(datadir, options):
 def get_auth_cookie(datadir):
     user = None
     password = None
-    if os.path.isfile(os.path.join(datadir, "unite.conf")):
-        with open(os.path.join(datadir, "unite.conf"), 'r', encoding='utf8') as f:
+    if os.path.isfile(os.path.join(datadir, "unit-e.conf")):
+        with open(os.path.join(datadir, "unit-e.conf"), 'r', encoding='utf8') as f:
             for line in f:
                 if line.startswith("rpcuser="):
                     assert user is None  # Ensure that there is only one rpcuser line
@@ -428,16 +445,12 @@ def get_unspent_coins(node, n_coins, lock=False):
     Wrapper for listing coins to use for staking.
     """
     unspent_outputs = node.listunspent()
-    assert(len(unspent_outputs) >= n_coins)
+    assert len(unspent_outputs) >= n_coins
     # return from the from to avoid problems on reorg
     if lock:
         node.lockunspent(False, [{'txid': tx['txid'], 'vout': tx['vout']} for tx in unspent_outputs[:n_coins]])
     return unspent_outputs[:n_coins]
 
-def check_finalization(node, expected):
-    state = node.getfinalizationstate()
-    for key in expected:
-        assert_equal(state[key], expected[key])
 
 # Transaction/Block functions
 #############################
@@ -457,7 +470,7 @@ def gather_inputs(from_node, amount_needed, confirmations_required=1):
     """
     Return a random set of unspent txouts that are enough to pay amount_needed
     """
-    assert(confirmations_required >= 0)
+    assert confirmations_required >= 0
     utxo = from_node.listunspent(confirmations_required)
     random.shuffle(utxo)
     inputs = []
@@ -535,7 +548,7 @@ def create_confirmed_utxos(fee, node, count):
         node.generate(1)
 
     utxos = node.listunspent()
-    assert(len(utxos) >= count)
+    assert len(utxos) >= count
     return utxos
 
 # Create large OP_RETURN txouts that can be appended to a transaction

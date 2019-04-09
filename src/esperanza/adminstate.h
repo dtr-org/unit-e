@@ -10,9 +10,9 @@
 #include <key.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
+#include <serialize.h>
 #include <sync.h>
 #include <uint256.h>
-#include <array>
 
 namespace esperanza {
 
@@ -25,13 +25,11 @@ namespace esperanza {
 class AdminState {
   AdminKeySet m_admin_pub_keys;
   std::set<uint160> m_white_list;
-  const AdminParams &m_admin_params;
   bool m_permissioning_is_active;
 
  public:
-  explicit AdminState(const AdminParams &adminParams);
+  explicit AdminState(const AdminParams &params);
 
-  void OnBlock(blockchain::Height blockHeight);
   bool IsAdminAuthorized(const AdminKeySet &keys) const;
   bool IsValidatorAuthorized(const uint160 &validatorAddress) const;
   void ResetAdmin(const AdminKeySet &newKeys);
@@ -39,8 +37,18 @@ class AdminState {
   void RemoveValidator(const uint160 &validatorAddress);
   void EndPermissioning();
   bool IsPermissioningActive() const;
-  const AdminParams &GetParams() const;
   bool operator==(const AdminState &other) const;
+
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(m_admin_pub_keys);
+    READWRITE(m_white_list);
+    READWRITE(m_permissioning_is_active);
+  }
+
+  std::string ToString() const;
 };
 
 }  // namespace esperanza

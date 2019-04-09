@@ -21,6 +21,8 @@ class FinalizationState;
 
 namespace finalization {
 
+using FinalizationState = esperanza::FinalizationState;
+
 struct VoteRecord {
   esperanza::Vote vote;
   std::vector<unsigned char> sig;
@@ -50,7 +52,8 @@ class VoteRecorder : private boost::noncopyable {
 
  public:
   void RecordVote(const esperanza::Vote &vote,
-                  const std::vector<unsigned char> &voteSig);
+                  const std::vector<unsigned char> &voteSig,
+                  const FinalizationState &fin_state);
 
   boost::optional<VoteRecord> GetVote(const uint160 &validatorAddress,
                                       uint32_t epoch) const;
@@ -60,7 +63,14 @@ class VoteRecorder : private boost::noncopyable {
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 
-bool RecordVote(const CTransaction &tx, CValidationState &err_state);
+//! \brief Records the vote.
+//!
+//! tx must be a vote transaction
+//! fin_state is a FinalizationState VoteRecorder must rely on when it checks transaction validity
+//!           and slashable condition. It must be best known finalization state on a moment.
+bool RecordVote(const CTransaction &tx,
+                CValidationState &err_state,
+                const FinalizationState &fin_state);
 
 }  // namespace finalization
 

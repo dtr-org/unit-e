@@ -15,14 +15,14 @@ class SpendGenensisTest(UnitETestFramework):
     def run_test(self):
         node = self.nodes[0]
         block = node.getblock(node.getblockhash(0))
-        assert (block['hash'])
+        assert block['hash']
 
         self.setup_stake_coins(node)
         node.rescanblockchain(0, 0)  # UNIT-E this can be removed as soon as importmasterkey correctly perform a rescan
 
         # Make the coinbase mature
         node.generate(100)
-        assert (node.getbalance() == 10000)
+        assert node.getbalance() == 10000
 
         # Send a tx to yourself spending the tx
         node.sendtoaddress(node.getnewaddress(), 5000)

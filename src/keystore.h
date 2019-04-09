@@ -29,7 +29,7 @@ public:
     virtual std::set<CKeyID> GetKeys() const =0;
     virtual bool GetPubKey(const CKeyID &address, CPubKey& pubkeyOut) const =0;
 
-    //! Support for BIP 0013 : see https://github.com/unite/bips/blob/master/bip-0013.mediawiki
+    //! Support for BIP 0013 : see https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki
     virtual bool AddCScript(const CScript& redeemScript) =0;
     virtual bool HaveCScript(const CScriptID &hash) const =0;
     virtual std::set<CScriptID> GetCScripts() const =0;

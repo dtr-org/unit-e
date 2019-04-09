@@ -81,10 +81,10 @@ over the network (`CBlock`, `CTransaction`, etc, along with the network-level
 wrappers for them, `msg_block`, `msg_tx`, etc).
 
 - P2P tests have two threads. One thread handles all network communication
-with the united(s) being tested in a callback-based event loop; the other
+with the unit-e(s) being tested in a callback-based event loop; the other
 implements the test logic.
 
-- `P2PConnection` is the class used to connect to a united.  `P2PInterface`
+- `P2PConnection` is the class used to connect to a unit-e.  `P2PInterface`
 contains the higher level logic for processing P2P payloads and connecting to
 the unit-e node application logic. For custom behaviour, subclass the
 P2PInterface object and override the callback methods.
@@ -104,7 +104,7 @@ Base class for functional tests.
 Generally useful functions.
 
 #### [test_framework/mininode.py](test_framework/mininode.py)
-Basic code to support P2P connectivity to a united.
+Basic code to support P2P connectivity to a unit-e.
 
 #### [test_framework/script.py](test_framework/script.py)
 Utilities for manipulating transaction scripts (originally from python-bitcoinlib)

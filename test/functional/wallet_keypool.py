@@ -22,7 +22,7 @@ class KeyPoolTest(UnitETestFramework):
         addr_before_encrypting_data = nodes[0].getaddressinfo(addr_before_encrypting)
         wallet_info_old = nodes[0].getwalletinfo()
         assert_equal(wallet_info_old['hdseedid'], wallet_info_old['hdmasterkeyid'])
-        assert(addr_before_encrypting_data['hdseedid'] == wallet_info_old['hdseedid'])
+        assert addr_before_encrypting_data['hdseedid'] == wallet_info_old['hdseedid']
         # Encrypt wallet and wait to terminate
         nodes[0].node_encrypt_wallet('test')
         # Restart node 0
@@ -32,8 +32,8 @@ class KeyPoolTest(UnitETestFramework):
         addr_data = nodes[0].getaddressinfo(addr)
         wallet_info = nodes[0].getwalletinfo()
         assert_equal(wallet_info['hdseedid'], wallet_info['hdmasterkeyid'])
-        assert(addr_before_encrypting_data['hdseedid'] != wallet_info['hdseedid'])
-        assert(addr_data['hdseedid'] == wallet_info['hdseedid'])
+        assert addr_before_encrypting_data['hdseedid'] != wallet_info['hdseedid']
+        assert addr_data['hdseedid'] == wallet_info['hdseedid']
         assert_raises_rpc_error(-12, "Error: Keypool ran out, please call keypoolrefill first", nodes[0].getnewaddress)
 
         # put six (plus 2) new keys in the keypool (100% external-, +100% internal-keys, 1 in min)
@@ -62,7 +62,7 @@ class KeyPoolTest(UnitETestFramework):
         addr.add(nodes[0].getnewaddress())
         addr.add(nodes[0].getnewaddress())
         addr.add(nodes[0].getnewaddress())
-        assert(len(addr) == 6)
+        assert len(addr) == 6
         # the next one should fail
         assert_raises_rpc_error(-12, "Error: Keypool ran out, please call keypoolrefill first", nodes[0].getnewaddress)
 

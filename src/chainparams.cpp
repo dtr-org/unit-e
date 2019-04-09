@@ -153,7 +153,7 @@ public:
         m_fallback_fee_enabled = true;
 
         if(gArgs.GetBoolArg("-permissioning", false)) {
-          adminParams.m_block_to_admin_keys.emplace(0, CreateRegTestAdminKeys());
+          adminParams.admin_keys = CreateRegTestAdminKeys();
         }
 
         snapshotParams.create_snapshot_per_epoch = static_cast<uint16_t>(gArgs.GetArg("-createsnapshot", 1));

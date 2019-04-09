@@ -148,8 +148,8 @@ class Probe(P2PInterface):
 def check_during_embargo(real_probe, imaginary_probe):
     with real_probe.lock:
         with imaginary_probe.lock:
-            assert (not imaginary_probe.target_received)
-            assert (imaginary_probe.not_found_count != 0)
+            assert not imaginary_probe.target_received
+            assert imaginary_probe.not_found_count != 0
 
             assert_equal(real_probe.not_found_count,
                          imaginary_probe.not_found_count)
@@ -163,8 +163,8 @@ def check_during_embargo(real_probe, imaginary_probe):
 
 def check_after_embargo(real_probe):
     with real_probe.lock:
-        assert (real_probe.target_inved)
-        assert (real_probe.target_received)
+        assert real_probe.target_inved
+        assert real_probe.target_received
 
 
 if __name__ == '__main__':

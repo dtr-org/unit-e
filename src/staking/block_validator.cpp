@@ -126,7 +126,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       result.AddError(Error::INVALID_BLOCK_PUBLIC_KEY);
       return;
     }
-    for (const CPubKey& pubkey : keys) {
+    for (const CPubKey &pubkey : keys) {
       if (pubkey.Verify(block_hash, block.signature)) {
         return;
       }
@@ -202,7 +202,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       // Apparently an alternative construction of the merkle tree avoids this
       // issue completely _and_ results in faster merkle tree construction, see
       // BIP 98 https://github.com/unite/bips/blob/master/bip-0098.mediawiki
-      result.AddError(Error::DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE);
+      result.AddError(Error::MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
     // check witness merkle root
@@ -211,7 +211,11 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       result.AddError(Error::WITNESS_MERKLE_ROOT_MISMATCH);
     }
     if (duplicate_transactions) {
-      result.AddError(Error::DUPLICATE_TRANSACTIONS_IN_WITNESS_MERKLE_TREE);
+      result.AddError(Error::WITNESS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
+    }
+
+    if (block.hash_finalizer_commits_merkle_root != BlockFinalizerCommitsMerkleRoot(block)) {
+      result.AddError(Error::FINALIZER_COMMITS_MERKLE_ROOT_MISMATCH);
     }
 
     // check proposer signature

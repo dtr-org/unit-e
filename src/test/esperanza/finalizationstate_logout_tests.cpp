@@ -20,11 +20,10 @@ BOOST_AUTO_TEST_CASE(validate_logout_before_start_dynasty) {
   uint160 validatorAddress = RandValidatorAddr();
   CAmount depositSize = spy.MinDepositSize();
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize), +Result::SUCCESS);
   spy.ProcessDeposit(validatorAddress, depositSize);
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress),
-                    +Result::LOGOUT_NOT_A_VALIDATOR);
+
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::LOGOUT_NOT_A_VALIDATOR);
 }
 
 BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
@@ -40,30 +39,15 @@ BOOST_AUTO_TEST_CASE(validate_logout_already_logged_out) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
-
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  spy.CreateAndActivateDeposit(validatorAddress, depositSize);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);
 
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(6 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(7 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 6 * spy.EpochLength()), +Result::SUCCESS);
+  BOOST_CHECK_EQUAL(spy.InitializeEpoch(1 + 7 * spy.EpochLength()), +Result::SUCCESS);
 
-  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress),
-                    +Result::LOGOUT_ALREADY_DONE);
+  BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::LOGOUT_ALREADY_DONE);
 }
 
 BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
@@ -79,19 +63,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
   block_index.phashBlock = &targetHash;
   spy.SetRecommendedTarget(block_index);
 
-  BOOST_CHECK_EQUAL(spy.ValidateDeposit(validatorAddress, depositSize),
-                    +Result::SUCCESS);
-  spy.ProcessDeposit(validatorAddress, depositSize);
-
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(spy.EpochLength()), +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(2 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(3 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(4 * spy.EpochLength()),
-                    +Result::SUCCESS);
-  BOOST_CHECK_EQUAL(spy.InitializeEpoch(5 * spy.EpochLength()),
-                    +Result::SUCCESS);
+  spy.CreateAndActivateDeposit(validatorAddress, depositSize);
 
   BOOST_CHECK_EQUAL(spy.ValidateLogout(validatorAddress), +Result::SUCCESS);
   spy.ProcessLogout(validatorAddress);

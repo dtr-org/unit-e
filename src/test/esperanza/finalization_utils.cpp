@@ -7,101 +7,115 @@
 #include <test/esperanza/finalization_utils.h>
 #include <boost/test/unit_test.hpp>
 
-CTransaction CreateBaseTransaction(const CTransaction &spendableTx,
-                                   const CKey &spendableKey, CAmount amount,
+CTransaction CreateBaseTransaction(const CTransaction &spendable_tx,
+                                   const CKey &spendable_key,
+                                   const CAmount &amount,
                                    const TxType type,
-                                   const CScript &scriptPubKey) {
+                                   const CScript &script_pub_key,
+                                   const CAmount &change = 0) {
 
   CBasicKeyStore keystore;
-  keystore.AddKey(spendableKey);
+  keystore.AddKey(spendable_key);
 
-  CMutableTransaction mutTx;
-  mutTx.SetType(type);
+  CMutableTransaction mtx;
+  mtx.SetType(type);
 
-  mutTx.vin.resize(1);
-  mutTx.vin[0].prevout.hash = spendableTx.GetHash();
-  mutTx.vin[0].prevout.n = 0;
+  mtx.vin.resize(1);
+  mtx.vin[0].prevout.hash = spendable_tx.GetHash();
+  mtx.vin[0].prevout.n = 0;
 
-  CTxOut out(amount, scriptPubKey);
-  mutTx.vout.push_back(out);
+  CAmount value_out = amount - change;
+  mtx.vout.emplace_back(value_out, script_pub_key);
+
+  if (change > 0) {
+    mtx.vout.emplace_back(change, script_pub_key);
+  }
 
   // Sign
-  std::vector<unsigned char> vchSig;
-  uint256 hash = SignatureHash(spendableTx.vout[0].scriptPubKey, mutTx, 0,
+  std::vector<unsigned char> vch_sig;
+  uint256 hash = SignatureHash(spendable_tx.vout[0].scriptPubKey, mtx, 0,
                                SIGHASH_ALL, amount, SigVersion::BASE);
 
-  BOOST_CHECK(spendableKey.Sign(hash, vchSig));
-  vchSig.push_back((unsigned char)SIGHASH_ALL);
+  BOOST_CHECK(spendable_key.Sign(hash, vch_sig));
+  vch_sig.push_back((unsigned char)SIGHASH_ALL);
 
-  mutTx.vin[0].scriptSig = CScript() << ToByteVector(vchSig)
-                                     << ToByteVector(spendableKey.GetPubKey());
+  mtx.vin[0].scriptSig = CScript() << ToByteVector(vch_sig)
+                                   << ToByteVector(spendable_key.GetPubKey());
 
-  return CTransaction(mutTx);
+  return CTransaction(mtx);
 }
 
-CTransaction CreateVoteTx(esperanza::Vote &vote, const CKey &spendableKey) {
+CTransaction CreateVoteTx(const CTransaction &spendable_tx, const CKey &spendable_key,
+                          const esperanza::Vote &vote, const std::vector<unsigned char> &vote_sig) {
 
-  CMutableTransaction mutTx;
-  mutTx.SetType(TxType::VOTE);
+  CMutableTransaction mtx;
+  mtx.SetType(TxType::VOTE);
+  mtx.vin.resize(1);
+  mtx.vout.resize(1);
 
-  mutTx.vin.resize(1);
-  uint256 signature = GetRandHash();
+  CScript vote_script = CScript::EncodeVote(vote, vote_sig);
+  std::vector<unsigned char> voteVector(vote_script.begin(), vote_script.end());
 
-  std::vector<unsigned char> voteSig;
-  BOOST_CHECK(spendableKey.Sign(vote.GetHash(), voteSig));
+  CScript script_sig = (CScript() << vote_sig) << voteVector;
+  mtx.vin[0] = CTxIn(GetRandHash(), 0, script_sig);
 
-  CScript voteScript = CScript::EncodeVote(vote, voteSig);
-  std::vector<unsigned char> voteVector(voteScript.begin(), voteScript.end());
+  CScript script_pub_key = CScript::CreatePayVoteSlashScript(spendable_key.GetPubKey());
+  mtx.vout[0] = CTxOut(10000, script_pub_key);
 
-  CScript scriptSig = (CScript() << ToByteVector(signature)) << voteVector;
-  mutTx.vin[0] = (CTxIn(GetRandHash(), 0, scriptSig));
+  mtx.vin[0].prevout.hash = spendable_tx.GetHash();
+  mtx.vin[0].prevout.n = 0;
 
-  uint256 keyHash = GetRandHash();
-  CKey k;
-  k.Set(keyHash.begin(), keyHash.end(), true);
-  CScript scriptPubKey = CScript::CreatePayVoteSlashScript(k.GetPubKey());
-
-  CTxOut out{10000, scriptPubKey};
-  mutTx.vout.push_back(out);
-
-  return CTransaction(mutTx);
+  return CTransaction(mtx);
 }
 
-CTransaction CreateDepositTx(const CTransaction &spendableTx,
-                             const CKey &spendableKey, CAmount amount) {
-  CScript scriptPubKey =
-      CScript::CreatePayVoteSlashScript(spendableKey.GetPubKey());
+CTransaction CreateVoteTx(const esperanza::Vote &vote, const CKey &spendable_key) {
 
-  return CreateBaseTransaction(spendableTx, spendableKey, amount,
-                               TxType::DEPOSIT, scriptPubKey);
+  CTransaction spendable_tx;
+
+  std::vector<unsigned char> vote_sig;
+  BOOST_CHECK(spendable_key.Sign(vote.GetHash(), vote_sig));
+
+  return CreateVoteTx(spendable_tx, spendable_key, vote, vote_sig);
 }
 
-CTransaction CreateLogoutTx(const CTransaction &spendableTx,
-                            const CKey &spendableKey, CAmount amount) {
+CTransaction CreateDepositTx(const CTransaction &spendable_tx,
+                             const CKey &spendable_key,
+                             const CAmount &amount,
+                             const CAmount &change) {
 
-  CScript scriptPubKey =
-      CScript::CreatePayVoteSlashScript(spendableKey.GetPubKey());
+  CScript script_pub_key =
+      CScript::CreatePayVoteSlashScript(spendable_key.GetPubKey());
 
-  return CreateBaseTransaction(spendableTx, spendableKey, amount,
-                               TxType::LOGOUT, scriptPubKey);
+  return CreateBaseTransaction(spendable_tx, spendable_key, amount,
+                               TxType::DEPOSIT, script_pub_key, change);
 }
 
-CTransaction CreateWithdrawTx(const CTransaction &spendableTx,
-                              const CKey &spendableKey, CAmount amount) {
+CTransaction CreateLogoutTx(const CTransaction &spendable_tx,
+                            const CKey &spendable_key, CAmount amount) {
 
-  CScript scriptPubKey = CScript::CreateP2PKHScript(
-      ToByteVector(spendableKey.GetPubKey().GetID()));
+  CScript script_pub_key =
+      CScript::CreatePayVoteSlashScript(spendable_key.GetPubKey());
 
-  return CreateBaseTransaction(spendableTx, spendableKey, amount,
-                               TxType::WITHDRAW, scriptPubKey);
+  return CreateBaseTransaction(spendable_tx, spendable_key, amount,
+                               TxType::LOGOUT, script_pub_key);
 }
 
-CTransaction CreateP2PKHTx(const CTransaction &spendableTx,
-                           const CKey &spendableKey, CAmount amount) {
+CTransaction CreateWithdrawTx(const CTransaction &spendable_tx,
+                              const CKey &spendable_key, CAmount amount) {
 
-  CScript scriptPubKey = CScript::CreateP2PKHScript(
-      ToByteVector(spendableKey.GetPubKey().GetID()));
+  CScript script_pub_key = CScript::CreateP2PKHScript(
+      ToByteVector(spendable_key.GetPubKey().GetID()));
 
-  return CreateBaseTransaction(spendableTx, spendableKey, amount,
-                               TxType::REGULAR, scriptPubKey);
+  return CreateBaseTransaction(spendable_tx, spendable_key, amount,
+                               TxType::WITHDRAW, script_pub_key);
+}
+
+CTransaction CreateP2PKHTx(const CTransaction &spendable_tx,
+                           const CKey &spendable_key, CAmount amount) {
+
+  CScript script_pub_key = CScript::CreateP2PKHScript(
+      ToByteVector(spendable_key.GetPubKey().GetID()));
+
+  return CreateBaseTransaction(spendable_tx, spendable_key, amount,
+                               TxType::REGULAR, script_pub_key);
 }

@@ -68,9 +68,9 @@ class ExpiredVoteConflict(UnitETestFramework):
 
         # Later in this test we will be operating in 'epochs', not blocks
         # So it is convenient to always start and end at checkpoint
-        # -1 for IBD
         # -1 to be at checkpoint
-        self.generate_sync(proposer, EPOCH_LENGTH - 2)
+        self.generate_sync(proposer, EPOCH_LENGTH - 1)
+        assert_equal(proposer.getblockcount(), 10)
 
         # Enable tx censorship
         relay.relay_txs = False
@@ -84,15 +84,15 @@ class ExpiredVoteConflict(UnitETestFramework):
         # Validator is back, finalization should now work
         relay.relay_txs = True
         self.generate_epochs(4)
-        assert_equal(8, self.last_finalized_epoch)
+        assert_equal(9, self.last_finalized_epoch)
 
         # Checking behaviour when votes are casted on top of other votes
         relay.relay_txs = False
         self.generate_epochs_without_mempool_sync(4)
-        assert_equal(8, self.last_finalized_epoch)
+        assert_equal(9, self.last_finalized_epoch)
         relay.relay_txs = True
         self.generate_epochs(4)
-        assert_equal(16, self.last_finalized_epoch)
+        assert_equal(17, self.last_finalized_epoch)
 
         # Checking behaviour when votes are casted on top of logout
         logout = validator.logout()
@@ -100,7 +100,7 @@ class ExpiredVoteConflict(UnitETestFramework):
 
         relay.relay_txs = False
         self.generate_epochs_without_mempool_sync(10)
-        assert_equal(16, self.last_finalized_epoch)
+        assert_equal(17, self.last_finalized_epoch)
 
         assert_log_does_not_contain(validator, "error")
 

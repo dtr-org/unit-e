@@ -103,11 +103,11 @@ class FilterTransactionsTest(UnitETestFramework):
 
         # count: 0 => all transactions
         ro = self.nodes[0].filtertransactions({"count": 0})
-        assert(len(ro) == num_of_txs)
+        assert len(ro) == num_of_txs
 
         # count: 1
         ro = self.nodes[0].filtertransactions({"count": 1})
-        assert(len(ro) == 1)
+        assert len(ro) == 1
 
     def test_skip_option(self):
         num_of_txs = len(self.nodes[0].filtertransactions({"count": 100}))
@@ -117,11 +117,11 @@ class FilterTransactionsTest(UnitETestFramework):
 
         # skip = count => no entry
         txs = self.nodes[0].filtertransactions({"skip": num_of_txs})
-        assert(len(txs) == 0)
+        assert len(txs) == 0
 
         # skip == count - 1 => one entry
         txs = self.nodes[0].filtertransactions({"skip": num_of_txs - 1})
-        assert(len(txs) == 1)
+        assert len(txs) == 1
 
     def test_search(self):
         queries = [

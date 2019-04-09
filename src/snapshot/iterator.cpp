@@ -137,7 +137,7 @@ uint256 Iterator::CalculateHash(const uint256 &stake_modifier,
     UTXOSubset subset = GetUTXOSubset();
     for (const auto &p : subset.outputs) {
       const COutPoint out(subset.tx_id, p.first);
-      const Coin coin(p.second, subset.height, subset.is_coin_base);
+      const Coin coin(p.second, subset.height, subset.tx_type);
       hash.AddUTXO(UTXO(out, coin));
     }
 

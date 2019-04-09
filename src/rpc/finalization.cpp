@@ -4,6 +4,7 @@
 
 #include <chainparams.h>
 #include <esperanza/finalizationstate.h>
+#include <injector.h>
 #include <rpc/server.h>
 #include <ufp64.h>
 #include <util.h>
@@ -16,8 +17,8 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
         "Returns an object containing finalization information."
         "\nResult:\n"
         "{\n"
-        "  \"currentEpoch\": xxxxxxx            (numeric) currentEpoch\n"
         "  \"currentDynasty\": xxxxxxx          (numeric) currentDynasty\n"
+        "  \"currentEpoch\": xxxxxxx            (numeric) currentEpoch\n"
         "  \"lastJustifiedEpoch\": xxxxxxx      (numeric) lastJustifiedEpoch\n"
         "  \"lastFinalizedEpoch\": xxxxxxx      (numeric) lastFinalizedEpoch\n"
         "  \"validators\": xxxxxxx              (numeric) current number of "
@@ -28,14 +29,18 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
         HelpExampleRpc("getfinalizationstate", ""));
   }
 
-  esperanza::FinalizationState &finalizationState = *esperanza::FinalizationState::GetState();
+  LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+  const finalization::FinalizationState *fin_state =
+    GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(fin_state !=nullptr);
+
   UniValue obj(UniValue::VOBJ);
 
-  obj.pushKV("currentEpoch", (uint64_t) finalizationState.GetCurrentEpoch());
-  obj.pushKV("currentDynasty", (uint64_t) finalizationState.GetCurrentDynasty());
-  obj.pushKV("lastFinalizedEpoch", (uint64_t) finalizationState.GetLastFinalizedEpoch());
-  obj.pushKV("lastJustifiedEpoch", (uint64_t) finalizationState.GetLastJustifiedEpoch());
-  obj.pushKV("validators", (uint64_t) finalizationState.GetActiveFinalizers().size());
+  obj.pushKV("currentDynasty", (uint64_t) fin_state->GetCurrentDynasty());
+  obj.pushKV("currentEpoch", (uint64_t) fin_state->GetCurrentEpoch());
+  obj.pushKV("lastJustifiedEpoch", (uint64_t) fin_state->GetLastJustifiedEpoch());
+  obj.pushKV("lastFinalizedEpoch", (uint64_t) fin_state->GetLastFinalizedEpoch());
+  obj.pushKV("validators", (uint64_t) fin_state->GetActiveFinalizers().size());
 
   return obj;
 }

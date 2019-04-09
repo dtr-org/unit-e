@@ -43,7 +43,7 @@ class BIP68Test(UnitETestFramework):
         connect_nodes(self.nodes[2], 0)  # send deposit to one node only
         self.nodes[0].generate(1)
         addr = self.nodes[2].getnewaddress('', 'legacy')
-        txid = self.nodes[2].deposit(addr, 10000)
+        txid = self.nodes[2].deposit(addr, 1500)
         wait_until(lambda: txid in self.nodes[0].getrawmempool(), timeout=10)
         self.stop_node(2)
 
@@ -79,7 +79,7 @@ class BIP68Test(UnitETestFramework):
         self.nodes[0].sendtoaddress(new_addr, 2) # send 2 UTE
 
         utxos = self.nodes[0].listunspent(0, 0)
-        assert(len(utxos) > 0)
+        assert len(utxos) > 0
 
         utxo = utxos[0]
 
@@ -269,7 +269,7 @@ class BIP68Test(UnitETestFramework):
             self.nodes[0].generate(1)
             cur_time += 600
 
-        assert(tx2.hash in self.nodes[0].getrawmempool())
+        assert tx2.hash in self.nodes[0].getrawmempool()
         tip_snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
 
         test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=True)
@@ -281,23 +281,23 @@ class BIP68Test(UnitETestFramework):
         # Advance the time on the node so that we can test timelocks
         self.nodes[0].setmocktime(cur_time+600)
         self.nodes[0].generate(1)
-        assert(tx2.hash not in self.nodes[0].getrawmempool())
+        assert tx2.hash not in self.nodes[0].getrawmempool()
 
         # Now that tx2 is not in the mempool, a sequence locked spend should
         # succeed
         tx3 = test_nonzero_locks(tx2, self.nodes[0], self.relayfee, use_height_lock=False)
-        assert(tx3.hash in self.nodes[0].getrawmempool())
+        assert tx3.hash in self.nodes[0].getrawmempool()
 
         self.nodes[0].generate(1)
-        assert(tx3.hash not in self.nodes[0].getrawmempool())
+        assert tx3.hash not in self.nodes[0].getrawmempool()
 
         # One more test, this time using height locks
         tx4 = test_nonzero_locks(tx3, self.nodes[0], self.relayfee, use_height_lock=True)
-        assert(tx4.hash in self.nodes[0].getrawmempool())
+        assert tx4.hash in self.nodes[0].getrawmempool()
 
         # Now try combining confirmed and unconfirmed inputs
         tx5 = test_nonzero_locks(tx4, self.nodes[0], self.relayfee, use_height_lock=True)
-        assert(tx5.hash not in self.nodes[0].getrawmempool())
+        assert tx5.hash not in self.nodes[0].getrawmempool()
 
         utxos = self.nodes[0].listunspent()
         tx5.vin.append(CTxIn(COutPoint(int(utxos[0]["txid"], 16), utxos[0]["vout"]), nSequence=1))
@@ -316,8 +316,8 @@ class BIP68Test(UnitETestFramework):
         # If we invalidate the tip, tx3 should get added to the mempool, causing
         # tx4 to be removed (fails sequence-lock).
         self.nodes[0].invalidateblock(self.nodes[0].getbestblockhash())
-        assert(tx4.hash not in self.nodes[0].getrawmempool())
-        assert(tx3.hash in self.nodes[0].getrawmempool())
+        assert tx4.hash not in self.nodes[0].getrawmempool()
+        assert tx3.hash in self.nodes[0].getrawmempool()
 
         # Now mine 2 empty blocks to reorg out the current tip (labeled tip-1 in
         # diagram above).
@@ -326,7 +326,9 @@ class BIP68Test(UnitETestFramework):
         tip = int(self.nodes[0].getblockhash(self.nodes[0].getblockcount()-1), 16)
         height = self.nodes[0].getblockcount()
         # Let's get the available stake that is not already used
-        avail_stake = [x for x in self.nodes[0].listunspent() if x['txid'] != tx1.hash]
+        # We must exclude tx2 outputs from the list since any stake referred to them will fail
+        # In order to do that, we limit outputs with the number of minimum confirmations (minconf = 2)
+        avail_stake = [x for x in self.nodes[0].listunspent(2) if x['txid'] != tx1.hash]
         for i in range(2):
             stake = avail_stake.pop()
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
@@ -344,8 +346,8 @@ class BIP68Test(UnitETestFramework):
         # sync as the reorg is happening
         self.nodes[0].p2p.sync_with_ping()
         mempool = self.nodes[0].getrawmempool()
-        assert(tx3.hash not in mempool)
-        assert(tx2.hash in mempool)
+        assert tx3.hash not in mempool
+        assert tx2.hash in mempool
 
         # Reset the chain and get rid of the mocktimed-blocks
         self.nodes[0].setmocktime(0)
@@ -357,7 +359,7 @@ class BIP68Test(UnitETestFramework):
     # being run, then it's possible the test has activated the soft fork, and
     # this test should be moved to run earlier, or deleted.
     def test_bip68_not_consensus(self):
-        assert(get_bip9_status(self.nodes[0], 'csv')['status'] != 'active')
+        assert get_bip9_status(self.nodes[0], 'csv')['status'] != 'active'
         txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 2)
 
         tx1 = FromHex(CTransaction(), self.nodes[0].getrawtransaction(txid))

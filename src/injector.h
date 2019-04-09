@@ -10,15 +10,22 @@
 #include <blockchain/blockchain_behavior.h>
 #include <blockchain/blockchain_parameters.h>
 #include <blockchain/blockchain_rpc.h>
+#include <blockdb.h>
+#include <finalization/state_db.h>
 #include <finalization/state_processor.h>
 #include <finalization/state_repository.h>
+#include <injector_config.h>
+#include <p2p/finalizer_commits_handler.h>
+#include <p2p/graphene_receiver.h>
+#include <p2p/graphene_sender.h>
 #include <settings.h>
 #include <staking/active_chain.h>
+#include <staking/block_index_map.h>
 #include <staking/block_validator.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/transactionpicker.h>
-#include <blockdb.h>
+#include <txpool.h>
 #include <util.h>
 #include <validation.h>
 
@@ -27,6 +34,7 @@
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_rpc.h>
+
 #endif
 
 class UnitEInjector : public Injector<UnitEInjector> {
@@ -34,6 +42,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
   UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
 
   UNMANAGED_COMPONENT(BlockchainBehavior, blockchain::Behavior, &blockchain::Behavior::GetGlobal())
+
+  UNMANAGED_COMPONENT(InjectorConfiguration, UnitEInjectorConfiguration, [](UnitEInjector *i) { return &i->m_config; })
 
   COMPONENT(Settings, ::Settings, Settings::New,
             ::ArgsManager,
@@ -43,6 +53,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             blockchain::Behavior)
 
   COMPONENT(Network, staking::Network, staking::Network::New)
+
+  COMPONENT(BlockIndexMap, staking::BlockIndexMap, staking::BlockIndexMap::New)
 
   COMPONENT(ActiveChain, staking::ActiveChain, staking::ActiveChain::New)
 
@@ -55,12 +67,36 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(BlockDB, ::BlockDB, BlockDB::New)
 
-  COMPONENT(FinalizationStateRepository, finalization::StateRepository, finalization::StateRepository::New,
+  COMPONENT(FinalizationStateDB, finalization::StateDB, finalization::StateDB::New,
+            UnitEInjectorConfiguration,
+            Settings,
+            staking::BlockIndexMap,
             staking::ActiveChain)
+
+  COMPONENT(FinalizationStateRepository, finalization::StateRepository, finalization::StateRepository::New,
+            staking::BlockIndexMap,
+            staking::ActiveChain,
+            finalization::StateDB,
+            BlockDB)
 
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
             finalization::StateRepository,
             staking::ActiveChain)
+
+  COMPONENT(FinalizerCommitsHandler, p2p::FinalizerCommitsHandler, p2p::FinalizerCommitsHandler::New,
+            staking::ActiveChain,
+            finalization::StateRepository,
+            finalization::StateProcessor)
+
+  COMPONENT(TxPool, ::TxPool, ::TxPool::New);
+
+  COMPONENT(GrapheneReceiver, p2p::GrapheneReceiver, p2p::GrapheneReceiver::New,
+            ::ArgsManager,
+            ::TxPool);
+
+  COMPONENT(GrapheneSender, p2p::GrapheneSender, p2p::GrapheneSender::New,
+            ::ArgsManager,
+            ::TxPool);
 
 #ifdef ENABLE_WALLET
 
@@ -96,9 +132,13 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
 #endif
 
+  UnitEInjectorConfiguration m_config;
+
  public:
+  explicit UnitEInjector(UnitEInjectorConfiguration config) : m_config(config) {}
+
   //! \brief Initializes a globally available instance of the injector.
-  static void Init();
+  static void Init(UnitEInjectorConfiguration = UnitEInjectorConfiguration{});
 
   //! \brief Destructs the injector and all components managed by it.
   static void Destroy();

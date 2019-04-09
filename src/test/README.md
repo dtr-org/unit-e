@@ -5,12 +5,12 @@ and tests weren't explicitly disabled.
 
 After configuring, they can be run with `make check`.
 
-To run the united tests manually, launch `src/test/test_unite`. To recompile
+To run the unit-e tests manually, launch `src/test/test_unite`. To recompile
 after a test file was modified, run `make` and then run the test again. If you
 modify a non-test file, use `make -C src/test` to recompile only what's needed
-to run the united tests.
+to run the unit-e tests.
 
-To add more united tests, add `BOOST_AUTO_TEST_CASE` functions to the existing
+To add more unit-e tests, add `BOOST_AUTO_TEST_CASE` functions to the existing
 .cpp files in the `test/` directory or add new .cpp files that
 implement new BOOST_AUTO_TEST_SUITE sections.
 
