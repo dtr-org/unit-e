@@ -38,6 +38,7 @@
 #include <rpc/server.h>
 #include <rpc/register.h>
 #include <rpc/blockchain.h>
+#include <rpc/staking.h>
 #include <script/standard.h>
 #include <script/sigcache.h>
 #include <scheduler.h>
@@ -1403,6 +1404,7 @@ bool AppInitMain()
     RegisterAllCoreRPCCommands(tableRPC);
     RegisterFinalizationRPCCommands(tableRPC);
     snapshot::RegisterRPCCommands(tableRPC);
+    RegisterStakingRPCCommands(tableRPC);
 #ifdef ENABLE_WALLET
     RegisterMnemonicRPCCommands(tableRPC);
     RegisterProposerRPCCommands(tableRPC);
@@ -1688,17 +1690,12 @@ bool AppInitMain()
                     }
                 }
 
-                // UNIT-E TODO: Snapshot must start working once we can trust commits
-                // (commits merkle root added to the header and FROM_COMMITS is dropped).
-                // Check #836 for details.
                 // In the case of reindex, don't restore finalization's state, since it will be built from scratch.
-                if (!snapshot::IsISDEnabled() && !fReindex) {
+                if (!fReindex) {
                     LOCK(cs_main);
                     auto state_repository = GetComponent<finalization::StateRepository>();
                     auto state_processor = GetComponent<finalization::StateProcessor>();
                     state_repository->RestoreFromDisk(state_processor);
-                } else if (chainActive.Tip() != nullptr) {
-                    state_repository->ResetToTip(*chainActive.Tip());
                 }
 
                 if (!is_coinsview_empty) {
@@ -1943,7 +1940,6 @@ bool AppInitMain()
 
 #ifdef ENABLE_WALLET
     GetComponent<proposer::Proposer>()->Start();
-    SetProposerRPC(GetComponent<proposer::ProposerRPC>());
 #endif
 
     LogPrintf("Started up.\n");

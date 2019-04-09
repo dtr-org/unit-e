@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_CASE(split_amount) {
 
 BOOST_AUTO_TEST_CASE(check_reward_destination) {
 
-  const std::string address("ue1q2znaq2pnwqg92lpsc9sf7p5z0drluu27fl4zda");
+  const std::string address("tue1qdkcn53gqgnmtfxy8hl24kdev5axv20evp23a6x");
   const CTxDestination expected_reward_dest = DecodeDestination(address);
   Fixture f{tfm::format("-rewardaddress=%s", address)};
   std::unique_ptr<staking::BlockValidator> validator = f.MakeBlockValidator();

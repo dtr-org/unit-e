@@ -287,14 +287,11 @@ void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> pr
       const CBlockIndex *index = missed.front();
       const CBlockIndex *target = missed.back();
       missed.pop_front();
-      // UNITE TODO: Uncomment once we can trust commits
-      // (commits merkle root added to the header and FROM_COMMITS is dropped).
-      // Check #836 for details.
-      //
-      // if (index->commits) {
-      //   proc->ProcessNewCommits(*index, *index->commits);
-      //   continue;
-      // }
+      if (index->commits) {
+        if (proc->ProcessNewCommits(*index, *index->commits)) {
+          continue;
+        }
+      }
       boost::optional<CBlock> block = m_block_db->ReadBlock(*index);
       if (!block) {
         LogPrintf("Cannot read block=%s to restore finalization state for block=%s.\n",

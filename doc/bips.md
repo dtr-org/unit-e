@@ -1,4 +1,52 @@
-BIPs that are implemented by unit-e (up-to-date up to **v0.17.0**):
+# BIPs
+
+The unit-e code is based on the [Bitcoin Core
+code](https://github.com/bitcoin/bitcoin). It inherits a part of its
+implementation of BIPs. Not all BIPs apply literally to the unit-e code base so
+the list should not be seen as a reference. The unit-e source code is the
+ultimate reference of how BIPs apply to unit-e.
+
+Unit-e specific features are defined as [UIPs](uips.md).
+
+Some BIPs have been changed explicitly. The following is an informational list
+of these changes, and the list of all inherited upstream BIPs:
+
+## Removed BIPs
+
+* [BIP30](https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki) - Check
+  for duplicated txids. This is now impossible (since
+  [BIP34](https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki) is in
+  force) ([a8afc6c](https://github.com/dtr-org/unit-e/commit/a8afc6c))
+* [BIP22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki) and
+  [BIP23](https://github.com/bitcoin/bips/blob/master/bip-0023.mediawiki). In a
+  Proof-of-Stake setting we do not have mining pools and therefore no use for
+  supporting blocktemplates.
+  ([1dfe8695](https://github.com/dtr-org/unit-e/commit/1dfe86954be1ea0d1d42dcf9d2f9606a0ac40ab9))
+
+## BIPs enabled by default
+
+These BIPs contain activation mechanisms as they have been introduced to Bitcoin
+as soft forks. In unit-e they are enabled by default so the activation
+mechanisms have been removed.
+
+* [BIP16](https://github.com/bitcoin/bips/blob/master/bip-0016.mediawiki) – P2SH
+  ([#523](https://github.com/dtr-org/unit-e/pull/523))
+* [BIP34](https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki) –
+  Height in Coinbase ([#522](https://github.com/dtr-org/unit-e/pull/522))
+* [BIP65](https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki) – CLTV
+  ([#521](https://github.com/dtr-org/unit-e/pull/521))
+* [BIP66](https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki) –
+  DERSIG ([#503](https://github.com/dtr-org/unit-e/pull/503))
+* [BIP141](https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki),
+  [BIP143](https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki),
+  [BIP147](https://github.com/bitcoin/bips/blob/master/bip-0147.mediawiki) -
+  Segregated Witness ([#746](https://github.com/dtr-org/unit-e/pull/746))
+
+## BIPs inherited from upstream
+
+These BIPs are implemented in unit-e, inheriting them from the Bitcoin Core code
+base on which unit-e is based. All version and release references refer to
+Bitcoin Core upstream releases.
 
 * [`BIP 9`](https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki): The changes allowing multiple soft-forks to be deployed in parallel have been implemented since **v0.12.1**  ([PR #7575](https://github.com/bitcoin/bitcoin/pull/7575))
 * [`BIP 11`](https://github.com/bitcoin/bips/blob/master/bip-0011.mediawiki): Multisig outputs are standard since **v0.6.0** ([PR #669](https://github.com/bitcoin/bitcoin/pull/669)).

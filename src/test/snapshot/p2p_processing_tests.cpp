@@ -7,7 +7,6 @@
 #include <memory>
 
 #include <chainparams.h>
-#include <injector.h>
 #include <net.h>
 #include <netaddress.h>
 #include <serialize.h>

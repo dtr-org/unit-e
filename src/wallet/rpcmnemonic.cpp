@@ -256,9 +256,9 @@ UniValue listreservekeys(const JSONRPCRequest &request) {
 }
 
 // clang-format off
-static const CRPCCommand commands[] = {
-//  category               name                      actor (function)         argNames
-//  ---------------------  ------------------------  -----------------------  ------------------------------------------
+static const CRPCCommand commands[] =
+{ //  category               name                      actor (function)         argNames
+  //  ---------------------  ------------------------  -----------------------  ------------------------------------------
     { "mnemonic",          "mnemonic",               &mnemonic,               {"subcommand", "mnemonic", "passphrase"}},
     { "hidden",            "listreservekeys",        &listreservekeys,        {}},
     { "wallet",            "importmasterkey",        &importmasterkey,        {"seed", "passphrase", "rescan", "brand_new"}},

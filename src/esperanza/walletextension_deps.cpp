@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The Unit-e developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,9 +16,15 @@ Settings *SharedSettings() {
 }  // namespace
 
 WalletExtensionDeps::WalletExtensionDeps() noexcept
-    : settings(SharedSettings()) {}
+    : m_settings(SharedSettings()),
+      m_finalization_state_repository(nullptr) {}
+
+WalletExtensionDeps::WalletExtensionDeps(const Dependency<::Settings> settings) noexcept
+    : m_settings(settings),
+      m_finalization_state_repository(nullptr) {}
 
 WalletExtensionDeps::WalletExtensionDeps(const UnitEInjector &injector) noexcept
-    : settings(injector.Get<Settings>()) {}
+    : m_settings(injector.Get<Settings>()),
+      m_finalization_state_repository(injector.Get<finalization::StateRepository>()) {}
 
 }  // namespace esperanza

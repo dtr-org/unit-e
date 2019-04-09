@@ -17,8 +17,8 @@ namespace proposer {
 
 class BlockBuilderImpl : public BlockBuilder {
  private:
-  Dependency<blockchain::Behavior> m_blockchain_behavior;
-  Dependency<Settings> m_settings;
+  const Dependency<blockchain::Behavior> m_blockchain_behavior;
+  const Dependency<Settings> m_settings;
 
   std::vector<CAmount> SplitAmount(const CAmount amount, const CAmount threshold) const {
     auto number_of_pieces = amount / threshold;
@@ -190,8 +190,8 @@ class BlockBuilderImpl : public BlockBuilder {
 };
 
 std::unique_ptr<BlockBuilder> BlockBuilder::New(
-    Dependency<blockchain::Behavior> blockchain_behavior,
-    Dependency<Settings> settings) {
+    const Dependency<blockchain::Behavior> blockchain_behavior,
+    const Dependency<Settings> settings) {
   return std::unique_ptr<BlockBuilder>(new BlockBuilderImpl(blockchain_behavior, settings));
 }
 

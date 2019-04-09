@@ -4,8 +4,14 @@
 
 #include <proposer/proposer.h>
 
+#include <blockchain/blockchain_behavior.h>
+#include <proposer/block_builder.h>
 #include <proposer/eligible_coin.h>
 #include <proposer/multiwallet.h>
+#include <proposer/proposer_logic.h>
+#include <staking/active_chain.h>
+#include <staking/network.h>
+#include <staking/transactionpicker.h>
 #include <test/test_unite.h>
 #include <wallet/wallet.h>
 
@@ -50,8 +56,7 @@ struct Fixture {
         }()),
         settings(Settings::New(args_manager.get(), behavior.get())),
         wallet(new CWallet("mock", WalletDatabase::CreateMock(), [&] {
-          esperanza::WalletExtensionDeps deps;
-          deps.settings = settings.get();
+          esperanza::WalletExtensionDeps deps(settings.get());
           return deps;
         }())),
         multi_wallet_mock([&] {

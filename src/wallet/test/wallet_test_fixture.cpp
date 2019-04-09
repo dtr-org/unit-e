@@ -4,9 +4,11 @@
 
 #include <wallet/test/wallet_test_fixture.h>
 
+#include <injector.h>
 #include <key_io.h>
 #include <pow.h>
 #include <rpc/server.h>
+#include <validation.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
 #include <consensus/merkle.h>
@@ -20,8 +22,7 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
     bool fFirstRun;
 
     f(settings);
-    esperanza::WalletExtensionDeps deps;
-    deps.settings = &settings;
+    esperanza::WalletExtensionDeps deps(&settings);
 
     m_wallet.reset(new CWallet("mock", WalletDatabase::CreateMock(), deps));
     m_wallet->LoadWallet(fFirstRun);

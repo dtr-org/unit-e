@@ -17,7 +17,6 @@ namespace staking {
 //! \brief An interface to the current storage of CBlockIndex-es.
 //!
 //! Wrapper on mapBlockIndex.
-
 class BlockIndexMap {
  public:
   //! \brief Returns the mutex that protects map.

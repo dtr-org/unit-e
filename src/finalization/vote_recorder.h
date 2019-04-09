@@ -8,8 +8,10 @@
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
 #include <sync.h>
+
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
+
 #include <map>
 #include <memory>
 
