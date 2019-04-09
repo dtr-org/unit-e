@@ -4,7 +4,12 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the REST API."""
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, BLOCK_HEADER_LENGTH
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+    BLOCK_HEADER_LENGTH,
+    DISABLE_FINALIZATION,
+)
 from test_framework.util import *
 from struct import *
 from io import BytesIO
@@ -46,6 +51,7 @@ class RESTTest (UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
+        self.extra_args = [[DISABLE_FINALIZATION]] * self.num_nodes
 
     def setup_network(self, split=False):
         super().setup_network()
