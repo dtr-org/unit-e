@@ -191,7 +191,7 @@ class EsperanzaSlashTest(UnitETestFramework):
         # see schema in CScript::MatchPayVoteSlashScript
         tx_v2a = FromHex(CTransaction(), v2a)
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=77)
-        assert_raises_rpc_error(-25, 'Missing inputs', fork2.sendrawtransaction, ToHex(tx_v2a))
+        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork2.sendrawtransaction, ToHex(tx_v2a))
         wait_until(lambda: len(fork2.getrawmempool()) == 1, timeout=20)
         s1_hash = fork2.getrawmempool()[0]
         s1 = FromHex(CTransaction(), fork2.getrawtransaction(s1_hash))

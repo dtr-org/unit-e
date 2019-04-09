@@ -422,7 +422,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
 
     int dos = 0;
     err_state.IsInvalid(dos);
-    BOOST_CHECK_EQUAL(dos, 10);
+    BOOST_CHECK_EQUAL(dos, 0);
   }
 
   {
@@ -762,6 +762,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     bool ok = ContextualCheckVoteTx(tx, err_state, spy, view);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-vote-no-prev-tx-found");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 0);
   }
 
   {
@@ -889,6 +893,10 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
     bool ok = ContextualCheckWithdrawTx(tx, err_state, spy, view);
     BOOST_CHECK(!ok);
     BOOST_CHECK_EQUAL(err_state.GetRejectReason(), "bad-withdraw-no-prev-tx-found");
+
+    int dos = 0;
+    err_state.IsInvalid(dos);
+    BOOST_CHECK_EQUAL(dos, 0);
   }
 
   {

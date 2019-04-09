@@ -215,7 +215,7 @@ bool ContextualCheckLogoutTx(const CTransaction &tx, CValidationState &err_state
   CScript prev_out_script;
 
   if (!FindPrevOutData(tx.vin[0].prevout, view, &prev_tx_type, &prev_out_script)) {
-    return err_state.DoS(10, false, REJECT_INVALID, "bad-logout-no-prev-tx-found");
+    return err_state.DoS(0, false, REJECT_INVALID, "bad-logout-no-prev-tx-found");
   }
 
   if (prev_tx_type != +TxType::DEPOSIT && prev_tx_type != +TxType::VOTE) {
@@ -273,7 +273,7 @@ bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_sta
   CScript prev_out_script;
 
   if (!FindPrevOutData(tx.vin[0].prevout, view, &prev_tx_type, &prev_out_script)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(0, false, REJECT_INVALID,
                          "bad-withdraw-no-prev-tx-found");
   }
 
@@ -360,7 +360,7 @@ bool ContextualCheckVoteTx(const CTransaction &tx, CValidationState &err_state,
   CScript prev_out_script;
 
   if (!FindPrevOutData(tx.vin[0].prevout, view, &prev_tx_type, &prev_out_script)) {
-    return err_state.DoS(10, false, REJECT_INVALID,
+    return err_state.DoS(0, false, REJECT_INVALID,
                          "bad-vote-no-prev-tx-found");
   }
 
