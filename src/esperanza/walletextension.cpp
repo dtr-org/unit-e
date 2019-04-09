@@ -932,6 +932,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
 
       assert(state.m_phase == expected_phase);
       validatorState = ValidatorState();
+      break;
     }
     default: {
       return true;
