@@ -23,7 +23,6 @@ from test_framework.util import (
     bytes_to_hex_str,
     connect_nodes,
     disconnect_nodes,
-    sync_blocks,
     wait_until,
 )
 

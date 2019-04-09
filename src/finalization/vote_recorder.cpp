@@ -14,9 +14,10 @@ namespace finalization {
 
 using FinalizationState = esperanza::FinalizationState;
 
-namespace {
+//! The key for vote record in database.
+//! * uin160 is validator address
+//! * uint32_t is target epoch
 using DBKey = std::pair<uint160, uint32_t>;
-}
 
 CCriticalSection VoteRecorder::cs_recorder;
 std::shared_ptr<VoteRecorder> VoteRecorder::g_voteRecorder;
@@ -35,9 +36,9 @@ void VoteRecorder::LoadFromDB() {
   voteRecords.clear();
   voteCache.clear();
   std::unique_ptr<CDBIterator> cursor(m_db.NewIterator());
-  DBKey key;
-  cursor->Seek(key);
+  cursor->SeekToFirst();
   while (cursor->Valid()) {
+    DBKey key;
     if (!cursor->GetKey(key)) {
       LogPrintf("WARN: cannot read next key from votes DB");
       return;
@@ -76,16 +77,19 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   VoteRecord voteRecord{vote, voteSig};
 
   // Record the vote
+  bool saved_in_memory = false;
   const auto validatorIt = voteRecords.find(vote.m_validator_address);
   if (validatorIt != voteRecords.end()) {
-    validatorIt->second.emplace(vote.m_target_epoch, voteRecord);
+    saved_in_memory = validatorIt->second.emplace(vote.m_target_epoch, voteRecord).second;
   } else {
     std::map<uint32_t, VoteRecord> newMap;
     newMap.emplace(vote.m_target_epoch, voteRecord);
-    voteRecords.emplace(vote.m_validator_address, std::move(newMap));
+    saved_in_memory = voteRecords.emplace(vote.m_validator_address, std::move(newMap)).second;
   }
 
-  SaveVoteToDB(voteRecord);
+  if (saved_in_memory) {
+    SaveVoteToDB(voteRecord);
+  }
 
   if (offendingVote) {
     esperanza::Result res = fin_state.IsSlashable(vote, offendingVote.get().vote);
