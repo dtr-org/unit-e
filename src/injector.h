@@ -31,22 +31,22 @@
 
 #ifdef ENABLE_WALLET
 #include <proposer/block_builder.h>
-#include <proposer/proposer_logic.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
+#include <proposer/proposer_logic.h>
 #include <proposer/proposer_rpc.h>
 #endif
 
 class UnitEInjector : public Injector<UnitEInjector> {
 
-  UNMANAGED_COMPONENT(ArgsManager, ::ArgsManager, &gArgs)
+  UNMANAGED_COMPONENT(ArgsManager, ArgsManager, &gArgs)
 
   UNMANAGED_COMPONENT(BlockchainBehavior, blockchain::Behavior, &blockchain::Behavior::GetGlobal())
 
   UNMANAGED_COMPONENT(InjectorConfiguration, UnitEInjectorConfiguration, [](UnitEInjector *i) { return &i->m_config; })
 
-  COMPONENT(Settings, ::Settings, Settings::New,
-            ::ArgsManager,
+  COMPONENT(Settings, Settings, Settings::New,
+            ArgsManager,
             blockchain::Behavior)
 
   COMPONENT(BlockchainRPC, blockchain::BlockchainRPC, blockchain::BlockchainRPC::New,
@@ -65,11 +65,11 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New,
             blockchain::Behavior)
 
-  COMPONENT(BlockDB, ::BlockDB, BlockDB::New)
+  COMPONENT(BlockDB, BlockDB, BlockDB::New)
 
   COMPONENT(FinalizationStateDB, finalization::StateDB, finalization::StateDB::New,
             UnitEInjectorConfiguration,
-            ::Settings,
+            Settings,
             staking::BlockIndexMap,
             staking::ActiveChain)
 
@@ -77,7 +77,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::BlockIndexMap,
             staking::ActiveChain,
             finalization::StateDB,
-            ::BlockDB)
+            BlockDB)
 
   COMPONENT(FinalizationStateProcessor, finalization::StateProcessor, finalization::StateProcessor::New,
             finalization::StateRepository,
@@ -90,17 +90,17 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(StakingRPC, staking::StakingRPC, staking::StakingRPC::New,
             staking::ActiveChain,
-            ::BlockDB)
+            BlockDB)
 
-  COMPONENT(TxPool, ::TxPool, ::TxPool::New);
+  COMPONENT(TxPool, TxPool, TxPool::New);
 
   COMPONENT(GrapheneReceiver, p2p::GrapheneReceiver, p2p::GrapheneReceiver::New,
-            ::ArgsManager,
-            ::TxPool);
+            ArgsManager,
+            TxPool);
 
   COMPONENT(GrapheneSender, p2p::GrapheneSender, p2p::GrapheneSender::New,
-            ::ArgsManager,
-            ::TxPool);
+            ArgsManager,
+            TxPool);
 
 #ifdef ENABLE_WALLET
 
@@ -125,7 +125,7 @@ class UnitEInjector : public Injector<UnitEInjector> {
             staking::StakeValidator)
 
   COMPONENT(Proposer, proposer::Proposer, proposer::Proposer::New,
-            ::Settings,
+            Settings,
             blockchain::Behavior,
             proposer::MultiWallet,
             staking::Network,
