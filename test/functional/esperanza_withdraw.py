@@ -247,10 +247,11 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         assert_equal(proposer.getblockcount(), 103)
         wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'NOT_VALIDATING',
                    timeout=5)
-        finalizer1.deposit(finalizer1.getnewaddress('', 'legacy'), 1500)
+        deposit = finalizer1.deposit(finalizer1.getnewaddress('', 'legacy'), 1500)
         wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_CONFIRMATION',
                    timeout=5)
 
+        self.wait_for_transaction(deposit, timeout=10, nodes=[proposer, finalizer1])
         proposer.generate(1)
         sync_blocks([proposer, finalizer1], timeout=10)
         assert_equal(proposer.getblockcount(), 104)
