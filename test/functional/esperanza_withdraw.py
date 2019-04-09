@@ -243,16 +243,16 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         self.log.info('finalizer1 was able to spend withdraw commit')
 
         # Test that after withdraw the node can deposit again
-        sync_blocks([proposer, finalizer1])
+        sync_blocks([proposer, finalizer1], timeout=10)
         assert_equal(proposer.getblockcount(), 103)
         wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'NOT_VALIDATING',
                    timeout=5)
-        finalizer1.deposit(finalizer1.getnewaddress("", "legacy"), 1500)
+        finalizer1.deposit(finalizer1.getnewaddress('', 'legacy'), 1500)
         wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_CONFIRMATION',
                    timeout=5)
 
         proposer.generate(1)
-        sync_blocks([proposer, finalizer1])
+        sync_blocks([proposer, finalizer1], timeout=10)
         assert_equal(proposer.getblockcount(), 104)
 
         wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'WAITING_DEPOSIT_FINALIZATION',
