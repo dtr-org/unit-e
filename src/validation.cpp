@@ -593,14 +593,6 @@ static bool ContextualCheckFinalizerCommit(const CTransaction &tx, CValidationSt
                                            const CCoinsView &view) {
     const auto log_cat = GetTransactionLogCategory(tx);
     LogPrint(log_cat, "Checking %s with id %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex());
-    if (tx.IsVote()) {
-        if (!esperanza::CheckVoteTx(tx, err_state, /*vote_out=*/nullptr, /*vote_sig_out=*/nullptr)) {
-            return false;
-        }
-        if (!finalization::RecordVote(tx, err_state, tip_fin_state)) {
-            return false;
-        }
-    }
     if (!esperanza::ContextualCheckFinalizerCommit(tx, err_state, fin_state, view)) {
         LogPrint(log_cat, "ERROR: %s (%s) check failed: %s\n", tx.GetType()._to_string(), tx.GetHash().GetHex(),
                  err_state.GetRejectReason());
@@ -616,6 +608,14 @@ static bool ContextualCheckBlockFinalizerCommits(const CBlock &block,
                                                  const CCoinsView &view) {
     for (const auto &tx : block.vtx) {
         if (tx->IsFinalizerCommit()) {
+            if (tx->IsVote()) {
+              if (!esperanza::CheckVoteTx(*tx, err_state, /*vote_out=*/nullptr, /*vote_sig_out=*/nullptr)) {
+                return false;
+              }
+              if (!finalization::RecordVote(*tx, err_state, tip_fin_state)) {
+                return false;
+              }
+            }
             if (!::ContextualCheckFinalizerCommit(*tx, err_state, fin_state, tip_fin_state, view)) {
                 return false;
             }
@@ -673,6 +673,17 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     // is it already in the memory pool?
     if (pool.exists(hash)) {
         return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
+    }
+
+    const finalization::FinalizationState *fin_state =
+      GetComponent<finalization::StateRepository>()->GetTipState();
+    if (tx.IsVote()) {
+        if (!esperanza::CheckVoteTx(tx, state, /*vote_out=*/nullptr, /*vote_sig_out=*/nullptr)) {
+            return false; // state already filled by CheckVoteTx
+        }
+        if (!finalization::RecordVote(tx, state, *fin_state)) {
+            return false; // state already filled by RecordVote
+        }
     }
 
     // Check for conflicts with in-memory transactions
@@ -756,11 +767,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
         }
 
-        const finalization::FinalizationState *fin_state =
-            GetComponent<finalization::StateRepository>()->GetTipState();
         assert(fin_state != nullptr);
         if (tx.IsFinalizerCommit() &&
-            !::ContextualCheckFinalizerCommit(tx, state, *fin_state, view)) {
+            !::ContextualCheckFinalizerCommit(tx, state, *fin_state, *fin_state, view)) {
           return false; // state already filled by ContextualCheckFinalizerTx
         }
 
