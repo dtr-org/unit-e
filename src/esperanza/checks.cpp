@@ -286,7 +286,7 @@ bool ContextualCheckWithdrawTx(const CTransaction &tx, CValidationState &err_sta
   txnouttype prev_type_ret;
   if (!Solver(prev_out_script, prev_type_ret, prev_solutions)) {
     return err_state.DoS(100, false, REJECT_INVALID,
-                         "bad-logout-script-not-solvable");
+                         "bad-withdraw-script-not-solvable");
   }
 
   const Result res = fin_state.ValidateWithdraw(validator_address, tx.vout[0].nValue);
