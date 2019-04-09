@@ -16,7 +16,7 @@ Parameters Parameters::Base() noexcept {
 
   p.block_stake_timestamp_interval_seconds = 4;
   p.block_time_seconds = 16;
-  p.difficulty_adjustment_window = 128;
+  p.difficulty_adjustment_factor = 128;
   p.max_future_block_time_seconds = 2 * 60 * 60;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
@@ -42,30 +42,30 @@ Parameters Parameters::Base() noexcept {
     }
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
   };
-  p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
-    if (h < 2) {
+  p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
+    if (height < 2) {
       return p.genesis_block.block.nBits;
     }
 
-    const CBlockIndex *window_end = chain.AtHeight(h - 1);
-    const CBlockIndex *window_start = chain.AtHeight(h - 2);
+    const CBlockIndex *window_end = chain.AtHeight(height - 1);
+    const CBlockIndex *window_start = chain.AtHeight(height - 2);
 
-    const blockchain::Time time_diff_over_window = window_end->nTime - window_start->nTime;
+    const blockchain::Time prev_block_time = window_end->nTime - window_start->nTime;
 
     arith_uint256 prev_target;
     prev_target.SetCompact(window_end->nBits);
 
-    const arith_uint256 nominator = (p.difficulty_adjustment_window - 1) * p.block_time_seconds + time_diff_over_window + time_diff_over_window;
-    const arith_uint256 denominator = (p.difficulty_adjustment_window + 1) * p.block_time_seconds;
+    const arith_uint256 nominator = (p.difficulty_adjustment_factor - 1) * p.block_time_seconds + prev_block_time + prev_block_time;
+    const arith_uint256 denominator = (p.difficulty_adjustment_factor + 1) * p.block_time_seconds;
 
     arith_uint256 next_target = prev_target * nominator;
     assert(nominator != 0 && (next_target / nominator == prev_target) && "Integer overflow detected");
 
     next_target /= denominator;
 
-    const arith_uint256 max_difficulty = UintToArith256(p.max_difficulty);
-    if (next_target > max_difficulty) {
-      next_target = max_difficulty;
+    const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
+    if (next_target > max_difficulty_value) {
+      next_target = max_difficulty_value;
     }
 
     return next_target.GetCompact();
@@ -121,7 +121,7 @@ Parameters Parameters::TestNet() noexcept {
   p.default_settings.p2p_port = 17182;
   p.data_dir_suffix = "testnet";
 
-  p.max_difficulty = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+  p.max_difficulty_value = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
   return p;
 }
@@ -155,7 +155,7 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.finalizer_vote_from_epoch_block_number = 1;
   p.data_dir_suffix = "regtest";
 
-  p.max_difficulty = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+  p.max_difficulty_value = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
   return p;
 }

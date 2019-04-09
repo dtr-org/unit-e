@@ -57,22 +57,22 @@ BOOST_AUTO_TEST_CASE(reward_function_test) {
   BOOST_CHECK_EQUAL(0, block_reward);
 }
 
-class ActiveChainWithTime : public blockchain::ChainAccess {
+class ActiveChainWithTime : public ChainAccess {
  public:
   ActiveChainWithTime(const CBlock &genesis) {
     m_chain.emplace_back(MakeUnique<CBlockIndex>(genesis));
   }
 
-  const CBlockIndex *AtDepth(const blockchain::Depth depth) const override {
+  const CBlockIndex *AtDepth(const Depth depth) const override {
     assert(not("Not supported"));
   }
 
-  const CBlockIndex *AtHeight(const blockchain::Height height) const override {
+  const CBlockIndex *AtHeight(const Height height) const override {
     return m_chain[height].get();
   }
 
-  void Append(const blockchain::Difficulty difficulty,
-              const blockchain::Time time_taken_to_mine) {
+  void Append(const Difficulty difficulty,
+              const Time time_taken_to_mine) {
 
     const CBlockIndex *prev_index = m_chain.back().get();
 
@@ -89,77 +89,75 @@ class ActiveChainWithTime : public blockchain::ChainAccess {
 
 BOOST_AUTO_TEST_CASE(generic_difficulty_function_test) {
 
-  Parameters params = blockchain::Parameters::TestNet();
+  Parameters params = Parameters::TestNet();
 
   const CBlock &genesis = params.genesis_block.block;
 
   ActiveChainWithTime chain(genesis);
 
-  blockchain::Height h = 0;
+  Height h = 0;
 
   BOOST_CHECK_EQUAL(genesis.nBits, params.difficulty_function(params, h, chain));
 
   {
     // Ideal block time => no change in difficulty
     ++h;
-    blockchain::Difficulty difficulty_before = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_before = params.difficulty_function(params, h, chain);
     for (; h < 250; ++h) {
       chain.Append(params.difficulty_function(params, h, chain), params.block_time_seconds);
     }
-    blockchain::Difficulty difficulty_after = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_after = params.difficulty_function(params, h, chain);
     BOOST_CHECK_EQUAL(difficulty_before, difficulty_after);
   }
 
   {
     // block time decreases => difficulty value should decrease
-    blockchain::Difficulty difficulty_before = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_before = params.difficulty_function(params, h, chain);
     for (; h < 500; ++h) {
       chain.Append(params.difficulty_function(params, h, chain), params.block_time_seconds - 1);
     }
-    blockchain::Difficulty difficulty_after = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_after = params.difficulty_function(params, h, chain);
     BOOST_CHECK_LT(difficulty_after, difficulty_before);
   }
 
   {
     // Ideal block time => difficulty should not change
-    blockchain::Difficulty difficulty_before = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_before = params.difficulty_function(params, h, chain);
     for (; h < 750; ++h) {
       chain.Append(params.difficulty_function(params, h, chain), params.block_time_seconds);
     }
-    blockchain::Difficulty difficulty_after = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_after = params.difficulty_function(params, h, chain);
     BOOST_CHECK_EQUAL(difficulty_before, difficulty_after);
   }
 
   {
     // block time increases => difficulty value should increase
-    blockchain::Difficulty difficulty_before = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_before = params.difficulty_function(params, h, chain);
     for (; h < 1000; ++h) {
       chain.Append(params.difficulty_function(params, h, chain), params.block_time_seconds + 1);
     }
-    blockchain::Difficulty difficulty_after = params.difficulty_function(params, h, chain);
+    const Difficulty difficulty_after = params.difficulty_function(params, h, chain);
     BOOST_CHECK_GT(difficulty_after, difficulty_before);
   }
 }
 
 BOOST_AUTO_TEST_CASE(difficulty_function_max_test) {
 
-  const uint256 max_difficulty = uint256S("000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-  const arith_uint256 almost_max_difficulty = UintToArith256(max_difficulty) - 1;
+  const uint256 max_difficulty_value = uint256S("000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+  const arith_uint256 almost_max_difficulty_value = UintToArith256(max_difficulty_value) - 1;
 
-  Parameters params = blockchain::Parameters::TestNet();
-  params.max_difficulty = max_difficulty;
+  Parameters params = Parameters::TestNet();
+  params.max_difficulty_value = max_difficulty_value;
   CBlock &genesis = params.genesis_block.block;
-  genesis.nBits = almost_max_difficulty.GetCompact();
+  genesis.nBits = almost_max_difficulty_value.GetCompact();
 
   ActiveChainWithTime chain(genesis);
 
-  for (blockchain::Height h = 1; h < 10; ++h) {
-    const blockchain::Difficulty new_difficulty = params.difficulty_function(params, h, chain);
+  for (Height h = 1; h < 10; ++h) {
+    const Difficulty new_difficulty = params.difficulty_function(params, h, chain);
     chain.Append(new_difficulty, params.block_time_seconds * 2);
-    BOOST_CHECK_LE(UintToArith256(max_difficulty).GetCompact(), new_difficulty);
+    BOOST_CHECK_EQUAL(UintToArith256(max_difficulty_value).GetCompact(), new_difficulty);
   }
-
-  BOOST_CHECK_EQUAL(UintToArith256(max_difficulty).GetCompact(), params.difficulty_function(params, 10, chain));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

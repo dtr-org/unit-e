@@ -108,8 +108,10 @@ struct Parameters {
   //! \brief frequency of blocks (a block time of 37 secs is one block every 37 secs)
   std::uint32_t block_time_seconds;
 
-  //! \brief number of blocks taken into account when calculating difficulty adjustment
-  std::uint32_t difficulty_adjustment_window;
+  //! \brief Controls how fast difficulty adjusts
+  //!
+  //! The bigger the value - the slower adjustment
+  std::uint32_t difficulty_adjustment_factor;
 
   //! \brief maximum time drift that a block is allowed to have with respect to the current time.
   std::uint32_t max_future_block_time_seconds;
@@ -187,8 +189,8 @@ struct Parameters {
   //! (and should) be given as a pure lambda function.
   DifficultyFunction difficulty_function;
 
-  //! \brief Maximum allowed difficulty
-  uint256 max_difficulty;
+  //! \brief Maximum allowed difficulty value
+  uint256 max_difficulty_value;
 
   //! \brief Whether to allow the "generatetoaddress" and "generate" RPC calls.
   bool mine_blocks_on_demand;
