@@ -18,6 +18,7 @@
 #include <primitives/txtype.h>
 #include <scheduler.h>
 #include <script/standard.h>
+#include <staking/active_chain.h>
 #include <util.h>
 #include <validation.h>
 #include <wallet/coincontrol.h>
@@ -498,11 +499,15 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
   return true;
 }
 
-void WalletExtension::VoteIfNeeded(const FinalizationState &state) {
-
+void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockchain::Height height) {
   assert(validatorState);
   ValidatorState &validator = validatorState.get();
   ValidatorStateWatchWriter validator_writer(*this);
+
+  const uint32_t block_number = height % state.GetEpochLength();
+  if (block_number < m_dependencies.GetSettings().finalizer_vote_from_epoch_block_number) {
+    return;
+  }
 
   const uint32_t dynasty = state.GetCurrentDynasty();
 
@@ -743,7 +748,8 @@ void WalletExtension::BlockConnected(
       case ValidatorState::Phase::IS_VALIDATING: {
         // In case we are logged out, stop validating.
         LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-        const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
+        const CBlockIndex *tip_block_index = m_dependencies.GetActiveChain().GetTip();
+        const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().Find(*tip_block_index);
         assert(fin_state);
 
         uint32_t currentDynasty = fin_state->GetCurrentDynasty();
@@ -752,7 +758,7 @@ void WalletExtension::BlockConnected(
           validatorState.get().m_phase = ValidatorState::Phase::NOT_VALIDATING;
           WriteValidatorStateToFile();
         } else if (!IsInitialBlockDownload()) {
-          VoteIfNeeded(*fin_state);  // responsible to write validator state
+          VoteIfNeeded(*fin_state, tip_block_index->nHeight);  // responsible to write validator state
         }
 
         break;

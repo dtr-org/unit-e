@@ -46,5 +46,8 @@ std::unique_ptr<Settings> Settings::New(
   }
   settings->data_dir = settings->base_data_dir / blockchain_behavior->GetParameters().data_dir_suffix;
 
+  settings->finalizer_vote_from_epoch_block_number =
+      args->GetArg("-finalizervotefromepochblocknumber", settings->finalizer_vote_from_epoch_block_number);
+
   return settings;
 }

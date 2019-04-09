@@ -5,6 +5,7 @@
 """
 EsperanzaVoteTest checks:
 1. all finalizers are able to vote after every block
+2. finalizers delay voting according to -finalizervotefromepochblocknumber
 """
 from test_framework.util import (
     assert_equal,
@@ -20,20 +21,12 @@ class EsperanzaVoteTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 4
 
-        esperanza_config = '-esperanzaconfig={"epochLength":5,"minDepositSize":1500}'
-        finalizer_node_params = [
-            '-validating=1',
-            '-debug=all',
-            '-whitelist=127.0.0.1',
-            esperanza_config,
+        self.extra_args = [
+            [],
+            ['-validating=1'],
+            ['-validating=1'],
+            ['-validating=1'],
         ]
-        proposer_node_params = ['-debug=all', '-whitelist=127.0.0.1', esperanza_config]
-
-        self.extra_args = [proposer_node_params,
-                           finalizer_node_params,
-                           finalizer_node_params,
-                           finalizer_node_params,
-                           ]
         self.setup_clean_chain = True
 
     def setup_network(self):
@@ -94,14 +87,64 @@ class EsperanzaVoteTest(UnitETestFramework):
         self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
         assert_equal(len(node0.getrawmempool()), 3)
 
-        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        node0.generatetoaddress(4, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 30)
         assert_finalizationstate(node0, {'currentDynasty': 3,
                                          'currentEpoch': 6,
                                          'lastJustifiedEpoch': 5,
                                          'lastFinalizedEpoch': 4,
                                          'validators': 3})
-        self.log.info('Finalizers voted a'
-                      'fter first block of new epoch')
+        self.log.info('Finalizers voted after first block of new epoch')
+
+        # test that finalizers can vote on a configured epoch block number
+        self.restart_node(finalizer1.index, ['-validating=1', '-finalizervotefromepochblocknumber=1'])
+        self.restart_node(finalizer2.index, ['-validating=1', '-finalizervotefromepochblocknumber=2'])
+        self.restart_node(finalizer3.index, ['-validating=1', '-finalizervotefromepochblocknumber=3'])
+
+        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 31)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
+        connect_nodes(finalizer2, node0.index)
+        connect_nodes(finalizer3, node0.index)
+        sync_blocks([finalizer2, finalizer3, node0], timeout=10)
+        assert_equal(len(node0.getrawmempool()), 1)  # no votes from finalizer2 and finalizer3
+        disconnect_nodes(finalizer2, node0.index)
+        disconnect_nodes(finalizer3, node0.index)
+
+        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 32)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
+        connect_nodes(finalizer3, node0.index)
+        sync_blocks([finalizer3, node0], timeout=10)
+        assert_equal(len(node0.getrawmempool()), 1)  # no votes from finalizer3
+        disconnect_nodes(finalizer3, node0.index)
+
+        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 33)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
+        node0.generatetoaddress(2, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 35)
+        assert_finalizationstate(node0, {'currentDynasty': 4,
+                                         'currentEpoch': 7,
+                                         'lastJustifiedEpoch': 6,
+                                         'lastFinalizedEpoch': 5,
+                                         'validators': 3})
+        self.log.info('Finalizers voted on a configured block number')
+
+        # test that finalizers can vote after configured epoch block number
+        node0.generatetoaddress(4, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 39)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=node0)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=node0)
+        self.wait_for_vote_and_disconnect(finalizer=finalizer3, node=node0)
+        node0.generatetoaddress(1, node0.getnewaddress('', 'bech32'))
+        assert_equal(node0.getblockcount(), 40)
+        assert_finalizationstate(node0, {'currentDynasty': 5,
+                                         'currentEpoch': 8,
+                                         'lastJustifiedEpoch': 7,
+                                         'lastFinalizedEpoch': 6,
+                                         'validators': 3})
+        self.log.info('Finalizers voted after configured block number')
 
         # UNIT-E TODO: there is a know issue https://github.com/dtr-org/unit-e/issues/643
         # that finalizer doesn't vote after processing the checkpoint.

@@ -248,11 +248,9 @@ void FinalizerCommitsHandlerImpl::OnGetCommits(
     const size_t response_size = GetSerializeSize(response_copy, SER_NETWORK, PROTOCOL_VERSION);
     if (response_size >= MAX_PROTOCOL_MESSAGE_LENGTH) {
       response.status = FinalizerCommitsResponse::Status::LengthExceeded;
-      LogPrint(BCLog::NET, "Send %d headers+commits, status = %d\n",
+      LogPrint(BCLog::NET, "Send %d headers+commits, status=%d\n",
                response.data.size(), static_cast<uint8_t>(response.status));
       PushMessage(node, NetMsgType::COMMITS, std::move(response));
-      // Stakoverflow driven development is here!
-      // https://stackoverflow.com/questions/7027523
       response = FinalizerCommitsResponse();
     } else {
       response = std::move(response_copy);
@@ -264,9 +262,8 @@ void FinalizerCommitsHandlerImpl::OnGetCommits(
     return;
   }
 
-  LogPrint(BCLog::NET, "Send %d headers+commits, status = %d\n",
+  LogPrint(BCLog::NET, "Send %d headers+commits, status=%d\n",
            response.data.size(), static_cast<uint8_t>(response.status));
-
   PushMessage(node, NetMsgType::COMMITS, std::move(response));
 }
 
@@ -377,7 +374,7 @@ bool FinalizerCommitsHandlerImpl::OnCommits(
       }
 
       if (!m_proc->ProcessNewCommits(*new_index, d.commits)) {
-        return err(10, "bad-commits", d.header.GetHash());
+        return false;
       }
 
       to_append.emplace_back(new_index);
