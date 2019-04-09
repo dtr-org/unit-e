@@ -4,6 +4,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+export LC_ALL=C
 
 DOCKER_EXEC echo \> \$HOME/.unite  # Make sure default datadir does not exist and is never read by creating a dummy file
 
