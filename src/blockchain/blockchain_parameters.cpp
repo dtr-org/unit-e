@@ -52,11 +52,16 @@ Parameters Parameters::Base() noexcept {
 
     const blockchain::Time time_diff_over_window = window_end->nTime - window_start->nTime;
 
-    arith_uint256 next_target;
-    next_target.SetCompact(window_end->nBits);
+    arith_uint256 prev_target;
+    prev_target.SetCompact(window_end->nBits);
 
-    next_target *= (p.difficulty_adjustment_window - 1) * p.block_time_seconds + time_diff_over_window + time_diff_over_window;
-    next_target /= (p.difficulty_adjustment_window + 1) * p.block_time_seconds;
+    const arith_uint256 nominator = (p.difficulty_adjustment_window - 1) * p.block_time_seconds + time_diff_over_window + time_diff_over_window;
+    const arith_uint256 denominator = (p.difficulty_adjustment_window + 1) * p.block_time_seconds;
+
+    arith_uint256 next_target = prev_target * nominator;
+    assert(nominator != 0 && (next_target / nominator == prev_target) && "Integer overflow detected");
+
+    next_target /= denominator;
 
     const arith_uint256 max_difficulty = UintToArith256(p.max_difficulty);
     if (next_target > max_difficulty) {
