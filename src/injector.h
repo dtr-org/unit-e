@@ -71,7 +71,8 @@ class UnitEInjector : public Injector<UnitEInjector> {
             UnitEInjectorConfiguration,
             ::Settings,
             staking::BlockIndexMap,
-            staking::ActiveChain)
+            staking::ActiveChain,
+            ::ArgsManager)
 
   COMPONENT(FinalizationStateRepository, finalization::StateRepository, finalization::StateRepository::New,
             staking::BlockIndexMap,

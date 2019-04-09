@@ -3,7 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """
-Test running united with -reindex options and with finalization transactions
+Test running unit-e with -reindex options and with finalization transactions
 - Start a pair of nodes - validator and proposer
 - Run a validator for some time
 - Restart both nodes and check if finalization can continue with restarted state
@@ -20,7 +20,7 @@ from test_framework.util import (
 )
 
 MIN_DEPOSIT = 1500
-EPOCH_LENGTH = 10
+EPOCH_LENGTH = 5
 
 
 class FeatureReindexCommits(UnitETestFramework):
@@ -70,8 +70,8 @@ class FeatureReindexCommits(UnitETestFramework):
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
-            count=10)
-        assert_equal(len(votes), 10)
+            count=2)
+        assert_equal(len(votes), 2)
 
         self.restart_nodes(True)
         self.assert_finalizer_status('IS_VALIDATING')
@@ -79,8 +79,8 @@ class FeatureReindexCommits(UnitETestFramework):
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
-            count=10)
-        assert_equal(len(votes), 10)
+            count=2)
+        assert_equal(len(votes), 2)
 
         self.restart_nodes(False)
         self.assert_finalizer_status('IS_VALIDATING')
@@ -91,11 +91,11 @@ class FeatureReindexCommits(UnitETestFramework):
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
-            count=10)
-        assert_equal(len(votes), 10)
+            count=2)
+        assert_equal(len(votes), 2)
 
         assert_equal(
-            last_fin_epoch + 10,
+            last_fin_epoch + 2,
             self.finalizer.getfinalizationstate()['lastFinalizedEpoch'])
 
     def generate_deposit(self):
