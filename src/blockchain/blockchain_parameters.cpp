@@ -55,11 +55,11 @@ Parameters Parameters::Base() noexcept {
     arith_uint256 prev_target;
     prev_target.SetCompact(window_end->nBits);
 
-    const arith_uint256 nominator = (p.difficulty_adjustment_factor - 1) * p.block_time_seconds + prev_block_time + prev_block_time;
+    const arith_uint256 numerator = (p.difficulty_adjustment_factor - 1) * p.block_time_seconds + prev_block_time + prev_block_time;
     const arith_uint256 denominator = (p.difficulty_adjustment_factor + 1) * p.block_time_seconds;
 
-    arith_uint256 next_target = prev_target * nominator;
-    assert(nominator != 0 && (next_target / nominator == prev_target) && "Integer overflow detected");
+    arith_uint256 next_target = prev_target * numerator;
+    assert(numerator != 0 && (next_target / numerator == prev_target) && "Integer overflow detected");
 
     next_target /= denominator;
 
