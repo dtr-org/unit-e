@@ -2563,7 +2563,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
 
 bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlockIndex *block_index, const CBlock *block) {
     // `ReceivedBlockTransactions()` is responsible to call this function for blocks in a correct order.
-    if (block_index == nullptr || block_index->pprev == nullptr) {
+    if (block_index == nullptr) {
         return true;
     }
 
@@ -2574,28 +2574,37 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
         return error("Block %s is invalid", block_index->GetBlockHash().GetHex());
     }
 
-    if (!block_index->pprev->IsValid()) {
+    if (block_index->pprev != nullptr && !block_index->pprev->IsValid()) {
         return error("Ancestor (%s -> %s) is invalid", block_index->pprev->GetBlockHash().GetHex(), block_index->GetBlockHash().GetHex());
     }
 
     auto state_processor = GetComponent<finalization::StateProcessor>();
 
-    bool ok = false;
-    if (block != nullptr) {
-        ok = state_processor->ProcessNewTipCandidate(*block_index, *block);
-    } else {
+    CBlock block_data;
+    if (block == nullptr) {
         LogPrintf("Read %s from the disk\n", block_index->GetBlockHash().GetHex());
-        CBlock block;
-        if (!ReadBlockFromDisk(block, block_index, params)) {
+        block = &block_data;
+        if (!ReadBlockFromDisk(block_data, block_index, params)) {
             return error("Cannot read from the disk");
         }
-        ok = state_processor->ProcessNewTipCandidate(*block_index, block);
     }
+
+    const bool ok = state_processor->ProcessNewTipCandidate(*block_index, *block);
     if (ok) {
         UpdateLastJustifiedEpoch(block_index);
     } else {
         return error("finalization::cache::ProcessNewTip failed");
     }
+
+    if (!block_index->commits) {
+        block_index->commits = std::vector<CTransactionRef>();
+        for (const auto &tx : block->vtx) {
+            if (tx->IsFinalizerCommit()) {
+                (*block_index->commits).emplace_back(tx);
+            }
+        }
+    }
+
     return true;
 }
 
@@ -4654,6 +4663,9 @@ void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)
             // If we have pruned, then we can only say that HAVE_DATA implies nTx > 0
             if (pindex->nStatus & BLOCK_HAVE_DATA) assert(pindex->nTx > 0);
         }
+        // If we have data, we must have commits in CBlockIndex
+        if (pindex->nStatus & BLOCK_HAVE_DATA) assert(static_cast<bool>(pindex->commits));
+
         if (pindex->nStatus & BLOCK_HAVE_UNDO) assert(pindex->nStatus & BLOCK_HAVE_DATA);
         assert(((pindex->nStatus & BLOCK_VALID_MASK) >= BLOCK_VALID_TRANSACTIONS) == (pindex->nTx > 0)); // This is pruning-independent.
         // All parents having had data (at some point) is equivalent to all parents being VALID_TRANSACTIONS, which is equivalent to nChainTx being set.
