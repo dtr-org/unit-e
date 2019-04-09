@@ -164,7 +164,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         assert_equal(finalizer.getblockcount(), 43)
         assert_equal(len(fork0.getrawmempool()), 0)
         disconnect_nodes(finalizer, fork0.index)
-        self.log.info('finalizer successfully detected potential surrounded vote and did not vote')
+        self.log.info('finalizer successfully detected potential two consecutive double votes and did not vote')
 
         # check that finalizer can vote from next epoch on fork0
         #       J                 v1                          v4
