@@ -68,9 +68,8 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
       continue;
     }
 
-    // ActiveChainAdapter#GetDepth starts count from 1, not from 0.
-    blockchain::Height height = static_cast<blockchain::Height>(containing_block->nHeight + 1);
-    if (!GetComponent<staking::StakeValidator>()->IsStakeMature(height)) {
+    blockchain::Height height = static_cast<blockchain::Height>(containing_block->nHeight);
+    if (!m_dependencies.GetStakeValidator().IsStakeMature(height)) {
       continue;
     }
 

@@ -8,6 +8,7 @@
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
 #include <consensus/merkle.h>
+#include <test/test_unite_mocks.h>
 
 WalletTestingSetup::WalletTestingSetup(const std::string& chainName)
     : WalletTestingSetup([](Settings& s){}, chainName) {}
@@ -23,7 +24,7 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
     std::unique_ptr<CWalletDBWrapper> dbw(new CWalletDBWrapper(&bitdb, "wallet_test.dat"));
 
     f(settings);
-    esperanza::WalletExtensionDeps deps;
+    esperanza::WalletExtensionDeps deps(&stake_validator_mock);
     deps.settings = &settings;
 
     pwalletMain = MakeUnique<CWallet>(deps, std::move(dbw));

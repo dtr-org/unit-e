@@ -7,6 +7,7 @@
 
 #include <dependency.h>
 #include <settings.h>
+#include <staking/stake_validator.h>
 
 class UnitEInjector;
 
@@ -14,9 +15,21 @@ namespace esperanza {
 
 struct WalletExtensionDeps {
   Dependency<Settings> settings;
+  Dependency<staking::StakeValidator> m_stake_validator;
 
   WalletExtensionDeps() noexcept;
   explicit WalletExtensionDeps(const UnitEInjector &) noexcept;
+
+  //! \brief Constructor for testing only.
+  //!
+  //! \param settings A pointer to mocked stake validator.
+  WalletExtensionDeps(Dependency<staking::StakeValidator> stake_validator) noexcept;
+
+  staking::StakeValidator &GetStakeValidator() const {
+    assert(m_stake_validator != nullptr &&
+           "staking::StakeValidator not available: test-only wallet extension used in production");
+    return *m_stake_validator;
+  }
 };
 
 }  // namespace esperanza
