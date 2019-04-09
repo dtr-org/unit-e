@@ -106,7 +106,7 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
         # Create some blocks and cause finalizer to vote, then take the vote and send it to
         # finalizer2, when finalizer2 will vote it should not slash itself
         #                                      v1          v2a
-        #                                    - e6 - e7[31, 32, 33] fork1
+        #                                    - e6 - e7[31, 32, 33] - e8[36] fork1
         # F    F    F    F    F    F    J   /
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
         #                                   \  v1          v2a
@@ -114,7 +114,7 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
         fork1.generate(1)
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         fork1.generate(5)
-        raw_vote = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
+        raw_vote_1 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         fork1.generate(1)
         assert_equal(fork1.getblockcount(), 33)
         assert_finalizationstate(fork1, {'currentEpoch': 7,
@@ -122,7 +122,18 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
                                          'lastFinalizedEpoch': 5,
                                          'validators': 1})
 
-        assert_raises_rpc_error(-26, " bad-vote-invalid-state", finalizer2.sendrawtransaction, raw_vote)
+        # We'll use a second vote to check if there is slashing when a validator tries to send a double vote after it
+        # voted.
+        fork1.generate(3)
+        raw_vote_2 = self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
+        assert_equal(fork1.getblockcount(), 36)
+        assert_finalizationstate(fork1, {'currentEpoch': 8,
+                                         'lastJustifiedEpoch': 6,
+                                         'lastFinalizedEpoch': 5,
+                                         'validators': 1})
+
+        # Send the conflicting vote from the other chain to finalizer2, it should record it and slash it later
+        assert_raises_rpc_error(-26, " bad-vote-invalid-state", finalizer2.sendrawtransaction, raw_vote_1)
 
         fork2.generate(1)
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
@@ -144,6 +155,24 @@ class EsperanzaSelfSlashTest(UnitETestFramework):
 
         fork2.generate(1)
         assert_equal(len(fork2.getrawmempool()), 0)
+        disconnect_nodes(finalizer2, fork2.index)
+
+        # check if there is slashing after voting
+        fork2.generate(3)
+        assert_equal(fork2.getblockcount(), 36)
+        assert_finalizationstate(fork2, {'currentEpoch': 8,
+                                         'lastJustifiedEpoch': 6,
+                                         'lastFinalizedEpoch': 5,
+                                         'validators': 1})
+
+        self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork2)
+
+        assert_raises_rpc_error(-26, " bad-vote-invalid-state", finalizer2.sendrawtransaction, raw_vote_2)
+
+        # The vote hasn't been replaces by a slash
+        vote = finalizer2.decoderawtransaction(finalizer2.getrawtransaction(finalizer2.getrawmempool()[0]))
+        assert_equal(vote['txtype'], TxType.VOTE.value)
+
 
     def run_test(self):
         self.test_double_votes()
