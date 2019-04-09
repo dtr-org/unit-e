@@ -29,7 +29,7 @@ BETTER_ENUM(
 
 class ValidatorState {
  public:
-  typedef _Phase Phase;
+  using Phase = _Phase;
 
   Phase m_phase = Phase::NOT_VALIDATING;
   uint160 m_validator_address = uint160S("0");
@@ -43,7 +43,7 @@ class ValidatorState {
   uint32_t m_start_dynasty = std::numeric_limits<uint32_t>::max();
 
   inline bool IsNew() const {
-    return m_validator_address == uint160S("0");
+    return m_validator_address.IsNull();
   }
 
   ADD_SERIALIZE_METHODS
