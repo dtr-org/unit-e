@@ -227,7 +227,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
 {
     if (nSpendHeight == 0) {
         // the genesis block does not have any inputs and does not spend anything.
-        // it does create the initial stake in thes system though and would fail
+        // it does create the initial stake in the system though and would fail
         // validation with bad-cb-spends-too-much.
         return true;
     }
