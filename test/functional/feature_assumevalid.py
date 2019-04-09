@@ -116,7 +116,7 @@ class AssumeValidTest(UnitETestFramework):
         self.nodes[0].sendtypeto('', '', outputs)
 
         self.nodes[0].importmasterkey(regtest_mnemonics[1]['mnemonics'])
-        self.nodes[0].generate(1)[0]
+        self.nodes[0].generate(1)
 
         self.coins_to_stake = [x for x in self.nodes[0].listunspent() if x['amount'] == 1]
 
