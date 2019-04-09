@@ -510,7 +510,10 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 }
 
 void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockchain::Height height) {
+  AssertLockHeld(m_enclosing_wallet.cs_wallet);
+
   assert(validatorState);
+
   ValidatorState &validator = validatorState.get();
   ValidatorStateWatchWriter validator_writer(*this);
 
@@ -571,6 +574,8 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockch
 
 bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                const Vote &vote, CWalletTx &wtxNewOut) {
+
+  AssertLockHeld(m_enclosing_wallet.cs_wallet);
 
   assert(validatorState);
 
