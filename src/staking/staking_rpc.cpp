@@ -142,9 +142,10 @@ class StakingRPCImpl : public StakingRPC {
     int current_height = start_height;
 
     for (std::size_t i = 0; i < max_depth; ++i) {
-      if (!current || !current->phashBlock) {
+      if (!current) {
         break;
       }
+      assert(current->phashBlock);
       assert(current->nHeight == current_height && "computed height and stored height mismatch");
       const std::size_t current_ix = current_height - offset;
       const boost::optional<CBlock> block = m_block_db->ReadBlock(*current);
