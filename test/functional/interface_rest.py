@@ -14,7 +14,12 @@ from struct import pack, unpack
 import http.client
 import urllib.parse
 
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, BLOCK_HEADER_LENGTH
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+    BLOCK_HEADER_LENGTH,
+    DISABLE_FINALIZATION,
+)
 from test_framework.util import (
     assert_equal,
     assert_greater_than,
@@ -41,7 +46,9 @@ class RESTTest (UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
-        self.extra_args = [["-rest"], [], []]
+        self.extra_args = [
+            ["-rest", DISABLE_FINALIZATION], [DISABLE_FINALIZATION], [DISABLE_FINALIZATION]
+        ]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
