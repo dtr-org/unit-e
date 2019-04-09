@@ -12,15 +12,19 @@ namespace staking {
 class NetworkAdapter : public Network {
 
  public:
-  int64_t GetTime() const override { return GetAdjustedTime(); }
+  blockchain::Time GetAdjustedTime() const override {
+    return static_cast<blockchain::Time>(::GetAdjustedTime());
+  }
 
-  size_t GetNodeCount() const override { return g_connman->GetNodeCount(); }
+  std::size_t GetNodeCount() const override {
+    return g_connman->GetNodeCount();
+  }
 
-  size_t GetInboundNodeCount() const override {
+  std::size_t GetInboundNodeCount() const override {
     return g_connman->GetNodeCount(CConnman::CONNECTIONS_IN);
   }
 
-  size_t GetOutboundNodeCount() const override {
+  std::size_t GetOutboundNodeCount() const override {
     return g_connman->GetNodeCount(CConnman::CONNECTIONS_OUT);
   }
 };

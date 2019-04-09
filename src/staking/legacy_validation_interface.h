@@ -20,10 +20,15 @@ namespace Consensus {
 struct Params;
 }
 
+namespace blockchain {
+class Behavior;
+}
+
 namespace staking {
 
 class ActiveChain;
 class BlockValidator;
+class Network;
 class StakeValidator;
 
 //! \brief Interface which is compatible with "old style" checks.
@@ -104,6 +109,8 @@ class LegacyValidationInterface {
   virtual ~LegacyValidationInterface() = default;
 
   static std::unique_ptr<LegacyValidationInterface> New(
+      Dependency<blockchain::Behavior> blockchain_behavior,
+      Dependency<Network> network,
       Dependency<ActiveChain> active_chain,
       Dependency<BlockValidator> block_validator,
       Dependency<StakeValidator> stake_validator);
@@ -114,6 +121,8 @@ class LegacyValidationInterface {
   //! they are enumerated here such that New() and LegacyImpl() define
   //! the same interface and can be used interchangeably.
   static std::unique_ptr<LegacyValidationInterface> LegacyImpl(
+      Dependency<blockchain::Behavior> blockchain_behavior,
+      Dependency<Network> network,
       Dependency<ActiveChain> active_chain,
       Dependency<BlockValidator> block_validator,
       Dependency<StakeValidator> stake_validator);

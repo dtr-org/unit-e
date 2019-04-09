@@ -25,8 +25,18 @@ struct ValidationError {
         corruption(corruption) {}
 };
 
+
+
 const ValidationError &GetValidationErrorFor(const staking::BlockValidationError error) {
   switch (+error) {
+    case staking::BlockValidationError::BAD_BLOCK_WEIGHT: {
+      static ValidationError err("bad-blk-length");
+      return err;
+    }
+    case staking::BlockValidationError::BAD_TRANSACTION_ORDER: {
+      static ValidationError err("bad-tx-ordering");
+      return err;
+    }
     case staking::BlockValidationError::BLOCK_SIGNATURE_VERIFICATION_FAILED: {
       static ValidationError err("bad-blk-signature");
       return err;
@@ -40,7 +50,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::COINBASE_TRANSACTION_AT_POSITION_OTHER_THAN_FIRST: {
-      static ValidationError err("bad-cb-out-of-order");
+      static ValidationError err("bad-cb-multiple");
       return err;
     }
     case staking::BlockValidationError::COINBASE_TRANSACTION_WITHOUT_OUTPUT: {
@@ -112,7 +122,7 @@ const ValidationError &GetValidationErrorFor(const staking::BlockValidationError
       return err;
     }
     case staking::BlockValidationError::NO_TRANSACTIONS: {
-      static ValidationError err("bad-blk-no-transactions");
+      static ValidationError err("bad-blk-length");
       return err;
     }
     case staking::BlockValidationError::PREVIOUS_BLOCK_DOESNT_MATCH: {

@@ -4,7 +4,10 @@
 
 #include <staking/block_validator.h>
 
+#include <consensus/consensus.h>
 #include <consensus/merkle.h>
+#include <consensus/tx_verify.h>
+#include <consensus/validation.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
 #include <script/script.h>
@@ -162,6 +165,13 @@ class BlockValidatorImpl : public AbstractBlockValidator {
     }
   }
 
+  bool CheckTransactionInternal(
+      const CTransaction& tx
+      ) const {
+    CValidationState validation_state;
+    return CheckTransaction(tx, validation_state);
+  }
+
   void CheckBlockInternal(
       const CBlock &block,             //!< [in] The block to check
       blockchain::Height &height_out,  //!< [out] The height extracted from the scriptSig
@@ -205,13 +215,11 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       result.AddError(Error::MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
-    // check witness merkle root
-    const uint256 expected_witness_merkle_root = BlockWitnessMerkleRoot(block, &duplicate_transactions);
+    // check witness merkle root - does not check for duplicates as checking
+    // the merkle tree check before will already have caught that.
+    const uint256 expected_witness_merkle_root = BlockWitnessMerkleRoot(block);
     if (block.hash_witness_merkle_root != expected_witness_merkle_root) {
       result.AddError(Error::WITNESS_MERKLE_ROOT_MISMATCH);
-    }
-    if (duplicate_transactions) {
-      result.AddError(Error::WITNESS_MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
     if (block.hash_finalizer_commits_merkle_root != BlockFinalizerCommitsMerkleRoot(block)) {

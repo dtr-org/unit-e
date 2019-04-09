@@ -9,6 +9,7 @@
 #include <coins.h>
 #include <finalization/state_db.h>
 #include <staking/active_chain.h>
+#include <staking/block_validator.h>
 #include <staking/block_index_map.h>
 #include <staking/block_validator.h>
 #include <staking/network.h>
@@ -53,7 +54,7 @@ class NetworkMock : public staking::Network {
   mutable std::size_t result_GetInboundNodeCount = 0;
   mutable std::size_t result_GetOutboundNodeCount = 0;
 
-  int64_t GetTime() const override {
+  blockchain::Time GetAdjustedTime() const override {
     ++invocations_GetTime;
     return result_GetTime;
   }
@@ -72,7 +73,7 @@ class NetworkMock : public staking::Network {
 };
 
 class BlockIndexMapMock : public staking::BlockIndexMap {
-public:
+ public:
   bool reverse = false;
 
   CCriticalSection &GetLock() const override { return cs; }
@@ -113,9 +114,10 @@ public:
       delete i.second;
     }
   }
-private:
+
+ private:
   mutable CCriticalSection cs;
-  std::map<uint256, CBlockIndex*> indexes;
+  std::map<uint256, CBlockIndex *> indexes;
 };
 
 class ActiveChainMock : public staking::ActiveChain {
@@ -304,7 +306,8 @@ class CoinsViewMock : public AccessibleCoinsView {
 
 class StateDBMock : public finalization::StateDB {
   using FinalizationState = finalization::FinalizationState;
-public:
+
+ public:
   mutable std::atomic<std::uint32_t> invocations_Save{0};
   mutable std::atomic<std::uint32_t> invocations_Load{0};
   mutable std::atomic<std::uint32_t> invocations_LoadParticular{0};
@@ -348,7 +351,7 @@ public:
 };
 
 class BlockDBMock : public ::BlockDB {
-public:
+ public:
   mutable std::atomic<std::uint32_t> invocations_ReadBlock{0};
 
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {

@@ -54,7 +54,7 @@ class LogicImpl final : public Logic {
     const blockchain::Height target_height =
         current_height + 1;
     const blockchain::Time target_time =
-        m_blockchain_behavior->CalculateProposingTimestampAfter(m_network->GetTime());
+        m_blockchain_behavior->CalculateProposingTimestampAfter(m_network->GetAdjustedTime());
     const blockchain::Difficulty target_difficulty =
         m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
 

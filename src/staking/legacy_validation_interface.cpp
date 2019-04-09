@@ -4,6 +4,7 @@
 
 #include <staking/legacy_validation_interface.h>
 
+#include <blockchain/blockchain_behavior.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <consensus/merkle.h>
@@ -14,6 +15,7 @@
 #include <primitives/block.h>
 #include <staking/active_chain.h>
 #include <staking/block_validator.h>
+#include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <uint256.h>
 #include <validation.h>
@@ -31,7 +33,7 @@ class LegacyValidationImpl : public LegacyValidationInterface {
       const CBlockHeader &block,
       CValidationState &validation_state,
       const Consensus::Params &consensus_params,
-      bool check_proof_of_work) override {
+      const bool check_proof_of_work) override {
     // This function used to check proof of work only. It will check timestamps in PoS,
     // so it's not superfluous, but with PoW removed it is currently simply returning true.
     return true;
@@ -41,8 +43,8 @@ class LegacyValidationImpl : public LegacyValidationInterface {
       const CBlock &block,
       CValidationState &state,
       const Consensus::Params &consensus_params,
-      bool check_proof_of_work,
-      bool check_merkle_root) override {
+      const bool check_proof_of_work,
+      const bool check_merkle_root) override {
 
     // These are checks that are independent of context.
 
@@ -60,14 +62,16 @@ class LegacyValidationImpl : public LegacyValidationInterface {
     if (check_merkle_root) {
       bool mutated;
       uint256 hashMerkleRoot2 = BlockMerkleRoot(block, &mutated);
-      if (block.hashMerkleRoot != hashMerkleRoot2)
+      if (block.hashMerkleRoot != hashMerkleRoot2) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txnmrklroot", true, "hashMerkleRoot mismatch");
+      }
 
       // Check for merkle tree malleability (CVE-2012-2459): repeating sequences
       // of transactions in a block without affecting the merkle root of a block,
       // while still invalidating it.
-      if (mutated)
+      if (mutated) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-duplicate", true, "duplicate transaction");
+      }
 
       uint256 merkle_root = BlockFinalizerCommitsMerkleRoot(block);
       if (block.hash_finalizer_commits_merkle_root != merkle_root) {
@@ -98,7 +102,7 @@ class LegacyValidationImpl : public LegacyValidationInterface {
     // Check transactions
     CTransactionRef prevTx;
     for (const auto &tx : block.vtx) {
-      if (!CheckTransaction(*tx, state, true)) {
+      if (!CheckTransaction(*tx, state)) {
         return state.Invalid(
             false, state.GetRejectCode(), state.GetRejectReason(),
             strprintf(
@@ -187,8 +191,8 @@ class LegacyValidationImpl : public LegacyValidationInterface {
       const CBlockHeader &block,
       CValidationState &validation_state,
       const CChainParams &chainparams,
-      const CBlockIndex *prev_block,
-      std::int64_t adjusted_time) override {
+      const CBlockIndex *const prev_block,
+      const std::int64_t adjusted_time) override {
     assert(prev_block != nullptr);
 
     staking::BlockValidationInfo info;
@@ -206,33 +210,43 @@ class LegacyValidationImpl : public LegacyValidationInterface {
 
 class BlockValidatorAdapter : public LegacyValidationInterface {
  private:
+  const Dependency<blockchain::Behavior> m_blockchain_behavior;
+  const Dependency<Network> m_network;
   const Dependency<ActiveChain> m_active_chain;
   const Dependency<BlockValidator> m_block_validator;
   const Dependency<StakeValidator> m_stake_validator;
 
  public:
   BlockValidatorAdapter(
+      const Dependency<blockchain::Behavior> blockchain_behavior,
+      const Dependency<Network> network,
       const Dependency<ActiveChain> active_chain,
       const Dependency<BlockValidator> block_validator,
-      const Dependency<StakeValidator> stake_validator) : m_active_chain(active_chain),
+      const Dependency<StakeValidator> stake_validator) : m_blockchain_behavior(blockchain_behavior),
+                                                          m_network(network),
+                                                          m_active_chain(active_chain),
                                                           m_block_validator(block_validator),
                                                           m_stake_validator(stake_validator) {}
 
   bool CheckBlockHeader(
-      const CBlockHeader &block,
+      const CBlockHeader &block_header,
       CValidationState &validation_state,
       const Consensus::Params &consensus_params,
       bool check_proof_of_work) override {
-    return false;
+    const staking::BlockValidationResult result =
+        m_block_validator->CheckBlockHeader(block_header, validation_state.GetBlockValidationInfo());
+    return staking::CheckResult(result, validation_state);
   }
 
   bool CheckBlock(
-      const CBlock &block,
+      const CBlock &block_header,
       CValidationState &validation_state,
       const Consensus::Params &consensus_params,
       bool check_proof_of_work,
       bool check_merkle_root) override {
-    return false;
+    const staking::BlockValidationResult result =
+        m_block_validator->CheckBlock(block_header, validation_state.GetBlockValidationInfo());
+    return staking::CheckResult(result, validation_state);
   }
 
   bool ContextualCheckBlock(
@@ -240,8 +254,16 @@ class BlockValidatorAdapter : public LegacyValidationInterface {
       CValidationState &validation_state,
       const Consensus::Params &consensus_params,
       const CBlockIndex *prev_block) override {
-    return false;
-  };
+    if (!prev_block) {
+      if (m_blockchain_behavior->IsGenesisBlock(block)) {
+        return true;
+      }
+    }
+    assert(prev_block && "ContextualCheckBlock invoked an no prev_block given and block is not genesis");
+    const staking::BlockValidationResult result = m_block_validator->ContextualCheckBlock(
+        block, *prev_block, m_network->GetAdjustedTime(), validation_state.GetBlockValidationInfo());
+    return staking::CheckResult(result, validation_state);
+  }
 
   bool ContextualCheckBlockHeader(
       const CBlockHeader &block,
@@ -249,19 +271,31 @@ class BlockValidatorAdapter : public LegacyValidationInterface {
       const CChainParams &chainparams,
       const CBlockIndex *prev_block,
       std::int64_t adjusted_time) override {
-    return false;
-  };
+    if (!prev_block) {
+      if (m_blockchain_behavior->IsGenesisBlock(block)) {
+        return true;
+      }
+    }
+    assert(prev_block && "ContextualCheckBlock invoked an no prev_block given and block is not genesis");
+    const staking::BlockValidationResult result = m_block_validator->ContextualCheckBlockHeader(
+        block, *prev_block, m_network->GetAdjustedTime(), validation_state.GetBlockValidationInfo());
+    return staking::CheckResult(result, validation_state);
+  }
 };
 
 std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::New(
+    const Dependency<blockchain::Behavior> blockchain_behavior,
+    const Dependency<Network> network,
     const Dependency<ActiveChain> active_chain,
     const Dependency<BlockValidator> block_validator,
     const Dependency<StakeValidator> stake_validator) {
   return std::unique_ptr<LegacyValidationInterface>(new BlockValidatorAdapter(
-      active_chain, block_validator, stake_validator));
+      blockchain_behavior, network, active_chain, block_validator, stake_validator));
 }
 
 std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::LegacyImpl(
+    const Dependency<blockchain::Behavior> blockchain_behavior,
+    const Dependency<Network> network,
     const Dependency<ActiveChain> active_chain,
     const Dependency<BlockValidator> block_validator,
     const Dependency<StakeValidator> stake_validator) {
@@ -269,9 +303,10 @@ std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::LegacyImpl
 }
 
 std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::Old() {
+  static auto network = Network::New();
   static auto behavior = blockchain::Behavior::NewForNetwork(blockchain::Network::test);
   static auto validator = BlockValidator::New(behavior.get());
-  return LegacyImpl(nullptr, validator.get(), nullptr);
+  return LegacyImpl(behavior.get(), network.get(), nullptr, validator.get(), nullptr);
 }
 
 }  // namespace staking
