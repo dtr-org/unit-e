@@ -108,11 +108,6 @@ struct Parameters {
   //! \brief frequency of blocks (a block time of 37 secs is one block every 37 secs)
   std::uint32_t block_time_seconds;
 
-  //! \brief Controls how fast difficulty adjusts
-  //!
-  //! The bigger the value - the slower adjustment
-  std::uint32_t difficulty_adjustment_factor;
-
   //! \brief maximum time drift that a block is allowed to have with respect to the current time.
   std::uint32_t max_future_block_time_seconds;
 
@@ -188,6 +183,9 @@ struct Parameters {
   //! See description of "DifficultyFunction". The difficulty function can
   //! (and should) be given as a pure lambda function.
   DifficultyFunction difficulty_function;
+
+  //! \brief Size of the difficulty adjustment rolling window
+  std::uint32_t difficulty_adjustement_window;
 
   //! \brief Maximum allowed difficulty value
   uint256 max_difficulty_value;

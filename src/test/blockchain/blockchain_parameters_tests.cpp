@@ -90,6 +90,7 @@ class ActiveChainWithTime : public ChainAccess {
 BOOST_AUTO_TEST_CASE(generic_difficulty_function_test) {
 
   Parameters params = Parameters::TestNet();
+  params.difficulty_adjustement_window = 128;
 
   const CBlock &genesis = params.genesis_block.block;
 
@@ -122,10 +123,16 @@ BOOST_AUTO_TEST_CASE(generic_difficulty_function_test) {
 
   {
     // Ideal block time => difficulty should not change
-    const Difficulty difficulty_before = params.difficulty_function(params, h, chain);
-    for (; h < 750; ++h) {
+    // However need to give it time to settle
+    for (; h < 1000; ++h) {
       chain.Append(params.difficulty_function(params, h, chain), params.block_time_seconds);
     }
+
+    const Difficulty difficulty_before = params.difficulty_function(params, h, chain);
+    for (; h < 1250; ++h) {
+      chain.Append(params.difficulty_function(params, h, chain), params.block_time_seconds);
+    }
+
     const Difficulty difficulty_after = params.difficulty_function(params, h, chain);
     BOOST_CHECK_EQUAL(difficulty_before, difficulty_after);
   }
@@ -133,7 +140,7 @@ BOOST_AUTO_TEST_CASE(generic_difficulty_function_test) {
   {
     // block time increases => difficulty value should increase
     const Difficulty difficulty_before = params.difficulty_function(params, h, chain);
-    for (; h < 1000; ++h) {
+    for (; h < 1500; ++h) {
       chain.Append(params.difficulty_function(params, h, chain), params.block_time_seconds + 1);
     }
     const Difficulty difficulty_after = params.difficulty_function(params, h, chain);

@@ -42,36 +42,45 @@ Parameters Parameters::Base() noexcept {
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
   };
 
-  p.difficulty_adjustment_factor = 128;
+  p.difficulty_adjustement_window = 128;
   p.max_difficulty_value = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
-    if (height < 2) {
+    if (height <= p.difficulty_adjustement_window) {
       return p.genesis_block.block.nBits;
     }
 
-    const CBlockIndex *window_end = chain.AtHeight(height - 1);
-    const CBlockIndex *window_start = chain.AtHeight(height - 2);
+    const Height window_end = height - 1;
+    const Height window_start = height - 1 - p.difficulty_adjustement_window;
 
-    const blockchain::Time prev_block_time = window_end->nTime - window_start->nTime;
+    const CBlockIndex *end_index = chain.AtHeight(window_end);
+    const CBlockIndex *start_index = chain.AtHeight(window_start);
 
-    arith_uint256 prev_target;
-    prev_target.SetCompact(window_end->nBits);
+    assert(end_index->nTime >= start_index->nTime);
+    const blockchain::Time actual_window_duration = end_index->nTime - start_index->nTime;
+    const blockchain::Time expected_window_duration = p.difficulty_adjustement_window * p.block_time_seconds;
 
-    const arith_uint256 numerator = (p.difficulty_adjustment_factor - 1) * p.block_time_seconds + prev_block_time + prev_block_time;
-    const arith_uint256 denominator = (p.difficulty_adjustment_factor + 1) * p.block_time_seconds;
-
-    arith_uint256 next_target = prev_target * numerator;
-    assert(numerator != 0 && (next_target / numerator == prev_target) && "Integer overflow detected");
-
-    next_target /= denominator;
-
-    const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
-    if (next_target > max_difficulty_value) {
-      next_target = max_difficulty_value;
+    arith_uint256 window_difficulties_sum;
+    for (blockchain::Height i = window_start + 1; i <= window_end; ++i) {
+      arith_uint256 temp;
+      temp.SetCompact(chain.AtHeight(i)->nBits);
+      window_difficulties_sum += temp;
     }
 
-    return next_target.GetCompact();
+    const arith_uint256 avg_difficulty = window_difficulties_sum / p.difficulty_adjustement_window;
+    const arith_uint256 numerator = actual_window_duration * avg_difficulty;
+    if (actual_window_duration != 0) {
+      assert(numerator / actual_window_duration == avg_difficulty && "Integer overflow detected");
+    }
+
+    arith_uint256 next_difficulty = actual_window_duration * avg_difficulty / expected_window_duration;
+
+    const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
+    if (next_difficulty > max_difficulty_value) {
+      next_difficulty = max_difficulty_value;
+    }
+
+    return next_difficulty.GetCompact();
   };
 
   // The message start string is designed to be unlikely to occur in normal data.
@@ -156,7 +165,7 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.finalizer_vote_from_epoch_block_number = 1;
   p.data_dir_suffix = "regtest";
 
-  p.difficulty_adjustment_factor = 0;
+  p.difficulty_adjustement_window = 0;
   p.max_difficulty_value = uint256::zero;
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
     if (height == 0) {
