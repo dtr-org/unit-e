@@ -27,7 +27,7 @@ class RepositoryImpl final : public StateRepository {
         m_state_db(state_db),
         m_block_db(block_db) {}
 
-  CCriticalSection &GetLock() override { return cs; }
+  CCriticalSection &GetLock() override { return m_cs; }
   FinalizationState *GetTipState() override;
   FinalizationState *Find(const CBlockIndex &block_index) override;
   FinalizationState *FindOrCreate(const CBlockIndex &block_index,
@@ -69,7 +69,7 @@ class RepositoryImpl final : public StateRepository {
   const esperanza::FinalizationParams *m_finalization_params = nullptr;
   const esperanza::AdminParams *m_admin_params = nullptr;
 
-  mutable CCriticalSection cs;
+  mutable CCriticalSection m_cs;
   std::map<const CBlockIndex *, FinalizationState> m_states;
   std::unique_ptr<FinalizationState> m_genesis_state;
   std::atomic<bool> m_restoring{false};
@@ -82,7 +82,7 @@ class RepositoryImpl final : public StateRepository {
 };
 
 FinalizationState *RepositoryImpl::GetTipState() {
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
   const auto *block_index = m_active_chain->GetTip();
   if (block_index == nullptr) {
     return nullptr;
@@ -91,7 +91,7 @@ FinalizationState *RepositoryImpl::GetTipState() {
 }
 
 FinalizationState *RepositoryImpl::Find(const CBlockIndex &block_index) {
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
   if (block_index.nHeight == 0) {
     return GetGenesisState();
   }
@@ -104,7 +104,7 @@ FinalizationState *RepositoryImpl::Find(const CBlockIndex &block_index) {
 
 FinalizationState *RepositoryImpl::Create(const CBlockIndex &block_index,
                                           FinalizationState::InitStatus required_parent_status) {
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
   if (block_index.pprev == nullptr) {
     return nullptr;
   }
@@ -121,7 +121,7 @@ FinalizationState *RepositoryImpl::Create(const CBlockIndex &block_index,
 
 FinalizationState *RepositoryImpl::FindOrCreate(const CBlockIndex &block_index,
                                                 FinalizationState::InitStatus required_parent_status) {
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
   if (const auto state = Find(block_index)) {
     return state;
   }
@@ -130,7 +130,7 @@ FinalizationState *RepositoryImpl::FindOrCreate(const CBlockIndex &block_index,
 
 void RepositoryImpl::Reset(const esperanza::FinalizationParams &params,
                            const esperanza::AdminParams &admin_params) {
-  LOCK(cs);
+  LOCK(m_cs);
   LogPrint(BCLog::FINALIZATION, "Completely reset state repository\n");
   m_states.clear();
   m_genesis_state.reset(new FinalizationState(params, admin_params));
@@ -139,7 +139,7 @@ void RepositoryImpl::Reset(const esperanza::FinalizationParams &params,
 }
 
 void RepositoryImpl::ResetToTip(const CBlockIndex &block_index) {
-  LOCK(cs);
+  LOCK(m_cs);
   LogPrint(BCLog::FINALIZATION, "Reset state repository to the tip=%s height=%d\n",
            block_index.GetBlockHash().GetHex(), block_index.nHeight);
   m_states.clear();
@@ -147,7 +147,7 @@ void RepositoryImpl::ResetToTip(const CBlockIndex &block_index) {
 }
 
 void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
-  LOCK(cs);
+  LOCK(m_cs);
   LogPrint(BCLog::FINALIZATION, "Trimming state repository for height < %d\n", height);
   for (auto it = m_states.begin(); it != m_states.end();) {
     const CBlockIndex *index = it->first;
@@ -164,7 +164,7 @@ void RepositoryImpl::TrimUntilHeight(blockchain::Height height) {
 }
 
 FinalizationState *RepositoryImpl::GetGenesisState() const {
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
   return m_genesis_state.get();
 }
 
@@ -173,7 +173,7 @@ bool RepositoryImpl::Confirm(const CBlockIndex &block_index,
                              FinalizationState **state_out) {
   assert(new_state.GetInitStatus() == esperanza::FinalizationState::COMPLETED);
 
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
   const auto it = m_states.find(&block_index);
   assert(it != m_states.end());
   const auto &old_state = it->second;
@@ -200,7 +200,7 @@ const esperanza::AdminParams &RepositoryImpl::GetAdminParams() const {
 }
 
 bool RepositoryImpl::RestoreFromDisk(Dependency<finalization::StateProcessor> proc) {
-  LOCK(cs);
+  LOCK(m_cs);
   RestoringRAII restoring(*this);
   if (!LoadStatesFromDB()) {
     return error("States restoring failed\n");
@@ -212,7 +212,7 @@ bool RepositoryImpl::RestoreFromDisk(Dependency<finalization::StateProcessor> pr
 }
 
 bool RepositoryImpl::LoadStatesFromDB() {
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
 
   const boost::optional<uint32_t> last_finalized_epoch =
       m_state_db->FindLastFinalizedEpoch(GetFinalizationParams(), GetAdminParams());
@@ -240,7 +240,7 @@ bool RepositoryImpl::LoadStatesFromDB() {
 }
 
 void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> proc) {
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
 
   const FinalizationState *state = FindBestState();
   if (state == nullptr) {
@@ -310,7 +310,7 @@ void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> pr
 
 const FinalizationState *RepositoryImpl::FindBestState() {
   AssertLockHeld(m_active_chain->GetLock());
-  AssertLockHeld(cs);
+  AssertLockHeld(m_cs);
 
   const CBlockIndex *walk = m_active_chain->GetTip();
   while (walk != nullptr) {
@@ -324,7 +324,7 @@ const FinalizationState *RepositoryImpl::FindBestState() {
 }
 
 bool RepositoryImpl::SaveToDisk() {
-  LOCK(cs);
+  LOCK(m_cs);
   LogPrint(BCLog::FINALIZATION, "Flushing %s finalization states to the disk\n", m_states.size());
   return m_state_db->Save(m_states);
 }
