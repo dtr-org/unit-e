@@ -956,13 +956,15 @@ void WalletExtension::SlashingConditionDetected(
     const finalization::VoteRecord &vote1,
     const finalization::VoteRecord &vote2) {
 
-  ValidatorState &validator = validatorState.get();
+  if (validatorState) {
+    ValidatorState &state = validatorState.get();
 
-  if (vote1.vote.m_validator_address == validator.m_validator_address) {
-    LogPrint(BCLog::FINALIZATION,
-             "WARNING: %s - The validator is trying to slash itself. vote1=%s vote2=%s.\n",
-             __func__, vote1.vote.ToString(), vote2.vote.ToString());
-    return;
+    if (vote1.vote.m_validator_address == state.m_validator_address) {
+      LogPrint(BCLog::FINALIZATION,
+               "WARNING: %s - The validator is trying to slash itself. vote1=%s vote2=%s.\n",
+               __func__, vote1.vote.ToString(), vote2.vote.ToString());
+      return;
+    }
   }
 
   LOCK(cs_pendingSlashing);
