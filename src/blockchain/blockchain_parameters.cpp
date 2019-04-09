@@ -16,7 +16,6 @@ Parameters Parameters::Base() noexcept {
 
   p.block_stake_timestamp_interval_seconds = 4;
   p.block_time_seconds = 16;
-  p.difficulty_adjustment_factor = 128;
   p.max_future_block_time_seconds = 2 * 60 * 60;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
@@ -42,6 +41,10 @@ Parameters Parameters::Base() noexcept {
     }
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
   };
+
+  p.difficulty_adjustment_factor = 128;
+  p.max_difficulty_value = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
     if (height < 2) {
       return p.genesis_block.block.nBits;
@@ -121,8 +124,6 @@ Parameters Parameters::TestNet() noexcept {
   p.default_settings.p2p_port = 17182;
   p.data_dir_suffix = "testnet";
 
-  p.max_difficulty_value = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-
   return p;
 }
 
@@ -155,7 +156,16 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.finalizer_vote_from_epoch_block_number = 1;
   p.data_dir_suffix = "regtest";
 
-  p.max_difficulty_value = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+  p.difficulty_adjustment_factor = 0;
+  p.max_difficulty_value = uint256::zero;
+  p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
+    if (height == 0) {
+      return p.genesis_block.block.nBits;
+    }
+    const CBlockIndex *prev = chain.AtHeight(height - 1);
+    assert(prev);
+    return prev->nBits;
+  };
 
   return p;
 }
