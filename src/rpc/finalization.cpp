@@ -44,7 +44,7 @@ UniValue getfinalizationstate(const JSONRPCRequest &request) {
   obj.pushKV("currentEpoch", ToUniValue(fin_state->GetCurrentEpoch()));
   obj.pushKV("lastJustifiedEpoch", ToUniValue(fin_state->GetLastJustifiedEpoch()));
   obj.pushKV("lastFinalizedEpoch", ToUniValue(fin_state->GetLastFinalizedEpoch()));
-  obj.pushKV("validators", ToUniValue(fin_state->GetActiveFinalizers().size()));
+  obj.pushKV("validators", static_cast<std::uint64_t>(fin_state->GetActiveFinalizers().size()));
 
   return obj;
 }

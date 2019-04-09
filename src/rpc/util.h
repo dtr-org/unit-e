@@ -27,7 +27,7 @@ class Coin;
 }
 
 CPubKey HexToPubKey(const std::string &hex_in);
-CPubKey AddrToPubKey(CKeyStore * keystore, const std::string &addr_in);
+CPubKey AddrToPubKey(CKeyStore *keystore, const std::string &addr_in);
 CScript CreateMultisigRedeemscript(int required, const std::vector<CPubKey> &pubkeys);
 
 template <typename T>

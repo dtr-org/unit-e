@@ -72,11 +72,11 @@ CScript CreateMultisigRedeemscript(const int required, const std::vector<CPubKey
 }
 
 UniValue ToUniValue(const std::uint32_t value) {
-    return UniValue(static_cast<std::int64_t>(value));
+    return UniValue(static_cast<std::uint64_t>(value));
 }
 
 UniValue ToUniValue(const std::uint64_t value) {
-    return UniValue(static_cast<std::int64_t>(value));
+    return UniValue(value);
 }
 
 UniValue ToUniValue(const float value) {
