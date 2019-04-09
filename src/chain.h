@@ -9,7 +9,6 @@
 #include <arith_uint256.h>
 #include <blockchain/blockchain_types.h>
 #include <consensus/params.h>
-#include <pow.h>
 #include <primitives/block.h>
 #include <uint256.h>
 

@@ -3455,14 +3455,6 @@ UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript>
             LOCK(cs_main);
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
         }
-
-        while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetHash(), pblock->nBits, Params().GetConsensus())) {
-            ++pblock->nNonce;
-            --nMaxTries;
-        }
-        if (nMaxTries == 0) {
-            break;
-        }
         if (pblock->nNonce == nInnerLoopCount) {
             continue;
         }

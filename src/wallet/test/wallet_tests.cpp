@@ -541,7 +541,11 @@ BOOST_FIXTURE_TEST_CASE(get_immature_credit, TestChain100Setup)
   CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
   {
     LOCK(cs_main);
-    const CWalletTx *const immature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.back().GetHash());
+    auto x = coinbaseTxns.back().GetHash();
+    auto y = x.ToString();
+    auto z = coinbaseTxns.front().GetHash();
+    auto k = z.ToString();
+    const CWalletTx *const immature_coinbase = pwalletMain->GetWalletTx(x);
     BOOST_CHECK_EQUAL(immature_coinbase->GetImmatureCredit(), immature_coinbase->tx->vout[0].nValue);
 
     const CWalletTx *const mature_coinbase = pwalletMain->GetWalletTx(coinbaseTxns.front().GetHash());

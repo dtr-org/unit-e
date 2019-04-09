@@ -7,8 +7,10 @@
 #include <consensus/validation.h>
 #include <keystore.h>
 #include <script/interpreter.h>
+#include <staking/legacy_validation_interface.h>
 #include <test/test_unite.h>
 #include <validation.h>
+
 #include <boost/test/unit_test.hpp>
 
 namespace {
@@ -74,7 +76,7 @@ BOOST_AUTO_TEST_CASE(checkblock_empty) {
   assert(block.vtx.empty());
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -89,7 +91,7 @@ BOOST_AUTO_TEST_CASE(checkblock_too_many_transactions) {
   }
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-length");
 }
@@ -100,7 +102,7 @@ BOOST_AUTO_TEST_CASE(checkblock_coinbase_missing) {
   block.vtx.push_back(MakeTransactionRef(CTransaction(CreateTx())));
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-missing");
 }
@@ -113,7 +115,7 @@ BOOST_AUTO_TEST_CASE(checkblock_duplicate_coinbase) {
   block.vtx.push_back(MakeTransactionRef(CreateCoinbase()));
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-cb-multiple");
 }
@@ -133,7 +135,7 @@ BOOST_AUTO_TEST_CASE(checkblock_too_many_sigs) {
   block.vtx.push_back(MakeTransactionRef(CTransaction(tx)));
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-sigops");
 }
@@ -145,7 +147,7 @@ BOOST_AUTO_TEST_CASE(checkblock_merkle_root) {
   block.hashMerkleRoot = GetRandHash();
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, true);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txnmrklroot");
 }
@@ -163,7 +165,7 @@ BOOST_AUTO_TEST_CASE(checkblock_merkle_root_mutated) {
   block.hashMerkleRoot = BlockMerkleRoot(block, &ignored);
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, true);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
@@ -179,7 +181,7 @@ BOOST_AUTO_TEST_CASE(checkblock_duplicates_tx) {
   block.vtx.push_back(MakeTransactionRef(tx));
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-duplicate");
 }
@@ -194,7 +196,7 @@ BOOST_AUTO_TEST_CASE(checkblock_tx_order) {
   SortTxs(block, true);
 
   CValidationState state;
-  CheckBlock(block, state, Params().GetConsensus(), false, false);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, Params().GetConsensus(), false, false);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-tx-ordering");
 }
@@ -223,7 +225,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     SortTxs(block);
 
     CValidationState state;
-    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+    staking::LegacyValidationInterface::Old()->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
   }
@@ -241,7 +243,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_is_final_tx) {
     SortTxs(block);
 
     CValidationState state;
-    ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+    staking::LegacyValidationInterface::Old()->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-txns-nonfinal");
   }
@@ -260,7 +262,7 @@ BOOST_AUTO_TEST_CASE(checkblock_witness) {
   block.hash_witness_merkle_root = GetRandHash();
 
   CValidationState state;
-  CheckBlock(block, state, consensus_params, false, true);
+  staking::LegacyValidationInterface::Old()->CheckBlock(block, state, consensus_params, false, true);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-witness-merkle-match");
 }
@@ -276,7 +278,7 @@ BOOST_AUTO_TEST_CASE(contextualcheckblock_block_weight) {
   SortTxs(block);
 
   CValidationState state;
-  ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
+  staking::LegacyValidationInterface::Old()->ContextualCheckBlock(block, state, Params().GetConsensus(), &prev);
 
   BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-blk-weight");
 }
@@ -304,10 +306,10 @@ BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
     prev_2.phashBlock = &block.hashPrevBlock;
 
     CValidationState state;
-    BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
+    BOOST_CHECK(staking::LegacyValidationInterface::Old()->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time));
 
     block.nTime = 1999; // 1 unit less than the median
-    ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time);
+    staking::LegacyValidationInterface::Old()->ContextualCheckBlockHeader(block, state, Params(), &prev_2, adjusted_time);
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-old");
   }
 
@@ -321,10 +323,10 @@ BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
     prev.phashBlock = &block.hashPrevBlock;
 
     CValidationState state;
-    BOOST_CHECK(ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
+    BOOST_CHECK(staking::LegacyValidationInterface::Old()->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
 
     block.nTime = adjusted_time + MAX_FUTURE_BLOCK_TIME + 1;
-    ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time);
+    staking::LegacyValidationInterface::Old()->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time);
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-new");
   }
 }

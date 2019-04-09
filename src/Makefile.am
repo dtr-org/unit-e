@@ -180,7 +180,6 @@ UNITE_CORE_H = \
   policy/fees.h \
   policy/policy.h \
   policy/rbf.h \
-  pow.h \
   proposer/block_builder.h \
   proposer/eligible_coin.h \
   proposer/multiwallet.h \
@@ -229,6 +228,7 @@ UNITE_CORE_H = \
   staking/block_validation_info.h \
   staking/block_validator.h \
   staking/coin.h \
+  staking/legacy_validation_interface.h \
   staking/network.h \
   staking/proof_of_stake.h \
   staking/stake_validator.h \
@@ -338,7 +338,6 @@ libunite_server_a_SOURCES = \
   policy/fees.cpp \
   policy/policy.cpp \
   policy/rbf.cpp \
-  pow.cpp \
   rest.cpp \
   rpc/blockchain.cpp \
   rpc/finalization.cpp \
@@ -367,6 +366,7 @@ libunite_server_a_SOURCES = \
   staking/block_validation_info.cpp \
   staking/block_validator.cpp \
   staking/coin.cpp \
+  staking/legacy_validation_interface.cpp \
   staking/network.cpp \
   staking/proof_of_stake.cpp \
   staking/stake_validator.cpp \
