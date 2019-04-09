@@ -10,12 +10,12 @@
 
 #include <univalue.h>
 
-#define STAKING_RPC_COMMAND(NAME, ARG_NAMES...)                         \
+#define STAKING_RPC_COMMAND(NAME, ...)                                  \
   static CRPCCommand NAME = {                                           \
       "staking", #NAME, [](const JSONRPCRequest &request) -> UniValue { \
         return GetComponent<staking::StakingRPC>()->NAME(request);      \
       },                                                                \
-      {ARG_NAMES}};                                                     \
+      {__VA_ARGS__}};                                                   \
   t.appendCommand(NAME.name, &NAME);
 
 void RegisterStakingRPCCommands(CRPCTable &t) {

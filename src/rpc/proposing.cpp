@@ -10,12 +10,12 @@
 
 #include <univalue.h>
 
-#define PROPOSER_RPC_COMMAND(NAME, ARG_NAMES...)                          \
+#define PROPOSER_RPC_COMMAND(NAME, ...)                                   \
   static CRPCCommand NAME = {                                             \
       "proposing", #NAME, [](const JSONRPCRequest &request) -> UniValue { \
         return GetComponent<proposer::ProposerRPC>()->NAME(request);      \
       },                                                                  \
-      {ARG_NAMES}};                                                       \
+      {__VA_ARGS__}};                                                     \
   t.appendCommand(NAME.name, &NAME);
 
 void RegisterProposerRPCCommands(CRPCTable &t) {
