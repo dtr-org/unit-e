@@ -153,11 +153,12 @@ class TestNode(P2PInterface):
 #    or false, then only the last tx is tested against outcome.)
 
 class TestInstance():
-    def __init__(self, objects=None, sync_every_block=True, sync_every_tx=False, test_name=""):
+    def __init__(self, objects=None, sync_every_block=True, sync_every_tx=False, test_name="", send_witness=False):
         self.blocks_and_transactions = objects if objects else []
         self.sync_every_block = sync_every_block
         self.sync_every_tx = sync_every_tx
         self.test_name = test_name
+        self.send_witness = send_witness
 
 class TestManager():
 
@@ -314,6 +315,8 @@ class TestManager():
             for test_obj in test_instance.blocks_and_transactions:
                 b_or_t = test_obj[0]
                 outcome = test_obj[1]
+                send_witness = test_instance.send_witness
+
                 # Determine if we're dealing with a block or tx
                 if isinstance(b_or_t, CBlock):  # Block test runner
                     block = b_or_t
@@ -341,7 +344,10 @@ class TestManager():
                                 # There was a previous request for this block hash
                                 # Most likely, we delivered a header for this block
                                 # but never had the block to respond to the getdata
-                                c.send_message(msg_block(block))
+                                if send_witness:
+                                    c.send_message(msg_witness_block(block))
+                                else:
+                                    c.send_message(msg_block(block))
                             else:
                                 c.block_request_map[block.sha256] = False
                     # Either send inv's to each node and sync, or add
@@ -353,7 +359,10 @@ class TestManager():
                             [ c.send_inv(block) for c in self.p2p_connections ]
                             self.sync_blocks(block.sha256, 1)
                         else:
-                            [ c.send_message(msg_block(block)) for c in self.p2p_connections ]
+                            if send_witness:
+                                [c.send_message(msg_witness_block(block)) for c in self.p2p_connections]
+                            else:
+                                [c.send_message(msg_block(block)) for c in self.p2p_connections]
                             [ n.drain_main_signal_callbacks_pending() for n in self.nodes ]
                             [ c.send_ping(self.ping_counter) for c in self.p2p_connections ]
                             self.wait_for_pings(self.ping_counter)

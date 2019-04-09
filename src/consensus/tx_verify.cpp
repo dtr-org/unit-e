@@ -225,6 +225,13 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
 
 bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const AccessibleCoinsView& inputs, const int nSpendHeight, CAmount& txfee, CAmount *inputs_amount)
 {
+    if (nSpendHeight == 0) {
+        // the genesis block does not have any inputs and does not spend anything.
+        // it does create the initial stake in the system though and would fail
+        // validation with bad-cb-spends-too-much.
+        return true;
+    }
+
     // are the actual inputs available?
     if (!inputs.HaveInputs(tx)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-missingorspent", false,
@@ -256,8 +263,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     const CAmount value_out = tx.GetValueOut();
-    // UNIT-E TODO: To distinguish bitcoin coinbase and unit-e coinbase check for staking input
-    if (tx.IsCoinBase() && tx.vin.size() >= 2) {
+    if (tx.IsCoinBase()) {
         // The coinbase transaction should spend exactly its inputs and the reward.
         // The reward output is by definition in the zeroth output. The reward
         // consists of newly minted money (the block reward) and the fees accumulated

@@ -4,6 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """BlockStore and TxStore helper classes."""
 
+from .messages import MSG_WITNESS_FLAG
 from .mininode import *
 from io import BytesIO
 import dbm.dumb as dbmd
@@ -20,20 +21,26 @@ class BlockStore():
 
     def __init__(self, datadir):
         self.blockDB = dbmd.open(datadir + "/blocks", 'c')
+        self.wblockDB = dbmd.open(datadir + "/wblocks", 'c')
         self.currentBlock = 0
         self.headers_map = dict()
 
     def close(self):
         self.blockDB.close()
+        self.wblockDB.close()
 
     def erase(self, blockhash):
         del self.blockDB[repr(blockhash)]
+        del self.wblockDB[repr(blockhash)]
 
     # lookup an entry and return the item as raw bytes
-    def get(self, blockhash):
+    def get(self, blockhash, with_witness=False):
         value = None
         try:
-            value = self.blockDB[repr(blockhash)]
+            if with_witness:
+                value = self.wblockDB[repr(blockhash)]
+            else:
+                value = self.blockDB[repr(blockhash)]
         except KeyError:
             return None
         return value
@@ -87,6 +94,7 @@ class BlockStore():
         block.calc_sha256()
         try:
             self.blockDB[repr(block.sha256)] = bytes(block.serialize())
+            self.wblockDB[repr(block.sha256)] = bytes(block.serialize(with_witness=True))
         except TypeError as e:
             logger.exception("Unexpected error")
         self.currentBlock = block.sha256
@@ -100,8 +108,8 @@ class BlockStore():
     def get_blocks(self, inv):
         responses = []
         for i in inv:
-            if (i.type == 2 or i.type == (2 | (1 << 30))): # MSG_BLOCK or MSG_WITNESS_BLOCK
-                data = self.get(i.hash)
+            if (i.type == 2 or i.type == (2 | (1 << 30))):  # MSG_BLOCK or MSG_WITNESS_BLOCK
+                data = self.get(i.hash, with_witness=bool(i.type & MSG_WITNESS_FLAG))
                 if data is not None:
                     # Use msg_generic to avoid re-serialization
                     responses.append(msg_generic(b"block", data))
