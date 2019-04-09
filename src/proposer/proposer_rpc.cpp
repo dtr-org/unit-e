@@ -149,10 +149,10 @@ class ProposerRPCImpl : public ProposerRPC {
       LOCK2(m_chain->GetLock(), staking_wallet.GetLock());
       return staking_wallet.GetStakeableCoins();
     }();
-    const CAmount stakeable_balance = std::accumulate(stakeable_coins.cbegin(), stakeable_coins.cend(), CAmount(0),
-                                                      [](const CAmount balance, const staking::Coin &coin) {
-                                                        return balance + coin.GetAmount();
-                                                      });
+    CAmount stakeable_balance = 0;
+    for (const auto &coin : stakeable_coins) {
+      stakeable_balance += coin.GetAmount();
+    }
     obj.pushKV("stakeable_balance", ValueFromAmount(stakeable_balance));
     UniValue arr(UniValue::VARR);
     for (const staking::Coin &coin : stakeable_coins) {
