@@ -105,9 +105,9 @@ class FeatureReindexCommits(UnitETestFramework):
         self.wait_for_transaction(deposit_tx)
 
         self.proposer.generatetoaddress(
-            51, self.proposer.getnewaddress(
+            26, self.proposer.getnewaddress(
                 '', 'bech32'))
-        assert_equal(self.proposer.getblockcount(), 52)
+        assert_equal(self.proposer.getblockcount(), 27)
 
     def assert_finalizer_status(self, status):
         wait_until(lambda: self.finalizer.getvalidatorinfo()[

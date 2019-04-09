@@ -167,12 +167,13 @@ std::unique_ptr<StateDB> StateDB::New(
     Dependency<Settings> settings,
     Dependency<staking::BlockIndexMap> block_index_map,
     Dependency<staking::ActiveChain> active_chain,
-    Dependency<::ArgsManager> args_manager) {
+    Dependency<ArgsManager> args_manager) {
   const bool reindex = args_manager->GetBoolArg("-reindex", false);
   StateDBParams state_db_params;
   // Wipe out db in case of reindexing
-  if (reindex)
+  if (reindex) {
     state_db_params.wipe = true;
+  }
   state_db_params.inmemory = config->use_in_memory_databases;
   return NewFromParams(state_db_params, settings, block_index_map, active_chain);
 }

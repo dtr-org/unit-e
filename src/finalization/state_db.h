@@ -73,7 +73,7 @@ class StateDB {
       Dependency<Settings>,
       Dependency<staking::BlockIndexMap>,
       Dependency<staking::ActiveChain>,
-      Dependency<::ArgsManager>);
+      Dependency<ArgsManager>);
 
   static std::unique_ptr<StateDB> NewFromParams(
       const StateDBParams &,
