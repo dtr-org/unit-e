@@ -123,7 +123,7 @@ class StakingRPCImpl : public StakingRPC {
 
   void TraceStake(const CBlockIndex *const start, const std::size_t max_depth, std::vector<StakeMeta> &stake_out) {
 
-    const decltype(CBlockIndex::nHeight) start_height = start->nHeight;
+    const int start_height = start->nHeight;
     const CBlockIndex *current = start;
     stake_out.clear();
 
@@ -135,11 +135,11 @@ class StakingRPCImpl : public StakingRPC {
     stake_out.resize(expected_size, InvalidBlock{nullptr, ""});
 
     // Keeps track of which piece of stake is referred to by which block.
-    std::multimap<decltype(COutPoint::hash), std::pair<CTxIn, const CBlockIndex *>> stake_map;
+    std::multimap<uint256, std::pair<CTxIn, const CBlockIndex *>> stake_map;
 
     // the index in stake_out is computed based on block_height -> minus this offset
     const std::size_t offset = start_height - stake_out.size() + 1;
-    decltype(CBlockIndex::nHeight) current_height = start_height;
+    int current_height = start_height;
 
     for (std::size_t i = 0; i < max_depth; ++i) {
       if (!current || !current->phashBlock) {
@@ -169,14 +169,14 @@ class StakingRPCImpl : public StakingRPC {
         // a successor as stake. Do not stop once found a piece of stake, as
         // multiple txs in this block could be references as stake.
         for (const CTransactionRef &tx : block->vtx) {
-          const decltype(COutPoint::hash) txid = tx->GetHash();
+          const uint256 txid = tx->GetHash();
           const auto range = stake_map.equal_range(txid);
           const bool found = range.first != range.second;
           for (auto it = range.first; it != range.second; ++it) {
             // This transaction is being referenced as stake from a block we've come across before
             const CTxIn &stake_in = it->second.first;
-            const decltype(COutPoint::n) stake_out_index = stake_in.prevout.n;
-            const decltype(CBlockIndex::nHeight) stake_spend_height = it->second.second->nHeight;
+            const std::uint32_t stake_out_index = stake_in.prevout.n;
+            const int stake_spend_height = it->second.second->nHeight;
             const std::size_t ix = stake_spend_height - offset;
             if (stake_out_index < tx->vout.size()) {
               stake_out[ix] = StakeInfo{
@@ -278,8 +278,8 @@ class StakingRPCImpl : public StakingRPC {
   UniValue GetStakeLinkInfo(const CBlockIndex &index) {
     UniValue result(UniValue::VOBJ);
     BlockInfo(result, index);
-    decltype(index.nHeight) height = index.nHeight;
-    boost::optional<CBlock> block = m_block_db->ReadBlock(index);
+    const int height = index.nHeight;
+    const boost::optional<CBlock> block = m_block_db->ReadBlock(index);
     StatusInfo(result, block ? "ondisk" : "nodata");
     if (height == 0) {
       result.pushKV("initial_funds", GetInitialFundsInfo(block->vtx[0]));
