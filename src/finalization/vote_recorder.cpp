@@ -13,8 +13,52 @@ namespace finalization {
 
 using FinalizationState = esperanza::FinalizationState;
 
+//! The key for vote record in database.
+//! * uin160 is validator address
+//! * uint32_t is target epoch
+using DBKey = std::pair<uint160, uint32_t>;
+
 CCriticalSection VoteRecorder::cs_recorder;
 std::shared_ptr<VoteRecorder> VoteRecorder::g_voteRecorder;
+
+VoteRecorder::VoteRecorder(const DBParams &p)
+    : m_db(GetDataDir() / "votes", p.cache_size, p.inmemory, p.wipe, p.obfuscate) {
+  if (!p.wipe && !p.inmemory) {
+    LoadFromDB();
+  }
+}
+
+void VoteRecorder::LoadFromDB() {
+  LOCK(cs_recorder);
+  LogPrint(BCLog::FINALIZATION, "Restoring vote recorder from disk\n");
+  uint32_t count = 0;
+  voteRecords.clear();
+  voteCache.clear();
+  std::unique_ptr<CDBIterator> cursor(m_db.NewIterator());
+  cursor->SeekToFirst();
+  while (cursor->Valid()) {
+    DBKey key;
+    if (!cursor->GetKey(key)) {
+      LogPrintf("WARN: cannot read next key from votes DB");
+      return;
+    }
+    VoteRecord record;
+    if (!cursor->GetValue(record)) {
+      LogPrintf("WARN: cannot fetch data from votes DB, key=%s", util::to_string(key));
+      return;
+    }
+    voteRecords[key.first].emplace(key.second, record);
+    cursor->Next();
+    ++count;
+  }
+  LogPrint(BCLog::FINALIZATION, "Loaded %d vote records\n", count);
+}
+
+void VoteRecorder::SaveVoteToDB(const VoteRecord &record) {
+  LOCK(cs_recorder);
+  DBKey key(record.vote.m_validator_address, record.vote.m_target_epoch);
+  m_db.Write(key, record);
+}
 
 void VoteRecorder::RecordVote(const esperanza::Vote &vote,
                               const std::vector<unsigned char> &voteSig,
@@ -32,13 +76,18 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
   VoteRecord voteRecord{vote, voteSig};
 
   // Record the vote
+  bool saved_in_memory = false;
   const auto validatorIt = voteRecords.find(vote.m_validator_address);
   if (validatorIt != voteRecords.end()) {
-    validatorIt->second.emplace(vote.m_target_epoch, voteRecord);
+    saved_in_memory = validatorIt->second.emplace(vote.m_target_epoch, voteRecord).second;
   } else {
     std::map<uint32_t, VoteRecord> newMap;
     newMap.emplace(vote.m_target_epoch, voteRecord);
-    voteRecords.emplace(vote.m_validator_address, std::move(newMap));
+    saved_in_memory = voteRecords.emplace(vote.m_validator_address, std::move(newMap)).second;
+  }
+
+  if (saved_in_memory) {
+    SaveVoteToDB(voteRecord);
   }
 
   if (offendingVote) {
@@ -47,13 +96,13 @@ void VoteRecorder::RecordVote(const esperanza::Vote &vote,
       GetMainSignals().SlashingConditionDetected(VoteRecord{vote, voteSig},
                                                  offendingVote.get());
       LogPrint(BCLog::FINALIZATION,
-               "%s: Slashable event found. Sending signal to the wallet.",
+               "%s: Slashable event found. Sending signal to the wallet.\n",
                __func__);
     } else {
       // If this happens then it needs urgent attention and fixing
       LogPrint(BCLog::FINALIZATION,
                "ERROR: The offending vote found is not valid: %s, cannot "
-               "reliably identify slashable votes. Please fix.",
+               "reliably identify slashable votes. Please fix.\n",
                res._to_string());
       assert(false);
     }
@@ -113,17 +162,17 @@ boost::optional<VoteRecord> VoteRecorder::GetVote(const uint160 &validatorAddres
   return boost::none;
 }
 
-void VoteRecorder::Init() {
+void VoteRecorder::Init(const DBParams &params) {
   LOCK(cs_recorder);
   if (!g_voteRecorder) {
     //not using make_shared since the ctor is private
-    g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder());
+    g_voteRecorder = std::shared_ptr<VoteRecorder>(new VoteRecorder(params));
   }
 }
 
-void VoteRecorder::Reset() {
+void VoteRecorder::Reset(const DBParams &params) {
   LOCK(cs_recorder);
-  g_voteRecorder.reset(new VoteRecorder());
+  g_voteRecorder.reset(new VoteRecorder(params));
 }
 
 std::shared_ptr<VoteRecorder> VoteRecorder::GetVoteRecorder() {

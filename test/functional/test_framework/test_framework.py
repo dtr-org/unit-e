@@ -634,7 +634,7 @@ class UnitETestFramework(metaclass=UnitETestMetaClass):
             for i in range(MAX_NODES):
                 shutil.rmtree(cache_path(i, 'wallets'))  # Remove cache generators' wallets dir
                 for entry in os.listdir(cache_path(i)):
-                    if entry not in ['wallets', 'chainstate', 'blocks', 'snapshots', 'finalization']:
+                    if entry not in ['wallets', 'chainstate', 'blocks', 'snapshots', 'finalization', 'votes']:
                         os.remove(cache_path(i, entry))
 
         for i in range(self.num_nodes):

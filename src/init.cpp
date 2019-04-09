@@ -1347,7 +1347,6 @@ bool AppInitMain()
     auto state_repository = GetComponent<finalization::StateRepository>();
     state_repository->Reset(chainparams.GetFinalization(),
                             chainparams.GetAdminParams());
-    finalization::VoteRecorder::Init();
 
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32
@@ -1606,7 +1605,13 @@ bool AppInitMain()
                     }
                 }
 
-                if (ShutdownRequested()) break;
+                finalization::VoteRecorder::DBParams params;
+                params.wipe = fReset;
+                finalization::VoteRecorder::Init(params);
+
+                if (ShutdownRequested()) {
+                    break;
+                }
 
                 // LoadBlockIndex will load fHavePruned if we've ever removed a
                 // block file from disk.
