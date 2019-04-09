@@ -22,8 +22,8 @@ from .script import (
     OP_TRUE,
     hash160,
 )
-from .util import assert_equal
-from .test_framework import PROPOSER_REWARD
+from .util import assert_equal, hex_str_to_bytes
+from .test_framework import PROPOSER_REWARD, FULL_FINALIZATION_REWARD
 
 # Create a block (with regtest difficulty)
 def create_block(hashprev, coinbase, nTime=None):
@@ -69,7 +69,7 @@ def serialize_script_num(value):
 # If pubkey is passed in, the coinbase outputs will be P2PK outputs;
 # otherwise anyone-can-spend outputs. The first output is the reward,
 # which is not spendable for COINBASE_MATURITY blocks.
-def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
+def create_coinbase(height, stake, snapshot_hash, pubkey=None, n_pieces=1, finalization_rewards=None):
     assert n_pieces > 0
     stake_in = COutPoint(int(stake['txid'], 16), stake['vout'])
     coinbase = CTransaction()
@@ -93,7 +93,10 @@ def create_coinbase(height, stake, snapshot_hash, pubkey = None, n_pieces = 1):
     # Do not add it to reward, as the reward output has to be exactly block reward + fees
     outputs[0].nValue += int(stake['amount'] * UNIT) - piece_value * n_pieces
 
-    coinbase.vout = [ rewardoutput ] + outputs
+    rewards = [rewardoutput]
+    if finalization_rewards:
+        rewards.extend(finalization_rewards)
+    coinbase.vout = rewards + outputs
     coinbase.rehash()
     return coinbase
 
@@ -104,6 +107,22 @@ def sign_coinbase(node, coinbase):
     coinbase = sign_transaction(node, coinbase)
     coinbase.rehash()
     return coinbase
+
+
+def get_finalization_rewards(node):
+    epoch_length = node.getfinalizationconfig()['epochLength']
+    current_height = node.getblockcount()
+    if current_height % epoch_length != 0 or current_height == 0:
+        return []
+    result = []
+    for i in range(epoch_length):
+        block_hash = node.getblockhash(current_height - i)
+        coinbase = node.getblock(block_hash, 2)['tx'][0]
+        reward_out = coinbase['vout'][0]
+        reward_script = CScript(hex_str_to_bytes(reward_out['scriptPubKey']['hex']))
+        result.append(CTxOut(FULL_FINALIZATION_REWARD * UNIT, reward_script))
+    print(current_height, result)
+    return result[::-1]
 
 
 def generate(node, n, preserve_utxos=[], send_witness=False):
