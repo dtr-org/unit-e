@@ -54,7 +54,7 @@ from test_framework.mininode import (CBlockHeader,
                                      msg_witness_block,
                                      msg_headers)
 from test_framework.script import (CScript, OP_TRUE)
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD, DISABLE_FINALIZATION
 from test_framework.util import assert_equal, connect_nodes_bi
 from test_framework.regtest_mnemonics import regtest_mnemonics
 
@@ -68,6 +68,7 @@ class AssumeValidTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 3
+        self.extra_args = [[DISABLE_FINALIZATION]] * self.num_nodes
 
     def send_blocks_until_disconnected(self, p2p_conn):
         """Keep sending blocks to the node until we're disconnected."""
@@ -106,7 +107,7 @@ class AssumeValidTest(UnitETestFramework):
         self.nodes[0].sendtypeto('', '', outputs)
 
         self.nodes[0].importmasterkey(regtest_mnemonics[1]['mnemonics'])
-        self.nodes[0].generate(1)[0]
+        self.nodes[0].generate(1)
 
         self.coins_to_stake = [x for x in self.nodes[0].listunspent() if x['amount'] == 1]
 
@@ -227,8 +228,8 @@ class AssumeValidTest(UnitETestFramework):
         network_thread_join()
 
         self.log.info("Start node1 and node2 with assumevalid so they accept a block with a bad signature.")
-        self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256)])
-        self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256)])
+        self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256), DISABLE_FINALIZATION])
+        self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256), DISABLE_FINALIZATION])
 
         p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
         p2p1 = self.nodes[1].add_p2p_connection(BaseNode())
