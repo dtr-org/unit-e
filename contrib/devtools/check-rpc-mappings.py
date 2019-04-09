@@ -40,7 +40,7 @@ class RPCCommand:
         self.args = args
 
     def __repr__(self):
-        return "RPCCommand(%s, %s)" % (self.name, list(map(lambda arg: arg.names, self.args)))
+        return "RPCCommand(%s, %s)" % (self.name, [arg.names for arg in self.args])
 
 class RPCArgument:
     def __init__(self, names, idx):
