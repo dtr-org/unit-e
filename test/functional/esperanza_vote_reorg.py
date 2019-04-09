@@ -13,8 +13,13 @@ from test_framework.util import (
     disconnect_nodes,
     assert_finalizationstate,
     assert_raises_rpc_error,
+    bytes_to_hex_str,
 )
 from test_framework.test_framework import UnitETestFramework
+from test_framework.messages import (
+    CTransaction,
+    FromHex,
+)
 
 
 class EsperanzaVoteReorgTest(UnitETestFramework):
@@ -32,6 +37,13 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
+        def assert_vote(node, raw_tx, source_epoch, target_epoch):
+            tx = FromHex(CTransaction(), raw_tx)
+            assert tx.is_finalizer_commit()
+            vote = node.extractvotefromsignature(bytes_to_hex_str(tx.vin[0].scriptSig))
+            assert_equal(vote['source_epoch'], source_epoch)
+            assert_equal(vote['target_epoch'], target_epoch)
+
         fork0 = self.nodes[0]
         fork1 = self.nodes[1]
         finalizer = self.nodes[2]   # main finalizer that being checked
@@ -94,6 +106,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         assert_equal(fork0.getblockcount(), 31)
         self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
         v1 = fork0.getrawtransaction(fork0.getrawmempool()[0])
+        assert_vote(node=fork0, raw_tx=v1, source_epoch=5, target_epoch=6)
         fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
         assert_equal(fork0.getblockcount(), 32)
         self.log.info('finalizer successfully voted on the checkpoint')
@@ -121,6 +134,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         assert_equal(fork1.getblockcount(), 36)
         self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
         v2 = fork1.getrawtransaction(fork1.getrawmempool()[0])
+        assert_vote(node=fork1, raw_tx=v2, source_epoch=5, target_epoch=7)
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 37)
 
@@ -133,6 +147,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         assert_equal(fork1.getblockcount(), 41)
         self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
         v3 = fork1.getrawtransaction(fork1.getrawmempool()[0])
+        assert_vote(node=fork1, raw_tx=v3, source_epoch=5, target_epoch=8)
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 42)
 
@@ -159,6 +174,7 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         assert_equal(fork0.getblockcount(), 46)
         self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
         v4 = fork0.getrawtransaction(fork0.getrawmempool()[0])
+        assert_vote(node=fork0, raw_tx=v4, source_epoch=5, target_epoch=9)
         fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
         assert_equal(fork0.getblockcount(), 47)
 
