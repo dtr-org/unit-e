@@ -143,9 +143,10 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
     fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(epoch));
     BOOST_REQUIRE_EQUAL(fin_state.GetCurrentEpoch(), epoch);
 
-    for (auto h = fin_state.GetEpochStartHeight(epoch); h < f.fin_params.GetEpochCheckpointHeight(epoch); ++h) {
-      f.AddState(h, fin_state);
-      rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(h));
+    for (auto height = fin_state.GetEpochStartHeight(epoch); height < f.fin_params.GetEpochCheckpointHeight(epoch);
+         ++height) {
+      f.AddState(height, fin_state);
+      rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(height));
       BOOST_CHECK_EQUAL(rewards.size(), 0);
     }
 

@@ -31,24 +31,24 @@ BOOST_AUTO_TEST_CASE(reward_function_test) {
   Parameters params = blockchain::Parameters::TestNet();
 
   CAmount block_reward = params.reward_function(params, 0);
-  BOOST_CHECK_EQUAL(3750000000, block_reward);
+  BOOST_CHECK_EQUAL(3750 * EEES, block_reward);
 
-  BOOST_CHECK_EQUAL(3750000000, block_reward);
+  BOOST_CHECK_EQUAL(3750 * EEES, block_reward);
 
   block_reward = params.reward_function(params, params.period_blocks - 1);
-  BOOST_CHECK_EQUAL(3750000000, block_reward);
+  BOOST_CHECK_EQUAL(3750 * EEES, block_reward);
 
   block_reward = params.reward_function(params, params.period_blocks);
-  BOOST_CHECK_EQUAL(1700000000, block_reward);
+  BOOST_CHECK_EQUAL(1700 * EEES, block_reward);
 
   block_reward = params.reward_function(params, params.period_blocks * 2);
-  BOOST_CHECK_EQUAL(550000000, block_reward);
+  BOOST_CHECK_EQUAL(550 * EEES, block_reward);
 
   block_reward = params.reward_function(params, params.period_blocks * 3);
-  BOOST_CHECK_EQUAL(150000000, block_reward);
+  BOOST_CHECK_EQUAL(150 * EEES, block_reward);
 
   block_reward = params.reward_function(params, params.period_blocks * 4);
-  BOOST_CHECK_EQUAL(31000000, block_reward);
+  BOOST_CHECK_EQUAL(31 * EEES, block_reward);
 
   block_reward = params.reward_function(params, params.period_blocks * 5);
   BOOST_CHECK_EQUAL(0, block_reward);

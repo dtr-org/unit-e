@@ -5,6 +5,8 @@
 #include <proposer/finalization_reward_logic.h>
 #include <util.h>
 
+#include <boost/optional.hpp>
+
 #include <algorithm>
 
 namespace proposer {
