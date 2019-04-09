@@ -14,6 +14,7 @@
 #include <esperanza/checks.h>
 #include <extkey.h>
 #include <fs.h>
+#include <injector.h>
 #include <key.h>
 #include <key/mnemonic/mnemonic.h>
 #include <key_io.h>

@@ -158,9 +158,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::vector<uint8_t> snapshot_hash = pcoinsTip->GetSnapshotHash().GetHashVector(*chainActive.Tip());
 
     // Create coinbase transaction.
-    const staking::CoinSet &stakeable_coins = pwallet->GetWalletExtension().GetStakeableCoins();
+    const staking::CoinSet stakeable_coins = pwallet->GetWalletExtension().GetStakeableCoins();
     if (stakeable_coins.empty()) {
-      throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
+        throw std::runtime_error(strprintf("%s: no stakeable coins.", __func__));
     }
 
     // TODO UNIT-E: We can completely remove the whole `CreateNewBlock` once we

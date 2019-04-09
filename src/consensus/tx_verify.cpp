@@ -303,7 +303,7 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
         block_reward += fin_rewards[i].second;
         if (coinbase_tx.vout[i + 1].nValue != fin_rewards[i].second ||
             coinbase_tx.vout[i + 1].scriptPubKey != fin_rewards[i].first) {
-            return state.DoS(100, error("%s: incoorect finalization reward", __func__), REJECT_INVALID,
+            return state.DoS(100, error("%s: incorrect finalization reward", __func__), REJECT_INVALID,
                              "bad-cb-finalization-reward");
         }
     }

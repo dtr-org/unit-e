@@ -30,10 +30,10 @@ namespace {
 
 class FinalizationRewardLogicStub : public proposer::FinalizationRewardLogic {
  public:
-  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &blockIndex) override {
+  std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &blockIndex) const override {
     return {};
   }
-  size_t GetNumberOfRewardOutputs(blockchain::Height height) override {
+  size_t GetNumberOfRewardOutputs(blockchain::Height height) const override {
     return 0;
   }
 };

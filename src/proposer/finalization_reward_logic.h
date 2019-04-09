@@ -10,16 +10,15 @@
 #include <dependency.h>
 #include <finalization/state_repository.h>
 
+#include <memory>
 #include <vector>
-
-class CWallet;
 
 namespace proposer {
 
 class MissingBlockError : public std::runtime_error {
  public:
   const CBlockIndex &missed_index;
-  explicit MissingBlockError(const CBlockIndex &index)
+  explicit MissingBlockError(const CBlockIndex &index) noexcept
       : std::runtime_error(strprintf("Cannot load block=%s", index.GetBlockHash().GetHex())),
         missed_index(index) {}
 };
@@ -27,9 +26,9 @@ class MissingBlockError : public std::runtime_error {
 class FinalizationRewardLogic {
 
  public:
-  virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &) = 0;
+  virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &) const = 0;
 
-  virtual std::size_t GetNumberOfRewardOutputs(blockchain::Height) = 0;
+  virtual std::size_t GetNumberOfRewardOutputs(blockchain::Height) const = 0;
 
   virtual ~FinalizationRewardLogic() = default;
 

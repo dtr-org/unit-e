@@ -544,6 +544,8 @@ class TestHandler:
                 if os.getenv('TRAVIS') == 'true' and int(time.time() - start_time) > TRAVIS_TIMEOUT_DURATION:
                     # In travis, timeout individual tests (to stop tests hanging and not providing useful output).
                     proc.send_signal(signal.SIGINT)
+                elif not os.getenv('TRAVIS') and int(time.time() - time0) > 10 * 60:
+                    proc.send_signal(signal.SIGINT)
                 if proc.poll() is not None:
                     log_out.seek(0), log_err.seek(0)
                     [stdout, stderr] = [log_file.read().decode('utf-8') for log_file in (log_out, log_err)]

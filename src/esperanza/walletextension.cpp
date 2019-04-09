@@ -13,6 +13,7 @@
 #include <esperanza/finalizationstate.h>
 #include <esperanza/script.h>
 #include <finalization/state_repository.h>
+#include <injector.h>
 #include <net.h>
 #include <policy/policy.h>
 #include <primitives/txtype.h>
@@ -71,6 +72,7 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
 
     std::size_t reward_offset = 0;
     if (tx->IsCoinBase() && tx->GetBlocksToRewardMaturity() > 0) {
+      // TODO UNIT-E: move to WalletExtensionDeps
       reward_offset = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(height) + 1;
     }
     for (std::size_t out_index = reward_offset; out_index < coins.size(); ++out_index) {
