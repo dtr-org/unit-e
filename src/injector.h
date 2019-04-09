@@ -16,6 +16,7 @@
 #include <finalization/state_repository.h>
 #include <injector_config.h>
 #include <p2p/finalizer_commits_handler.h>
+#include <proposer/finalization_reward_logic.h>
 #include <p2p/graphene_receiver.h>
 #include <p2p/graphene_sender.h>
 #include <settings.h>
@@ -32,7 +33,6 @@
 
 #ifdef ENABLE_WALLET
 #include <proposer/block_builder.h>
-#include <proposer/finalization_reward_logic.h>
 #include <proposer/multiwallet.h>
 #include <proposer/proposer.h>
 #include <proposer/proposer_logic.h>
