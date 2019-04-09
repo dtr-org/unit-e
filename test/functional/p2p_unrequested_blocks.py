@@ -52,7 +52,7 @@ Node1 is unused in tests 3-7:
 """
 
 from test_framework.mininode import *
-from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY
+from test_framework.test_framework import UnitETestFramework, COINBASE_MATURITY, DISABLE_FINALIZATION
 from test_framework.util import *
 import time
 from test_framework.blocktools import (
@@ -123,7 +123,7 @@ class AcceptBlockTest(UnitETestFramework):
     def set_test_params(self):
         self.setup_clean_chain = True
         self.num_nodes = 2
-        self.extra_args = [[], ["-minimumchainwork=0x10"]]
+        self.extra_args = [[DISABLE_FINALIZATION], ["-minimumchainwork=0x10", DISABLE_FINALIZATION]]
 
     def setup_network(self):
         # Node0 will be used to test behavior of processing unrequested blocks
