@@ -80,6 +80,7 @@ BASE_SCRIPTS= [
     'feature_assumevalid.py',
     'feature_graphene_active.py',
     # vv Tests less than 30s vv
+    'esperanza_slash_restart.py',
     'wallet_keys.py',
     'p2p_compactblocks.py',
     'esperanza_expired_vote_conflict.py',

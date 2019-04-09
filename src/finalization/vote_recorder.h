@@ -5,8 +5,10 @@
 #ifndef UNIT_E_FINALIZATION_VOTE_RECORDER_H
 #define UNIT_E_FINALIZATION_VOTE_RECORDER_H
 
+#include <dbwrapper.h>
 #include <esperanza/vote.h>
 #include <primitives/transaction.h>
+#include <serialize.h>
 #include <sync.h>
 
 #include <boost/noncopyable.hpp>
@@ -34,11 +36,27 @@ struct VoteRecord {
   }
 
   CScript GetScript() const;
+
+  ADD_SERIALIZE_METHODS
+
+  template <typename Stream, typename Operation>
+  void SerializationOp(Stream &s, Operation ser_action) {
+    READWRITE(vote);
+    READWRITE(sig);
+  }
 };
 
 class VoteRecorder : private boost::noncopyable {
+ public:
+  struct DBParams {
+    size_t cache_size = 0;
+    bool inmemory = false;
+    bool wipe = false;
+    bool obfuscate = false;
+  };
+
  private:
-  VoteRecorder() = default;
+  VoteRecorder(const DBParams &p);
 
   // Contains a map by validatorAddress. Each entry contains a map of the target
   // epoch height with the actual vote
@@ -47,10 +65,14 @@ class VoteRecorder : private boost::noncopyable {
   // Contains the most recent vote casted by any validator
   std::map<uint160, VoteRecord> voteCache;
 
+  CDBWrapper m_db;
+
   static CCriticalSection cs_recorder;
   static std::shared_ptr<VoteRecorder> g_voteRecorder;
 
   boost::optional<VoteRecord> FindOffendingVote(const esperanza::Vote &vote);
+  void LoadFromDB();
+  void SaveVoteToDB(const VoteRecord &record);
 
  public:
   void RecordVote(const esperanza::Vote &vote,
@@ -60,8 +82,8 @@ class VoteRecorder : private boost::noncopyable {
   boost::optional<VoteRecord> GetVote(const uint160 &validatorAddress,
                                       uint32_t epoch) const;
 
-  static void Init();
-  static void Reset();
+  static void Init(const DBParams &params);
+  static void Reset(const DBParams &params);
   static std::shared_ptr<VoteRecorder> GetVoteRecorder();
 };
 

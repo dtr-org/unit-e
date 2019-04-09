@@ -27,10 +27,12 @@ class SlashListener : public CValidationInterface {
 
 BOOST_AUTO_TEST_CASE(singleton) {
 
-  VoteRecorder::Init();
+  VoteRecorder::DBParams params;
+  params.inmemory = true;
+  VoteRecorder::Init(params);
   std::shared_ptr<VoteRecorder> instance = VoteRecorder::GetVoteRecorder();
 
-  VoteRecorder::Init();
+  VoteRecorder::Init(params);
   std::shared_ptr<VoteRecorder> instance2 = VoteRecorder::GetVoteRecorder();
 
   BOOST_CHECK_EQUAL(instance.get(), instance2.get());

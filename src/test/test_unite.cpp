@@ -122,7 +122,9 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
         state_repository->Reset(chainparams.GetFinalization(),
                                 chainparams.GetAdminParams());
 
-        finalization::VoteRecorder::Reset();
+        finalization::VoteRecorder::DBParams params;
+        params.inmemory = true;
+        finalization::VoteRecorder::Reset(params);
 
         mempool.setSanityCheck(1.0);
         pblocktree.reset(new CBlockTreeDB(1 << 20, true));

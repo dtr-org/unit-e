@@ -1327,7 +1327,6 @@ bool AppInitMain()
     auto state_repository = GetComponent<finalization::StateRepository>();
     state_repository->Reset(chainparams.GetFinalization(),
                             chainparams.GetAdminParams());
-    finalization::VoteRecorder::Init();
 
     // ********************************************************* Step 4a: application initialization
 #ifndef WIN32
@@ -1579,6 +1578,10 @@ bool AppInitMain()
                         CleanupBlockRevFiles();
                     }
                 }
+
+                finalization::VoteRecorder::DBParams params;
+                params.wipe = fReset;
+                finalization::VoteRecorder::Init(params);
 
                 if (fRequestShutdown) {
                     break;
