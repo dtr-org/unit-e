@@ -9,7 +9,7 @@
 
 #include <memory>
 
-class Settings;
+struct Settings;
 
 namespace blockchain {
 class Behavior;

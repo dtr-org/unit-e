@@ -137,7 +137,7 @@ class StakingRPCImpl : public StakingRPC {
     // Keeps track of which piece of stake is referred to by which block.
     std::multimap<uint256, std::pair<CTxIn, const CBlockIndex *>> stake_map;
 
-    // the index in stake_out is computed based on block_height -> minus this offset
+    // the index in stake_out is computed based on block_height minus this offset
     const std::size_t offset = start_height - stake_out.size() + 1;
     int current_height = start_height;
 

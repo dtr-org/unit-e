@@ -56,9 +56,7 @@ class ProposerRPCImpl : public ProposerRPC {
       return "no tip";
     }
     const uint256 *const tip_hash = tip->phashBlock;
-    if (!tip_hash) {
-      return "no tip hash";
-    }
+    assert(tip_hash);
     return ToUniValue(*tip->phashBlock);
   }
 
@@ -68,9 +66,7 @@ class ProposerRPCImpl : public ProposerRPC {
       return "no genesis";
     }
     const uint256 *const genesis_hash = genesis->phashBlock;
-    if (!genesis_hash) {
-      return "no genesis hash";
-    }
+    assert(genesis_hash);
     return ToUniValue(*genesis->phashBlock);
   }
 
@@ -148,7 +144,7 @@ class ProposerRPCImpl : public ProposerRPC {
           __func__));
     }
     UniValue obj(UniValue::VOBJ);
-    staking::StakingWallet &staking_wallet = wallet->GetWalletExtension();
+    const staking::StakingWallet &staking_wallet = wallet->GetWalletExtension();
     const staking::CoinSet stakeable_coins = [&]() {
       LOCK2(m_chain->GetLock(), staking_wallet.GetLock());
       return staking_wallet.GetStakeableCoins();
