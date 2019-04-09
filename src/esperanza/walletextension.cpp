@@ -515,7 +515,7 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockch
   ValidatorStateWatchWriter validator_writer(*this);
 
   const uint32_t block_number = height % state.GetEpochLength();
-  if (block_number < m_dependencies.settings->finalizer_vote_from_epoch_block_number) {
+  if (block_number < m_dependencies.GetSettings().finalizer_vote_from_epoch_block_number) {
     return;
   }
 
@@ -763,8 +763,8 @@ void WalletExtension::BlockConnected(
       case ValidatorState::Phase::IS_VALIDATING: {
         // In case we are logged out, stop validating.
         LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
-        const CBlockIndex *tip_block_index = m_dependencies.active_chain->GetTip();
-        const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository()->Find(*tip_block_index);
+        const CBlockIndex *tip_block_index = m_dependencies.GetActiveChain().GetTip();
+        const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().Find(*tip_block_index);
         assert(fin_state);
 
         uint32_t currentDynasty = fin_state->GetCurrentDynasty();
