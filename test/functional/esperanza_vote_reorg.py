@@ -43,10 +43,11 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
             vote = node.extractvotefromsignature(bytes_to_hex_str(tx.vin[0].scriptSig))
             assert_equal(vote['source_epoch'], source_epoch)
             assert_equal(vote['target_epoch'], target_epoch)
+            assert_equal(vote['target_hash'], node.getblockhash(target_epoch * 5))
 
         fork0 = self.nodes[0]
         fork1 = self.nodes[1]
-        finalizer = self.nodes[2]   # main finalizer that being checked
+        finalizer = self.nodes[2]  # main finalizer that being checked
         finalizer2 = self.nodes[3]  # secondary finalizer to control finalization
 
         self.setup_stake_coins(fork0, fork1, finalizer, finalizer2)
