@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The Unit-e developers
+// Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,6 +9,7 @@
 #include <finalization/state_repository.h>
 #include <settings.h>
 #include <staking/active_chain.h>
+#include <staking/stake_validator.h>
 
 class UnitEInjector;
 
@@ -29,6 +30,7 @@ class WalletExtensionDeps {
   const Dependency<Settings> m_settings;
   const Dependency<finalization::StateRepository> m_finalization_state_repository;
   const Dependency<staking::ActiveChain> m_active_chain;
+  const Dependency<staking::StakeValidator> m_stake_validator;
 
  public:
   //! \brief Constructor for testing only.
@@ -44,7 +46,7 @@ class WalletExtensionDeps {
   //! Fixture in proposer_tests.
   //!
   //! \param settings A pointer to mmocked test settings.
-  WalletExtensionDeps(Dependency<::Settings> settings) noexcept;
+  WalletExtensionDeps(Dependency<::Settings> settings, Dependency<staking::StakeValidator> stake_validator) noexcept;
 
   //! \brief Proper constructor for production use.
   //!
@@ -66,6 +68,12 @@ class WalletExtensionDeps {
     assert(m_active_chain != nullptr &&
            "staking::ActiveChain not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
     return *m_active_chain;
+  }
+
+  staking::StakeValidator &GetStakeValidator() const {
+    assert(m_stake_validator != nullptr &&
+           "staking::StakeValidator not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
+    return *m_stake_validator;
   }
 };
 
