@@ -17,25 +17,16 @@
 
 #include <chainparamsseeds.h>
 
-esperanza::AdminKeySet CreateRegTestAdminKeys() {
-  const auto key0Data = ParseHex(
-      "038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e8");
+esperanza::AdminKeySet CreateAdminKeys(std::array<std::string, esperanza::ADMIN_MULTISIG_KEYS>&& pubkeys) {
+    esperanza::AdminKeySet key_set;
+    for (int i = 0; i < pubkeys.size(); ++i) {
+        std::vector<unsigned char> key_data = ParseHex(std::move(pubkeys[i]));
+        CPubKey key(key_data);
+        assert(key.IsValid());
+        key_set[i] = std::move(key);
+    }
 
-  const auto key1Data = ParseHex(
-      "02f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa");
-
-  const auto key2Data = ParseHex(
-      "03d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c");
-
-  CPubKey key0(key0Data.begin(), key0Data.end());
-  CPubKey key1(key1Data.begin(), key1Data.end());
-  CPubKey key2(key2Data.begin(), key2Data.end());
-
-  assert(key0.IsValid());
-  assert(key1.IsValid());
-  assert(key2.IsValid());
-
-  return {{key0, key1, key2}};
+    return key_set;
 }
 
 void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout)
@@ -59,19 +50,19 @@ public:
         consensus.nRuleChangeActivationThreshold = 1512; // 75% for testchains
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // Deployment of BIP68, BIP112, and BIP113.
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = 1456790400; // March 1st, 2016
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = 1493596800; // May 1st, 2017
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000002830dab7f76dbb7d63");
+        consensus.nMinimumChainWork = uint256S("0x00");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000002e9e7b00e1f6dc5123a04aad68dd0f0968d8c7aa45f6640795c37b1"); //1135275
+        consensus.defaultAssumeValid = uint256S("0x00");
 
         genesis = parameters.genesis_block.block;
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -86,11 +77,16 @@ public:
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
 
+        adminParams.admin_keys = CreateAdminKeys({
+            "02630a75cd35adc6c44ca677e83feb8e4a7e539baaa49887c455e8242e3e3b1c05",
+            "03946025d10e3cdb30a9cd73525bc9acc4bd92e184cdd9c9ea7d0ebc6b654afcc5",
+            "0290f45494a197cbd389181b3d7596a90499a93368159e8a6e9f9d0d460799d33d"
+        });
+
         chainTxData = ChainTxData{
-            // Data as of block 000000000000033cfa3c975eb83ecf2bb4aaedf68e6d279f6ed2b427c64caff9 (height 1260526)
-            1516903490,
-            17082348,
-            0.09
+            0,
+            0,
+            0
         };
 
         finalization.epoch_length = 50;
@@ -147,7 +143,11 @@ public:
         };
 
         if(gArgs.GetBoolArg("-permissioning", false)) {
-          adminParams.admin_keys = CreateRegTestAdminKeys();
+            adminParams.admin_keys = CreateAdminKeys({
+                "038c0246da82d686e4638d8cf60452956518f8b63c020d23387df93d199fc089e8",
+                "02f1563a8930739b653426380a8297e5f08682cb1e7c881209aa624f821e2684fa",
+                "03d2bc85e0b035285add07680695cb561c9b9fbe9cb3a4be4f1f5be2fc1255944c"
+            });
         }
 
         snapshotParams.create_snapshot_per_epoch = static_cast<uint16_t>(gArgs.GetArg("-createsnapshot", 1));
