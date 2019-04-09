@@ -64,7 +64,7 @@ class WalletExtensionDeps {
 
   staking::ActiveChain &GetActiveChain() const {
     assert(m_active_chain != nullptr &&
-        "staking::ActiveChain not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
+           "staking::ActiveChain not available: test-only wallet extension used in production, see comments in walletextension_deps.h");
     return *m_active_chain;
   }
 };
