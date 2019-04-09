@@ -21,7 +21,7 @@ from test_framework.util import (
     sync_mempools)
 
 
-class FinalizatioSelfSlashTest(UnitETestFramework):
+class FinalizatioSlashSelfTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 4
@@ -173,4 +173,4 @@ class FinalizatioSelfSlashTest(UnitETestFramework):
 
 
 if __name__ == '__main__':
-    FinalizatioSelfSlashTest().main()
+    FinalizatioSlashSelfTest().main()
