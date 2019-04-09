@@ -93,7 +93,7 @@ Parameters Parameters::TestNet() noexcept {
   p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
 
   p.default_settings.p2p_port = 17182;
-  p.data_dir_suffix = "testnet3";
+  p.data_dir_suffix = "testnet";
 
   return p;
 }
