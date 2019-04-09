@@ -922,6 +922,17 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       }
       break;
     }
+    case TxType::WITHDRAW: {
+      LOCK(m_enclosing_wallet.cs_wallet);
+      assert(validatorState);
+      esperanza::ValidatorState &state = validatorState.get();
+
+      const auto expectedPhase =
+          +esperanza::ValidatorState::Phase::NOT_VALIDATING;
+
+      assert(state.m_phase == expectedPhase);
+      validatorState = ValidatorState();
+    }
     default: {
       return true;
     }
