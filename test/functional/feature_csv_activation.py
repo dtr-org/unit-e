@@ -62,7 +62,11 @@ from test_framework.script import (
     OP_CHECKSEQUENCEVERIFY,
     OP_DROP,
 )
-from test_framework.test_framework import UnitETestFramework, PROPOSER_REWARD
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+    DISABLE_FINALIZATION,
+)
 from test_framework.util import (
     assert_equal,
     get_bip9_status,
@@ -154,7 +158,7 @@ class BIP68_112_113Test(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        self.extra_args = [['-whitelist=127.0.0.1', '-blockversion=4', '-addresstype=legacy', '-stakesplitthreshold=1000000000']]
+        self.extra_args = [['-whitelist=127.0.0.1', '-blockversion=4', '-addresstype=legacy', '-stakesplitthreshold=1000000000', DISABLE_FINALIZATION]]
 
     def skip_test_if_missing_module(self):
         self.skip_if_no_wallet()
