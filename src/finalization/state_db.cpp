@@ -170,7 +170,6 @@ std::unique_ptr<StateDB> StateDB::New(
     Dependency<ArgsManager> args_manager) {
   const bool reindex = args_manager->GetBoolArg("-reindex", false);
   StateDBParams state_db_params;
-  // Wipe out db in case of reindexing
   if (reindex) {
     state_db_params.wipe = true;
   }

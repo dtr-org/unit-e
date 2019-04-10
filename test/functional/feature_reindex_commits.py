@@ -20,14 +20,11 @@ from test_framework.util import (
 )
 
 MIN_DEPOSIT = 1500
-EPOCH_LENGTH = 5
-
 
 class FeatureReindexCommits(UnitETestFramework):
 
     def get_extra_args(self, reindex):
         finalization_params = json.dumps({
-            'epochLength': EPOCH_LENGTH,
             'minDepositSize': MIN_DEPOSIT,
             'dynastyLogoutDelay': 2,
             'withdrawalEpochDelay': 2
@@ -105,9 +102,9 @@ class FeatureReindexCommits(UnitETestFramework):
         self.wait_for_transaction(deposit_tx)
 
         self.proposer.generatetoaddress(
-            26, self.proposer.getnewaddress(
+            24, self.proposer.getnewaddress(
                 '', 'bech32'))
-        assert_equal(self.proposer.getblockcount(), 27)
+        assert_equal(self.proposer.getblockcount(), 25)
 
     def assert_finalizer_status(self, status):
         wait_until(lambda: self.finalizer.getvalidatorinfo()[
