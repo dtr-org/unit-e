@@ -6,7 +6,8 @@
 
 export LC_ALL=C
 
-export PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
+PATH=$(echo $PATH | tr ':' "\n" | sed '/\/opt\/python/d' | tr "\n" ":" | sed "s|::|:|g")
+export PATH
 
 BEGIN_FOLD () {
   echo ""

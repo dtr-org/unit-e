@@ -28,8 +28,7 @@ else
 fi
 END_FOLD
 
-mkdir build
-cd build
+mkdir build && cd build
 
 BEGIN_FOLD configure
 DOCKER_EXEC ../configure --cache-file=config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)
