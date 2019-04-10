@@ -156,9 +156,8 @@ def assert_matches(actual, expected, strict=True, path=()):
             if strict:
                 if actual_keys != expected_keys:
                     raise AssertionError("Structure does not match, expected keys %s but got %s" % (expected_keys, actual_keys))
-            else:
-                if not expected_keys <= actual_keys:
-                    raise AssertionError("Structure does not match, expected %s to be a subset of %s" % (actual_keys, expected_keys))
+            elif not expected_keys <= actual_keys:
+                raise AssertionError("Structure does not match, expected %s to be a subset of %s" % (actual_keys, expected_keys))
             for key, value in expected.items():
                 assert_matches(actual[key], value, strict=strict, path=path+(key,))
         elif type(expected) == list:
@@ -170,7 +169,7 @@ def assert_matches(actual, expected, strict=True, path=()):
             ix = 0
             for actual_item, expected_item in zip(actual, expected):
                 assert_matches(actual_item, expected_item, strict=strict, path=path+(ix,))
-                ix = ix + 1
+                ix += 1
         elif type(expected) == str:
             assert_equal(actual, expected)
         elif type(expected) == int:
@@ -197,14 +196,11 @@ class Matcher:
     """
 
     @staticmethod
-    def match(func, message=None):
+    def match(func):
         """A matcher that checks whether a value satisfies a given predicate."""
         def check(value, path=()):
             return func(value)
-        if message:
-            check.message = message
-        else:
-            check.message = inspect.getsource(func).strip()
+        check.message = inspect.getsource(func).strip()
         return check
 
     @classmethod

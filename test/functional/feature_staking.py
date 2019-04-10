@@ -72,7 +72,7 @@ class FeatureStakingTest(UnitETestFramework):
         self.log.info("Check that stakeable coins were properly re-used and spent")
         result = node.getstakeablecoins()
         coins = result['stakeable_coins']
-        assert_equal(len(coins), 1)
+        assert_equal(1, len(coins))
 
 if __name__ == '__main__':
     FeatureStakingTest().main()
