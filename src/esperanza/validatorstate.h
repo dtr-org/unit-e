@@ -42,8 +42,8 @@ class ValidatorState {
   uint32_t m_end_dynasty = std::numeric_limits<uint32_t>::max();
   uint32_t m_start_dynasty = std::numeric_limits<uint32_t>::max();
 
-  inline bool IsNew() const {
-    return m_validator_address.IsNull();
+  inline bool HasDeposit() const {
+    return !m_validator_address.IsNull();
   }
 
   ADD_SERIALIZE_METHODS

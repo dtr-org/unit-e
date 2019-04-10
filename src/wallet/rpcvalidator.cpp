@@ -43,7 +43,7 @@ UniValue deposit(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be enabled to be a finalizer.");
   }
 
-  if (!extWallet.validatorState->IsNew()) {
+  if (extWallet.validatorState->HasDeposit()) {
     throw JSONRPCError(RPC_INVALID_REQUEST, "The node is already a finalizer.");
   }
 
