@@ -1705,7 +1705,7 @@ bool AppInitMain()
 
                 // In the case of reindex, don't restore finalization's state, since it will be built from scratch.
                 if (!fReindex) {
-                    LOCK(cs_main);
+                    AssertLockHeld(cs_main);
                     auto state_repository = GetComponent<finalization::StateRepository>();
                     auto state_processor = GetComponent<finalization::StateProcessor>();
                     state_repository->RestoreFromDisk(state_processor);
