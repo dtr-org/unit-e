@@ -16,7 +16,7 @@ Parameters Parameters::Base() noexcept {
 
   p.block_stake_timestamp_interval_seconds = 4;
   p.block_time_seconds = 16;
-  p.max_future_block_time_seconds = 2 * 60 * 60;
+  p.max_future_block_time_seconds = 15;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
   p.maximum_block_size = 1000000;
