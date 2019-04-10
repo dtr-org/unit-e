@@ -1467,9 +1467,8 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
 
 bool CScriptCheck::operator()() {
 
-    if (ptxTo->IsCoinBase()) {
-      // UNIT-E TODO: Temporary till we migrate the new coinbase
-      return true;
+    if (ptxTo->IsCoinBase() && nIn == 0) {
+        return true;
     }
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;

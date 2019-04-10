@@ -40,6 +40,7 @@ from test_framework.blocktools import (
     update_snapshot_with_tx,
 )
 from test_framework.key import CECKey
+from test_framework.keytools import KeyTool
 from test_framework.messages import (
     COutPoint,
     CBlockHeader,
@@ -49,6 +50,7 @@ from test_framework.messages import (
     TxType,
     UTXO,
     msg_block,
+    msg_witness_block,
     msg_headers,
 )
 from test_framework.mininode import (
@@ -76,7 +78,7 @@ class AssumeValidTest(UnitETestFramework):
             if not p2p_conn.is_connected:
                 break
             try:
-                p2p_conn.send_message(msg_block(self.blocks[i]))
+                p2p_conn.send_message(msg_witness_block(self.blocks[i]))
             except IOError as e:
                 assert not p2p_conn.is_connected
                 break
@@ -133,6 +135,9 @@ class AssumeValidTest(UnitETestFramework):
         # Propagate it to nodes 1 and 2 and stop them for now
         self.sync_first_block()
 
+        # Key Management for node 0
+        keytool = KeyTool.for_node(self.nodes[0])
+
         # Connect to node0
         p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
 
@@ -143,11 +148,12 @@ class AssumeValidTest(UnitETestFramework):
         self.blocks = []
 
         # Get a pubkey for the coinbase TXO
-        coinbase_key = CECKey()
-        coinbase_key.set_secretbytes(b"horsebattery")
-        coinbase_pubkey = coinbase_key.get_pubkey()
+        coinbase_key = keytool.make_privkey()
+        coinbase_pubkey = bytes(coinbase_key.get_pubkey())
 
-        # Create the first block with a coinbase output to our key
+        keytool.upload_key(coinbase_key)
+
+        self.log.info("Create the first block with a coinbase output to our key")
         height = 2
         snapshot_meta = get_tip_snapshot_meta(self.nodes[0])
         coin = self.get_coin_to_stake()
@@ -164,7 +170,7 @@ class AssumeValidTest(UnitETestFramework):
         snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
         height += 1
 
-        # Bury the block 100 deep so the coinbase output is spendable
+        self.log.info("Bury the block 100 deep so the coinbase output is spendable")
         for i in range(100):
             coin = self.get_coin_to_stake()
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_meta.hash, coinbase_pubkey))
@@ -177,7 +183,7 @@ class AssumeValidTest(UnitETestFramework):
             snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
             height += 1
 
-        # Create a transaction spending the coinbase output with an invalid (null) signature
+        self.log.info("Create a transaction spending the coinbase output with an invalid (null) signature")
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(self.block1.vtx[0].sha256, 0), scriptSig=b""))
         tx.vout.append(CTxOut((PROPOSER_REWARD - 1) * 100000000, CScript([OP_TRUE])))
@@ -202,7 +208,7 @@ class AssumeValidTest(UnitETestFramework):
 
         height += 1
 
-        # Bury the assumed valid block 2100 deep
+        self.log.info("Bury the assumed valid block 2100 deep")
         for i in range(2100):
             coin = self.get_coin_to_stake()
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, coin, snapshot_meta.hash, coinbase_pubkey))
@@ -218,7 +224,7 @@ class AssumeValidTest(UnitETestFramework):
 
         self.nodes[0].disconnect_p2ps()
 
-        # Start node1 and node2 with assumevalid so they accept a block with a bad signature.
+        self.log.info("Start node1 and node2 with assumevalid so they accept a block with a bad signature.")
         self.start_node(1, extra_args=["-assumevalid=" + hex(block102.sha256)])
         self.start_node(2, extra_args=["-assumevalid=" + hex(block102.sha256)])
 
@@ -233,18 +239,18 @@ class AssumeValidTest(UnitETestFramework):
         p2p1.send_header_for_blocks(self.blocks[2000:])
         p2p2.send_header_for_blocks(self.blocks[0:200])
 
-        # Send blocks to node0. Block 103 will be rejected.
+        self.log.info("Send blocks to node0. Block 103 will be rejected.")
         self.send_blocks_until_disconnected(p2p0)
         self.assert_blockchain_height(self.nodes[0], 102)
 
-        # Send all blocks to node1. All blocks will be accepted.
+        self.log.info("Send all blocks to node1. All blocks will be accepted.")
         for i in range(2202):
-            p2p1.send_message(msg_block(self.blocks[i]))
+            p2p1.send_message(msg_witness_block(self.blocks[i]))
         # Syncing 2200 blocks can take a while on slow systems. Give it plenty of time to sync.
         p2p1.sync_with_ping(120)
         assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], 2203)
 
-        # Send blocks to node2. Block 102 will be rejected.
+        self.log.info("Send blocks to node2. Block 102 will be rejected.")
         self.send_blocks_until_disconnected(p2p2)
         self.assert_blockchain_height(self.nodes[2], 102)
 

@@ -17,7 +17,7 @@ from test_framework.util import (
 from test_framework.mininode import (
     P2PInterface,
 )
-from test_framework.messages import CBlock, msg_block
+from test_framework.messages import CBlock, msg_witness_block
 
 def unidirectional_node_sync_via_rpc(node_src, node_dest):
     blocks_to_copy = []
@@ -35,7 +35,7 @@ def unidirectional_node_sync_via_rpc(node_src, node_dest):
         blockdata = node_src.getblock(blockhash, False)
         block = CBlock()
         block.deserialize(BytesIO(hex_str_to_bytes(blockdata)))
-        node_dest.p2p.send_message(msg_block(block))
+        node_dest.p2p.send_message(msg_witness_block(block))
         node_dest.p2p.sync_with_ping()
 
 def node_sync_via_rpc(nodes):

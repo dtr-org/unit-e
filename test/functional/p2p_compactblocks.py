@@ -10,7 +10,12 @@ Version 1 compact blocks are non-segwit and they are not supported
 from decimal import Decimal
 import random
 
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta
+from test_framework.blocktools import (
+    create_block,
+    create_coinbase,
+    get_tip_snapshot_meta,
+    sign_coinbase,
+)
 from test_framework.messages import BlockTransactions, BlockTransactionsRequest, calculate_shortid, CBlock, CBlockHeader, CInv, COutPoint, CTransaction, CTxIn, CTxInWitness, CTxOut, FromHex, HeaderAndShortIDs, msg_block, msg_blocktxn, msg_cmpctblock, msg_getblocktxn, msg_getdata, msg_getheaders, msg_headers, msg_inv, msg_sendcmpct, msg_sendheaders, msg_tx, msg_witness_block, msg_witness_blocktxn, MSG_WITNESS_FLAG, NODE_NETWORK, NODE_WITNESS, P2PHeaderAndShortIDs, PrefilledTransaction, ser_uint256, ToHex
 from test_framework.mininode import mininode_lock, P2PInterface
 from test_framework.script import CScript, OP_TRUE, OP_DROP
@@ -120,7 +125,7 @@ class CompactBlocksTest(UnitETestFramework):
 
         meta = get_tip_snapshot_meta(node)
         coin = get_unspent_coins(node, 1)[0]
-        block = create_block(int(tip, 16), create_coinbase(height + 1, coin, meta.hash), mtp + 1)
+        block = create_block(int(tip, 16), sign_coinbase(node, create_coinbase(height + 1, coin, meta.hash)), mtp + 1)
         block.nVersion = 4
         if txs:
             block.vtx.extend(txs)

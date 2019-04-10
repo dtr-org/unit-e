@@ -75,7 +75,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
 {
     std::vector<uint256> leaves;
     leaves.resize(block.vtx.size());
-    for (size_t s = 0; s < block.vtx.size(); s++) {
+    for (std::size_t s = 0; s < block.vtx.size(); ++s) {
         leaves[s] = block.vtx[s]->GetHash();
     }
     return ComputeMerkleRoot(std::move(leaves), mutated);
@@ -96,9 +96,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
 {
     std::vector<uint256> leaves;
     leaves.resize(block.vtx.size());
-    // UNIT-E TODO: In unit-e the coinbase transaction has a witness too
-    leaves[0].SetNull(); // The witness hash of the coinbase is 0.
-    for (size_t s = 1; s < block.vtx.size(); s++) {
+    for (std::size_t s = 0; s < block.vtx.size(); ++s) {
         leaves[s] = block.vtx[s]->GetWitnessHash();
     }
     return ComputeMerkleRoot(std::move(leaves), mutated);

@@ -10,7 +10,7 @@ soft-forks, and test that warning alerts are generated.
 import os
 import re
 
-from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta
+from test_framework.blocktools import create_block, create_coinbase, get_tip_snapshot_meta, sign_coinbase
 from test_framework.messages import msg_block
 from test_framework.mininode import P2PInterface, mininode_lock
 from test_framework.test_framework import UnitETestFramework
@@ -53,6 +53,7 @@ class VersionBitsWarningTest(UnitETestFramework):
         for _ in range(numblocks):
             stake = self.nodes[0].listunspent()[0]
             coinbase = create_coinbase(height + 1, stake, snapshot_meta.hash)
+            coinbase = sign_coinbase(self.nodes[0], coinbase)
             block = create_block(tip, coinbase, block_time)
             block.nVersion = version
             block.solve()

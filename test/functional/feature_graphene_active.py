@@ -22,12 +22,13 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.blocktools import (
     get_tip_snapshot_meta,
     create_block,
-    create_coinbase
+    create_coinbase,
+    sign_coinbase
 )
 from test_framework.mininode import P2PInterface
 from test_framework.messages import (
     msg_headers,
-    msg_block,
+    msg_witness_block,
     GrapheneBlock,
     CBlockHeader,
     GrapheneIbltEntryDummy,
@@ -88,7 +89,7 @@ class GrapheneActive(UnitETestFramework):
 
         # Can't decode iblt => should request fallback, which we will send
         p2p.wait_for_getdata(block.hash)
-        p2p.send_message(msg_block(block))
+        p2p.send_message(msg_witness_block(block))
 
         self.nodes[0].waitforblockheight(count_before + 1)
 
@@ -119,7 +120,7 @@ class GrapheneActive(UnitETestFramework):
         block = self.create_block()
         node.p2p.send_message(msg_headers([block]))
         node.p2p.wait_for_getgraphene(block.hash)
-        node.p2p.send_message(msg_block(block))
+        node.p2p.send_message(msg_witness_block(block))
         node.waitforblockheight(count_before + 1)
 
     def generate_with_txs(self):
@@ -182,9 +183,9 @@ class GrapheneActive(UnitETestFramework):
         tip_hash = node.getblockchaininfo()['bestblockhash']
         tip_header = node.getblockheader(tip_hash)
         snapshot_hash = get_tip_snapshot_meta(node).hash
-        block = create_block(int(tip_hash, 16),
-                             create_coinbase(tip_header["height"] + 1, stake,
-                                             snapshot_hash),
+        coinbase = create_coinbase(tip_header["height"] + 1, stake, snapshot_hash)
+        coinbase = sign_coinbase(self.nodes[0], coinbase)
+        block = create_block(int(tip_hash, 16), coinbase,
                              tip_header["mediantime"] + 1)
         block.solve()
         block.rehash()

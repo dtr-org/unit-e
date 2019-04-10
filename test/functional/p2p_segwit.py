@@ -945,6 +945,7 @@ class SegWitTest(UnitETestFramework):
         witness_hash = sha256(witness_program)
         scriptPubKey = CScript([OP_0, witness_hash])
         block.vtx[0].vout[0].scriptPubKey = scriptPubKey
+        block.vtx[0] = sign_coinbase(self.nodes[0], block.vtx[0])
         # This next line will rehash the coinbase and update the merkle
         # root, and solve.
         self.update_witness_block_with_transactions(block, [])

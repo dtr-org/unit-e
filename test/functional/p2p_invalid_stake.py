@@ -7,7 +7,7 @@
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import assert_equal
 from test_framework.mininode import P2PInterface
-from test_framework.messages import msg_block
+from test_framework.messages import msg_witness_block
 from test_framework.blocktools import (get_tip_snapshot_meta, create_coinbase, sign_transaction, create_block)
 
 class TestNode(P2PInterface):
@@ -52,12 +52,12 @@ class InvalidStakeTest(UnitETestFramework):
 
         # Check that already-spent coin is not accepted
         block = build_block_on_tip(node, coin)
-        p2p.send_and_ping(msg_block(block))
+        p2p.send_and_ping(msg_witness_block(block))
         assert_equal(len(p2p.reject_messages), 0)
         assert_equal(node.getblockcount(), 1)
 
         block = build_block_on_tip(node, coin)
-        p2p.send_and_ping(msg_block(block))
+        p2p.send_and_ping(msg_witness_block(block))
 
         assert_equal(len(p2p.reject_messages), 1)
         assert_equal(p2p.reject_messages[-1].message, b'block')
