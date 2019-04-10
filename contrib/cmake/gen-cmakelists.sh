@@ -14,7 +14,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 (
 echo "cmake_minimum_required(VERSION 3.12)"
-echo "project(unit_e)"
+echo "project($(basename `pwd`))"
 echo ""
 echo "set(CMAKE_CXX_STANDARD 11)"
 echo ""
