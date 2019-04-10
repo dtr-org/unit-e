@@ -37,7 +37,7 @@ Parameters Parameters::Base() noexcept {
     if (period >= p.reward_schedule.size()) {
       return 0;
     }
-    return static_cast<CAmount>(p.reward_schedule[period]);
+    return p.reward_schedule[period];
   };
   p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
     // UNIT-E: Does not adjust difficulty for now

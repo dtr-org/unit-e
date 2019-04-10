@@ -29,12 +29,12 @@ Time Behavior::CalculateProposingTimestampAfter(const std::int64_t time) const {
 }
 
 CAmount Behavior::CalculateBlockReward(const Height height) {
-  CAmount base_reward = m_parameters.reward_function(m_parameters, height);
+  const CAmount base_reward = m_parameters.reward_function(m_parameters, height);
   return ufp64::mul_to_uint(m_parameters.immediate_reward_fraction, base_reward);
 }
 
 CAmount Behavior::CalculateFinalizationReward(const Height height) {
-  CAmount base_reward = m_parameters.reward_function(m_parameters, height);
+  const CAmount base_reward = m_parameters.reward_function(m_parameters, height);
   return ufp64::mul_to_uint(m_parameters.finalization_reward_fraction, base_reward);
 }
 

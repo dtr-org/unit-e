@@ -75,12 +75,12 @@ class FinalizationRewardsTest(UnitETestFramework):
         disconnect_nodes(node, finalizer2.index)
 
         reward_addresses = [proposer_address1]
-        for i in range(EPOCH_LENGTH - 3):
+        for _ in range(EPOCH_LENGTH - 3):
             node.generatetoaddress(1, proposer_address1)
             reward_addresses.append(proposer_address1)
             assert_equal(len(get_coinbase_of_last_block(node)['vout']), CB_DEFAULT_OUTPUTS)
 
-        for i in range(2):
+        for _ in range(2):
             node.generatetoaddress(1, proposer_address2)
             reward_addresses.append(proposer_address2)
             assert_equal(len(get_coinbase_of_last_block(node)['vout']), CB_DEFAULT_OUTPUTS)

@@ -2332,11 +2332,11 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth, cons
         const bool outgoing = debit > 0;
         std::size_t start_index = 0;
         if (wtx.IsCoinBase() && wtx.GetBlocksToRewardMaturity() > 0) {
-          if (!block) {
-            // Coinbase transaction is not in the main chain
-            continue;
-          }
-          start_index = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
+            if (!block) {
+                // Coinbase transaction is not in the main chain
+                continue;
+            }
+            start_index = GetComponent<proposer::FinalizationRewardLogic>()->GetNumberOfRewardOutputs(static_cast<blockchain::Height>(block->nHeight)) + 1;
         }
         for (std::size_t i = start_index; i < wtx.tx->vout.size(); ++i) {
             const CTxOut& out = wtx.tx->vout[i];
