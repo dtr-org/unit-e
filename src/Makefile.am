@@ -359,6 +359,7 @@ libunite_server_a_SOURCES = \
   net.cpp \
   net_processing.cpp \
   noui.cpp \
+  outputtype.cpp \
   p2p/embargoman.cpp \
   p2p/embargoman_init.cpp \
   p2p/finalizer_commits_handler.cpp \
@@ -439,7 +440,6 @@ libunite_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
   key/mnemonic/mnemonic.cpp \
   miner.cpp \
-  outputtype.cpp \
   proposer/block_builder.cpp \
   proposer/eligible_coin.cpp \
   proposer/multiwallet.cpp \

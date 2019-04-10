@@ -138,7 +138,6 @@ UNITE_TESTS =\
   test/transaction_tests.cpp \
   test/trit_tests.cpp \
   test/tx_verify_tests.cpp \
-  test/txindex_tests.cpp \
   test/ufp64_tests.cpp \
   test/uint256_tests.cpp \
   test/util_tests.cpp \
@@ -160,6 +159,7 @@ UNITE_TESTS += \
   test/staking/abstract_block_validator_tests.cpp \
   test/staking/block_validator_tests.cpp \
   test/staking/stake_validator_tests.cpp \
+  test/txindex_tests.cpp \
   test/txvalidation_tests.cpp \
   test/txvalidationcache_tests.cpp \
   test/validation_block_tests.cpp \
