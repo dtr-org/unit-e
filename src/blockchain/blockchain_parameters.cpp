@@ -176,7 +176,7 @@ Parameters Parameters::RegTest() noexcept {
     return p.genesis_block.block.nBits;
   };
 
-  p.max_future_block_time_seconds = 20;
+  p.max_future_block_time_seconds = 2 * 60;
 
   return p;
 }
