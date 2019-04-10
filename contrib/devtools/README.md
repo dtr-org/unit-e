@@ -83,12 +83,9 @@ With in-tree builds this tool can be run from any directory within the
 repository. To use this tool with out-of-tree builds set `BUILDDIR`. For
 example:
 
-To use, make sure that you have fetched the upstream repository branch in which the subtree is
-maintained. See [developer notes](doc/developer-notes.md#subtrees) for details.
-
-Usage: `git-subtree-check.sh DIR (COMMIT)`
-
-`COMMIT` may be omitted, in which case `HEAD` is used.
+```bash
+BUILDDIR=$PWD/build contrib/devtools/gen-manpages.sh
+```
 
 github-merge.py
 ===============
