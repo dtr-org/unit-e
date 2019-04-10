@@ -757,11 +757,13 @@ void ThreadImport(std::vector<fs::path> vImportFiles)
     // Since the import process can restore the node's ValidatorState,
     // we must ensure that all callbacks processed in the context of the import.
     // Some details:
-    //   ThreadImport starts to spawn signals, which processed in WalletExtension
-    //   callbacks (e.g. WalletExtension#BlockConnected) and these callbacks can raise the node's state
-    //   up to 'IS_VALIDATING', which allows the node to do the network communication.
-    //   These callbacks work properly since ThreadImport setup flags fReindex & fImporting, but once we
-    //   leave ThreadImport and reset flags, the node can start network communication and be slashed.
+    //     ThreadImport starts to spawn signals, which are processed in
+    //   WalletExtension callbacks (e.g. WalletExtension#BlockConnected) and
+    //   these callbacks can raise the node's state up to 'IS_VALIDATING',
+    //   which allows the node to do the network communication.
+    //     These callbacks work properly since ThreadImport setup flags
+    //   fReindex & fImporting, but once we leave ThreadImport and reset flags,
+    //   the node can start network communication and be slashed.
     SyncWithValidationInterfaceQueue();
     // Notify parent thread about the finished import
     cv_import.notify_all();
