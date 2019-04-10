@@ -88,7 +88,7 @@ class FinalizatoinStateRestoration(UnitETestFramework):
                                      'lastFinalizedEpoch': 5,
                                      'validators': 1})
 
-        # connect validator and chek how it votes
+        # connect validator and check how it votes
         self.wait_for_vote_and_disconnect(v, p)
         generate_block(p, count=1)
 
