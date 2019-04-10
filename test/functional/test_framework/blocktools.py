@@ -22,6 +22,7 @@ from .messages import (
     TxType,
     UTXO,
     msg_block,
+    msg_witness_block,
     ser_uint256,
     ser_vector,
     sha256,
