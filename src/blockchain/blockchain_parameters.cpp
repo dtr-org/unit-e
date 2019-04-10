@@ -173,12 +173,7 @@ Parameters Parameters::RegTest() noexcept {
   p.difficulty_adjustement_window = 0;
   p.max_difficulty_value = uint256::zero;
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
-    if (height == 0) {
-      return p.genesis_block.block.nBits;
-    }
-    const CBlockIndex *prev = chain.AtHeight(height - 1);
-    assert(prev);
-    return prev->nBits;
+    return p.genesis_block.block.nBits;
   };
 
   return p;
