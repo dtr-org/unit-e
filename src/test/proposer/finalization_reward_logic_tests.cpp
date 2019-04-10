@@ -16,44 +16,7 @@
 
 namespace {
 
-class FakeStateRepository : public finalization::StateRepository {
- public:
-  esperanza::FinalizationParams fin_params;
-  esperanza::AdminParams admin_params;
-  std::map<const CBlockIndex *, finalization::FinalizationState> states;
-  CCriticalSection cs;
-
-  finalization::FinalizationState *GetTipState() override {
-    return nullptr;
-  }
-  finalization::FinalizationState *Find(const CBlockIndex &block_index) override {
-    const auto it = states.find(&block_index);
-    if (it == states.end()) {
-      return nullptr;
-    }
-    return &it->second;
-  }
-  finalization::FinalizationState *FindOrCreate(const CBlockIndex &,
-                                                esperanza::FinalizationState::InitStatus) override {
-    return nullptr;
-  }
-  bool Confirm(const CBlockIndex &block_index,
-               finalization::FinalizationState &&new_state,
-               finalization::FinalizationState **state_out) override {
-    return false;
-  }
-  bool RestoreFromDisk(Dependency<finalization::StateProcessor> proc) override { return false; }
-  bool SaveToDisk() override { return false; }
-  bool Restoring() const override { return false; }
-  void Reset(const esperanza::FinalizationParams &params, const esperanza::AdminParams &admin_params) override {}
-  void ResetToTip(const CBlockIndex &block_index) override {}
-  void TrimUntilHeight(blockchain::Height height) override {}
-  const esperanza::FinalizationParams &GetFinalizationParams() const override { return fin_params; }
-  const esperanza::AdminParams &GetAdminParams() const override { return admin_params; }
-  CCriticalSection &GetLock() override { return cs; }
-};
-
-class FakeBlockDB : public ::BlockDB {
+class BlockDBMock : public ::BlockDB {
  public:
   std::vector<CBlock> blocks;
 
@@ -76,17 +39,10 @@ struct Fixture {
   }();
   std::unique_ptr<blockchain::Behavior> behavior = blockchain::Behavior::NewFromParameters(parameters);
 
-  FakeStateRepository state_repository;
-  FakeBlockDB block_db;
+  mocks::StateRepositoryMock state_repository{fin_params};
+  BlockDBMock block_db;
   std::vector<CBlock> blocks;
   std::vector<CBlockIndex> block_indices;
-
-  void AddState(blockchain::Height height, const finalization::FinalizationState &state) {
-    state_repository.states.emplace(
-        std::piecewise_construct,
-        std::forward_as_tuple(&BlockIndexAtHeight(height)),
-        std::forward_as_tuple(state, finalization::FinalizationState::COMPLETED));
-  }
 
   CTransactionRef MakeCoinbaseTx(blockchain::Height height, const WitnessV0KeyHash &dest) {
     CMutableTransaction tx;
@@ -96,13 +52,9 @@ struct Fixture {
     return MakeTransactionRef(tx);
   }
 
-  const CBlockIndex &BlockIndexAtHeight(blockchain::Height h) {
-    return block_indices.at(h);
-  }
+  const CBlockIndex &BlockIndexAtHeight(blockchain::Height h) { return block_indices.at(h); }
 
-  const CBlock &BlockAtHeight(blockchain::Height h) {
-    return blocks.at(h);
-  }
+  const CBlock &BlockAtHeight(blockchain::Height h) { return blocks.at(h); }
 
   void BuildChain(blockchain::Height max_height) {
     blocks.resize(max_height + 1);
@@ -131,13 +83,14 @@ BOOST_AUTO_TEST_SUITE(finalization_reward_logic_tests)
 BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
   Fixture f;
   auto logic = f.GetFinalizationRewardLogic();
-  auto fin_state = finalization::FinalizationState(f.fin_params, f.admin_params);
+  FinalizationStateSpy &fin_state = f.state_repository.state;
 
   f.BuildChain(f.fin_params.GetEpochCheckpointHeight(2) + 1);
 
-  f.AddState(0, fin_state);
   std::vector<std::pair<CScript, CAmount>> rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(0));
+  std::vector<CAmount> reward_amounts = logic->GetFinalizationRewardAmounts(f.BlockIndexAtHeight(0));
   BOOST_CHECK_EQUAL(rewards.size(), 0);
+  BOOST_CHECK_EQUAL(reward_amounts.size(), 0);
 
   for (uint32_t epoch = 1; epoch < 3; ++epoch) {
     fin_state.InitializeEpoch(fin_state.GetEpochStartHeight(epoch));
@@ -145,21 +98,24 @@ BOOST_AUTO_TEST_CASE(get_finalization_rewards) {
 
     for (auto height = fin_state.GetEpochStartHeight(epoch); height < f.fin_params.GetEpochCheckpointHeight(epoch);
          ++height) {
-      f.AddState(height, fin_state);
       rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(height));
+      reward_amounts = logic->GetFinalizationRewardAmounts(f.BlockIndexAtHeight(height));
       BOOST_CHECK_EQUAL(rewards.size(), 0);
+      BOOST_CHECK_EQUAL(reward_amounts.size(), 0);
     }
 
     auto checkpoint_height = fin_state.GetEpochCheckpointHeight(epoch);
-    f.AddState(checkpoint_height, fin_state);
 
     // We must pay out the rewards in the first block of an epoch, i.e. when the current tip is a checkpoint block
     rewards = logic->GetFinalizationRewards(f.BlockIndexAtHeight(checkpoint_height));
+    reward_amounts = logic->GetFinalizationRewardAmounts(f.BlockIndexAtHeight(checkpoint_height));
     BOOST_CHECK_EQUAL(rewards.size(), f.fin_params.epoch_length);
+    BOOST_CHECK_EQUAL(reward_amounts.size(), f.fin_params.epoch_length);
     for (std::size_t i = 0; i < rewards.size(); ++i) {
       auto h = static_cast<blockchain::Height>(fin_state.GetEpochStartHeight(epoch) + i);
       auto r = static_cast<CAmount>(f.parameters.reward_function(f.parameters, h) * 0.4);
       BOOST_CHECK_EQUAL(rewards[i].second, r);
+      BOOST_CHECK_EQUAL(reward_amounts[i], r);
       auto s = f.BlockAtHeight(h).vtx[0]->vout[0].scriptPubKey;
       BOOST_CHECK_EQUAL(HexStr(rewards[i].first), HexStr(s));
     }
