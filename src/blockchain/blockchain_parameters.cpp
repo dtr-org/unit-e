@@ -73,7 +73,7 @@ Parameters Parameters::Base() noexcept {
       assert(numerator / actual_window_duration == avg_difficulty && "Integer overflow detected");
     }
 
-    arith_uint256 next_difficulty = actual_window_duration * avg_difficulty / expected_window_duration;
+    arith_uint256 next_difficulty = numerator / expected_window_duration;
 
     const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
     if (next_difficulty > max_difficulty_value) {
