@@ -46,8 +46,10 @@ Parameters Parameters::Base() noexcept {
   p.max_difficulty_value = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
+    const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
+
     if (height <= p.difficulty_adjustement_window) {
-      return p.genesis_block.block.nBits;
+      return max_difficulty_value.GetCompact();
     }
 
     const Height window_end = height - 1;
@@ -56,7 +58,10 @@ Parameters Parameters::Base() noexcept {
     const CBlockIndex *end_index = chain.AtHeight(window_end);
     const CBlockIndex *start_index = chain.AtHeight(window_start);
 
-    assert(end_index->nTime >= start_index->nTime);
+    if (end_index->nTime <= start_index->nTime) {
+      return max_difficulty_value.GetCompact();
+    }
+
     const blockchain::Time actual_window_duration = end_index->nTime - start_index->nTime;
     const blockchain::Time expected_window_duration = p.difficulty_adjustement_window * p.block_time_seconds;
 
@@ -69,15 +74,15 @@ Parameters Parameters::Base() noexcept {
 
     const arith_uint256 avg_difficulty = window_difficulties_sum / p.difficulty_adjustement_window;
     const arith_uint256 numerator = actual_window_duration * avg_difficulty;
-    if (actual_window_duration != 0) {
-      assert(numerator / actual_window_duration == avg_difficulty && "Integer overflow detected");
+    if (numerator / actual_window_duration != avg_difficulty) {
+      // Overflow
+      return max_difficulty_value.GetCompact();
     }
 
-    arith_uint256 next_difficulty = numerator / expected_window_duration;
+    const arith_uint256 next_difficulty = numerator / expected_window_duration;
 
-    const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
     if (next_difficulty > max_difficulty_value) {
-      next_difficulty = max_difficulty_value;
+      return max_difficulty_value.GetCompact();
     }
 
     return next_difficulty.GetCompact();
