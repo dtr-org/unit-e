@@ -35,7 +35,7 @@ struct Settings {
   //! \brief Maximum amount of money to combine when proposing.
   //!
   //! When proposing the proposer will combine the eligible coins with respect
-  //! to the total amount. The only guarantee is that it the combined stake
+  //! to the total amount. The only guarantee is that the combined stake
   //! will not exceed this value in total, not that it's optimal (that would
   //! require solving the Knapsack problem otherwise).
   CAmount stake_combine_maximum = 0;
