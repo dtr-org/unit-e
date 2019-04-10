@@ -58,6 +58,7 @@ forward declarations of functions and templated classes are prohibited according
   - `++i` is preferred over `i++`.
   - `nullptr` is preferred over `NULL` or `(void*)0`.
   - `static_assert` is preferred over `assert` where possible. Generally; compile-time checking is preferred over run-time checking.
+  - Do not use the scope resolution unless it is required (that is: use `Type` instead of `::Type` if not ambigious otherwise)
 
 You can check the code for style violations by running
 [`contrib/devtools/lint-clang-format.py`](../contrib/devtools/lint-clang-format.py).
