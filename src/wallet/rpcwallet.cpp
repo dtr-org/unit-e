@@ -3455,7 +3455,7 @@ UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript>
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
         }
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-        if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr))
+        if (!ProcessNewBlock(Params(), shared_pblock, /* fForceProcessing= */ true, nullptr))
             throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
 
         ++nHeight;
