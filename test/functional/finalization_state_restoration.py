@@ -14,6 +14,7 @@ from test_framework.util import (
     connect_nodes,
     disconnect_nodes,
     sync_blocks,
+    sync_mempools,
     wait_until,
 )
 
