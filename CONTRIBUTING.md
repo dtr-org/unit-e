@@ -49,7 +49,8 @@ branch](https://help.github.com/articles/syncing-a-fork/) to the latest version.
 
 This workflow is the same for everybody, including those who have write access
 to the main repo, in order to have a consistent, symmetric, and fair workflow.
-So don't create pull requests as branches in the main repo.
+Thus also core maintainers keep private branches in their forks, not on the main
+repo.
 
 ### Create topic branch
 
@@ -173,6 +174,11 @@ request](https://github.blog/2019-02-14-introducing-draft-pull-requests/). You
 can use [Tasks
 Lists](https://help.github.com/articles/basic-writing-and-formatting-syntax/#task-lists)
 in the body of the pull request to indicate tasks which are pending.
+
+Alternatively you can also add the `wip` (work in progress) label to a
+(non-draft) pull request. That also indicates that the pull request is not ready
+for being merged yet. The difference is that CI already runs on the pull request
+which is not the case for draft pull requests.
 
 If you continue to work in the pull request and it gets to a state where it's
 ready to be merged, [mark it as ready for
@@ -344,7 +350,9 @@ needed.
 If the pull request contains commits by multiple people, add `Co-authored-by:`
 trailers in the commit message to reflect authorship of the pull request as a
 whole. This avoids author information being lost due to the squashing of the
-commits.
+commits. See also the documentation on GitHub about [creating a commit with
+multiple
+authors](https://help.github.com/en/articles/creating-a-commit-with-multiple-authors).
 
 There are some exceptions to the rule to squash commits, for example when
 merging upstream code and the commits and authors should be kept as they are.
@@ -354,11 +362,12 @@ Creating issues
 ---------------
 
 If you find bugs or any other issues in unit-e, please submit them as [issues on
-GitHub](https://github.com/dtr-org/unit-e/issues). There is some more information in
-the [developer
+GitHub](https://github.com/dtr-org/unit-e/issues). There is some more
+information in the [developer
 notes](https://github.com/dtr-org/unit-e/blob/master/doc/developer-notes.md#github-issues).
-If you would like to report security issues you can also send them to
-security@dtr.org.
+
+Contact security@dtr.org to report security vulnerabilities or discuss sensitive
+security related matters.
 
 
 Release Policy
