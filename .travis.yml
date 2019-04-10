@@ -7,9 +7,9 @@ language: minimal
 cache:
   ccache: true
   directories:
-  - depends/built
-  - depends/sdk-sources
-  - $HOME/.ccache
+    - depends/built
+    - depends/sdk-sources
+    - $HOME/.ccache
 stages:
   - lint
   - test
@@ -76,6 +76,7 @@ jobs:
       name: "32-bit + dash (unit and functional tests)"
       env: >-
         HOST=i686-pc-linux-gnu
+        DPKG_ADD_ARCH="i386"
         PACKAGES="g++-multilib python3-zmq libudev-dev:i386"
         RUN_TESTS=true
         GOAL="install"
