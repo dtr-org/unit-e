@@ -202,7 +202,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       // Apparently an alternative construction of the merkle tree avoids this
       // issue completely _and_ results in faster merkle tree construction, see
       // BIP 98 https://github.com/bitcoin/bips/blob/master/bip-0098.mediawiki
-      result.AddError(Error::DUPLICATE_TRANSACTIONS_IN_MERKLE_TREE);
+      result.AddError(Error::MERKLE_ROOT_DUPLICATE_TRANSACTIONS);
     }
 
     // check witness merkle root
