@@ -18,7 +18,7 @@ class FeatureStakingTest(UnitETestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
-        self.extra_args = [['-stakesplitthreshold=0']]
+        self.extra_args = [['-stakesplitthreshold=0', '-stakecombinemaximum=100000000000000']]
 
     def run_test(self):
 
@@ -73,6 +73,13 @@ class FeatureStakingTest(UnitETestFramework):
         result = node.getstakeablecoins()
         coins = result['stakeable_coins']
         assert_equal(1, len(coins))
+
+        self.log.info("Mine another block, this should make the first block reward mature")
+        node.generatetoaddress(1, address)
+        result = node.getstakeablecoins()
+        coins = result['stakeable_coins']
+        assert_equal(2, len(coins))
+        assert_equal(set(map(lambda x: x['coin']['amount'], coins)), set([Decimal(10000), Decimal(3.75)]))
 
 if __name__ == '__main__':
     FeatureStakingTest().main()
