@@ -586,7 +586,7 @@ std::string LicenseInfo()
            "\n" +
            strprintf(_("Distributed under the MIT software license, see the accompanying file %s or %s"), "COPYING", "<https://opensource.org/licenses/MIT>") + "\n" +
            "\n" +
-           strprintf(_("This product includes software developed by the unit-e developers for use in unit-e %s, software developed by the OpenSSL Project for use in the OpenSSL Toolkit %s, cryptographic software written by Eric Young, and UPnP software written by Thomas Bernard."), "<https://bitcoincore.org>", "<https://www.openssl.org>") +
+           strprintf(_("This product includes software developed by the Bitcoin Core developers for use in Bitcoin Core %s, software developed by the OpenSSL Project for use in the OpenSSL Toolkit %s, cryptographic software written by Eric Young, and UPnP software written by Thomas Bernard."), "<https://bitcoincore.org>", "<https://www.openssl.org>") +
            "\n";
 }
 
