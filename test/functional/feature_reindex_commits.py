@@ -12,6 +12,7 @@ Test running unit-e with -reindex options and with finalization transactions
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
+    assert_finalizationstate,
     connect_nodes_bi,
     disconnect_nodes,
     json,
@@ -59,17 +60,26 @@ class FeatureReindexCommits(UnitETestFramework):
         self.generate_sync(self.proposer)
         self.assert_finalizer_status('NOT_VALIDATING')
 
-        self.generate_deposit()
+        self.log.info("Setup deposit")
+        self.setup_deposit()
         self.assert_finalizer_status('IS_VALIDATING')
 
         disconnect_nodes(self.proposer, self.finalizer.index)
 
+        self.log.info("Generate few epochs")
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
             count=2)
         assert_equal(len(votes), 2)
+        assert_equal(self.proposer.getblockcount(), 35)
+        assert_finalizationstate(self.proposer,
+                                 {'currentEpoch': 7,
+                                  'lastJustifiedEpoch': 6,
+                                  'lastFinalizedEpoch': 5,
+                                  'validators': 1})
 
+        self.log.info("Restart nodes, -reindex=1")
         self.restart_nodes(True)
         self.assert_finalizer_status('IS_VALIDATING')
 
@@ -78,12 +88,17 @@ class FeatureReindexCommits(UnitETestFramework):
             finalizer=self.finalizer,
             count=2)
         assert_equal(len(votes), 2)
+        assert_equal(self.proposer.getblockcount(), 45)
+        assert_finalizationstate(self.proposer,
+                             {'currentEpoch': 9,
+                              'lastJustifiedEpoch': 8,
+                              'lastFinalizedEpoch': 7,
+                              'validators': 1})
 
-        self.restart_nodes(False)
+
+        self.log.info("Restart nodes, -reindex=0")
+        self.restart_nodes(reindex=False)
         self.assert_finalizer_status('IS_VALIDATING')
-
-        last_fin_epoch = self.finalizer.getfinalizationstate()[
-            'lastFinalizedEpoch']
 
         votes = self.generate_epoch(
             proposer=self.proposer,
@@ -91,11 +106,14 @@ class FeatureReindexCommits(UnitETestFramework):
             count=2)
         assert_equal(len(votes), 2)
 
-        assert_equal(
-            last_fin_epoch + 2,
-            self.finalizer.getfinalizationstate()['lastFinalizedEpoch'])
+        assert_equal(self.proposer.getblockcount(), 55)
+        assert_finalizationstate(self.proposer,
+                                 {'currentEpoch': 11,
+                                  'lastJustifiedEpoch': 10,
+                                  'lastFinalizedEpoch': 9,
+                                  'validators': 1})
 
-    def generate_deposit(self):
+    def setup_deposit(self):
         deposit_tx = self.finalizer.deposit(
             self.finalizer.getnewaddress(
                 "", "legacy"), MIN_DEPOSIT)
