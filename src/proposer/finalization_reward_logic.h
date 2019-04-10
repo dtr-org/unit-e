@@ -10,6 +10,7 @@
 #include <dependency.h>
 #include <finalization/state_repository.h>
 
+#include <memory>
 #include <vector>
 
 namespace proposer {
@@ -25,9 +26,9 @@ class MissingBlockError : public std::runtime_error {
 class FinalizationRewardLogic {
 
  public:
-  virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &) = 0;
+  virtual std::vector<std::pair<CScript, CAmount>> GetFinalizationRewards(const CBlockIndex &) const = 0;
 
-  virtual std::size_t GetNumberOfRewardOutputs(blockchain::Height) = 0;
+  virtual std::size_t GetNumberOfRewardOutputs(blockchain::Height) const = 0;
 
   virtual ~FinalizationRewardLogic() = default;
 
