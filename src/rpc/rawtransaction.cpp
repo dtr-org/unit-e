@@ -36,7 +36,6 @@
 #include <future>
 #include <stdint.h>
 
-#include <byteswap.h>
 #include <univalue.h>
 
 
