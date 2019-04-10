@@ -91,8 +91,8 @@ class BumpFeeTest(UnitETestFramework):
         test_rebumping(rbf_node, dest_address)
         test_rebumping_not_replaceable(rbf_node, dest_address)
         test_unconfirmed_not_spendable(rbf_node, rbf_node_address)
-        # test_bumpfee_metadata(rbf_node, dest_address)
-        # test_locked_wallet_fails(rbf_node, dest_address)
+        test_bumpfee_metadata(rbf_node, dest_address)
+        test_locked_wallet_fails(rbf_node, dest_address)
         self.log.info("Success")
 
 
