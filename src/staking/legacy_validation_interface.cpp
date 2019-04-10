@@ -81,6 +81,8 @@ class LegacyValidationImpl : public LegacyValidationInterface {
       CValidationState &validation_state,
       const Consensus::Params &consensus_params,
       bool check_proof_of_work) override {
+    // This function used to check proof of work only. It will check timestamps in PoS,
+    // so it's not superfluous, but with PoW removed it is currently simply returning true.
     return true;
   }
 
