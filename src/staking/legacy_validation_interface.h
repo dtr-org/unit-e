@@ -26,6 +26,24 @@ class ActiveChain;
 class BlockValidator;
 class StakeValidator;
 
+//! \brief Interface which is compatible with "old style" checks.
+//!
+//! Bitcoin validation relies on CheckBlockHeader, CheckBlock,
+//! ContextualCheckBlock, and ContextualCheckBlockHeader. The same
+//! structure has been kept in unit-e with the addition of CheckStake
+//! in StakeValidator.
+//!
+//! The bitcoin-style functions reference CValidationState whereas
+//! the unit-e-style functions are made part of components and carry
+//! state of validation through staking::BlockValidationInfo.
+//!
+//! For backwards compatibility CValidationState has been augmented
+//! with staking::BlockValidationInfo. The scope of it is narrower
+//! then for CValidationState as we also have BlockValidationResult.
+//! To translate into the existing validation interface different
+//! implementations are provided for the LegacyValidationInterface:
+//! - LegacyValidationInterface::New which accesses the PoS BlockValidator
+//! - LegacyValidationInterface::Old which implements the original functions.
 class LegacyValidationInterface {
 
  public:
@@ -35,6 +53,8 @@ class LegacyValidationInterface {
       const Consensus::Params &consensus_params,
       bool check_proof_of_work) = 0;
 
+  //! Short hand (virtual functions do not go well with default parameters)
+  //! for CheckBlockHeader(block, validation_state, consensus_params, true);
   bool CheckBlockHeader(
       const CBlockHeader &block,
       CValidationState &validation_state,
@@ -49,6 +69,8 @@ class LegacyValidationInterface {
       bool check_proof_of_work,
       bool check_merkle_root) = 0;
 
+  //! Short hand (virtual functions do not go well with default parameters)
+  //! for CheckBlock(block, validation_state, consensus_params, check_proof_of_work, true);
   bool CheckBlock(
       const CBlock &block,
       CValidationState &validation_state,
@@ -57,6 +79,8 @@ class LegacyValidationInterface {
     return CheckBlock(block, validation_state, consensus_params, check_proof_of_work, true);
   }
 
+  //! Short hand (virtual functions do not go well with default parameters)
+  //! CheckBlock(block, validation_state, consensus_params, true, true);
   bool CheckBlock(
       const CBlock &block,
       CValidationState &validation_state,
@@ -84,11 +108,19 @@ class LegacyValidationInterface {
       Dependency<BlockValidator> block_validator,
       Dependency<StakeValidator> stake_validator);
 
+  //! \brief Instantiates an instance of the old validation functions.
+  //!
+  //! Although the old functions do not require all these dependencies
+  //! they are enumerated here such that New() and LegacyImpl() define
+  //! the same interface and can be used interchangeably.
   static std::unique_ptr<LegacyValidationInterface> LegacyImpl(
       Dependency<ActiveChain> active_chain,
       Dependency<BlockValidator> block_validator,
       Dependency<StakeValidator> stake_validator);
 
+  //! \brief Instantiates an instance of the old validation functions.
+  //!
+  //! This factory should be used in tests only.
   static std::unique_ptr<LegacyValidationInterface> Old();
 };
 
