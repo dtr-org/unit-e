@@ -104,7 +104,7 @@ bool Iterator::GetUTXOSubsets(const uint64_t subset_index, const uint16_t count,
   }
 
   // todo(kostia): don't return more than 4MB as it's the maximum allowed
-  // message size in P2P. 10K UTXO Sets is ~1MB and on Unit-e data doesn't grow
+  // message size in P2P. 10K UTXO Sets is ~1MB and on Bitcoin data doesn't grow
   // more than 1.2MB but theoretically it can go beyond the 4MB limit
 
   subsets_out.clear();

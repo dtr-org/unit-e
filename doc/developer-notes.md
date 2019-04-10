@@ -71,8 +71,10 @@ options of the call in the `pre-commit` file.
 Style guide Python
 ------------------
 
+Refer to
+[/test/functional/README.md#style-guidelines](/test/functional/README.md#style-guidelines).
 You can check the code for style violations by running
-[`contrib/devtools/lint-python.sh`](../contrib/devtools/lint-python.sh).
+[`test/lint/lint-python.sh`](/test/lint/lint-python.sh).
 
 UNIT-E tag
 ------------
@@ -129,6 +131,9 @@ Not OK (used plenty in the current source, but not picked up):
 A full list of comment syntaxes picked up by doxygen can be found at http://www.stack.nl/~dimitri/doxygen/manual/docblocks.html,
 but if possible use one of the above styles.
 
+Documentation can be generated with `make docs` and cleaned up with `make
+clean-docs`.
+
 Development tips and tricks
 ---------------------------
 
@@ -136,6 +141,10 @@ Development tips and tricks
 
 Run configure with the --enable-debug option, then make. Or run configure with
 CXXFLAGS="-g -ggdb -O0" or whatever debug flags you need.
+
+**compiling for gprof profiling**
+
+Run configure with the --enable-gprof option, then make.
 
 **debug.log**
 
@@ -191,6 +200,57 @@ make cov
 
 # A coverage report will now be accessible at `./test_unite.coverage/index.html`.
 ```
+
+**Sanitizers**
+
+unit-e can be compiled with various "sanitizers" enabled, which add
+instrumentation for issues regarding things like memory safety, thread race
+conditions, or undefined behavior. This is controlled with the
+`--with-sanitizers` configure flag, which should be a comma separated list of
+sanitizers to enable. The sanitizer list should correspond to supported
+`-fsanitize=` options in your compiler. These sanitizers have runtime overhead,
+so they are most useful when testing changes or producing debugging builds.
+
+Some examples:
+
+```bash
+# Enable both the address sanitizer and the undefined behavior sanitizer
+./configure --with-sanitizers=address,undefined
+
+# Enable the thread sanitizer
+./configure --with-sanitizers=thread
+```
+
+If you are compiling with GCC you will typically need to install corresponding
+"san" libraries to actually compile with these flags, e.g. libasan for the
+address sanitizer, libtsan for the thread sanitizer, and libubsan for the
+undefined sanitizer. If you are missing required libraries, the configure script
+will fail with a linker error when testing the sanitizer flags.
+
+The test suite should pass cleanly with the `thread` and `undefined` sanitizers,
+but there are a number of known problems when using the `address` sanitizer. The
+address sanitizer is known to fail in
+[sha256_sse4::Transform](/src/crypto/sha256_sse4.cpp) which makes it unusable
+unless you also use `--disable-asm` when running configure. We would like to fix
+sanitizer issues, so please send pull requests if you can fix any errors found
+by the address sanitizer (or any other sanitizer).
+
+Not all sanitizer options can be enabled at the same time, e.g. trying to build
+with `--with-sanitizers=address,thread` will fail in the configure script as
+these sanitizers are mutually incompatible. Refer to your compiler manual to
+learn more about these options and which sanitizers are supported by your
+compiler.
+
+Additional resources:
+
+ * [AddressSanitizer](https://clang.llvm.org/docs/AddressSanitizer.html)
+ * [LeakSanitizer](https://clang.llvm.org/docs/LeakSanitizer.html)
+ * [MemorySanitizer](https://clang.llvm.org/docs/MemorySanitizer.html)
+ * [ThreadSanitizer](https://clang.llvm.org/docs/ThreadSanitizer.html)
+ * [UndefinedBehaviorSanitizer](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html)
+ * [GCC Instrumentation Options](https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html)
+ * [Google Sanitizers Wiki](https://github.com/google/sanitizers/wiki)
+ * [Issue #12691: Enable -fsanitize flags in Travis](https://github.com/bitcoin/bitcoin/issues/12691)
 
 Locking/mutex usage notes
 -------------------------
@@ -389,6 +449,34 @@ Strings and formatting
 
   - *Rationale*: These functions do overflow checking, and avoid pesky locale issues
 
+- Avoid using locale dependent functions if possible. You can use the provided
+  [`lint-locale-dependence.sh`](/test/lint/lint-locale-dependence.sh)
+  to check for accidental use of locale dependent functions.
+
+  - *Rationale*: Unnecessary locale dependence can cause bugs that are very tricky to isolate and fix.
+
+  - These functions are known to be locale dependent:
+    `alphasort`, `asctime`, `asprintf`, `atof`, `atoi`, `atol`, `atoll`, `atoq`,
+    `btowc`, `ctime`, `dprintf`, `fgetwc`, `fgetws`, `fprintf`, `fputwc`,
+    `fputws`, `fscanf`, `fwprintf`, `getdate`, `getwc`, `getwchar`, `isalnum`,
+    `isalpha`, `isblank`, `iscntrl`, `isdigit`, `isgraph`, `islower`, `isprint`,
+    `ispunct`, `isspace`, `isupper`, `iswalnum`, `iswalpha`, `iswblank`,
+    `iswcntrl`, `iswctype`, `iswdigit`, `iswgraph`, `iswlower`, `iswprint`,
+    `iswpunct`, `iswspace`, `iswupper`, `iswxdigit`, `isxdigit`, `mblen`,
+    `mbrlen`, `mbrtowc`, `mbsinit`, `mbsnrtowcs`, `mbsrtowcs`, `mbstowcs`,
+    `mbtowc`, `mktime`, `putwc`, `putwchar`, `scanf`, `snprintf`, `sprintf`,
+    `sscanf`, `stoi`, `stol`, `stoll`, `strcasecmp`, `strcasestr`, `strcoll`,
+    `strfmon`, `strftime`, `strncasecmp`, `strptime`, `strtod`, `strtof`,
+    `strtoimax`, `strtol`, `strtold`, `strtoll`, `strtoq`, `strtoul`,
+    `strtoull`, `strtoumax`, `strtouq`, `strxfrm`, `swprintf`, `tolower`,
+    `toupper`, `towctrans`, `towlower`, `towupper`, `ungetwc`, `vasprintf`,
+    `vdprintf`, `versionsort`, `vfprintf`, `vfscanf`, `vfwprintf`, `vprintf`,
+    `vscanf`, `vsnprintf`, `vsprintf`, `vsscanf`, `vswprintf`, `vwprintf`,
+    `wcrtomb`, `wcscasecmp`, `wcscoll`, `wcsftime`, `wcsncasecmp`, `wcsnrtombs`,
+    `wcsrtombs`, `wcstod`, `wcstof`, `wcstoimax`, `wcstol`, `wcstold`,
+    `wcstoll`, `wcstombs`, `wcstoul`, `wcstoull`, `wcstoumax`, `wcswidth`,
+    `wcsxfrm`, `wctob`, `wctomb`, `wctrans`, `wctype`, `wcwidth`, `wprintf`
+
 - For `strprintf`, `LogPrint`, `LogPrintf` formatting characters don't need size specifiers
 
   - *Rationale*: unit-e uses tinyformat, which is type safe. Leave them out to avoid confusion
@@ -549,16 +637,16 @@ These are the current subtrees and where they are coming from:
 ### Checking subtrees
 
 There is a tool in
-[contrib/devtools/git-subtree-check.sh](../contrib/devtools/git-subtree-check.sh)
+[test/lint/git-subtree-check.sh](/test/lint/git-subtree-check.sh)
 to check a subtree directory for consistency with its upstream repository. Run
 it for example as:
 
 ```console
-$ contrib/devtools/git-subtree-check.sh src/secp256k1
+$ test/lint/git-subtree-check.sh src/secp256k1
 src/secp256k1 in HEAD currently refers to tree 8ae830321a35bc7499991d5428bec2b231f0f154
 src/secp256k1 in HEAD was last updated in commit 520d78e7c9698245e8da1509661922068ffe67ed (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
 src/secp256k1 in HEAD was last updated to upstream commit f43d43b1a4b9d2eb426d131f9a9b756de6a2cce2 (tree 8ae830321a35bc7499991d5428bec2b231f0f154)
-GOOD    contrib/devtools/git/subtree
+GOOD
 ```
 
 ### Updating subtrees
@@ -651,9 +739,10 @@ To create a scripted-diff:
     - `-BEGIN VERIFY SCRIPT-`
     - `-END VERIFY SCRIPT-`
 
-The scripted-diff is verified by the tool `contrib/devtools/commit-script-check.sh`
+The scripted-diff is verified by the tool `test/lint/commit-script-check.sh`
 
-Commit `bb81e173` is an example of a scripted-diff.
+Commit [`bb81e173`](https://github.com/bitcoin/bitcoin/commit/bb81e173) is an
+example of a scripted-diff.
 
 RPC interface guidelines
 --------------------------
@@ -742,3 +831,14 @@ A few guidelines for introducing and reviewing new RPC interfaces:
     client may be aware of prior to entering a wallet RPC call, we must block
     until the wallet is caught up to the chainstate as of the RPC call's entry.
     This also makes the API much easier for RPC clients to reason about.
+
+- Be aware of RPC method aliases and generally avoid registering the same
+  callback function pointer for different RPCs.
+
+  - *Rationale*: RPC methods registered with the same function pointer will be
+    considered aliases and only the first method name will show up in the
+    `help` rpc command list.
+
+  - *Exception*: Using RPC method aliases may be appropriate in cases where a
+    new RPC is replacing a deprecated RPC, to avoid both RPCs confusingly
+    showing up in the command list.

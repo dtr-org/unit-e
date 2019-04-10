@@ -60,7 +60,7 @@ PROPOSER_REWARD = Decimal('3.75')  # Will not decrease as tests don't generate e
 BLOCK_HEADER_LENGTH = 144
 
 # This parameter simulates the scenario that the node "never" reaches finalization.
-# The purpose of it is to adapt Unit-e tests to Unit-e which contradict with the finalization
+# The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
 # so the existing tests will perform the check within one dynasty.
 # When this parameter is used, framework must be configured with `setup_clean_chain = True`
 # to prevent using the cache which was generated with the finalization enabled.

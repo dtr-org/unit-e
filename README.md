@@ -37,7 +37,7 @@ features such as:
 
 We regularly merge upstream changes into the unit-e code base and also strive to
 contribute back changes which are relevant for upstream. The last upstream sync
-was done with the [0.16](https://github.com/bitcoin/bitcoin/tree/0.16) version,
+was done with the [0.17](https://github.com/bitcoin/bitcoin/tree/0.17) version,
 plus some changes cherry-picked from later development branches.
 
 The client is in a pre-testnet development phase. With the [launch of the

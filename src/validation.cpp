@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
-// Copyright (c) 2018 The Unit-e ABC developers
+// Copyright (c) 2018 The Bitcoin ABC developers
 // Copyright (c) 2018-2019 The Unit-e developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -3357,7 +3357,7 @@ bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& sta
 
     staking::BlockValidationInfo info;
     // UNIT-E TODO:
-    // unite/ContextualCheckBlockHeader does not invoke CheckBlockHeader,
+    // bitcoin/ContextualCheckBlockHeader does not invoke CheckBlockHeader,
     // but CheckBlockHeader in unit-e checks the timestamp to match with
     // the each-16-seconds-rule. This call is bypassed by marking it successful.
     info.MarkCheckBlockHeaderSuccessfull();
@@ -3630,7 +3630,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         CValidationState state;
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders. An in-depth explanation can be found here:
-        // https://lists.linuxfoundation.org/pipermail/unite-dev/attachments/20190225/a27d8837/attachment-0001.pdf
+        // https://lists.linuxfoundation.org/pipermail/bitcoin-dev/attachments/20190225/a27d8837/attachment-0001.pdf
         if (!CheckBlock(*pblock, state, chainparams.GetConsensus())) {
             GetMainSignals().BlockChecked(*pblock, state);
             return error("%s: CheckBlock in ProcessNewBlock FAILED (%s)", __func__, state.GetDebugMessage());

@@ -80,7 +80,7 @@ class SideEffectsImpl : public EmbargoManSideEffects {
     return m_connman.ForNode(node_id, [&tx_hash](CNode *node) {
       // According to sdaftuar and gmaxwell
       // It is better to not send transactions directly
-      // https://github.com/unite/unite/pull/13947/files#r210074699
+      // https://github.com/bitcoin/bitcoin/pull/13947/files#r210074699
       CInv inv(MSG_TX, tx_hash);
       node->PushInventory(inv);
       return true;
@@ -91,7 +91,7 @@ class SideEffectsImpl : public EmbargoManSideEffects {
     return m_connman.ForEachNode([&tx_hash](CNode *node) {
       // According to sdaftuar and gmaxwell
       // It is better to not send transactions directly
-      // https://github.com/unite/unite/pull/13947/files#r210074699
+      // https://github.com/bitcoin/bitcoin/pull/13947/files#r210074699
       CInv inv(MSG_TX, tx_hash);
       node->PushInventory(inv);
     });

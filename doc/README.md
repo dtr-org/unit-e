@@ -57,7 +57,7 @@ development process and automated testing.
 Distributed under the [MIT software license](/COPYING).
 
 This product includes software developed by [The unit-e
-developers](https://github.com/unite/unite). This product includes software
+developers](https://github.com/bitcoin/bitcoin). This product includes software
 developed by the OpenSSL Project for use in the [OpenSSL
 Toolkit](https://www.openssl.org/). This product includes cryptographic software
 written by Eric Young ([eay@cryptsoft.com](mailto:eay@cryptsoft.com)), and UPnP

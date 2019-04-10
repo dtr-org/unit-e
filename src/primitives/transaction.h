@@ -362,7 +362,7 @@ public:
 
     /*! \brief The 4-byte version field of transactions.
      *
-     * Change from unite: The version field of transactions is unsigned in Unit-e.
+     * Change from bitcoin: The version field of transactions is unsigned in Unit-e.
      * This is intentional. The actual version of a transaction are the two lower
      * bytes of the version field. Unit-e distinguishes different types of transactions.
      * Thus the upper two bytes are used to piggy back that type (also uint16_t) onto

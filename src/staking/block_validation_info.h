@@ -16,7 +16,7 @@ namespace staking {
 //! orchestrate that gracefully instances of this class can track the
 //! state of certain validations.
 //!
-//! This was inspired by CBlock::fCheck introduced in unite around 2012.
+//! This was inspired by CBlock::fCheck introduced in bitcoin around 2012.
 class BlockValidationInfo {
 
  private:

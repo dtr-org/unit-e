@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(block_assembler_adapter_test) {
   BOOST_CHECK_GE(fees, 0);
 }
 
-BOOST_AUTO_TEST_CASE(pick_transactions_removes_unite_coinbase) {
+BOOST_AUTO_TEST_CASE(pick_transactions_removes_bitcoin_coinbase) {
 
   const auto blockAssemblerAdapter = staking::TransactionPicker::New();
   const auto params = staking::TransactionPicker::PickTransactionsParameters();

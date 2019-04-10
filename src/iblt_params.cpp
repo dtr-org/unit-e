@@ -1,5 +1,5 @@
 // Copyright (c) 2019 The Unit-e developers
-// Copyright (c) 2018 The Unit-e Unlimited developers
+// Copyright (c) 2018 The Bitcoin Unlimited developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 

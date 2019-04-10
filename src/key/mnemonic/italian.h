@@ -1,7 +1,7 @@
 #ifndef _WORDLIST_ITALIAN_H
 #define _WORDLIST_ITALIAN_H 1
 
-// https://github.com/unite/bips/blob/master/bip-0039/italian.txt
+// https://github.com/bitcoin/bips/blob/master/bip-0039/italian.txt
 
 namespace key {
 namespace mnemonic {
