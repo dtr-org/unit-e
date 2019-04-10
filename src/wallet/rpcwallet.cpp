@@ -3432,7 +3432,6 @@ UniValue bumpfee(const JSONRPCRequest& request)
 
 UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
 {
-    static const int nInnerLoopCount = 0x10000;
     int nHeightEnd = 0;
     int nHeight = 0;
 
@@ -3454,9 +3453,6 @@ UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript>
         {
             LOCK(cs_main);
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-        }
-        if (pblock->nNonce == nInnerLoopCount) {
-            continue;
         }
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr))

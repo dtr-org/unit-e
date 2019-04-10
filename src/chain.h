@@ -221,7 +221,6 @@ public:
     uint256 hash_finalizer_commits_merkle_root;
     blockchain::Time nTime;
     blockchain::Difficulty nBits;
-    uint32_t nNonce;
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     int32_t nSequenceId;
@@ -265,7 +264,6 @@ public:
         hash_finalizer_commits_merkle_root = uint256::zero;
         nTime          = 0;
         nBits          = 0;
-        nNonce         = 0;
         last_justified_epoch = 0;
         forking_before_active_finalization = false;
 
@@ -287,7 +285,6 @@ public:
         hash_finalizer_commits_merkle_root = block.hash_finalizer_commits_merkle_root;
         nTime          = block.nTime;
         nBits          = block.nBits;
-        nNonce         = block.nNonce;
     }
 
     CDiskBlockPos GetBlockPos() const {
@@ -319,7 +316,6 @@ public:
         block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime          = nTime;
         block.nBits          = nBits;
-        block.nNonce         = nNonce;
         return block;
     }
 
@@ -444,7 +440,6 @@ public:
         READWRITE(hash_finalizer_commits_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
-        READWRITE(nNonce);
 
         // commits
         READWRITE(commits);
@@ -464,7 +459,6 @@ public:
         block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime           = nTime;
         block.nBits           = nBits;
-        block.nNonce          = nNonce;
         return block.GetHash();
     }
 

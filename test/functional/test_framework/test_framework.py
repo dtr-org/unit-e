@@ -55,7 +55,7 @@ COINBASE_MATURITY = 100  # Should match the value from consensus.h
 STAKE_SPLIT_THRESHOLD = 1000  # Should match the value from blockchain_parameters.cpp
 PROPOSER_REWARD = Decimal('3.75')  # Will not decrease as tests don't generate enough blocks
 
-BLOCK_HEADER_LENGTH = 144
+BLOCK_HEADER_LENGTH = 140
 
 # This parameter simulates the scenario that the node "never" reaches finalization.
 # The purpose of it is to adapt Bitcoin tests to Unit-e which contradict with the finalization
