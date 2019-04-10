@@ -340,7 +340,6 @@ class BIP68Test(UnitETestFramework):
         avail_stake = [x for x in self.nodes[0].listunspent(2) if x['txid'] != tx1.hash]
         for i in range(2):
             stake = avail_stake.pop()
-            print(self.nodes[0].getblockcount())
             coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, tip_snapshot_meta.hash))
             block = create_block(tip, coinbase, cur_time)
             block.nVersion = 3

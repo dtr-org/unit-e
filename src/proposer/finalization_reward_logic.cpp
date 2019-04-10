@@ -41,7 +41,7 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
       return {};
     }
 
-    auto prev_height = static_cast<blockchain::Height>(last_block.nHeight);
+    const auto prev_height = static_cast<blockchain::Height>(last_block.nHeight);
     if (!m_fin_state_repo->GetFinalizationParams().IsCheckpoint(prev_height)) {
       return {};
     }
@@ -52,15 +52,38 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
     const auto epoch = m_fin_state_repo->GetFinalizationParams().GetEpoch(prev_height);
     const blockchain::Height epoch_start = m_fin_state_repo->GetFinalizationParams().GetEpochStartHeight(epoch);
 
-    for (auto h = prev_height; h >= epoch_start; --h) {
-      assert(pblock && pblock->nHeight == h);
-      result.emplace_back(GetRewardScript(*pblock), m_blockchain_behavior->CalculateFinalizationReward(h));
+    for (auto height = prev_height; height >= epoch_start; --height) {
+      assert(pblock && pblock->nHeight == height);
+      result.emplace_back(GetRewardScript(*pblock), m_blockchain_behavior->CalculateFinalizationReward(height));
       pblock = pblock->pprev;
     }
     assert(result.size() == m_fin_state_repo->GetFinalizationParams().epoch_length);
     std::reverse(result.begin(), result.end());
     return result;
   }
+
+  std::vector<CAmount> GetFinalizationRewardAmounts(const CBlockIndex &last_block) const override {
+    if (last_block.nHeight < m_fin_state_repo->GetFinalizationParams().GetEpochCheckpointHeight(1)) {
+      return {};
+    }
+
+    const auto prev_height = static_cast<blockchain::Height>(last_block.nHeight);
+    if (!m_fin_state_repo->GetFinalizationParams().IsCheckpoint(prev_height)) {
+      return {};
+    }
+
+    std::vector<CAmount> result;
+    result.reserve(m_fin_state_repo->GetFinalizationParams().epoch_length);
+
+    const auto epoch = m_fin_state_repo->GetFinalizationParams().GetEpoch(prev_height);
+    const blockchain::Height epoch_start = m_fin_state_repo->GetFinalizationParams().GetEpochStartHeight(epoch);
+    for (auto height = epoch_start; height <= prev_height; ++height) {
+      result.push_back(m_blockchain_behavior->CalculateFinalizationReward(height));
+    }
+
+    return result;
+  }
+
 
   std::size_t GetNumberOfRewardOutputs(const blockchain::Height current_height) const override {
     if (m_fin_state_repo->GetFinalizationParams().IsEpochStart(current_height) &&
