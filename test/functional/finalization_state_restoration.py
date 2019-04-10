@@ -18,10 +18,8 @@ from test_framework.util import (
     wait_until,
 )
 
-
-def generate_block(node):
-    node.generatetoaddress(1, node.getnewaddress('', 'bech32'))
-
+def generate_block(proposer, count=1):
+    proposer.generatetoaddress(count, proposer.getnewaddress('', 'bech32'))
 
 def setup_deposit(self, proposer, validators):
     for _, n in enumerate(validators):
@@ -32,11 +30,11 @@ def setup_deposit(self, proposer, validators):
         deptx = n.deposit(n.new_address, 1500)
         self.wait_for_transaction(deptx)
 
-    for _ in range(19):
-        generate_block(proposer)
-
-    assert_equal(proposer.getblockcount(), 20)
-
+    generate_block(proposer, count=24)
+    assert_equal(proposer.getblockcount(), 25)
+    sync_blocks(validators + [proposer])
+    for v in validators:
+        disconnect_nodes(proposer, v.index)
 
 class FinalizatoinStateRestoration(UnitETestFramework):
     def set_test_params(self):
@@ -52,6 +50,11 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         p, v = self.nodes
         connect_nodes(p, v.index)
 
+    def restart_node(self, node):
+        tip_before = node.getbestblockhash()
+        super().restart_node(node.index)
+        wait_until(lambda: node.getbestblockhash() == tip_before)
+
     def run_test(self):
         p, v = self.nodes
         self.setup_stake_coins(p, v)
@@ -61,13 +64,8 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         setup_deposit(self, p, [v])
 
         self.log.info("Generate few epochs")
-        for _ in range(11):
-            generate_block(p)
-        sync_blocks([p, v])
-        sync_mempools([p, v])
-        generate_block(p)  # be sure vote is included
-        sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 32)
+        self.generate_epoch(p, v, count=2)
+        assert_equal(p.getblockcount(), 35)
 
         assert_finalizationstate(p, {'currentEpoch': 7,
                                      'lastJustifiedEpoch': 6,
@@ -75,18 +73,14 @@ class FinalizatoinStateRestoration(UnitETestFramework):
                                      'validators': 1})
 
         self.log.info("Restarting proposer")
-        self.stop_node(p.index)
-        self.start_node(p.index)
+        self.restart_node(p)
 
-        # wait proposer operates
-        wait_until(lambda: p.getblockcount() == 32, timeout=5)
         # check it doesn't have peers -- i.e., loaded data from disk
         assert_equal(p.getpeerinfo(), [])
 
         self.log.info("Generate few epochs more")
-        for _ in range(10):
-            generate_block(p)
-        assert_equal(p.getblockcount(), 42)
+        generate_block(p, count=9)
+        assert_equal(p.getblockcount(), 44)
 
         # it is not connected to validator so that finalization shouldn't move
         assert_finalizationstate(p, {'currentEpoch': 9,
@@ -94,56 +88,37 @@ class FinalizatoinStateRestoration(UnitETestFramework):
                                      'lastFinalizedEpoch': 5,
                                      'validators': 1})
 
-        connect_nodes(p, v.index)
-        sync_blocks([p, v])
-        sync_mempools([p, v])
-        generate_block(p)  # be sure vote is included
-        sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 43)
+        # connect validator and chek how it votes
+        self.wait_for_vote_and_disconnect(v, p)
+        generate_block(p, count=1)
 
+        assert_equal(p.getblockcount(), 45)
         assert_finalizationstate(p, {'currentEpoch': 9,
                                      'lastJustifiedEpoch': 8,
                                      'lastFinalizedEpoch': 5,
                                      'validators': 1})
 
-        for _ in range(9):
-            generate_block(p)
-        sync_blocks([p, v])
-        sync_mempools([p, v])
-        generate_block(p)  # be sure vote is included
-        sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 53)
+        self.generate_epoch(p, v, count=2)
 
+        assert_equal(p.getblockcount(), 55)
         assert_finalizationstate(p, {'currentEpoch': 11,
                                      'lastJustifiedEpoch': 10,
                                      'lastFinalizedEpoch': 9,
                                      'validators': 1})
 
-        self.log.info("Restaring validator")
-        disconnect_nodes(p, v.index)
-        self.stop_node(v.index)
-        self.start_node(v.index)
+        self.log.info("Restarting validator")
+        self.restart_node(v)
 
-        # wait validator operates
-        wait_until(lambda: v.getblockcount() == 53, timeout=5)
         # check it doesn't have peers -- i.e., loaded data from disk
         assert_equal(v.getpeerinfo(), [])
 
         self.log.info("Generate more epochs")
-        connect_nodes(p, v.index)
-        for _ in range(59):
-            generate_block(p)
-        sync_blocks([p, v])
-        sync_mempools([p, v])
-        generate_block(p)  # be sure vote is included
-        sync_blocks([p, v])
-        assert_equal(p.getblockcount(), 113)
-
-        assert_finalizationstate(p, {'currentEpoch': 23,
-                                     'lastJustifiedEpoch': 22,
-                                     'lastFinalizedEpoch': 21,
+        self.generate_epoch(p, v, count=2)
+        assert_equal(p.getblockcount(), 65)
+        assert_finalizationstate(p, {'currentEpoch': 13,
+                                     'lastJustifiedEpoch': 12,
+                                     'lastFinalizedEpoch': 11,
                                      'validators': 1})
-
 
 if __name__ == '__main__':
     FinalizatoinStateRestoration().main()
