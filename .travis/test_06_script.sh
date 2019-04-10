@@ -39,7 +39,7 @@ BEGIN_FOLD distdir
 DOCKER_EXEC make distdir VERSION=$HOST
 END_FOLD
 
-cd unite-$HOST
+cd unit-e-$HOST
 
 BEGIN_FOLD configure
 DOCKER_EXEC ./configure --cache-file=../config.cache $UNITE_CONFIG_ALL $UNITE_CONFIG || ( cat config.log && false)

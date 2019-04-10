@@ -85,7 +85,7 @@ jobs:
       name: "x86_64 Linux (unit and functional tests)"
       env: >-
         HOST=x86_64-unknown-linux-gnu
-        PACKAGES="python3-zmq libssl1.0-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libdb5.3++-dev libminiupnpc-dev libzmq3-dev libudev-dev"
+        PACKAGES="python3-zmq libssl1.0-dev libevent-dev bsdmainutils libboost-system-dev libboost-filesystem-dev libboost-chrono-dev libboost-test-dev libboost-thread-dev libdb5.3++-dev libminiupnpc-dev libzmq3-dev libudev-dev libhidapi-dev"
         NO_DEPENDS=1
         RUN_TESTS=true
         GOAL="install"
