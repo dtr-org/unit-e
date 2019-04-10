@@ -12,6 +12,7 @@ Test running united with -reindex options and with finalization transactions
 from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
+    assert_finalizationstate,
     connect_nodes_bi,
     disconnect_nodes,
     json,
@@ -19,16 +20,12 @@ from test_framework.util import (
     wait_until,
 )
 
-MIN_DEPOSIT = 1500
-EPOCH_LENGTH = 10
-
-
 class FeatureReindexCommits(UnitETestFramework):
 
     def get_extra_args(self, reindex):
         finalization_params = json.dumps({
-            'epochLength': EPOCH_LENGTH,
-            'minDepositSize': MIN_DEPOSIT,
+            'epochLength': 5,
+            'minDepositSize': 1500,
             'dynastyLogoutDelay': 2,
             'withdrawalEpochDelay': 2
         })
@@ -62,52 +59,70 @@ class FeatureReindexCommits(UnitETestFramework):
         self.generate_sync(self.proposer)
         self.assert_finalizer_status('NOT_VALIDATING')
 
+        self.log.info("Setup deposit")
         self.generate_deposit()
         self.assert_finalizer_status('IS_VALIDATING')
 
         disconnect_nodes(self.proposer, self.finalizer.index)
 
+        self.log.info("Generate few epochs")
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
-            count=10)
-        assert_equal(len(votes), 10)
+            count=2)
+        assert_equal(len(votes), 2)
+        assert_equal(self.proposer.getblockcount(), 35)
+        assert_finalizationstate(self.proposer,
+                                 {'currentEpoch': 7,
+                                  'lastJustifiedEpoch': 6,
+                                  'lastFinalizedEpoch': 5,
+                                  'validators': 1})
 
-        self.restart_nodes(True)
+        self.log.info("Restart nodes, -reindex=1")
+        self.restart_nodes(reindex=True)
         self.assert_finalizer_status('IS_VALIDATING')
 
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
-            count=10)
-        assert_equal(len(votes), 10)
+            count=2)
+        assert_equal(len(votes), 2)
+        assert_equal(self.proposer.getblockcount(), 45)
+        assert_finalizationstate(self.proposer,
+                                 {'currentEpoch': 9,
+                                  'lastJustifiedEpoch': 8,
+                                  'lastFinalizedEpoch': 7,
+                                  'validators': 1})
 
-        self.restart_nodes(False)
+
+
+        self.log.info("Restart nodes, -reindex=0")
+        self.restart_nodes(reindex=False)
         self.assert_finalizer_status('IS_VALIDATING')
-
-        last_fin_epoch = self.finalizer.getfinalizationstate()[
-            'lastFinalizedEpoch']
 
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
-            count=10)
-        assert_equal(len(votes), 10)
+            count=2)
+        assert_equal(len(votes), 2)
 
-        assert_equal(
-            last_fin_epoch + 10,
-            self.finalizer.getfinalizationstate()['lastFinalizedEpoch'])
+        assert_equal(self.proposer.getblockcount(), 55)
+        assert_finalizationstate(self.proposer,
+                                 {'currentEpoch': 11,
+                                  'lastJustifiedEpoch': 10,
+                                  'lastFinalizedEpoch': 9,
+                                  'validators': 1})
 
     def generate_deposit(self):
         deposit_tx = self.finalizer.deposit(
             self.finalizer.getnewaddress(
-                "", "legacy"), MIN_DEPOSIT)
+                "", "legacy"), 1500)
         self.wait_for_transaction(deposit_tx)
 
         self.proposer.generatetoaddress(
-            51, self.proposer.getnewaddress(
+            24, self.proposer.getnewaddress(
                 '', 'bech32'))
-        assert_equal(self.proposer.getblockcount(), 52)
+        assert_equal(self.proposer.getblockcount(), 25)
 
     def assert_finalizer_status(self, status):
         wait_until(lambda: self.finalizer.getvalidatorinfo()[
