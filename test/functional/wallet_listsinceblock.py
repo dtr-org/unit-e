@@ -253,7 +253,7 @@ class ListSinceBlockTest (UnitETestFramework):
         txid1 = self.nodes[1].sendrawtransaction(signedtx)
 
         # generate bb1-bb2 on right side
-        generate(self.nodes[2], 2, preserve_utxos=utxo_dicts)
+        generate(self.nodes[2], 2, preserve_utxos=utxo_dicts, send_witness=True)
 
         # send from nodes[2]; this will end up in bb3
         txid2 = self.nodes[2].sendrawtransaction(signedtx)
@@ -263,8 +263,6 @@ class ListSinceBlockTest (UnitETestFramework):
         # generate on both sides
         lastblockhash = self.nodes[1].generate(3)[2]
         self.nodes[2].generate(2)
-
-        return  # TODO UNIT-E : Enable the following tests again
 
         self.join_network()
 

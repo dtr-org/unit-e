@@ -500,7 +500,10 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address,
 }
 
 void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockchain::Height height) {
+  AssertLockHeld(m_enclosing_wallet.cs_wallet);
+
   assert(validatorState);
+
   ValidatorState &validator = validatorState.get();
   ValidatorStateWatchWriter validator_writer(*this);
 
@@ -561,6 +564,8 @@ void WalletExtension::VoteIfNeeded(const FinalizationState &state, const blockch
 
 bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
                                const Vote &vote, CTransactionRef &wtxNewOut) {
+
+  AssertLockHeld(m_enclosing_wallet.cs_wallet);
 
   assert(validatorState);
 
@@ -820,10 +825,10 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         state.m_phase = +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
       }
 
-      const auto expectedPhase =
+      const auto expected_phase =
           +esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION;
 
-      if (state.m_phase == expectedPhase) {
+      if (state.m_phase == expected_phase) {
 
         state.m_phase = esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION;
         LogPrint(BCLog::FINALIZATION,
@@ -853,7 +858,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         LogPrint(BCLog::FINALIZATION,
                  "ERROR: %s - Wrong state for validator state with "
                  "deposit %s, %s expected but %s found.\n",
-                 __func__, tx.GetHash().GetHex(), expectedPhase._to_string(),
+                 __func__, tx.GetHash().GetHex(), expected_phase._to_string(),
                  state.m_phase._to_string());
         return false;
       }
@@ -864,9 +869,9 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       assert(validatorState);
       esperanza::ValidatorState &state = validatorState.get();
 
-      const auto expectedPhase = +esperanza::ValidatorState::Phase::IS_VALIDATING;
+      const auto expected_phase = +esperanza::ValidatorState::Phase::IS_VALIDATING;
 
-      if (state.m_phase == expectedPhase) {
+      if (state.m_phase == expected_phase) {
 
         LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
         const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
@@ -882,7 +887,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         LogPrint(BCLog::FINALIZATION,
                  "ERROR: %s - Wrong state for validator state when "
                  "logging out. %s expected but %s found.\n",
-                 __func__, expectedPhase._to_string(),
+                 __func__, expected_phase._to_string(),
                  state.m_phase._to_string());
         return false;
       }
@@ -893,19 +898,31 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       assert(validatorState);
       esperanza::ValidatorState &state = validatorState.get();
 
-      const auto expectedPhase =
+      const auto expected_phase =
           +esperanza::ValidatorState::Phase::IS_VALIDATING;
 
-      if (state.m_phase == expectedPhase) {
+      if (state.m_phase == expected_phase) {
         state.m_last_esperanza_tx = ptx;
       } else {
         LogPrint(BCLog::FINALIZATION,
                  "ERROR: %s - Wrong state for validator state when "
                  "voting. %s expected but %s found.\n",
-                 __func__, expectedPhase._to_string(),
+                 __func__, expected_phase._to_string(),
                  state.m_phase._to_string());
         return false;
       }
+      break;
+    }
+    case TxType::WITHDRAW: {
+      LOCK(m_enclosing_wallet.cs_wallet);
+      assert(validatorState);
+      esperanza::ValidatorState &state = validatorState.get();
+
+      const auto expected_phase =
+          +esperanza::ValidatorState::Phase::NOT_VALIDATING;
+
+      assert(state.m_phase == expected_phase);
+      validatorState = ValidatorState();
       break;
     }
     default: {
@@ -941,6 +958,17 @@ bool WalletExtension::Unlock(const SecureString &wallet_passphrase,
 void WalletExtension::SlashingConditionDetected(
     const finalization::VoteRecord &vote1,
     const finalization::VoteRecord &vote2) {
+
+  if (validatorState) {
+    ValidatorState &state = validatorState.get();
+
+    if (vote1.vote.m_validator_address == state.m_validator_address) {
+      LogPrint(BCLog::FINALIZATION,
+               "WARNING: %s - The finalizer is trying to slash itself. vote1=%s vote2=%s.\n",
+               __func__, vote1.vote.ToString(), vote2.vote.ToString());
+      return;
+    }
+  }
 
   LOCK(cs_pendingSlashing);
   pendingSlashings.emplace_back(vote1, vote2);

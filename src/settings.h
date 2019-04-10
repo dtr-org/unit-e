@@ -35,17 +35,17 @@ struct Settings {
   //! \brief Maximum amount of money to combine when proposing.
   //!
   //! When proposing the proposer will combine the eligible coins with respect
-  //! to the total amount. The only guarantee is that it the combined stake
+  //! to the total amount. The only guarantee is that the combined stake
   //! will not exceed this value in total, not that it's optimal (that would
   //! require solving the Knapsack problem otherwise).
   CAmount stake_combine_maximum = 0;
 
   std::uint16_t p2p_port = 7182;
 
-  //! \brief Path to the base data dir (e.g. ~/user/.unite).
+  //! \brief Path to the base data dir (e.g. ~user/.unit-e).
   fs::path base_data_dir = GetDefaultDataDir();
 
-  //! \brief Path to the data dir (e.g. ~/user/.unite/regtest).
+  //! \brief Path to the data dir (e.g. ~user/.unit-e/regtest).
   fs::path data_dir = GetDefaultDataDir();
 
   //! \brief From which block in the epoch finalizer must start voting

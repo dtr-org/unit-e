@@ -109,11 +109,11 @@ class EsperanzaSlashTest(UnitETestFramework):
         # test that same vote included on different forks
         # doesn't create a slash transaction
         #                                        v1
-        #                                    - e5[27, 28, 29, 30] fork1
+        #                                    - e6[27, 28, 29, 30] fork1
         # F    F    F    F    F    J        /
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
         #                                   \     v1
-        #                                    - e5[27, 28, 29, 30] fork2
+        #                                    - e6[27, 28, 29, 30] fork2
         self.wait_for_vote_and_disconnect(finalizer=finalizer1, node=fork1)
         v1 = fork1.getrawtransaction(fork1.getrawmempool()[0])
         fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))

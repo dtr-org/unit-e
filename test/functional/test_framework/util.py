@@ -16,6 +16,7 @@ import random
 import re
 from subprocess import CalledProcessError
 import time
+import types
 import math
 
 from . import coverage
@@ -125,6 +126,112 @@ def assert_raises_rpc_error(code, message, fun, *args, **kwds):
         kwds**: named arguments for the function.
     """
     assert try_rpc(code, message, fun, *args, **kwds), "No exception raised"
+
+def assert_matches(actual, expected, strict=True, path=()):
+    """
+    Checks that a given value matches a given pattern.
+
+    :param actual: The value to check.
+    :param expected:
+        When given a dict invokes assert_matches recursively for every item.
+        Each key present in the dict for comparison (the expected value) must
+        be present in the given dict. In strict mode all keys in the given value
+        must have a definition in the expected kind.
+        When given a list invokes assert_matches for every item.
+        When given a string the value must equal that string.
+        When given an int the value must equal that int.
+        When given a type the value must be of that type.
+        When given a function the value must satisfy that predicate.
+    :param strict:
+        In strict mode a dictionary must have exactly the same keys
+        (otherwise at least the same keys) and lists must have the same length.
+    """
+
+    try:
+        if type(expected) == dict:
+            if type(actual) != dict:
+                raise AssertionError("Structure does not match, expected dictionary but got %s" % type(actual))
+            actual_keys = set(actual.keys())
+            expected_keys = set(expected.keys())
+            if strict:
+                if actual_keys != expected_keys:
+                    raise AssertionError("Structure does not match, expected keys %s but got %s" % (expected_keys, actual_keys))
+            elif not expected_keys <= actual_keys:
+                raise AssertionError("Structure does not match, expected %s to be a subset of %s" % (actual_keys, expected_keys))
+            for key, value in expected.items():
+                assert_matches(actual[key], value, strict=strict, path=path+(key,))
+        elif type(expected) == list:
+            if type(actual) != list:
+                raise AssertionError("Structure does not match, expected a list but got %s" % type(actual))
+            if strict:
+                if len(actual) != len(expected):
+                    raise AssertionError("Structure does not match, lists have different lengths, expected %s but got %s" % (len(expected), len(actual)))
+            ix = 0
+            for actual_item, expected_item in zip(actual, expected):
+                assert_matches(actual_item, expected_item, strict=strict, path=path+(ix,))
+                ix += 1
+        elif type(expected) == str:
+            assert_equal(actual, expected)
+        elif type(expected) == int:
+            assert_equal(actual, expected)
+        elif isinstance(expected, types.FunctionType):
+            if not expected(actual, path):
+                if expected.message:
+                    raise AssertionError("Structure does not match: %s (%s)" % (actual, expected.message))
+                raise AssertionError("Structure does not match: %s" % actual)
+        else:
+            assert_equal(type(actual), expected)
+    except AssertionError:
+        print("Pattern match error at %s" % (path,))
+        raise
+
+class Matcher:
+    """
+    Matchers allow you to match for certain values in assert_matches:
+
+    assert_matches(some_value_you_want_to_check, {
+        'foo': Matcher.match(lambda v: re.fullmatch(r'qu{1,2}x', v)),
+        'bar': Matcher.many(str, min=3, max=10),
+    });
+    """
+
+    @staticmethod
+    def match(func):
+        """A matcher that checks whether a value satisfies a given predicate."""
+        def check(value, path=()):
+            return func(value)
+        check.message = inspect.getsource(func).strip()
+        return check
+
+    @classmethod
+    def hexstr(cls, length):
+        """Matches that a value is a hexadecimal string of the given length."""
+        return cls.match(lambda v: len(v) == length and re.fullmatch(r'[a-fA-Z0-9]+', v))
+
+    @classmethod
+    def eq(cls, value):
+        """Matches that a value equals the given reference value."""
+        return cls.match(lambda v: v == value)
+
+    @classmethod
+    def many(cls, expected, min=None, max=None):
+        """
+        Matches that a given value conforms to the given kind, optionally
+        minimum and/or maximum number of items.
+
+        :param expected: A kind as expected by assert_matches
+        :param min: (optional) minimum number of items in the list (incl.)
+        :param max: (optional) maximum number of items in the list (incl.)
+        """
+        def check(values, path=()):
+            if min:
+                assert_greater_than_or_equal(len(values), min)
+            if max:
+                assert_less_than_or_equal(len(values), max)
+            for value in values:
+                assert_matches(value, expected, path=path)
+            return True
+        return cls.match(check)
 
 def try_rpc(code, message, fun, *args, **kwds):
     """Tries to run an rpc command.

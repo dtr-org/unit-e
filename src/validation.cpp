@@ -691,7 +691,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     view.SetBackend(viewMemPool);
 
     const finalization::FinalizationState *fin_state =
-        GetComponent<finalization::StateRepository>()->GetTipState();
+      GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state != nullptr);
     if (tx.IsFinalizerCommit() &&
         !::ContextualCheckFinalizerCommit(tx, state, *fin_state, *fin_state, view)) {

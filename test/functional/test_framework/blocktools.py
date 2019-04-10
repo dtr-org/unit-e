@@ -126,7 +126,7 @@ def sign_coinbase(node, coinbase):
     return coinbase
 
 
-def generate(node, n, preserve_utxos=[]):
+def generate(node, n, preserve_utxos=[], send_witness=False):
     """ Generate n blocks on the node, making sure not to touch the utxos specified.
 
     :param preserve_utxos: an iterable of either dicts {'txid': ..., 'vout': ...}
@@ -148,7 +148,10 @@ def generate(node, n, preserve_utxos=[]):
         block = create_block(tip, coinbase, block_time)
         snapshot_meta = update_snapshot_with_tx(node, snapshot_meta.data, 0, height + 1, coinbase)
         block.solve()
-        node.p2p.send_message(msg_block(block))
+        if send_witness:
+            node.p2p.send_message(msg_witness_block(block))
+        else:
+            node.p2p.send_message(msg_block(block))
         tip = block.sha256
         block_time += 1
         height += 1
