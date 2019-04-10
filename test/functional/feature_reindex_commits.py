@@ -20,12 +20,14 @@ from test_framework.util import (
     wait_until,
 )
 
+MIN_DEPOSIT = 1500
+
 class FeatureReindexCommits(UnitETestFramework):
 
     def get_extra_args(self, reindex):
         finalization_params = json.dumps({
             'epochLength': 5,
-            'minDepositSize': 1500,
+            'minDepositSize': MIN_DEPOSIT,
             'dynastyLogoutDelay': 2,
             'withdrawalEpochDelay': 2
         })
@@ -116,7 +118,7 @@ class FeatureReindexCommits(UnitETestFramework):
     def generate_deposit(self):
         deposit_tx = self.finalizer.deposit(
             self.finalizer.getnewaddress(
-                "", "legacy"), 1500)
+                "", "legacy"), MIN_DEPOSIT)
         self.wait_for_transaction(deposit_tx)
 
         self.proposer.generatetoaddress(
