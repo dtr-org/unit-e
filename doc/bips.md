@@ -80,5 +80,5 @@ Bitcoin Core upstream releases.
 * [`BIP 152`](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki): Compact block transfer and related optimizations are used as of **v0.13.0** ([PR 8068](https://github.com/bitcoin/bitcoin/pull/8068)).
 * [`BIP 159`](https://github.com/bitcoin/bips/blob/master/bip-0159.mediawiki): NODE_NETWORK_LIMITED service bit [signaling only] is supported as of **v0.16.0** ([PR 11740](https://github.com/bitcoin/bitcoin/pull/11740)).
 * [`BIP 173`](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki): Bech32 addresses for native Segregated Witness outputs are supported as of **v0.16.0** ([PR 11167](https://github.com/bitcoin/bitcoin/pull/11167)).
-* [`BIP 174`](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki): RPCs to operate on Partially Signed Unit-e Transactions (PSBT) are present as of **v0.17.0** ([PR 13557](https://github.com/unite/unite/pull/13557)).
+* [`BIP 174`](https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki): RPCs to operate on Partially Signed Bitcoin Transactions (PSBT) are present as of **v0.17.0** ([PR 13557](https://github.com/unite/unite/pull/13557)).
 * [`BIP 176`](https://github.com/bitcoin/bips/blob/master/bip-0176.mediawiki): Bits Denomination [QT only] is supported as of **v0.16.0** ([PR 12035](https://github.com/bitcoin/bitcoin/pull/12035)).
