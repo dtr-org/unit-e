@@ -82,13 +82,13 @@ class ActiveChain : public blockchain::ChainAccess {
   virtual const CBlockIndex *GetNext(const CBlockIndex &block_index) const = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtDepth(blockchain::Depth) const override = 0;
+  const CBlockIndex *AtDepth(blockchain::Depth depth) const override = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtHeight(blockchain::Height) const override = 0;
+  const CBlockIndex *AtHeight(blockchain::Height height) const override = 0;
 
   //! \brief compute the current respective depth for the given height.
-  virtual blockchain::Depth GetDepth(blockchain::Height) const = 0;
+  virtual blockchain::Depth GetDepth(blockchain::Height height) const = 0;
 
   //! \brief lookup a block index entry by its hash/id.
   //!
@@ -124,7 +124,7 @@ class ActiveChain : public blockchain::ChainAccess {
   //! (invoking this function) a new block arrived it will return false.
   //! Otherwise true.
   virtual bool ProposeBlock(
-      std::shared_ptr<const CBlock>  //!< The block to propose on the currently active chain.
+      std::shared_ptr<const CBlock> block  //!< The block to propose on the currently active chain.
       ) = 0;
 
   //! \brief Check the current status of the initial block download.
@@ -136,7 +136,7 @@ class ActiveChain : public blockchain::ChainAccess {
   //! at the point of time where this function is invoked.
   //!
   //! Requires the lock obtained from `GetLock()` to be held.
-  virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &) const = 0;
+  virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const = 0;
 
   //! \brief Shorthand for `GetUTXO({ txid, index })`.
   //!

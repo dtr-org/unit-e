@@ -29,9 +29,9 @@ class StakeValidator {
 
   //! \brief Check whether a kernel and amount of stake meet the given difficulty.
   virtual bool CheckKernel(
-      CAmount,                //!< [in] The amount of stake which evens the odds
-      const uint256 &,        //!< [in] The kernel hash to check
-      blockchain::Difficulty  //!< [in] The target to check against
+      CAmount amount,                    //!< [in] The amount of stake which evens the odds
+      const uint256 &kernel_hash,        //!< [in] The kernel hash to check
+      blockchain::Difficulty difficulty  //!< [in] The target to check against
       ) const = 0;
 
   //! \brief Computes the kernel hash of a block.
@@ -43,9 +43,9 @@ class StakeValidator {
   //! In PoS v3 it is just the preceding block, but it could be any previous
   //! block, for example the last finalized checkpoint.
   virtual uint256 ComputeKernelHash(
-      const CBlockIndex *,    //!< [in] The previous block to draw entropy from
-      const staking::Coin &,  //!< [in] The stake to be used in this block
-      blockchain::Time        //!< [in] The time of this block
+      const CBlockIndex *block_index,  //!< [in] The previous block to draw entropy from
+      const staking::Coin &coin,       //!< [in] The stake to be used in this block
+      blockchain::Time block_time      //!< [in] The time of this block
       ) const = 0;
 
   //! \brief Computes the stake modifier for a block.
@@ -54,8 +54,8 @@ class StakeValidator {
   //! to compute the kernel hash of a block that references this block as
   //! previous block.
   virtual uint256 ComputeStakeModifier(
-      const CBlockIndex *,   //!< [in] The previous block.
-      const staking::Coin &  //!< [in] The staked coin.
+      const CBlockIndex *block_index,  //!< [in] The previous block.
+      const staking::Coin &coin        //!< [in] The staked coin.
       ) const = 0;
 
   //! \brief Checks the stake of a block and remote staking outputs in the coinbase transaction.
@@ -70,8 +70,8 @@ class StakeValidator {
   //! - the previous block to compute the stake modifier
   //! - the UTXOs which are spent in the coinbase transaction
   virtual BlockValidationResult CheckStake(
-      const CBlock &,        //!< [in] The block to check.
-      BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
+      const CBlock &block,       //!< [in] The block to check.
+      BlockValidationInfo *info  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
   //! \brief Checks whether piece of stake was used as stake before.
@@ -82,21 +82,21 @@ class StakeValidator {
   //!
   //! Requires the lock (obtained via GetLock) to be held.
   virtual bool IsPieceOfStakeKnown(
-      const COutPoint &  //!< [in] The reference to the UTXO used for staking.
+      const COutPoint &utxo  //!< [in] The reference to the UTXO used for staking.
       ) const = 0;
 
   //! \brief Learn about a piece of stake being used for staking.
   //!
   //! Requires the lock (obtained via GetLock) to be held.
   virtual void RememberPieceOfStake(
-      const COutPoint &  //!< [in] The reference to the UTXO used for staking.
+      const COutPoint &utxo  //!< [in] The reference to the UTXO used for staking.
       ) = 0;
 
   //! \brief Forget about a piece of stake having been used for staking.
   //!
   //! Requires the lock (obtained via GetLock) to be held.
   virtual void ForgetPieceOfStake(
-      const COutPoint &  //!< [in] The reference to the UTXO used for staking.
+      const COutPoint &utxo  //!< [in] The reference to the UTXO used for staking.
       ) = 0;
 
   virtual ~StakeValidator() = default;
