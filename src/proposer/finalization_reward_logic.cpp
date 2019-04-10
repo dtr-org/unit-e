@@ -84,7 +84,6 @@ class FinalizationRewardLogicImpl : public FinalizationRewardLogic {
     return result;
   }
 
-
   std::size_t GetNumberOfRewardOutputs(const blockchain::Height current_height) const override {
     if (m_fin_state_repo->GetFinalizationParams().IsEpochStart(current_height) &&
         m_fin_state_repo->GetFinalizationParams().GetEpoch(current_height) > 1) {
