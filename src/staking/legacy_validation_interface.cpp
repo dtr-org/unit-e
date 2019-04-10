@@ -20,55 +20,6 @@
 
 namespace staking {
 
-class BlockValidatorAdapter : public LegacyValidationInterface {
- private:
-  const Dependency<ActiveChain> m_active_chain;
-  const Dependency<BlockValidator> m_block_validator;
-  const Dependency<StakeValidator> m_stake_validator;
-
- public:
-  BlockValidatorAdapter(
-      const Dependency<ActiveChain> active_chain,
-      const Dependency<BlockValidator> block_validator,
-      const Dependency<StakeValidator> stake_validator) : m_active_chain(active_chain),
-                                                          m_block_validator(block_validator),
-                                                          m_stake_validator(stake_validator) {}
-
-  bool CheckBlockHeader(
-      const CBlockHeader &block,
-      CValidationState &validation_state,
-      const Consensus::Params &consensus_params,
-      bool check_proof_of_work) override {
-    return false;
-  }
-
-  bool CheckBlock(
-      const CBlock &block,
-      CValidationState &validation_state,
-      const Consensus::Params &consensus_params,
-      bool check_proof_of_work,
-      bool check_merkle_root) override {
-    return false;
-  }
-
-  bool ContextualCheckBlock(
-      const CBlock &block,
-      CValidationState &validation_state,
-      const Consensus::Params &consensus_params,
-      const CBlockIndex *prev_block) override {
-    return false;
-  };
-
-  bool ContextualCheckBlockHeader(
-      const CBlockHeader &block,
-      CValidationState &validation_state,
-      const CChainParams &chainparams,
-      const CBlockIndex *prev_block,
-      std::int64_t adjusted_time) override {
-    return false;
-  };
-};
-
 class LegacyValidationImpl : public LegacyValidationInterface {
  private:
   const Dependency<BlockValidator> m_block_validator;
@@ -251,6 +202,55 @@ class LegacyValidationImpl : public LegacyValidationInterface {
                                                       static_cast<blockchain::Time>(adjusted_time), &info);
     return staking::CheckResult(result, validation_state);
   }
+};
+
+class BlockValidatorAdapter : public LegacyValidationInterface {
+ private:
+  const Dependency<ActiveChain> m_active_chain;
+  const Dependency<BlockValidator> m_block_validator;
+  const Dependency<StakeValidator> m_stake_validator;
+
+ public:
+  BlockValidatorAdapter(
+      const Dependency<ActiveChain> active_chain,
+      const Dependency<BlockValidator> block_validator,
+      const Dependency<StakeValidator> stake_validator) : m_active_chain(active_chain),
+                                                          m_block_validator(block_validator),
+                                                          m_stake_validator(stake_validator) {}
+
+  bool CheckBlockHeader(
+      const CBlockHeader &block,
+      CValidationState &validation_state,
+      const Consensus::Params &consensus_params,
+      bool check_proof_of_work) override {
+    return false;
+  }
+
+  bool CheckBlock(
+      const CBlock &block,
+      CValidationState &validation_state,
+      const Consensus::Params &consensus_params,
+      bool check_proof_of_work,
+      bool check_merkle_root) override {
+    return false;
+  }
+
+  bool ContextualCheckBlock(
+      const CBlock &block,
+      CValidationState &validation_state,
+      const Consensus::Params &consensus_params,
+      const CBlockIndex *prev_block) override {
+    return false;
+  };
+
+  bool ContextualCheckBlockHeader(
+      const CBlockHeader &block,
+      CValidationState &validation_state,
+      const CChainParams &chainparams,
+      const CBlockIndex *prev_block,
+      std::int64_t adjusted_time) override {
+    return false;
+  };
 };
 
 std::unique_ptr<LegacyValidationInterface> LegacyValidationInterface::New(

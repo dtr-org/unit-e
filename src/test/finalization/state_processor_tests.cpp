@@ -23,7 +23,7 @@ class Fixture {
     m_finalization_params.epoch_length = epoch_length;
     m_admin_params = Params().GetAdminParams();
     m_repo->Reset(m_finalization_params, m_admin_params);
-    m_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
+    m_chain.stub_AtHeight = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
         return nullptr;
