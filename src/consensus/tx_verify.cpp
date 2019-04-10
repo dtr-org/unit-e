@@ -291,7 +291,14 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
 
     const CBlockIndex &prev_block = *index.pprev;
     CAmount block_reward = fees + behavior.CalculateBlockReward(prev_block.nHeight);
+
     std::size_t num_reward_outputs = finalization_rewards.GetNumberOfRewardOutputs(prev_block.nHeight + 1) + 1;
+    if (coinbase_tx.vout.size() < num_reward_outputs) {
+        return state.DoS(100,
+                         error("%s: too few coinbase outputs expected at least %d actual %d", __func__,
+                               num_reward_outputs, coinbase_tx.vout.size()),
+                         REJECT_INVALID, "bad-cb-finalization-reward");
+    }
     if (num_reward_outputs > 1 && !(prev_block.pprev->nStatus & BLOCK_HAVE_DATA)) {
         // prev_block is a parent block of the snapshot which was used for ISD.
         // We do not have data for the ancestor blocks of prev_block.
@@ -308,13 +315,6 @@ bool Consensus::CheckBlockRewards(const CTransaction &coinbase_tx, CValidationSt
         }
     } else if (num_reward_outputs > 1) {
         std::vector<std::pair<CScript, CAmount>> fin_rewards = finalization_rewards.GetFinalizationRewards(prev_block);
-
-        if (coinbase_tx.vout.size() < fin_rewards.size() + 1) {
-            return state.DoS(100,
-                             error("%s: too few coinbase outputs expected at least %d actual %d", __func__,
-                                   fin_rewards.size() + 1, coinbase_tx.vout.size()),
-                             REJECT_INVALID, "bad-cb-finalization-reward");
-        }
         for (std::size_t i = 0; i < fin_rewards.size(); ++i) {
             block_reward += fin_rewards[i].second;
             if (coinbase_tx.vout[i + 1].nValue != fin_rewards[i].second ||
