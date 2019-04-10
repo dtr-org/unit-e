@@ -185,7 +185,7 @@ struct Parameters {
   DifficultyFunction difficulty_function;
 
   //! \brief Size of the difficulty adjustment rolling window
-  std::uint32_t difficulty_adjustement_window;
+  std::uint32_t difficulty_adjustment_window;
 
   //! \brief Maximum allowed difficulty value
   uint256 max_difficulty_value;

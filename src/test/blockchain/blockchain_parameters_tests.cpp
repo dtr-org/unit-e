@@ -90,7 +90,7 @@ class ActiveChainWithTime : public ChainAccess {
 BOOST_AUTO_TEST_CASE(generic_difficulty_function_test) {
 
   Parameters params = Parameters::TestNet();
-  params.difficulty_adjustement_window = 128;
+  params.difficulty_adjustment_window = 128;
 
   const CBlock &genesis = params.genesis_block.block;
 

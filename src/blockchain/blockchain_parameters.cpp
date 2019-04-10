@@ -42,18 +42,18 @@ Parameters Parameters::Base() noexcept {
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
   };
 
-  p.difficulty_adjustement_window = 128;
+  p.difficulty_adjustment_window = 128;
   p.max_difficulty_value = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
     const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
 
-    if (height <= p.difficulty_adjustement_window) {
+    if (height <= p.difficulty_adjustment_window) {
       return max_difficulty_value.GetCompact();
     }
 
     const Height window_end = height - 1;
-    const Height window_start = height - 1 - p.difficulty_adjustement_window;
+    const Height window_start = height - 1 - p.difficulty_adjustment_window;
 
     const CBlockIndex *end_index = chain.AtHeight(window_end);
     const CBlockIndex *start_index = chain.AtHeight(window_start);
@@ -63,7 +63,6 @@ Parameters Parameters::Base() noexcept {
     }
 
     const blockchain::Time actual_window_duration = end_index->nTime - start_index->nTime;
-    const blockchain::Time expected_window_duration = p.difficulty_adjustement_window * p.block_time_seconds;
 
     arith_uint256 window_difficulties_sum;
     for (blockchain::Height i = window_start + 1; i <= window_end; ++i) {
@@ -72,13 +71,14 @@ Parameters Parameters::Base() noexcept {
       window_difficulties_sum += temp;
     }
 
-    const arith_uint256 avg_difficulty = window_difficulties_sum / p.difficulty_adjustement_window;
+    const arith_uint256 avg_difficulty = window_difficulties_sum / p.difficulty_adjustment_window;
     const arith_uint256 numerator = actual_window_duration * avg_difficulty;
     if (numerator / actual_window_duration != avg_difficulty) {
       // Overflow
       return max_difficulty_value.GetCompact();
     }
 
+    const blockchain::Time expected_window_duration = p.difficulty_adjustment_window * p.block_time_seconds;
     const arith_uint256 next_difficulty = numerator / expected_window_duration;
 
     if (next_difficulty > max_difficulty_value) {
@@ -170,7 +170,7 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.finalizer_vote_from_epoch_block_number = 1;
   p.data_dir_suffix = "regtest";
 
-  p.difficulty_adjustement_window = 0;
+  p.difficulty_adjustment_window = 0;
   p.max_difficulty_value = uint256::zero;
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
     return p.genesis_block.block.nBits;
