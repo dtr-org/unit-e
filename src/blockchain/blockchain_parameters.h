@@ -223,7 +223,7 @@ struct Parameters {
   //! \brief Number of blocks which have to have a softfork activated in a confirmation period.
   std::uint32_t rule_change_activation_threshold;
 
-  //! \brief Suffix of the data dir. In the path "~/user/.unite/regtest", it's a "regtest" suffix.
+  //! \brief Suffix of the data dir. In the path "~user/.unit-e/regtest", it's a "regtest" suffix.
   std::string data_dir_suffix;
 
   //! \brief Default settings to use for this chain.

@@ -643,7 +643,7 @@ fs::path GetDefaultDataDir()
     // Windows < Vista: C:\Documents and Settings\Username\Application Data\Unit-e
     // Windows >= Vista: C:\Users\Username\AppData\Roaming\Unit-e
     // Mac: ~/Library/Application Support/Unit-e
-    // Unix: ~/.unite
+    // Unix: ~/.unit-e
 #ifdef WIN32
     // Windows
     return GetSpecialFolderPath(CSIDL_APPDATA) / "Unit-e";
@@ -659,7 +659,7 @@ fs::path GetDefaultDataDir()
     return pathRet / "Library/Application Support/Unit-e";
 #else
     // Unix
-    return pathRet / ".unite";
+    return pathRet / ".unit-e";
 #endif
 #endif
 }
