@@ -232,7 +232,7 @@ class ActiveChainMock : public staking::ActiveChain {
     ++invocations_ComputeSnapshotHash;
     return snapshot_hash;
   }
-  bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override {
+  bool ProposeBlock(std::shared_ptr<const CBlock> pblock) override {
     ++invocations_ProcessNewBlock;
     return false;
   }

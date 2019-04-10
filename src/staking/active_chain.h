@@ -116,8 +116,16 @@ class ActiveChain : public blockchain::ChainAccess {
   //! tip block is not the same as the result of this function).
   virtual const uint256 ComputeSnapshotHash() const = 0;
 
-  //! \brief add a new block at the current active chains tip.
-  virtual bool ProcessNewBlock(std::shared_ptr<const CBlock>) = 0;
+  //! \brief propose a new block on the active chain.
+  //!
+  //! This function is not meant for processing blocks which were sent to us
+  //! from the outside. It takes a block that we created and proposes it to
+  //! the active chain. If in between block creation and actually proposing
+  //! (invoking this function) a new block arrived it will return false.
+  //! Otherwise true.
+  virtual bool ProposeBlock(
+      std::shared_ptr<const CBlock>  //!< The block to propose on the currently active chain.
+      ) = 0;
 
   //! \brief Check the current status of the initial block download.
   virtual ::SyncStatus GetInitialBlockDownloadStatus() const = 0;

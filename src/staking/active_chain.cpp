@@ -87,7 +87,7 @@ class ActiveChainAdapter final : public ActiveChain {
     return pcoinsTip->GetSnapshotHash().GetHash(*GetTip());
   }
 
-  bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override {
+  bool ProposeBlock(std::shared_ptr<const CBlock> pblock) override {
     return ::ProcessNewBlock(::Params(), pblock, /* fForceProcessing= */ true, nullptr);
   }
 

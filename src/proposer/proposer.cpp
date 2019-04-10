@@ -138,7 +138,7 @@ class ProposerImpl : public Proposer {
           continue;
         }
         const auto &hash = block->GetHash().GetHex();
-        if (!m_active_chain->ProcessNewBlock(block)) {
+        if (!m_active_chain->ProposeBlock(block)) {
           LogPrint(BCLog::PROPOSING, "Failed to propose block (hash=%s).\n", hash);
           continue;
         }
