@@ -921,9 +921,9 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         return false;
       }
 
-      if (fin_state->IsFinalizerVoting(*validator)) {
+      if (!fin_state->IsFinalizerVoting(*validator)) {
         LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s: finalizer=%s can't logout because not in the voting state."
+                 "ERROR: %s: finalizer=%s can't logout because not in the voting state. "
                  "current_dynasty=%d start_dynasty=%d end_dynasty=%d\n",
                  __func__, validatorState->m_validator_address.ToString(),
                  fin_state->GetCurrentDynasty(),
@@ -947,9 +947,9 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
         return false;
       }
 
-      if (fin_state->IsFinalizerVoting(*validator)) {
+      if (!fin_state->IsFinalizerVoting(*validator)) {
         LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s: finalizer=%s can't vote because not in the voting state."
+                 "ERROR: %s: finalizer=%s can't vote because not in the voting state. "
                  "current_dynasty=%d start_dynasty=%d end_dynasty=%d\n",
                  __func__, validatorState->m_validator_address.ToString(),
                  fin_state->GetCurrentDynasty(),
