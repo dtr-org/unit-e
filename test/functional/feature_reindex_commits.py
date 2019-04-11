@@ -32,7 +32,6 @@ class FeatureReindexCommits(UnitETestFramework):
         })
 
         proposer_args = [
-            '-proposing=1',
             '-esperanzaconfig=' +
             finalization_params]
 
@@ -62,7 +61,6 @@ class FeatureReindexCommits(UnitETestFramework):
 
         self.log.info("Setup deposit")
         self.setup_deposit()
-        self.assert_finalizer_status('IS_VALIDATING')
 
         disconnect_nodes(self.proposer, self.finalizer.index)
 
