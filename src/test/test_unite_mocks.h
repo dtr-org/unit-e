@@ -72,7 +72,7 @@ class NetworkMock : public staking::Network {
 };
 
 class BlockIndexMapMock : public staking::BlockIndexMap {
-public:
+ public:
   bool reverse = false;
 
   CCriticalSection &GetLock() const override { return cs; }
@@ -113,9 +113,10 @@ public:
       delete i.second;
     }
   }
-private:
+
+ private:
   mutable CCriticalSection cs;
-  std::map<uint256, CBlockIndex*> indexes;
+  std::map<uint256, CBlockIndex *> indexes;
 };
 
 class ActiveChainMock : public staking::ActiveChain {
@@ -265,13 +266,23 @@ class StakeValidatorMock : public staking::StakeValidator {
   uint256 ComputeKernelHash(const CBlockIndex *blockindex, const staking::Coin &coin, blockchain::Time time) const override {
     return computekernelfunc(blockindex, coin, time);
   }
-  staking::BlockValidationResult CheckStake(const CBlock &, staking::BlockValidationInfo *) const override {
-    return staking::BlockValidationResult();
-  }
   uint256 ComputeStakeModifier(const CBlockIndex *, const staking::Coin &) const override { return uint256(); }
   bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
   void RememberPieceOfStake(const COutPoint &) override {}
   void ForgetPieceOfStake(const COutPoint &) override {}
+
+ protected:
+  blockchain::UTXOView &GetUTXOView() const override {
+    static mocks::ActiveChainMock active_chain_mock;
+    return active_chain_mock;
+  }
+  staking::BlockValidationResult CheckStake(
+      const CBlock &block,
+      const blockchain::UTXOView &utxo_view,
+      CheckStakeFlags::Type flags,
+      staking::BlockValidationInfo *info) const override {
+    return staking::BlockValidationResult();
+  }
 };
 
 class CoinsViewMock : public AccessibleCoinsView {
@@ -304,7 +315,8 @@ class CoinsViewMock : public AccessibleCoinsView {
 
 class StateDBMock : public finalization::StateDB {
   using FinalizationState = finalization::FinalizationState;
-public:
+
+ public:
   mutable std::atomic<std::uint32_t> invocations_Save{0};
   mutable std::atomic<std::uint32_t> invocations_Load{0};
   mutable std::atomic<std::uint32_t> invocations_LoadParticular{0};
@@ -348,7 +360,7 @@ public:
 };
 
 class BlockDBMock : public ::BlockDB {
-public:
+ public:
   mutable std::atomic<std::uint32_t> invocations_ReadBlock{0};
 
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {

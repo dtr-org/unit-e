@@ -264,6 +264,7 @@ UNITE_CORE_H = \
   utiltime.h \
   utiltypetags.h \
   validation.h \
+  validation_flags.h \
   validationinterface.h \
   versionbits.h \
   wallet/coincontrol.h \
