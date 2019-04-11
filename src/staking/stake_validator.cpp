@@ -160,7 +160,7 @@ class StakeValidatorImpl : public StakeValidator {
   //! If a coinbase transaction contains an input with a remote-staking
   //! scriptPubKey then at least the same amount MUST be sent back to the same
   //! scriptPubKey.
-  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef &coinbase_tx, const staking::Coin& stake, const CheckStakeFlags::Type flags) const {
+  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef &coinbase_tx, const staking::Coin &stake, const CheckStakeFlags::Type flags) const {
     BlockValidationResult result;
     std::map<CScript, CAmount> remote_staking_amounts;
     // check staking input
