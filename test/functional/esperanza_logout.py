@@ -59,7 +59,7 @@ class EsperanzaLogoutTest(UnitETestFramework):
 
         # Leave IBD
         proposer.generate(1)
-        sync_blocks([finalizer1, finalizer2], timeout=10)
+        sync_blocks([proposer, finalizer1, finalizer2], timeout=10)
 
         deptx_1 = finalizer1.deposit(finalizer1.getnewaddress("", "legacy"), 1500)
         deptx_2 = finalizer2.deposit(finalizer2.getnewaddress("", "legacy"), 3001)
