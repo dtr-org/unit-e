@@ -362,18 +362,22 @@ bool WalletExtension::SendLogout(CWalletTx &wtxNewOut) {
     return error("%s: Cannot create logouts for non-validators.", __func__);
   }
 
-  const CWalletTx *prev_tx = m_enclosing_wallet.GetWalletTx(validator->m_last_transaction_hash);
-  assert(prev_tx);
+  CTransactionRef prevTx;
+  {
+    const CWalletTx *prev_tx = m_enclosing_wallet.GetWalletTx(validator->m_last_transaction_hash);
+    assert(prev_tx);
+    prevTx = prev_tx->tx;
+  }
 
-  const CScript &prevScriptPubkey = prev_tx->tx->vout[0].scriptPubKey;
-  CAmount amount = prev_tx->tx->vout[0].nValue;
+  const CScript &prevScriptPubkey = prevTx->vout[0].scriptPubKey;
+  CAmount amount = prevTx->vout[0].nValue;
 
   // We need to pay some minimal fees if we wanna make sure that the logout
   // will be included.
   FeeCalculation feeCalc;
 
   txNew.vin.push_back(
-      CTxIn(prev_tx->tx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
+      CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
 
   CTxOut txout(amount, prevScriptPubkey);
   txNew.vout.push_back(txout);
@@ -456,15 +460,19 @@ bool WalletExtension::SendWithdraw(const CTxDestination &address, CWalletTx &wtx
   const std::vector<unsigned char> pkv = ToByteVector(pubKey.GetID());
   const CScript &scriptPubKey = CScript::CreateP2PKHScript(pkv);
 
-  const CWalletTx *prev_tx = m_enclosing_wallet.GetWalletTx(validator->m_last_transaction_hash);
-  assert(prev_tx);
+  CTransactionRef prevTx;
+  {
+    const CWalletTx *prev_tx = m_enclosing_wallet.GetWalletTx(validator->m_last_transaction_hash);
+    assert(prev_tx);
+    prevTx = prev_tx->tx;
+  }
 
-  const CScript &prevScriptPubkey = prev_tx->tx->vout[0].scriptPubKey;
+  const CScript &prevScriptPubkey = prevTx->vout[0].scriptPubKey;
 
-  txNew.vin.push_back(CTxIn(prev_tx->tx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
+  txNew.vin.push_back(CTxIn(prevTx->GetHash(), 0, CScript(), CTxIn::SEQUENCE_FINAL));
 
   // Calculate how much we have left of the initial withdraw
-  const CAmount initialDeposit = prev_tx->tx->vout[0].nValue;
+  const CAmount initialDeposit = prevTx->vout[0].nValue;
 
   CAmount currentDeposit = 0;
 
