@@ -1960,7 +1960,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         check_stake_flags |= CheckStakeFlags::ALLOW_SLOW;
     }
     const staking::BlockValidationResult stake_validation_result =
-        GetComponent<staking::StakeValidator>()->CheckStake(block, check_stake_flags, state.GetBlockValidationInfo());
+        GetComponent<staking::StakeValidator>()->CheckStake(block, check_stake_flags, &state.block_validation_info);
     if (!staking::CheckResult(stake_validation_result, state)) {
         LogPrint(BCLog::VALIDATION, "%s: Failed to validate stake for block=%s failure=%s\n",
             __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());

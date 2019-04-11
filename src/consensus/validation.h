@@ -36,8 +36,8 @@ private:
     unsigned int chRejectCode;
     bool corruptionPossible;
     std::string strDebugMessage;
-    staking::BlockValidationInfo block_validation_info;
 public:
+    staking::BlockValidationInfo block_validation_info;
     CValidationState() : mode(MODE_VALID), nDoS(0), chRejectCode(0), corruptionPossible(false) {}
     bool DoS(int level, bool ret = false,
              unsigned int chRejectCodeIn=0, const std::string &strRejectReasonIn="",
@@ -85,9 +85,6 @@ public:
     }
     void SetCorruptionPossible() {
         corruptionPossible = true;
-    }
-    staking::BlockValidationInfo *GetBlockValidationInfo() {
-        return &block_validation_info;
     }
     unsigned int GetRejectCode() const { return chRejectCode; }
     std::string GetRejectReason() const { return strRejectReason; }
