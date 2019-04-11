@@ -356,7 +356,7 @@ Result FinalizationState::IsVotable(const Validator &validator,
         __func__, validatorAddress.GetHex(), targetEpoch);
   }
 
-  if (IsInDynasty(validator, m_current_dynasty) || IsInDynasty(validator, m_current_dynasty - 1)) {
+  if (IsFinalizerVoting(validator)) {
     return success();
   }
 
@@ -865,8 +865,7 @@ blockchain::Height FinalizationState::GetEpochCheckpointHeight(const uint32_t ep
 std::vector<Validator> FinalizationState::GetActiveFinalizers() const {
   std::vector<Validator> res;
   for (const auto &it : m_validators) {
-    if (IsInDynasty(it.second, m_current_dynasty) ||
-        IsInDynasty(it.second, m_current_dynasty - 1)) {
+    if (IsFinalizerVoting(it.second)) {
       res.push_back(it.second);
     }
   }
@@ -1069,6 +1068,20 @@ bool FinalizationState::IsFinalizedCheckpoint(blockchain::Height blockHeight) co
 
 FinalizationState::InitStatus FinalizationState::GetInitStatus() const {
   return m_status;
+}
+
+//! \brief Returns true if finalizer can vote in current dynasty
+bool FinalizationState::IsFinalizerVoting(const uint160 &finalizer_address) const {
+  const esperanza::Validator *finalizer = GetValidator(finalizer_address);
+  if (!finalizer) {
+    return false;
+  }
+
+  return IsFinalizerVoting(*finalizer);
+}
+
+bool FinalizationState::IsFinalizerVoting(const Validator &finalizer) const {
+  return IsInDynasty(finalizer, m_current_dynasty) || IsInDynasty(finalizer, m_current_dynasty - 1);
 }
 
 }  // namespace esperanza

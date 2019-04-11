@@ -813,16 +813,14 @@ void WalletExtension::BlockConnected(
       return;  // to early to vote
     }
 
+    // TODO: UNIT-E: review if we need to keep track of the state
+    // as it seems checking against current dynasty is enough
     if (fin_state->GetCurrentDynasty() <= validator->m_end_dynasty) {
-      // TODO: UNIT-E: review if we need to keep track of the state
-      // as it seems checking against current dynasty is enough
       if (validatorState->m_phase == +ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION) {
         validatorState->m_phase = ValidatorState::Phase::IS_VALIDATING;
         WriteValidatorStateToFile();
       }
       assert(validatorState->m_phase == +ValidatorState::Phase::IS_VALIDATING);
-
-      VoteIfNeeded(*fin_state, tip_block_index->nHeight);  // responsible to write validator state
     } else {
       if (validatorState->m_phase == +ValidatorState::Phase::IS_VALIDATING) {
         LogPrint(BCLog::FINALIZATION,
@@ -832,6 +830,10 @@ void WalletExtension::BlockConnected(
         WriteValidatorStateToFile();
       }
       assert(validatorState->m_phase == +ValidatorState::Phase::NOT_VALIDATING);
+    }
+
+    if (fin_state->IsFinalizerVoting(*validator)) {
+      VoteIfNeeded(*fin_state, tip_block_index->nHeight);  // responsible to write validator state
     }
   }
 }
@@ -906,25 +908,53 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
       break;
     }
     case TxType::LOGOUT: {
-      const auto expected_phase = +esperanza::ValidatorState::Phase::IS_VALIDATING;
-      if (validatorState->m_phase != expected_phase) {
+      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
+      assert(fin_state != nullptr);
+
+      const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
+      if (!validator) {
         LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s - Wrong state for validator state when "
-                 "logging out. %s expected but %s found.\n",
-                 __func__, expected_phase._to_string(),
-                 validatorState->m_phase._to_string());
+                 "ERROR: %s: finalizer=%s can't logout because deposit is missing\n",
+                 __func__,
+                 validatorState->m_validator_address.ToString());
+        return false;
+      }
+
+      if (fin_state->IsFinalizerVoting(*validator)) {
+        LogPrint(BCLog::FINALIZATION,
+                 "ERROR: %s: finalizer=%s can't logout because not in the voting state."
+                 "current_dynasty=%d start_dynasty=%d end_dynasty=%d\n",
+                 __func__, validatorState->m_validator_address.ToString(),
+                 fin_state->GetCurrentDynasty(),
+                 validator->m_start_dynasty,
+                 validator->m_end_dynasty);
         return false;
       }
       break;
     }
     case TxType::VOTE: {
-      const auto expected_phase = +esperanza::ValidatorState::Phase::IS_VALIDATING;
-      if (validatorState->m_phase != expected_phase) {
+      LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
+      const FinalizationState *fin_state = m_dependencies.GetFinalizationStateRepository().GetTipState();
+      assert(fin_state != nullptr);
+
+      const esperanza::Validator *validator = fin_state->GetValidator(validatorState->m_validator_address);
+      if (!validator) {
         LogPrint(BCLog::FINALIZATION,
-                 "ERROR: %s - Wrong state for validator state when "
-                 "voting. %s expected but %s found.\n",
-                 __func__, expected_phase._to_string(),
-                 validatorState->m_phase._to_string());
+                 "ERROR: %s: finalizer=%s can't vote because deposit is missing\n",
+                 __func__,
+                 validatorState->m_validator_address.ToString());
+        return false;
+      }
+
+      if (fin_state->IsFinalizerVoting(*validator)) {
+        LogPrint(BCLog::FINALIZATION,
+                 "ERROR: %s: finalizer=%s can't vote because not in the voting state."
+                 "current_dynasty=%d start_dynasty=%d end_dynasty=%d\n",
+                 __func__, validatorState->m_validator_address.ToString(),
+                 fin_state->GetCurrentDynasty(),
+                 validator->m_start_dynasty,
+                 validator->m_end_dynasty);
         return false;
       }
       break;

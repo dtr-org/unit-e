@@ -21,7 +21,13 @@ BETTER_ENUM(
     _Phase,
     uint8_t,
     NOT_VALIDATING,
+
+    // UNIT-E TODO: replace IS_VALIDATING in favor of state->IsFinalizerVoting
+    // as since BlockConnected is processed on a thread, this phase can be
+    // set with the delay. Another issue is that AddToWalletIfInvolvingMe
+    // is called before BlockConnected so the state is lagging one block behind
     IS_VALIDATING,
+
     WAITING_DEPOSIT_CONFIRMATION,
     WAITING_DEPOSIT_FINALIZATION
 )
