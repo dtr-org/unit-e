@@ -32,7 +32,6 @@ class FeatureReindexCommits(UnitETestFramework):
         })
 
         proposer_args = [
-            '-proposing=1',
             '-esperanzaconfig=' +
             finalization_params]
 
@@ -66,7 +65,8 @@ class FeatureReindexCommits(UnitETestFramework):
 
         disconnect_nodes(self.proposer, self.finalizer.index)
 
-        self.log.info("Generate few epochs")
+        self.log.info("Generate 2 epochs")
+        assert_equal(self.proposer.getblockcount(), 25)
         votes = self.generate_epoch(
             proposer=self.proposer,
             finalizer=self.finalizer,
@@ -94,7 +94,6 @@ class FeatureReindexCommits(UnitETestFramework):
                               'lastJustifiedEpoch': 8,
                               'lastFinalizedEpoch': 7,
                               'validators': 1})
-
 
         self.log.info("Restart nodes, -reindex=0")
         self.restart_nodes(reindex=False)
