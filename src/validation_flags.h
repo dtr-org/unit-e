@@ -37,6 +37,8 @@ namespace CheckStakeFlags {
 
   //! Allows disk access (reading a block from disk) to
   //! check a block, instead of just relying on the utxo set.
+  //! This flag must not be relied on for consensus critical
+  //! behavior.
   static constexpr const Type ALLOW_SLOW = 1 << 0;
 }
 

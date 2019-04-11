@@ -85,7 +85,8 @@ class StakeValidator {
   //!   Stake to be checked for blocks which are already connected and reconnected
   //!   (for example in the verifychain RPC call), i.e. stake for a block
   //!   which is being looked at which is not at the tip of the active chain
-  //!   can be checked.
+  //!   can be checked. This flag must not be relied on for consensus critical
+  //!   behavior.
   virtual BlockValidationResult CheckStake(
       const CBlock &block,          //!< [in] The block to check.
       CheckStakeFlags::Type flags,  //!< [in] options for checking stake, see CheckStakeFlags::Type
