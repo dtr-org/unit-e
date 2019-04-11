@@ -222,6 +222,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         w1 = finalizer1.withdraw(finalizer1_address)
         wait_until(lambda: w1 in proposer.getrawmempool(), timeout=10)
         proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        sync_blocks([proposer, finalizer1])
 
         self.log.info('finalizer1 was able to withdraw deposit at dynasty=18')
 
@@ -234,7 +235,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
             [{'txid': w1, 'vout': 0}], {finalizer1_address: Decimal('1499.999')})
         spent_w1_signed = finalizer1.signrawtransaction(spent_w1_raw)
         spent_w1 = finalizer1.sendrawtransaction(spent_w1_signed['hex'])
-        wait_until(lambda: spent_w1 in proposer.getrawmempool(), timeout=10)
+        self.wait_for_transaction(spent_w1, nodes=[proposer])
 
         # mine block
         block_hash = proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))[0]
