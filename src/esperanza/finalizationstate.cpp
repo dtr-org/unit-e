@@ -1070,7 +1070,6 @@ FinalizationState::InitStatus FinalizationState::GetInitStatus() const {
   return m_status;
 }
 
-//! \brief Returns true if finalizer can vote in current dynasty
 bool FinalizationState::IsFinalizerVoting(const uint160 &finalizer_address) const {
   const esperanza::Validator *finalizer = GetValidator(finalizer_address);
   if (!finalizer) {
