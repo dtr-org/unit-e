@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_SUITE(waiter_tests)
 
 namespace {
 
-void wait_value(const std::atomic<bool> &value) {
+void WaitValue(const std::atomic<bool> &value) {
   const auto wait_until = std::chrono::steady_clock::now() + std::chrono::seconds(30);
   while (!value) {
     const auto now = std::chrono::steady_clock::now();
@@ -40,13 +40,13 @@ BOOST_AUTO_TEST_CASE(wait_and_wake_test) {
       result = true;
     });
 
-    wait_value(started);
+    WaitValue(started);
     BOOST_CHECK(started);
     BOOST_CHECK(!result);
 
     waiter.Wake();
 
-    wait_value(result);
+    WaitValue(result);
     BOOST_CHECK(started);
     BOOST_CHECK(result);
 
@@ -65,11 +65,11 @@ BOOST_AUTO_TEST_CASE(wait_and_wake_test) {
       result = true;
     });
 
-    wait_value(started);
+    WaitValue(started);
     BOOST_CHECK(started);
     BOOST_CHECK(!result);
 
-    wait_value(result);
+    WaitValue(result);
     BOOST_CHECK(started);
     BOOST_CHECK(result);
 
@@ -98,16 +98,16 @@ BOOST_AUTO_TEST_CASE(wait_and_wake_test) {
       result2 = true;
     });
 
-    wait_value(started1);
-    wait_value(started2);
+    WaitValue(started1);
+    WaitValue(started2);
     BOOST_CHECK(started1);
     BOOST_CHECK(started2);
     BOOST_CHECK(!result1);
     BOOST_CHECK(!result2);
 
     waiter.Wake();
-    wait_value(result1);
-    wait_value(result2);
+    WaitValue(result1);
+    WaitValue(result2);
     BOOST_CHECK(result1);
     BOOST_CHECK(result2);
 
