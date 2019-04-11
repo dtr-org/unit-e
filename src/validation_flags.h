@@ -26,9 +26,11 @@ namespace ConnectBlockFlags {
 
   //! CheckStake using CheckStateFlags::ALLOW_SLOW
   static constexpr const Type ALLOW_SLOW = 1 << 1;
+
+  static constexpr const Type SKIP_ELIGIBILITY_CHECK = 1 << 2;
 }
 
-//! Flags for staking::
+//! Flags for staking::StakeValidator::CheckStake
 namespace CheckStakeFlags {
   using Type = std::uint8_t;
 
@@ -40,6 +42,22 @@ namespace CheckStakeFlags {
   //! This flag must not be relied on for consensus critical
   //! behavior.
   static constexpr const Type ALLOW_SLOW = 1 << 0;
+
+  static constexpr const Type SKIP_ELIGIBILITY_CHECK = 1 << 1;
 }
+
+//! Flags for TestBlockValidity
+namespace TestBlockValidityFlags {
+  using Type = std::uint8_t;
+
+  //! Default: No Flags.
+  static constexpr const Type NONE = 0;
+
+  static constexpr const Type SKIP_ELIGIBILITY_CHECK = 1 << 0;
+
+  static constexpr const Type SKIP_MERKLE_TREE_CHECK = 1 << 1;
+}
+
+
 
 #endif //UNIT_E_VALIDATION_FLAGS_H

@@ -195,7 +195,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
       pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
       state = CValidationState();
-      if (TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
+      const TestBlockValidityFlags::Type flags =
+          TestBlockValidityFlags::SKIP_MERKLE_TREE_CHECK |
+          TestBlockValidityFlags::SKIP_ELIGIBILITY_CHECK;
+      if (TestBlockValidity(state, chainparams, *pblock, pindexPrev, flags)) {
         success = true;
         break;
       }
