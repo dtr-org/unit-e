@@ -152,14 +152,12 @@ void GrapheneSenderImpl::OnGrapheneTxRequestReceived(CNode &from,
     if (it == m_receiver_infos.end() || it->second.last_requested_hash != request.block_hash) {
       LogPrint(BCLog::NET, "Peer %d requested graphene tx for block we didn't send to it (%s)\n",
                from.GetId(), request.block_hash.GetHex());
-      Misbehaving(from.GetId(), 10);
       return;
     }
 
     if (it->second.requested_tx) {
       LogPrint(BCLog::NET, "Peer %d has already requested graphene tx for block %s\n",
                from.GetId(), request.block_hash.GetHex());
-      Misbehaving(from.GetId(), 10);
       return;
     }
     it->second.requested_tx = true;
