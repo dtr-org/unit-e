@@ -76,7 +76,7 @@ class StakeValidatorImpl : public StakeValidator {
     if (utxo) {
       return utxo;
     }
-    if (!Flags::IsSet(flags, CheckStakeFlags::ALLOW_SLOW)) {
+    if (Flags::IsSet(flags, CheckStakeFlags::ALLOW_SLOW)) {
       CTransactionRef tx;
       uint256 hash_block = uint256::zero;
       if (!GetTransaction(staking_out_point.hash, tx, Params().GetConsensus(), hash_block, /* fAllowSlow= */ true)) {
