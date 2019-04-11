@@ -10,7 +10,7 @@
 #include <primitives/transaction.h>
 #include <script/standard.h>
 #include <uint256.h>
-
+#include <iostream>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -100,7 +100,7 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
         return Sign1(provider, keyID, creator, scriptPubKey, ret, sigversion);
     case TX_PUBKEYHASH:
         return SignWithPubKeyHash(provider, creator, scriptPubKey, uint160(vSolutions[0]), ret, sigversion);
-    case TX_PAYVOTESLASH:
+    case TX_COMMIT:
         keyID = CPubKey(vSolutions[0]).GetID();
         if (Sign1(provider, keyID, creator, scriptPubKey, ret, sigversion)) {
           ret.push_back(vSolutions[0]);
@@ -178,7 +178,7 @@ static CScript PushAll(const std::vector<valtype>& values)
 static bool CanBeNestedInP2SH(txnouttype type)
 {
     return type != TX_SCRIPTHASH && type != TX_WITNESS_V1_REMOTESTAKE_KEYHASH
-        && type != TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH && type != TX_PAYVOTESLASH;
+        && type != TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH && type != TX_COMMIT;
 }
 
 static bool CanBeNestedInP2WSH(txnouttype type)
@@ -228,10 +228,10 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
     }
 
     //UNIT-E: quite ugly workaround to get the vote data back in the signature.
-    if (solved && whichType == TX_PAYVOTESLASH) {
+    if (solved && whichType == TX_COMMIT) {
 
         if (tx != nullptr) {
-            if (!tx->IsLogout() && !tx->IsWithdraw()) {
+            if (!tx->IsWithdraw()) {
                 result.pop_back(); //Remove the vSolutions[0] of the Solver from the results since we don't need it
             }
             if (tx->IsVote()) {
@@ -379,7 +379,7 @@ static Stacks CombineSignatures(const CScript& scriptPubKey, const BaseSignature
         if (sigs1.script.size() >= sigs2.script.size())
             return sigs1;
         return sigs2;
-    case TX_PAYVOTESLASH: {
+    case TX_COMMIT: {
         Stacks result;
         std::vector<valtype> &resScript = result.script;
         resScript.insert(resScript.end(), sigs1.script.begin(), sigs1.script.end());

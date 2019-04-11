@@ -11,6 +11,7 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <uint256.h>
+#include <iostream>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -427,42 +428,173 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     break;
                 }
 
-                //UNIT-E: implement OP logic
-                case OP_CHECKVOTESIG:
+                case OP_CHECKCOMMIT:
                 {
-                    popstack(stack);
-                    if (stack.size() == 2) {
-                      valtype vch1 = stacktop(-1);
-                      if (vch1.size() < 73) {
-                          CScriptNum bn(OP_FALSE);
-                          stack.push_back(bn.getvch());
-                          break;
-                      }
-                      popstack(stack);
-                      popstack(stack);
-                      CScriptNum bn(OP_TRUE);
-                      stack.push_back(bn.getvch());
-                    } else {
-                      CScriptNum bn(OP_FALSE);
-                      stack.push_back(bn.getvch());
-                    }
-                }
-                break;
+                    switch (checker.GetTxType()) {
 
-                //UNIT-E: implement OP logic
-                case OP_SLASHABLE:
-                {
-                    if (stack.size() == 4) {
-                        popstack(stack);
-                        popstack(stack);
-                        popstack(stack);
-                        popstack(stack);
-                        CScriptNum bn(OP_TRUE);
-                        stack.push_back(bn.getvch());
-                    } else {
-                        popstack(stack);
-                        CScriptNum bn(OP_FALSE);
-                        stack.push_back(bn.getvch());
+                        case TxType::VOTE:{
+
+                            if (stack.size() != 3) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
+                            }
+
+                            valtype& vchPubKey = stacktop(-1);
+                            valtype& vchVote = stacktop(-2);
+                            valtype& vchSig = stacktop(-3);
+
+                            valtype voteSig;
+                            esperanza::Vote vote;
+                            CScript voteScript = CScript() << vchSig << vchVote;
+                            if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote, voteSig)) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
+                            }
+
+                            // Check vote signature
+                            if (!esperanza::Vote::CheckSignature(CPubKey(vchPubKey), vote, voteSig)) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
+                            }
+
+                            CScript scriptCode(pbegincodehash, pend);
+
+                            // Check tx signature
+                            if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, SigVersion::BASE, serror)) {
+                                //serror is set
+                                return false;
+                            }
+                            bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+
+                            if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size()) {
+                                return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
+                            }
+
+                            popstack(stack); // Remove the pubkey
+                            popstack(stack); // Remove the vote
+
+                            if (fSuccess) {
+                                popstack(stack); // Remove the sig
+                            } else {
+                                return set_error(serror, SCRIPT_ERR_CHECKSIGVERIFY);
+                            }
+
+                            CScriptNum bn(OP_TRUE);
+                            stack.push_back(bn.getvch());
+                        } break;
+                        case TxType::LOGOUT:{
+                            if (stack.size() != 2) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_LOGOUT_SCRIPT);
+                            }
+
+                            valtype& vchPubKey = stacktop(-1);
+                            valtype& vchSig = stacktop(-2);
+                            CScript scriptCode(pbegincodehash, pend);
+
+                            if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, SigVersion::BASE, serror)) {
+                                //serror is set
+                                return false;
+                            }
+                            bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+
+                            if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size()) {
+                                return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
+                            }
+
+                            popstack(stack); // Remove the pubkey
+                            if (fSuccess) {
+                                popstack(stack); // Remove the sig
+                            } else {
+                                return set_error(serror, SCRIPT_ERR_CHECKSIGVERIFY);
+                            }
+
+                            CScriptNum bn(OP_TRUE);
+                            stack.push_back(bn.getvch());
+
+                        }break;
+                        case TxType::SLASH:{
+                            if (stack.size() != 4) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
+                            }
+
+                            valtype& vchPubKey = stacktop(-1);
+                            valtype& vchVote1 = stacktop(-2);
+                            valtype& vchVote2 = stacktop(-3);
+                            valtype& vchSig = stacktop(-4);
+
+                            valtype voteSig1;
+                            valtype voteSig2;
+                            esperanza::Vote vote1;
+                            esperanza::Vote vote2;
+                            CScript voteScript = CScript() << vchSig << vchVote1;
+                            if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote1, voteSig1)) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
+                            }
+
+                            voteScript = CScript() << vchSig << vchVote2;
+                            if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote2, voteSig2)) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
+                            }
+
+                            // Check vote1 signature
+                            if (!esperanza::Vote::CheckSignature(CPubKey(vchPubKey), vote1, voteSig1)) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
+                            }
+
+                            // Check vote2 signature
+                            if (!esperanza::Vote::CheckSignature(CPubKey(vchPubKey), vote2, voteSig2)) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
+                            }
+
+                            uint160 validatorAddress1 = vote1.m_validator_address;
+                            uint160 validatorAddress2 = vote2.m_validator_address;
+
+                            if (validatorAddress1 != validatorAddress2) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_SLASH_NOT_SAME_VALIDATOR);
+                            }
+
+                            uint32_t sourceEpoch1 = vote1.m_source_epoch;
+                            uint32_t targetEpoch1 = vote1.m_target_epoch;
+
+                            uint32_t sourceEpoch2 = vote2.m_source_epoch;
+                            uint32_t targetEpoch2 = vote2.m_target_epoch;
+
+                            bool isDoubleVote = targetEpoch1 == targetEpoch2;
+                            bool isSurroundVote =
+                                (targetEpoch1 > targetEpoch2 && sourceEpoch1 < sourceEpoch2) ||
+                                    (targetEpoch2 > targetEpoch1 && sourceEpoch2 < sourceEpoch1);
+
+                            if (!isDoubleVote && !isSurroundVote) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_SLASH_NOT_SLASHABLE);
+                            }
+
+                            CScript scriptCode(pbegincodehash, pend);
+
+                            // Check tx signature
+                            if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, SigVersion::BASE, serror)) {
+                              //serror is set
+                              return false;
+                            }
+                            bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+
+                            if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size()) {
+                              return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
+                            }
+
+                            popstack(stack); // Remove the pubkey
+                            popstack(stack); // Remove the vote1
+                            popstack(stack); // Remove the vote2
+
+                            if (fSuccess) {
+                              popstack(stack); // Remove the sig
+                            } else {
+                              return set_error(serror, SCRIPT_ERR_CHECKSIGVERIFY);
+                            }
+                            CScriptNum bn(OP_TRUE);
+                            stack.push_back(bn.getvch());
+                        }break;
+                        default: {
+                            popstack(stack); // Remove the pubkey
+                            CScriptNum bn(OP_FALSE);
+                            stack.push_back(bn.getvch());
+                        } break;
                     }
                 }
                 break;
@@ -1680,7 +1812,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     return 0;
 }
 
-bool IsPayVoteSlashScript(const CScript &script)
+bool IsCommitScript(const CScript &script)
 {
-    return script.IsPayVoteSlashScript();
+    return script.IsCommitScript();
 }

@@ -1938,4 +1938,12 @@ BOOST_AUTO_TEST_CASE(extract_votes_from_vote_signature)
   BOOST_CHECK_EQUAL(extractedVote2.m_target_epoch, targetHeight);
   BOOST_CHECK_EQUAL(HexStr(vote2Sig), HexStr(extractedVote2Sig));
 }
+
+BOOST_AUTO_TEST_CASE(create_commit_script)
+{
+  CKey key;
+  key.MakeNewKey(true);
+  CScript script = CScript::CreateCommitScript(key.GetPubKey());
+  BOOST_CHECK(script.IsCommitScript());
+}
 BOOST_AUTO_TEST_SUITE_END()

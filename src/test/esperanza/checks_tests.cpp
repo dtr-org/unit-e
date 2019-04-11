@@ -42,7 +42,7 @@ CTransaction CreateAdminTx(const AdminKeySet &key_set) {
 
 CTransaction CreateSlashTx(const CPubKey &pub_key, const Vote &vote1, const Vote &vote2) {
 
-  CScript vout_script = CScript::CreatePayVoteSlashScript(pub_key);
+  CScript vout_script = CScript::CreateCommitScript(pub_key);
 
   CMutableTransaction mtx;
   mtx.SetType(TxType::SLASH);
@@ -377,7 +377,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckLogoutTx_test) {
   CPubKey pkey = key.GetPubKey();
   uint160 validator_address = pkey.GetID();
 
-  CScript script = CScript::CreatePayVoteSlashScript(pkey);
+  CScript script = CScript::CreateCommitScript(pkey);
 
   CMutableTransaction mtx;
   mtx.SetType(TxType::DEPOSIT);
@@ -659,7 +659,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
   }
 
   {
-    CScript script = CScript::CreatePayVoteSlashScript(key.GetPubKey());
+    CScript script = CScript::CreateCommitScript(key.GetPubKey());
     mtx.vout = {CTxOut(1, script)};
 
     CTransaction tx(mtx);
@@ -741,7 +741,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   mt.SetType(TxType::DEPOSIT);
   mt.vin.resize(1);
   mt.vout.resize(1);
-  mt.vout = {CTxOut(1, CScript::CreatePayVoteSlashScript(pub_key))};
+  mt.vout = {CTxOut(1, CScript::CreateCommitScript(pub_key))};
   CTransaction prev_tx(mt);
 
   CCoinsView view;
@@ -937,7 +937,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckWithdrawTx_test) {
   mt.SetType(TxType::LOGOUT);
   mt.vin.resize(1);
   mt.vout.resize(1);
-  mt.vout = {CTxOut(1, CScript::CreatePayVoteSlashScript(pub_key))};
+  mt.vout = {CTxOut(1, CScript::CreateCommitScript(pub_key))};
   CTransaction prev_tx(mt);
 
   CCoinsView view;

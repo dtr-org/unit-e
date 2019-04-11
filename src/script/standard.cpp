@@ -33,7 +33,7 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_WITNESS_V1_REMOTESTAKE_KEYHASH: return "witness_v1_remotestake_keyhash";
     case TX_WITNESS_V2_REMOTESTAKE_SCRIPTHASH: return "witness_v2_remotestake_scripthash";
     case TX_WITNESS_UNKNOWN: return "witness_unknown";
-    case TX_PAYVOTESLASH: return "payvoteslash";
+    case TX_COMMIT: return "payvoteslash";
     }
     return nullptr;
 }
@@ -66,8 +66,8 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         return true;
     }
 
-    if (scriptPubKey.IsPayVoteSlashScript()){
-        typeRet = TX_PAYVOTESLASH;
+    if (scriptPubKey.IsCommitScript()){
+        typeRet = TX_COMMIT;
         std::vector<unsigned char> hashBytes(scriptPubKey.begin()+1, scriptPubKey.begin()+34);
         vSolutionsRet.push_back(hashBytes);
         return true;
@@ -257,7 +257,7 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         unk.length = vSolutions[1].size();
         addressRet = unk;
         return true;
-    } else if (whichType == TX_PAYVOTESLASH) {
+    } else if (whichType == TX_COMMIT) {
         CPubKey pubKey(vSolutions[0]);
         if (!pubKey.IsValid()) {
           return false;

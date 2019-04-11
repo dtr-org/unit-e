@@ -59,7 +59,8 @@ CTransaction CreateVoteTx(const CTransaction &spendable_tx, const CKey &spendabl
   CScript script_sig = (CScript() << vote_sig) << voteVector;
   mtx.vin[0] = CTxIn(GetRandHash(), 0, script_sig);
 
-  CScript script_pub_key = CScript::CreatePayVoteSlashScript(spendable_key.GetPubKey());
+  CScript script_pub_key =
+      CScript::CreateCommitScript(spendable_key.GetPubKey());
   mtx.vout[0] = CTxOut(10000, script_pub_key);
 
   mtx.vin[0].prevout.hash = spendable_tx.GetHash();
@@ -84,7 +85,7 @@ CTransaction CreateDepositTx(const CTransaction &spendable_tx,
                              const CAmount &change) {
 
   CScript script_pub_key =
-      CScript::CreatePayVoteSlashScript(spendable_key.GetPubKey());
+      CScript::CreateCommitScript(spendable_key.GetPubKey());
 
   return CreateBaseTransaction(spendable_tx, spendable_key, amount,
                                TxType::DEPOSIT, script_pub_key, change);
@@ -94,7 +95,7 @@ CTransaction CreateLogoutTx(const CTransaction &spendable_tx,
                             const CKey &spendable_key, CAmount amount) {
 
   CScript script_pub_key =
-      CScript::CreatePayVoteSlashScript(spendable_key.GetPubKey());
+      CScript::CreateCommitScript(spendable_key.GetPubKey());
 
   return CreateBaseTransaction(spendable_tx, spendable_key, amount,
                                TxType::LOGOUT, script_pub_key);

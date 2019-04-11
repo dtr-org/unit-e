@@ -109,7 +109,7 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-deposit-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!IsCommitScript(tx.vout[0].scriptPubKey)) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-deposit-vout-script");
   }
@@ -168,7 +168,7 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-logout-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!IsCommitScript(tx.vout[0].scriptPubKey)) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-vout-script");
   }
@@ -308,7 +308,7 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!IsCommitScript(tx.vout[0].scriptPubKey)) {
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-vout-script");
   }
 
@@ -544,7 +544,7 @@ bool ExtractValidatorAddress(const CTransaction &tx,
       txnouttype typeRet;
 
       if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-        assert(typeRet == TX_PAYVOTESLASH);
+        assert(typeRet == TX_COMMIT);
         validatorAddressOut = CPubKey(vSolutions[0]).GetID();
         return true;
       }
