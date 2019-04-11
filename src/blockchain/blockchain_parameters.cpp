@@ -15,7 +15,7 @@ Parameters Parameters::Base() noexcept {
   Parameters p{};  // designated initializers would be so nice here
 
   p.block_stake_timestamp_interval_seconds = 4;
-  p.block_time_seconds = 16;
+  p.block_time_seconds = 8;
   p.max_future_block_time_seconds = 15;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
@@ -133,7 +133,7 @@ Parameters Parameters::TestNet() noexcept {
 
   p.bech32_human_readable_prefix = "tue";
 
-  p.genesis_block = GenesisBlock(GenesisBlockBuilder().Add(TestnetFunds()).Build(p));
+  p.genesis_block = GenesisBlock(GenesisBlockBuilder().SetTime(1554901200).SetBits(0x1a076154).Add(TestnetFunds()).Build(p));
 
   p.default_settings.p2p_port = 17182;
   p.data_dir_suffix = "testnet";
