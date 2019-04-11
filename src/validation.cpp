@@ -1923,6 +1923,31 @@ static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
 static int64_t nBlocksTotal = 0;
 
+class UTXOViewAdapter : public blockchain::UTXOView {
+ private:
+  const Dependency<staking::ActiveChain> m_active_chain;
+  const CCoinsViewCache &m_coins_view_cache;
+
+ public:
+  UTXOViewAdapter(
+      const Dependency<staking::ActiveChain> active_chain,
+      const CCoinsViewCache &coins_view) : m_active_chain(active_chain),
+                                           m_coins_view_cache(coins_view) {}
+
+  boost::optional<staking::Coin> GetUTXO(const COutPoint &out_point) const override {
+    AssertLockHeld(m_active_chain->GetLock());
+    const ::Coin &coin = m_coins_view_cache.AccessCoin(out_point);
+    if (coin.IsSpent()) {
+      return boost::none;
+    }
+    const CBlockIndex *const block = m_active_chain->AtHeight(coin.nHeight);
+    if (!block) {
+      return boost::none;
+    }
+    return staking::Coin(block, out_point, coin.out);
+  }
+};
+
 /** Apply the effects of this block (with given index) on the UTXO set represented by coins.
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
@@ -1956,14 +1981,12 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // Check Stake
     CheckStakeFlags::Type check_stake_flags = CheckStakeFlags::NONE;
-    if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::ALLOW_SLOW)) {
-        check_stake_flags |= CheckStakeFlags::ALLOW_SLOW;
-    }
     if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
         check_stake_flags |= CheckStakeFlags::SKIP_ELIGIBILITY_CHECK;
     }
+    UTXOViewAdapter utxo_view(GetComponent<staking::ActiveChain>(), view);
     const staking::BlockValidationResult stake_validation_result =
-        GetComponent<staking::StakeValidator>()->CheckStake(block, check_stake_flags, &state.block_validation_info);
+        GetComponent<staking::StakeValidator>()->CheckStake(block, &state.block_validation_info, check_stake_flags, &utxo_view);
     if (!staking::CheckResult(stake_validation_result, state)) {
         LogPrint(BCLog::VALIDATION, "%s: Failed to validate stake for block=%s failure=%s\n",
             __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());
@@ -3941,7 +3964,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
                 return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
-            if (!g_chainstate.ConnectBlock(block, state, pindex, coins, chainparams, ConnectBlockFlags::ALLOW_SLOW))
+            if (!g_chainstate.ConnectBlock(block, state, pindex, coins, chainparams))
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
         }
     }

@@ -71,32 +71,6 @@ class StakeValidatorImpl : public StakeValidator {
     return Hash(s.begin(), s.end());
   }
 
-  boost::optional<staking::Coin> LookupStake(const COutPoint &staking_out_point, const CheckStakeFlags::Type flags) const {
-    boost::optional<staking::Coin> utxo = m_active_chain->GetUTXO(staking_out_point);
-    if (utxo) {
-      return utxo;
-    }
-    if (Flags::IsSet(flags, CheckStakeFlags::ALLOW_SLOW)) {
-      CTransactionRef tx;
-      uint256 hash_block = uint256::zero;
-      if (!GetTransaction(staking_out_point.hash, tx, Params().GetConsensus(), hash_block, /* fAllowSlow= */ true)) {
-        LogPrint(BCLog::VALIDATION, "CheckStake: could not retrieve tx=%s (ALLOW_SLOW enabled)\n", tx->GetHash().ToString());
-        return boost::none;
-      }
-      const CBlockIndex *const block_index = m_active_chain->GetBlockIndex(hash_block);
-      if (!block_index) {
-        LogPrint(BCLog::VALIDATION, "CheckStake: could not find block for tx=%s\n", tx->GetHash().ToString());
-        return boost::none;
-      }
-      if (staking_out_point.n >= tx->vout.size()) {
-        LogPrint(BCLog::VALIDATION, "CheckStake: invalid stake reference: %s\n", staking_out_point.ToString());
-        return boost::none;
-      }
-      return staking::Coin(block_index, staking_out_point, tx->vout[staking_out_point.n]);
-    }
-    return boost::none;
-  }
-
   //! \brief Checks the stake of the given block. The previous block has to be part of the active chain.
   //!
   //! Looks up the stake in the UTXO set, which needs to be available from the
@@ -104,7 +78,10 @@ class StakeValidatorImpl : public StakeValidator {
   //! UTXO set should be always available and consistent, during reorgs the
   //! chain is rolled back using undo data and at every point a check of stake
   //! should be possible.
-  BlockValidationResult CheckStakeInternal(const CBlockIndex &previous_block, const CBlock &block, const CheckStakeFlags::Type flags) const {
+  BlockValidationResult CheckStakeInternal(const CBlockIndex &previous_block,
+                                           const CBlock &block,
+                                           const blockchain::UTXOView &utxo_view,
+                                           const CheckStakeFlags::Type flags) const {
     AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
 
@@ -128,7 +105,7 @@ class StakeValidatorImpl : public StakeValidator {
     }
     const CTxIn &staking_input = coinbase_tx->vin[1];
     const COutPoint staking_out_point = staking_input.prevout;
-    const boost::optional<staking::Coin> stake = LookupStake(staking_out_point, flags);
+    const boost::optional<staking::Coin> stake = utxo_view.GetUTXO(staking_out_point);
     if (!stake) {
       LogPrint(BCLog::VALIDATION, "%s: Could not find coin for outpoint=%s\n", __func__, util::to_string(staking_out_point));
       result.errors += BlockValidationError::STAKE_NOT_FOUND;
@@ -154,7 +131,7 @@ class StakeValidatorImpl : public StakeValidator {
     }
     // Adding an error should immediately have returned so we assert to have validated the stake.
     assert(result);
-    return CheckRemoteStakingOutputs(coinbase_tx, *stake, flags);
+    return CheckRemoteStakingOutputs(coinbase_tx, *stake, utxo_view);
   }
 
   //! \brief Check remote-staking outputs of a coinbase transaction.
@@ -162,7 +139,10 @@ class StakeValidatorImpl : public StakeValidator {
   //! If a coinbase transaction contains an input with a remote-staking
   //! scriptPubKey then at least the same amount MUST be sent back to the same
   //! scriptPubKey.
-  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef &coinbase_tx, const staking::Coin &stake, const CheckStakeFlags::Type flags) const {
+  BlockValidationResult CheckRemoteStakingOutputs(
+      const CTransactionRef &coinbase_tx,
+      const staking::Coin &stake,
+      const blockchain::UTXOView &utxo_view) const {
     BlockValidationResult result;
     std::map<CScript, CAmount> remote_staking_amounts;
     // check staking input
@@ -173,7 +153,7 @@ class StakeValidatorImpl : public StakeValidator {
     // check remaining inputs
     for (std::size_t i = 2; i < coinbase_tx->vin.size(); ++i) {
       const COutPoint out = coinbase_tx->vin[i].prevout;
-      const boost::optional<staking::Coin> utxo = LookupStake(out, flags);
+      const boost::optional<staking::Coin> utxo = utxo_view.GetUTXO(out);
       if (!utxo) {
         result.errors += BlockValidationError::TRANSACTION_INPUT_NOT_FOUND;
         return result;
@@ -262,11 +242,12 @@ class StakeValidatorImpl : public StakeValidator {
     return UintToArith256(kernel_hash) <= target_value;
   }
 
-  BlockValidationResult CheckStake(const CBlock &block, BlockValidationInfo *validation_info) const override {
-    return CheckStake(block, CheckStakeFlags::NONE, validation_info);
-  }
-
-  BlockValidationResult CheckStake(const CBlock &block, CheckStakeFlags::Type flags, BlockValidationInfo *validation_info) const override {
+ protected:
+  BlockValidationResult CheckStake(
+      const CBlock &block,
+      const blockchain::UTXOView &utxo_view,
+      CheckStakeFlags::Type flags,
+      BlockValidationInfo *validation_info) const override {
     AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
     if (m_blockchain_behavior->IsGenesisBlock(block)) {
@@ -282,9 +263,10 @@ class StakeValidatorImpl : public StakeValidator {
       result.errors += BlockValidationError::PREVIOUS_BLOCK_NOT_PART_OF_ACTIVE_CHAIN;
       return result;
     }
-    return CheckStakeInternal(*tip, block, flags);
+    return CheckStakeInternal(*tip, block, utxo_view, flags);
   }
 
+ public:
   bool IsPieceOfStakeKnown(const COutPoint &stake) const override {
     AssertLockHeld(m_cs);
     return m_kernel_seen.find(stake) != m_kernel_seen.end();
@@ -298,6 +280,11 @@ class StakeValidatorImpl : public StakeValidator {
   void ForgetPieceOfStake(const COutPoint &stake) override {
     AssertLockHeld(m_cs);
     m_kernel_seen.erase(stake);
+  }
+
+ protected:
+  blockchain::UTXOView &GetUTXOView() const override {
+    return *m_active_chain;
   }
 };
 

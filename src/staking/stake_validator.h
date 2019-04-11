@@ -70,28 +70,14 @@ class StakeValidator {
   //!
   //! - the previous block to compute the stake modifier
   //! - the UTXOs which are spent in the coinbase transaction
-  virtual BlockValidationResult CheckStake(
-      const CBlock &block,       //!< [in] The block to check.
-      BlockValidationInfo *info  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
-      ) const = 0;
-
-  //! \brief Same as CheckStake(const CBlock &, BlockValidationInfo *) + flags
-  //!
-  //! The following flags are understood:
-  //!
-  //! CheckStakeFlags::ALLOW_SLOW
-  //!   Will try to find UTXOs in the current UTXO set and fallback to
-  //!   GetTransaction() in case it does not find any. This allows
-  //!   Stake to be checked for blocks which are already connected and reconnected
-  //!   (for example in the verifychain RPC call), i.e. stake for a block
-  //!   which is being looked at which is not at the tip of the active chain
-  //!   can be checked. This flag must not be relied on for consensus critical
-  //!   behavior.
-  virtual BlockValidationResult CheckStake(
-      const CBlock &block,          //!< [in] The block to check.
-      CheckStakeFlags::Type flags,  //!< [in] options for checking stake, see CheckStakeFlags::Type
-      BlockValidationInfo *info     //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
-      ) const = 0;
+  BlockValidationResult CheckStake(
+      const CBlock &block,                                        //!< [in]
+      BlockValidationInfo *info = nullptr,                        //!< [in,out]
+      const CheckStakeFlags::Type flags = CheckStakeFlags::NONE,  //!< [in]
+      const blockchain::UTXOView *utxo_view = nullptr             //!< [in]
+      ) const {
+    return CheckStake(block, utxo_view ? *utxo_view : GetUTXOView(), flags, info);
+  }
 
   //! \brief Checks whether piece of stake was used as stake before.
   //!
@@ -123,6 +109,17 @@ class StakeValidator {
   static std::unique_ptr<StakeValidator> New(
       Dependency<blockchain::Behavior>,
       Dependency<ActiveChain>);
+
+ protected:
+  virtual blockchain::UTXOView& GetUTXOView() const = 0;
+
+  virtual BlockValidationResult CheckStake(
+      const CBlock &block,                    //!< [in] The block to check.
+      const blockchain::UTXOView &utxo_view,  //!< [in]
+      CheckStakeFlags::Type flags,            //!< [in] options for checking stake, see CheckStakeFlags::Type
+      BlockValidationInfo *info               //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
+  ) const = 0;
+
 };
 
 }  // namespace staking

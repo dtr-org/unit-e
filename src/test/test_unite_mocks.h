@@ -265,16 +265,24 @@ class StakeValidatorMock : public staking::StakeValidator {
   uint256 ComputeKernelHash(const CBlockIndex *blockindex, const staking::Coin &coin, blockchain::Time time) const override {
     return computekernelfunc(blockindex, coin, time);
   }
-  staking::BlockValidationResult CheckStake(const CBlock &, staking::BlockValidationInfo *) const override {
-    return staking::BlockValidationResult();
-  }
-  staking::BlockValidationResult CheckStake(const CBlock &, CheckStakeFlags::Type, staking::BlockValidationInfo *) const override {
-    return staking::BlockValidationResult();
-  }
   uint256 ComputeStakeModifier(const CBlockIndex *, const staking::Coin &) const override { return uint256(); }
   bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
   void RememberPieceOfStake(const COutPoint &) override {}
   void ForgetPieceOfStake(const COutPoint &) override {}
+
+ protected:
+  virtual blockchain::UTXOView& GetUTXOView() const {
+    static mocks::ActiveChainMock active_chain_mock;
+    return active_chain_mock;
+  }
+  virtual staking::BlockValidationResult CheckStake(
+      const CBlock &block,
+      const blockchain::UTXOView &utxo_view,
+      CheckStakeFlags::Type flags,
+      staking::BlockValidationInfo *info
+  ) const {
+    return staking::BlockValidationResult();
+  }
 };
 
 class CoinsViewMock : public AccessibleCoinsView {

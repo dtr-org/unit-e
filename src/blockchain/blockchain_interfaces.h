@@ -8,6 +8,8 @@
 #include <blockchain/blockchain_types.h>
 #include <chain.h>
 #include <primitives/block.h>
+#include <primitives/transaction.h>
+#include <staking/coin.h>
 
 // The interfaces defined in this file expose very limited functionality each
 // and do not come with implementations. They can be used to express things such
@@ -34,6 +36,28 @@ class ChainAccess {
   virtual const CBlockIndex *AtHeight(blockchain::Height height) const = 0;
 
   virtual ~ChainAccess() = default;
+};
+
+class UTXOView {
+ public:
+  //! \brief Retrieve a UTXO from this UTXOView.
+  //!
+  //! The returned coin is guaranteed to represent an _unspent_ tx output
+  //! at the point of time where this function is invoked.
+  //!
+  //! Requires the lock obtained from `GetLock()` to be held.
+  virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const = 0;
+
+  //! \brief Shorthand for `GetUTXO({ txid, index })`.
+  //!
+  //! The returned coin is guaranteed to represent an _unspent_ tx output
+  //! at the point of time where this function is invoked.
+  //!
+  //! Requires the lock obtained from `GetLock()` to be held.
+  virtual boost::optional<staking::Coin> GetUTXO(const uint256 &txid, const std::uint32_t index) const {
+    return GetUTXO({txid, index});
+  }
+
 };
 
 }  // namespace blockchain

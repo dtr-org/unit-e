@@ -24,9 +24,6 @@ namespace ConnectBlockFlags {
   //! Bypass expensive checks, used in TestBlockValidity.
   static constexpr const Type JUST_CHECK = 1 << 0;
 
-  //! CheckStake using CheckStateFlags::ALLOW_SLOW
-  static constexpr const Type ALLOW_SLOW = 1 << 1;
-
   static constexpr const Type SKIP_ELIGIBILITY_CHECK = 1 << 2;
 }
 
@@ -36,12 +33,6 @@ namespace CheckStakeFlags {
 
   //! Default: No Flags.
   static constexpr const Type NONE = 0;
-
-  //! Allows disk access (reading a block from disk) to
-  //! check a block, instead of just relying on the utxo set.
-  //! This flag must not be relied on for consensus critical
-  //! behavior.
-  static constexpr const Type ALLOW_SLOW = 1 << 0;
 
   static constexpr const Type SKIP_ELIGIBILITY_CHECK = 1 << 1;
 }
