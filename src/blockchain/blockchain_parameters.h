@@ -184,6 +184,17 @@ struct Parameters {
   //! (and should) be given as a pure lambda function.
   DifficultyFunction difficulty_function;
 
+  //! \brief Size of the difficulty adjustment rolling window
+  std::uint32_t difficulty_adjustment_window;
+
+  //! \brief Maximum allowed difficulty value
+  //!
+  //! If computed difficulty value exceeds max_difficulty_value - it will be
+  //! trimmed to max_difficulty_value.
+  //! It is also used as fail-safe value in case difficulty
+  //! update can not be performed correctly (for example integer overflow)
+  uint256 max_difficulty_value;
+
   //! \brief Whether to allow the "generatetoaddress" and "generate" RPC calls.
   bool mine_blocks_on_demand;
 

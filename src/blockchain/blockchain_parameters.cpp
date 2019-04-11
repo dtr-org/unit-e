@@ -16,7 +16,7 @@ Parameters Parameters::Base() noexcept {
 
   p.block_stake_timestamp_interval_seconds = 4;
   p.block_time_seconds = 16;
-  p.max_future_block_time_seconds = 2 * 60 * 60;
+  p.max_future_block_time_seconds = 15;
   p.relay_non_standard_transactions = false;
   p.mine_blocks_on_demand = false;
   p.maximum_block_size = 1000000;
@@ -41,10 +41,51 @@ Parameters Parameters::Base() noexcept {
     }
     return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
   };
-  p.difficulty_function = [](const Parameters &p, Height h, ChainAccess &chain) -> Difficulty {
-    // UNIT-E: Does not adjust difficulty for now
-    const auto tip = chain.AtDepth(1);
-    return tip->nBits;
+
+  p.difficulty_adjustment_window = 128;
+  p.max_difficulty_value = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
+  p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
+    const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
+
+    if (height <= p.difficulty_adjustment_window) {
+      return chain.AtDepth(1)->nBits;
+    }
+
+    const Height window_end = height - 1;
+    const Height window_start = height - 1 - p.difficulty_adjustment_window;
+
+    const CBlockIndex *end_index = chain.AtHeight(window_end);
+    const CBlockIndex *start_index = chain.AtHeight(window_start);
+
+    if (end_index->nTime <= start_index->nTime) {
+      return max_difficulty_value.GetCompact();
+    }
+
+    const blockchain::Time actual_window_duration = end_index->nTime - start_index->nTime;
+
+    arith_uint256 window_difficulties_sum;
+    for (blockchain::Height i = window_start + 1; i <= window_end; ++i) {
+      arith_uint256 temp;
+      temp.SetCompact(chain.AtHeight(i)->nBits);
+      window_difficulties_sum += temp;
+    }
+
+    const arith_uint256 avg_difficulty = window_difficulties_sum / p.difficulty_adjustment_window;
+    const arith_uint256 numerator = actual_window_duration * avg_difficulty;
+    if (numerator / actual_window_duration != avg_difficulty) {
+      // Overflow
+      return max_difficulty_value.GetCompact();
+    }
+
+    const blockchain::Time expected_window_duration = p.difficulty_adjustment_window * p.block_time_seconds;
+    const arith_uint256 next_difficulty = numerator / expected_window_duration;
+
+    if (next_difficulty > max_difficulty_value) {
+      return max_difficulty_value.GetCompact();
+    }
+
+    return next_difficulty.GetCompact();
   };
 
   // The message start string is designed to be unlikely to occur in normal data.
@@ -128,6 +169,15 @@ Parameters Parameters::RegTest() noexcept {
   p.default_settings.p2p_port = 17292;
   p.default_settings.finalizer_vote_from_epoch_block_number = 1;
   p.data_dir_suffix = "regtest";
+
+  p.difficulty_adjustment_window = 0;
+  p.max_difficulty_value = uint256::zero;
+  p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
+    const auto tip = chain.AtDepth(1);
+    return tip->nBits;
+  };
+
+  p.max_future_block_time_seconds = 2 * 60 * 60;
 
   return p;
 }

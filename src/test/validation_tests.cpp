@@ -315,17 +315,19 @@ BOOST_AUTO_TEST_CASE(contextualcheckblockheader_time) {
 
   // Block time is too far in the future
   {
+    blockchain::Parameters params = blockchain::Parameters::TestNet();
+
     int64_t adjusted_time = 0;
     CBlockIndex prev;
     CBlock block;
-    block.nTime = adjusted_time + MAX_FUTURE_BLOCK_TIME;
+    block.nTime = adjusted_time + params.max_future_block_time_seconds;
 
     prev.phashBlock = &block.hashPrevBlock;
 
     CValidationState state;
     BOOST_CHECK(staking::LegacyValidationInterface::Old()->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time));
 
-    block.nTime = adjusted_time + MAX_FUTURE_BLOCK_TIME + 1;
+    block.nTime = adjusted_time + params.max_future_block_time_seconds + 1;
     staking::LegacyValidationInterface::Old()->ContextualCheckBlockHeader(block, state, Params(), &prev, adjusted_time);
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "time-too-new");
   }
