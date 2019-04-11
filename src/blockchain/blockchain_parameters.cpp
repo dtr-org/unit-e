@@ -49,7 +49,7 @@ Parameters Parameters::Base() noexcept {
     const arith_uint256 max_difficulty_value = UintToArith256(p.max_difficulty_value);
 
     if (height <= p.difficulty_adjustment_window) {
-      return max_difficulty_value.GetCompact();
+      return chain.AtDepth(1)->nBits;
     }
 
     const Height window_end = height - 1;
