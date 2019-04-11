@@ -268,6 +268,9 @@ class StakeValidatorMock : public staking::StakeValidator {
   staking::BlockValidationResult CheckStake(const CBlock &, staking::BlockValidationInfo *) const override {
     return staking::BlockValidationResult();
   }
+  staking::BlockValidationResult CheckStake(const CBlock &, CheckStakeFlags::Type, staking::BlockValidationInfo *) const override {
+    return staking::BlockValidationResult();
+  }
   uint256 ComputeStakeModifier(const CBlockIndex *, const staking::Coin &) const override { return uint256(); }
   bool IsPieceOfStakeKnown(const COutPoint &) const override { return false; }
   void RememberPieceOfStake(const COutPoint &) override {}

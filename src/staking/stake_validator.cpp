@@ -5,12 +5,14 @@
 #include <staking/stake_validator.h>
 
 #include <blockchain/blockchain_types.h>
+#include <chainparams.h>
 #include <hash.h>
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <staking/active_chain.h>
 #include <streams.h>
 
+#include <validation.h>
 #include <set>
 
 namespace staking {
@@ -69,6 +71,32 @@ class StakeValidatorImpl : public StakeValidator {
     return Hash(s.begin(), s.end());
   }
 
+  boost::optional<staking::Coin> LookupStake(const COutPoint &staking_out_point, const CheckStakeFlags::Type flags) const {
+    boost::optional<staking::Coin> utxo = m_active_chain->GetUTXO(staking_out_point);
+    if (utxo) {
+      return utxo;
+    }
+    if (Flags::IsSet(flags, CheckStakeFlags::ALLOW_SLOW)) {
+      CTransactionRef tx;
+      uint256 hash_block = uint256::zero;
+      if (!GetTransaction(staking_out_point.hash, tx, Params().GetConsensus(), hash_block, /* fAllowSlow= */ true)) {
+        LogPrint(BCLog::VALIDATION, "CheckStake: could not retrieve tx=%s (ALLOW_SLOW enabled)\n", tx->GetHash().ToString());
+      } else {
+        const CBlockIndex *const block_index = m_active_chain->GetBlockIndex(hash_block);
+        if (!block_index) {
+          LogPrint(BCLog::VALIDATION, "CheckStake: could not find block for tx=%s\n", tx->GetHash().ToString());
+        } else {
+          if (staking_out_point.n >= tx->vout.size()) {
+            LogPrint(BCLog::VALIDATION, "CheckStake: invalid stake reference: %s\n", staking_out_point.ToString());
+          } else {
+            return staking::Coin(block_index, staking_out_point, tx->vout[staking_out_point.n]);
+          }
+        }
+      }
+    }
+    return boost::none;
+  }
+
   //! \brief Checks the stake of the given block. The previous block has to be part of the active chain.
   //!
   //! Looks up the stake in the UTXO set, which needs to be available from the
@@ -76,7 +104,7 @@ class StakeValidatorImpl : public StakeValidator {
   //! UTXO set should be always available and consistent, during reorgs the
   //! chain is rolled back using undo data and at every point a check of stake
   //! should be possible.
-  BlockValidationResult CheckStakeInternal(const CBlockIndex &previous_block, const CBlock &block) const {
+  BlockValidationResult CheckStakeInternal(const CBlockIndex &previous_block, const CBlock &block, const CheckStakeFlags::Type flags) const {
     AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
 
@@ -100,9 +128,9 @@ class StakeValidatorImpl : public StakeValidator {
     }
     const CTxIn &staking_input = coinbase_tx->vin[1];
     const COutPoint staking_out_point = staking_input.prevout;
-    const boost::optional<staking::Coin> stake = m_active_chain->GetUTXO(staking_out_point);
+    const boost::optional<staking::Coin> stake = LookupStake(staking_out_point, flags);
     if (!stake) {
-      LogPrint(BCLog::VALIDATION, "Could not find coin for outpoint=%s\n", util::to_string(staking_out_point));
+      LogPrint(BCLog::VALIDATION, "%s: Could not find coin for outpoint=%s\n", __func__, util::to_string(staking_out_point));
       result.errors += BlockValidationError::STAKE_NOT_FOUND;
       return result;
     }
@@ -124,7 +152,7 @@ class StakeValidatorImpl : public StakeValidator {
     }
     // Adding an error should immediately have returned so we assert to have validated the stake.
     assert(result);
-    return CheckRemoteStakingOutputs(coinbase_tx);
+    return CheckRemoteStakingOutputs(coinbase_tx, *stake, flags);
   }
 
   //! \brief Check remote-staking outputs of a coinbase transaction.
@@ -132,17 +160,22 @@ class StakeValidatorImpl : public StakeValidator {
   //! If a coinbase transaction contains an input with a remote-staking
   //! scriptPubKey then at least the same amount MUST be sent back to the same
   //! scriptPubKey.
-  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef &coinbase_tx) const {
+  BlockValidationResult CheckRemoteStakingOutputs(const CTransactionRef &coinbase_tx, const staking::Coin& stake, const CheckStakeFlags::Type flags) const {
     BlockValidationResult result;
     std::map<CScript, CAmount> remote_staking_amounts;
-    for (std::size_t i = 1; i < coinbase_tx->vin.size(); ++i) {
+    // check staking input
+    WitnessProgram wp;
+    if (stake.GetScriptPubKey().ExtractWitnessProgram(wp) && wp.IsRemoteStaking()) {
+      remote_staking_amounts[stake.GetScriptPubKey()] += stake.GetAmount();
+    }
+    // check remaining inputs
+    for (std::size_t i = 2; i < coinbase_tx->vin.size(); ++i) {
       const COutPoint out = coinbase_tx->vin[i].prevout;
-      const boost::optional<staking::Coin> utxo = m_active_chain->GetUTXO(out);
+      const boost::optional<staking::Coin> utxo = LookupStake(out, flags);
       if (!utxo) {
         result.errors += BlockValidationError::TRANSACTION_INPUT_NOT_FOUND;
         return result;
       }
-      WitnessProgram wp;
       if (utxo->GetScriptPubKey().ExtractWitnessProgram(wp) && wp.IsRemoteStaking()) {
         remote_staking_amounts[utxo->GetScriptPubKey()] += utxo->GetAmount();
       }
@@ -153,7 +186,6 @@ class StakeValidatorImpl : public StakeValidator {
         remote_staking_amounts[out.scriptPubKey] -= out.nValue;
       }
     }
-
     for (const auto &p : remote_staking_amounts) {
       if (p.second > 0) {
         result.errors += BlockValidationError::REMOTE_STAKING_INPUT_BIGGER_THAN_OUTPUT;
@@ -229,6 +261,10 @@ class StakeValidatorImpl : public StakeValidator {
   }
 
   BlockValidationResult CheckStake(const CBlock &block, BlockValidationInfo *validation_info) const override {
+    return CheckStake(block, CheckStakeFlags::NONE, validation_info);
+  }
+
+  BlockValidationResult CheckStake(const CBlock &block, CheckStakeFlags::Type flags, BlockValidationInfo *validation_info) const override {
     AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
     if (m_blockchain_behavior->IsGenesisBlock(block)) {
@@ -244,7 +280,7 @@ class StakeValidatorImpl : public StakeValidator {
       result.errors += BlockValidationError::PREVIOUS_BLOCK_NOT_PART_OF_ACTIVE_CHAIN;
       return result;
     }
-    return CheckStakeInternal(*tip, block);
+    return CheckStakeInternal(*tip, block, flags);
   }
 
   bool IsPieceOfStakeKnown(const COutPoint &stake) const override {

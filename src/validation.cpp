@@ -42,6 +42,7 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utilstrencodings.h>
+#include <validation_flags.h>
 #include <validationinterface.h>
 #include <warnings.h>
 
@@ -184,7 +185,7 @@ public:
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
     bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex,
-                    CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck = false);
+                    CCoinsViewCache& view, const CChainParams& chainparams, ConnectBlockFlags::Type flags = ConnectBlockFlags::NONE);
 
     // Block disconnection on our pcoinsTip:
     bool DisconnectTip(CValidationState& state, const CChainParams& chainparams, DisconnectedBlockTransactions *disconnectpool);
@@ -1926,7 +1927,7 @@ static int64_t nBlocksTotal = 0;
  *  Validity checks that depend on the UTXO set are also done; ConnectBlock()
  *  can fail if those validity checks fail (among other reasons). */
 bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex,
-                  CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck)
+                  CCoinsViewCache& view, const CChainParams& chainparams, const ConnectBlockFlags::Type connect_block_flags)
 {
     AssertLockHeld(cs_main);
     assert(pindex);
@@ -1934,6 +1935,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     assert((pindex->phashBlock == nullptr) ||
            (*pindex->phashBlock == block.GetHash()));
     int64_t nTimeStart = GetTimeMicros();
+
+    const bool fJustCheck = Flags::IsSet(connect_block_flags, ConnectBlockFlags::JUST_CHECK);
 
     // Check it again in case a previous version let a bad block in
     // NOTE: We don't currently (re-)invoke ContextualCheckBlock() or
@@ -1952,10 +1955,18 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
     // Check Stake
+    CheckStakeFlags::Type check_stake_flags = CheckStakeFlags::NONE;
+    if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::ALLOW_SLOW)) {
+        check_stake_flags |= CheckStakeFlags::ALLOW_SLOW;
+    }
     const staking::BlockValidationResult stake_validation_result =
-        GetComponent<staking::StakeValidator>()->CheckStake(block, state.GetBlockValidationInfo());
+        GetComponent<staking::StakeValidator>()->CheckStake(block, check_stake_flags, state.GetBlockValidationInfo());
     if (!staking::CheckResult(stake_validation_result, state)) {
+        LogPrint(BCLog::VALIDATION, "%s: Failed to validate stake for block=%s failure=%s\n",
+            __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());
         return false;
+    } else {
+        LogPrint(BCLog::VALIDATION, "%s: Successfully validated stake for block=%s\n", __func__, block.GetHash().ToString());
     }
 
     // verify that the view's current state corresponds to the previous block
@@ -3464,7 +3475,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
     if (!validation->ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
-    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, true))
+    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, ConnectBlockFlags::JUST_CHECK))
         return error("%s: CChainState::ConnectBlock: %s", __func__, FormatStateMessage(state));;
     assert(state.IsValid());
 
@@ -3922,7 +3933,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
             CBlock block;
             if (!ReadBlockFromDisk(block, pindex, chainparams.GetConsensus()))
                 return error("VerifyDB(): *** ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
-            if (!g_chainstate.ConnectBlock(block, state, pindex, coins, chainparams))
+            if (!g_chainstate.ConnectBlock(block, state, pindex, coins, chainparams, ConnectBlockFlags::ALLOW_SLOW))
                 return error("VerifyDB(): *** found unconnectable block at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
         }
     }

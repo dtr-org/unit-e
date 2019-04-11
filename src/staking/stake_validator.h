@@ -15,6 +15,7 @@
 #include <staking/validation_result.h>
 #include <sync.h>
 #include <uint256.h>
+#include <validation_flags.h>
 
 #include <memory>
 
@@ -72,6 +73,13 @@ class StakeValidator {
   virtual BlockValidationResult CheckStake(
       const CBlock &block,       //!< [in] The block to check.
       BlockValidationInfo *info  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
+      ) const = 0;
+
+  //! \brief Same as CheckStake(const CBlock &, BlockValidationInfo *) + flags
+  virtual BlockValidationResult CheckStake(
+      const CBlock &block,          //!< [in] The block to check.
+      CheckStakeFlags::Type flags,  //!< [in] options for checking stake, see CheckStakeFlags::Type
+      BlockValidationInfo *info     //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
   //! \brief Checks whether piece of stake was used as stake before.
