@@ -19,4 +19,4 @@ number of significant changes:
 * Optimized block propagation through Graphene
 * Canonical transaction ordering
 * Hardware wallet support
-* The GUI wallet is not part of the release
+* Qt based UI wallet has been removed. An alternative will be released later.
