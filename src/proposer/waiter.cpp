@@ -6,15 +6,18 @@
 
 namespace proposer {
 
+void Waiter::WaitUpTo(const std::chrono::microseconds duration) {
+  std::unique_lock<decltype(m_mutex)> lock(m_mutex);
+  m_condition.wait_for(lock, duration);
+}
+
 void Waiter::Wait() {
   std::unique_lock<decltype(m_mutex)> lock(m_mutex);
-  m_waiting.test_and_set();
-  m_condition.wait(lock, [this]() { return !m_waiting.test_and_set(); });
+  m_condition.wait(lock);
 }
 
 void Waiter::Wake() {
   std::unique_lock<decltype(m_mutex)> lock(m_mutex);
-  m_waiting.clear();
   m_condition.notify_all();
 }
 
