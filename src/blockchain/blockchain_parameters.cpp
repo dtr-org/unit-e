@@ -173,7 +173,8 @@ Parameters Parameters::RegTest() noexcept {
   p.difficulty_adjustment_window = 0;
   p.max_difficulty_value = uint256::zero;
   p.difficulty_function = [](const Parameters &p, Height height, ChainAccess &chain) -> Difficulty {
-    return p.genesis_block.block.nBits;
+    const auto tip = chain.AtDepth(1);
+    return tip->nBits;
   };
 
   p.max_future_block_time_seconds = 2 * 60 * 60;
