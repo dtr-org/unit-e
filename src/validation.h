@@ -18,6 +18,7 @@
 #include <script/script_error.h>
 #include <sync.h>
 #include <sync_status.h>
+#include <validation_flags.h>
 #include <versionbits.h>
 
 #include <algorithm>
@@ -404,7 +405,7 @@ bool ReadBlockFromDisk(CBlock& block, const CBlockIndex* pindex, const Consensus
 /** Functions for validating blocks and updating the block tree */
 
 /** Check a block is completely valid from start to finish (only works on top of our current best block, with cs_main held) */
-bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
+bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, TestBlockValidityFlags::Type flags = TestBlockValidityFlags::NONE);
 
 /** When there are blocks in the active chain with missing data, rewind the chainstate and remove them from the block index */
 bool RewindBlockIndex(const CChainParams& params);

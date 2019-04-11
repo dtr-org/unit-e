@@ -1959,6 +1959,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::ALLOW_SLOW)) {
         check_stake_flags |= CheckStakeFlags::ALLOW_SLOW;
     }
+    if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
+        check_stake_flags |= CheckStakeFlags::SKIP_ELIGIBILITY_CHECK;
+    }
     const staking::BlockValidationResult stake_validation_result =
         GetComponent<staking::StakeValidator>()->CheckStake(block, check_stake_flags, &state.block_validation_info);
     if (!staking::CheckResult(stake_validation_result, state)) {
@@ -3458,7 +3461,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
     return true;
 }
 
-bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
+bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, const TestBlockValidityFlags::Type flags)
 {
     AssertLockHeld(cs_main);
     assert(pindexPrev && pindexPrev == chainActive.Tip());
@@ -3467,16 +3470,21 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     indexDummy.pprev = pindexPrev;
     indexDummy.nHeight = pindexPrev->nHeight + 1;
 
+    const bool skip_merkle_tree_check = Flags::IsSet(flags, TestBlockValidityFlags::SKIP_MERKLE_TREE_CHECK);
     const auto validation = GetComponent<staking::LegacyValidationInterface>();
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!validation->ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, FormatStateMessage(state));
-    if (!validation->CheckBlock(block, state, chainparams.GetConsensus(), fCheckPOW, fCheckMerkleRoot))
+    if (!validation->CheckBlock(block, state, chainparams.GetConsensus(), false, !skip_merkle_tree_check))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
     if (!validation->ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
-    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, ConnectBlockFlags::JUST_CHECK))
-        return error("%s: CChainState::ConnectBlock: %s", __func__, FormatStateMessage(state));;
+    ConnectBlockFlags::Type connect_block_flags = ConnectBlockFlags::JUST_CHECK;
+    if (Flags::IsSet(flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
+      connect_block_flags |= ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK;
+    }
+    if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, connect_block_flags))
+        return error("%s: CChainState::ConnectBlock: %s", __func__, FormatStateMessage(state));
     assert(state.IsValid());
 
     return true;

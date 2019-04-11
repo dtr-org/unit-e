@@ -134,20 +134,22 @@ class StakeValidatorImpl : public StakeValidator {
       result.errors += BlockValidationError::STAKE_NOT_FOUND;
       return result;
     }
-    const uint256 kernel_hash = ComputeKernelHash(&previous_block, *stake, block.nTime);
-    // There are two ways to get the height of a block - either by parsing it from the coinbase, or by looking
-    // at the height of the preceding block and incrementing it by one. The latter is simpler, so we do that.
-    const blockchain::Height target_height = static_cast<blockchain::Height>(previous_block.nHeight) + 1;
-    const blockchain::Difficulty target_difficulty =
-        m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
-    if (!CheckKernel(stake->GetAmount(), kernel_hash, target_difficulty)) {
-      LogPrint(BCLog::VALIDATION, "Kernel hash does not meet target coin=%s kernel=%s target=%d\n",
-               util::to_string(*stake), util::to_string(kernel_hash), target_difficulty);
-      if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
-        LogPrint(BCLog::VALIDATION, "Allowing to let artificial block generation succedd\n");
-      } else {
-        result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
-        return result;
+    if (!Flags::IsSet(flags, CheckStakeFlags::SKIP_ELIGIBILITY_CHECK)) {
+      const uint256 kernel_hash = ComputeKernelHash(&previous_block, *stake, block.nTime);
+      // There are two ways to get the height of a block - either by parsing it from the coinbase, or by looking
+      // at the height of the preceding block and incrementing it by one. The latter is simpler, so we do that.
+      const blockchain::Height target_height = static_cast<blockchain::Height>(previous_block.nHeight) + 1;
+      const blockchain::Difficulty target_difficulty =
+          m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
+      if (!CheckKernel(stake->GetAmount(), kernel_hash, target_difficulty)) {
+        LogPrint(BCLog::VALIDATION, "Kernel hash does not meet target coin=%s kernel=%s target=%d\n",
+                 util::to_string(*stake), util::to_string(kernel_hash), target_difficulty);
+        if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
+          LogPrint(BCLog::VALIDATION, "Allowing to let artificial block generation succedd\n");
+        } else {
+          result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
+          return result;
+        }
       }
     }
     // Adding an error should immediately have returned so we assert to have validated the stake.
