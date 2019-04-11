@@ -66,6 +66,6 @@ fi
 
 if [ "$RUN_TESTS" = "true" ]; then
   BEGIN_FOLD functional-tests
-  DOCKER_EXEC -e LC_CTYPE=C.UTF-8 test/functional/test_runner.py --combinedlogslen=4000 --coverage --quiet --failfast ${extended}
+  DOCKER_EXEC test/functional/test_runner.py --combinedlogslen=4000 --coverage --quiet --failfast ${extended}
   END_FOLD
 fi
