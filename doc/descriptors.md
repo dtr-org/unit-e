@@ -1,6 +1,6 @@
 # Support for Output Descriptors in unit-e
 
-Since unit-e v0.17, there is support for Output Descriptors in the
+unit-e supports Output Descriptors in the
 `scantxoutset` RPC call. This is a simple language which can be used to
 describe collections of output scripts.
 

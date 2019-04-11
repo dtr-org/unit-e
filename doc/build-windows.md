@@ -140,7 +140,6 @@ executables to a directory on the windows drive in the same directory structure
 as they appear in the release `.zip` archive. This can be done in the following
 way. This will install to `c:\workspace\unit-e`, for example:
 
-    make install DESTDIR=/mnt/c/workspace/unite
     make install DESTDIR=/mnt/c/workspace/unit-e
 
 Footnotes
