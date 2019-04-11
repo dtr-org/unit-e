@@ -82,13 +82,13 @@ class ActiveChain : public blockchain::ChainAccess {
   virtual const CBlockIndex *GetNext(const CBlockIndex &block_index) const = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtDepth(blockchain::Depth) const override = 0;
+  const CBlockIndex *AtDepth(blockchain::Depth depth) const override = 0;
 
   // defined in blockchain::ChainAccess
-  const CBlockIndex *AtHeight(blockchain::Height) const override = 0;
+  const CBlockIndex *AtHeight(blockchain::Height height) const override = 0;
 
   //! \brief compute the current respective depth for the given height.
-  virtual blockchain::Depth GetDepth(blockchain::Height) const = 0;
+  virtual blockchain::Depth GetDepth(blockchain::Height height) const = 0;
 
   //! \brief lookup a block index entry by its hash/id.
   //!
@@ -116,8 +116,16 @@ class ActiveChain : public blockchain::ChainAccess {
   //! tip block is not the same as the result of this function).
   virtual const uint256 ComputeSnapshotHash() const = 0;
 
-  //! \brief add a new block at the current active chains tip.
-  virtual bool ProcessNewBlock(std::shared_ptr<const CBlock>) = 0;
+  //! \brief propose a new block on the active chain.
+  //!
+  //! This function is not meant for processing blocks which were sent to us
+  //! from the outside. It takes a block that we created and proposes it to
+  //! the active chain. If in between block creation and actually proposing
+  //! (invoking this function) a new block arrived it will return false.
+  //! Otherwise true.
+  virtual bool ProposeBlock(
+      std::shared_ptr<const CBlock> block  //!< The block to propose on the currently active chain.
+      ) = 0;
 
   //! \brief Check the current status of the initial block download.
   virtual ::SyncStatus GetInitialBlockDownloadStatus() const = 0;
@@ -128,7 +136,7 @@ class ActiveChain : public blockchain::ChainAccess {
   //! at the point of time where this function is invoked.
   //!
   //! Requires the lock obtained from `GetLock()` to be held.
-  virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &) const = 0;
+  virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const = 0;
 
   //! \brief Shorthand for `GetUTXO({ txid, index })`.
   //!

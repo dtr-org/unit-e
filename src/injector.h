@@ -22,6 +22,7 @@
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
 #include <staking/block_validator.h>
+#include <staking/legacy_validation_interface.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <staking/staking_rpc.h>
@@ -64,6 +65,11 @@ class UnitEInjector : public Injector<UnitEInjector> {
 
   COMPONENT(BlockValidator, staking::BlockValidator, staking::BlockValidator::New,
             blockchain::Behavior)
+
+  COMPONENT(LegacyValidationInterface, staking::LegacyValidationInterface, staking::LegacyValidationInterface::LegacyImpl,
+            staking::ActiveChain,
+            staking::BlockValidator,
+            staking::StakeValidator)
 
   COMPONENT(BlockDB, BlockDB, BlockDB::New)
 

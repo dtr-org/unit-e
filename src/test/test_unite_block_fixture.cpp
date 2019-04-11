@@ -34,8 +34,6 @@ CBlock GetRealBlock() {
           "db261b4d"
           // bits
           "4c86041b"
-          // nonce
-          "1ab1bf93"
 
           // number of transactions
           "09"

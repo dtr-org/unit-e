@@ -253,7 +253,6 @@ class RESTTest (UnitETestFramework):
         assert_equal(json_obj[0]['version'],            rpc_block_json['version'])
         assert_equal(json_obj[0]['merkleroot'],         rpc_block_json['merkleroot'])
         assert_equal(json_obj[0]['time'],               rpc_block_json['time'])
-        assert_equal(json_obj[0]['nonce'],              rpc_block_json['nonce'])
         assert_equal(json_obj[0]['bits'],               rpc_block_json['bits'])
         assert_equal(json_obj[0]['difficulty'],         rpc_block_json['difficulty'])
         assert_equal(json_obj[0]['chainwork'],          rpc_block_json['chainwork'])

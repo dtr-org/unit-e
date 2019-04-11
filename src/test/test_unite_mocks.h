@@ -10,6 +10,7 @@
 #include <finalization/state_db.h>
 #include <staking/active_chain.h>
 #include <staking/block_index_map.h>
+#include <staking/block_validator.h>
 #include <staking/network.h>
 #include <staking/stake_validator.h>
 #include <util.h>
@@ -42,31 +43,31 @@ class ArgsManagerMock : public ArgsManager {
 
 class NetworkMock : public staking::Network {
  public:
-  mutable std::atomic<std::uint32_t> invocations_GetTime;
-  mutable std::atomic<std::uint32_t> invocations_GetNodeCount;
-  mutable std::atomic<std::uint32_t> invocations_GetInboundNodeCount;
-  mutable std::atomic<std::uint32_t> invocations_GetOutboundNodeCount;
+  mutable std::atomic<std::uint32_t> invocations_GetTime{0};
+  mutable std::atomic<std::uint32_t> invocations_GetNodeCount{0};
+  mutable std::atomic<std::uint32_t> invocations_GetInboundNodeCount{0};
+  mutable std::atomic<std::uint32_t> invocations_GetOutboundNodeCount{0};
 
-  std::int64_t time = 0;
-  size_t node_count = 0;
-  size_t inbound_node_count = 0;
-  size_t outbound_node_count = 0;
+  mutable std::int64_t result_GetTime = 0;
+  mutable std::size_t result_GetNodeCount = 0;
+  mutable std::size_t result_GetInboundNodeCount = 0;
+  mutable std::size_t result_GetOutboundNodeCount = 0;
 
   int64_t GetTime() const override {
     ++invocations_GetTime;
-    return time;
+    return result_GetTime;
   }
-  size_t GetNodeCount() const override {
+  std::size_t GetNodeCount() const override {
     ++invocations_GetNodeCount;
-    return node_count;
+    return result_GetNodeCount;
   }
-  size_t GetInboundNodeCount() const override {
+  std::size_t GetInboundNodeCount() const override {
     ++invocations_GetInboundNodeCount;
-    return inbound_node_count;
+    return result_GetInboundNodeCount;
   }
-  size_t GetOutboundNodeCount() const override {
+  std::size_t GetOutboundNodeCount() const override {
     ++invocations_GetOutboundNodeCount;
-    return outbound_node_count;
+    return result_GetOutboundNodeCount;
   }
 };
 
@@ -154,22 +155,22 @@ class ActiveChainMock : public staking::ActiveChain {
   uint256 snapshot_hash = uint256();
 
   //! Function to retrieve the block at the given depth
-  std::function<CBlockIndex *(blockchain::Depth)> block_at_depth = [](blockchain::Depth) {
+  std::function<CBlockIndex *(blockchain::Depth)> stub_AtDepth = [](blockchain::Depth) {
     return nullptr;
   };
 
   //! Function to retrieve the block at the given height
-  std::function<CBlockIndex *(blockchain::Height)> block_at_height = [](blockchain::Height) {
+  std::function<CBlockIndex *(blockchain::Height)> stub_AtHeight = [](blockchain::Height) {
     return nullptr;
   };
 
   //! Function to retrieve the block at the given index
-  std::function<CBlockIndex *(const uint256 &)> get_block_index = [](const uint256 &) {
+  std::function<CBlockIndex *(const uint256 &)> stub_GetBlockIndex = [](const uint256 &) {
     return nullptr;
   };
 
   //! Function to retrieve the block at the given index
-  std::function<boost::optional<staking::Coin>(const COutPoint &)> get_utxo = [](const COutPoint &) {
+  std::function<boost::optional<staking::Coin>(const COutPoint &)> stub_GetUTXO = [](const COutPoint &) {
     return boost::none;
   };
 
@@ -195,30 +196,30 @@ class ActiveChainMock : public staking::ActiveChain {
   }
   bool Contains(const CBlockIndex &block_index) const override {
     ++invocations_Contains;
-    return block_at_height(block_index.nHeight) == &block_index;
+    return stub_AtHeight(block_index.nHeight) == &block_index;
   }
   const CBlockIndex *FindForkOrigin(const CBlockIndex &block_index) const override {
     ++invocations_FindForkOrigin;
     const CBlockIndex *walk = &block_index;
-    while (walk != nullptr && block_at_height(walk->nHeight) != walk) {
+    while (walk != nullptr && stub_AtHeight(walk->nHeight) != walk) {
       walk = walk->pprev;
     }
     return walk;
   }
   const CBlockIndex *GetNext(const CBlockIndex &block_index) const override {
     ++invocations_GetNext;
-    if (block_at_height(block_index.nHeight) == &block_index) {
-      return block_at_height(block_index.nHeight + 1);
+    if (stub_AtHeight(block_index.nHeight) == &block_index) {
+      return stub_AtHeight(block_index.nHeight + 1);
     }
     return nullptr;
   }
   const CBlockIndex *AtDepth(blockchain::Depth depth) const override {
     ++invocations_AtDepth;
-    return block_at_depth(depth);
+    return stub_AtDepth(depth);
   }
   const CBlockIndex *AtHeight(blockchain::Height height) const override {
     ++invocations_AtHeight;
-    return block_at_height(height);
+    return stub_AtHeight(height);
   }
   blockchain::Depth GetDepth(const blockchain::Height height) const override {
     ++invocations_GetDepth;
@@ -226,19 +227,19 @@ class ActiveChainMock : public staking::ActiveChain {
   }
   const CBlockIndex *GetBlockIndex(const uint256 &hash) const override {
     ++invocations_GetBlockIndex;
-    return get_block_index(hash);
+    return stub_GetBlockIndex(hash);
   }
   const uint256 ComputeSnapshotHash() const override {
     ++invocations_ComputeSnapshotHash;
     return snapshot_hash;
   }
-  bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override {
+  bool ProposeBlock(std::shared_ptr<const CBlock> pblock) override {
     ++invocations_ProcessNewBlock;
     return false;
   }
   boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const override {
     ++invocations_GetUTXO;
-    return get_utxo(outpoint);
+    return stub_GetUTXO(outpoint);
   }
   ::SyncStatus GetInitialBlockDownloadStatus() const override {
     ++invocations_GetInitialBlockDownloadStatus;
@@ -353,6 +354,56 @@ public:
   boost::optional<CBlock> ReadBlock(const CBlockIndex &index) override {
     ++invocations_ReadBlock;
     return boost::none;
+  }
+};
+
+class BlockValidatorMock : public staking::BlockValidator {
+  using BlockValidationResult = staking::BlockValidationResult;
+  using BlockValidationInfo = staking::BlockValidationInfo;
+
+ public:
+  mutable std::atomic<std::uint32_t> invocations_CheckBlock{0};
+  mutable std::atomic<std::uint32_t> invocations_CheckBlockHeader{0};
+  mutable std::atomic<std::uint32_t> invocations_ContextualCheckBlock{0};
+  mutable std::atomic<std::uint32_t> invocations_ContextualCheckBlockHeader{0};
+
+  mutable BlockValidationResult result_CheckBlock;
+  mutable BlockValidationResult result_ContextualCheckBlock;
+  mutable BlockValidationResult result_CheckBlockHeader;
+  mutable BlockValidationResult result_ContextualCheckBlockHeader;
+
+  mutable std::function<BlockValidationResult(const CBlock &, BlockValidationInfo *)> stub_CheckBlock =
+      [&](const CBlock &block, BlockValidationInfo *info) {
+        return result_CheckBlock;
+      };
+  mutable std::function<BlockValidationResult(const CBlockHeader &, BlockValidationInfo *)> stub_CheckBlockHeader =
+      [&](const CBlockHeader &block_header, BlockValidationInfo *info) {
+        return result_CheckBlockHeader;
+      };
+  mutable std::function<BlockValidationResult(const CBlock &, const CBlockIndex &, blockchain::Time, BlockValidationInfo *)> stub_ContextualCheckBlock =
+      [&](const CBlock &block, const CBlockIndex &block_index, blockchain::Time adjusted_time, BlockValidationInfo *info) {
+        return result_ContextualCheckBlock;
+      };
+  mutable std::function<BlockValidationResult(const CBlockHeader &, const CBlockIndex &, blockchain::Time, BlockValidationInfo *)> stub_ContextualCheckBlockHeader =
+      [&](const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) {
+        return result_ContextualCheckBlockHeader;
+      };
+
+  BlockValidationResult CheckBlock(const CBlock &block, BlockValidationInfo *info) const override {
+    ++invocations_CheckBlock;
+    return stub_CheckBlock(block, info);
+  }
+  BlockValidationResult ContextualCheckBlock(const CBlock &block, const CBlockIndex &block_index, blockchain::Time adjusted_time, BlockValidationInfo *info) const override {
+    ++invocations_ContextualCheckBlock;
+    return stub_ContextualCheckBlock(block, block_index, adjusted_time, info);
+  }
+  BlockValidationResult CheckBlockHeader(const CBlockHeader &block_header, BlockValidationInfo *info) const override {
+    ++invocations_CheckBlockHeader;
+    return stub_CheckBlockHeader(block_header, info);
+  }
+  BlockValidationResult ContextualCheckBlockHeader(const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) const override {
+    ++invocations_ContextualCheckBlockHeader;
+    return stub_ContextualCheckBlockHeader(block_header, block_index, time, info);
   }
 };
 
