@@ -64,7 +64,7 @@ class ActiveChainWithTime : public ChainAccess {
   }
 
   const CBlockIndex *AtDepth(const Depth depth) const override {
-    assert(not("Not supported"));
+    return m_chain[m_chain.size() - depth].get();
   }
 
   const CBlockIndex *AtHeight(const Height height) const override {
@@ -160,7 +160,16 @@ BOOST_AUTO_TEST_CASE(difficulty_function_max_test) {
 
   ActiveChainWithTime chain(genesis);
 
-  for (Height h = 1; h < 10; ++h) {
+  Height h = 1;
+  // During the window should return difficulty of the genesis no matter what
+  for (; h < params.difficulty_adjustment_window; ++h) {
+    const Difficulty new_difficulty = params.difficulty_function(params, h, chain);
+    chain.Append(new_difficulty, params.block_time_seconds * 2);
+    BOOST_CHECK_EQUAL(almost_max_difficulty_value.GetCompact(), new_difficulty);
+  }
+
+  // After window, should adjust difficulty and hit the max value
+  for (; h < 2 * params.difficulty_adjustment_window; ++h) {
     const Difficulty new_difficulty = params.difficulty_function(params, h, chain);
     chain.Append(new_difficulty, params.block_time_seconds * 2);
     BOOST_CHECK_EQUAL(UintToArith256(max_difficulty_value).GetCompact(), new_difficulty);
