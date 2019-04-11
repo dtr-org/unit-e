@@ -64,7 +64,7 @@ BOOST_FIXTURE_TEST_CASE(deposit_not_a_validator, WalletTestingSetup) {
   CTxDestination p2pkh = GetDestination(*m_wallet, OutputType::LEGACY);
 
   std::string command = "deposit " + EncodeDestination(p2pkh) + " 0";
-  AssertRPCError(command, RPC_INVALID_REQUEST, "The node must be a validator.");
+  AssertRPCError(command, RPC_INVALID_REQUEST, "The node must be enabled to be a finalizer.");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

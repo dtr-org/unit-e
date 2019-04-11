@@ -8,7 +8,6 @@
 #include <chainparams.h>
 #include <hash.h>
 #include <random.h>
-#include <pow.h>
 #include <shutdown.h>
 #include <uint256.h>
 #include <util.h>
@@ -279,15 +278,11 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->hash_finalizer_commits_merkle_root = diskindex.hash_finalizer_commits_merkle_root;
                 pindexNew->nTime          = diskindex.nTime;
                 pindexNew->nBits          = diskindex.nBits;
-                pindexNew->nNonce         = diskindex.nNonce;
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
                 pindexNew->commits        = std::move(diskindex.commits);
                 pindexNew->last_justified_epoch = diskindex.last_justified_epoch;
                 pindexNew->forking_before_active_finalization = diskindex.forking_before_active_finalization;
-
-                if (!CheckProofOfWork(pindexNew->GetBlockHash(), pindexNew->nBits, consensusParams))
-                    return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
 
                 pcursor->Next();
             } else {

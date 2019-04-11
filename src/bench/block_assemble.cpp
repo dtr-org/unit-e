@@ -10,7 +10,6 @@
 #include <injector.h>
 #include <miner.h>
 #include <policy/policy.h>
-#include <pow.h>
 #include <scheduler.h>
 #include <txdb.h>
 #include <txmempool.h>
@@ -40,10 +39,6 @@ static std::shared_ptr<CBlock> PrepareBlock(const CScript& coinbase_scriptPubKey
 static CTxIn MineBlock(const CScript& coinbase_scriptPubKey)
 {
     auto block = PrepareBlock(coinbase_scriptPubKey);
-
-    while (!CheckProofOfWork(block->GetHash(), block->nBits, Params().GetConsensus())) {
-        assert(++block->nNonce);
-    }
 
     bool processed{ProcessNewBlock(Params(), block, true, nullptr)};
     assert(processed);

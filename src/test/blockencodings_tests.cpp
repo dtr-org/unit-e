@@ -6,7 +6,6 @@
 #include <consensus/ltor.h>
 #include <consensus/merkle.h>
 #include <chainparams.h>
-#include <pow.h>
 #include <random.h>
 
 #include <test/test_unite.h>
@@ -52,7 +51,6 @@ static CBlock BuildBlockTestCase() {
 
     block.ComputeMerkleTrees();
 
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus())) ++block.nNonce;
     return block;
 }
 
@@ -300,7 +298,6 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
 
     bool mutated;
     block.ComputeMerkleTrees();
-    while (!CheckProofOfWork(block.GetHash(), block.nBits, Params().GetConsensus())) ++block.nNonce;
 
     // Test simple header round-trip with only coinbase
     {

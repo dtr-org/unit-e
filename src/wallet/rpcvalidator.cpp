@@ -40,7 +40,11 @@ UniValue deposit(const JSONRPCRequest &request)
   pwallet->BlockUntilSyncedToCurrentChain();
 
   if (!extWallet.nIsValidatorEnabled || !extWallet.validatorState) {
-    throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
+    throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be enabled to be a finalizer.");
+  }
+
+  if (extWallet.validatorState->HasDeposit()) {
+    throw JSONRPCError(RPC_INVALID_REQUEST, "The node is already a finalizer.");
   }
 
   CTxDestination address = DecodeDestination(request.params[0].get_str());

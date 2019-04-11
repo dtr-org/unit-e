@@ -29,7 +29,6 @@ public:
     uint256 hash_finalizer_commits_merkle_root;
     blockchain::Time nTime;
     blockchain::Difficulty nBits;
-    uint32_t nNonce;
 
     CBlockHeader()
     {
@@ -47,7 +46,6 @@ public:
         READWRITE(hash_finalizer_commits_merkle_root);
         READWRITE(nTime);
         READWRITE(nBits);
-        READWRITE(nNonce);
     }
 
     void SetNull()
@@ -59,7 +57,6 @@ public:
         hash_finalizer_commits_merkle_root.SetNull();
         nTime = 0;
         nBits = 0;
-        nNonce = 0;
     }
 
     bool IsNull() const
@@ -128,7 +125,6 @@ public:
         block.hash_finalizer_commits_merkle_root = hash_finalizer_commits_merkle_root;
         block.nTime = nTime;
         block.nBits = nBits;
-        block.nNonce = nNonce;
         return block;
     }
 

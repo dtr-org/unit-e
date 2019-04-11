@@ -96,7 +96,7 @@ struct Fixture {
     blockchain::Depth GetDepth(const blockchain::Height) const override { return 0; }
     const CBlockIndex *GetBlockIndex(const uint256 &) const override { return nullptr; }
     const uint256 ComputeSnapshotHash() const override { return uint256(); }
-    bool ProcessNewBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
+    bool ProposeBlock(std::shared_ptr<const CBlock> pblock) override { return false; }
     ::SyncStatus GetInitialBlockDownloadStatus() const override {
       ++GetInitialBlockDownloadStatus_invocations;
       return syncstatus;

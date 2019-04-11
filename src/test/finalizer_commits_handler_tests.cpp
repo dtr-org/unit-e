@@ -77,14 +77,14 @@ class Fixture {
     : repo(GetFinalizationParams()),
       commits(&active_chain, &repo, /*finalization::StateProcessor*/ nullptr) {
 
-    active_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
+    active_chain.stub_AtHeight = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
         return nullptr;
       }
       return it->second;
     };
-    active_chain.get_block_index = [this](const uint256 &hash) -> CBlockIndex * {
+    active_chain.stub_GetBlockIndex = [this](const uint256 &hash) -> CBlockIndex * {
       const auto it = m_block_indexes.find(hash);
       if (it == m_block_indexes.end()) {
         return nullptr;

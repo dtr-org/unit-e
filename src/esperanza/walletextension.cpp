@@ -813,6 +813,7 @@ bool WalletExtension::AddToWalletIfInvolvingMe(const CTransactionRef &ptx,
     case TxType::DEPOSIT: {
       LOCK(m_enclosing_wallet.cs_wallet);
       assert(validatorState);
+      assert(!validatorState->HasDeposit());
       esperanza::ValidatorState &state = validatorState.get();
 
       // In case that we are reading from blocks in initial sync we need to

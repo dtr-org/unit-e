@@ -4,12 +4,6 @@
 
 #include <wallet/wallet.h>
 
-#include <memory>
-#include <set>
-#include <stdint.h>
-#include <utility>
-#include <vector>
-
 #include <consensus/validation.h>
 #include <rpc/server.h>
 #include <test/test_unite.h>
@@ -19,7 +13,6 @@
 #include <policy/policy.h>
 
 #include <boost/test/unit_test.hpp>
-#include <univalue.h>
 
 extern UniValue importmulti(const JSONRPCRequest& request);
 extern UniValue dumpwallet(const JSONRPCRequest& request);

@@ -8,6 +8,7 @@
 #include <validation.h>
 #include <streams.h>
 #include <consensus/validation.h>
+#include <staking/legacy_validation_interface.h>
 
 namespace block_bench {
 #include <bench/data/test_block.raw.h>
@@ -49,7 +50,8 @@ static void DeserializeAndCheckBlockTest(benchmark::State& state)
         assert(stream.Rewind(sizeof(block_bench::test_block)));
 
         CValidationState validationState;
-        assert(CheckBlock(block, validationState, chainParams->GetConsensus()));
+        auto validation = staking::LegacyValidationInterface::Old();
+        assert(validation->CheckBlock(block, validationState, chainParams->GetConsensus()));
     }
 }
 

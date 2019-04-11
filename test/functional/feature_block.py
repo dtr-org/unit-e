@@ -671,16 +671,6 @@ class FullBlockTest(UnitETestFramework):
         self.sync_blocks([b46], success=False, reject_code=16, reject_reason=b'bad-blk-length', reconnect=True)
         self.comp_snapshot_hash(44)
 
-        self.log.info("Reject a block with invalid work")
-        self.move_tip(44)
-        b47 = self.next_block(47, self.get_staking_coin(), solve=False)
-        target = uint256_from_compact(b47.nBits)
-        while b47.sha256 < target:
-            b47.nNonce += 1
-            b47.rehash()
-        self.sync_blocks([b47], False, request_block=False)
-        self.comp_snapshot_hash(44)
-
         self.log.info("Reject a block with a timestamp >2 hours in the future")
         self.move_tip(44)
         b48 = self.next_block(48, self.get_staking_coin(), solve=False)

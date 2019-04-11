@@ -605,7 +605,6 @@ class CBlockHeader():
             self.hash_finalizer_commits_merkle_root = header.hash_finalizer_commits_merkle_root
             self.nTime = header.nTime
             self.nBits = header.nBits
-            self.nNonce = header.nNonce
             self.sha256 = header.sha256
             self.hash = header.hash
             self.calc_sha256()
@@ -618,7 +617,6 @@ class CBlockHeader():
         self.hash_finalizer_commits_merkle_root = 0
         self.nTime = 0
         self.nBits = 0
-        self.nNonce = 0
         self.sha256 = None
         self.hash = None
 
@@ -630,7 +628,6 @@ class CBlockHeader():
         self.hash_finalizer_commits_merkle_root = deser_uint256(f)
         self.nTime = struct.unpack("<I", f.read(4))[0]
         self.nBits = struct.unpack("<I", f.read(4))[0]
-        self.nNonce = struct.unpack("<I", f.read(4))[0]
         self.sha256 = None
         self.hash = None
 
@@ -643,7 +640,6 @@ class CBlockHeader():
         r += ser_uint256(self.hash_finalizer_commits_merkle_root)
         r += struct.pack("<I", self.nTime)
         r += struct.pack("<I", self.nBits)
-        r += struct.pack("<I", self.nNonce)
         return r
 
     def calc_sha256(self):
@@ -656,7 +652,6 @@ class CBlockHeader():
             r += ser_uint256(self.hash_finalizer_commits_merkle_root)
             r += struct.pack("<I", self.nTime)
             r += struct.pack("<I", self.nBits)
-            r += struct.pack("<I", self.nNonce)
             self.sha256 = uint256_from_str(hash256(r))
             self.hash = encode(hash256(r)[::-1], 'hex_codec').decode('ascii')
 
@@ -672,10 +667,9 @@ class CBlockHeader():
                 "hash_witness_merkle_root=%064x "
                 "hash_finalizer_commits_merkle_root=%064x "
                 "nTime=%s "
-                "nBits=%08x "
-                "nNonce=%08x)") \
+                "nBits=%08x)") \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
-               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits, self.nNonce)
+               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits)
 
 
 class CBlock(CBlockHeader):
@@ -757,10 +751,6 @@ class CBlock(CBlockHeader):
 
     def solve(self):
         self.rehash()
-        target = uint256_from_compact(self.nBits)
-        while self.sha256 > target:
-            self.nNonce += 1
-            self.rehash()
 
     def ensure_ltor(self):
         if len(self.vtx) <= 1:
@@ -777,10 +767,9 @@ class CBlock(CBlockHeader):
                 "hash_finalizer_commits_merkle_root=%064x "
                 "nTime=%s "
                 "nBits=%08x "
-                "nNonce=%08x "
                 "vtx=%s)") \
             % (self.nVersion, self.hashPrevBlock, self.hashMerkleRoot, self.hash_witness_merkle_root,
-               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits, self.nNonce, repr(self.vtx))
+               self.hash_finalizer_commits_merkle_root, time.ctime(self.nTime), self.nBits, repr(self.vtx))
 
 
 class PrefilledTransaction():

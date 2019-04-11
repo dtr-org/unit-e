@@ -37,7 +37,6 @@ std::string CBlock::ToString() const
                    "hash_finalizer_commits_merkle_root=%s, "
                    "nTime=%u, "
                    "nBits=%08x, "
-                   "nNonce=%u, "
                    "vtx=%u)\n",
         GetHash().ToString(),
         nVersion,
@@ -45,7 +44,7 @@ std::string CBlock::ToString() const
         hashMerkleRoot.ToString(),
         hash_witness_merkle_root.ToString(),
         hash_finalizer_commits_merkle_root.ToString(),
-        nTime, nBits, nNonce,
+        nTime, nBits,
         vtx.size());
     for (const auto& tx : vtx) {
         s << "  " << tx->ToString() << "\n";

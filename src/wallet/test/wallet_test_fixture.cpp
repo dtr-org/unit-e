@@ -6,7 +6,6 @@
 
 #include <injector.h>
 #include <key_io.h>
-#include <pow.h>
 #include <rpc/server.h>
 #include <validation.h>
 #include <wallet/db.h>
@@ -60,6 +59,8 @@ TestChain100Setup::TestChain100Setup() : WalletTestingSetup(CBaseChainParams::RE
     std::vector<CMutableTransaction> noTxns;
     CBlock b = CreateAndProcessBlock(noTxns, script_pubkey);
     m_coinbase_txns.push_back(*b.vtx[0]);
+    auto x = b.GetHash().ToString();
+    assert(!x.empty());
   }
 }
 
@@ -86,8 +87,6 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
   }
   // Regenerate the merkle roots cause we possibly changed the txs included
   block.ComputeMerkleTrees();
-
-  while (!CheckProofOfWork(block.GetHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 
   std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(block);
   const bool was_processed = ProcessNewBlock(chainparams, shared_pblock, true, nullptr);

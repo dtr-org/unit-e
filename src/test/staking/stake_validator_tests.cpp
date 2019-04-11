@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   prev_block.nTime = block.nTime - 15;
   prev_block.stake_modifier = uint256S("2cdcf27ffe49aa00d95605c677a38462b684763b7218c6dbd856293bf8325cd0");
 
-  fixture.active_chain_mock.get_block_index = [&prev_block](const uint256 &) { return &prev_block; };
+  fixture.active_chain_mock.stub_GetBlockIndex = [&prev_block](const uint256 &) { return &prev_block; };
 
   uint256 stake_txid = uint256S("7f6b062da8f3c99f302341f06879ff94db0b7ae291b38438846c9878b58412d4");
   COutPoint stake_ref(stake_txid, 7);
@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(check_remote_staking_outputs) {
   std::map<COutPoint, staking::Coin> coins;
   coins.emplace(stake_ref, staking::Coin(&block_index, stake_ref, CTxOut{amount, script}));
 
-  fixture.active_chain_mock.get_utxo = [&coins](const COutPoint &p) {
+  fixture.active_chain_mock.stub_GetUTXO = [&coins](const COutPoint &p) {
     const auto it = coins.find(p);
     return it == coins.end() ? boost::none : boost::make_optional(it->second);
   };

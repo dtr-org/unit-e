@@ -163,10 +163,8 @@ BOOST_AUTO_TEST_CASE(register_last_validator_tx) {
 
   // Test vote
   CBlock block_50;
-  block_50.nNonce = 1;
 
   CBlock block_100;
-  block_100.nNonce = 2;
 
   FinalizationStateSpy state_50(state);
   blockIndex.nHeight = 50;

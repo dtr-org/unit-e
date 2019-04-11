@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(leveldb_rand) {
 class ActiveChainTest : public mocks::ActiveChainMock {
  public:
   ActiveChainTest() {
-    this->block_at_height = [this](blockchain::Height const h) -> CBlockIndex * {
+    this->stub_AtHeight = [this](blockchain::Height const h) -> CBlockIndex * {
       const auto it = m_block_heights.find(h);
       return it != m_block_heights.end() ? it->second : nullptr;
     };
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
 
   // Generate fork 1 higher 50
   {
-    CBlockIndex *index = active_chain.block_at_height(50);
+    CBlockIndex *index = active_chain.stub_AtHeight(50);
     for (size_t i = 0; i < 100; ++i) {
       index = generate(index, false);
       FinalizationStateSpy state;
@@ -130,7 +130,7 @@ BOOST_AUTO_TEST_CASE(load_best_states) {
 
   // Generate fork 2 higher 80
   {
-    CBlockIndex *index = active_chain.block_at_height(80);
+    CBlockIndex *index = active_chain.stub_AtHeight(80);
     for (size_t i = 0; i < 100; ++i) {
       index = generate(index, false);
       FinalizationStateSpy state;

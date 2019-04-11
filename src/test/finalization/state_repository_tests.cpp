@@ -95,7 +95,7 @@ class StateDBMock : public finalization::StateDB {
 class Fixture {
  public:
   Fixture() : m_repo(NewRepo()) {
-    m_chain.block_at_height = [this](blockchain::Height h) -> CBlockIndex * {
+    m_chain.stub_AtHeight = [this](blockchain::Height h) -> CBlockIndex * {
       auto const it = this->m_block_heights.find(h);
       if (it == this->m_block_heights.end()) {
         return nullptr;
@@ -379,7 +379,7 @@ BOOST_AUTO_TEST_CASE(recovering) {
     auto restored_repo = fixture.NewRepo();
     auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
     std::vector<CTransactionRef> commits;
-    fixture.m_chain.block_at_height(5)->commits = commits;
+    fixture.m_chain.stub_AtHeight(5)->commits = commits;
     restored_repo->RestoreFromDisk(proc.get());
     BOOST_CHECK(fixture.m_block_db.blocks.empty());
     LOCK(restored_repo->GetLock());

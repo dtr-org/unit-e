@@ -72,8 +72,8 @@ class BlockValidator {
   //! - !blockValidationResult || block.vtx.size() >= 1
   //! - !blockValidationResult || block.vtx[0].GetType() == +TxType::COINBASE
   virtual BlockValidationResult CheckBlock(
-      const CBlock &,        //!< [in] The block to check.
-      BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
+      const CBlock &block,       //!< [in] The block to check.
+      BlockValidationInfo *info  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
   //! \brief checks the block with respect to its preceding block.
@@ -81,28 +81,28 @@ class BlockValidator {
   //! This function can not be used to check the genesis block, as it does not have
   //! a preceding block.
   virtual BlockValidationResult ContextualCheckBlock(
-      const CBlock &,        //!< [in] The block to check.
-      const CBlockIndex &,   //!< [in] The block index entry of the preceding block.
-      blockchain::Time,      //!< [in] The adjusted network time at the point in time to check for.
-      BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
+      const CBlock &block,             //!< [in] The block to check.
+      const CBlockIndex &block_index,  //!< [in] The block index entry of the preceding block.
+      blockchain::Time adjusted_time,  //!< [in] The adjusted network time at the point in time to check for.
+      BlockValidationInfo *info        //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
   //! \brief checks that the block header has the right structure, but nothing else.
   //!
   //! This function can be used to check the genssis block's header for well-formedness.
   virtual BlockValidationResult CheckBlockHeader(
-      const CBlockHeader &,
-      BlockValidationInfo *) const = 0;
+      const CBlockHeader &block_header,
+      BlockValidationInfo *info) const = 0;
 
   //! \brief checks the block header with resepect to its preceding block.
   //!
   //! This function can not be used to check the genesis block's header, as that one
   //! does not have a preceding block.
   virtual BlockValidationResult ContextualCheckBlockHeader(
-      const CBlockHeader &,  //!< [in] The header to check
-      const CBlockIndex &,   //!< [in] The block index entry for the previous block.
-      blockchain::Time,      //!< [in] The adjusted network time at the point in time to check for.
-      BlockValidationInfo *  //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
+      const CBlockHeader &block_header,  //!< [in] The header to check
+      const CBlockIndex &block_index,    //!< [in] The block index entry for the previous block.
+      blockchain::Time time,             //!< [in] The adjusted network time at the point in time to check for.
+      BlockValidationInfo *info          //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
   virtual ~BlockValidator() = default;

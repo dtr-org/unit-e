@@ -46,6 +46,9 @@ struct TestChain100Setup : public WalletTestingSetup {
 
   std::vector<CTransaction> m_coinbase_txns; // For convenience, coinbase transactions
   CKey coinbaseKey; // private/public key needed to spend coinbase transactions
+
+ private:
+  std::uint32_t count = 0;
 };
 
 #endif // UNITE_WALLET_TEST_WALLET_TEST_FIXTURE_H

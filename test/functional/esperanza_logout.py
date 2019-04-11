@@ -158,6 +158,8 @@ class EsperanzaLogoutTest(UnitETestFramework):
                                             'lastFinalizedEpoch': 8,
                                             'validators': 1})
 
+        # check that we cannot deposit again after logout
+        assert_raises_rpc_error(-32600, "The node is already a finalizer.", finalizer1.deposit, finalizer1.getnewaddress("", "legacy"), 1500)
 
 if __name__ == '__main__':
     EsperanzaLogoutTest().main()

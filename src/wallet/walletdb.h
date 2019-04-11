@@ -43,7 +43,7 @@ class uint160;
 class uint256;
 
 namespace esperanza {
-struct ValidatorState;
+class ValidatorState;
 };
 
 /** Backend-agnostic database type. */
