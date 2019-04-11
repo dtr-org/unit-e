@@ -1941,9 +1941,7 @@ class UTXOViewAdapter : public blockchain::UTXOView {
       return boost::none;
     }
     const CBlockIndex *const block = m_active_chain->AtHeight(coin.nHeight);
-    if (!block) {
-      return boost::none;
-    }
+    assert(block); // when returned by the coins cache we surely have it in block index
     return staking::Coin(block, out_point, coin.out);
   }
 };
@@ -1988,11 +1986,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     const staking::BlockValidationResult stake_validation_result =
         GetComponent<staking::StakeValidator>()->CheckStake(block, &state.block_validation_info, check_stake_flags, &utxo_view);
     if (!staking::CheckResult(stake_validation_result, state)) {
-        LogPrint(BCLog::VALIDATION, "%s: Failed to validate stake for block=%s failure=%s\n",
+        LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
             __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());
         return false;
-    } else {
-        LogPrint(BCLog::VALIDATION, "%s: Successfully validated stake for block=%s\n", __func__, block.GetHash().ToString());
     }
 
     // verify that the view's current state corresponds to the previous block

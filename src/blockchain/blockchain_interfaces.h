@@ -44,8 +44,6 @@ class UTXOView {
   //!
   //! The returned coin is guaranteed to represent an _unspent_ tx output
   //! at the point of time where this function is invoked.
-  //!
-  //! Requires the lock obtained from `GetLock()` to be held.
   virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const = 0;
 };
 
