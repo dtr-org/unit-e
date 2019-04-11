@@ -299,7 +299,7 @@ def main():
 
     # Create base test directory
     tmpdir = "%s/test_runner_U⋮_🏃_%s" % (args.tmpdirprefix, datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-    os.makedirs(tmpdir.encode('utf-8'))
+    os.makedirs(tmpdir)
 
     logging.debug("Temporary test directory at %s" % tmpdir)
 
