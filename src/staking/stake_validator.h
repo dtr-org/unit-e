@@ -76,6 +76,16 @@ class StakeValidator {
       ) const = 0;
 
   //! \brief Same as CheckStake(const CBlock &, BlockValidationInfo *) + flags
+  //!
+  //! The following flags are understood:
+  //!
+  //! CheckStakeFlags::ALLOW_SLOW
+  //!   Will try to find UTXOs in the current UTXO set and fallback to
+  //!   GetTransaction() in case it does not find any. This allows
+  //!   Stake to be checked for blocks which are already connected and reconnected
+  //!   (for example in the verifychain RPC call), i.e. stake for a block
+  //!   which is being looked at which is not at the tip of the active chain
+  //!   can be checked.
   virtual BlockValidationResult CheckStake(
       const CBlock &block,          //!< [in] The block to check.
       CheckStakeFlags::Type flags,  //!< [in] options for checking stake, see CheckStakeFlags::Type
