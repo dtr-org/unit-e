@@ -1951,6 +1951,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (!GetComponent<staking::LegacyValidationInterface>()->CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
+    // Check Stake
+    const staking::BlockValidationResult stake_validation_result =
+        GetComponent<staking::StakeValidator>()->CheckStake(block, state.GetBlockValidationInfo());
+    if (!staking::CheckResult(stake_validation_result, state)) {
+        return false;
+    }
+
     // verify that the view's current state corresponds to the previous block
     uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
     assert(hashPrevBlock == view.GetBestBlock());

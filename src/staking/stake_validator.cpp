@@ -106,13 +106,6 @@ class StakeValidatorImpl : public StakeValidator {
       result.errors += BlockValidationError::STAKE_NOT_FOUND;
       return result;
     }
-    const blockchain::Height height = stake->GetHeight();
-    const blockchain::Depth depth = m_active_chain->GetDepth(height);
-    if (!m_blockchain_behavior->IsStakeMature(depth)) {
-      LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s depth=%d\n", util::to_string(*stake), depth);
-      result.errors += BlockValidationError::STAKE_IMMATURE;
-      return result;
-    }
     const uint256 kernel_hash = ComputeKernelHash(&previous_block, *stake, block.nTime);
     // There are two ways to get the height of a block - either by parsing it from the coinbase, or by looking
     // at the height of the preceding block and incrementing it by one. The latter is simpler, so we do that.
@@ -122,8 +115,12 @@ class StakeValidatorImpl : public StakeValidator {
     if (!CheckKernel(stake->GetAmount(), kernel_hash, target_difficulty)) {
       LogPrint(BCLog::VALIDATION, "Kernel hash does not meet target coin=%s kernel=%s target=%d\n",
                util::to_string(*stake), util::to_string(kernel_hash), target_difficulty);
-      result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
-      return result;
+      if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
+        LogPrint(BCLog::VALIDATION, "Allowing to let artificial block generation succedd\n");
+      } else {
+        result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
+        return result;
+      }
     }
     // Adding an error should immediately have returned so we assert to have validated the stake.
     assert(result);
