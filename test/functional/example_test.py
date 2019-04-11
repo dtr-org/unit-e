@@ -20,6 +20,7 @@ from test_framework.blocktools import (
     get_tip_snapshot_meta,
     update_snapshot_with_tx,
     sign_coinbase,
+    get_finalization_rewards,
 )
 from test_framework.messages import (
     CInv
@@ -89,7 +90,7 @@ class ExampleTest(UnitETestFramework):
         self.setup_clean_chain = True
         self.num_nodes = 3
         # Use self.extra_args to change command-line arguments for the nodes
-        self.extra_args = [[DISABLE_FINALIZATION], [DISABLE_FINALIZATION, "-logips"], [DISABLE_FINALIZATION]]
+        self.extra_args = [[], ["-logips"], []]
 
         # self.log.info("I've finished set_test_params")  # Oops! Can't run self.log before run_test()
 
@@ -180,7 +181,11 @@ class ExampleTest(UnitETestFramework):
             # Use the mininode and blocktools functionality to manually build a block
             # Calling the generate() rpc is easier, but this allows us to exactly
             # control the blocks and transactions.
-            coinbase = sign_coinbase(self.nodes[0], create_coinbase(height, stake, snapshot_meta.hash))
+            coinbase = sign_coinbase(
+                self.nodes[0],
+                create_coinbase(height, stake, snapshot_meta.hash,
+                                finalization_rewards=get_finalization_rewards(self.nodes[0]))
+            )
             block = create_block(self.tip, coinbase, self.block_time)
             # Wait until the active chain picks up the previous block
             wait_until(lambda: self.nodes[0].getblockcount() == height, timeout=5)

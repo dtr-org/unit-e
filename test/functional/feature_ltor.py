@@ -35,7 +35,7 @@ from test_framework.mininode import (
 )
 from test_framework.regtest_mnemonics import regtest_mnemonics
 from test_framework.script import CScript
-from test_framework.test_framework import UnitETestFramework, DISABLE_FINALIZATION
+from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     sync_blocks,
