@@ -90,7 +90,6 @@ any issues or run into bugs please report them as
 ## Related repositories
 
 * [Unit-e improvement proposals (UIPs)](https://github.com/dtr-org/uips)
-* [Desktop wallet](https://github.com/dtr-org/unit-e-desktop)
 * [Documentation](https://github.com/dtr-org/docs.unit-e.io)
 * [Decision records and project-level
   information](https://github.com/dtr-org/unit-e-docs)
