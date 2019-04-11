@@ -59,9 +59,9 @@ void WalletExtension::ForEachStakeableCoin(Callable f) const {
     const std::vector<::CTxOut> &coins = tx->tx->vout;
     const CBlockIndex *containing_block = nullptr;
     const int depth = tx->GetDepthInMainChain(containing_block);  // requires cs_main
-    if (depth == 0 || !containing_block) {
-        // transaction is not included in a block
-        continue;
+    if (depth <= 0 || !containing_block) {
+      // transaction is not included in a block
+      continue;
     }
 
     blockchain::Height height = static_cast<blockchain::Height>(containing_block->nHeight);

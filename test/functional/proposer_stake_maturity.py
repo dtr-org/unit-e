@@ -3,7 +3,12 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.util import *
+from test_framework.util import (
+    assert_equal,
+    connect_nodes_bi,
+    sync_blocks,
+    wait_until,
+)
 from test_framework.test_framework import UnitETestFramework
 
 
@@ -11,36 +16,26 @@ class ProposerStakeMaturityTest(UnitETestFramework):
 
     def set_test_params(self):
         self.num_nodes = 2
-        self.extra_args = list([
-            '-proposing=1',
+        self.extra_args = [[
             '-minimumchainwork=0',
             '-maxtipage=1000000000'
-        ] for i in range(0, self.num_nodes))
+        ]] * self.num_nodes
         self.setup_clean_chain = True
         self.customchainparams = [{"stake_maturity": 2}] * 2
 
     def run_test(self):
-        num_keys = 2
         nodes = self.nodes
 
         def has_synced_blockchain(i):
-            def predicate():
-                status = nodes[i].proposerstatus()
-                return status['wallets'][0]['status'] != 'NOT_PROPOSING_SYNCING_BLOCKCHAIN'
-            return predicate
+            status = nodes[i].proposerstatus()
+            return status['wallets'][0]['status'] != 'NOT_PROPOSING_SYNCING_BLOCKCHAIN'
 
         self.log.info("Waiting for nodes to have started up...")
         wait_until(lambda: all(has_synced_blockchain(i)
                                for i in range(0, self.num_nodes)), timeout=5)
 
         self.log.info("Connecting nodes")
-        for i in range(0, self.num_nodes):
-            for j in range(i + 1, self.num_nodes):
-                connect_nodes_bi(nodes, i, j)
-
-        # wakes all the proposers in case they are sleeping right now
-        for i in range(0, self.num_nodes):
-            nodes[i].proposerwake()
+        connect_nodes_bi(nodes, 0, 1)
 
         def wait_until_all_have_reached_state(expected, which_nodes):
             def predicate(i):
@@ -50,31 +45,13 @@ class ProposerStakeMaturityTest(UnitETestFramework):
                                    for i in which_nodes), timeout=5)
             return predicate
 
-        self.log.info(
-            "Waiting for nodes to be connected (should read NOT_PROPOSING_NOT_ENOUGH_BALANCE then)")
-        wait_until_all_have_reached_state(
-            'NOT_PROPOSING_NOT_ENOUGH_BALANCE', range(
-                0, self.num_nodes))
-
         # none of the nodes has any money now, but a bunch of friends
-        for i in range(0, self.num_nodes):
+        for i in range(self.num_nodes):
             status = nodes[i].proposerstatus()
             assert_equal(status['incoming_connections'], self.num_nodes - 1)
             assert_equal(status['outgoing_connections'], self.num_nodes - 1)
 
-        self.setup_stake_coins(*self.nodes[0:num_keys])
-
-        # wakes all the proposers in case they are sleeping right now
-        for i in range(self.num_nodes):
-            nodes[i].proposerwake()
-
-        self.log.info("The nodes with funds should advance to IS_PROPOSING")
-        wait_until_all_have_reached_state('IS_PROPOSING', range(0, num_keys))
-
-        self.log.info("The others should stay in NOT_ENOUGH_BALANCE")
-        wait_until_all_have_reached_state(
-            'NOT_PROPOSING_NOT_ENOUGH_BALANCE', range(
-                num_keys, self.num_nodes))
+        self.setup_stake_coins(*self.nodes)
 
         # Generate stakeable outputs on both nodes
         nodes[0].generatetoaddress(1, nodes[0].getnewaddress('', 'bech32'))
@@ -84,7 +61,7 @@ class ProposerStakeMaturityTest(UnitETestFramework):
 
         # Current chain length doesn't overcome stake threshold, so
         # stakeable_balance == balance
-        for i in range(0, num_keys):
+        for i in range(self.num_nodes):
             self.check_node_balance(nodes[i], 10000, 10000)
 
         # Generate another block to overcome the stake threshold
@@ -110,8 +87,6 @@ class ProposerStakeMaturityTest(UnitETestFramework):
 
         # Second node still have two immature stake outputs
         self.check_node_balance(nodes[1], 10000, 8000)
-
-        print("Test succeeded.")
 
     def check_node_balance(self, node, balance, stakeable_balance):
         status = node.proposerstatus()

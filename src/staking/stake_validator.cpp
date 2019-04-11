@@ -111,16 +111,17 @@ class StakeValidatorImpl : public StakeValidator {
       result.errors += BlockValidationError::STAKE_NOT_FOUND;
       return result;
     }
+    const blockchain::Height height = stake->GetHeight();
+    if (!IsStakeMature(height)) {
+      LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s height=%d\n", util::to_string(*stake), height);
+      result.errors += BlockValidationError::STAKE_IMMATURE;
+      return result;
+    }
     if (!Flags::IsSet(flags, CheckStakeFlags::SKIP_ELIGIBILITY_CHECK)) {
       const uint256 kernel_hash = ComputeKernelHash(&previous_block, *stake, block.nTime);
       // There are two ways to get the height of a block - either by parsing it from the coinbase, or by looking
       // at the height of the preceding block and incrementing it by one. The latter is simpler, so we do that.
       const blockchain::Height target_height = static_cast<blockchain::Height>(previous_block.nHeight) + 1;
-      if (!IsStakeMature(target_height)) {
-        LogPrint(BCLog::VALIDATION, "Immature stake found coin=%s height=%d\n", util::to_string(*stake), target_height);
-        result.errors += BlockValidationError::STAKE_IMMATURE;
-        return result;
-      }
       const blockchain::Difficulty target_difficulty =
           m_blockchain_behavior->CalculateDifficulty(target_height, *m_active_chain);
       if (!CheckKernel(stake->GetAmount(), kernel_hash, target_difficulty)) {
@@ -288,6 +289,8 @@ class StakeValidatorImpl : public StakeValidator {
   }
 
   bool IsStakeMature(const blockchain::Height height) const override {
+    AssertLockHeld(m_active_chain->GetLock());
+
     const blockchain::Depth at_depth = m_active_chain->GetDepth(height);
     const blockchain::Height chain_height = m_active_chain->GetHeight();
     const blockchain::Height stake_maturity = m_blockchain_behavior->GetParameters().stake_maturity;

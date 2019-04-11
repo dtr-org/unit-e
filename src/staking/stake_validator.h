@@ -105,8 +105,10 @@ class StakeValidator {
       ) = 0;
 
   //! \brief Checks whether a piece of stake at the given height is considered mature or not.
+  //!
+  //! Requires the lock (obtained via GetLock) to be held.
   virtual bool IsStakeMature(
-      const blockchain::Height  //!< [in] The height of the stake coin.
+      const blockchain::Height height  //!< [in] The height of the stake coin.
       ) const = 0;
 
   virtual ~StakeValidator() = default;
