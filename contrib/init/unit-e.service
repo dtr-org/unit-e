@@ -1,0 +1,25 @@
+# It is not recommended to modify this file in-place, because it will
+# be overwritten during package upgrades. If you want to add further
+# options or overwrite existing ones then use
+# $ systemctl edit unit-e.service
+# See "man systemd.service" for details.
+
+# Note that almost all daemon options could be specified in
+# /etc/unite/unit-e.conf
+
+[Unit]
+Description=Unit-e daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/unit-e -daemon -conf=/etc/unite/unit-e.conf -pid=/run/unit-e/unit-e.pid
+# Creates /run/unit-e owned by unite
+RuntimeDirectory=unit-e
+User=unite
+Type=forking
+PIDFile=/run/unit-e/unit-e.pid
+Restart=on-failure
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
