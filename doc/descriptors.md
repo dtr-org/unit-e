@@ -55,7 +55,7 @@ Descriptors consist of several types of expressions. The top level expression is
 - Hex encoded public keys (66 characters starting with `02` or `03`, or 130 characters starting with `04`).
   - Inside `wpkh` and `wsh`, only compressed public keys are permitted.
 - [WIF](https://en.unite.it/wiki/Wallet_import_format) encoded private keys may be specified instead of the corresponding public key, with the same meaning.
--`xpub` encoded extended public key or `xprv` encoded private key (as defined in [BIP 32](https://github.com/unite/bips/blob/master/bip-0032.mediawiki)).
+-`xpub` encoded extended public key or `xprv` encoded private key (as defined in [BIP 32](https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki)).
   - Followed by zero or more `/NUM` unhardened and `/NUM'` hardened BIP32 derivation steps.
   - Optionally followed by a single `/*` or `/*'` final step to denote all (direct) unhardened or hardened children.
   - The usage of hardened derivation steps requires providing the private key.
@@ -63,8 +63,8 @@ Descriptors consist of several types of expressions. The top level expression is
 
 `ADDR` expressions are any type of supported address:
 - P2PKH addresses (base58, of the form `1...`). Note that P2PKH addresses in descriptors cannot be used for P2PK outputs (use the `pk` function instead).
-- P2SH addresses (base58, of the form `3...`, defined in [BIP 13](https://github.com/unite/bips/blob/master/bip-0013.mediawiki)).
-- Segwit addresses (bech32, of the form `bc1...`, defined in [BIP 173](https://github.com/unite/bips/blob/master/bip-0173.mediawiki)).
+- P2SH addresses (base58, of the form `3...`, defined in [BIP 13](https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki)).
+- Segwit addresses (bech32, of the form `bc1...`, defined in [BIP 173](https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki)).
 
 ## Explanation
 

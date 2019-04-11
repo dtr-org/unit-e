@@ -24,7 +24,7 @@ See [dependencies.md](dependencies.md) for a complete overview.
 
 Download the source code:
 ```
-git clone https://github.com/unite/unite
+git clone https://github.com/dtr-org/unit-e
 ```
 
 ## Building unit-e
