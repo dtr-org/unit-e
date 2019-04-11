@@ -205,12 +205,12 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
                                          'lastFinalizedEpoch': 8,
                                          'validators': 2})
 
-        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork1.sendrawtransaction, v1)
-        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork1.sendrawtransaction, v4)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', fork1.sendrawtransaction, v1)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', fork1.sendrawtransaction, v4)
         assert_equal(len(fork1.getrawmempool()), 0)
 
-        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork0.sendrawtransaction, v2)
-        assert_raises_rpc_error(-26, 'bad-vote-invalid-state', fork0.sendrawtransaction, v3)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', fork0.sendrawtransaction, v2)
+        assert_raises_rpc_error(-26, 'bad-vote-invalid', fork0.sendrawtransaction, v3)
         assert_equal(len(fork0.getrawmempool()), 0)
         self.log.info('re-broadcasting existing votes did not create slash tx')
 
