@@ -76,23 +76,23 @@ class StakeValidatorImpl : public StakeValidator {
     if (utxo) {
       return utxo;
     }
-    if (Flags::IsSet(flags, CheckStakeFlags::ALLOW_SLOW)) {
+    if (!Flags::IsSet(flags, CheckStakeFlags::ALLOW_SLOW)) {
       CTransactionRef tx;
       uint256 hash_block = uint256::zero;
       if (!GetTransaction(staking_out_point.hash, tx, Params().GetConsensus(), hash_block, /* fAllowSlow= */ true)) {
         LogPrint(BCLog::VALIDATION, "CheckStake: could not retrieve tx=%s (ALLOW_SLOW enabled)\n", tx->GetHash().ToString());
-      } else {
-        const CBlockIndex *const block_index = m_active_chain->GetBlockIndex(hash_block);
-        if (!block_index) {
-          LogPrint(BCLog::VALIDATION, "CheckStake: could not find block for tx=%s\n", tx->GetHash().ToString());
-        } else {
-          if (staking_out_point.n >= tx->vout.size()) {
-            LogPrint(BCLog::VALIDATION, "CheckStake: invalid stake reference: %s\n", staking_out_point.ToString());
-          } else {
-            return staking::Coin(block_index, staking_out_point, tx->vout[staking_out_point.n]);
-          }
-        }
+        return boost::none;
       }
+      const CBlockIndex *const block_index = m_active_chain->GetBlockIndex(hash_block);
+      if (!block_index) {
+        LogPrint(BCLog::VALIDATION, "CheckStake: could not find block for tx=%s\n", tx->GetHash().ToString());
+        return boost::none;
+      }
+      if (staking_out_point.n >= tx->vout.size()) {
+        LogPrint(BCLog::VALIDATION, "CheckStake: invalid stake reference: %s\n", staking_out_point.ToString());
+        return boost::none;
+      }
+      return staking::Coin(block_index, staking_out_point, tx->vout[staking_out_point.n]);
     }
     return boost::none;
   }
