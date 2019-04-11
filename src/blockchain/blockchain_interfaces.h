@@ -47,16 +47,6 @@ class UTXOView {
   //!
   //! Requires the lock obtained from `GetLock()` to be held.
   virtual boost::optional<staking::Coin> GetUTXO(const COutPoint &outpoint) const = 0;
-
-  //! \brief Shorthand for `GetUTXO({ txid, index })`.
-  //!
-  //! The returned coin is guaranteed to represent an _unspent_ tx output
-  //! at the point of time where this function is invoked.
-  //!
-  //! Requires the lock obtained from `GetLock()` to be held.
-  virtual boost::optional<staking::Coin> GetUTXO(const uint256 &txid, const std::uint32_t index) const {
-    return GetUTXO({txid, index});
-  }
 };
 
 }  // namespace blockchain
