@@ -80,7 +80,7 @@ class FeatureReindexCommits(UnitETestFramework):
         self.log.info("Restart nodes, -reindex=1")
         self.assert_finalizer_status('IS_VALIDATING')
         self.restart_nodes(True)
-        self.assert_finalizer_status('IS_VALIDATING')
+        wait_until(lambda: self.finalizer.getvalidatorinfo()['validator_status'] == 'IS_VALIDATING', timeout=60)
 
         votes = self.generate_epoch(
             proposer=self.proposer,
@@ -125,7 +125,7 @@ class FeatureReindexCommits(UnitETestFramework):
 
     def assert_finalizer_status(self, status):
         wait_until(lambda: self.finalizer.getvalidatorinfo()[
-            'validator_status'] == status, timeout=20)
+            'validator_status'] == status, timeout=10)
 
     def restart_nodes(self, reindex):
         tip_before = self.proposer.getbestblockhash()
