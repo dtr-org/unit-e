@@ -57,7 +57,6 @@ class UTXOView {
   virtual boost::optional<staking::Coin> GetUTXO(const uint256 &txid, const std::uint32_t index) const {
     return GetUTXO({txid, index});
   }
-
 };
 
 }  // namespace blockchain

@@ -111,15 +111,14 @@ class StakeValidator {
       Dependency<ActiveChain>);
 
  protected:
-  virtual blockchain::UTXOView& GetUTXOView() const = 0;
+  virtual blockchain::UTXOView &GetUTXOView() const = 0;
 
   virtual BlockValidationResult CheckStake(
       const CBlock &block,                    //!< [in] The block to check.
       const blockchain::UTXOView &utxo_view,  //!< [in]
       CheckStakeFlags::Type flags,            //!< [in] options for checking stake, see CheckStakeFlags::Type
       BlockValidationInfo *info               //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
-  ) const = 0;
-
+      ) const = 0;
 };
 
 }  // namespace staking
