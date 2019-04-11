@@ -78,6 +78,7 @@ class FeatureReindexCommits(UnitETestFramework):
                                   'validators': 1})
 
         self.log.info("Restart nodes, -reindex=1")
+        self.assert_finalizer_status('IS_VALIDATING')
         self.restart_nodes(True)
         self.assert_finalizer_status('IS_VALIDATING')
 
@@ -124,7 +125,7 @@ class FeatureReindexCommits(UnitETestFramework):
 
     def assert_finalizer_status(self, status):
         wait_until(lambda: self.finalizer.getvalidatorinfo()[
-            'validator_status'] == status, timeout=10)
+            'validator_status'] == status, timeout=20)
 
     def restart_nodes(self, reindex):
         tip_before = self.proposer.getbestblockhash()
