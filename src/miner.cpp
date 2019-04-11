@@ -195,6 +195,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
       pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
       state = CValidationState();
+      // The Block created here is not a proper block and will be fully checked later
+      // when invoking ProcessNewBlock. Here we do not have a proper coinbase, no
+      // stake, and the merkle tree is not computed yet - thus these checks are
+      // skipped. The merkle tree computation was bypassed in bitcoin using a
+      // boolean flag fCheckMerkleTree too.
       const TestBlockValidityFlags::Type flags =
           TestBlockValidityFlags::SKIP_MERKLE_TREE_CHECK |
           TestBlockValidityFlags::SKIP_ELIGIBILITY_CHECK;
