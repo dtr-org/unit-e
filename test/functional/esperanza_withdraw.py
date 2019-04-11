@@ -222,6 +222,7 @@ class EsperanzaWithdrawTest(UnitETestFramework):
         w1 = finalizer1.withdraw(finalizer1_address)
         wait_until(lambda: w1 in proposer.getrawmempool(), timeout=10)
         proposer.generatetoaddress(1, proposer.getnewaddress('', 'bech32'))
+        sync_blocks([proposer, finalizer1], timeout=10)
 
         self.log.info('finalizer1 was able to withdraw deposit at dynasty=18')
 
