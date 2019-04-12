@@ -124,8 +124,11 @@ class FeatureReindexCommits(UnitETestFramework):
         assert_equal(self.proposer.getblockcount(), 25)
 
     def assert_finalizer_status(self, status):
-        wait_until(lambda: self.finalizer.getvalidatorinfo()[
-            'validator_status'] == status, timeout=10)
+        fn = self.finalizer.getvalidatorinfo
+        try:
+            wait_until(lambda: fn()['validator_status'] == status, timeout=10)
+        except AssertionError:
+            assert_equal(fn()['validator_status'], status)  # show actual status in error
 
     def restart_nodes(self, reindex):
         for n in self.nodes:
