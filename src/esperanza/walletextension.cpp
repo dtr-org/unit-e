@@ -786,13 +786,6 @@ void WalletExtension::BlockConnected(
 
   LOCK2(cs_main, m_enclosing_wallet.cs_wallet);
   if (nIsValidatorEnabled) {
-
-    if (IsInitialBlockDownload()) {
-      // there is no reason to vote as such votes will be outdated
-      // and won't be included in the chain
-      return;
-    }
-
     assert(validatorState);
 
     LOCK(m_dependencies.GetFinalizationStateRepository().GetLock());
@@ -837,6 +830,12 @@ void WalletExtension::BlockConnected(
                  validator->m_end_dynasty);
       }
       assert(validatorState->m_phase == +ValidatorState::Phase::NOT_VALIDATING);
+    }
+
+    if (IsInitialBlockDownload()) {
+      // there is no reason to vote as such votes will be outdated
+      // and won't be included in the chain
+      return;
     }
 
     if (fin_state->IsFinalizerVoting(*validator)) {
