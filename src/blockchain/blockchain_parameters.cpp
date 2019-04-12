@@ -25,6 +25,7 @@ Parameters Parameters::Base() noexcept {
   p.maximum_block_sigops_cost = 80000;
   p.coinbase_maturity = 100;
   p.stake_maturity = 200;
+  p.stake_maturity_threshold = 300;
   p.initial_supply = 150000000000000000;
   p.reward_schedule = {3750000000, 1700000000, 550000000, 150000000, 31000000};
   p.immediate_reward_fraction = ufp64::div_2uint(1, 10);
@@ -119,6 +120,7 @@ Parameters Parameters::TestNet() noexcept {
   p.relay_non_standard_transactions = true;
   p.coinbase_maturity = 10;
   p.stake_maturity = 100;
+  p.stake_maturity_threshold = 200;
 
   p.message_start_characters[0] = 0xfd;
   p.message_start_characters[1] = 0xfc;
@@ -147,7 +149,8 @@ Parameters Parameters::RegTest() noexcept {
 
   p.mine_blocks_on_demand = true;
   p.coinbase_maturity = 1;
-  p.stake_maturity = 1000;
+  p.stake_maturity = 2;
+  p.stake_maturity_threshold = 1000;
 
   p.message_start_characters[0] = 0xfa;
   p.message_start_characters[1] = 0xbf;

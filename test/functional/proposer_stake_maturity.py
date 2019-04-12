@@ -21,7 +21,7 @@ class ProposerStakeMaturityTest(UnitETestFramework):
             '-maxtipage=1000000000'
         ]] * self.num_nodes
         self.setup_clean_chain = True
-        self.customchainparams = [{"stake_maturity": 2}] * 2
+        self.customchainparams = [{"stake_maturity_threshold": 2}] * 2
 
     def run_test(self):
         nodes = self.nodes
