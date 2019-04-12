@@ -3499,7 +3499,7 @@ bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams,
     if (!validation->ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindexPrev))
         return error("%s: Consensus::ContextualCheckBlock: %s", __func__, FormatStateMessage(state));
     ConnectBlockFlags::Type connect_block_flags = ConnectBlockFlags::JUST_CHECK;
-    if (Flags::IsSet(flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
+    if (Flags::IsSet(flags, TestBlockValidityFlags::SKIP_ELIGIBILITY_CHECK)) {
       connect_block_flags |= ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK;
     }
     if (!g_chainstate.ConnectBlock(block, state, &indexDummy, viewNew, chainparams, connect_block_flags))
