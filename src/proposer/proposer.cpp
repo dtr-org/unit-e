@@ -56,10 +56,9 @@ class ProposerImpl : public Proposer {
     INITIALIZED,
     STARTED,
     STOPPED
-  } m_state = INITIALIZED; // protected by m_startstop_lock
+  } m_state = INITIALIZED;  // protected by m_startstop_lock
   std::atomic_bool m_interrupted;
   Waiter m_waiter;
-
 
   void SetStatusOfAllWallets(const Status &status) {
     for (const auto &wallet : m_multi_wallet->GetWallets()) {
@@ -115,6 +114,7 @@ class ProposerImpl : public Proposer {
           wallet_ext.GetProposerState().m_number_of_search_attempts += 1;
           const boost::optional<EligibleCoin> &winning_ticket = m_proposer_logic->TryPropose(coins);
           if (!winning_ticket) {
+            LogPrint(BCLog::PROPOSING, "Not proposing this time (wallet=%s)\n", wallet_name);
             continue;
           }
           const EligibleCoin &coin = winning_ticket.get();
