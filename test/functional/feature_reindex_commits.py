@@ -128,10 +128,12 @@ class FeatureReindexCommits(UnitETestFramework):
             'validator_status'] == status, timeout=10)
 
     def restart_nodes(self, reindex):
-        tip_before = self.proposer.getbestblockhash()
-        self.stop_nodes()
-        self.start_nodes(self.get_extra_args(reindex))
-        wait_until(lambda: self.proposer.getbestblockhash() == tip_before)
+        for n in self.nodes:
+            self.log.info("Restart node=%d", n.index)
+            tip_before = n.getbestblockhash()
+            self.stop_node(n.index)
+            self.start_node(n.index, self.get_extra_args(reindex)[n.index])
+            wait_until(lambda: n.getbestblockhash() == tip_before)
 
 
 if __name__ == '__main__':
