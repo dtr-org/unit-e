@@ -14,6 +14,7 @@ import logging
 import os
 import random
 import re
+import shutil
 from subprocess import CalledProcessError
 import time
 import types
@@ -427,7 +428,7 @@ def rpc_url(datadir, i, rpchost=None):
 ################
 
 def initialize_datadir(dirname, n):
-    datadir = os.path.join(dirname, "node" + str(n))
+    datadir = get_datadir_path(dirname, n)
     if not os.path.isdir(datadir):
         os.makedirs(datadir)
     with open(os.path.join(datadir, "unit-e.conf"), 'w', encoding='utf8') as f:
@@ -436,6 +437,10 @@ def initialize_datadir(dirname, n):
         f.write("rpcport=" + str(rpc_port(n)) + "\n")
         f.write("listenonion=0\n")
     return datadir
+
+def cleanup_datadir(dirname, n):
+    datadir = get_datadir_path(dirname, n)
+    shutil.rmtree(datadir)
 
 def get_datadir_path(dirname, n):
     return os.path.join(dirname, "node" + str(n))

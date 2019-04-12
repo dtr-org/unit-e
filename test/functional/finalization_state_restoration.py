@@ -11,8 +11,10 @@ from test_framework.test_framework import UnitETestFramework
 from test_framework.util import (
     assert_equal,
     assert_finalizationstate,
+    cleanup_datadir,
     connect_nodes,
     disconnect_nodes,
+    initialize_datadir,
     sync_blocks,
     sync_mempools,
     wait_until,
@@ -115,6 +117,29 @@ class FinalizatoinStateRestoration(UnitETestFramework):
         self.log.info("Generate more epochs")
         self.generate_epoch(p, v, count=2)
         assert_equal(p.getblockcount(), 65)
+        assert_finalizationstate(p, {'currentEpoch': 13,
+                                     'lastJustifiedEpoch': 12,
+                                     'lastFinalizedEpoch': 11,
+                                     'validators': 1})
+        connect_nodes(p, v.index)
+        sync_blocks([p, v])
+
+        self.log.info("Restart proposer from empty cache")
+        self.stop_node(p.index)
+        cleanup_datadir(self.options.tmpdir, p.index)
+        initialize_datadir(self.options.tmpdir, p.index)
+        self.start_node(p.index)
+        assert_equal(p.getblockcount(), 0)
+
+        connect_nodes(p, v.index)
+        sync_blocks([p, v])
+        assert_finalizationstate(p, {'currentEpoch': 13,
+                                     'lastJustifiedEpoch': 12,
+                                     'lastFinalizedEpoch': 11,
+                                     'validators': 1})
+
+        self.log.info("Restart proposer")
+        self.restart_node(p)
         assert_finalizationstate(p, {'currentEpoch': 13,
                                      'lastJustifiedEpoch': 12,
                                      'lastFinalizedEpoch': 11,

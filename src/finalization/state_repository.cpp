@@ -251,7 +251,13 @@ void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> pr
 
   const blockchain::Height height = last_finalized_epoch == 0 ? 0 : GetFinalizationParams().GetEpochCheckpointHeight(last_finalized_epoch + 1);
 
-  m_block_index_map->ForEach([this, height, proc](const uint256 &, const CBlockIndex &index) {
+  std::set<const CBlockIndex *> unrecoverable;
+
+  m_block_index_map->ForEach([this, height, proc, &unrecoverable](const uint256 &, const CBlockIndex &index) {
+    // This index has already been checked and marked as unrecoverable
+    if (unrecoverable.count(&index) != 0) {
+      return true;
+    }
     const CBlockIndex *origin = m_active_chain->FindForkOrigin(index);
     if (origin == nullptr || static_cast<blockchain::Height>(origin->nHeight) <= height) {
       return true;
@@ -272,38 +278,48 @@ void RepositoryImpl::CheckAndRecover(Dependency<finalization::StateProcessor> pr
       missed.push_front(walk);
       walk = walk->pprev;
     }
-    if (!missed.empty()) {
-      LogPrintf("WARN: State for block=%s height=%d missed in the finalization state database.\n", index.GetBlockHash().GetHex(), index.nHeight);
-      LogPrintf("Trying to recover the following states from block index database or block files: %s\n",
-                util::to_string([&missed] {
-                                  std::vector<std::string> r;
-                                  r.reserve(missed.size());
-                                  for (auto const &m : missed) {
-                                    r.emplace_back(m->GetBlockHash().GetHex());
-                                  }
-                                  return r; }()));
-    }
     while (!missed.empty()) {
       const CBlockIndex *index = missed.front();
       const CBlockIndex *target = missed.back();
       missed.pop_front();
       if (index->commits) {
         if (proc->ProcessNewCommits(*index, *index->commits)) {
+          LogPrintf("Finalization state for block=%s height=%d has been recovered from block index\n",
+                    index->GetBlockHash().GetHex(), index->nHeight);
           continue;
         }
       }
-      boost::optional<CBlock> block = m_block_db->ReadBlock(*index);
-      if (!block) {
-        LogPrintf("Cannot read block=%s to restore finalization state for block=%s.\n",
-                  index->GetBlockHash().GetHex(), target->GetBlockHash().GetHex());
-        LogPrintf("Need sync\n");
-        throw MissedBlockError(*index);
+      if (index->nStatus & BLOCK_HAVE_DATA) {
+        boost::optional<CBlock> block = m_block_db->ReadBlock(*index);
+        if (!block) {
+          LogPrintf("Cannot read block=%s to restore finalization state for block=%s.\n",
+                    index->GetBlockHash().GetHex(), target->GetBlockHash().GetHex());
+          LogPrintf("Need sync\n");
+          throw MissedBlockError(*index);
+        }
+        if (proc->ProcessNewTipCandidate(*index, *block)) {
+          LogPrintf("Finalization state for block=%s height=%d has been recovered from block\n",
+                    index->GetBlockHash().GetHex(), index->nHeight);
+        }
+        continue;
       }
-      const bool ok = proc->ProcessNewTipCandidate(*index, *block);
-      assert(ok);
+      unrecoverable.emplace(index);
     }
     return true;
   });
+
+  for (const auto *u : unrecoverable) {
+    if (m_active_chain->Contains(*u)) {
+      LogPrintf("Cannot recover finalization state for block=%s height=%d\n",
+                u->GetBlockHash().GetHex(), u->nHeight);
+      throw std::runtime_error("Need sync or reindex");
+    }
+  }
+
+  if (!unrecoverable.empty()) {
+    LogPrintf("%d finalization states have not been recovered, but it seems to be safe to continue.\n",
+              unrecoverable.size());
+  }
 
   TrimUntilHeight(height);
 }
