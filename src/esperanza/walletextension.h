@@ -156,6 +156,7 @@ class WalletExtension : public staking::StakingWallet {
 
   //! \brief Creates and sends a withdraw transaction.
   //!
+  //! \param address to which withdraw the amount
   //! \param wtxNewOut[out] the withdraw transaction created.
   //! \returns true if the operation was successful, false otherwise.
   bool SendWithdraw(const CTxDestination &address, CWalletTx &wtxNewOut);

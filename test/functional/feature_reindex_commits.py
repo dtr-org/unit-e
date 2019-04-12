@@ -61,7 +61,6 @@ class FeatureReindexCommits(UnitETestFramework):
 
         self.log.info("Setup deposit")
         self.setup_deposit()
-        self.assert_finalizer_status('IS_VALIDATING')
 
         disconnect_nodes(self.proposer, self.finalizer.index)
 
@@ -80,6 +79,7 @@ class FeatureReindexCommits(UnitETestFramework):
                                   'validators': 1})
 
         self.log.info("Restart nodes, -reindex=1")
+        self.assert_finalizer_status('IS_VALIDATING')
         self.restart_nodes(True)
         self.assert_finalizer_status('IS_VALIDATING')
 
@@ -124,14 +124,19 @@ class FeatureReindexCommits(UnitETestFramework):
         assert_equal(self.proposer.getblockcount(), 25)
 
     def assert_finalizer_status(self, status):
-        wait_until(lambda: self.finalizer.getvalidatorinfo()[
-            'validator_status'] == status, timeout=10)
+        fn = self.finalizer.getvalidatorinfo
+        try:
+            wait_until(lambda: fn()['validator_status'] == status, timeout=10)
+        except AssertionError:
+            assert_equal(fn()['validator_status'], status)  # show actual status in error
 
     def restart_nodes(self, reindex):
-        tip_before = self.proposer.getbestblockhash()
-        self.stop_nodes()
-        self.start_nodes(self.get_extra_args(reindex))
-        wait_until(lambda: self.proposer.getbestblockhash() == tip_before)
+        for n in self.nodes:
+            self.log.info("Restart node=%d", n.index)
+            tip_before = n.getbestblockhash()
+            self.stop_node(n.index)
+            self.start_node(n.index, self.get_extra_args(reindex)[n.index])
+            wait_until(lambda: n.getbestblockhash() == tip_before)
 
 
 if __name__ == '__main__':

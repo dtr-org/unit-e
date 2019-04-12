@@ -37,10 +37,16 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         self.setup_nodes()
 
     def run_test(self):
-        def assert_vote(node, raw_tx, source_epoch, target_epoch, target_hash):
-            tx = FromHex(CTransaction(), raw_tx)
-            assert tx.is_finalizer_commit()
-            vote = node.extractvotefromsignature(bytes_to_hex_str(tx.vin[0].scriptSig))
+        def assert_vote(vote_raw_tx, input_raw_tx, source_epoch, target_epoch, target_hash):
+            vote_tx = FromHex(CTransaction(), vote_raw_tx)
+            assert vote_tx.is_finalizer_commit()
+
+            input_tx = FromHex(CTransaction(), input_raw_tx)
+            input_tx.rehash()
+            prevout = "%064x" % vote_tx.vin[0].prevout.hash
+            assert_equal(prevout, input_tx.hash)
+
+            vote = self.nodes[0].extractvotefromsignature(bytes_to_hex_str(vote_tx.vin[0].scriptSig))
             assert_equal(vote['source_epoch'], source_epoch)
             assert_equal(vote['target_epoch'], target_epoch)
             assert_equal(vote['target_hash'], target_hash)
@@ -61,10 +67,11 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         sync_blocks(self.nodes)
 
         # deposit
-        d1 = finalizer.deposit(finalizer.getnewaddress('', 'legacy'), 1500)
-        d2 = finalizer2.deposit(finalizer2.getnewaddress('', 'legacy'), 4000)
-        self.wait_for_transaction(d1, timeout=10)
-        self.wait_for_transaction(d2, timeout=10)
+        d1_hash = finalizer.deposit(finalizer.getnewaddress('', 'legacy'), 1500)
+        d2_hash = finalizer2.deposit(finalizer2.getnewaddress('', 'legacy'), 4000)
+        d1 = finalizer.getrawtransaction(d1_hash)
+        self.wait_for_transaction(d1_hash, timeout=10)
+        self.wait_for_transaction(d2_hash, timeout=10)
         fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
         disconnect_nodes(fork0, finalizer.index)
         disconnect_nodes(fork0, finalizer2.index)
@@ -82,11 +89,12 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
 
         # move tip to one block before checkpoint to be able to
         # revert checkpoint on the fork
-        #       J
+        #       J           v0
         # ... - e5 - e6[26, 27, 28, 29] fork0
         #                            \
         #                             - fork1
-        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
+        v0 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
+        assert_vote(vote_raw_tx=v0, input_raw_tx=d1, source_epoch=4, target_epoch=5, target_hash=fork0.getblockhash(25))
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork0)
         fork0.generatetoaddress(3, fork0.getnewaddress('', 'bech32'))
         sync_blocks([fork0, fork1], timeout=10)
@@ -99,24 +107,27 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
                                          'validators': 2})
 
         # vote v1 on target_epoch=6 target_hash=30
-        #       J                        v1
-        # ... - e5 - e6[29, 30] - e7[31, 32] fork0
-        #                \
-        #                 - fork1
+        #       J           v0                       v1
+        # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
+        #                            \
+        #                             - fork1
         fork0.generatetoaddress(2, fork0.getnewaddress('', 'bech32'))
         assert_equal(fork0.getblockcount(), 31)
-        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
-        v1 = fork0.getrawtransaction(fork0.getrawmempool()[0])
-        assert_vote(node=fork0, raw_tx=v1, source_epoch=5, target_epoch=6, target_hash=fork0.getblockhash(30))
+        v1 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
+        assert_vote(vote_raw_tx=v1, input_raw_tx=v0, source_epoch=5, target_epoch=6, target_hash=fork0.getblockhash(30))
         fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
+        connect_nodes(finalizer, fork0.index)
+        sync_blocks([finalizer, fork0], timeout=10)
+        disconnect_nodes(finalizer, fork0.index)
         assert_equal(fork0.getblockcount(), 32)
+        assert_equal(finalizer.getblockcount(), 32)
         self.log.info('finalizer successfully voted on the checkpoint')
 
         # re-org last checkpoint and check that finalizer doesn't vote
-        #       J                        v1
-        # ... - e5 - e6[29, 30] - e7[31, 32] fork0
-        #                \
-        #                 - 30] - e7[31, 32, 33] fork1
+        #       J           v0                       v1
+        # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
+        #                            \
+        #                             - 30] - e7[31, 32, 33] fork1
         fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 33)
         connect_nodes(finalizer, fork1.index)
@@ -127,36 +138,34 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         self.log.info('finalizer successfully detected potential double vote and did not vote')
 
         # continue to new epoch and check that finalizer votes on fork1
-        #       J                        v1
-        # ... - e5 - e6[29, 30] - e7[31, 32] fork0
-        #                \                         v2
-        #                 - 30] - e7[...] - e8[36, 37] fork1
+        #       J           v0                       v1
+        # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
+        #                            \                         v2
+        #                             - 30] - e7[...] - e8[36, 37] fork1
         fork1.generatetoaddress(3, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 36)
-        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
-        v2 = fork1.getrawtransaction(fork1.getrawmempool()[0])
-        assert_vote(node=fork1, raw_tx=v2, source_epoch=5, target_epoch=7, target_hash=fork1.getblockhash(35))
+        v2 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
+        assert_vote(vote_raw_tx=v2, input_raw_tx=v0, source_epoch=5, target_epoch=7, target_hash=fork1.getblockhash(35))
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 37)
 
         # create new epoch on fork1 and check that finalizer votes
-        #       J                        v1
-        # ... - e5 - e6[29, 30] - e7[31, 32] fork0
-        #                \                         v2                v3
-        #                 - 30] - e7[...] - e8[36, 37, ...] - e9[41, 42] fork1
+        #       J           v0                       v1
+        # ... - e5 - e6[26, 27, 28, 29, 30] - e7[31, 32] fork0
+        #                            \                         v2                v3
+        #                             - 30] - e7[...] - e8[36, 37, ...] - e9[41, 42] fork1
         fork1.generatetoaddress(4, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 41)
-        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
-        v3 = fork1.getrawtransaction(fork1.getrawmempool()[0])
-        assert_vote(node=fork1, raw_tx=v3, source_epoch=5, target_epoch=8, target_hash=fork1.getblockhash(40))
+        v3 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork1)
+        assert_vote(vote_raw_tx=v3, input_raw_tx=v2, source_epoch=5, target_epoch=8, target_hash=fork1.getblockhash(40))
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 42)
 
         # create longer fork0 and check that after reorg finalizer doesn't vote
-        #       J                 v1
-        # ... - e5 - e6[29, 30] - e7 - e8 - e9[41,42, 43] fork0
-        #                \             v2          v3
-        #                 - 30] - e7 - e8 - e9[41, 42] fork1
+        #       J           v0                v1
+        # ... - e5 - e6[26, 27, 28, 29, 30] - e7 - e8 - e9[41,42, 43] fork0
+        #                            \             v2          v3
+        #                             - 30] - e7 - e8 - e9[41, 42] fork1
         fork0.generatetoaddress(11, fork0.getnewaddress('', 'bech32'))
         assert_equal(fork0.getblockcount(), 43)
         connect_nodes(finalizer, fork0.index)
@@ -167,24 +176,23 @@ class EsperanzaVoteReorgTest(UnitETestFramework):
         self.log.info('finalizer successfully detected potential two consecutive double votes and did not vote')
 
         # check that finalizer can vote from next epoch on fork0
-        #       J                 v1                          v4
-        # ... - e5 - e6[29, 30] - e7 - e8 - e9[...] - e10[46, 47] fork0
-        #                \             v2          v3
-        #                 - 30] - e7 - e8 - e9[41, 42] fork1
+        #       J           v0                v1                          v4
+        # ... - e5 - e6[26, 27, 28, 29, 30] - e7 - e8 - e9[...] - e10[46, 47] fork0
+        #                            \             v2          v3
+        #                             - 30] - e7 - e8 - e9[41, 42] fork1
         fork0.generatetoaddress(3, fork0.getnewaddress('', 'bech32'))
         assert_equal(fork0.getblockcount(), 46)
-        self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
-        v4 = fork0.getrawtransaction(fork0.getrawmempool()[0])
-        assert_vote(node=fork0, raw_tx=v4, source_epoch=5, target_epoch=9, target_hash=fork0.getblockhash(45))
+        v4 = self.wait_for_vote_and_disconnect(finalizer=finalizer, node=fork0)
+        assert_vote(vote_raw_tx=v4, input_raw_tx=v1, source_epoch=5, target_epoch=9, target_hash=fork0.getblockhash(45))
         fork0.generatetoaddress(1, fork0.getnewaddress('', 'bech32'))
         assert_equal(fork0.getblockcount(), 47)
 
         # finalize epoch8 on fork1 and re-broadcast all vote txs
         # which must not create slash tx
-        #       J                 v1                                             v4
-        # ... - e5 - e6[29, 30] - e7 - e8[36, 37, ...] - e9[   ...   ] - e10[46, 47] fork0
-        #                \             F      v2        J      v3
-        #                 - 30] - e7 - e8[36, 37,...] - e9[41, 42, 43] - e10[46, 47] fork1
+        #       J           v0                v1                                      v4
+        # ... - e5 - e6[26, 27, 28, 29, 30] - e7 - e8[   ...    ] - e9[...] - e10[46, 47] fork0
+        #                            \             F      v2        J      v3
+        #                             - 30] - e7 - e8[36, 37,...] - e9[41, 42, 43] - e10[46, 47] fork1
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=fork1)
         fork1.generatetoaddress(1, fork1.getnewaddress('', 'bech32'))
         assert_equal(fork1.getblockcount(), 43)
