@@ -17,7 +17,6 @@ void Waiter::Wait() {
 }
 
 void Waiter::Wake() {
-  std::unique_lock<decltype(m_mutex)> lock(m_mutex);
   m_condition.notify_all();
 }
 

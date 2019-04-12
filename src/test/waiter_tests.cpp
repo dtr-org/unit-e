@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_SUITE(waiter_tests)
 namespace {
 
 void WaitValue(const std::atomic<bool> &value) {
-  const auto wait_until = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+  const auto wait_until = std::chrono::steady_clock::now() + std::chrono::seconds(60);
   while (!value) {
     const auto now = std::chrono::steady_clock::now();
     BOOST_REQUIRE(now < wait_until);
