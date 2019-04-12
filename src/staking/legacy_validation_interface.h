@@ -39,7 +39,7 @@ class StakeValidator;
 //!
 //! For backwards compatibility CValidationState has been augmented
 //! with staking::BlockValidationInfo. The scope of it is narrower
-//! then for CValidationState as we also have BlockValidationResult.
+//! than for CValidationState as we also have BlockValidationResult.
 //! To translate into the existing validation interface different
 //! implementations are provided for the LegacyValidationInterface:
 //! - LegacyValidationInterface::New which accesses the PoS BlockValidator

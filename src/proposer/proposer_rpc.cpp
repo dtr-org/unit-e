@@ -30,9 +30,10 @@ class ProposerRPCImpl : public ProposerRPC {
   const Dependency<Proposer> m_proposer;
 
   UniValue GetWalletInfo(const std::vector<CWalletRef> &wallets) const {
-    LOCK(m_chain->GetLock());
     UniValue result(UniValue::VARR);
     for (const auto &wallet : wallets) {
+      wallet->BlockUntilSyncedToCurrentChain();
+      LOCK(m_chain->GetLock());
       const auto &wallet_extension = wallet->GetWalletExtension();
       const auto &proposerState = wallet_extension.GetProposerState();
       UniValue info(UniValue::VOBJ);
@@ -145,6 +146,7 @@ class ProposerRPCImpl : public ProposerRPC {
           "get the stakeable coins\n",
           __func__));
     }
+    wallet->BlockUntilSyncedToCurrentChain();
     UniValue obj(UniValue::VOBJ);
     const staking::StakingWallet &staking_wallet = wallet->GetWalletExtension();
     const staking::CoinSet stakeable_coins = [&]() {

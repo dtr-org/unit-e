@@ -81,7 +81,7 @@ class ProposerStakeableBalanceTest(UnitETestFramework):
             wallet = status['wallets'][0]
             assert_equal(wallet['balance'], Decimal('10000.00000000'))
             assert_equal(wallet['stakeable_balance'], Decimal('10000.00000000'))
-        # and others shoulds till not have enough funds for proposing blocks
+        # and others should still not have enough funds for proposing blocks
         for i in range(num_keys, self.num_nodes):
             status = nodes[i].proposerstatus()
             wallet = status['wallets'][0]
