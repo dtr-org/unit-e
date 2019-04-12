@@ -294,10 +294,10 @@ class StakeValidatorImpl : public StakeValidator {
     const blockchain::Depth at_depth = m_active_chain->GetDepth(height);
     const blockchain::Height chain_height = m_active_chain->GetHeight();
     const blockchain::Height stake_maturity = m_blockchain_behavior->GetParameters().stake_maturity;
-    const blockchain::Height stake_maturity_threshold =
-        m_blockchain_behavior->GetParameters().stake_maturity_threshold;
+    const blockchain::Height stake_maturity_activation_height =
+        m_blockchain_behavior->GetParameters().stake_maturity_activation_height;
 
-    return chain_height <= stake_maturity_threshold || at_depth > stake_maturity;
+    return chain_height <= stake_maturity_activation_height || at_depth > stake_maturity;
   }
 
  protected:

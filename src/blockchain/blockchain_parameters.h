@@ -158,7 +158,7 @@ struct Parameters {
   Height stake_maturity;
 
   //! \brief Stake maturity must be ignored on the network start for the threshold period.
-  Height stake_maturity_threshold;
+  Height stake_maturity_activation_height;
 
   //! \brief The initial amount of premined coins.
   CAmount initial_supply;
