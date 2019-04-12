@@ -59,6 +59,10 @@ categories:
     color: cbdfff
     description: Continuous integration
     id: 1045230454
+  - name: data corruption
+    color: cbdfff
+    description: Issues where data is corrupted
+    id: datacorruption
   - name: style
     color: bad5ff
     description: Code style and naming
@@ -67,10 +71,22 @@ categories:
     color: a9cbff
     description: Documentation
     id: 1045253957
+  - name: logs
+    color: a9cbff
+    description: Log files and output
+    id: logs
+  - name: release
+    color: a9cbff
+    description: Related to release process and doing releases
+    id: release
   - name: repo
     color: 98c0ff
     description: Configuration of the repository itself
     id: 1144491282
+  - name: resource usage
+    color: 98c0ff
+    description: Issues related to usage of resources such as memory or CPU
+    id: resourceusage
   - name: security
     color: 87b6fe
     description: A security related issue
@@ -98,6 +114,9 @@ categories:
 - name: Component
   color: ffcc00
   labels:
+  - name: block storage
+    description: ''
+    id: blockstorage
   - name: consensus
     description: ''
     id: 1045236901
@@ -110,6 +129,9 @@ categories:
   - name: genesis
     description: ''
     id: 1045240262
+  - name: mempool
+    description: ''
+    id: mempool
   - name: permissioning
     description: ''
     id: 1051714364
