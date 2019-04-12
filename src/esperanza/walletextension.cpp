@@ -819,15 +819,22 @@ void WalletExtension::BlockConnected(
       if (validatorState->m_phase == +ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION) {
         validatorState->m_phase = ValidatorState::Phase::IS_VALIDATING;
         WriteValidatorStateToFile();
+        LogPrint(BCLog::FINALIZATION,
+                 "finalizer=%d phase changed to %s because start_dynasty=%d began\n",
+                 validator->m_validator_address.ToString(),
+                 validatorState->m_phase._to_string(),
+                 validator->m_start_dynasty);
       }
       assert(validatorState->m_phase == +ValidatorState::Phase::IS_VALIDATING);
     } else {
       if (validatorState->m_phase == +ValidatorState::Phase::IS_VALIDATING) {
-        LogPrint(BCLog::FINALIZATION,
-                 "Validator is disabled because end_dynasty=%d passed\n",
-                 validator->m_end_dynasty);
         validatorState->m_phase = ValidatorState::Phase::NOT_VALIDATING;
         WriteValidatorStateToFile();
+        LogPrint(BCLog::FINALIZATION,
+                 "finalizer=%d phase changed to %s because end_dynasty=%d passed\n",
+                 validator->m_validator_address.ToString(),
+                 validatorState->m_phase._to_string(),
+                 validator->m_end_dynasty);
       }
       assert(validatorState->m_phase == +ValidatorState::Phase::NOT_VALIDATING);
     }
