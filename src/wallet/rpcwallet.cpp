@@ -3535,6 +3535,7 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
         throw std::runtime_error(
             "generatetoaddress nblocks address (maxtries)\n"
             "\nMine blocks immediately to a specified address (before the RPC call returns)\n"
+            "\nNote: this function can only be used on the regtest network.\n"
             "\nArguments:\n"
             "1. nblocks      (numeric, required) How many blocks are generated immediately.\n"
             "2. address      (string, required) The address to send the newly generated unite to.\n"
@@ -3545,6 +3546,10 @@ UniValue generatetoaddress(const JSONRPCRequest& request)
             "\nGenerate 11 blocks to myaddress\n"
             + HelpExampleCli("generatetoaddress", "11 \"myaddress\"")
         );
+
+    if (!Params().MineBlocksOnDemand()) {
+        throw JSONRPCError(RPC_METHOD_NOT_FOUND, "This method can only be used on regtest");
+    }
 
     int nGenerate = request.params[0].get_int();
     uint64_t nMaxTries = 1000000;
