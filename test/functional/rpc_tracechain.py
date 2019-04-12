@@ -39,6 +39,7 @@ class RpcTraceChainTest(UnitETestFramework):
                 {
                     'block_hash': Matcher.hexstr(64),
                     'block_height': 1,
+                    'stake_modifier': Matcher.hexstr(64),
                     'status': str,
                     'transactions': Matcher.many(Matcher.hexstr(64), min=1),
                     'coinbase': {
@@ -70,6 +71,7 @@ class RpcTraceChainTest(UnitETestFramework):
                 {
                     'block_hash': Matcher.hexstr(64),
                     'block_height': 0,
+                    'stake_modifier': Matcher.hexstr(64),
                     'status': str,
                     'initial_funds': {
                         'txid': Matcher.hexstr(64),

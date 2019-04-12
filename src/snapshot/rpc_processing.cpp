@@ -167,7 +167,7 @@ UniValue deletesnapshot(const JSONRPCRequest &request) {
 }
 
 UniValue calcsnapshothash(const JSONRPCRequest &request) {
-  if (request.fHelp || request.params.size() < 2) {
+  if (request.fHelp || request.params.size() < 4 || request.params.size() > 5) {
     CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
 
     stream << std::vector<UTXO>(1);
@@ -207,7 +207,7 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   }
 
   CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-  for (int i = 0; i < 2; ++i) {
+  for (std::size_t i = 0; i < 2; ++i) {
     std::vector<uint8_t> data = ParseHex(request.params[i].get_str());
     stream.write(reinterpret_cast<char *>(data.data()), data.size());
   }
@@ -217,8 +217,8 @@ UniValue calcsnapshothash(const JSONRPCRequest &request) {
   stream >> inputs;
   stream >> outputs;
 
-  uint256 stake_modifier = uint256(ParseHex(request.params[2].get_str()));
-  uint256 chain_work = uint256(ParseHex(request.params[3].get_str()));
+  const uint256 stake_modifier = uint256S(request.params[2].get_str());
+  const uint256 chain_work = uint256(ParseHex(request.params[3].get_str()));
 
   SnapshotHash hash;
   if (request.params.size() == 5) {

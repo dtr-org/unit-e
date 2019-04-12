@@ -107,7 +107,6 @@ UNITE_CORE_H = \
   consensus/consensus.h \
   consensus/tx_verify.h \
   consensus/ltor.h \
-  consensus/ltor.cpp \
   core_io.h \
   core_memusage.h \
   cuckoocache.h \
@@ -369,7 +368,6 @@ libunite_server_a_SOURCES = \
   staking/coin.cpp \
   staking/legacy_validation_interface.cpp \
   staking/network.cpp \
-  staking/proof_of_stake.cpp \
   staking/stake_validator.cpp \
   staking/staking_rpc.cpp \
   staking/validation_error.cpp \
@@ -551,6 +549,7 @@ libunite_common_a_SOURCES = \
   snapshot/messages.cpp \
   snapshot/iterator.cpp \
   snapshot/indexer.cpp \
+  staking/proof_of_stake.cpp \
   ufp64.cpp \
   warnings.cpp \
   $(UNITE_CORE_H)

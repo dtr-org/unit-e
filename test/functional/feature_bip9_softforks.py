@@ -67,7 +67,7 @@ class BIP9SoftForksTest(ComparisonTestFramework):
             test_blocks.append([block, True])
             self.last_block_time += 1
 
-            self.snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.snapshot_meta.data, 0, self.height, coinbase)
+            self.snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.snapshot_meta, self.height, coinbase)
             self.tip = block.sha256
             self.height += 1
         return test_blocks

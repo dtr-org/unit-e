@@ -1978,17 +1978,30 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
     // Check Stake
-    CheckStakeFlags::Type check_stake_flags = CheckStakeFlags::NONE;
-    if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
-        check_stake_flags |= CheckStakeFlags::SKIP_ELIGIBILITY_CHECK;
-    }
-    UTXOViewAdapter utxo_view(GetComponent<staking::ActiveChain>(), view);
-    const staking::BlockValidationResult stake_validation_result =
-        GetComponent<staking::StakeValidator>()->CheckStake(block, &state.block_validation_info, check_stake_flags, &utxo_view);
-    if (!staking::CheckResult(stake_validation_result, state)) {
-        LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
-            __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());
-        return false;
+    if (pindex->nHeight > 0) {
+        UTXOViewAdapter utxo_view(GetComponent<staking::ActiveChain>(), view);
+        auto validator = GetComponent<staking::StakeValidator>();
+        const staking::BlockValidationResult coinbase_validation_result =
+            GetComponent<staking::BlockValidator>()->CheckCoinbaseTransaction(*block.vtx[0]);
+        if (!staking::CheckResult(coinbase_validation_result, state)) {
+            return false;
+        }
+        const boost::optional<staking::Coin> utxo = utxo_view.GetUTXO(block.GetStakingInput().prevout);
+        if (utxo) {
+            pindex->stake_modifier =
+                validator->ComputeStakeModifier(pindex->pprev, *utxo_view.GetUTXO(block.GetStakingInput().prevout));
+        }
+        CheckStakeFlags::Type check_stake_flags = CheckStakeFlags::NONE;
+        if (Flags::IsSet(connect_block_flags, ConnectBlockFlags::SKIP_ELIGIBILITY_CHECK)) {
+            check_stake_flags |= CheckStakeFlags::SKIP_ELIGIBILITY_CHECK;
+        }
+        const staking::BlockValidationResult stake_validation_result =
+            validator->CheckStake(block, &state.block_validation_info, check_stake_flags, &utxo_view);
+        if (!staking::CheckResult(stake_validation_result, state)) {
+            LogPrint(BCLog::VALIDATION, "%s: Invalid stake found for block=%s failure=%s\n",
+                     __func__, block.GetHash().ToString(), stake_validation_result.errors.ToString());
+            return false;
+        }
     }
 
     // verify that the view's current state corresponds to the previous block

@@ -29,6 +29,7 @@ class RpcTraceStakeTest(UnitETestFramework):
             {
                 'block_hash': Matcher.hexstr(64),
                 'block_height': 0,
+                'stake_modifier': Matcher.hexstr(64),
                 'status': str,
             },
             {
@@ -36,6 +37,7 @@ class RpcTraceStakeTest(UnitETestFramework):
                 'block_height': 1,
                 'funding_block_hash': Matcher.hexstr(64),
                 'funding_block_height': 0,
+                'stake_modifier': Matcher.hexstr(64),
                 'stake_txout': {
                     'amount': Decimal,
                     'scriptPubKey': {

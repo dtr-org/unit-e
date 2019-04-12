@@ -6,6 +6,7 @@
 
 #include <script/script.h>
 #include <script/standard.h>
+#include <streams.h>
 
 namespace staking {
 
@@ -98,6 +99,34 @@ std::vector<CPubKey> ExtractBlockSigningKeys(const CBlock &block) {
     return std::vector<CPubKey>{};
   }
   return ExtractBlockSigningKeys(coinbase_inputs[1]);
+}
+
+uint256 ComputeKernelHash(const uint256 &previous_block_stake_modifier,
+                          const blockchain::Time stake_block_time,
+                          const uint256 &stake_txid,
+                          const std::uint32_t stake_out_index,
+                          const blockchain::Time target_block_time) {
+
+  CDataStream s(SER_GETHASH, 0);
+
+  s << previous_block_stake_modifier;
+  s << stake_block_time;
+  s << stake_txid;
+  s << stake_out_index;
+  s << target_block_time;
+
+  return Hash(s.begin(), s.end());
+}
+
+uint256 ComputeStakeModifier(const uint256 &stake_transaction_hash,
+                             const uint256 &previous_blocks_stake_modifier) {
+
+  CDataStream s(SER_GETHASH, 0);
+
+  s << stake_transaction_hash;
+  s << previous_blocks_stake_modifier;
+
+  return Hash(s.begin(), s.end());
 }
 
 }  // namespace staking

@@ -21,9 +21,7 @@
 
 namespace staking {
 
-//! \brief
-//!
-//!
+//! \brief Validates Proof-of-Stake specific aspects of a block.
 class StakeValidator {
  public:
   virtual CCriticalSection &GetLock() = 0;
@@ -108,7 +106,7 @@ class StakeValidator {
   //!
   //! Requires the lock (obtained via GetLock) to be held.
   virtual bool IsStakeMature(
-      const blockchain::Height height  //!< [in] The height of the stake coin.
+      blockchain::Height height  //!< [in] The height of the stake coin.
       ) const = 0;
 
   virtual ~StakeValidator() = default;

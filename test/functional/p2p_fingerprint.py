@@ -53,7 +53,7 @@ class P2PFingerprintTest(UnitETestFramework):
             blocks.append(block)
             prev_hash = block.hash
 
-            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, prev_height + 1, coinbase)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, prev_height + 1, coinbase)
             prev_height += 1
             prev_median_time = block_time
         return blocks

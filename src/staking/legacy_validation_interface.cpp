@@ -60,15 +60,15 @@ class LegacyValidationImpl : public LegacyValidationInterface {
     if (check_merkle_root) {
       bool mutated;
       uint256 hashMerkleRoot2 = BlockMerkleRoot(block, &mutated);
-      if (block.hashMerkleRoot != hashMerkleRoot2)
+      if (block.hashMerkleRoot != hashMerkleRoot2) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txnmrklroot", true, "hashMerkleRoot mismatch");
-
+      }
       // Check for merkle tree malleability (CVE-2012-2459): repeating sequences
       // of transactions in a block without affecting the merkle root of a block,
       // while still invalidating it.
-      if (mutated)
+      if (mutated) {
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-duplicate", true, "duplicate transaction");
-
+      }
       uint256 merkle_root = BlockFinalizerCommitsMerkleRoot(block);
       if (block.hash_finalizer_commits_merkle_root != merkle_root) {
         return state.DoS(100, false, REJECT_INVALID, "bad-finalizercommits-merkleroot", true, "hash_finalizer_commits_merkle_root mismatch");

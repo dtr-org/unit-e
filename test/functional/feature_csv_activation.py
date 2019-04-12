@@ -149,7 +149,7 @@ class BIP68_112_113Test(ComparisonTestFramework):
         block.compute_merkle_trees()
         block.solve()
 
-        self.tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.tip_snapshot_meta.data, 0, self.tipheight + 1, coinbase)
+        self.tip_snapshot_meta = update_snapshot_with_tx(self.nodes[0], self.tip_snapshot_meta, self.tipheight + 1, coinbase)
         return block
 
     def create_bip68txs(self, bip68inputs, txversion, locktime_delta = 0):

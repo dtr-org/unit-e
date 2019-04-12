@@ -10,6 +10,7 @@
 #include <primitives/transaction.h>
 #include <serialize.h>
 #include <staking/active_chain.h>
+#include <staking/proof_of_stake.h>
 #include <streams.h>
 #include <validation.h>
 
@@ -20,56 +21,11 @@ namespace staking {
 class StakeValidatorImpl : public StakeValidator {
 
  private:
-  Dependency<blockchain::Behavior> m_blockchain_behavior;
-  Dependency<ActiveChain> m_active_chain;
+  const Dependency<blockchain::Behavior> m_blockchain_behavior;
+  const Dependency<ActiveChain> m_active_chain;
 
   mutable CCriticalSection m_cs;
   std::set<COutPoint> m_kernel_seen;
-
-  //! \brief Computes the kernel hash which determines whether you're eligible for proposing or not.
-  //!
-  //! The kernel hash must not rely on the contents of the block as this would allow a proposer
-  //! to degrade the system into a PoW setting simply by selecting subsets of transactions to
-  //! include (this also allows a proposer to produce multiple eligible blocks with different
-  //! contents which is why detection of duplicate stake is crucial).
-  //!
-  //! At the same time the kernel hash must not be easily predictable, which is why some entropy
-  //! is added: The "stake modifier" is a value taken from a previous block.
-  //!
-  //! In case one is not eligible to propose: The cards are being reshuffled every so often,
-  //! which is why the "current time" (the block time of the block to propose) is part of the
-  //! computation for the kernel hash.
-  uint256 ComputeKernelHash(const uint256 &previous_block_stake_modifier,
-                            const blockchain::Time stake_block_time,
-                            const uint256 &stake_txid,
-                            const std::uint32_t stake_out_index,
-                            const blockchain::Time target_block_time) const {
-
-    ::CDataStream s(SER_GETHASH, 0);
-
-    s << previous_block_stake_modifier;
-    s << stake_block_time;
-    s << stake_txid;
-    s << stake_out_index;
-    s << target_block_time;
-
-    return Hash(s.begin(), s.end());
-  }
-
-  //! \brief Computes the stake modifier which is used to make the next kernel unpredictable.
-  //!
-  //! The stake modifier relies on the transaction hash of the coin staked and
-  //! the stake modifier of the previous block.
-  uint256 ComputeStakeModifier(const uint256 &stake_transaction_hash,
-                               const uint256 &previous_blocks_stake_modifier) const {
-
-    ::CDataStream s(SER_GETHASH, 0);
-
-    s << stake_transaction_hash;
-    s << previous_blocks_stake_modifier;
-
-    return Hash(s.begin(), s.end());
-  }
 
   //! \brief Checks the stake of the given block. The previous block has to be part of the active chain.
   //!
@@ -84,7 +40,6 @@ class StakeValidatorImpl : public StakeValidator {
                                            const CheckStakeFlags::Type flags) const {
     AssertLockHeld(m_active_chain->GetLock());
     BlockValidationResult result;
-
     if (block.vtx.empty()) {
       result.errors += BlockValidationError::NO_COINBASE_TRANSACTION;
       return result;
@@ -137,7 +92,7 @@ class StakeValidatorImpl : public StakeValidator {
     }
     // Adding an error should immediately have returned so we assert to have validated the stake.
     assert(result);
-    return CheckRemoteStakingOutputs(coinbase_tx, *stake, utxo_view);
+    return CheckRemoteStakingOutputs(block.vtx[0], *stake, utxo_view);
   }
 
   //! \brief Check remote-staking outputs of a coinbase transaction.
@@ -185,9 +140,9 @@ class StakeValidatorImpl : public StakeValidator {
 
  public:
   explicit StakeValidatorImpl(
-      Dependency<blockchain::Behavior> blockchain_behavior,
-      Dependency<ActiveChain> active_chain) : m_blockchain_behavior(blockchain_behavior),
-                                              m_active_chain(active_chain) {}
+      const Dependency<blockchain::Behavior> blockchain_behavior,
+      const Dependency<ActiveChain> active_chain) : m_blockchain_behavior(blockchain_behavior),
+                                                    m_active_chain(active_chain) {}
 
   CCriticalSection &GetLock() override {
     return m_cs;
@@ -201,7 +156,7 @@ class StakeValidatorImpl : public StakeValidator {
       // Its stake modifier is simply 0.
       return uint256::zero;
     }
-    return ComputeStakeModifier(
+    return staking::ComputeStakeModifier(
         stake.GetTransactionId(),
         previous_block->stake_modifier);
   }
@@ -215,7 +170,7 @@ class StakeValidatorImpl : public StakeValidator {
       // property of meeting any target difficulty.
       return uint256::zero;
     }
-    return ComputeKernelHash(
+    return staking::ComputeKernelHash(
         previous_block->stake_modifier,
         coin.GetBlockTime(),
         coin.GetTransactionId(),
@@ -307,8 +262,8 @@ class StakeValidatorImpl : public StakeValidator {
 };
 
 std::unique_ptr<StakeValidator> StakeValidator::New(
-    Dependency<blockchain::Behavior> blockchain_behavior,
-    Dependency<ActiveChain> active_chain) {
+    const Dependency<blockchain::Behavior> blockchain_behavior,
+    const Dependency<ActiveChain> active_chain) {
   return std::unique_ptr<StakeValidator>(new StakeValidatorImpl(
       blockchain_behavior,
       active_chain));

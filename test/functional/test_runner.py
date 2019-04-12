@@ -118,7 +118,7 @@ BASE_SCRIPTS= [
     'wallet_keypool_topup.py',
     'p2p_commits.py',
     'rpc_blockchain.py',
-    'rpc_getstakeablecoins.py',
+    'rpc_liststakeablecoins.py',
     'esperanza_logout.py',
     'feature_versionbits_warning.py',
     'rpc_filtertransactions.py',

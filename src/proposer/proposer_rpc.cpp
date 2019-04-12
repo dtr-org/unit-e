@@ -133,7 +133,7 @@ class ProposerRPCImpl : public ProposerRPC {
     return proposerstatus(request);
   }
 
-  UniValue getstakeablecoins(const JSONRPCRequest &request) const override {
+  UniValue liststakeablecoins(const JSONRPCRequest &request) const override {
     CWallet *const wallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(wallet, request.fHelp)) {
       return NullUniValue;
