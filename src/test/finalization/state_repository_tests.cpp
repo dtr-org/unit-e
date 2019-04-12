@@ -119,6 +119,7 @@ class Fixture {
     CBlockIndex &index = *m_block_indexes.Insert(uint256S(std::to_string(height)));
     index.nHeight = height;
     index.pprev = m_chain.tip;
+    index.nStatus |= BLOCK_HAVE_DATA;
     m_chain.tip = &index;
     m_chain.height = height;
     m_block_heights[index.nHeight] = &index;
@@ -384,6 +385,26 @@ BOOST_AUTO_TEST_CASE(recovering) {
     BOOST_CHECK(fixture.m_block_db.blocks.empty());
     LOCK(restored_repo->GetLock());
     BOOST_CHECK(restored_repo->Find(*fixture.m_chain.AtHeight(5)) != nullptr);
+    check_restored(*restored_repo);
+  }
+
+  // Cannot recover finalization state for new tip
+  {
+    CBlockIndex &index = fixture.CreateBlockIndex();
+    index.nStatus &= ~BLOCK_HAVE_DATA;
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    BOOST_CHECK_THROW(restored_repo->RestoreFromDisk(proc.get()), std::runtime_error);
+  }
+
+  // Move tip one block back. Repository must try to recover it but won't throw as it's not
+  // on the main chain.
+  {
+    CBlockIndex *tip = fixture.m_chain.tip;
+    fixture.m_chain.tip = tip->pprev;
+    auto restored_repo = fixture.NewRepo();
+    auto proc = finalization::StateProcessor::New(restored_repo.get(), &fixture.m_chain);
+    restored_repo->RestoreFromDisk(proc.get());
     check_restored(*restored_repo);
   }
 }
