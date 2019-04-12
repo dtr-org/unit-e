@@ -6,6 +6,7 @@
 #define UNITE_WALLET_TEST_FIXTURE_H
 
 #include <test/test_unite.h>
+#include <test/test_unite_mocks.h>
 
 #include <wallet/wallet.h>
 
@@ -15,6 +16,7 @@
 struct WalletTestingSetup : public TestingSetup {
 
   Settings settings;
+  mocks::StakeValidatorMock stake_validator_mock;
   std::unique_ptr<CWallet> pwalletMain;
 
   explicit WalletTestingSetup(
