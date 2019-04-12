@@ -160,7 +160,7 @@ struct Parameters {
   //! \brief Stake maturity must be ignored on the network start for activation height.
   //!
   //! If there are less than the required depth number of spendable/mature coins
-  //! in the system than the system will be stuck.
+  //! in the system then the system will be stuck.
   //! To make the situation when there are no mature coins for staking less likely
   //! we activate stake maturity validation only when the blockchain's heigth is bigger than activation height.
   Height stake_maturity_activation_height;
