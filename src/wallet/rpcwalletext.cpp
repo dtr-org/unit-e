@@ -484,14 +484,13 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
   UniValue entry(UniValue::VOBJ);
 
   // GetAmounts variables
-  std::list<COutputEntry> listReceived;
-  std::list<COutputEntry> listSent;
-  std::list<COutputEntry> listStaked;
+  std::list<COutputEntry> list_received;
+  std::list<COutputEntry> list_sent;
   CAmount fee;
   CAmount amount = 0;
-  std::string strSentAccount;
+  std::string sent_account;
 
-  wtx.GetAmounts(listReceived, listSent, fee, strSentAccount, ISMINE_ALL);
+  wtx.GetAmounts(list_received, list_sent, fee, sent_account, ISMINE_ALL);
 
   if (wtx.IsFromMe(ISMINE_WATCH_ONLY) && !(watchonly & ISMINE_WATCH_ONLY)) {
     return;
@@ -502,87 +501,67 @@ static void TxWithOutputsToJSON(const CWalletTx &wtx, CWallet *const pwallet,
 
   UniValue outputs(UniValue::VARR);
   // common to every type of transaction
-  if (!strSentAccount.empty()) {
-    entry.pushKV("account", strSentAccount);
+  if (!sent_account.empty()) {
+    entry.pushKV("account", sent_account);
   }
   WalletTxToJSON(wtx, entry);
 
-  if (!listStaked.empty() || !listSent.empty()) {
+  if (!list_sent.empty()) {
     entry.pushKV("abandoned", wtx.isAbandoned());
   }
 
-  // UNIT-E: TODO: get staked transactions
-  if (!listStaked.empty()) {
-    if (!wtx.IsInMainChain()) {
-      entry.pushKV("category", "orphaned_stake");
-    } else {
-      entry.pushKV("category", "stake");
-    }
-    for (const auto &s : listStaked) {
+  std::set<int> receive_outputs;
+  for (const auto &r : list_received) {
+    receive_outputs.insert(r.vout);
+  }
+
+  // sent
+  if (!list_sent.empty()) {
+    entry.pushKV("fee", ValueFromAmount(-fee));
+    for (const auto &s : list_sent) {
       UniValue output(UniValue::VOBJ);
       if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
         return;
       }
-
-      output.pushKV("amount", ValueFromAmount(s.amount));
-      outputs.push_back(output);
-    }
-
-    amount += -fee;
-  } else {
-    std::set<int> receivedOutputs;
-    for (const auto &r : listReceived) {
-      receivedOutputs.insert(r.vout);
-    }
-
-    // sent
-    if (!listSent.empty()) {
-      entry.pushKV("fee", ValueFromAmount(-fee));
-      for (const auto &s : listSent) {
-        UniValue output(UniValue::VOBJ);
-        if (!OutputToJSON(output, s, pwallet, wtx, watchonly)) {
-          return;
-        }
-        amount -= s.amount;
-        if (receivedOutputs.count(s.vout) == 0) {
-          output.pushKV("amount", ValueFromAmount(-s.amount));
-          outputs.push_back(output);
-        }
+      amount -= s.amount;
+      if (receive_outputs.count(s.vout) == 0) {
+        output.pushKV("amount", ValueFromAmount(-s.amount));
+        outputs.push_back(output);
       }
     }
+  }
 
-    // received
-    for (const auto &r : listReceived) {
-      UniValue output(UniValue::VOBJ);
-      if (!OutputToJSON(output, r, pwallet, wtx, watchonly)) {
-        return;
-      }
-
-      output.pushKV("amount", ValueFromAmount(r.amount));
-      amount += r.amount;
-
-      outputs.push_back(output);
+  // received
+  for (const auto &r : list_received) {
+    UniValue output(UniValue::VOBJ);
+    if (!OutputToJSON(output, r, pwallet, wtx, watchonly)) {
+      return;
     }
 
-    if (wtx.IsCoinBase()) {
-      if (!wtx.IsInMainChain()) {
-        entry.pushKV("category", "orphan");
-      } else if (wtx.GetBlocksToRewardMaturity() > 0) {
-        entry.pushKV("category", "immature");
-      } else {
-        entry.pushKV("category", "coinbase");
-      }
-    } else if (!fee) {
-      entry.pushKV("category", "receive");
-    } else if (amount == 0) {
-      if (listSent.empty()) {
-        entry.pushKV("fee", ValueFromAmount(-fee));
-      }
-      entry.pushKV("category", "internal_transfer");
+    output.pushKV("amount", ValueFromAmount(r.amount));
+    amount += r.amount;
+
+    outputs.push_back(output);
+  }
+
+  if (wtx.IsCoinBase()) {
+    if (!wtx.IsInMainChain()) {
+      entry.pushKV("category", "orphan");
+    } else if (wtx.GetBlocksToRewardMaturity() > 0) {
+      entry.pushKV("category", "immature");
     } else {
-      entry.pushKV("category", "send");
+      entry.pushKV("category", "coinbase");
     }
-  };
+  } else if (!fee) {
+    entry.pushKV("category", "receive");
+  } else if (amount == 0) {
+    if (list_sent.empty()) {
+      entry.pushKV("fee", ValueFromAmount(-fee));
+    }
+    entry.pushKV("category", "internal_transfer");
+  } else {
+    entry.pushKV("category", "send");
+  }
 
   entry.pushKV("outputs", outputs);
   entry.pushKV("amount", ValueFromAmount(amount));

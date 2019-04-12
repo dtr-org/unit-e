@@ -3,7 +3,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-from test_framework.test_framework import UnitETestFramework
+from test_framework.test_framework import (
+    UnitETestFramework,
+    PROPOSER_REWARD,
+)
 from test_framework.util import *
 from test_framework.address import *
 
@@ -94,6 +97,16 @@ class FilterTransactionsTest(UnitETestFramework):
             None
         )
         assert result_tx is None
+
+        # coinbase
+        sync_mempools(self.nodes)
+        self.nodes[0].generatetoaddress(1, self.nodes[0].getnewaddress())  # Clear node1's mempool
+        sync_blocks(self.nodes)
+
+        address = self.nodes[1].getnewaddress()
+        self.nodes[1].generatetoaddress(1, address)
+        tx = self.nodes[1].filtertransactions({"search": address})[0]
+        assert_equal(tx['amount'], PROPOSER_REWARD)
 
     def test_count_option(self):
         # count: -1 => JSONRPCException
