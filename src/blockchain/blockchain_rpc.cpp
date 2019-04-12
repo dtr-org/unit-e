@@ -34,6 +34,7 @@ class BlockchainRPCImpl : public BlockchainRPC {
     PUT_PARAMETER(maximum_block_sigops_cost);
     PUT_PARAMETER(coinbase_maturity);
     PUT_PARAMETER(stake_maturity);
+    PUT_PARAMETER(stake_maturity_activation_height);
     PUT_PARAMETER(initial_supply);
     PUT_PARAMETER(maximum_supply);
     PUT_PARAMETER(reward_schedule);

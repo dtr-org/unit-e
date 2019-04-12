@@ -157,6 +157,14 @@ struct Parameters {
   //! \brief Stake can only be used after the stake maturity period.
   Height stake_maturity;
 
+  //! \brief Stake maturity must be ignored on the network start for activation height.
+  //!
+  //! If there are less than the required depth number of spendable/mature coins
+  //! in the system than the system will be stuck.
+  //! To make the situation when there are no mature coins for staking less likely
+  //! we activate stake maturity validation only when the blockchain's heigth is bigger than activation height.
+  Height stake_maturity_activation_height;
+
   //! \brief The initial amount of premined coins.
   CAmount initial_supply;
 
