@@ -2617,13 +2617,13 @@ bool CChainState::ProcessFinalizationState(const Consensus::Params &params, CBlo
     auto state_processor = GetComponent<finalization::StateProcessor>();
 
     {
-      LOCK(state_repo->GetLock());
-      if (const auto *state = state_repo->Find(*block_index)) {
-        if (state->GetInitStatus() != esperanza::FinalizationState::NEW) {
-          UpdateLastJustifiedEpoch(block_index);
-          return true;
+        LOCK(state_repo->GetLock());
+        if (const auto *state = state_repo->Find(*block_index)) {
+            if (state->GetInitStatus() != esperanza::FinalizationState::NEW) {
+                UpdateLastJustifiedEpoch(block_index);
+                return true;
+            }
         }
-      }
     }
 
     CBlock block_data;
