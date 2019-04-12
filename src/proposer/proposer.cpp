@@ -49,12 +49,14 @@ class ProposerImpl : public Proposer {
   const Dependency<proposer::BlockBuilder> m_block_builder;
   const Dependency<proposer::Logic> m_proposer_logic;
 
+  mutable CCriticalSection m_startstop_lock;
+
   std::thread m_thread;
   enum {
     INITIALIZED,
     STARTED,
     STOPPED
-  } m_state = INITIALIZED;
+  } m_state = INITIALIZED;  // protected by m_startstop_lock
   std::atomic_bool m_interrupted;
   Waiter m_waiter;
 
@@ -109,6 +111,7 @@ class ProposerImpl : public Proposer {
             continue;
           }
           wallet_ext.GetProposerState().m_status = Status::IS_PROPOSING;
+          wallet_ext.GetProposerState().m_number_of_search_attempts += 1;
           const boost::optional<EligibleCoin> &winning_ticket = m_proposer_logic->TryPropose(coins);
           if (!winning_ticket) {
             LogPrint(BCLog::PROPOSING, "Not proposing this time (wallet=%s)\n", wallet_name);
@@ -130,6 +133,7 @@ class ProposerImpl : public Proposer {
           block = m_block_builder->BuildBlock(
               tip, snapshot_hash, coin, coins, result.transactions, fees, wallet_ext);
         }
+        wallet_ext.GetProposerState().m_number_of_searches += 1;
         if (m_interrupted) {
           break;
         }
@@ -142,6 +146,8 @@ class ProposerImpl : public Proposer {
           LogPrint(BCLog::PROPOSING, "Failed to propose block (hash=%s).\n", hash);
           continue;
         }
+        wallet_ext.GetProposerState().m_number_of_proposed_blocks += 1;
+        wallet_ext.GetProposerState().m_number_of_transactions_included += block->vtx.size();
         LogPrint(BCLog::PROPOSING, "Proposed new block (hash=%s).\n", hash);
       }
     } while (Wait());
@@ -171,6 +177,7 @@ class ProposerImpl : public Proposer {
   }
 
   void Start() override {
+    LOCK(m_startstop_lock);
     if (m_state != INITIALIZED) {
       LogPrint(BCLog::PROPOSING, "Proposer already started, not starting again.\n");
       return;
@@ -180,8 +187,8 @@ class ProposerImpl : public Proposer {
   }
 
   void Stop() override {
+    LOCK(m_startstop_lock);
     if (m_state != STARTED) {
-      LogPrint(BCLog::PROPOSING, "Proposer not started, nothing to stop.\n");
       return;
     }
     LogPrint(BCLog::PROPOSING, "Stopping proposer thread...\n");

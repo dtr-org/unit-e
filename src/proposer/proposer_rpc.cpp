@@ -45,6 +45,8 @@ class ProposerRPCImpl : public ProposerRPC {
       info.pushKV("status", UniValue(proposerState.m_status._to_string()));
       info.pushKV("searches", UniValue(proposerState.m_number_of_searches));
       info.pushKV("searches_attempted", UniValue(proposerState.m_number_of_search_attempts));
+      info.pushKV("blocks_proposed", UniValue(proposerState.m_number_of_proposed_blocks));
+      info.pushKV("transactions_included", UniValue(proposerState.m_number_of_transactions_included));
       result.push_back(info);
     }
     return result;
