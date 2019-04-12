@@ -128,7 +128,7 @@ class StakeValidatorImpl : public StakeValidator {
         LogPrint(BCLog::VALIDATION, "Kernel hash does not meet target coin=%s kernel=%s target=%d\n",
                  util::to_string(*stake), util::to_string(kernel_hash), target_difficulty);
         if (m_blockchain_behavior->GetParameters().mine_blocks_on_demand) {
-          LogPrint(BCLog::VALIDATION, "Letting artificial block generation succeed nevertheles (mine_blocks_on_demand=true)\n");
+          LogPrint(BCLog::VALIDATION, "Letting artificial block generation succeed nevertheless (mine_blocks_on_demand=true)\n");
         } else {
           result.errors += BlockValidationError::STAKE_NOT_ELIGIBLE;
           return result;
