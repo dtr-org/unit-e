@@ -4,47 +4,94 @@
 
 [![Build Status](https://travis-ci.com/dtr-org/unit-e.svg?token=bm5dxUvwqj2MkNmT6JSA&branch=master)](https://travis-ci.com/dtr-org/unit-e)
 
-The unit-e client is the first implementation for the Unit-e
-cryptocurrency network protocol, coded in C++.
+The unit-e client is the first implementation for the Unit-e cryptocurrency
+network protocol, coded in C++.
 
 ## What is Unit-e?
 
-Unit-e is providing a scalable and decentralized monetary and payment network based on current scientific
-research. It is the first project supported by the [Distributed Technology
-Research Foundation (DTR)](https://dtr.org). Its design is backed by the
-[research](https://dtr.org/research/) DTR is funding, delivering the scalable
-performance needed to enter mainstream use. You can find more information about the project in the [website](https://unit-e.io) and [technical design paper](https://unit-e.io/technical-design.pdf).
+Unit-e is providing a scalable and decentralized monetary and payment network
+based on current scientific research. It is the first project supported by the
+[Distributed Technology Research Foundation (DTR)](https://dtr.org). Its design
+is backed by the [research](https://dtr.org/research/) DTR is funding,
+delivering the scalable performance needed to enter mainstream use. You can find
+more information about the project in the [website](https://unit-e.io) and
+[technical design paper](https://unit-e.io/technical-design.pdf).
 
 ## The Unit-e client
 
-:warning::warning::warning: WARNING: The client is under rapid development, is subject to breaking protocol changes (consensus, blockchain, p2p, RPC) and redoing from scratch of the alpha testnet :warning::warning::warning:
+:warning::warning::warning: WARNING: The client is under rapid development, is
+subject to breaking protocol changes (consensus, blockchain, p2p, RPC) and
+redoing from scratch of the alpha testnet :warning::warning::warning:
 
 This repository hosts the implementation of the first Unit-e client: `unit-e`,
-also known as the "Feuerland" client. It's based on [Bitcoin C++ client](https://github.com/bitcoin/bitcoin) and introduces major improvements and features such as:
+also known as the "Feuerland" client. It's based on [Bitcoin C++
+client](https://github.com/bitcoin/bitcoin) and introduces major improvements
+and features such as:
 
-* Replace Proof of Work (PoW) with [Esperanza Proof of Stake (PoS)](https://github.com/dtr-org/unit-e-project/blob/master/specs/spec_v1.0.md#block-proposal). Unlike most blockchain projects, that's a complete rewrite of the consensus, leaving no trace of PoW while keeping the UTXO model and other areas (blockchain, extra features, p2p, wallet) functioning, potentially enjoying from future upstream improvements. In order to make it happen, we decoupled the layers and features to [components with dependency injection](https://github.com/dtr-org/unit-e/pull/137) following software design best practices. Allowing good testability and being able to do future modifications with confidence, including changes in the complex consensus layer
-* [Finality](https://github.com/dtr-org/unit-e-project/blob/master/specs/spec_v1.0.md#block-finalization) is enabled by finalizer nodes, voting every epoch (currently 50 blocks), with advanced on-chain lifecycle (deposit, vote, slash, withdraw) on top of UTXO, using custom advanced scripts. Security is maintained through financial incentives, including availability requirement and slashing for misbehavior. Finality is essential for monetary applications, it mitigates against the major security issues of PoS (long-range, history revision, nothing-at-stake) and provides important scalability features such as pruning and fast-sync which otherwise wouldn't be possible in a fork-based PoS protocol
-* Staking wallet with [remote staking](https://github.com/dtr-org/uips/blob/master/UIP-0015.md) support, on by default, lightweight and without a minimum stake, allowing large participation rate and potential scale
-* Enhanced [fork-choice rule](https://github.com/dtr-org/uips/blob/master/UIP-0012.md) by the best-finalized chain
-* Malleability protection through [native SegWit support](https://github.com/dtr-org/uips/blob/master/UIP-0003.md)
-* Reduced bandwidth, storage, and time to sync of initial blockchain download by
-  [UTXO snapshots](https://github.com/dtr-org/uips/blob/master/UIP-0011.md)
-* Enhanced privacy through [Dandelion Lite](https://github.com/dtr-org/unit-e/issues/210)
-* [Canonical transactions
-  ordering](https://github.com/dtr-org/uips/blob/master/UIP-0024.md)
-* Optimized block propagation through a hybrid protocol of [compact blocks](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki) and [Graphene](https://github.com/dtr-org/uips/blob/master/UIP-0026.md)
-* [Hardware wallet support](https://github.com/dtr-org/unit-e/issues/385), including remote staking
+* Replace Proof of Work (PoW) with [Esperanza Proof of Stake (PoS)](
+  https://github.com/dtr-org/unit-e-project/blob/master/specs/spec_v1.0.md#block-proposal).
+  Unlike most blockchain projects, that's a complete rewrite
+  of the consensus,leaving no trace of PoW while keeping the UTXO model and
+  other areas (blockchain, extra features, p2p, wallet) functioning, potentially
+  enjoying from future upstream improvements. In order to make it happen, we
+  decoupled the layers and features to [components with dependency
+  injection](https://github.com/dtr-org/unit-e/pull/137) following software
+  design best practices. Allowing good testability and being able to do future
+  modifications with confidence, including changes in the complex consensus
+  layer
+* [Finality](
+  https://github.com/dtr-org/unit-e-project/blob/master/specs/spec_v1.0.md#block-finalization)
+  is enabled by finalizer nodes, voting every epoch (currently 50
+  blocks), with advanced on-chain lifecycle (deposit, vote, slash, withdraw) on
+  top of UTXO, using custom advanced scripts. Security is maintained through
+  financial incentives, including availability requirement and slashing for
+  misbehavior. Finality is essential for monetary applications, it mitigates
+  against the major security issues of PoS (long-range, history revision,
+  nothing-at-stake) and provides important scalability features such as pruning
+  and fast-sync which otherwise wouldn't be possible in a fork-based PoS
+  protocol
+* Staking wallet with [remote staking](
+  https://github.com/dtr-org/uips/blob/master/UIP-0015.md) support, on by
+  default, lightweight and without a minimum stake, allowing large
+  participation rate and potential scale
+  Enhanced [fork-choice rule](
+  https://github.com/dtr-org/uips/blob/master/UIP-0012.md) by the
+  best-finalized chain
+* Malleability protection through [native SegWit support](
+  https://github.com/dtr-org/uips/blob/master/UIP-0003.md)
+* Reduced bandwidth, storage, and time to sync of initial blockchain download
+  by [UTXO snapshots](https://github.com/dtr-org/uips/blob/master/UIP-0011.md)
+* Enhanced privacy through [Dandelion Lite](
+  https://github.com/dtr-org/unit-e/issues/210)
+* [Canonical transactions ordering](
+  https://github.com/dtr-org/uips/blob/master/UIP-0024.md)
+* Optimized block propagation through a hybrid protocol of [compact
+  blocks](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki) and
+  [Graphene](https://github.com/dtr-org/uips/blob/master/UIP-0026.md)
+* [Hardware wallet support](https://github.com/dtr-org/unit-e/issues/385),
+  including remote staking
 
 We regularly merge upstream changes into the unit-e code base and also strive to
-contribute back changes which are relevant for upstream as we already done. The last upstream sync was with the 0.16 version, plus some changes cherry-picked from later development branches.
+contribute back changes which are relevant for upstream as we already done. The
+last upstream sync was with the 0.16 version, plus some changes cherry-picked
+from later development branches.
 
 ## Alpha Testnet
-With the [launch of the
-alpha testnet](https://github.com/dtr-org/unit-e/milestone/11) we will start a regular
-cadence of releases. The goals of opening the project and network are to further develop the protocol, client and community:
-* The protocol isn't complete and will be further developed with breaking changes in order to reach our security & scalability goals (you can read about it more in the and [design paper](https://unit-e.io/technical-design.pdf)).
-* Areas such as crypto-economics and coin emission rate, need to be well understood, fair and flexible - we're planning to use the testnet in order to figure out important aspects such as the level of stake required to keep the system secured and how should influence the emission rate.
-* We're opening our code repository to the blockchain and open-source developers community. Through this can, further down the road, develop a community of active participants running their own nodes.
+With the [launch of the alpha testnet](
+https://github.com/dtr-org/unit-e/milestone/11) we will start a regular cadence
+of releases. The goals of opening the project and network are to further develop
+the protocol, client and community:
+* The protocol isn't complete and will be further developed with breaking
+changes in order to reach our security & scalability goals (you can read about
+it more in the [design paper](
+https://unit-e.io/technical-design.pdf)).
+* Areas such as crypto-economics and coin emission rate, need to be well
+understood, fair and flexible - we're planning to use the testnet in order to
+figure out important aspects such as the level of stake required to keep the
+system secured and how should influence the emission rate.
+* We're opening our code repository to the blockchain and open-source developers
+community. Through this can, further down the road, develop a community of
+ active participants running their own nodes.
 
 ## Running from source
 
@@ -93,8 +140,8 @@ any issues or run into bugs please report them as
 
 * [Unit-e improvement proposals (UIPs)](https://github.com/dtr-org/uips)
 * [Documentation](https://github.com/dtr-org/docs.unit-e.io)
-* [Decision records and project-level
-  information](https://github.com/dtr-org/unit-e-project)
+* [Decision records and project-level information](
+  https://github.com/dtr-org/unit-e-project)
 
 ## License
 
