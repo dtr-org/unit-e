@@ -232,7 +232,7 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
 
         if (tx != nullptr) {
             if (!tx->IsWithdraw()) {
-                result.pop_back(); //Remove the vSolutions[0] of the Solver from the results since we don't need it
+                result.pop_back(); //Since the withdraw is P2PKH we need to keep the pubkey in
             }
             if (tx->IsVote()) {
                 CScript voteScript = tx->vin[0].scriptSig;

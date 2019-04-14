@@ -56,7 +56,7 @@ CTransaction CreateSlashTx(const CPubKey &pub_key, const Vote &vote1, const Vote
   CScript encoded_vote2 = CScript::EncodeVote(vote2, ToByteVector(GetRandHash()));
   std::vector<unsigned char> vote2_vector(encoded_vote2.begin(), encoded_vote2.end());
 
-  CScript vinScript = CScript() << ToByteVector(GetRandHash()) << vote1_vector << vote2_vector;
+  CScript vinScript = CScript() << vote1_vector << vote2_vector;
 
   mtx.vin = {CTxIn(GetRandHash(), 0, vinScript)};
 

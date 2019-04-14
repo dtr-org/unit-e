@@ -12,6 +12,7 @@
 #include <script/script.h>
 #include <uint256.h>
 #include <iostream>
+#include <core_io.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -510,25 +511,24 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                         }break;
                         case TxType::SLASH:{
-                            if (stack.size() != 4) {
+                            if (stack.size() != 3) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
                             valtype& vchPubKey = stacktop(-1);
                             valtype& vchVote1 = stacktop(-2);
                             valtype& vchVote2 = stacktop(-3);
-                            valtype& vchSig = stacktop(-4);
 
                             valtype voteSig1;
                             valtype voteSig2;
                             esperanza::Vote vote1;
                             esperanza::Vote vote2;
-                            CScript voteScript = CScript() << vchSig << vchVote1;
+                            CScript voteScript = CScript() << CScriptNum(0) << vchVote1;
                             if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote1, voteSig1)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
-                            voteScript = CScript() << vchSig << vchVote2;
+                            voteScript = CScript() << CScriptNum(0) << vchVote2;
                             if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote2, voteSig2)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
@@ -565,28 +565,10 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                                 return set_error(serror, SCRIPT_ERR_INVALID_SLASH_NOT_SLASHABLE);
                             }
 
-                            CScript scriptCode(pbegincodehash, pend);
-
-                            // Check tx signature
-                            if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, SigVersion::BASE, serror)) {
-                              //serror is set
-                              return false;
-                            }
-                            bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
-
-                            if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size()) {
-                              return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
-                            }
-
                             popstack(stack); // Remove the pubkey
                             popstack(stack); // Remove the vote1
                             popstack(stack); // Remove the vote2
 
-                            if (fSuccess) {
-                              popstack(stack); // Remove the sig
-                            } else {
-                              return set_error(serror, SCRIPT_ERR_CHECKSIGVERIFY);
-                            }
                             CScriptNum bn(OP_TRUE);
                             stack.push_back(bn.getvch());
                         }break;

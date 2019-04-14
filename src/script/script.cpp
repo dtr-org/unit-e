@@ -551,11 +551,6 @@ bool CScript::ExtractVotesFromSlashSignature(const CScript &scriptSig,
   std::vector<unsigned char> vData;
   opcodetype opcode;
 
-  //Skip the first value (txSig)
-  if(!scriptSig.GetOp(pc, opcode)) {
-      return false;
-  }
-
   //Unpack the first vote
   if (!scriptSig.GetOp(pc, opcode, vData)) {
     return false;

@@ -1890,7 +1890,6 @@ BOOST_AUTO_TEST_CASE(create_p2pkh_script)
 
 BOOST_AUTO_TEST_CASE(extract_votes_from_vote_signature)
 {
-  std::string signature = "304402204b9bb63f9b055a7d82841f064167df5d9b774f91a5d76eb807559a03f51dc39f02203af15ccb70a77801afdac05ef1723b07a59da9d3b19a4ced37e53cdc9a0db1bc01";
   std::string validatorAddress = "c38defed743b2f274e31c54b8edb1c617c07d0e1";
   uint32_t sourceHeight = 10;
   uint32_t targetHeight = 100;
@@ -1917,7 +1916,7 @@ BOOST_AUTO_TEST_CASE(extract_votes_from_vote_signature)
   CScript encodedVote2 = CScript::EncodeVote(vote2, vote2Sig);
   std::vector<unsigned char> vote2Vector(encodedVote2.begin(), encodedVote2.end());
 
-  CScript scriptSig = CScript() << ParseHex(signature) << vote1Vector << vote2Vector;
+  CScript scriptSig = CScript() << vote1Vector << vote2Vector;
 
   esperanza::Vote extractedVote1;
   esperanza::Vote extractedVote2;

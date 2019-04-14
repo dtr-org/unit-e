@@ -8,6 +8,7 @@ EsperanzaSlashTest checks:
 2. double vote with valid vote signature but invalid tx signature creates slash transaction
 """
 from test_framework.regtest_mnemonics import regtest_mnemonics
+from test_framework.script import CScript
 from test_framework.test_framework import UnitETestFramework
 from test_framework.blocktools import (
     CBlock,
@@ -15,7 +16,7 @@ from test_framework.blocktools import (
     FromHex,
     ToHex,
     TxType,
-)
+    sign_transaction)
 from test_framework.util import (
     sync_blocks,
     connect_nodes,
@@ -156,8 +157,8 @@ class EsperanzaSlashTest(UnitETestFramework):
         fork2.generatetoaddress(1, fork2.getnewaddress('', 'bech32'))
         tx_v2a = FromHex(CTransaction(), v2a)
 
-        # corrupt the 1st byte of vote signature
-        # see schema in CScript::MatchPayVoteSlashScript
+        # corrupt the 1st byte of the validators pubkey in the commit script
+        # see schema in CScript::CommitScript
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=2)
 
         assert_raises_rpc_error(-26, 'bad-vote-signature', fork2.sendrawtransaction, ToHex(tx_v2a))
@@ -178,7 +179,7 @@ class EsperanzaSlashTest(UnitETestFramework):
                                          'validators': 1})
         self.log.info('double-vote with invalid signature is ignored')
 
-        # test that valid double-vote but with invalid tx signature
+        # test that valid double-vote but corrupted withdraw address
         # creates slash tx it is included in the next block
         #                                      v1          v2a
         #                                    - e6 - e7[31, 32] fork1
@@ -186,11 +187,14 @@ class EsperanzaSlashTest(UnitETestFramework):
         # e0 - e1 - e2 - e3 - e4 - e5 - e6[26]
         #                                   \  v1          v2a s1
         #                                    - e6 - e7[31, 32, 33] fork2
-        # corrupt the 1st byte of transaction signature
-        # but keep the correct vote signature
-        # see schema in CScript::MatchPayVoteSlashScript
+        # corrupt the 1st byte of the address in the scriptpubkey
+        # but keep the correct vote signature see schema in CScript::CommitScript
         tx_v2a = FromHex(CTransaction(), v2a)
+
+        # Remove the signature
+        tx_v2a.vin[0].scriptSig = list(CScript(tx_v2a.vin[0].scriptSig))[1]
         tx_v2a.vout[0].scriptPubKey = corrupt_script(script=tx_v2a.vout[0].scriptPubKey, n_byte=42)
+        tx_v2a = sign_transaction(finalizer2, tx_v2a)
         assert_raises_rpc_error(-26, 'bad-vote-invalid', fork2.sendrawtransaction, ToHex(tx_v2a))
         wait_until(lambda: len(fork2.getrawmempool()) == 1, timeout=20)
         s1_hash = fork2.getrawmempool()[0]
