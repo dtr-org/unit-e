@@ -14,8 +14,8 @@ based on current scientific research. It is the first project supported by the
 [Distributed Technology Research Foundation (DTR)](https://dtr.org). Its design
 is backed by the [research](https://dtr.org/research/) DTR is funding,
 delivering the scalable performance needed to enter mainstream use. You can find
-more information about the project in the [website](https://unit-e.io) and
-[technical design paper](https://unit-e.io/technical-design.pdf).
+more information about the project on the [website](https://unit-e.io) and in
+the [technical paper](https://unit-e.io/technical-design.pdf).
 
 ## The Unit-e client
 
@@ -24,16 +24,16 @@ subject to breaking protocol changes (consensus, blockchain, p2p, RPC) and
 redoing from scratch of the alpha testnet :warning::warning::warning:
 
 This repository hosts the implementation of the first Unit-e client: `unit-e`,
-also known as the "Feuerland" client. It's based on [Bitcoin C++
+also known as the "Feuerland" client. It's based on the [Bitcoin C++
 client](https://github.com/bitcoin/bitcoin) and introduces major improvements
 and features such as:
 
 * Replace Proof of Work (PoW) with [Esperanza Proof of Stake (PoS)](
   https://github.com/dtr-org/unit-e-project/blob/master/specs/spec_v1.0.md#block-proposal).
   Unlike most blockchain projects, that's a complete rewrite
-  of the consensus,leaving no trace of PoW while keeping the UTXO model and
-  other areas (blockchain, extra features, p2p, wallet) functioning, potentially
-  enjoying from future upstream improvements. In order to make it happen, we
+  of the consensus, leaving no trace of PoW while keeping the UTXO model and
+  other areas (blockchain, p2p, wallet) functioning, potentially
+  benefiting from future upstream improvements. In order to make it happen, we
   decoupled the layers and features to [components with dependency
   injection](https://github.com/dtr-org/unit-e/pull/137) following software
   design best practices. Allowing good testability and being able to do future
@@ -54,7 +54,7 @@ and features such as:
   https://github.com/dtr-org/uips/blob/master/UIP-0015.md) support, on by
   default, lightweight and without a minimum stake, allowing large
   participation rate and potential scale
-  Enhanced [fork-choice rule](
+* Enhanced [fork-choice rule](
   https://github.com/dtr-org/uips/blob/master/UIP-0012.md) by the
   best-finalized chain
 * Malleability protection through [native SegWit support](
@@ -76,8 +76,9 @@ and features such as:
   including remote staking
 
 We regularly merge upstream changes into the unit-e code base and also strive to
-contribute back changes which are relevant for upstream as we already done. The
-last upstream sync was with the 0.16 version, plus some changes cherry-picked
+contribute back changes which are relevant for upstream as we already have done.
+The last upstream sync was with the [0.16 version](
+https://github.com/bitcoin/bitcoin/tree/0.16), plus some changes cherry-picked
 from later development branches.
 
 ## Alpha Testnet
