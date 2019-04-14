@@ -64,10 +64,14 @@ and features such as:
 * Enhanced privacy through [Dandelion Lite](
   https://github.com/dtr-org/unit-e/issues/210)
 * [Canonical transactions ordering](
-  https://github.com/dtr-org/uips/blob/master/UIP-0024.md)
-* Optimized block propagation through a hybrid protocol of [compact
-  blocks](https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki) and
-  [Graphene](https://github.com/dtr-org/uips/blob/master/UIP-0026.md)
+  https://github.com/dtr-org/uips/blob/master/UIP-0024.md),
+  eliminating the need to send sorting metadata with each block,
+  providing faster propagation and potential scability features as multi core
+  validation
+* Optimized block propagation through a hybrid set reconciliation protocol
+  of [compact blocks](
+  https://github.com/bitcoin/bips/blob/master/bip-0152.mediawiki)
+  and [Graphene](https://github.com/dtr-org/uips/blob/master/UIP-0026.md)
 * [Hardware wallet support](https://github.com/dtr-org/unit-e/issues/385),
   including remote staking
 
