@@ -1943,6 +1943,6 @@ BOOST_AUTO_TEST_CASE(create_commit_script)
   CKey key;
   key.MakeNewKey(true);
   CScript script = CScript::CreateFinalizerCommitScript(key.GetPubKey());
-  BOOST_CHECK(script.IsCommitScript());
+  BOOST_CHECK(script.IsFinalizerCommitScript());
 }
 BOOST_AUTO_TEST_SUITE_END()

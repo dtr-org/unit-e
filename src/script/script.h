@@ -714,7 +714,7 @@ public:
 
     bool IsPayToPublicKeyHash() const;
     bool IsPayToScriptHash() const;
-    bool IsCommitScript() const;
+    bool IsFinalizerCommitScript() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsPayToWitnessPublicKeyHash() const;
     bool IsWitnessProgram() const;

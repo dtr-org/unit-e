@@ -209,7 +209,7 @@ bool CheckTransaction(const CTransaction &tx, CValidationState &errState, bool f
         case TxType::DEPOSIT:
         case TxType::VOTE:
         case TxType::LOGOUT:
-            if (!IsFinalizerCommitScript(tx.vout[0].scriptPubKey)) {
+            if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
                 return errState.DoS(100, false, REJECT_INVALID, "bad-finalizercommit-vout-script");
             }
         case TxType::REGULAR:

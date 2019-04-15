@@ -444,8 +444,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                             valtype voteSig;
                             esperanza::Vote vote;
-                            CScript voteScript = CScript() << vchSig << vchVote;
-                            if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote, voteSig)) {
+                            CScript voteScript = CScript(vchVote.begin(), vchVote.end());
+                            if (!CScript::DecodeVote(voteScript, vote, voteSig)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
@@ -529,13 +529,13 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
-                            CScript voteScript = CScript() << CScriptNum(0) << vchVote1;
-                            if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote1, voteSig1)) {
+                            CScript voteScript = CScript(vchVote1.begin(), vchVote1.end());
+                            if (!CScript::DecodeVote(voteScript, vote1, voteSig1)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
-                            voteScript = CScript() << CScriptNum(0) << vchVote2;
-                            if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote2, voteSig2)) {
+                            voteScript = CScript(vchVote2.begin(), vchVote2.end());
+                            if (!CScript::DecodeVote(voteScript, vote2, voteSig2)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
@@ -1798,9 +1798,4 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     }
 
     return 0;
-}
-
-bool IsFinalizerCommitScript(const CScript &script)
-{
-    return script.IsCommitScript();
 }

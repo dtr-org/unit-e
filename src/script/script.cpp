@@ -298,7 +298,7 @@ bool CScript::MatchFinalizerCommitScript(size_t ofs) const
         (*this)[ofs + 63] == OP_ENDIF;
 }
 
-bool CScript::IsCommitScript() const
+bool CScript::IsFinalizerCommitScript() const
 {
     return this->MatchFinalizerCommitScript(0);
 }

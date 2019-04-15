@@ -110,7 +110,7 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-deposit-malformed");
   }
 
-  if (!IsFinalizerCommitScript(tx.vout[0].scriptPubKey)) {
+  if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-deposit-vout-script");
   }
@@ -169,7 +169,7 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-logout-malformed");
   }
 
-  if (!IsFinalizerCommitScript(tx.vout[0].scriptPubKey)) {
+  if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-vout-script");
   }
@@ -309,7 +309,7 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-malformed");
   }
 
-  if (!IsFinalizerCommitScript(tx.vout[0].scriptPubKey)) {
+  if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-vout-script");
   }
 
