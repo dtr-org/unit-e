@@ -10,6 +10,7 @@
 
 class CKey;
 class CKeyID;
+class CKeyStore;
 class CScript;
 class CScriptID;
 class CTransaction;
@@ -87,5 +88,11 @@ void UpdateTransaction(CMutableTransaction& tx, unsigned int nIn, const Signatur
  * provider is used to look up public keys and redeemscripts by hash.
  * Solvability is unrelated to whether we consider this output to be ours. */
 bool IsSolvable(const SigningProvider& provider, const CScript& script);
+
+bool CreateVoteSignature(CKeyStore *keystore, const esperanza::Vote &vote,
+                            std::vector<unsigned char> &voteSigOut);
+
+bool CheckVoteSignature(const CPubKey &pubkey, const esperanza::Vote &vote,
+                           std::vector<unsigned char> &voteSig);
 
 #endif // UNITE_SCRIPT_SIGN_H

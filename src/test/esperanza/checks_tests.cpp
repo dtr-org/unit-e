@@ -711,7 +711,7 @@ BOOST_AUTO_TEST_CASE(CheckVoteTx_test) {
     Vote vote_out{pub_key.GetID(), GetRandHash(), 10, 100};
 
     std::vector<unsigned char> vote_sig_out;
-    BOOST_CHECK(Vote::CreateSignature(&keystore, vote_out, vote_sig_out));
+    BOOST_CHECK(CreateVoteSignature(&keystore, vote_out, vote_sig_out));
 
     CTransaction tx = CreateVoteTx(prev_tx, key, vote_out, vote_sig_out);
     CValidationState err_state;
@@ -735,7 +735,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
   Vote vote_out{pub_key.GetID(), target_hash, 0, 5};
 
   std::vector<unsigned char> vote_sig_out;
-  BOOST_REQUIRE(Vote::CreateSignature(&keystore, vote_out, vote_sig_out));
+  BOOST_REQUIRE(CreateVoteSignature(&keystore, vote_out, vote_sig_out));
 
   CMutableTransaction mt;
   mt.SetType(TxType::DEPOSIT);
@@ -787,7 +787,7 @@ BOOST_AUTO_TEST_CASE(ContextualCheckVoteTx_test) {
     Vote vote_from_other_validator{other_key.GetPubKey().GetID(), target_hash, 0, 5};
 
     std::vector<unsigned char> vote_sig;
-    BOOST_REQUIRE(Vote::CreateSignature(&keystore, vote_from_other_validator, vote_sig));
+    BOOST_REQUIRE(CreateVoteSignature(&keystore, vote_from_other_validator, vote_sig));
 
     CTransaction tx = CreateVoteTx(prev_tx, other_key, vote_from_other_validator, vote_sig);
     CValidationState err_state;

@@ -9,6 +9,7 @@
 #include <crypto/sha1.h>
 #include <crypto/sha256.h>
 #include <pubkey.h>
+#include <script/sign.h>
 #include <script/script.h>
 #include <uint256.h>
 #include <iostream>
@@ -451,7 +452,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             }
 
                             // Check vote signature
-                            if (!esperanza::Vote::CheckSignature(CPubKey(vchPubKey), vote, voteSig)) {
+                            if (!CheckVoteSignature(CPubKey(vchPubKey), vote, voteSig)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
                             }
 
@@ -534,12 +535,12 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             }
 
                             // Check vote1 signature
-                            if (!esperanza::Vote::CheckSignature(CPubKey(vchPubKey), vote1, voteSig1)) {
+                            if (!CheckVoteSignature(CPubKey(vchPubKey), vote1, voteSig1)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
                             }
 
                             // Check vote2 signature
-                            if (!esperanza::Vote::CheckSignature(CPubKey(vchPubKey), vote2, voteSig2)) {
+                            if (!CheckVoteSignature(CPubKey(vchPubKey), vote2, voteSig2)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
                             }
 

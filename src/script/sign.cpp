@@ -6,6 +6,7 @@
 #include <script/sign.h>
 
 #include <key.h>
+#include <keystore.h>
 #include <policy/policy.h>
 #include <primitives/transaction.h>
 #include <script/standard.h>
@@ -508,4 +509,20 @@ bool IsSolvable(const SigningProvider& provider, const CScript& script)
         return true;
     }
     return false;
+}
+
+bool CreateVoteSignature(CKeyStore *keystore, const esperanza::Vote &vote,
+                           std::vector<unsigned char> &voteSigOut) {
+
+  CKey privKey;
+  if (!keystore->GetKey(CKeyID(vote.m_validator_address), privKey)) {
+    return false;
+  }
+
+  return privKey.Sign(vote.GetHash(), voteSigOut);
+}
+
+bool CheckVoteSignature(const CPubKey &pubkey, const esperanza::Vote &vote,
+                          std::vector<unsigned char> &voteSig) {
+  return pubkey.Verify(vote.GetHash(), voteSig);
 }

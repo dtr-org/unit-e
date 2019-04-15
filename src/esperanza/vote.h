@@ -10,9 +10,6 @@
 #include <stdint.h>
 #include <uint256.h>
 
-class CKeyID;
-class CKeyStore;
-
 namespace esperanza {
 
 class Vote {
@@ -32,12 +29,6 @@ class Vote {
            this->m_source_epoch == rhs.m_source_epoch &&
            this->m_target_epoch == rhs.m_target_epoch;
   }
-
-  static bool CreateSignature(CKeyStore *keystore, const Vote &vote,
-                              std::vector<unsigned char> &voteSigOut);
-
-  static bool CheckSignature(const CPubKey &pubkey, const Vote &vote,
-                             std::vector<unsigned char> &voteSig);
 
   uint256 GetHash() const;
   std::string ToString() const;

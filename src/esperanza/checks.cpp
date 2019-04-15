@@ -7,6 +7,7 @@
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
 #include <script/interpreter.h>
+#include <script/sign.h>
 #include <script/standard.h>
 #include <txmempool.h>
 #include <util.h>
@@ -331,7 +332,7 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
                          "bad-scriptpubkey-pubkey-format");
   }
 
-  if (!esperanza::Vote::CheckSignature(pubkey, *vote_out, *vote_sig_out)) {
+  if (!CheckVoteSignature(pubkey, *vote_out, *vote_sig_out)) {
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-signature");
   }
 

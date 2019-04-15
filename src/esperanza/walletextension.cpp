@@ -603,7 +603,7 @@ bool WalletExtension::SendVote(const CTransactionRef &prevTxRef,
   const CAmount amount = prevTxRef->vout[0].nValue;
 
   std::vector<unsigned char> voteSig;
-  if (!esperanza::Vote::CreateSignature(&m_enclosing_wallet, vote, voteSig)) {
+  if (!CreateVoteSignature(&m_enclosing_wallet, vote, voteSig)) {
     return error("%s: Cannot sign vote.", __func__);
   }
   CScript scriptSig = CScript::EncodeVote(vote, voteSig);
