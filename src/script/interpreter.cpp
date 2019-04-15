@@ -12,8 +12,6 @@
 #include <script/sign.h>
 #include <script/script.h>
 #include <uint256.h>
-#include <iostream>
-#include <core_io.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -452,7 +450,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             }
 
                             // Check vote signature
-                            if (!CheckVoteSignature(CPubKey(vchPubKey), vote, voteSig)) {
+                            CPubKey pubkey(vchPubKey);
+                            if (!pubkey.Verify(vote.GetHash(), voteSig)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
                             }
 
@@ -535,12 +534,13 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             }
 
                             // Check vote1 signature
-                            if (!CheckVoteSignature(CPubKey(vchPubKey), vote1, voteSig1)) {
+                            CPubKey pubkey(vchPubKey);
+                            if (!pubkey.Verify(vote1.GetHash(), voteSig1)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
                             }
 
                             // Check vote2 signature
-                            if (!CheckVoteSignature(CPubKey(vchPubKey), vote2, voteSig2)) {
+                          if (!pubkey.Verify(vote2.GetHash(), voteSig2)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
                             }
 

@@ -11,7 +11,6 @@
 #include <primitives/transaction.h>
 #include <script/standard.h>
 #include <uint256.h>
-#include <iostream>
 
 typedef std::vector<unsigned char> valtype;
 
