@@ -5,7 +5,7 @@
 [![Build Status](https://travis-ci.com/dtr-org/unit-e.svg?token=bm5dxUvwqj2MkNmT6JSA&branch=master)](https://travis-ci.com/dtr-org/unit-e)
 
 The unit-e client is the first implementation for the Unit-e cryptocurrency
-network protocol, coded in C++.
+network protocol, implemented in C++.
 
 ## What is Unit-e?
 
@@ -51,8 +51,8 @@ and features such as:
   and fast-sync which otherwise wouldn't be possible in a fork-based PoS
   protocol
 * Staking wallet with [remote staking](
-  https://github.com/dtr-org/uips/blob/master/UIP-0015.md) support, on by
-  default, lightweight and without a minimum stake, allowing large
+  https://github.com/dtr-org/uips/blob/master/UIP-0015.md) support, activated
+  by default, lightweight and without a minimum stake, allowing large
   participation rate and potential scale
 * Enhanced [fork-choice rule](
   https://github.com/dtr-org/uips/blob/master/UIP-0012.md) by the
@@ -94,9 +94,8 @@ https://unit-e.io/technical-design.pdf)).
 understood, fair and flexible - we're planning to use the testnet in order to
 figure out important aspects such as the level of stake required to keep the
 system secured and how should influence the emission rate.
-* We're opening our code repository to the blockchain and open-source developers
-community. Through this can, further down the road, develop a community of
- active participants running their own nodes.
+* We're opening our code repository to the blockchain and open-source
+community. We aspire to develop a community of active participants.
 
 ## Running from source
 
