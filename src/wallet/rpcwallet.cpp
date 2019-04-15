@@ -3442,6 +3442,11 @@ UniValue generateBlocks(CWallet * const pwallet, std::shared_ptr<CReserveScript>
     }
     unsigned int nExtraNonce = 0;
     UniValue blockHashes(UniValue::VARR);
+
+    // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
+    if (pwallet) {
+        pwallet->BlockUntilSyncedToCurrentChain();
+    }
     while (nHeight < nHeightEnd)
     {
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(

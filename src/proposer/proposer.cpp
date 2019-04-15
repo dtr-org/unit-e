@@ -102,6 +102,8 @@ class ProposerImpl : public Proposer {
         }
         std::shared_ptr<const CBlock> block;
         {
+          // To pick up to date coins for staking we need to make sure that the wallet is synced to the current chain.
+          wallet->BlockUntilSyncedToCurrentChain();
           LOCK2(m_active_chain->GetLock(), wallet_ext.GetLock());
           const CBlockIndex &tip = *m_active_chain->GetTip();
           const staking::CoinSet coins = wallet_ext.GetStakeableCoins();
