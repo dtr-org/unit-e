@@ -94,6 +94,9 @@ https://unit-e.io/technical-design.pdf)).
 understood, fair and flexible - we're planning to use the testnet in order to
 figure out important aspects such as the level of stake required to keep the
 system secured and how should influence the emission rate.
+* Until a good enough understanding of the previously mentioned areas is
+reached, given the lack of objective criteria to pick one solution above the
+others, the simplest ones will be chosen by default.
 * We're opening our code repository to the blockchain and open-source
 community. We aspire to develop a community of active participants.
 
