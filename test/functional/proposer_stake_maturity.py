@@ -62,10 +62,7 @@ class ProposerStakeMaturityTest(UnitETestFramework):
             height = node.getblockcount()
             stakes = node.listunspent()
             # Take the latest, immature stake
-            stake = sorted(
-                stakes,
-                key=lambda x: x['confirmations'],
-                reverse=False)[0]
+            stake = min(stakes, key=lambda x: x['confirmations'])
             snapshot_meta = get_tip_snapshot_meta(node)
             coinbase = sign_coinbase(
                 node, create_coinbase(
@@ -76,11 +73,10 @@ class ProposerStakeMaturityTest(UnitETestFramework):
                 self.nodes[0].getbestblockhash())['time'] + 1
             block = create_block(tip, coinbase, block_time)
 
-            block.solve()
             return block
 
-        def has_synced_blockchain(i):
-            status = nodes[i].proposerstatus()
+        def has_synced_blockchain(node):
+            status = node.proposerstatus()
             return status['wallets'][0]['status'] != 'NOT_PROPOSING_SYNCING_BLOCKCHAIN'
 
         def wait_until_all_have_reached_state(expected, which_nodes):
@@ -106,11 +102,10 @@ class ProposerStakeMaturityTest(UnitETestFramework):
         network_thread_start()
 
         self.log.info("Waiting untill the P2P connection is fully up...")
-        wait_until(lambda: self.nodes[1].p2p.got_verack(), timeout=10)
+        self.nodes[1].p2p.wait_for_verack()
 
         self.log.info("Waiting for nodes to have started up...")
-        wait_until(lambda: all(has_synced_blockchain(i)
-                               for i in range(0, self.num_nodes)), timeout=5)
+        wait_until(lambda: all(has_synced_blockchain(node) for node in self.nodes), timeout=5)
 
         self.log.info("Connecting nodes")
         connect_nodes(nodes[0], nodes[1].index)

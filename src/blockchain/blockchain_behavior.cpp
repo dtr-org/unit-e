@@ -128,11 +128,9 @@ Behavior &Behavior::GetGlobal() {
 }
 
 void Behavior::CheckConsistency() const {
-  if (this->m_parameters.stake_maturity_activation_height < this->m_parameters.stake_maturity) {
-    throw std::logic_error(
-        "Invalid blockchain parameters: 'stake_maturity_activation_height' "
-        "must be greater or equal 'stake_maturity'");
-  }
+  assert(this->m_parameters.stake_maturity_activation_height >= this->m_parameters.stake_maturity &&
+         "Invalid blockchain parameters: 'stake_maturity_activation_height' "
+         "must be greater or equal 'stake_maturity'");
 }
 
 }  // namespace blockchain
