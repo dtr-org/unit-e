@@ -17,19 +17,34 @@
 namespace esperanza {
 
 // clang-format off
+// All phases are ordered in a way how they can progress.
+// Every phase changes either one step up and down (if re-org happens).
+// Every phase has sparse index because if we want to introduce
+// a new one, we can include it in between without breaking
+// a layout on disk
 BETTER_ENUM(
     _Phase,
     uint8_t,
-    NOT_VALIDATING,
 
-    // UNIT-E TODO: replace IS_VALIDATING in favor of state->IsFinalizerVoting
-    // as since BlockConnected is processed on a thread, this phase can be
-    // set with the delay. Another issue is that AddToWalletIfInvolvingMe
-    // is called before BlockConnected so the state is lagging one block behind
-    IS_VALIDATING,
+    // finalizer didn't send deposit
+    NOT_VALIDATING = 10,
 
-    WAITING_DEPOSIT_CONFIRMATION,
-    WAITING_DEPOSIT_FINALIZATION
+    // deposit is in the mempool/wallet but is not included in a block
+    WAITING_DEPOSIT_CONFIRMATION = 20,
+
+    // deposit is included in a block but an epoch of this block
+    // is not finalized yet
+    WAITING_DEPOSIT_FINALIZATION = 30,
+
+    // finalizer is able to vote. Starts from Validator.m_start_dynasty
+    // and until logout delay passes
+    IS_VALIDATING = 40,
+
+    // logout delay passed and we are in withdraw delay
+    WAITING_FOR_WITHDRAW_DELAY = 50,
+
+    // withdraw delay passed but finalizer hasn't withdrawn yet
+    WAITING_TO_WITHDRAW = 60
 )
 // clang-format on
 
@@ -37,36 +52,36 @@ class ValidatorState {
  public:
   using Phase = _Phase;
 
-  Phase m_phase = Phase::NOT_VALIDATING;
   uint160 m_validator_address = uint160S("0");
+
+  // store votes by target_epoch
   std::map<uint32_t, Vote> m_vote_map;
 
+  // is used to prevent creating double-deposits for the same wallet.
+  // once deposit is included in the block, global FinalizationState
+  // knows about this finalizer and we don't need this field anymore.
+  uint256 m_last_deposit_tx;
+
+  // m_last_source_epoch and m_last_target_epoch are used to detect
+  // double or surrounded votes and skip voting for that epoch.
   uint32_t m_last_source_epoch = 0;
   uint32_t m_last_target_epoch = 0;
-
-  inline bool HasDeposit() const {
-    return !m_validator_address.IsNull();
-  }
 
   ADD_SERIALIZE_METHODS
 
   template <typename Stream, typename Operation>
   void SerializationOp(Stream &s, Operation ser_action) {
-    int phase = static_cast<int>(+m_phase);
-    READWRITE(phase);
-    if (ser_action.ForRead()) {
-      m_phase = Phase::_from_integral(phase);
-    }
     READWRITE(m_validator_address);
     READWRITE(m_vote_map);
+    READWRITE(m_last_deposit_tx);
     READWRITE(m_last_source_epoch);
     READWRITE(m_last_target_epoch);
   }
 
   bool operator==(const ValidatorState &v) const {
-    return m_phase == v.m_phase &&
-           m_validator_address == v.m_validator_address &&
+    return m_validator_address == v.m_validator_address &&
            m_vote_map == v.m_vote_map &&
+           m_last_deposit_tx == v.m_last_deposit_tx &&
            m_last_source_epoch == v.m_last_source_epoch &&
            m_last_target_epoch == v.m_last_target_epoch;
   }

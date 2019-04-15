@@ -145,12 +145,13 @@ class EsperanzaLogoutTest(UnitETestFramework):
         # finalizer1 is not validating so we can keep it connected
         connect_nodes(finalizer1, proposer.index)
         sync_blocks([finalizer1, proposer], timeout=10)
-        wait_until(lambda: finalizer1.getvalidatorinfo()['validator_status'] == 'NOT_VALIDATING', timeout=5)
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_FOR_WITHDRAW_DELAY')
         assert_raises_rpc_error(-8, 'The node is not validating.', finalizer1.logout)
 
         # Check that we manage to finalize even with one finalizer
         self.wait_for_vote_and_disconnect(finalizer=finalizer2, node=proposer)
         proposer.generate(9)
+        sync_blocks([proposer, finalizer1], timeout=20)
         assert_equal(proposer.getblockcount(), 100)
         assert_finalizationstate(proposer, {'currentEpoch': 10,
                                             'currentDynasty': 7,
@@ -158,8 +159,11 @@ class EsperanzaLogoutTest(UnitETestFramework):
                                             'lastFinalizedEpoch': 8,
                                             'validators': 1})
 
-        # check that we cannot deposit again after logout
-        assert_raises_rpc_error(-32600, "The node is already a finalizer.", finalizer1.deposit, finalizer1.getnewaddress("", "legacy"), 1500)
+        # check that we cannot deposit again before we withdraw
+        assert_equal(finalizer1.getvalidatorinfo()['validator_status'], 'WAITING_FOR_WITHDRAW_DELAY')
+        assert_raises_rpc_error(-25, "Cannot re-deposit while waiting for withdraw.", finalizer1.deposit,
+                                finalizer1.getnewaddress("", "legacy"), 1500)
+
 
 if __name__ == '__main__':
     EsperanzaLogoutTest().main()

@@ -189,6 +189,9 @@ class FinalizationState : public FinalizationStateData {
   //! \brief Returns true if finalizer can vote in current dynasty
   bool IsFinalizerVoting(const Validator &finalizer) const;
 
+  //! \brief Calculate the epoch at which finalizer can start withdrawing
+  uint32_t CalculateWithdrawEpoch(const Validator &finalizer, Result *result_out) const;
+
  private:
   //!In case there is nobody available to justify we justify automatically.
   void InstaJustify();
