@@ -67,9 +67,9 @@ class Graphene(UnitETestFramework):
         relay.allow((b'block', block_hash))
         sync_blocks([self.nodes[0], self.nodes[1]])
 
+        self.test_orphans(relay)
         self.test_synced_mempool(relay)
         self.test_non_synced_mempool(relay)
-        self.test_orphans(relay)
 
     def test_synced_mempool(self, relay):
         self.log.info("Testing synced mempool scenario")
@@ -146,11 +146,14 @@ class Graphene(UnitETestFramework):
 
         # This value was picked by trial and error. If some parameters of
         # this test change - you might need to readjust it
+        txs = []
         for _ in range(60):
             tx = self.nodes[0].sendtoaddress(address, 1)
             relay.allow((b'tx', tx))
+            txs.append(tx)
 
-        sync_mempools([self.nodes[0], self.nodes[1]])
+        for tx in txs:
+            self.wait_for_transaction(tx)
 
     def assert_graphene_txs(self, graphene_tx: GrapheneTx, expected_hashes: []):
         assert_equal(len(expected_hashes), len(graphene_tx.txs))
