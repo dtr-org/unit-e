@@ -85,12 +85,12 @@ BOOST_AUTO_TEST_CASE(process_withdraw_too_early) {
   // every epoch, it's equal to number of epochs.
   // epoch=706 is the last epoch the finalizer can vote
   uint32_t end_logout = spy.GetCurrentEpoch() + static_cast<uint32_t>(spy.DynastyLogoutDelay());
-  BOOST_CHECK_EQUAL(end_logout, 706);
+  BOOST_CHECK_EQUAL(end_logout, 11);
 
   // From epoch end_logout+1 until end_withdraw-1 finalizer can't withdraw.
   // At end_withdraw or later finalizer can withdraw its deposit.
   uint32_t end_withdraw = end_logout + static_cast<uint32_t>(spy.WithdrawalEpochDelay());
-  BOOST_CHECK_EQUAL(end_withdraw, 15706);
+  BOOST_CHECK_EQUAL(end_withdraw, 21);
 
   for (uint32_t i = spy.GetCurrentEpoch(); i < end_withdraw; ++i) {
     if (spy.GetCurrentDynasty() < validator->m_end_dynasty) {
