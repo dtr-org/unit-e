@@ -495,7 +495,6 @@ libunite_consensus_a_SOURCES = \
   consensus/merkle.h \
   consensus/params.h \
   consensus/validation.h \
-  esperanza/vote.cpp \
   hash.cpp \
   hash.h \
   prevector.h \
@@ -539,6 +538,7 @@ libunite_common_a_SOURCES = \
   core_read.cpp \
   core_write.cpp \
   esperanza/finalizationparams.cpp \
+  esperanza/vote.cpp \
   key.cpp \
   keystore.cpp \
   netaddress.cpp \
