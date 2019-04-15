@@ -80,6 +80,10 @@ public:
         READWRITE(nHashFuncs);
         READWRITE(nTweak);
         READWRITE(nFlags);
+        
+        if (ser_action.ForRead()) {
+            UpdateEmptyFull();
+        }
     }
 
     void insert(const std::vector<unsigned char>& vKey);

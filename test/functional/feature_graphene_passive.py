@@ -57,7 +57,7 @@ class Graphene(UnitETestFramework):
         network_thread_start()
         relay.wait_for_verack()
 
-        self.setup_stake_coins(self.nodes[0])
+        self.setup_stake_coins(self.nodes[0], self.nodes[1])
 
         # We don't allow high performance compact block in this test
         relay.allow((b'sendcmpct', False))
@@ -67,8 +67,8 @@ class Graphene(UnitETestFramework):
         relay.allow((b'block', block_hash))
         sync_blocks([self.nodes[0], self.nodes[1]])
 
-        # self.test_synced_mempool(relay)
-        # self.test_non_synced_mempool(relay)
+        self.test_synced_mempool(relay)
+        self.test_non_synced_mempool(relay)
         self.test_orphans(relay)
 
     def test_synced_mempool(self, relay):
@@ -83,10 +83,17 @@ class Graphene(UnitETestFramework):
         self.log.info("Testing incomplete mempool scenario")
         self.fill_mempool(relay)
 
+        receiver = self.nodes[1]
+        sender = self.nodes[0]
+
+        # add extra txs to receiver, to test bloom filter
+        for _ in range(20):
+            receiver.sendtoaddress(receiver.getnewaddress(), 1)
+
         # This tx won't be broadcast to node1, but it should instead get it
         # with graphentx
-        missing_tx = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 1)
-        block_hash = self.nodes[0].generate(1)[0]
+        missing_tx = sender.sendtoaddress(sender.getnewaddress(), 1)
+        block_hash = sender.generate(1)[0]
 
         relay.allow((b'graphenblock', block_hash))
         relay.allow((b'graphenetx', block_hash))
@@ -95,7 +102,7 @@ class Graphene(UnitETestFramework):
         # We want to make sure that only missing_tx was sent
         self.assert_graphene_txs(graphene_tx, [missing_tx])
 
-        sync_blocks([self.nodes[0], self.nodes[1]])
+        sync_blocks([sender, receiver])
 
     def test_orphans(self, relay):
         self.log.info("Testing orphan scenario")
