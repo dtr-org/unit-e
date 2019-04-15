@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(process_logout_end_dynasty) {
 
   std::map<uint160, Validator> validators = spy.Validators();
   Validator validator = validators.find(validatorAddress)->second;
-  BOOST_CHECK_EQUAL(703, validator.m_end_dynasty);
+  BOOST_CHECK_EQUAL(8, validator.m_end_dynasty);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

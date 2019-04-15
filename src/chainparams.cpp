@@ -91,8 +91,8 @@ public:
 
         finalization.epoch_length = 50;
         finalization.min_deposit_size = 10000 * UNIT;
-        finalization.dynasty_logout_delay = 700;
-        finalization.withdrawal_epoch_delay = static_cast<int>(1.5e4);
+        finalization.dynasty_logout_delay = 5;
+        finalization.withdrawal_epoch_delay = 10;
         finalization.slash_fraction_multiplier = 3;
         finalization.bounty_fraction_denominator = 25;
         finalization.base_interest_factor = ufp64::to_ufp64(7);
