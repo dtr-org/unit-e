@@ -43,10 +43,6 @@ UniValue deposit(const JSONRPCRequest &request)
     throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be enabled to be a finalizer.");
   }
 
-  if (extWallet.validatorState->HasDeposit()) {
-    throw JSONRPCError(RPC_INVALID_REQUEST, "The node is already a finalizer.");
-  }
-
   CTxDestination address = DecodeDestination(request.params[0].get_str());
   if (!IsValidDestination(address)) {
     throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address.");
@@ -59,16 +55,24 @@ UniValue deposit(const JSONRPCRequest &request)
 
   CAmount amount = AmountFromValue(request.params[1]);
 
-  esperanza::ValidatorState &validator = extWallet.validatorState.get();
-  if (validator.m_phase == +esperanza::ValidatorState::Phase::IS_VALIDATING){
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is already validating.");
-  }
-
   {
     LOCK(GetComponent<finalization::StateRepository>()->GetLock());
     const finalization::FinalizationState *fin_state =
       GetComponent<finalization::StateRepository>()->GetTipState();
     assert(fin_state != nullptr);
+
+    switch (extWallet.GetFinalizerPhase(*fin_state)) {
+      case esperanza::ValidatorState::Phase::NOT_VALIDATING:
+        break;
+      case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION:
+      case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION:
+        throw JSONRPCError(RPC_VERIFY_ERROR, "Cannot re-deposit. Only one deposit is allowed.");
+      case esperanza::ValidatorState::Phase::IS_VALIDATING:
+        throw JSONRPCError(RPC_VERIFY_ERROR, "Cannot re-deposit while validating. Withdraw first.");
+      case esperanza::ValidatorState::Phase::WAITING_FOR_WITHDRAW_DELAY:
+      case esperanza::ValidatorState::Phase::WAITING_TO_WITHDRAW:
+        throw JSONRPCError(RPC_VERIFY_ERROR, "Cannot re-deposit while waiting for withdraw.");
+    }
 
     if (!fin_state->ValidateDepositAmount(amount)) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Amount is below minimum allowed.");
@@ -117,10 +121,6 @@ UniValue withdraw(const JSONRPCRequest &request)
 
   assert(extWallet.validatorState);
 
-  if (extWallet.validatorState->m_phase != +esperanza::ValidatorState::Phase::NOT_VALIDATING){
-    throw JSONRPCError(RPC_INVALID_PARAMETER, "The node is validating, logout first.");
-  }
-
   uint256 last_tx_hash;
   {
     auto state_repo = GetComponent<finalization::StateRepository>();
@@ -132,6 +132,25 @@ UniValue withdraw(const JSONRPCRequest &request)
     const esperanza::Validator *validator = state->GetValidator(extWallet.validatorState->m_validator_address);
     if(!validator) {
       throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
+    }
+
+    switch (extWallet.GetFinalizerPhase(*state)) {
+      case esperanza::ValidatorState::Phase::NOT_VALIDATING:
+        throw JSONRPCError(RPC_VERIFY_ERROR, "Deposit wasn't created. Can't withdraw.");
+      case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_CONFIRMATION:
+        throw JSONRPCError(RPC_VERIFY_ERROR, "Deposit is not confirmed. Can't withdraw.");
+      case esperanza::ValidatorState::Phase::WAITING_DEPOSIT_FINALIZATION:
+        throw JSONRPCError(RPC_VERIFY_ERROR, "Deposit is not finalized. Can't withdraw.");
+      case esperanza::ValidatorState::Phase::IS_VALIDATING:
+        if (validator->m_end_dynasty == esperanza::DEFAULT_END_DYNASTY) {
+          throw JSONRPCError(RPC_VERIFY_ERROR, "The node is validating, logout first.");
+        } else {
+          throw JSONRPCError(RPC_VERIFY_ERROR, "Logout delay hasn't passed yet. Can't withdraw.");
+        }
+      case esperanza::ValidatorState::Phase::WAITING_FOR_WITHDRAW_DELAY:
+        throw JSONRPCError(RPC_VERIFY_ERROR, "Withdraw delay hasn't passed yet. Can't withdraw.");
+      case esperanza::ValidatorState::Phase::WAITING_TO_WITHDRAW:
+        break;
     }
 
     last_tx_hash = validator->m_last_transaction_hash;
@@ -188,14 +207,12 @@ UniValue logout(const JSONRPCRequest& request) {
 
     const esperanza::Validator *validator = state->GetValidator(extWallet.validatorState->m_validator_address);
     if (!validator) {
-      throw JSONRPCError(RPC_INVALID_PARAMETER, "Not a validator.");
+      throw JSONRPCError(RPC_INVALID_REQUEST, "Not a validator.");
     }
-  }
 
-  if (extWallet.validatorState->m_phase !=
-      +esperanza::ValidatorState::Phase::IS_VALIDATING) {
-    throw JSONRPCError(RPC_INVALID_PARAMETER,
-                       "The node is not validating.");
+    if (!state->IsFinalizerVoting(*validator)) {
+      throw JSONRPCError(RPC_VERIFY_ERROR, "The node is not validating.");
+    }
   }
 
   CWalletTx tx;
@@ -237,11 +254,17 @@ UniValue getvalidatorinfo(const JSONRPCRequest &request){
     throw JSONRPCError(RPC_INVALID_REQUEST, "The node must be a validator.");
   }
 
-  esperanza::ValidatorState &validator = extWallet.validatorState.get();
+  LOCK2(cs_main, pwallet->cs_wallet);
+
+  LOCK(GetComponent<finalization::StateRepository>()->GetLock());
+  const finalization::FinalizationState *fin_state =
+      GetComponent<finalization::StateRepository>()->GetTipState();
+  assert(fin_state != nullptr);
+
   UniValue obj(UniValue::VOBJ);
 
   obj.pushKV("enabled", gArgs.GetBoolArg("-validating", true));
-  obj.pushKV("validator_status", validator.m_phase._to_string());
+  obj.pushKV("validator_status", extWallet.GetFinalizerPhase(*fin_state)._to_string());
 
   return obj;
 }

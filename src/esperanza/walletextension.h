@@ -192,6 +192,8 @@ class WalletExtension : public staking::StakingWallet {
   boost::optional<ValidatorState> validatorState = boost::none;
   bool nIsValidatorEnabled = false;
 
+  const ValidatorState::Phase GetFinalizerPhase(const FinalizationState &state) const;
+
   EncryptionState GetEncryptionState() const;
 
   bool Unlock(const SecureString &wallet_passphrase, bool for_staking_only);

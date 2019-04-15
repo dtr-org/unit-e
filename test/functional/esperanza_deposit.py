@@ -186,7 +186,7 @@ def test_deposit_too_small(finalizer):
 # Deposit again
 def test_duplicate_deposit(finalizer):
     payto = finalizer.getnewaddress("", "legacy")
-    assert_raises_rpc_error(-32600, "The node is already a finalizer.", finalizer.deposit, payto, 1500)
+    assert_raises_rpc_error(-25, "Cannot re-deposit while validating. Withdraw first.", finalizer.deposit, payto, 1500)
 
 
 if __name__ == '__main__':
