@@ -19,6 +19,7 @@
   t.appendCommand(NAME.name, &NAME);
 
 void RegisterStakingRPCCommands(CRPCTable &t) {
+  STAKING_RPC_COMMAND(calcstakemodifier, "txid", "prev");
   STAKING_RPC_COMMAND(tracechain, "start", "length");
   STAKING_RPC_COMMAND(tracestake, "start", "length", "reverse");
 }

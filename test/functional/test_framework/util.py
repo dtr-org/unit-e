@@ -141,8 +141,11 @@ def assert_matches(actual, expected, strict=True, path=()):
         When given a list invokes assert_matches for every item.
         When given a string the value must equal that string.
         When given an int the value must equal that int.
-        When given a type the value must be of that type.
+        When given a float the value must equal that float.
+        When given a bool the value must equal that bool.
+        When given a Decimal the value must equal that Decimal.
         When given a function the value must satisfy that predicate.
+        When given a type (all other cases) the value must be of that type.
     :param strict:
         In strict mode a dictionary must have exactly the same keys
         (otherwise at least the same keys) and lists must have the same length.
@@ -171,9 +174,7 @@ def assert_matches(actual, expected, strict=True, path=()):
             for actual_item, expected_item in zip(actual, expected):
                 assert_matches(actual_item, expected_item, strict=strict, path=path+(ix,))
                 ix += 1
-        elif type(expected) == str:
-            assert_equal(actual, expected)
-        elif type(expected) == int:
+        elif isinstance(expected, (str, int, float, bool, Decimal)):
             assert_equal(actual, expected)
         elif isinstance(expected, types.FunctionType):
             if not expected(actual, path):

@@ -167,7 +167,7 @@ class AssumeValidTest(UnitETestFramework):
         self.tip = block.sha256
 
         utxo1 = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-        snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+        snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
         height += 1
 
         self.log.info("Bury the block 100 deep so the coinbase output is spendable")
@@ -180,7 +180,7 @@ class AssumeValidTest(UnitETestFramework):
             self.tip = block.sha256
             self.block_time += 1
             utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             height += 1
 
         self.log.info("Create a transaction spending the coinbase output with an invalid (null) signature")
@@ -201,10 +201,10 @@ class AssumeValidTest(UnitETestFramework):
         self.tip = block102.sha256
         self.block_time += 1
 
-        snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+        snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
 
         utxo2 = UTXO(height, tx.get_type(), COutPoint(tx.sha256, 0), tx.vout[0])
-        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta.data, 0, height, [utxo1], [utxo2])
+        snapshot_meta = calc_snapshot_hash(self.nodes[0], snapshot_meta, height, [utxo1], [utxo2])
 
         height += 1
 
@@ -219,7 +219,7 @@ class AssumeValidTest(UnitETestFramework):
             self.tip = block.sha256
             self.block_time += 1
             utxo = UTXO(height, TxType.COINBASE, COutPoint(coinbase.sha256, 0), coinbase.vout[0])
-            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta.data, 0, height, coinbase)
+            snapshot_meta = update_snapshot_with_tx(self.nodes[0], snapshot_meta, height, coinbase)
             height += 1
 
         # We're adding new connections so terminate the network thread

@@ -38,7 +38,7 @@ class ProposerRPC {
 
   virtual UniValue proposerwake(const JSONRPCRequest &request) const = 0;
 
-  virtual UniValue getstakeablecoins(const JSONRPCRequest &request) const = 0;
+  virtual UniValue liststakeablecoins(const JSONRPCRequest &request) const = 0;
 
   virtual ~ProposerRPC() = default;
 

@@ -45,20 +45,20 @@ class BlockValidatorImpl : public AbstractBlockValidator {
   //! - the first input contains only meta information
   //! - the first input's scriptSig contains the block height and snapshot hash
   void CheckCoinbaseTransactionInternal(
-      const CTransactionRef &tx,       //!< [in] The transaction to check
-      blockchain::Height &height_out,  //!< [out] The height extracted from the scriptSig
-      uint256 &snapshot_hash_out,      //!< [out] The snapshot hash extracted from the scriptSig
+      const CTransaction &tx,          //!< [in] The transaction to check
+      blockchain::Height *height_out,  //!< [out] The height extracted from the scriptSig
+      uint256 *snapshot_hash_out,      //!< [out] The snapshot hash extracted from the scriptSig
       BlockValidationResult &result    //!< [in,out] The validation result
       ) const {
-    if (tx->vin.empty()) {
+    if (tx.vin.empty()) {
       result.errors += Error::NO_META_INPUT;
     } else {
-      CheckCoinbaseMetaInputInternal(tx->vin[0], height_out, snapshot_hash_out, result);
+      CheckCoinbaseMetaInputInternal(tx.vin[0], height_out, snapshot_hash_out, result);
     }
-    if (tx->vin.size() < 2) {
+    if (tx.vin.size() < 2) {
       result.AddError(Error::NO_STAKING_INPUT);
     }
-    if (tx->vout.empty()) {
+    if (tx.vout.empty()) {
       result.AddError(Error::COINBASE_TRANSACTION_WITHOUT_OUTPUT);
     }
   }
@@ -69,8 +69,8 @@ class BlockValidatorImpl : public AbstractBlockValidator {
   //! It is then either terminated by OP_0 or some data follows (forwards-compatible).
   void CheckCoinbaseMetaInputInternal(
       const CTxIn &in,                 //!< [in] The input to check
-      blockchain::Height &height_out,  //!< [out] The height extracted from the scriptSig
-      uint256 &snapshot_hash_out,      //!< [out] The snapshot hash extracted from the scriptSig
+      blockchain::Height *height_out,  //!< [out] The height extracted from the scriptSig
+      uint256 *snapshot_hash_out,      //!< [out] The snapshot hash extracted from the scriptSig
       BlockValidationResult &result    //!< [in,out] The validation result
       ) const {
 
@@ -92,8 +92,8 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       CScriptNum height(buf, true);
       if (height < 0 || height > std::numeric_limits<blockchain::Height>::max()) {
         result.AddError(Error::INVALID_BLOCK_HEIGHT);
-      } else {
-        height_out = static_cast<blockchain::Height>(height.getint());
+      } else if (height_out) {
+        *height_out = static_cast<blockchain::Height>(height.getint());
       }
     } catch (scriptnum_error &) {
       result.AddError(Error::INVALID_BLOCK_HEIGHT);
@@ -105,7 +105,9 @@ class BlockValidatorImpl : public AbstractBlockValidator {
       result.AddError(Error::NO_SNAPSHOT_HASH);
       return;
     }
-    snapshot_hash_out = uint256(buf);
+    if (snapshot_hash_out) {
+      *snapshot_hash_out = uint256(buf);
+    }
   }
 
   //! \brief Checks the blocks signature.
@@ -164,8 +166,8 @@ class BlockValidatorImpl : public AbstractBlockValidator {
 
   void CheckBlockInternal(
       const CBlock &block,             //!< [in] The block to check
-      blockchain::Height &height_out,  //!< [out] The height extracted from the scriptSig
-      uint256 &snapshot_hash_out,      //!< [out] The snapshot hash extracted from the scriptSig
+      blockchain::Height *height_out,  //!< [out] The height extracted from the scriptSig
+      uint256 *snapshot_hash_out,      //!< [out] The snapshot hash extracted from the scriptSig
       BlockValidationResult &result    //!< [in,out] The validation result
       ) const override {
 
@@ -177,7 +179,7 @@ class BlockValidatorImpl : public AbstractBlockValidator {
 
     // check that coinbase transaction is first transaction
     if (block.vtx[0]->GetType() == +TxType::COINBASE) {
-      CheckCoinbaseTransactionInternal(block.vtx[0], height_out, snapshot_hash_out, result);
+      CheckCoinbaseTransactionInternal(*block.vtx[0], height_out, snapshot_hash_out, result);
     } else {
       result.AddError(Error::FIRST_TRANSACTION_NOT_A_COINBASE_TRANSACTION);
     }
@@ -241,6 +243,13 @@ class BlockValidatorImpl : public AbstractBlockValidator {
   }
 
  public:
+  BlockValidationResult CheckCoinbaseTransaction(
+      const CTransaction &coinbase_tx) const override {
+    BlockValidationResult result;
+    CheckCoinbaseTransactionInternal(coinbase_tx, nullptr, nullptr, result);
+    return result;
+  }
+
   explicit BlockValidatorImpl(Dependency<blockchain::Behavior> blockchain_behavior)
       : m_blockchain_behavior(blockchain_behavior) {}
 };
@@ -269,7 +278,7 @@ BlockValidationResult AbstractBlockValidator::CheckBlock(
   // perform the actual checks
   blockchain::Height height;
   uint256 snapshot_hash;
-  CheckBlockInternal(block, height, snapshot_hash, result);
+  CheckBlockInternal(block, &height, &snapshot_hash, result);
   // save results in block_validation_info if present
   if (block_validation_info) {
     if (result) {

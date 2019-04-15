@@ -5,6 +5,7 @@
 #ifndef UNIT_E_STAKING_PROOF_OF_STAKE_H
 #define UNIT_E_STAKING_PROOF_OF_STAKE_H
 
+#include <blockchain/blockchain_types.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <pubkey.h>
@@ -57,6 +58,32 @@ std::vector<CPubKey> ExtractBlockSigningKeys(const CTxIn &);
 //! Convenience wrapper: Picks the staking input of the blocks coinbase transaction
 //! and forwards the call to ExtractBlockSigningKeys(const TxIn &).
 std::vector<CPubKey> ExtractBlockSigningKeys(const CBlock &);
+
+//! \brief Computes the kernel hash which determines whether you're eligible for proposing or not.
+//!
+//! The kernel hash must not rely on the contents of the block as this would allow a proposer
+//! to degrade the system into a PoW setting simply by selecting subsets of transactions to
+//! include (this also allows a proposer to produce multiple eligible blocks with different
+//! contents which is why detection of duplicate stake is crucial).
+//!
+//! At the same time the kernel hash must not be easily predictable, which is why some entropy
+//! is added: The "stake modifier" is a value taken from a previous block.
+//!
+//! In case one is not eligible to propose: The cards are being reshuffled every so often,
+//! which is why the "current time" (the block time of the block to propose) is part of the
+//! computation for the kernel hash.
+uint256 ComputeKernelHash(const uint256 &previous_block_stake_modifier,
+                          blockchain::Time stake_block_time,
+                          const uint256 &stake_txid,
+                          std::uint32_t stake_out_index,
+                          blockchain::Time target_block_time);
+
+//! \brief Computes the stake modifier which is used to make the next kernel unpredictable.
+//!
+//! The stake modifier relies on the transaction hash of the coin staked and
+//! the stake modifier of the previous block.
+uint256 ComputeStakeModifier(const uint256 &stake_transaction_hash,
+                             const uint256 &previous_blocks_stake_modifier);
 
 }  // namespace staking
 

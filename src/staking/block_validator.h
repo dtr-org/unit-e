@@ -105,6 +105,15 @@ class BlockValidator {
       BlockValidationInfo *info          //!< [in,out] Access to the validation info for this block (optional, nullptr may be passed).
       ) const = 0;
 
+  //! \brief checks the coinbase transaction to be well-formed
+  //!
+  //! A coinbase transaction is expected to have at least two inputs:
+  //! - the meta input carrying height and snapshot hash at vin[0]
+  //! - the staking input at vin[1]
+  virtual BlockValidationResult CheckCoinbaseTransaction(
+      const CTransaction &coinbase_tx  //!< [in] The coinbase transaction to check
+      ) const = 0;
+
   virtual ~BlockValidator() = default;
 
   static std::unique_ptr<BlockValidator> New(Dependency<blockchain::Behavior>);
@@ -129,8 +138,8 @@ class AbstractBlockValidator : public BlockValidator {
 
   virtual void CheckBlockInternal(
       const CBlock &block,
-      blockchain::Height &height_out,
-      uint256 &snapshot_hash_out,
+      blockchain::Height *height_out,
+      uint256 *snapshot_hash_out,
       BlockValidationResult &result) const = 0;
 
   virtual void ContextualCheckBlockInternal(

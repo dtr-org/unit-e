@@ -379,11 +379,13 @@ class BlockValidatorMock : public staking::BlockValidator {
   mutable std::atomic<std::uint32_t> invocations_CheckBlockHeader{0};
   mutable std::atomic<std::uint32_t> invocations_ContextualCheckBlock{0};
   mutable std::atomic<std::uint32_t> invocations_ContextualCheckBlockHeader{0};
+  mutable std::atomic<std::uint32_t> invocations_CheckCoinbaseTransaction{0};
 
   mutable BlockValidationResult result_CheckBlock;
   mutable BlockValidationResult result_ContextualCheckBlock;
   mutable BlockValidationResult result_CheckBlockHeader;
   mutable BlockValidationResult result_ContextualCheckBlockHeader;
+  mutable BlockValidationResult result_CheckCoinbaseTransaction;
 
   mutable std::function<BlockValidationResult(const CBlock &, BlockValidationInfo *)> stub_CheckBlock =
       [&](const CBlock &block, BlockValidationInfo *info) {
@@ -401,6 +403,10 @@ class BlockValidatorMock : public staking::BlockValidator {
       [&](const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) {
         return result_ContextualCheckBlockHeader;
       };
+  mutable std::function<BlockValidationResult(const CTransaction &)> stub_CheckCoinbaseTransaction =
+      [&](const CTransaction &coinbase_tx) {
+        return result_CheckCoinbaseTransaction;
+      };
 
   BlockValidationResult CheckBlock(const CBlock &block, BlockValidationInfo *info) const override {
     ++invocations_CheckBlock;
@@ -417,6 +423,10 @@ class BlockValidatorMock : public staking::BlockValidator {
   BlockValidationResult ContextualCheckBlockHeader(const CBlockHeader &block_header, const CBlockIndex &block_index, blockchain::Time time, BlockValidationInfo *info) const override {
     ++invocations_ContextualCheckBlockHeader;
     return stub_ContextualCheckBlockHeader(block_header, block_index, time, info);
+  }
+  BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) {
+    ++invocations_CheckCoinbaseTransaction;
+    return stub_CheckCoinbaseTransaction(coinbase_tx);
   }
 };
 

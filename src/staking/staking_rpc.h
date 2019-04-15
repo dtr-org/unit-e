@@ -15,6 +15,7 @@ class BlockDB;
 namespace staking {
 
 class ActiveChain;
+class StakeValidator;
 
 //! \brief The staking RPC commands, dependency injected.
 //!
@@ -30,6 +31,8 @@ class StakingRPC {
   virtual UniValue tracechain(const JSONRPCRequest &request) = 0;
 
   virtual UniValue tracestake(const JSONRPCRequest &request) = 0;
+
+  virtual UniValue calcstakemodifier(const JSONRPCRequest &request) = 0;
 
   virtual ~StakingRPC() = default;
 

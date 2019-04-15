@@ -131,6 +131,12 @@ public:
     //! \brief (Re)computes the merkle trees of this block.
     void ComputeMerkleTrees();
 
+    const CTxIn &GetStakingInput() const {
+        assert(!vtx.empty() && "GetStakingInput() invoked on an empty block");
+        assert(vtx[0]->vin.size() >= 2 && "GetStakingInput() invoked in a block that has no staking input");
+        return vtx[0]->vin[1];
+    }
+
     std::string ToString() const;
 };
 
