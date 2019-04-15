@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(signaturehash_vote)
 
     CPubKey pk = k.GetPubKey();
 
-    CScript prevScriptPK = CScript::CreateCommitScript(pk);
+    CScript prevScriptPK = CScript::CreateFinalizerCommitScript(pk);
     esperanza::Vote vote{pk.GetID(), GetRandHash(), 10, 100};
 
     CMutableTransaction tx;

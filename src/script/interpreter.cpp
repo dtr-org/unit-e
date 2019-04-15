@@ -432,15 +432,15 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                 {
                     switch (checker.GetTxType()) {
 
-                        case TxType::VOTE:{
+                        case TxType::VOTE: {
 
                             if (stack.size() != 3) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
-                            valtype& vchPubKey = stacktop(-1);
-                            valtype& vchVote = stacktop(-2);
-                            valtype& vchSig = stacktop(-3);
+                            const valtype& vchPubKey = stacktop(-1);
+                            const valtype& vchVote = stacktop(-2);
+                            const valtype& vchSig = stacktop(-3);
 
                             valtype voteSig;
                             esperanza::Vote vote;
@@ -462,7 +462,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                                 //serror is set
                                 return false;
                             }
-                            bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+                            const bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
 
                             if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size()) {
                                 return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
@@ -481,20 +481,20 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             stack.push_back(bn.getvch());
                             break;
                         }
-                        case TxType::LOGOUT:{
+                        case TxType::LOGOUT: {
                             if (stack.size() != 2) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_LOGOUT_SCRIPT);
                             }
 
-                            valtype& vchPubKey = stacktop(-1);
-                            valtype& vchSig = stacktop(-2);
+                            const valtype& vchPubKey = stacktop(-1);
+                            const valtype& vchSig = stacktop(-2);
                             CScript scriptCode(pbegincodehash, pend);
 
                             if (!CheckSignatureEncoding(vchSig, flags, serror) || !CheckPubKeyEncoding(vchPubKey, flags, SigVersion::BASE, serror)) {
                                 //serror is set
                                 return false;
                             }
-                            bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+                            const bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
 
                             if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size()) {
                                 return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
@@ -511,19 +511,24 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             stack.push_back(bn.getvch());
                             break;
                         }
-                        case TxType::SLASH:{
+                        case TxType::SLASH: {
                             if (stack.size() != 3) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
                             }
 
-                            valtype& vchPubKey = stacktop(-1);
-                            valtype& vchVote1 = stacktop(-2);
-                            valtype& vchVote2 = stacktop(-3);
+                            const valtype& vchPubKey = stacktop(-1);
+                            const valtype& vchVote1 = stacktop(-2);
+                            const valtype& vchVote2 = stacktop(-3);
 
                             valtype voteSig1;
                             valtype voteSig2;
                             esperanza::Vote vote1;
                             esperanza::Vote vote2;
+
+                            if (vote1.GetHash() == vote2.GetHash()) {
+                                return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
+                            }
+
                             CScript voteScript = CScript() << CScriptNum(0) << vchVote1;
                             if (!CScript::ExtractVoteFromVoteSignature(voteScript, vote1, voteSig1)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
@@ -541,14 +546,11 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             }
 
                             // Check vote2 signature
-                          if (!pubkey.Verify(vote2.GetHash(), voteSig2)) {
+                            if (!pubkey.Verify(vote2.GetHash(), voteSig2)) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SIG);
                             }
 
-                            uint160 validatorAddress1 = vote1.m_validator_address;
-                            uint160 validatorAddress2 = vote2.m_validator_address;
-
-                            if (validatorAddress1 != validatorAddress2) {
+                            if (vote1.m_validator_address != vote2.m_validator_address) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_SLASH_NOT_SAME_VALIDATOR);
                             }
 
@@ -1071,7 +1073,7 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         //serror is set
                         return false;
                     }
-                    bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
+                    const bool fSuccess = checker.CheckSig(vchSig, vchPubKey, scriptCode, sigversion);
 
                     if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && vchSig.size())
                         return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);

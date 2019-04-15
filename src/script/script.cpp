@@ -231,7 +231,7 @@ bool CScript::IsPayToPublicKeyHash() const
         (*this)[24] == OP_CHECKSIG);
 }
 
-CScript CScript::CreateCommitScript(const CPubKey &pubkey)
+CScript CScript::CreateFinalizerCommitScript(const CPubKey &pubkey)
 {
     return CScript() <<
                      ToByteVector(pubkey) <<

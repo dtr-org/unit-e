@@ -289,7 +289,7 @@ bool WalletExtension::SendDeposit(const CKeyID &keyID, CAmount amount,
   CPubKey pubKey;
   m_enclosing_wallet.GetPubKey(keyID, pubKey);
 
-  CRecipient r{CScript::CreateCommitScript(pubKey), amount, /*fSubtractFeeFromAmount=*/false};
+  CRecipient r{CScript::CreateFinalizerCommitScript(pubKey), amount, /*fSubtractFeeFromAmount=*/false};
   vecSend.push_back(r);
 
   if (!m_enclosing_wallet.CreateTransaction(

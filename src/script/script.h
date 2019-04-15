@@ -704,7 +704,7 @@ public:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
-    static CScript CreateCommitScript(const CPubKey &pubkey);
+    static CScript CreateFinalizerCommitScript(const CPubKey &pubkey);
     static CScript CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash);
     static CScript CreateUnspendableScript();
     static CScript CreateRemoteStakingKeyhashScript(const std::vector<unsigned char> &staking_key_hash,

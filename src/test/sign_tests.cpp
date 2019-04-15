@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
   CScript voteScript = CScript::EncodeVote(vote, voteSig);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, voteScript, CTxIn::SEQUENCE_FINAL));
 
-  const CScript &prevScriptPubKey = CScript::CreateCommitScript(pk);
+  const CScript &prevScriptPubKey = CScript::CreateFinalizerCommitScript(pk);
   const CAmount amount = 10000000;
 
   CTxOut out(amount, prevScriptPubKey);
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(producesignature_logout) {
   CScript scriptSig = CScript() << ToByteVector(pk);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
-  const CScript& prevScriptPubKey = CScript::CreateCommitScript(pk);
+  const CScript& prevScriptPubKey = CScript::CreateFinalizerCommitScript(pk);
   const CAmount amount = 10000000;
   CTxOut txout(amount, prevScriptPubKey);
 
@@ -133,7 +133,7 @@ BOOST_AUTO_TEST_CASE(producesignature_withdraw) {
   CScript scriptSig = CScript() << ToByteVector(pk);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
-  const CScript& prevScriptPubKey = CScript::CreateCommitScript(pk);
+  const CScript& prevScriptPubKey = CScript::CreateFinalizerCommitScript(pk);
   const CScript& scriptPubKey = CScript::CreateP2PKHScript(ToByteVector(pk.GetID()));
   const CAmount amount = 10000000;
   CTxOut txout(amount, scriptPubKey);
