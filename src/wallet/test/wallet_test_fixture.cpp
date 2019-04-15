@@ -9,6 +9,7 @@
 #include <validation.h>
 #include <wallet/db.h>
 #include <wallet/rpcvalidator.h>
+#include <wallet/rpcwalletext.h>
 #include <consensus/merkle.h>
 #include <test/test_unite_mocks.h>
 
@@ -35,6 +36,7 @@ WalletTestingSetup::WalletTestingSetup(std::function<void(Settings&)> f, const s
 
     RegisterWalletRPCCommands(tableRPC);
     RegisterValidatorRPCCommands(tableRPC);
+    RegisterWalletextRPCCommands(tableRPC);
 }
 
 WalletTestingSetup::~WalletTestingSetup()

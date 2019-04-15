@@ -1685,7 +1685,9 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
 
     // Compute fee:
     CAmount nDebit = GetDebit(filter);
-    if (nDebit > 0) { // debit>0 means we signed/sent this transaction
+    if (nDebit > 0 && !IsCoinBase()) {
+        // debit>0 means we signed/sent this transaction
+        // Coinbase transactions cannot have fees
         CAmount nValueOut = tx->GetValueOut();
         nFee = nDebit - nValueOut;
     }
@@ -1699,7 +1701,7 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
         //   2) the output is to us (received)
         if (nDebit > 0) {
             // Don't report 'change' txouts
-            if (pwallet->IsChange(txout)) {
+            if (!IsCoinBase() && pwallet->IsChange(txout)) {
                 continue;
             }
         } else if (!(fIsMine & filter)) {
@@ -1716,6 +1718,20 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
         }
 
         COutputEntry output = {address, txout.nValue, (int)i};
+
+        if (IsCoinBase()) {
+            // TODO UNIT-E: implement a better way to distinguish reward outputs
+            // For example, current approach does not work in case of stake splitting
+            if (i == tx->vout.size() - 1) {
+                // We consider the last output (and only it) to be a non-reward output
+                if (nDebit > 0 && !(fIsMine & filter)) {
+                    listSent.push_back(output);
+                }
+            } else if (fIsMine & filter) {
+                listReceived.push_back(output);
+            }
+            continue;
+        }
 
         // If we are debited by the transaction, add the output as a "sent" entry
         if (nDebit > 0) {
