@@ -26,21 +26,15 @@ Parameters Parameters::Base() noexcept {
   p.coinbase_maturity = 100;
   p.stake_maturity = 200;
   p.stake_maturity_activation_height = 400;
-  p.initial_supply = 150000000000000000;
-  p.reward_schedule = {3750000000, 1700000000, 550000000, 150000000, 31000000};
+  p.initial_supply = 1500000000 * UNIT;  // 1.5 billion UTE
+  const int64_t expected_maximum_supply = 2718275100 * UNIT;  // e billion UTE
+  const int64_t avg_blocks_per_year = 60 * 60 * 24 * 365 / p.block_time_seconds;
+  const int64_t expected_emission_years = 50;
+  p.reward = (expected_maximum_supply - p.initial_supply) / (avg_blocks_per_year * expected_emission_years);
   p.immediate_reward_fraction = ufp64::div_2uint(1, 10);
-  p.period_blocks = 19710000;
-  p.maximum_supply = 2718275100 * UNIT;  // e billion UTE
-  assert(p.maximum_supply == p.initial_supply + std::accumulate(p.reward_schedule.begin(), p.reward_schedule.end(), CAmount(0)) * p.period_blocks);
+  assert(expected_maximum_supply == p.initial_supply + (p.reward * avg_blocks_per_year * expected_emission_years));
   p.reward_function = [](const Parameters &p, Height h) -> CAmount {
-    const uint64_t period = h / p.period_blocks;
-
-    CAmount base_reward = 0;
-
-    if (period < p.reward_schedule.size()) {
-      base_reward = static_cast<uint64_t>(p.reward_schedule[period]);
-    }
-    return ufp64::mul_to_uint(p.immediate_reward_fraction, base_reward);
+    return ufp64::mul_to_uint(p.immediate_reward_fraction, p.reward);
   };
 
   p.difficulty_adjustment_window = 128;
@@ -151,6 +145,7 @@ Parameters Parameters::RegTest() noexcept {
   p.coinbase_maturity = 1;
   p.stake_maturity = 2;
   p.stake_maturity_activation_height = 1000;
+  p.reward = 3750000000;
 
   p.message_start_characters[0] = 0xfa;
   p.message_start_characters[1] = 0xbf;

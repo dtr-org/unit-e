@@ -339,9 +339,7 @@ blockchain::Parameters ReadCustomParametersFromJson(
   READ_PARAMETER(stake_maturity);
   READ_PARAMETER(stake_maturity_activation_height);
   READ_PARAMETER(initial_supply);
-  READ_PARAMETER(maximum_supply);
-  READ_PARAMETER(reward_schedule);
-  READ_PARAMETER(period_blocks);
+  READ_PARAMETER(reward);
   READ_PARAMETER(mine_blocks_on_demand);
   READ_PARAMETER(bech32_human_readable_prefix);
   READ_PARAMETER(deployment_confirmation_period);

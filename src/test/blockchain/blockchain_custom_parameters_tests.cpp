@@ -25,9 +25,7 @@ BOOST_AUTO_TEST_CASE(load_all_from_json) {
       "\"coinbase_maturity\":4716,"
       "\"stake_maturity\":4717,"
       "\"initial_supply\":4718,"
-      "\"maximum_supply\":4719,"
-      "\"reward_schedule\":[9,8,7,6],"
-      "\"period_blocks\":4720,"
+      "\"reward\":9,"
       "\"mine_blocks_on_demand\":false,"
       "\"bech32_human_readable_prefix\":\"pfx\","
       "\"deployment_confirmation_period\":4721,"
@@ -48,10 +46,7 @@ BOOST_AUTO_TEST_CASE(load_all_from_json) {
   BOOST_CHECK_EQUAL(custom_parameters->coinbase_maturity, 4716);
   BOOST_CHECK_EQUAL(custom_parameters->stake_maturity, 4717);
   BOOST_CHECK_EQUAL(custom_parameters->initial_supply, 4718);
-  BOOST_CHECK_EQUAL(custom_parameters->maximum_supply, 4719);
-  const std::vector<std::int64_t> expected_reward_schedule = {9, 8, 7, 6};
-  BOOST_CHECK_EQUAL(custom_parameters->reward_schedule, expected_reward_schedule);
-  BOOST_CHECK_EQUAL(custom_parameters->period_blocks, 4720);
+  BOOST_CHECK_EQUAL(custom_parameters->reward, 9);
   BOOST_CHECK_EQUAL(custom_parameters->mine_blocks_on_demand, false);
   BOOST_CHECK_EQUAL(custom_parameters->bech32_human_readable_prefix, "pfx");
   BOOST_CHECK_EQUAL(custom_parameters->deployment_confirmation_period, 4721);
@@ -70,7 +65,6 @@ BOOST_AUTO_TEST_CASE(fallback_to_base_parameters) {
       "\"maximum_block_weight\":4714,"
       "\"maximum_block_serialized_size\":4715,"
       "\"coinbase_maturity\":4716,"
-      "\"period_blocks\":4720,"
       "\"mine_blocks_on_demand\":true,"
       "\"deployment_confirmation_period\":4721,"
       "\"rule_change_activation_threshold\":4722,"
@@ -88,9 +82,7 @@ BOOST_AUTO_TEST_CASE(fallback_to_base_parameters) {
   BOOST_CHECK_EQUAL(custom_parameters.coinbase_maturity, 4716);
   BOOST_CHECK_EQUAL(custom_parameters.stake_maturity, fallback_parameters.stake_maturity);
   BOOST_CHECK_EQUAL(custom_parameters.initial_supply, fallback_parameters.initial_supply);
-  BOOST_CHECK_EQUAL(custom_parameters.maximum_supply, fallback_parameters.maximum_supply);
-  BOOST_CHECK_EQUAL(custom_parameters.reward_schedule, fallback_parameters.reward_schedule);
-  BOOST_CHECK_EQUAL(custom_parameters.period_blocks, 4720);
+  BOOST_CHECK_EQUAL(custom_parameters.reward, fallback_parameters.reward);
   BOOST_CHECK_EQUAL(custom_parameters.mine_blocks_on_demand, true);
   BOOST_CHECK_EQUAL(custom_parameters.bech32_human_readable_prefix, fallback_parameters.bech32_human_readable_prefix);
   BOOST_CHECK_EQUAL(custom_parameters.deployment_confirmation_period, 4721);
