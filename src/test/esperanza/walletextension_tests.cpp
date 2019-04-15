@@ -80,8 +80,7 @@ BOOST_FIXTURE_TEST_CASE(sign_coinbase_transaction, WalletTestingSetup) {
   const auto pubkey = key.GetPubKey();
   const auto pubkeydata = std::vector<unsigned char>(pubkey.begin(), pubkey.end());
 
-  auto behavior = blockchain::Behavior::NewFromParameters(blockchain::Parameters::TestNet());
-  auto block_builder = proposer::BlockBuilder::New(behavior.get(), &settings);
+  auto block_builder = proposer::BlockBuilder::New(&settings);
 
   {
     LOCK(pwalletMain->cs_wallet);

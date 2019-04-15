@@ -116,7 +116,6 @@ class UnitEInjector : public Injector<UnitEInjector> {
   COMPONENT(MultiWallet, proposer::MultiWallet, proposer::MultiWallet::New)
 
   COMPONENT(BlockBuilder, proposer::BlockBuilder, proposer::BlockBuilder::New,
-            blockchain::Behavior,
             Settings)
 
   COMPONENT(ProposerRPC, proposer::ProposerRPC, proposer::ProposerRPC::New,
