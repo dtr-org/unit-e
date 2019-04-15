@@ -511,17 +511,17 @@ bool IsSolvable(const SigningProvider& provider, const CScript& script)
 }
 
 bool CreateVoteSignature(CKeyStore *keystore, const esperanza::Vote &vote,
-                           std::vector<unsigned char> &voteSigOut) {
+                           std::vector<unsigned char> &vote_sig_out) {
 
-  CKey privKey;
-  if (!keystore->GetKey(CKeyID(vote.m_validator_address), privKey)) {
+  CKey priv_key;
+  if (!keystore->GetKey(CKeyID(vote.m_validator_address), priv_key)) {
     return false;
   }
 
-  return privKey.Sign(vote.GetHash(), voteSigOut);
+  return priv_key.Sign(vote.GetHash(), vote_sig_out);
 }
 
 bool CheckVoteSignature(const CPubKey &pubkey, const esperanza::Vote &vote,
-                          std::vector<unsigned char> &voteSig) {
-  return pubkey.Verify(vote.GetHash(), voteSig);
+                          std::vector<unsigned char> &vote_sig) {
+  return pubkey.Verify(vote.GetHash(), vote_sig);
 }

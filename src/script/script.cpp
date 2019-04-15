@@ -131,7 +131,7 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP1                   : return "OP_NOP1";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
-    case OP_CHECKCOMMIT            : return "OP_CHECKVOTESIG";
+    case OP_CHECKCOMMIT            : return "OP_CHECKCOMMIT";
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
     case OP_NOP8                   : return "OP_NOP8";
@@ -282,7 +282,7 @@ bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
         (*this)[ofs + 24] == OP_CHECKSIG);
 }
 
-bool CScript::MatchPayVoteSlashScript(size_t ofs) const
+bool CScript::MatchFinalizerCommitScript(size_t ofs) const
 {
     // Extra-fast test for pay-vote-slash script hash CScripts:
     return (this->size() - ofs == 64 &&
@@ -300,7 +300,7 @@ bool CScript::MatchPayVoteSlashScript(size_t ofs) const
 
 bool CScript::IsCommitScript() const
 {
-    return (this->size() == 64 && this->MatchPayVoteSlashScript(0));
+    return this->MatchFinalizerCommitScript(0);
 }
 
 bool CScript::IsPayToScriptHash() const

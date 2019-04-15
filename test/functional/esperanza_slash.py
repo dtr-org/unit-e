@@ -179,7 +179,7 @@ class EsperanzaSlashTest(UnitETestFramework):
                                          'validators': 1})
         self.log.info('double-vote with invalid signature is ignored')
 
-        # test that valid double-vote but corrupted withdraw address
+        # test that valid double-vote but corrupt withdraw address
         # creates slash tx it is included in the next block
         #                                      v1          v2a
         #                                    - e6 - e7[31, 32] fork1

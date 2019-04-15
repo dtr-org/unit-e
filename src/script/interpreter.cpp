@@ -479,7 +479,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                             CScriptNum bn(OP_TRUE);
                             stack.push_back(bn.getvch());
-                        } break;
+                            break;
+                        }
                         case TxType::LOGOUT:{
                             if (stack.size() != 2) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_LOGOUT_SCRIPT);
@@ -508,8 +509,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                             CScriptNum bn(OP_TRUE);
                             stack.push_back(bn.getvch());
-
-                        }break;
+                            break;
+                        }
                         case TxType::SLASH:{
                             if (stack.size() != 3) {
                                 return set_error(serror, SCRIPT_ERR_INVALID_VOTE_SCRIPT);
@@ -572,12 +573,14 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
 
                             CScriptNum bn(OP_TRUE);
                             stack.push_back(bn.getvch());
-                        }break;
+                            break;
+                        }
                         default: {
                             popstack(stack); // Remove the pubkey
                             CScriptNum bn(OP_FALSE);
                             stack.push_back(bn.getvch());
-                        } break;
+                            break;
+                        }
                     }
                 }
                 break;
@@ -1795,7 +1798,7 @@ size_t CountWitnessSigOps(const CScript& scriptSig, const CScript& scriptPubKey,
     return 0;
 }
 
-bool IsCommitScript(const CScript &script)
+bool IsFinalizerCommitScript(const CScript &script)
 {
     return script.IsCommitScript();
 }

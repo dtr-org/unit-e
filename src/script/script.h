@@ -720,7 +720,7 @@ public:
     bool IsWitnessProgram() const;
     bool ExtractWitnessProgram(WitnessProgram &witnessProgram) const;
     bool MatchPayToPublicKeyHash(size_t ofs) const;
-    bool MatchPayVoteSlashScript(size_t ofs) const;
+    bool MatchFinalizerCommitScript(size_t ofs) const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;

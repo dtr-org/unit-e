@@ -89,10 +89,20 @@ void UpdateTransaction(CMutableTransaction& tx, unsigned int nIn, const Signatur
  * Solvability is unrelated to whether we consider this output to be ours. */
 bool IsSolvable(const SigningProvider& provider, const CScript& script);
 
+//! \brief Signs the vote passed with the keystore passed
+//! \param[in] keystore the keystore used to sign the vote
+//! \param[in] vote the vote data
+//! \param[out] vote_sig_out the resulting signauture
+//! \return true if successful, false otherwise
 bool CreateVoteSignature(CKeyStore *keystore, const esperanza::Vote &vote,
-                            std::vector<unsigned char> &voteSigOut);
+                            std::vector<unsigned char> &vote_sig_out);
 
+//! \brief Checks the vote and the signature passed against the pubkey passed.
+//! \param[in] pubkey the public key used to check the signature
+//! \param[in] vote the vote
+//! \param[in] vote_sig the vote signature
+//! \return true if the signature matches, false otherwise
 bool CheckVoteSignature(const CPubKey &pubkey, const esperanza::Vote &vote,
-                           std::vector<unsigned char> &voteSig);
+                           std::vector<unsigned char> &vote_sig);
 
 #endif // UNITE_SCRIPT_SIGN_H
