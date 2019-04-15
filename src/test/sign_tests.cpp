@@ -13,6 +13,7 @@
 #include <util.h>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/unit_test_log.hpp>
+#include <core_io.h>
 
 BOOST_FIXTURE_TEST_SUITE(sign_tests, ReducedTestingSetup)
 
@@ -34,12 +35,12 @@ BOOST_AUTO_TEST_CASE(producesignature_vote) {
 
   //we don't need to test here the signing process, that is already tested elsewhere
   std::vector<unsigned char> voteSig;
-  BOOST_CHECK(k.Sign(GetRandHash(), voteSig));
+  BOOST_CHECK(k.Sign(vote.GetHash(), voteSig));
 
   CScript voteScript = CScript::EncodeVote(vote, voteSig);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, voteScript, CTxIn::SEQUENCE_FINAL));
 
-  const CScript &prevScriptPubKey = CScript::CreatePayVoteSlashScript(pk);
+  const CScript &prevScriptPubKey = CScript::CreateFinalizerCommitScript(pk);
   const CAmount amount = 10000000;
 
   CTxOut out(amount, prevScriptPubKey);
@@ -87,7 +88,7 @@ BOOST_AUTO_TEST_CASE(producesignature_logout) {
   CScript scriptSig = CScript() << ToByteVector(pk);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
-  const CScript& prevScriptPubKey = CScript::CreatePayVoteSlashScript(pk);
+  const CScript& prevScriptPubKey = CScript::CreateFinalizerCommitScript(pk);
   const CAmount amount = 10000000;
   CTxOut txout(amount, prevScriptPubKey);
 
@@ -104,7 +105,7 @@ BOOST_AUTO_TEST_CASE(producesignature_logout) {
       TransactionSignatureCreator(&txToConst, nIn, amount, SIGHASH_ALL),
       prevScriptPubKey, sigdata, &txToConst));
 
-  txn.vin[0].scriptSig = sigdata.scriptSig + scriptSig;
+  txn.vin[0].scriptSig = sigdata.scriptSig;
 
   ScriptError serror;
   BOOST_CHECK(VerifyScript(
@@ -132,7 +133,7 @@ BOOST_AUTO_TEST_CASE(producesignature_withdraw) {
   CScript scriptSig = CScript() << ToByteVector(pk);
   txn.vin.push_back(CTxIn(GetRandHash(), 0, scriptSig, CTxIn::SEQUENCE_FINAL));
 
-  const CScript& prevScriptPubKey = CScript::CreatePayVoteSlashScript(pk);
+  const CScript& prevScriptPubKey = CScript::CreateFinalizerCommitScript(pk);
   const CScript& scriptPubKey = CScript::CreateP2PKHScript(ToByteVector(pk.GetID()));
   const CAmount amount = 10000000;
   CTxOut txout(amount, scriptPubKey);
@@ -150,7 +151,7 @@ BOOST_AUTO_TEST_CASE(producesignature_withdraw) {
       TransactionSignatureCreator(&txToConst, nIn, amount, SIGHASH_ALL),
       prevScriptPubKey, sigdata, &txToConst));
 
-  txn.vin[0].scriptSig = sigdata.scriptSig + scriptSig;
+  txn.vin[0].scriptSig = sigdata.scriptSig;
 
   ScriptError serror;
   BOOST_CHECK(VerifyScript(

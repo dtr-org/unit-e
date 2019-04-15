@@ -291,7 +291,7 @@ UniValue createvotetransaction(const JSONRPCRequest &request) {
   const CAmount amount = prev_tx->vout[0].nValue;
 
   std::vector<unsigned char> vote_sig;
-  if (!esperanza::Vote::CreateSignature(pwallet, vote, vote_sig)) {
+  if (!CreateVoteSignature(pwallet, vote, vote_sig)) {
     throw JSONRPCError(RPC_WALLET_ERROR, "Cannot sign vote");
   }
 

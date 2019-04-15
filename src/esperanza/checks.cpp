@@ -7,6 +7,7 @@
 #include <esperanza/checks.h>
 #include <esperanza/finalizationstate.h>
 #include <script/interpreter.h>
+#include <script/sign.h>
 #include <script/standard.h>
 #include <txmempool.h>
 #include <util.h>
@@ -109,7 +110,7 @@ bool CheckDepositTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-deposit-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-deposit-vout-script");
   }
@@ -168,7 +169,7 @@ bool CheckLogoutTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-logout-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
     return err_state.DoS(100, false, REJECT_INVALID,
                          "bad-logout-vout-script");
   }
@@ -308,7 +309,7 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-malformed");
   }
 
-  if (!IsPayVoteSlashScript(tx.vout[0].scriptPubKey)) {
+  if (!tx.vout[0].scriptPubKey.IsFinalizerCommitScript()) {
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-vout-script");
   }
 
@@ -331,7 +332,7 @@ bool CheckVoteTx(const CTransaction &tx, CValidationState &err_state,
                          "bad-scriptpubkey-pubkey-format");
   }
 
-  if (!esperanza::Vote::CheckSignature(pubkey, *vote_out, *vote_sig_out)) {
+  if (!CheckVoteSignature(pubkey, *vote_out, *vote_sig_out)) {
     return err_state.DoS(100, false, REJECT_INVALID, "bad-vote-signature");
   }
 
@@ -544,7 +545,7 @@ bool ExtractValidatorAddress(const CTransaction &tx,
       txnouttype typeRet;
 
       if (Solver(tx.vout[0].scriptPubKey, typeRet, vSolutions)) {
-        assert(typeRet == TX_PAYVOTESLASH);
+        assert(typeRet == TX_COMMIT);
         validatorAddressOut = CPubKey(vSolutions[0]).GetID();
         return true;
       }

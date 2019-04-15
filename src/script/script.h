@@ -176,14 +176,10 @@ enum opcodetype
     OP_CHECKSEQUENCEVERIFY = 0xb2,
     OP_NOP3 = OP_CHECKSEQUENCEVERIFY,
 
-    //UNIT-E: Custom operation to check a vote's signature
-    OP_CHECKVOTESIG = 0xb3,
-    OP_NOP4 = OP_CHECKVOTESIG,
+    OP_CHECKCOMMIT = 0xb3,
+    OP_NOP4 = OP_CHECKCOMMIT,
 
-    //UNIT-E: Custom operation to check slashing conditions
-    OP_SLASHABLE = 0xb4,
-    OP_NOP5 = OP_SLASHABLE,
-
+    OP_NOP5 = 0xb4,
     OP_NOP6 = 0xb5,
     OP_NOP7 = 0xb6,
     OP_NOP8 = 0xb7,
@@ -708,7 +704,7 @@ public:
      */
     unsigned int GetSigOpCount(const CScript& scriptSig) const;
 
-    static CScript CreatePayVoteSlashScript(const CPubKey &pubkey);
+    static CScript CreateFinalizerCommitScript(const CPubKey &pubkey);
     static CScript CreateP2PKHScript(const std::vector<unsigned char> &publicKeyHash);
     static CScript CreateUnspendableScript();
     static CScript CreateRemoteStakingKeyhashScript(const std::vector<unsigned char> &staking_key_hash,
@@ -718,15 +714,13 @@ public:
 
     bool IsPayToPublicKeyHash() const;
     bool IsPayToScriptHash() const;
-    bool IsPayVoteSlashScript() const;
+    bool IsFinalizerCommitScript() const;
     bool IsPayToWitnessScriptHash() const;
     bool IsPayToWitnessPublicKeyHash() const;
     bool IsWitnessProgram() const;
     bool ExtractWitnessProgram(WitnessProgram &witnessProgram) const;
     bool MatchPayToPublicKeyHash(size_t ofs) const;
-    bool MatchPayVoteSlashScript(size_t ofs) const;
-    bool MatchVoteScript(size_t ofs) const;
-    bool MatchSlashScript(size_t ofs) const;
+    bool MatchFinalizerCommitScript(size_t ofs) const;
 
     /** Called by IsStandardTx and P2SH/BIP62 VerifyScript (which makes it consensus-critical). */
     bool IsPushOnly(const_iterator pc) const;

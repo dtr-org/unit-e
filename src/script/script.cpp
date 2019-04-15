@@ -131,8 +131,7 @@ const char* GetOpName(opcodetype opcode)
     case OP_NOP1                   : return "OP_NOP1";
     case OP_CHECKLOCKTIMEVERIFY    : return "OP_CHECKLOCKTIMEVERIFY";
     case OP_CHECKSEQUENCEVERIFY    : return "OP_CHECKSEQUENCEVERIFY";
-    case OP_CHECKVOTESIG           : return "OP_CHECKVOTESIG";
-    case OP_SLASHABLE              : return "OP_SLASHABLE";
+    case OP_CHECKCOMMIT            : return "OP_CHECKCOMMIT";
     case OP_NOP6                   : return "OP_NOP6";
     case OP_NOP7                   : return "OP_NOP7";
     case OP_NOP8                   : return "OP_NOP8";
@@ -232,18 +231,13 @@ bool CScript::IsPayToPublicKeyHash() const
         (*this)[24] == OP_CHECKSIG);
 }
 
-CScript CScript::CreatePayVoteSlashScript(const CPubKey &pubkey)
+CScript CScript::CreateFinalizerCommitScript(const CPubKey &pubkey)
 {
     return CScript() <<
                      ToByteVector(pubkey) <<
-                     OP_CHECKVOTESIG <<
+                     OP_CHECKCOMMIT <<
 
                      OP_IF << OP_TRUE << OP_ELSE <<
-
-                     ToByteVector(pubkey) <<
-                     OP_SLASHABLE <<
-
-                     OP_NOTIF <<
 
                      OP_DUP <<
                      OP_HASH160 <<
@@ -251,10 +245,6 @@ CScript CScript::CreatePayVoteSlashScript(const CPubKey &pubkey)
                      OP_EQUALVERIFY <<
                      OP_CHECKSIG <<
 
-                     OP_ELSE <<
-                     OP_TRUE <<
-
-                     OP_ENDIF <<
                      OP_ENDIF;
 }
 
@@ -292,46 +282,25 @@ bool CScript::MatchPayToPublicKeyHash(size_t ofs) const
         (*this)[ofs + 24] == OP_CHECKSIG);
 }
 
-bool CScript::MatchPayVoteSlashScript(size_t ofs) const
+bool CScript::MatchFinalizerCommitScript(size_t ofs) const
 {
     // Extra-fast test for pay-vote-slash script hash CScripts:
-    return (this->size() - ofs == 103 &&
-        this->MatchVoteScript(0) &&
+    return (this->size() - ofs == 64 &&
+        (*this)[ofs + 0] == 0x21 &&
+        (*this)[ofs + 34] == OP_CHECKCOMMIT) &&
 
         (*this)[ofs + 35] == OP_IF &&
         (*this)[ofs + 36] == OP_TRUE &&
-
         (*this)[ofs + 37] == OP_ELSE &&
 
-        this->MatchSlashScript(38) &&
+        this->MatchPayToPublicKeyHash(38) &&
 
-        (*this)[ofs + 73] == OP_NOTIF &&
-
-        this->MatchPayToPublicKeyHash(74) &&
-
-        (*this)[ofs + 99] == OP_ELSE &&
-        (*this)[ofs + 100] == OP_TRUE &&
-        (*this)[ofs + 101] == OP_ENDIF &&
-        (*this)[ofs + 102] == OP_ENDIF);
+        (*this)[ofs + 63] == OP_ENDIF;
 }
 
-bool CScript::IsPayVoteSlashScript() const
+bool CScript::IsFinalizerCommitScript() const
 {
-    return (this->size() == 103 && this->MatchPayVoteSlashScript(0));
-}
-
-bool CScript::MatchVoteScript(size_t ofs) const
-{
-    return (this->size() - ofs >= 35 &&
-        (*this)[ofs + 0] == 0x21 &&
-        (*this)[ofs + 34] == OP_CHECKVOTESIG);
-}
-
-bool CScript::MatchSlashScript(size_t ofs) const
-{
-    return (this->size() - ofs >= 35 &&
-        (*this)[ofs + 0] == 0x21 &&
-        (*this)[ofs + 34] == OP_SLASHABLE);
+    return this->MatchFinalizerCommitScript(0);
 }
 
 bool CScript::IsPayToScriptHash() const
@@ -581,11 +550,6 @@ bool CScript::ExtractVotesFromSlashSignature(const CScript &scriptSig,
   const_iterator pc = scriptSig.begin();
   std::vector<unsigned char> vData;
   opcodetype opcode;
-
-  //Skip the first value (txSig)
-  if(!scriptSig.GetOp(pc, opcode)) {
-      return false;
-  }
 
   //Unpack the first vote
   if (!scriptSig.GetOp(pc, opcode, vData)) {
