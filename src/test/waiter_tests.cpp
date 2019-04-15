@@ -20,7 +20,7 @@ void WaitValue(const std::atomic<bool> &value) {
   while (!value) {
     const auto now = std::chrono::steady_clock::now();
     BOOST_REQUIRE(now < wait_until);
-    std::this_thread::yield();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
 
