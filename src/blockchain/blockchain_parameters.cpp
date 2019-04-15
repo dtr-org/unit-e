@@ -26,7 +26,7 @@ Parameters Parameters::Base() noexcept {
   p.coinbase_maturity = 100;
   p.stake_maturity = 200;
   p.stake_maturity_activation_height = 400;
-  p.initial_supply = 1500000000 * UNIT;  // 1.5 billion UTE
+  p.initial_supply = 1500000000 * UNIT;                       // 1.5 billion UTE
   const int64_t expected_maximum_supply = 2718275100 * UNIT;  // e billion UTE
   const int64_t avg_blocks_per_year = 60 * 60 * 24 * 365 / p.block_time_seconds;
   const int64_t expected_emission_years = 50;
