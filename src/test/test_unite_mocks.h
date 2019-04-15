@@ -424,7 +424,7 @@ class BlockValidatorMock : public staking::BlockValidator {
     ++invocations_ContextualCheckBlockHeader;
     return stub_ContextualCheckBlockHeader(block_header, block_index, time, info);
   }
-  BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) {
+  BlockValidationResult CheckCoinbaseTransaction(const CTransaction &coinbase_tx) const override {
     ++invocations_CheckCoinbaseTransaction;
     return stub_CheckCoinbaseTransaction(coinbase_tx);
   }

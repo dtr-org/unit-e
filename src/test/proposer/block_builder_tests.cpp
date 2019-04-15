@@ -84,9 +84,7 @@ struct Fixture {
   }
 
   std::unique_ptr<proposer::BlockBuilder> MakeBlockBuilder() {
-    return proposer::BlockBuilder::New(
-        behavior.get(),
-        settings.get());
+    return proposer::BlockBuilder::New(settings.get());
   }
 };
 
